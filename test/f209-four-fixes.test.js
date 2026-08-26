@@ -73,19 +73,42 @@ describe('f209 · the column says what has not been sent', () => {
     return c;
   };
 
-  test('the band counts our unsent asks, and says so', async () => {
+  /* ---- CLAIMS REVERSED IN PLACE, 26 Aug 2026 ----
+     The owner deleted the strip and kept the act: "delete the entire long strip
+     complete and leave that space for the change cards. Move the send all
+     button to ... the opposite side of tracked changes. Only move the button."
+     So every claim below moves from rlUnsentBandHtml to rlUnsentSendHtml — the
+     COUNT, the ONE POSTBOX, the two seats, the silence where there is nothing
+     to send, and the refusal to a read-only reader are all exactly what they
+     were, and are now asserted of the button that carries them. What changed is
+     the clothes and the slot. */
+
+  test('the strip is retired, and cannot be drawn back by a caller', async () => {
+    const w = world();
+    const c = await withDrafts(w);
+    /* Two unsent asks is the state that USED to draw it, which is what makes
+       this a test rather than a description of an empty function. */
+    assert.equal(w.win.rlUnsentCount(c, { side: 'owner' }), 2);
+    assert.equal(w.win.rlUnsentBandHtml(c, { side: 'owner' }), '',
+      'the band builder is a stub — no caller can put the strip back');
+  });
+
+  test('the act counts our unsent asks, and says so', async () => {
     const w = world();
     const c = await withDrafts(w);
     assert.equal(w.win.rlUnsentCount(c, { side: 'owner' }), 2);
-    const html = w.win.rlUnsentBandHtml(c, { side: 'owner' });
-    assert.match(html, /2 not sent/, 'the count leads');
-    assert.match(html, /Send all 2/, 'and the act names it too');
+    const html = w.win.rlUnsentSendHtml(c, { side: 'owner' });
+    assert.match(html, /Send all 2/, 'the count is on the act');
+    /* THE SENTENCE THE STRIP PRINTED IS NOT LOST — it rides the hover, which is
+       the only place left for it now the band is gone. */
+    assert.match(html, /title="[^"]*have not been sent/, 'and the sentence is on its hover');
+    assert.match(html, /title="[^"]*cannot answer them yet/, 'including "they cannot answer yet"');
   });
 
   test('it is a PROXY onto the one postbox, never a second transport', async () => {
     const w = world();
     const c = await withDrafts(w);
-    assert.match(w.win.rlUnsentBandHtml(c, { side: 'owner' }),
+    assert.match(w.win.rlUnsentSendHtml(c, { side: 'owner' }),
       /data-redline-proxy="nego-send"/, 'the same send the toolbar and the cards press');
   });
 
@@ -94,7 +117,7 @@ describe('f209 · the column says what has not been sent', () => {
     const c = contract();
     w.win.negoInit(c);
     assert.equal(w.win.rlUnsentCount(c, { side: 'owner' }), 0);
-    assert.equal(w.win.rlUnsentBandHtml(c, { side: 'owner' }), '',
+    assert.equal(w.win.rlUnsentSendHtml(c, { side: 'owner' }), '',
       'an always-on warning is furniture');
   });
 
@@ -103,22 +126,22 @@ describe('f209 · the column says what has not been sent', () => {
     const c = await withDrafts(w);
     c.negotiation.turnAt = new Date(Date.now() + 60000).toISOString();  // everything is behind the hand-over
     assert.equal(w.win.rlUnsentCount(c, { side: 'owner' }), 0);
-    assert.equal(w.win.rlUnsentBandHtml(c, { side: 'owner' }), '');
+    assert.equal(w.win.rlUnsentSendHtml(c, { side: 'owner' }), '');
   });
 
-  test('the counterparty gets the same band, counting what THEIR page holds', async () => {
+  test('the counterparty gets the same act, counting what THEIR page holds', async () => {
     const w = world();
     const c = await withDrafts(w, 1);
-    const html = w.win.rlUnsentBandHtml(c, { side: 'counterparty', org: 'Wanjiru Catering Ltd',
+    const html = w.win.rlUnsentSendHtml(c, { side: 'counterparty', org: 'Wanjiru Catering Ltd',
       pendingDecisions: 2, pendingProposals: 1 });
-    assert.match(html, /3 not sent/, 'decisions and proposals together');
+    assert.match(html, /Send all 3/, 'decisions and proposals together');
     assert.match(html, /data-redline-proxy="nego-send-decisions"/, 'and their own postbox');
   });
 
   test('a read-only copy is never asked to send anything', async () => {
     const w = world();
     const c = await withDrafts(w);
-    assert.equal(w.win.rlUnsentBandHtml(c, { side: 'owner', readonly: true }), '');
+    assert.equal(w.win.rlUnsentSendHtml(c, { side: 'owner', readonly: true }), '');
   });
 
   test('ONE SEND ALERT — the header\'s own send stands down where the band draws', () => {

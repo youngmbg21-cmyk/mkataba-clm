@@ -5389,7 +5389,36 @@ function rlPlanBandHtml(){
 let _rlPlanOpen = false;
 const rlPlanIsOpen = () => _rlPlanOpen;
 const rlPlanSetOpen = v => { _rlPlanOpen = !!v; };
-function rlUnsentBandHtml(c, opts = {}){
+/* ---- THE STRIP IS RETIRED AND THE ACT SURVIVES IT (owner-asked 26 Aug 2026:
+   "delete the entire long strip complete and leave that space for the change
+   cards. Move the send all button to ... the opposite side of tracked changes.
+   Only move the button") ----
+   THIS REVERSES THE ONE EXCEPTION NO NEW BANDS ON THE PAGE WROTE DOWN BY NAME
+   — that rule kept this strip because the owner had asked for it and because
+   the act was ON it, which is the test a band has to pass. The owner has now
+   looked at it in place and taken the strip while keeping the act, which is
+   the same test answered the other way: the act moved to the column's head,
+   where it is on screen without a band under it.
+
+   ONE SENTENCE IS LOST FROM THE SCREEN AND IS SAID OUT LOUD RATHER THAN
+   ABSORBED: ng_unsent_why — "they cannot answer yet" — had no other home. It
+   rides the button's own hover now (ng_unsent_full, which already carried the
+   count, the sentence and the name of who is waiting), so it is one hover away
+   rather than gone. ng_unsent_n and ng_unsent_why are STALE as visible text.
+
+   A `return ''` STUB rather than a deletion, on this file's own convention:
+   the name is exported and a third caller must not be able to bring the strip
+   back through a door nobody remembered. */
+function rlUnsentBandHtml(){ return ''; }
+
+/* THE BUTTON ALONE, for the head's own top row. Every rule the strip carried
+   is carried here unchanged — the count, the refusal to offer a batch send to
+   a reviewer who cannot publish, and the seat's own postbox — because they are
+   the same rules and this is the same act; only the clothes and the slot are
+   new. It is still a PROXY onto the page's one postbox (#nego-send, or the
+   counterparty's #nego-send-decisions) and never a second transport, so the
+   delegated proxy listener picks it up wherever it is drawn. */
+function rlUnsentSendHtml(c, opts = {}){
   const n = rlUnsentCount(c, opts);
   if (!n) return '';
   /* A reviewer holding somebody's clause cannot publish a round, so offering
@@ -5400,13 +5429,14 @@ function rlUnsentBandHtml(c, opts = {}){
     ? (opts.org || (window.FIRST_PARTY) || i18t('ng_the_counterparty'))
     : (c.counterparty || i18t('ng_the_counterparty'));
   const target = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
-  return `<div class="rl-unsent" role="status" title="${_nea(i18t('ng_unsent_full', { n, who }))}">
-    <span class="rl-unsent-dot" aria-hidden="true"></span>
-    <span class="rl-unsent-n">${i18t('ng_unsent_n', { n })}</span>
-    <span class="rl-unsent-s">${i18t('ng_unsent_why')}</span>
-    <button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
-      title="${_nea(i18t('ng_unsent_send_title', { n, who }))}">${i18t('ng_unsent_send', { n })}</button>
-  </div>`;
+  /* BOTH SENTENCES RIDE THE HOVER. ng_unsent_full is the one the deleted strip
+     printed on the page — "N of your changes have not been sent … cannot answer
+     them yet" — and ng_unsent_send_title is the hint this button already had,
+     that every card keeps its own Send. Neither had another home, so the button
+     carries the pair rather than choosing between them. */
+  return `<button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
+    title="${_nea(i18t('ng_unsent_full', { n, who }) + ' ' + i18t('ng_unsent_send_title', { n, who }))}">${
+      i18t('ng_unsent_send', { n })}</button>`;
 }
 
 /* ============================================================
@@ -13010,6 +13040,13 @@ function redlinePanesHtml(c, opts = {}){
                   .replace(/\s*(\(\d+\))\s*$/, ' <i>$1</i>')}</span>
               ${p.pending ? `<span class="rl-idx-open">${_ne(i18tn('ng_n_open', p.pending, {n:p.pending}))}</span>` : ''}
               <span class="rl-idx-sp"></span>
+              ${''/* ---- SEND ALL, AT THE OPPOSITE END OF THE COLUMN'S NAME
+                     (owner-asked 26 Aug 2026, ringing this exact slot) ----
+                     The spacer above has pushed this to the right wall since
+                     the head was built and nothing has ever been drawn after
+                     it. The act arrives from the deleted "N not sent" strip
+                     with its rules intact; only the slot is new. */}
+              ${rlUnsentSendHtml(c, opts)}
             </div>
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
@@ -13098,12 +13135,10 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
-          ${''/* ---- N NOT SENT ----
-                 Inside the head, not the card list: prepended to the cards it
-                 would scroll away with them, and a count you have to scroll
-                 back to is the fault this band exists to fix. See
-                 rlUnsentBandHtml. */}
-          ${rlUnsentBandHtml(c, opts)}
+          ${''/* ---- N NOT SENT DOES NOT DRAW HERE ANY MORE ----
+                 The strip stood between the index and the first pile and the
+                 owner has taken it back for the cards. Its act is in the
+                 column's head now — see rlUnsentSendHtml at .rl-idx-top. */}
           ${''/* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
                  Under the unsent band and above the cards, because it is a
                  reading OF those cards. Drawn only on our seat, only where
@@ -13307,7 +13342,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
   rlCpTypePx, rlCpSetType, rlCpZoom,
-  rlUnsentBandHtml, rlUnsentCount,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,

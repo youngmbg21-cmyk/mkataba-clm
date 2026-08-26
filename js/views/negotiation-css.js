@@ -2098,14 +2098,41 @@ function redlineLayoutCss(){
      Hover puts a light accent tint behind it and deepens the ink. The nav-bg
      fill and the word are retired from the paper; the word survives as
      aria-label and title. */}
+  ${''/* ---- IT COMES OUT ON HOVER, AND IT IS GREY (owner-asked 26 Aug 2026:
+         "you should only see the highlighted edit button when you hover over a
+         respective clause. And the edit symbol should be in a visible grey
+         font") ----
+         THIS REVERSES TWO RECORDED DECISIONS AND BOTH ARE NAMED RATHER THAN
+         QUIETLY DROPPED. It was ALWAYS DRAWN on the reasoning that a door you
+         cannot see is a door nobody finds — the argument this page already
+         makes against the hover-only selection route. And it was the workspace
+         ACCENT on the reasoning that a neutral-grey control reads as furniture,
+         which this product has learned three separate times. The owner has
+         seen both in place and ruled the other way, and the reference column
+         agrees on the first half: its own pencil is hover-only too.
+
+         THE GREY IS --color-neutral-600, the label shade every caption in the
+         product already wears, because it is the one step in this ramp that is
+         a TYPE token and has an answer in both themes. Never neutral-400,
+         which fails AA in both and is recorded as a border shade.
+
+         THREE THINGS KEEP IT ON SCREEN, and each closes a way of losing it:
+         a keyboard reader tabbing to it, its own panel being OPEN (or the
+         control that opened the panel vanishes the moment the mouse leaves),
+         and a device with no hover at all — where hover-only would make it
+         permanently unreachable rather than merely quiet. */}
   .redline-page .rl-cp-pill{position:absolute;right:0;top:0;z-index:2;flex:none;
-    display:inline-flex;align-items:center;justify-content:center;
-    border:1px solid transparent;background:transparent;color:var(--accent-solid,#0d9488);
+    display:inline-flex;align-items:center;justify-content:center;opacity:0;
+    border:1px solid transparent;background:transparent;color:var(--color-neutral-600);
     border-radius:var(--radius);padding:calc(3px * var(--doc-scale,1)) calc(4px * var(--doc-scale,1));
     font:inherit;font-size:calc(11px * var(--doc-scale,1));font-weight:var(--w-title);line-height:1;
     cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;
     transition:background var(--dur-1),color var(--dur-1)}
   .redline-page .rl-cp-pill svg{width:calc(15px * var(--doc-scale,1));height:calc(15px * var(--doc-scale,1));display:block}
+  .redline-page .rl-clause:hover .rl-cp-pill,
+  .redline-page .rl-cp-pill:focus-visible,
+  .redline-page .rl-cp-pill[aria-expanded="true"]{opacity:1}
+  @media (hover:none){ .redline-page .rl-cp-pill{opacity:1} }
   .redline-page .rl-cp-pill:hover{background:var(--color-accent-100,#ccfbf1);
     color:var(--color-accent-800,#115e59)}
   .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
@@ -2311,7 +2338,15 @@ function redlineLayoutCss(){
   /* No padding: the cards sit straight on the page like the sheet does, and
      a little room down the right so their shadows are not clipped by the
      scroller. */
-  .redline-page .rl-cards{padding:0 var(--s-4) var(--s-4)}   /* one left edge with the head above — see .rl-idx-head */
+  ${''/* THE SCROLLER INSETS NOTHING (owner-asked 26 Aug 2026, matching the
+         reference column) ----
+         It padded the rows 16px in from each wall, so the hairline between two
+         rows ran 426px of a 458px column and stopped short at both ends while
+         the band headings — which cancel that padding with a negative margin —
+         ran the full width. One list, ruled two different lengths. The inset
+         moved ONTO THE ROW as its own padding, so the ruling is continuous and
+         the words still sit 16px in. */}
+  .redline-page .rl-cards{padding:0}
   .redline-page .rl-cards-empty{padding:6px 2px;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
@@ -2513,12 +2548,16 @@ function redlineLayoutCss(){
          walls: the rail's own 16px inset is cancelled and put back inside, so
          the strip runs the full width while the words line up with the rows. */}
   .redline-page .rl-band{display:flex;align-items:center;gap:var(--s-2);
-    margin:0 -16px;padding:7px var(--s-4) 6px;background:var(--color-neutral-100);
+    margin:0;padding:7px var(--s-4) 6px;background:var(--color-neutral-100);
     border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-band:first-child{border-top:0}
-  .redline-page .rl-band b{font-weight:var(--w-title);color:var(--color-neutral-600)}
+  ${''/* THE COUNT SITS AT THE RIGHT WALL, not beside the words. A pile's
+         number is scanned down a column rather than read as part of its name,
+         and against the wall the seven of them line up. */}
+  .redline-page .rl-band b{margin-left:auto;flex:none;
+    font-weight:var(--w-title);color:var(--color-neutral-600)}
   .redline-page .rl-band span{min-width:0;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap}
 
@@ -2556,45 +2595,44 @@ function redlineLayoutCss(){
          grid instead: minmax(0,2fr) is the same guarantee in the same place —
          the text track may shrink below its content, so a long summary elides
          inside its track rather than pushing the acts onto a second line. */}
-  .redline-page .rl-card-d{padding:11px 0;border:0;border-radius:var(--radius);
+  ${''/* ---- THE RULE SITS BETWEEN THE ROWS, NOT UNDER ONE OF THEM
+         (owner-asked 26 Aug 2026, measured against the reference column) ----
+         THE ROW NEVER RESET .rl-card's margin-bottom, and that is the whole of
+         what made this column read loose. The flat row replaced a boxed card
+         that stood 11px clear of the next one; the box went and its margin
+         stayed, so every row carried 11px of empty column under it AND a
+         hairline on the row below. MEASURED: 22.5px of air above the line and
+         11.5px below, so the rule hugged the row beneath rather than dividing
+         the two, and the pitch was 67px against the reference's 53.
+         margin:0 puts the line in the middle by construction — the padding
+         above it and the padding below it are the same number — and 9px is
+         that number, the reference's own. */}
+  .redline-page .rl-card-d{padding:9px var(--s-4);margin:0;border:0;
+    border-radius:var(--radius);
     border-top:1px solid var(--color-divider);background:none;box-shadow:none;
     display:grid;grid-template-columns:minmax(0,2fr) minmax(var(--rl-verb-floor),1fr);
     align-items:center;gap:var(--s-3)}
   .redline-page .rl-card-d > .rl-card-txt{min-width:0}
-  ${''/* ---- AND THE FRONT EDGE IS COLOURED BY WHOSE ASK IT IS (owner-asked
-         26 Aug 2026: "let the cards be color coded at the front edge of the
-         card") ----
-         THE SPINE IS BACK, and it comes back for a reason the day it left did
-         not have: it went with the BOX on 25 Aug, when the boxed card became a
-         flat row and its note said out loud that data-rl-origin was still
-         stamped and whose ask it was would be carried in words. On 26 Aug the
-         WHOSE ASKS filter was retired, so the fastest reading of "is this mine
-         or theirs" left the column with it — and a 3px edge is what answers
-         that at a glance without a control.
+  ${''/* ---- THE FRONT EDGE IS GONE (owner-asked 26 Aug 2026: "delete the
+         color coding of theirs vs mine as I am still thinking of a better
+         solution") ----
+         It was a 3px spine — teal for ours, amber for theirs — put back on
+         26 Aug when the WHOSE ASKS filter was retired and the column lost its
+         fastest reading of whose ask a change was. The owner has taken both
+         away for now and is weighing a third answer, so this records the
+         removal rather than hiding it: the row pads a plain 16px on its left
+         like every other edge in this column, and the reference column it is
+         being matched to carries no spine either.
 
-         TEAL FOR OURS, AMBER FOR THEIRS, RUBY FOR A REFUSAL — the same three
-         this page has always used, and the same rule the boxed card carries
-         thirteen hundred lines up, so the two seats cannot come to different
-         answers about what a colour means. IT IS A BORDER, NOT A PSEUDO-
-         ELEMENT: the row is a grid and an absolutely-positioned edge would
-         need a positioned ancestor it does not have, while a border is what
-         the boxed card already uses.
+         NOTHING BUT THE COLOUR WENT. data-rl-origin is still stamped on every
+         row, so whichever answer replaces this is a rule to write and not a
+         fact to go and find again — and whose ask it is is still said in words
+         on the meta line and under the pile's own heading.
 
-         AND THE ROW GAINS ITS WIDTH BACK IN PADDING, so no wording moves: the
-         edge sits in the 8px the row now pads on its left, which is inside the
-         column's own inset rather than eating into it. */}
-  .redline-page .rl-card-d{border-left:3px solid var(--accent-solid,var(--color-accent));
-    padding-left:var(--s-2)}
-  .redline-page .rl-card-d[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
-  ${''/* ---- AND THE EDGE ANSWERS ONE QUESTION ONLY ----
-         The boxed card carries a THIRD colour here — ruby on a refusal — and
-         that rule is untouched thirteen hundred lines up, where it earns its
-         place: that card has no heading over it saying which pile it is in.
-         This row does. Refused is a pile of its own now, so a ruby edge would
-         say in colour what the heading two lines above says in words AND cost
-         the row the one thing the edge is for: a refused ask of THEIRS would
-         stop being amber, and whose ask it is is exactly the question the
-         retired WHOSE ASKS filter used to answer. One question, one colour. */}
+         THE BOXED CARD KEEPS ITS OWN SPINE, thirteen hundred lines up, and is
+         deliberately untouched: that is the counterparty's seat and the
+         owner's preview of it, where the rows carry no headings and the edge
+         is the only thing answering the question. */}
   .redline-page .rl-card-d:first-child,
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}
@@ -2998,8 +3036,20 @@ function redlineLayoutCss(){
      product was square, which read as a decision; it is noise the next reader
      has to rule out, so it names none. f175 asserts the ABSENCE, which is a
      stronger claim than the literal it pinned before. */
+  ${''/* ---- AND IT TAKES NO ROOM WHEN IT HAS NOTHING TO SAY (owner-asked
+         26 Aug 2026: the cards take the space the strip gave up) ----
+         This container's one visible tenant was the amber "N not sent" strip,
+         which has been deleted and whose act now sits in the head above. Left
+         as it was it would draw 10px of padding, a hairline and 12px of margin
+         over nothing at all — a ruled band of empty column between the index
+         and the first pile, which is the opposite of what removing the strip
+         was for. It collapses to nothing by default and takes its old clothes
+         back only where the read-only sentence is really drawn. Everything
+         else it still holds is hidden — the engine's counters and the
+         clipped postbox — so :empty cannot answer this and :has can. */}
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
-    background:none;border:0;border-bottom:1px solid var(--color-divider);
+    background:none;border:0;padding:0;margin:0}
+  .redline-page .rl-idx-head:has(.nego-why){border-bottom:1px solid var(--color-divider);
     padding:0 var(--s-4) 10px;margin:0 0 var(--s-3)}
   /* The tabs carry their own bottom padding down to the rule, so the head must
      not carry it too. :has() and not a class because the filter's absence is
@@ -4121,10 +4171,21 @@ function redlineLayoutCss(){
          decision, and the counterparty's mount carries that class too. */}
   .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
   ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
-  .redline-page .rl-idx{padding:var(--s-3) var(--s-3) 11px;border-bottom:1px solid var(--color-divider)}
+  ${''/* ONE LEFT EDGE DOWN THE WHOLE COLUMN. The index block insetted itself
+         12px while the pile headings and the rows sit at 16, so the column's
+         own name started four pixels left of everything under it — which is
+         the same misalignment the rows have just been taken off, one row up.
+         The reference draws all three on one vertical. */}
+  .redline-page .rl-idx{padding:var(--s-3) var(--s-4) 11px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-top{display:flex;align-items:flex-end;gap:var(--s-3);
     border-bottom:1px solid var(--color-divider);margin-bottom:9px}
   .redline-page .rl-idx-top .rl-idx-sp{flex:1;min-width:6px}
+  ${''/* SEND ALL SITS IN THIS ROW WITHOUT BEING RESTYLED (owner-asked 26 Aug
+         2026: "only move the button"). The row is align-items:flex-end and its
+         own hairline runs under it, so a control with no lift would sit ON the
+         line. This is placement, not dress: the button's fill, ink, size and
+         disabled face are the ones it arrived with. */}
+  .redline-page .rl-idx-top .rl-unsent-go{margin-bottom:6px}
   ${''/* THE TITLE SITS ON ITS OWN UNDERLINE — the reference draws it as the
          column's one tab, a 2px accent rule under the words and nothing else,
          so the head reads as a heading rather than as a row of chips. The

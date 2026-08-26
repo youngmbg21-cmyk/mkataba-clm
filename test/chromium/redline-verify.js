@@ -300,15 +300,53 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     inset.toolRows === 0, `${inset.toolRows} tool elements found`);
   check('2b the gaps between clauses are even and tight',
     inset.gaps.every(g => g <= 20), JSON.stringify(inset.gaps));
+  /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "you should only see the
+     highlighted edit button when you hover over a respective clause. And the
+     edit symbol should be in a visible grey font") ----
+     The claim above it — that a hover-only door is an invisible affordance —
+     was the reason this was drawn at rest, and the owner has now seen it in
+     place and ruled the other way. The reference column they are matching does
+     the same. So what is measured is the pair: out of the way at rest, THERE on
+     a real hover, and legible when it arrives. DRIVEN, not read: opacity is a
+     computed value and a rule that lost a cascade fight would look perfectly
+     correct in the source. */
   const pillAtRest = await page.evaluate(() => {
     const p = document.querySelector('#rl-doc .rl-cp-pill');
     if (!p) return null;
     const s = getComputedStyle(p);
-    return { op: s.opacity, pe: s.pointerEvents };
+    return { op: s.opacity, color: s.color };
   });
-  check('2b the Edit pill stands in its place, visible without a hover',
-    !!pillAtRest && pillAtRest.op === '1' && pillAtRest.pe !== 'none',
-    pillAtRest ? `opacity ${pillAtRest.op}, pointer-events ${pillAtRest.pe}` : 'no pill');
+  check('2b the Edit pill is out of the way until the clause is hovered',
+    !!pillAtRest && pillAtRest.op === '0',
+    pillAtRest ? `opacity ${pillAtRest.op}` : 'no pill');
+  await page.hover('#rl-doc .rl-clause');
+  await pause(200);
+  const pillHovered = await page.evaluate(() => {
+    const p = document.querySelector('#rl-doc .rl-cp-pill');
+    if (!p) return null;
+    const s = getComputedStyle(p);
+    /* COMPOSITED against the sheet it is painted on, because reading the
+       element's own background answers "transparent" and tells you nothing. */
+    const rgb = t => (t.match(/\d+/g) || []).slice(0, 3).map(Number);
+    const lum = c => { const f = c.map(v => { v /= 255;
+      return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+      return .2126 * f[0] + .7152 * f[1] + .0722 * f[2]; };
+    let bg = null, el = p;
+    while (el && !bg){ const b = getComputedStyle(el).backgroundColor;
+      if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) bg = rgb(b); el = el.parentElement; }
+    const fg = rgb(s.color), a = lum(fg), b2 = lum(bg || [255, 255, 255]);
+    return { op: s.opacity, color: s.color, pe: s.pointerEvents,
+      ratio: Math.round(((Math.max(a, b2) + .05) / (Math.min(a, b2) + .05)) * 100) / 100 };
+  });
+  check('2b and a real hover brings it out, pressable',
+    !!pillHovered && pillHovered.op === '1' && pillHovered.pe !== 'none',
+    pillHovered ? `opacity ${pillHovered.op}, pointer-events ${pillHovered.pe}` : 'no pill');
+  /* "A VISIBLE GREY" IS A CONTRAST CLAIM, not a colour name — the owner's own
+     word was "visible", and grey that cannot be read is the fault, not the
+     hue. AA wants 4.5:1 for text this size. */
+  check('2b the grey is a visible one, measured on the paper it sits on',
+    !!pillHovered && pillHovered.ratio >= 4.5,
+    pillHovered && `${pillHovered.color} at ${pillHovered.ratio}:1`);
 
   /* ---- 6. the uploaded document survives ---- */
   const struct = await page.evaluate(() => {
@@ -774,7 +812,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
          proxy onto the same postbox, so this looks for it in either place. */
       toolbarProxy: !!document.querySelector(
         '.room-acts [data-redline-proxy="nego-send"], .rl-tabrow [data-redline-proxy="nego-send"]'),
-      bandProxy: !!document.querySelector('.rl-unsent [data-redline-proxy="nego-send"]'),
+      /* REVERSED IN PLACE, 26 Aug 2026: the owner deleted the strip and moved
+         the act into the column's head — "only move the button". The claim is
+         unchanged and is the one that matters: there are TWO doors onto one
+         postbox, and neither is a transport of its own. */
+      bandProxy: !!document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]'),
+      stripGone: !document.querySelector('.rl-unsent'),
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
   check('13 the engine\'s send is mounted in the column, out of the way',
@@ -789,9 +832,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 and every door onto it is a proxy — one transport, no header copy',
     !!blast && blast.headerCopies === 0 && blast.proxies >= 1,
     blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
-  check('13 the head\'s Publish Round is one of them, the unsent band the other',
-    !!blast && blast.toolbarProxy && blast.bandProxy,
-    blast && `head:${blast.toolbarProxy} band:${blast.bandProxy}`);
+  check('13 the head\'s Publish Round is one of them, Send all in the column\'s head the other',
+    !!blast && blast.toolbarProxy && blast.bandProxy && blast.stripGone,
+    blast && `head:${blast.toolbarProxy} sendAll:${blast.bandProxy} stripGone:${blast.stripGone}`);
   /* ---- AND EVERY DOOR ACTUALLY REACHES THE POSTBOX (15 Aug 2026) ----
      The proxy click was wired by scanning #content at a point BEFORE the panes
      are mounted, so a proxy in the page shell got its handler and one painted
@@ -812,7 +855,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     let n = 0;
     const count = ev => { n++; ev.stopImmediatePropagation(); ev.preventDefault(); };
     post.addEventListener('click', count, true);
-    const band = document.querySelector('.rl-unsent [data-redline-proxy]');
+    const band = document.querySelector('.rl-idx-top [data-redline-proxy]');
     const bar = document.querySelector('.room-acts [data-redline-proxy]')
       || document.querySelector('.rl-tabrow [data-redline-proxy]');
     if (band) band.click();
@@ -822,7 +865,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     post.removeEventListener('click', count, true);
     return { afterBand, afterBar };
   });
-  check('13 the band\'s Send reaches the postbox exactly once',
+  check('13 Send all reaches the postbox exactly once from its new slot',
     !!presses && presses.afterBand === 1, presses && `${presses.afterBand} presses`);
   check('13 and so does the toolbar\'s — one each, never two',
     !!presses && presses.afterBar === 1, presses && `${presses.afterBar} presses`);
@@ -1712,18 +1755,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       ourTone: ours ? tone(ours) : null, ourW: ours ? width(ours) : null,
       theirTone: thrs ? tone(thrs) : null, theirW: thrs ? width(thrs) : null,
       scroller: !!scroller, chained, contained,
+      origins: new Set([...rows].map(r => r.getAttribute('data-rl-origin'))).size,
       /* and the row's own wording did not move to make room for the edge */
       sum: (() => { const el = document.querySelector('#rl-changes .rl-card-sum');
         return el ? Math.round(el.getBoundingClientRect().width) : 0; })() };
   });
   check('20 the whose-asks filter is gone from the page',
     !edge.filter && !edge.label, `select ${edge.filter}, label ${edge.label}`);
-  check('20 every row carries a front edge, and it is drawn',
-    edge.ourW && parseFloat(edge.ourW) >= 2 && edge.theirW && parseFloat(edge.theirW) >= 2,
+  /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "delete the color coding
+     of theirs vs mine as I am still thinking of a better solution") ----
+     The edge was put back the day the WHOSE ASKS filter was retired, because
+     the column had lost its fastest reading of whose ask a change was. The
+     owner has taken both away while they weigh a third answer. What is pinned
+     now is the removal — and that the FACT survived it, so whatever replaces
+     this is a rule to write rather than a fact to go and find again. */
+  check('20 no row carries a coloured front edge any more',
+    parseFloat(edge.ourW || 0) === 0 && parseFloat(edge.theirW || 0) === 0,
     `ours ${edge.ourW}, theirs ${edge.theirW}`);
-  check('20 and our ask is a different colour from theirs',
-    !!edge.ourTone && !!edge.theirTone && edge.ourTone !== edge.theirTone,
-    `${edge.ourTone} vs ${edge.theirTone}`);
+  check('20 but the row still says whose ask it is',
+    edge.origins === 2, `distinct data-rl-origin values: ${edge.origins}`);
   check('20 the cards have a scroller of their own', edge.scroller, String(edge.scroller));
   check('20 and scrolling past its end does not move the page',
     edge.chained === false, `page moved: ${edge.chained} · overscroll ${edge.contained}`);

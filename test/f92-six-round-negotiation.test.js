@@ -345,8 +345,10 @@ describe('F92 — the six-round negotiation, end to end', () => {
        the owner came to report that nothing told them a redline was unsent.
        WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
        number is still said, in one place, beside the thing it is about. */
-    assert.match(t.$('.rl-unsent').textContent, /1 not sent/,
-      'the change column counts what is being held back');
+    /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went, the act stayed. */
+    assert.ok(!t.$('.rl-unsent'), 'the strip is gone');
+    assert.match(t.$('.rl-unsent-go').textContent, /Send all 1/,
+      'the column still counts what is being held back, on the act itself');
     /* The internal note is still ours and still internal — checked on the
        RECORD here, because by this round the change it hangs off has been
        decided and its card has left the column. It was read off the screen

@@ -168,8 +168,17 @@ describe('F84 — the design names every part, and the names are on the page', (
        the owner came to report that nothing told them a redline was unsent.
        WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
        number is still said, in one place, beside the thing it is about. */
-    assert.match(q.doc.querySelector('.rl-unsent').textContent, /not sent/,
-      'the change column carries the count instead');
+    /* ---- CLAIM REVERSED IN PLACE, 26 Aug 2026 ---- The owner deleted the
+       strip and moved the act into the column's head: "only move the button."
+       WHAT IS UNDER TEST IS STILL UNCHANGED — there is no standing banner, and
+       the number is still said once, in one place. It is on the act now, and
+       the sentence the strip printed rides that act's hover. */
+    const go = q.doc.querySelector('.rl-unsent-go');
+    assert.ok(go && !q.doc.querySelector('.rl-unsent'),
+      'the strip is gone and the act survives it');
+    assert.match(go.textContent, /Send all/, 'the count is on the act');
+    assert.match(go.getAttribute('title') || '', /not been sent/,
+      'and the sentence it used to print is on its hover');
   });
 });
 

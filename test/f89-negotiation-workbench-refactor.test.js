@@ -283,8 +283,11 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     const send = p.$('.room-acts [data-redline-proxy]') || p.$('.rl-tabrow [data-redline-proxy]');
     assert.ok(send && send.querySelector('.rl-send-detail'),
       'Publish Round still carries its own counts — held and in review — in a span');
-    assert.match(p.$('.rl-unsent').textContent, /not sent/,
-      'and the unsent count is on the column, beside the cards it is about');
+    /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went and the act moved
+       into the column's head. The count is still said exactly once. */
+    assert.ok(!p.$('.rl-unsent'), 'the strip is gone');
+    assert.match(p.$('.rl-unsent-go').textContent, /Send all/,
+      'and the unsent count is on the act, at the head of the column it is about');
     assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
       'tight folds the purple buttons to their glyphs');
     /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----

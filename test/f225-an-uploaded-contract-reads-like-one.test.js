@@ -102,14 +102,42 @@ describe('f225 (2) — the wording is the page, not a box on it', () => {
     assert.match(up, /ocrBannerHtml\(u\)/, 'and the OCR banner still speaks');
   });
 
-  test('the banner names OUR party from the contract, not a constant out of scope', () => {
-    /* The crash this screen shipped with: the received-document banner read a
-       bare OURS, declared inside docBody AFTER the early return that sends
-       every upload here — so every received contract not executed
-       off-platform threw on its Document tab. */
-    assert.match(up, /const OURS\s*=\s*\(typeof contractParty==='function'\)/,
-      'uploadDocBody resolves the party itself');
-    assert.ok(up.indexOf('const OURS') < up.indexOf('${OURS}'),
-      'and does it before the banner reads it');
+  test('the banner is gone, and its crash cannot come back with it', () => {
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "nothing should stay
+       except for the contract", then "simply remove the gold band as well") ----
+       This test was written for the crash that banner shipped with: it read a
+       bare OURS, declared inside docBody AFTER the early return that sends every
+       upload here, so every received contract not executed off-platform threw on
+       its Document tab. The owner has now removed the band itself, so the claim
+       becomes the STRONGER one — there is no reader of OURS in this function at
+       all, which is a state the ReferenceError cannot return from. If a sentence
+       naming our side is ever drawn here again it needs contractParty, which is
+       what the note left in the source says.
+
+       AND ONE SENTENCE WENT WITH THE BAND, said out loud rather than absorbed:
+       the migrated-record line, "executed outside … there is nothing to sign
+       here". ct_executed_outside is read nowhere else in the product now. */
+    assert.ok(!/\$\{OURS\}/.test(up), 'nothing in uploadDocBody reads OURS');
+    assert.ok(!up.includes('const OURS'), 'and nothing declares it either');
+    /* The CALL, never the bare name: the note left in the source names both keys
+       to say they are stale, and a name-match would read its own explanation as
+       the feature. */
+    assert.ok(!/i18t\('ct_on_their_paper'\)/.test(up), 'the received half is not drawn');
+    assert.ok(!/i18t\('ct_executed_outside'\)/.test(up), 'nor the migrated half');
+  });
+
+  test('and the teal strip ABOVE the paper went in the same breath', () => {
+    /* The owner ringed this one first: "Received document — read it below, run
+       the Copilot review, then sign to record acceptance", a strip between the
+       tabs and the first word of the agreement, and the SECOND telling of what
+       the gold band inside the paper already said. Both are gone and nothing
+       replaced either. THE EXECUTED-AND-LOCKED BAND STAYS and is asserted here
+       so nobody reads this removal as covering it: it was not in the ask, and
+       it is a fact about the paper being sealed rather than an instruction
+       about how to read it. */
+    const grid = SRC.slice(SRC.indexOf('id="doc-grid"'), SRC.indexOf('id="doc-canvas"'));
+    assert.ok(!/i18t\('ct_received_read_below'\)/.test(grid),
+      'the received strip is not drawn above the paper');
+    assert.match(grid, /executed and locked/, 'and the locked band is untouched');
   });
 });

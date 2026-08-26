@@ -507,17 +507,22 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     /* MEASURED AS A PERSON SEES IT, never off a store: PORTAL_NEGO_DECISIONS is
        module-local and is not on window, so reading it through window reports
        zero however well the press worked. What a reader sees is the card's own
-       verbs become Send and Undo, and the unsent band appear. */
+       verbs become Send and Undo, and the batch send appear.
+       RE-POINTED 26 Aug 2026: the owner deleted the "N not sent" strip and moved
+       its act into the column's head — "only move the button" — so what appears
+       is the act itself, in that head, on their seat exactly as on ours. */
     const after = [...document.querySelectorAll('#share-root .rl-card')]
       .find(c => ((c.querySelector('.rl-card-id') || {}).textContent || '') === id);
     return { none: false, id,
       verbs: after ? [...after.querySelectorAll('button')]
         .map(b => b.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) : [],
-      band: !!document.querySelector('#share-root .rl-unsent') };
+      band: !!document.querySelector('#share-root .rl-idx-top .rl-unsent-go'),
+      strip: !!document.querySelector('#share-root .rl-unsent') };
   });
   ck('11h and their own decide verbs still work end to end',
      !theirVerbs.none && /Send/i.test((theirVerbs.verbs || []).join(' '))
-       && /Undo/i.test((theirVerbs.verbs || []).join(' ')) && theirVerbs.band,
+       && /Undo/i.test((theirVerbs.verbs || []).join(' '))
+       && theirVerbs.band && !theirVerbs.strip,
      theirVerbs.none ? 'no accept verb on their page'
        : `${theirVerbs.id} now offers ${JSON.stringify(theirVerbs.verbs)}`);
 

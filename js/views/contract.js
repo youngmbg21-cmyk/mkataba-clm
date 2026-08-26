@@ -1689,7 +1689,6 @@ function uploadDocBody(c){
      ever showed it. Same reading as the recitals use (contractParty — the
      DOCUMENT names the party, the workspace is what the PLATFORM says), so the
      banner says what it always meant to. */
-  const OURS=(typeof contractParty==='function')?contractParty(c):FIRST_PARTY;
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
   const isDocx=!!(window.isWordDoc&&isWordDoc(c));
@@ -1736,11 +1735,28 @@ function uploadDocBody(c){
       <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${i18t('ct_external_received',{id:c.id})}</div>
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
     </div>
-    <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
-      ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
-        ? `This contract was <strong>${i18t('ct_executed_outside')}</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
-        : `${i18t('ct_received_from',{who:c.counterparty||i18t('ct_a_counterparty')})}${i18t('ct_on_their_paper')} <strong>${OURS}</strong>’s acceptance with a cryptographic seal.`}</span>
-    </div>
+    ${''/* ---- THE GOLD BAND IS GONE TOO (owner-asked 26 Aug 2026: "nothing
+         should stay except for the contract", then "simply remove the gold
+         band as well") ----
+         It carried two sentences and BOTH go, which is said out loud rather
+         than absorbed. One was the received-document line — "Received from X,
+         on their own paper … sign to record OUR acceptance with a cryptographic
+         seal" — the same fact the teal strip above the paper stated, and the
+         reason that strip could be removed at all. The other was the MIGRATED
+         one: "executed outside … filed for reference, renewal and reporting —
+         there is nothing to sign here."
+
+         THAT SECOND SENTENCE HAS NO OTHER HOME IN THE PRODUCT. ct_executed_outside
+         is read nowhere else, so "there is nothing to sign here" is not said
+         anywhere now. It is a fact about how a migrated record WORKS rather
+         than about this document's wording, and if it is wanted back it wants a
+         home of its own — the Signing tab, or Key terms — and not a band over
+         the contract. Reported to the owner in those words.
+
+         `OURS` WENT WITH IT and its own note above is kept: the reading it
+         records (the DOCUMENT names the party, not the workspace) is still the
+         right one, and the crash it fixed is still the reason to read it that
+         way if a sentence naming our side is ever drawn here again. */}
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
     ${''/* ---- THE FILE IS A STRIP, NOT THE MAIN EVENT (owner-asked 20 Aug
@@ -5838,8 +5854,18 @@ function renderWorkspace(){
                  executed document, and a received one — still say so here,
                  because those are facts about the paper itself. */}
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
-            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>${i18t('ct_received_read_below')}</span></div>`
             :''}
+          ${''/* ---- AND THE RECEIVED-DOCUMENT STRIP IS GONE (owner-asked
+                 26 Aug 2026, ringing it: delete it and put nothing in its
+                 place) ----
+                 It read "Received document — read it below, run the Copilot
+                 review, then sign to record acceptance" in a teal strip above
+                 the paper, and it was the THIRD thing between the tabs and the
+                 first word of the agreement. `ct_received_read_below` is STALE
+                 as visible text — flag any mention; the key is left inert in
+                 the dictionary. The EXECUTED-AND-LOCKED band above it stays: it
+                 was not in the ask, and it is a fact about the paper being
+                 sealed rather than an instruction about how to read it. */}
           ${''/* THE PROVENANCE LINE HAS LEFT THE SPACE ABOVE THE PAPER. It read
                  "Created from WH v1 — editing the template later does not
                  change this contract", as a second full-width band between the

@@ -80,14 +80,34 @@ const check = (name, pass, detail) => {
     check('the workspace DRAWS for a received, not-yet-signed upload',
       !/could not be drawn/i.test(body) && !/not defined/i.test(body) && /3rd Party Contract/.test(body),
       'no error card');
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "nothing should stay
+       except for the contract", then "simply remove the gold band as well") ----
+       Two checks here read the received-document BANNER — that it named the
+       workspace with nothing on the record, and that it was the received-paper
+       sentence rather than the migrated one. The owner has removed the band.
+       THE FILE'S SUBJECT IS UNTOUCHED and the crash check above is STRONGER for
+       it: the ReferenceError came from that banner reading a constant out of
+       scope, and a sentence that is not drawn cannot throw. What replaces the
+       two is the honest pair — the band is gone from the page, and the entity
+       this file is named for is still named where it is SET. */
+    check('the received-paper band is gone from the Document tab',
+      !/acceptance with a cryptographic seal/i.test(body)
+      && !/there is nothing to sign here/i.test(body),
+      'neither half of the gold band is drawn');
+    /* AND THE ENTITY IS STILL THERE TO BE READ AND CHANGED. Key terms is the
+       one door for an upload's own facts (there are no recitals to name it in),
+       so that is where this claim belongs now. */
+    await page.evaluate(() => { if (window.roomGoTab) roomGoTab('terms'); });
+    await page.waitForTimeout(700);
+    const onTerms = await page.evaluate(() => document.getElementById('content').innerText);
     const firstParty = await page.evaluate(() => window.FIRST_PARTY || '');
-    check('with no entity on the record the banner names the workspace — the old fallback, out loud',
-      firstParty && body.includes(firstParty), firstParty);
-    check('and it is the received-paper sentence, on the reported branch',
-      /acceptance with a cryptographic seal/i.test(body));
+    check('and with no entity on the record Key terms still offers the workspace as the assumption',
+      !!firstParty && onTerms.includes(firstParty), firstParty);
+    await page.evaluate(() => { if (window.roomGoTab) roomGoTab('docs'); });
+    await page.waitForTimeout(600);
 
-    /* The banner reads the contract's own entity where one is named —
-       contractParty, the same reading the recitals use. */
+    /* The contract's own entity where one is named — contractParty, the same
+       reading the recitals use. */
     await page.evaluate(() => {
       const c = state.contracts.find(x => x.id === 'UPX-1');
       c.party = 'Highland Juice Kenya Ltd';

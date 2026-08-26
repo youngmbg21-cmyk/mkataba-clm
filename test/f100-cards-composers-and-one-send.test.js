@@ -997,7 +997,9 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
       'held by its own record, not by the turn stamp');
     assert.ok(p.$(`[data-nego-card="${b}"] [data-rl-send]`),
       'and its own Send is still on its card');
-    assert.match(p.$('.rl-unsent-n').textContent, /1/, 'the band counts what is left');
+    /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went, the act moved into
+       the column's head, and the count went with the act. */
+    assert.match(p.$('.rl-unsent-go').textContent, /1/, 'and the head counts what is left');
   });
 
   test('a sent ask carries no verbs; the draft keeps its Send', async () => {

@@ -334,3 +334,51 @@ describe('f245 (10) — both languages', () => {
     assert.deepEqual(bare, [], 'no sentence is typed into the markup');
   });
 });
+
+/* ================================================ 11 — A SCAN THAT SAYS SO */
+describe('f245 (11) — the playbook scan reports its own failure', () => {
+  /* ---- OWNER-ASKED 26 Aug 2026: "you should be able to run the playbook scan
+     by pressing the highlighted button" ----
+     THE BUTTON WAS WIRED AND DID RUN — proved by pressing it on an ordinary
+     contract in a real browser. What it could not do was FAIL OUT LOUD:
+     runPlaybookReview answers null where there is no readable wording (an
+     upload whose text never came out of the file, which is the commonest shape
+     on this screen), toasts a red line that fades, and this panel then redrew
+     the SAME "not been checked yet" sentence and the SAME button. Nothing on
+     screen moved, which is exactly what a dead press looks like.
+
+     THE RENEWAL CARD ANSWERED THIS SHAPE ALREADY, in its own words: a failure
+     states itself where the reader is looking rather than relying on a toast
+     that has already faded. */
+
+  test('a scan that comes back with nothing is recorded, not swallowed', () => {
+    assert.match(CODE, /else _ceScanErr = 'empty'/,
+      'the one runner writes it down when no review arrives');
+    assert.match(CODE, /if \(rev\) \{ _ceScan = rev; _ceScanErr = null; \}/,
+      'and a review arriving clears it — the note is never stale');
+    assert.match(CODE, /_ceScanBusy = true; _ceScanErr = null;/,
+      'a fresh run clears it before it starts, so the old note cannot outlive it');
+  });
+
+  test('the panel prints it where the reader is looking', () => {
+    assert.match(CODE, /function ceScanErrHtml\(\)/, 'it has one builder');
+    assert.match(CODE, /ce_scan_nothing/, 'which names what happened');
+    assert.match(CODE, /ce_scan_nothing_why/, 'and what to do about it');
+    /* IT DOES NOT RE-DERIVE WHY. runPlaybookReview owns the reading of whether
+       there is wording to check; a second copy of that test here is the
+       twin-formula fault this codebase records. So the panel reports only what
+       it can stand behind and names the usual cause as prose. */
+    assert.ok(!/extractedText/.test(CODE),
+      'the editor never re-reads the document to work out the reason itself');
+  });
+
+  test('the empty panel offers the run, and a failed one offers it again', () => {
+    assert.match(CODE, /_cet\(_ceScanErr \? 'ce_scan_again' : 'ce_scan_run'\)/,
+      'a refusal needs its way forward on the same screen');
+  });
+
+  test('both languages', () => {
+    for (const k of ['ce_scan_nothing', 'ce_scan_nothing_why'])
+      assert.equal((I18N.match(new RegExp(`^    ${k}:`, 'gm')) || []).length, 2, k);
+  });
+});

@@ -312,6 +312,35 @@ Tests: f193 (37 — the link from the first moment, what is carried and what is 
 
 ## THE UPLOAD NAMES OUR ENTITY, AND THE PAGE SURVIVES IT (owner-reported 20 Aug 2026, MK-358)
 
+**BOTH RECEIVED-DOCUMENT BANDS ARE GONE (owner-asked 26 Aug 2026, ringing the
+first: delete it and put nothing in its place; then "nothing should stay except
+for the contract", then "simply remove the gold band as well").** The Document
+tab drew the same fact twice — a TEAL strip above the paper ("Received document
+— read it below, run the Copilot review, then sign to record acceptance") and a
+GOLD band inside it naming us and the seal. Both draw nothing now.
+
+- **`OURS` WENT WITH ITS ONE READER**, and that puts the crash this section is
+  about beyond returning: a sentence that is not drawn cannot read a constant
+  out of scope. The note explaining the reading is KEPT in the source, because
+  if a sentence naming our side is ever drawn there again it must use
+  `contractParty` — the DOCUMENT names the party, the workspace is what the
+  PLATFORM says.
+- **THE EXECUTED-AND-LOCKED BAND STAYS.** It was not in the ask, and it states
+  a fact about the paper being sealed rather than an instruction on how to read
+  it. Asserted in f225 so nobody reads this removal as covering it.
+- **ONE SENTENCE HAS NO OTHER HOME IN THE PRODUCT and is reported rather than
+  absorbed**: the gold band's MIGRATED half — "executed outside … filed for
+  reference, renewal and reporting — there is nothing to sign here."
+  `ct_executed_outside` is read nowhere else, so that is not said anywhere now.
+  It is a fact about how a migrated record WORKS rather than about this
+  document's wording; if it is wanted back it wants a home of its own — the
+  Signing tab or Key terms — and not a band over the contract.
+- **THE PARTY IS STILL SET AND READ ON KEY TERMS**, which for an upload is the
+  only door to its own facts (there are no recitals to name it in).
+  `ct_received_read_below`, `ct_on_their_paper` and `ct_executed_outside` are
+  STALE as visible text; the keys are left inert. Tests: f225 (reversed in
+  place — the claim is STRONGER now), upload-party-verify (19).
+
 An imported third-party .docx took the whole contract workspace down with "OURS is not defined". The banner on a RECEIVED-AND-NOT-YET-EXECUTED upload names OUR party ("…sign to record X's acceptance…"), and uploadDocBody reached for docBody's OURS — a DIFFERENT FUNCTION's local. Latent since the party-vs-workspace change: template contracts never draw the sentence, migrated-executed uploads take the other branch, so 150 contracts hid it and the first live third-party upload found it. uploadDocBody now carries its own `const OURS = contractParty(c)` fallback FIRST_PARTY — the same reading as the recitals. The fix reaches every surface by construction (one builder: docBody → uploadDocBody — room, share copy, exports; the phone wraps it in try and showed mc_could_not_draw, the same fault in politer clothes).
 
 THE OWNER'S CHOSEN FIX RIDES WITH IT: the upload popup asks WHO WE ARE. `up-party` on uploadConfirmHtml, prefilled with FIRST_PARTY (the CONTRACT_ESSENTIALS reasoning — the assumption made out loud, overtypeable), datalist `up-party-list` built by **uploadPartyOptions()** — the FX picker's rule, OFFERS NEVER REFUSES: the workspace name first, then every entity already on a contract (case-insensitive dedupe; the list grows by use, nothing for an admin to maintain — the AUTOMATIC option, owner-chosen over a managed Settings list). Any typed name is accepted; blank files as absent and the reading falls back to the workspace, so nothing filed before the field existed reads differently. submitUpload stores it as `c.party`. `party` survives the light list by construction (HEAVY spreads the record), so the datalist works in server mode. The phone's "upload received" row calls the same openUploadModal — one dialog, both shells. The migration importer was deliberately left alone: migrated paper is executed-outside, the other (working) branch, and Key terms stays its door.
@@ -3046,7 +3075,16 @@ WHAT LEFT the Negotiate page (nothing is hiding): the Discussion column (threads
 
 EVERY DOOR ONTO THE POSTBOX IS DELEGATED (15 Aug 2026, found the day the band shipped). The [data-redline-proxy] click was wired by scanning #content inside renderRedline — at a line BEFORE the panes are mounted a few lines below. Every proxy in the page shell got its handler; a proxy painted into the MOUNT got nothing. Harmless while the toolbar was the only one, and it made "Send all N" a dead button the moment the unsent band arrived in the change column: the toolbar pressed #nego-send once, the band pressed it zero times. Now ONE delegated listener on document, armed once — and the element-bound scan is GONE rather than kept beside it, because a proxy reachable by both would publish the round TWICE. redlineSyncProxies still runs per paint: deciding whether a proxy is usable is a different job and has always had to re-run on fresh markup. redline-verify counts the presses on both doors rather than inferring them from a handler being attached.
 
-"N NOT SENT" IS ON THE CHANGE COLUMN (owner-reported 15 Aug 2026, OI-9). You write three redlines, every card says Draft with its own Send, and nothing counted them. The only surface that did was a suffix on Publish Round — which never said "send", sat at the far end of the toolbar, and FOLDS AWAY on the fit ladder's second rung (.rl-send-detail), so on an ordinary laptop it was not on screen. rlUnsentBandHtml / rlUnsentCount are the builder and the reading, drawn inside .nego-index-head (prepended to the CARDS it would scroll away with them). ONE LINE, NEVER TWO — owner-ruled after two-line drafts measured 108px against this one's 41px: the count and the button are flex:none, only the middle phrase gives and it ellipsises, MEASURED at a 300px column. ONE COUNT: it borrows negoUnsentAsks less reviewHeldIds/reviewAwaiting — the same arithmetic the toolbar used — and THE SUFFIX CAME OFF, because two surfaces printing one number is how they come to differ. HELD AND IN-REVIEW STAY ON THE BUTTON: they are work waiting on a COLLEAGUE, not unsent work waiting on you. The Send is a PROXY onto the same postbox (redline-verify's "one proxy" claim widened to "every door is a proxy"); the per-card Send stays, asked for in the same breath. Both seats: the counterparty's counts what THEIR page holds (pendingDecisions + pendingProposals) onto nego-send-decisions. Nothing is drawn with nothing unsent, on a read-only copy, or for a narrowed reviewer. **AND IT IS A THIRD SHORTER SINCE 23 Aug 2026** (owner-asked, off a screenshot). MEASURED before it was touched: **50px** — a 30px button with 9px of padding above and below and a 1px border each side. **THE BUTTON WAS WHAT SET THAT HEIGHT**, which is why trimming the padding alone could never have bought a third; it is 22px now against 4px of padding and measures **32**, which is 36% off. The type came down one rung with it (14 to 13) — a 14px sentence in a 32px band sits with 2px of air above and below and reads as clipped rather than as compact. **THE AMBER, THE BORDER, THE WORDING, THE DOT AND THE 12px GAP TO THE CARDS ARE UNTOUCHED**: this is a height, not a redesign, and the band still has to read as the one warning on the column. Tests: f209, f240, flat-rows-and-alerts-verify.
+"N NOT SENT" IS ON THE CHANGE COLUMN (owner-reported 15 Aug 2026, OI-9). You write three redlines, every card says Draft with its own Send, and nothing counted them. The only surface that did was a suffix on Publish Round — which never said "send", sat at the far end of the toolbar, and FOLDS AWAY on the fit ladder's second rung (.rl-send-detail), so on an ordinary laptop it was not on screen. rlUnsentBandHtml / rlUnsentCount are the builder and the reading, drawn inside .nego-index-head (prepended to the CARDS it would scroll away with them). ONE LINE, NEVER TWO — owner-ruled after two-line drafts measured 108px against this one's 41px: the count and the button are flex:none, only the middle phrase gives and it ellipsises, MEASURED at a 300px column. ONE COUNT: it borrows negoUnsentAsks less reviewHeldIds/reviewAwaiting — the same arithmetic the toolbar used — and THE SUFFIX CAME OFF, because two surfaces printing one number is how they come to differ. HELD AND IN-REVIEW STAY ON THE BUTTON: they are work waiting on a COLLEAGUE, not unsent work waiting on you. The Send is a PROXY onto the same postbox (redline-verify's "one proxy" claim widened to "every door is a proxy"); the per-card Send stays, asked for in the same breath. Both seats: the counterparty's counts what THEIR page holds (pendingDecisions + pendingProposals) onto nego-send-decisions. Nothing is drawn with nothing unsent, on a read-only copy, or for a narrowed reviewer. **AND IT IS A THIRD SHORTER SINCE 23 Aug 2026** (owner-asked, off a screenshot). MEASURED before it was touched: **50px** — a 30px button with 9px of padding above and below and a 1px border each side. **THE BUTTON WAS WHAT SET THAT HEIGHT**, which is why trimming the padding alone could never have bought a third; it is 22px now against 4px of padding and measures **32**, which is 36% off. The type came down one rung with it (14 to 13) — a 14px sentence in a 32px band sits with 2px of air above and below and reads as clipped rather than as compact. **THE AMBER, THE BORDER, THE WORDING, THE DOT AND THE 12px GAP TO THE CARDS ARE UNTOUCHED**: this is a height, not a redesign, and the band still has to read as the one warning on the column.
+
+**THE STRIP IS RETIRED AND THE ACT SURVIVES IT (owner-asked 26 Aug 2026: "delete the entire long strip complete and leave that space for the change cards. Move the send all button to ... the opposite side of tracked changes. Only move the button").** Everything above is the record of the strip and is kept because the reasoning is the useful part. **THIS REVERSES THE ONE EXCEPTION NO NEW BANDS ON THE PAGE WROTE DOWN BY NAME** — that rule kept this band because the owner had asked for it and because the ACT WAS ON IT, which is the test a band has to pass. The owner has now looked at it in place and taken the strip while keeping the act, which is the same test answered the other way: the act moved to the column's head, where it is on screen without a band under it.
+
+- **`rlUnsentBandHtml` IS A `return ''` STUB** — this file's convention, because it is exported and a third caller must not be able to bring the strip back through a door nobody remembered. **`rlUnsentSendHtml` IS THE BUTTON ALONE**, and it carries every rule the strip did unchanged: the count, the refusal to offer a batch send to a reviewer who cannot publish, both seats' own postboxes, silence with nothing unsent, and nothing on a read-only copy. It is still a PROXY and never a second transport, so the delegated proxy listener picks it up wherever it is drawn.
+- **IT SITS AFTER `.rl-idx-sp` IN `.rl-idx-top`** — a spacer that has pushed anything after it to the right wall since the head was built and that **nothing had ever been drawn after**. Placement only: `margin-bottom:6px` so it does not sit ON the head's own hairline, and its fill, ink, size and disabled face are the ones it arrived with ("only move the button").
+- **ONE SENTENCE IS LOST FROM THE SCREEN and is said out loud rather than absorbed**: `ng_unsent_why` — "they cannot answer yet" — had no other home. The button's hover carries `ng_unsent_full` (the count, the sentence and who is waiting) **and** `ng_unsent_send_title` (the one-at-a-time hint it already had), so neither is gone. `ng_unsent_n` and `ng_unsent_why` are STALE as visible text.
+- **`.rl-unsent`, `.rl-unsent-dot`, `.rl-unsent-n` and `.rl-unsent-s` DRESS NOTHING NOW** and are left dormant like `.rl-plan` before them. `.rl-unsent-go` is live and is the act.
+
+Tests: f209 (every claim moved from the band to the act, plus a new one that the stub cannot be drawn back), f240, f84 / f89 / f92 / f100 / clause-door-verify / clause-editor-verify (claims re-pointed), redline-verify, nego-redesign-verify, flat-rows-and-alerts-verify.
 
 AND THEN THERE WERE TWO OF IT, FOR A DAY (owner-reported 15 Aug 2026: "you sometimes have multiple send alerts. There should only be the one highlighted in yellow on top of the redline cards, and that button currently not working when you click sent"). Three faults in one report, and the second was created by the fix for the first.
 - **THE DUPLICATE.** The band arrived on the counterparty's change column and `#pt-nego-send` was left standing in their header. They also DISAGREED — the header counts DECISIONS alone, the band counts decisions AND held proposals — so a reader with both read "Send 1 decision" and "Send all 6" twelve pixels apart. The header's send now draws only `n && !PORTAL_FOOT_COMPACT`. **PORTAL_FOOT_COMPACT is the discriminator and it is exactly right rather than merely convenient**: renderShareWorkbench sets it and renderSharePortal resets it, and the signing screen has no change column and therefore no band — so the one screen that still needs the header's send is the one screen that still gets it. **#pt-nego-send IS NOT RETIRED**: it is still the postbox, still the only element the handler is bound to, still what the band proxies. What moved is which door the reader presses.
@@ -3064,8 +3102,8 @@ THE ASK TAG IS AN ID AND A GLYPH (owner-asked 15 Aug 2026, OI-12). It read `CHG-
 
 THE CLAUSE HAS A DOOR (owner-asked 16 Aug 2026: "Just add a green pill that says Edit on the top right of the clause"). The first piece of the clause-panel design, and it was ADDITIVE on arrival — nothing removed that day; what the page gained was a way IN. (The hover tool row and the ask tags have SINCE been retired — see FIVE THINGS OFF FIVE SCREENSHOTS and NO EDITS ON THE PAPER below; the change cards and the card pop-out still work exactly as they did.)
 
-- **rlClauseEditPillHtml** — THE PENCIL ICON since 20 Aug 2026 (owner-asked, off a picture of the glyph: "replace the edit word … not too dark but visible"): icon-only on the paper, the glyph in the workspace ACCENT (`--accent-solid` — never neutral grey, the furniture lesson; never the nav-bg fill it wore 16–20 Aug) on a transparent face, hover a light accent tint. THE WORD SURVIVES as aria-label + title (ng_cp_edit — still live, also the panel's EDIT label and the empty-column blurb, which now names ✎ beside the word). In `.rl-clause-top` and LAST in it, on all THREE clause branches of redlineDocHtml. `margin-left:auto` rather than the row's space-between, because a headingless clause (an upload that arrived as a wall of paragraphs) leaves the pill as the row's only child and space-between would park it on the LEFT. Sheet furniture, so `calc(px * var(--doc-scale,1))` — the third report of that fault was enough, a fourth was not waited for.
-- **ALWAYS DRAWN, never hover-only.** The tool row at the foot is furniture on a clause you are already working on; this is the way IN, and a hover-only door is an invisible affordance — the fault this file already records against the selection route.
+- **rlClauseEditPillHtml** — THE PENCIL ICON since 20 Aug 2026, **HOVER-ONLY AND GREY SINCE 26 Aug 2026** (owner-asked: *"you should only see the highlighted edit button when you hover over a respective clause. And the edit symbol should be in a visible grey font"*). **THAT REVERSES TWO DECISIONS AND BOTH ARE NAMED RATHER THAN DROPPED**: the ACCENT was chosen on 20 Aug against furniture-grey ("replace the edit word … not too dark but visible"), and ALWAYS DRAWN was the rule below. The owner has seen both in place and ruled the other way, and **the reference column agrees on the first half — its own pencil is hover-only too**. The grey is `--color-neutral-600`, the label shade, because it is the one step in this ramp that is a TYPE token and has an answer in both themes — never neutral-400, which fails AA in both. MEASURED at **6.14:1** on the cream sheet, which is what "visible grey" has to mean. Transparent face, hover a light accent tint. THE WORD SURVIVES as aria-label + title (ng_cp_edit — still live, also the panel's EDIT label and the empty-column blurb, which now names ✎ beside the word). In `.rl-clause-top` and LAST in it, on all THREE clause branches of redlineDocHtml. `margin-left:auto` rather than the row's space-between, because a headingless clause (an upload that arrived as a wall of paragraphs) leaves the pill as the row's only child and space-between would park it on the LEFT. Sheet furniture, so `calc(px * var(--doc-scale,1))` — the third report of that fault was enough, a fourth was not waited for.
+- **HOVER-ONLY SINCE 26 Aug 2026 — REVERSED IN PLACE.** It was ALWAYS DRAWN on the reasoning that this is the way IN and a hover-only door is an invisible affordance, the fault this file records against the selection route. That reasoning is kept here because it is what a future reader will otherwise trip over; the owner has overruled it. **THREE THINGS KEEP IT REACHABLE, and each closes one way of losing a control hidden by default**: `:focus-visible` for a keyboard reader, `[aria-expanded="true"]` so the control that opened the panel does not vanish the moment the mouse leaves, and `@media (hover:none)` for a device with no hover at all — where hover-only would be permanently unreachable rather than merely quiet.
 - **IT IS A DOOR, NOT A VERB.** It carries no data-nego-edit and files nothing; it opens **rlClausePanelHtml** — the queue's mechanism mirrored on the other wall (scrim, slide-over, absolute inside `.rl-grid` so it lands on the working area's own RIGHT border on the bench, the contract-tab embed and the counterparty's page alike). No door tab of its own: its door is the pill on the clause it is about, which is the only place "which clause?" has an answer. `_rlCpId`, one at a time, in memory, shut on arrival — the same single value as `_rlAskOpen` (and as the retired pop-out's `_rlPopId` before it).
 - **THREE SECTIONS, AND THE EMPTY ONES ARE DRAWN**: As it stands · On the table · History. **HISTORY IS SETTLED ONLY** (owner-reported 16 Aug 2026, REVERSING the line that stood here: "when i redline, the new change appears On the Table and also as the last redline which is redundant"). It drew every change, on the reasoning that "what am I deciding" and "how did this clause get here" are different questions and an open ask answers both. Measured against the screen that is not worth the line it costs: the two sections sit twelve pixels apart, so a live ask printed itself twice, identically. The SEQUENCE is not broken by it — a change joins the history at the BOTTOM the moment it settles, which is where seq order puts it anyway. `live` and `past` are one list split by one predicate, so a change can be in neither or in both only if that predicate is wrong. The empty line moved with the rule (`ng_cp_history_none` now says "Nothing has been SETTLED"; "nothing has been asked" is untrue with an ask sitting above it). A section that appears only once there is something in it teaches nobody where to look the first time. "As it stands" is **negoClauseNowById**, never the round baseline — adopting does not move the baseline, so a panel headed "as it stands" printing the baseline would state the wording in force BEFORE the adoption the reader just made, which is the whole MK-311 class.
 - **ONE READING, ONE PRODUCER.** The panel's bodies are built by the CANVAS and rendered by the panel: redlineDocHtml pushes them into `opts.cpSink` and redlinePanesHtml passes the array. So the wall that hides the other side's unsent draft, the reviewer's fold and the change grouping are all computed exactly once. NO SINK MEANS NO PANEL AND NO PILL — the Word export renders this same canvas, and a door is drawn only where the room behind it exists.
@@ -3111,6 +3149,27 @@ The panel's Copilot button used to hand the clause to the Copilot DRAWER, which 
 - **THE NAME IS `rlOpenClauseEditor`, NOT `openClauseEditor`** — js/views/settings.js has owned that name for the clause LIBRARY editor all along, and f48 caught the collision on the first run.
 - **ONE CARD PER ASK, and that is a deliberate difference from the render**, which showed two or three ways to answer. Each alternative is a separate paid call to the model; the ready-made chips make a firmer or a plainer version one press each, so the reader spends that money when they want it. **WHAT COPILOT READ IS OUR OWN READING, NOT THE MODEL'S**: the playbook position, what this workspace settled before (`precedentForChange`) and what the other side actually asked are computed from the record and PASSED IN. A model naming its own sources cannot be checked; a list built from the record can.
 - **THE SCAN IS THE PLAYBOOK'S OWN.** `runPlaybookReview` for the run, `rlPlaybookProposals` for what is proposable, narrowed to this clause and drawn in the same card shape, handing its standards to the same Apply. A rule that is MET offers nothing to apply.
+- **AND A SCAN THAT COMES BACK WITH NOTHING SAYS SO WHERE THE READER IS LOOKING
+  (owner-asked 26 Aug 2026: "you should be able to run the playbook scan by
+  pressing the highlighted button").** THE BUTTON WAS WIRED AND DOES RUN —
+  proved by pressing it on an ordinary contract in a real browser, findings and
+  all. What it could not do was FAIL OUT LOUD: `runPlaybookReview` answers null
+  where there is no readable wording — an upload whose text never came out of
+  the file, which is the commonest shape on this screen — toasts a red line
+  that fades, and the panel then redrew the SAME "not been checked yet"
+  sentence and the SAME button. Nothing on screen moved, which is exactly what
+  a dead press looks like. REPRODUCED before it was touched.
+  **THE RENEWAL CARD ANSWERED THIS SHAPE ALREADY**, in its own words: a failure
+  states itself where the reader is looking rather than relying on a toast that
+  has already faded. `_ceScanErr` is `_renewalAdviceError` for the scan —
+  written by the one runner, cleared the moment a review arrives, cleared again
+  before each fresh run so a stale note cannot outlive it, and the button then
+  reads "Run it again" because a refusal needs its way forward on the same
+  screen. **IT DOES NOT RE-DERIVE WHY**: `runPlaybookReview` owns the reading of
+  whether there is wording to check, and a second copy of that test here is the
+  twin-formula fault this codebase records — so the panel reports what it can
+  stand behind and names the usual cause and the remedy as prose.
+  `ce_scan_nothing` / `ce_scan_nothing_why`, both languages. Tests: f245 (11).
 - **ONE SENTENCE AT A TIME SITS INSIDE ONE SUB-PARAGRAPH.** A clause's text carries one limb per LINE and those breaks are what the document builder reads back into real numbering, so a passage dragged across two of them is refused rather than silently run together — the same reasoning that refuses a highlight across two clauses on the paper. The replacement happens inside that one line and every other line is carried across character for character.
 - **THE READY-MADE QUESTIONS ARE ONE LINE, ALWAYS** (owner-asked in those words): `flex-wrap:nowrap`, the row scrolls sideways, each chip `white-space:nowrap`, and a mask rather than a colour fades the edge so it reads as "there is more" rather than as clipped.
 - **THE PAGE CARRIES ONE BRAND COLOUR AND NO OTHER** — Copilot takes the workspace accent here rather than a violet of its own. That is a decision about THIS page: the clause panel's own Copilot button keeps the violet it has always worn.
@@ -4238,17 +4297,30 @@ one, a status word on every row where it has one only where it adds something.
     stub that cannot narrow is safer than a name a third caller could bring back.
     **BOTH SEATS**: a filter kept on one and not the other is the drift f49
     exists to catch.
-  - **AND THE FRONT EDGE ANSWERS THE QUESTION IT ASKED.** The spine is back on
-    our seat's row — 3px, teal for ours and amber for theirs, off `data-rl-origin`
-    — which is the fastest reading of "is this mine or theirs" and needs no
-    control at all. It went with the BOX on 25 Aug; it comes back because the
-    filter went.
-  - **ONE QUESTION, ONE COLOUR.** The boxed card carries a THIRD colour here,
-    ruby on a refusal, and that rule is untouched where it earns its place: that
-    card has no heading over it saying which pile it is in. **This row does** —
-    so a ruby edge would say in colour what the heading says in words AND cost
-    the row the one thing the edge is for, since a refused ask of THEIRS would
-    stop being amber.
+  - **THE FRONT EDGE ANSWERED THE QUESTION IT ASKED, AND HAS NOW GONE TOO
+    (owner-asked 26 Aug 2026: "delete the color coding of theirs vs mine as I am
+    still thinking of a better solution").** The spine came back on our seat's
+    row — 3px, teal for ours and amber for theirs, off `data-rl-origin` — the
+    day the filter was retired, because that was the fastest reading of "is this
+    mine or theirs" and needed no control at all. The owner has taken BOTH away
+    while they weigh a third answer.
+    **NOTHING BUT THE COLOUR WENT**: `data-rl-origin` is still stamped on every
+    row, so whichever answer replaces this is a rule to write and not a fact to
+    go and find again — and whose ask it is is still said in words on the meta
+    line and under the pile's own heading. The row pads a plain 16px on its left
+    like every other edge in the column, and **the reference column carries no
+    spine either**.
+  - **THE BOXED CARD KEEPS ITS OWN SPINE**, thirteen hundred lines up, and is
+    deliberately untouched: that is the counterparty's seat and the owner's
+    preview of it, where the rows carry no band headings and the edge is the
+    only thing answering the question. It carries a THIRD colour there — ruby on
+    a refusal — for the same reason.
+  - **AND ONE TEST WAS PASSING ON A PAGE WITH NO FEATURE.** nego-redesign-verify
+    read the edge's COLOUR and never its WIDTH: with `border:0` the colour still
+    computes (it falls to `currentColor`), and a settled row's ink differs from a
+    live row's, so it reported "ours is a different colour from theirs" on a
+    column with no edge at all. Fixed while the claim was being reversed. **Read
+    the property that would actually be missing.**
 - **AND THE CARDS SCROLL INSIDE THEMSELVES, AND NOWHERE ELSE** (owner-asked the
   same day: *"the entire page should not expand and collapse based on the
   scrolling in the cards section. It should only happen in the contracts
@@ -4319,6 +4391,39 @@ one, a status word on every row where it has one only where it adds something.
     different sequence. It is inside `rlCardSort` now, both callers pass
     `rlBandOpts(c, opts, side)`, and there is ONE order.
 
+- **THE COLUMN MATCHES THE REFERENCE'S SPACING (owner-asked 26 Aug 2026, off
+  "The Change Column" artifact; MEASURED in a real browser at the same 458px
+  width, never read off the source).** The reference's rows sit **53px** apart
+  and HaTi's sat **67**, and the cause was ONE DECLARATION NOBODY RESET: the
+  flat row replaced a boxed card that stood 11px clear of the next one, the box
+  went and its margin-bottom stayed. MEASURED, that put **22.5px of air above
+  each hairline and 11.5 below**, so the rule hugged the row beneath rather
+  than dividing the two.
+  - **`margin:0` PUTS THE LINE IN THE MIDDLE BY CONSTRUCTION** — the padding
+    above it and the padding below it are the same number — and **9px** is that
+    number, the reference's own. Pitch 67 → 52, and the rule measures 9.5/9.5.
+  - **ONE RULING, WALL TO WALL.** `.rl-cards` insetted the rows 16px and the
+    band headings cancelled that with `margin:0 -16px`, so the hairline ran
+    426px of a 458px column while the headings ran the full width — one list,
+    ruled two different lengths. The scroller pads **0** and the ROW carries the
+    inset itself, **by the same token the heading uses**, so the two can never
+    drift and the ruling is continuous.
+  - **ONE LEFT EDGE DOWN THE WHOLE COLUMN.** The row's words started at 27px
+    against the heading's 16 (the spine plus its padding), and `.rl-idx` insetted
+    itself 12px while everything under it sat at 16. All three are `--s-4` now.
+  - **EVERY PILE'S COUNT AT THE RIGHT WALL** (`margin-left:auto` on `.rl-band b`),
+    so seven of them line up rather than each following its own words.
+  - **AND `.rl-idx-head` TAKES NO ROOM WHEN IT HAS NOTHING TO SAY.** Its one
+    visible tenant was the "N not sent" strip; left as it was it would draw
+    10px of padding, a hairline and 12px of margin over nothing — a ruled band
+    of empty column, which is the opposite of what removing the strip was for.
+    It collapses by default and takes its clothes back under `:has(.nego-why)`;
+    everything else it holds is `hidden`, so `:empty` cannot answer this.
+  - **WHAT IS DELIBERATELY NOT COPIED**: the reference paints its rule as the
+    row's `border-BOTTOM`, which doubles against each band's own top border.
+    HaTi keeps `border-top` with its two resets, which draws the same hairline
+    between every pair and no doubled line. The drawing may differ; the reading
+    does not. Tests: f246 (8), redline-verify, flat-rows-and-alerts-verify.
 - **A ROW IS NOT A CARD.** The reference draws hairline-separated ROWS on the
   column's own surface — no border, no fill, no shadow, no coloured spine — with
   the reference line over the bold summary at the LEFT and the acts at the

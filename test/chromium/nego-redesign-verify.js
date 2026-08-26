@@ -306,10 +306,21 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         capRuleColor: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomColor,
         filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
         /* the front edge, by whose ask it is — what replaced the filter */
+        /* THE WIDTH, NOT ONLY THE COLOUR — and that is a real fault this
+           check shipped with. Read as colour alone it PASSED on a page with
+           no edge at all: border-left-color still computes with border-width
+           0 (it falls to currentColor), and a settled row's ink differs from a
+           live row's, so the two came back "different" and the check reported
+           an edge nobody could see. */
         edgeOurs: (() => { const el = document.querySelector('#rl-changes .rl-card-d[data-rl-origin="us"]');
-          return el ? getComputedStyle(el).borderLeftColor : null; })(),
+          if (!el) return null; const s = getComputedStyle(el);
+          return parseFloat(s.borderLeftWidth) > 0 ? s.borderLeftColor : '0px'; })(),
         edgeTheirs: (() => { const el = document.querySelector('#rl-changes .rl-card-d[data-rl-origin="them"]');
-          return el ? getComputedStyle(el).borderLeftColor : null; })(),
+          if (!el) return null; const s = getComputedStyle(el);
+          return parseFloat(s.borderLeftWidth) > 0 ? s.borderLeftColor : '0px'; })(),
+        origins: new Set([...document.querySelectorAll('#rl-changes .rl-card-d')]
+          .map(r => r.getAttribute('data-rl-origin'))).size,
+        sendInHead: !!document.querySelector('.rl-idx-top .rl-unsent-go'),
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
         cardWording: cs('.rl-card-sum') && cs('.rl-card-sum').fontSize,
@@ -388,9 +399,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        is deleted, and the question it asked — whose ask is this — is answered
        by the coloured front edge of every row instead. So what is measured is
        the property that replaced it. */
-    check('5 whose ask it is is answered by the front edge instead',
-      col.edgeOurs && col.edgeTheirs && col.edgeOurs !== col.edgeTheirs,
-      `${col.edgeOurs} vs ${col.edgeTheirs}`);
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "delete the color coding
+       of theirs vs mine as I am still thinking of a better solution") ----
+       The edge went back on the day the filter was retired and the owner has
+       now taken both while they weigh a third answer. What survives is the
+       FACT: data-rl-origin is still stamped on every row, so whatever replaces
+       this is a rule to write and not a fact to find again. */
+    check('5 the front edge is gone too, and the fact under it is not',
+      col.edgeOurs === '0px' && col.edgeTheirs === '0px' && col.origins === 2,
+      `ours ${col.edgeOurs}, theirs ${col.edgeTheirs}, origins ${col.origins}`);
     /* REVERSED IN PLACE 24 Aug 2026 (WO-3, owner-asked: "delete the copilot
        first pass feature completely", then "Just delete the strip for now").
        This pinned that the 22 Aug redesign had not quietly taken the band with
@@ -398,8 +415,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        UNSENT band is a different object and is untouched, which is the half
        still worth pinning: two bands went out of this column on two different
        days for two different reasons, and only one of them was asked for. */
-    check('6 the Copilot band is gone (WO-3) and the unsent band is not',
-      !col.copilot && col.band, `copilot ${col.copilot} · unsent ${col.band}`);
+    /* REVERSED IN PLACE, 26 Aug 2026: the "N not sent" strip has now gone the
+       same way as the Copilot band, on the owner's ask — "delete the entire
+       long strip complete and leave that space for the change cards" — with
+       its act moved to the head. So NEITHER band draws, and what is checked
+       beside that is the act surviving, which is the half that matters. */
+    check('6 neither band draws, and the act survived the one that carried it',
+      !col.copilot && !col.band && col.sendInHead,
+      `copilot ${col.copilot} · strip ${col.band} · send in head ${col.sendInHead}`);
 
     /* ---- 7. NOTHING SITS UNDER THE CONTRACT ----
        A first build put two panels here — the other live negotiations, and the

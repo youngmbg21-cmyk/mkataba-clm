@@ -7716,3 +7716,86 @@ reservation stand; removing those is the half of the ask it did not cover, and
 146 then fits both rows with nothing clipped at any laptop width. The 2px
 platform corner from that merge is kept. `--hm-tile-h` is stale.
 
+
+
+---
+
+## 2026-08-26 — the column matches the reference, and five off three screenshots
+
+Owner-asked, in two parts: make the tracked-changes column match "The Change
+Column" artifact's spacing, and five more fixes off three screenshots.
+
+### Measured first, against the reference, in a real browser
+
+Both columns rendered at the same 458px width and measured rather than read.
+The reference's rows sit 53px apart; HaTi's sat 67. The cause was ONE
+DECLARATION NOBODY RESET: the flat row replaced a boxed card that stood 11px
+clear of the next one, the box went and its margin stayed — so the hairline had
+22.5px of air above it and 11.5 below and hugged the row beneath rather than
+dividing the two. The rule also ran 426px of a 458px column while the band
+headings ran the full width, and the rows' words started 11px right of the
+headings' words.
+
+### Defects found and fixed
+
+1. THE ROW'S LEFTOVER MARGIN (js/views/negotiation-css.js). margin:0, padding
+   9px — the reference's own number — so the rule is centred by construction:
+   the padding above it and below it are the same number. Pitch 67 → 52.
+2. ONE RULING, WALL TO WALL. The scroller stopped insetting the rows and the
+   row carries the inset itself, by the same token the band heading uses. The
+   band's `margin:0 -16px` went with the padding it existed to cancel.
+3. EVERY PILE'S COUNT AT THE RIGHT WALL, so seven of them line up.
+4. ONE LEFT EDGE DOWN THE WHOLE COLUMN. The index block insetted 12px while the
+   headings and rows sat at 16, so the column's own name started four pixels
+   left of everything under it.
+5. THE INDEX HEAD COLLAPSES WHEN IT HAS NOTHING TO SAY. Deleting the strip
+   (below) would otherwise have left 10px of padding, a hairline and 12px of
+   margin drawn over nothing — a ruled band of empty column, which is the
+   opposite of what removing the strip was for. Its remaining children are all
+   `hidden`, so `:empty` cannot answer this and `:has` can.
+6. THE "N NOT SENT" STRIP IS RETIRED and its act moved to the head's top-right
+   slot — a spacer that had been there unused since the head was built.
+   REVERSES the one exception NO NEW BANDS ON THE PAGE wrote down by name.
+   ONE SENTENCE LOST FROM THE SCREEN, said out loud: ng_unsent_why, "they
+   cannot answer yet". It rides the button's hover now, with the one-at-a-time
+   hint it already carried.
+7. THE COLOURED FRONT EDGE IS GONE (owner is weighing a better answer).
+   data-rl-origin is still stamped, so the replacement is a rule to write and
+   not a fact to find again. The BOXED card keeps its spine — that is the
+   counterparty's seat, where the rows carry no headings.
+8. BOTH RECEIVED-DOCUMENT BANDS ON THE DOCUMENT TAB ARE GONE — the teal strip
+   above the paper and the gold band inside it. `OURS` went with its one
+   reader, which puts the ReferenceError this screen shipped with beyond
+   returning. THE EXECUTED-AND-LOCKED BAND STAYS (not in the ask).
+9. THE CLAUSE PENCIL IS HOVER-ONLY AND GREY. Reverses two recorded decisions,
+   both named in the source. Measured at 6.14:1 on the cream sheet. Three
+   things keep it reachable: focus, its own open panel, and (hover:none).
+10. THE PLAYBOOK SCAN SAYS WHAT HAPPENED. The button was wired and DOES run —
+    proved by pressing it. What it could not do was fail out loud: on an
+    upload whose text never came out of the file the runner answers null,
+    toasts a red line that fades, and the panel redrew the same sentence and
+    the same button. Reproduced, then fixed the way the renewal card already
+    answers this shape — the failure states itself where the reader is looking.
+
+### One test was passing on a page with no feature
+
+nego-redesign-verify check 5 read the front edge's COLOUR and never its WIDTH.
+With `border:0` the colour still computes (currentColor), and a settled row's
+ink differs from a live row's — so it reported "ours is a different colour from
+theirs" on a column with no edge at all. Fixed while reversing it.
+
+### Noticed, not fixed
+
+- `npm run lint` reports four duplicate-key errors in js/i18n.js
+  (co_password_updated, act_next, twice each). Reproduce identically on the
+  parent commit; already on the record.
+- flat-rows-and-alerts-verify 2d/2e/2f are red for the retired WHOSE ASKS
+  filter, PROVED on a worktree at the parent commit (34/37 there and here).
+  Not this session's.
+- `.rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}` is now dead twice over —
+  nothing emits `.rl-fsegwrap` and the base rule pads 0. Left in place.
+- `.rl-unsent`, `.rl-unsent-dot`, `.rl-unsent-n` and `.rl-unsent-s` dress a
+  strip nothing draws. Left dormant, like `.rl-plan` before them.
+- ct_executed_outside is now read nowhere in the product, so "there is nothing
+  to sign here" is not said anywhere for a migrated record. Reported to the
+  owner; it wants a home of its own rather than a band over the contract.

@@ -94,10 +94,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('1b it is the pencil icon, and the word Edit survives for a screen reader',
      !!pill && pill.text === '' && pill.hasSvg && pill.aria === 'Edit',
      pill && `text "${pill.text}", svg ${pill.hasSvg}, aria "${pill.aria}"`);
-  ck('1c it wears the workspace ACCENT on a transparent face — visible, not too dark, measured',
-     /* The dark nav-bg fill went with the word. The glyph's ink is
-        --accent-solid (teal in this harness's green fallback), the face is
-        transparent until hover. */
+  ck('1c it wears a VISIBLE GREY on a transparent face — measured, not named',
+     /* REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "the edit symbol should be
+        in a visible grey font"). The accent went the way the dark nav-bg fill
+        went before it; what this check has always been about is that the glyph
+        is neither invisible nor a black blot, and that survives the hue. */
      !!pill && /rgba\(0, 0, 0, 0\)|transparent/.test(pill.bg) && !/rgb\(11, 61, 58\)/.test(pill.colour)
        && pill.colour !== 'rgb(255, 255, 255)',
      pill && `bg ${pill.bg}, ink ${pill.colour}`);
@@ -105,9 +106,28 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      pill && `pill bottom vs body top`);
   ck('1e it is on the RIGHT of the clause, not the left',
      !!pill && pill.rightGap < pill.leftGap, pill && `${pill.rightGap}px right / ${pill.leftGap}px left`);
-  ck('1f and it is visible with NOTHING hovered — a door you cannot see is not a door',
-     !!pill && pill.opacity === '1' && pill.visibility === 'visible' && pill.display !== 'none',
+  /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "you should only see the
+     highlighted edit button when you hover over a respective clause") ----
+     The sentence this check was named for — a door you cannot see is not a
+     door — is the argument that put it here, and the owner has seen it in
+     place and ruled the other way; the reference column does the same. So the
+     PAIR is what is measured: away at rest, there on a real hover. It is still
+     in the DOM and still the right size at rest (1a above), which is what makes
+     this a reveal rather than a rebuild. */
+  ck('1f it is out of the way with NOTHING hovered',
+     !!pill && pill.opacity === '0' && pill.display !== 'none',
      pill && `opacity ${pill.opacity}, ${pill.visibility}`);
+  await p.hover('#rl-doc .rl-clause, .rl-clause');
+  await pause(200);
+  const pillOnHover = await p.evaluate(() => {
+    const el = document.querySelector('.rl-cp-pill');
+    if (!el) return null;
+    const s = getComputedStyle(el);
+    return { opacity: s.opacity, pe: s.pointerEvents };
+  });
+  ck('1f and a real hover brings it out, pressable',
+     !!pillOnHover && pillOnHover.opacity === '1' && pillOnHover.pe !== 'none',
+     pillOnHover && `opacity ${pillOnHover.opacity}, pointer-events ${pillOnHover.pe}`);
 
   const allPills = await p.evaluate(() => ({
     clauses: document.querySelectorAll('.redline-page #rl-doc section.rl-clause').length,
@@ -750,14 +770,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await new Promise(r=>setTimeout(r,350));
     document.querySelector('#rl-cp [data-nego-save]').click();
     await new Promise(r=>setTimeout(r,1100));
-    return { n: (document.querySelector('.rl-unsent-n')||{}).textContent,
+    /* RE-POINTED 26 Aug 2026: the strip went and its count went with the act
+       into the column's head — "only move the button". The claim is unchanged:
+       one edit puts ONE thing on their side of the table, not the whole round. */
+    return { n: (document.querySelector('.rl-unsent-go')||{}).textContent,
       cards: document.querySelectorAll('#rl-changes .rl-card').length };
   });
   ck('8e their page holds NOTHING before they touch anything', !cpBefore.band,
      `${cpBefore.arrived} asks already on the payload`);
   ck('8f …and after one edit it holds exactly ONE, not the whole round',
-     /^1 /.test(String(cpAfter.n||'')) && cpAfter.cards === cpBefore.arrived + 1,
-     `band "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
+     /\b1$/.test(String(cpAfter.n||'').trim()) && cpAfter.cards === cpBefore.arrived + 1,
+     `act "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   /* ---- 9. HOW THE PANEL READS, MEASURED (owner-asked 16 Aug 2026) ----

@@ -110,7 +110,7 @@ describe('f210 (1) — the pill', () => {
     });
   });
 
-  test('it wears the nav\'s colour, and it is not hover-only', async () => {
+  test('it comes out on hover, and it is a visible grey', async () => {
     /* CLAIM MOVED WITH THE OWNER'S ASK (16 Aug 2026): the pill follows the
        workspace theme through the nav panel's own token — dark green in the
        green workspace, navy in the blue one — instead of a fixed emerald that
@@ -121,14 +121,25 @@ describe('f210 (1) — the pill', () => {
        clause you are already working on; this is the way IN, and a hover-only
        door is an invisible affordance — the exact fault this file records
        against the selection route. */
-    /* REVERSED IN PLACE, 20 Aug 2026 (owner-asked): the dark nav-bg fill went
-       with the word — the pencil now sits on a transparent face in the
-       workspace ACCENT, visible but not too dark, and never neutral grey
-       (the furniture lesson). */
+    /* ---- REVERSED IN PLACE, 26 Aug 2026, ON BOTH HALVES (owner-asked: "you
+       should only see the highlighted edit button when you hover over a
+       respective clause. And the edit symbol should be in a visible grey
+       font") ----
+       BOTH REVERSALS ARE NAMED RATHER THAN QUIETLY DROPPED, because the
+       reasoning above is what a future reader will otherwise trip over. ALWAYS
+       DRAWN was written against invisible affordances and the ACCENT was
+       written against furniture-grey; the owner has seen both in place and
+       ruled the other way, and the reference column they are matching draws
+       its own pencil hover-only too. The grey is --color-neutral-600, the
+       label shade — the one step in this ramp that is a TYPE token and has an
+       answer in both themes. MEASURED on the cream sheet at 6.14:1, which is
+       what "visible grey" has to mean. */
     assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*background:transparent/,
-      'no dark fill on the paper any more');
-    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*color:var\(--accent-solid/,
-      'the glyph wears the workspace accent — visible, never furniture-grey');
+      'no fill on the paper');
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*color:var\(--color-neutral-600\)/,
+      'the glyph is the label grey — never neutral-400, which fails AA in both themes');
+    assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*opacity:0/,
+      'and it is out of the way until the clause is hovered');
     /* REVERSED IN PLACE, 19 Aug 2026 (owner-asked). margin-left:auto put the
        pill at the right of the heading's FLEX ROW, which is inside the
        clause's content box — so anything that changed that box moved the
@@ -140,8 +151,18 @@ describe('f210 (1) — the pill', () => {
       'it is pinned to the clause, so nothing the clause does can move it');
     assert.match(SRC, /\.redline-page \.rl-cp-pill\{[^}]*right:0/,
       'and it is pushed right even on a clause with no heading beside it');
-    assert.doesNotMatch(SRC, /\.rl-clause:hover \.rl-cp-pill/,
-      'nothing reveals it on hover, because it is never hidden');
+    /* ---- AND THREE THINGS KEEP IT ON SCREEN ----
+       Each closes one way of losing a control that is hidden by default: a
+       keyboard reader who cannot hover, its own panel being OPEN (or the thing
+       that opened the panel vanishes the moment the mouse leaves), and a device
+       with no hover at all, where hover-only would be unreachable rather than
+       merely quiet. */
+    assert.match(SRC, /\.redline-page \.rl-clause:hover \.rl-cp-pill/,
+      'the clause reveals it');
+    assert.match(SRC, /\.rl-cp-pill:focus-visible,?\s*\n?\s*\.redline-page \.rl-cp-pill\[aria-expanded="true"\]\{opacity:1\}/,
+      'a keyboard reader reaches it, and its own open panel holds it there');
+    assert.match(SRC, /@media \(hover:none\)\{ \.redline-page \.rl-cp-pill\{opacity:1\} \}/,
+      'and a touch screen, which has no hover to give, always shows it');
   });
 
   test('it follows the reader\'s document type, like the rest of the sheet', async () => {

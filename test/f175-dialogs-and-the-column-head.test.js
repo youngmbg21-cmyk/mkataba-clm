@@ -219,8 +219,20 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     assert.ok(/\.redline-page \.nego-pane\.index\{background:transparent\}/.test(css),
       'the column sits straight on the page, like .rl-col says both non-card columns do');
     const head = /\.rl-idx-head\{([^}]*)\}/.exec(css)[1];
-    assert.match(head, /border-bottom:1px solid var\(--color-divider\)/,
-      'the head is drawn by its rule');
+    /* ---- REVERSED IN PLACE, 26 Aug 2026, and the claim got STRONGER ----
+       This container's one visible tenant was the amber "N not sent" strip,
+       which the owner deleted so the cards could have the space. Left as it
+       was it would draw its padding, its hairline and its margin over nothing
+       at all — a ruled band of empty column, which is the opposite of what
+       removing the strip was for. So the base draws NOTHING and takes NO ROOM,
+       and the hairline belongs to the one state that still has something to
+       say. What this test has always been about is unchanged: wherever this
+       head draws, it is a rule and never a band. */
+    assert.match(head, /padding:0/, 'it takes no room when it has nothing to say');
+    assert.match(head, /margin:0/, 'and pushes the first pile up against the index');
+    const said = /\.rl-idx-head:has\(\.nego-why\)\{([^}]*)\}/.exec(css)[1];
+    assert.match(said, /border-bottom:1px solid var\(--color-divider\)/,
+      'where it does draw, it is drawn by its rule');
     assert.match(head, /background:none/, 'and by nothing else — no band');
     /* REVERSED IN PLACE, 26 Aug 2026, and the claim got STRONGER. It asserted
        the literal 0 that the 20 Aug sweep put here; with the platform on a 2px

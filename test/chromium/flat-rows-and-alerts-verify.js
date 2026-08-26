@@ -44,11 +44,11 @@ const check = (name, pass, detail) => {
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
-/* THE BAND'S OWN HEIGHT BEFORE THIS CHANGE, and the reason it is the one
-   literal in the file: 30px button + 9px padding twice + a 1px border each
-   side. The ask is "a third off", so the claim has to name what it is a third
-   of. */
-const BAND_WAS = 50;
+/* BAND_WAS — the strip's own height before the 23 Aug shortening, 50px — is
+   GONE with the strip itself (owner-asked 26 Aug 2026: "delete the entire long
+   strip complete and leave that space for the change cards"). It was the one
+   literal in this file and it existed to say what "a third off" was a third
+   OF; there is no band left to be a third of. */
 
 /* A live negotiation with one UNSENT owner draft — the only state that draws
    the amber band at all. */
@@ -225,6 +225,8 @@ const SEED_UNSENT = async () => {
         bandBg: band ? cs(band).backgroundColor : null,
         bandBorder: band ? cs(band).borderTopColor : null,
         goBg: go ? cs(go).backgroundColor : null,
+        go: go ? box(go) : null,
+        goInHead: !!(go && go.closest('.rl-idx-top')),
         cap: cap ? box(cap) : null,
         tabs: tabs ? box(tabs) : null,
         capText: cap ? (cap.textContent || '').trim() : null,
@@ -234,17 +236,24 @@ const SEED_UNSENT = async () => {
       };
     });
 
-    check('2a the amber band draws at all', !!head.band, head.band);
-    check('2b it is at least a third shorter than the 50px it measured',
-      !!head.band && head.band.h <= Math.round(BAND_WAS * 2 / 3),
-      { now: head.band && head.band.h, was: BAND_WAS, wanted: Math.round(BAND_WAS * 2 / 3) });
-    /* Three amber tokens, three different values, none of them transparent —
-       the ground, the rule and the send. A height change may not quietly take
-       the colour that makes this a warning. */
-    const amber = [head.bandBg, head.bandBorder, head.goBg];
-    check('2c and the warning is still a warning — amber ground, amber rule, amber send',
-      amber.every(v => v && v !== 'rgba(0, 0, 0, 0)') && new Set(amber).size === 3,
-      { bg: head.bandBg, border: head.bandBorder, send: head.goBg });
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "delete the entire long
+       strip complete and leave that space for the change cards. Move the send
+       all button to ... the opposite side of tracked changes. Only move the
+       button") ----
+       2a and 2b measured the strip's HEIGHT — this file's own earlier job was
+       getting it a third shorter — and the owner has now taken the whole thing
+       for the cards. 2c asked that shortening it did not quietly take the
+       colour that made it a warning; the strip is gone, so what carries that
+       now is the ACT, which keeps its amber fill in its new slot. The claims
+       move with the thing they were about. */
+    check('2a the strip is gone, and the cards have the space',
+      !head.band, head.band);
+    check('2b the act survives it, at the head of the column',
+      !!head.go && !!head.goInHead, { go: head.go, inHead: head.goInHead });
+    /* The one amber left is the send's own fill: a batch send is still the one
+       thing on this column that says work is owed. */
+    check('2c and it is still amber — the warning did not go with the band',
+      !!head.goBg && head.goBg !== 'rgba(0, 0, 0, 0)', { send: head.goBg });
 
     /* ---- REVERSED IN PLACE, 24 Aug 2026 ----
        This asked that the caption and the filter share one ruled line, which

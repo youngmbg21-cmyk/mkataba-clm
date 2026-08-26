@@ -160,14 +160,29 @@ describe('f246 (2) — nothing hides a change any more', () => {
       'the pill above the column counts what the column draws');
   });
 
-  test('whose ask it is is answered by the front edge instead', async () => {
-    /* The question the filter asked, answered at a glance and without a
-       control. Read off the RULE rather than a computed colour, because jsdom
-       resolves no cascade — the pixels are measured in redline-verify. */
-    assert.match(NCSS, /\.rl-card-d\{border-left:3px solid/,
-      'every row carries a coloured front edge');
-    assert.match(NCSS, /\.rl-card-d\[data-rl-origin="them"\]\{border-left-color/,
-      'and theirs is a different colour from ours');
+  test('and the front edge has gone with it, for now', async () => {
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "delete the color
+       coding of theirs vs mine as I am still thinking of a better solution") ----
+       This claim was written the same day the filter was retired, on the
+       reasoning that the edge answered at a glance the question the control
+       used to ask. The owner has now taken BOTH away while they weigh a third
+       answer, so what is pinned is the removal — and, more importantly, that
+       the FACT survives it: data-rl-origin is still stamped on every row, so
+       whatever replaces this is a rule to write and not a fact to go and find
+       again. */
+    const p = await bench();
+    assert.doesNotMatch(NCSS, /\.rl-card-d\{border-left:3px solid/,
+      'no coloured front edge on the row');
+    assert.doesNotMatch(NCSS, /\.rl-card-d\[data-rl-origin="them"\]\{border-left-color/,
+      'and nothing colours theirs differently');
+    const row = p.$('#rl-changes .rl-card-d');
+    assert.ok(row && row.hasAttribute('data-rl-origin'),
+      'but the row still says whose ask it is, so the answer is one rule away');
+    /* THE BOXED CARD KEEPS ITS OWN SPINE. That is the counterparty's seat and
+       the owner's preview of it, where the rows carry no band headings and the
+       edge is the only thing answering the question. */
+    assert.match(NCSS, /\.rl-card\{[^}]*border-left:3px solid/,
+      'the counterparty\'s boxed card is deliberately untouched');
   });
 });
 
@@ -683,5 +698,71 @@ describe('f246 (8) — it speaks both languages', () => {
     if (!band) return;
     assert.ok(band.textContent.includes(p.c.counterparty),
       'a heading about them says who they are');
+  });
+});
+
+/* ============================================ 8 — THE COLUMN'S OWN SPACING */
+describe('f246 (8) — one ruled list, and the act at the head', () => {
+  /* ---- OWNER-ASKED 26 Aug 2026, MEASURED AGAINST THE REFERENCE COLUMN ----
+     The rows were 67px apart against the reference's 53, with 22.5px of air
+     above each hairline and 11.5 below — so the rule hugged the row beneath
+     rather than dividing the two. The cause was ONE DECLARATION NOBODY RESET:
+     the flat row replaced a boxed card that stood 11px clear of the next one,
+     the box went and its margin stayed. The hairline also ran 426px of a 458px
+     column while the band headings ran the full width, because the scroller
+     insetted the rows and the bands cancelled that inset with a negative
+     margin — one list, ruled two different lengths.
+
+     WRITTEN AS RELATIONS, NOT NUMBERS, so the next type or spacing pass costs
+     no edit here: what is pinned is that the row resets the box's margin, that
+     the row and the band inset by the SAME TOKEN, and that the scroller insets
+     nothing at all. */
+
+  test('the row does not carry the boxed card\'s margin any more', () => {
+    const row = /\.redline-page \.rl-card-d\{([^}]*)\}/.exec(NCSS)[1];
+    assert.match(row, /margin:0/,
+      'no leftover gap under each row — that is what made the rule off-centre');
+    assert.match(row, /border-top:1px solid var\(--color-divider\)/,
+      'and the rule between two rows is a hairline, drawn once');
+    /* THE BOXED CARD IS WHERE THAT MARGIN BELONGS AND STILL HAS IT. */
+    assert.match(/\.redline-page \.rl-card\{([^}]*)\}/.exec(NCSS)[1], /margin-bottom:11px/,
+      'the counterparty\'s boxed card keeps it — that is what a box is for');
+  });
+
+  test('one ruling, wall to wall: the scroller insets nothing and the row insets itself', () => {
+    assert.match(NCSS, /\.redline-page \.rl-cards\{padding:0\}/,
+      'the scroller no longer holds the rows off the walls');
+    const row = /\.redline-page \.rl-card-d\{([^}]*)\}/.exec(NCSS)[1];
+    const band = /\.redline-page \.rl-band\{([^}]*)\}/.exec(NCSS)[1];
+    assert.match(row, /padding:9px var\(--s-4\)/, 'the row carries the inset itself');
+    assert.match(band, /padding:7px var\(--s-4\) 6px/, 'and the heading uses the SAME token');
+    assert.match(band, /margin:0/,
+      'so the heading has nothing left to cancel — it was margin:0 -16px');
+  });
+
+  test('every pile\'s count sits at the right wall', () => {
+    assert.match(/\.redline-page \.rl-band b\{([^}]*)\}/.exec(NCSS)[1], /margin-left:auto/,
+      'so seven of them line up rather than each following its own words');
+  });
+
+  test('the column\'s name shares the rows\' left edge', () => {
+    assert.match(/\.redline-page \.rl-idx\{([^}]*)\}/.exec(NCSS)[1],
+      /padding:var\(--s-3\) var\(--s-4\) 11px/,
+      'the index insets by the same token as the rows and the headings');
+  });
+
+  test('SEND ALL is at the opposite end of the column\'s name', async () => {
+    const p = await bench();
+    const go = p.$('.rl-unsent-go');
+    assert.ok(go, 'the act is drawn');
+    assert.ok(go.closest('.rl-idx-top'),
+      'in the head\'s own top row, not above the cards');
+    /* THE SPACER IS WHAT PUTS IT AT THE WALL, and it has been there unused
+       since the head was built. */
+    const top = go.closest('.rl-idx-top');
+    const kids = [...top.children];
+    assert.ok(kids.indexOf(top.querySelector('.rl-idx-sp')) < kids.indexOf(go),
+      'after the spacer, so it is pushed to the right wall');
+    assert.equal(p.$('.rl-unsent'), null, 'and the strip it came from is gone');
   });
 });

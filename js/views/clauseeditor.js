@@ -76,6 +76,21 @@ let _ceBusy = false;
 let _ceSavedAt = null;
 let _ceScan = null;         /* the playbook review, once run */
 let _ceScanBusy = false;
+/* ---- A SCAN THAT COMES BACK WITH NOTHING SAYS SO WHERE THE READER IS LOOKING
+   (owner-asked 26 Aug 2026: "you should be able to run the playbook scan by
+   pressing the highlighted button") ----
+   The button was wired and DOES run — proved by pressing it on an ordinary
+   contract. What it could not do was fail out loud: runPlaybookReview answers
+   null where there is no readable wording (an upload whose text never came out
+   of the file, which is the commonest shape on this screen), toasts a red line
+   that fades, and this panel then redrew the SAME "not been checked yet"
+   sentence and the SAME button. Nothing on screen had moved, which is exactly
+   what a dead press looks like.
+   THE RENEWAL CARD ANSWERED THIS EXACT SHAPE ALREADY, in its own words: a
+   failure states itself where the reader is looking rather than relying on a
+   toast that has already faded. This is _renewalAdviceError for the scan —
+   written by the one runner, cleared the moment a review arrives. */
+let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceReason = false;      /* is the reason step showing */
 let _ceSel = null;          /* the passage being rewritten in place */
@@ -815,7 +830,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceSavedAt = _ceText !== _ceBase ? ceNowHm() : null;
   _ceView = 'redlines';
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
-  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceReason = false; _ceSel = null;
+  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceReason = false; _ceSel = null;
   _ceScan = null;
 
   ceEnsureStyle();
@@ -1275,8 +1290,9 @@ function ceScanHtml(){
   const rev = _ceScan || (_ceC && _ceC.playbook) || null;
   if (_ceScanBusy) return `<p class="ce-work"><i></i>${_cee(_cet('ce_scan_running'))}</p>`;
   if (!rev) return `<p class="ce-empty">${_cee(_cet('ce_scan_none'))}</p>`
+    + ceScanErrHtml()
     + `<div class="ce-rule"><div class="av"><button type="button" data-ce-act="scan-run">${
-      _cet('ce_scan_run')}</button></div></div>`;
+      _cet(_ceScanErr ? 'ce_scan_again' : 'ce_scan_run')}</button></div></div>`;
   const items = ceScanItems();
   if (!items.length) return `<p class="ce-empty">${_cee(_cet('ce_scan_clean'))}</p>`
     + `<div class="ce-rule"><div class="av"><button type="button" data-ce-act="scan-run">${
@@ -1298,15 +1314,27 @@ function ceScanHtml(){
     </div>`;
   }).join('');
 }
+/* The one sentence, and it does NOT re-derive why. runPlaybookReview owns the
+   reading of whether there is wording to check, and a second copy of that test
+   here is the twin-formula fault this codebase records. So the panel reports
+   what it can stand behind — the scan came back with nothing — and names the
+   usual cause and the way forward as prose rather than as a second verdict. */
+function ceScanErrHtml(){
+  if (!_ceScanErr) return '';
+  return `<p class="ce-empty" role="status"><b>${_cee(_cet('ce_scan_nothing'))}</b><br>${
+    _cee(_cet('ce_scan_nothing_why'))}</p>`;
+}
 async function ceRunScan(){
   if (_ceScanBusy) return;
   if (!window.runPlaybookReview){ ceSay(_cet('ce_scan_unavailable')); return; }
-  _ceScanBusy = true; ceRenderLane();
+  _ceScanBusy = true; _ceScanErr = null; ceRenderLane();
   let rev = null;
   try{ rev = await runPlaybookReview(_ceC); }catch(_){ rev = null; }
   _ceScanBusy = false;
   if (!clauseEditorOpen()) return;
-  if (rev) _ceScan = rev;
+  /* A review arriving clears the note; nothing arriving IS the note. */
+  if (rev) { _ceScan = rev; _ceScanErr = null; }
+  else _ceScanErr = 'empty';
   ceRenderLane(); ceRenderTabs(); ceRenderHead();
 }
 
