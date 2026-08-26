@@ -157,7 +157,17 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(t.post.modals, 0, 'zero confirmation pop-ups on the send path');
     assert.equal(t.post.reshared, 1, 'and the dispatch really happened');
     assert.equal(win.negoTurn(c), 'counterparty', 'the table turned');
-    assert.equal(t.$$('#rl-changes .rl-badge').filter(b => /^Sent$/.test(b.textContent.trim())).length, 2);
+    /* RE-POINTED 26 Aug 2026: the status word came off our seat's row once
+       every state it could carry had a heading of its own. The claim is the
+       same claim — two asks have gone — and it is read off the heading that
+       says so, by its key rather than its label. */
+    const withBand = t.$$('#rl-changes .rl-band')
+      .find(b => b.getAttribute('data-rl-band') === 'with');
+    assert.ok(withBand, 'the column has a pile for what is with them');
+    assert.equal(Number(withBand.querySelector('b').textContent.trim()), 2,
+      'and both drafts are in it');
+    assert.equal(t.$$('#rl-changes .rl-badge').length, 0,
+      'and not one row repeats the heading over it');
     /* The card sits quiet once it is theirs to answer: no verb on it is a move
        this reader can make. The badge carries the fact, and the clause panel
        holds the reading matter (16 Aug 2026 — the pop-out is retired).

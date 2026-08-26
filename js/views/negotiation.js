@@ -9711,6 +9711,35 @@ function rlPaperFootHtml(c){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+/* ---- AND SETTLED WORK STAYS ON THE COLUMN (owner-asked 26 Aug 2026) ----
+   The owner asked for Refused, Accepted and Withdrawn to be piles of their
+   own, so that no row has to print its own state at the end of its sentence.
+   ONLY ONE OF THE THREE COULD EVER HAVE DRAWN: a refusal survived on the
+   column's own `contestedAny`, and an accepted or withdrawn ask was filtered
+   out of it entirely — so two of the three headings would have been piles
+   nothing could ever land in, which is worse than not building them.
+
+   SO THE POPULATION WIDENS BY EXACTLY THOSE TWO, and it is bounded by
+   machinery that already exists: closing a round archives every decided change
+   off c.changes, so what this adds is THIS ROUND'S settled work and never the
+   whole history of the negotiation. SUPERSEDED IS NOT IN IT — a countered ask
+   leaves the column by design and every count corrects itself by that
+   omission; this reads status and withdrawn, and says nothing about it.
+
+   ONE PREDICATE, BOTH LISTS. redlineChangeCardsHtml draws the cards and
+   redlineCardIds counts the pill above them, and the two have to agree about
+   the population or the pill lies about the list under it.
+
+   AND OUR SEAT ONLY, WHICH IS THE CONDITION ON ALL OF IT. The bands are drawn
+   on the owner's seat alone — that was the agreement when they were built and
+   it has not moved — so a settled card on the counterparty's page would arrive
+   under no heading at all and, since the status word came off with the same
+   change, would say nothing about itself either. Their page keeps the rule it
+   has always had: a settled change leaves their column, and the decision rides
+   the clause panel. It is asked through bandOpts.banded rather than by testing
+   the side here, so the population and the headings can never come to
+   different answers about which seat this is. */
+const _rlSettledCard = ch => !!ch && !!(ch.withdrawn || ch.status === 'accepted');
 
 /* ---- STILL BEING ARGUED ABOUT FIRST, SETTLED AT THE BOTTOM ----
    Asked for (Young, 12 Aug 2026): on the All tab a change that was decided
@@ -9915,6 +9944,27 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      ink, because Reject red and Send green are how this column has always said
      which way a press goes. */
   const over = (st.overflow || []).filter(Boolean);
+  /* ---- EVERY ROW CARRIES A ⋯, INCLUDING THE ONES WITH NOTHING SPARE
+         (owner-asked 26 Aug 2026) ----
+     This returned nothing at all when the menu had no rows to draw, and the
+     shape that hits it is real and was photographed: a clause we PROPOSED and
+     have SENT. It is an insertClause, so `panel` is false and neither Copilot
+     nor the clause panel offers a row; it has gone, so there is no review to
+     ask for; and its two verbs fit on the face, so nothing overflows. The
+     reader gets a column where one row in six has no menu — and a control that
+     is present on every row but one reads as a rendering fault, not as a rule.
+
+     THE FALLBACK IS THE JUMP, and it is the one row that is always available
+     because it needs nothing but a clause id. It duplicates the face's Edit,
+     which the guard above exists to prevent — and that guard is kept for every
+     menu that has anything else in it. This is the narrow case where the
+     alternative is no menu at all, and a duplicated act is the cheaper fault
+     of the two. A change with no clause id at all still draws none: there is
+     genuinely nothing to put in it. */
+  if (!rows.length && !over.length && ch.clauseId)
+    rows.push(`<button type="button" class="rl-more-row"
+      data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
+      >${i18t('ng_row_jump')}</button>`);
   if (!rows.length && !over.length) return '';
   /* ---- THE HEAD IS GONE (owner-asked 26 Aug 2026) ----
      It named the change — "CHG-001 · PAYMENT TERMS" — on the reasoning that a
@@ -9944,15 +9994,40 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   </div>`;
 }
 /* ---------- WHICH BAND A CHANGE SITS IN (owner-asked 25 Aug 2026) ----------
-   The design groups the column under four headings, each with its own count,
-   instead of one run of cards in rank order. The bands are the FOUR QUESTIONS a
+   The design groups the column under headings, each with its own count,
+   instead of one run of cards in rank order. The bands are the QUESTIONS a
    negotiator actually sorts this column by:
 
      awaiting  what the other side has asked and nobody here has answered
-     drafts    our own work that has not left the building — a plain draft, and
-               one sitting with a reviewer, which is still ours
+     drafts    our own work that has not left the building
+     review    ours, asked about and waiting on a colleague
+     held      ours, and a colleague has stopped it going out
      with      our asks that have gone, waiting on them
-     decided   everything settled: adopted, refused, withdrawn
+     refused   settled, and still a sticking point
+     accepted  settled, and agreed
+     withdrawn taken off the table
+     decided   the catch-all — a state nobody thought of, filed rather than lost
+
+   ---- THE SETTLED PILE IS THREE PILES, AND THE REVIEW ONE IS TWO (owner-asked
+   26 Aug 2026) ----
+   It was ONE band, `decided`, holding two opposite outcomes — so every settled
+   row had to print its own word to say which, and the owner's complaint was
+   exactly that: "if it is sent, then it is in the category of With Saw Sawa so
+   it is redundant ... as far as refused or accepted, they should be categories
+   for them as well so there is no need to add the word at the end of the
+   sentence." Split the pile and the word has nothing left to tell anybody,
+   which is what took the status slot off our seat's row entirely (see
+   redlineChangeCardsHtml). The same argument, made on the same day, took the
+   REVIEWER'S NAME off the row — so `drafts` splits too: waiting on a colleague
+   and stopped by one are different states, and a heading can name both.
+
+   REFUSED SITS ABOVE ACCEPTED deliberately: a refusal is still a sticking
+   point and an acceptance is finished, which is the reasoning rlCardRank
+   already uses to lift a refusal above a settled change inside a band.
+
+   AN EMPTY BAND DRAWS NOTHING, which is what keeps nine headings honest: a
+   workspace with the internal-review rule off — the default — never sees two
+   of them, and a first round sees three.
 
    IT REFINES rlCardRank RATHER THAN REPLACING IT. The rank still decides the
    order INSIDE a band and is still what redlineCardIds and the pill count read;
@@ -9965,15 +10040,41 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    `held` is the reader's own answers on a page that holds them until Send (the
    counterparty's seat); an answer held there has settled nowhere yet, so it
    stays where it was rather than moving to decided under the reader's hand. */
-const RL_CARD_BANDS = ['awaiting', 'drafts', 'with', 'decided'];
-function rlCardBand(ch, side, unsent, held){
+const RL_CARD_BANDS = ['awaiting', 'drafts', 'review', 'held', 'with',
+  'refused', 'accepted', 'withdrawn', 'decided'];
+/* WHICH OF THEM ARE FINISHED BUSINESS. A settled row reads quietly — regular
+   weight, the label ink — because it is a record rather than something to act
+   on, and the ink is what says so once the row has no box to dim. This was one
+   band and is four; naming the set here is what stops the renderer testing for
+   'decided' and quietly missing the three that replaced it. */
+const RL_SETTLED_BANDS = ['refused', 'accepted', 'withdrawn', 'decided'];
+/* `c` is the contract, and it is OPTIONAL on purpose: only the two review
+   bands need it (reviewOutFor asks the contract's own open reviews), and
+   without it they simply never fire and an ask with a colleague stays under
+   YOUR DRAFTS — which is exactly where it sat before this split. So a caller
+   that has no contract to hand gets the old answer rather than a wrong one. */
+function rlCardBand(ch, side, unsent, held, c){
   if (!ch) return 'decided';
   const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
   const live = !ch.withdrawn && ch.status === 'pending';
   if (held && held.has && held.has(ch.id)) return theirs ? 'awaiting' : 'drafts';
-  if (!live) return 'decided';
+  if (!live){
+    /* WITHDRAWN IS ASKED FIRST because it is a fact about the ask rather than
+       about the answer: a withdrawn change can carry any status underneath,
+       and "taken off the table" is what the reader needs to be told. */
+    if (ch.withdrawn) return 'withdrawn';
+    if (ch.status === 'accepted') return 'accepted';
+    if (ch.status === 'rejected') return 'refused';
+    return 'decided';
+  }
   if (theirs) return 'awaiting';
-  return (unsent && unsent.has && unsent.has(ch.id)) ? 'drafts' : 'with';
+  if (!(unsent && unsent.has && unsent.has(ch.id))) return 'with';
+  /* OURS, AND STILL HERE. Which of the three drafts bands is the review's own
+     reading, asked exactly as the card asks it — see rvHeld / rvOut in
+     redlineChangeCardsHtml, whose flags these two lines mirror. */
+  if (window.reviewHeld && reviewHeld(ch)) return 'held';
+  if (c && window.reviewOutFor && reviewOutFor(c, ch)) return 'review';
+  return 'drafts';
 }
 const _rlFiledAt = ch => Date.parse(String((ch && ch.createdAt) || '')) || 0;
 function rlCardSort(list, held, band){
@@ -9996,7 +10097,7 @@ function rlCardSort(list, held, band){
      exact fault the note on redlineCardIds already warns about, and which a
      first pass at the bands walked straight into. */
   if (!band || !band.banded) return ranked;
-  const at = ch => RL_CARD_BANDS.indexOf(rlCardBand(ch, band.side, band.unsent, held));
+  const at = ch => RL_CARD_BANDS.indexOf(rlCardBand(ch, band.side, band.unsent, held, band.c));
   return ranked.sort((a, b) => at(a) - at(b));
 }
 /* ---- ONE READING OF THE BAND, FOR BOTH LISTS ----
@@ -10010,7 +10111,7 @@ function rlBandOpts(c, opts = {}, side = 'owner'){
     ? new Set(opts.unsentIds)
     : previewSeat ? new Set()
     : new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
-  return { side, previewSeat, unsent, banded: side === 'owner' && !previewSeat };
+  return { c, side, previewSeat, unsent, banded: side === 'owner' && !previewSeat };
 }
 /* How many redline actions sit with the OWNER seat on one contract: the other
    side's live asks awaiting a decision, plus our own drafts that have not left
@@ -10331,8 +10432,11 @@ function redlineCardIds(c, opts = {}){
   const sentIds = new Set(opts.sentDecisionIds || []);
   const contestedAny = x => x && x.status === 'rejected' && !x.withdrawn;
   const mineOnly = rlMyCardIds(c, opts);
+  /* READ ONCE AND SHARED WITH THE CARDS, so the pill above the column and the
+     column itself cannot disagree about either the population or the order. */
+  const bandOpts = rlBandOpts(c, opts, side);
   const kept = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
-    || sentIds.has(x.id)) && !hidden.has(x.id)
+    || (bandOpts.banded && _rlSettledCard(x)) || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* The reader's own cut, applied HERE as well as in the card list — this
        function is what the count above the cards is drawn from, and a count
@@ -10345,7 +10449,7 @@ function redlineCardIds(c, opts = {}){
      the two lists would agree about the population and disagree about the
      sequence. Sorting cannot change the length, so every chip's number is
      untouched. See rlCardSort. */
-  return rlCardSort(kept, heldIds, rlBandOpts(c, opts, side)).map(x => x.id);
+  return rlCardSort(kept, heldIds, bandOpts).map(x => x.id);
 }
 /* ---- YOU WERE ASKED TO LOOK AT A CLAUSE, NOT TO RUN THE ROUND ----
    While a review is open with this person, nothing they do on this contract
@@ -11101,7 +11205,7 @@ function redlineChangeCardsHtml(c, opts = {}){
   const redeciding = id => _negoRedeciding[id];
   const mineOnly = rlMyCardIds(c, opts);
   const changes = rlCardSort(all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
-    || sentIds.has(x.id)) && !hidden.has(x.id)
+    || (bandOpts.banded && _rlSettledCard(x)) || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* Whose asks the reader asked to see. The SAME predicate redlineCardIds
        applies, so the count above this list and the list itself cannot
@@ -11182,10 +11286,10 @@ function redlineChangeCardsHtml(c, opts = {}){
   let lastBand = null;
   const bandHead = ch => {
     if (!banded) return '';
-    const b = rlCardBand(ch, side, unsent, heldIds);
+    const b = rlCardBand(ch, side, unsent, heldIds, c);
     if (b === lastBand) return '';
     lastBand = b;
-    const n = shown.filter(x => rlCardBand(x, side, unsent, heldIds) === b).length;
+    const n = shown.filter(x => rlCardBand(x, side, unsent, heldIds, c) === b).length;
     const label = b === 'with'
       ? i18t('ng_band_with', { who: c.counterparty || i18t('ng_the_counterparty') })
       : i18t('ng_band_' + b);
@@ -11492,7 +11596,17 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}"
         title="${i18t('ng_take_answer_back')}">${i18t('ng_undo')}</button>`);
     }
-    if (canAct && theirs && ch.status === 'pending' && !heldHere){
+    /* ---- AND NEVER ON AN ASK THAT HAS BEEN TAKEN BACK (26 Aug 2026) ----
+       A withdrawal is recorded as a FLAG rather than as a status: `withdrawn`
+       goes on beside whatever answer the change already carried, which is why
+       _rlIsLive has always had to ask both. This branch asked only the status,
+       so a withdrawn ask still reading 'pending' was offered Accept and Reject
+       — a decision on something the other side has taken off the table.
+       IT WAS UNREACHABLE UNTIL TODAY and that is the only reason it survived:
+       a withdrawn change was filtered off the column entirely, so the branch
+       could never run on one. Giving withdrawn work a pile of its own is what
+       put it on screen, and this is the same reading _rlIsLive makes. */
+    if (canAct && theirs && _rlIsLive(ch) && !heldHere){
       verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">${i18t('ng_accept')}</button>`);
       verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">${i18t('ng_reject')}</button>`);
     }
@@ -11852,27 +11966,46 @@ function redlineChangeCardsHtml(c, opts = {}){
        our own seat only, and their page — and the owner's preview OF their
        page — falls through to the receipt and full shapes below, unchanged. */
     if (side === 'owner' && !previewSeat){
-      const band = rlCardBand(ch, side, unsent, heldIds);
-      /* ---- THE STATE DRAWS WHERE IT ADDS SOMETHING, AND THAT IS THE
-             REFERENCE'S OWN RULE ----
-         Under AWAITING YOU and YOUR DRAFTS the drawing shows no state word at
-         all — the row is the reference line, the summary and the verbs, and
-         the heading above has already said which pile this is. It appears the
-         moment it carries a fact the heading does not: Sent, Refused,
-         Accepted, and a reviewer's name.
+      const band = rlCardBand(ch, side, unsent, heldIds, c);
+      /* ---- THE HEADING SAYS THE STATE, SO THE ROW SAYS NOTHING (owner-asked
+             26 Aug 2026) ----
+         This stood the word down under two headings and drew it under the
+         rest, on the reasoning that those two were the only ones whose badge
+         word IS the heading. That reasoning was right and the SPLIT above has
+         now made it true of every band: Sent is WITH THEM, Refused, Accepted
+         and Withdrawn are piles of their own, and a colleague's hold or ask is
+         one of the two review piles. So there is nothing left for a word at
+         the end of a row to tell anybody, and it comes off.
 
-         SO THIS IS NOT THE HEADING REPEATED. The two bands it stands down
-         under are exactly the two whose badge word IS the heading; every other
-         state still draws, and the tone still comes from the same table. A
-         held or out-for-review change keeps its word under YOUR DRAFTS,
-         because "a colleague has this" is not what that heading says. */
-      const bandSaysIt = (band === 'awaiting' && badge[0] === 'sent' && !rvOut && !rvHeld)
-        || (band === 'drafts' && badge[0] === 'draft' && !rvOut && !rvHeld);
-      const state = bandSaysIt ? '' : `<span class="rl-badge rl-badge-${badge[0]}"${
-        badge[2] ? ` title="${_nea(badge[2])}"` : ''}><i></i>${badge[1]}</span>`;
+         THE OWNER'S OWN WORDS, twice on the same day: "if it is sent, then it
+         is in the category of With Saw Sawa so it is redundant", and then, of
+         the reviewer's name being squeezed to a single letter, "remove the
+         name". What a row carries now is its reference, its wording and its
+         two verbs, and nothing else at all.
+
+         NOTHING IS LOST AND THAT IS THE CONDITION ON REMOVING IT. `badge` is
+         still computed — it is what the OTHER two card shapes below draw, on
+         the contract tab and the counterparty's seat, both untouched — and
+         every sentence it carried is still on the row: badge[2] is the hover
+         this line already had, and the reviewer's name rides in the same tip
+         (see `tip` below). The clause panel names them in full.
+
+         THE COUNTERPARTY'S SEAT IS NOT TOUCHED: this branch is our own seat
+         only, and their page and the owner's preview of it fall through to the
+         receipt and full shapes below, unchanged. */
+      const state = '';
       const meta = [ch.id, who].filter(Boolean).join(' &middot; ');
+      /* ---- AND THE SENTENCE THE BADGE CARRIED RIDES ON THE ROW ----
+         Every entry in that table is [tone, word, hover], and the third slot
+         is the one carrying real information — "waiting on them", "only they
+         can lift it", and, on both review states, the COLLEAGUE'S NAME. The
+         word is what the heading now says; the sentence is not, so it joins
+         the hover this line already had rather than leaving the product. This
+         is the standing rule out loud: a sentence removed from a slot has to
+         be findable in another one before the slot goes. */
+      const dTip = [tip, badge[2]].filter(Boolean).join(' \u00b7 ');
       const sum = String(ch.summary || '').trim();
-      return `<article class="rl-card rl-card-d${band === 'decided' ? ' rl-card-done' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+      return `<article class="rl-card rl-card-d${RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
         (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
         heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
         rvOut ? ' data-rv-waiting="1"' : ''}${
@@ -11885,7 +12018,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                no verb can navigate the reader away underneath the hand
                reaching for it. */}
         <div class="rl-card-head rl-card-txt">
-          <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${meta}</div>
+          <div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>
           ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
         </div>
         ${''/* THE ACTS SIT BESIDE THE TEXT, level with it: where this change
@@ -13157,6 +13290,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
+  RL_CARD_BANDS,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlAlertsBellHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,

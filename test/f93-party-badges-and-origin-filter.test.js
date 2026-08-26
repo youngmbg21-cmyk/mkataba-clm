@@ -326,17 +326,22 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
        The owner has now weighed that argument against the status corner saying
        Sent in plain sight and asked for the marker to come off entirely.
 
-       The SUBJECT of the test is unchanged and is why it is kept: after a
-       dispatch the card holds still and offers nothing further. What flips is
-       what stands in the slot — nothing does. */
+       AND AGAIN 26 Aug 2026, one step further out. Once every settled state
+       had a heading of its own, the status corner itself came off our seat's
+       row: "if it is sent, then it is in the category of With Saw Sawa so it
+       is redundant." The SUBJECT of the test is unchanged and is why it is
+       kept: after a dispatch the card holds still and offers nothing further.
+       What flips is where the fact is said — the heading over the row. */
     const p = await page({ theirChange: false, myChange: true });
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.win.renderRedline();
     let card = p.doc.querySelector('#rl-changes [data-rl-origin="us"]');
     assert.equal(card.querySelector('.rl-sent[data-rl-sent]'), null,
       'and no marker where the Send was');
-    assert.match(card.querySelector('.rl-badge').textContent, /Sent/,
-      'the status corner is where the card says so');
+    assert.equal(card.querySelector('.rl-badge'), null,
+      'and no status word on the row either');
+    assert.equal(p.doc.querySelector('#rl-changes .rl-band').getAttribute('data-rl-band'),
+      'with', 'the heading over the row is where the column says so');
     assert.ok(!card.querySelector('[data-rl-send]'), 'and the live Send is gone');
   });
 });

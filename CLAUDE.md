@@ -4230,7 +4230,51 @@ one, a status word on every row where it has one only where it adds something.
   carrying its OWN count unmoved by the filter, and the narrowing said out loud,
   which since 26 Aug 2026 is the labelled control's own job rather than a band
   beneath it (see A NARROWED COLUMN IS SAID BY ITS OWN CONTROL).
-- **THE ROWS SIT UNDER FOUR BANDS, each a FILLED STRIP edge to edge with its own
+- **THE PILE SAYS IT, SO THE ROW SAYS NOTHING — the settled pile is THREE and
+  the drafts pile is THREE (owner-asked 26 Aug 2026).** *"You do not need to add
+  sent and refused. If it is sent, then it is in the category of With Sawa Sawa
+  so it is redundant. As far as refused or accepted, they should be categories
+  for them as well so there is no need to add the word at the end of the
+  sentence."* Then, off a screenshot of a reviewer's name squeezed to one
+  letter: *"remove the name"*.
+  - **`decided` SPLIT INTO Refused · Accepted · Withdrawn**, and `drafts` grew
+    **Out for review** and **Held by your reviewer** beside it. Nine entries in
+    `RL_CARD_BANDS`, of which `decided` is now only the catch-all. **REFUSED
+    SITS ABOVE ACCEPTED** — a refusal is still a sticking point, an acceptance
+    is finished, which is rlCardRank's own reasoning applied to the headings.
+  - **AND THE STATUS WORD CAME OFF OUR SEAT'S ROW ENTIRELY.** With every state
+    carrying a heading of its own there is nothing left for a word at the end of
+    a row to tell anybody. A row is its reference, its wording and its two
+    verbs, and **nothing else at all**. `badge` is still computed — it is what
+    the contract tab's card and the counterparty's seat draw, both untouched —
+    and every SENTENCE it carried rides on the row's own hover, which is where
+    the reviewer's name lives now (and the visibility predicates still decide
+    whether an outsider sees it).
+  - **A PILE NOTHING CAN LAND IN IS NOT A PILE**, so the column's population
+    widened by exactly two states: **an accepted or withdrawn change was
+    filtered off it entirely**, and only a refusal ever reached the old
+    "Decided" heading. `_rlSettledCard` is that reading and BOTH lists ask it
+    (the cards and the pill above them, or the pill lies about the list under
+    it). **BOUNDED BY MACHINERY THAT ALREADY EXISTS**: closing a round archives
+    every decided change off `c.changes`, so this is THIS ROUND's settled work
+    and never the whole history. Superseded is not in it.
+  - **OUR SEAT ONLY, ASKED THROUGH `bandOpts.banded`.** The bands draw on the
+    owner's seat alone, so a settled card on the counterparty's page would
+    arrive under no heading AND say nothing about itself. Their column is
+    unchanged: a settled change leaves it, and the decision rides the clause
+    panel. A first pass widened both seats and f37/f51 caught it.
+  - **AND A DEFECT FELL OUT OF PUTTING WITHDRAWN WORK ON SCREEN.** A withdrawal
+    is a FLAG beside whatever answer the change already carried, and the decide
+    branch asked only the STATUS — so a withdrawn ask still reading 'pending'
+    offered **Accept and Reject**, a decision on something the other side has
+    taken off the table. Unreachable while withdrawn work was filtered off the
+    column; it reads `_rlIsLive` now, like everything else that asks this
+    question. redline-verify 19b pins it.
+  - **THIS ALSO MENDS f208's TRAP AT THE SOURCE**: a refusal that says "reopen
+    it first" pointed at an adopted change with no card. The clause panel's
+    Reopen is still the remedy and is untouched; the adopted ask is now ON the
+    column as well.
+- **THE ROWS SIT UNDER BANDS, each a FILLED STRIP edge to edge with its own
   count** — `RL_CARD_BANDS` / `rlCardBand`. They are the four questions a
   negotiator sorts this column by rather than four statuses: what the other side
   has asked and nobody here has answered · our own work that has not left the
@@ -4266,14 +4310,35 @@ one, a status word on every row where it has one only where it adds something.
     underneath, which is the stacked card coming back through the other door.
   - **BOTH LINES ARE ONE LINE EACH AND BOTH ELIDE.** The whole of either is on
     the row's own hover.
+  - **TWO THIRDS, ABOVE A FLOOR (owner-asked 26 Aug 2026).** The row was a flex
+    line — the acts a fixed block, the wording whatever was left — so each row's
+    acts took their own natural width and the wording ended at a DIFFERENT
+    vertical on every row. MEASURED: acts 104–131px, wording 283–310. It is a
+    two-track grid now, `minmax(0,2fr) minmax(var(--rl-verb-floor),1fr)`, so
+    every row lines up and the verbs and the ⋯ can be promised never to be
+    squeezed off — at the divider's own 300px minimum the acts stop at the floor
+    (127px, the widest pair this column draws) and the wording gives instead.
+    The cost is stated out loud and is small: the widest row gives up about 30px
+    of wording so that every row agrees. The strips take `grid-column:1/-1`.
+  - **AND EVERY ROW CARRIES A ⋯**, including the ones with nothing spare. The
+    shape that hit it is real and was photographed: a clause we PROPOSED and
+    have SENT draws no menu at all, because it is an insertClause (no panel
+    rows), has gone (no review to ask for), and its two verbs fit. The fallback
+    is the jump row — it duplicates the face's Edit, which the guard beside it
+    exists to prevent, and this is the narrow case where the alternative is no
+    menu at all.
   - **THE SUMMARY IS THE CHANGE'S OWN `summary`, quoted, never composed here.**
     `.rl-card-diff` — the two-line greyed preview of the marked wording — is
     STALE; what it was for ("a row asking for a decision must say what is being
     decided") is what the bold line carries, and the marks are on the paper
     twelve pixels away.
-  - **A SETTLED CHANGE READS QUIETLY**: under Decided the summary drops to
-    regular weight and the label ink. It is a record rather than something to
-    act on, and the ink is what says so once the row has no box to dim.
+  - **A SETTLED CHANGE READS QUIETLY**: under Refused, Accepted, Withdrawn or
+    the catch-all the summary drops to regular weight and the label ink. It is
+    a record rather than something to act on, and the ink is what says so once
+    the row has no box to dim. **`RL_SETTLED_BANDS` IS THAT SET AND THE
+    RENDERER ASKS IT** — it tested for `'decided'` when that was the only
+    settled pile, and naming the set is what stopped the split of 26 Aug
+    quietly missing the three that replaced it.
   - **THE CAUTION STRIPS STOP SHOUTING.** The provenance and reviewer strips
     were filled amber blocks with a 3px edge, written for a card that had a box
     of its own; on a column of flat rows they became the loudest object on the
@@ -4285,13 +4350,14 @@ one, a status word on every row where it has one only where it adds something.
     by shrinking a change that needs nothing to one line; the BANDS answer it
     now. `.rl-receipt` is the COUNTERPARTY's shape and is still drawn there.
 
-- **THE STATE DRAWS WHERE IT ADDS SOMETHING, and that is the reference's own
-  rule.** Under AWAITING YOU and YOUR DRAFTS it shows no status word at all —
-  the heading has just said which pile this is, and the row is the reference,
-  the summary and the verbs. It appears the moment it carries a fact the heading
-  does not: Sent, Refused, Accepted, a reviewer's name. **So the two bands it
-  stands down under are exactly the two whose badge word IS the heading**, and
-  every other state still draws.
+- **THE STATE DOES NOT DRAW AT ALL ON OUR SEAT — REVERSED IN PLACE 26 Aug
+  2026, and see THE PILE SAYS IT below for why.** What stood here was the
+  reference's own rule: no status word under AWAITING YOU or YOUR DRAFTS,
+  because those two headings already said it, and the word back the moment it
+  carried a fact the heading did not — Sent, Refused, Accepted, a reviewer's
+  name. **THE REASONING WAS RIGHT AND SPLITTING THE PILES MADE IT TRUE OF EVERY
+  HEADING**, so `const state = ''` and the row carries its reference, its
+  wording and its two verbs and nothing else at all.
   - **WHEREVER IT DRAWS IT IS STILL `.rl-badge` AND ITS OWN TONE CLASS** — half
     this product and half the suite ask that slot where a change stands, and a
     first pass that invented `.rl-state` broke about a dozen of them.

@@ -193,14 +193,13 @@ describe('f161 · a review is internal, and inside the company it is not public 
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
     const asOther = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
     /* CLAIM UPDATED, 13 Aug 2026: the anonymous form was "Held by review" and
-       is now just "Held". RE-POINTED 25 Aug 2026: the status slot gained a DOT
-       before its word (the owner's own drawing of this column), so a claim
-       spelled as markup started reading as a failure while staying perfectly
-       true. It reads the WORD now. The rule under test is untouched either way
-       — an outsider sees the STATUS and never the name. */
-    const held = /<span class="rl-badge rl-badge-no"[^>]*>([\s\S]*?)<\/span>/.exec(asOther);
-    assert.ok(held && held[1].replace(/<[^>]*>/g, '').includes('Held'),
-      'they can see it is held');
+       is now just "Held". RE-POINTED 25 Aug 2026 for a dot before the word, and
+       AGAIN 26 Aug 2026, when the status slot came off our seat's row entirely
+       and the HEADING took the job: a change a colleague has stopped is filed
+       under its own pile. THE RULE UNDER TEST IS UNTOUCHED BY ALL THREE — an
+       outsider sees the STATUS and never the name — and it is now read off the
+       heading, which is where the status is said. */
+    assert.match(asOther, /data-rl-band="held"/, 'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not who held it, nor why');
     const asMe = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.match(asMe, /Simon Jordan/, 'the requester is told, because they asked');
@@ -611,9 +610,15 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
-    /* CLAIM UPDATED TWICE, 13 Aug 2026: trimmed from "Held by <name>", and
-       the name itself is now the card form (first name, surname initial). */
-    assert.match(one, /Held &middot; Simon J\./, 'the card’s own status slot says it');
+    /* CLAIM UPDATED TWICE, 13 Aug 2026, AND REVERSED 26 Aug 2026. It read the
+       card's own status slot for "Held · Simon J."; our seat's row has no
+       status slot any more, because every state it could carry now has a pile
+       with its name on it. WHAT THE TEST IS FOR IS UNCHANGED AND IS STILL
+       MEASURED: the fact is said ONCE. It is said by the heading; the row does
+       not repeat it, and the review's own chip still stands down beside it —
+       which was the whole point of the title. The NAME is not lost and the
+       test below this one is where it is pinned. */
+    assert.equal(/rl-badge/.test(one), false, 'the row does not repeat its heading');
     assert.ok(!/data-rv-chip/.test(one), 'and the review’s chip stands down beside it');
   });
 
@@ -621,11 +626,15 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     const asOther = card(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
-    /* CLAIM UPDATED, 13 Aug 2026: the anonymous form is "Held", not "Held by
-       review". What is under test — that no name reaches an outsider — is
-       unchanged. */
-    assert.match(asOther, /&#9209; Held</, 'they can see it is held');
-    assert.ok(!/Simon Jordan/.test(asOther), 'and not by whom');
+    /* CLAIM UPDATED, 13 Aug 2026, and RE-POINTED 26 Aug 2026 at the heading
+       that says the status now. What is under test — that no name reaches an
+       outsider — is unchanged, and the whole card is swept for it. */
+    const mine = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.match(mine, /Simon Jordan/,
+      'the requester is still told who is holding it, in words on the card');
+    assert.ok(!/Simon Jordan/.test(asOther), 'and an outsider is not');
+    assert.match(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }),
+      /data-rl-band="held"/, 'though they can still see it is held');
   });
 
   test('the card offers a way forward, and says what it is', async () => {

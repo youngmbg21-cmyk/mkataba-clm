@@ -663,11 +663,20 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
       'accepting is refused — the guard is right, they are rivals');
     assert.match(w.toasts.map(t => t.text).join(' '), /reopen it first/i,
       'and it names the way out');
-    /* THE PART THAT MADE IT A TRAP: the change it tells you to reopen has no
-       card to reopen it on. */
+    /* ---- THE PART THAT MADE IT A TRAP, AND IS NOW MENDED AT THE SOURCE ----
+       As reported, the change this refusal tells you to reopen had NO CARD to
+       reopen it on: an adopted ask was filtered off the column, so the remedy
+       was named in words and drawn nowhere. The answer at the time was to put
+       Reopen in the clause panel, which the next test pins and which still
+       holds. On 26 Aug 2026 the owner asked for Accepted to be a pile of its
+       own, and the column keeps this round's settled work to fill it — so the
+       adopted ask is now ON the column as well, under its own heading. THE
+       CLAIM IS REVERSED AND THE SUBJECT IS UNCHANGED: this test exists to make
+       sure a refusal's stated remedy is reachable, and it is reachable in two
+       places instead of one. */
     const ids = w.win.redlineCardIds(c, { side: 'owner' });
-    assert.ok(!ids.includes(adopted.id),
-      'the adopted change is not in the column — so the remedy was unreachable');
+    assert.ok(ids.includes(adopted.id),
+      'the adopted change is on the column, so the remedy it names can be reached');
   });
 
   test('the clause PANEL carries Reopen on the adopted ask', async () => {

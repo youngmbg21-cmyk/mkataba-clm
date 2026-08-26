@@ -1084,7 +1084,14 @@ function redlineLayoutCss(){
      (16 Aug 2026): the routing row carries no wording, its own sizes are the
      literal chrome sizes every card element always had, and a token nothing
      reads is a token nobody can read. */
-  .redline-page{--rl-doc-type:15px}
+  .redline-page{--rl-doc-type:15px;
+    ${''/* THE ACTS' OWN WIDTH, and the floor the row's second track stops at.
+           Accept and Reject at 12px/700 plus the ⋯, with the row's two 12px
+           gaps between them — MEASURED at 126px, and a pixel of slack because a
+           track that is exactly its content clips on the next rounding. It is a
+           token rather than a number in the grid so the next type pass moves
+           one value rather than hunting one. */}
+    --rl-verb-floor:127px}
   /* ---- THE HEADER IS A BAND, NOT A CARD ----
      It used to be drawn as a panel — surface fill, a 1px border, a radius and a
      card shadow — sitting inside a page that already has its own frame and
@@ -2517,16 +2524,29 @@ function redlineLayoutCss(){
          THE SPINE GOES WITH THE BOX, said out loud: data-rl-origin is still
          stamped and still means what it meant, and whose ask this is is on the
          meta line in words. */}
+  ${''/* ---- TWO THIRDS, ABOVE A FLOOR (owner-asked 26 Aug 2026) ----
+         It was a flex row: the acts a fixed block, the wording whatever was
+         left. That is not the same promise. Two thirds of the row is the
+         wording and one third is the acts, until a third would be narrower
+         than the acts THEMSELVES — from there --rl-verb-floor holds and the
+         wording gives instead. So the proportion is DECLARED rather than
+         emergent, and the verbs and the ⋯ can be promised never to be squeezed
+         off however hard the divider is dragged. MEASURED at the divider's own
+         minimum of 300px: the acts stop at the floor and nothing clips.
+
+         THE FLOOR IS THE WIDEST PAIR THIS COLUMN DRAWS — Accept, Reject and
+         the ⋯ at 12px/700 with two 12px gaps — plus a pixel of slack. It is a
+         token so the next type pass moves one number rather than hunting one.
+
+         basis:0 IS GONE WITH THE FLEX, and its reasoning is answered by the
+         grid instead: minmax(0,2fr) is the same guarantee in the same place —
+         the text track may shrink below its content, so a long summary elides
+         inside its track rather than pushing the acts onto a second line. */}
   .redline-page .rl-card-d{padding:11px 0;border:0;border-radius:var(--radius);
     border-top:1px solid var(--color-divider);background:none;box-shadow:none;
-    display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
-  ${''/* BASIS ZERO, NOT AUTO, AND THAT IS THE WHOLE OF WHY THE ROW HOLDS.
-         With basis auto a flex item's base size is its MAX-CONTENT, and the
-         summary is one nowrap line — so on a long summary the base sizes
-         overflowed the line and the acts wrapped underneath, which is the
-         two-row card coming back through the other door. At basis 0 the text
-         claims only what is left after the acts and elides inside it. */}
-  .redline-page .rl-card-d > .rl-card-txt{flex:1 1 0}
+    display:grid;grid-template-columns:minmax(0,2fr) minmax(var(--rl-verb-floor),1fr);
+    align-items:center;gap:var(--s-3)}
+  .redline-page .rl-card-d > .rl-card-txt{min-width:0}
   .redline-page .rl-card-d:first-child,
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}
@@ -2553,7 +2573,8 @@ function redlineLayoutCss(){
          is what says so once the row has no box to dim. */}
   .redline-page .rl-card-d.rl-card-done .rl-card-sum{font-weight:var(--w-body);
     color:var(--color-neutral-600)}
-  .redline-page .rl-card-d .rl-card-side{flex:none;display:flex;align-items:center;gap:var(--s-3)}
+  .redline-page .rl-card-d .rl-card-side{display:flex;align-items:center;
+    justify-content:flex-end;flex-wrap:nowrap;gap:var(--s-3);min-width:0}
   ${''/* The provenance and reviewer strips take the whole row's width and drop
          under it — they are rare, and none may be dropped (a row with a hole
          in it and the explanation elsewhere is worse than either).
@@ -2568,7 +2589,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-info,
   .redline-page .rl-card-d .rl-card-why,
   .redline-page .rl-card-d .rl-card-behalf,
-  .redline-page .rl-card-d .rl-card-rvnote{flex:1 0 100%;margin-top:var(--s-1);
+  .redline-page .rl-card-d .rl-card-rvnote{grid-column:1/-1;margin-top:var(--s-1);
     background:none;border:0;padding:0;font-size:var(--t-label);line-height:16px}
   .redline-page .rl-card-d .rl-card-why-k{margin-bottom:0;margin-right:6px;
     display:inline;font-size:var(--t-micro)}

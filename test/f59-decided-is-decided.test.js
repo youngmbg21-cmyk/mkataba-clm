@@ -155,8 +155,20 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
     win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
     win.getContract = id => (id === c.id ? c : null);
     win.renderRedline();
-    assert.equal(win.document.querySelector(`[data-nego-card="${theirs.id}"]`), null,
-      'a decided change is settled and off the owner\'s table');
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
+       This asserted a decided change leaves the owner's column entirely. It
+       stays now, under its own heading: the owner asked for Accepted to be a
+       pile of its own, and a pile nothing can land in is not a pile. WHAT THIS
+       FILE IS FOR IS UNTOUCHED and is what is still measured here — decided is
+       decided, so the row offers no verdict either way and cannot be answered
+       a second time. The row reads quietly and sits at the bottom; it is a
+       record rather than something to act on. */
+    const card = win.document.querySelector(`[data-nego-card="${theirs.id}"]`);
+    assert.ok(card, 'a decided change stays on the column, filed under Accepted');
+    assert.ok(!card.querySelector('[data-nego-accept],[data-nego-reject]'),
+      'and offers no verdict — it already has one');
+    assert.match(win.document.querySelector('#rl-changes').innerHTML,
+      /data-rl-band="accepted"/, 'the heading over it is the one that says so');
 
     const { c: c2, filed } = await ownerProposed();
     const v = theirLink(c2);

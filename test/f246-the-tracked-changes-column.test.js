@@ -178,34 +178,100 @@ describe('f246 (2) — the three-way cut says what it is about', () => {
 });
 
 /* =============================================================== 3 — BANDS */
-describe('f246 (3) — the four bands', () => {
+describe('f246 (3) — the bands', () => {
   test('every change lands in exactly one band, and the catch-all is last', async () => {
     const p = await bench();
-    const { rlCardBand } = p.win;
-    const bands = new Set(['awaiting', 'drafts', 'with', 'decided']);
+    const { rlCardBand, RL_CARD_BANDS } = p.win;
+    const bands = new Set(RL_CARD_BANDS);
     for (const ch of p.c.changes)
-      assert.ok(bands.has(rlCardBand(ch, 'owner', new Set(), null)),
+      assert.ok(bands.has(rlCardBand(ch, 'owner', new Set(), null, p.c)),
         'a change nobody thought of is still filed somewhere');
-    assert.equal(rlCardBand(null, 'owner', new Set(), null), 'decided',
+    assert.equal(rlCardBand(null, 'owner', new Set(), null, p.c), 'decided',
       'and nothing falls off the bottom of the column');
+    assert.equal(RL_CARD_BANDS[RL_CARD_BANDS.length - 1], 'decided',
+      'the catch-all sorts last, so an unknown state cannot lead the column');
   });
 
-  test('the four readings are the four questions, not four statuses', async () => {
+  test('the readings are questions, not statuses', async () => {
     const p = await bench();
     const { rlCardBand } = p.win;
     const theirs = p.c.changes.find(x => x.authorSide === 'counterparty');
     const ours = p.c.changes.find(x => x.authorSide === 'owner');
     const unsent = new Set([ours.id]);
-    assert.equal(rlCardBand(theirs, 'owner', unsent, null), 'awaiting',
+    assert.equal(rlCardBand(theirs, 'owner', unsent, null, p.c), 'awaiting',
       'their live ask is what needs you');
-    assert.equal(rlCardBand(ours, 'owner', unsent, null), 'drafts',
+    assert.equal(rlCardBand(ours, 'owner', unsent, null, p.c), 'drafts',
       'our unsent one is still on the desk');
-    assert.equal(rlCardBand(ours, 'owner', new Set(), null), 'with',
+    assert.equal(rlCardBand(ours, 'owner', new Set(), null, p.c), 'with',
       'and once it has gone it is with them');
-    assert.equal(rlCardBand(Object.assign({}, ours, { status: 'accepted' }),
-      'owner', new Set(), null), 'decided', 'settled is settled');
-    assert.equal(rlCardBand(Object.assign({}, ours, { withdrawn: true }),
-      'owner', new Set(), null), 'decided', 'and so is taken back');
+  });
+
+  /* ---- THE SETTLED PILE IS THREE PILES (owner-asked 26 Aug 2026) ----
+     REVERSED IN PLACE: this asserted that accepted and withdrawn both answer
+     'decided'. They no longer do, and the reason is the owner's own — with one
+     pile holding two opposite outcomes every settled row had to print its own
+     word to say which, which is the redundancy the split removes. What the
+     claim is really about is unchanged and is still here: every settled state
+     has exactly one home, and none of them is the catch-all. */
+  test('a settled change goes to its own pile, never to the catch-all', async () => {
+    const p = await bench();
+    const { rlCardBand } = p.win;
+    const ours = p.c.changes.find(x => x.authorSide === 'owner');
+    const as = (over) => rlCardBand(Object.assign({}, ours, over), 'owner', new Set(), null, p.c);
+    assert.equal(as({ status: 'accepted' }), 'accepted', 'agreed has a pile');
+    assert.equal(as({ status: 'rejected' }), 'refused', 'and so does refused');
+    assert.equal(as({ withdrawn: true }), 'withdrawn', 'and so does taken back');
+    /* WITHDRAWN IS READ FIRST, whatever answer it carries underneath: it is a
+       fact about the ask rather than about the answer. */
+    assert.equal(as({ status: 'rejected', withdrawn: true }), 'withdrawn',
+      'a withdrawn ask reads as withdrawn even when it was refused first');
+    assert.equal(as({ status: 'superseded' }), 'decided',
+      'and only a state nobody thought of reaches the catch-all');
+  });
+
+  /* REFUSED SITS ABOVE ACCEPTED — a refusal is still a sticking point and an
+     acceptance is finished, which is rlCardRank's own reasoning applied to the
+     headings. Pinned as a RELATION so re-ordering the piles costs one edit
+     here and not three. */
+  test('the piles run needs-you first and finished last', async () => {
+    const p = await bench();
+    const at = k => p.win.RL_CARD_BANDS.indexOf(k);
+    for (const k of ['awaiting', 'drafts', 'review', 'held', 'with',
+      'refused', 'accepted', 'withdrawn', 'decided'])
+      assert.ok(at(k) > -1, `${k} is a band`);
+    assert.ok(at('awaiting') < at('drafts'), 'what needs you leads');
+    assert.ok(at('drafts') < at('with'), 'then what you are still writing');
+    assert.ok(at('with') < at('refused'), 'then what has gone');
+    assert.ok(at('refused') < at('accepted'), 'a refusal is still a sticking point');
+    assert.ok(at('accepted') < at('withdrawn'), 'and taken back is the quietest');
+  });
+
+  /* ---- AND THE DRAFTS PILE IS THREE (owner-asked 26 Aug 2026, off a
+     screenshot of a reviewer's name squeezed to one letter: "remove the
+     name"). A heading can say a state but not a person, so the two review
+     states became headings of their own and the name came off the row. */
+  test('an ask with a colleague has its own pile, and a held one another', async () => {
+    const p = await bench();
+    const { rlCardBand } = p.win;
+    const ours = p.c.changes.find(x => x.authorSide === 'owner');
+    const unsent = new Set([ours.id]);
+    const held = p.win.reviewHeld, out = p.win.reviewOutFor;
+    try {
+      p.win.reviewHeld = ch => ch.id === ours.id;
+      assert.equal(rlCardBand(ours, 'owner', unsent, null, p.c), 'held',
+        'a colleague has stopped it going out');
+      p.win.reviewHeld = () => false;
+      p.win.reviewOutFor = (c, ch) => ch.id === ours.id ? { id: 'REV-1' } : null;
+      assert.equal(rlCardBand(ours, 'owner', unsent, null, p.c), 'review',
+        'and one merely asked about is out for review');
+      /* WITHOUT A CONTRACT THE OLD ANSWER STANDS, which is what makes the new
+         argument safe to leave optional — a caller with nothing to hand gets
+         YOUR DRAFTS rather than a wrong pile. */
+      assert.equal(rlCardBand(ours, 'owner', unsent, null), 'drafts',
+        'a caller with no contract falls back to where it always sat');
+    } finally {
+      p.win.reviewHeld = held; p.win.reviewOutFor = out;
+    }
   });
 
   test('the BAND is the outer sort and rlCardSort is the inner one', async () => {
@@ -229,7 +295,7 @@ describe('f246 (3) — the four bands', () => {
         assert.ok(cur, 'no card sits above the first heading');
         const ch = p.c.changes.find(x => x.id === el.getAttribute('data-nego-card'));
         assert.equal(p.win.rlCardBand(ch, 'owner',
-          new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id)), null), cur,
+          new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id)), null, p.c), cur,
           'and every card sits under the heading that is true of it');
       }
     }
@@ -242,13 +308,13 @@ describe('f246 (3) — the four bands', () => {
       const n = Number(b.querySelector('b').textContent.trim());
       const under = p.$$(`#rl-changes .rl-card`).filter(card =>
         p.win.rlCardBand(p.c.changes.find(x => x.id === card.getAttribute('data-nego-card')),
-          'owner', new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id)), null)
+          'owner', new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id)), null, p.c)
           === b.getAttribute('data-rl-band')).length;
       assert.equal(n, under, 'the heading counts what is under it');
     }
     const drawn = p.$$('#rl-changes .rl-band').map(x => x.getAttribute('data-rl-band'));
     assert.ok(!drawn.includes('decided'),
-      'nothing is decided in this fixture, so no Decided heading — four headings over an empty pile is furniture');
+      'nothing reaches the catch-all in this fixture, so no Decided heading — a heading over an empty pile is furniture');
   });
 });
 
@@ -300,42 +366,51 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
       'and the bold line is the change\'s own summary, quoted, never composed here');
   });
 
-  test('the state draws where it adds something, and is the ONE status slot', async () => {
-    /* THE REFERENCE'S OWN RULE. Under AWAITING YOU and YOUR DRAFTS it shows no
-       state word at all — the heading has said which pile this is, and the row
-       is the reference, the summary and the verbs. It appears the moment it
-       carries a fact the heading does not: Sent, Refused, Accepted, a
-       reviewer's name. So the two bands it stands down under are exactly the
-       two whose badge word IS the heading, and every other state still draws.
+  /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026) ----
+     This asserted that the state word stands down under AWAITING YOU and YOUR
+     DRAFTS and draws everywhere else, because those two were the only headings
+     that already said it. That reasoning was right, and splitting the settled
+     and drafts piles made it true of EVERY heading — so the word comes off our
+     seat's row entirely. The owner's own words: "if it is sent, then it is in
+     the category of With Saw Sawa so it is redundant", and "remove the name".
 
-       WHEREVER IT DRAWS IT IS STILL .rl-badge AND ITS OWN TONE — half this
-       product and half the suite ask that slot where a change stands, and a
-       first pass that invented .rl-state broke about a dozen of them. */
+     THE TWO THINGS THE OLD CLAIM WAS REALLY PROTECTING ARE BOTH STILL HERE,
+     and they are what makes the removal safe rather than merely smaller: the
+     status slot may not be duplicated by a second element, and no sentence may
+     leave the product with the word. */
+  test('our seat\'s row carries no status word at all', async () => {
     const p = await bench();
-    const unsent = new Set(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id));
-    let drawn = 0;
     for (const card of p.$$('#rl-changes .rl-card-d')){
-      const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
-      const band = p.win.rlCardBand(ch, 'owner', unsent, null);
-      const b = card.querySelector('.rl-badge');
-      if (b){
-        drawn++;
-        assert.match(b.className, /rl-badge-(sent|draft|ok|no)/, 'wearing its own tone');
-        assert.ok(b.textContent.trim(), 'and saying a word');
-      } else {
-        assert.ok(band === 'awaiting' || band === 'drafts',
-          'a state only stands down where the heading already says it');
-      }
-      assert.ok(card.querySelectorAll('.rl-badge').length <= 1, 'never twice');
+      assert.equal(card.querySelector('.rl-badge'), null,
+        'the heading above the row says which pile this is');
+      assert.equal(card.querySelector('.rl-state'), null,
+        '.rl-state was a second status element and is retired');
     }
-    assert.equal(p.$('#rl-changes .rl-state'), null,
-      '.rl-state was a second status element and is retired');
-    /* AND IT REALLY DOES DRAW SOMEWHERE — a rule that stood every state down
-       would satisfy the loop above and say nothing. */
+    /* AND IT STAYS OFF ONCE THE ASK HAS GONE, which is the state the old rule
+       drew a word for and the one the owner named. */
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.again();
-    assert.ok(p.$('#rl-changes .rl-card-d .rl-badge'),
-      'a sent ask says so, because its heading does not');
+    const sent = p.$$('#rl-changes .rl-card-d');
+    assert.ok(sent.length, 'the column still draws');
+    for (const card of sent)
+      assert.equal(card.querySelector('.rl-badge'), null,
+        'a sent ask says nothing — WITH THEM is the heading over it');
+  });
+
+  test('the sentence the word carried rides on the row instead', async () => {
+    /* A SENTENCE REMOVED FROM A SLOT MUST BE FINDABLE IN ANOTHER ONE BEFORE
+       THE SLOT GOES. Every badge entry is [tone, word, hover]; the heading now
+       says the word, so the hover joins the meta line's own title — and on the
+       two review states that hover is what NAMES the colleague. */
+    const p = await bench();
+    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.again();
+    const meta = p.$('#rl-changes .rl-card-d .rl-card-meta');
+    assert.ok(meta, 'the row draws its reference line');
+    const t = meta.getAttribute('title') || '';
+    assert.ok(t.trim(), 'and it carries a hover');
+    assert.ok(t.includes(p.c.counterparty),
+      'which still says who a sent ask is waiting on');
   });
 
   test('the verbs are untouched — the same engine attributes, on one row', async () => {
@@ -360,10 +435,13 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
     const info = card.querySelector('.rl-card-info');
     assert.equal(info.parentElement, card, 'the strip is the row\'s own child');
     /* It takes the whole width and drops UNDER the row, which is what keeps
-       the row a row. */
+       the row a row. RE-POINTED, not weakened: the row is a two-track grid now
+       rather than a wrapping flex line (see the two-thirds rule), so the way a
+       strip claims the whole width is grid-column rather than a 100% basis.
+       The claim is the same claim. */
     const i = NCSS.indexOf('.redline-page .rl-card-d .rl-card-info,');
     assert.ok(i > -1);
-    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /flex:1 0 100%/);
+    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /grid-column:1\/-1/);
   });
 });
 
@@ -508,8 +586,23 @@ describe('f246 (6) — the counterparty\'s column is untouched', () => {
     const body = NEG_CODE.slice(i, NEG_CODE.indexOf('\n}', i));
     assert.match(body, /banded: side === 'owner' && !previewSeat/,
       'and the bands take the same answer');
-    assert.ok(NEG_CODE.includes('rlCardSort(kept, heldIds, rlBandOpts(c, opts, side))'),
+    /* RE-POINTED 26 Aug 2026, and STRENGTHENED. This pinned the call spelled
+       inline; the pill reads the same answer TWICE now — once to decide
+       whether settled work is in its population at all, and once to sort it —
+       so it holds bandOpts in a local rather than calling twice, which is the
+       only way the two readings cannot drift. The claim is the stronger one:
+       the pill asks rlBandOpts exactly once and uses that answer for both. */
+    const j = NEG_CODE.indexOf('function redlineCardIds');
+    assert.ok(j > -1);
+    const pill = NEG_CODE.slice(j, NEG_CODE.indexOf('\n}', j));
+    assert.equal((pill.match(/rlBandOpts\(/g) || []).length, 1,
+      'the pill asks the reading once');
+    assert.match(pill, /const bandOpts = rlBandOpts\(c, opts, side\)/,
+      'and holds the answer');
+    assert.match(pill, /rlCardSort\(kept, heldIds, bandOpts\)/,
       'the pill\'s own list is sorted by it too');
+    assert.match(pill, /bandOpts\.banded && _rlSettledCard\(x\)/,
+      'and settled work joins its population only where the headings draw');
   });
 });
 

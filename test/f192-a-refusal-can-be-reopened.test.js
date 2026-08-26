@@ -161,12 +161,22 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
       'and Edit is still on the card — in the menu, one press away, not gone');
   });
 
-  test('an ACCEPTED ask is not reopened from here — it has left the column', async () => {
-    /* Accepting merges the wording into the clean text and the change settles
-       into the round history. This verb answers one state: refused, and still
-       standing between the two companies. */
+  /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
+     This asserted an accepted ask has no card at all. It has one now: the
+     owner asked for Accepted and Withdrawn to be piles of their own, and a
+     pile nothing can land in is not a pile — so the column keeps this round's
+     settled work and files it under its own heading, reading quietly.
+     WHAT THIS TEST IS FOR IS UNCHANGED AND IS STILL MEASURED: Reopen answers
+     ONE state — refused, and still standing between the two companies — and an
+     accepted ask is not offered it here. */
+  test('an ACCEPTED ask sits under its own heading, and is not reopened from here', async () => {
     const p = await bench('accepted');
-    assert.equal(cardOf(column(p)), null, 'no card, so nothing to claim about its verbs');
+    const card = cardOf(column(p));
+    assert.ok(card, 'settled work stays on the column, under Accepted');
+    assert.match(column(p).innerHTML, /data-rl-band="accepted"/,
+      'and the heading over it is the one that says so');
+    assert.ok(!card.querySelector('[data-rl-reopen]'),
+      'but the refusal\'s own escape hatch is not offered on it');
   });
 });
 
@@ -206,9 +216,18 @@ describe('f192 (6) — the card gained a button and nothing else', () => {
       'the same blocks on a refused card as on a live one — one more verb, no more prose');
   });
 
-  test('and the status corner still says one word', async () => {
+  /* REVERSED IN PLACE, 26 Aug 2026: the status corner came off our seat's row
+     once every state it could carry had a heading of its own. The claim is the
+     same claim — the column says this once, in one word — and the word is now
+     the heading over the row. */
+  test('and the column still says it once, in one word', async () => {
     const p = await bench('rejected');
-    assert.equal(cardOf(column(p)).querySelector('.rl-badge').textContent.trim(), 'Refused');
+    assert.equal(cardOf(column(p)).querySelector('.rl-badge'), null,
+      'the row adds no word of its own');
+    const heads = [...column(p).querySelectorAll('.rl-band')]
+      .map(el => el.getAttribute('data-rl-band'));
+    assert.deepEqual(heads.filter(k => k === 'refused'), ['refused'],
+      'and the heading says Refused, once');
   });
 });
 

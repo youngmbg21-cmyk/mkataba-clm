@@ -156,14 +156,26 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const m = /<span class="rl-badge rl-badge-([a-z]+)"([^>]*)>([\s\S]*?)<\/span>/.exec(one);
     return m ? { tone: m[1], attrs: m[2], word: m[3].replace(/<[^>]*>/g, '').trim() } : null;
   };
+  /* RE-POINTED AGAIN, 26 Aug 2026, ONE LEVEL OUT. The status slot came off our
+     seat's row: every state it could carry now has a pile of its own, so the
+     word would only repeat the heading above it. WHERE A CHANGE STANDS is read
+     off that heading now — by its KEY, not its label, because the label is a
+     translated string and this test is not about wording. What this file is
+     actually for is untouched: the SENTENCE beside the state, which is the
+     thing that was making a claim about their screen that was not true. */
+  const stands = html => {
+    const m = /data-rl-band="([a-z]+)"/.exec(html);
+    return m ? m[1] : null;
+  };
 
   test('WITH a live link it reads exactly as it did', async () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', LIVE);
-    const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
-    const st = stateOf(one);
-    assert.ok(st && st.tone === 'no' && st.word === 'Refused', 'one status slot, one word');
+    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const one = card(html, ch.id);
+    assert.equal(stands(html), 'refused', 'one heading, and it says refused');
+    assert.equal(stateOf(one), null, 'and the row does not repeat it');
     assert.match(one, /waiting on them/i, 'and the wait is claimed, because it is true');
     assert.ok(!/data-rl-sendcopy/.test(one), 'nothing to fix');
   });
@@ -172,12 +184,12 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', DEAD);
-    const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
-    /* THE STATUS SLOT IS NOT DOUBLED. "Refused" is still the state; what
-       changes is the sentence under it and the hover above it. */
-    const st = stateOf(one);
-    assert.ok(st && st.tone === 'no' && st.word === 'Refused', 'still one slot, still one word');
-    assert.equal((one.match(/rl-badge /g) || []).length, 1, 'and only one of it');
+    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const one = card(html, ch.id);
+    /* THE STATE IS NOT DOUBLED. Refused is still where this change stands;
+       what changes is the sentence beside it and the hover on it. */
+    assert.equal(stands(html), 'refused', 'still one heading, still refused');
+    assert.equal((one.match(/rl-badge /g) || []).length, 0, 'and the row adds none of its own');
     assert.ok(!/waiting on them/i.test(one), 'the claim is not made');
     assert.match(one, /holds no live copy/, 'the truth is said instead');
     assert.match(one, /Nordfrakt Logistik AB/, 'and it names them');

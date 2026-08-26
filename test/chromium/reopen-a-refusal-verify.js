@@ -92,13 +92,21 @@ const VISIBLE = `(el) => {
       const card = document.querySelector('.redline-page .rl-card');
       if (!card) return { none: true };
       const btn = card.querySelector('[data-rl-reopen]');
-      return { badge: (card.querySelector('.rl-badge') || {}).textContent,
+      /* RE-POINTED 26 Aug 2026: this read the row's own status word, and our
+         seat's row draws none — every state it could carry has a heading of
+         its own now, so a word at the end of the row would only repeat the one
+         above it. WHERE THIS CHANGE STANDS is read off that heading, by its
+         KEY rather than its label: the key is what the renderer files a change
+         under, the label is a translated string. */
+      return { band: (document.querySelector('.redline-page .rl-band') || {})
+          .getAttribute && document.querySelector('.redline-page .rl-band')
+          .getAttribute('data-rl-band'),
         verbs: [...card.querySelectorAll('.rl-card-verbs button')].map(b => b.textContent.trim()),
         vis: vis(btn), label: btn ? btn.textContent.trim() : null,
         title: btn ? btn.getAttribute('title') : null };
     })()`);
-    check('the refused card is on the page', !seen.none && /Refused/.test(seen.badge || ''),
-      seen.none ? 'no card at all' : (seen.badge || '').trim());
+    check('the refused card is on the page', !seen.none && seen.band === 'refused',
+      seen.none ? 'no card at all' : String(seen.band));
     check('and it carries Reopen — the fault as reported was Edit alone',
       seen.vis && seen.vis.on, seen.vis ? (seen.vis.why || `${seen.vis.w}x${seen.vis.h}`) : 'absent');
     /* Reopen leads, Edit follows — the order the owner approved on the render.

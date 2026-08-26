@@ -442,9 +442,15 @@ describe('f154 · the verdict shows on both change cards', () => {
     /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
        the surname's initial (cardName) — the whole name stays in the
        line's hover text, and in the record, the emails and the pickers.
-       The claim is the same claim; only the form of the name moves. */
-    assert.match(bench, /Held &middot; Achieng O\./,
-      'the workbench badge says it');
+       AND REVERSED 26 Aug 2026, owner-asked, off a screenshot of that name
+       squeezed to a single letter: "remove the name". A heading can say a
+       state but not a person, so the two review states became piles of their
+       own and the row stopped carrying a word at all. THE CLAIM IS THE SAME
+       CLAIM — the workbench says a colleague is holding this, and says it
+       once — and the whole name is still one hover away. */
+    assert.match(bench, /data-rl-band="held"/, 'the workbench says it');
+    assert.match(bench, /title="[^"]*Achieng Otieno/, 'and names them, whole, on hover');
+    assert.ok(!/rl-badge/.test(bench), 'and the row does not repeat its own heading');
     assert.match(tab, /data-rv-verdict="held"/, 'the contract tab chip says it');
     assert.ok(!/data-rv-chip/.test(bench), 'and the workbench does not say it twice');
   });

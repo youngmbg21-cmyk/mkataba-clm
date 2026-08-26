@@ -141,15 +141,24 @@ describe('f188 (2) — both card renderers write the short form', () => {
     assert.match(html, /title="Young Mbagaya"/);
   });
 
-  test('and the status word that names a reviewer is shortened too', async () => {
+  /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
+     This asserted the workbench's status word shortens a reviewer's name the
+     way the meta line does. There is no status word on that row any more: the
+     owner saw exactly this name squeezed to "A…" and asked for it to come off,
+     and the two review states became piles of their own so a heading could say
+     what the word was saying. THE RULE THIS FILE EXISTS FOR IS UNCHANGED and
+     is what is still measured — a name is never LOST, only shortened or moved,
+     and the whole of it is always one hover away. */
+  test('and a reviewer\'s name is moved rather than lost', async () => {
     const w = buildWorld({ user: ME, negotiationView: true });
     const c = contract(); w.win.negoInit(c);
     const a = await ask(w.win, c, '2', '<p>Payable within forty-five (45) days.</p>', ME.name);
     w.win.getUsers = () => [ME, BOSS];
     w.win.reviewAsk(c, { reviewer: BOSS, by: ME.name, ids: [a.id] });
     const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(html, /Achieng O\./, 'the badge names who has it, short');
-    assert.match(html, /title="[^"]*Achieng Otieno/, 'and whole on hover');
+    assert.ok(!/rl-badge/.test(html), 'the row carries no status word to shorten');
+    assert.match(html, /data-rl-band="review"/, 'the pile says a colleague has it');
+    assert.match(html, /title="[^"]*Achieng Otieno/, 'and the name is whole, on hover');
   });
 });
 

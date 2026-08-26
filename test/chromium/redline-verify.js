@@ -504,12 +504,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         seen.push(cur);
       } else if (!cur) wrong++;
     }
-    const sentCard = [...document.querySelectorAll('#rl-changes .rl-card')]
-      .find(el => !el.querySelector('[data-rl-send]') && el.querySelector('.rl-badge'));
+    /* RE-POINTED 26 Aug 2026: this found the sent card by its status word,
+       and our seat's row no longer draws one — every state it could carry has
+       a heading of its own now. It is found by the heading it sits under,
+       which is where the column says a change has gone. */
+    const withBand = [...document.querySelectorAll('#rl-changes .rl-band')]
+      .find(el => el.getAttribute('data-rl-band') === 'with');
+    let sentCard = withBand && withBand.nextElementSibling;
+    if (sentCard && !sentCard.classList.contains('rl-card')) sentCard = null;
     const staged = {
       bands, bandRepeats: wrong,
       sentSendable: sentCard ? !!sentCard.querySelector('[data-rl-send]') : null,
       sentDiff: sentCard ? !!sentCard.querySelector('.rl-card-diff') : null,
+      sentWord: sentCard ? !!sentCard.querySelector('.rl-badge') : null,
       receipt: !!document.querySelector('#rl-changes .rl-card.rl-receipt') };
     n.turn = save.turn; n.turnAt = save.turnAt;
     CONTRACT.versions.length = save.ver; CONTRACT.audit.length = save.aud;
@@ -528,6 +535,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14 a sent ask cannot be sent again, and carries no second copy',
     delta.sentSendable === false && delta.sentDiff === false,
     `send ${delta.sentSendable}, diff ${delta.sentDiff}`);
+  check('14 and it says nothing — the heading over it already has',
+    delta.sentWord === false, `status word ${delta.sentWord}`);
   check('14 and the receipt shape has left our seat with it', !delta.receipt);
 
   /* ---- 14a. THE COLUMN'S OWN HEAD, AS PIXELS (owner-asked 25 Aug 2026) ----
@@ -1491,6 +1500,198 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check('18e every choice in it is reachable — nothing hidden below the fold',
       fit.open && (fit.lastRowInside || fit.scrolls),
       fit.open ? `${fit.rows} rows${fit.scrolls ? ', scrolls inside itself' : ''}` : '');
+  }
+
+  /* ---- 19. TWO THIRDS, ABOVE A FLOOR (owner-asked 26 Aug 2026) ----
+     The row was a flex line — the acts a fixed block, the wording whatever was
+     left. It is a two-track grid now, and the promise is a different promise:
+     the wording takes two thirds until a third would be narrower than the acts
+     THEMSELVES, and from there the floor holds and the wording gives instead.
+     THIS CAN ONLY BE ASKED IN A BROWSER. The rule is a block at the end of a
+     3,500-line sheet; a rule that loses a cascade fight looks perfectly correct
+     in the source, and jsdom resolves no cascade at all. And it can only be
+     asked by DRAGGING, because "the verbs never get squeezed off" is a claim
+     about a range of widths rather than about today's one.
+
+     EVERY CLAIM HERE IS A RELATION, never a pixel count, so the next type or
+     spacing pass costs no edit in this file. */
+  const geom = await page.evaluate(async () => {
+    const grid = document.getElementById('rl-grid');
+    const rez = document.getElementById('rl-resizer');
+    const read = () => {
+      const rows = [...document.querySelectorAll('#rl-changes .rl-card-d')];
+      const col = document.getElementById('rl-changes');
+      return {
+        n: rows.length,
+        col: col ? Math.round(col.getBoundingClientRect().width) : 0,
+        /* the widest action block on the column, and the narrowest wording */
+        acts: Math.max(...rows.map(r => {
+          const el = r.querySelector('.rl-card-side');
+          return el ? Math.round(el.getBoundingClientRect().width) : 0; })),
+        actsMin: Math.min(...rows.map(r => {
+          const el = r.querySelector('.rl-card-side');
+          return el ? Math.round(el.getBoundingClientRect().width) : 9999; })),
+        sumMax: Math.max(...rows.map(r => {
+          const el = r.querySelector('.rl-card-sum') || r.querySelector('.rl-card-meta');
+          return el ? Math.round(el.getBoundingClientRect().width) : 0; })),
+        sum: Math.min(...rows.map(r => {
+          const el = r.querySelector('.rl-card-sum') || r.querySelector('.rl-card-meta');
+          return el ? Math.round(el.getBoundingClientRect().width) : 0; })),
+        /* nothing in the action block may be cut off at any width */
+        clipped: rows.reduce((n, r) => n + [...r.querySelectorAll(
+          '.rl-card-side button, .rl-card-side a')]
+          .filter(b => b.scrollWidth > b.clientWidth + 1).length, 0),
+        /* and every row carries a ⋯ */
+        dots: rows.filter(r => r.querySelector('.rl-more-btn')).length,
+        display: rows[0] ? getComputedStyle(rows[0]).display : '',
+        tracks: rows[0] ? getComputedStyle(rows[0]).gridTemplateColumns : ''
+      };
+    };
+    const dragTo = async dx => {
+      const r = rez.getBoundingClientRect();
+      const x0 = r.left + r.width / 2, y = r.top + Math.min(200, r.height / 2);
+      const fire = (type, x) => (type === 'pointerdown' ? rez : window)
+        .dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+      fire('pointerdown', x0); fire('pointermove', x0 + dx); fire('pointerup', x0 + dx);
+      await new Promise(res => requestAnimationFrame(res));
+      await new Promise(res => requestAnimationFrame(res));
+    };
+    const wide = read();
+    await dragTo(900);                       /* right, hard — squeeze the column */
+    const tight = read();
+    rez.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await new Promise(res => requestAnimationFrame(res));
+    const back = read();
+    return { wide, tight, back, gridW: Math.round(grid.getBoundingClientRect().width) };
+  });
+  /* ---- THE COLUMN IS A COLUMN, and this is the claim the change is FOR ----
+     MEASURED against the rule it replaced: under the old flex line each row's
+     acts took their own natural width — 104px on a one-verb row, 131 on a
+     three-verb one — so the wording ended at a different vertical on every
+     row, ranging 283 to 310. A ragged right edge down a list is what makes it
+     read as a pile rather than a column, and it is what the owner's "two
+     thirds" was asking to fix. The cost is stated out loud and is small: the
+     widest row gives up about 30px of wording so that every row agrees.
+
+     PINNED AS THE RELATION, NEVER THE MECHANISM. "Is it a grid" would have
+     passed the day somebody found another way to do it and failed the day
+     somebody found a better one; what has to hold is that the rows line up. */
+  check('19 every row\'s wording ends on the same vertical',
+    geom.wide.sumMax - geom.wide.sum <= 1,
+    `wording ${geom.wide.sum}–${geom.wide.sumMax} across ${geom.wide.n} rows`);
+  check('19 and every row gives its acts the same room',
+    geom.wide.acts - geom.wide.actsMin <= 1,
+    `acts ${geom.wide.actsMin}–${geom.wide.acts}`);
+  check('19 the wording takes about two thirds of it',
+    geom.wide.sum > geom.wide.acts * 1.6,
+    `wording ${geom.wide.sum} vs acts ${geom.wide.acts} at ${geom.wide.col}px`);
+  check('19 squeezing the column really does squeeze it',
+    geom.tight.col < geom.wide.col - 40, `${geom.wide.col} → ${geom.tight.col}`);
+  check('19 the acts stop at the floor rather than shrinking with it',
+    geom.tight.acts > 0 && geom.tight.acts >= geom.wide.acts * 0.82,
+    `acts ${geom.wide.acts} → ${geom.tight.acts}`);
+  check('19 and the wording is what gives instead',
+    geom.tight.sum < geom.wide.sum, `wording ${geom.wide.sum} → ${geom.tight.sum}`);
+  check('19 and the rows still line up once it is squeezed',
+    geom.tight.sumMax - geom.tight.sum <= 1 && geom.tight.acts - geom.tight.actsMin <= 1,
+    `wording ${geom.tight.sum}–${geom.tight.sumMax}, acts ${geom.tight.actsMin}–${geom.tight.acts}`);
+  check('19 not one verb is cut off, at either width',
+    geom.wide.clipped === 0 && geom.tight.clipped === 0,
+    `${geom.wide.clipped} / ${geom.tight.clipped}`);
+  check('19 every row carries a ⋯, at either width',
+    geom.wide.n > 0 && geom.wide.dots === geom.wide.n && geom.tight.dots === geom.tight.n,
+    `${geom.wide.dots} of ${geom.wide.n} · ${geom.tight.dots} of ${geom.tight.n}`);
+  check('19 and letting go puts the split back',
+    Math.abs(geom.back.col - geom.wide.col) < 3,
+    `${geom.wide.col} → ${geom.back.col}`);
+
+  /* ---- 19b. THE SETTLED PILE IS THREE PILES (owner-asked 26 Aug 2026) ----
+     The headline of the whole change, and the reason the status word could
+     come off the row: "as far as refused or accepted, they should be
+     categories for them as well so there is no need to add the word at the end
+     of the sentence." STAGED, because the fixture is a live round and carries
+     no settled change — the three answers are written onto the record, the
+     column re-drawn, and the stamp put back exactly, so nothing after this
+     reads a different fixture. */
+  const piles = await page.evaluate(async () => {
+    const n = CONTRACT.negotiation;
+    const save = { ver: CONTRACT.versions.length, aud: CONTRACT.audit.length,
+      was: CONTRACT.changes.map(ch => ({ ch, status: ch.status, withdrawn: ch.withdrawn })) };
+    const live = CONTRACT.changes.filter(ch => ch.status === 'pending' && !ch.withdrawn);
+    if (live.length < 3) return { few: live.length };
+    live[0].status = 'accepted';
+    live[1].status = 'rejected';
+    live[2].withdrawn = true;
+    renderRedline();
+    const heads = [...document.querySelectorAll('#rl-changes .rl-band')]
+      .map(el => ({ k: el.getAttribute('data-rl-band'),
+        word: (el.querySelector('span') || el).textContent.trim(),
+        n: Number((el.querySelector('b') || {}).textContent || 0) }));
+    /* WHERE EACH OF THE THREE LANDED, walked in document order — the only
+       reading that can see a card sitting under a heading it is not true of. */
+    const under = {};
+    let cur = null;
+    for (const el of document.querySelectorAll('#rl-changes .rl-band, #rl-changes .rl-card')){
+      if (el.classList.contains('rl-band')) cur = el.getAttribute('data-rl-band');
+      else under[el.getAttribute('data-nego-card')] = cur;
+    }
+    const words = [...document.querySelectorAll('#rl-changes .rl-card-d .rl-badge')].length;
+    const shape = id => { const el = document.querySelector(`[data-nego-card="${id}"]`);
+      return el ? { verbs: [...el.querySelectorAll('.rl-card-verbs button')].map(b => b.textContent.trim()),
+        dots: !!el.querySelector('.rl-more-btn'),
+        rows: [...el.querySelectorAll('.rl-more-menu button')].map(b => b.textContent.trim()) } : null; };
+    const out = { heads, words,
+      accepted: under[live[0].id], refused: under[live[1].id], withdrawn: under[live[2].id],
+      shapes: { acc: shape(live[0].id), ref: shape(live[1].id), wdr: shape(live[2].id) } };
+    window.__restorePiles = () => {
+      save.was.forEach(o => { o.ch.status = o.status; o.ch.withdrawn = o.withdrawn; });
+      CONTRACT.versions.length = save.ver; CONTRACT.audit.length = save.aud;
+      renderRedline();
+    };
+    return out;
+  });
+  if (piles.few !== undefined){
+    check('19b the fixture carries enough live asks to stage three answers', false, `${piles.few}`);
+  } else {
+    const keys = piles.heads.map(h => h.k);
+    check('19b an accepted ask has a pile of its own', piles.accepted === 'accepted', piles.accepted);
+    check('19b a refused one has another', piles.refused === 'refused', piles.refused);
+    check('19b and a withdrawn one a third', piles.withdrawn === 'withdrawn', piles.withdrawn);
+    check('19b the three are separate headings, each with its own count',
+      ['accepted', 'refused', 'withdrawn'].every(k => keys.includes(k))
+      && piles.heads.filter(h => ['accepted', 'refused', 'withdrawn'].includes(h.k))
+        .every(h => h.n === 1),
+      piles.heads.map(h => `${h.word}:${h.n}`).join(' / '));
+    check('19b refused is read before accepted — a refusal is still a sticking point',
+      keys.indexOf('refused') < keys.indexOf('accepted'), keys.join(' / '));
+    check('19b every heading is drawn once, and none over an empty pile',
+      new Set(keys).size === keys.length && piles.heads.every(h => h.n > 0),
+      keys.join(' / '));
+    check('19b and not one row says a word the heading has just said',
+      piles.words === 0, `${piles.words} status words on the column`);
+    /* ---- AND SETTLED WORK OFFERS NO DECISION ----
+       A DEFECT THIS CHANGE EXPOSED AND FIXED, pinned so it cannot come back. A
+       withdrawal is recorded as a flag beside whatever answer the change
+       already carried, and the decide branch asked only the STATUS — so a
+       withdrawn ask still reading 'pending' offered Accept and Reject, a
+       decision on something the other side has taken off the table. It was
+       unreachable while withdrawn work was filtered off the column; giving it
+       a pile of its own is what put it on screen. */
+    for (const [k, sh] of Object.entries(piles.shapes)){
+      check(`19b a ${k} ask offers no decision — it already has one`,
+        sh && !sh.verbs.some(v => /^(Accept|Reject)$/.test(v)),
+        sh ? sh.verbs.join(' / ') || 'none' : 'no card');
+      check(`19b and still carries a ⋯`, !!(sh && sh.dots), sh ? String(sh.dots) : 'no card');
+    }
+  }
+
+  /* THE PILES, PHOTOGRAPHED. Every claim above is a number, and the one thing
+     a number cannot show is whether nine headings over a column read as an
+     order or as clutter. */
+  if (piles.few === undefined){
+    const col = await page.$('#rl-changes');
+    if (col) await col.screenshot({ path: path.join(OUT, '19b-the-piles.png') });
+    await page.evaluate(() => { if (window.__restorePiles) window.__restorePiles(); });
   }
 
   await browser.close();

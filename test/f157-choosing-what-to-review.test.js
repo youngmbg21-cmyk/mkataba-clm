@@ -153,9 +153,14 @@ describe('f157 · waiting is amber, held is ruby', () => {
        the surname's initial (cardName) — the whole name stays in the
        line's hover text, and in the record, the emails and the pickers.
        The claim is the same claim; only the form of the name moves. */
-    assert.match(html, /&#8987; Achieng O\./, 'and it names who has it');
+    /* REVERSED 26 Aug 2026, owner-asked: "remove the name". The pile says the
+       state — OUT FOR REVIEW — and the row says nothing; a heading can name a
+       state but not a person, so the person moved to the hover, whole. What
+       this test is about is untouched: waiting is not a verdict, and the card
+       still knows who has it. */
+    assert.match(html, /data-rl-band="review"/, 'the pile says it is out for review');
     assert.match(html, /title="[^"]*Achieng Otieno/,
-      'and the whole name is one hover away');
+      'and it names who has it, whole, one hover away');
     assert.ok(!/data-rv-verdict="held"/.test(html), 'waiting is not a verdict');
     assert.match(html, /data-rv-waiting="1"/, 'and the card is flagged for the amber edge');
   });

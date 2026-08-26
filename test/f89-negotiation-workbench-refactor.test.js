@@ -803,7 +803,14 @@ describe('F89 (7) — one type scale, declared once', () => {
      switching tabs never changes the size of the wording being judged. */
   test('the canvas is set from the doc token, and the card token is retired', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\{--rl-doc-type:[\d.]+px\}/,
+    /* RE-POINTED, NOT WEAKENED (26 Aug 2026). This anchored on the whole
+       declaration block — `{--rl-doc-type:15px}` — so the day a SECOND token
+       joined that block (--rl-verb-floor, the acts' own width) the regex
+       stopped matching and the test accused the product of a fault it does not
+       have. The claim was never "this is the only token here"; it is "the
+       canvas scale is declared as a token on .redline-page", and that is what
+       it reads now. A fragile anchor is this file's own recorded lesson. */
+    assert.match(p.css(), /\.redline-page\{[^}]*--rl-doc-type:[\d.]+px/,
       'the canvas scale must be a token, or the column can drift within itself');
     assert.doesNotMatch(p.css(), /--rl-type:/,
       'the card scale is gone with its last consumer, the clamped diff');
@@ -813,7 +820,7 @@ describe('F89 (7) — one type scale, declared once', () => {
 
   test('the canvas token is the Doc page\'s ~15px', async () => {
     const p = await page();
-    const m = /\.redline-page\{--rl-doc-type:([\d.]+)px\}/.exec(p.css());
+    const m = /\.redline-page\{[^}]*--rl-doc-type:([\d.]+)px/.exec(p.css());
     assert.equal(m[2] === undefined && m[1], '15');
   });
 });
@@ -896,23 +903,45 @@ describe('F89 (9) — one sidebar, and one face left in it', () => {
   });
 });
 
-describe('F89 (10) — the Tracked Changes column holds only live redlines', () => {
-  test('a decided change leaves the column', async () => {
+describe('F89 (10) — the Tracked Changes column holds this round, banded', () => {
+  /* ---- REVERSED IN PLACE, 26 Aug 2026, OWNER-ASKED ----
+     This block held the column to LIVE redlines only, on a real argument: "a
+     column of changes nobody can act on is a column people stop reading." What
+     answers it now is the BANDING. The owner asked for Refused, Accepted and
+     Withdrawn to be piles of their own so that no row has to print its own
+     state at the end of its sentence — and a pile nothing can land in is not a
+     pile, so this round's settled work stays and sinks to the bottom under
+     headings that say what it is, reading quietly.
+
+     THE OLD ARGUMENT IS ANSWERED RATHER THAN OVERRULED: what made an
+     undifferentiated column unreadable was that finished work sat among live
+     work in one run of cards. It does not any more.
+
+     AND IT IS BOUNDED BY MACHINERY THAT ALREADY EXISTS: closing a round
+     archives every decided change off c.changes, so this is THIS ROUND's
+     settled work and never the whole history. The history panel is untouched
+     and is still where a closed round is read. */
+  test('a decided change stays, and sinks to its own pile', async () => {
     const p = await page();
     const ch = p.win.negoChanges(p.c)[0];
     assert.ok(p.$(`#rl-changes [data-nego-card="${ch.id}"]`), 'it is there while it is pending');
     p.win.negoResolve(p.c, ch.id, 'accepted', { side: 'owner' });
     p.win.renderRedline();
-    assert.ok(!p.$(`#rl-changes [data-nego-card="${ch.id}"]`),
-      'a column of changes nobody can act on is a column people stop reading');
+    const card = p.$(`#rl-changes [data-nego-card="${ch.id}"]`);
+    assert.ok(card, 'and it is still there once it is settled');
+    assert.ok(card.classList.contains('rl-card-done'),
+      'reading quietly — a record rather than something to act on');
+    assert.equal(p.$('#rl-changes .rl-band').getAttribute('data-rl-band'), 'accepted',
+      'under the heading that says what it is');
   });
 
-  test('and the empty state says where the settled ones went', async () => {
+  test('and nothing live is left above it to be confused with', async () => {
     const p = await page();
     p.win.negoResolve(p.c, p.win.negoChanges(p.c)[0].id, 'accepted', { side: 'owner' });
     p.win.renderRedline();
-    assert.match(p.$('#rl-changes').textContent, /already been decided/,
-      'silence about the history reads as data loss');
+    const heads = [...p.$$('#rl-changes .rl-band')].map(el => el.getAttribute('data-rl-band'));
+    assert.deepEqual(heads, ['accepted'],
+      'one pile, because there is one kind of thing on the column');
   });
 
   test('an unchanged clause has no card at all', async () => {
@@ -1210,7 +1239,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.equal(p.post.reshared, 1, 'and the send really goes, on the one click');
   });
 
-  test('after the send the card says so on its badge, and holds its height', async () => {
+  test('after the send the heading says so, and the card holds its height', async () => {
     /* THE CARD FOLDS WHEN THE MOVE IS NOT YOURS. A sent ask has nothing left
        for this reader to press — Edit navigates, Sent is a label — so it
        becomes a line, and the head carries the fact. Opening it again brings
@@ -1221,10 +1250,20 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
-    /* AND THE WORD ITSELF IS BACK ON THE ROW, because "gone to them" is a fact
-       the heading it now sits under does not carry. */
-    assert.match(p.$('#rl-changes .rl-badge').textContent.trim(), /^Sent$/,
-      'the fact is on the card, where nothing can hide it');
+    /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
+       This asserted the word "Sent" is back on the row, on the reasoning that
+       the heading it sits under does not carry it. The heading DOES carry it —
+       WITH <them> — and that was true when this was written; what has changed
+       is that the owner has now had every other settled word given a heading
+       of its own too, so the slot came off our seat's row entirely. THE CLAIM
+       IS THE SAME CLAIM: the fact that this ask has gone is stated where
+       nothing can hide it. It is stated by the heading over the row now. */
+    const band = p.$('#rl-changes .rl-band');
+    assert.ok(band, 'the column bands our seat');
+    assert.equal(band.getAttribute('data-rl-band'), 'with',
+      'the fact is on the heading, where nothing can hide it');
+    assert.equal(p.$('#rl-changes .rl-badge'), null,
+      'and the row itself says nothing — the word would only repeat it');
     const card = p.$('#rl-changes .rl-card');
     /* The fold is gone (12 Aug 2026), and so is the pop-out (16 Aug 2026): the
        reading matter lives in the clause panel, so the card is one height
@@ -1249,9 +1288,14 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        reader unsure whether they pressed it — against the fact that the status
        corner says Sent in plain sight, in colour, from the same reading.
 
-       So this test keeps its subject (what the card shows once an ask has
-       gone) and turns its claim round: the slot is empty, and the fact lives
-       in the one status slot where every other card's state lives. */
+       AND A THIRD TIME, 26 Aug 2026, BY THE SAME HAND. The status slot came
+       off our seat's row entirely once every settled state had a heading of
+       its own: "if it is sent, then it is in the category of With Saw Sawa so
+       it is redundant." So the subject is the one it has always been — what
+       the card shows once an ask has gone — and the answer moves one step
+       further out: the slot is empty, the marker is gone, and the fact is on
+       the heading over the row. SAID ONCE is what all three versions were
+       really protecting, and it is still what is measured. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
@@ -1260,10 +1304,11 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.win.renderRedline();
     assert.equal(p.$('#rl-changes button.rl-sent'), null, 'no marker where the Send was');
     assert.equal(p.$('#rl-changes [data-rl-sent]'), null, 'and no marker attribute either');
-    assert.equal(p.$('#rl-changes .rl-badge').textContent.trim(), 'Sent',
-      'the status corner carries the fact');
-    assert.equal((p.$('#rl-changes .rl-card').textContent.match(/Sent/g) || []).length, 1,
-      'said once, on the whole card');
+    assert.equal(p.$('#rl-changes .rl-badge'), null, 'and no status word on the row');
+    assert.equal(p.$('#rl-changes .rl-band').getAttribute('data-rl-band'), 'with',
+      'the heading carries the fact');
+    assert.equal((p.$('#rl-changes .rl-card').textContent.match(/Sent/g) || []).length, 0,
+      'said once, and not on the card — the heading above it is the once');
     assert.equal(p.$('#rl-changes [data-rl-send]'), null, 'and it cannot be sent twice');
   });
 

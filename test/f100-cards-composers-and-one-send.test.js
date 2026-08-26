@@ -963,18 +963,19 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r)); };
     return { w, win, c, post, $, $$, settle, again: () => win.renderRedline() };
   }
-  /* WHAT THE COLUMN SAYS ABOUT ONE CHANGE — the badge where the row draws one,
-     and the band heading it sits under where it does not. Since 25 Aug 2026 a
-     row under AWAITING YOU or YOUR DRAFTS draws no status word, because the
-     heading has just said it; the word comes back the moment it carries a fact
-     the heading does not. See f246. */
-  const badgeOf = (p, id) => {
-    const card = p.$(`[data-nego-card="${id}"]`);
-    const b = card && card.querySelector('.rl-badge');
-    if (b) return b.textContent.trim();
-    let n = card && card.previousElementSibling;
+  /* WHERE THE COLUMN SAYS ONE CHANGE STANDS. RE-POINTED 26 Aug 2026: this
+     read the row's own status word and fell back to the heading only where the
+     row drew none. Our seat's row draws none at all now — every settled and
+     every review state has a heading of its own, so a word at the end of the
+     row would only repeat the one above it — and the heading is the whole
+     answer. It reads the band's KEY rather than its label: the key is what the
+     renderer files a change under, the label is a translated string, and a
+     test pinning the string breaks the day somebody rewords a heading. */
+  const standsAt = (p, id) => {
+    let n = p.$(`[data-nego-card="${id}"]`);
+    n = n && n.previousElementSibling;
     while (n && !n.classList.contains('rl-band')) n = n.previousElementSibling;
-    return n ? n.textContent.trim() : '';
+    return n ? n.getAttribute('data-rl-band') : '';
   };
 
   test('THE FIX: one card\'s Send publishes that change and holds the other back', async () => {
@@ -986,8 +987,8 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     p.again();
     assert.equal(p.post.reshared, 1, 'one round went');
     assert.equal(p.post.modals, 0, 'and no dialog');
-    assert.equal(badgeOf(p, a), 'Sent', 'the chosen change has gone');
-    assert.match(badgeOf(p, b), /draft/i, 'the other is still a draft on the desk');
+    assert.equal(standsAt(p, a), 'with', 'the chosen change has gone');
+    assert.equal(standsAt(p, b), 'drafts', 'the other is still a draft on the desk');
     /* Joined, not deep-compared: the page realm's Array prototype is not this
        realm's — the f60 trap this file already documents. */
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').map(x => x.id).join(','), b,
@@ -1032,7 +1033,8 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.ok(sent.querySelector('.rl-more-menu [data-rl-cp-open]'),
       'the ⋯ is its door onto the panel');
     assert.ok(sent.querySelector('.rl-card-head'), 'and the body still presses through');
-    assert.ok(sent.querySelector('.rl-badge'), 'and it still says where it stands');
+    assert.equal(sent.querySelector('.rl-badge'), null,
+      'and says nothing itself — the heading two lines up is where it stands');
     const draft = p.$(`[data-nego-card="${b}"]`);
     assert.ok(draft.querySelector('.rl-card-sum'), 'work says what it is about');
     assert.ok(draft.querySelector('[data-rl-send]'), 'and carries its Send');
@@ -1069,7 +1071,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.equal(p.post.reshared, 2, 'a second round went');
     assert.equal(p.win.negoHeldBackIds(p.c).length, 0, 'nothing is held any more');
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 0, 'nothing reads unsent');
-    assert.match(badgeOf(p, b), /Sent/, 'the once-held draft has gone');
+    assert.equal(standsAt(p, b), 'with', 'the once-held draft has gone');
   });
 
   test('the hold is self-cleaning: a decided change falls out on its own', async () => {
