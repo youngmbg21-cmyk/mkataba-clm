@@ -277,5 +277,74 @@ and still hollow.
 
 ---
 
-## L-5 — *(awaiting the owner)*
+## L-5 — A REFRESH SHOULD LEAVE YOU WHERE YOU WERE
+
+**Owner's words, 26 Aug 2026:** *"When you refresh a page, it should take you
+back to the same page not back to home."*
+
+### THE MACHINERY EXISTS — so this is a regression or a partial restore
+
+Read before starting, because the instinct here is to build it and it is
+already built. Every page change writes down which page you are on, which
+agreement is open and which stream, and startup reads that back and returns
+you there. Its own note in the code names this very complaint as the reason it
+was written: *"losing a refresh mid-negotiation to the dashboard was the exact
+complaint this list caused."*
+
+**So the question is not how to remember the page. It is which page stopped
+being remembered, and why.**
+
+### Reproduce first, and write down WHICH page
+
+"It goes home" may be true of some pages and not others, and the answer is
+different for each. Refresh on each of these and record what happens: Home,
+Contracts, a stream, Negotiations (the list), a negotiation, a contract room
+on each of its four tabs, Insights, Calendar, Reports, Templates, Our
+standards, Requests, People, Import, Settings & Rules. **Everything below is a
+hypothesis until that table exists.**
+
+### Two gaps already found by reading, neither yet proved to be the cause
+
+1. **Only the page, the open agreement and the open stream are remembered —
+   not where you were INSIDE the page.** The contract room's four tabs are
+   held in memory only, so a refresh on Signing or History reopens the room on
+   the tab it would normally open on. If the owner's report is about a tab
+   rather than a page, that is a different and smaller job than it sounds.
+2. **There is a silent fall-back to the dashboard.** On startup, if the
+   remembered agreement is not among the ones loaded, the open agreement is
+   dropped and the page is quietly changed to the dashboard. That branch is
+   written for the contract room and for nothing else, so the negotiation page
+   is not covered by it either way. Whether it can fire on a real workspace is
+   the thing to measure — but it is exactly the shape of "I was somewhere and
+   now I am home".
+
+**The remembered position is read back in two different places on startup.**
+Whatever the fix is, both have to end up agreeing; a fix in one is the
+duplication warning in its usual direction.
+
+### What must not break
+
+- **A link from an email still wins.** A signer or reviewer following their
+  link lands on that agreement, on the step the mail is about, and the link is
+  spent once used — the remembered page must not override it, and a refresh an
+  hour later must not put them back on the signing step.
+- **A page the reader is no longer allowed to open must not strand them.**
+  Settings & Rules refuses a non-admin at the door, so restoring somebody onto
+  a page they may not have is landing them on a refusal. Whatever page cannot
+  be honoured falls back gracefully, and quietly.
+- **The remembered position is per browser, never shared with colleagues** —
+  it is where one person's screen was, and it must not travel.
+- The counterparty's own pages are reached by a link and have no shell; they
+  are not in this ask and are not to be given a memory.
+
+### The check
+
+Refresh on each page in the table above and assert you are still on it — the
+one claim that matters, and the one nothing currently makes. Include the
+contract room's tabs, whatever is decided about them, so the answer is
+recorded either way rather than left to the next report.
+
+---
+
+## L-6 — *(awaiting the owner)*
 
