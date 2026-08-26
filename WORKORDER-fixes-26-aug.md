@@ -124,5 +124,63 @@ breath, or the next person reads the removal as drift and puts it back.
 
 ---
 
-## L-3 — *(awaiting the owner)*
+## L-3 — ON THE COUNTERPARTY'S PAGE, EDIT GOES TO THE CONTRACT
+
+**Owner's words, 26 Aug 2026:** *"In the counterparty page, if you click Edit
+in the card it should take you to the attached edit window not to the
+contract."* The attached window is the CLAUSE PANEL — the one headed EDIT with
+History / + notes and the text-size stepper, carrying As it stands, Change
+this clause, On the table and History.
+
+### THIS IS A REGRESSION, NOT A MISSING FEATURE — start there
+
+The rulebook already records this exact ask, granted on **20 Aug 2026**, in
+the owner's own words then: *"Edit should take you to the edit side panel, not
+to the contract"* — **and it says BOTH SEATS**. So the question for whoever
+picks this up is not *how do we build it*, it is *what stopped it working on
+their seat*.
+
+**AND THE OBVIOUS ANSWER IS NOT THE ANSWER.** The instinct with this class of
+fault on this page is always "the handler was wired on the owner's page and
+never reached the counterparty's mount" — that is the recorded 15 Aug lesson
+and it has bitten four times. **CHECKED, AND IT IS NOT THAT THIS TIME:** the
+counterparty's mount does run the same clause-tools wiring the owner's page
+runs, its root does carry the class the Edit handler walks up to, and the
+shared panes builder hands both seats the clause panel. The parts are all
+present.
+
+**So do not fix it by adding a second wiring path on their side.** One
+mechanism, never two, is what the 20 Aug note is built on, and a second path
+is how the two seats come to disagree about what Edit does — which is the
+fault this whole rulebook opens by warning about.
+
+### What to do, in order
+
+1. **Reproduce it on a real share link first**, on their page, on a card with
+   a clause behind it. Everything below is a hypothesis until then.
+2. Then find where the press stops short. The handler jumps to the clause
+   FIRST and opens the panel SECOND, so **a press that lands on the contract
+   and does nothing else is that second step being skipped or refused** — the
+   jump is working exactly as designed and the panel is not opening. Two known
+   ways that happens by design: the panel refuses to open with no body for
+   that clause, and a proposed-new-clause ask has no clause behind it at all.
+   Rule both in or out before changing a line.
+3. Check the card verb the owner is actually pressing. The card was rebuilt on
+   25 Aug into a face plus a ⋯ menu, and the counterparty's card keeps a
+   different shape from ours, so confirm which button on THEIR card carries
+   the Edit act before assuming it is the same one as on ours.
+4. Whatever the cause, the fix goes where both seats read it.
+
+### And it wants a net, because it has now broken twice
+
+There is no check anywhere that presses Edit **on the counterparty's seat**
+and asserts the panel opens — which is why a granted ask could quietly stop
+working for six days. Add one in the browser pass that already drives their
+page, and make the claim the one that matters: after the press, the panel is
+open **on that clause**. A check that only asserts the handler exists passes
+against exactly the state being reported.
+
+---
+
+## L-4 — *(awaiting the owner)*
 
