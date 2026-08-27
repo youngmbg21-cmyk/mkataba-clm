@@ -109,110 +109,97 @@ built:
 
 > *"...first think of how best in class systems in the CLM space approach the
 > issue especially in the integration of AI to support the user, how SAP
-> S/4HANA design in UI and UX would approach the matter, how to make sure it
-> is easy to understand and navigate without adding banners and such for the
-> user, ensuring you are not encroaching on the space allocated to the
-> contract, smartly integrating copilot where copilot is being used and
-> ensuring seamless flows."*
+> S/4HANA design in UI and UX would approach the matter, how to make sure it is
+> easy to understand and navigate without adding banners and such for the user,
+> ensuring you are not encroaching on the space allocated to the contract,
+> smartly integrating copilot where copilot is being used and ensuring seamless
+> flows."*
 
-**WHEN THEY APPLY, because a checklist that runs on everything is one nobody
-runs.** Ask the six whenever a change ADDS or MOVES something a person can see
-or press, or changes what the product SAYS to them. Skip them for a fix that
-restores behaviour this rulebook already states, a rename, a test, a token swap
-that moves no pixel, or anything a reader could not tell apart. **In doubt, ask
-them**: they cost minutes, and a screen the owner has to report twice costs a
-day.
+**WHEN THEY RUN.** Whenever a change ADDS or MOVES something a person can see or
+press, or changes what the product SAYS to them. Never on a fix that restores
+behaviour already stated here, a rename, a test, or anything a reader could not
+tell apart. In doubt, run them.
 
-### 1. HOW DOES THE BEST OF THIS INDUSTRY SOLVE THIS?
+**FIVE OF THE SIX CARRY A REFUSAL — a thing that DOES NOT HAPPEN without the
+owner's yes.** That is the whole strength of this rule, and the reason it is
+written as refusals rather than as advice: a checklist that only asks you to
+think is one you can think your way past. Where a refusal bites, say so in a
+sentence BEFORE building, and then build what the owner rules.
 
-Name how a serious contract-management product answers the same question —
-where the fact lives, who is allowed to decide it, what is recorded, what
-travels to the other side, what the reader is asked and when. Then say whether
-HaTi is following that or leaving it on purpose. **A departure is fine and gets
-one sentence of reason; an accident is not.**
+**1. THE STANDARD ANSWER.** What is the ordinary answer to this shape of problem
+in serious contract software — where the fact lives, who is allowed to decide
+it, what is recorded, what travels to the other side, what the reader is asked
+and when? Are we following it, or leaving it on purpose? A departure is fine and
+gets one sentence of reason; an accident is not.
+**REFUSES: asserting a named product's behaviour that you do not actually
+know.** Say "the general practice is X" and own it as a principle. A made-up
+fact about Icertis or Ironclad is worse than no answer at all, because a brand
+name ends an argument that ought to be had.
 
-**NEVER INVENT A COMPETITOR'S BEHAVIOUR.** Where you do not actually know what a
-named product does, say "the general practice is X" and own it as a principle
-rather than dressing an opinion in somebody else's brand. A made-up fact about
-Icertis or Ironclad is worse than no answer at all, because nobody in the room
-can argue with it.
+**2. THE CHEAPEST CHANNEL THAT CARRIES THE FACT.** This is the SAP question, and
+it is about attention rather than looks. Take the FIRST rung that works:
+**nothing** (a control, count, heading or status word already says it) →
+**on the control itself** or in the object's own header → **a transient
+confirmation**, for something that has just happened because the reader pressed
+it → **a strip**, only where it changes what the reader can do right now →
+**a blocking dialog**, only for a decision that cannot proceed without them.
+And each kind of thing where that world puts it: facts in the object's header,
+work in a worklist, rules in settings, decisions in a dialog, history in the
+trail. A fact drawn as a warning, or work drawn as a fact, is the commonest way
+a screen starts lying about what it wants.
+**REFUSES: a new band, strip, banner, notice, callout or tip** — the owner's
+standing rule under **NO NEW BANDS ON THE PAGE**, with its two-part test, which
+is deliberately NOT restated here because two statements of one rule drift.
 
-### 2. WHAT WOULD SAP DO — WHICH IS A QUESTION ABOUT ATTENTION, NOT ABOUT LOOKS
+**3. THE CONTRACT'S PIXELS.** On any screen that shows the agreement, measure
+from the top of the window to the first line of the wording, before and after.
+**REFUSES: any growth in that number.** Where chrome genuinely has to grow, the
+pixels come off other chrome on the same screen — never off the paper — or the
+owner is asked. Report both numbers when the answer is not zero. Furniture never
+follows the reader's own text-size setting; the paper always does.
 
-Spend the least of the reader's attention that will do the job. The ladder,
-cheapest first, and you take the FIRST rung that works:
+**4. COPILOT'S PLACE.** Beside the wording it is about, never a conversation
+about a document the reader cannot see. Resting on something checkable — the
+playbook position, what this workspace settled before, what the other side
+actually asked — never its own authority. Spending on a press, with the cost
+visible.
+**REFUSES: any path into the record that is not the funnel a person's edit
+uses**, so every guard that governs a human governs it too; **and any silent
+failure** — no key, a refusal, an answer cut short, a cap on what was read: each
+says so where the reader is looking. Silence reads as "there is nothing here",
+which is a wrong answer wearing a right one's clothes.
 
-1. **Nothing** — a control, a count, a heading or a status word already carries
-   the fact.
-2. **On the control itself**, or in the object's own header: a count in the
-   label, a state on the row, a fact in the fact band.
-3. **A transient confirmation**, for something that has just happened because
-   the reader pressed something.
-4. **A strip**, and only where it changes what the reader can do right now.
-5. **A blocking dialog**, and only for a decision that cannot proceed without
-   them.
+**5. THE ONE DOOR.** Does this act already have a way in? Then that one is moved
+or improved.
+**REFUSES: a second door onto an act that already has one.** Two doors do not
+fail — they drift, and then two screens disagree about what the product does,
+which is the most expensive class of fault in this codebase's record.
 
-And put each kind of thing where that world puts it: **facts in the object's
-header, work in a worklist, rules in settings, decisions in a dialog, history
-in the trail.** A fact drawn as a warning, or work drawn as a fact, is the
-commonest way a screen starts lying about what it wants.
+**6. WHERE THE READER ENDS UP.** Walk the whole journey rather than the press. Is
+there a way back, and does it land where the reader expects? Does the number on
+a door match the list behind it? Does a refusal carry its way forward on the
+same screen? No refusal on this one — it is the walk, and it catches what a
+single-screen review cannot see.
 
-### 3. DOES THE SCREEN ALREADY SAY IT?
-
-The two-part test under **NO NEW BANDS ON THE PAGE**, unchanged and deliberately
-not restated here — go and read it there, because two statements of one rule
-drift. Both halves must pass before anything is added to a page, and the same
-test governs taking one away.
-
-### 4. DOES THE CONTRACT KEEP ITS SPACE?
-
-**Measure the distance from the top of the window to the first line of the
-agreement, before and after. It may not grow.** Nothing new goes between the
-reader and the wording; nothing floats over the paper; furniture does not follow
-the reader's own text-size setting and the paper always does. If the chrome has
-to grow, say by how many pixels and what they bought.
-
-### 5. WHERE DOES COPILOT SIT, AND WHAT IS IT ALLOWED TO DECIDE?
-
-Five conditions, and a Copilot surface has to pass all five:
-
-- **It sits beside the wording it is about** — never a conversation about a
-  document the reader cannot see.
-- **It decides nothing.** Every act it offers presses the ordinary funnel, so no
-  suggestion ever gets a private path into the record, and every guard that
-  governs a human's edit governs it too.
-- **It names what it rests on**, in something checkable — the playbook position,
-  what this workspace settled before, what the other side actually asked — never
-  on its own authority.
-- **It fails out loud.** No key, a refusal, an answer cut short, a cap on how
-  much was read: each says so where the reader is looking. Silence is the one
-  forbidden failure, because silence reads as "there is nothing here".
-- **It spends money only when asked.** One press, one call, and the reader can
-  see what it cost them.
-
-### 6. WHERE DOES THE READER END UP?
-
-Walk the whole journey rather than the press. Is there a way back, and does it
-land where the reader expects? Does the number on a door match the list behind
-it? Does a refusal carry its way forward on the same screen? And is there
-exactly ONE way to do this act — or has a second door just been built beside one
-that already exists, which is how the two come to disagree?
-
-### WHAT TO DO WITH THE ANSWERS, AND IT IS DELIBERATELY QUIET
-
-Answer all six **internally**, the way Bug Fix Rule 2 already asks. In the
-plain-English summary mention **only the checks that CHANGED what was built**,
-plus any you could not answer honestly. Six paragraphs of box-ticking on every
+**THE ANSWERS STAY QUIET.** Work all six through internally, the way Bug Fix
+Rule 2 already asks. In the plain-English summary mention **only the checks that
+CHANGED what was built**, plus any you could not answer honestly, plus any
+refusal you are asking the owner to lift. Six paragraphs of box-ticking on every
 fix is exactly the furniture this rulebook keeps warning about, and a ritual
 nobody reads is a ritual that gets skipped.
 
-**IF A CHECK DISAGREES WITH THE ASK: say so in a sentence or two, then build
-what was asked.** The owner rules. And what the six may never do is widen the
-job — anything they turn up beyond the request is one line in BUGLOG.md under
+**THE LIMIT, AND IT IS ABSOLUTE.** The six change HOW the asked-for thing is
+built. **They never change WHAT is built**, and they never widen the job:
+anything they turn up beyond the request is one line in BUGLOG.md under
 "Noticed, not fixed", exactly like everything else.
 
-**THE SIX CHANGE HOW THE ASKED-FOR THING IS BUILT. THEY NEVER CHANGE WHAT IS
-BUILT.**
+**ONE OF THE FIVE CAN BE A NET AND IS NOT ONE YET, said out loud.** Refusal 3 is
+a NUMBER, so it can be pinned in a browser file like every other measured claim
+here: the distance above the first line of the agreement, recorded on the
+screens that draw it, failing on any growth. Until that exists it holds only as
+long as somebody remembers it — and this rulebook's own record is that a rule
+living in prose alone holds until the first person who does not read it. The
+other four are judgements and stay judgements.
 
 ## Bug Fix Rules
 

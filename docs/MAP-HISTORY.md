@@ -3509,130 +3509,150 @@ there is a broker account to clip it to.
 ## THE SIX QUESTIONS, ASKED BEFORE ANY CODE IS WRITTEN (27 Aug 2026)
 
 The terse rule is in CLAUDE.md under the same subject. This is why it exists,
-what each question is really guarding, and the three ways the rule itself can
-fail.
+why it is written as REFUSALS rather than as advice, what each of the six is
+really guarding, and the three ways the rule itself can fail.
 
-**IT IS NOT NEW THEORY. IT IS THE SIX LESSONS THIS PROJECT HAS ALREADY PAID
-FOR, ASKED BEFORE THE CODE INSTEAD OF AFTER THE SCREENSHOT.** Every one of the
-six has a scar in this file with a date on it, and in every case the sequence
-was the same: something was built, the owner saw it, the owner reported it, and
-it was taken out again. That loop is the single largest recurring cost in this
-codebase's history, and it is not caused by bad code — the code usually worked.
-It is caused by a design decision that nobody stopped to make.
+**IT IS NOT NEW THEORY. IT IS SIX LESSONS THIS PROJECT HAS ALREADY PAID FOR,
+ASKED BEFORE THE CODE INSTEAD OF AFTER THE SCREENSHOT.** Every one has a scar in
+this file with a date on it, and in every case the sequence was the same:
+something was built, the owner saw it, the owner reported it, and it came out
+again. That loop is the single largest recurring cost in this codebase's
+history, and it is not caused by bad code — the code usually worked. It is
+caused by a design decision nobody stopped to make.
 
 **THE EVIDENCE, FROM THIS FILE'S OWN RECORD.** The filled primary button was
 added and removed FOUR separate times before the pattern was written down as
 settled ("this reader reads emphasis as shouting"). Bands were added as
-courtesies and then rung one after another — the reading band, the floating
+courtesies and then rung out one after another — the reading band, the floating
 notices stack, the narrowed-column band, both received-document bands, the
-status strip on every tab. Page subtitles were written for every page and then
-removed from every page across two consecutive days. The change column was
-ruled transparent, then boxed, then argued about again. The clause editor
-shipped as two stacked boxes and was rebuilt around the contract itself within
-a day. None of those was a bug. Each was a design question that had an
-answerable form and was never asked.
+status strip on every tab. Page subtitles were written for every page and
+removed from every page across two consecutive days. The change column was ruled
+transparent, then boxed, then argued about again. The clause editor shipped as
+two stacked boxes and was rebuilt around the contract itself within a day. None
+of those was a bug. Each was a design question with an answerable form that was
+never asked.
 
-**WHAT THE SIX COST AND WHAT THEY SAVE.** They cost a few minutes of thinking
-before the first line of code. They save the build-report-reverse loop, which
-costs a screenshot, a message, a session, and — the part that does not show up
-in a diff — the owner's confidence that the thing they asked for is what they
-will get.
+### Why it is written as refusals
 
-### Why each question is on the list
+The first draft of this rule was six things to THINK ABOUT, and the owner's
+answer was "make it stronger". They were right, and the reason is structural: a
+checklist that only asks you to consider something is one you can consider your
+way past, in good faith, on a busy afternoon. It has no state in which the
+answer is NO.
 
-**1. THE INDUSTRY QUESTION** is there because HaTi is sold against products
-that have already made most of these decisions and been corrected by thousands
-of customers. Where a serious CLM product puts a fact, who it lets decide, what
-it records and what it lets cross to the counterparty are answers with a lot of
-scar tissue behind them. Following one is cheap. Departing from one is often
-right — this product departs deliberately in several places — but a departure
-made ON PURPOSE can be defended, and a departure made by accident is discovered
-by a customer.
+So five of the six now carry a refusal — a thing that does not happen without
+the owner's yes — and the sixth is a walk. What that buys is a moment where the
+work stops and a sentence goes to the owner BEFORE the build rather than a
+screenshot coming back after it. **The escape is deliberately cheap**: one
+sentence from the owner lifts any of them, because the owner rules and a rule
+that cannot be overruled quickly becomes a rule people route around.
 
-**THE HONESTY CLAUSE IS THE LOAD-BEARING HALF, and it is a guard against me
-rather than against the product.** An assistant asked "what does Icertis do
-here" will produce a confident, plausible, unfalsifiable answer whether or not
-it knows. That is worse than silence, because a brand name ends an argument
-that ought to be had. So the rule permits, and prefers, "the general practice
-is X and here is why" — a principle can be argued with; a fabricated fact
-cannot.
+**AND THE REFUSALS ARE CHOSEN FOR BEING CHECKABLE, not for being important.**
+"Design it well" is important and cannot be refused. "Do not add a band", "do
+not grow the space above the contract", "do not build a second door", "do not
+let Copilot write outside the funnel", "do not assert a competitor fact you do
+not know" — each of those is a question with a yes-or-no answer that a person
+can check afterwards. That is the difference between a rule and an aspiration.
 
-**2. THE SAP QUESTION IS ABOUT ATTENTION, NOT LOOKS**, and the rulebook already
-carries the owner's own statement of it under NO NEW BANDS ON THE PAGE. What
-the ladder adds is an ORDER, so the question has a single answer rather than a
-discussion. The reason it works is not taste: enterprise software of that kind
-ranks its channels by what each costs the reader and spends the least that will
-do the job. Amber that is always there stops being read, and then the one band
-that really is a warning goes past unread with it. The second half — facts in
-the header, work in a worklist, rules in settings, history in the trail — is
-what stops a fact being drawn as a warning, which is the commonest way a screen
-starts lying about what it wants from the reader.
+### Why each of the six is on the list
 
-**3. THE ALREADY-SAID QUESTION** is deliberately a pointer rather than a
-restatement. The owner's own test is written out in full in CLAUDE.md and it
-must stay written out in exactly one place; two statements of one rule drift,
-which is this codebase's most-recorded defect class in every other context and
-would be no different here.
+**1. THE STANDARD ANSWER** is there because HaTi is sold against products that
+have already made most of these decisions and been corrected by thousands of
+customers. Where a serious CLM product puts a fact, who it lets decide, what it
+records and what it lets cross to the counterparty are answers with scar tissue
+behind them. Following one is cheap; departing is often right — this product
+departs deliberately in several places — but a departure made ON PURPOSE can be
+defended and one made by accident is discovered by a customer.
 
-**4. THE CONTRACT'S SPACE** is the one question with a NUMBER attached, and
-that is why it is the most reliable of the six. Measured on 22 Aug 2026, 291
-pixels sat above the first line of the agreement on the Document tab at a
-1440x900 laptop — a third of the window, spent on chrome, before a single word
-of the thing the product exists to show. It came down to 249 by taking pixels
-out of three joins in the furniture and NONE out of the paper, because a page
-that reclaims space by cropping the contract has answered the wrong complaint.
-The check is cheap precisely because it is a measurement: two numbers, before
-and after, and the second may not be larger.
+**ITS REFUSAL IS A GUARD AGAINST THE ASSISTANT RATHER THAN AGAINST THE
+PRODUCT.** An assistant asked "what does Icertis do here" will produce a
+confident, plausible, unfalsifiable answer whether or not it knows. That is
+worse than silence, because a brand name ends an argument that ought to be had.
+The rule therefore prefers "the general practice is X and here is why": a
+principle can be argued with, a fabricated fact cannot.
 
-**5. THE COPILOT CONDITIONS** are each an incident. It sits beside the wording
-because the Copilot drawer used to be a chat about a clause the reader could
-not see, and the whole clause-editor page exists to correct that. It decides
-nothing because every guard in this product — the desk rule, the review gate,
-the wording freeze, the accept guard — lives in the funnel, and a suggestion
-with its own path into the record is a suggestion that has none of them. It
-names what it rests on because a recommendation about a company's own standards
-has to be checkable, which is why the precedent engine is deterministic and has
-no route at all. It fails out loud because the obligations reader returned
-silence on long agreements for weeks and silence reads as "this contract has no
-obligations" — a wrong answer wearing a right answer's clothes. And it spends
+**2. THE CHEAPEST CHANNEL** is the owner's own SAP rule, already written out
+under NO NEW BANDS ON THE PAGE. What this adds is an ORDER, so the question has
+one answer rather than a discussion. The reason it works is not taste:
+enterprise software of that kind ranks its channels by what each costs the
+reader and spends the least that will do the job. Amber that is always there
+stops being read, and then the one band that really is a warning goes past
+unread with it. The second half — facts in the header, work in a worklist, rules
+in settings, history in the trail — is what stops a fact being drawn as a
+warning, which is the commonest way a screen starts lying about what it wants.
+**The two-part test is deliberately not restated in the rule**; two statements
+of one rule drift, which is this codebase's most-recorded defect class in every
+other context and would be no different here.
+
+**3. THE CONTRACT'S PIXELS** is the only one of the six with a NUMBER attached,
+which makes it the most reliable and the only one that can become a net.
+Measured on 22 Aug 2026, 291 pixels sat above the first line of the agreement on
+the Document tab at a 1440x900 laptop — a third of the window, spent on chrome,
+before a single word of the thing the product exists to show. It came down to
+249 by taking pixels out of three joins in the furniture and NONE out of the
+paper, because a page that reclaims space by cropping the contract has answered
+the wrong complaint. **The net is owed and is not built**: a browser file
+recording that distance on the screens that draw the agreement and failing on
+any growth. Until it exists this refusal holds only as long as somebody
+remembers it.
+
+**4. COPILOT'S PLACE** is five incidents. It sits beside the wording because the
+Copilot drawer used to be a chat about a clause the reader could not see, and
+the whole clause-editor page exists to correct that. Its refusal — the funnel —
+is there because every guard in this product lives in the funnel (the desk rule,
+the review gate, the wording freeze, the accept guard), so a suggestion with its
+own path into the record is a suggestion with none of them; f223 already
+enforces exactly this for one module by failing if the engine so much as
+mentions the filing functions. It names what it rests on because a
+recommendation about a company's own standards has to be checkable, which is why
+the precedent engine is deterministic and has no route at all. Its second
+refusal — no silent failure — is there because the obligations reader returned
+silence on long agreements for weeks, and silence reads as "this contract has no
+obligations": a wrong answer wearing a right answer's clothes. And it spends
 only on a press because AI money is real money and a reader who cannot see what
 a press cost will stop pressing.
 
-**6. THE JOURNEY QUESTION** catches the class of fault that no single-screen
-review can see: the door whose count does not match the list behind it, the
-refusal whose stated remedy is not on the screen that refuses, the second door
-built beside one that already exists. All three are in this file with dates.
-The last is the most expensive, because two doors onto one act do not fail —
-they drift, and then two screens disagree about what the product does.
+**5. THE ONE DOOR** was not in the owner's original six and was added because it
+is the most expensive class of fault in this file's record and the one a
+per-screen review cannot see. Two doors onto one act do not FAIL. They drift —
+and then the register and the room disagree about what a press does, or one
+count narrows differently from the list behind it, and the disagreement is found
+by a customer months later. The rule is cheap to obey: if the act has a way in,
+move or improve that one.
+
+**6. THE JOURNEY** catches the rest of that class: the door whose count does not
+match the list behind it, the refusal whose stated remedy is not on the screen
+that refuses, the way back that lands somewhere the reader did not expect. All
+three are in this file with dates. It carries no refusal because it is a walk
+rather than a test — what it produces is a list of things to go and check.
 
 ### The three ways this rule fails, and the guard for each
 
-**IT BECOMES FURNITURE.** A six-part ritual performed on every commit is read
-by nobody after the second week, exactly like an amber band that is always on.
-Guarded twice: the rule only applies to changes a person can SEE, and the
-answers are thought through internally with only the ones that CHANGED the
-build reported back. If the summaries start reading like a form, the rule has
-already failed and should be cut down rather than defended.
+**IT BECOMES FURNITURE.** A six-part ritual performed on every commit is read by
+nobody after the second week, exactly like an amber band that is always on.
+Guarded twice: it applies only to changes a person can SEE, and the answers are
+worked through internally with only the ones that CHANGED the build reported
+back. If the summaries start reading like a form, the rule has already failed
+and should be cut down rather than defended.
 
 **IT LAUNDERS OPINIONS.** "SAP would do it this way" and "Ironclad does X" are
-sentences that end arguments. The honesty clause in question 1 is the guard;
-the same standard applies to question 2, where the honest form is "the
-cheapest channel that carries this is a count on the control", not an appeal
-to a brand.
+sentences that end arguments. The refusal in question 1 is the guard, and the
+same standard applies to question 2, where the honest form is "the cheapest
+channel that carries this is a count on the control", not an appeal to a brand.
 
 **IT WIDENS THE JOB.** "Think about how the best systems do this" is one short
 step from "so let us rebuild it that way", which is precisely what the Scope
-rules exist to stop. The guard is the closing line of the rule and it is
-absolute: the six change HOW the asked-for thing is built and never WHAT is
-built. Anything they turn up beyond the request is one line in BUGLOG.md, like
-everything else.
+rules exist to stop. The guard is the closing line and it is absolute: the six
+change HOW the asked-for thing is built and never WHAT is built. Anything they
+turn up beyond the request is one line in BUGLOG.md, like everything else.
 
 ### What it should feel like in a session
 
 Nothing, most of the time. On a bug fix it does not run. On a small visible
-change it is a minute of thought that usually confirms the obvious. It earns
-its place on the changes where it does NOT confirm the obvious — where the
-answer is "the count already says this, so the band is not needed", or "this
-belongs in the object header rather than in a strip", or "this adds 40 pixels
-above the contract and here is what has to come out to pay for it". Those are
-the sentences that would have prevented most of the reversals recorded above.
+change it is a minute of thought that usually confirms the obvious. It earns its
+place where it does NOT confirm the obvious — where the answer is "the count
+already says this, so the band is not needed", or "this belongs in the object
+header rather than in a strip", or "this adds 40 pixels above the contract and
+here is what has to come out to pay for it", or "there is already a door onto
+this and it is on the other tab". Those are the sentences that would have
+prevented most of the reversals recorded above.
