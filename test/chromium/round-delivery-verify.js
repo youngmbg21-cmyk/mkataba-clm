@@ -401,6 +401,102 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       /:(green|gray)$/.test(shelf.rows[0] || ''),
       shelf.rows[0] + ' — amber on this panel means something is owed by THIS reader');
 
+    /* ---------- 9. A ROUND ON A STANDING LINK READS AS DELIVERED ----------
+       (owner-reported 27 Aug 2026.) The toast computed "did it go" from
+       emailSent alone, and a round published onto the link the counterparty is
+       ALREADY HOLDING sends no email on purpose — the link was emailed once,
+       when the negotiation began, and every round after that travels through
+       the platform. So every round but the first came back AMBER reading "not
+       emailed", with a Copy link beside it offering the owner a link the other
+       side had.
+
+       WHY THIS IS A BROWSER CHECK. The audit line has said the honest thing
+       since `quiet` was introduced; what was wrong is what the READER was
+       shown, and the only place to ask that is #toast-root on a real send
+       through the real proxy. Read as a RELATION — which kind's ground the box
+       wears — never as a typed colour. */
+    await own.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(2200);
+    await own.evaluate(async (a) => {
+      const [t, id] = a;
+      /* The stage at the top minted the standing link through the API; give the
+         record the recipient the round send reuses, which is what the share
+         dialog writes. */
+      const c = state.contracts.find(x => x.id === id);
+      /* A FRESH STANDING LINK, minted the way the product mints one. The stage's
+         own token has been answered and re-read by every section above, and this
+         check is about what the reader is TOLD when a round goes down a link
+         that is standing right now — not about the state eight sections of
+         journey have left that first one in. */
+      const full = await api('contracts/' + id);
+      const mint = await api('shares', 'POST', {
+        payload: buildSharePayload(full, await sha256(canonicalDoc(full)), null,
+          { purpose: 'negotiate' }),
+        channel: 'link', purpose: 'negotiate', durable: true,
+        recipient: { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se' } });
+      c.lastShareRecipient = { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se',
+        channel: 'link', token: mint.token };
+      /* AND AN ADDRESS ON THE RECORD, which is what makes the send take the
+         direct route rather than opening the share dialog. That is the
+         product's own rule — the dialog is the FORM that collects a missing
+         address, not a confirmation step — and this check is about the send
+         that happens once there is one. */
+      c.counterpartyEmail = 'ola@sawsawa.se';
+      c.counterpartyName = 'Saw Sawa LLC';
+      const cl = negoClauseList(c);
+      await negoEditClause(c, cl[0].clauseId, cl[0].bodyHtml + '<p>One more ask.</p>',
+        { author: 'Young Mbagaya', side: 'owner', why: 'Second round.' });
+      persist(c); await flushSaves();
+      const r = document.getElementById('toast-root'); if (r) r.innerHTML = '';
+      renderRedline();
+    }, [tok, cid]);
+    await pause(1800);
+    const sent = await own.evaluate(async () => {
+      const b = document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]');
+      if (!b){ let dbg = ''; try {
+        const held = redlineHeldId(); const cc = held && getContract(held);
+        dbg = JSON.stringify({ view: state.view, held, hasC: !!cc,
+          top: !!document.querySelector('.rl-idx-top'),
+          close: !!document.querySelector('.rl-close-go'),
+          unsent: cc ? negoUnsentAsks(cc, 'owner').length : 'n/a',
+          cnt: cc ? rlUnsentCount(cc, { side: 'owner' }) : 'n/a',
+          actorHeld: cc ? rlActorHeld(cc, {}) : 'n/a' });
+      } catch (e){ dbg = 'threw: ' + e.message; }
+      return { pressed: false, dbg }; }
+      b.click();
+      /* POLLED, NOT SLEPT. An 'ok' toast dwells 2600ms and clears itself, so a
+         fixed wait long enough for the send to finish is also long enough to
+         miss the box entirely — which is how this check first reported "no
+         toast" on a send that had worked. */
+      let box = null;
+      for (let i = 0; i < 120 && !box; i++){
+        await new Promise(r => setTimeout(r, 100));
+        box = document.querySelector('#toast-root > *');
+      }
+      const kinds = k => { const d = document.createElement('div');
+        d.style.background = k; document.body.appendChild(d);
+        const out = getComputedStyle(d).backgroundColor; d.remove(); return out; };
+      return { pressed: true,
+        /* AND NO DIALOG: with an address on the record the send takes the
+           direct route, which is the path this branch is about. */
+        modal: (document.getElementById('modal-root') || {}).innerHTML ? 'open' : 'none',
+        text: box ? (box.textContent || '').replace(/\s+/g, ' ').trim() : null,
+        bg: box ? getComputedStyle(box).backgroundColor : null,
+        ok: kinds('var(--color-accent-900)'), warn: kinds('#b45309'),
+        action: box ? !!box.querySelector('button') : null };
+    });
+    check('9 the round really went, from the column\'s own act',
+      sent.pressed && !!sent.text && sent.modal === 'none',
+      `${sent.modal === 'none' ? 'direct' : 'the DIALOG opened'} — "${sent.text}"`);
+    check('9 and it reads as delivered, not as a mail failure',
+      sent.bg === sent.ok && sent.bg !== sent.warn,
+      `${sent.bg} (ok ${sent.ok} / warn ${sent.warn}) — "${sent.text}"`);
+    check('9 it says the link they already have, and hands over no second one',
+      /already have|redan har/.test(sent.text || '') && sent.action === false,
+      `action button: ${sent.action} — "${sent.text}"`);
+    await own.evaluate(() => { const r = document.getElementById('toast-root');
+      if (r) r.innerHTML = ''; });
+
     check('no page errors on either seat', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

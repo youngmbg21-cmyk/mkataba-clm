@@ -163,7 +163,19 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         pbOnRow: btns.some(b => b.hasAttribute('data-rl-pbreview')),
         pbInMenu: !!document.querySelector('#view-redline #ws-more-menu [data-rl-pbreview]') };
     });
-    check('1b the head carries four acts, no more', acts.n === 4, acts.onRow.join(' | '));
+    /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round from the
+       page head). It was FOUR — Publish Round, Internal review, Share, More —
+       and it is three. The verb was one word doing two jobs: it SENT the unsent
+       redlines and never closed anything, while the act that really ends a
+       round sat two controls along wearing almost the same clothes; and the
+       column head twelve pixels below already carried the same act, on the
+       cards it acts on, with the count on it.
+       WHAT THIS CHECK IS REALLY FOR IS UNCHANGED: the row holds a NAMED, short
+       set and nothing drifts onto it. The number moved; the discipline did
+       not. Where the act went is measured in redline-verify section 14a. */
+    check('1b the head carries three acts, no more', acts.n === 3, acts.onRow.join(' | '));
+    check('1b and none of them is a send — that act lives beside the cards',
+      !acts.onRow.some(t => /publish|send/i.test(t)), acts.onRow.join(' | '));
     /* REVERSED IN PLACE 23 Aug 2026, owner-asked ("the publish round 1 button
        should also not be shaded"). This read "exactly one of them is filled —
        the platform button rule", and Publish Round was that one fill. It is the

@@ -75,26 +75,51 @@ async function bench(){
 
 /* ============================================================ 1 — THE HEAD */
 describe('f246 (1) — the column names itself, and the name carries the total', () => {
-  test('"Tracked changes (N)", and the old name is retired', async () => {
+  /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: "Tracked changes should be now
+     called Redlines (3) but do not add another number next to it"). The CLAIM
+     is unchanged and is what it always was: the column heads itself, the name
+     carries the book's own total, and the name is the dictionary's rather than
+     a string typed here. Only which key it reads has moved. */
+  test('"Redlines (N)", and both older names are retired', async () => {
     const p = await bench();
     const t = p.$('.rl-idx-title');
     assert.ok(t, 'the block heads itself');
     assert.equal(t.textContent.trim(),
-      p.win.i18t('ng_tracked_head_n', { n: p.c.changes.length }),
+      p.win.i18t('ng_redlines_head_n', { n: p.c.changes.length }),
       'the heading is the dictionary\'s, and the number in it is the book\'s own count');
-    assert.doesNotMatch(t.textContent, /change index/i, 'the block\'s old name is gone');
+    assert.doesNotMatch(t.textContent, /change index/i, 'the block\'s oldest name is gone');
+    assert.doesNotMatch(p.$('.rl-idx').textContent, /tracked changes/i,
+      'and so is the name it wore until this morning');
   });
 
   test('the total is BORROWED, never counted a second time', () => {
     /* The head, the filter's options and the bands all print counts of the
        same list. A second arithmetic here is how two halves of one column come
        to disagree, which is the fault this page has recorded twice. */
-    const i = NEG_CODE.indexOf('ng_tracked_head_n');
+    const i = NEG_CODE.indexOf('ng_redlines_head_n');
     assert.ok(i > -1, 'the heading is still built here');
     const line = NEG_CODE.slice(i - 200, i + 200);
     assert.match(line, /changeTotal/, 'it prints the figure the rest of the head prints');
     assert.doesNotMatch(line, /\.filter\(|\.length\s*\)/,
       'and works nothing out for itself');
+  });
+
+  /* ---- AND IT SAYS ONE NUMBER (owner-asked 27 Aug 2026: "do not add another
+     number next to it where in the renders it redundantly adds another 3") ----
+     The head printed the book's total in its own name AND how many were still
+     open beside it, which is the same round said twice on one line — and the
+     pair was wide enough to wrap the row on a laptop, which is what pushed the
+     column's own name onto a line of its own. How many are still open is said
+     by the piles below, each named for exactly the state it holds and each
+     carrying its own count. */
+  test('and the open count is retired, in the markup and in the sheet', async () => {
+    const p = await bench();
+    assert.equal(p.$('.rl-idx-open'), null, 'nothing draws the second number');
+    assert.equal(NCSS.indexOf('.rl-idx-open{'), -1,
+      'and its rule is deleted rather than left standing');
+    assert.equal(NCSS.indexOf('.rl-idx-open::before'), -1, 'dot and all');
+    const head = p.$('.rl-idx-top').textContent;
+    assert.doesNotMatch(head, /\bopen\b/i, 'the row says it once');
   });
 
   /* REVERSED IN PLACE 26 Aug 2026 (owner-asked, ringing the row: "delete this
@@ -113,21 +138,64 @@ describe('f246 (1) — the column names itself, and the name carries the total',
       'and no sentence repeats what the title and the open count already say');
   });
 
-  test('the title sits on its own rule, and "N open" is an amber dot and word', () => {
+  /* REVERSED IN PLACE 27 Aug 2026: the open marker went with the count it drew,
+     so only the title half of this claim survives — and it survives whole. */
+  test('the title still sits on its own rule', () => {
     /* The reference draws the title as the column's one tab — a 2px accent
-       rule under the words — and the open count as a warning rather than as a
-       block: it shipped as a dark green chip, which read as the loudest object
-       on a column whose job is the cards. */
+       rule under the words and nothing else — so the head reads as a heading
+       rather than as a row of chips. */
     const t = NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-title{'),
       NCSS.indexOf('.redline-page .rl-idx-title i{'));
     assert.match(t, /border-bottom:2px solid var\(--accent-solid\)/, 'the title is a tab');
     assert.match(t, /margin-bottom:-1px/, 'sitting ON the head\'s hairline, not above it');
-    const o = NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-open{'),
-      NCSS.indexOf('.redline-page .rl-idx-open::before'));
-    assert.match(o, /color:var\(--st-amber-fg\)/, 'amber, the product\'s own "waiting on you"');
-    assert.match(o, /background:none/, 'and not a filled chip');
-    assert.match(NCSS.slice(NCSS.indexOf('.redline-page .rl-idx-open::before')),
-      /border-radius:50%/, 'with a dot, the same mark the rows carry');
+  });
+
+  /* ---- THE ROUND'S TWO ACTS SIT TOGETHER (owner-asked 27 Aug 2026) ---- */
+  test('Send all and Close Round share the head\'s right-hand end', async () => {
+    const p = await bench();
+    const top = p.$('.rl-idx-top');
+    const send = top.querySelector('.rl-unsent-go');
+    const close = top.querySelector('.rl-close-go');
+    assert.ok(send, 'the send is in the head');
+    assert.ok(close, 'and so is the close, from the first change onwards');
+    assert.ok(close.hasAttribute('data-rl-close-round'),
+      'it presses the page\'s own close handler, never a second path');
+    /* ONLY EVER ONE OF THEM IS LIVE. Everything unsent has to travel before a
+       round can be closed, so a live Send all means a dead Close and the pair
+       can never both invite a press. That is the whole reason they may share
+       one dress. */
+    assert.equal(send.disabled, false, 'the send is live while something is unsent');
+    assert.equal(close.disabled, true, 'and the close is not');
+    assert.match(close.getAttribute('title'), /answer/i,
+      'and it says why on its hover rather than after the press');
+  });
+
+  test('the close is drawn for nobody who may not press it', async () => {
+    const p = await bench();
+    const w = p.win;
+    assert.equal(w.rlCloseRoundHtml(p.c, { side: 'counterparty' }), '',
+      'a counterparty answers a round, they do not close one');
+    assert.equal(w.rlCloseRoundHtml(p.c, { readonly: true }), '', 'nor a read-only copy');
+    assert.equal(w.rlCloseRoundHtml({ ...p.c, changes: [] }, {}), '',
+      'and nothing on the table is nothing to close');
+  });
+
+  /* ---- AND THE PAIR WEARS THE WORKSPACE ACCENT, NEVER AMBER (owner-asked
+     27 Aug 2026: "green / blue depending on the mode as opposed to orange
+     which is out of place") ----
+     Amber on this page means one thing — work waiting on you — and a filled
+     amber button spends that signal on a control rather than on a state.
+     --accent-fill is accent-700, which is what makes white on it safe and what
+     makes it follow the workspace: green in the teal one, navy in the other. */
+  test('both acts are filled with the workspace accent, in one rule', () => {
+    const i = NCSS.indexOf('.redline-page .rl-unsent-go,');
+    assert.ok(i > -1, 'the two share one declaration');
+    const r = NCSS.slice(i, NCSS.indexOf('}', i));
+    assert.match(r, /\.rl-close-go\{/, 'and the close is the other half of it');
+    assert.match(r, /background:var\(--accent-fill\)/, 'the accent fill, which follows the brand');
+    assert.match(r, /color:#fff/, 'with white on it, which accent-700 is chosen for');
+    assert.doesNotMatch(NCSS.slice(i, i + 900), /--st-amber/,
+      'and no amber anywhere near either of them');
   });
 });
 
@@ -259,11 +327,18 @@ describe('f246 (3) — the bands', () => {
     for (const k of ['awaiting', 'drafts', 'review', 'held', 'with',
       'refused', 'accepted', 'withdrawn', 'decided'])
       assert.ok(at(k) > -1, `${k} is a band`);
-    assert.ok(at('awaiting') < at('drafts'), 'what needs you leads');
+    /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: "move refusals to the top of
+       the pile"). Refused was sixth, under five bands of work simply taking its
+       course, so the one thing on this page that can stop the deal was the
+       thing you had to scroll to find. Everything the claim was really about is
+       kept: the rest still runs needs-you first and finished last. */
+    assert.equal(at('refused'), 0, 'a refusal on the record leads the column');
+    assert.ok(at('awaiting') < at('drafts'), 'then what needs you');
     assert.ok(at('drafts') < at('with'), 'then what you are still writing');
-    assert.ok(at('with') < at('refused'), 'then what has gone');
-    assert.ok(at('refused') < at('accepted'), 'a refusal is still a sticking point');
+    assert.ok(at('with') < at('accepted'), 'then what has gone');
     assert.ok(at('accepted') < at('withdrawn'), 'and taken back is the quietest');
+    assert.equal(at('decided'), p.win.RL_CARD_BANDS.length - 1,
+      'and the catch-all is still last');
   });
 
   /* ---- AND THE DRAFTS PILE IS THREE (owner-asked 26 Aug 2026, off a

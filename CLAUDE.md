@@ -3156,7 +3156,7 @@ TWO BUILDERS every document body goes through: docPaperHeadHtml (front matter) a
 
 READ-ONLY COPY: renderShareViewer must NOT read c.redlineText — template-built and uploaded contracts have none stored (wording regenerates on demand). The owner's side renders the body ONCE at link-mint into viewBody; viewerPayload passes that one field through and still none of the people (the outside reader gets the argument, not the arguers). A copy with neither form says so and asks for a fresh link (covers every older view link). Tests: readonly-copy-verify (11, browser — words arrive AND people still don't, read off the raw payload).
 
-WHAT LEFT the Negotiate page (nothing is hiding): the Discussion column (threads read on each change's card via rlCardNotesHtml; redlineDiscussionHtml deleted), our column's Accept All / Reject All (**CORRECTED 23 Aug 2026 — "their seat keeps them" was stale and had been for a fortnight**: MEASURED in a real browser, the batch pair is drawn on NEITHER seat. It left the owner's page and the counterparty's page on the same day, 10 Aug 2026, and js/views/portal.js's own note records the second half in its own words. The three builders that still emit it — negoHeadHtml, negoAllHtml and the index column — are reached only through openNegotiationRoom, whose one live caller fires solely when that room is already open, so nothing in the shipped product mounts them. Their guard was repaired anyway on 23 Aug and is right; it reaches no live screen, and grey-not-dead-verify asserts the ABSENCE so nobody reads the fix as covering one), the visible Send All (#nego-send survives MOUNTED AND VISUALLY HIDDEN — .rl-sendslot-hidden, clipped never display:none — Publish Round is a proxy that clicks it), the text-size stepper (Document tab), fullscreen (#ws-focus in the room head's "⋯"), the contract switcher and round chip (the round reads in room-sub on all four tabs), and — 12 Aug 2026 — the room tab row itself.
+WHAT LEFT the Negotiate page (nothing is hiding): the Discussion column (threads read on each change's card via rlCardNotesHtml; redlineDiscussionHtml deleted), our column's Accept All / Reject All (**CORRECTED 23 Aug 2026 — "their seat keeps them" was stale and had been for a fortnight**: MEASURED in a real browser, the batch pair is drawn on NEITHER seat. It left the owner's page and the counterparty's page on the same day, 10 Aug 2026, and js/views/portal.js's own note records the second half in its own words. The three builders that still emit it — negoHeadHtml, negoAllHtml and the index column — are reached only through openNegotiationRoom, whose one live caller fires solely when that room is already open, so nothing in the shipped product mounts them. Their guard was repaired anyway on 23 Aug and is right; it reaches no live screen, and grey-not-dead-verify asserts the ABSENCE so nobody reads the fix as covering one), the visible Send All (#nego-send survives MOUNTED AND VISUALLY HIDDEN — .rl-sendslot-hidden, clipped never display:none — every batch send on this page is a proxy that clicks it; **since 27 Aug 2026 the one door is the column head's own Send all, Publish Round having been retired from the page head — see THE ROUND HAS TWO ACTS**), the text-size stepper (Document tab), fullscreen (#ws-focus in the room head's "⋯"), the contract switcher and round chip (the round reads in room-sub on all four tabs), and — 12 Aug 2026 — the room tab row itself.
 
 EVERY DOOR ONTO THE POSTBOX IS DELEGATED (15 Aug 2026, found the day the band shipped). The [data-redline-proxy] click was wired by scanning #content inside renderRedline — at a line BEFORE the panes are mounted a few lines below. Every proxy in the page shell got its handler; a proxy painted into the MOUNT got nothing. Harmless while the toolbar was the only one, and it made "Send all N" a dead button the moment the unsent band arrived in the change column: the toolbar pressed #nego-send once, the band pressed it zero times. Now ONE delegated listener on document, armed once — and the element-bound scan is GONE rather than kept beside it, because a proxy reachable by both would publish the round TWICE. redlineSyncProxies still runs per paint: deciding whether a proxy is usable is a different job and has always had to re-run on fresh markup. redline-verify counts the presses on both doors rather than inferring them from a handler being attached.
 
@@ -3633,7 +3633,7 @@ THE COUNTERPARTY HAS A BELL, AND ONLY ONE (owner-asked, 13 Aug 2026). Their own 
 
 THE SENDER'S COVERING NOTE IS AN EMAIL, NOT A PAGE ELEMENT (owner-asked, 13 Aug 2026, from a photograph). Their page reproduced the sender's typed words in FOUR places and every one comes off: (1) the envelope banner across the top of their negotiation page ("Message from <name>: …"), (2) the box in the respond panel on the landing and signing screen, (3) the block at the foot of the Compare wording dialog, (4) the "What changed" panel — a different FIELD (contract.changeSummary) but the SAME step-1 textarea in the share dialog, wearing a third title. THE SERVER STOPS SENDING IT, and that is what fixes links already in somebody's inbox rather than only new ones: GET /api/shares/:token no longer returns share.message (the recipient name, expiry and channel stay). shares.message is still WRITTEN at mint — this is about what leaves the building on a public token, not about what we keep — and payloadObj.contract.changeSummary is no longer written at all (flag changeSummary as stale; portalChangeSummaryHtml survives as a `return ''` stub so an older payload cannot start drawing it through some other caller). UNTOUCHED, and each is a trap: the EMAIL body ("Message from <name>") and the WhatsApp text — that is where the note goes; the per-clause DISCUSSION channel, a different feature that shares the word (if a clause note vanishes, that is what was hit); the ONE courtesy sentence about a changed contact (leadNotice); and THE WALL LINE, which stays and stays FIRST — the banner sat above it, only the banner goes. ONE CONSEQUENCE, HANDLED: the note's only roads are now email and WhatsApp, so "copy the link" carries no message at all. The share dialog says so under the box — co_note_goes_email / _whatsapp / _nowhere, both languages, painted by setCh (now called unconditionally, because the line has no markup default). The copy-link sentence is amber: a box that silently swallows what somebody typed is worse than the banner was. Tests: f189 (13 — server, email, the four drawings, the discussion channel, the channel line), f42's three "What changed" claims reversed in place.
 
-THE COUNTERPARTY'S DEAL VERBS ARE A GROUP IN THE HEADER ROW — #pt-nego-foot, ONE slot built by ONE builder (portalNegoFootHtml, js/views/portal.js), styled .pw-foot, NEVER hidden. It has now moved twice and the ID has survived both: a card at the page foot → a full-width strip under the header (2026-08-11) → inside <section class="pw-id"> beside the text-size stepper (owner-asked, 2026-08-12: "delete the whole card, the contract needs the space"). VERBS RELOCATE, THEY NEVER DISAPPEAR. It is their visible Ready to sign / Decline / Share a read-only copy / batch Send: the engine's column postbox is clipped (.rl-sendslot-hidden) and the owner's Publish Round proxy rides a toolbar their page does not render. It shipped [hidden] for a week — right while the column still drew its own send, wrong the day the redesign clipped it; two correct decisions a week apart left the page with no way to answer, and every test stayed green because jsdom presses hidden buttons. A verb must be VISIBLE PIXELS: f180 walks each verb's ancestors for [hidden]/.hidden/.rl-sendslot-hidden/display:none over a NAMED roll call of all four, then closes the loop (visible send → applyResponse → owner's queue reads accepted). AND THE SEND IS ON THE CARD (owner-asked, 2026-08-11): a held-decision card carries Send beside Undo — a data-rl-send PROXY onto the page's one postbox (#nego-send-decisions), so it sends EVERYTHING held and its title says so; one send, two doors, never a second transport. F100f pins the verb pair ['Send','Undo']. Tests: f180, portal-header-verbs-verify.
+THE COUNTERPARTY'S DEAL VERBS ARE A GROUP IN THE HEADER ROW — #pt-nego-foot, ONE slot built by ONE builder (portalNegoFootHtml, js/views/portal.js), styled .pw-foot, NEVER hidden. It has now moved twice and the ID has survived both: a card at the page foot → a full-width strip under the header (2026-08-11) → inside <section class="pw-id"> beside the text-size stepper (owner-asked, 2026-08-12: "delete the whole card, the contract needs the space"). VERBS RELOCATE, THEY NEVER DISAPPEAR. It is their visible Ready to sign / Decline / Share a read-only copy / batch Send: the engine's column postbox is clipped (.rl-sendslot-hidden) and the owner's own batch send rides a column head their page draws differently. It shipped [hidden] for a week — right while the column still drew its own send, wrong the day the redesign clipped it; two correct decisions a week apart left the page with no way to answer, and every test stayed green because jsdom presses hidden buttons. A verb must be VISIBLE PIXELS: f180 walks each verb's ancestors for [hidden]/.hidden/.rl-sendslot-hidden/display:none over a NAMED roll call of all four, then closes the loop (visible send → applyResponse → owner's queue reads accepted). AND THE SEND IS ON THE CARD (owner-asked, 2026-08-11): a held-decision card carries Send beside Undo — a data-rl-send PROXY onto the page's one postbox (#nego-send-decisions), so it sends EVERYTHING held and its title says so; one send, two doors, never a second transport. F100f pins the verb pair ['Send','Undo']. Tests: f180, portal-header-verbs-verify.
 
 A HEADER HAS ROOM FOR VERBS AND NONE FOR PARAGRAPHS. PORTAL_FOOT_COMPACT (set by renderShareWorkbench, RESET by renderSharePortal — one browser reaches both screens in a sitting) stands the strip's two sentences down there, and NEITHER IS LOST: "held here until you send them" and the held count are the wall line's own words twelve pixels below (the one band this page keeps), the count also rides the Send button's label, "N still waiting on a decision" is the Ready button's tooltip and the round queue names the clauses, and every READ-ONLY reason (executed / superseded / answered / no channel) travels into the component as readonlyWhy and prints at #nego-readonly-why where the verbs would have been. A sentence that leaves a slot must be findable in another one before the slot is deleted.
 
@@ -3679,7 +3679,7 @@ NOTICES: rlFloatingNoticesHtml is the one stack, built in redlinePanesHtml NOT r
 
 Document tab space: actionBarHtml is a stub on EVERY tab now (see above); the empty strip is hidden outright by style so it keeps no height. data-ws-fold / data-ws-display are STALE — flag any mention (they existed only for the header-fold toggle, deleted 13 Aug 2026; see THE ⋯ MENU below). Provenance is a right-column card. The one door off the tab and the text-size stepper ride at the right of the TAB ROW in slot #ws-tabrow-end, built by wsTabRowEndHtml and REPAINTED by applyWsTabs on every tab change (wsPaintTabRowEnd) — built once per render it described whichever tab was current then, which is why that corner came up empty on a Document tab a reader had switched to. Wired where it is PAINTED, never also in wireWsTabs or wireActionBar (both re-run — handlers stack). f91, room-order-and-notices-verify.
 
-Negotiate's control row: .rl-head is a group inside .rl-tabrow after a .rl-tabrow-gap spacer (the row carries NO tabs since 12 Aug 2026 — it kept its name, its spacer and its bottom rule because it is still what carries this page's controls) (kept its class name — half the suite reaches controls via .rl-head button; lost room-quiet). FIT LADDER, asked of the browser, never a media query: the row wraps on content (flex-wrap); rlFitTabRow only RECORDS the decision (.rl-tabrow-wrap), ALWAYS measuring with its own classes OFF (an observer reading its own effect never recovers). THE MIDDLE STEP IS FOUR RUNGS, NOT ONE (owner-reported 13 Aug 2026: "even though I have significant space where I have highlighted, the buttons should not be minimized"). It was one, and it was a cliff — MEASURED at 1280px the row is 1166 wide and wants 1167, and that one pixel took every word off the row at once, freeing 402px that became the empty gap in the photograph. Now, cumulative, cheapest loss first, each rung measured before the next: .rl-tabrow-trim (whitespace only — NOTHING disappears on it, which is the rung that answers the report), .rl-tabrow-lite (the commentary: .rl-send-detail, .rl-type-out), .rl-tabrow-half (the way-out button's word — its COUNT never folds), .rl-tabrow-tight (the two review buttons to glyphs, LAST because these are the words that were reported — they wore violet until 20 Aug 2026, when the owner asked for the "N needs you" chip's neutral clothes: surface, hairline, bold word, tokens so dark comes free; the violet dark override went with the violet). Words are <span class="rl-word">, tooltips carry the rest; textContent never changes, so tests still read labels. A new control on this row joins a rung by what losing it costs. rlObserveTabRow puts a ResizeObserver on the ROW itself (catches the nav rail, zoom, the next cause) — re-attached on EVERY paint (renderRedline rebuilds the row) and compares WIDTHS before acting (its classes change height; height-compare oscillates forever). The spacer carries the tab-row's bottom rule when wrapped. The view toggle reads Internal | Counterparty (group carries the sentence, ng_view_group). **THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR** (owner-asked 19 Aug 2026): flipping it used to REMOVE our four controls (Review vs Playbook, Internal review, Publish Round, Close Round) and swap every label on the row for the other seat's — so the row emptied by ~130px and everything left of the gap shuffled sideways and back, on the one control whose whole purpose is comparing the two views. **rowSide** (`preview ? 'owner' : side`) pins every label the row prints — needsYou, sendTarget, sendVerb, sendTip — while `side` still decides what the DOCUMENT and the cards draw. The four controls stay drawn, in the same place, and go DEAD: `disabled` + `data-rl-dead` + ng_preview_dead on hover. THE MARKER IS ITS OWN because `.rl-pb-btn:disabled` already means "the playbook pass is running" (cursor:wait) — two states, two looks. A NARROWED REVIEWER KEEPS THE HIDING: `preview` asks `!_rvPosture` first, because that absence is a permission, not a posture. This does not weaken f152's rule — the window still files nothing, and `disabled` is the browser refusing to dispatch the click rather than a decision about pixels; f152's click-sweep is what proves it. **AND THE CARDS TOOK THE SAME RULE, 20 Aug 2026** (owner-reported off two screenshots: the preview showed bare receipt rows where the counterparty's real link shows full cards with Accept/Reject/Edit and the wording preview). The preview mounts read-only — correct, a window must not act as them — and read-only killed canAct, which killed the verbs, which made every card classify as a "needs nothing" RECEIPT: the preview showed LESS than their page, on the control whose purpose is showing exactly what they see. `previewSeat` in redlineChangeCardsHtml (opts.preview + side counterparty + not executed — set ONLY by renderRedline's mount, so the portal's real seat is untouched) flips the two DRAWING flags to the counterparty page's own answers, and the finished action bar is deadened WHOLESALE after classification (disabled + data-rl-dead), so the receipt/full-card decision and the needs-you reading stay their page's own. WHAT STILL DIFFERS, deliberately: their HELD/SENT local answers cannot be mirrored (they live in their browser and never left it), and the paper's Edit pill and the panel's writing acts stay down in the preview (a window can't write; the dead-verb treatment covers the cards, where the mismatch was reported). f152 gained the crossed-ask test; its "no Accept/Reject anywhere" narrowed in place to "no LIVE decide verb". f152 (12). f89, f178, f184; laptops-verify passes at every laptop width; control-row-folds-verify (19, browser — WHERE the fold lands, which no node test can see: every word on screen at 1280–1920, one line all the way down, the rungs never taken out of order, and the words coming back when the width does).
+Negotiate's control row: .rl-head is a group inside .rl-tabrow after a .rl-tabrow-gap spacer (the row carries NO tabs since 12 Aug 2026 — it kept its name, its spacer and its bottom rule because it is still what carries this page's controls) (kept its class name — half the suite reaches controls via .rl-head button; lost room-quiet). FIT LADDER, asked of the browser, never a media query: the row wraps on content (flex-wrap); rlFitTabRow only RECORDS the decision (.rl-tabrow-wrap), ALWAYS measuring with its own classes OFF (an observer reading its own effect never recovers). THE MIDDLE STEP IS FOUR RUNGS, NOT ONE (owner-reported 13 Aug 2026: "even though I have significant space where I have highlighted, the buttons should not be minimized"). It was one, and it was a cliff — MEASURED at 1280px the row is 1166 wide and wants 1167, and that one pixel took every word off the row at once, freeing 402px that became the empty gap in the photograph. Now, cumulative, cheapest loss first, each rung measured before the next: .rl-tabrow-trim (whitespace only — NOTHING disappears on it, which is the rung that answers the report), .rl-tabrow-lite (the commentary: .rl-send-detail, .rl-type-out), .rl-tabrow-half (the way-out button's word — its COUNT never folds), .rl-tabrow-tight (the two review buttons to glyphs, LAST because these are the words that were reported — they wore violet until 20 Aug 2026, when the owner asked for the "N needs you" chip's neutral clothes: surface, hairline, bold word, tokens so dark comes free; the violet dark override went with the violet). Words are <span class="rl-word">, tooltips carry the rest; textContent never changes, so tests still read labels. A new control on this row joins a rung by what losing it costs. rlObserveTabRow puts a ResizeObserver on the ROW itself (catches the nav rail, zoom, the next cause) — re-attached on EVERY paint (renderRedline rebuilds the row) and compares WIDTHS before acting (its classes change height; height-compare oscillates forever). The spacer carries the tab-row's bottom rule when wrapped. The view toggle reads Internal | Counterparty (group carries the sentence, ng_view_group). **THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR** (owner-asked 19 Aug 2026): flipping it used to REMOVE our four controls (Review vs Playbook, Internal review, Publish Round, Close Round) and swap every label on the row for the other seat's — so the row emptied by ~130px and everything left of the gap shuffled sideways and back, on the one control whose whole purpose is comparing the two views. **rowSide** (`preview ? 'owner' : side`) pins every label the row prints — needsYou, and until 27 Aug 2026 the send's own target, verb and tip, which went with Publish Round (see THE ROUND HAS TWO ACTS) — while `side` still decides what the DOCUMENT and the cards draw. The controls left on the row stay drawn, in the same place, and go DEAD: `disabled` + `data-rl-dead` + ng_preview_dead on hover. THE MARKER IS ITS OWN because `.rl-pb-btn:disabled` already means "the playbook pass is running" (cursor:wait) — two states, two looks. A NARROWED REVIEWER KEEPS THE HIDING: `preview` asks `!_rvPosture` first, because that absence is a permission, not a posture. This does not weaken f152's rule — the window still files nothing, and `disabled` is the browser refusing to dispatch the click rather than a decision about pixels; f152's click-sweep is what proves it. **AND THE CARDS TOOK THE SAME RULE, 20 Aug 2026** (owner-reported off two screenshots: the preview showed bare receipt rows where the counterparty's real link shows full cards with Accept/Reject/Edit and the wording preview). The preview mounts read-only — correct, a window must not act as them — and read-only killed canAct, which killed the verbs, which made every card classify as a "needs nothing" RECEIPT: the preview showed LESS than their page, on the control whose purpose is showing exactly what they see. `previewSeat` in redlineChangeCardsHtml (opts.preview + side counterparty + not executed — set ONLY by renderRedline's mount, so the portal's real seat is untouched) flips the two DRAWING flags to the counterparty page's own answers, and the finished action bar is deadened WHOLESALE after classification (disabled + data-rl-dead), so the receipt/full-card decision and the needs-you reading stay their page's own. WHAT STILL DIFFERS, deliberately: their HELD/SENT local answers cannot be mirrored (they live in their browser and never left it), and the paper's Edit pill and the panel's writing acts stay down in the preview (a window can't write; the dead-verb treatment covers the cards, where the mismatch was reported). f152 gained the crossed-ask test; its "no Accept/Reject anywhere" narrowed in place to "no LIVE decide verb". f152 (12). f89, f178, f184; laptops-verify passes at every laptop width; control-row-folds-verify (19, browser — WHERE the fold lands, which no node test can see: every word on screen at 1280–1920, one line all the way down, the rungs never taken out of order, and the words coming back when the width does).
 
 Share dialog arrives ONCE: the first paint is the real first step (shareKindStepHtml needs nothing from the server), the fill replaces identical pixels; shareWireOpening wires from the first frame and is ABORTED immediately before the fill (it sits on #modal-root, which the fill does not replace — a survivor double-handles).
 
@@ -4917,16 +4917,23 @@ bordered buttons where it has bare words, a stacked two-row card where it has
 one, a status word on every row where it has one only where it adds something.
 **When a picture arrives and there is a plan behind it, ask for the plan.**
 
-- **THE COLUMN NAMES ITSELF AND THE NAME CARRIES THE TOTAL** — "Tracked changes
-  (7)", with the bracketed figure in the label ink, sitting on a **2px accent
-  rule pulled down onto the head's own hairline** so the head reads as one ruled
-  line with the title's tab on it. **THE NUMBER IS BORROWED, NEVER COUNTED
-  HERE**: `changeTotal` is the same reading the filter's options and the bands
-  print. `ng_idx_head` is STALE.
-- **"N OPEN" IS AN AMBER DOT AND A WORD**, not a chip. It shipped as a dark
-  green filled block, which read as the loudest object on a column whose job is
-  the cards; amber is what this product uses for "waiting on you" everywhere
-  else, and the dot is the same mark the rows carry.
+- **THE COLUMN NAMES ITSELF AND THE NAME CARRIES THE TOTAL** — **"Redlines (7)"
+  since 27 Aug 2026; see THE ROUND HAS TWO ACTS below** — with the bracketed
+  figure in the label ink, sitting on a **2px accent rule pulled down onto the
+  head's own hairline** so the head reads as one ruled line with the title's tab
+  on it. **THE NUMBER IS BORROWED, NEVER COUNTED HERE**: `changeTotal` is the
+  same reading the filter's options and the bands print. `ng_idx_head` is STALE.
+- **"N OPEN" IS RETIRED — REVERSED IN PLACE 27 Aug 2026** (owner-asked: "do not
+  add another number next to it"). It was an amber dot and a word, deliberately
+  not a chip, and the reasoning for that is still the right reasoning for a
+  warning on this column: amber is what this product uses for "waiting on you",
+  and the dot is the same mark the rows carry. What killed it is that it was the
+  SAME ROUND SAID TWICE on one line — the name already carries the book's total
+  — and the pair was wide enough to wrap the row on a laptop. How many are still
+  open is said by the piles below, each named for exactly the state it holds and
+  each carrying its own count. `.rl-idx-open` and `ng_n_open` are STALE; the
+  rule is deleted rather than left standing, and the key is inert in both
+  dictionaries.
 - **THE THREE-WAY CUT IS RETIRED — REVERSED IN PLACE 26 Aug 2026** (owner-asked:
   *"delete the whose ask feature and let the cards be color coded at the front
   edge of the card"*). What stood here held it to a visible WHOSE ASKS label and
@@ -5205,6 +5212,119 @@ pressed for real with its row proved VISIBLE), f100 / f89 / f93 / f84 / f37 /
 f161 / f190 (claims REVERSED IN PLACE, never deleted — each keeps what it was
 really pinning), clause-editor-verify / nego-redesign-verify / paper-grows-verify
 / negotiations-door-verify / parity-verify (re-pointed at the ⋯ and the row).
+
+## THE ROUND HAS TWO ACTS, AND THEY SIT TOGETHER (owner-asked 27 Aug 2026)
+
+Off a review of how Publish Round works, and the diagnosis is one sentence:
+**it was a naming bug — one word doing two jobs.** "Publish Round" SENT the
+unsent redlines and never closed anything; the act that really ends a round sat
+two controls along in the same row wearing almost the same clothes. So a reader
+pressing Publish Round expected the round to end, and it did not.
+
+**AND THE COLUMN HEAD ALREADY CARRIED THE SAME ACT.** Twelve pixels below, on
+the cards it acts on, with the count on it: "Send all N". The head's verb was
+the quieter, worse-placed half of a matched pair — a third door onto one
+letterbox.
+
+- **PUBLISH ROUND IS RETIRED FROM THE PAGE HEAD.** The head is the desk chip,
+  Internal review, Share and More. `sendVerb`, `sendCounts`, `sendTip`,
+  `sendWho` and `sendTarget` went with it, and `.rl-send-detail` is STALE.
+  **THE ACT IS NOT LOST AND WAS NEVER THAT BUTTON'S** — `rlUnsentSendHtml`
+  presses the same postbox (`#nego-send`) through the same delegated proxy
+  listener, and every per-card Send still presses it too. What went is a door,
+  not a transport.
+- **WHAT THE HEAD PRINTED THAT NOTHING ELSE DID, said out loud:** "· N held · N
+  in review" rode that verb. Not lost either — Send all's own hover carries the
+  whole sentence, and the piles below are literally called "Out for review" and
+  "Held by your reviewer" with their own counts, which is a stronger statement
+  of the same fact than a suffix the fit ladder dropped on its second rung.
+  **THE LITE RUNG'S SURVIVING TENANT IS THE TYPE STEPPER'S READOUT**, which is
+  what that rung gives up now.
+- **THE COLUMN IS CALLED REDLINES (N) AND SAYS ONE NUMBER.** "Tracked changes
+  (3)" with "3 open" beside it was the same round printed twice on one line, and
+  the pair plus Send all wrapped the row on a laptop — which is exactly the
+  space the rename and the dropped count buy back. MEASURED at 1500: the head
+  holds its name and both acts on one line with 166px to spare, and in Swedish
+  ("Markeringar (2) · Skicka alla 1 · Avsluta runda 1") with 119px to spare.
+  Measured again at 1280: still one line, 29px tall.
+- **CLOSE ROUND MOVED INTO THAT ROW, AND IS DRAWN EARLIER THAN IT WAS.** On the
+  head it appeared only once every change had been answered — so until the
+  moment you no longer needed telling, nothing on screen said a round is a thing
+  you close. `rlCloseRoundHtml` draws it from the first change onwards and
+  GREYS it until the round is settled, with the reason on its hover: this
+  product's own rule, grey where HaTi can know before the press, never a red box
+  after it. **THE GATE IS UNCHANGED** — `data-rl-close-round` is the attribute
+  the page's own handler has always bound, `negoAdvanceRound` still runs behind
+  the same naming dialog, and `prog.pending` still decides.
+- **ONLY EVER ONE OF THE PAIR IS LIVE, AND THAT IS A PROPERTY RATHER THAN A
+  COINCIDENCE.** An unsent draft counts as pending, so everything outstanding
+  has to travel before a round can close: a live Send all means a dead Close,
+  and a live Close means there is nothing left to send (Send all draws nothing
+  at all). That is what lets the two share one dress.
+- **BOTH ACTS WEAR THE WORKSPACE ACCENT, NOT AMBER** (owner-asked: "green /
+  blue depending on the mode as opposed to orange which is out of place").
+  Amber on this page means ONE thing — work waiting on you — and a filled amber
+  button spends that signal on a control rather than on a state; it was also the
+  loudest object in a column whose job is the cards. **`--accent-fill` IS THE
+  TOKEN AND IT IS NOT A COLOUR**: accent-700, which is what makes white on it
+  safe (white on accent-600 measures 3.74:1), and it FOLLOWS THE WORKSPACE —
+  green in the teal one, navy in the navy one — which is the whole of what was
+  asked for. No dark override is owed (5.47:1 teal, 11.30:1 navy). **Never
+  `--accent-solid`, which is the nav's own brand fill.** ONE RULE, BOTH
+  BUTTONS: dressing them separately is how they would come to read as two
+  unrelated controls. The band's own dormant rule keeps its amber, so the
+  warning semantic is taken off the ACT rather than deleted.
+- **REFUSALS LEAD THE COLUMN.** `refused` was sixth in `RL_CARD_BANDS`, under
+  five piles of work simply taking its course, so the one thing on this page
+  that can stop the deal was the thing you had to scroll to find. It is first.
+  **IT STILL READS QUIETLY** and that is deliberate: it stays in
+  `RL_SETTLED_BANDS`, so its rows keep the regular weight and the label ink the
+  owner asked settled rows to have on 26 Aug — the heading leads, the rows under
+  it are a record. The rest of the order is untouched: needs-you first, finished
+  last, catch-all at the bottom.
+- **AND A ROUND ON A STANDING LINK READS AS DELIVERED.** The toast computed
+  "did it go" from `emailSent` alone, and a round published onto the link the
+  counterparty is ALREADY HOLDING sends no email on purpose — the link was
+  emailed once, when the negotiation began, and every round after that travels
+  through the platform. So every round but the first came back AMBER reading
+  "not emailed", with a Copy link offering the owner a link the other side had.
+  **THE AUDIT TRAIL HAS SAID THE HONEST THING SINCE `quiet` WAS INTRODUCED**, in
+  its own words — "the platform is the channel" — and the toast was simply never
+  told. It reads the same flag now (`out.quiet && !out.stranded`), so the two
+  cannot disagree about whether a round arrived. **NO WARNING IS WEAKENED**: a
+  genuine mail failure is not quiet, keeps its amber and keeps its link, and a
+  stranded second link still outranks everything.
+
+**WHAT THIS COSTS, said out loud.** With nothing of ours unsent there is now no
+batch send on the page at all — the head's Publish Round used to draw whatever
+the state was, so it could be pressed with nothing to publish. That is the
+product's own "a verb that cannot work is not drawn" rule finally applied to it,
+and the flow is complete either way: decisions travel down a live link the
+moment they are made, and once everything is answered Close Round is what the
+column offers.
+
+**NOT TOUCHED, and each was named before the work started:** the record — rounds,
+the archive, snapshots and fingerprints; Close Round's own confirmation dialog;
+the counterparty's page; internal review; the desk; the reading tabs; the paper;
+the queue rail; and the per-card verb, which stays **Send**. Email is still the
+owner's decision.
+
+Tests: f246, f209, f240, f84, f89, f91, f93, f152 (claims REVERSED IN PLACE,
+never deleted — each keeps the property it was written for; **f152 was caught by
+the full suite rather than by the targeted runs, because it pins `sendTarget`,
+`sendVerb` and `sendTip` BY NAME and the grep for affected files searched for
+the visible things rather than for the identifiers being deleted — when you
+remove a local, grep for the local**), redline-verify section
+14a (the head measured as PAINT, the pair's colour read as a RELATION against
+`--accent-fill`, and the row proved to hold all three on one line),
+nego-redesign-verify 1b, control-row-folds-verify, flat-rows-and-alerts-verify
+section 3, drafting-stage-verify (re-pointed at the proxy's ATTRIBUTE rather
+than a label, so the journey is not hostage to what the button is called),
+pages-read-alike-verify, and round-delivery-verify section 9 — a real second
+round down a standing link, with the toast's ground read off `#toast-root` and
+**polled rather than slept for**, because an 'ok' toast clears itself after
+2600ms and a fixed wait long enough for the send is also long enough to miss it.
+
 
 ## ONE HEADER TOP, ON ALL TWELVE PAGES AND AT EVERY HEIGHT (owner-asked 25 Aug 2026, three times)
 

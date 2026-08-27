@@ -2239,18 +2239,45 @@ function redlineLayoutCss(){
   .redline-page .rl-unsent-s{font-size:var(--t-meta);color:var(--color-neutral-700);flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis}
   html.dark .redline-page .rl-unsent-s{color:var(--color-neutral-600)}
-  .redline-page .rl-unsent-go{flex:none;border:0;border-radius:var(--radius);cursor:pointer;
-    background:var(--st-amber-fg);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
+  ${''/* ---- THE ROUND'S TWO ACTS WEAR THE WORKSPACE ACCENT, NOT AMBER
+         (owner-asked 27 Aug 2026: "green / blue depending on the mode as
+         opposed to orange which is out of place") ----
+         Send all was solid amber, which on this page means ONE thing — work
+         waiting on you — and it is the tone the piles, the notices and the
+         nav counts all use for it. A filled amber button is that signal spent
+         on a control rather than on a state, and it was the loudest object in
+         a column whose job is the cards.
+
+         --accent-fill IS THE TOKEN AND IT IS NOT A COLOUR: it is accent-700,
+         which is what makes white on it safe (white on accent-600 measures
+         3.74:1), and it FOLLOWS THE WORKSPACE — green in the teal workspace,
+         navy in the navy one — which is the whole of what the owner asked
+         for. It needs no dark override: 5.47:1 teal and 11.30:1 navy, so one
+         value serves both themes and there is nothing to keep in step.
+         Never --accent-solid, which is the nav's own brand fill.
+
+         ONE RULE, BOTH BUTTONS, deliberately. They are the two acts of a
+         round and only ever one of them is live at a time — everything unsent
+         must travel before a round can close — so a reader sees one solid
+         accent button and one ghost of the same, which says "this one now,
+         that one after". Dressing them separately is how they would come to
+         look like two unrelated controls. */}
+  .redline-page .rl-unsent-go,
+  .redline-page .rl-close-go{flex:none;border:0;border-radius:var(--radius);cursor:pointer;
+    background:var(--accent-fill);color:#fff;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
     padding:0 10px;white-space:nowrap;height:22px;display:inline-flex;align-items:center}
-  .redline-page .rl-unsent-go:hover:not(:disabled){filter:brightness(1.08)}
+  .redline-page .rl-unsent-go:hover:not(:disabled),
+  .redline-page .rl-close-go:hover:not(:disabled){filter:brightness(1.08)}
   /* ---- A DEAD CONTROL MUST NOT LOOK ALIVE ----
      redlineSyncProxies disables a proxy whose postbox is not on the page, and
      this button had no disabled face at all: it stayed solid amber and fully
      pointing while doing nothing, which is the state that makes a reader blame
      themselves. The standing rule on this page, stated at the KPI picker:
      disabled AND dimmed AND not pointing. */
-  .redline-page .rl-unsent-go:disabled{opacity:.45;cursor:not-allowed;filter:none}
-  .redline-page .rl-unsent-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  .redline-page .rl-unsent-go:disabled,
+  .redline-page .rl-close-go:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .redline-page .rl-unsent-go:focus-visible,
+  .redline-page .rl-close-go:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
 
   /* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
      A band, not a card: it sits in the column head with the unsent band and
@@ -2567,10 +2594,10 @@ function redlineLayoutCss(){
          Everything below is scoped to .rl-card-d — OUR seat's card — so the
          counterparty's column and the owner's preview of it keep the shapes
          above, byte for byte, as agreed. */}
-  ${''/* .rl-idx-title and .rl-idx-open are the INDEX BLOCK's own and are
-         already styled where that block is built — restating them here would
-         be a second rule at equal specificity later in the sheet, which is how
-         two parts of one column come to disagree about a colour. */}
+  ${''/* .rl-idx-title is the INDEX BLOCK's own and is already styled where
+         that block is built — restating it here would be a second rule at
+         equal specificity later in the sheet, which is how two parts of one
+         column come to disagree about a colour. */}
   ${''/* ---- IT IS A LABEL, NOT A SIGNPOST (owner-asked 26 Aug 2026: "Whose
          Ask should be like tracked changes as in not in full capital
          letters") ----
@@ -4246,7 +4273,8 @@ function redlineLayoutCss(){
          own hairline runs under it, so a control with no lift would sit ON the
          line. This is placement, not dress: the button's fill, ink, size and
          disabled face are the ones it arrived with. */}
-  .redline-page .rl-idx-top .rl-unsent-go{margin-bottom:6px}
+  .redline-page .rl-idx-top .rl-unsent-go,
+  .redline-page .rl-idx-top .rl-close-go{margin-bottom:6px}
   ${''/* THE TITLE SITS ON ITS OWN UNDERLINE — the reference draws it as the
          column's one tab, a 2px accent rule under the words and nothing else,
          so the head reads as a heading rather than as a row of chips. The
@@ -4274,16 +4302,13 @@ function redlineLayoutCss(){
     padding-bottom:var(--s-2);margin-bottom:-1px;border-bottom:2px solid var(--accent-solid)}
   .redline-page .rl-idx-title i{font-style:normal;font-weight:var(--w-strong);
     color:var(--color-neutral-600)}
-  ${''/* HOW MANY STILL NEED SOMEBODY IS THE COLUMN'S ONE WARNING, so it is
-         AMBER and it is a dot and a word — not a filled chip. It shipped as a
-         dark green block, which read as the loudest object on a column whose
-         job is the cards; amber is what this product uses for "waiting on
-         you" everywhere else, and the dot is the same mark the cards carry. */}
-  .redline-page .rl-idx-open{flex:none;display:inline-flex;align-items:center;gap:6px;
-    font-size:var(--t-meta);font-weight:var(--w-title);color:var(--st-amber-fg);background:none;padding:0}
-  .redline-page .rl-idx-open::before{content:"";width:7px;height:7px;flex:none;
-    border-radius:50%;background:var(--st-amber-dot)}
-  html.dark .redline-page .rl-idx-open{color:#fcd34d}
+  ${''/* ---- THE "N OPEN" MARKER IS RETIRED (owner-asked 27 Aug 2026) ----
+         Its rules are deleted rather than left standing: a class nothing emits
+         is a rule the next reader has to rule out. What it said — how many
+         redlines still need somebody — is said by the piles below, each named
+         for exactly the state it holds and each carrying its own count, which
+         is a stronger statement of the same fact than one number over all of
+         them. The class .rl-idx-open is STALE. */}
   .redline-page .rl-idx-bar{margin-top:9px;height:8px;background:var(--color-neutral-200);
     position:relative;overflow:hidden}
   .redline-page .rl-idx-bar i{position:absolute;left:0;top:0;bottom:0;display:block;

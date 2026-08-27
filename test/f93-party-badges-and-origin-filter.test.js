@@ -400,9 +400,10 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     const head = box.querySelector('.rl-idx');
     assert.ok(head, 'same head, no portal-shaped copy');
     /* RE-POINTED 25 Aug 2026 with the head's own title — asked of the
-       dictionary, never typed, so a rewording costs no test edit. */
+       dictionary, never typed, so a rewording costs no test edit. RE-POINTED
+       again 27 Aug 2026 when that title became "Redlines (N)". */
     assert.ok(head.textContent.includes(
-      p.win.i18t('ng_tracked_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')));
+      p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')));
     /* RE-POINTED 26 Aug 2026 with the filter's retirement: the count is on the
        head's own title, on their seat as on ours — one builder, one answer. */
     assert.match(box.querySelector('.rl-idx-title').textContent, /\(\d+\)/,

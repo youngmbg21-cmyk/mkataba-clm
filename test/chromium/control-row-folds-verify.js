@@ -80,7 +80,13 @@ const READ = () => {
       Math.round(headRow.getBoundingClientRect().right
         - document.querySelector('#ws-head').getBoundingClientRect().right) <= 2,
     livelistWord: any('.rl-livelist .rl-word') && vis('.rl-livelist .rl-word'),
-    /* Publish Round's counts moved to the head with the button. */
+    /* ---- REVERSED IN PLACE 27 Aug 2026 ----
+       Publish Round is retired from the head (owner-asked), and .rl-send-detail
+       was the span INSIDE it that carried its held / in-review counts. There is
+       no such span anywhere now, so what this reported is the ABSENCE — kept
+       under its own name so the ladder-order check below still reads. The lite
+       rung's other tenant, the type stepper's readout, is what that rung gives
+       up now, and it is measured as typeOut. */
     sendDetail: visAny('.rl-send-detail'),
     typeOut: any('.rl-type-out') && vis('.rl-type-out'),
     /* The count on the way-out door NEVER folds — it is what the door says. */
@@ -170,7 +176,7 @@ const OPEN = async page => {
       await page.waitForTimeout(500);
       const r = await page.evaluate(READ);
       check(`${w}px: one line, and every word on it`,
-        r.oneLine && r.purpleWords && r.livelistWord && r.sendDetail && r.typeOut,
+        r.oneLine && r.purpleWords && r.livelistWord && r.typeOut,
         `rung "${r.rung}", gap ${r.gapW}px`);
     }
 
@@ -191,9 +197,15 @@ const OPEN = async page => {
       seen.map(r => `${r.w}:${r.rung}`).join(' '));
     /* Read each of these as an implication: nothing dearer is ever given up
        while something cheaper is still on screen. */
-    check('the counts go before the way-out word does',
-      seen.every(r => r.rung === 'wrap' || r.livelistWord || !r.sendDetail),
-      seen.map(r => `${r.w}:${r.sendDetail ? 'counts' : '-'}/${r.livelistWord ? 'word' : '-'}`).join(' '));
+    /* RE-POINTED 27 Aug 2026 onto the lite rung's surviving tenant: the type
+       stepper's readout. The CLAIM is untouched — the row gives up its
+       commentary before it takes a word off a control — and it is now the only
+       thing that rung drops, so it is what the ordering is read from. */
+    check('the commentary goes before the way-out word does',
+      seen.every(r => r.rung === 'wrap' || r.livelistWord || !r.typeOut),
+      seen.map(r => `${r.w}:${r.typeOut ? 'readout' : '-'}/${r.livelistWord ? 'word' : '-'}`).join(' '));
+    check('and no send survives on this row at any rung',
+      seen.every(r => !r.sendDetail), 'the act is in the column head now');
     /* ---- REVERSED IN PLACE 22 Aug 2026 ---- the purple verbs are on the
        head's line now and that line has no fold ladder, so an ordering between
        them and this row's words is no longer a thing that can be true or

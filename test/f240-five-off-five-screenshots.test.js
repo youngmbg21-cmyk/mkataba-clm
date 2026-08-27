@@ -84,7 +84,10 @@ describe('f240 (1) — an alert names its contract once', () => {
 describe('f240 (2) — the stripe is a third shorter and the caption shares the line', () => {
   test('the band is at least a third shorter than the 50px it measured', () => {
     const band = strip(NCSS).match(/\.rl-unsent\{[\s\S]*?\}/)[0];
-    const go = strip(NCSS).match(/\.rl-unsent-go\{[\s\S]*?\}/)[0];
+    /* RE-POINTED 27 Aug 2026 — the act shares one declaration with Close Round
+       now, because they are the two acts of a round and only ever one of them
+       is live. The height claim is untouched. */
+    const go = strip(NCSS).match(/\.rl-unsent-go,[\s\S]*?\{[\s\S]*?\}/)[0];
     /* RE-POINTED 25 Aug 2026 — the height and the padding are TOKENS now, so
        they are read through the one resolver. The arithmetic and the claim are
        unchanged: this is still a relation, and a retune costs no edit here. */
@@ -99,19 +102,36 @@ describe('f240 (2) — the stripe is a third shorter and the caption shares the 
 
   test('its type came down with it, or the sentence reads as clipped', () => {
     const s = strip(NCSS);
-    for (const cls of ['rl-unsent-n', 'rl-unsent-s', 'rl-unsent-go']){
+    for (const cls of ['rl-unsent-n', 'rl-unsent-s']){
       const r = s.match(new RegExp('\\.' + cls + '\\{[\\s\\S]*?\\}'))[0];
       const px = tokenPx((r.match(/font-size:[^;}]+/) || [])[0]);
       assert.ok(px && px < 14, cls + ' is still ' + px + 'px');
     }
+    const go = s.match(/\.rl-unsent-go,[\s\S]*?\{[\s\S]*?\}/)[0];
+    const gpx = tokenPx((go.match(/font-size:[^;}]+/) || [])[0]);
+    assert.ok(gpx && gpx < 14, 'the act is still ' + gpx + 'px');
   });
 
-  test('NOTHING ABOUT THE WARNING ITSELF MOVED — this is a height, not a redesign', () => {
+  /* ---- REVERSED IN PLACE 27 Aug 2026 (owner-asked: "make the send all button
+     and the close round as well to be green / blue depending on the mode as
+     opposed to orange which is out of place") ----
+     This claim was "the amber, the border and the wording are untouched — this
+     was a height, not a redesign", which was true of the 23 Aug height change
+     it was written for. The owner has now looked at the button in its new home
+     and ruled on the colour: amber on this page means ONE thing, work waiting
+     on you, and a filled amber button spends that signal on a control rather
+     than on a state.
+     THE BAND'S OWN RULE IS UNTOUCHED and still amber — it is dormant (the strip
+     is a stub) and it is what the warning would wear if it ever came back, so
+     the semantic is not deleted, only taken off the act. */
+  test('the act wears the workspace accent and the warning keeps its amber', () => {
     const band = strip(NCSS).match(/\.rl-unsent\{[\s\S]*?\}/)[0];
     assert.match(band, /var\(--st-amber-line\)/);
     assert.match(band, /var\(--st-amber-bg\)/);
-    const go = strip(NCSS).match(/\.rl-unsent-go\{[\s\S]*?\}/)[0];
-    assert.match(go, /var\(--st-amber-fg\)/, 'the send keeps the amber it always had');
+    const go = strip(NCSS).match(/\.rl-unsent-go,[\s\S]*?\{[\s\S]*?\}/)[0];
+    assert.match(go, /var\(--accent-fill\)/,
+      'accent-700, which follows the workspace brand and is safe under white');
+    assert.ok(!/--st-amber/.test(go), 'and no amber left on the act');
   });
 
   test('the caption no longer claims a whole line to itself', () => {

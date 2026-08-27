@@ -278,14 +278,18 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        the owner came to report that nothing told them a redline was unsent.
        WHAT IS UNDER TEST IS UNCHANGED: there is no standing banner, and the
        number is still said, in one place, beside the thing it is about. */
-    /* Publish Round moved to the head's line on 22 Aug 2026 (see the note in
-       the row-order test above); its counts came with it unchanged. */
-    const send = p.$('.room-acts [data-redline-proxy]') || p.$('.rl-tabrow [data-redline-proxy]');
-    assert.ok(send && send.querySelector('.rl-send-detail'),
-      'Publish Round still carries its own counts — held and in review — in a span');
-    /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went and the act moved
-       into the column's head. The count is still said exactly once. */
-    assert.ok(!p.$('.rl-unsent'), 'the strip is gone');
+    /* ---- CLAIM REVERSED IN PLACE, 27 Aug 2026 (owner-asked: retire Publish
+       Round from the page head) ----
+       It went from a wall banner, to a suffix on Publish Round, to a band at
+       the top of the column, to the column head's own act — one step closer to
+       the thing it is about each time, and now the button that carried the
+       suffix is gone too. WHAT IS UNDER TEST IS UNCHANGED and is what it has
+       been the whole way down: there is no standing banner, and the number is
+       said exactly once, beside the act that sends them. */
+    assert.equal(p.$('.rl-tabrow [data-redline-proxy]'), null,
+      'no send on the control row');
+    assert.equal(p.$('.room-acts [data-redline-proxy]'), null, 'nor on the head');
+    assert.ok(!p.$('.rl-unsent'), 'the strip is gone too');
     assert.match(p.$('.rl-unsent-go').textContent, /Send all/,
       'and the unsent count is on the act, at the head of the column it is about');
     assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
@@ -297,9 +301,14 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
        verb and the title keeps the sentence, while a verb folded to a glyph
        keeps neither. The purple buttons stay last on purpose: their words are
        what the report was about. */
-    assert.ok(/rl-tabrow-lite .rl-send-detail\{display:none/.test(p.css()),
-      'and Publish Round loses its counts a rung earlier, keeping its verb');
-    assert.ok(p.css().indexOf('.rl-tabrow-lite .rl-send-detail')
+    /* RE-POINTED 27 Aug 2026: the lite rung's other tenant. It dropped the
+       send's counts AND the type stepper's readout; the send is gone, so the
+       readout is what the rung now gives up, and the CLAIM is untouched —
+       the row loses its commentary a rung before it folds a verb to a glyph.
+       .rl-send-detail is STALE; its rule is left dormant beside this one. */
+    assert.ok(/rl-tabrow-lite .rl-type-out\{display:none/.test(p.css()),
+      'the row loses its commentary a rung earlier, keeping every verb');
+    assert.ok(p.css().indexOf('.rl-tabrow-lite .rl-type-out')
       < p.css().indexOf('.rl-tabrow-tight .rl-pb-btn .rl-word'),
       'the cheaper loss is taken first');
   });

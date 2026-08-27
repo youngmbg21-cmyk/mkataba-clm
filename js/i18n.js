@@ -1660,6 +1660,15 @@ const STRINGS = {
        drawn and never what is on the record. */
     ng_read_group: 'How the contract reads',
     ng_published_not_emailed: 'Published to {who}\u2019s link — not emailed.',
+    /* ---- A ROUND ON A STANDING LINK IS DELIVERED (owner-reported 27 Aug
+       2026) ----
+       The audit trail has said this since `quiet` was introduced — "the
+       platform is the channel; the link was emailed once, when the
+       negotiation began" — and the toast was never told, so every round
+       after the first came back amber reading "not emailed" with a Copy
+       link beside it, over a link the counterparty was already holding.
+       Nothing is owed, so it is green and it carries no action. */
+    ng_round_sent_standing: 'Round sent to {who} — it is on the link they already have',
     ng_copy_link: 'Copy link',
     ng_link_copied: 'Link copied.',
     wz_pick_stream: 'Pick a value stream, then the agreement you need.',
@@ -1729,6 +1738,21 @@ const STRINGS = {
        The four bands, the column's own title and the open marker. The band
        words are what a negotiator sorts this column by, said plainly. */
     ng_tracked_head_n: 'Tracked changes ({n})',
+    /* ---- THE COLUMN IS CALLED REDLINES (owner-asked 27 Aug 2026) ----
+       "Tracked changes (3)" plus "3 open" beside it printed the same round
+       twice on one line, and the pair was wide enough to wrap the row on a
+       laptop. The shorter name is what the owner calls these on the phone and
+       in email, and dropping the second number is what buys the room for
+       Close Round to sit beside Send all. `ng_tracked_head_n` and
+       `ng_n_open` are STALE on this head — left inert rather than deleted,
+       because a key removed from one language and not the other is how a
+       screen ends up half-English. */
+    ng_redlines_head_n: 'Redlines ({n})',
+    /* Why Close Round is greyed. It is the hover on a disabled control, which
+       is where this product puts a refusal it can know about before the press
+       — never a red box afterwards. */
+    ng_close_blocked_one: '{n} redline still needs an answer — the round closes once every one is settled',
+    ng_close_blocked_other: '{n} redlines still need an answer — the round closes once every one is settled',
     ng_whose_asks: 'Whose asks',
     ng_band_awaiting: 'Awaiting you',
     ng_band_drafts: 'Your drafts',
@@ -6639,6 +6663,7 @@ const STRINGS = {
     ng_the_contract: 'Avtalet',
     ng_read_group: 'Så här läses avtalet',
     ng_published_not_emailed: 'Publicerad till {who}s länk — inte mejlad.',
+    ng_round_sent_standing: 'Rundan skickad till {who} — den ligger på länken de redan har',
     ng_copy_link: 'Kopiera länk',
     ng_link_copied: 'Länken är kopierad.',
     wz_pick_stream: 'Välj ett värdeflöde och sedan avtalet du behöver.',
@@ -6704,6 +6729,9 @@ const STRINGS = {
     ng_filter_group: 'Visa bara ändringar från en part',
     /* ---- SPÅRADE ÄNDRINGAR, ENLIGT DESIGNEN (25 Aug 2026) ---- */
     ng_tracked_head_n: 'Spårade ändringar ({n})',
+    ng_redlines_head_n: 'Markeringar ({n})',
+    ng_close_blocked_one: '{n} markering väntar fortfarande på svar — rundan kan avslutas när alla är besvarade',
+    ng_close_blocked_other: '{n} markeringar väntar fortfarande på svar — rundan kan avslutas när alla är besvarade',
     ng_whose_asks: 'Vems begäran',
     ng_band_awaiting: 'Väntar på dig',
     ng_band_drafts: 'Dina utkast',

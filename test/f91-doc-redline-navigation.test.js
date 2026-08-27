@@ -201,12 +201,13 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
     /* The whole strip, not just .rl-actions: the acts lead the row and the
        view toggle sits at its quiet end, so "what does this page offer" is the
        two together (10 Aug 2026). */
-    /* Publish Round moved onto the head's own line with the title (22 Aug 2026,
-       the design mock-up). It is still BUILT by this page and handed to the
-       shared head as a string, so both rows are read here. */
+    /* RE-POINTED 27 Aug 2026: Publish Round is retired from this row (the column
+       head's own Send all is the one batch send, on the cards it acts on). What
+       this test is really about is that removing focus mode took nothing ELSE
+       off the row, so it reads the controls that are still meant to be here. */
     const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button, .room-acts button')]
       .map(x => x.textContent.trim()).join(' | ');
-    for (const want of ['Internal', 'Counterparty', 'Publish Round'])
+    for (const want of ['Internal', 'Counterparty'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
     assert.ok(!labels.includes('Non-Risk'),
       'the batch verbs are gone from the page entirely — not moved, removed');

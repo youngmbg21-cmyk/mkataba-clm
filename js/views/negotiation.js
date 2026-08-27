@@ -5476,6 +5476,45 @@ function rlUnsentSendHtml(c, opts = {}){
       i18t('ng_unsent_send', { n })}</button>`;
 }
 
+/* ---- CLOSE ROUND, IN THE COLUMN HEAD (owner-asked 27 Aug 2026) ----
+   The other half of the pair beside Send all, and the same rules apply to it
+   for the same reasons: our seat only (a counterparty answers a round, they do
+   not close one), never on a read-only copy, and never for a reviewer holding
+   somebody's clause — rlActorHeld is the one predicate for that, exactly as
+   the send beside it asks it.
+
+   IT DECIDES NOTHING. `data-rl-close-round` is the attribute the page's own
+   handler has always bound, so the press runs negoAdvanceRound behind the same
+   naming dialog it always did; this builder chooses only whether the control is
+   drawn and whether it is live.
+
+   GREYED, NOT HIDDEN, AND NOT A REFUSAL AFTER THE PRESS. Whether a round can
+   close is something HaTi knows before anybody touches it — negoProgress has
+   counted it all along — so the control states it: disabled, dimmed, and the
+   reason on its hover. Hiding it until the round settles is what it used to do
+   from the page head, and it meant a reader working their first round never
+   saw that closing one was a thing at all.
+
+   THE PROGRESS READING IS PASSED IN. The panes have already asked negoProgress
+   once for the bar; a second call here would be a second arithmetic on a figure
+   already on the page. */
+function rlCloseRoundHtml(c, opts = {}, prog = null){
+  if ((opts.side === 'counterparty' ? 'counterparty' : 'owner') !== 'owner') return '';
+  if (opts.readonly) return '';
+  if (rlActorHeld(c, opts)) return '';
+  const p = prog || ((typeof negoProgress === 'function') ? negoProgress(c)
+    : { pending: 0, total: 0 });
+  /* Nothing on the table is nothing to close. */
+  if (!p.total) return '';
+  const blocked = p.pending > 0;
+  const title = blocked
+    ? i18tn('ng_close_blocked', p.pending, { n: p.pending })
+    : i18t('ng_close_round_title');
+  return `<button type="button" class="rl-close-go" data-rl-close-round${
+    blocked ? ' disabled aria-disabled="true"' : ''} title="${_nea(title)}">${
+      _ne(i18t('ng_close_round_n', { n: negoRound(c) }))}</button>`;
+}
+
 /* ============================================================
    THE ASK TAG ON A CLAUSE, AND WHAT PRESSING IT OPENS (15 Aug 2026, OI-12)
    ============================================================
@@ -6970,10 +7009,6 @@ function renderRedline(){
      act, taking the same route through the share/response flow — so pressing it
      publishes every unsent draft in one go rather than opening a queue of
      confirmations. See redlineSyncProxies for why a proxy can go dead. */
-  /* Whose postbox the send acts for, named from the reader's chair (D2). */
-  const sendTarget = rowSide === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
-  const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
-    : (c.counterparty || 'the counterparty');
   /* ---- THE HEADER CARRIES ONE VERB, NOT THREE ----
      "Send All" and "Accept All Non-Risk" used to render here as PROXIES onto
      the engine's own controls — which ALSO rendered, both of them, at the head
@@ -6988,57 +7023,30 @@ function renderRedline(){
      only survivor of that argument is the hidden .rl-sendslot postbox Publish
      Round presses. The rule the argument settled still holds: a batch verb
      belongs beside the cards it acts on, and there is one of it. */
-  /* THE COUNT RIDES ON THE BUTTON THAT ACTS ON IT. The wall bar used to
-     announce "1 unsent draft stays behind when you share" as a band above the
-     page; it is one word on the verb that sends them instead, at the moment
-     that fact matters. */
-  const _unsent = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
-  /* ---- AND WHAT AN INTERNAL HOLD DOES TO THAT COUNT ----
-     A held ask is unsent and is NOT going out, so counting it as something this
-     button will publish overstates what the press does. The button counts what
-     would actually travel; the number the hold accounts for is said separately,
-     in its own words, because "3 unsent" quietly becoming "2 unsent" after a
-     reviewer looked at it reads as a change having disappeared. */
-  const _held = (side === 'owner' && window.reviewHeldIds) ? reviewHeldIds(c).size : 0;
-  const _wait = (side === 'owner' && window.reviewAwaiting) ? reviewAwaiting(c).length : 0;
-  const _goes = Math.max(0, _unsent - _held - _wait);
-  /* THE COUNT IS WHAT WILL TRAVEL. The two reasons something is staying behind
-     are named separately rather than folded into one number: "held" is a person
-     having said no, "in review" is a person not having answered yet, and a
-     reader deciding whether to chase somebody needs to know which. */
-  /* The verb and its counts are separate spans: on a tight row (a ThinkPad
-     window) the counts stand down and the verb stays, with the title still
-     carrying the whole sentence. Both remain in textContent either way, which
-     is what the tests read. */
-  const sendVerb = rowSide === 'owner' ? 'Publish Round' : 'Send Response';
-  /* ---- THE UNSENT COUNT CAME OFF THIS BUTTON (15 Aug 2026, OI-9) ----
-     It now has a home of its own, in one line at the top of the change column,
-     beside the cards it is about and with a Send that says the word. Two
-     surfaces printing one number is how they come to disagree — and this one
-     was the worse of the two: it never said "send", it sat at the far end of
-     the row, and the fit ladder drops .rl-send-detail on its second rung, so on
-     an ordinary laptop it was not on screen at all.
-     HELD AND IN-REVIEW STAY HERE. They are not "unsent work waiting on you" —
-     they are work waiting on a COLLEAGUE, they belong to the round rather than
-     to the column, and the band deliberately does not count them. */
-  const sendCounts = (_held ? ` · ${_held} held` : '')
-    + (_wait ? ` · ${_wait} in review` : '');
-  const sendTip = rowSide === 'owner'
-    ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
-      + (_held ? ` — ${_held} held back by an internal reviewer will not travel` : '')
-      + (_wait ? ` — ${_wait} still with a colleague and will not travel yet` : '')
-    : `Send the answers and counter-proposals held on this page to ${sendWho}`;
-  /* ---- CLOSING THE ROUND, FROM THE PAGE THE ROUND IS WORKED ON ----
-     negoAdvanceRound archives the decided changes onto the round record and
-     makes the agreed wording the next baseline — the "clean public diff" a
-     finished round folds down to. The only control that reached it lived in
-     the ROOM (#nego-to-docs), which this page does not render, so a
-     negotiation finished HERE could never be closed here: every change
-     decided, and no way to finalise. Offered exactly when it is true — every
-     change answered, and at least one on the table — and behind the same
-     naming dialog the room uses, because closing is irreversible. */
-  const prog = (typeof negoProgress === 'function') ? negoProgress(c)
-    : { pending: 0, total: 0 };
+  /* ---- PUBLISH ROUND HAS LEFT THIS ROW (owner-asked 27 Aug 2026) ----
+     One word was doing two jobs. "Publish Round" SENT the unsent redlines; it
+     never closed anything, and the act that really ends a round sat two
+     controls along wearing almost the same clothes. Meanwhile the column head
+     twelve pixels below already carried "Send all N" — the same act, on the
+     cards it acts on, with the count on it — so the row's one filled verb was
+     the quieter, worse-placed of a matched pair.
+
+     THE ACT IS NOT LOST AND WAS NEVER THIS BUTTON'S: rlUnsentSendHtml presses
+     the same postbox (#nego-send) through the same delegated proxy listener,
+     and every per-card Send still presses it too. What went is a third door
+     onto one letterbox.
+
+     WHAT WENT WITH IT, said out loud. The head printed "· N held · N in
+     review" beside the verb, which was the only place those two numbers
+     appeared on this row. They are not lost either — Send all's own hover
+     carries the whole sentence, and the piles below it are literally called
+     "Out for review" and "Held by your reviewer" with their own counts, which
+     is a stronger statement of the same fact than a suffix that the fit
+     ladder dropped on its second rung anyway. `.rl-send-detail` is STALE.
+
+     `sendWho`, `sendVerb`, `sendCounts` and `sendTip` went with the button
+     they existed for; `sendTarget` went with them, because the proxy target
+     is chosen by the builder that draws the button. */
   /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
      (owner-asked, 19 Aug 2026.) Flipping the toggle used to REMOVE our own
      four controls from the row, so every remaining control jumped sideways
@@ -7058,8 +7066,22 @@ function renderRedline(){
      that hiding is a permission and stays a hiding. */
   const deadAttrs = preview
     ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('ng_preview_dead'))}"` : '';
-  const closer = (!prog.pending && prog.total && !_rvPosture)
-    ? `<button data-rl-close-round class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(i18t('ng_close_round_title'))}"`}>&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
+  /* ---- CLOSE ROUND SITS IN THE COLUMN HEAD NOW (owner-asked 27 Aug 2026) ----
+     It is built by rlCloseRoundHtml and drawn beside Send all, which is where
+     the round actually is. Two reasons, and the second is the one that
+     mattered: the two acts of a round — send what is outstanding, then close
+     it — belong on one line where a reader can see that only ever one of them
+     is live; and this row was wrapping on a laptop, which is what freed the
+     space to put them together.
+
+     IT IS ALSO DRAWN EARLIER NOW. Here it appeared only once every change had
+     been answered, so until that moment there was nothing on screen saying a
+     round is a thing you close. It is drawn from the first change onwards and
+     GREYED until the round is settled, with the reason on its hover — this
+     product's own rule: grey where HaTi can know before the press, never a red
+     box after it. The gate itself is unchanged: negoAdvanceRound is still what
+     runs, still behind the same naming dialog, and prog.pending is still what
+     decides. */
   /* ---- THE PAGE'S OWN VERBS, PLACED BY THE SHARED HEAD (owner-asked 22 Aug
      2026, off the mock-up: the negotiation head carries Publish round, Internal
      review, Share and More on one line with the title) ----
@@ -7076,9 +7098,6 @@ function renderRedline(){
      rule. Their order is the mock-up's: the act first, then the two things you
      might do instead of it. */
   const headVerbs = `
-        ${_rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go"${deadAttrs || ` title="${_nea(sendTip)}"`}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-          ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
         ${''/* ---- THE PLAYBOOK PASS HAS MOVED INTO THE MORE MENU ----
                (owner-approved render, 22 Aug 2026.) The design's head carries
                four buttons and this row had five plus the desk chip. Of the
@@ -7298,7 +7317,6 @@ function renderRedline(){
                    column used to draw its own copy beside the cards and this one
                    proxied onto it; the column's copy is gone and the engine's
                    #nego-send survives, hidden, as the control this presses. */}
-            ${closer}
         ${''/* ---- THE WAY BACK TO THE OTHER NEGOTIATIONS ----
                Owner-asked, 12 Aug 2026: once you are inside one, there is no
                door to the LIST. The sidebar's Negotiations is not it — it
@@ -7671,6 +7689,25 @@ function renderRedline(){
            the sender to do — so they are amber and they CARRY THE LINK, which
            is the thing the old sentence asked for and did not hand over. */
         const delivered = !!(out && out.delivered && !out.stranded);
+        /* ---- A ROUND ON A STANDING LINK IS DELIVERED (owner-reported
+           27 Aug 2026) ----
+           `delivered` above is `emailSent`, and a round published onto the
+           link the counterparty is already holding sends no email ON PURPOSE —
+           the link was emailed once, when the negotiation began, and every
+           round after that travels through the platform. So every round but
+           the first came back AMBER reading "not emailed", with a Copy link
+           beside it offering the owner a link the other side already has.
+
+           THE AUDIT TRAIL HAS SAID THIS SINCE `quiet` WAS INTRODUCED, in its
+           own words — "the platform is the channel" — and the toast was simply
+           never told. It reads the same flag now, so the two cannot disagree
+           about whether a round arrived.
+
+           NO WARNING IS WEAKENED. A genuine mail failure — an email channel
+           that tried and did not send — is not quiet, keeps its amber and
+           keeps its link; so does a stranded second link, which outranks
+           everything because the copy they hold has gone dead. */
+        const standing = !!(out && out.quiet && !out.stranded);
         const link = (out && out.link) || null;
         /* A solo send says what it deliberately left on the desk — silence
            about the other drafts is how a partial send reads as a full one. */
@@ -7680,9 +7717,11 @@ function renderRedline(){
           ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
           : delivered
           ? `Sent to ${to}${turnLine}${keptLine}`
+          : standing
+          ? `${i18t('ng_round_sent_standing', { who: to })}${turnLine}${keptLine}`
           : `${i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
-          delivered ? 'ok' : 'warn',
-          (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
+          (delivered || standing) ? 'ok' : 'warn',
+          (!delivered && !standing && link) ? { action: { label: i18t('ng_copy_link'),
             onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
               if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
       }catch(err){
@@ -10200,9 +10239,23 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    REVIEWER'S NAME off the row — so `drafts` splits too: waiting on a colleague
    and stopped by one are different states, and a heading can name both.
 
-   REFUSED SITS ABOVE ACCEPTED deliberately: a refusal is still a sticking
-   point and an acceptance is finished, which is the reasoning rlCardRank
-   already uses to lift a refusal above a settled change inside a band.
+   ---- AND REFUSED SITS AT THE TOP OF THE WHOLE COLUMN (owner-asked 27 Aug
+   2026: "move refusals to the top of the pile") ----
+   It was sixth, under five bands of work in flight, so the one thing on this
+   page that can stop the deal was the thing you had to scroll to find. A
+   refusal is not merely settled — it is a disagreement standing on the record,
+   and it is what a negotiator opens this column to look for. Everything above
+   it was work that is simply taking its course.
+
+   IT STILL READS QUIETLY, and that is deliberate rather than an oversight:
+   `refused` stays in RL_SETTLED_BANDS, so its rows keep the regular weight and
+   the label ink the owner asked settled rows to have on 26 Aug. The heading is
+   what leads; the rows under it are a record. Reversing that would be
+   overturning a decision nobody asked about.
+
+   REFUSED STILL SITS ABOVE ACCEPTED for its own reason, unchanged: a refusal is
+   a sticking point and an acceptance is finished, which is the reasoning
+   rlCardRank already uses inside a band.
 
    AN EMPTY BAND DRAWS NOTHING, which is what keeps nine headings honest: a
    workspace with the internal-review rule off — the default — never sees two
@@ -10219,8 +10272,8 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    `held` is the reader's own answers on a page that holds them until Send (the
    counterparty's seat); an answer held there has settled nowhere yet, so it
    stays where it was rather than moving to decided under the reader's hand. */
-const RL_CARD_BANDS = ['awaiting', 'drafts', 'review', 'held', 'with',
-  'refused', 'accepted', 'withdrawn', 'decided'];
+const RL_CARD_BANDS = ['refused', 'awaiting', 'drafts', 'review', 'held',
+  'with', 'accepted', 'withdrawn', 'decided'];
 /* WHICH OF THEM ARE FINISHED BUSINESS. A settled row reads quietly — regular
    weight, the label ink — because it is a record rather than something to act
    on, and the ink is what says so once the row has no box to dim. This was one
@@ -13313,10 +13366,20 @@ function redlinePanesHtml(c, opts = {}){
               ${''/* The bracketed total is the quiet half of the name and is
                      marked so the sheet can say so — one string from the
                      dictionary either way, so nothing about the words moves. */}
+              ${''/* ---- IT IS CALLED REDLINES, AND IT SAYS ONE NUMBER
+                     (owner-asked 27 Aug 2026) ----
+                     "Tracked changes (3)" with "3 open" beside it printed the
+                     same round twice on one line — and on a laptop the pair
+                     plus Send all wrapped the row, which is what pushed the
+                     column's own name onto a line of its own. The count in
+                     brackets is the whole book; how many are still open is
+                     said by the piles below, each of which carries its own
+                     count and is named for exactly the state it holds.
+                     `ng_tracked_head_n`, `ng_n_open` and `.rl-idx-open` are
+                     STALE — the keys are left inert in both dictionaries. */}
               <span class="rl-idx-title">${
-                _ne(i18t('ng_tracked_head_n', { n: changeTotal }))
+                _ne(i18t('ng_redlines_head_n', { n: changeTotal }))
                   .replace(/\s*(\(\d+\))\s*$/, ' <i>$1</i>')}</span>
-              ${p.pending ? `<span class="rl-idx-open">${_ne(i18tn('ng_n_open', p.pending, {n:p.pending}))}</span>` : ''}
               <span class="rl-idx-sp"></span>
               ${''/* ---- SEND ALL, AT THE OPPOSITE END OF THE COLUMN'S NAME
                      (owner-asked 26 Aug 2026, ringing this exact slot) ----
@@ -13325,6 +13388,15 @@ function redlinePanesHtml(c, opts = {}){
                      it. The act arrives from the deleted "N not sent" strip
                      with its rules intact; only the slot is new. */}
               ${rlUnsentSendHtml(c, opts)}
+              ${''/* ---- AND CLOSE ROUND BESIDE IT (owner-asked 27 Aug 2026) ----
+                     The two acts of a round, on one line, where it is plain
+                     that only ever one of them is live: everything unsent has
+                     to travel before a round can be closed, so Send all and
+                     Close Round can never both be pressable. It came off the
+                     page head, where it appeared only once the round was
+                     already settled and therefore said nothing about rounds
+                     until the moment you no longer needed telling. */}
+              ${rlCloseRoundHtml(c, opts, p)}
             </div>
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
@@ -13622,7 +13694,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
   rlCpTypePx, rlCpSetType, rlCpZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
