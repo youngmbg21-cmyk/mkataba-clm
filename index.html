@@ -4290,6 +4290,93 @@
      CSS animation outranks a style attribute for as long as it runs — so the
      flash plays over the hover and hands the row back afterwards, with nothing
      to undo and no !important anywhere. */
+  /* ================= THE NOTES FACE OF THE PANEL (owner-asked 27 Aug 2026)
+     Two rooms — internal and external — as TABS, each with its own notes and
+     its own box, so the destination is the room you are standing in rather
+     than a setting on the composer. The rules live here, beside the drawer
+     they dress, because the drawer is the shell's and this is its third face.
+     The other two faces are one scrolling list; this one is a list AND a box
+     pinned under it, so the body stops scrolling and becomes a column. */
+  #panel-body.pb-flow{overflow:hidden;display:flex;flex-direction:column;}
+  .rl-np{display:flex;flex-direction:column;min-height:0;flex:1;}
+  /* WHICH CHANGE THIS BELONGS TO — and a way back to the clause it is about,
+     because the panel covers the column that row sits in. */
+  .rl-np-which{display:flex;align-items:center;gap:var(--s-2);width:100%;flex:none;
+    padding:10px var(--s-4);border:0;border-bottom:1px solid var(--color-divider);
+    background:var(--surface-2);font:inherit;text-align:left;color:inherit;cursor:pointer;}
+  .rl-np-which:disabled{cursor:default;}
+  .rl-np-which .t{flex:1;min-width:0;}
+  .rl-np-which .id{display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-text);}
+  .rl-np-which .id em{font-style:normal;font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .rl-np-which .s{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);
+    margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rl-np-which .ch{flex:none;color:var(--color-neutral-400);font-size:var(--t-meta);}
+  /* THE TAB ROW IS THE PRODUCT'S OWN — regular when resting, bold with a 2px
+     accent underline when live, exactly as every other tab row here. */
+  .rl-np-tabs{display:flex;gap:18px;flex:none;padding:0 var(--s-4);
+    border-bottom:1px solid var(--color-divider);}
+  .rl-np-tab{font:inherit;background:none;border:0;border-bottom:2px solid transparent;
+    padding:9px 1px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-text);
+    line-height:1.3;cursor:pointer;}
+  .rl-np-tab i{font-style:normal;color:var(--color-neutral-600);}
+  .rl-np-tab.on{font-weight:var(--w-title);color:var(--accent-ink);border-bottom-color:var(--color-accent);}
+  .rl-np-tab.on i{color:var(--accent-ink);}
+  /* WHO READS THIS ROOM, said ONCE at the top. It replaces the per-note badge
+     the card used to carry: every note in a room has the same answer, so
+     marking each one is the same fact printed five times. */
+  .rl-np-who{display:flex;align-items:flex-start;gap:6px;flex:none;padding:9px var(--s-4);
+    font-size:var(--t-micro);line-height:1.4;font-weight:var(--w-strong);
+    color:var(--color-neutral-600);border-bottom:1px solid var(--rule-faint);}
+  .rl-np-who .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
+  .rl-np-who.out{background:var(--st-steel-bg);color:var(--accent-ink);
+    border-bottom-color:transparent;box-shadow:inset 2px 0 0 var(--color-accent);}
+  .rl-np-list{flex:1;min-height:0;overflow-y:auto;padding:0 var(--s-4) var(--s-3);}
+  .rl-np-scope{display:flex;align-items:center;gap:6px;padding:10px 0 4px;
+    font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
+    text-transform:uppercase;color:var(--color-neutral-600);}
+  .rl-np-scope i{width:6px;height:6px;border-radius:50%;background:var(--color-accent);display:block;}
+  .rl-np-note{padding:9px 0 11px;border-bottom:1px solid var(--rule-faint);}
+  .rl-np-note:last-child{border-bottom:0;}
+  /* In the external room this says the note came FROM them — the one thing the
+     room's own line cannot say. The internal room draws no edges at all,
+     because everything in it is ours by definition. */
+  .rl-np-note.is-them{padding-left:9px;box-shadow:inset 2px 0 0 var(--color-accent);}
+  .rl-np-top{display:flex;align-items:baseline;gap:6px;}
+  .rl-np-top b{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);}
+  .rl-np-top span{font-size:var(--t-micro);color:var(--color-neutral-400);margin-left:auto;flex:none;}
+  .rl-np-org{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .rl-np-note p{font-size:var(--t-meta);line-height:1.55;color:var(--color-text);margin:5px 0 0;}
+  .rl-np-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .rl-np-clamp.rl-np-open{-webkit-line-clamp:unset;overflow:visible;}
+  .rl-np-more{margin-top:4px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
+    color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;}
+  .rl-np-empty{padding:26px 2px;text-align:center;}
+  .rl-np-empty b{display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
+  .rl-np-empty span{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);
+    margin-top:var(--s-1);line-height:1.5;}
+  /* THE BOX BELONGS TO THE ROOM. The external one takes the crossing's own
+     colour so it does not look like the internal one; the textarea stays the
+     surface colour either way, because the reader's own words are the one thing
+     on this panel that must not be tinted. */
+  .rl-np-foot{flex:none;padding:12px var(--s-4) 14px;background:var(--surface-2);
+    border-top:1px solid var(--color-divider);}
+  .rl-np-foot.out{background:var(--st-steel-bg);box-shadow:inset 2px 0 0 var(--color-accent);}
+  .rl-np-in{width:100%;min-height:56px;border:1px solid var(--color-divider);
+    background:var(--color-surface);padding:var(--s-2) 10px;font:inherit;
+    font-size:var(--t-meta);line-height:1.5;color:var(--color-text);resize:vertical;}
+  .rl-np-act{display:flex;margin-top:var(--s-2);}
+  .rl-np-send{font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
+    height:28px;padding:0 12px;border:1px solid color-mix(in srgb,var(--color-accent) 45%,transparent);
+    background:none;color:var(--accent-ink);cursor:pointer;}
+  .rl-np-foot.out .rl-np-send{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;}
+  .rl-np-send:hover{filter:brightness(1.06);}
+  /* A viewer reads both rooms and writes in neither. The sentence is the one
+     the Document tab's own discussion already prints for this refusal. */
+  .rl-np-no{flex:none;display:flex;align-items:flex-start;gap:6px;
+    padding:12px var(--s-4) 14px;background:var(--surface-2);
+    border-top:1px solid var(--color-divider);
+    font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
+  .rl-np-no .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
   #panel-body .al-row.al-good{padding-left:9px!important;
     box-shadow:inset 3px 0 0 var(--st-green-dot);}
   #panel-body .al-row.al-good .al-t{color:var(--st-green-fg);}

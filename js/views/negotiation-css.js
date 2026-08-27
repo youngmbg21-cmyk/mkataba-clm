@@ -2793,6 +2793,34 @@ function redlineLayoutCss(){
          it belongs to, because one floating over a column of six cards has to
          say which. Anchored to the card rather than the window so it travels
          with the row when the column scrolls. */}
+  ${''/* ---- THE NOTES COUNT ON A ROW'S FACE ----
+         (owner-asked 27 Aug 2026.) A quiet mark, not a verb: it decides
+         nothing, it opens the panel. It hides at zero — the alert dot's own
+         rule — so a column nobody has discussed carries none of these.
+
+         IT SHARES THE CLAUSE NAME'S LINE AND NOT THE ACTS COLUMN. A first pass
+         put it beside the verbs and grew --rl-verb-floor by 34px to hold it —
+         and MEASURED at a 458px column that made the floor bite where the
+         declared two thirds used to hold, so the proportion this column
+         promises stopped being true at every ordinary width, on every row,
+         including the rows with no notes at all. Here the cost lands on the
+         rows that earned it: the name elides ~34px earlier, and only where
+         there is something to count. flex:none, so the NAME is what gives. */}
+  .redline-page .rl-card-metarow{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+  .redline-page .rl-card-metarow > .rl-card-meta{flex:1 1 auto;min-width:0}
+  .redline-page .rl-card-notes{display:inline-flex;align-items:center;gap:4px;flex:none;
+    border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);
+    font-weight:var(--w-strong);color:var(--color-neutral-600);cursor:pointer;line-height:18px}
+  .redline-page .rl-card-notes svg{width:13px;height:13px;display:block}
+  .redline-page .rl-card-notes b{font-weight:var(--w-title)}
+  .redline-page .rl-card-notes:hover{color:var(--accent-ink)}
+  ${''/* The clause panel's line, where the note box used to be. A door, drawn
+         quiet, because the panel's own acts lead and this is a way out to
+         somewhere else. */}
+  .redline-page .rl-cp-notes-go{display:inline-flex;align-items:center;gap:5px;margin-top:var(--s-1);
+    border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);
+    font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer}
+  .redline-page .rl-cp-notes-go:hover{text-decoration:underline}
   .redline-page .rl-more{position:relative;flex:none}
   .redline-page .rl-more-btn{border:0;background:transparent;padding:0 2px;
     font:inherit;font-size:var(--t-card);line-height:1;cursor:pointer;

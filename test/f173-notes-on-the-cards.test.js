@@ -72,87 +72,127 @@ async function mounted(opts = {}){
   /* The channel fetch is fire-and-forget; let its microtasks land. */
   await new Promise(r => setImmediate(r));
   await new Promise(r => setImmediate(r));
-  return { w, c, theirs,
+  /* ---- THE NOTES PANEL, PAINTED INTO A PLAIN HOST ----
+     The panel is the shell's drawer and buildWorld deliberately never loads the
+     shell, so the element it normally lands in does not exist here. That is not
+     a gap: rlNotesPanelPaint's whole contract is (host, c, ch, opts), so a bare
+     div exercises the builder AND its wiring exactly as the drawer does. Which
+     face the drawer is showing is app.js's job and is asserted there. */
+  const notes = (ch, room) => {
+    if (room) w.win.rlNpSetRoom(room);
+    const host = w.win.document.createElement('div');
+    w.win.document.body.appendChild(host);
+    w.win.rlNotesPanelPaint(host, c, ch, { side: 'owner', author: ME.name, messages: c._messages });
+    return host;
+  };
+  return { w, c, theirs, notes,
     $: sel => w.win.document.querySelector(sel),
     css: () => (w.win.document.getElementById('redline-layout-css') || { textContent: '' }).textContent };
 }
 
-describe('f173 · our composer carries the switch, defaulting to Internal', () => {
-  test('both faces are drawn on our seat, Internal pressed', async () => {
+/* REVERSED IN PLACE (owner-ruled 27 Aug 2026: "Internal vs external notes
+   should not be in the same view"). The property these two were written for is
+   unchanged and is asserted harder: our seat decides where a note goes, and the
+   quiet path is what you land in. What moved is HOW — it was a switch set on
+   the box, and it is the ROOM you are standing in now, which is a stronger
+   guarantee because there is no setting left to leave pointing the wrong way. */
+describe('f173 · the room is the destination, and it opens on Internal', () => {
+  test('two rooms, Internal live, and no switch anywhere', async () => {
     const p = await mounted();
     assert.ok(p.$('#rl-changes .rl-card'), 'the card is drawn');
     assert.equal(p.$('#rl-changes .nego-visswitch'), null,
       'the routing row carries no composer of its own');
-    const row = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
-    assert.ok(row, 'the change has its row in the clause panel');
-    const sw = row.querySelector('.nego-visswitch');
-    assert.ok(sw, 'our seat has the visibility switch now');
-    assert.equal(sw.querySelector('.v-int').getAttribute('aria-pressed'), 'true',
-      'and it opens on Internal — the quiet path stays the safe one');
-    assert.equal(sw.querySelector('.v-sh').getAttribute('aria-pressed'), 'false');
+    assert.equal(p.$('#rl-cp-body .nego-visswitch'), null,
+      'and neither does the clause panel any more — the box has left it');
+    const host = p.notes(p.theirs, 'internal');
+    const tabs = [...host.querySelectorAll('[data-rl-np-room]')];
+    assert.deepEqual(tabs.map(t => t.getAttribute('data-rl-np-room')), ['internal', 'external'],
+      'the panel offers exactly two rooms');
+    assert.ok(tabs[0].classList.contains('on'), 'and opens on Internal');
+    assert.equal(host.querySelector('.nego-visswitch'), null,
+      'THE SWITCH IS GONE: there is nothing to set, so nothing to set wrongly');
   });
 
-  test('the button and the promise carry both faces for the switch to choose', async () => {
+  test('each room names its own destination, above its own box', async () => {
     const p = await mounted();
-    const card = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
-    const btn = card.querySelector('.rl-cnote-add');
-    assert.ok(btn.querySelector('.rl-when-int') && btn.querySelector('.rl-when-sh'),
-      'the send button has an Internal face and a Send face');
-    const hint = card.querySelector('.rl-cnote-hint');
-    assert.match(hint.querySelector('.rl-when-int').textContent, /Never sent/i);
-    assert.match(hint.querySelector('.rl-when-sh').textContent, /sees this/i);
-    assert.ok(/rl-cnotes:has\(\.v-sh\[aria-pressed="true"\]\) \.rl-when-sh\{display:inline/.test(p.css()),
-      'and the stylesheet swaps the faces on the pressed switch');
+    const int = p.notes(p.theirs, 'internal');
+    assert.match(int.querySelector('.rl-np-who').textContent, /never sees this tab/i,
+      'the internal room promises the note stays here');
+    assert.ok(!int.querySelector('.rl-np-who').classList.contains('out'));
+    assert.match(int.querySelector('[data-rl-np-send]').textContent,
+      new RegExp(p.w.win.i18t('ng_card_note_add'), 'i'), 'and its button adds a note');
+    const ext = p.notes(p.theirs, 'external');
+    const who = ext.querySelector('.rl-np-who');
+    assert.match(who.textContent, /reads everything on this tab/i,
+      'the external room names who reads it');
+    assert.ok(who.classList.contains('out'), 'and wears the crossing\'s own mark');
+    assert.ok(ext.querySelector('.rl-np-foot').classList.contains('out'),
+      'the box it belongs to wears it too, so it cannot be mistaken for the other one');
+    assert.match(ext.querySelector('[data-rl-np-send]').textContent,
+      new RegExp(p.w.win.i18t('ng_send_this_reply'), 'i'), 'and its button sends a reply');
   });
 });
 
 describe('f173 · the counterparty\'s note arrives on the card', () => {
-  test('the workbench fetches the channel on mount and the reply renders', async () => {
+  /* REVERSED IN PLACE: their reply still has to reach the reader, and it now
+     lands in the EXTERNAL room — which is where it belongs, because it crossed.
+     A channel message is stamped shared by negoMergedThread, so this also pins
+     that the room reading and the merge agree. */
+  test('their reply lands in the external room, not the internal one', async () => {
     const p = await mounted({ channel: (win, theirs) => [{
       id: 'm1', topic: win.negoTopicFor(theirs), side: 'counterparty',
       author: 'Amina Wanjiru', at: '2026-08-10T10:00:00Z',
       body: 'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.' }] });
     assert.ok(Array.isArray(p.c._messages), 'the channel was fetched');
-    const row = p.$(`#rl-cp-body [data-rl-cp-change="${p.theirs.id}"]`);
-    assert.match(row.textContent, /AP cycle runs monthly/,
-      'their words are on the change they are about, in the panel');
-    assert.ok(row.querySelector('.rl-cnote.is-shared'), 'wearing the shared wash');
+    const ext = p.notes(p.theirs, 'external');
+    assert.match(ext.textContent, /AP cycle runs monthly/,
+      'their words are in the room that crossed');
+    assert.ok(ext.querySelector('.rl-np-note.is-them'),
+      'marked as having come FROM them — the one thing the room cannot say');
+    const int = p.notes(p.theirs, 'internal');
+    assert.ok(!/AP cycle runs monthly/.test(int.textContent),
+      'AND NOT IN THE INTERNAL ROOM: the two lists never share a note');
+    assert.equal(p.w.win.negoNoteCounts(p.c, p.theirs, { messages: p.c._messages }, 'owner').external, 1);
   });
 
-  test('with nothing in the channel the card simply has no notes', async () => {
+  test('with nothing in the channel the rooms are simply empty', async () => {
     const p = await mounted();
     assert.ok(Array.isArray(p.c._messages), 'fetched, and empty is a real answer');
-    assert.equal(p.$('#rl-cp-body .rl-cnote'), null);
+    assert.equal(p.notes(p.theirs, 'external').querySelector('.rl-np-note'), null);
+    assert.ok(p.notes(p.theirs, 'external').querySelector('.rl-np-empty'),
+      'and an empty room says so rather than drawing nothing at all');
   });
 });
 
 describe('f173 · a long note folds instead of growing the card', () => {
+  /* REVERSED IN PLACE: the property is that ONE pasted paragraph cannot set the
+     height of everything around it, and it now protects the panel rather than
+     the card. The fold, the three-line clamp and the reader's own way back are
+     the same three things, re-pointed at rl-np. */
   test('past a few lines it clamps, with Show more under it', async () => {
     const p = await mounted();
     const essay = 'This clause needs careful thought. '.repeat(12);   // ~420 chars
     p.w.win.negoPostComment(p.c, p.theirs.id, essay, { side: 'owner', author: ME.name });
-    p.w.win.renderRedline();
-    const note = p.$('#rl-cp-body .rl-cnote');
-    assert.ok(note.querySelector('p.rl-cnote-clamp'), 'the paragraph is clamped');
+    const host = p.notes(p.theirs, 'internal');
+    const note = host.querySelector('.rl-np-note');
+    assert.ok(note.querySelector('p.rl-np-clamp'), 'the paragraph is clamped');
     const more = note.querySelector('[data-rl-note-more]');
     assert.ok(more, 'with the reader\'s own way to open it');
-    assert.ok(/rl-cnote-clamp\{display:-webkit-box;-webkit-line-clamp:3/.test(p.css()),
-      'clamped to three lines by the stylesheet');
-    /* The toggle is a class flip, not a repaint. */
+    /* The toggle is a class flip, not a repaint — a repaint would empty the box
+       the reader may be halfway through typing into. */
     more.dispatchEvent(new p.w.win.Event('click', { bubbles: true, cancelable: true }));
-    assert.ok(!note.querySelector('p.rl-cnote-clamp'), 'Show more opens it in place');
+    assert.ok(note.querySelector('p.rl-np-clamp.rl-np-open'), 'Show more opens it in place');
     assert.equal(more.textContent, p.w.win.i18t('ng_note_less'), 'and the button now offers the way back');
     more.dispatchEvent(new p.w.win.Event('click', { bubbles: true, cancelable: true }));
-    assert.ok(note.querySelector('p.rl-cnote-clamp'), 'Show less folds it again');
+    assert.ok(!note.querySelector('p.rl-np-clamp.rl-np-open'), 'Show less folds it again');
   });
 
   test('a short note is just a note — no toggle, no clamp', async () => {
     const p = await mounted();
     p.w.win.negoPostComment(p.c, p.theirs.id, 'Fine by me.', { side: 'owner', author: ME.name });
-    p.w.win.renderRedline();
-    const note = p.$('#rl-cp-body .rl-cnote');
+    const note = p.notes(p.theirs, 'internal').querySelector('.rl-np-note');
     assert.ok(note, 'the note is drawn');
-    assert.equal(note.querySelector('.rl-cnote-clamp'), null);
+    assert.equal(note.querySelector('.rl-np-clamp'), null);
     assert.equal(note.querySelector('[data-rl-note-more]'), null);
   });
 });
