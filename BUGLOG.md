@@ -8038,6 +8038,26 @@ proxy's ATTRIBUTE rather than a label), pages-read-alike-verify, and
 round-delivery-verify section 9 (new — a real second round down a standing link,
 the toast's ground read off `#toast-root`).
 
+**THE SIX QUESTIONS, run after merging main (which added them the same
+morning).** Two of the five refusals can bite here and both were MEASURED rather
+than reasoned about, on the negotiation page at 1500 and 1280, against a
+worktree at this branch's parent:
+
+- **Refusal 3, the contract's pixels: 393px to the first line of the wording
+  BEFORE and 393px AFTER, at both widths** — the head is the same 126px and the
+  sheet starts at the same 245. Zero growth. Removing a button from a flex row
+  costs the row nothing, which is what one would expect and is now a number.
+- **Refusal 5, the one door: send proxies 2 → 1.** This change is that refusal
+  working — it removes a second door onto one letterbox. Close Round is 1 where
+  it was 0 in that state (it was not drawn at all until the round was already
+  settled, which is the fault fixed here), and never 2.
+
+The other four changed nothing about what was built: no band was added and one
+printed count was removed (2); Copilot is untouched (4); no named product's
+behaviour is asserted anywhere (1); and the journey was walked end to end —
+file, send, close — with the door's number matching the list behind it and the
+refusal carrying its way forward on the same screen (6).
+
 Noticed, not fixed:
 
 - `npm run lint` still reports the four pre-existing duplicate-key errors in
