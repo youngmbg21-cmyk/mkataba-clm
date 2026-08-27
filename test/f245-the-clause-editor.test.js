@@ -1010,3 +1010,177 @@ describe('f245 (12) — the divider, and what it must not disturb', () => {
     assert.match(wire, /dblclick/, 'and a double-click puts it back');
   });
 });
+
+/* ============================================================
+   f245 (15) — the clause you are typing in is still the paper
+   ============================================================
+   Owner-reported 26 Aug 2026, off the page itself: "you click on the edit
+   symbol and then a window of the clause opens up to be like a search field. I
+   want when you click on edit the field to not change color and just have a
+   very light almost dotted line around the clause you want to edit. It should
+   not look out of place." Option A of a drawn render.
+
+   IT REALLY DID LOOK LIKE A SEARCH FIELD, and not by coincidence: a pure white
+   fill with a solid 2px accent ring is precisely how this product draws a form
+   input, so the reader was shown one, dropped onto a cream contract. Two marks
+   for one fact, and the louder of the two was the one that did not belong.
+
+   And the same message asked for the space back: "the name of number of the
+   edit plus the something of my own are taking up space from the contract.
+   They would maybe go on the far right of the contract tab changes and give
+   space back to the contract." The chips moved onto the readings row, into
+   space that row already had; "+ Something of my own" was removed outright on
+   the owner's ruling in the reply that chose the render.
+
+   The claims below are written as RELATIONS wherever a look is involved — the
+   line's colour against the document's own ink, the chips' home against the
+   row that draws it — so the next type or palette pass costs no edit here.
+   What a browser has to answer (does the paper show through, did the contract
+   really move up) is in clause-editor-verify; this file holds the rules.
+   ============================================================ */
+describe('f245 (15) — the editing state is a hairline, and the strip is gone', () => {
+  const CE = SRC;
+  const TYPING = CE.match(/\.ce-paperwrap \.ce-typing\{[\s\S]*?\}/)[0];
+  const FOCUS = CE.match(/\.ce-paperwrap \.ce-typing:focus\{[\s\S]*?\}/)[0];
+
+  test('THE REPORTED CASE: no fill and no ring — the paper shows through', () => {
+    assert.match(TYPING, /background:transparent/,
+      'the white fill is what made it read as a search box');
+    assert.match(TYPING, /box-shadow:none/,
+      'and the solid 2px accent ring is the other half of that costume');
+    assert.ok(!/box-shadow:0 0 0 2px/.test(TYPING),
+      'the ring may not survive in any strength — it is the mark being removed');
+    assert.ok(!/var\(--color-surface\)/.test(TYPING),
+      'a surface fill on a document is a form field wherever it is drawn');
+  });
+
+  test('what is left is a DASHED HAIRLINE set clear of the words', () => {
+    assert.match(TYPING, /outline:1px dashed/,
+      '"a very light almost dotted line", in the owner\'s own words');
+    assert.match(TYPING, /outline-offset:4px/,
+      'set clear of the wording so it frames it rather than touching it');
+    assert.ok(!/border:/.test(TYPING),
+      'an OUTLINE takes no space, so nothing on the page moves when it appears — '
+      + 'a border would reflow the clause under the reader');
+  });
+
+  test('the colour is MIXED off the document ink, never a typed grey', () => {
+    /* The one thing that makes a single declaration right in both themes. The
+       sheet is cream by day and near-black at night, so a fixed light grey
+       that reads as a whisper on the cream is invisible on the other. Pinned
+       as the relation — which token it is mixed from — and not as a value. */
+    assert.match(TYPING, /color-mix\(in srgb, var\(--color-doc-text\)[^)]*, transparent\)/,
+      'the line follows the ink the paper is already printed in');
+    assert.ok(!/#[0-9a-fA-F]{3,8}/.test(TYPING),
+      'no hex here: a literal would need a dark override, and the override is '
+      + 'the half that gets forgotten');
+    /* And the token really does answer differently at night, or the mix is
+       one declaration serving one theme. */
+    const root = read('index.html');
+    assert.ok(/--color-doc-text:/.test(root), 'the ink is a token');
+    assert.ok(/html\.dark[\s\S]{0,4000}--color-doc-text:/.test(root),
+      'and dark redefines it — otherwise mixing off it buys nothing');
+  });
+
+  test('focus does not bring the old ring back', () => {
+    /* A rule that holds until the reader clicks into the box is no rule: the
+       one moment this state is ever seen is while somebody is typing in it. */
+    assert.match(FOCUS, /outline:1px dashed/, 'the same line, still dashed');
+    assert.match(FOCUS, /box-shadow:none/, 'and still no ring');
+    assert.ok(!/var\(--accent-solid\)/.test(FOCUS),
+      'the accent belongs to the margin bar on this page, not to the text box');
+  });
+
+  test('THE MARGIN BAR IS UNTOUCHED — the one signal still at full strength', () => {
+    /* Said out loud because taking the fill down without checking this would
+       have left the page saying nothing at all about which clause is live. */
+    const bar = CE.match(/\.ce-paperwrap \.rl-clause-live::before\{[\s\S]*?\}/)[0];
+    assert.match(bar, /background:var\(--accent-solid\)/,
+      'the teal bar still says WHICH clause is live');
+    assert.match(bar, /width:3px/, 'at the weight it has always had');
+  });
+
+  test('THE STRIP IS GONE, and nothing can draw one', () => {
+    assert.ok(!/id="ce-ctx"/.test(CE), 'the full-width strip has left the markup');
+    assert.ok(!/\.ce-ctx\{/.test(CE), 'and its rule went with it');
+    assert.ok(!/#ce-ctx/.test(CE),
+      'nothing anywhere still reaches for it — a fill into a missing element is '
+      + 'silence, which is how this class of fault survives');
+  });
+
+  test('"+ Something of my own" is removed outright, and DISCARD is what it did', () => {
+    /* Owner-ruled. Checked before it was deleted rather than after: the chip
+       set the editor to speak for no particular ask, so the box opened on the
+       clause as it stands — which is exactly one press of Discard. */
+    assert.ok(!/ce_something_of_my_own/.test(CODE),
+      'no reader left in the code');
+    assert.ok(!/ce-chip-new/.test(CODE), 'and no class for it either');
+    const discard = CE.match(/function ceDiscard[\s\S]*?\n}\n/)[0];
+    assert.match(discard, /_ceText = _ceBase/,
+      'the way back to the standing wording is still one press');
+    /* And filing is unaffected either way: the funnel folds by side and round,
+       never by which chip happens to be lit. */
+    assert.ok(!/_ceLead/.test(CE.match(/async function ceFile[\s\S]*?\n}\n/)[0] || ''),
+      'the file step never asked which chip was lit');
+  });
+
+  test('the chips are drawn by the READINGS row, and by that row alone', () => {
+    const bar = CE.match(/function ceRenderReadBar[\s\S]*?\n}\n/)[0];
+    assert.match(bar, /ceCtxChipsHtml\(\)/, 'the row that had the room draws them');
+    assert.equal((CODE.match(/(?<!function )ceCtxChipsHtml\(\)/g) || []).length, 1,
+      'exactly one caller — two would be the same chips in two places, '
+      + 'disagreeing about which is lit');
+    assert.match(CE, /\.ce-readbar \.ce-chip\{flex:none\}/,
+      'and they are dressed where they now sit');
+  });
+
+  test('pressing a chip repaints that row, or the pressed one never lights', () => {
+    const h = CODE.match(/data-ce-focus'\)[\s\S]{0,400}/)[0];
+    assert.match(h, /ceRenderHead\(\)/, 'the head still follows');
+    assert.match(h, /ceRenderReadBar\(\)/,
+      'and so must the row the chips are on — this is the whole cost of moving them');
+  });
+
+  test('a clause with nothing on it draws no chips at all', async () => {
+    /* Which is what keeps the readings row the height it has always been on
+       the commonest screen of all: a clause nobody has touched. */
+    const p = await bench({ ask: false });
+    wide(p.win);
+    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
+    assert.equal(p.doc.querySelectorAll('#ce-readbar .ce-chip').length, 0,
+      'no chips on the row');
+    /* And nothing stands in for them either. The strip used to fill its own
+       40px with "Nothing has been proposed on this clause yet" — the fourth
+       printing of a fact the crumb and two fact-row cells already carry. */
+    const page = p.doc.querySelector('#clause-editor');
+    assert.ok(page, 'the page is up');
+    assert.ok(!/Nothing has been proposed/.test(page.textContent),
+      'the retired empty-state sentence is drawn nowhere on the page');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('and a clause that HAS an ask carries its chip on that row', async () => {
+    const p = await bench();
+    wide(p.win);
+    const ch = p.c.changes.find(x => x.status === 'pending' && !x.withdrawn);
+    assert.ok(ch, 'the fixture really did put an ask on the table');
+    p.win.rlOpenClauseEditor(p.c, ch.clauseId, {});
+    const chips = [...p.doc.querySelectorAll('#ce-readbar .ce-chip')];
+    assert.equal(chips.length, 1, `expected one chip, got ${chips.length}`);
+    assert.match(chips[0].textContent, /CHG-/, 'named by the change it speaks for');
+    assert.equal(p.doc.querySelectorAll('#ce-ctx').length, 0,
+      'and the strip above the paper is not there to draw it twice');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('both languages — the three keys are inert, and still in both dictionaries', () => {
+    /* Left rather than deleted, this file's own convention: a key removed from
+       one dictionary and not the other is how a screen ends up half-English. */
+    for (const k of ['ce_on_this_clause', 'ce_nothing_proposed_yet', 'ce_something_of_my_own']){
+      assert.equal((I18N.match(new RegExp(`\\b${k}:`, 'g')) || []).length, 2,
+        `${k} must survive in BOTH dictionaries or in neither`);
+    }
+    assert.match(I18N, /STALE SINCE 26 Aug 2026, left inert rather than deleted/,
+      'and the reason is written where the next reader will find them');
+  });
+});

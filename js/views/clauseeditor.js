@@ -250,8 +250,6 @@ function clauseEditorCss(){
   .ce-say.is-on{opacity:1}
 
   /* ---- what is on the table for this clause, as chips ---- */
-  .ce-ctx{flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
-    padding:7px var(--s-4); background:var(--color-bg); border-bottom:1px solid var(--color-divider)}
   .ce-chip{display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px;
     font:inherit; font-size:var(--t-label); font-weight:var(--w-strong); background:var(--color-surface);
     color:var(--color-text); border:1px solid var(--color-divider)}
@@ -261,8 +259,7 @@ function clauseEditorCss(){
   .ce-chip i.wait{background:var(--st-amber-dot)}
   .ce-chip i.ok{background:var(--st-green-dot)}
   .ce-chip i.no{background:var(--st-ruby-dot)}
-  .ce-ctx .ce-none{font-size:var(--t-label); color:var(--color-neutral-600)}
-  .ce-chip-new{color:var(--accent-ink); font-weight:var(--w-title)}
+  .ce-readbar .ce-chip{flex:none}
 
   /* ---- two columns from the very top of the working area ----
      The rail is exactly one third: 2fr beside 1fr. The 340px floor only bites
@@ -331,9 +328,37 @@ function clauseEditorCss(){
   .ce-paperwrap .rl-clause-live{position:relative}
   .ce-paperwrap .rl-clause-live::before{content:""; position:absolute; left:-14px; top:-6px;
     bottom:-6px; width:3px; background:var(--accent-solid)}
-  .ce-paperwrap .ce-typing{outline:none; box-shadow:0 0 0 2px var(--accent-solid);
-    background:var(--color-surface); padding:8px 10px; margin:-8px -10px}
-  .ce-paperwrap .ce-typing:focus{box-shadow:0 0 0 2px var(--accent-solid)}
+  /* ---- THE CLAUSE YOU ARE TYPING IN IS STILL THE PAPER (owner-asked 26 Aug
+     2026, Option A off a drawn render: "I want when you click on edit the field
+     to not change color and just have a very light almost dotted line around
+     the clause you want to edit. It should not look out of place.") ----
+     It was a PURE WHITE fill on a cream sheet with a solid 2px accent ring —
+     which is exactly how this product draws a form field, so it read as one: a
+     search box dropped onto a contract. Two marks for one fact, and the louder
+     of them was the one that did not belong.
+
+     THE FILL IS GONE AND THE PAPER SHOWS THROUGH. What is left is a hairline
+     dashed line, set 4px clear of the words so it frames them rather than
+     touching them, and an OUTLINE rather than a border so it takes no space and
+     nothing on the page moves when it appears.
+
+     THE COLOUR IS THE DOCUMENT'S OWN INK AT A FIFTH STRENGTH, never a typed
+     grey, and that is what makes one declaration right in both themes: the
+     sheet is cream by day and near-black at night, and a fixed light grey that
+     reads as a whisper on the cream would be invisible on the other. Mixed off
+     the ink the paper is already printed in, the line follows the paper.
+
+     WHAT CARRIES FOCUS IS THE CARET, which is the strongest indicator a text
+     field has and is why this line does not need to shout: it says WHERE the
+     editable region is, and the caret says you are in it. The teal bar in the
+     margin is untouched and still says WHICH clause is live — it is the one
+     signal here at full strength, and taking it down with the fill would have
+     left the page saying nothing at all. */
+  .ce-paperwrap .ce-typing{background:transparent; box-shadow:none;
+    outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
+    outline-offset:4px; padding:8px 10px; margin:-8px -10px}
+  .ce-paperwrap .ce-typing:focus{outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
+    outline-offset:4px; box-shadow:none}
   .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
   .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:var(--w-body)}
@@ -880,7 +905,6 @@ function clauseEditorHtml(){
       </div>
       <div class="room-facts"><div class="room-facets" id="ce-facts"></div></div>
     </div>
-    <div class="ce-ctx" id="ce-ctx"></div>
         <div class="ce-left">
     ${''/* ---- THE THREE READINGS, FROM THE PRODUCT'S OWN BUILDER ----
            Redlined / As agreed / With changes, drawn by rlReadSegsHtml — the
@@ -1380,19 +1404,42 @@ function ceRenderHead(){
     `<div class="room-facet"><div class="l">${_cee(k)}</div><div class="v">${
       v === '—' ? '<span class="room-facet-none">&mdash;</span>' : _cee(v)}</div></div>`).join('');
 
-  const ctx = _ceQ('#ce-ctx');
-  if (ctx){
-    ctx.innerHTML = on.length
-      ? `<span class="ce-none">${_cee(_cet('ce_on_this_clause'))}</span>` + on.map(x => {
-          const tone = x.authorSide === 'counterparty' ? 'wait' : 'ok';
-          return `<button type="button" class="ce-chip${
-            _ceLead && _ceLead.id === x.id ? ' is-on' : ''}" data-ce-focus="${_ceea(x.id)}"><i class="${
-            tone}"></i>${_cee(x.id)}</button>`;
-        }).join('')
-        + `<button type="button" class="ce-chip ce-chip-new${_ceLead ? '' : ' is-on'}"
-            data-ce-focus="">&#43; ${_cee(_cet('ce_something_of_my_own'))}</button>`
-      : `<span class="ce-none">${_cee(_cet('ce_nothing_proposed_yet'))}</span>`;
-  }
+}
+/* ---- WHICH ASK THIS EDITOR IS SPEAKING FOR ----
+   (owner-asked 26 Aug 2026, off a drawn render: "the name of number of the edit
+   plus the something of my own are taking up space from the contract. They
+   would maybe go on the far right ... and give space back to the contract.")
+
+   These chips had a full-width strip of their own directly above the paper —
+   MEASURED at 40px with its rule, on a page whose middle is meant to be the
+   contract. They sit at the right of the readings row now, in space that was
+   already empty: measured at a 1500px window, that row had 580px spare and the
+   chips need 372.
+
+   THREE THINGS WENT WITH THE STRIP AND NONE OF THEM IS LOST:
+
+     - "On this clause" — the page is about ONE clause and its name is two rows
+       above, in the crumb and in the dropdown under it;
+     - "Nothing has been proposed on this clause yet" — the crumb already says
+       "Nothing on the table" and the fact row says it twice more, under
+       Proposed by and Whose move. It was the same fact printed a fourth time;
+     - "+ Something of my own" — OWNER-RULED, removed outright. It set this
+       editor to speak for no particular ask, so the box opened on the clause as
+       it stands rather than on the pending draft. DISCARD DOES EXACTLY THAT in
+       one press, and was checked before the chip was deleted; filing is
+       unaffected either way, because the funnel folds by side and round rather
+       than by which chip is lit. `ce_something_of_my_own`, `ce_on_this_clause`,
+       `ce_nothing_proposed_yet` and `.ce-chip-new` are STALE — flag any mention.
+
+   DRAWN NOWHERE when nothing is on the clause, which is what keeps the row the
+   height it has always been on the commonest screen of all. */
+function ceCtxChipsHtml(){
+  return ceOnTable().map(x => {
+    const tone = x.authorSide === 'counterparty' ? 'wait' : 'ok';
+    return `<button type="button" class="ce-chip${
+      _ceLead && _ceLead.id === x.id ? ' is-on' : ''}" data-ce-focus="${_ceea(x.id)}"><i class="${
+      tone}"></i>${_cee(x.id)}</button>`;
+  }).join('');
 }
 
 /* ---- MOVING TO ANOTHER CLAUSE IS ONE ACT, NOT TWO ----
@@ -1519,7 +1566,11 @@ function ceRenderReadBar(){
     const stat = (n.ins || n.del)
       ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
       : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+    /* The chips sit INSIDE the running +N -N rather than outside it: that
+       readout is where the reader's eye already goes for what their typing is
+       doing, and moving it would cost more than the row gains. */
     bar.innerHTML = rlReadSegsHtml() + `<span class="g"></span>`
+      + ceCtxChipsHtml()
       + `<span class="ce-stat" id="ce-stat">${stat}</span>`;
   }
   const band = _ceQ('#ce-band');
@@ -2244,10 +2295,12 @@ function ceWirePage(page){
     const focus = hit('[data-ce-focus]');
     if (focus){ ev.preventDefault();
       const id = focus.getAttribute('data-ce-focus');
-      _ceLead = id ? ceOnTable().find(x => x.id === id) || null : null;
-      const text = ceWordingOf(_ceLead);
-      ceApply(text, id || _cet('ce_step_stands'), { quiet: true });
-      ceRenderHead(); return; }
+      _ceLead = ceOnTable().find(x => x.id === id) || null;
+      ceApply(ceWordingOf(_ceLead), id || _cet('ce_step_stands'), { quiet: true });
+      /* The chips live on the READINGS row now, so the row that draws them has
+         to be told as well — repainting the head alone left the pressed chip
+         unlit. */
+      ceRenderHead(); ceRenderReadBar(); return; }
 
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); ceAsk(chip.getAttribute('data-ce-chip')); return; }

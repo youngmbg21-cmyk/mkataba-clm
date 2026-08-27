@@ -1517,6 +1517,12 @@ const STRINGS = {
     ce_nothing_on_table: 'Nothing on the table',
     ce_n_on_table_one: '{n} change on the table',
     ce_n_on_table_other: '{n} changes on the table',
+    /* ---- STALE SINCE 26 Aug 2026, left inert rather than deleted ----
+       The strip these three were drawn on is retired: "On this clause" named a
+       page that is about one clause anyway, the empty-state sentence was the
+       fourth printing of a fact the crumb and the fact row already carry, and
+       "Something of my own" was removed outright on the owner's ruling (Discard
+       does the same thing in one press). Flag any new mention of them. */
     ce_on_this_clause: 'On this clause',
     ce_nothing_proposed_yet: 'Nothing has been proposed on this clause yet — anything you write here will be your own.',
     ce_something_of_my_own: 'Something of my own',

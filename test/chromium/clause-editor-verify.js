@@ -1269,6 +1269,199 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
 
+  /* ==========================================================================
+     17. THE CLAUSE YOU ARE TYPING IN IS STILL THE PAPER
+     ==========================================================================
+     Owner-reported 26 Aug 2026: the editing region "opens up to be like a
+     search field", and Option A of the drawn render — no colour change, "a
+     very light almost dotted line". Every claim here is a COMPUTED value or a
+     geometry, because that is the only place this question can be asked: the
+     rule sits in a JS-injected sheet among three thousand lines and a rule
+     that loses a cascade fight looks perfectly correct in the source.
+
+     THE CLAIMS ARE RELATIONS, not values. The fill is measured against the
+     PAPER beside it (does the sheet show through) rather than against a typed
+     colour, and the line is measured against the accent and against the ink,
+     so the next palette or type pass costs no edit here.
+     ========================================================================== */
+  await p.evaluate(id => {
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    window.rlOpenClauseEditor(window.CONTRACT, id, {});
+  }, staged.clauseId);
+  await pause(600);
+
+  const quiet = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const body = page.querySelector('#ce-clausebody');
+    const sheet = page.querySelector('.ce-paperwrap .rl-paper')
+      || page.querySelector('.ce-paperwrap .rl-doc');
+    const cs = getComputedStyle(body), ps = getComputedStyle(sheet);
+    const live = page.querySelector('.rl-clause-live');
+    const bar = live ? getComputedStyle(live, '::before') : null;
+    return {
+      typing: body.className,
+      bg: cs.backgroundColor, shadow: cs.boxShadow,
+      style: cs.outlineStyle, width: cs.outlineWidth,
+      colour: cs.outlineColor, offset: cs.outlineOffset,
+      paperBg: ps.backgroundColor,
+      accent: getComputedStyle(document.documentElement)
+        .getPropertyValue('--accent-solid').trim(),
+      ink: getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-doc-text').trim(),
+      barBg: bar ? bar.backgroundColor : null, barW: bar ? bar.width : null,
+    };
+  });
+  /* Chromium answers a color-mix() as `color(srgb r g b / a)` and everything
+     else as `rgb()`/`rgba()`. Reading only the second reports every mixed
+     colour as fully opaque, which is a check that cannot fail. */
+  const alphaOf = c => {
+    const m = /(?:rgba?|color)\(([^)]+)\)/.exec(c || '');
+    if (!m) return 1;
+    const slash = m[1].split('/');
+    if (slash.length > 1) return Number(slash[1].trim());
+    const parts = m[1].split(',').map(x => x.trim());
+    return parts.length > 3 ? Number(parts[3]) : 1;
+  };
+
+  ck('17a the clause really is the editing region', /ce-typing/.test(quiet.typing), quiet.typing);
+  ck('17b THE REPORTED CASE: no fill of its own — the PAPER shows through',
+     alphaOf(quiet.bg) === 0,
+     `region ${quiet.bg} over a sheet of ${quiet.paperBg}`);
+  ck('17c and no ring — the other half of the search-box costume',
+     quiet.shadow === 'none', quiet.shadow);
+  ck('17d what is left is a DASHED HAIRLINE',
+     quiet.style === 'dashed' && parseFloat(quiet.width) > 0 && parseFloat(quiet.width) <= 1.5,
+     `${quiet.style} ${quiet.width}`);
+  ck('17e set clear of the words, so it frames them rather than touching them',
+     parseFloat(quiet.offset) > 0, quiet.offset);
+  ck('17f it is FAINT — not the accent, and not opaque',
+     alphaOf(quiet.colour) > 0 && alphaOf(quiet.colour) < 0.5
+       && quiet.colour !== quiet.accent,
+     `${quiet.colour} against an accent of ${quiet.accent}`);
+  ck('17g THE MARGIN BAR IS UNTOUCHED — the one signal still at full strength',
+     alphaOf(quiet.barBg) === 1 && parseFloat(quiet.barW) >= 3,
+     `${quiet.barBg} at ${quiet.barW}`);
+
+  /* ---- ONE DECLARATION, BOTH THEMES ----
+     The whole reason the line is mixed off the document's own ink rather than
+     typed as a grey. A fixed light grey that whispers on the cream sheet is
+     invisible on the near-black one, and the dark override is the half that
+     gets forgotten. So: switch the theme for real and require the line to have
+     MOVED with the paper — and to still be there. */
+  const night = await p.evaluate(() => {
+    document.documentElement.classList.add('dark');
+    const page = document.getElementById('clause-editor');
+    const body = page.querySelector('#ce-clausebody');
+    const sheet = page.querySelector('.ce-paperwrap .rl-paper')
+      || page.querySelector('.ce-paperwrap .rl-doc');
+    const cs = getComputedStyle(body);
+    return { colour: cs.outlineColor, style: cs.outlineStyle,
+      bg: cs.backgroundColor, paperBg: getComputedStyle(sheet).backgroundColor };
+  });
+  await p.evaluate(() => document.documentElement.classList.remove('dark'));
+  ck('17h the line FOLLOWS THE PAPER into the dark theme, from one declaration',
+     night.style === 'dashed' && night.colour !== quiet.colour
+       && night.paperBg !== quiet.paperBg,
+     `${quiet.colour} on ${quiet.paperBg} -> ${night.colour} on ${night.paperBg}`);
+  ck('17i and it never gains a fill there either', alphaOf(night.bg) === 0, night.bg);
+
+  /* ---- THE STRIP IS GONE AND THE CONTRACT HAS THE SPACE ---- */
+  const room = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const left = page.querySelector('.ce-left');
+    const bar = page.querySelector('#ce-readbar');
+    const paper = page.querySelector('.ce-paperwrap');
+    const br = bar.getBoundingClientRect(), pr = paper.getBoundingClientRect();
+    /* Whatever sits between the readings row and the paper, added up. */
+    let between = 0;
+    for (const el of left.children){
+      const r = el.getBoundingClientRect();
+      if (r.top >= br.bottom - 1 && r.bottom <= pr.top + 1) between += r.height;
+    }
+    /* AND THE SPACE THE STRIP ACTUALLY HELD, which is a different gap: it was
+       a sibling of this column rather than a child of it, so a walk over the
+       column's own children never saw it. Measured from the last thing in the
+       page head down to the paper, the only band in there is the readings row
+       and the gaps around it. */
+    const facts = page.querySelector('#ce-facts');
+    const fr = facts.getBoundingClientRect();
+    const headToPaper = pr.top - fr.bottom;
+    const chips = [...page.querySelectorAll('#ce-readbar .ce-chip')];
+    const segs = page.querySelector('#ce-readbar .rl-segwrap')
+      || page.querySelector('#ce-readbar .rl-readwrap');
+    return {
+      strip: page.querySelectorAll('#ce-ctx, .ce-ctx').length,
+      strays: /On this clause|Nothing has been proposed|Something of my own/
+        .test(page.textContent),
+      between, gap: pr.top - br.bottom, headToPaper, barH0: br.height,
+      /* Every full-width BAND standing in that space. The retired strip was
+         one; the readings row is the only one that may be. Anything scrolled
+         out of the paper's own scroller reports a rect up there too, so the
+         paper's contents are excluded by ancestry rather than by geometry. */
+      bands: [...page.querySelectorAll('*')].filter(el => {
+        if (el === bar || bar.contains(el) || paper.contains(el)) return false;
+        const r = el.getBoundingClientRect();
+        return r.height > 0 && r.top >= fr.bottom - 1 && r.bottom <= pr.top + 1
+          && r.width >= br.width * 0.9;
+      }).map(el => `${el.tagName}.${el.className || el.id}`),
+      chips: chips.length,
+      chipText: chips.map(b => b.textContent.trim()),
+      chipLeft: chips.length ? chips[0].getBoundingClientRect().left : null,
+      segRight: segs ? segs.getBoundingClientRect().right : null,
+      barRight: br.right,
+      /* "One line" is a claim about CENTRES: these children are deliberately
+         different heights (a 20px segment group beside a 26px chip), so equal
+         tops would report a correctly-centred row as three lines. */
+      offCentre: (() => { const mid = br.top + br.height / 2;
+        return [...bar.children].filter(el => { const r = el.getBoundingClientRect();
+          return r.height > 0 && Math.abs((r.top + r.height / 2) - mid) > 3; }).length; })(),
+      barH: br.height,
+      tallest: Math.max(...[...bar.children].map(el => el.getBoundingClientRect().height)),
+    };
+  });
+  ck('17j THE STRIP IS GONE — not emptied, gone', room.strip === 0, `${room.strip} found`);
+  ck('17k and none of its three sentences is drawn anywhere on the page',
+     room.strays === false, room.strays ? 'a retired sentence is still printed' : 'none');
+  ck('17l nothing stands in its place — the paper begins under the readings row',
+     room.between === 0 && room.gap < 24,
+     `${room.between}px of band, ${Math.round(room.gap)}px of gap`);
+  /* Pinned as a RELATION rather than as the number of pixels the page gained:
+     between the head and the contract the ONLY band is the readings row. The
+     retired strip was a second one, full width with a rule under it, and its
+     40px is what the owner asked for back. A pixel budget here would need
+     re-typing at every type pass; this does not. */
+  ck('17l2 and the space the strip held went back to the contract — the readings '
+     + 'row is the ONLY band between the head and the paper',
+     room.bands.length === 0,
+     room.bands.length ? room.bands.join(', ') : `nothing else in ${Math.round(room.headToPaper)}px`);
+  ck('17m the chip moved ONTO the readings row, named by its change',
+     room.chips === 1 && /CHG-/.test(room.chipText[0] || ''), room.chipText.join(','));
+  ck('17n it sits at the RIGHT of that row, in the space the row already had',
+     room.chipLeft > room.segRight && room.chipLeft < room.barRight,
+     `seg ends ${Math.round(room.segRight)}, chip at ${Math.round(room.chipLeft)}, row ends ${Math.round(room.barRight)}`);
+  ck('17o and the row is still ONE line — the space was there, not taken',
+     room.offCentre === 0 && room.barH <= room.tallest + 12,
+     `${room.offCentre} off centre, row ${Math.round(room.barH)}px against a tallest child of ${Math.round(room.tallest)}px`);
+
+  /* ---- PRESSING IT STILL WORKS, AND STILL LIGHTS ----
+     The one cost of moving the chips: the row that draws them has to be
+     repainted too. Pressed and read back, because a chip that acts and never
+     lights is the fault this move could have shipped. */
+  const chipPress = await p.evaluate(() => {
+    const b = document.querySelector('#ce-readbar .ce-chip');
+    if (!b) return { none: true };
+    b.click();
+    const after = document.querySelector('#ce-readbar .ce-chip');
+    return { on: after ? after.classList.contains('is-on') : null,
+      still: !!after, where: after ? !!after.closest('#ce-readbar') : null };
+  });
+  await pause(300);
+  ck('17p pressing the chip lights it, on the row it now lives on',
+     chipPress.on === true && chipPress.where === true, JSON.stringify(chipPress));
+
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await pause(300);
+
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
