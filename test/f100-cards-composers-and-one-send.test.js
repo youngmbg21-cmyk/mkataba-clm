@@ -213,18 +213,25 @@ describe('F100b — the card is a handle, not a copy', () => {
       'and so is the hidden body it existed to show');
   });
 
-  test('the reading matter is in the clause panel, and rendered exactly once', async () => {
-    /* The pop-out BORROWED the card's body because a second copy of the
-       composer posts nothing. The rule survives the pop-out: the one
-       engine-wired composer per change renders in the panel and nowhere else. */
+  test('the reading matter is in the Notes panel, and rendered exactly once', async () => {
+    /* REVERSED IN PLACE (27 Aug 2026): the composer moved from the clause panel
+       to the Notes panel's two rooms. THE RULE IS UNCHANGED and is what this
+       test has always been for — the pop-out BORROWED the card's body because a
+       second copy of the composer posts nothing, and one copy per change is
+       still the whole of it. Only the address moved. */
     const p = await page();
-    const id = p.c.changes[0].id;
-    assert.equal(p.$$(`textarea#nego-ti-${id}`).length, 1,
-      'exactly one composer for the change in the whole document');
-    assert.ok(p.$(`#rl-cp-body textarea#nego-ti-${id}`),
-      'and it is inside the clause panel');
+    const ch = p.c.changes[0];
+    assert.equal(p.$$(`textarea#nego-ti-${ch.id}`).length, 0,
+      'the mounted page carries none — the box is not on this surface any more');
     assert.equal(p.$('#rl-changes .rl-cnotes'), null,
       'the card renders no thread of its own');
+    assert.equal(p.$('#rl-cp-body .rl-cnotes'), null,
+      'and neither does the clause panel');
+    const host = p.win.document.createElement('div');
+    p.win.document.body.appendChild(host);
+    p.win.rlNotesPanelPaint(host, p.c, ch, { side: 'owner' });
+    assert.equal(p.win.document.querySelectorAll(`textarea#nego-ti-${ch.id}`).length, 1,
+      'EXACTLY ONE in the whole document, once the panel is up');
   });
 
   test('pressing its head takes you to the change and leaves the panel shut', async () => {
@@ -320,7 +327,10 @@ describe('F100c — a message box you can read back', () => {
       /* Was the Discussion column's starter composer. That column is gone (10
          Aug 2026) and the conversation is a block on the change's own card —
          same requirement, new home. */
-      ['js/views/negotiation.js', /<textarea class="chat-field rl-cnote-in"[^>]*id="nego-ti-/, 'a note on the change\'s card'],
+      /* Was the card's note box, then the clause panel's. It is the Notes
+         panel's now — one per room — and the requirement is the same one this
+         roll call has always made: it is a TEXTAREA, not a one-line input. */
+      ['js/views/negotiation.js', /<textarea class="chat-field rl-np-in"[^>]*id="nego-ti-/, 'a note in the Notes panel'],
       ['js/discuss.js', /<textarea data-point-body[^>]*class="chat-field"/, 'reply on a point'],
       ['js/views/contract.js', /<textarea id="comment-input" class="chat-field"/, 'comment on the terms'],
       ['js/views/portal.js', /<textarea data-cl-note[^>]*class="chat-field"/, 'the counterparty\'s clause note'],
@@ -573,28 +583,48 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
     assert.equal(p.$('#rl-cp.is-open'), null, 'shut, and says so');
   });
 
-  test('THE ONE THAT WOULD HURT: the composer is inside the mount, outside the column', async () => {
-    /* Outside the mount, the engine's own wiring — which is scoped to it — does
-       not reach the reply box, and the composer accepts typing and never sends.
-       Inside the COLUMN, the scroller clips it. The panel is both: inside the
-       page the engine wires, outside #rl-changes. */
+  test('THE ONE THAT WOULD HURT: the box carries its own wiring, wherever it is drawn', async () => {
+    /* This asked that the box sit INSIDE the engine's mount, because the
+       engine's send was scoped to that mount and a box outside it accepted
+       typing and never sent. THE PANEL IS OUTSIDE THAT MOUNT — it is the
+       shell's drawer — so the rule is met the other way: the panel wires its
+       OWN send at paint, and a panel painted anywhere is a panel that sends. */
     const p = await page();
-    const box = p.$(`#rl-cp-body textarea#nego-ti-${p.c.changes[0].id}`);
+    const ch = p.c.changes[0];
+    const host = p.doc.createElement('div');
+    p.doc.body.appendChild(host);
+    p.win.rlNotesPanelPaint(host, p.c, ch, { side: 'owner' });
+    const box = host.querySelector(`textarea#nego-ti-${ch.id}`);
     assert.ok(box, 'the reply box exists, in the panel');
-    assert.equal(box.closest('#rl-changes'), null, 'not in the scroller');
-    assert.ok(box.closest('.redline-page'), 'but inside the page the engine wires');
+    assert.equal(box.closest('#rl-changes'), null, 'not in the column\'s scroller');
+    assert.ok(host.querySelector('[data-rl-np-send]'), 'and its send is beside it');
+    const before = (ch.thread || []).length;
+    box.value = 'Thirty days is our fallback.';
+    host.querySelector('[data-rl-np-send]').dispatchEvent(
+      new p.win.Event('click', { bubbles: true }));
+    return new Promise(r => setImmediate(() => {
+      assert.equal((ch.thread || []).length, before + 1,
+        'A PRESS REALLY FILES: the box is wired, not merely drawn');
+      r();
+    }));
   });
 
-  test('the conversation renders once, in the panel, never as a second copy', async () => {
-    /* The claim that matters, carried over from the borrowing design: the
-       engine binds the reply box by element id, so a second copy anywhere is a
-       composer with no handlers — it accepts typing and never sends. One copy,
-       in the panel, is the whole rule now. */
+  test('the conversation renders once, in the Notes panel, never as a second copy', async () => {
+    /* The claim that matters, carried unchanged through three homes: a second
+       copy of a change's conversation is a composer with no handlers. It used
+       to be the card's, then the clause panel's; it is the Notes panel's now,
+       and the count is still one. */
     const p = await page();
-    assert.equal(p.doc.querySelectorAll('.rl-cnotes').length, 1,
-      'exactly one conversation block in the document');
-    assert.ok(p.$('#rl-cp-body .rl-cnotes'), 'and it is the panel\'s');
-    assert.equal(p.$('#rl-changes .rl-cnotes'), null, 'the card renders none');
+    const ch = p.c.changes[0];
+    assert.equal(p.doc.querySelectorAll('.rl-cnotes').length, 0,
+      'the retired block is drawn nowhere at all');
+    const host = p.doc.createElement('div');
+    p.doc.body.appendChild(host);
+    p.win.rlNotesPanelPaint(host, p.c, ch, { side: 'owner' });
+    assert.equal(p.doc.querySelectorAll('.rl-np-list').length, 1,
+      'exactly one conversation in the document');
+    assert.equal(p.doc.querySelectorAll('[data-rl-np-send]').length, 1,
+      'and exactly one send');
   });
 
   test('pressing a card takes you to its clause and pops nothing out', async () => {

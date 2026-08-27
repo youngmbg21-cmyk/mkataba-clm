@@ -386,19 +386,38 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
     assert.match(send.className, /nego-pulse/, 'and it asks to be pressed');
   });
 
-  test('their reply control is the owner\'s reply control — one component, both sides', async () => {
+  /* ---- REVERSED IN PLACE, 27 Aug 2026, AND THE COST IS NAMED ----
+     This asked that ONE renderer draw the reply box on both seats. It no longer
+     can, and that is a decision rather than a slip: our seat's notes moved into
+     the Notes panel, which is the SHELL's drawer, and the counterparty's page
+     hides the shell whole — the same reason their alerts have a panel of their
+     own. So their seat keeps the card's box and ours has the panel's.
+     WHAT THE TEST STILL PINS, because it is the half that mattered: their page
+     really does carry a working per-change reply send. A shared renderer was
+     how that was guaranteed; asserting it directly is the stronger claim, and
+     it is the one that would have caught the day this was broken. When their
+     page grows a drawer of its own the two come back together. */
+  test('their seat carries its own working reply control', async () => {
     const { win, c, filed } = await ownerProposed();
     const v = theirLink(c);
     const theirs = v.$(`[data-nego-send="${filed[0].id}"]`);
     assert.ok(theirs, 'the per-change reply send is on their page');
-    // and the owner's page renders the identical control from the same renderer
+    assert.ok(theirs.closest('.rl-cnotes'), 'in the conversation block on their card');
+    assert.ok(v.$('[data-nego-vis][data-for="' + filed[0].id + '"]'),
+      'with the visibility marker their send reads — the box on their seat is unchanged');
+    /* AND OUR SEAT DRAWS NO SECOND ONE, which is what keeps the one-box rule
+       true while the two seats use different homes: two composers for one
+       change is a box that accepts typing and posts nothing. */
     win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
     win.getContract = id => (id === c.id ? c : null);
     win.renderRedline();
-    const ours = win.document.querySelector(`[data-nego-send="${filed[0].id}"]`);
-    assert.ok(ours, 'and on ours');
-    assert.equal(theirs.getAttribute('title'), ours.getAttribute('title'),
-      'same control, same words, either side of the table');
+    assert.equal(win.document.querySelector(`[data-nego-send="${filed[0].id}"]`), null,
+      'our page draws none — ours is the Notes panel\'s, and it is the only one there');
+    const host = win.document.createElement('div');
+    win.document.body.appendChild(host);
+    win.rlNotesPanelPaint(host, c, win.negoChangeById(c, filed[0].id), { side: 'owner' });
+    assert.equal(win.document.querySelectorAll(`textarea#nego-ti-${filed[0].id}`).length, 1,
+      'exactly one composer for the change on our seat, once the panel is up');
   });
 });
 

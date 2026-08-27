@@ -1602,7 +1602,14 @@ function applyPanelLayout(){
   const show = !!(state.panelOpen && !panelSuppressed());
   panel.classList.toggle('open',show);
   panel.setAttribute('aria-hidden',show?'false':'true');
-  if(scrim&&scrim.classList) scrim.classList.toggle('open',show);
+  /* ---- NOTES DOES NOT DIM THE PAGE, AND THE OTHER TWO DO ----
+     (owner-ruled 27 Aug 2026, following the clause panel's own rule: "do not
+     shade the contract, it has to remain active".) A note is written while
+     reading the change it is about, so the page behind stays lit, pressable and
+     scrollable. THE SCRIM IS ALSO WHAT CLOSES THE PANEL ON AN OUTSIDE PRESS, so
+     the notes face deliberately has no outside-press close either — the ✕ and
+     Escape are its ways out, exactly as the clause panel's are. */
+  if(scrim&&scrim.classList) scrim.classList.toggle('open',show&&panelFace()!=='notes');
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
   /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
@@ -1687,19 +1694,63 @@ function placeLanguageSwitch(){
 /* WHICH OF THE TWO THE PANEL IS SHOWING — 'activity' or 'alerts'. One panel,
    two contents; the heading says which, and pressing the other icon swaps it
    rather than opening a second layer. */
-function panelFace(){ return state.panelFace==='alerts'?'alerts':'activity'; }
-function setPanelFace(k){ state.panelFace=(k==='alerts')?'alerts':'activity'; }
+/* WHICH OF THE THREE THE PANEL IS SHOWING. Activity is the WORKSPACE, Alerts
+   are the PERSON, and Notes are ONE CHANGE on one contract — three scopes, one
+   shell, and the heading says which. A third content rather than a second layer
+   (owner-ruled 27 Aug 2026): two panels arriving from the same edge is how they
+   come to disagree about what "open" means, which is the fault openPanel was
+   lifted to module scope to prevent. */
+const PANEL_FACES = ['activity', 'alerts', 'notes'];
+function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
+function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
+/* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
+   other two need nothing, so it is a named door rather than a bare face swap —
+   and every caller (the row's count, the ⋯ menu row, the clause panel's line)
+   arrives here rather than setting the state itself. */
+function openNotesPanel(contractId, changeId){
+  if(!contractId||!changeId) return;
+  state.notesFor={contractId:String(contractId), changeId:String(changeId)};
+  setPanelFace('notes');
+  state.panelOpen=true;
+  applyPanelLayout();
+  renderContextPanel();
+}
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;
   const title=document.getElementById('panel-title');
-  const alerts=panelFace()==='alerts';
+  const face=panelFace();
+  const alerts=face==='alerts';
+  const notes=face==='notes';
   /* THE PANEL SAYS WHICH IT IS SHOWING, in the heading and in the scope line
      under it. Activity is the WORKSPACE; alerts are the PERSON, and a reader
      who cannot tell them apart is a reader who will believe the wrong one. */
-  if(title) title.textContent=alerts?i18t('sh_alerts'):i18t('sh_activity');
+  if(title) title.textContent=notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
   const close=document.getElementById('panel-close');
-  if(close){ const t=alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
+  if(close){ const t=notes?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
     close.title=t; close.setAttribute('aria-label',t); }
+  /* ---- THE NOTES FACE OWNS ITS OWN LAYOUT ----
+     The other two are one scrolling list; this one is a list AND a box pinned
+     under it, so the body stops being the scroller and becomes a column with
+     the list scrolling inside it. A class rather than an inline style, because
+     an inline declaration cannot be beaten by a stylesheet rule without
+     !important — the lesson this product has paid for twice. */
+  body.classList.toggle('pb-flow', notes);
+  if(notes){
+    const nf=state.notesFor||{};
+    const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(nf.contractId));
+    const ch=(c&&window.negoChangeById)?negoChangeById(c,nf.changeId):null;
+    /* A change that has gone — archived by a closed round, or a contract this
+       reader can no longer reach — leaves the panel with nothing to draw. It
+       says so rather than drawing an empty shell. */
+    if(!c||!ch||!window.rlNotesPanelHtml){
+      body.innerHTML=`<div style="padding:26px var(--s-4);font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ng_np_gone')}</div>`;
+      return;
+    }
+    rlNotesPanelPaint(body,c,ch,{side:'owner',
+      author:(window.currentUser&&currentUser()?.name)||undefined,
+      messages:c._messages});
+    return;
+  }
   body.innerHTML=alerts?alertsPanelHtml():activityPanelHtml();
   if(alerts){
     const rows=buildAlerts();
@@ -2376,5 +2427,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,openNotesPanel,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

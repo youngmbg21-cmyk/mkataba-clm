@@ -289,11 +289,34 @@ describe('F92 — the six-round negotiation, end to end', () => {
        lives after that is the record and the archive, which this file already
        checks at the end. */
     win.renderRedline();
-    /* The reading matter — our own internal note among it — lives in the
-       clause panel's row for the change now (16 Aug 2026). */
-    assert.ok(t.$$(`#rl-cp-body [data-rl-cp-change="${storage.id}"] .rl-cnotes`)
-      .some(n => /walk if they push past/.test(n.textContent)),
-      'our own internal note is ours to read, on the change\'s own row');
+    /* REVERSED IN PLACE (owner-ruled 27 Aug 2026: notes are two rooms in the
+       side panel). The claim is unchanged and is what always mattered — our own
+       internal note is OURS TO READ, and G1 below still proves it never crosses.
+       What moved is WHERE: the clause panel's row carries a DOOR now, and the
+       reading matter is in the panel it opens, in the Internal room. So both
+       halves are asserted — the door is on the row, and the room behind it holds
+       the note. The panel is the shell's drawer and buildWorld never loads the
+       shell, so it is painted into a bare div; rlNotesPanelPaint's whole contract
+       is (host, c, ch, opts), which is exactly what the drawer hands it. */
+    const cpRow = t.$(`#rl-cp-body [data-rl-cp-change="${storage.id}"]`);
+    assert.ok(cpRow && cpRow.querySelector(`[data-rl-notes="${storage.id}"]`),
+      'the change\'s own row carries the door onto its notes');
+    assert.equal(cpRow.querySelector('.rl-cnotes'), null,
+      'and no box of its own — one composer, and it is in the panel');
+    const notesHost = t.doc.createElement('div');
+    t.doc.body.appendChild(notesHost);
+    win.rlNpSetRoom('internal');
+    win.rlNotesPanelPaint(notesHost, c, win.negoChanges(c).find(x => x.id === storage.id),
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    assert.match(notesHost.textContent, /walk if they push past/,
+      'our own internal note is ours to read, in the Internal room');
+    win.rlNpSetRoom('external');
+    win.rlNotesPanelPaint(notesHost, c, win.negoChanges(c).find(x => x.id === storage.id),
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    assert.ok(!/walk if they push past/.test(notesHost.textContent),
+      'AND IT IS NOT IN THE ROOM THAT CROSSES — the two lists never share a note');
+    notesHost.remove();
+    win.rlNpSetRoom('internal');
     // Send the new ask.
     t.$('#rl-changes [data-rl-send]').click();
     await t.pause();

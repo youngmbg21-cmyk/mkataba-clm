@@ -5875,10 +5875,34 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
        that accepts typing and posts nothing; rendering the original here,
        inside the mount the engine wires, keeps that rule without the dance.
        The card renders no composer at all any more. */
-    const notes = (typeof rlCardNotesHtml === 'function')
-      ? rlCardNotesHtml(c, ch, { canComment: opts.canComment != null ? opts.canComment : !opts.readonly,
-          messages: opts.messages, org: opts.org, readonly: opts.readonly }, side)
-      : '';
+    /* ---- THE NOTE BOX HAS LEFT THIS PANEL (owner-asked 27 Aug 2026) ----
+       It lives in the Notes panel now, split into an internal room and an
+       external one, because an internal aside and a reply to the other side
+       must not sit in one list. This row keeps a DOOR onto it and draws no box:
+       there is exactly one note box per change in the product, and a second
+       copy is a box that accepts typing and posts nothing — the lesson the
+       retired pop-out was built around. The count is negoNoteCounts, the same
+       arithmetic the panel's own tabs print. */
+    /* ---- AND THEIR SEAT KEEPS ITS BOX, DELIBERATELY ----
+       The Notes panel is the SHELL's drawer, and the shell is hidden whole on
+       the counterparty's page — the same reason their alerts have a panel of
+       their own. Sending them to a drawer that does not exist would take away
+       the only channel they have, so their seat keeps the box it has always
+       had, rendered here, and rlCardNotesHtml still draws for them alone.
+       NOTHING IS LOST BY THE SPLIT NOT REACHING THEM: they have no internal
+       notes and never can — their page is assembled from the share payload and
+       thrown away on the next paint, so there is nowhere to keep one. Every
+       note on their seat is external by definition, which is exactly the ONE
+       ROOM the panel would draw them. When their page grows a drawer of its
+       own, this is the branch that retires. */
+    const _nc = negoNoteCounts(c, ch, opts, side);
+    const notes = side === 'counterparty'
+      ? ((typeof rlCardNotesHtml === 'function')
+          ? rlCardNotesHtml(c, ch, { canComment: opts.canComment != null ? opts.canComment : !opts.readonly,
+              messages: opts.messages, org: opts.org, readonly: opts.readonly }, side)
+          : '')
+      : `<button type="button" class="rl-cp-notes-go" data-rl-notes="${_nea(ch.id)}"
+      >${_nc.total ? _ne(i18t('ng_card_notes_n', { n: _nc.total })) : _ne(i18t('ng_card_notes'))}</button>`;
     return `<div class="rl-cp-row rl-cp-row-${theirs ? 'them' : 'us'}" data-rl-cp-change="${_nea(ch.id)}">
       <span class="rl-cp-bar" aria-hidden="true"></span>
       <div class="rl-cp-rowbd">
@@ -10095,7 +10119,7 @@ const RL_MORE_ICONS = [
   [/data-rl-send\b/, 'i-out'], [/data-rl-retract\b|data-nego-withdraw/, 'i-left'],
   [/data-nego-undo|data-rl-reopen|data-nego-redecide/, 'i-up'],
   [/data-rl-ask-review/, 'i-people'], [/data-rl-cp-editor-row/, 'i-spark'],
-  [/data-rl-cp-open/, 'i-panel'], [/data-rl-edit=/, 'i-file'],
+  [/data-rl-cp-open/, 'i-panel'], [/data-rl-notes/, 'i-chat'], [/data-rl-edit=/, 'i-file'],
 ];
 const rlMoreIcon = id =>
   `<svg class="rl-more-i" viewBox="0 0 16 16" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -10105,6 +10129,18 @@ function rlMoreWithIcon(html){
   const hit = RL_MORE_ICONS.find(([re]) => re.test(s));
   if (!hit) return s;
   return s.replace(/(<button\b[^>]*>)/, `$1${rlMoreIcon(hit[1])}`);
+}
+/* The count on a row's face. Its own builder because two surfaces draw it —
+   this row and the ⋯ menu — and a number written twice is a number that comes
+   to disagree. Silent at zero. */
+function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
+  if (typeof negoNoteCounts !== 'function') return '';
+  const n = negoNoteCounts(c, ch, opts, side);
+  if (!n.total) return '';
+  return `<button type="button" class="rl-card-notes" data-rl-notes="${_nea(ch.id)}"
+    title="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
+    aria-label="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
+    ><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chat"/></svg><b>${n.total}</b></button>`;
 }
 function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   const rows = [];
@@ -10123,6 +10159,17 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   if (panel)
     rows.push(`<button type="button" class="rl-more-row"
       data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
+  /* ---- THE DOOR ONTO THE NOTES PANEL (owner-asked 27 Aug 2026) ----
+     Every change carries it, whether or not anything has been said: the count
+     rides the row's own face where there is one, and this is the way in where
+     there is not. A door, not a verb — it decides nothing and files nothing —
+     so it sits with the other doors, above the rule. The count is
+     negoNoteCounts, the same arithmetic the panel's tabs print. */
+  const _npN = (typeof negoNoteCounts === 'function')
+    ? negoNoteCounts(c, ch, opts, side) : { total: 0 };
+  rows.push(`<button type="button" class="rl-more-row"
+    data-rl-notes="${_nea(ch.id)}">${i18t('ng_card_notes')}${
+    _npN.total ? `<span class="ct">${_npN.total}</span>` : ''}</button>`);
   /* The card's own ask condition, character for character: our seat, our unsent
      draft, no review already out or held on it, and a seat that shows reviews
      at all. */
@@ -11251,7 +11298,15 @@ if (typeof document !== 'undefined' && !document._rlNoteMoreWired){
     ev.stopPropagation();          // the card's head toggle must not fire under it
     const p = b.previousElementSibling;
     if (!p) return;
-    const open = p.classList.toggle('rl-cnote-clamp') === false;
+    /* ---- ONE HANDLER, RE-POINTED (27 Aug 2026) ----
+       This toggled `rl-cnote-clamp` — the card's own class, and the card no
+       longer draws notes. The fold now lives in the Notes panel, which clamps
+       with `rl-np-clamp` and opens by ADDING `rl-np-open` rather than by
+       removing the clamp, so the class that describes the paragraph stays on it.
+       A second handler was written in the panel's own wiring for one run and
+       removed: two listeners on one control both fired, and the second undid
+       the first's label. */
+    const open = p.classList.toggle('rl-np-open');
     b.textContent = open ? (b.getAttribute('data-less') || 'Show less')
       : (b.getAttribute('data-more') || 'Show more');
   });
@@ -11459,7 +11514,282 @@ function rlMayRedline(c, opts = {}){
    for this change and DEFAULTS TO SHARED when it finds none. A card with no
    marker at all would therefore post every internal note to the counterparty —
    the exact opposite of what the line under the button promises. */
+/* ============================================================
+   NOTES ARE TWO ROOMS, AND THE ROOM IS THE DESTINATION
+   ============================================================
+   (owner-ruled 27 Aug 2026: "The buttons for internal vs external should show
+   the respective sides' notes. Internal vs external notes should not be in the
+   same view.")
+
+   The note box used to carry a SWITCH — Internal / Send to them — set on the
+   composer and read at the press. Two things were wrong with that and the
+   owner named both: an internal aside and a reply to the other side sat in one
+   list, and the destination was a setting you could leave pointing the wrong
+   way.
+
+   SO THE ROOM IS THE DESTINATION. Internal and External are TABS: each holds
+   its own notes and its own box, and the box you type in belongs to the room
+   you are standing in. There is nothing to set and therefore nothing to set
+   wrongly — which is a stronger guarantee than any warning, and it is why the
+   confirm below is the only guard left rather than the first of several.
+
+   ONE READING OF WHICH ROOM A NOTE IS IN, asked by the list, the counts, the
+   tabs and the send. `negoPostComment` is still the one writer and still
+   treats anything but 'shared' as internal, so a note filed by any older path
+   lands in the internal room — the safe direction, unchanged. */
+const NOTE_ROOMS = ['internal', 'external'];
+const negoNoteRoom = m => (m && m.visibility === 'shared') ? 'external' : 'internal';
+/* The notes for ONE room, already through the side wall. rlMsgVisible is the
+   existing per-message reading and is asked FIRST: a message this seat may not
+   see is not in either room, and filtering by room before by seat would count
+   it in a tab. */
+function negoRoomNotes(c, ch, room, opts = {}, side = 'owner'){
+  const all = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch && ch.thread) || []) || [])
+    .filter(m => rlMsgVisible(m, side));
+  return room ? all.filter(m => negoNoteRoom(m) === room) : all;
+}
+/* What the tabs print, and what the change's own row prints. ONE arithmetic:
+   a row that counted its own notes would be a second answer to a number the
+   panel is already showing. */
+function negoNoteCounts(c, ch, opts = {}, side = 'owner'){
+  const all = negoRoomNotes(c, ch, null, opts, side);
+  const internal = all.filter(m => negoNoteRoom(m) === 'internal').length;
+  return { internal, external: all.length - internal, total: all.length };
+}
+/* ---- WHO MAY WRITE, IN EITHER ROOM (owner-ruled 27 Aug 2026: "Any person
+   that can edit the contract can send notes externally") ----
+   It asks the one question the product already asks of this act and no other.
+   POST /api/contracts/:id/messages — the route that has carried a note to the
+   counterparty since long before this panel existed — is gated `auth, editor`:
+   no owner check, no negotiation-lead check. Gating this panel any harder
+   would make a note stricter than the door that already sends one.
+   THE COUNTERPARTY'S SEAT ANSWERS FOR ITSELF: their page is the only channel
+   they have, so it passes its own canComment and never reaches canEdit. */
+function notesMayWrite(c, opts = {}){
+  if (opts.readonly) return false;
+  /* THE COUNTERPARTY'S SEAT ANSWERS FIRST AND FOR ITSELF. Their page passes its
+     own canComment — it is the only channel they have, and canEdit is not a
+     question that can be asked there at all. */
+  if (opts.canComment != null) return !!opts.canComment;
+  /* WHERE THERE IS NO canEdit TO ASK, this answers YES, and that is stated
+     rather than left to a short-circuit: core.js is loaded on every stage that
+     draws this panel, and the one seat that is not (the portal) has already
+     returned above. Refusing instead would make the box silently dead on any
+     stage missing core.js, which is a fault nobody would find except by
+     reporting it. */
+  if (typeof window === 'undefined' || typeof window.canEdit !== 'function') return true;
+  return !!window.canEdit();
+}
+/* ---- THE CHANNEL, NAMED ONCE ----
+   A note in the external room travels on the discussion channel, which is the
+   store the counterparty's page reads live. This was written inline in the
+   negotiation page's own onComment hook; the panel needs the same act, and two
+   copies of "how a note reaches them" is how they come to disagree. */
+async function negoPostToChannel(c, ch, msg){
+  if (!window.API_MODE || !API_MODE() || !ch || !msg) return { ok: false, skipped: true };
+  const res = await api('contracts/' + c.id + '/messages', 'POST', {
+    topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
+    topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`,
+    body: msg.text });
+  c._messages = (res && res.messages) || c._messages || [];
+  return { ok: true, res };
+}
+/* Which room is showing. PER SITTING, IN MEMORY, and it opens on INTERNAL —
+   the quiet room is the one you land in, so reaching the other side is always
+   a deliberate press. Keyed by nothing: one panel, one room at a time. */
+let _rlNpRoom = 'internal';
+const rlNpRoom = () => _rlNpRoom === 'external' ? 'external' : 'internal';
+function rlNpSetRoom(r){ _rlNpRoom = r === 'external' ? 'external' : 'internal'; }
+const RL_NP_LOCK = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6"/><path d="M5.5 7V5.2a2.5 2.5 0 015 0V7"/></svg>';
+const RL_NP_GLOBE = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.7 1.6 9.3 0 11M8 2.5c-1.6 1.7-1.6 9.3 0 11"/></svg>';
+/* One note. The per-note visibility badge the card used to carry is GONE and
+   that is the split paying for itself: every note in a room has the same
+   answer, so marking each one is the same fact printed five times. The room
+   says it once, at the top. What a note still carries is who wrote it, when,
+   and — in the external room only — the other side's company where the note
+   came FROM them, because that is the one thing the room cannot say. */
+function rlNpNoteHtml(m, room, side, org){
+  const t = String(m.text || '');
+  const long = t.length > 220 || (t.match(/\n/g) || []).length >= 3;
+  const theirs = room === 'external' && m.side && m.side !== side;
+  return `<div class="rl-np-note${theirs ? ' is-them' : ''}">
+    <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span></div>
+    ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
+    <p${long ? ' class="rl-np-clamp"' : ''}>${_ne(t)}</p>
+    ${long ? `<button type="button" class="rl-np-more" data-rl-note-more
+      data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
+  </div>`;
+}
+/* THE WHOLE PANEL BODY. The drawer's own header supplies the title and the way
+   out — this is everything under it. */
+function rlNotesPanelHtml(c, ch, opts = {}){
+  if (!c || !ch) return '';
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* THEIR SEAT HAS NO TABS, and it is not a permission — it is that they have
+     nowhere to keep a private note. Their page is assembled from the share
+     payload and thrown away on the next paint, so an internal room there would
+     be a box that accepts typing and loses it. One room, theirs. */
+  const tabbed = side === 'owner';
+  const room = tabbed ? rlNpRoom() : 'external';
+  const them = c.counterparty || i18t('ng_the_counterparty');
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
+  /* From their chair the other side is US. */
+  const other = side === 'counterparty' ? us : them;
+  const notes = negoRoomNotes(c, ch, room, opts, side);
+  const n = negoNoteCounts(c, ch, opts, side);
+  const mayWrite = notesMayWrite(c, opts);
+  const ext = room === 'external';
+  const who = ext
+    ? i18t('ng_np_who_ext', { who: _ne(other) })
+    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
+  const tabs = tabbed ? `<div class="rl-np-tabs" role="tablist">
+      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
+        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
+        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
+        r === 'external' ? n.external : n.internal})</i></button>`).join('')}
+    </div>` : '';
+  const list = notes.length
+    ? notes.map(m => rlNpNoteHtml(m, room, side, other)).join('')
+    : `<div class="rl-np-empty">
+        <b>${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</b>
+        <span>${i18t('ng_np_none_sub', { id: _ne(ch.id) })}</span>
+      </div>`;
+  /* A refusal names itself in the product's own words for this exact case —
+     the Document tab's discussion has printed this sentence for viewers since
+     long before this panel, and one wording covers both. */
+  const foot = mayWrite
+    ? `<div class="rl-np-foot${ext ? ' out' : ''}">
+        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-${_ne(ch.id)}"
+          placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'))}"
+          aria-label="${_nea(i18t('ng_start_thread_aria', { id: ch.id }))}"></textarea>
+        <div class="rl-np-act">
+          <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
+            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+        </div>
+      </div>`
+    : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
+  return `<div class="rl-np" data-rl-np="${_nea(ch.id)}">
+    ${''/* WHICH CHANGE THIS BELONGS TO, and a way back to the clause it is
+           about — the same act the row's Go to clause performs, because the
+           panel covers the column the row is in. */}
+    <button type="button" class="rl-np-which" data-rl-np-clause="${_nea(ch.clauseId || '')}"
+      ${ch.clauseId ? '' : 'disabled'}>
+      <span class="t">
+        <span class="id">${_ne(ch.id)}${ch.clauseLabel ? ` <em>· ${_ne(ch.clauseLabel)}</em>` : ''}</span>
+        <span class="s">${_ne(rlAskWord ? rlAskWord(ch) : '')}</span>
+      </span>
+      ${ch.clauseId ? '<span class="ch" aria-hidden="true">&rsaquo;</span>' : ''}
+    </button>
+    ${tabs}
+    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    <div class="rl-np-list">
+      <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
+      ${list}
+    </div>
+    ${foot}
+  </div>`;
+}
+/* Paint and re-wire in one. The panel is rebuilt on every act — a room switch,
+   a note posted — so the handlers below are bound to fresh markup each time and
+   cannot stack. */
+function rlNotesPanelPaint(host, c, ch, opts = {}){
+  if (!host) return;
+  host.innerHTML = rlNotesPanelHtml(c, ch, opts);
+  rlWireNotesPanel(host, c, ch, opts);
+}
+/* ---- THE ONE SEND, AND THE ONE GUARD ON IT ----
+   Every path through here goes through negoPostComment — the product's single
+   writer — with the visibility the ROOM dictates rather than a switch's state.
+   The external path additionally asks, every time: it is the only act on this
+   panel that cannot be undone, because nothing in HaTi deletes or edits a note. */
+async function rlNotesSend(host, c, ch, opts, room){
+  const box = host.querySelector('.rl-np-in');
+  const text = String((box && box.value) || '').trim();
+  if (!text){ if (box && box.focus) box.focus(); return false; }
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const ext = room === 'external';
+  const them = c.counterparty || i18t('ng_the_counterparty');
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
+  const other = side === 'counterparty' ? us : them;
+  if (ext && window.confirmDialog){
+    const ok = await confirmDialog({
+      title: i18t('ng_np_confirm_title', { who: other }),
+      message: i18t('ng_np_confirm_msg', { id: ch.id }),
+      confirmLabel: i18t('ng_np_confirm_go', { who: other }),
+    });
+    if (!ok) return false;
+  }
+  const msg = negoPostComment(c, ch.id, text, {
+    side, author: opts.author, visibility: ext ? 'shared' : 'internal' });
+  if (!msg) return false;
+  negoMarkThreadSeen(negoSeenScope(c, opts), ch.id);
+  if (opts.persist !== false && window.persist) persist(c);
+  if (box) box.value = '';
+  /* THE CHANNEL IS THE ONLY WAY OUT, so an internal note simply does not take
+     it: there is no filter downstream that could later be got wrong. */
+  if (ext){
+    try {
+      const sent = await negoPostToChannel(c, ch, msg);
+      if (window.toast && sent && sent.ok)
+        toast(i18t('ng_np_sent', { who: other, id: ch.id }), 'ok');
+    } catch (e){
+      if (window.toast) toast(i18t('ng_np_send_failed',
+        { who: other, why: (e && e.message) || '' }), 'err');
+    }
+  } else if (window.toast){
+    toast(i18t('ng_np_filed', { org: us, id: ch.id }), 'ok');
+  }
+  rlNotesPanelPaint(host, c, ch, opts);
+  return true;
+}
+function rlWireNotesPanel(host, c, ch, opts = {}){
+  if (!host || !host.querySelectorAll) return;
+  host.querySelectorAll('[data-rl-np-room]').forEach(b => b.addEventListener('click', () => {
+    rlNpSetRoom(b.getAttribute('data-rl-np-room'));
+    rlNotesPanelPaint(host, c, ch, opts);
+  }));
+  const send = host.querySelector('[data-rl-np-send]');
+  if (send) send.addEventListener('click', () => {
+    rlNotesSend(host, c, ch, opts, send.getAttribute('data-room'));
+  });
+  const box = host.querySelector('.rl-np-in');
+  if (box) box.addEventListener('keydown', e => {
+    if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && (e.preventDefault(), true)))
+      rlNotesSend(host, c, ch, opts, send && send.getAttribute('data-room'));
+  });
+  /* THE FOLD IS NOT WIRED HERE. One delegated listener on document has owned
+     [data-rl-note-more] since the card carried notes, and it owns this one too —
+     the markup is the same three attributes. A copy here fired BESIDE it and
+     each undid the other's label, which is what a second handler for one act
+     always does. */
+  /* THE WAY BACK TO THE CLAUSE — rlLinkFocus is the act the row's own Edit
+     performs, so this is that door reached from the panel rather than a second
+     implementation of it. */
+  const which = host.querySelector('[data-rl-np-clause]');
+  if (which) which.addEventListener('click', () => {
+    const cl = which.getAttribute('data-rl-np-clause');
+    if (cl && window.rlLinkFocus) rlLinkFocus(cl, 'card');
+  });
+}
+
+/* ---- THE COUNTERPARTY'S SEAT ONLY, SINCE 27 Aug 2026 ----
+   Our seat's notes moved into the Notes panel, which is the shell's drawer and
+   draws two rooms. THE COUNTERPARTY HAS NO DRAWER: their page hides the shell
+   whole, which is why their alerts have a panel of their own, and sending them
+   to one that does not exist would take away the only channel they have.
+   NOTHING IS LOST BY THE SPLIT NOT REACHING THEM. They have no internal notes
+   and never can — their page is rebuilt from the share payload and thrown away
+   on every paint, so there is nowhere to keep one. Every note on their seat is
+   external by definition, which is exactly the single room the panel would draw
+   them. Their switch stays because it is theirs: it opens on Send-to-them (an
+   internal-only box on their page reaches nobody, F58) and the internal face is
+   how they mark a note their own side keeps.
+   IT REFUSES OUR SEAT OUTRIGHT, and that is what keeps the one-box rule: with
+   both drawn there would be two composers for one change, and the second is a
+   box that accepts typing and posts nothing. When their page grows a drawer,
+   this whole function retires. */
 function rlCardNotesHtml(c, ch, opts, side){
+  if (side !== 'counterparty') return '';
   const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
   const msgs = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || [])) || [])
     .filter(m => rlMsgVisible(m, side));
@@ -11488,17 +11818,19 @@ function rlCardNotesHtml(c, ch, opts, side){
         data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
     </div>`;
   }).join('');
-  /* ---- BOTH SEATS CHOOSE WHO READS A NOTE ----
-     The counterparty always had the switch: their page is the only channel
-     they have, and an internal-only box there reaches nobody (F58). Our seat
-     used to be internal-only by design — the round was "how we reach them" —
-     and that asymmetry was reported as the gap it is (Young, 10 Aug 2026:
-     "there is no ability to toggle between internal and send to them like we
-     have in the counterparty side"). So our composer carries the same switch.
-     THE DEFAULTS OPPOSE EACH OTHER ON PURPOSE: theirs opens on Send-to-them
-     (answering is what their page is for), ours opens on Internal (the quiet
-     path must not be the one that publishes a colleague's aside — the same
-     rule negoPostComment states for the model). f84 pins our default. */
+  /* ---- THE SWITCH, AND IT IS THEIRS ALONE NOW ----
+     It was on both seats: the counterparty always had it (their page is the
+     only channel they have, and an internal-only box there reaches nobody —
+     F58), and ours gained it when the asymmetry was reported as the gap it was
+     (Young, 10 Aug 2026: "there is no ability to toggle between internal and
+     send to them like we have in the counterparty side").
+     OUR HALF IS GONE, AND ITS PROPERTY IS KEPT AND MADE STRONGER (owner-ruled
+     27 Aug 2026): our seat's destination is the ROOM the reader is standing
+     in, so there is no setting left to leave pointing the wrong way. This
+     function refuses our seat outright — see the note above it — so the ours
+     branch below is unreachable and is kept only because THEIR default is
+     expressed as the other half of the same ternary. f84's claim moved with
+     the box and now pins the room. */
   const theirSeat = side === 'counterparty';
   const vis = `<div class="nego-visswitch" role="group" aria-label="${_nea(i18t('ng_who_can_read'))}">
         <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="${theirSeat ? 'false' : 'true'}">&#128274; Internal</button>
@@ -11527,7 +11859,6 @@ function rlCardNotesHtml(c, ch, opts, side){
     ${list}${composer}
   </div>`;
 }
-
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const held = rlActorHeld(c, opts);
@@ -12403,7 +12734,24 @@ function redlineChangeCardsHtml(c, opts = {}){
                no verb can navigate the reader away underneath the hand
                reaching for it. */}
         <div class="rl-card-head rl-card-txt">
-          <div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>
+          ${''/* ---- HOW MANY NOTES, WITHOUT OPENING ANYTHING ----
+                (owner-asked 27 Aug 2026.) It hides at zero — the alert dot's own
+                rule — so a column of changes nobody has discussed carries none
+                of these, and the ⋯ still has the way in.
+
+                IT IS ON THE CHANGE'S OWN LINE, NOT IN THE ACTS COLUMN, and that
+                is a measured decision rather than a placing. Every row in this
+                column shares ONE width for its acts (--rl-verb-floor, the
+                widest pair the column draws), so a count over there takes about
+                34px from every row's wording INCLUDING the rows with no notes —
+                MEASURED at a 458px column, the floor started biting where the
+                declared two-thirds used to hold, and the proportion this column
+                promises stopped being true at ordinary widths. Here the clause
+                name gives up the room instead, and only on the rows that have
+                something to give it up for. The count is flex:none so the name
+                is what elides, never the number. */}
+          <div class="rl-card-metarow"><div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>${
+            rlCardNotesCountHtml(c, ch, opts, side)}</div>
           ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
         </div>
         ${''/* THE ACTS SIT BESIDE THE TEXT, level with it: where this change
@@ -12963,14 +13311,19 @@ function rlCpSetNotes(scope, on){
    only — where in the head row it sits — which is this page's own convention
    for a class that positions rather than dresses. */
 function rlCpSegsHtml(){
-  const on = rlCpNotesOn();
-  return `<div class="rl-cp-segs rl-segwrap" role="group" aria-label="${_nea(i18t('ng_cp_notes_group'))}">
-    <button type="button" data-rl-cp-notes="off" aria-pressed="${on ? 'false' : 'true'}"
-      class="rl-seg${on ? '' : ' on'}" title="${_nea(i18t('ng_cp_hist_title'))}">${i18t('ng_cp_hist')}</button>
-    <button type="button" data-rl-cp-notes="on" aria-pressed="${on ? 'true' : 'false'}"
-      class="rl-seg${on ? ' on' : ''}" title="${_nea(i18t('ng_cp_hist_notes_title'))}">${i18t('ng_cp_hist_notes')}</button>
-  </div>`;
+  /* ---- A STUB: THERE IS NOTHING LEFT TO SWITCH (owner-asked 27 Aug 2026) ----
+     History | + notes hid and showed the conversation blocks inside this panel.
+     The note box and its thread have moved to the Notes panel, which draws two
+     rooms of its own, so the "+ notes" face would now reveal nothing at all.
+     A STUB rather than a deletion, this file's convention for a builder whose
+     feature has gone: it is published and was called from the panel's head, and
+     a third caller must not be able to bring an empty switch back.
+     `.rl-cp-notes`, `data-rl-cp-notes`, rlCpNotesOn and rlCpSetNotes are STALE
+     — flag any mention. The panel's row keeps a quiet line naming the count and
+     opening the Notes panel, which is the one door onto that conversation. */
+  return '';
 }
+
 /* ---- THE PANEL'S OWN TYPE STEPPER (owner-asked 20 Aug 2026: "Add the font
    adjuster to the redline panel which will only adjust the panel and nothing
    more") ----
@@ -13027,7 +13380,7 @@ function rlClausePanelHtml(bodies){
          Activity panel are built. NOT role="dialog": it is a complementary
          panel a reader works BESIDE the wording, and this page already refuses
          to put a dialog over the wording being judged (f89). */}
-  <aside class="rl-col rl-cp${open ? ' is-open' : ''}${rlCpNotesOn() ? ' rl-cp-notes' : ''}" id="rl-cp"
+  <aside class="rl-col rl-cp${open ? ' is-open' : ''}" id="rl-cp"
     style="--cp-zoom:${rlCpZoom()}"
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
     <div class="rl-cp-head">
@@ -13091,6 +13444,28 @@ function rlCpPaint(scope){
    a listener registered by the owner's page cannot belong to the counterparty's
    mount, and that exact fault made the unsent band's Send dead on their seat
    for a day (15 Aug 2026). */
+/* ---- THE DOOR ONTO THE NOTES PANEL, ARMED ONCE AT MODULE LOAD ----
+   Three surfaces press it — the count on a change's row, the Notes row in the
+   ⋯ menu, and the clause panel's own line — and all three carry data-rl-notes
+   and nothing else. AT MODULE LOAD rather than per paint, for the reason the
+   proxy listener records: a listener armed inside a renderer belongs to
+   whichever page happened to render first, and this one has to work from the
+   column, from the menu and from the clause panel alike.
+   IT DECIDES NOTHING. openNotesPanel is the one door and it lives in the shell,
+   which owns the drawer; this is the press finding it. Read through window
+   because that is another module (the ES-module rule). */
+if (typeof document !== 'undefined' && !document._rlNotesWired){
+  document._rlNotesWired = true;
+  document.addEventListener('click', ev => {
+    const t = ev.target && ev.target.closest && ev.target.closest('[data-rl-notes]');
+    if (!t) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const id = t.getAttribute('data-rl-notes');
+    const cid = (window.redlineHeldId && redlineHeldId()) || (window.state && state.activeId);
+    if (cid && id && window.openNotesPanel) openNotesPanel(cid, id);
+  });
+}
 if (typeof document !== 'undefined' && !document._rlCpWired){
   document._rlCpWired = true;
   /* ---- IN THE CAPTURE PHASE, AND THAT IS LOAD-BEARING ----
@@ -13113,16 +13488,6 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
     if (step){
       ev.preventDefault(); ev.stopPropagation();
       rlCpSetType(rlCpTypePx() + (step.getAttribute('data-rl-cp-type') === 'up' ? 1 : -1));
-      return;
-    }
-    /* The History | + notes switch — a class flip on the panel, never a
-       repaint (see rlCpSetNotes). stopPropagation for the same reason the
-       pill stops its own: a control must not also be a navigation. */
-    const seg = t.closest('[data-rl-cp-notes]');
-    if (seg){
-      ev.preventDefault(); ev.stopPropagation();
-      rlCpSetNotes(seg.closest('.redline-page') || document,
-        seg.getAttribute('data-rl-cp-notes') === 'on');
       return;
     }
     const opener = t.closest('[data-rl-cp-open]');
@@ -13742,6 +14107,10 @@ if (typeof window !== 'undefined') Object.assign(window, {
      builder was for. */
   rlPaperFootHtml,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
+  negoPostToChannel, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
+  rlCardNotesCountHtml,
+  rlNpRoom, rlNpSetRoom,
   negoEnsureStyle, negoDocHtml, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,

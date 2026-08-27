@@ -3566,9 +3566,148 @@ THE ORIGIN PILL IS OFF THE CHANGE CARD (owner-asked, 12 Aug 2026). It was a gree
 
 RETRACT IS THE PAGE'S ANSWER, NOT THE TURN STAMP'S (owner-reported 15 Aug 2026, OI-6). A counterparty's own draft could not be taken back: the CARD was drawn from what their page holds (opts.unsentIds) while negoRetractDraft asked negoUnsentAsks, which measures against `turnAt` and therefore answers "nothing on this side is unsent" for the counterparty until the first hand-over. So the button drew and every press said "this change has already been sent" over a draft that had never left their browser — two readings of one fact, with the untrue one talking. negoRetractDraft now takes `opts.unsentIds` and the card's own handler passes the same list the card was drawn from; absent, the model answers exactly as before (our seat, unchanged). AND THE SECOND HALF, which the first alone would have hidden: portalNegoContract re-injects PORTAL_NEGO_PROPOSED on every repaint, so clearing only the rebuilt copy drew the card straight back — there is an **onRetract** hook on the mount and the portal deletes its held draft through it. Both refusals became dictionary keys (ne_retract_decided / ne_retract_already_sent — the second now names Withdraw, the verb that does work once something has gone). Tests: f208 (the press, the store, and our own seat proved untouched).
 
-THE PANEL OPENS WITHOUT NOTES — HISTORY | + NOTES (owner-asked 16 Aug 2026: "add a button next to edit that shows history with notes. The default will be without notes"; Option 2 of three mocked renders, chosen). A two-way switch beside the EDIT label (rlCpSegsHtml, data-rl-cp-notes off/on), dressed like the toolbar's reading segments and wearing --nav-bg on its pressed face. THE CONVERSATION BLOCKS STILL RENDER — every .rl-cnotes, thread and composer, exactly as below — and ONE CSS rule hides them on the default face (`.rl-cp .rl-cnotes{display:none}`; `.rl-cp.rl-cp-notes .rl-cnotes` shows them). The press is a CLASS FLIP, never a repaint (rlCpSetNotes — panel class, aria-pressed AND the button's own .on face together; the face was missed first and a screenshot caught it), which is what keeps the ONE engine-wired composer alive in the DOM whichever face shows. _rlCpNotes is per sitting, in memory, one value for the sitting (a reader who asked for conversations is reading conversations), never persisted. Both seats — the panel is shared markup and their reply box lives behind the same face. Armed in the panel's own module-load capture listener, stopPropagation, and it neither opens, closes nor moves the panel. Tests: f210 (18) (6 — the switch, the default, the flip with the same composer node, the sitting memory, both languages), clause-door-verify section 11 (4, browser — the COMPUTED hide and show, real pixels, the panel staying open).
+## NOTES ARE TWO ROOMS, AND THE ROOM IS THE DESTINATION (owner-ruled 27 Aug 2026)
 
-Notes on a change LIVE IN THE CLAUSE PANEL'S ROW for that change (moved 16 Aug 2026 with the routing rows — rlCardNotesHtml, called from rlClausePanelBodyHtml and nowhere else; the card renders no composer). BOTH seats carry the shared/internal switch and the defaults OPPOSE on purpose — theirs opens on Send-to-them (an internal-only box on their page reaches nobody, F58), ours opens on Internal (the quiet path must never publish a colleague's aside). The send button and its promise carry BOTH faces; CSS (.rl-when-int / .rl-when-sh) shows the meant one — textContent unchanged, which is what tests read. f84 pins our default; f173 the switch, both re-pointed at the panel. A long note (~220 chars / 3 newlines) clamps to three lines with its own Show more — a class flip via ONE delegated listener, never a repaint (a repaint empties the composer). Counterparty notes arrive via the DISCUSSION CHANNEL (their page cannot write our record): negoMergedThread merges it with ch.thread; renderRedline fetches once per sitting (c._msgFetch); pollThreadMessages repaints — NEVER while a textarea holds text.
+Two rulings, one message apart: *"The buttons for internal vs external should
+show the respective sides' notes. Internal vs external notes should not be in
+the same view."* and *"Any person that can edit the contract can send notes
+externally."*
+
+**A NOTE ON A CHANGE LIVES IN THE NOTES PANEL — the shell's own drawer, a THIRD
+face beside Activity and Alerts.** `openNotesPanel(contractId, changeId)`
+(js/app.js) is the one door and `PANEL_FACES` the one list; opening Notes SWAPS
+the drawer's content rather than stacking a second layer, which is the fault
+`openPanel` was lifted to module scope to prevent. Three surfaces press it and
+all three carry `data-rl-notes` and nothing else — the count on a change's row,
+the Notes row in the ⋯, and the clause panel's own line — found by ONE delegated
+listener armed on document at module load.
+
+**THE ROOM IS THE DESTINATION, AND THAT IS THE WHOLE SAFETY ARGUMENT.** The box
+used to carry a SWITCH, and the send resolved visibility by FINDING the pressed
+`data-nego-vis` marker and **DEFAULTING TO SHARED when it found none** — so the
+wall between an internal aside and a message to the other side rested on a piece
+of markup being present, with the unsafe direction as the fallback. There is no
+marker now: Internal and External are TABS, each with its own notes and its own
+box, and `rlNotesSend` passes the room's own answer to negoPostComment. An unsafe
+default cannot be fallen through to when there is nothing to read. f84's marker
+claim is REVERSED IN PLACE and is stronger for it — it asserts by FILING rather
+than by reading markup.
+
+- **ONE READING OF WHICH ROOM A NOTE IS IN** — `negoNoteRoom` (shared → external,
+  anything else → internal, so any older path still lands in the safe room) and
+  `negoRoomNotes`, which asks `rlMsgVisible` FIRST: a message this seat may not
+  see is in neither room. The two rooms PARTITION the thread; f248 pins that no
+  note is in both and none in neither.
+- **ONE ARITHMETIC FOR THE COUNTS.** `negoNoteCounts` is what the tabs, the row's
+  own count and the ⋯ row all print. A number worked out twice is a number that
+  comes to disagree.
+- **THE PER-NOTE VISIBILITY BADGE IS RETIRED, and that is the split paying for
+  itself.** Every note in a room has the same answer, so marking each one was the
+  same fact printed five times. The room says it once, at the top
+  (`.rl-np-who`), and the external one is tinted and teal-edged so the room you
+  are typing in does not look like the room you are not. In the external room a
+  note FROM them keeps an edge and its company — the one thing the room's own
+  line cannot say.
+- **THE CONFIRM IS ON THE CROSSING ONLY.** Every note that would leave the
+  building asks first, naming the counterparty and quoting nothing back it did
+  not send; an internal note is one press, exactly as before. A dialog on both
+  paths is furniture people learn to dismiss, and then it protects nothing.
+  Nothing in HaTi deletes or edits a note, so this is the one act on the panel
+  that cannot be undone.
+- **THE CHANNEL IS THE ONLY WAY OUT, so an internal note simply does not take
+  it** — there is no filter downstream that could later be got wrong.
+  `negoPostToChannel` is that act, named ONCE: it was written inline in the
+  negotiation page's `onComment`, and two copies of "how a note reaches them" is
+  how they come to disagree.
+- **WHO MAY WRITE, IN EITHER ROOM: `notesMayWrite`, and it asks the one question
+  the product already asks.** `POST /api/contracts/:id/messages` — the route
+  that has carried a note to the counterparty since long before this panel — is
+  gated `auth, editor`. No owner check, no negotiation-lead check. **Gating this
+  panel harder would make a note stricter than the door that already sends one**,
+  and an owner-gate would have left nobody able to reply on uploaded paper, which
+  has no owner and never will. A viewer READS BOTH ROOMS and writes in neither,
+  in the Document tab discussion's own words ("Viewers can read this conversation
+  but cannot post to it") — one wording, two places.
+- **THE COUNTERPARTY'S SEAT HAS NO TABS**, and it is not a permission: their page
+  is assembled from the share payload and thrown away on the next paint, so an
+  internal room there would be a box that accepts typing and loses it. One room,
+  theirs, no gate — their page is the only channel they have, and it passes its
+  own `canComment` so `notesMayWrite` never reaches canEdit.
+- **NO SCRIM.** `applyPanelLayout` withholds it on the notes face alone — the
+  owner's own clause-panel rule ("do not shade the contract, it has to remain
+  active"), because a note is written while reading the change it is about. The
+  scrim is also what closes the drawer on an outside press, so the ✕ and Escape
+  are the ways out here, exactly as they are for the clause panel.
+- **THE PANEL OWNS ITS OWN LAYOUT.** `#panel-body.pb-flow` stops being the
+  scroller and becomes a column, so the list scrolls and the box stays pinned
+  under it. A class, never an inline style — an inline declaration cannot be
+  beaten by a stylesheet rule without `!important`, which this product has paid
+  for twice.
+- **A CHANGE THAT HAS GONE says so** (`ng_np_gone`) rather than drawing an empty
+  shell: a closed round archives its changes, and the panel can outlive one.
+
+- **THE COUNT IS ON THE CHANGE'S OWN LINE, NOT IN THE ACTS COLUMN, and that is
+  MEASURED rather than placed.** Every row in this column shares ONE width for
+  its acts — `--rl-verb-floor`, the widest pair the column draws — so a first
+  pass that put the count beside the verbs had to grow that floor by 34px, and
+  MEASURED at a 458px column the floor then bit where the declared two thirds
+  used to hold: the proportion that column PROMISES stopped being true at every
+  ordinary width, on every row, **including the rows with no notes at all**. On
+  the meta line the clause name gives up the room instead, and only where there
+  is something to count; the count is `flex:none`, so the name is what elides
+  and never the number. The floor is back at 127 and redline-verify's two-thirds
+  claim needed no edit — which is how you can tell the layout was mended rather
+  than the test.
+
+**WHAT MOVED, WHAT IS A STUB, AND WHAT IS A SEAT.** `rlCpSegsHtml` is a
+`return ''` STUB, not a deletion — it is published and it had callers, and a
+third caller must not be able to bring back an empty switch. **`rlCardNotesHtml`
+IS NOT A STUB and that distinction is load-bearing**: it refuses OUR seat
+(`if (side !== 'counterparty') return ''`) and still draws THEIRS, because their
+page hides the shell whole and has no drawer to send them to — stubbing it for
+both seats took away their only reply channel and 14 tests said so within the
+minute. It retires the day their page grows a drawer of its own. `.rl-cnotes`,
+`.rl-cnote-in`, `.rl-when-int` / `.rl-when-sh`, `.nego-visswitch` on our seat,
+`.rl-cp-notes`, `data-rl-cp-notes`, `rlCpNotesOn` and `rlCpSetNotes` are STALE —
+flag any mention. **ONE HANDLER OWNS THE FOLD**: the delegated
+`[data-rl-note-more]` listener that has owned it since the card carried notes now
+toggles `rl-np-open`; a copy written in the panel's own wiring fired BESIDE it
+for one run and each undid the other's label, which is what a second handler for
+one act always does.
+
+**THE COLOUR CENSUS WAS RE-RECORDED, AUDITED FIRST, and it is the smallest kind:
+ONE screen, ONE value, and NOTHING ARRIVING.** `rgb(244, 236, 216)` — the
+internal/external switch's own pressed face (`.nego-vis-int`,
+`.nego-visswitch .v-int[aria-pressed="true"]`) — GONE from `negotiate--light`,
+because the switch it dressed is not drawn on our seat any more. No other screen
+moved; dark never held it. **THE SEMANTIC WAS CHECKED AS STILL ALIVE BEFORE THE
+BASELINE WAS SAVED**, which is the whole condition on saving one: the other three
+amber values on that screen are all still in the census. **THE CSS RULE IS NOT
+DELETED** — the counterparty's box still draws that switch, so the rule still
+earns its place.
+
+Tests: f248 (16, node), notes-two-rooms-verify (21, browser — it drives the REAL
+shell, which the harness pages do not load, so it is the only place the drawer's
+press, its three faces and the absent scrim can be asked at all); claims REVERSED
+IN PLACE, never deleted, in f173, f210, f100, f84, f89, f187, f58, f92,
+redline-verify and clause-door-verify.
+
+**THE ROW GAVE UP 34px OF WORDING FOR THE COUNT**, said out loud where the number
+lives: `--rl-verb-floor` went 127 → 161, and every row in the column shares that
+width, including the rows with no notes. The count hides at zero (the alert dot's
+own rule) and the ⋯ still has the way in.
+
+Tests: f248 (16 — the partition, the room deciding on filing in both directions,
+the confirm on the crossing only and refusing, the gate both ways, the
+counterparty's seat, the doors and both languages), notes-two-rooms-verify (21,
+browser, the REAL app because the harness pages carry no app.js — the press
+proved not to be dead, the drawer proved open, the scrim proved absent as a
+computed style, both rooms read off the page, and a note filed for real as
+internal). Claims REVERSED IN PLACE, never deleted: f173 (the switch became the
+room, the arrival became the external room, the fold moved), f100 (the one
+composer, three homes, still one), f84 (the marker claim, now asserted by
+filing), f89 (the conversation's fourth home), f210 (18) (the panel opens clean,
+the room is a posture).
 
 rlSideMode() answers 'changes' and nothing else (deliberately ignores its stored preference — a stored 'disc' would land on a hidden column). THREE READINGS (rlReadMode): redlined / as agreed / folded in; rlReadSideOf decides the side, rlOpsAsSide filters WITHOUT mutating (fingerprint is over stored ops). Two load-bearing rules: a SETTLED change answers the same in all three readings — ask "still being argued about?" BEFORE the mode (a refused insertion once vanished instead of striking through, f96); a NON-DEFAULT reading always says so on the floating notice with the way back. (The card's two-line wording clamp is gone with the routing row, 16 Aug 2026 — the readings govern the PAPER and the panel.)
 

@@ -36,15 +36,27 @@ describe('f187 (1) — two buttons, two jobs', () => {
     assert.match(app, /getElementById\('hdr-notify'\)\?\.addEventListener\('click',\(\)=>openPanel\('alerts'\)\)/);
   });
 
-  test('ONE PANEL, TWO CONTENTS — not two panels', () => {
+  test('ONE PANEL, THREE CONTENTS — still not two panels', () => {
+    /* REVERSED IN PLACE (27 Aug 2026): Notes joined Activity and Alerts as a
+       THIRD content of this one drawer. The claim is unchanged and is the whole
+       point of the test — one shell, however many faces, because two panels
+       arriving from the same edge is how they come to disagree about what
+       "open" means. The face list is named once so a fourth cannot be added by
+       writing a string in two places. */
     const html = read('index.html');
     assert.equal((html.match(/id="context-panel"/g) || []).length, 1,
-      'there is one shell and both icons use it');
-    /* And it says which it is showing: the heading is filled at render time. */
+      'there is ONE shell and every face uses it');
     assert.match(html, /id="panel-title"/);
     const app = read('js/app.js');
+    assert.match(app, /const PANEL_FACES = \['activity', 'alerts', 'notes'\]/,
+      'the faces are one list');
+    assert.match(app, /function panelFace\(\)\{ return PANEL_FACES\.includes/,
+      'and both readings ask it rather than repeating the strings');
+    /* And it still says WHICH it is showing — three scopes in one drawer, so a
+       reader who cannot tell them apart will believe the wrong one. */
     const fn = app.slice(app.indexOf('function renderContextPanel'));
-    assert.match(fn.slice(0, fn.indexOf('\n}')), /title\.textContent=alerts\?i18t\('sh_alerts'\):i18t\('sh_activity'\)/);
+    assert.match(fn.slice(0, fn.indexOf('\n}')),
+      /title\.textContent=notes\?i18t\('ng_card_notes'\):alerts\?i18t\('sh_alerts'\):i18t\('sh_activity'\)/);
   });
 
   test('pressing one while the other is showing SWAPS the content', () => {

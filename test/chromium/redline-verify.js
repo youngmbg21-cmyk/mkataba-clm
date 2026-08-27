@@ -1245,11 +1245,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     rlSetSideMode('disc');
     return { fnGone: typeof window.rlTagInternalNote !== 'function',
       noteBtns: document.querySelectorAll('[data-rl-note]').length,
-      starter: !!document.getElementById('nego-ti-' + ch.id) };
+      door: !!document.querySelector(`[data-rl-notes="${ch.id}"]`),
+      box: !!document.getElementById('nego-ti-' + ch.id) };
   });
   check('5 the tag shortcut is gone', tagGone.fnGone && tagGone.noteBtns === 0,
     JSON.stringify({ fnGone: tagGone.fnGone, noteBtns: tagGone.noteBtns }));
-  check('5 and the change can still be talked about', tagGone.starter);
+  /* REVERSED IN PLACE (owner-ruled 27 Aug 2026: notes are two rooms in the side
+     panel). The claim is the same one — a change on this page must still be
+     talkable-about — and it is asserted harder, because it now names BOTH halves:
+     the way in is on the page, and the box is NOT, so there is exactly one
+     composer in the product and it is the panel's. The room a note lands in is
+     proved in notes-two-rooms-verify, which drives the real drawer. */
+  check('5 and the change can still be talked about', tagGone.door,
+    'the door onto its notes is on the page');
+  check('5 and the box is in the panel, not on the page', !tagGone.box,
+    'one composer, and this is not where it lives');
 
   /* ---- 6. ONE FILLED ACT, AND THE OTHERS ARE COLOURED WORDS ----
      THE HISTORY IS WHY THIS CHECK EXISTS AT ALL, so it is kept whole.

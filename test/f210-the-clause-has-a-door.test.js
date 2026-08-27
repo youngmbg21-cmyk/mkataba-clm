@@ -1161,93 +1161,83 @@ describe('f210 (13) — the new words, both languages', () => {
 });
 
 /* ============================================================ */
-describe('f210 (18) — History | + notes, default without notes', () => {
-  /* Owner-asked 16 Aug 2026: "add a button next to edit that shows history
-     with notes. The default will be without notes." Option 2 of three renders
-     shown and chosen: a two-way switch beside the EDIT label, dressed like the
-     toolbar's reading segments. The default face is the clean panel; "+ notes"
-     is ONE CLASS on #rl-cp, and the conversation blocks are hidden by one CSS
-     rule — a class flip, never a repaint, which is what keeps the one
-     engine-wired composer alive in the DOM whichever face is showing. */
+describe('f210 (18) — the clause panel draws no conversation, and the room is the posture', () => {
+  /* REVERSED IN PLACE (owner-ruled 27 Aug 2026: "Internal vs external notes
+     should not be in the same view"). This block was written for the History |
+     + notes switch, and every property it was really pinning survives — the
+     panel opens CLEAN, there is exactly ONE composer, and the reader's choice
+     is a posture rather than a setting. What moved is where each lives: the
+     conversation left this panel for the Notes panel's two rooms, so the switch
+     has nothing to switch and is a stub. */
 
-  test('the switch sits in the panel head, beside EDIT, default History', async () => {
+  test('the panel opens clean, and draws no conversation at all', async () => {
     const p = await bench();
     const box = page(p);
     const head = box.querySelector('.rl-cp-head');
-    const segs = head && head.querySelector('.rl-cp-segs');
-    assert.ok(segs, 'the switch is in the head');
-    const [hist, notes] = [...segs.querySelectorAll('[data-rl-cp-notes]')];
-    assert.equal(hist.getAttribute('data-rl-cp-notes'), 'off');
-    assert.equal(notes.getAttribute('data-rl-cp-notes'), 'on');
-    assert.equal(hist.getAttribute('aria-pressed'), 'true', 'History is the default face');
-    assert.equal(notes.getAttribute('aria-pressed'), 'false');
+    assert.ok(head, 'the panel still has its head');
+    assert.equal(head.querySelector('[data-rl-cp-notes]'), null,
+      'and no switch in it — there is nothing left to switch');
+    assert.equal(box.querySelector('#rl-cp .rl-cnotes'), null,
+      'THE PROPERTY THAT MATTERED: the panel carries no conversation block');
     assert.ok(!box.querySelector('#rl-cp').classList.contains('rl-cp-notes'),
-      'and the panel opens without notes');
+      'and never wears the notes face');
   });
 
-  test('the default face HIDES the conversation by one rule, and + notes shows it', async () => {
-    /* jsdom resolves no cascade, so the rule is read at the source — the same
-       way f95 reads every radius. The browser half is clause-door-verify's. */
-    assert.match(SRC, /\.redline-page \.rl-cp \.rl-cnotes\{display:none\}/,
-      'the clean face is the default');
-    assert.match(SRC, /\.redline-page \.rl-cp\.rl-cp-notes \.rl-cnotes\{display:block\}/,
-      'and one class brings the conversation back');
-  });
-
-  test('the press is a class flip — the composer node survives it', async () => {
+  test('the clause panel keeps a DOOR onto the conversation, naming its count', async () => {
     const p = await bench();
     p.win.renderRedline();
     const $ = s => p.win.document.querySelector(s);
-    const chId = p.c.changes[0].id;
-    const boxBefore = $(`#rl-cp-body textarea#nego-ti-${chId}`);
-    assert.ok(boxBefore, 'the one composer is in the panel');
-    assert.ok(!$('#rl-cp').classList.contains('rl-cp-notes'), 'default: without notes');
-    $('[data-rl-cp-notes="on"]').click();
-    assert.ok($('#rl-cp').classList.contains('rl-cp-notes'), 'one press shows the notes');
-    assert.equal($('[data-rl-cp-notes="on"]').getAttribute('aria-pressed'), 'true');
-    assert.ok($('[data-rl-cp-notes="on"]').classList.contains('on')
-      && !$('[data-rl-cp-notes="off"]').classList.contains('on'),
-      'and the FACE flips with the state — aria alone is invisible pixels');
-    assert.equal($(`#rl-cp-body textarea#nego-ti-${chId}`), boxBefore,
-      'the SAME node — no repaint, so the engine\'s wiring survives the flip');
-    $('[data-rl-cp-notes="off"]').click();
-    assert.ok(!$('#rl-cp').classList.contains('rl-cp-notes'), 'and the way back');
-    assert.equal($('[data-rl-cp-notes="off"]').getAttribute('aria-pressed'), 'true');
+    const ch = p.c.changes[0];
+    const go = $(`#rl-cp-body [data-rl-notes="${ch.id}"]`);
+    assert.ok(go, 'the row offers the way in');
+    assert.match(go.textContent, /note/i, 'named for what is behind it');
+    /* A sentence removed from a slot has to be findable in another one before
+       the slot goes. This is that other one. */
   });
 
-  test('the choice survives a repaint within the sitting, and is not persisted', async () => {
+  test('THE ONE COMPOSER: none in the clause panel, exactly one in the Notes panel', async () => {
     const p = await bench();
     p.win.renderRedline();
-    const $ = s => p.win.document.querySelector(s);
-    $('[data-rl-cp-notes="on"]').click();
-    p.win.renderRedline();
-    assert.ok($('#rl-cp').classList.contains('rl-cp-notes'),
-      'a reader who asked for the conversation is reading conversations');
-    assert.ok(!/rl-cp-notes|rlCpNotes/i.test(JSON.stringify(p.win.localStorage)),
+    const $$ = s => [...p.win.document.querySelectorAll(s)];
+    const ch = p.c.changes[0];
+    assert.equal($$(`#rl-cp-body textarea#nego-ti-${ch.id}`).length, 0,
+      'the box has left this panel');
+    const host = p.win.document.createElement('div');
+    p.win.document.body.appendChild(host);
+    p.win.rlNotesPanelPaint(host, p.c, ch, { side: 'owner' });
+    assert.equal(host.querySelectorAll(`textarea#nego-ti-${ch.id}`).length, 1,
+      'and there is exactly ONE, in the room you are standing in');
+    assert.equal(p.win.document.querySelectorAll(`textarea#nego-ti-${ch.id}`).length, 1,
+      'ONE IN THE WHOLE DOCUMENT: a second copy is a box that posts nothing');
+  });
+
+  test('the room is a posture — per sitting, in memory, never persisted', async () => {
+    const p = await bench();
+    assert.equal(p.win.rlNpRoom(), 'internal', 'it opens on the quiet room');
+    p.win.rlNpSetRoom('external');
+    assert.equal(p.win.rlNpRoom(), 'external', 'and the choice holds for the sitting');
+    assert.ok(!/rlNpRoom|np-room/i.test(JSON.stringify(p.win.localStorage)),
       'a reading posture is not a setting');
+    p.win.rlNpSetRoom('internal');
   });
 
-  test('the switch does not open, close or move the panel', async () => {
+  test('the retired switch cannot be drawn back', async () => {
     const p = await bench();
-    p.win.renderRedline();
-    const $ = s => p.win.document.querySelector(s);
-    const clauseId = p.c.changes[0].clauseId;
-    $(`.rl-cp-pill[data-rl-cp-open="${clauseId}"]`).click();
-    assert.equal(p.win.rlCpOpenId(), clauseId, 'the panel is open on the clause');
-    $('[data-rl-cp-notes="on"]').click();
-    assert.equal(p.win.rlCpOpenId(), clauseId,
-      'showing the notes must not navigate or shut the panel');
-    assert.ok($('#rl-cp').classList.contains('is-open'), 'still open');
+    assert.equal(p.win.rlCpSegsHtml(), '',
+      'rlCpSegsHtml draws nothing — a stub, so no third caller can bring an empty switch back');
+    assert.match(SRC, /function rlCpSegsHtml\(\)\{[\s\S]{0,1200}?return '';/,
+      'and the source says what each part became rather than deleting the record');
   });
 
-  test('both faces speak both languages', async () => {
+  test('the two rooms speak both languages', async () => {
     const en = read('js/i18n.js');
-    for (const k of ['ng_cp_hist', 'ng_cp_hist_notes', 'ng_cp_notes_group',
-      'ng_cp_hist_title', 'ng_cp_hist_notes_title'])
+    for (const k of ['ng_np_tab_int', 'ng_np_tab_ext', 'ng_np_who_int', 'ng_np_who_ext',
+      'ng_np_viewer', 'ng_np_confirm_title', 'ng_np_confirm_msg', 'ng_np_confirm_go'])
       assert.equal((en.match(new RegExp(`${k}:`, 'g')) || []).length, 2,
         `${k} must exist in EN and SV`);
   });
 });
+
 
 /* ============================================================
    F210 — THE CLAUSE BOX IS THE SAME WHETHER OR NOT ANYTHING IS ON IT

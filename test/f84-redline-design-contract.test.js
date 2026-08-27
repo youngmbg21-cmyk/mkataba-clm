@@ -90,26 +90,44 @@ describe('F84 — the design names every part, and the names are on the page', (
      2026: the conversation moved from the card into the clause panel's row for
      the change — the card is a routing row and the panel is where the one
      engine-bound composer renders. */
-  test('the panel carries the notes, and the composer the engine binds', async () => {
+  test('the Notes panel carries the conversation, and the ROOM carries the destination', async () => {
+    /* REVERSED IN PLACE (27 Aug 2026). The conversation moved out of the clause
+       panel into the Notes panel's two rooms, and the SAFETY half of this test
+       is the reason the move is worth making rather than a cost of it.
+
+       IT USED TO READ: the pressed data-nego-vis marker must be present and set
+       to internal, because the send resolved visibility by FINDING that marker
+       and DEFAULTED TO SHARED when it found none — so a card that lost its
+       marker would post every internal note to the counterparty.
+       IT NOW READS: there is no marker anywhere, because the room decides. An
+       unsafe default cannot be fallen through to when there is nothing to read.
+       That is a stronger guarantee, and it is asserted by FILING, not by
+       inspecting markup. */
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     assert.ok(card, 'there is a card to hang a conversation off');
     const id = card.getAttribute('data-nego-card');
-    const row = p.$(`#rl-cp-body [data-rl-cp-change="${id}"]`);
-    assert.ok(row, 'the clause panel has the change\'s row');
-    assert.ok(row.querySelector('.rl-cnotes'), 'the notes block is in the panel');
-    assert.ok(row.querySelector(`[id="nego-ti-${id}"]`), 'the engine\'s own composer id');
-    assert.ok(row.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
-    assert.equal(card.querySelector('.rl-cnotes'), null,
-      'and the routing row carries no second copy — one composer, one home');
-    /* THE MARKER IS NOT DECORATION. wireNegotiationTab resolves visibility by
-       finding the pressed data-nego-vis button for this change and DEFAULTS TO
-       SHARED when there is none — so on our seat, where the panel promises the
-       note never travels, the marker must be present and pressed to internal. */
-    const vis = row.querySelector(`[data-nego-vis][data-for="${id}"][aria-pressed="true"]`);
-    assert.ok(vis, 'a pressed visibility marker');
-    assert.equal(vis.getAttribute('data-nego-vis'), 'internal',
-      'and on our own seat it says internal, or every note would go to them');
+    const ch = p.win.negoChangeById(p.c, id);
+    assert.equal(p.$('#rl-cp-body .rl-cnotes'), null, 'the clause panel carries no thread');
+    assert.equal(card.querySelector('.rl-cnotes'), null, 'and the row carries no copy either');
+    const host = p.win.document.createElement('div');
+    p.win.document.body.appendChild(host);
+    p.win.rlNpSetRoom('internal');
+    p.win.rlNotesPanelPaint(host, p.c, ch, { side: 'owner' });
+    assert.ok(host.querySelector(`[id="nego-ti-${id}"]`), 'the composer is in the panel');
+    assert.ok(host.querySelector(`[data-rl-np-send="${id}"]`), 'with its own send');
+    assert.equal(host.querySelector('[data-nego-vis]'), null,
+      'AND NO VISIBILITY MARKER AT ALL — there is nothing to read, so nothing to misread');
+    host.querySelector('.rl-np-in').value = 'Our fallback is thirty.';
+    host.querySelector('[data-rl-np-send]').dispatchEvent(
+      new p.win.Event('click', { bubbles: true }));
+    return new Promise(r => setImmediate(() => {
+      const filed = (ch.thread || [])[(ch.thread || []).length - 1];
+      assert.ok(filed, 'the note was filed');
+      assert.equal(filed.visibility, 'internal',
+        'FROM THE INTERNAL ROOM IT IS INTERNAL — the room is the destination');
+      r();
+    }));
   });
 
   test('the grid holds the document and ONE sidebar, with one face in it', async () => {

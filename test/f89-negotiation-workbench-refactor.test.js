@@ -896,22 +896,25 @@ describe('F89 (9) — one sidebar, and one face left in it', () => {
   });
 
   test('the conversation moved onto the change, it did not disappear', async () => {
-    /* It has moved three times: off the Discussion column onto the card, out
-       of the card's fold into the pop-out, and (16 Aug 2026) into the CLAUSE
-       PANEL's row for the change, where it renders once and for good. Every
-       move says the same thing — the thread belongs to the CHANGE — and the
-       one-copy rule is the constant: the engine binds this composer by element
-       id and scopes its lookups to its own mount, so a second copy would never
-       send. */
+    /* It has moved FOUR times: off the Discussion column onto the card, out of
+       the card's fold into the pop-out, into the clause panel's row (16 Aug
+       2026), and into the NOTES PANEL's two rooms (27 Aug 2026). Every move
+       says the same thing — the thread belongs to the CHANGE — and the one-copy
+       rule is the constant that survives all four, because a second copy of a
+       composer is a box that accepts typing and never sends. */
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     const id = card.getAttribute('data-nego-card');
-    const row = p.$(`#rl-cp-body [data-rl-cp-change="${id}"]`);
-    assert.ok(row, 'the clause panel names the change');
-    assert.ok(row.querySelector('.rl-cnotes'), 'the notes block is on the change\'s row');
-    assert.ok(row.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
-    assert.ok(row.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
-    assert.equal(p.$$('.rl-cnotes').length, 1, 'never two copies of one thread');
+    assert.equal(p.$$('.rl-cnotes').length, 0, 'the retired block draws nowhere');
+    assert.equal(p.$$(`textarea#nego-ti-${id}`).length, 0,
+      'and the mounted page carries no composer — it is the panel\'s now');
+    const host = p.win.document.createElement('div');
+    p.win.document.body.appendChild(host);
+    p.win.rlNotesPanelPaint(host, p.c, p.win.negoChangeById(p.c, id), { side: 'owner' });
+    assert.ok(host.querySelector(`[id="nego-ti-${id}"]`), 'with the composer for the change');
+    assert.ok(host.querySelector(`[data-rl-np-send="${id}"]`), 'and its own send');
+    assert.equal(p.win.document.querySelectorAll('.rl-np-list').length, 1,
+      'never two copies of one thread');
   });
 });
 
