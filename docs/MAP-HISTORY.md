@@ -3505,3 +3505,134 @@ dispute destroys. Nothing about it changes what HaTi accepts — and the
 national eID rung is declared unavailable rather than omitted, so the
 product can say "not this one" out loud and the BankID rung clips on the day
 there is a broker account to clip it to.
+
+## THE SIX QUESTIONS, ASKED BEFORE ANY CODE IS WRITTEN (27 Aug 2026)
+
+The terse rule is in CLAUDE.md under the same subject. This is why it exists,
+what each question is really guarding, and the three ways the rule itself can
+fail.
+
+**IT IS NOT NEW THEORY. IT IS THE SIX LESSONS THIS PROJECT HAS ALREADY PAID
+FOR, ASKED BEFORE THE CODE INSTEAD OF AFTER THE SCREENSHOT.** Every one of the
+six has a scar in this file with a date on it, and in every case the sequence
+was the same: something was built, the owner saw it, the owner reported it, and
+it was taken out again. That loop is the single largest recurring cost in this
+codebase's history, and it is not caused by bad code — the code usually worked.
+It is caused by a design decision that nobody stopped to make.
+
+**THE EVIDENCE, FROM THIS FILE'S OWN RECORD.** The filled primary button was
+added and removed FOUR separate times before the pattern was written down as
+settled ("this reader reads emphasis as shouting"). Bands were added as
+courtesies and then rung one after another — the reading band, the floating
+notices stack, the narrowed-column band, both received-document bands, the
+status strip on every tab. Page subtitles were written for every page and then
+removed from every page across two consecutive days. The change column was
+ruled transparent, then boxed, then argued about again. The clause editor
+shipped as two stacked boxes and was rebuilt around the contract itself within
+a day. None of those was a bug. Each was a design question that had an
+answerable form and was never asked.
+
+**WHAT THE SIX COST AND WHAT THEY SAVE.** They cost a few minutes of thinking
+before the first line of code. They save the build-report-reverse loop, which
+costs a screenshot, a message, a session, and — the part that does not show up
+in a diff — the owner's confidence that the thing they asked for is what they
+will get.
+
+### Why each question is on the list
+
+**1. THE INDUSTRY QUESTION** is there because HaTi is sold against products
+that have already made most of these decisions and been corrected by thousands
+of customers. Where a serious CLM product puts a fact, who it lets decide, what
+it records and what it lets cross to the counterparty are answers with a lot of
+scar tissue behind them. Following one is cheap. Departing from one is often
+right — this product departs deliberately in several places — but a departure
+made ON PURPOSE can be defended, and a departure made by accident is discovered
+by a customer.
+
+**THE HONESTY CLAUSE IS THE LOAD-BEARING HALF, and it is a guard against me
+rather than against the product.** An assistant asked "what does Icertis do
+here" will produce a confident, plausible, unfalsifiable answer whether or not
+it knows. That is worse than silence, because a brand name ends an argument
+that ought to be had. So the rule permits, and prefers, "the general practice
+is X and here is why" — a principle can be argued with; a fabricated fact
+cannot.
+
+**2. THE SAP QUESTION IS ABOUT ATTENTION, NOT LOOKS**, and the rulebook already
+carries the owner's own statement of it under NO NEW BANDS ON THE PAGE. What
+the ladder adds is an ORDER, so the question has a single answer rather than a
+discussion. The reason it works is not taste: enterprise software of that kind
+ranks its channels by what each costs the reader and spends the least that will
+do the job. Amber that is always there stops being read, and then the one band
+that really is a warning goes past unread with it. The second half — facts in
+the header, work in a worklist, rules in settings, history in the trail — is
+what stops a fact being drawn as a warning, which is the commonest way a screen
+starts lying about what it wants from the reader.
+
+**3. THE ALREADY-SAID QUESTION** is deliberately a pointer rather than a
+restatement. The owner's own test is written out in full in CLAUDE.md and it
+must stay written out in exactly one place; two statements of one rule drift,
+which is this codebase's most-recorded defect class in every other context and
+would be no different here.
+
+**4. THE CONTRACT'S SPACE** is the one question with a NUMBER attached, and
+that is why it is the most reliable of the six. Measured on 22 Aug 2026, 291
+pixels sat above the first line of the agreement on the Document tab at a
+1440x900 laptop — a third of the window, spent on chrome, before a single word
+of the thing the product exists to show. It came down to 249 by taking pixels
+out of three joins in the furniture and NONE out of the paper, because a page
+that reclaims space by cropping the contract has answered the wrong complaint.
+The check is cheap precisely because it is a measurement: two numbers, before
+and after, and the second may not be larger.
+
+**5. THE COPILOT CONDITIONS** are each an incident. It sits beside the wording
+because the Copilot drawer used to be a chat about a clause the reader could
+not see, and the whole clause-editor page exists to correct that. It decides
+nothing because every guard in this product — the desk rule, the review gate,
+the wording freeze, the accept guard — lives in the funnel, and a suggestion
+with its own path into the record is a suggestion that has none of them. It
+names what it rests on because a recommendation about a company's own standards
+has to be checkable, which is why the precedent engine is deterministic and has
+no route at all. It fails out loud because the obligations reader returned
+silence on long agreements for weeks and silence reads as "this contract has no
+obligations" — a wrong answer wearing a right answer's clothes. And it spends
+only on a press because AI money is real money and a reader who cannot see what
+a press cost will stop pressing.
+
+**6. THE JOURNEY QUESTION** catches the class of fault that no single-screen
+review can see: the door whose count does not match the list behind it, the
+refusal whose stated remedy is not on the screen that refuses, the second door
+built beside one that already exists. All three are in this file with dates.
+The last is the most expensive, because two doors onto one act do not fail —
+they drift, and then two screens disagree about what the product does.
+
+### The three ways this rule fails, and the guard for each
+
+**IT BECOMES FURNITURE.** A six-part ritual performed on every commit is read
+by nobody after the second week, exactly like an amber band that is always on.
+Guarded twice: the rule only applies to changes a person can SEE, and the
+answers are thought through internally with only the ones that CHANGED the
+build reported back. If the summaries start reading like a form, the rule has
+already failed and should be cut down rather than defended.
+
+**IT LAUNDERS OPINIONS.** "SAP would do it this way" and "Ironclad does X" are
+sentences that end arguments. The honesty clause in question 1 is the guard;
+the same standard applies to question 2, where the honest form is "the
+cheapest channel that carries this is a count on the control", not an appeal
+to a brand.
+
+**IT WIDENS THE JOB.** "Think about how the best systems do this" is one short
+step from "so let us rebuild it that way", which is precisely what the Scope
+rules exist to stop. The guard is the closing line of the rule and it is
+absolute: the six change HOW the asked-for thing is built and never WHAT is
+built. Anything they turn up beyond the request is one line in BUGLOG.md, like
+everything else.
+
+### What it should feel like in a session
+
+Nothing, most of the time. On a bug fix it does not run. On a small visible
+change it is a minute of thought that usually confirms the obvious. It earns
+its place on the changes where it does NOT confirm the obvious — where the
+answer is "the count already says this, so the band is not needed", or "this
+belongs in the object header rather than in a strip", or "this adds 40 pixels
+above the contract and here is what has to come out to pay for it". Those are
+the sentences that would have prevented most of the reversals recorded above.

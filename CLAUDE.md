@@ -101,6 +101,119 @@ goes on the list and to the owner in exactly the same way. The Scope rules
 apply unchanged: a band you think fails the test is one line in BUGLOG.md and
 a sentence to the owner, never a fix made on the way past.
 
+## THE SIX QUESTIONS, ASKED BEFORE ANY CODE IS WRITTEN (owner-asked 27 Aug 2026)
+
+THE OWNER'S OWN WORDS, and they sit HERE — under the Scope rules and above the
+Bug Fix Rules — because they govern HOW a thing is built and never WHAT is
+built:
+
+> *"...first think of how best in class systems in the CLM space approach the
+> issue especially in the integration of AI to support the user, how SAP
+> S/4HANA design in UI and UX would approach the matter, how to make sure it
+> is easy to understand and navigate without adding banners and such for the
+> user, ensuring you are not encroaching on the space allocated to the
+> contract, smartly integrating copilot where copilot is being used and
+> ensuring seamless flows."*
+
+**WHEN THEY APPLY, because a checklist that runs on everything is one nobody
+runs.** Ask the six whenever a change ADDS or MOVES something a person can see
+or press, or changes what the product SAYS to them. Skip them for a fix that
+restores behaviour this rulebook already states, a rename, a test, a token swap
+that moves no pixel, or anything a reader could not tell apart. **In doubt, ask
+them**: they cost minutes, and a screen the owner has to report twice costs a
+day.
+
+### 1. HOW DOES THE BEST OF THIS INDUSTRY SOLVE THIS?
+
+Name how a serious contract-management product answers the same question —
+where the fact lives, who is allowed to decide it, what is recorded, what
+travels to the other side, what the reader is asked and when. Then say whether
+HaTi is following that or leaving it on purpose. **A departure is fine and gets
+one sentence of reason; an accident is not.**
+
+**NEVER INVENT A COMPETITOR'S BEHAVIOUR.** Where you do not actually know what a
+named product does, say "the general practice is X" and own it as a principle
+rather than dressing an opinion in somebody else's brand. A made-up fact about
+Icertis or Ironclad is worse than no answer at all, because nobody in the room
+can argue with it.
+
+### 2. WHAT WOULD SAP DO — WHICH IS A QUESTION ABOUT ATTENTION, NOT ABOUT LOOKS
+
+Spend the least of the reader's attention that will do the job. The ladder,
+cheapest first, and you take the FIRST rung that works:
+
+1. **Nothing** — a control, a count, a heading or a status word already carries
+   the fact.
+2. **On the control itself**, or in the object's own header: a count in the
+   label, a state on the row, a fact in the fact band.
+3. **A transient confirmation**, for something that has just happened because
+   the reader pressed something.
+4. **A strip**, and only where it changes what the reader can do right now.
+5. **A blocking dialog**, and only for a decision that cannot proceed without
+   them.
+
+And put each kind of thing where that world puts it: **facts in the object's
+header, work in a worklist, rules in settings, decisions in a dialog, history
+in the trail.** A fact drawn as a warning, or work drawn as a fact, is the
+commonest way a screen starts lying about what it wants.
+
+### 3. DOES THE SCREEN ALREADY SAY IT?
+
+The two-part test under **NO NEW BANDS ON THE PAGE**, unchanged and deliberately
+not restated here — go and read it there, because two statements of one rule
+drift. Both halves must pass before anything is added to a page, and the same
+test governs taking one away.
+
+### 4. DOES THE CONTRACT KEEP ITS SPACE?
+
+**Measure the distance from the top of the window to the first line of the
+agreement, before and after. It may not grow.** Nothing new goes between the
+reader and the wording; nothing floats over the paper; furniture does not follow
+the reader's own text-size setting and the paper always does. If the chrome has
+to grow, say by how many pixels and what they bought.
+
+### 5. WHERE DOES COPILOT SIT, AND WHAT IS IT ALLOWED TO DECIDE?
+
+Five conditions, and a Copilot surface has to pass all five:
+
+- **It sits beside the wording it is about** — never a conversation about a
+  document the reader cannot see.
+- **It decides nothing.** Every act it offers presses the ordinary funnel, so no
+  suggestion ever gets a private path into the record, and every guard that
+  governs a human's edit governs it too.
+- **It names what it rests on**, in something checkable — the playbook position,
+  what this workspace settled before, what the other side actually asked — never
+  on its own authority.
+- **It fails out loud.** No key, a refusal, an answer cut short, a cap on how
+  much was read: each says so where the reader is looking. Silence is the one
+  forbidden failure, because silence reads as "there is nothing here".
+- **It spends money only when asked.** One press, one call, and the reader can
+  see what it cost them.
+
+### 6. WHERE DOES THE READER END UP?
+
+Walk the whole journey rather than the press. Is there a way back, and does it
+land where the reader expects? Does the number on a door match the list behind
+it? Does a refusal carry its way forward on the same screen? And is there
+exactly ONE way to do this act — or has a second door just been built beside one
+that already exists, which is how the two come to disagree?
+
+### WHAT TO DO WITH THE ANSWERS, AND IT IS DELIBERATELY QUIET
+
+Answer all six **internally**, the way Bug Fix Rule 2 already asks. In the
+plain-English summary mention **only the checks that CHANGED what was built**,
+plus any you could not answer honestly. Six paragraphs of box-ticking on every
+fix is exactly the furniture this rulebook keeps warning about, and a ritual
+nobody reads is a ritual that gets skipped.
+
+**IF A CHECK DISAGREES WITH THE ASK: say so in a sentence or two, then build
+what was asked.** The owner rules. And what the six may never do is widen the
+job — anything they turn up beyond the request is one line in BUGLOG.md under
+"Noticed, not fixed", exactly like everything else.
+
+**THE SIX CHANGE HOW THE ASKED-FOR THING IS BUILT. THEY NEVER CHANGE WHAT IS
+BUILT.**
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
