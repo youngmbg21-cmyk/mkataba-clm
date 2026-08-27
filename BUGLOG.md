@@ -7954,3 +7954,126 @@ Noticed, not fixed:
   insights-panels 40/40, portfolio-frame 21/21. white-band-and-tabs is 36/38,
   which is exactly what its KNOWN_RED entry promises.
   Node: 4707/4707.
+
+---
+
+## 27 Aug 2026 — THE ROUND HAS TWO ACTS, AND THEY SIT TOGETHER
+
+Owner-asked, after a review of how Publish Round works: retire it from the page
+head, rename the column to Redlines (N) with one number, put Close Round beside
+Send all, move refusals to the top of the pile, and — the last instruction —
+"make the send all button and the close round as well to be green / blue
+depending on the mode as opposed to orange which is out of place."
+
+**THE DIAGNOSIS WAS A NAMING BUG.** "Publish Round" SENT the unsent redlines and
+never closed anything; the act that really ends a round sat two controls along
+in the same row wearing almost the same clothes. And the column head twelve
+pixels below already carried the same act, on the cards it acts on, with the
+count on it — so the head's verb was the quieter, worse-placed half of a matched
+pair, a third door onto one letterbox.
+
+Found and fixed:
+
+- **The head's Publish Round is retired.** `sendVerb`, `sendCounts`, `sendTip`,
+  `sendWho` and `sendTarget` went with it; `.rl-send-detail` is STALE. The act
+  is `rlUnsentSendHtml`, which presses the same postbox through the same
+  delegated proxy — a door removed, not a transport.
+- **The column is Redlines (N) and says ONE number.** "Tracked changes (3)" with
+  "3 open" beside it printed the same round twice on one line, and the pair plus
+  Send all wrapped the row on a laptop. `.rl-idx-open`'s rules are deleted;
+  `ng_n_open` and `ng_tracked_head_n` are inert in both dictionaries.
+- **Close Round moved into that row and is drawn from the first change onwards**,
+  greyed until the round is settled with the reason on its hover. On the head it
+  appeared only once everything was answered, so until the moment you no longer
+  needed telling, nothing said a round is a thing you close. The gate is
+  unchanged — same attribute, same handler, same naming dialog.
+- **Both acts wear `--accent-fill`** (accent-700: white on accent-600 is 3.74:1,
+  and it follows the workspace brand, so green in the teal workspace and navy in
+  the navy one, with no dark override owed). One rule, both buttons — only ever
+  one of them is live, because everything unsent must travel before a round can
+  close.
+- **`refused` is first in `RL_CARD_BANDS`.** It was sixth, under five piles of
+  work simply taking its course. It stays in `RL_SETTLED_BANDS`, so its rows
+  still read quietly — the heading leads, the rows are a record.
+- **A round on a standing link now reads as delivered.** The toast computed "did
+  it go" from `emailSent` alone, so every round after the first came back AMBER
+  reading "not emailed", with a Copy link offering the owner a link the other
+  side was already holding. The audit trail has said the honest thing since
+  `quiet` was introduced and the toast was never told; it reads the same flag
+  now. A genuine mail failure keeps its amber and its link.
+
+What this costs, said out loud: with nothing of ours unsent there is now no batch
+send on the page at all — the head's verb used to draw whatever the state was, so
+it could be pressed with nothing to publish. That is this page's own "a verb that
+cannot work is not drawn" rule finally applied to it.
+
+MEASURED after: at 1500 the head holds its name and both acts on one line with
+166px to spare; in Swedish with 119px to spare; at 1280 still one line, 29px
+tall. Both acts compute `rgb(15, 118, 110)` in the teal workspace, matching
+`--accent-fill`, with white ink.
+
+The colour census was re-recorded, audited value by value first — ONE screen, ONE
+value: `rgb(252, 211, 77)` (the retired open marker's dark ink) leaving
+`negotiate--dark`, with NOTHING arriving. Light did not move at all. Amber was
+checked as still alive on that screen in both themes before the baseline was
+saved.
+
+**AND THE FULL SUITE CAUGHT ONE THE TARGETED RUNS DID NOT, which is the lesson
+worth keeping.** f152 pinned `sendTarget`, `sendVerb` and `sendTip` by name — its
+claim is that every label on the control row is built from `rowSide` rather than
+`side`, so flipping to the preview cannot change a label's width and shuffle the
+row. My grep for affected files searched for the visible things ("Publish
+Round", `.rl-idx-open`, `.rl-unsent-go`) and not for the IDENTIFIERS I was
+deleting, so nothing named it. **When you remove a local, grep for the local.**
+The claim is reversed in place and is stronger: the one label left is asserted
+on `rowSide`, and the three that went are asserted ABSENT, so if the send ever
+returns to that row it has to be built the same way.
+
+Tests: f246, f209, f240, f84, f89, f91, f93, f152 (claims reversed in place),
+redline-verify section 14a (new — the head as PAINT, the pair's colour as a
+RELATION against `--accent-fill`, and the row proved to hold all three on one
+line), nego-redesign-verify 1b, control-row-folds-verify,
+flat-rows-and-alerts-verify section 3, drafting-stage-verify (re-pointed at the
+proxy's ATTRIBUTE rather than a label), pages-read-alike-verify, and
+round-delivery-verify section 9 (new — a real second round down a standing link,
+the toast's ground read off `#toast-root`).
+
+**THE SIX QUESTIONS, run after merging main (which added them the same
+morning).** Two of the five refusals can bite here and both were MEASURED rather
+than reasoned about, on the negotiation page at 1500 and 1280, against a
+worktree at this branch's parent:
+
+- **Refusal 3, the contract's pixels: 393px to the first line of the wording
+  BEFORE and 393px AFTER, at both widths** — the head is the same 126px and the
+  sheet starts at the same 245. Zero growth. Removing a button from a flex row
+  costs the row nothing, which is what one would expect and is now a number.
+- **Refusal 5, the one door: send proxies 2 → 1.** This change is that refusal
+  working — it removes a second door onto one letterbox. Close Round is 1 where
+  it was 0 in that state (it was not drawn at all until the round was already
+  settled, which is the fault fixed here), and never 2.
+
+The other four changed nothing about what was built: no band was added and one
+printed count was removed (2); Copilot is untouched (4); no named product's
+behaviour is asserted anywhere (1); and the journey was walked end to end —
+file, send, close — with the door's number matching the list behind it and the
+refusal carrying its way forward on the same screen (6).
+
+Noticed, not fixed:
+
+- `npm run lint` still reports the four pre-existing duplicate-key errors in
+  js/i18n.js (`co_password_updated`, `act_next`). Unchanged by this run.
+- **THREE BROWSER FILES ARE RED AND NOT ONE OF THEM IS THIS RUN'S. PROVED, NOT
+  ASSERTED**: each was re-run against a stashed (unmodified) tree and came back
+  with the identical count and the identical failing checks —
+  flat-rows-and-alerts 34/37 (2d/2e/2f, the column head rebuilt on the 24 Aug
+  render), portal-header-verbs 29/30 (it measures `.rl-unsent`, the band retired
+  on 26 Aug), and pages-read-alike 47/50 (the negotiation head's wrap checks).
+- **round-delivery-verify's new section 9 first reported "no toast" on a send
+  that had worked**, because it slept 4s and an 'ok' toast clears itself after
+  2600ms. It polls now. A fixed wait long enough for a send is also long enough
+  to miss what the send says.
+- The clause-editor and redline pages carry several `${''/* … */}` comments with
+  backticks inside them, which are safe (they are JS comments) — but the CSS
+  builder's own comments must never contain one, and one was written and removed
+  during this run before it could be committed.
+

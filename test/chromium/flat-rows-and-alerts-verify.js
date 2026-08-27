@@ -290,9 +290,22 @@ const SEED_UNSENT = async () => {
           border: cs.borderTopColor, h: Math.round(r.height), w: Math.round(r.width) };
       }).filter(b => b.h > 0 && b.w > 0);
     });
-    const publish = Array.isArray(acts) && acts.find(b => /publish|close round/i.test(b.text));
-    check('3a Publish Round is in the head row', !!publish, acts);
-    check('3b and it is NOT bold', !!publish && Number(publish.weight) <= 400, publish);
+    /* ---- REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round
+       from the page head) ----
+       3a and 3b held the ROUND'S OWN ACT to this row's rules — that it is
+       there, and that it is not bold. It is not there: it was one word doing
+       two jobs (it sent, it never closed) and the column head twelve pixels
+       below already carried the same act on the cards it acts on. The act's own
+       clothes are measured in redline-verify section 14a, where it now lives.
+       WHAT THESE CHECKS WERE REALLY FOR — that this row speaks with ONE voice,
+       nothing bold and nothing filled — is 3c, 3d and the new 3e below, and it
+       is now absolute rather than led by one named button. */
+    check('3a the row carries no send of its own any more',
+      Array.isArray(acts) && !acts.some(b => /publish|send/i.test(b.text)),
+      Array.isArray(acts) ? acts.map(b => b.text) : acts);
+    check('3b and nothing on it is filled — the row leads by position',
+      Array.isArray(acts) && acts.every(b => b.bg === 'rgba(0, 0, 0, 0)'),
+      Array.isArray(acts) ? acts.map(b => [b.text, b.bg]) : acts);
     check('3c nothing else in the row is either',
       Array.isArray(acts) && acts.every(b => Number(b.weight) <= 400),
       Array.isArray(acts) ? acts.map(b => [b.text, b.weight]) : acts);
@@ -300,9 +313,12 @@ const SEED_UNSENT = async () => {
       Array.isArray(acts) && new Set(acts.map(b => b.h)).size === 1
       && new Set(acts.map(b => b.size)).size === 1,
       Array.isArray(acts) ? acts.map(b => [b.text, b.h, b.size]) : acts);
-    check('3e it still LEADS by its outline — a transparent face and an accent rule',
-      !!publish && publish.bg === 'rgba(0, 0, 0, 0)'
-      && publish.border !== 'rgba(0, 0, 0, 0)', publish);
+    /* RE-POINTED with 3a: the claim was about the one act, and it holds of every
+       control left on the row — each still reads as a button, by an outline
+       rather than by a fill. */
+    check('3e every act still reads as one — an outline, never a bare word',
+      Array.isArray(acts) && acts.every(b => b.border !== 'rgba(0, 0, 0, 0)'),
+      Array.isArray(acts) ? acts.map(b => [b.text, b.border]) : acts);
 
     /* ---- the control bar's own buttons keep their weight (the fold ladder) ---- */
     const bar = await page.evaluate(() => {

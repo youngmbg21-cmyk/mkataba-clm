@@ -247,15 +247,25 @@ describe('the row — same controls, same places, dead in the window', () => {
     }
   });
 
+  /* ---- RE-POINTED 27 Aug 2026 (owner-asked: retire Publish Round from the page
+     head) ---- Three of the four labels this walked — the send's target, its
+     verb and its tip — went with the button they existed for; the act is the
+     column head's own Send all now, and the column is not a row that can
+     shuffle. THE CLAIM IS UNTOUCHED and is asserted on what is left plus the
+     rule underneath it: `rowSide` is what the row reads, and nothing on the row
+     may be built from `side`, which is what would change a label's width when
+     the view is flipped. */
   test('and its labels do not swap with the view — the row is drawn from our chair', () => {
     const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     assert.match(src, /const rowSide = preview \? 'owner' : side/);
-    for (const line of [
-      /const needsYou = negoNeedsYouIds\(c, \{ side: rowSide \}\)/,
-      /const sendTarget = rowSide === 'counterparty'/,
-      /const sendVerb = rowSide === 'owner'/,
-      /const sendTip = rowSide === 'owner'/,
-    ]) assert.match(src, line, 'a label that still read `side` would change width and move the row');
+    assert.match(src, /const needsYou = negoNeedsYouIds\(c, \{ side: rowSide \}\)/,
+      'a label that still read `side` would change width and move the row');
+    /* AND THE THREE THAT WENT MUST NOT COME BACK reading `side` either: if the
+       send ever returns to this row it has to be built from rowSide like its
+       neighbour, which is the whole of what this test protects. */
+    for (const gone of [/const sendTarget/, /const sendVerb/, /const sendTip/])
+      assert.ok(!gone.test(src),
+        'retired with Publish Round — see THE ROUND HAS TWO ACTS');
   });
 
   test('a narrowed reviewer keeps the hiding — that one is a permission', () => {

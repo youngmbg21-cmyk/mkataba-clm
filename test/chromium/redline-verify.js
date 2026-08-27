@@ -589,6 +589,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
                mid: Math.round(r.top + r.height / 2), text: el.textContent.trim() }; };
     return { title: box(document.querySelector('.rl-idx-title')),
              open: box(document.querySelector('.rl-idx-open')),
+             send: box(document.querySelector('.rl-idx-top .rl-unsent-go')),
+             close: box(document.querySelector('.rl-idx-top .rl-close-go')),
+             closeOff: !!document.querySelector('.rl-idx-top .rl-close-go[disabled]'),
              label: box(document.querySelector('.rl-idx-fk')),
              filter: box(document.querySelector('#rl-cardfilter')),
              cards: document.querySelectorAll('#rl-changes [data-nego-card]').length };
@@ -607,6 +610,55 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14a and the whose-asks filter is gone, label and all',
     !idxHead.label && !idxHead.filter,
     `label ${!!idxHead.label}, select ${!!idxHead.filter}`);
+  /* ---- THE SECOND NUMBER IS RETIRED AND THE ROUND'S TWO ACTS SHARE THE ROW
+     (owner-asked 27 Aug 2026) ----
+     "Tracked changes (3)" with "3 open" beside it printed the same round twice
+     on one line, and the pair plus Send all was wide enough to wrap the row on
+     a laptop. Measured as PAINT, because the whole point of the change is
+     width: the row has to hold the name and both acts on ONE line. */
+  check('14a it is called Redlines, and says one number',
+    idxHead.title && /^Redlines/.test(idxHead.title.text) && !idxHead.open,
+    idxHead.title && `${idxHead.title.text} · open marker: ${!!idxHead.open}`);
+  check('14a Close Round sits beside Send all, not on the page head',
+    !!idxHead.close && !!idxHead.send,
+    `send ${!!idxHead.send}, close ${!!idxHead.close}`);
+  check('14a and only ever one of the pair invites a press',
+    idxHead.closeOff === true, `close disabled: ${idxHead.closeOff}`);
+  /* ---- AND THE PAIR WEARS THE WORKSPACE ACCENT, NOT AMBER (owner-asked
+     27 Aug 2026: "green / blue depending on the mode as opposed to orange
+     which is out of place") ----
+     Measured as a RELATION and never as a typed colour: both acts resolve to
+     the same fill, that fill IS --accent-fill (which is defined off the accent
+     ramp, so it follows the workspace brand by construction), and neither is
+     the amber this page reserves for "waiting on you". A palette pass costs no
+     edit here. */
+  const roundActs = await page.evaluate(() => {
+    const q = s => document.querySelector(s);
+    const bg = el => el ? getComputedStyle(el).backgroundColor : null;
+    const root = getComputedStyle(document.documentElement);
+    const probe = v => { const d = document.createElement('div');
+      d.style.color = v; document.body.appendChild(d);
+      const out = getComputedStyle(d).color; d.remove(); return out; };
+    return { send: bg(q('.rl-idx-top .rl-unsent-go')),
+             close: bg(q('.rl-idx-top .rl-close-go')),
+             ink: q('.rl-idx-top .rl-unsent-go')
+               ? getComputedStyle(q('.rl-idx-top .rl-unsent-go')).color : null,
+             fill: probe(root.getPropertyValue('--accent-fill').trim()),
+             amber: probe(root.getPropertyValue('--st-amber-fg').trim()) };
+  });
+  check('14a both acts are filled with the workspace accent',
+    roundActs.send && roundActs.send === roundActs.close && roundActs.send === roundActs.fill,
+    `send ${roundActs.send} · close ${roundActs.close} · --accent-fill ${roundActs.fill}`);
+  check('14a and neither is the amber this page keeps for work owed',
+    roundActs.send !== roundActs.amber && roundActs.close !== roundActs.amber,
+    `amber is ${roundActs.amber}`);
+  check('14a with white on it, which accent-700 is chosen for',
+    roundActs.ink === 'rgb(255, 255, 255)', roundActs.ink);
+  check('14a all three sit on one line — the row does not wrap',
+    idxHead.title && idxHead.send && idxHead.close
+      && Math.abs(idxHead.title.mid - idxHead.send.mid) < 12
+      && Math.abs(idxHead.send.mid - idxHead.close.mid) < 12,
+    idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.send.mid} / ${idxHead.close.mid}`);
 
   /* ---- 14b. THE ⋯ MENU RAISES THE CLAUSE PANEL; THE COLUMN DOES NOT MOVE ----
      The pop-out is retired (16 Aug 2026) and the door moved into the card's ⋯
@@ -808,14 +860,17 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       clippedAway: !!b.closest('.rl-sendslot-hidden'),
       headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
       proxies: document.querySelectorAll('[data-redline-proxy="nego-send"]').length,
-      /* Publish Round moved to the head's line on 22 Aug 2026; it is the same
-         proxy onto the same postbox, so this looks for it in either place. */
+      /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round from
+         the page head). It was a THIRD door onto one letterbox, the quietest
+         and worst-placed of the three, and one word doing two jobs besides —
+         it sent, it never closed, and the act that really ends a round sat two
+         controls along wearing almost the same clothes. */
       toolbarProxy: !!document.querySelector(
         '.room-acts [data-redline-proxy="nego-send"], .rl-tabrow [data-redline-proxy="nego-send"]'),
       /* REVERSED IN PLACE, 26 Aug 2026: the owner deleted the strip and moved
          the act into the column's head — "only move the button". The claim is
-         unchanged and is the one that matters: there are TWO doors onto one
-         postbox, and neither is a transport of its own. */
+         unchanged and is the one that matters: every door onto this postbox is
+         a proxy, and none is a transport of its own. */
       bandProxy: !!document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]'),
       stripGone: !document.querySelector('.rl-unsent'),
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
@@ -832,9 +887,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 and every door onto it is a proxy — one transport, no header copy',
     !!blast && blast.headerCopies === 0 && blast.proxies >= 1,
     blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
-  check('13 the head\'s Publish Round is one of them, Send all in the column\'s head the other',
-    !!blast && blast.toolbarProxy && blast.bandProxy && blast.stripGone,
-    blast && `head:${blast.toolbarProxy} sendAll:${blast.bandProxy} stripGone:${blast.stripGone}`);
+  check('13 Send all in the column is the ONE door, and the head carries none',
+    !!blast && blast.bandProxy && !blast.toolbarProxy && blast.stripGone && blast.proxies === 1,
+    blast && `head:${blast.toolbarProxy} sendAll:${blast.bandProxy} `
+      + `stripGone:${blast.stripGone} proxies:${blast.proxies}`);
   /* ---- AND EVERY DOOR ACTUALLY REACHES THE POSTBOX (15 Aug 2026) ----
      The proxy click was wired by scanning #content at a point BEFORE the panes
      are mounted, so a proxy in the page shell got its handler and one painted
@@ -856,19 +912,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const count = ev => { n++; ev.stopImmediatePropagation(); ev.preventDefault(); };
     post.addEventListener('click', count, true);
     const band = document.querySelector('.rl-idx-top [data-redline-proxy]');
-    const bar = document.querySelector('.room-acts [data-redline-proxy]')
-      || document.querySelector('.rl-tabrow [data-redline-proxy]');
     if (band) band.click();
-    const afterBand = n; n = 0;
-    if (bar) bar.click();
-    const afterBar = n;
+    const afterBand = n;
     post.removeEventListener('click', count, true);
-    return { afterBand, afterBar };
+    return { afterBand };
   });
-  check('13 Send all reaches the postbox exactly once from its new slot',
+  check('13 Send all reaches the postbox exactly once from its slot',
     !!presses && presses.afterBand === 1, presses && `${presses.afterBand} presses`);
-  check('13 and so does the toolbar\'s — one each, never two',
-    !!presses && presses.afterBar === 1, presses && `${presses.afterBar} presses`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);

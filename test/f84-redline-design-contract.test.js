@@ -297,7 +297,10 @@ describe('F84 — the Tracked Changes head is a caption and a count', () => {
        rather than typed here, so a later rewording costs no test edit. */
     const head = p.$('.rl-idx');
     assert.ok(head, 'the column heads itself');
-    assert.ok(head.textContent.includes(p.win.i18t('ng_tracked_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')),
+    /* RE-POINTED 27 Aug 2026 — it is headed "Redlines (N)" now (owner-asked).
+       The claim is untouched: the column heads itself, out of the dictionary
+       rather than off a string typed here, so a rewording costs no edit. */
+    assert.ok(head.textContent.includes(p.win.i18t('ng_redlines_head_n', { n: 1 }).replace(/\s*\(\d+\)\s*$/, '')),
       'what it is');
     /* RE-POINTED 26 Aug 2026 — the WHOSE ASKS filter is retired ("delete the
        whose ask feature"), so the count it carried is back on the head's own
@@ -534,9 +537,30 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        title), which is also what the mockup's own toggle does. */
     assert.ok(strip.some(t => /^Internal$/.test(t)));
     assert.ok(strip.some(t => /^Counterparty$/.test(t)));
-    assert.ok(strip.some(t => /Publish Round/.test(t)));
-    assert.ok(!strip.some(t => /Non-Risk|Reject All|Send All/.test(t)),
-      'no bulk verbs anywhere on this page');
+    /* ---- REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round
+       from the page head) ----
+       One word was doing two jobs: it SENT the unsent redlines and never closed
+       anything, while the act that really ends a round sat two controls along
+       wearing almost the same clothes. And the column head twelve pixels below
+       already carried the same act, on the cards it acts on, with the count on
+       it — so the row's one filled verb was the quieter, worse-placed half of a
+       matched pair.
+       THE CLAIM IS THE ONE IT ALWAYS MADE and it is stronger stated this way:
+       there is exactly ONE batch verb on this page, it is a PROXY onto the
+       engine's own #nego-send rather than a second transport, and the head row
+       is left carrying the ways of LOOKING. */
+    assert.ok(!strip.some(t => /Publish Round/.test(t)),
+      'the head row carries no send of its own any more');
+    await p.win.negoFileProposal(p.c,
+      p.win.negoResolvedText(p.c) + '\nA cap on liability of 100% of fees.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    p.win.renderRedline();
+    const batch = p.$$('[data-redline-proxy="nego-send"]');
+    assert.equal(batch.length, 1, 'exactly one batch verb on the page');
+    assert.ok(batch[0].closest('.rl-idx'), 'and it is in the column, beside the cards it sends');
+    const all = p.$$('#content button').map(b => b.textContent.trim());
+    assert.ok(!all.some(t => /Non-Risk|Reject All/.test(t)),
+      'and no bulk DECIDE verb anywhere on this page — that is a press per clause');
     assert.equal(p.doc.getElementById('nego-bulk-acc'), null,
       'not at the head of the column either — that is where they used to be');
   });
@@ -569,13 +593,18 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        whose purpose is comparing the two views. It is drawn now and DEAD.
        WHAT THIS TEST PROTECTS IS UNCHANGED and is asserted directly instead of
        through an absence: nothing on their chair can publish our round. */
-    /* It moved to the head's own line on 22 Aug 2026 — see the note on the
-       strip test above. Still drawn, still dead here, which is the claim. */
-    const pub = [...p.$$('.rl-head button'), ...p.$$('.room-acts button')]
-      .find(b => /Publish Round/.test(b.textContent));
-    assert.ok(pub, 'it keeps its place, so the row does not move when the view is flipped');
-    assert.ok(pub.hasAttribute('disabled') && pub.hasAttribute('data-rl-dead'),
-      'and it is dead there — publishing a round is not done from the preview');
+    /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round from the
+       page head). The verb is gone from this row entirely — the column's own
+       Send all is the one batch send, and it presses the same postbox through
+       the same proxy. So the "drawn and dead" arrangement has nothing left to
+       be true of, and the claim this test exists for is asserted DIRECTLY,
+       which is stronger than it was: nothing anywhere on their chair can
+       publish our round. */
+    assert.equal([...p.$$('.rl-head button'), ...p.$$('.room-acts button'),
+      ...p.$$('.rl-idx button')].filter(b => /Publish Round/.test(b.textContent)).length, 0,
+      'the verb is retired, not merely disabled');
+    assert.equal(p.$('[data-redline-proxy="nego-send"]'), null,
+      'and no control on this seat presses our postbox');
   });
 
   test('the window has no verbs at all — not even seat-relative ones', async () => {
@@ -603,8 +632,16 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     /* Two buttons for one act, and only one of them following the seat rule,
        is how the D2 drift happened. The claim is stronger now: on the owner's
        seat there is exactly one send in the DOM and exactly one thing pressing
-       it, and on the read-only preview there is neither. */
+       it, and on the read-only preview there is neither.
+       RE-POINTED 27 Aug 2026: the head's Publish Round is retired, so the one
+       proxy is the column's own Send all — which is drawn only when there is
+       something unsent to send, this page's own "a verb that cannot work is
+       not drawn". The fixture files one of OUR asks so there is. */
     const own = await page();
+    await own.win.negoFileProposal(own.c,
+      own.win.negoResolvedText(own.c) + '\nA cap on liability of 100% of fees.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    own.win.renderRedline();
     assert.equal(own.$$('[data-redline-proxy="nego-send"]').length, 1, 'one proxy onto the send');
     /* ONE #nego-send ON THE PAGE, whichever of the two builders drew it — the
        postbox at the head of the column when something is unsent, or the turn
@@ -615,13 +652,14 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'exactly one send for the proxy to point at');
     const p = await asCounterparty();
     assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'nothing bulk on the preview');
-    /* REVERSED IN PLACE with the claim above: the proxy stays on the row so
-       nothing moves, and carries `disabled`, which is the browser refusing to
-       dispatch the click rather than a decision about pixels. f152's
-       click-sweep presses every rendered button and diffs the record. */
-    const proxy = p.$('[data-redline-proxy]');
-    assert.ok(proxy, 'the proxy keeps its place in the preview');
-    assert.ok(proxy.hasAttribute('disabled'), 'and nothing can be pressed from it');
+    /* REVERSED IN PLACE 27 Aug 2026. The dead-but-drawn arrangement was the
+       head row's, and it existed so that flipping the toggle did not shuffle
+       four controls sideways. The send is not on that row any more, and the
+       column's own Send all has never been drawn on a read-only seat — so what
+       this half asserts is the absence, which was always the point: nothing on
+       the preview can press our postbox. */
+    assert.equal(p.$('[data-redline-proxy="nego-send"]'), null,
+      'no proxy onto our postbox from the window');
   });
 
   test('and no send survives anywhere on the preview seat', async () => {
@@ -643,10 +681,19 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'and no paragraph explaining the seat');
   });
 
-  test('flipping back restores the owner\'s own words', async () => {
-    const p = await asCounterparty();
+  test('flipping back restores the owner\'s own send', async () => {
+    /* RE-POINTED 27 Aug 2026: the words were "Publish Round" on the head row and
+       that verb is retired. The claim is the one it always made — the owner's
+       seat gets its own batch send back, and the postbox it presses with it. */
+    const p = await page();
+    await p.win.negoFileProposal(p.c,
+      p.win.negoResolvedText(p.c) + '\nA cap on liability of 100% of fees.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    p.win.renderRedline();
+    p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'counterparty').click();
+    assert.equal(p.$('[data-redline-proxy="nego-send"]'), null, 'gone from the window');
     p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'owner').click();
-    assert.ok(/Publish Round/.test(headerLabels(p).join(' | ')));
+    assert.ok(p.$('[data-redline-proxy="nego-send"]'), 'and back on our own seat');
     assert.ok(p.doc.getElementById('nego-send'), 'and the send it presses is back with it');
   });
 
@@ -675,9 +722,17 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        control is — which is what redlineSyncProxies reads. Taking the engine's
        control away is the case that matters: the proxy must go dead with it
        rather than stay lit and do nothing when clicked. */
+    /* RE-POINTED 27 Aug 2026: the proxy is the column's Send all now rather than
+       the head's Publish Round. The mechanism and the claim are untouched —
+       redlineSyncProxies reads the engine's own control and the proxy goes dead
+       with it. */
     const p = await page();
+    await p.win.negoFileProposal(p.c,
+      p.win.negoResolvedText(p.c) + '\nA cap on liability of 100% of fees.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    p.win.renderRedline();
     const proxy = p.$('[data-redline-proxy="nego-send"]');
-    assert.ok(!proxy.disabled, 'with the engine offering a send, the header offers it too');
+    assert.ok(!proxy.disabled, 'with the engine offering a send, the column offers it too');
 
     p.doc.getElementById('nego-send').remove();
     p.win.redlineSyncProxies(p.doc.getElementById('content'));

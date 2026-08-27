@@ -277,8 +277,13 @@ const SEED = async () => {
       return { nego: read('#view-redline #ws-head .room-acts button') };
     });
     const uniq = (rows, k) => [...new Set(rows.map(r => r[k]))];
-    check('5 the negotiation head really draws the four that were reported',
-      heads.nego.length >= 4, heads.nego.map(b => b.t));
+    /* RE-POINTED 27 Aug 2026: Publish Round is retired from this row
+       (owner-asked), so the four that were reported are three. The claim this
+       gate exists for is unchanged — there is a real row here to measure, and
+       the checks under it are what the report was about: one height, one
+       baseline, one size. */
+    check('5 the negotiation head really draws the row that was reported',
+      heads.nego.length >= 3, heads.nego.map(b => b.t));
     check('5 every button in it is the same height',
       uniq(heads.nego, 'h').length === 1, uniq(heads.nego, 'h'));
     check('5 on the same baseline',
@@ -384,7 +389,7 @@ const SEED = async () => {
       '#ws-head .room-acts button, .room-head .room-acts button');
 
     const oNego = await outlines();
-    check('7 the negotiation head draws its row', oNego.length >= 4, oNego.map(b => b.t));
+    check('7 the negotiation head draws its row', oNego.length >= 3, oNego.map(b => b.t));
     check('7 every button in it has an outline', oNego.every(b => parseFloat(b.bw) > 0),
       oNego.map(b => `${b.t}:${b.bw}`));
     check('7 and they are all the same colour — More included',

@@ -166,15 +166,39 @@ describe('f209 · the column says what has not been sent', () => {
       'and it is still the postbox the handler is bound to');
   });
 
-  test('THE COUNT LEFT THE PUBLISH BUTTON — one number, one place', () => {
-    /* Two surfaces printing one figure is how they come to disagree, and this
-       was the worse of the two: it folded away exactly when the column got
-       narrow. Held and in-review deliberately stay on the button — they are
-       work waiting on a COLLEAGUE, not unsent work waiting on you. */
+  /* ---- REVERSED IN PLACE 27 Aug 2026 (owner-asked: retire Publish Round from
+     the page head) ----
+     This claim was "the unsent count came off the head's button and the held /
+     in-review counts stayed on it". The button is gone, so there is no button
+     for them to stay on — and the CLAIM the test exists for is the one that
+     survives and is now absolute: ONE surface prints each of these numbers.
+     WHERE EACH WENT, so nothing is lost quietly. The unsent count is on Send
+     all, in the column, where it always was. Held and in-review are the names
+     of two of the piles below it — "Out for review" and "Held by your
+     reviewer" — each carrying its own count, which is a stronger statement of
+     the same fact than a suffix that the fit ladder dropped anyway. */
+  test('THE COUNT IS IN ONE PLACE — the head prints none of these numbers', () => {
     const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
-    assert.ok(!/\$\{_goes\} unsent/.test(src), 'the suffix is gone');
-    assert.match(src, /\$\{_held\} held/, 'held stays where it was');
-    assert.match(src, /\$\{_wait\} in review/, 'and so does in review');
+    assert.ok(!/\$\{_goes\} unsent/.test(src), 'the unsent suffix is gone');
+    assert.ok(!/\$\{_held\} held/.test(src), 'and the held suffix went with the button');
+    assert.ok(!/\$\{_wait\} in review/.test(src), 'and so did in-review');
+    /* The verb itself, asserted on what is BUILT rather than on the source
+       text: this page's own history is written in its comments and several of
+       them now explain why Publish Round went. */
+    assert.ok(!/const sendVerb/.test(src), 'nothing builds the label any more');
+    assert.ok(!/const sendTarget/.test(src), 'nor picks a postbox for it');
+  });
+
+  test('and the two counts it carried are said by the piles instead', async () => {
+    const w = world();
+    const c = await withDrafts(w);
+    /* The piles are named for exactly these states — that is where a reader is
+       told a colleague is holding something, and it says WHOSE state it is
+       rather than printing a bare number beside a verb. */
+    assert.ok(w.win.RL_CARD_BANDS.includes('review'), 'out for review is a pile');
+    assert.ok(w.win.RL_CARD_BANDS.includes('held'), 'and held by your reviewer is another');
+    /* And the unsent count is still on the act that sends them. */
+    assert.match(w.win.rlUnsentSendHtml(c, { side: 'owner' }), /Send all 2/);
   });
 });
 
@@ -393,11 +417,31 @@ describe('f209 · a toast says which of three things happened', () => {
     assert.equal(sent.negoDecisions[0].status, 'accepted');
   });
 
-  test('the reported publish path is amber and hands over the link', () => {
-    const src = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
-    assert.match(src, /delivered \? 'ok' : 'warn'/,
-      'published-but-not-emailed is no longer an error');
-    assert.match(src, /ng_copy_link/, 'and the link goes with it');
+  /* ---- REVERSED IN PLACE 27 Aug 2026 (owner-reported) ----
+     The claim was that publishing a round which could not be emailed reads
+     AMBER and hands the link over, and that is untouched — see the second half
+     below. What changed is that a round published onto the link the
+     counterparty is ALREADY HOLDING was falling into that branch: it sends no
+     email on purpose (the link was emailed once, when the negotiation began),
+     so every round after the first came back amber reading "not emailed", with
+     a Copy link offering the owner a link the other side had. The audit trail
+     has said the honest thing since `quiet` was introduced and the toast was
+     never told; it reads the same flag now. */
+  test('a round on a standing link reads as delivered, not as a mail failure', () => {
+    const src = read('js/views/negotiation.js');
+    assert.match(src, /const standing = !!\(out && out\.quiet && !out\.stranded\)/,
+      'the toast reads the same flag the audit line does');
+    assert.match(src, /\(delivered \|\| standing\) \? 'ok' : 'warn'/,
+      'so a round that reached them is green');
+    assert.match(src, /ng_round_sent_standing/, 'and says it is on the link they have');
+  });
+
+  test('and a genuine mail failure keeps its amber and its link', () => {
+    const src = read('js/views/negotiation.js');
+    assert.match(src, /ng_published_not_emailed/, 'the sentence is still there');
+    assert.match(src, /\(!delivered && !standing && link\) \? \{ action:/,
+      'the link is handed over on that branch and only on that branch');
+    assert.match(src, /ng_copy_link/, 'and it is the copy action that carries it');
   });
 });
 

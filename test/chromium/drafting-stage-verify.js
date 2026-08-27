@@ -105,15 +105,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       before.status === 'Draft' && /draft/i.test(before.word || ''), before);
     await page.screenshot({ path: path.join(OUT, '01-before.png') });
 
-    /* THE REAL PRESS, not the model. Publish Round is a proxy onto the page's
-       one postbox, so this exercises the whole send. */
+    /* THE REAL PRESS, not the model. The batch send is a proxy onto the page's
+       one postbox, so this exercises the whole send.
+       RE-POINTED 27 Aug 2026 (owner-asked: retire Publish Round from the page
+       head). It is the column head's own Send all now — the same proxy onto the
+       same postbox, and the only one left, which is why this looks for the
+       proxy by its ATTRIBUTE rather than by a label: the journey under test is
+       "a round that goes out moves the stage", and that must not be hostage to
+       what the button is called. */
     const pressed = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#ws-head .room-acts button')]
-        .find(x => /publish round/i.test(x.textContent || ''));
+      const b = document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]');
       if (!b) return false;
       b.click(); return true;
     });
-    check('1c Publish Round is on the row and was pressed', pressed);
+    check('1c the batch send is in the column head and was pressed', pressed);
     await pause(4000);
     await page.screenshot({ path: path.join(OUT, '02-after.png') });
 
