@@ -114,6 +114,7 @@ let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
 let _ceRendering = false;   /* the paper is being written over — see ceRenderPaper */
+let _ceZoom = 100;          /* how big the page looks — never a font size */
 let _ceLead = null;         /* the change this editor opened on, if any */
 
 const clauseEditorOpen = () => !!_ceClauseId;
@@ -363,6 +364,29 @@ function clauseEditorCss(){
      twenty clauses this page is about. Quiet on purpose: the paper already
      draws its own red margin rule for a clause under change, and a second loud
      marker for one fact is what this rulebook keeps warning about. */
+  /* THE ZOOM SCALES THE PAPER AND NOTHING ELSE. Written on the scroller so the
+     sheet inside it takes the scale and the strip, the readings row and the
+     rail do not — a zoom that grew the furniture would be a text-size stepper
+     wearing a percentage. */
+  .ce-paperwrap .rl-doc{zoom:var(--ce-zoom, 1)}
+  /* A filed change, as the prototype draws it: its reference and where it is,
+     then the wording it proposed, marked. The whole row is the door. */
+  .ce-chg{display:block; width:100%; text-align:left; border:1px solid var(--color-divider);
+    background:var(--color-surface); padding:9px 11px; font:inherit; cursor:pointer;
+    color:var(--color-text)}
+  .ce-chg:hover{border-color:var(--accent-solid)}
+  .ce-chg .id{display:flex; gap:7px; align-items:baseline; font-size:var(--t-label);
+    color:var(--color-neutral-600); margin-bottom:4px}
+  .ce-chg .id b{font-family:var(--font-mono); font-weight:var(--w-strong); color:var(--color-text)}
+  .ce-chg .w{display:block; font-size:var(--t-meta); line-height:1.6}
+  .ce-zoom{flex:none; display:flex; align-items:center; height:26px;
+    border:1px solid var(--color-divider); background:var(--color-surface)}
+  .ce-zoom button{width:24px; height:24px; background:none; border:0; padding:0;
+    font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer}
+  .ce-zoom button[disabled]{opacity:.35; cursor:default}
+  .ce-zoom .out{font-family:var(--font-mono); font-size:var(--t-micro);
+    color:var(--color-neutral-600); min-width:38px; text-align:center;
+    font-variant-numeric:tabular-nums}
   .ce-paperwrap .rl-clause-live{position:relative}
   .ce-paperwrap .rl-clause-live::before{content:""; position:absolute; left:-14px; top:-6px;
     bottom:-6px; width:3px; background:var(--accent-solid)}
@@ -614,6 +638,9 @@ function clauseEditorCss(){
     background:var(--color-surface); color:var(--accent-ink);
     border:1px solid var(--color-divider)}
   .ce-inline .chips button:hover{border-color:var(--accent-solid)}
+  .ce-inline-hint{display:flex; gap:14px; flex-wrap:wrap; margin-top:var(--s-2);
+    font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-inline-hint b{font-weight:var(--w-strong); color:var(--color-text)}
   .ce-inline .work{font-size:var(--t-label); color:var(--accent-ink); font-weight:var(--w-strong); margin-top:var(--s-2)}
   .ce-inline .bad{font-size:var(--t-label); color:var(--st-ruby-fg); font-weight:var(--w-strong); margin-top:var(--s-2)}
 
@@ -1082,6 +1109,18 @@ function clauseEditorHtml(){
                   title="${_ceea(_cet('ce_inline_replace_title'))}">${CE_SEND_ICON}</button>
               </div>
               <div class="chips" id="ce-inline-chips"></div>
+              ${''/* THE HINT ROW, from the approved prototype: where the words
+                     are going, and the two keys. It is NOT the context box the
+                     owner asked to be removed — that one printed the passage
+                     the box is now prefilled with, in a box of its own above
+                     the field. This is one quiet line under it naming the
+                     clause and the keystrokes, which is what a strip with two
+                     hidden keys owes its reader. */}
+              <div class="ce-inline-hint">
+                <span id="ce-inline-where"></span>
+                <span>${_cet('ce_inline_newline')}</span>
+                <span>${_cet('ce_inline_cancel')}</span>
+              </div>
               <div id="ce-inline-note"></div>
             </div>
           </div>
@@ -1101,6 +1140,12 @@ function clauseEditorHtml(){
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
             <button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>
+            ${''/* THE CHANGES TAB, from the approved prototype: what has been
+                   filed on this contract, newest first, each one a door to the
+                   clause it is about. It is a READING of c.changes and files
+                   nothing — the rail's foot is still the only thing that
+                   files. */}
+            <button type="button" data-ce-tab="changes">${_cet('ce_tab_changes')}<span class="n" id="ce-chg-n"></span></button>
             <button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>
           </span>
         </div>
@@ -1457,7 +1502,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
-  _ceRendering = false;
+  _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
   _ceBusy = false;
   clearTimeout(_ceSayTimer);
@@ -1778,6 +1823,7 @@ function ceRenderPaper(){
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
     host.scrollTop = keep;
   } finally { _ceRendering = false; }
+  ceApplyZoom();
 }
 
 /* The three readings, the band that says a reading refuses editing, and the
@@ -1795,11 +1841,51 @@ function ceRenderReadBar(){
        doing, and moving it would cost more than the row gains. */
     bar.innerHTML = rlReadSegsHtml() + `<span class="g"></span>`
       + ceCtxChipsHtml()
-      + `<span class="ce-stat" id="ce-stat">${stat}</span>`;
+      + `<span class="ce-stat" id="ce-stat">${stat}</span>`
+      + ceZoomHtml();
   }
   const band = _ceQ('#ce-band');
   if (band) band.innerHTML = window.rlReadNoticeHtml ? rlReadNoticeHtml({ on: true }) : '';
 }
+/* ---- ZOOM, AND WHY IT IS NOT A FONT SIZE ----
+   The size box on the toolbar sets the size of the WORDS and stores it in the
+   contract: the other side sees it and so does the signed PDF. This changes how
+   big the page looks to THIS READER and nothing in the document. Both exist in
+   Word for the same reason they exist here, and the percentage is what keeps
+   them apart on screen — a number of pixels beside a number of pixels would be
+   two controls nobody can tell apart.
+
+   IT IS NOT PERSISTED. A reading posture for this sitting, like the readings
+   themselves; a stored zoom would follow a reader onto a contract they have
+   never opened and look like a broken page. */
+const CE_ZOOM_MIN = 60, CE_ZOOM_MAX = 200, CE_ZOOM_STEP = 10;
+function ceZoomHtml(){
+  const z = _ceZoom;
+  const b = (act, lab, off) => `<button type="button" data-ce-zoom="${act}"`
+    + `${off ? ' disabled' : ''} aria-label="${_ceea(_cet(lab))}"`
+    + ` title="${_ceea(_cet(lab))}">${act === 'out' ? '&minus;' : '+'}</button>`;
+  return `<span class="ce-zoom">${b('out', 'ce_zoom_out', z <= CE_ZOOM_MIN)}`
+    + `<span class="out" id="ce-zoom-val">${z}%</span>`
+    + `${b('in', 'ce_zoom_in', z >= CE_ZOOM_MAX)}</span>`;
+}
+/* The paper's own scale, written where the sheet reads it. A CSS variable
+   rather than a repaint: the reader's place, their caret and their selection
+   all survive a zoom, which is what makes it feel like Word's. */
+function ceSetZoom(next){
+  const z = Math.max(CE_ZOOM_MIN, Math.min(CE_ZOOM_MAX, Number(next) || 100));
+  if (z === _ceZoom) return;
+  _ceZoom = z;
+  ceApplyZoom();
+  ceRenderReadBar();
+}
+function ceApplyZoom(){
+  /* ON THE WRAPPER, not on the scroller inside it: .rl-doc is the PARENT of
+     #ce-doc, so a variable written on the child never reaches the rule that
+     reads it — measured, the readout moved and the paper did not. */
+  const wrap = _ceQ('.ce-paperwrap');
+  if (wrap) wrap.style.setProperty('--ce-zoom', String(_ceZoom / 100));
+}
+
 /* A clause's text carries ONE SUB-PARAGRAPH PER LINE, and that is what the
    document builder reads back into real numbering at filing time. So the
    editor shows and returns lines, never one run-together paragraph. */
@@ -1977,6 +2063,9 @@ function ceRenderTabs(){
   const n = ceDeviationCount();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
+  const cn = ceFiledList().length;
+  const cb = _ceQ('#ce-chg-n');
+  if (cb){ cb.textContent = cn ? String(cn) : ''; cb.style.display = cn ? '' : 'none'; }
   /* The ask box belongs to the conversation. The scan has nothing to be asked. */
   const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips');
   if (ask) ask.style.display = _ceTab === 'chat' ? '' : 'none';
@@ -1986,10 +2075,40 @@ function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
   if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; return; }
+  if (_ceTab === 'changes'){ lane.innerHTML = ceChangesHtml(); lane.scrollTop = 0; return; }
   lane.innerHTML = _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
+}
+/* ---- WHAT HAS BEEN FILED ON THIS CONTRACT ----
+   The engine's own list, read and never re-derived. It is every LIVE change on
+   the record — the same population the negotiation page's column draws — so
+   this page and that one can never disagree about what has been filed.
+
+   READ WITHOUT WRITING: `c.changes` raw, never negoChanges, which runs negoInit
+   and would start a negotiation on a contract merely by asking about one. */
+function ceFiledList(){
+  try{
+    const all = (_ceC && _ceC.changes) || [];
+    return all.filter(ch => ch && !ch.withdrawn && ch.status !== 'superseded');
+  }catch(_){ return []; }
+}
+/* COUNTING IS NOT DRAWING — the Insights panels' own rule, and what lets the
+   tab's badge and the list below it be one reading. */
+function ceChangesHtml(){
+  const list = ceFiledList();
+  if (!list.length) return `<p class="ce-empty">${_cee(_cet('ce_changes_none'))}</p>`;
+  return list.slice().reverse().map(ch => {
+    const cl = (() => { try{ return window.negoClauseById
+      ? negoClauseById(_ceC, ch.clauseId) : null; }catch(_){ return null; } })();
+    const where = cl ? (ceClauseLabel(cl) || ch.clauseId) : (ch.clauseLabel || ch.clauseId);
+    const body = (() => { try{ return window.rlChangeWordingHtml
+      ? rlChangeWordingHtml(ch) : ''; }catch(_){ return ''; } })();
+    return `<button type="button" class="ce-chg" data-ce-goclause="${_ceea(ch.clauseId)}">`
+      + `<span class="id"><b>${_cee(ch.id)}</b><span>${_cee(where)}</span></span>`
+      + `<span class="w">${body}</span></button>`;
+  }).join('');
 }
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
@@ -2374,6 +2493,9 @@ function ceOpenInline(sel){
   if (chips) chips.innerHTML = [_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain')]
     .map(w => `<button type="button" data-ce-inline-chip="${_ceea(w)}">${_cee(w)}</button>`).join('');
   const note = _ceQ('#ce-inline-note'); if (note) note.innerHTML = '';
+  const where = _ceQ('#ce-inline-where');
+  if (where) where.innerHTML = _cet('ce_inline_where',
+    { where: `<b>${_cee(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}</b>` });
   /* POSITIONED AGAINST THE FRAME IT HANGS IN, not against the scrolling area
      inside it. The popup is absolute inside .ce-paperwrap; measuring from the
      scroller — which starts inside the frame — put it out by the frame's own
@@ -2658,7 +2780,8 @@ function ceWirePage(page){
 
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
-      _ceTab = tab.getAttribute('data-ce-tab') === 'scan' ? 'scan' : 'chat';
+      const want = tab.getAttribute('data-ce-tab');
+      _ceTab = (want === 'scan' || want === 'changes') ? want : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
     const focus = hit('[data-ce-focus]');
@@ -2707,6 +2830,21 @@ function ceWirePage(page){
          clause instead. One decision, taken from the finding's own clauseId. */
       if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
       else ceAddMissingClause(it, words, scan);
+      return; }
+
+    /* A ROW IS A DOOR TO ITS CLAUSE, and it is ceGoClause — the crumb's own act
+       when there was a crumb, and the pencil's on another clause. A second copy
+       is how the two come to disagree about what an unfinished draft costs. */
+    const goCl = hit('[data-ce-goclause]');
+    if (goCl){ ev.preventDefault();
+      const id = goCl.getAttribute('data-ce-goclause');
+      if (id && id !== _ceClauseId) ceGoClause(id); else ceScrollToClause();
+      return; }
+
+    const zoom = hit('[data-ce-zoom]');
+    if (zoom){ ev.preventDefault();
+      ceSetZoom(_ceZoom + (zoom.getAttribute('data-ce-zoom') === 'in'
+        ? CE_ZOOM_STEP : -CE_ZOOM_STEP));
       return; }
 
     const inlineChip = hit('[data-ce-inline-chip]');

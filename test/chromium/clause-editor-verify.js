@@ -1597,6 +1597,22 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      strip.ctx === false, strip.ctx ? '#ce-inline-q still drawn' : 'no context line');
   ck('18e Copilot is still one press away, on the same strip',
      strip.chips === 3 && strip.arrow === true, `${strip.chips} chips, arrow ${strip.arrow}`);
+  /* THE HINT ROW, from the approved prototype: where the words are going and
+     the two keys. NOT the context box the owner asked to be removed — that one
+     printed the passage the box is now prefilled with, in a box above the
+     field; this is one quiet line under it. */
+  const hint = await p.evaluate(() => {
+    const h = document.querySelector('#ce-inline .ce-inline-hint');
+    if (!h) return { there: false };
+    const r = h.getBoundingClientRect();
+    return { there: true, h: Math.round(r.height),
+      text: h.innerText.replace(/\s+/g, ' ').trim(),
+      where: (document.getElementById('ce-inline-where') || {}).textContent || '' };
+  });
+  ck('18e2 …with one quiet line saying where the words go and which keys work',
+     hint.there && /clause|klausul/i.test(hint.where) && /Shift|Skift/.test(hint.text)
+       && /Esc/.test(hint.text),
+     hint.there ? `"${hint.text.slice(0, 74)}"` : 'no hint row');
 
   /* THE PRESS ITSELF: type a replacement and hit Enter for real. */
   const enterPress = await p.evaluate(async () => {
@@ -1764,6 +1780,69 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `undo off=${greyed.off.undo}, exit off=${greyed.off.exit}`);
   ck('19o and pressing the pencil again brings the tools back',
      greyed.back.bold === false, JSON.stringify(greyed.back));
+
+  /* ============================================================
+     20. THE TWO CONTROLS THE PROTOTYPE HAS AND THE BUILD DID NOT
+     ============================================================ */
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
+
+  /* ---- ZOOM IS A VIEW, NOT A FONT SIZE ----
+     The size box on the toolbar sets the size of the WORDS and stores it in the
+     contract; this changes how big the page looks to this reader and nothing in
+     the document. The percentage is what keeps them apart on screen. */
+  const zoom = await p.evaluate(async () => {
+    const sheet = () => { const el = document.querySelector('#ce-doc .rl-paper')
+      || document.querySelector('#ce-doc'); return el ? Math.round(el.getBoundingClientRect().width) : 0; };
+    const strip = () => Math.round(
+      document.querySelector('.ce-barrow').getBoundingClientRect().height);
+    const val = () => (document.getElementById('ce-zoom-val') || {}).textContent;
+    const was = { w: sheet(), v: val(), strip: strip() };
+    document.querySelector('[data-ce-zoom="in"]').click();
+    await new Promise(r => setTimeout(r, 350));
+    const bigger = { w: sheet(), v: val(), strip: strip() };
+    document.querySelector('[data-ce-zoom="out"]').click();
+    document.querySelector('[data-ce-zoom="out"]').click();
+    await new Promise(r => setTimeout(r, 350));
+    const smaller = { w: sheet(), v: val() };
+    /* and back to where it started, so nothing after this measures a zoomed page */
+    document.querySelector('[data-ce-zoom="in"]').click();
+    await new Promise(r => setTimeout(r, 300));
+    return { was, bigger, smaller, back: val() };
+  });
+  ck('20a THE ZOOM IS ON THE READINGS ROW and reads as a percentage',
+     zoom.was.v === '100%', zoom.was.v);
+  ck('20b pressing it really makes the page bigger and smaller',
+     zoom.bigger.w > zoom.was.w && zoom.smaller.w < zoom.was.w,
+     `${zoom.smaller.w} · ${zoom.was.w} · ${zoom.bigger.w}px at ${zoom.smaller.v} / ${zoom.was.v} / ${zoom.bigger.v}`);
+  ck('20c …and the furniture does not move with it — this is not a text-size stepper',
+     zoom.bigger.strip === zoom.was.strip, `strip ${zoom.was.strip} → ${zoom.bigger.strip}px`);
+  ck('20d it returns to where it started', zoom.back === '100%', zoom.back);
+
+  /* ---- THE CHANGES TAB: WHAT HAS BEEN FILED, AND A DOOR TO EACH ---- */
+  const chg = await p.evaluate(async () => {
+    const t = document.querySelector('[data-ce-tab="changes"]');
+    if (!t) return { there: false };
+    t.click(); await new Promise(r => setTimeout(r, 400));
+    const rows = [...document.querySelectorAll('#ce-lane .ce-chg')];
+    const live = (window.CONTRACT.changes || [])
+      .filter(c => c && !c.withdrawn && c.status !== 'superseded').length;
+    return { there: true, rows: rows.length, live,
+      badge: (document.getElementById('ce-chg-n') || {}).textContent,
+      marked: !!document.querySelector('#ce-lane .ce-chg ins, #ce-lane .ce-chg .nego-ins'),
+      isDoor: !!(rows[0] && rows[0].getAttribute('data-ce-goclause')) };
+  });
+  ck('20e THE CHANGES TAB LISTS WHAT HAS BEEN FILED, one row each',
+     chg.there && chg.rows === chg.live && chg.rows > 0,
+     chg.there ? `${chg.rows} rows for ${chg.live} live changes` : 'no tab');
+  ck('20f …counted once — the badge and the list are one reading',
+     chg.there && String(chg.badge) === String(chg.live), `badge ${chg.badge}`);
+  ck('20g …each showing the wording it proposed, marked',
+     chg.there && chg.marked === true, chg.there ? `marks drawn: ${chg.marked}` : '');
+  ck('20h …and each is a door to its own clause',
+     chg.there && chg.isDoor === true, chg.there ? `first row carries its clause` : '');
+  await p.evaluate(() => { const t = document.querySelector('[data-ce-tab="chat"]'); if (t) t.click(); });
+  await pause(300);
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
