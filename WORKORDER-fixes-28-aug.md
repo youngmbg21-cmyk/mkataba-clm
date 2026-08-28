@@ -22,14 +22,15 @@ before it is touched.
 **THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the negotiation
 page's surplus width goes to the cards or to white space (item 1), whether the
 counterparty may rename our clause headings (item 4), and whether "the notes
-panel" means that one face or the whole shell drawer (item 5). **Item 7 is FULLY SPECIFIED** — its
-three questions were answered on 28 Aug and the History question was ruled the
-same day (dropped; no third tab). Nothing in it is waiting on anybody.
+panel" means that one face or the whole shell drawer (item 5). **Item 7 was REVERSED on 28 Aug** — the
+merge was ruled against after it was drawn, and the pencil now simply opens the
+existing editor page. One thing is loose there: whether the clause panel is
+retired or kept as a read-only look.
 
-**ITEM 7 MAY ANSWER ITEM 1's QUESTION BY REMOVING IT.** If the Copilot rail
-takes the right-hand column while a clause is open, "cards or white space" is
-being asked about a column whose job is about to change. Not a reason to delay
-item 1 — but whoever picks either up should read both.
+**ITEM 1's QUESTION IS LIVE AGAIN.** An earlier draft said item 7 might dissolve
+it by changing what the right-hand column is for. Item 7 was reversed, the cards
+hold that column at all times, and "cards or white space" is a real question
+wanting a real answer.
 
 **ITEM 6 IS NOT ONE OF THEM AND MUST NOT BE TURNED BACK INTO ONE.** It is
 decided, it is independent, and an earlier draft of this file wrongly made it
@@ -128,23 +129,25 @@ again.** It does not wait on anything else: built properly, all three screens
 read one setting, so a later change to the negotiation page carries the other two
 with it automatically.
 
-**7 — One page instead of two.** Your idea: the negotiation screen becomes the
-editor, and the separate "Edit with Copilot" page goes away. **I think you are
-right**, and the reason is your own record — three times now you have pushed
-editing toward being one thing in one place, and this is the last layer between
-you and the wording. It also solves item 6 by deletion: two screens to keep alike
-instead of three. Every piece already exists, so nothing is being invented; it is
-a rearrangement. It is not small, though — it merges a page into one six times its
-size. **You have now answered the three things I asked**, so it is fully specified:
-the Copilot window slides over the cards exactly as the clause panel does today,
-you edit one clause at a time, and the clause panel goes.
+**7 — The pencil takes you straight to the editor.** You looked at the drawing
+and ruled against merging the two pages. So: **the negotiation screen stays
+exactly as it is** — contract, cards on the right, read and answer, nothing typed
+there — and **pressing the pencil takes you to the Edit with Copilot page** to do
+the editing.
 
-**One correction I owe you:** I said the panel's *History* section had nowhere
-else to live. That was wrong — I checked, and the contract's own History tab can
-already be filtered to a single clause, so the same record is there. Nothing is
-lost. **You have ruled it dropped**, so the Copilot window keeps two tabs and
-the History tab is the one place a clause's record lives. **Item 7 now has no
-loose ends.**
+**This is much smaller than the idea it replaces.** You already cannot type on
+the negotiation page; the only way in is the little panel that opens when you
+press the pencil, and this simply sends that press to the editor instead. **Two
+presses become one, and nothing on the page moves.**
+
+**One thing to decide:** that little panel is now nearly empty — its two writing
+buttons become the pencil's job, its History belongs on the History tab, and the
+rest is already on screen. Do you want it gone, or kept as a quick look at what
+is on the table for a clause?
+
+**And one question comes back to life:** I had said this might make item 1's
+"cards or white space" question go away. It does not — the cards keep that column
+all the time now, so that question is real again.
 
 ---
 
@@ -852,173 +855,95 @@ it is a build instruction rather than a question for the owner.
 
 ---
 
-## 7 — ONE PAGE: THE NEGOTIATION SCREEN *IS* THE EDITOR
+## 7 — THE PENCIL GOES STRAIGHT TO THE EDITOR
 
-> *"With regards to negotiations page I think I over complicated the issue. I
-> believe editing manually and with copilot should be the same page. What it
-> means is the page attached prior to edit with copilot goes away. Negotiation
-> screen becomes edit with copilot and the functionality would be, you click on
-> the edit symbol once, you can then highlight a word or a sentence and you get
-> image 2. Or, you can simply begin editing manually wherever you want if you
-> would like. If you want to edit significantly with copilot then you ask the
-> question in the copilot window in image 3. What do you think?"*
+**REVERSED IN PLACE, 28 Aug 2026, by the owner, after seeing it drawn.** This
+item was raised as *one page: the negotiation screen becomes the editor*, it was
+fully specified, and it is now decided the other way. The original proposal and
+the assessment of it are kept below, because the reasoning is the useful part and
+because this reversal is the render doing its job rather than a change of mind
+nobody can account for.
 
-Reported with three images: the clause panel as it is today, the one-sentence
-Copilot popup, and the Copilot rail with its Suggestions / Playbook scan tabs.
+### WHAT IS DECIDED
 
-### THE ASSESSMENT ASKED FOR: THIS IS RIGHT, AND IT IS THE THIRD STEP OF ONE JOURNEY
+> *"After further review it seems I will not be able to do this... The best
+> approach is to keep the negotiation page as is today but when I click the edit
+> symbol, it takes me to the edit with copilot page to begin my edit there. No
+> edits in the negotiation page though just review and with the cards on the
+> right."*
 
-Recorded as an opinion, because the owner asked for one:
+- **The negotiation page stays exactly as it is.** Contract on the left, the
+  tracked-changes cards on the right, always. It is a REVIEW surface: read the
+  round, answer asks, send. **Nothing is typed there.**
+- **The Edit with Copilot page STAYS.** It is where all editing happens.
+- **The pencil on a clause is the door to it.** Press it and you are on the
+  editor page, on that clause.
 
-**The strongest argument for it is the owner's own record.** Three separate
-times they have pushed editing toward being ONE thing in ONE place:
+### THIS IS A SMALLER CHANGE THAN IT SOUNDS, AND HERE IS WHY
 
-- **19 Aug 2026** — *"there should not be possibility to edit the contract while
-  on the contract... Only way to edit is to click edit and the edit happens in
-  the panel on the right."* Editing gathered into the panel.
-- **26 Aug 2026** — *"There is no current wording vs proposed wording windows.
-  Just one screen in which you can edit like you were able to edit in the
-  proposed wording."* The editor page stopped being two boxes and became the
-  paper.
-- **28 Aug 2026, this** — if the editor page is already just a contract with a
-  Copilot rail beside it, why is it a second page at all?
+**"No edits on the negotiation page" IS ALREADY TRUE**, and has been since
+19 Aug 2026 — the clause tool row was retired and the highlight-to-edit menu was
+taken off the paper that day. The only way to write from that page today is
+through the clause panel's two buttons.
 
-**Each step removed a layer between the reader and the wording. This removes the
-last one.** It is not a new direction; it is the end of the one already being
-travelled, and that is the best reason to believe it is right rather than merely
-appealing.
+**So what actually changes is ONE DESTINATION**: the pencil currently opens the
+clause panel, which then offers *+ Propose new wording* and *Edit with Copilot*.
+It goes to the editor page directly instead. **Two presses become one**, and
+nothing about the negotiation page's layout, cards, columns or behaviour moves.
 
-**AND IT COLLAPSES ITEM 6 BY DELETION.** Three screens that must be kept looking
-alike become two. A surface that does not exist cannot drift.
+### THE ONE CONSEQUENCE, AND IT IS A QUESTION RATHER THAN A DEFAULT
 
-### IT REVERSES 19 AUGUST — AND THE OWNER'S VERSION IS BETTER THAN BOTH
+**What is the clause panel for now?** It carried four things and three are gone:
 
-Highlighting on the paper was REMOVED on 19 Aug, by name, at the owner's ask.
-This puts it back, so it must be flagged rather than slipped in.
+- *+ Propose new wording* and *Edit with Copilot* — both are what the pencil now
+  does directly. Keeping either would be a **second door onto one act**, which
+  is the rule the owner themselves stated on the History question.
+- *History* — owner-ruled 28 Aug: it lives on the room's History tab, filtered
+  to a clause. Not duplicated.
+- *As it stands* — the clause is on the paper a few pixels away.
+- *On the table* — the live asks on that clause, which are also the CARDS.
 
-**But the proposal is not the thing that was removed.** What 19 Aug killed was
-highlight-and-edit ANYWHERE on the paper at any time — a document that is always
-half a control. What is proposed is highlighting **only after the pencil has been
-pressed, and only on the clause it was pressed on**. The reader has said which
-clause they are working on, and only that clause answers.
+**So the panel has very little left, and retiring it is the likely answer — but
+that is the owner's call, not a consequence to assume.** Ask before removing it.
+If it stays, it must lose its two writing buttons or the one-door rule breaks.
 
-**That is a better answer than either previous position**, and it is worth
-saying out loud so nobody reads this as a simple U-turn: 19 Aug's concern was
-that editing was scattered, and gating it behind the pencil is precisely what
-un-scatters it. The paper stays a document everywhere except the one clause you
-have opened.
+### WHAT THIS MEANS FOR THE OTHER ITEMS
 
-### NOTHING HERE IS INVENTED — IT IS A REARRANGEMENT
+- **ITEM 6 MATTERS MORE, NOT LESS.** The Edit with Copilot page is not going
+  away, so the three screens that draw a contract still have to agree. Item 6 is
+  already decided and is unaffected.
+- **ITEM 1 IS UNAFFECTED AND ITS QUESTION IS LIVE AGAIN.** The earlier note said
+  item 7 might dissolve item 1's question by changing what the right-hand column
+  is for. It does not: the cards hold that column at all times now. **So "cards
+  or white space" is a real question again and wants an answer.**
 
-Every part already exists and is already correct:
+---
 
-- **The one-sentence popup** (image 2) is the panel editor's own selection menu,
-  narrowed to one action. Built.
-- **The Copilot rail** (image 3) with its Suggestions / Playbook scan tabs, its
-  ready-made chips and its ask box. Built, on the editor page.
-- **Typing straight onto the paper** is `_ceEditing` plus the live-draft seam
-  (`opts.live`) — ONE clause, handed to the canvas as finished markup, never
-  stored, never reaching the counterparty. Built, and its four safety properties
-  hold by construction.
-- **Filing** goes through `negoEditClause` and the one funnel, with the desk
-  rule, the review gate and the wording freeze unchanged. Untouched by this.
+### THE PROPOSAL THIS REPLACED, KEPT FOR ITS REASONING
 
-**So the risk is not "can these parts work" — they demonstrably do. The risk is
-the move itself**, and it is real: this merges a 2,462-line page into a
-14,128-line one. That is the honest size of it and it should not be sold as
-small.
+The owner's original ask was to collapse the editor into the negotiation page:
+press the pencil, the Copilot rail slides over the cards, and you type on the
+paper — one page, no second screen.
 
-### ANSWERED — 28 Aug 2026. ALL THREE, BY THE OWNER
+**It was assessed as right, and the assessment is left standing because the
+reasoning was sound even though the conclusion did not survive contact with a
+picture.** The argument was the owner's own record: 19 Aug gathered editing into
+the panel, 26 Aug made the editor page BE the paper rather than two boxes, and
+this looked like the last layer between the reader and the wording. Its three
+open questions were answered (the rail takes the second track floor to ceiling;
+the clause panel goes; one clause at a time) and the History question was ruled.
 
-**1 · THE RIGHT-HAND COLUMN.**
+**WHAT KILLED IT WAS SEEING IT.** A render was built to the answered spec and
+the owner ruled against it. That is the render earning its cost — the decision
+cost one drawing rather than a merge of a 2,462-line page into a 14,128-line
+one, which is exactly the risk this file recorded when the item was raised.
 
-> *"Cards are there initially but when you click the edit symbol, the copilot
-> slides in covering all the way to the top of the page as designed now."*
-
-So the Copilot rail behaves **exactly as the clause panel behaves today**: it
-takes the second track whole, floor to ceiling, over the cards; the cards come
-back when it closes. **That is not a new mechanism — it is the mechanism already
-built and already owner-approved**, with the rail as its content instead of the
-panel's three sections. `rlCpSetShown`'s placement rules, its no-scrim ruling
-(the page behind stays lit and pressable, because you are writing while reading
-it) and its ways out all carry over unchanged.
-
-**2 · THE CLAUSE PANEL, AND A CORRECTION I OWE THE RECORD.**
-
-> *"what history tab are you talking about?"*
-
-The panel's THIRD section, at the bottom of the owner's own screenshot, reading
-**HISTORY — "Nothing has been settled on this clause yet."** It lists what has
-already been agreed or refused **on that one clause**.
-
-**AND MY EARLIER CLAIM THAT IT HAD NOWHERE ELSE TO LIVE WAS WRONG.** Checked
-rather than assumed: `roomHistoryFiltersHtml` gives the room's own History tab a
-**Clause** filter, alongside Person, Side, Round and Outcome. So the same settled
-events are already reachable, filtered to one clause, on another tab. **Nothing
-is lost by the panel going — only convenience.** That materially lowers the cost
-of this item and the file should not have overstated it.
-
-**WHAT HAPPENS TO THE PANEL'S OTHER TWO SECTIONS, since the panel itself goes:**
-- **"As it stands"** — you are looking at it. The clause is on the paper in front
-  of you and you are typing in it. The section was answering a question the
-  merged page answers by construction.
-- **"On the table"** — carried by the context chips on the readings row, which
-  name which ask you are working from. Already built, already there.
-- **"History"** — the only one with no home in the merged layout.
-
-**OWNER-RULED, 28 Aug 2026 — DROPPED. NO THIRD TAB.**
-
-> *"Just drop it. There is a history page in HaTi already so no need to
-> duplicate."*
-
-**The Copilot rail keeps TWO tabs: Suggestions and Playbook scan.** History goes
-with the panel, and the room's own History tab — filtered to a clause — is its
-one home.
-
-**AND THE OWNER'S REASON IS THIS RULEBOOK'S OWN ONE DOOR RULE, in their words
-rather than its own:** a second door onto something that already has one does not
-fail, it DRIFTS, and then two screens disagree about what happened on a clause.
-That is recorded here as the standing rule for anyone who later wants to put a
-clause's record back on this rail: **it already has a home, and the answer is
-no.**
-
-**3 · ONE CLAUSE AT A TIME.**
-
-> *"One clause at a time"*
-
-Confirmed, and it is what `_ceClauseId` and `_rlCpId` already enforce — one
-value, not a set. Nothing to build; a rule to keep.
-
-### Notes for whoever builds it
-
-- **THE PANEL IS RETIRED, NOT HIDDEN.** `rlClausePanelHtml` is exported and has
-  callers; follow this file's convention and leave a `return ''` stub rather than
-  deleting it, so a third caller cannot bring a second editing surface back
-  through a door nobody remembered.
-- **THE CLAUSE'S SETTLED RECORD HAS EXACTLY ONE HOME AND IT IS THE ROOM'S
-  HISTORY TAB** (owner-ruled). Do not rebuild it on the rail, in the chips, or as
-  a line under the paper. If it is ever found to be hard to reach from here, the
-  fix is a LINK to that tab filtered to this clause — never a second copy of the
-  list.
-- **THE COUNTERPARTY'S SEAT IS NOT IN THIS.** Their page mounts the same panes.
-  Typing on the paper must not turn on there, and `clauseEditorRefusal` already
-  refuses their seat — keep that refusal as the wall, wherever the code ends up.
-- **THE QUEUE RAIL WAS DELIBERATELY ABSENT from the editor page** (owner-ruled:
-  *"Should not be in the edit page"*). Merged, it is back on the page by default.
-  Decide whether it stands down while a clause is open.
-- **THE READINGS COLLAPSE TO ONE SET, which is a gain.** Both pages draw
-  Redlined / As agreed / With changes today and the editor page has to remember
-  and restore the page underneath it. Merged, there is one reading and nothing to
-  keep in step. `ceEditableReading` — no caret and no Apply on a reading that
-  hides the marks — stays exactly as it is.
-- **DELETE, DO NOT DORMANT, WHERE THE PARTS MOVE WHOLE.** Where a builder moves
-  intact it moves; where a feature genuinely goes, this file's convention is a
-  `return ''` stub for anything exported. `rlOpenClauseEditor` is the door and is
-  the one name a third caller could bring the old page back through.
-- **NETS:** `clause-editor-verify` (75 checks) is written against the page being
-  absorbed and is the map of what must still be true afterwards — re-point it,
-  do not delete it. Its section 11 proves the counterparty's seat byte-identical
-  and is the check that matters most here.
+**THE ONE THING WORTH CARRYING FORWARD from that assessment**: the instinct
+behind both positions is the same — editing should happen in ONE place. The
+merge answered it by making the negotiation page that place; this answers it by
+making the editor page that place and keeping the negotiation page purely for
+review. **The second is the cleaner separation and it is nearly free**, because
+the product is already almost there.
 
 ---
 
@@ -1038,7 +963,9 @@ value, not a set. Nothing to build; a rule to keep.
   should be done AFTER item 1, since item 1 changes the page underneath it;
   item 6 is two fixes wearing one report, one of them a single declaration and
   the other a decision that changes how big the words are on the Documents tab —
-  and it is DECIDED and independent, not waiting on item 1.
+  and it is DECIDED and independent, not waiting on item 1; item 7 shrank to a
+  changed destination for one press when the merge was reversed, and is now
+  among the smallest things here.
 - **NO BRAND-SPECIFIC CLM COMPARISON WAS WRITTEN**, because none could be
   verified. See *What I could not verify* under item 1. If the owner wants one,
   it needs a trial account and screenshots, not a search.
