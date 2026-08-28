@@ -1,4 +1,4 @@
-# WORK ORDER — six off a desktop sitting, 28 Aug 2026
+# WORK ORDER — seven off a desktop sitting, 28 Aug 2026
 
 **Raised by:** Young, 28 Aug 2026, over two messages and two screenshots —
 the Insights → Portfolio *What needs attention* card with its pager ringed, and
@@ -19,10 +19,17 @@ Item 2 **could not be reproduced from the code**, and what was found says the
 obvious explanation is probably the wrong one — it must be watched happening
 before it is touched.
 
-**THREE QUESTIONS ARE OPEN AND NONE SHOULD BE GUESSED AT:** whether the
-negotiation page's surplus width goes to the cards or to white space (item 1),
-whether the counterparty may rename our clause headings (item 4), and whether
-"the notes panel" means that one face or the whole shell drawer (item 5).
+**THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the negotiation
+page's surplus width goes to the cards or to white space (item 1), whether the
+counterparty may rename our clause headings (item 4), whether "the notes panel"
+means that one face or the whole shell drawer (item 5), and item 7's three —
+what is in the right-hand column and when, whether the clause panel survives,
+and whether editing is one clause at a time.
+
+**ITEM 7 MAY ANSWER ITEM 1's QUESTION BY REMOVING IT.** If the Copilot rail
+takes the right-hand column while a clause is open, "cards or white space" is
+being asked about a column whose job is about to change. Not a reason to delay
+item 1 — but whoever picks either up should read both.
 
 **ITEM 6 IS NOT ONE OF THEM AND MUST NOT BE TURNED BACK INTO ONE.** It is
 decided, it is independent, and an earlier draft of this file wrongly made it
@@ -32,7 +39,7 @@ conditional on item 1 — see the note inside it.
 
 ## The plain-English version, for the owner
 
-Six things, and they are six different kinds of problem.
+Seven things, and they are seven different kinds of problem.
 
 **1 — Screens do not use a big monitor.** You are right, and here is why.
 Almost every page in HaTi has a maximum width written into it. On a laptop the
@@ -120,6 +127,17 @@ said this twice and been told the cost, so it is decided — nobody should ask y
 again.** It does not wait on anything else: built properly, all three screens
 read one setting, so a later change to the negotiation page carries the other two
 with it automatically.
+
+**7 — One page instead of two.** Your idea: the negotiation screen becomes the
+editor, and the separate "Edit with Copilot" page goes away. **I think you are
+right**, and the reason is your own record — three times now you have pushed
+editing toward being one thing in one place, and this is the last layer between
+you and the wording. It also solves item 6 by deletion: two screens to keep alike
+instead of three. Every piece already exists, so nothing is being invented; it is
+a rearrangement. It is not small, though — it merges a page into one six times its
+size. And three things need your answer first: what sits in the right-hand column
+and when, whether the clause panel survives (its **History** has nowhere else to
+live), and whether you edit one clause at a time.
 
 ---
 
@@ -827,14 +845,135 @@ it is a build instruction rather than a question for the owner.
 
 ---
 
+## 7 — ONE PAGE: THE NEGOTIATION SCREEN *IS* THE EDITOR
+
+> *"With regards to negotiations page I think I over complicated the issue. I
+> believe editing manually and with copilot should be the same page. What it
+> means is the page attached prior to edit with copilot goes away. Negotiation
+> screen becomes edit with copilot and the functionality would be, you click on
+> the edit symbol once, you can then highlight a word or a sentence and you get
+> image 2. Or, you can simply begin editing manually wherever you want if you
+> would like. If you want to edit significantly with copilot then you ask the
+> question in the copilot window in image 3. What do you think?"*
+
+Reported with three images: the clause panel as it is today, the one-sentence
+Copilot popup, and the Copilot rail with its Suggestions / Playbook scan tabs.
+
+### THE ASSESSMENT ASKED FOR: THIS IS RIGHT, AND IT IS THE THIRD STEP OF ONE JOURNEY
+
+Recorded as an opinion, because the owner asked for one:
+
+**The strongest argument for it is the owner's own record.** Three separate
+times they have pushed editing toward being ONE thing in ONE place:
+
+- **19 Aug 2026** — *"there should not be possibility to edit the contract while
+  on the contract... Only way to edit is to click edit and the edit happens in
+  the panel on the right."* Editing gathered into the panel.
+- **26 Aug 2026** — *"There is no current wording vs proposed wording windows.
+  Just one screen in which you can edit like you were able to edit in the
+  proposed wording."* The editor page stopped being two boxes and became the
+  paper.
+- **28 Aug 2026, this** — if the editor page is already just a contract with a
+  Copilot rail beside it, why is it a second page at all?
+
+**Each step removed a layer between the reader and the wording. This removes the
+last one.** It is not a new direction; it is the end of the one already being
+travelled, and that is the best reason to believe it is right rather than merely
+appealing.
+
+**AND IT COLLAPSES ITEM 6 BY DELETION.** Three screens that must be kept looking
+alike become two. A surface that does not exist cannot drift.
+
+### IT REVERSES 19 AUGUST — AND THE OWNER'S VERSION IS BETTER THAN BOTH
+
+Highlighting on the paper was REMOVED on 19 Aug, by name, at the owner's ask.
+This puts it back, so it must be flagged rather than slipped in.
+
+**But the proposal is not the thing that was removed.** What 19 Aug killed was
+highlight-and-edit ANYWHERE on the paper at any time — a document that is always
+half a control. What is proposed is highlighting **only after the pencil has been
+pressed, and only on the clause it was pressed on**. The reader has said which
+clause they are working on, and only that clause answers.
+
+**That is a better answer than either previous position**, and it is worth
+saying out loud so nobody reads this as a simple U-turn: 19 Aug's concern was
+that editing was scattered, and gating it behind the pencil is precisely what
+un-scatters it. The paper stays a document everywhere except the one clause you
+have opened.
+
+### NOTHING HERE IS INVENTED — IT IS A REARRANGEMENT
+
+Every part already exists and is already correct:
+
+- **The one-sentence popup** (image 2) is the panel editor's own selection menu,
+  narrowed to one action. Built.
+- **The Copilot rail** (image 3) with its Suggestions / Playbook scan tabs, its
+  ready-made chips and its ask box. Built, on the editor page.
+- **Typing straight onto the paper** is `_ceEditing` plus the live-draft seam
+  (`opts.live`) — ONE clause, handed to the canvas as finished markup, never
+  stored, never reaching the counterparty. Built, and its four safety properties
+  hold by construction.
+- **Filing** goes through `negoEditClause` and the one funnel, with the desk
+  rule, the review gate and the wording freeze unchanged. Untouched by this.
+
+**So the risk is not "can these parts work" — they demonstrably do. The risk is
+the move itself**, and it is real: this merges a 2,462-line page into a
+14,128-line one. That is the honest size of it and it should not be sold as
+small.
+
+### THREE QUESTIONS THE OWNER HAS TO ANSWER BEFORE ANYONE BUILDS
+
+None is a coding question and none can be defaulted:
+
+1. **WHAT IS IN THE RIGHT-HAND COLUMN, AND WHEN?** Today it is the tracked-changes
+   cards. The Copilot rail wants the same space. The natural answer is that the
+   rail takes the column the way the clause panel ALREADY does — that track,
+   whole, while you are editing — and the cards come back when you close.
+   **Three columns (contract / cards / Copilot) is not an option**: at the
+   divider's own minimum the cards are already 300px and a third column would
+   crush all three.
+2. **DOES THE CLAUSE PANEL SURVIVE?** It carries *As it stands*, *On the table*
+   and *History*. If the Copilot rail takes its place, **History has nowhere to
+   go**, and a settled clause's record is the one thing on that panel with no
+   second home. Either the rail grows a third tab, or the panel and the rail
+   become one object with tabs. **Do not let History fall off the edge** — this
+   file's standing rule is that a fact must be findable somewhere else before its
+   slot is deleted.
+3. **ONE CLAUSE AT A TIME?** The pencil is currently one-at-a-time and should
+   almost certainly stay so, but say it rather than discover it.
+
+### Notes for whoever builds it
+
+- **THE COUNTERPARTY'S SEAT IS NOT IN THIS.** Their page mounts the same panes.
+  Typing on the paper must not turn on there, and `clauseEditorRefusal` already
+  refuses their seat — keep that refusal as the wall, wherever the code ends up.
+- **THE QUEUE RAIL WAS DELIBERATELY ABSENT from the editor page** (owner-ruled:
+  *"Should not be in the edit page"*). Merged, it is back on the page by default.
+  Decide whether it stands down while a clause is open.
+- **THE READINGS COLLAPSE TO ONE SET, which is a gain.** Both pages draw
+  Redlined / As agreed / With changes today and the editor page has to remember
+  and restore the page underneath it. Merged, there is one reading and nothing to
+  keep in step. `ceEditableReading` — no caret and no Apply on a reading that
+  hides the marks — stays exactly as it is.
+- **DELETE, DO NOT DORMANT, WHERE THE PARTS MOVE WHOLE.** Where a builder moves
+  intact it moves; where a feature genuinely goes, this file's convention is a
+  `return ''` stub for anything exported. `rlOpenClauseEditor` is the door and is
+  the one name a third caller could bring the old page back through.
+- **NETS:** `clause-editor-verify` (75 checks) is written against the page being
+  absorbed and is the map of what must still be true afterwards — re-point it,
+  do not delete it. Its section 11 proves the counterparty's seat byte-identical
+  and is the check that matters most here.
+
+---
+
 ## What was deliberately NOT done in this sitting
 
 - **Nothing in the product was changed.** The owner asked for a review and a
   filing, and the Scope rules say do only what the request asks.
-- **BUGLOG.md was not appended to.** These six items ARE the request rather
+- **BUGLOG.md was not appended to.** These seven items ARE the request rather
   than something noticed on the way past it, and this file is where the request
   lives.
-- **No estimate is given, and the six are not the same size.** Item 1 is now
+- **No estimate is given, and the seven are not the same size.** Item 1 is now
   decided and is the largest, because it touches every page; item 2 has not been
   reproduced and may not be what it looks like; item 3 is understood well enough
   to size honestly and is small; item 4 is small in code and carries the largest
