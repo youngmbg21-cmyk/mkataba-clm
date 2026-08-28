@@ -35,6 +35,9 @@ const I18N = read('js/i18n.js');
    several of them — so a source claim about what the CODE calls has to read
    the code with the comments taken out. */
 const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+/* The engine's editor, comments stripped — this file records retired names in
+   its own prose, so a raw read reports them as still live. */
+const NEGO_CODE = NEGO.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 async function bench(opts = {}){
   const w = buildWorld({ negotiationView: true, contractView: true });
@@ -299,27 +302,52 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
   });
 });
 
-describe('f245 (8) — the reason step is HaTi\'s own', () => {
-  test('the same words, and the same three buttons', async () => {
+/* REVERSED IN PLACE 28 Aug 2026 (owner-asked: "we need to remove the mandate
+   for adding why this change for every change. Users can use the notes feature
+   to add notes on changes").
+
+   WHAT THIS BLOCK USED TO PIN was that the reason step here was the engine's
+   own — the same key, the same example, the same three buttons — so one page
+   could not refuse what another permitted. THAT CLAIM IS KEPT AND IS STRONGER
+   AS AN ABSENCE: both paths file in ONE press, and neither asks. A reason step
+   coming back on one of the two and not the other is what these checks now
+   catch. */
+describe('f245 (8) — nothing asks why, on either path', () => {
+  test('Save FILES — there is no step in between', async () => {
     const p = await bench(); wide(p.win);
     p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
-    const box = p.doc.querySelector('#ce-reason');
-    assert.ok(box, 'the step is in the page');
-    assert.ok(box.hidden, 'and shut until Save is pressed');
-    const words = box.textContent;
-    assert.ok(words.includes(p.win.i18t('ng_file_change').replace(/&[a-z]+;/g, '')),
-      'File change, in the dictionary\'s own words');
-    const plain = k => p.win.i18t(k).replace(/&mdash;/g, '\u2014').replace(/&[a-z]+;/g, '');
-    assert.ok(words.includes(plain('ng_skip_no_reason')),
-      'Skip, because it is skippable everywhere else in this product');
-    assert.ok(box.querySelector('[data-ce-act="reason-back"]'), 'and a way back to the wording');
+    assert.equal(p.doc.querySelector('#ce-reason'), null, 'the panel is gone, not hidden');
+    assert.equal(p.doc.querySelector('#ce-why'), null, 'and so is its box');
+    for (const act of ['reason-back', 'reason-skip', 'reason-file'])
+      assert.equal(p.doc.querySelector('[data-ce-act="' + act + '"]'), null,
+        act + ' is retired');
+    assert.ok(p.doc.querySelector('[data-ce-act="save"]'), 'the one act is still there');
     p.win.rlCloseClauseEditor();
   });
 
-  test('the question itself is the negotiation editor\'s, not a second one', () => {
-    assert.ok(/_cet\('ng_why_this_change'\)/.test(CODE), 'the same key');
-    assert.ok(/_cet\('ng_ph_reason_example'\)/.test(CODE), 'and the same example');
-    assert.ok(!/ce_why_this_change/.test(I18N), 'no private copy of the question');
+  test('and the act goes straight to the funnel', () => {
+    assert.ok(/case 'save': cePullText\(\); ceFile\(\); break;/.test(CODE),
+      'Save pulls the wording and files it, with nothing in between');
+    assert.ok(!/ceOpenReason/.test(CODE), 'the opener is gone rather than left unreachable');
+  });
+
+  test('THE ENGINE\'S OWN EDITOR AGREES — one press there too', () => {
+    assert.ok(!/data-nego-skip/.test(NEGO_CODE), 'no Skip, because there is nothing to skip');
+    assert.ok(!/data-nego-back/.test(NEGO_CODE), 'no way back from a step that does not exist');
+    assert.ok(!/data-nego-reason/.test(NEGO_CODE), 'and no reason box on the filing path');
+    assert.ok(/data-nego-next[\s\S]{0,600}?file\(\)/.test(NEGO_CODE),
+      'Save files rather than stepping');
+  });
+
+  test('WHAT IT COSTS IS NOT SILENT — the reason still travels where it is written', () => {
+    /* `why` is not deleted from the product: it is on the record, it is printed
+       on the cards, and the Copilot proposal card still writes one. That card
+       is what keeps the counterparty-facing sentence reachable at all, which is
+       why removing it too would be a capability lost rather than a step. */
+    assert.ok(/data-ai-prop-why/.test(read('js/ai.js')),
+      'the Copilot card keeps its optional reason — the one surface that still writes one');
+    assert.ok(/why\b/.test(read('js/negotiation.js')),
+      'and the funnel still accepts one, so an existing reason is not orphaned');
   });
 });
 

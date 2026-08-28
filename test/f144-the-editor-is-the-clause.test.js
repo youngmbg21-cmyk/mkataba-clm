@@ -100,21 +100,11 @@ async function page(opts = {}){
       return [...doc.querySelectorAll('#rl-cp .rl-cp-src')]
         .find(b => b.getAttribute('data-rl-cp-for') === id);
     },
-    /* Save is two steps now: the wording, then "why this change?". These
-       tests are about the wording, so they walk through and skip the reason —
-       the same thing a person does when they have nothing to add. */
-    save(){
-      const next = doc.querySelector('[data-nego-next]');
-      if (next) next.click();
-      const skip = doc.querySelector('[data-nego-skip]') || doc.querySelector('[data-nego-save]');
-      skip.click();
-    },
-    /* For the tests that DO care about the reason. */
-    saveWithWhy(why){
-      doc.querySelector('[data-nego-next]').click();
-      doc.querySelector('[data-nego-reason]').value = why;
-      doc.querySelector('[data-nego-save]').click();
-    },
+    /* REVERSED IN PLACE 28 Aug 2026: Save is ONE press. It walked the two
+       steps and skipped the reason — the same thing a person did when they
+       had nothing to add — and the owner has now removed the question. What
+       these tests are about is unchanged: the wording. */
+    save(){ doc.querySelector('[data-nego-next]').click(); },
     css: () => (doc.getElementById('nego-style') || { textContent: '' }).textContent,
     /* The Redline page's own sheet, which is where the hover row is dressed. */
     pageCss: () => (doc.getElementById('redline-layout-css') || { textContent: '' }).textContent };

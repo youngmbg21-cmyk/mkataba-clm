@@ -112,7 +112,6 @@ let _ceScanBusy = false;
    written by the one runner, cleared the moment a review arrives. */
 let _ceScanErr = null;
 let _ceSayTimer = null;
-let _ceReason = false;      /* is the reason step showing */
 let _ceSel = null;          /* the passage being rewritten in place */
 let _ceLead = null;         /* the change this editor opened on, if any */
 
@@ -1002,18 +1001,9 @@ function clauseEditorHtml(){
               <div id="ce-inline-note"></div>
             </div>
           </div>
-          <div class="ce-reason" id="ce-reason" hidden>
-            <label for="ce-why">${_cet('ng_why_this_change')}</label>
-            <textarea id="ce-why" rows="2"
-              placeholder="${_ceea(_cet('ng_ph_reason_example'))}"></textarea>
-            <div class="row">
-              <span class="hint">${_cet('ce_reason_hint')}</span>
-              <span class="g"></span>
-              <button type="button" data-ce-act="reason-back">${_cet('ng_back_to_wording')}</button>
-              <button type="button" data-ce-act="reason-skip">${_cet('ng_skip_no_reason')}</button>
-              <button type="button" class="p" data-ce-act="reason-file">${_cet('ng_file_change')}</button>
-            </div>
-          </div>
+    ${''/* THE REASON PANEL IS RETIRED (owner-asked 28 Aug 2026 — see FILING
+           below). #ce-reason, #ce-why and the three reason-* acts are STALE;
+           `.ce-reason` is left in the sheet, dressing nothing. */}
         </div>
         <div class="ce-foot">
           <span class="draft" id="ce-draft"></span>
@@ -1322,7 +1312,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      that refuses editing — ceEditableReading is asked at the paint. */
   _ceEditing = true;
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
-  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceReason = false; _ceSel = null;
+  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
   _ceScan = null; _ceScanFiled = {};
 
   ceEnsureStyle();
@@ -1371,7 +1361,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
   _ceOpenText = '';
-  _ceBusy = false; _ceReason = false;
+  _ceBusy = false;
   clearTimeout(_ceSayTimer);
   /* A repaint only where something actually moved. Closing without filing must
      leave the page underneath exactly as it was, scroll position included. */
@@ -1844,7 +1834,6 @@ function ceApply(text, label, opts = {}){
      so this compares the stored form, never the projection. */
   /* The reason was written about the OLD wording — it may not travel with new
      wording nobody has read it against. */
-  if (_ceReason) ceCloseReason();
   _ceSteps = _ceSteps.slice(0, _ceStep + 1);
   _ceSteps.push({ label: label || _cet('ce_step_applied'), text: next });
   _ceStep = _ceSteps.length - 1;
@@ -1863,7 +1852,6 @@ function ceUndo(){
   if (_ceStep <= 0) return;
   _ceStep -= 1;
   _ceText = _ceSteps[_ceStep].text;
-  if (_ceReason) ceCloseReason();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }));
 }
@@ -1878,7 +1866,6 @@ function ceRedo(){
   if (_ceStep >= _ceSteps.length - 1) return;
   _ceStep += 1;
   _ceText = _ceSteps[_ceStep].text;
-  if (_ceReason) ceCloseReason();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }));
 }
@@ -1886,7 +1873,6 @@ function ceDiscard(){
   if (!clauseEditorOpen()) return;
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase }];
   _ceStep = 0; _ceText = _ceBase; _ceSavedAt = null;
-  if (_ceReason) ceCloseReason();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_discarded'));
 }
@@ -2367,30 +2353,30 @@ async function ceInlineGo(instruction){
 }
 
 /* ============================================================================
-   FILING — HaTi'S OWN QUESTION, IN HaTi'S OWN WORDS
+   FILING — ONE PRESS
    ----------------------------------------------------------------------------
-   Save does not file: it asks WHY first, exactly as the engine's inline editor
-   does, with the same three buttons and the same wording. The reason is
-   SKIPPABLE here because it is skippable everywhere else in this product — one
-   page refusing what every other page permits is a second rule wearing the
-   first one's clothes, and Skip is a visible button so a blank reason means
-   somebody decided against giving one.
+   REVERSED IN PLACE 28 Aug 2026, owner-asked: "we need to remove the mandate
+   for adding why this change for every change. Users can use the notes feature
+   to add notes on changes."
+
+   WHAT STOOD HERE: Save did not file — it opened a panel asking "why this
+   change?" with Back, Skip and File change, quoting the engine's inline editor
+   button for button so one page could not refuse what another permitted. That
+   MATCHING is what stands; the two paths still agree, and both are one press
+   now. The ANSWER was always skippable; it was the QUESTION that was
+   unavoidable, and a pass over a whole contract paid for it once per clause.
+
+   WHAT IS LOST IS SAID OUT LOUD in the engine's own editor beside this one:
+   `why` travels to the counterparty and a note does not, so the sentence that
+   explained a redline at the moment it was made now has to be typed on purpose
+   in the clause panel's note box with the switch thrown to "Send to them". The
+   Copilot proposal card keeps its own optional reason field, which is what
+   keeps `why` writable at all.
 
    AND IT FILES THROUGH negoEditClause AND NOTHING ELSE. Same funnel, same
    fingerprint, same desk rule, same review gate. This page has no private way
    into the contract.
    ========================================================================== */
-function ceOpenReason(){
-  if (_ceText === _ceBase){ ceSay(_cet('ce_nothing_to_file')); return; }
-  _ceReason = true;
-  const box = _ceQ('#ce-reason');
-  if (box){ box.hidden = false; const ta = box.querySelector('#ce-why'); if (ta){ try{ ta.focus(); }catch(_){} } }
-}
-function ceCloseReason(){
-  _ceReason = false;
-  const box = _ceQ('#ce-reason');
-  if (box) box.hidden = true;
-}
 async function ceFile(why){
   if (_ceBusy) return;
   if (_ceText === _ceBase){ ceSay(_cet('ce_nothing_to_file')); return; }
@@ -2596,14 +2582,10 @@ function ceWirePage(page){
       case 'close': rlCloseClauseEditor(); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
-      case 'save': cePullText(); ceOpenReason(); break;
-      case 'reason-back': ceCloseReason(); break;
-      case 'reason-skip': ceCloseReason(); ceFile(''); break;
-      case 'reason-file': {
-        const ta = _ceQ('#ce-why');
-        ceCloseReason(); ceFile(ta ? ta.value : '');
-        break;
-      }
+      /* ONE PRESS FILES. The act keeps its name — every check and both
+         browser files reach this button by it — and what changed is where it
+         goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
+      case 'save': cePullText(); ceFile(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
@@ -2682,7 +2664,6 @@ if (typeof document !== 'undefined' && !document._ceWired){
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
     if (_ceSel){ ceCloseInline(); return; }
-    if (_ceReason){ ceCloseReason(); return; }
     rlCloseClauseEditor();
   });
   /* A window dragged below the width where two columns stop making sense: the

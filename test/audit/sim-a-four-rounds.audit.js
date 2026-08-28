@@ -203,14 +203,10 @@ const NEVER_TRAVELS = [
       await new Promise(r => setTimeout(r, 500));
       const ed = document.querySelector('[data-nego-editor]');
       if (ed) ed.innerHTML = '<p>Neither party shall be liable for indirect or consequential loss, and the Supplier’s aggregate liability shall not exceed the charges paid in the preceding twelve months.</p>';
+      /* ONE PRESS FILES (28 Aug 2026 — the reason step is retired). */
       const next = document.querySelector('[data-nego-next]');
       if (next) next.click();
-      await new Promise(r => setTimeout(r, 400));
-      const ta = document.querySelector('[data-nego-reason]');
-      if (ta) { ta.value = 'A mutual cap is our standard position.'; ta.dispatchEvent(new Event('input', { bubbles: true })); }
-      const save = document.querySelector('[data-nego-save]');
-      if (save) save.click();
-      await new Promise(r => setTimeout(r, 700));
+      await new Promise(r => setTimeout(r, 1100));
       return true;
     });
 

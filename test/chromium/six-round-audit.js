@@ -156,17 +156,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const ed = document.querySelector('[data-nego-editor]');
       if (!ed) return 'no editor';
       ed.innerHTML = ed.innerHTML.replace(new RegExp(replaceRe), replacement);
+      /* ONE PRESS FILES (28 Aug 2026 — the reason step is retired). */
       const next = (ed.parentElement.querySelector('[data-nego-next]')
         || document.querySelector('[data-nego-next]'));
-      if (next) next.click();          // step 1 → step 2 (why), skipped below
-      await wait(250);
-      const save = (ed.parentElement.querySelector('[data-nego-skip]')
-        || document.querySelector('[data-nego-skip]')
-        || ed.parentElement.querySelector('[data-nego-save]')
-        || document.querySelector('[data-nego-save]'));
-      if (!save) return 'no save';
-      save.click();
-      await wait(300);
+      if (!next) return 'no save';
+      next.click();
+      await wait(550);
       /* SHUT THE PANEL BEHIND US. It is an overlay on the working area, and
          left standing it covers whatever the next step wants to press — which
          surfaces as a click timing out on a button that is plainly on screen,

@@ -130,15 +130,24 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const save = [...document.querySelectorAll('.nego-edit-bar button')].find(b => /save/i.test(b.textContent || ''));
       if (save) save.click();
     });
-    await pause(1100);
-    await cp.evaluate(() => {
-      const ta = document.querySelector('.nego-reason textarea');
-      if (ta) ta.value = 'Narrower purpose.';
-      const file = [...document.querySelectorAll('.nego-edit-bar button, .nego-reason button')]
-        .find(b => /file|skip/i.test(b.textContent || ''));
-      if (file) file.click();
-    });
+    /* ONE PRESS FILES (28 Aug 2026 — the reason step is retired), so the
+       second evaluate that walked step two and typed a reason is gone. */
     await pause(1500);
+    /* ---- AND THE OWNER'S BROWSER STOPS HOLDING THIS CONTRACT BEFORE THE ROUND
+       IS SENT, which REMOVES A RACE rather than re-tuning a clock.
+       Section 3 needs an answer that is genuinely uncollected, and until now
+       that was left to timing: the owner's page polls on its own beat, and the
+       pauses here happened to put the read before the collect. Losing one press
+       from the counterparty's filing moved the whole sequence about a second
+       earlier, the pair landed the other side of a poll tick, and sections 3
+       and 4 failed on an answer that had simply arrived — a test whose answer
+       depends on when it runs, which this codebase has paid for before.
+       Removing the contract from the owner's browser is section 3's OWN
+       mechanism; doing it before the send closes the window entirely. */
+    await own.evaluate(id => {
+      window.__kept = state.contracts.find(x => x.id === id);
+      state.contracts = state.contracts.filter(x => x.id !== id);
+    }, cid);
     await cp.evaluate(() => {
       const b = document.querySelector('.rl-unsent-go') || document.getElementById('nego-send-decisions');
       if (b) b.click();
@@ -160,11 +169,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        exact silent hole this fix closes. Read off the real #toast-root. */
     const boxes = () => own.evaluate(() => [...document.querySelectorAll('#toast-root > *')]
       .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim()));
-    await own.evaluate(id => {
-      window.__kept = state.contracts.find(x => x.id === id);
-      state.contracts = state.contracts.filter(x => x.id !== id);
+    /* The contract left this browser before the round was sent (above), so all
+       that is owed here is a clean toast root to read the report off. */
+    await own.evaluate(() => {
       const r = document.getElementById('toast-root'); if (r) r.innerHTML = '';
-    }, cid);
+    });
     await own.evaluate(() => pollPendingResponses()); await pause(1100);
     const one = await boxes();
     check('3 one failure stays quiet — a page still loading must not cry wolf',

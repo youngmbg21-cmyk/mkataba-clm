@@ -103,10 +103,9 @@ async function table(){
       const box = body().querySelector('[data-nego-editor]');
       assert.ok(box, 'the editor must open in the clause\'s panel');
       box.innerHTML = newHtml;
-      /* Two steps: wording, then why. Skipped here — this simulation is about
-         the rounds, not the reasons. */
+      /* ONE PRESS files (reversed in place 28 Aug 2026 — the reason step is
+         retired). This simulation is about the rounds either way. */
       body().querySelector('[data-nego-next]').click();
-      (body().querySelector('[data-nego-skip]') || body().querySelector('[data-nego-save]')).click();
       await new Promise(r => setTimeout(r, 25));
     },
     async pause(ms = 25){ return new Promise(r => setTimeout(r, ms)); } };

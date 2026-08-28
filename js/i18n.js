@@ -1368,6 +1368,12 @@ const STRINGS = {
     rb_hl_yellow: 'Yellow', rb_hl_blue: 'Blue', rb_hl_violet: 'Violet',
     rb_hl_grey: 'Grey',
     rb_pick_first: 'Select some words first',
+    /* STALE 28 Aug 2026 — the reason STEP is retired (owner-asked: "remove the
+       mandate for adding why this change for every change"). Left INERT in both
+       dictionaries rather than deleted: a key removed from one and not the
+       other is how a screen ends up half-English. `why` itself is untouched on
+       the record, is still printed by the clause panel, and is still written by
+       the Copilot proposal card. */
     ng_why_this_change: 'Why this change? &mdash; the other side sees it beside the redline',
     ng_save_change: 'Save change &rarr;',
     ng_file_change: 'File change',
@@ -1663,6 +1669,7 @@ const STRINGS = {
     ce_inline_plain: 'Plain English',
     ce_inline_say_what: 'Say what to change about it.',
     ce_inline_moved: 'That passage has moved. Highlight it again and try once more.',
+    /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'The other side sees this beside the redline.',
     ce_nothing_to_file: 'Nothing has changed yet, so there is nothing to file.',
     ce_nothing_changed: 'Nothing changed — neither the words nor the formatting.',
@@ -6473,6 +6480,12 @@ const STRINGS = {
     rb_hl_yellow: 'Gul', rb_hl_blue: 'Blå', rb_hl_violet: 'Violett',
     rb_hl_grey: 'Grå',
     rb_pick_first: 'Markera några ord först',
+    /* STALE 28 Aug 2026 — the reason STEP is retired (owner-asked: "remove the
+       mandate for adding why this change for every change"). Left INERT in both
+       dictionaries rather than deleted: a key removed from one and not the
+       other is how a screen ends up half-English. `why` itself is untouched on
+       the record, is still printed by the clause panel, and is still written by
+       the Copilot proposal card. */
     ng_why_this_change: 'Varför den här ändringen? &mdash; motparten ser det bredvid ändringen',
     ng_save_change: 'Spara ändring &rarr;',
     ng_file_change: 'Arkivera ändring',
@@ -6713,6 +6726,7 @@ const STRINGS = {
     ce_inline_plain: 'Enkel svenska',
     ce_inline_say_what: 'Skriv vad som ska ändras.',
     ce_inline_moved: 'Stycket har flyttat sig. Markera det igen och försök en gång till.',
+    /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'Motparten ser det här bredvid ändringen.',
     ce_nothing_to_file: 'Inget har ändrats ännu, så det finns inget att registrera.',
     ce_nothing_changed: 'Inget ändrades — varken orden eller formateringen.',

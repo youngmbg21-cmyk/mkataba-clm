@@ -4115,55 +4115,61 @@ function wireNegotiationTab(c, opts = {}){
       ev.preventDefault(); ev.stopPropagation();
       try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
     }));
-    /* ---- SAVE IS TWO STEPS, IN THE SAME BOX ----
-       A reason sitting under the wording as one more optional field is a field
-       people scroll past, and the record ends up full of changes nobody can
-       explain a round later. So Save leads INTO the question instead: step one
-       is the wording, step two asks why, and the change is not filed until one
-       of them is answered or skipped. Nothing is ever recorded without the
-       question having been put.
+    /* ---- SAVE IS ONE PRESS ----
+       REVERSED IN PLACE 28 Aug 2026, owner-asked: "we need to remove the
+       mandate for adding why this change for every change. Users can use the
+       notes feature to add notes on changes."
 
-       In the box rather than over it, deliberately. A dialog per redline is
-       unmissable and it is also six dialogs in a six-clause pass — which is
-       the moment somebody starts typing a full stop to get through it, and a
-       full stop in the record is worse than a blank because it reads as an
-       answer. Nothing covers the contract, nothing moves, and the shaded
-       clause keeps its width (asserted in test/chromium/live-verify.js).
+       WHAT STOOD HERE, and its reasoning is the useful part: Save led INTO the
+       question — step one the wording, step two "why this change?" — on the
+       argument that a reason sitting under the wording as one more optional
+       field is a field people scroll past, and that the record then fills with
+       changes nobody can explain a round later. Skip was always a visible
+       button, so the ANSWER was never mandatory; it was the QUESTION that was
+       unavoidable, and that is exactly what the owner has now removed. A pass
+       over six clauses cost six extra presses, and the second press is the one
+       that made redlining feel like paperwork.
 
-       SKIPPABLE, ON PURPOSE. The question is unavoidable; the answer is not.
-       Skip is a visible button, so a blank reason means somebody decided
-       against giving one — and on the counterparty's page there is no login
-       and no support desk, where a required box collects punctuation. */
-    const why = document.createElement('label');
-    why.className = 'nego-reason hidden';
-    why.innerHTML = `<span>${i18t('ng_why_this_change')}</span>`
-      + `<textarea data-nego-reason="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"`
-      + ` placeholder="${_nea(i18t('ng_ph_reason_example'))}"></textarea>`;
-    holder.after(why);
+       WHAT IS LOST, SAID OUT LOUD RATHER THAN ABSORBED. `why` TRAVELS — its own
+       label said "the other side sees it beside the redline" — and a note does
+       not: the composer defaults to Internal on our seat and an internal note
+       never leaves the building. So the sentence that explained a redline to
+       the counterparty at the moment it was made now has to be typed on
+       purpose, in the clause panel's own note box with the switch thrown to
+       "Send to them".
+
+       AND THE FIELD IS NOT GONE FROM THE PRODUCT, which is what keeps `why`
+       writable at all: the Copilot proposal card still carries it, as one
+       optional box that blocks nothing. That was never the mandate and is
+       deliberately untouched.
+
+       The FIELD on the record, the fingerprint (which never carried `why`),
+       every card that prints one and negoWireWhyClamp are all unchanged — an
+       existing change keeps its reason and still shows it. */
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     const step1 = `<button class="b-save" data-nego-next="${_ne(clauseId)}">${i18t('ng_save_change')}</button>`
       + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
-    const step2 = `<button class="b-save" data-nego-save="${_ne(clauseId)}">${i18t('ng_file_change')}</button>`
-      + `<button class="b-cancel" data-nego-skip="${_ne(clauseId)}">${i18t('ng_skip_no_reason')}</button>`
-      + `<button class="b-cancel" data-nego-back="${_ne(clauseId)}">${i18t('ng_back_to_wording')}</button>`;
     bar.innerHTML = step1;
-    why.after(bar);
+    holder.after(bar);
     if (holder.focus) holder.focus();
 
     const file = () => {
-      const note = String((why.querySelector('textarea') || {}).value || '').trim();
       /* ---- ONE EDITOR, TWO KINDS OF ASK ----
          A proposed clause is revised through negoReviseInsert, which files the
          SAME clauseId back through the same funnel so the ask keeps its id and
          its place and the previous wording goes onto revisions[]. Everything
-         else about this bar — the two steps, the reason, the Skip, the
-         fingerprint, every refusal — is the same code either way. */
+         else about this bar — the one press, the fingerprint, every refusal —
+         is the same code either way.
+
+         NO `why` IS PASSED, so the funnel files without one exactly as Skip
+         always did. The option is still on the funnel for the Copilot card,
+         which is the one surface that still writes a reason. */
       fileAndRepaint(() => (newAsk
         ? negoReviseInsert(c, clauseId, { bodyHtml: holder.innerHTML },
-          { side, author: opts.by, why: note || undefined })
+          { side, author: opts.by })
         : negoEditClause(c, clauseId, holder.innerHTML,
-          { side, author: opts.by, why: note || undefined })),
+          { side, author: opts.by })),
         ch => `#${ch.id} filed — ${ch.summary}`,
         /* Nothing changed — neither words nor formatting. Said IN the bar,
            beside the button that was pressed: the toast alone made File
@@ -4177,30 +4183,12 @@ function wireNegotiationTab(c, opts = {}){
     };
     const wire = () => {
       bar.querySelector('[data-nego-cancel]')?.addEventListener('click', ev => { ev.stopPropagation(); again(); });
-      bar.querySelector('[data-nego-back]')?.addEventListener('click', ev => { ev.stopPropagation(); toStep(1); });
-      bar.querySelector('[data-nego-skip]')?.addEventListener('click', ev => {
-        ev.stopPropagation();
-        /* Skip means file with no reason, not file with whatever half-sentence
-           is sitting in the box. */
-        const t = why.querySelector('textarea'); if (t) t.value = '';
-        file();
-      });
-      bar.querySelector('[data-nego-save]')?.addEventListener('click', ev => { ev.stopPropagation(); file(); });
-      bar.querySelector('[data-nego-next]')?.addEventListener('click', ev => { ev.stopPropagation(); toStep(2); });
-    };
-    const toStep = n => {
-      const two = n === 2;
-      /* The wording stays in the DOM on step two rather than being torn down
-         and rebuilt: Back has to return the reader to what they typed, not to
-         what the clause said before they started. */
-      holder.setAttribute('contenteditable', two ? 'false' : 'true');
-      holder.classList.toggle('is-review', two);
-      fmt.classList.toggle('hidden', two);
-      why.classList.toggle('hidden', !two);
-      bar.innerHTML = two ? step2 : step1;
-      wire();
-      const t = why.querySelector('textarea');
-      if (two && t) t.focus(); else if (holder.focus) holder.focus();
+      /* ONE PRESS FILES. `data-nego-next` kept its name because half a dozen
+         checks and both browser files reach the Save button by it, and a
+         rename would cost those and buy nothing — what changed is where it
+         goes. `data-nego-save`, `data-nego-skip`, `data-nego-back` and
+         `data-nego-reason` are STALE — flag any mention. */
+      bar.querySelector('[data-nego-next]')?.addEventListener('click', ev => { ev.stopPropagation(); file(); });
     };
     wire();
   }));

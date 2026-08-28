@@ -508,10 +508,12 @@ const SHEET = () => {
        words go on moving. The old scaling claims did not vanish — their
        subject moved out of the space they measured.
 
-       THE REASON BOX IS DRAWN AT STEP TWO of the editor, so it carries
-       .hidden on arrival and measures 0x0. It is un-hidden here rather than
-       driven through a save, because what is being measured is the CSS, not
-       the two-step flow — which f130 and redline-verify already own. */
+       THE REASON BOX IS RETIRED (owner-asked 28 Aug 2026 — Save is one press
+       now, and nothing asks why). Its three scaling claims are RE-POINTED at
+       the editor's own BOX, which is the piece of furniture that is left and
+       the one a reader actually types in: it must hold its size at every
+       document-type setting, and take its WIDTH from its container rather than
+       from the type, exactly as the reason box had to. */
     const EDITOR = `(() => {
       const box = sel => { const el = document.querySelector(sel); if (!el) return null;
         const r = el.getBoundingClientRect();
@@ -521,7 +523,7 @@ const SHEET = () => {
       const wr = words ? words.getBoundingClientRect() : null;
       return { lineH: wr ? +wr.height.toFixed(1) : 0,
         fmtBtn: box('.redline-page .nego-fmt-bar button'),
-        ta:     box('.redline-page .nego-reason textarea'),
+        ed:     box('.redline-page [data-nego-editor]'),
         save:   box('.redline-page .nego-edit-bar button') };
     })()`;
     const openEditor = () => page.evaluate(() => {
@@ -537,8 +539,6 @@ const SHEET = () => {
         const plus = document.querySelector('.redline-page .rl-cp-src.is-on [data-rl-cp-edit]');
         if (plus) plus.click();
       }
-      const r = document.querySelector('.redline-page .nego-reason');
-      if (r) r.classList.remove('hidden');
       return !!document.querySelector('.redline-page [data-nego-editor]');
     });
     const editorAt = async v => {
@@ -560,9 +560,9 @@ const SHEET = () => {
         noClauseEditor, 'editor inside .rl-cp-src, none inside a clause');
       const e8 = await editorAt(8), e15 = await editorAt(15), e20 = await editorAt(20);
       await page.screenshot({ path: path.join(OUT, '04d-owner-editor-20.png') });
-      const got = e15.fmtBtn && e15.save && e15.ta;
-      check('5d the open editor carries its format chips, reason box and Save',
-        !!got, got ? `chip ${e15.fmtBtn.w}x${e15.fmtBtn.h}, save ${e15.save.w}x${e15.save.h}, box h${e15.ta.h}` : 'editor furniture missing');
+      const got = e15.fmtBtn && e15.save && e15.ed;
+      check('5d the open editor carries its format chips, its box and Save',
+        !!got, got ? `chip ${e15.fmtBtn.w}x${e15.fmtBtn.h}, save ${e15.save.w}x${e15.save.h}, box h${e15.ed.h}` : 'editor furniture missing');
       if (got){
         /* THE PANEL'S OWN RULE, stated as the thing that must now be true:
            three settings, three IDENTICAL boxes — while the paper's words
@@ -574,14 +574,15 @@ const SHEET = () => {
         check('5d Save / Cancel hold too',
           e8.save.h === e15.save.h && e15.save.h === e20.save.h,
           `${e8.save.h} · ${e15.save.h} · ${e20.save.h}`);
-        check('5d and the reason box with them',
-          e8.ta.h === e15.ta.h && e15.ta.h === e20.ta.h,
-          `${e8.ta.h} · ${e15.ta.h} · ${e20.ta.h}`);
+        /* RE-POINTED 28 Aug 2026 from the retired reason box onto the editor
+           itself. The wording INSIDE it is the clause's own and scales with the
+           paper — which is right — so what is pinned is the box's WIDTH, the
+           half the reason box was really guarding. */
         check('5d …while the paper\'s own words still move under the same presses',
           f8.words < f15.words && f20.words > f15.words,
           `words — 8: ${f8.words} · 15: ${f15.words} · 20: ${f20.words}`);
-        check('5d and the reason box still takes its WIDTH from its container, not the type',
-          Math.abs(e8.ta.w - e20.ta.w) <= 1, `8: ${e8.ta.w} · 20: ${e20.ta.w}`);
+        check('5d and the editor box still takes its WIDTH from its container, not the type',
+          Math.abs(e8.ed.w - e20.ed.w) <= 1, `8: ${e8.ed.w} · 20: ${e20.ed.w}`);
       }
       /* BOTH SEATS. The counterparty mounts this same panel and the same
          editor; the pin is the panel's own rule, so it must hold there too. */

@@ -407,26 +407,21 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      'one step back');
   ck('6d the foot says the draft is held', /\d\d:\d\d/.test(applied.draft), applied.draft.trim());
 
-  /* ---- 7. THE WHOLE JOURNEY: SAVE, SAY WHY, FILE ---- */
+  /* ---- 7. THE WHOLE JOURNEY: SAVE FILES ----
+     REVERSED IN PLACE 28 Aug 2026. 7a read "Save does not file — it asks why
+     first" and 7b pinned the Skip and the way back; the owner has removed the
+     question, so the two claims become the one that matters: the press files,
+     and nothing stands between the reader and the record. */
   const beforeN = await p.evaluate(() => (window.CONTRACT.changes||[]).length);
+  const noStep = await p.evaluate(() => ({
+    panel: !!document.querySelector('#ce-reason'),
+    box: !!document.querySelector('#ce-why'),
+    acts: ['reason-back','reason-skip','reason-file']
+      .filter(a => !!document.querySelector('[data-ce-act="' + a + '"]')) }));
+  ck('7a NOTHING ASKS WHY — the step is gone, not hidden',
+     noStep.panel === false && noStep.box === false && noStep.acts.length === 0,
+     JSON.stringify(noStep));
   await p.click('#clause-editor [data-ce-act="save"]');
-  await pause(300);
-  const reason = await p.evaluate(() => {
-    const box = document.querySelector('#ce-reason');
-    const r = box.getBoundingClientRect();
-    return { shown: !box.hidden && r.height > 20,
-      words: box.innerText.replace(/\s+/g,' ').trim(),
-      hasSkip: !!box.querySelector('[data-ce-act="reason-skip"]'),
-      hasBack: !!box.querySelector('[data-ce-act="reason-back"]') };
-  });
-  ck('7a Save does not file — it asks why first',
-     reason.shown && /why/i.test(reason.words) || /[Vv]arför/.test(reason.words),
-     reason.words.slice(0, 70));
-  ck('7b with HaTi\'s own Skip and a way back to the wording',
-     reason.hasSkip && reason.hasBack, 'both drawn');
-
-  await p.fill('#ce-why', 'Delivery costs sit with the supplier under our standard terms.');
-  await p.click('#clause-editor [data-ce-act="reason-file"]');
   await pause(900);
   const filed = await p.evaluate(() => {
     const c = window.CONTRACT;
@@ -440,8 +435,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('7c the change is on the record, filed through the ordinary funnel',
      filed.n === beforeN + 1 && !!filed.id && /bear every cost/.test(filed.newText||''),
      `${filed.id} — "${(filed.newText||'').slice(0,50)}"`);
-  ck('7d the reason travelled with it',
-     /Delivery costs sit with the supplier/.test(filed.why||''), filed.why);
+  ck('7d and it carries NO reason, because nothing asked for one',
+     filed.why == null || filed.why === '', JSON.stringify(filed.why));
   ck('7e the editor closed', filed.pageGone, 'closed');
   ck('7f AND IT LANDED BACK ON THE CLAUSE PANEL it came from',
      filed.panelOpen, filed.panelOpen ? 'panel up' : 'panel not up');

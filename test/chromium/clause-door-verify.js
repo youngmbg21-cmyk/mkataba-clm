@@ -592,14 +592,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     e.focus();
     e.innerHTML = '<p>Written in the panel: either party may terminate on thirty (30) days notice.</p>';
   });
-  await p.click('#rl-cp [data-nego-next]'); await pause(400);
-  const step2 = await p.evaluate(()=>({
+  /* REVERSED IN PLACE 28 Aug 2026: 7h read "Save leads into the reason
+     question, in the panel, exactly as on the clause" and counted three
+     buttons. The owner has removed the question, so what is pinned is the
+     other half of the same claim — the panel's editor and the clause's file
+     ALIKE, and both in ONE press. */
+  const bar1 = await p.evaluate(()=>({
     reason: !!document.querySelector('#rl-cp [data-nego-reason]'),
     bar: [...document.querySelectorAll('#rl-cp .nego-edit-bar button')].map(b=>b.textContent.trim()) }));
-  ck('7h Save leads into the reason question, in the panel, exactly as on the clause',
-     step2.reason && step2.bar.length === 3, step2.bar.join(' / '));
-  await p.evaluate(()=>{document.querySelector('#rl-cp [data-nego-reason]').value='Thirty is our standard.';});
-  await p.click('#rl-cp [data-nego-save]'); await pause(1100);
+  ck('7h Save FILES — there is no reason step in the panel either',
+     bar1.reason === false && bar1.bar.length === 2, bar1.bar.join(' / '));
+  await p.click('#rl-cp [data-nego-next]'); await pause(1100);
 
   const filed = await p.evaluate(t => {
     const c = window.CONTRACT;
@@ -623,16 +626,43 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('7i FILING FROM THE PANEL PUTS A REAL CHANGE ON THE RECORD',
      filed.n === nBefore + 1 && filed.clause && filed.hasOps && filed.side === 'owner',
      `${filed.id} on ${filed.text}…`);
-  ck('7j …with the reason it was given', filed.why === 'Thirty is our standard.', filed.why);
-  /* AND THE REASON REACHES A READER, not merely the record. 7j above proves it
-     was STORED; this proves it is DRAWN, which is the half that has actually
-     broken before — the two-step save once shipped asking for a reason that was
-     then written to two card renderers and not the third, and every test in the
-     suite passed because they all checked that the FIELD existed rather than
-     that the answer arrived. The reason moved off the card to this panel on
-     19 Aug 2026, so this is where that walk now ends. live-verify used to hold
-     it and cannot: its hand-built payload ships no baseline, so clause ids drift
-     on that stage and the panel has nothing to show. */
+  /* 7j REVERSED IN PLACE 28 Aug 2026: it read "…with the reason it was given"
+     and typed one into the step. Nothing types a reason on this path any more,
+     so what it pins is the honest opposite — a filing with no question asked
+     files with no reason, rather than with a stray half-sentence. */
+  ck('7j …and with NO reason, because nothing asked for one',
+     filed.why == null || filed.why === '', JSON.stringify(filed.why));
+  /* AND A REASON THAT EXISTS STILL REACHES A READER, which is the half that has
+     actually broken before: a reason was once written to two card renderers and
+     not the third, and every test in the suite passed because they all checked
+     that the FIELD existed rather than that the answer arrived. The reason moved
+     off the card to this panel on 19 Aug 2026, so this is where that walk ends.
+
+     THE STAGE IS BUILT BY HAND NOW AND SAYS SO. The editor stopped asking on
+     28 Aug 2026 and the Copilot proposal card is the one surface that still
+     writes a `why` — a stage that opened Copilot, waited on a model and applied
+     a card would be testing three other features to reach this one. So the fact
+     is stamped onto the change that was just filed and the panel repainted; the
+     claim was always about the RENDERER. */
+  const whyStaged = await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const ch = (c.changes || []).slice(-1)[0];
+    if (!ch) return { ok: false, why: 'no change on the record' };
+    ch.why = 'Thirty is our standard.';
+    /* THE PANEL'S BODIES ARE BUILT BY THE CANVAS, not by the panel:
+       redlineDocHtml pushes them into opts.cpSink, so a change to the record
+       reaches this panel only through a document repaint. rlCpSetShown alone
+       merely flips which of the already-built bodies is on show, which is why
+       a first attempt staged the reason and the panel drew none. */
+    const host = document.querySelector('.redline-page');
+    if (host && window.rlRepaintFrom) rlRepaintFrom(host);
+    return { ok: true, clause: ch.clauseId, id: ch.id };
+  });
+  await pause(700);
+  /* The repaint rebuilds the panel's markup, so put it back on the clause the
+     reason is about before reading it. */
+  await p.evaluate(id => { if (window.rlCpSetShown) rlCpSetShown(document, id); }, target);
+  await pause(500);
   const whyDrawn = await p.evaluate(() => {
     const el = [...document.querySelectorAll('#rl-cp .rl-cp-why')]
       .find(e => /Thirty is our standard/.test(e.textContent));
@@ -645,7 +675,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   });
   ck('7j2 …and the panel DRAWS that reason, named, as visible pixels',
      whyDrawn.there && whyDrawn.onScreen && /Why they asked/i.test(whyDrawn.text || ''),
-     whyDrawn.there ? (whyDrawn.text || '').slice(0, 60) : 'no .rl-cp-why on the panel');
+     whyDrawn.there ? (whyDrawn.text || '').slice(0, 60)
+       : 'no .rl-cp-why on the panel · staged=' + JSON.stringify(whyStaged));
   ck('7j3 …whole, not clamped — the panel is where you go to read it',
      whyDrawn.whole === true, `whole=${whyDrawn.whole}`);
   /* REVERSED IN PLACE, 16 Aug 2026: the tags have come off the paper. What the
@@ -767,8 +798,6 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const e = document.querySelector('#rl-cp [data-nego-editor]');
     e.focus(); e.innerHTML = '<p>Their rewrite: ninety (90) days.</p>';
     document.querySelector('#rl-cp [data-nego-next]').click();
-    await new Promise(r=>setTimeout(r,350));
-    document.querySelector('#rl-cp [data-nego-save]').click();
     await new Promise(r=>setTimeout(r,1100));
     /* RE-POINTED 26 Aug 2026: the strip went and its count went with the act
        into the column's head — "only move the button". The claim is unchanged:
@@ -1171,9 +1200,6 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const e = b.querySelector('[data-nego-editor]');
     e.innerHTML = '<p>Paid within forty-five (45) days of the invoice date.</p>';
     b.querySelector('[data-nego-next]').click();
-    await new Promise(r => setTimeout(r, 300));
-    const skip = b.querySelector('[data-nego-skip]');
-    (skip || b.querySelector('[data-nego-save]')).click();
     await new Promise(r => setTimeout(r, 1200));
     const all = negoChanges(window.CONTRACT).filter(x => x.changeType === 'insertClause');
     return { n: all.length, id: all[0] && all[0].id, text: (all[0]||{}).newText || '',

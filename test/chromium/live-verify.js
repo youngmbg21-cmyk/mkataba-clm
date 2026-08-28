@@ -219,97 +219,98 @@ const READ = () => {
     check('editor: the pill and the ＋ open an editor in the panel', !!opened);
     await page.waitForTimeout(500);
 
-    /* Step one is the wording. The reason is behind Save, which is the point of
-       the two-step: you cannot file a change without the question being put. */
+    /* ---- SAVE IS ONE PRESS ----
+       REVERSED IN PLACE 28 Aug 2026 (owner-asked: "we need to remove the
+       mandate for adding why this change for every change"). What stood here
+       walked the two steps and pinned the reason box's width, wrapping and
+       box-sizing.
+
+       THE GEOMETRY CLAIMS ARE KEPT AND RE-POINTED AT THE EDITOR, which is
+       where they always mattered more: a long unbroken string typed into a
+       panel's editor must wrap rather than widen the block or push the page
+       sideways. That was the defect class those checks were written for, and
+       the editor is a box a person really does paste a reference number into.
+       Only the claims about the reason FIELD go, with the field. */
     const s1 = await page.evaluate(() => ({
       next: !!document.querySelector('[data-nego-next]'),
-      reasonHidden: !document.querySelector('[data-nego-reason]')
-        || document.querySelector('[data-nego-reason]').offsetParent === null,
+      noReason: !document.querySelector('[data-nego-reason]'),
+      noSkip: !document.querySelector('[data-nego-skip]'),
+      noBack: !document.querySelector('[data-nego-back]'),
       blockW: (() => { const b = document.querySelector('.rl-cp-src.is-on');
         return b ? Math.round(b.getBoundingClientRect().width) : null; })(),
     }));
-    check('editor: step one offers Save, not a reason box', s1.next && s1.reasonHidden);
-    check('editor: the box has not moved on step one', s1.blockW === before,
+    check('editor: SAVE FILES — no reason box, no Skip, no way back from a step',
+      s1.next && s1.noReason && s1.noSkip && s1.noBack, JSON.stringify(s1));
+    check('editor: the box has not moved with the editor open', s1.blockW === before,
       `${before}px → ${s1.blockW}px`);
 
-    await page.evaluate(() => document.querySelector('[data-nego-next]').click());
-    await page.waitForTimeout(350);
-    const s2 = await page.evaluate(() => ({
-      file: !!document.querySelector('[data-nego-save]'),
-      skip: !!document.querySelector('[data-nego-skip]'),
-      back: !!document.querySelector('[data-nego-back]'),
-    }));
-    check('editor: step two asks why, and can be skipped',
-      s2.file && s2.skip && s2.back, `file:${s2.file} skip:${s2.skip} back:${s2.back}`);
-
     const m = await page.evaluate(() => {
-      const ta = document.querySelector('[data-nego-reason]');
-      const blk = ta && ta.closest('.rl-cp-src');
-      if (!ta || !blk) return null;
-      const cs = getComputedStyle(ta);
-      const wrap = ta.closest('.nego-reason') || ta.parentElement;
+      const ed = document.querySelector('[data-nego-editor]');
+      const blk = ed && ed.closest('.rl-cp-src');
+      if (!ed || !blk) return null;
+      const cs = getComputedStyle(ed);
       return { blockW: Math.round(blk.getBoundingClientRect().width),
-        wrapW: Math.round(wrap.getBoundingClientRect().width),
-        taW: Math.round(ta.getBoundingClientRect().width),
-        boxSizing: cs.boxSizing, overflowWrap: cs.overflowWrap, wrap: ta.wrap };
+        edW: Math.round(ed.getBoundingClientRect().width),
+        boxSizing: cs.boxSizing, overflowWrap: cs.overflowWrap };
     });
-    check('editor: the reason field is there', !!m);
+    check('editor: the editor is there', !!m);
     if (m){
       check('editor: the panel body keeps its width', m.blockW === before,
         `${before}px before, ${m.blockW}px with the editor open`);
-      check('editor: the reason field fills its box and no more',
-        m.taW === m.wrapW, `${m.taW}px in ${m.wrapW}px`);
       check('editor: it is sized from the box, not from its own content',
         m.boxSizing === 'border-box', m.boxSizing);
       check('editor: text wraps rather than running sideways',
-        m.wrap === 'soft' && m.overflowWrap === 'anywhere', `${m.wrap} / ${m.overflowWrap}`);
+        m.overflowWrap === 'anywhere' || m.overflowWrap === 'break-word', m.overflowWrap);
 
       const stressed = await page.evaluate(() => {
-        const ta = document.querySelector('[data-nego-reason]');
-        ta.value = 'Our AP cycle runs monthly and the committee approves runs on the last '
+        const ed = document.querySelector('[data-nego-editor]');
+        ed.innerHTML = '<p>Our AP cycle runs monthly and the committee approves runs on the last '
           + 'Thursday, so Net-30 forces an out-of-cycle payment. '
-          + 'REF-SUPPLIERAGREEMENTSCHEDULEB-PAYMENTTERMS-2026-REVISION-FOURTEEN-NO-SPACES';
-        ta.dispatchEvent(new Event('input', { bubbles: true }));
-        const blk = ta.closest('.rl-cp-src');
+          + 'REF-SUPPLIERAGREEMENTSCHEDULEB-PAYMENTTERMS-2026-REVISION-FOURTEEN-NO-SPACES</p>';
+        const blk = ed.closest('.rl-cp-src');
         return { blockW: Math.round(blk.getBoundingClientRect().width),
-          sideways: ta.scrollWidth > ta.clientWidth + 1,
+          sideways: ed.scrollWidth > ed.clientWidth + 1,
           pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
       });
-      check('editor: a long unbroken reason does not widen the box',
+      check('editor: a long unbroken reference does not widen the box',
         stressed.blockW === before, `${stressed.blockW}px`);
       check('editor: and it wraps instead of scrolling sideways', !stressed.sideways);
       check('editor: the page still does not scroll sideways', !stressed.pageOverflow);
     }
-    /* ---- AND THE REASON HAS TO REACH THE CARD, FROM EVERY ACTION ----
+    /* ---- AND NO CARD PRINTS A REASON ----
        The two-step save shipped asking for a reason that then appeared
        nowhere: it was written onto two card renderers and not the third — the
-       one in the change column that people actually read. And the reason was
-       only asked for on the clause editor, so the change hardest to argue
-       with, striking a clause out, was the one nobody had to explain.
+       one in the change column that people actually read — and every test in
+       the suite passed because they checked that the FIELD existed rather than
+       that the answer arrived.
 
-       Both were invisible to every test in the suite, because the tests
-       checked that the FIELD existed rather than that the answer arrived. So
-       these walk each action all the way to the card and look for the words
-       that were typed. */
-    const REASON = 'LIVE-REASON our AP cycle runs monthly and our finance committee only approves payment runs on the last Thursday, so Net-30 forces an out-of-cycle payment almost every month and both sides handle exceptions.';
+       REVERSED IN PLACE 28 Aug 2026: the step is gone, so nothing typed here
+       can be walked to a card. What is still checkable, and is the half this
+       page can honestly answer, is that no card on this seat prints or clamps
+       one — the removal of 19 Aug is pinned rather than assumed. A reason that
+       EXISTS is proved to reach the PANEL in clause-door-verify, on a stage
+       whose payload carries durable clause ids (see the note below).
 
-    /* The stress test above left the editor on step two with a long string in
-       the box. Walk back to the wording, change it for real, and come forward
-       again — a save that files no wording change files nothing to look for. */
-    await page.evaluate(() => document.querySelector('[data-nego-back]')?.click());
-    await page.waitForTimeout(250);
+       The stress test above left a long unbroken string in the editor. Put real
+       wording back and file it: a save that files no wording change files
+       nothing to look for. */
     await page.evaluate(() => {
       const ed = document.querySelector('[data-nego-editor]');
       ed.innerHTML = '<p>The Parties may explore a relationship.</p>';
       document.querySelector('[data-nego-next]').click();
     });
-    await page.waitForTimeout(300);
-    await page.evaluate(r => {
-      const t = document.querySelector('[data-nego-reason]');
-      t.value = r; t.dispatchEvent(new Event('input', { bubbles: true }));
-      document.querySelector('[data-nego-save]').click();
-    }, REASON);
     await page.waitForTimeout(900);
+    /* A reason stamped straight onto the filed change, because nothing on this
+       path types one any more: the claim is about the CARD RENDERER, and a card
+       that would print a reason it holds is what must not exist. */
+    await page.evaluate(r => {
+      const cs = (window.PORTAL_CONTRACT && window.PORTAL_CONTRACT.changes)
+        || (window.CONTRACT && window.CONTRACT.changes) || [];
+      if (cs.length) cs[cs.length - 1].why = r;
+      const host = document.querySelector('.redline-page');
+      if (host && window.rlRepaintFrom) rlRepaintFrom(host);
+    }, 'LIVE-REASON our AP cycle runs monthly and our finance committee only approves payment runs on the last Thursday.');
+    await page.waitForTimeout(600);
     const edited = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
       .map(e => e.textContent).join(''));
     /* WHERE THE REASON LIVES NOW. These checks read the CARD until 19 Aug 2026,
@@ -428,13 +429,6 @@ const READ = () => {
       ed.innerHTML = ed.innerHTML.replace(/<p>/g, '<p><b>').replace(/<\/p>/g, '</b></p>');
       document.querySelector('[data-nego-next]').click();
     });
-    await page.waitForTimeout(300);
-    await page.evaluate(() => {
-      const t = document.querySelector('[data-nego-reason]');
-      t.value = 'House style: body text in bold.';
-      t.dispatchEvent(new Event('input', { bubbles: true }));
-      document.querySelector('[data-nego-save]').click();
-    });
     await page.waitForTimeout(900);
     const filed = await page.evaluate(() => ({
       cards: [...document.querySelectorAll('[data-nego-card]')].map(e => e.textContent).join(''),
@@ -460,9 +454,7 @@ const READ = () => {
       if (!b) return null; b.click();
       await new Promise(r => setTimeout(r, 300));
       document.querySelector('[data-nego-next]')?.click();
-      await new Promise(r => setTimeout(r, 250));
-      document.querySelector('[data-nego-save]')?.click();
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 600));
       const n = document.querySelector('.nego-edit-bar .nego-nofile');
       return n ? n.textContent : null;
     });
