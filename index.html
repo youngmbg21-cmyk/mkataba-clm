@@ -755,6 +755,12 @@
     /* No cream in the dark: warm paper on a dark page is a stain. The sheet is
        the surface it always was, and the hairline is the divider. */
     --color-doc-warm:#0f172a; --color-doc-warm-line:#1e293b;
+    /* The drafter's own marks against dark paper. The inks lift, the washes
+       become translucent so the light ink on top of them still reads. */
+    --mk-ink-blue:#93c5fd;  --mk-ink-violet:#c4b5fd; --mk-ink-plum:#f0abfc;
+    --mk-ink-ochre:#fcd34d; --mk-ink-grey:#94a3b8;
+    --mk-hl-yellow:rgba(250,204,21,.30); --mk-hl-blue:rgba(96,165,250,.30);
+    --mk-hl-violet:rgba(167,139,250,.30); --mk-hl-grey:rgba(148,163,184,.30);
     --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
 
     --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
@@ -4650,6 +4656,111 @@
   .hati-doc .hati-field[data-field-key]{cursor:pointer;}
   .hati-doc .hati-field[data-field-key]:hover{background:var(--color-neutral-200);
     border-bottom-style:solid;}
+
+  /* ---- THE DRAFTER'S OWN MARKS (owner-asked 27-28 Aug 2026) ----
+     Colour, highlight and size, applied to selected words and STORED in the
+     contract. The allowlist admits them as a fixed set of named classes and
+     nothing else (see RICH_MARK_CLASSES in js/richdoc.js); these are what those
+     names draw.
+
+     UNSCOPED ON PURPOSE. `hati-ink-blue` means one thing wherever it is drawn —
+     the negotiation paper, the Document tab, the clause panel, the
+     counterparty's copy, an export — and a rule scoped to one of those homes is
+     how the same stored word comes out coloured on one screen and plain on the
+     next. That is the clothes-follow-the-builder fault this codebase has paid
+     for three times.
+
+     EVERY VALUE IS var(--token, #literal), AND THE FALLBACK IS LOAD-BEARING.
+     Two standalone documents (js/views/healthreport.js, js/views/weekly.js) and
+     the negotiation history export open in their own window carrying no :root,
+     where a bare var() resolves to nothing and the colour would silently
+     vanish. Never rewrite the second argument of one of these.
+
+     THE PAPER DARKENS AT NIGHT — html.dark redefines --color-doc-surface and
+     --n-paper to #0f172a — so each ink and each wash has a dark answer below.
+     A mark with no night answer is this codebase's most repeated defect. */
+  .hati-ink-blue  {color:var(--mk-ink-blue,   #1d4ed8);}
+  .hati-ink-violet{color:var(--mk-ink-violet, #6d28d9);}
+  .hati-ink-plum  {color:var(--mk-ink-plum,   #86198f);}
+  .hati-ink-ochre {color:var(--mk-ink-ochre,  #a16207);}
+  .hati-ink-grey  {color:var(--mk-ink-grey,   #54635f);}
+  .hati-hl-yellow{background:var(--mk-hl-yellow, #fef08a);}
+  .hati-hl-blue  {background:var(--mk-hl-blue,   #bfdbfe);}
+  .hati-hl-violet{background:var(--mk-hl-violet, #e9d5ff);}
+  .hati-hl-grey  {background:var(--mk-hl-grey,   #e2e8f0);}
+  /* A STORED SIZE IS PAPER, SO IT SCALES WITH THE READER'S OWN A-/A+ SETTING.
+     Written as a bare px it would be the one thing on the sheet that ignored
+     that stepper — the fault the clause tools, the ask tags and the editor
+     furniture each had to be corrected for. --doc-scale is 1 on every surface
+     that sets no preference, so an export and a print take the plain size. */
+  .hati-fs-9 {font-size:calc(9px  * var(--doc-scale,1));}
+  .hati-fs-10{font-size:calc(10px * var(--doc-scale,1));}
+  .hati-fs-11{font-size:calc(11px * var(--doc-scale,1));}
+  .hati-fs-12{font-size:calc(12px * var(--doc-scale,1));}
+  .hati-fs-14{font-size:calc(14px * var(--doc-scale,1));}
+  .hati-fs-16{font-size:calc(16px * var(--doc-scale,1));}
+  .hati-fs-18{font-size:calc(18px * var(--doc-scale,1));}
+  .hati-fs-20{font-size:calc(20px * var(--doc-scale,1));}
+  .hati-fs-24{font-size:calc(24px * var(--doc-scale,1));}
+  .hati-fs-28{font-size:calc(28px * var(--doc-scale,1));}
+
+  /* ---- THE WRITING BAR'S OWN CLOTHES ----
+     One dressing, unscoped, for the same reason the marks above are unscoped:
+     richBarHtml has two homes (the clause panel's inline editor and work mode)
+     and a rule scoped to one of them is how the same bar comes out looking like
+     two different controls. The bar is ALL WHITE with FLAT icons — owner-asked
+     28 Aug 2026: a grid of bordered boxes on a white strip reads as fourteen
+     little cards, and Word and Docs both draw flat icons and mark only the one
+     that is pressed.
+
+     IT DOES NOT SCALE WITH THE READER'S TEXT SIZE. The paper scales, the
+     furniture does not — the rule this page has learned four times — so nothing
+     here reads --doc-scale. */
+  .rb-btn{width:28px;height:28px;flex:none;display:inline-grid;place-items:center;
+    background:transparent;border:0;padding:0;color:var(--color-text);
+    font:inherit;font-size:var(--t-meta);line-height:1;cursor:pointer;border-radius:var(--radius);}
+  .rb-btn:hover{background:var(--color-neutral-100);}
+  .rb-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
+  .rb-btn.on{background:var(--color-accent-100);color:var(--accent-ink);}
+  .rb-btn[disabled]{opacity:.35;cursor:default;}
+  .rb-btn[disabled]:hover{background:transparent;}
+  .rb-btn b,.rb-btn u,.rb-btn s{font-weight:var(--w-title);}
+  .rb-btn i{font-family:Georgia,'Times New Roman',serif;}
+  .rb-wide{width:auto;padding:0 5px;gap:4px;grid-auto-flow:column;align-items:center;}
+  .rb-a{font-weight:var(--w-strong);font-size:var(--t-meta);}
+  .rb-sw{display:block;width:14px;height:3px;margin-top:2px;}
+  /* An ink class sets `color`, so the swatch borrows it; a highlight class sets
+     `background` and already paints itself. Two selectors, no !important. */
+  .rb-sw[class*="hati-ink-"]{background:currentColor;}
+  .rb-car{font-size:9px;color:var(--color-neutral-600);}
+  .rb-sep{width:1px;height:18px;background:var(--color-divider);margin:0 5px;flex:none;}
+  /* the size box takes Word's own shape, because that is where a writer looks */
+  .rb-size{flex:none;display:flex;align-items:center;height:28px;gap:5px;
+    padding:0 5px 0 8px;background:var(--color-surface);border:1px solid var(--color-divider);
+    font:inherit;color:var(--color-text);cursor:pointer;border-radius:var(--radius);}
+  .rb-size:hover{border-color:var(--color-neutral-400);}
+  .rb-size:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
+  .rb-size-v{font-size:var(--t-label);min-width:17px;text-align:center;
+    font-variant-numeric:tabular-nums;}
+
+  /* the two pickers the bar opens — one shape, two contents */
+  .rb-pop{position:fixed;z-index:64;background:var(--surface-3,var(--color-surface));
+    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:8px;}
+  .rb-pop[hidden]{display:none;}
+  .rb-pop-row{display:flex;gap:6px;}
+  .rb-pop-sw{width:26px;height:26px;padding:0;cursor:pointer;
+    border:1px solid var(--color-divider);}
+  .rb-pop-sw[class*="hati-ink-"]{background:currentColor;}
+  .rb-pop-none{margin-top:7px;width:100%;height:24px;font:inherit;font-size:var(--t-label);
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    color:var(--color-text);cursor:pointer;}
+  .rb-pop-sizes{padding:4px;min-width:76px;}
+  .rb-pop-sizes button{display:block;width:100%;text-align:left;padding:5px 10px;
+    background:none;border:0;font:inherit;font-size:var(--t-meta);color:var(--color-text);
+    cursor:pointer;}
+  .rb-pop-sizes button:hover{background:var(--color-accent-100);color:var(--accent-ink);}
+  .rb-pop-sizes button.on{background:var(--color-accent-100);color:var(--accent-ink);
+    font-weight:var(--w-strong);}
 
   /* the paste/edit surface — a contenteditable, because a textarea can only
      ever hold plain text, which is the thing we are trying to stop losing */

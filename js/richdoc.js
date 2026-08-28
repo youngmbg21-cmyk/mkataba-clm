@@ -51,6 +51,44 @@ const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-f
   P:new Set([RICH_CLAUSE_ATTR]) };
 /* The single allowlisted span class: HaTi's own field-placeholder marker. */
 const RICH_FIELD_CLASS = 'hati-field';
+/* ---------- THE DRAFTER'S OWN MARKS (owner-asked 27-28 Aug 2026) ----------
+   A contract writer needs what Word gives them: colour a phrase, highlight it,
+   set a size. Until now this allowlist refused all three, because it refuses
+   `style` on everything — so a colour button would have looked as though it
+   worked and the colour would have gone the moment the change was filed.
+
+   They are admitted the same way `hati-field` is and no wider: as a FIXED SET
+   OF NAMED CLASSES. Nothing free-form ever reaches storage — no style, no hex,
+   no arbitrary class — so a contract cannot arrive carrying a colour or a size
+   this workspace did not choose, and a stored document can be re-rendered
+   safely on a page HaTi does not control (the counterparty portal serves people
+   outside the workspace with no login, which is why rule 1 at the top of this
+   file exists).
+
+   THE PALETTE CARRIES NO GREEN AND NO RED, and that is a safety property rather
+   than a taste. On the paper green already means somebody INSERTED this and
+   struck red means somebody DELETED it. A drafter able to colour a word the
+   redline's own green would be writing a sentence the other side reads as
+   somebody else's edit. Both are absent from RICH_MARK_INKS and RICH_MARK_HLS,
+   and f249 fails on the day one is added.
+
+   THE SIZES ARE STEPS, NOT NUMBERS. A stored size travels to the counterparty
+   and into the signed PDF, so the set is closed and every member is a size a
+   person actually asked for. */
+const RICH_MARK_INKS = ['blue', 'violet', 'plum', 'ochre', 'grey'];
+const RICH_MARK_HLS  = ['yellow', 'blue', 'violet', 'grey'];
+const RICH_SIZES     = [9, 10, 11, 12, 14, 16, 18, 20, 24, 28];
+const RICH_MARK_CLASSES = new Set([].concat(
+  RICH_MARK_INKS.map(n => 'hati-ink-' + n),
+  RICH_MARK_HLS.map(n => 'hati-hl-' + n),
+  RICH_SIZES.map(n => 'hati-fs-' + n)));
+/* ONE reading of "may a span carry this class", asked by the attribute pass and
+   by the structural tidy-up below. Two copies of this test is how a class comes
+   to survive one and be unwrapped by the other. EXACTLY ONE class, never a
+   space-separated list: a span is a field, OR an ink, OR a highlight, OR a size,
+   and anything wanting two is two nested spans — which keeps this test total
+   rather than a parser. */
+const richSpanClassOk = v => v === RICH_FIELD_CLASS || RICH_MARK_CLASSES.has(v);
 /* The one data attribute a hati-field span may carry: which template-form
    field the blank belongs to, so a click on the document can route to the
    right input. Admitted under the same reasoning as data-clause-id — the
@@ -173,8 +211,8 @@ function _stripAttrs(el){
     const name=(attr.name||'').toLowerCase();
     if(!allowed || !allowed.has(name)){ el.removeAttribute(attr.name); continue; }
     if(el.tagName==='SPAN' && name==='class'){
-      // exactly one class is permitted, and only that one
-      if(String(attr.value||'').trim()!==RICH_FIELD_CLASS) el.removeAttribute(attr.name);
+      // exactly one class, and it must be on the list — see RICH_MARK_CLASSES
+      if(!richSpanClassOk(String(attr.value||'').trim())) el.removeAttribute(attr.name);
       continue;
     }
     if(el.tagName==='SPAN' && name===RICH_FIELD_KEY_ATTR){
@@ -234,7 +272,7 @@ function _normaliseStructure(root){
   // the walk only because SPAN is on the tag list — and unwrapping it here
   // keeps its text while leaving nothing behind to style or to hang meaning on.
   root.querySelectorAll('span').forEach(sp=>{
-    if(sp.getAttribute('class')===RICH_FIELD_CLASS) return;
+    if(richSpanClassOk(String(sp.getAttribute('class')||'').trim())) return;
     const parent=sp.parentNode; if(!parent) return;
     while(sp.firstChild) parent.insertBefore(sp.firstChild, sp);
     sp.remove();
@@ -660,7 +698,189 @@ function textToRich(text){
   }).filter(Boolean).join('');
 }
 
-Object.assign(window,{RICH_TAGS,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
+/* ============================================================================
+   THE WRITING BAR — one builder, two shelves (owner-asked 27-28 Aug 2026)
+   ----------------------------------------------------------------------------
+   IT LIVES HERE, BESIDE THE ALLOWLIST, ON PURPOSE. A bar offering something the
+   allowlist strips is a dead press — the reader formats a word, files the
+   change, and the formatting is gone with no error anywhere. Keeping the shelf
+   and the rule in one file is what stops the two drifting; every colour and
+   size this bar offers is read straight off RICH_MARK_* above.
+
+   TWO SHELVES, ONE DEFINITION. 'compact' is what the clause panel's inline
+   editor has always drawn; 'full' is the Word-style bar work mode gets. They
+   are one list with a flag, never two lists that agree today.
+
+   IT DECIDES NOTHING AND STORES NOTHING. richBarHtml returns markup and
+   richBarPress performs an act on the current selection; whether a change is
+   filed, and through which funnel, belongs to the host. That is what keeps this
+   out of the second-door problem: the bar is a set of hands, not a way in.
+   ========================================================================== */
+const RICH_BAR_ICON = {
+  ul:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="3" cy="4" r="1.1" fill="currentColor" stroke="none"/><circle cx="3" cy="8" r="1.1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7"/></svg>',
+  ol:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M6.5 4h7M6.5 8h7M6.5 12h7"/><text x="0.6" y="5.6" font-size="5" fill="currentColor" stroke="none">1</text><text x="0.6" y="9.6" font-size="5" fill="currentColor" stroke="none">2</text><text x="0.6" y="13.6" font-size="5" fill="currentColor" stroke="none">3</text></svg>',
+  indent:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h7M7 8h7M7 12h7M2 4v8M2.2 6l2 2-2 2"/></svg>',
+  outdent:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h7M7 8h7M7 12h7M2 4v8M4.2 6l-2 2 2 2"/></svg>',
+  clear:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 3h8M7.4 3 6 13M10.5 9.5l3 3M13.5 9.5l-3 3"/></svg>',
+  pen:'<svg width="15" height="12" viewBox="0 0 16 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M9.5 1.5 12 4 5.5 10.5H3V8Z"/></svg>',
+  undo:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7a3.5 3.5 0 0 1 0 7H7M3 7l3-3M3 7l3 3"/></svg>',
+  redo:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7H6a3.5 3.5 0 0 0 0 7h3M13 7l-3-3M13 7l-3 3"/></svg>',
+  quote:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2.5 3v10M6 5h7.5M6 8h7.5M6 11h5"/></svg>'
+};
+/* full:0 marks the five the compact shelf also carries. Nothing is taken away
+   from the panel's bar by this; it gains the same definitions. */
+const RICH_BAR_TOOLS = [
+  { k:'undo', full:1, icon:'undo', tip:'rb_undo' },
+  { k:'redo', full:1, icon:'redo', tip:'rb_redo' },
+  { sep:1, full:1 },
+  { size:1, full:1 },
+  { sep:1, full:1 },
+  { k:'bold',          glyph:'<b>B</b>',  tip:'rb_bold' },
+  { k:'italic',        glyph:'<i>I</i>',  tip:'rb_italic' },
+  { k:'underline',     glyph:'<u>U</u>',  tip:'rb_underline' },
+  { k:'strikeThrough', glyph:'<s>S</s>',  tip:'rb_strike', full:1 },
+  { sep:1 },
+  { k:'insertUnorderedList', icon:'ul', tip:'rb_bullets' },
+  { k:'insertOrderedList',   icon:'ol', tip:'rb_numbers' },
+  { k:'indent',  icon:'indent',  tip:'rb_indent',  full:1 },
+  { k:'outdent', icon:'outdent', tip:'rb_outdent', full:1 },
+  { sep:1, full:1 },
+  { k:'ink', wide:1, full:1, tip:'rb_ink' },
+  { k:'hl',  wide:1, full:1, tip:'rb_highlight' },
+  { sep:1, full:1 },
+  { k:'quote', icon:'quote', tip:'rb_quote', full:1 },
+  { k:'clear', icon:'clear', tip:'rb_clear', full:1 }
+];
+const _rbT = k => (typeof window !== 'undefined' && window.i18t) ? i18t(k) : k;
+const _rbA = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/* The first ink and the first highlight are what the two swatch buttons show
+   before anything has been picked — read off the palette, never typed twice. */
+const richMarkDefault = kind => kind === 'hl'
+  ? 'hati-hl-' + RICH_MARK_HLS[0] : 'hati-ink-' + RICH_MARK_INKS[0];
+
+function richBarHtml(opts){
+  const o = opts || {};
+  const full = o.shelf !== 'compact';
+  const size = Number(o.size) || 14;
+  const cls = o.cls || 'rb';
+  const out = [];
+  RICH_BAR_TOOLS.forEach(it => {
+    if (!full && it.full) return;
+    if (it.sep){ out.push(`<span class="${cls}-sep"></span>`); return; }
+    if (it.size){
+      out.push(`<button type="button" class="${cls}-size" data-rb-size-open="1"`
+        + ` title="${_rbA(_rbT('rb_size'))}" aria-label="${_rbA(_rbT('rb_size'))}" tabindex="-1">`
+        + `<span class="${cls}-size-v" data-rb-size-val>${_rbA(String(size))}</span>`
+        + `<span class="${cls}-car">&#9662;</span></button>`);
+      return;
+    }
+    const tip = _rbA(_rbT(it.tip));
+    if (it.k === 'ink' || it.k === 'hl'){
+      const swatch = it.k === 'hl' ? RICH_BAR_ICON.pen
+        : '<span class="' + cls + '-a">A</span>';
+      out.push(`<button type="button" class="${cls}-btn ${cls}-wide" data-rb-pick="${it.k}"`
+        + ` title="${tip}" aria-label="${tip}" tabindex="-1">${swatch}`
+        + `<span class="${cls}-sw ${richMarkDefault(it.k)}" data-rb-sw="${it.k}"></span>`
+        + `<span class="${cls}-car">&#9662;</span></button>`);
+      return;
+    }
+    const face = it.glyph || RICH_BAR_ICON[it.icon] || '';
+    out.push(`<button type="button" class="${cls}-btn" data-rb="${it.k}"`
+      + ` title="${tip}" aria-label="${tip}" tabindex="-1">${face}</button>`);
+  });
+  return out.join('');
+}
+
+/* The acts this bar performs itself. Anything not here — undo, redo — belongs
+   to the host, because what "step back" means differs between an editor with a
+   draft stack and one without. Returns false when it did not handle the key,
+   so a host can tell the difference rather than guess. */
+function richBarPress(k){
+  if (k === 'clear'){
+    try{ document.execCommand('removeFormat'); }catch(e){}
+    return true;
+  }
+  if (k === 'quote'){
+    try{ document.execCommand('formatBlock', false, 'blockquote'); }catch(e){}
+    return true;
+  }
+  if (k === 'bold' || k === 'italic' || k === 'underline' || k === 'strikeThrough'
+    || k === 'insertUnorderedList' || k === 'insertOrderedList'
+    || k === 'indent' || k === 'outdent'){
+    /* An engine without execCommand still has the keyboard — the same fallback
+       the panel's bar has carried since it was written. */
+    try{ document.execCommand(k); }catch(e){}
+    return true;
+  }
+  return false;
+}
+
+/* A NAMED CLASS, NEVER A STYLE ATTRIBUTE. This is the only way a colour or a
+   size reaches a stored body, which is what makes the allowlist above a
+   complete description of what a contract can carry.
+
+   surroundContents throws where the range crosses an element boundary — half a
+   bold run, say — so the fallback extracts and re-inserts, which handles it. */
+function richMarkSelection(cls, opts){
+  if (!cls || !RICH_MARK_CLASSES.has(cls)) return false;
+  const sel = (opts && opts.sel) || (typeof window !== 'undefined' && window.getSelection());
+  if (!sel || !sel.rangeCount || sel.isCollapsed) return false;
+  const r = sel.getRangeAt(0);
+  const span = r.startContainer.ownerDocument.createElement('span');
+  span.className = cls;
+  try{ r.surroundContents(span); }
+  catch(e){ span.appendChild(r.extractContents()); r.insertNode(span); }
+  /* A size inside a size, or an ink inside an ink, leaves the inner one winning
+     over the choice just made. Same family only: a highlight inside a colour is
+     two different facts and both stand. */
+  const family = cls.slice(0, cls.lastIndexOf('-') + 1);
+  Array.from(span.querySelectorAll('span[class^="' + family + '"]')).forEach(sp => {
+    const p = sp.parentNode; if (!p) return;
+    while (sp.firstChild) p.insertBefore(sp.firstChild, sp);
+    sp.remove();
+  });
+  sel.removeAllRanges();
+  return true;
+}
+
+/* Take the drafter's marks off a region — the Remove row under each picker.
+   `kind` narrows it to one family; absent, every mark goes. Sizes are left
+   alone by default: a reader clearing a colour has not asked for the wording to
+   change size under them. */
+function richUnmark(root, kind){
+  if (!root || !root.querySelectorAll) return 0;
+  const pre = kind === 'ink' ? 'hati-ink-' : kind === 'hl' ? 'hati-hl-'
+    : kind === 'size' ? 'hati-fs-' : null;
+  const sel = pre ? 'span[class^="' + pre + '"]'
+    : 'span[class^="hati-ink-"], span[class^="hati-hl-"]';
+  const found = Array.from(root.querySelectorAll(sel));
+  found.forEach(sp => {
+    const p = sp.parentNode; if (!p) return;
+    while (sp.firstChild) p.insertBefore(sp.firstChild, sp);
+    sp.remove();
+  });
+  return found.length;
+}
+
+/* What size is the selection sitting in? Walks up for the nearest stored size
+   and falls back to the block's own default, so the box on the bar reads what
+   the caret is actually in rather than what was last pressed. */
+function richSizeAt(node, fallback){
+  let el = node && (node.nodeType === 1 ? node : node.parentElement);
+  while (el && el.classList){
+    const hit = Array.from(el.classList).find(c => /^hati-fs-\d+$/.test(c));
+    if (hit) return Number(hit.slice('hati-fs-'.length));
+    if (el.hasAttribute && el.hasAttribute('data-nego-editor')) break;
+    el = el.parentElement;
+  }
+  return Number(fallback) || 14;
+}
+
+Object.assign(window,{RICH_TAGS,
+  RICH_BAR_TOOLS,RICH_BAR_ICON,richBarHtml,richBarPress,richMarkSelection,richUnmark,
+  richSizeAt,richMarkDefault,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
+  RICH_MARK_INKS,RICH_MARK_HLS,RICH_SIZES,RICH_MARK_CLASSES,richSpanClassOk,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
