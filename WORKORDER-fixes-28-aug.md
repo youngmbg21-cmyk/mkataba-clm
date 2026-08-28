@@ -22,10 +22,9 @@ before it is touched.
 **THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the negotiation
 page's surplus width goes to the cards or to white space (item 1), whether the
 counterparty may rename our clause headings (item 4), and whether "the notes
-panel" means that one face or the whole shell drawer (item 5). **Item 7's three
-were answered on 28 Aug and are recorded inside it**; the only thing still loose
-there is whether History earns a third tab on the Copilot rail, and that is a
-recommendation the owner can take or leave rather than a blocker.
+panel" means that one face or the whole shell drawer (item 5). **Item 7 is FULLY SPECIFIED** — its
+three questions were answered on 28 Aug and the History question was ruled the
+same day (dropped; no third tab). Nothing in it is waiting on anybody.
 
 **ITEM 7 MAY ANSWER ITEM 1's QUESTION BY REMOVING IT.** If the Copilot rail
 takes the right-hand column while a clause is open, "cards or white space" is
@@ -143,8 +142,9 @@ you edit one clause at a time, and the clause panel goes.
 **One correction I owe you:** I said the panel's *History* section had nowhere
 else to live. That was wrong — I checked, and the contract's own History tab can
 already be filtered to a single clause, so the same record is there. Nothing is
-lost. I have suggested giving the Copilot window a third tab for it anyway, so it
-stays one press away while you edit, but dropping it is a fair choice too.
+lost. **You have ruled it dropped**, so the Copilot window keeps two tabs and
+the History tab is the one place a clause's record lives. **Item 7 now has no
+loose ends.**
 
 ---
 
@@ -966,13 +966,21 @@ of this item and the file should not have overstated it.
   name which ask you are working from. Already built, already there.
 - **"History"** — the only one with no home in the merged layout.
 
-**RECOMMENDED, and it is a recommendation rather than a refusal to decide: give
-the Copilot rail a THIRD TAB.** It already carries Suggestions and Playbook scan;
-History beside them is one more tab, no new concept, and it keeps a clause's
-record one press away while you edit. **The cheaper option is honest too** — drop
-it and let the room's History tab carry it, since it already can. Either is
-defensible; the third tab costs little and keeps the clause's record where the
-clause is.
+**OWNER-RULED, 28 Aug 2026 — DROPPED. NO THIRD TAB.**
+
+> *"Just drop it. There is a history page in HaTi already so no need to
+> duplicate."*
+
+**The Copilot rail keeps TWO tabs: Suggestions and Playbook scan.** History goes
+with the panel, and the room's own History tab — filtered to a clause — is its
+one home.
+
+**AND THE OWNER'S REASON IS THIS RULEBOOK'S OWN ONE DOOR RULE, in their words
+rather than its own:** a second door onto something that already has one does not
+fail, it DRIFTS, and then two screens disagree about what happened on a clause.
+That is recorded here as the standing rule for anyone who later wants to put a
+clause's record back on this rail: **it already has a home, and the answer is
+no.**
 
 **3 · ONE CLAUSE AT A TIME.**
 
@@ -987,6 +995,11 @@ value, not a set. Nothing to build; a rule to keep.
   callers; follow this file's convention and leave a `return ''` stub rather than
   deleting it, so a third caller cannot bring a second editing surface back
   through a door nobody remembered.
+- **THE CLAUSE'S SETTLED RECORD HAS EXACTLY ONE HOME AND IT IS THE ROOM'S
+  HISTORY TAB** (owner-ruled). Do not rebuild it on the rail, in the chips, or as
+  a line under the paper. If it is ever found to be hard to reach from here, the
+  fix is a LINK to that tab filtered to this clause — never a second copy of the
+  list.
 - **THE COUNTERPARTY'S SEAT IS NOT IN THIS.** Their page mounts the same panes.
   Typing on the paper must not turn on there, and `clauseEditorRefusal` already
   refuses their seat — keep that refusal as the wall, wherever the code ends up.
