@@ -1370,6 +1370,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const page = document.getElementById('clause-editor');
     const left = page.querySelector('.ce-left');
     const bar = page.querySelector('#ce-readbar');
+    const write = page.querySelector('#ce-bar');
     const paper = page.querySelector('.ce-paperwrap');
     const br = bar.getBoundingClientRect(), pr = paper.getBoundingClientRect();
     /* Whatever sits between the readings row and the paper, added up. */
@@ -1395,15 +1396,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         .test(page.textContent),
       between, gap: pr.top - br.bottom, headToPaper, barH0: br.height,
       /* Every full-width BAND standing in that space. The retired strip was
-         one; the readings row is the only one that may be. Anything scrolled
-         out of the paper's own scroller reports a rect up there too, so the
-         paper's contents are excluded by ancestry rather than by geometry. */
+         one; the readings row and the writing bar are the only two that may
+         be. Anything scrolled out of the paper's own scroller reports a rect
+         up there too, so the paper's contents are excluded by ancestry rather
+         than by geometry. */
       bands: [...page.querySelectorAll('*')].filter(el => {
         if (el === bar || bar.contains(el) || paper.contains(el)) return false;
+        if (write && (el === write || write.contains(el))) return false;
         const r = el.getBoundingClientRect();
         return r.height > 0 && r.top >= fr.bottom - 1 && r.bottom <= pr.top + 1
           && r.width >= br.width * 0.9;
       }).map(el => `${el.tagName}.${el.className || el.id}`),
+      /* The writing bar, read as a RELATION rather than as a height: it is
+         drawn, it stands between the head's facts and the paper, and it lives
+         inside .ce-head — which is inside the LEFT column, so it cannot push
+         the Copilot rail down. */
+      writeDrawn: !!write && write.getBoundingClientRect().height > 0,
+      writeInHead: !!write && !!write.closest('.ce-head'),
+      writeAbovePaper: !!write
+        && write.getBoundingClientRect().bottom <= pr.top + 1
+        && write.getBoundingClientRect().top >= fr.bottom - 1,
       chips: chips.length,
       chipText: chips.map(b => b.textContent.trim()),
       chipLeft: chips.length ? chips[0].getBoundingClientRect().left : null,
@@ -1425,15 +1437,40 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('17l nothing stands in its place — the paper begins under the readings row',
      room.between === 0 && room.gap < 24,
      `${room.between}px of band, ${Math.round(room.gap)}px of gap`);
-  /* Pinned as a RELATION rather than as the number of pixels the page gained:
-     between the head and the contract the ONLY band is the readings row. The
-     retired strip was a second one, full width with a rule under it, and its
-     40px is what the owner asked for back. A pixel budget here would need
-     re-typing at every type pass; this does not. */
-  ck('17l2 and the space the strip held went back to the contract — the readings '
-     + 'row is the ONLY band between the head and the paper',
-     room.bands.length === 0,
-     room.bands.length ? room.bands.join(', ') : `nothing else in ${Math.round(room.headToPaper)}px`);
+  /* REVERSED IN PLACE 28 Aug 2026 — the WRITING BAR joins the readings row,
+     and the two are not the same kind of thing as the strip that left.
+
+     The retired one was a NOTICE: "On this clause", the change's name and a
+     sentence saying nothing had been proposed — three facts the crumb and the
+     fact row twelve pixels above already carried, printed a fourth time in a
+     full-width band with a rule under it. The owner asked for that space back
+     and it went back.
+
+     The bar is the CONTROL the owner then asked for, in their own words: the
+     tools above the contract, all white, symmetric and balanced. A band that
+     carries an act is exactly what NO NEW BANDS ON THE PAGE keeps; a band that
+     restates the screen is what it removes. So the claim is unchanged in kind
+     and is simply named: between the head and the paper stand the writing bar
+     and the readings row and NOTHING ELSE — in particular not the notice,
+     which 17j and 17k pin as an absence in its own right.
+
+     Still a RELATION rather than a pixel budget, which is what stops this
+     needing re-typing at every type pass. */
+  ck('17l2 the only bands between the head and the paper are the writing bar '
+     + 'and the readings row — the notice has not come back through another door',
+     room.bands.length === 0 && room.writeDrawn === true
+       && room.writeAbovePaper === true,
+     room.bands.length ? room.bands.join(', ')
+       : `bar drawn ${room.writeDrawn}, above the paper ${room.writeAbovePaper}, `
+         + `nothing else in ${Math.round(room.headToPaper)}px`);
+  /* THE OWNER'S ONE CONSTRAINT ON BUILDING IT, in their own words: "make sure
+     you do not forget the copilot panel goes all the way to the top". A row
+     placed above .ce-grid would push the rail down by its own height, which is
+     what this page was corrected for repeatedly before it was built — so the
+     bar's HOME is the claim, and 2d2 measures the rail itself. */
+  ck('17l3 and it sits inside .ce-head — in the LEFT column, so the Copilot '
+     + 'rail still runs floor to ceiling',
+     room.writeInHead === true, `inside .ce-head: ${room.writeInHead}`);
   ck('17m the chip moved ONTO the readings row, named by its change',
      room.chips === 1 && /CHG-/.test(room.chipText[0] || ''), room.chipText.join(','));
   ck('17n it sits at the RIGHT of that row, in the space the row already had',

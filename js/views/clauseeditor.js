@@ -216,6 +216,15 @@ function clauseEditorCss(){
      shared rule and is not restated here. */
   .ce-head .room-head h1{letter-spacing:0}
   .ce-head .room-facts{margin-top:11px}
+  /* ---- THE WRITING BAR'S ROW ----
+     LAYOUT ONLY. Every button in it is dressed by the unscoped rb-* rules in
+     index.html, because richBarHtml has two homes and a rule scoped to one of
+     them is how the same bar comes out looking like two different controls.
+     It wraps rather than clipping: the divider can be dragged to 380px and a
+     tool that has fallen off the end is a tool nobody can reach. */
+  .ce-bar{display:flex; align-items:center; flex-wrap:wrap; gap:2px;
+    margin-top:10px; padding-top:9px; border-top:1px solid var(--color-divider)}
+  .ce-bar:empty{display:none}
   .ce-crumb{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
   .ce-crumb .sep{color:var(--color-neutral-500)}
   .ce-sel{flex:0 1 auto; min-width:110px; max-width:280px; height:24px; padding:0 6px;
@@ -952,6 +961,15 @@ function clauseEditorHtml(){
         <div class="room-acts ce-acts" id="ce-headacts"></div>
       </div>
       <div class="room-facts"><div class="room-facets" id="ce-facts"></div></div>
+    ${''/* ---- THE WRITING BAR ----
+           INSIDE .ce-head, which is inside the left column — never above
+           .ce-grid. A full-width row there pushes the Copilot rail down by its
+           own height, which is the one thing this layout was corrected for
+           repeatedly, and the comment at the top of this builder says so.
+           Drawn by richBarHtml, the product's ONE shelf: the same builder the
+           clause panel's inline editor draws, at its 'full' setting. */}
+      <div class="ce-bar" id="ce-bar" role="toolbar"
+        aria-label="${_ceea(_cet('ce_bar_label'))}"></div>
     </div>
         <div class="ce-left">
     ${''/* ---- THE THREE READINGS, FROM THE PRODUCT'S OWN BUILDER ----
@@ -1023,6 +1041,9 @@ function clauseEditorHtml(){
         </div>
         <div class="ce-railfoot" id="ce-railfoot"></div>
       </aside>
+      ${''/* ONE picker element, three contents — ink, highlight, size. Three
+             elements is three places for a stale one to be left open. */}
+      <div class="rb-pop" id="ce-pop" hidden></div>
       ${''/* ---- THE DIVIDER, LAST AND ABSOLUTE ----
              A CHILD of the grid, so it is positioned against the grid's own box
              and moves with it; ABSOLUTE, so it claims no track and no row and
@@ -1371,6 +1392,7 @@ function ceNowHm(){
 const _ceQ = sel => { const p = document.getElementById('clause-editor'); return p ? p.querySelector(sel) : null; };
 
 function ceRenderAll(){
+  ceRenderBar();
   ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane(); ceRenderChips();
 }
 
@@ -1549,6 +1571,104 @@ const ceIsTyping = () => _ceEditing && ceEditableReading();
    the body of ONE clause, the one being typed in, whose wording is not on the
    record yet. See the note on liveId in redlineDocHtml for the four properties
    that keeps honest. */
+/* ---------- THE PICKERS ----------
+   The two colour lists and the size list, in one element. Every option is read
+   off RICH_MARK_* — the allowlist itself — so the picker cannot offer a colour
+   or a size a stored body may not carry. That is the whole reason the bar lives
+   beside the allowlist. */
+function ceOpenPicker(anchor, kind){
+  const pop = _ceQ('#ce-pop');
+  if (!pop || !anchor) return;
+  if (!pop.hidden && pop.getAttribute('data-kind') === kind){ ceClosePicker(); return; }
+  const esc = _ceea;
+  let html = '';
+  if (kind === 'size'){
+    const now = ceSizeNow();
+    pop.className = 'rb-pop rb-pop-sizes';
+    html = (window.RICH_SIZES || []).map(n =>
+      `<button type="button" data-ce-size="${n}"${n === now ? ' class="on"' : ''}>${n}</button>`).join('');
+  } else {
+    const list = kind === 'hl' ? (window.RICH_MARK_HLS || []) : (window.RICH_MARK_INKS || []);
+    const pre = kind === 'hl' ? 'hati-hl-' : 'hati-ink-';
+    pop.className = 'rb-pop';
+    html = '<div class="rb-pop-row">' + list.map(n => {
+      const label = _cet((kind === 'hl' ? 'rb_hl_' : 'rb_ink_') + n);
+      return `<button type="button" class="rb-pop-sw ${pre}${n}" data-ce-mark="${pre}${n}"`
+        + ` title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+    }).join('') + '</div>'
+      + `<button type="button" class="rb-pop-none" data-ce-unmark="${kind}">`
+      + `${esc(_cet('rb_remove'))}</button>`;
+  }
+  pop.innerHTML = html;
+  pop.setAttribute('data-kind', kind);
+  pop.hidden = false;
+  /* MEASURED, never guessed: the bar wraps, so which row a button sits on —
+     and therefore where its list belongs — is not knowable from the markup. */
+  try{
+    const r = anchor.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    let y = r.bottom + 6;
+    if (y + pop.offsetHeight > window.innerHeight - 8) y = Math.max(8, r.top - pop.offsetHeight - 6);
+    pop.style.top = y + 'px';
+  }catch(_){}
+}
+function ceClosePicker(){
+  const pop = _ceQ('#ce-pop');
+  if (pop){ pop.hidden = true; pop.removeAttribute('data-kind'); }
+}
+/* A size with nothing selected sets the WHOLE clause, which is what a reader
+   who has not highlighted anything means by it; with a selection it marks just
+   those words. Both go through richMarkSelection, so neither can write a class
+   the allowlist would strip. */
+function ceApplyMark(cls){
+  if (!ceIsTyping()){ ceSay(_cet('ce_bar_press_pencil')); return; }
+  if (!ceEditableReading()){ ceSay(_cet('ce_reading_only')); return; }
+  const box = _ceQ('#ce-clausebody');
+  const sel = window.getSelection();
+  const wide = /^hati-fs-/.test(cls) && (!sel || !sel.rangeCount || sel.isCollapsed);
+  if (wide && box){
+    try{
+      const r = document.createRange(); r.selectNodeContents(box);
+      sel.removeAllRanges(); sel.addRange(r);
+    }catch(_){}
+  }
+  if (window.richMarkSelection && richMarkSelection(cls)) cePullText();
+  else ceSay(_cet('rb_pick_first'));
+  ceRenderBar();
+}
+
+/* ---------- THE BAR ----------
+   Repainted with the head, because the size it shows is a fact about where the
+   caret is rather than about the page. It is drawn whether or not anything is
+   being typed in — a bar that appears and disappears as you move around the
+   contract is one nobody can find twice — and a press with no editor open says
+   so rather than doing nothing. */
+function ceRenderBar(){
+  const host = _ceQ('#ce-bar');
+  if (!host || !window.richBarHtml) return;
+  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() });
+  /* GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS, which is this product's
+     own rule for exactly that — and only these two, because every other tool's
+     answer depends on what is selected at the moment it is pressed. */
+  const set = (k, off) => {
+    const b = host.querySelector('[data-rb="' + k + '"]');
+    if (b) b.disabled = !!off;
+  };
+  set('undo', _ceStep <= 0);
+  set('redo', _ceStep >= _ceSteps.length - 1);
+}
+/* What size is the caret in? The stored size nearest the selection, falling
+   back to the base the paper draws its clauses at. */
+function ceSizeNow(){
+  if (!window.richSizeAt) return CE_SIZE_BASE;
+  try{
+    const sel = window.getSelection();
+    const n = (sel && sel.rangeCount) ? sel.getRangeAt(0).startContainer : null;
+    return richSizeAt(n, CE_SIZE_BASE);
+  }catch(_){ return CE_SIZE_BASE; }
+}
+const CE_SIZE_BASE = 14;
+
 function ceRenderPaper(){
   if (!clauseEditorOpen()) return;
   ceRenderReadBar();
@@ -1746,6 +1866,21 @@ function ceUndo(){
   if (_ceReason) ceCloseReason();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }));
+}
+/* ---- AND FORWARD AGAIN ----
+   The stack has always held the steps ahead of where the reader is standing —
+   ceApply truncates them the moment something new is applied, which is what
+   makes this safe — and nothing read them. A Redo on the bar with no function
+   behind it would have been a dead press, which is the fault this whole change
+   set exists to stop, so it is built rather than the button dropped. */
+function ceRedo(){
+  if (!clauseEditorOpen()) return;
+  if (_ceStep >= _ceSteps.length - 1) return;
+  _ceStep += 1;
+  _ceText = _ceSteps[_ceStep].text;
+  if (_ceReason) ceCloseReason();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
+  ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }));
 }
 function ceDiscard(){
   if (!clauseEditorOpen()) return;
@@ -2314,6 +2449,58 @@ async function ceFile(why){
    two that must live on document, and they are armed ONCE at module load.
    ========================================================================== */
 function ceWirePage(page){
+  /* ---- THE WRITING BAR ----
+     MOUSEDOWN, PREVENTED. A click would take the selection away before the act
+     could reach it — the same reason the clause panel's own bar has used
+     mousedown since it was written.
+
+     THE ACTS ARE richBarPress's, not this page's: bold, the lists, the indents,
+     the quote and clear-formatting all belong to the shared bar, so the panel's
+     editor and this one cannot come to disagree about what a button does. What
+     this page keeps is what only it can answer — undo and redo act on ITS draft
+     stack, and a press with no editor open needs ITS way forward. */
+  const bar = page.querySelector('#ce-bar');
+  if (bar) bar.addEventListener('mousedown', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (b.hasAttribute('data-rb-size-open')){ ceOpenPicker(b, 'size'); return; }
+    const pick = b.getAttribute('data-rb-pick');
+    if (pick){ ceOpenPicker(b, pick); return; }
+    ceClosePicker();
+    const k = b.getAttribute('data-rb');
+    if (k === 'undo'){ ceUndo(); return; }
+    if (k === 'redo'){ ceRedo(); return; }
+    if (!ceIsTyping()){ ceSay(_cet('ce_bar_press_pencil')); return; }
+    if (!ceEditableReading()){ ceSay(_cet('ce_reading_only')); return; }
+    if (window.richBarPress && richBarPress(k)) cePullText();
+  });
+
+  /* The picker's own presses. mousedown for the same reason the bar uses it —
+     the selection the mark is about must still be there when the mark is made. */
+  const pop = page.querySelector('#ce-pop');
+  if (pop) pop.addEventListener('mousedown', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    ceClosePicker();
+    const size = b.getAttribute('data-ce-size');
+    if (size){ ceApplyMark('hati-fs-' + size); return; }
+    const mark = b.getAttribute('data-ce-mark');
+    if (mark){ ceApplyMark(mark); return; }
+    const un = b.getAttribute('data-ce-unmark');
+    if (un){
+      const box = _ceQ('#ce-clausebody');
+      if (box && window.richUnmark && richUnmark(box, un)) cePullText();
+      ceRenderBar();
+    }
+  });
+  /* A picker left open over a page the reader has moved on from is furniture. */
+  page.addEventListener('mousedown', ev => {
+    if (!ev.target || !ev.target.closest) return;
+    if (!ev.target.closest('#ce-pop') && !ev.target.closest('#ce-bar')) ceClosePicker();
+  }, true);
+
   page.addEventListener('click', ev => {
     const t = ev.target;
     if (!t || !t.closest) return;
