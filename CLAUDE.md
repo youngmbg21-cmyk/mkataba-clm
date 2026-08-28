@@ -3270,6 +3270,86 @@ Tests: f245 (17) (6), clause-editor-verify section 19 (15 — **7 fail against t
 code of an hour before, reporting `marker: none` and the innerHTML crash
 verbatim**).
 
+## WORK MODE IS THE PROTOTYPE'S, MEASURED AGAINST IT (owner-asked 28 Aug 2026)
+
+*"compare what we agreed on Focus mode (previously work mode) in the attached
+artifact to what you have built. They are not the same."* The artifact is the
+owner's own "Work Mode Prototype", and it is the agreement — read it before
+changing this page.
+
+**THE ONE BIG DIFFERENCE WAS A HEADER NOBODY HAD ASKED FOR.** The prototype
+opens straight into the white tool strip and then the contract; the build
+carried the ONE-CLAUSE page's whole header above it — a crumb, the clause name,
+a status chip, a clause dropdown, "Back to the negotiation" and a four-fact row.
+MEASURED: 132px the prototype does not draw, so the contract began 231px down
+where the prototype begins it at **92**. It is 92 now, to the pixel. Nothing is
+lost that is not one press away — the facts, the status and the clause list are
+all on the negotiation page this opens from. `#ce-title`, `#ce-crumb`,
+`#ce-ostat`, `#ce-facts`, `#ce-sel`, `#ce-headacts` and `.ce-back-btn` are STALE.
+
+**`#ce-say` IS THE ONE THING KEPT FROM IT**, on the strip: it is where a refusal
+is spoken, and a refusal with nowhere to appear is a dead press.
+
+**THE WAY OUT IS THE LAST THING ON THE STRIP** — filled, square, corners
+pointing in, "Leave work mode" — which is what the prototype draws in that slot.
+This REVERSES the contract-alone toggle built two days earlier: that was a
+reading of the button the owner reported missing from the render, and the
+artifact settles it. With the header gone it is the ONLY way out, so it is never
+conditional and never greys with the writing tools. **Where a keyboard reader
+lands moved with it**: arrival used to focus the way out, which was the first
+control on a page that had a header and is now the last; it lands on the paper.
+
+**ZOOM IS A VIEW, NOT A FONT SIZE.** The size box on the toolbar sets the size of
+the WORDS and stores it in the contract — the other side sees it and so does the
+signed PDF; the −/+ on the readings row changes how big the page looks to this
+reader and nothing in the document. Both exist in Word for the same reason, and
+**the percentage is what keeps them apart on screen**: a number of pixels beside
+a number of pixels would be two controls nobody can tell apart. Not persisted —
+a reading posture for this sitting. **THE VARIABLE GOES ON `.ce-paperwrap`**:
+`.rl-doc` is the PARENT of `#ce-doc`, so a custom property written on the child
+never reaches the rule that reads it (measured — the readout moved and the paper
+did not).
+
+**THE CHANGES TAB**, beside Suggestions. Every live change on the record, newest
+first, each showing the wording it proposed with its marks and each a door to
+its own clause. **Counting is not drawing** — `ceFiledList` is the one reading
+and the badge and the list both ask it — and it **READS WITHOUT WRITING**:
+`c.changes` raw, never `negoChanges`, which runs `negoInit` and would start a
+negotiation on a contract merely by asking about one. **Playbook scan is KEPT
+beside it**: the prototype does not model it, and removing HaTi's own feature to
+match a prototype that never had it would be taking a capability away.
+
+**THE PROTOTYPE'S SELECTION MENU DOES NOT SURVIVE CONTACT WITH THE PRODUCT, and
+that is a deliberate departure written down rather than slipped in.** Of its four
+rows — Replace this wording / Suggest deleting it / Comment on it / Ask Copilot
+to redraft it — only ONE is a capability the strip does not already have.
+Replace IS the strip; Ask Copilot is the three chips on it, so a menu row would
+be a second door onto an act that already has one; and **Comment cannot work
+from here at all — the notes drawer belongs to the shell and this page covers
+the shell**, so it would open behind it. So the deleting is a button ON the
+strip, which also keeps the owner's own instruction, "a single strip to enter
+your change". It goes through `ceReplacePassage` and APPLIES rather than files;
+a cut that would empty the clause is refused in words naming the way forward.
+
+**AND THE STRIP CARRIES THE PROTOTYPE'S HINT ROW** — where the words are going,
+Shift+Enter, Esc. It is NOT the context box the owner asked to be removed: that
+one printed the passage the box is now prefilled with, in a box of its own above
+the field.
+
+**STILL NOT THE PROTOTYPE'S, AND BOTH ARE THE SAME PIECE OF WORK:** renaming a
+clause heading, and front matter (the title, the parties, the recitals and the
+signature block) editable and recorded as a document change. The owner ruled on
+the second on 28 Aug 2026 — *editable, recorded as a document change* — which is
+the ruling that unblocks both. See the note below for what a heading rename
+costs; front matter is the same shape one level up, because nothing can be filed
+against it the way a clause can.
+
+Tests: f245 (17) and clause-editor-verify sections 2, 18 and 20 — the header's
+absence, the strip measured as one row ending exactly where the Copilot card
+starts, the way out driven, the zoom measured bigger and smaller with the
+furniture held still, the Changes rows counted against the record, and the
+delete driven. 168/168.
+
 **NOT BUILT, AND SAID OUT LOUD: RENAMING A CLAUSE HEADING.** The owner asked for
 it ("the ability to edit the name of the header") and it is a change to the
 CHANGE MODEL rather than a control: `headingText` is carried and drawn for
