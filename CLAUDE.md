@@ -1835,6 +1835,48 @@ an unrelated file went red with `SyntaxError: Unexpected identifier`. Say
 "the is-changed class" in prose. f236 is the net and the linter caught it in one
 run.
 
+## THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST (owner-reported 28 Aug 2026)
+
+*"ensure when you are in the redlines tab you are able to see the redlines
+because that is the whole purpose of having that tab"* — off a screenshot of
+work mode on **Redlined**, with a clause carrying CHG-001 and **not one mark on
+it**, while the rail beside it drew that change's marks perfectly.
+
+**THIS REVERSES "THE CLAUSE YOU CAME IN ON OPENS TYPEABLE", and both decisions
+survive on the one question that separates them.** That rule was an owner
+decision with a good reason — this page is pressed to change wording, and
+arriving on a read-only contract and having to find the pencil first is a step
+nobody asked for. What it cost is that **a typeable box shows the DRAFT**: you
+cannot type into a redline, so on a clause that already carried a filed change
+the reader landed on Redlined and the one clause they were looking at was the
+one clause with no marks.
+
+- **THE QUESTION IS "IS THERE ANYTHING TO HIDE?"** `_ceEditing = _ceText ===
+  _ceBase && _ceHead === _ceHeadBase`. A clause with nothing on it opens
+  typeable — nothing is being kept from anybody and the pencil press is the step
+  nobody asked for. A clause whose draft differs from what stands opens SHOWING
+  ITS MARKS, and the pencil, on that clause, is one press away.
+- **THE HEADING IS IN THE READING**, because a pending rename is a mark too.
+- **WHAT IT COST IN TESTS IS THE USEFUL PART.** clause-editor-verify pressed the
+  pencil BLIND at four points, on the assumption that the page always opens
+  typeable — so the moment the default moved, a blind press landed each staging
+  in whichever posture it had not asked for and 23 checks went red in sections
+  that had nothing to do with the change. `setTyping(want)` presses it ONLY when
+  needed, so each staging now says what it WANTS rather than what it happens to
+  get. **A test that stages a posture by toggling is a test that breaks when the
+  default moves.**
+- **AND THE CLAIM IS MEASURED AS PAINT, ON A FRESH OPEN**: 20i counts the `ins`
+  and `del` runs in the clause the page opened on, because a class check would
+  pass on a page that opened typeable and drew the draft clean — which is exactly
+  the reported state. It reports `ins 0 · del 0` against the code of an hour
+  before.
+
+Tests: f245 (18) (5 — 3 failing against the parent), clause-editor-verify 19a
+REVERSED IN PLACE with 19a2 keeping what it was really about (the writing is one
+press away, not two), 20e/20f reversed onto the tab's absence, and 20i-20l new
+(6 of the file's checks fail against the parent, the headline one reporting the
+owner's screenshot).
+
 ## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
 
 Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
@@ -3492,14 +3534,19 @@ a reading posture for this sitting. **THE VARIABLE GOES ON `.ce-paperwrap`**:
 never reaches the rule that reads it (measured — the readout moved and the paper
 did not).
 
-**THE CHANGES TAB**, beside Suggestions. Every live change on the record, newest
-first, each showing the wording it proposed with its marks and each a door to
-its own clause. **Counting is not drawing** — `ceFiledList` is the one reading
-and the badge and the list both ask it — and it **READS WITHOUT WRITING**:
-`c.changes` raw, never `negoChanges`, which runs `negoInit` and would start a
-negotiation on a contract merely by asking about one. **Playbook scan is KEPT
-beside it**: the prototype does not model it, and removing HaTi's own feature to
-match a prototype that never had it would be taking a capability away.
+**THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026: "Delete changes tab").**
+It was built that morning from the prototype — every live change on the record,
+newest first, each a door to its clause — and the owner looked at it and did not
+want it. **NOTHING IS LOST, which is the condition on removing a surface**: every
+one of those changes is on the negotiation page's own column, in its bands, with
+its verbs; and the MARKS are on the paper twelve pixels to the left, which is
+what the Redlined reading is for. **DELETED RATHER THAN STUBBED**, following
+Quarter, List and Obligations on the calendar: none of these was exported, so
+there is no door a third caller could bring one back through. `ceFiledList`,
+`ceChangesHtml`, `.ce-chg` and the `ce_tab_changes` / `ce_changes_none` keys are
+STALE — the two keys are left INERT in BOTH dictionaries, because a key removed
+from one and not the other is how a screen ends up half-English. **The rail is
+Copilot and the playbook scan.**
 
 **THE PROTOTYPE'S SELECTION MENU DOES NOT SURVIVE CONTACT WITH THE PRODUCT, and
 that is a deliberate departure written down rather than slipped in.** Of its four

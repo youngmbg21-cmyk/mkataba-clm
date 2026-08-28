@@ -120,7 +120,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.hover('#rl-doc .rl-clause, .rl-clause');
   await pause(200);
   const pillOnHover = await p.evaluate(() => {
-    const el = document.querySelector('.rl-cp-pill');
+    const el = document.querySelector('.rl-clause .rl-cp-pill');
     if (!el) return null;
     const s = getComputedStyle(el);
     return { opacity: s.opacity, pe: s.pointerEvents };
@@ -131,7 +131,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   const allPills = await p.evaluate(() => ({
     clauses: document.querySelectorAll('.redline-page #rl-doc section.rl-clause').length,
-    pills: document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill').length }));
+    pills: document.querySelectorAll('.redline-page #rl-doc .rl-clause .rl-cp-pill').length }));
   ck('1g every clause has one, including the ones nobody has asked about',
      allPills.clauses > 1 && allPills.pills === allPills.clauses,
      `${allPills.pills} pills / ${allPills.clauses} clauses`);
@@ -160,7 +160,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       onRightWall: Math.abs(Math.round(r.right - grid.right)) <= 2,
       onScreen: r.left < 1500 && r.right > 0,
       forClause: on && on.getAttribute('data-rl-cp-for'),
-      heads, bodies: panel.querySelectorAll('.rl-cp-src').length,
+      /* THE CLAUSES' bodies. The front matter has one too since 28 Aug 2026,
+         and this claim is "every CLAUSE has one waiting" — counting the region
+         in would make it read one short for ever. */
+      heads, bodies: panel.querySelectorAll('.rl-cp-src:not([data-rl-cp-for="front"])').length,
       shown: panel.querySelectorAll('.rl-cp-src.is-on').length,
       noScrim: !document.querySelector('.redline-page #rl-cp-scrim'),
       /* IT IS THE CARDS COLUMN, to the pixel, on all four edges. */
@@ -175,9 +178,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         document.querySelectorAll('.redline-page #rl-doc .nego-body').forEach(n => {
           const b = n.getBoundingClientRect(); if (b.right > x) x = b.right; });
         return Math.round(x); })(),
-      pillsClear: [...document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill')]
+      pillsClear: [...document.querySelectorAll('.redline-page #rl-doc .rl-clause .rl-cp-pill')]
         .filter(b => b.getBoundingClientRect().right <= r.left).length,
-      pillsTotal: document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill').length,
+      pillsTotal: document.querySelectorAll('.redline-page #rl-doc .rl-clause .rl-cp-pill').length,
       docDimmed: getComputedStyle(doc).opacity !== '1' || getComputedStyle(doc).filter !== 'none',
       docReachable: (() => {
         /* Is a word of the contract still the top thing at its own coordinates?
@@ -349,7 +352,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     /* Any clause whose pill is not under the panel is still a live door: press
        it and the panel should swap to that clause rather than needing a close
        first. */
-    const pills = [...document.querySelectorAll('.redline-page #rl-doc .rl-cp-pill')];
+    const pills = [...document.querySelectorAll('.redline-page #rl-doc .rl-clause .rl-cp-pill')];
     const cp = document.querySelector('#rl-cp').getBoundingClientRect();
     const clear = pills.find(b => b.getBoundingClientRect().right < cp.left
       && b.getBoundingClientRect().top > 0);
@@ -393,9 +396,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
           && Math.round(cp.right) === Math.round(sd.right)
           && Math.round(cp.width) === Math.round(sd.width),
         textRight: Math.round(x),
-        pillsClear: [...document.querySelectorAll('#rl-doc .rl-cp-pill')]
+        pillsClear: [...document.querySelectorAll('#rl-doc .rl-clause .rl-cp-pill')]
           .filter(b => b.getBoundingClientRect().right <= cp.left).length,
-        pillsTotal: document.querySelectorAll('#rl-doc .rl-cp-pill').length };
+        pillsTotal: document.querySelectorAll('#rl-doc .rl-clause .rl-cp-pill').length };
     });
   };
   const start = await drag(0);
@@ -463,7 +466,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   /* ---- 6. THE COUNTERPARTY'S SEAT ---- */
   await p.evaluate(()=>window.SHOW_COUNTERPARTY()); await pause(900);
   const cp = await p.evaluate(() => {
-    const pills = [...document.querySelectorAll('.rl-cp-pill')];
+    const pills = [...document.querySelectorAll('.rl-clause .rl-cp-pill')];
     const panel = document.querySelector('#rl-cp');
     return { pills: pills.length, panel: !!panel,
       first: pills[0] ? pills[0].getAttribute('data-rl-cp-open') : null };
@@ -553,7 +556,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const scale = await p.evaluate(async () => {
     const read = () => ({
       save: parseFloat(getComputedStyle(document.querySelector('#rl-cp .nego-edit-bar button')).fontSize),
-      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-cp-pill')).fontSize) });
+      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-clause .rl-cp-pill')).fontSize) });
     const at15 = read();
     rlSetDocType(20); await new Promise(r=>setTimeout(r,300));
     const at20 = read();
@@ -791,7 +794,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     band: !!document.querySelector('.rl-unsent'),
     arrived: document.querySelectorAll('#rl-changes .rl-card').length }));
   const cpAfter = await p.evaluate(async () => {
-    const pill = document.querySelector('.rl-cp-pill');
+    const pill = document.querySelector('.rl-clause .rl-cp-pill');
     pill.click(); await new Promise(r=>setTimeout(r,500));
     document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]').click();
     await new Promise(r=>setTimeout(r,450));
@@ -962,7 +965,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      and that the drawer opens on the press, is notes-two-rooms-verify's job —
      it drives the real shell, which this harness page does not load. */
   await p.evaluate(() => {
-    const pill = document.querySelector('.rl-cp-pill');
+    const pill = document.querySelector('.rl-clause .rl-cp-pill');
     if (pill) pill.click();
   });
   await pause(500);
@@ -1213,6 +1216,55 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('14g and the new wording is on the paper',
     /forty-five \(45\)/.test(filed13.text) && /forty-five \(45\)/.test(filed13.paper),
     filed13.text.slice(0, 70));
+
+  /* ============================================================
+     15. THE FRONT MATTER IS A REGION, AND IT HAS THE SAME ONE CONTROL
+     ------------------------------------------------------------
+     (owner-ruled 28 Aug 2026: front matter "editable, recorded as a document
+     change".) f250 pins the model — the reserved id, the two refusals, the
+     round close; what only a browser can answer is whether the reader can
+     actually get at it: is the pencil reachable pixels, does a real press open
+     a real panel on it, and is the paper otherwise untouched. */
+  const fm = await p.evaluate(() => {
+    const head = document.querySelector('.redline-page .rl-paper-head');
+    const pen = head && head.querySelector('.rl-cp-pill');
+    const title = document.querySelector('.redline-page .rl-paper-title');
+    const r = pen ? pen.getBoundingClientRect() : null;
+    const hr = head ? head.getBoundingClientRect() : null;
+    return { head: !!head, pen: !!pen,
+      w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
+      opens: pen ? pen.getAttribute('data-rl-cp-open') : null,
+      /* top right of the region, exactly where a clause's sits */
+      rightGap: (r && hr) ? Math.round(hr.right - r.right) : -1,
+      topGap: (r && hr) ? Math.round(r.top - hr.top) : -1,
+      title: !!title, bands: head ? head.querySelectorAll('.rl-note-card, .nego-note').length : -1 };
+  });
+  ck('15a THE REGION CARRIES THE PENCIL, as real pixels',
+     fm.head && fm.pen && fm.w > 10 && fm.h > 10, `${fm.w}x${fm.h}`);
+  ck('15b …it opens the same panel every clause\u2019s does',
+     fm.opens === 'front', String(fm.opens));
+  ck('15c …at the region\u2019s top right, where a clause\u2019s sits',
+     fm.rightGap >= 0 && fm.rightGap < 40 && fm.topGap >= 0 && fm.topGap < 40,
+     `${fm.rightGap}px right / ${fm.topGap}px top`);
+  ck('15d and NOTHING else is added to the paper \u2014 no band, no caption',
+     fm.title === true && fm.bands === 0, `title ${fm.title}, bands ${fm.bands}`);
+  const fmOpen = await p.evaluate(async () => {
+    const pen = document.querySelector('.redline-page .rl-paper-head .rl-cp-pill');
+    pen.click(); await new Promise(r => setTimeout(r, 600));
+    const body = document.querySelector('#rl-cp-body .rl-cp-src[data-rl-cp-for="front"]');
+    const r = body ? body.getBoundingClientRect() : null;
+    return { shown: !!(body && body.classList.contains('is-on')),
+      visible: !!(r && r.width > 40 && r.height > 20),
+      name: body ? (body.querySelector('.rl-cp-clname') || {}).textContent : null,
+      stands: body ? /Warehousing|Between/.test(body.textContent) : false };
+  });
+  ck('15e a real press opens a real panel on the region',
+     fmOpen.shown && fmOpen.visible, JSON.stringify(fmOpen));
+  ck('15f …named in the reader\u2019s language, showing the opening\u2019s own words',
+     fmOpen.name === 'Title and recital' && fmOpen.stands === true,
+     `${fmOpen.name} · wording ${fmOpen.stands}`);
+  await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
+  await pause(300);
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;

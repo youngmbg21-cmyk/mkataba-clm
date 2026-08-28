@@ -1364,3 +1364,53 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
       'and the reason is written where the next reader will find them');
   });
 });
+
+/* ============================================================
+   f245 (18) — the Changes tab is gone, and Redlined shows redlines
+   ------------------------------------------------------------
+   Two owner reports off one screenshot, 28 Aug 2026: "Delete changes tab", and
+   "ensure when you are in the redlines tab you are able to see the redlines
+   because that is the whole purpose of having that tab."
+
+   The second is the interesting one. A typeable box shows the DRAFT — you
+   cannot type into a redline — so a page that opened typeable on a clause
+   already carrying a change put the reader on Redlined with the one clause
+   they were looking at unmarked, while the rail beside it showed the marks
+   perfectly. Both of this page's standing decisions survive on the question
+   that separates them: is there anything to hide?
+   ============================================================ */
+describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', () => {
+  test('the tab, its list and its badge are deleted, not switched off', () => {
+    for (const dead of ['data-ce-tab="changes"', 'ce-chg-n', 'ceChangesHtml(', 'ceFiledList(']){
+      assert.equal(CODE.includes(dead), false, `${dead} is gone from the page`);
+    }
+    assert.equal(/\.ce-chg\{/.test(SRC), false, 'and its dress went with it');
+  });
+
+  test('the rail is Copilot and the playbook scan, and nothing else', () => {
+    const tabs = [...CODE.matchAll(/data-ce-tab="([a-z]+)"/g)].map(m => m[1]);
+    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'scan']);
+  });
+
+  test('the two keys are left INERT in both dictionaries, never removed from one', () => {
+    for (const key of ['ce_tab_changes', 'ce_changes_none']){
+      const hits = (I18N.match(new RegExp(`(^|[^\\w])${key}:`, 'g')) || []).length;
+      assert.equal(hits, 2, `${key} must still be in English AND Swedish, or a screen goes half-English`);
+    }
+  });
+
+  test('the page never opens in a state that hides marks that exist', () => {
+    /* The rule, read off the source: the opening posture is a QUESTION about
+       whether the draft differs from what stands, not a constant. A literal
+       `_ceEditing = true` here is the reported fault. */
+    assert.match(CODE, /_ceEditing = _ceText === _ceBase && _ceHead === _ceHeadBase/,
+      'it opens typeable only where there is nothing being kept from anybody');
+    assert.equal(/_ceEditing = true;/.test(CODE), false,
+      'and never unconditionally');
+  });
+
+  test('and the pencil is still the one press that starts the writing', () => {
+    assert.match(CODE, /_ceEditing = !_ceEditing/,
+      'the control that turns typing on is unchanged and is on the clause');
+  });
+});

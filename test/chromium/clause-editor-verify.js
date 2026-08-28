@@ -1298,11 +1298,34 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      colour, and the line is measured against the accent and against the ink,
      so the next palette or type pass costs no edit here.
      ========================================================================== */
+  /* ---- STAGE THE POSTURE, RATHER THAN ASSUME IT (28 Aug 2026) ----
+     This file used to press the pencil blind at each of four points, on the
+     assumption that the page always opens typeable. It does not any more —
+     owner-reported: a clause carrying a draft opens SHOWING ITS MARKS, or the
+     Redlined tab hides the very thing it exists for — so a blind press now
+     lands the sequence in whichever posture it was not asked for. These two
+     press it ONLY when it is needed, which makes each staging say what it
+     wants instead of what it happens to get. */
+  const setTyping = want => p.evaluate(async on => {
+    const box = () => document.getElementById('ce-clausebody');
+    const is = () => !!(box() && box().getAttribute('contenteditable') === 'true');
+    if (is() === on) return is();
+    const pen = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]')
+      || document.querySelector('#clause-editor [data-ce-pencil]');
+    if (pen) pen.click();
+    await new Promise(r => setTimeout(r, 600));
+    return is();
+  }, want);
+
   await p.evaluate(id => {
     if (window.rlSetReadMode) rlSetReadMode('marks');
     window.rlOpenClauseEditor(window.CONTRACT, id, {});
   }, staged.clauseId);
   await pause(600);
+  /* This whole section measures the DRESS of the region being typed in, so the
+     posture is staged rather than assumed: since 28 Aug 2026 a clause carrying
+     a draft opens showing its marks instead. */
+  await setTyping(true);
 
   const quiet = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
@@ -1521,14 +1544,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      real Range over the clause's own text node. */
   /* THE STRIP IS FOR THE READING, never for a caret already in the clause: a
      drag inside the typing box is somebody selecting words to bold them, which
-     is why the page's own mouseup bails on it. Section 17 left typing ON, so
-     the pencil is pressed once to come out of it. */
-  await p.evaluate(() => {
-    const pen = document.querySelector('#clause-editor [data-ce-pencil][aria-pressed="true"]')
-      || document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
-    if (pen) pen.click();
-  });
-  await pause(500);
+     is why the page's own mouseup bails on it. */
+  await setTyping(false);
+  await pause(300);
   const beforeStrip = await p.evaluate(() => (window.CONTRACT.changes || []).length);
   const sel18 = await p.evaluate(() => {
     /* THE CLAUSE THIS PAGE IS ABOUT, not the longest paragraph on the paper:
@@ -1664,7 +1682,19 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const typeable = () => p.evaluate(() => {
     const b = document.getElementById('ce-clausebody');
     return b ? b.getAttribute('contenteditable') : null; });
-  ck('19a the clause opens ready to type in — no second press to start',
+  /* ---- REVERSED IN PLACE 28 Aug 2026 (owner-reported) ----
+     It pinned "the clause opens ready to type in — no second press to start",
+     which was an owner decision and is now overruled by a later one: a typeable
+     box shows the DRAFT, so on a clause that already carries a change the
+     reader landed on Redlined and the one clause they were looking at was the
+     one clause with no marks. BOTH DECISIONS STAND on the question that
+     separates them — is there anything to hide? — and this staged clause has a
+     draft on it, so it opens showing its marks. The claim the old check was
+     really making (that the writing is one press away, not two) is 19a2. */
+  ck('19a a clause carrying a draft opens SHOWING ITS MARKS, not typeable',
+     (await typeable()) !== 'true', String(await typeable()));
+  await setTyping(true);
+  ck('19a2 …and ONE press of the pencil on that clause starts the writing',
      (await typeable()) === 'true', String(await typeable()));
 
   const bullets = await p.evaluate(async () => {
@@ -1750,9 +1780,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('19k …and lands back on the negotiation it came from',
      leave.there && leave.backOnNegotiation === true,
      leave.there ? `negotiation drawn: ${leave.backOnNegotiation}` : '');
-  /* Re-open for the checks below, which are about the tools. */
+  /* Re-open for the checks below, which are about the tools. The first reading
+     is the tools with the caret IN the clause, so the posture is staged rather
+     than assumed. */
   await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
   await pause(900);
+  await setTyping(true);
 
   const greyed = await p.evaluate(async () => {
     const read = () => ({
@@ -1795,11 +1828,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      drag inside the typing box is somebody selecting words to bold them, which
      is why the page's own mouseup bails on it. A freshly opened page has the
      caret in the clause, so the pencil comes off first. */
-  await p.evaluate(() => {
-    const pen = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
-    if (pen) pen.click();
-  });
-  await pause(500);
+  await setTyping(false);
+  await pause(300);
   const cutRun = await p.evaluate(async () => {
     const box = document.getElementById('ce-clausebody');
     const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
@@ -1881,30 +1911,67 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      zoom.bigger.strip === zoom.was.strip, `strip ${zoom.was.strip} → ${zoom.bigger.strip}px`);
   ck('20d it returns to where it started', zoom.back === '100%', zoom.back);
 
-  /* ---- THE CHANGES TAB: WHAT HAS BEEN FILED, AND A DOOR TO EACH ---- */
-  const chg = await p.evaluate(async () => {
-    const t = document.querySelector('[data-ce-tab="changes"]');
-    if (!t) return { there: false };
-    t.click(); await new Promise(r => setTimeout(r, 400));
-    const rows = [...document.querySelectorAll('#ce-lane .ce-chg')];
-    const live = (window.CONTRACT.changes || [])
-      .filter(c => c && !c.withdrawn && c.status !== 'superseded').length;
-    return { there: true, rows: rows.length, live,
-      badge: (document.getElementById('ce-chg-n') || {}).textContent,
-      marked: !!document.querySelector('#ce-lane .ce-chg ins, #ce-lane .ce-chg .nego-ins'),
-      isDoor: !!(rows[0] && rows[0].getAttribute('data-ce-goclause')) };
+  /* ---- THE CHANGES TAB IS GONE (owner-asked 28 Aug 2026: "Delete changes
+     tab") ----
+     CLAIMS REVERSED IN PLACE. 20e-20h pinned the tab's rows, its badge, its
+     marks and its doors; the tab was built that morning and the owner did not
+     want it. What they pinned is not lost — every one of those changes is on
+     the negotiation page's own column, and the MARKS are on the paper, which is
+     what 20i below now measures. */
+  const chg = await p.evaluate(() => ({
+    tab: !!document.querySelector('[data-ce-tab="changes"]'),
+    rows: document.querySelectorAll('.ce-chg').length,
+    badge: !!document.getElementById('ce-chg-n'),
+    tabs: [...document.querySelectorAll('[data-ce-tab]')].map(b => b.getAttribute('data-ce-tab')),
+  }));
+  ck('20e THE CHANGES TAB IS DELETED, not hidden',
+     chg.tab === false && chg.rows === 0 && chg.badge === false,
+     `tab ${chg.tab} · rows ${chg.rows} · badge ${chg.badge}`);
+  ck('20f …and the rail is Copilot and the playbook scan',
+     JSON.stringify(chg.tabs) === JSON.stringify(['chat', 'scan']), chg.tabs.join(','));
+
+  /* ---- 20i THE REDLINED READING SHOWS THE REDLINES ----
+     (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined
+     with a clause carrying CHG-001 and not one mark on it.)
+     MEASURED ON A FRESH OPEN, deliberately: the claim is about what the reader
+     ARRIVES at, and every posture above this point was staged by a press.
+     MEASURED AS PAINT: the marks either draw or they do not, and a class check
+     would pass on a page that opened typeable and drew the draft clean — which
+     is exactly the reported state. */
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
+  const marks = await p.evaluate(async () => {
+    await new Promise(r => setTimeout(r, 200));
+    const live = document.querySelector('#ce-doc .rl-clause-live')
+      || document.querySelector('#ce-doc .rl-clause.is-changed');
+    const box = document.getElementById('ce-clausebody');
+    return {
+      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
+      ins: live ? live.querySelectorAll('ins, .nego-ins').length : -1,
+      del: live ? live.querySelectorAll('del, .nego-del').length : -1,
+      pencil: !!document.querySelector('#ce-doc [data-ce-pencil]'),
+    };
   });
-  ck('20e THE CHANGES TAB LISTS WHAT HAS BEEN FILED, one row each',
-     chg.there && chg.rows === chg.live && chg.rows > 0,
-     chg.there ? `${chg.rows} rows for ${chg.live} live changes` : 'no tab');
-  ck('20f …counted once — the badge and the list are one reading',
-     chg.there && String(chg.badge) === String(chg.live), `badge ${chg.badge}`);
-  ck('20g …each showing the wording it proposed, marked',
-     chg.there && chg.marked === true, chg.there ? `marks drawn: ${chg.marked}` : '');
-  ck('20h …and each is a door to its own clause',
-     chg.there && chg.isDoor === true, chg.there ? `first row carries its clause` : '');
-  await p.evaluate(() => { const t = document.querySelector('[data-ce-tab="chat"]'); if (t) t.click(); });
-  await pause(300);
+  ck('20i on Redlined, the clause the page opened on SHOWS ITS MARKS',
+     marks.ins > 0 || marks.del > 0, `ins ${marks.ins} · del ${marks.del}`);
+  ck('20j …because a clause with a draft on it does not open typeable',
+     marks.typing === false, `typing ${marks.typing}`);
+  ck('20k …and the pencil is still right there to start typing',
+     marks.pencil === true, `pencil ${marks.pencil}`);
+
+  /* Typing is one press away, and it shows the draft — you cannot type into a
+     redline, which is the trade this posture exists to make honest. */
+  const afterPencil = await p.evaluate(async () => {
+    const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
+      || document.querySelector('#ce-doc [data-ce-pencil]');
+    if (pen) pen.click();
+    await new Promise(r => setTimeout(r, 350));
+    const box = document.getElementById('ce-clausebody');
+    return { typing: !!(box && box.getAttribute('contenteditable') === 'true') };
+  });
+  ck('20l pressing the pencil starts typing', afterPencil.typing === true,
+     `typing ${afterPencil.typing}`);
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);

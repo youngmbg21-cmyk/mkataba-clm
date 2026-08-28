@@ -311,7 +311,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      computed value and a rule that lost a cascade fight would look perfectly
      correct in the source. */
   const pillAtRest = await page.evaluate(() => {
-    const p = document.querySelector('#rl-doc .rl-cp-pill');
+    const p = document.querySelector('#rl-doc .rl-clause .rl-cp-pill');
     if (!p) return null;
     const s = getComputedStyle(p);
     return { op: s.opacity, color: s.color };
@@ -322,7 +322,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await page.hover('#rl-doc .rl-clause');
   await pause(200);
   const pillHovered = await page.evaluate(() => {
-    const p = document.querySelector('#rl-doc .rl-cp-pill');
+    const p = document.querySelector('#rl-doc .rl-clause .rl-cp-pill');
     if (!p) return null;
     const s = getComputedStyle(p);
     /* COMPOSITED against the sheet it is painted on, because reading the
@@ -1379,7 +1379,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
       return {
         band: !!document.getElementById('rl-read-note'),
-        pills: document.querySelectorAll('.rl-cp-pill').length,
+        pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
         greyed: !!document.querySelector('.rl-side.is-reading'),
         opacity: cs ? Number(cs.opacity) : 1,
         inert: cs ? cs.pointerEvents : 'auto',
@@ -1421,7 +1421,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   const back = await page.evaluate(() => ({
     mode: window.rlReadMode(),
     greyed: !!document.querySelector('.rl-side.is-reading'),
-    pills: document.querySelectorAll('.rl-cp-pill').length,
+    pills: document.querySelectorAll('.rl-clause .rl-cp-pill').length,
     inert: getComputedStyle(document.getElementById('rl-changes-col')).pointerEvents }));
   check('17 pressing it lands back on the redline, with the column live again',
     back.mode === 'marks' && !back.greyed && back.pills > 0 && back.inert !== 'none',

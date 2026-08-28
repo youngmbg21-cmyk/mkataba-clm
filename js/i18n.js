@@ -1600,6 +1600,9 @@ const STRINGS = {
     ce_step_named: 'Renamed the clause',
     ce_tabs_group: 'Copilot, or the playbook scan',
     ce_tab_chat: 'Suggestions',
+    /* STALE since 28 Aug 2026 — the Changes tab was deleted on the owner's
+       ask. Left INERT rather than removed: a key taken out of one dictionary
+       and not the other is how a screen ends up half-English. */
     ce_tab_changes: 'Changes',
     ce_changes_none: 'Nothing filed yet. Press the pencil on any clause and write in it, or select words on the paper and replace them.',
     ce_tab_scan: 'Playbook scan',
@@ -6685,6 +6688,9 @@ const STRINGS = {
     ce_step_named: 'Klausulen omdöpt',
     ce_tabs_group: 'Copilot, eller spelbokskontrollen',
     ce_tab_chat: 'Förslag',
+    /* STALE since 28 Aug 2026 — the Changes tab was deleted on the owner's
+       ask. Left INERT rather than removed: a key taken out of one dictionary
+       and not the other is how a screen ends up half-English. */
     ce_tab_changes: 'Ändringar',
     ce_changes_none: 'Inget arkiverat än. Tryck på pennan i en klausul och skriv i den, eller markera ord på pappret och ersätt dem.',
     ce_tab_scan: 'Spelbokskontroll',

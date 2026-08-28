@@ -380,16 +380,6 @@ function clauseEditorCss(){
      rail do not — a zoom that grew the furniture would be a text-size stepper
      wearing a percentage. */
   .ce-paperwrap .rl-doc{zoom:var(--ce-zoom, 1)}
-  /* A filed change, as the prototype draws it: its reference and where it is,
-     then the wording it proposed, marked. The whole row is the door. */
-  .ce-chg{display:block; width:100%; text-align:left; border:1px solid var(--color-divider);
-    background:var(--color-surface); padding:9px 11px; font:inherit; cursor:pointer;
-    color:var(--color-text)}
-  .ce-chg:hover{border-color:var(--accent-solid)}
-  .ce-chg .id{display:flex; gap:7px; align-items:baseline; font-size:var(--t-label);
-    color:var(--color-neutral-600); margin-bottom:4px}
-  .ce-chg .id b{font-family:var(--font-mono); font-weight:var(--w-strong); color:var(--color-text)}
-  .ce-chg .w{display:block; font-size:var(--t-meta); line-height:1.6}
   .ce-zoom{flex:none; display:flex; align-items:center; height:26px;
     border:1px solid var(--color-divider); background:var(--color-surface)}
   .ce-zoom button{width:24px; height:24px; background:none; border:0; padding:0;
@@ -1207,12 +1197,21 @@ function clauseEditorHtml(){
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
             <button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>
-            ${''/* THE CHANGES TAB, from the approved prototype: what has been
-                   filed on this contract, newest first, each one a door to the
-                   clause it is about. It is a READING of c.changes and files
-                   nothing — the rail's foot is still the only thing that
-                   files. */}
-            <button type="button" data-ce-tab="changes">${_cet('ce_tab_changes')}<span class="n" id="ce-chg-n"></span></button>
+            ${''/* ---- THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026:
+                   "Delete changes tab") ----
+                   It was built the same day from the approved prototype — every
+                   live change on the record, newest first, each a door to its
+                   clause — and the owner looked at it and did not want it.
+                   NOTHING IS LOST, which is the condition on removing a
+                   surface: every one of those changes is on the negotiation
+                   page's own column, in its bands, with its verbs; and the
+                   MARKS are on the paper twelve pixels to the left, which is
+                   what the Redlined reading is for.
+                   DELETED RATHER THAN STUBBED, following Quarter, List and
+                   Obligations on the calendar: none of these was exported, so
+                   there is no door a third caller could bring one back through.
+                   ceFiledList, ceChangesHtml and the ce_tab_changes /
+                   ce_changes_none keys are STALE — flag any mention. */}
             <button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>
           </span>
         </div>
@@ -1511,11 +1510,32 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
   _ceOpenHead = _ceHead;
   _ceSavedAt = (_ceText !== _ceBase || _ceHead !== _ceHeadBase) ? ceNowHm() : null;
-  /* THE CLAUSE YOU CAME IN ON OPENS TYPEABLE. This page was pressed to change
-     wording; arriving on a read-only contract and having to find the pencil
-     first is a step nobody asked for. It stands down by itself on a reading
-     that refuses editing — ceEditableReading is asked at the paint. */
-  _ceEditing = true;
+  /* ---- THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST ----
+     (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined
+     with a clause carrying CHG-001 and not one mark on it: "ensure when you
+     are in the redlines tab you are able to see the redlines because that is
+     the whole purpose of having that tab".)
+
+     WHAT STOOD HERE, and its reasoning is still right for the case it was
+     written for: the clause you came in on OPENS TYPEABLE, because this page
+     was pressed to change wording and arriving on a read-only contract and
+     having to find the pencil first is a step nobody asked for.
+
+     WHAT IT COST is that a typeable box shows the DRAFT — you cannot type into
+     a redline — so on a clause that already carries a filed change the reader
+     landed on Redlined and the one clause they were looking at was the one
+     clause with no marks. The rail beside it showed them perfectly, which is
+     what made it read as a fault rather than as a posture.
+
+     SO BOTH DECISIONS STAND, on the one question that separates them: is there
+     anything to hide? A clause with nothing on it opens typeable — nothing is
+     being kept from anybody and the pencil press is the step nobody asked for.
+     A clause whose draft differs from what stands opens SHOWING ITS MARKS, and
+     the pencil — on the clause, one press — starts typing.
+
+     It stands down by itself on a reading that refuses editing anyway —
+     ceEditableReading is asked at the paint. */
+  _ceEditing = _ceText === _ceBase && _ceHead === _ceHeadBase;
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
   _ceScan = null; _ceScanFiled = {};
@@ -2196,9 +2216,6 @@ function ceRenderTabs(){
   const n = ceDeviationCount();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
-  const cn = ceFiledList().length;
-  const cb = _ceQ('#ce-chg-n');
-  if (cb){ cb.textContent = cn ? String(cn) : ''; cb.style.display = cn ? '' : 'none'; }
   /* The ask box belongs to the conversation. The scan has nothing to be asked. */
   const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips');
   if (ask) ask.style.display = _ceTab === 'chat' ? '' : 'none';
@@ -2208,40 +2225,10 @@ function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
   if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; return; }
-  if (_ceTab === 'changes'){ lane.innerHTML = ceChangesHtml(); lane.scrollTop = 0; return; }
   lane.innerHTML = _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
-}
-/* ---- WHAT HAS BEEN FILED ON THIS CONTRACT ----
-   The engine's own list, read and never re-derived. It is every LIVE change on
-   the record — the same population the negotiation page's column draws — so
-   this page and that one can never disagree about what has been filed.
-
-   READ WITHOUT WRITING: `c.changes` raw, never negoChanges, which runs negoInit
-   and would start a negotiation on a contract merely by asking about one. */
-function ceFiledList(){
-  try{
-    const all = (_ceC && _ceC.changes) || [];
-    return all.filter(ch => ch && !ch.withdrawn && ch.status !== 'superseded');
-  }catch(_){ return []; }
-}
-/* COUNTING IS NOT DRAWING — the Insights panels' own rule, and what lets the
-   tab's badge and the list below it be one reading. */
-function ceChangesHtml(){
-  const list = ceFiledList();
-  if (!list.length) return `<p class="ce-empty">${_cee(_cet('ce_changes_none'))}</p>`;
-  return list.slice().reverse().map(ch => {
-    const cl = (() => { try{ return window.negoClauseById
-      ? negoClauseById(_ceC, ch.clauseId) : null; }catch(_){ return null; } })();
-    const where = cl ? (ceClauseLabel(cl) || ch.clauseId) : (ch.clauseLabel || ch.clauseId);
-    const body = (() => { try{ return window.rlChangeWordingHtml
-      ? rlChangeWordingHtml(ch) : ''; }catch(_){ return ''; } })();
-    return `<button type="button" class="ce-chg" data-ce-goclause="${_ceea(ch.clauseId)}">`
-      + `<span class="id"><b>${_cee(ch.id)}</b><span>${_cee(where)}</span></span>`
-      + `<span class="w">${body}</span></button>`;
-  }).join('');
 }
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
@@ -2921,7 +2908,7 @@ function ceWirePage(page){
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
-      _ceTab = (want === 'scan' || want === 'changes') ? want : 'chat';
+      _ceTab = want === 'scan' ? 'scan' : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
     const focus = hit('[data-ce-focus]');
