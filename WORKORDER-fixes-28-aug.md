@@ -1,4 +1,4 @@
-# WORK ORDER — five off a desktop sitting, 28 Aug 2026
+# WORK ORDER — six off a desktop sitting, 28 Aug 2026
 
 **Raised by:** Young, 28 Aug 2026, over two messages and two screenshots —
 the Insights → Portfolio *What needs attention* card with its pager ringed, and
@@ -29,7 +29,7 @@ the whole shell drawer.
 
 ## The plain-English version, for the owner
 
-Five things, and they are five different kinds of problem.
+Six things, and they are six different kinds of problem.
 
 **1 — Screens do not use a big monitor.** You are right, and here is why.
 Almost every page in HaTi has a maximum width written into it. On a laptop the
@@ -97,6 +97,22 @@ faces — Notes, Alerts and Activity are the same panel showing different things
 So: **do you want all three wider, or Notes only?** My suggestion is all three,
 because it is one object and a reader has no way to know why it is sometimes
 wider. Say the word if you want Notes alone.
+
+**6 — The three contract screens don't match.** You asked what the grey either
+side of the contract is. **It isn't a style — it's nothing.** It's the page's own
+background showing through, because the contract page stops growing at a set
+width and sits in the middle of whatever room it was given. It's the same empty
+space we've been discussing all along, seen from the other side.
+
+The three screens that show a contract differ in **two separate ways**, and only
+one of them is small. The Copilot page paints white behind the contract where the
+negotiation page shows grey — that's a single line, and it's the grey you're
+asking for. **The Documents tab is the bigger one: it doesn't sit still, it
+magnifies the contract by up to double to fill the screen.** That is why it has
+always looked the best to you. Making it match the negotiation page will make its
+words **smaller** on your desktop, not bigger. That's the honest price and you
+should hear it before I build it — though the A⁻/A⁺ size buttons already let you
+choose the size yourself, which is arguably the better way round.
 
 ---
 
@@ -683,20 +699,123 @@ squeeze that cannot happen.
 
 ---
 
+## 6 — THE THREE SCREENS THAT SHOW A CONTRACT DO NOT AGREE
+
+> *"I would prefer that the Document and the edit with copilot page reflect
+> exactly what has been built in the negotiations page, attached both in desktop
+> and laptop format. This includes the grey lighting in the sides on the panel.
+> What formatting is that?"*
+
+Reported with the negotiation page open on **MK-363** at desktop width, two red
+boxes ringing the grey areas either side of the contract — one between the
+sidebar and the sheet, one between the sheet and the clause panel.
+
+### FIRST, THE QUESTION: THAT GREY IS NOT A FORMATTING
+
+It is **nothing**. `.redline-page .rl-doc` sets `background:none`, so the column
+holding the contract is transparent and what shows through is `--color-bg`
+(`#EDF1F2`), the page's own ground. It appears wherever the sheet does not
+reach, because the sheet stops at `RL_SHEET_MAX` (860px) and centres.
+
+**IT IS DELIBERATE AND THE CODE SAYS SO IN ITS OWN WORDS**, beside the rule:
+*"the column behind it drops to the page background so the gutters read as page,
+not as card."* The sheet is meant to read as paper lying on a desk. So the owner
+is not looking at a style anybody applied — they are looking at the **same spare
+width item 1 is about**, seen from the other end.
+
+### SECOND: THE THREE SCREENS DIFFER IN TWO SEPARATE WAYS
+
+Measured off the source, not guessed:
+
+| Screen | The sheet | How it behaves as the window grows | Ground behind it |
+| --- | --- | --- | --- |
+| **Negotiation page** | 860px | **Steady size**, centred — `rlApplyDocZoom` pinned at 1 | page grey — **gutters visible** |
+| **Edit with Copilot** | 860px | Steady size, centred (borrows `.rl-doc`) | **white card** — `.ce-paperwrap` sets `background:var(--color-surface)` and a border |
+| **Document tab** | **660px** | **Magnified up to 2×** to fill the column (`DOC_PAGE_W`, `DOC_ZOOM_MAX`, `#doc-zoom`) | page grey, but barely seen because the sheet fills |
+
+**SO THERE ARE TWO DIFFERENT FIXES HERE AND THEY ARE NOT THE SAME SIZE.**
+
+- **The Copilot page differs in the GROUND only.** It paints white where the
+  negotiation page shows page grey, so the same sheet reads as a card there and
+  as paper here. **This is the "grey lighting" the owner is asking for and it is
+  one declaration** — drop `.ce-paperwrap`'s surface fill and its border. The
+  sheet, the size and the layout are already identical.
+- **The Document tab differs in the SIZING**, which is a real decision. It does
+  not shrink on the negotiation page; **the Document tab MAGNIFIES**, up to
+  double, which is why the owner has always read that tab as the good one.
+
+### THE COST OF MATCHING, AND IT MUST BE SAID BEFORE ANYONE TYPES
+
+**Making the Document tab match the negotiation page makes its words SMALLER on
+a wide monitor** — up to half the size they are today, because today they are
+magnified up to 2× and afterwards they would not be. That is the whole of what
+this ask costs, and the owner should hear it as a sentence before it is built,
+because "looks great" on that tab IS the magnification.
+
+**THE HONEST ARGUMENT FOR DOING IT ANYWAY:** the reader already has an A⁻/A⁺
+text-size control on both screens, writing `--doc-scale`. The magnification is
+doing a job that control already does — and doing it by guessing from the window
+width rather than from what the reader asked for. One deliberate setting beats
+two mechanisms arguing.
+
+### THE DIRECTION HAS FLIPPED ONCE ALREADY — SAY SO RATHER THAN DISCOVER IT
+
+- **13 Aug 2026, owner-asked:** *"widening the negotiation and counterparty
+  pages must make the WORDING bigger, not the margin — the thing the Document
+  tab already does."* Magnify everywhere.
+- **22 Aug 2026, the redesign:** reversed that for the negotiation page and
+  pinned its zoom at 1, because the divider is a control you move all day and a
+  magnifying sheet changes the type size on every drag.
+- **28 Aug 2026, this ask:** make the Document tab match the negotiation page.
+  Steady everywhere.
+
+**This ask is consistent with the most recent decision and finishes it across
+the platform** — it is not a new argument, it is the 22 Aug direction applied to
+the two screens that never got it. But it does reverse the 13 Aug call, and the
+owner has now asked for both directions at different times, so **confirm before
+building** rather than risking a third flip.
+
+### Notes for whoever builds it
+
+- **THIS IS ITEM 1's QUESTION ON THREE SCREENS AT ONCE.** Whatever the owner
+  picks for the negotiation page (A, B, C or D) is what the Document tab and the
+  Copilot page must then copy — so **do item 1 first and this second**, or the
+  Document tab gets built to match a layout that is about to change.
+- **THE COPILOT PAGE'S HALF CAN GO FIRST AND SAFELY.** It is a ground colour,
+  it matches whatever the negotiation page does today, and it survives item 1
+  unchanged because it inherits `.rl-doc`.
+- **`DOC_PAGE_W` (660) AND `RL_SHEET_MAX` (860) ARE TWO NUMBERS FOR ONE FACT.**
+  If the tabs are to agree, the sheet is ONE token both read — the same
+  one-declaration rule item 1's ruling already carries. Do not leave two.
+- **CHECK THE PHONE AND THE COUNTERPARTY BEFORE SWEEPING.** Both paint the same
+  sheet from the same tokens; neither was in this ask. The counterparty's page
+  in particular is read by people outside the building and is its own decision.
+- **BOTH WIDTHS, because that is what the ask says.** A change that makes the
+  three agree at 2560 and disagree at 1440 is the same fault in a new place.
+- **NETS:** `pages-read-alike-verify` is the file that exists to compare pages
+  against each other — the claim belongs there and should be written as a
+  RELATION (the three screens resolve the same sheet width and the same ground),
+  never as three literals. `paper-grows-verify` measures the Document tab's
+  magnification today and would be the file to reverse in place.
+
+---
+
 ## What was deliberately NOT done in this sitting
 
 - **Nothing in the product was changed.** The owner asked for a review and a
   filing, and the Scope rules say do only what the request asks.
-- **BUGLOG.md was not appended to.** These five items ARE the request rather
+- **BUGLOG.md was not appended to.** These six items ARE the request rather
   than something noticed on the way past it, and this file is where the request
   lives.
-- **No estimate is given, and the five are not the same size.** Item 1 is now
+- **No estimate is given, and the six are not the same size.** Item 1 is now
   decided and is the largest, because it touches every page; item 2 has not been
   reproduced and may not be what it looks like; item 3 is understood well enough
   to size honestly and is small; item 4 is small in code and carries the largest
   risk of quiet damage, because the clause id lives on the thing being edited;
   item 5 is the smallest thing here — three numbers and a stale comment — and
-  should be done AFTER item 1, since item 1 changes the page underneath it.
+  should be done AFTER item 1, since item 1 changes the page underneath it;
+  item 6 is two fixes wearing one report, one of them a single declaration and
+  the other a decision that changes how big the words are on the Documents tab.
 - **NO BRAND-SPECIFIC CLM COMPARISON WAS WRITTEN**, because none could be
   verified. See *What I could not verify* under item 1. If the owner wants one,
   it needs a trial account and screenshots, not a search.
