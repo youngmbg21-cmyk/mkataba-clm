@@ -1608,6 +1608,141 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('18i AND IT FILES NOTHING — the record is untouched until the one act is pressed',
      enterPress.filed === beforeStrip, `${enterPress.filed} changes, ${beforeStrip} before`);
 
+  /* ============================================================
+     19. THE FOUR FAULTS REPORTED OFF THE SCREENSHOTS (28 Aug 2026)
+     ============================================================
+     "almost all of the features do not seem to be working like undo and the
+     font as well and even bullet points does not give you the bullet point it
+     just pushes you inwards", and the expand control that was on the approved
+     render and not in the build. Every one reproduced in a browser before it
+     was touched — which is why these are DRIVEN rather than read.
+
+     AND THE READING OF "IS IT TYPEABLE" IS THE BOX'S OWN contenteditable, not
+     ceIsTyping: that function is not published to window, so a probe asking
+     for it reads undefined and reports false however well the page works. It
+     cost an hour and it is this codebase's own recorded lesson — rule out the
+     instrument before believing the finding. */
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
+  const typeable = () => p.evaluate(() => {
+    const b = document.getElementById('ce-clausebody');
+    return b ? b.getAttribute('contenteditable') : null; });
+  ck('19a the clause opens ready to type in — no second press to start',
+     (await typeable()) === 'true', String(await typeable()));
+
+  const bullets = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody'); box.focus();
+    const p0 = box.querySelector('p') || box;
+    const r = document.createRange(); r.selectNodeContents(p0);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    document.querySelector('#ce-bar [data-rb="insertUnorderedList"]')
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 800));
+    const now = document.getElementById('ce-clausebody');
+    const ul = now.querySelector('ul'), li = now.querySelector('li');
+    return { made: !!(ul && li), nested: !!now.querySelector('p>ul'),
+      marker: ul ? getComputedStyle(ul).listStyleType : '(none)',
+      pad: ul ? Math.round(parseFloat(getComputedStyle(ul).paddingLeft)) : 0,
+      wide: li ? Math.round(li.getBoundingClientRect().width) : 0 };
+  });
+  ck('19b THE BULLET BUTTON MAKES A REAL LIST', bullets.made, JSON.stringify(bullets));
+  ck('19c …and it DRAWS A BULLET — the reported fault was an indent with no marker',
+     bullets.marker === 'disc' && bullets.wide > 100,
+     `${bullets.marker}, item ${bullets.wide}px wide`);
+  /* NOT what killed it, and said so rather than left implying it: the HTML
+     parser closes the <p> that execCommand opens, so the stored body was never
+     malformed. Pinned anyway, because a list that DID end up inside a paragraph
+     would draw exactly the reported symptom for a second reason. */
+  ck('19d …and no list is left inside a paragraph, which would break it again',
+     bullets.nested === false, bullets.nested ? 'a <ul> is still inside a <p>' : 'well formed');
+  const numbers = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody'); box.focus();
+    const ps = [...box.querySelectorAll('p')];
+    const p0 = ps[ps.length - 1] || box;
+    const r = document.createRange(); r.selectNodeContents(p0);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    document.querySelector('#ce-bar [data-rb="insertOrderedList"]')
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 800));
+    const ol = document.querySelector('#ce-clausebody ol');
+    return { made: !!ol, marker: ol ? getComputedStyle(ol).listStyleType : '(none)' };
+  });
+  ck('19e and a numbered list draws its numbers',
+     numbers.made && numbers.marker === 'decimal', JSON.stringify(numbers));
+
+  const errsBefore = errs.length;
+  const undone = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody'); box.focus();
+    const p0 = box.querySelector('p') || box.querySelector('li') || box;
+    p0.insertAdjacentText('afterbegin', 'ZZTYPED ');
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 350));
+    const u = document.querySelector('#ce-bar [data-rb="undo"]');
+    const wasOffered = !u.disabled;
+    u.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 600));
+    const now = document.getElementById('ce-clausebody');
+    return { wasOffered, gone: !/ZZTYPED/.test(now ? now.innerHTML : '') };
+  });
+  ck('19f UNDO IS OFFERED THE MOMENT SOMETHING IS TYPED — it was greyed out before',
+     undone.wasOffered === true, undone.wasOffered ? 'live' : 'still greyed');
+  ck('19g …and it undoes the typing', undone.gone === true,
+     undone.gone ? 'the typing is gone' : 'the typing is still there');
+  ck('19h …without throwing — the repaint used to race the blur handler',
+     errs.length === errsBefore, errs.slice(errsBefore).join(' | ') || 'clean');
+
+  const wideCtl = await p.evaluate(async () => {
+    const b = document.querySelector('#ce-bar [data-ce-wide]');
+    if (!b) return { there: false };
+    const rail = () => Math.round(document.querySelector('.ce-rail').getBoundingClientRect().width);
+    const col = () => Math.round(document.querySelector('.ce-col').getBoundingClientRect().width);
+    const was = { rail: rail(), col: col() };
+    b.click(); await new Promise(r => setTimeout(r, 400));
+    const on = { rail: rail(), col: col(),
+      pressed: document.querySelector('#ce-bar [data-ce-wide]').getAttribute('aria-pressed') };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 400));
+    return { there: true, was, on, back: { rail: rail(), col: col() },
+      stillOpen: !!document.getElementById('clause-editor') };
+  });
+  ck('19i THE CONTRACT-ALONE CONTROL IS ON THE BAR — the render had it, the build did not',
+     wideCtl.there === true, wideCtl.there ? 'drawn' : 'missing');
+  ck('19j pressing it gives the whole page to the contract',
+     wideCtl.there && wideCtl.on.rail === 0 && wideCtl.on.col > wideCtl.was.col && wideCtl.on.pressed === 'true',
+     wideCtl.there ? `rail ${wideCtl.was.rail}→${wideCtl.on.rail}, contract ${wideCtl.was.col}→${wideCtl.on.col}` : '');
+  ck('19k Escape brings Copilot back and does NOT close the page',
+     wideCtl.there && wideCtl.back.rail > 100 && wideCtl.stillOpen === true,
+     wideCtl.there ? `rail back to ${wideCtl.back.rail}, page open ${wideCtl.stillOpen}` : '');
+
+  const greyed = await p.evaluate(async () => {
+    const read = () => ({
+      bold: document.querySelector('#ce-bar [data-rb="bold"]').disabled,
+      size: document.querySelector('#ce-bar [data-rb-size-open]').disabled,
+      undo: document.querySelector('#ce-bar [data-rb="undo"]').disabled,
+      wide: document.querySelector('#ce-bar [data-ce-wide]').disabled,
+      tip: document.querySelector('#ce-bar [data-rb="bold"]').getAttribute('title'),
+      dim: getComputedStyle(document.querySelector('#ce-bar [data-rb="bold"]')).opacity });
+    const live = read();
+    document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    await new Promise(r => setTimeout(r, 600));
+    const off = read();
+    document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    await new Promise(r => setTimeout(r, 600));
+    return { live, off, back: read() };
+  });
+  ck('19l with the caret in the clause every tool is live',
+     greyed.live.bold === false && greyed.live.size === false, JSON.stringify(greyed.live));
+  ck('19m WITH THE PENCIL OFF THEY GREY, with the reason on the hover — not a dead press',
+     greyed.off.bold === true && greyed.off.size === true
+       && /pencil|penna/i.test(greyed.off.tip || '') && Number(greyed.off.dim) < 0.6,
+     JSON.stringify(greyed.off));
+  ck('19n …but Undo and the contract-alone control still work, because they can',
+     greyed.off.undo === false && greyed.off.wide === false,
+     `undo off=${greyed.off.undo}, wide off=${greyed.off.wide}`);
+  ck('19o and pressing the pencil again brings the tools back',
+     greyed.back.bold === false, JSON.stringify(greyed.back));
+
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
 

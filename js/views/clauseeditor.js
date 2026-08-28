@@ -113,6 +113,8 @@ let _ceScanBusy = false;
 let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
+let _ceRendering = false;   /* the paper is being written over — see ceRenderPaper */
+let _ceWide = false;        /* the contract has the whole page — see ceSetWide */
 let _ceLead = null;         /* the change this editor opened on, if any */
 
 const clauseEditorOpen = () => !!_ceClauseId;
@@ -292,6 +294,20 @@ function clauseEditorCss(){
      straddles the rail's own border. Its LOOK is the negotiation page's, shared
      rather than copied — see the unscoped .rl-resizer in negotiation-css.js. */
   .ce-grid > .rl-resizer{transform:translateX(-50%)}
+  /* ---- THE CONTRACT ALONE (owner-reported 28 Aug 2026: the render carried
+     this control and the build did not) ----
+     ONE COLUMN, and the rail and the divider stand down with it. The rail is
+     kept in the DOM rather than torn out, so its Copilot thread, its scan
+     results and its scroll position are all still there when the reader comes
+     back — and coming back is one press of the same button. */
+  #clause-editor.is-wide .ce-grid{grid-template-columns:minmax(0,1fr)}
+  #clause-editor.is-wide .ce-rail{display:none}
+  #clause-editor.is-wide .ce-grid > .rl-resizer{display:none}
+  .ce-wide-btn[aria-pressed="true"]{background:var(--color-accent-700);
+    border-color:var(--color-accent-700); color:#fff}
+  /* A greyed tool has to LOOK greyed, or it is a live-looking button that does
+     nothing — the fault this whole pass is about, in its own clothes. */
+  .rb-btn:disabled,.rb-size:disabled{opacity:.38; cursor:not-allowed}
   .ce-col{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
@@ -922,6 +938,15 @@ function clauseEditorFits(){
 const CE_SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
   + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   + '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>';
+/* THE CONTRACT ALONE. Two faces on one control — corners pointing out to take
+   the width, pointing in to give it back — so the button says which way it
+   goes rather than needing a word beside it. */
+const CE_WIDE_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"'
+  + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+  + ' aria-hidden="true"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
+const CE_NARROW_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"'
+  + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+  + ' aria-hidden="true"><path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4"/></svg>';
 
 function clauseEditorHtml(){
   return `<div id="clause-editor" role="region" aria-label="${_ceea(_cet('ce_page_label'))}">
@@ -1188,8 +1213,13 @@ function ceFitSplit(scope){
   const grid = root.querySelector('#clause-editor .ce-grid');
   const rez = grid && grid.querySelector('#ce-resizer');
   if (!grid || !rez) return;
-  if (ceStacked()){
+  /* STACKED, or the contract has the page: both are layouts this function does
+     not own, and an inline gridTemplateColumns written here would beat the
+     rule that makes them — an inline declaration cannot be overridden by a
+     stylesheet without !important, which this codebase has paid for twice. */
+  if (ceStacked() || _ceWide){
     grid.style.gridTemplateColumns = '';
+    rez.style.left = '';
     rez.removeAttribute('data-rl-at-limit');
     return;
   }
@@ -1389,6 +1419,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
+  _ceWide = false; _ceRendering = false;
   _ceOpenText = '';
   _ceBusy = false;
   clearTimeout(_ceSayTimer);
@@ -1665,16 +1696,58 @@ function ceApplyMark(cls){
 function ceRenderBar(){
   const host = _ceQ('#ce-bar');
   if (!host || !window.richBarHtml) return;
-  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() });
-  /* GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS, which is this product's
-     own rule for exactly that — and only these two, because every other tool's
-     answer depends on what is selected at the moment it is pressed. */
-  const set = (k, off) => {
-    const b = host.querySelector('[data-rb="' + k + '"]');
-    if (b) b.disabled = !!off;
-  };
-  set('undo', _ceStep <= 0);
-  set('redo', _ceStep >= _ceSteps.length - 1);
+  /* ---- THE CONTRACT ALONE, AT THE END OF THE BAR ----
+     It was on the approved render and was left out of the first build; the
+     owner reported it missing by name. It is THIS PAGE'S control rather than
+     the shared shelf's — the clause panel's compact bar has no rail to stand
+     down — so it is appended here and richBarHtml is untouched.
+
+     IT IS NOT THE PRODUCT'S FOCUS MODE and must not become it: focus mode
+     hides the app's OWN chrome (the sidebar and the top bar) on the pages that
+     have them, and this page already covers the whole window. What this gives
+     up is the Copilot rail, which is the only chrome left here. */
+  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() })
+    + `<span class="rb-sep"></span>`
+    + `<button type="button" class="rb-btn ce-wide-btn" data-ce-wide="1"`
+    + ` aria-pressed="${_ceWide ? 'true' : 'false'}"`
+    + ` title="${_ceea(_cet(_ceWide ? 'ce_wide_off_title' : 'ce_wide_on_title'))}"`
+    + ` aria-label="${_ceea(_cet(_ceWide ? 'ce_wide_off' : 'ce_wide_on'))}">`
+    + (_ceWide ? CE_NARROW_ICON : CE_WIDE_ICON) + `</button>`;
+  /* ---- GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS ----
+     This product's own rule for exactly that. There is ONE thing it can know:
+     whether anything is typeable at all. With the caret out of the clause —
+     the pencil turned off, or a reading that draws no marks — no tool on this
+     bar can do anything, and until 28 Aug 2026 each one answered with a short
+     line in the head that a reader looking at the paper never saw. From their
+     chair that is a dead button, which is what was reported.
+
+     UNDO, REDO AND THE WIDE TOGGLE ARE NOT IN IT: the first two act on the
+     draft stack and the third on the page, so all three still work when the
+     wording does not. Everything else is a question about a selection, which
+     is why only this one thing is answered here and not the rest. */
+  const live = ceIsTyping();
+  const why = live ? '' : _cet(ceEditableReading() ? 'ce_bar_press_pencil' : 'ce_reading_only');
+  host.querySelectorAll('[data-rb],[data-rb-pick],[data-rb-size-open]').forEach(b => {
+    const k = b.getAttribute('data-rb');
+    if (k === 'undo' || k === 'redo') return;
+    b.disabled = !live;
+    if (why) b.setAttribute('title', why); else b.removeAttribute('title');
+  });
+  ceSyncBarSteps();
+}
+/* ---- THE CONTRACT TAKES THE PAGE ----
+   A class flip and nothing else: no repaint, so the caret, the selection and
+   the reader's place on the page all survive it. The layout is the grid's own
+   job and is stated once, in this page's sheet. */
+function ceSetWide(on){
+  if (!clauseEditorOpen()) return;
+  _ceWide = !!on;
+  const page = document.getElementById('clause-editor');
+  if (page) page.classList.toggle('is-wide', _ceWide);
+  ceRenderBar();
+  ceSay(_cet(_ceWide ? 'ce_wide_on_said' : 'ce_wide_off_said'));
+  /* The divider measures the grid, and the grid has just changed shape. */
+  try{ if (typeof ceFitSplit === 'function') ceFitSplit(); }catch(_){}
 }
 /* What size is the caret in? The stored size nearest the selection, falling
    back to the base the paper draws its clauses at. */
@@ -1746,8 +1819,19 @@ function ceRenderPaper(){
           : (typing ? _cet('ce_pencil_stop_title') : _cet('ce_pencil_title')) },
     });
   }catch(e){ html = ''; }
-  host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
-  host.scrollTop = keep;
+  /* ---- THE WRITE IS FENCED, BECAUSE REPLACING IT BLURS WHAT IS IN IT ----
+     The typing box is inside this markup, so writing over it takes the focus
+     out of it and fires blur — and this page's blur handler pulls the text and
+     applies it, which renders again, over markup that is halfway replaced.
+     MEASURED as a real crash on Undo: "The node to be removed is no longer a
+     child of this node. Perhaps it was moved in a 'blur' event handler?", and
+     from the reader's chair Undo simply did nothing. The flag is what the blur
+     handler asks. OWNER-REPORTED 28 Aug 2026. */
+  _ceRendering = true;
+  try{
+    host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
+    host.scrollTop = keep;
+  } finally { _ceRendering = false; }
 }
 
 /* The three readings, the band that says a reading refuses editing, and the
@@ -1876,8 +1960,38 @@ function ceApply(text, label, opts = {}){
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
 }
+/* ---- IS THERE TYPING THE STEP STACK HAS NOT TAKEN YET? ----
+   The box's text only reaches the stack on BLUR — which is right, because
+   taking it on every keystroke would repaint the whole document under the
+   caret. The cost is that between a keystroke and a blur the stack does not
+   know about the typing, and Undo is a fact about the stack. So the two bar
+   buttons ask this as well. OWNER-REPORTED 28 Aug 2026: Undo did nothing after
+   typing, because it was greyed out. */
+function ceBoxDirty(){
+  const box = _ceQ('#ce-clausebody');
+  if (!ceIsTyping() || !box) return false;
+  try{
+    const raw = String(box.innerHTML || '');
+    return (window.sanitizeRich ? sanitizeRich(raw) : raw) !== _ceText;
+  }catch(_){ return false; }
+}
+/* The two buttons whose answer changes as the reader types, flipped WITHOUT a
+   repaint: the bar is rebuilt with the head, and the head is not rebuilt on a
+   keystroke. */
+function ceSyncBarSteps(){
+  const host = _ceQ('#ce-bar'); if (!host) return;
+  const u = host.querySelector('[data-rb="undo"]');
+  const r = host.querySelector('[data-rb="redo"]');
+  if (u) u.disabled = _ceStep <= 0 && !ceBoxDirty();
+  if (r) r.disabled = _ceStep >= _ceSteps.length - 1;
+}
 function ceUndo(){
   if (!clauseEditorOpen()) return;
+  /* TAKE THE TYPING FIRST, so Undo undoes what the reader just typed rather
+     than stepping over it — which is what Undo means in every writing tool
+     they have used. Where nothing was typed this returns without doing
+     anything and the step below is the whole act. */
+  cePullText();
   if (_ceStep <= 0) return;
   _ceStep -= 1;
   _ceText = _ceSteps[_ceStep].text;
@@ -2575,7 +2689,10 @@ function ceWirePage(page){
       if (id && id !== _ceClauseId){ ceGoClause(id); return; }
       cePullText();
       _ceEditing = !_ceEditing;
-      ceCloseInline(); ceRenderPaper();
+      /* THE BAR FOLLOWS THE PENCIL. Its tools grey when nothing is typeable,
+         so a pencil press that did not repaint it would leave the whole shelf
+         dressed for the state before the press. */
+      ceCloseInline(); ceRenderPaper(); ceRenderBar();
       if (ceIsTyping()) ceFocusTyping();
       return; }
 
@@ -2589,7 +2706,9 @@ function ceWirePage(page){
     if (read){ ev.preventDefault(); ev.stopPropagation();
       cePullText();
       if (window.rlSetReadMode) rlSetReadMode(read.getAttribute('data-rl-read'));
-      ceCloseInline(); ceRenderPaper(); ceRenderFoot(); return; }
+      /* The bar greys on a reading that draws no marks, so it repaints with
+         the rest of the page rather than keeping the last reading's face. */
+      ceCloseInline(); ceRenderPaper(); ceRenderFoot(); ceRenderBar(); return; }
 
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
@@ -2643,6 +2762,12 @@ function ceWirePage(page){
       if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
       else ceAddMissingClause(it, words, scan);
       return; }
+
+    /* THE CONTRACT ALONE — a class flip, so nothing the reader is holding is
+       thrown away. It is not the app's focus mode and does not pretend to be:
+       this page has no sidebar or top bar to hide. */
+    const wide = hit('[data-ce-wide]');
+    if (wide){ ev.preventDefault(); ceSetWide(!_ceWide); return; }
 
     const inlineChip = hit('[data-ce-inline-chip]');
     if (inlineChip){ ev.preventDefault(); ceInlineGo(inlineChip.getAttribute('data-ce-inline-chip')); return; }
@@ -2715,8 +2840,22 @@ function ceWirePage(page){
   page.addEventListener('blur', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    /* NOT WHILE THE PAPER IS BEING WRITTEN OVER. A repaint blurs the box it is
+       replacing, and pulling from a box that is halfway gone renders again on
+       top of a half-written DOM — see the fence in ceRenderPaper. */
+    if (_ceRendering) return;
     cePullText(); ceRenderFoot();
   }, true);
+
+  /* ---- THE TWO STEP BUTTONS FOLLOW THE TYPING ----
+     Cheap on purpose: two disabled flags, no repaint. Without it Undo stays
+     greyed out until the box loses focus, which is a dead button at exactly
+     the moment somebody reaches for it. */
+  page.addEventListener('input', ev => {
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    ceSyncBarSteps();
+  });
 
   /* ONE SENTENCE AT A TIME — only in the reading, never while typing: a drag
      inside a contenteditable box is somebody selecting words to work on them. */
@@ -2744,6 +2883,10 @@ if (typeof document !== 'undefined' && !document._ceWired){
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
     if (_ceSel){ ceCloseInline(); return; }
+    /* THE POSTURE COMES OFF BEFORE THE PAGE DOES. One Escape that both narrowed
+       the page and closed it would be two acts on one press — the fault the
+       clause panel and the round queue each defer to avoid. */
+    if (_ceWide){ ceSetWide(false); return; }
     rlCloseClauseEditor();
   });
   /* A window dragged below the width where two columns stop making sense: the
@@ -2761,6 +2904,7 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
+  ceSetWide, ceBoxDirty,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,

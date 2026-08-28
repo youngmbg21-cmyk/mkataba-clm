@@ -3216,6 +3216,60 @@ serve both hands without becoming two.
   symbol, which lands in the side panel, which is what the owner asked for by
   name.
 
+**FOUR FAULTS REPORTED OFF THE SCREENSHOTS (owner-reported 28 Aug 2026), and
+every one reproduced in a browser before it was touched.**
+
+- **A BULLET LIST DREW NO BULLET.** *"even bullet points does not give you the
+  bullet point it just pushes you inwards."* MEASURED: the compiled Tailwind
+  blob's preflight sets `list-style:none` on every `ol` and `ul` in the product,
+  and the paper's own rule gave the gutter back and never the marker. So the
+  press worked, made a real list, and looked as though it had not. One
+  declaration in **HaTi's own sheet**, never the blob, which regenerates.
+  **AND A DEAD FIX WAS REMOVED RATHER THAN SHIPPED**: execCommand writes
+  `<p><ul>…</ul></p>`, which is invalid, so a first attempt added twenty lines
+  to the sanitiser to lift the list out — and the HTML parser already closes
+  the paragraph on re-read, so the output was byte for byte what it had been.
+  Twenty lines that fixed nothing, under a comment blaming them for the bug.
+  **Measure the fix, not just the fault.**
+- **UNDO DID NOTHING AND THREW.** The box's text only reached the step stack on
+  BLUR — right, because taking it on every keystroke repaints the document under
+  the caret — so Undo pressed straight after typing was GREYED OUT, and where it
+  was live the repaint it ran raced the blur handler firing behind it:
+  *"Failed to set the 'innerHTML' property … Perhaps it was moved in a 'blur'
+  event handler?"* THREE PARTS: `ceUndo` pulls the box FIRST, so it undoes what
+  was just typed; `ceBoxDirty` is what the button asks, so it offers itself the
+  moment something is typed; and `_ceRendering` fences the paper's own write so
+  the blur handler stands down while it is being replaced.
+- **A TOOL THAT COULD NOT ACT WAS A DEAD PRESS.** With the caret out of the
+  clause every tool answered with a line in the head that a reader looking at
+  the paper never saw. They GREY now, with the reason on the hover — this
+  product's own rule for what it can know before the press. **UNDO, REDO AND THE
+  CONTRACT-ALONE CONTROL ARE NOT IN IT**: the first two act on the draft stack
+  and the third on the page, so all three still work when the wording does not.
+- **THE CONTRACT-ALONE CONTROL WAS ON THE RENDER AND NOT IN THE BUILD.** It is
+  at the end of the bar: press it and the Copilot rail stands down so the
+  contract has the whole page; press it again, or Escape, to bring it back. A
+  CLASS FLIP and nothing else, so the caret, the selection and the reader's
+  place all survive it; the rail is kept in the DOM, so its thread, its scan and
+  its scroll are still there. **`ceFitSplit` STANDS DOWN WITH IT** — it writes
+  an inline `gridTemplateColumns` that a stylesheet cannot beat without
+  `!important`. **IT IS NOT THE PRODUCT'S FOCUS MODE and must not become one**:
+  that hides the app's OWN chrome, and this page already covers the window.
+- **AND THE INSTRUMENT COST AN HOUR.** A probe read `window.ceIsTyping`, which
+  is not published, so it reported "not typing" however well the page worked —
+  and the first diagnosis chased a fault that was not there. Read a DOM fact
+  (`contenteditable` on the box), not an unexported function. **Rule out the
+  instrument before believing the finding.**
+- **AND THE BACKTICK FAULT WAS PAID A THIRD TIME.** The CSS comment above
+  quoted the Tailwind rule in backticks, inside a file that returns CSS from a
+  JS template literal — the string ended and the browser tried to parse
+  `ol,ul{…}` as code. Say "sets list-style none" in prose. f236 is the net and
+  the linter caught it in one run.
+
+Tests: f245 (17) (6), clause-editor-verify section 19 (15 — **7 fail against the
+code of an hour before, reporting `marker: none` and the innerHTML crash
+verbatim**).
+
 **NOT BUILT, AND SAID OUT LOUD: RENAMING A CLAUSE HEADING.** The owner asked for
 it ("the ability to edit the name of the header") and it is a change to the
 CHANGE MODEL rather than a control: `headingText` is carried and drawn for

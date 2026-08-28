@@ -2034,6 +2034,23 @@ function redlineLayoutCss(){
   .redline-page .rl-doc .nego-body ul,.redline-page .rl-doc .nego-body ol,
   .redline-page .rl-cp-src ul,.redline-page .rl-cp-src ol{
     margin:0 0 .5em;padding-left:2.1em;list-style-position:outside}
+  /* ---- AND THE MARKER ITSELF, WHICH NOTHING RESTORED ----
+     OWNER-REPORTED 28 Aug 2026: "bullet points does not give you the bullet
+     point it just pushes you inwards." MEASURED: the compiled Tailwind blob's
+     preflight sets list-style none on ol and ul, with no margin and no
+     padding, so every
+     list in the product is markerless by default. The rule above gave the
+     gutter back and never the marker, so a real <ul><li> drew as an indent —
+     the press worked and looked as though it had not. THE LIST ITSELF WAS
+     ALWAYS WELL FORMED — execCommand writes a list inside the paragraph, which
+     is invalid, and the parser closes the paragraph when the body is re-read —
+     so this one declaration is the whole of the fault.
+     WRITTEN IN HaTi'S OWN SHEET, never the blob, which is generated and drops
+     the change on the next build (the font-600 lesson). */
+  .redline-page .rl-doc .nego-body ul,.redline-page .rl-cp-src ul{list-style-type:disc}
+  .redline-page .rl-doc .nego-body ul ul,.redline-page .rl-cp-src ul ul{list-style-type:circle}
+  .redline-page .rl-doc .nego-body ol,.redline-page .rl-cp-src ol{list-style-type:decimal}
+  .redline-page .rl-doc .nego-body ol ol,.redline-page .rl-cp-src ol ol{list-style-type:lower-alpha}
   .redline-page .rl-doc .nego-body li,.redline-page .rl-cp-src li{margin:0 0 .3em}
   /* the sheet keeps its auto margins — margin:0 here beat the centring rule
      (three classes to two) and pinned the paper to the left of the column */

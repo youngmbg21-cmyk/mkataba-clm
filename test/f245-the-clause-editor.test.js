@@ -403,6 +403,75 @@ describe('f245 (16) — the highlight strip is one strip, and it files nothing',
   });
 });
 
+describe('f245 (17) — the four faults reported off the screenshots', () => {
+  /* OWNER-REPORTED 28 Aug 2026, off three pictures of the real page:
+     "almost all of the features do not seem to be working like undo and the
+     font as well and even bullet points does not give you the bullet point it
+     just pushes you inwards", and the expand control that was on the approved
+     render and not in the build. Each was reproduced in a browser before it
+     was touched; the pixels are pinned in clause-editor-verify section 19. */
+
+  /* THE BULLET BUTTON DID MAKE A REAL LIST ALL ALONG — execCommand writes
+     <p><ul>…</ul></p>, which is invalid, and the HTML parser closes the <p>
+     when the body is re-read, so nothing was ever malformed by the time it was
+     stored. MEASURED both ways: the sanitiser's output on that input is byte
+     for byte what it was before this fix. A first attempt added twenty lines to
+     lift the list out and they were DEAD CODE with a comment blaming them for
+     the bug; they were removed rather than shipped. What was actually wrong was
+     one missing declaration, below. */
+  test('the sanitiser keeps a list a list, and always did', () => {
+    const win = buildWorld().win;
+    const out = win.sanitizeRich('<p>Lead in<ul><li>one</li><li>two</li></ul>tail</p>');
+    assert.ok(!/<p>[^<]*<ul/.test(out), 'no <ul> survives inside a <p>: ' + out);
+    assert.ok(/<ul>/.test(out) && /two<\/li>/.test(out), 'and the list itself is kept');
+  });
+
+  test('THE MARKER IS PUT BACK, in HaTi\'s own sheet — this was the whole fault', () => {
+    const CSS = read('js/views/negotiation-css.js');
+    assert.ok(/list-style-type:disc/.test(CSS), 'a bullet list draws a bullet');
+    assert.ok(/list-style-type:decimal/.test(CSS), 'a numbered list draws a number');
+    /* The compiled Tailwind blob sets list-style:none on every list in the
+       product, and it regenerates — the font-600 lesson. */
+    assert.ok(!/list-style-type:disc/.test(read('index.html').split('\n')[80] || ''),
+      'never written into the generated blob');
+  });
+
+  test('UNDO TAKES THE TYPING FIRST, and the paper is fenced while it repaints', () => {
+    assert.ok(/function ceUndo\(\)\{?[\s\S]{0,700}?cePullText\(\)/.test(CODE),
+      'Undo pulls the box before it steps back, so it undoes what was typed');
+    assert.ok(/_ceRendering = true;/.test(CODE) && /if \(_ceRendering\) return;/.test(CODE),
+      'and the blur handler stands down while the paper is being written over');
+    assert.ok(/function ceBoxDirty/.test(CODE),
+      'the button knows about typing the stack has not taken yet');
+  });
+
+  test('THE CONTRACT-ALONE CONTROL IS BACK, and it is not the app\'s focus mode', () => {
+    assert.ok(/data-ce-wide/.test(CODE), 'the control is drawn on the bar');
+    assert.ok(/is-wide .ce-rail\{display:none\}/.test(CODE),
+      'pressing it stands the Copilot rail down');
+    assert.ok(/if \(_ceWide\)\{ ceSetWide\(false\); return; \}/.test(CODE),
+      'Escape takes the posture off before it closes the page');
+    /* It must not grow into the product's focus mode: that one hides the app's
+       OWN chrome, and this page has none to hide. */
+    assert.ok(!/rlSetFocus/.test(CODE), 'and it never reaches for the app-wide one');
+  });
+
+  test('a tool that cannot act GREYS, with the reason on its hover', () => {
+    assert.ok(/b\.disabled = !live;/.test(CODE), 'the tools grey when nothing is typeable');
+    assert.ok(/k === 'undo' \|\| k === 'redo'/.test(CODE),
+      'but not the two that act on the draft stack');
+    assert.ok(/\.rb-btn:disabled/.test(CODE), 'and a greyed tool looks greyed');
+  });
+
+  test('both languages carry the new control\'s words', () => {
+    for (const k of ['ce_wide_on', 'ce_wide_off', 'ce_wide_on_title', 'ce_wide_off_title',
+      'ce_wide_on_said', 'ce_wide_off_said']){
+      assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+});
+
 describe('f245 (9) — the counterparty\'s seat is untouched', () => {
   test('the row door is never drawn on their page', () => {
     const m = NEGO.match(/const ceBtn = \([\s\S]{0,220}/);
@@ -1060,7 +1129,7 @@ describe('f245 (12) — the divider, and what it must not disturb', () => {
        the media query and crush the stacked layout. */
     assert.match(CE, /max-width:1023px\)/, 'the stack point is the stylesheet\'s own');
     const fit = CE.match(/function ceFitSplit[\s\S]*?\n}/)[0];
-    assert.match(fit, /if \(ceStacked\(\)\)\{[\s\S]{0,160}gridTemplateColumns = ''/,
+    assert.match(fit, /if \(ceStacked\(\)[^)]*\)\{[\s\S]{0,320}gridTemplateColumns = ''/,
       'ceFitSplit clears them before it does anything else');
     assert.match(CE, /\.ce-grid > \.rl-resizer\{display:none\}/,
       'and the handle is not drawn across a stacked page');
