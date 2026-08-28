@@ -1,0 +1,615 @@
+<title>Three Contract Screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    /* Every value lifted from HaTi's own :root, not approximated.
+       ground #EDF1F2 · ink #0E1A18 · label #54635F · quiet #8A9997
+       divider #DFE4E3 · band #f1f5f9 · accent 600/700/800 0D9488/0F766E/115E59
+       nav bar #093733 · nav well #EFF3F3 · paper #FDFCF6 / line #EFE2C2
+       ins #e4f1ea/#047857 · del #ffe4e6/#be123c · amber #fef3c7/#b45309
+       sheet 860 · cards 460 · gap 14 · work padding 16/24/26 · radius 2 */
+    /* Single-theme on purpose: this is a picture of HaTi's light workspace,
+       and every colour below is a literal lifted from its own :root. The body
+       still paints its own ground so the page holds on any host. */
+    body{margin:0;background:#0B1F1D;color:#0E1A18;
+      font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;}
+    @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+    a{color:#0F766E;} a:hover{color:#115E59;}
+    button{font:inherit;cursor:pointer;}
+
+    /* The shell takes the window, so the widths behave the way they do in
+       HaTi: the sheet caps at 860 and centres, the cards column stays 460,
+       and everything past that is the spare width this prototype is about.
+       Drag the window narrow and wide — that is the question being asked. */
+    .hati{width:100%;flex:1;min-height:0;background:#EDF1F2;color:#0E1A18;
+      display:flex;flex-direction:column;overflow:hidden;position:relative;
+      font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+    /* ---------- shell ---------- */
+    .bar{flex:none;height:44px;background:#093733;display:flex;align-items:center;
+      gap:16px;padding:0 16px;color:#fff;}
+    .bar .mark{font-size:15px;font-weight:700;}
+    .bar .ptitle{font-size:13px;color:rgba(255,255,255,.72);}
+    .bar .sp{flex:1;}
+    .bar .ic{width:26px;height:26px;display:grid;place-items:center;color:rgba(255,255,255,.86);}
+    .bar .av{width:26px;height:26px;border-radius:9999px;background:#0D9488;color:#fff;
+      display:grid;place-items:center;font-size:10px;font-weight:700;}
+
+    .body{flex:1;min-height:0;display:flex;}
+    .nav{flex:none;width:240px;background:#fff;border-right:1px solid #DFE4E3;
+      display:flex;flex-direction:column;padding:10px 0;}
+    .navcap{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+      color:#8A9997;padding:12px 16px 6px;}
+    .navrow{display:flex;align-items:center;gap:10px;padding:7px 16px;font-size:13px;
+      color:#0E1A18;border-left:3px solid transparent;background:none;border-top:0;
+      border-right:0;border-bottom:0;width:100%;text-align:left;}
+    .navrow.on{background:#EFF3F3;border-left-color:#0D9488;font-weight:600;}
+    .navrow .n{margin-left:auto;font-size:12px;font-weight:600;color:#54635F;}
+    .navrow .n.warn{color:#b45309;}
+
+    /* THE SCREEN ROOTS ARE ABSOLUTE, so whatever wrapper the branch renders
+       into cannot flatten the column layout underneath it. */
+    .main{flex:1;min-width:0;position:relative;}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;}
+
+    /* ---------- room head ---------- */
+    .band{flex:none;background:#fff;padding:16px 24px 0;}
+    .crumbrow{display:flex;align-items:center;gap:10px;}
+    .crumb{font-size:12px;color:#54635F;}
+    .rtitle{font-size:15px;font-weight:600;}
+    .status{font-size:14px;font-weight:700;color:#b45309;}
+    .acts{margin-left:auto;display:flex;align-items:center;gap:8px;}
+    .btn{height:28px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;
+      font-size:13px;font-weight:600;color:#115E59;background:transparent;
+      border:1px solid rgba(13,148,136,.45);border-radius:2px;white-space:nowrap;}
+    .btn:hover{background:rgba(13,148,136,.07);}
+    .lead{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#54635F;}
+    .lead .av{width:22px;height:22px;border-radius:9999px;background:#0D9488;color:#fff;
+      display:grid;place-items:center;font-size:9px;font-weight:700;}
+    .sub{font-size:12px;color:#54635F;margin-top:3px;}
+    .facts{display:flex;margin-top:10px;padding-bottom:10px;}
+    .fact{padding-right:28px;margin-right:28px;border-right:1px solid #DFE4E3;}
+    .fact:last-child{border-right:0;}
+    .fact .l{font-size:12px;color:#54635F;line-height:1.3;}
+    .fact .v{font-size:14px;font-weight:600;margin-top:2px;}
+    .fact .v.mine{color:#b45309;}
+
+    /* ---------- tab rows ---------- */
+    .tabs{flex:none;background:#fff;border-bottom:1px solid #DFE4E3;
+      display:flex;align-items:center;gap:22px;padding:0 24px;height:44px;}
+    .tab{font-size:14px;font-weight:400;color:#0E1A18;padding:12px 1px;
+      border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:7px;
+      background:none;border-top:0;border-left:0;border-right:0;}
+    .tab.on{font-weight:700;color:#115E59;border-bottom-color:#0D9488;}
+    .tab .cnt{font-size:12px;font-weight:600;color:#54635F;}
+    .tabsp{flex:1;}
+    .step{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 9px;
+      border:1px solid #DFE4E3;border-radius:2px;font-size:12px;color:#54635F;}
+    .seg{display:inline-flex;border:1px solid #DFE4E3;border-radius:2px;overflow:hidden;}
+    .seg span{font-size:13px;font-weight:600;padding:5px 12px;color:#54635F;}
+    .seg span.on{background:#0F766E;color:#fff;}
+    .back{font-size:13px;color:#54635F;display:inline-flex;align-items:center;gap:7px;
+      background:none;border:0;padding:0;}
+    .back b{font-weight:600;color:#54635F;background:#f1f5f9;padding:1px 6px;
+      border-radius:2px;font-size:12px;}
+
+    /* ---------- working area ---------- */
+    .work{flex:1;min-height:0;display:flex;padding:16px 24px 26px;gap:14px;position:relative;}
+    .queue{position:absolute;left:24px;top:64px;width:26px;padding:9px 6px;background:#fff;
+      border:1px solid #DFE4E3;border-left:0;border-radius:0 2px 2px 0;
+      writing-mode:vertical-rl;font-size:11px;font-weight:700;letter-spacing:.09em;
+      text-transform:uppercase;color:#54635F;display:flex;align-items:center;gap:8px;}
+    .doc{flex:1;min-width:0;display:flex;justify-content:center;overflow:auto;}
+
+    /* THE SHEET — one measure on all three screens, steady size, on the page
+       ground. Item 6: Documents stops magnifying and reads the same 860. */
+    .paper{width:100%;max-width:860px;align-self:flex-start;background:#FDFCF6;border:1px solid #EFE2C2;
+      padding:30px 56px 34px;font-size:15px;line-height:1.75;color:#0E1A18;}
+    .ptitle-doc{text-align:center;font-size:17px;font-weight:700;margin:0;}
+    .psub{text-align:center;font-size:13px;color:#3B4A48;margin:8px 0 0;}
+    .prule{width:46px;height:1px;background:#EFE2C2;margin:18px auto 22px;}
+    .p{margin:0 0 14px;}
+    .h2{font-size:15px;font-weight:700;margin:22px 0 8px;display:flex;align-items:center;gap:10px;}
+    .pen{margin-left:auto;display:inline-flex;color:#54635F;background:none;
+      border:0;padding:3px;margin-right:-3px;border-radius:2px;}
+    .pen:hover{color:#115E59;background:rgba(13,148,136,.10);}
+    .pen.on{color:#115E59;background:rgba(13,148,136,.10);}
+    .ins{background:#e4f1ea;color:#047857;}
+    .del{background:#ffe4e6;color:#be123c;text-decoration:line-through;}
+    .clause{position:relative;}
+    .clause.changed::after{content:"";position:absolute;right:-18px;top:0;bottom:0;
+      width:3px;background:#dc2626;}
+    .clause.live{outline:1px dashed rgba(14,26,24,.22);outline-offset:4px;}
+    .clause.live::before{content:"";position:absolute;left:-14px;top:-6px;bottom:-6px;
+      width:3px;background:#0D9488;}
+    .caret{display:inline-block;width:1px;height:1.05em;background:#0E1A18;
+      vertical-align:-2px;margin-left:1px;}
+
+    /* ---------- change column ---------- */
+    .side{flex:none;width:460px;background:#fff;border:1px solid #DFE4E3;border-radius:2px;
+      display:flex;flex-direction:column;overflow:hidden;}
+    .idx{flex:none;display:flex;align-items:center;gap:12px;padding:12px 16px 0;}
+    .idxt{font-size:13px;font-weight:700;padding-bottom:9px;border-bottom:2px solid #0D9488;
+      margin-bottom:-1px;}
+    .idxt em{font-style:normal;color:#54635F;font-weight:700;}
+    .sendall{margin-left:auto;margin-bottom:6px;height:22px;padding:0 10px;
+      display:inline-flex;align-items:center;font-size:13px;font-weight:600;
+      background:#0F766E;color:#fff;border:0;border-radius:2px;}
+    .idxrule{height:1px;background:#DFE4E3;}
+    .cards{flex:1;min-height:0;overflow:auto;}
+    .bandh{display:flex;align-items:center;gap:8px;padding:7px 16px 6px;background:#f1f5f9;
+      border-top:1px solid #DFE4E3;border-bottom:1px solid #DFE4E3;
+      font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#54635F;}
+    .bandh b{margin-left:auto;font-weight:700;}
+    .row{display:grid;grid-template-columns:minmax(0,2fr) minmax(127px,1fr);
+      align-items:start;gap:12px;padding:9px 16px;border-top:1px solid #DFE4E3;}
+    .bandh + .row{border-top:0;}
+    .ref{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:#54635F;}
+    .sum{font-size:14px;font-weight:600;line-height:1.4;margin-top:2px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .meta{font-size:12px;color:#54635F;margin-top:3px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .verbs{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:2px;}
+    .v{font-size:12px;font-weight:700;background:none;border:0;padding:0;}
+    .v.ok{color:#115E59;} .v.more{color:#54635F;font-size:14px;}
+
+    /* ---------- Documents tab's own right column ---------- */
+    .dcol{flex:none;width:460px;display:flex;flex-direction:column;gap:12px;}
+    .card{background:#fff;border:1px solid #DFE4E3;border-radius:2px;overflow:hidden;}
+    .cardh{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+      color:#54635F;padding:11px 16px 9px;border-bottom:1px solid #DFE4E3;}
+    .crow{display:flex;align-items:center;gap:10px;padding:11px 16px;
+      border-top:1px solid #DFE4E3;font-size:14px;}
+    .crow:first-of-type{border-top:0;}
+    .crow .rn{font-weight:600;}
+    .crow .rs{font-size:12px;color:#54635F;margin-top:1px;}
+    .crow .go{margin-left:auto;font-size:12px;font-weight:700;color:#115E59;}
+    .kv{padding:11px 16px;font-size:13px;color:#54635F;line-height:1.6;}
+    .kv b{color:#0E1A18;font-weight:600;}
+
+    /* ======================================================================
+       THE EDIT PAGE — the grid is the page's ONLY region, so the Copilot rail
+       runs floor to ceiling. The crumb, the title and the readings sit INSIDE
+       the left column. Anything that later wants to span "the whole page"
+       goes in the left column too, or the rail is pushed down by its height.
+       ====================================================================== */
+    .cegrid{position:absolute;inset:0;display:grid;
+      grid-template-columns:minmax(0,2fr) minmax(340px,1fr);}
+    .cecol{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+    .cehead{flex:none;background:#fff;padding:16px 24px 12px;border-bottom:1px solid #DFE4E3;}
+    .cedoc{flex:1;min-height:0;display:flex;justify-content:center;overflow:auto;
+      padding:16px 24px 26px;}
+    .rail{min-width:0;min-height:0;background:#fff;border-left:1px solid #DFE4E3;
+      display:flex;flex-direction:column;overflow:hidden;}
+    .railhead{flex:none;display:flex;align-items:center;gap:14px;padding:11px 16px 0;
+      border-bottom:1px solid #DFE4E3;}
+    .cop{font-size:15px;font-weight:700;color:#115E59;display:inline-flex;align-items:center;
+      gap:7px;padding-bottom:10px;}
+    .rtabs{margin-left:auto;display:flex;align-items:center;gap:18px;}
+    .rtab{font-size:14px;font-weight:400;color:#0E1A18;padding-bottom:10px;margin-bottom:-1px;
+      border-bottom:2px solid transparent;display:inline-flex;align-items:center;gap:7px;
+      background:none;border-top:0;border-left:0;border-right:0;}
+    .rtab.on{font-weight:700;color:#115E59;border-bottom-color:#0D9488;}
+    .rtab .cnt{font-size:11px;font-weight:700;color:#b45309;background:#fef3c7;
+      padding:1px 6px;border-radius:2px;}
+    .warnline{flex:none;display:flex;align-items:center;gap:8px;padding:9px 16px;
+      font-size:13px;color:#54635F;border-bottom:1px solid #DFE4E3;}
+    .feed{flex:1;min-height:0;background:#eef2f7;padding:16px;}
+    .greet{background:#fff;border-left:3px solid #0D9488;padding:12px 14px;
+      font-size:14px;line-height:1.6;}
+    .chips{flex:none;display:flex;gap:8px;padding:12px 16px 0;overflow:hidden;
+      -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+      mask-image:linear-gradient(90deg,#000 88%,transparent);}
+    .chip{flex:none;white-space:nowrap;font-size:13px;color:#0E1A18;background:#fff;
+      border:1px solid #DFE4E3;border-radius:2px;padding:6px 11px;}
+    .askrow{flex:none;display:flex;align-items:flex-end;gap:10px;padding:12px 16px;}
+    .ask{flex:1;min-height:52px;border:1px solid #DFE4E3;border-radius:2px;padding:9px 11px;
+      font-size:14px;color:#8A9997;}
+    .send{flex:none;width:38px;height:38px;background:#0F766E;border-radius:2px;
+      display:grid;place-items:center;color:#fff;border:0;}
+    .railfoot{flex:none;display:flex;align-items:center;gap:10px;padding:9px 16px;
+      border-top:1px solid #DFE4E3;}
+    .railfoot .state{font-size:13px;color:#8A9997;}
+    .fbtn{height:30px;padding:0 14px;font-size:13px;font-weight:600;background:#fff;
+      color:#0E1A18;border:1px solid #DFE4E3;border-radius:2px;opacity:.45;}
+    .fbtn.p{background:#0F766E;border-color:#0F766E;color:#fff;opacity:1;}
+
+    /* THE STEP STRIP — a control for reviewing the flow, not part of the design.
+       Every screen has to be reachable from every other screen in one press;
+       the doors inside the mock (a tab-row button, a pencil) are the product's
+       own and are easy to miss on a prototype. */
+    .proto{width:100%;height:100vh;height:100dvh;background:#0B1F1D;
+      display:flex;flex-direction:column;overflow:hidden;}
+    .branch{display:contents;}
+    .branch[hidden]{display:none;}
+    .steps .wmark{margin-left:auto;font-size:12px;color:rgba(255,255,255,.42);
+      font-variant-numeric:tabular-nums;}
+    .steps .wmark b{color:rgba(255,255,255,.7);font-weight:600;}
+    .step:focus-visible,.navrow:focus-visible,button:focus-visible{
+      outline:2px solid #2DD4BF;outline-offset:2px;}
+    .steps{height:46px;display:flex;align-items:center;gap:8px;padding:0 16px;}
+    .step{height:30px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;
+      border:1px solid rgba(255,255,255,.22);background:none;color:rgba(255,255,255,.78);
+      font-size:13px;}
+    .step b{font-weight:700;color:rgba(255,255,255,.5);}
+    .step.on{background:#0D9488;border-color:#0D9488;color:#fff;}
+    .step.on b{color:rgba(255,255,255,.78);}
+    .steps .note{margin-left:14px;font-size:12px;color:rgba(255,255,255,.6);}
+    .steps .note b{color:rgba(255,255,255,.9);font-weight:600;}
+  </style>
+
+<div class="proto">
+  <div class="steps">
+    <button class="step" data-step="doc" type="button" data-go="doc"><b>1</b>Documents</button>
+    <button class="step" data-step="nego" type="button" data-go="nego"><b>2</b>Negotiation</button>
+    <button class="step" data-step="edit" type="button" data-go="edit"><b>3</b>Edit with Copilot</button>
+    <span class="note"><b id="hintWhat"></b> <span id="hintWhere"></span></span>
+    <span class="wmark">window <b id="wpx"></b> px</span>
+  </div>
+<div class="hati">
+
+  <div class="bar">
+    <span class="mark">HaTi</span>
+    <span class="ptitle" id="ptitle"></span>
+    <span class="sp"></span>
+    <span class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 14 14"></path></svg></span>
+    <span class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 2a4 4 0 0 0-4 4v3l-1.2 2h10.4L12 9V6a4 4 0 0 0-4-4Z"></path><path d="M6.5 13a1.6 1.6 0 0 0 3 0"></path></svg></span>
+    <span class="av">YM</span>
+  </div>
+
+  <div class="body">
+
+    <div class="nav">
+      <div class="navcap">Everyday</div>
+      <button class="navrow" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 7 8 2.5 14 7v6.5H2Z"></path></svg>Home</button>
+      <button class="navrow" data-step="doc" type="button" data-go="doc"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3.5 2h6L12.5 5v9h-9Z"></path><path d="M9.5 2v3h3"></path></svg>Contracts<span class="n">149</span></button>
+      <button class="navrow" data-step="nego edit" type="button" data-go="nego"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2.5 4h11v6h-6L5 12.5V10H2.5Z"></path></svg>Negotiations<span class="n warn">17</span></button>
+      <button class="navrow" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 3h10v10H3Z"></path><path d="M3 6.5h10M6.5 6.5V13"></path></svg>Templates</button>
+      <button class="navrow" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="6" cy="5.5" r="2.2"></circle><path d="M2.5 13c0-2 1.6-3.2 3.5-3.2S9.5 11 9.5 13"></path><circle cx="11.5" cy="6" r="1.7"></circle></svg>People</button>
+      <button class="navrow" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2.5 3.5h11v10h-11Z"></path><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"></path></svg>Calendar</button>
+      <button class="navrow" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2.5 12.5V7M6.5 12.5V3.5M10.5 12.5V9M14 12.5V5.5"></path></svg>Insights</button>
+    </div>
+
+    <div class="main">
+
+      <!-- ======================= 1 · DOCUMENTS ======================= -->
+      <div class="branch" data-screen="doc">
+        <div class="screen">
+          <div class="band">
+            <div class="crumbrow">
+              <span class="crumb">MK-363</span><span class="crumb">·</span>
+              <span class="rtitle">Warehousing and Transportation Services Agreement</span>
+              <span class="status">In Review</span>
+              <span class="acts">
+                <span class="lead"><span class="av">YM</span>You lead</span>
+                <button class="btn" type="button">Evidence pack</button>
+                <button class="btn" type="button">Share</button>
+                <button class="btn" type="button">··· More</button>
+              </span>
+            </div>
+            <div class="sub">AIT Worldwide Logistics Norway AS · External Document · Updated 28 Aug 2026</div>
+            <div class="facts">
+              <div class="fact"><div class="l">Counterparty</div><div class="v">AIT Worldwide Logistics Norway AS</div></div>
+              <div class="fact"><div class="l">Value</div><div class="v">SEK 2 500 000</div></div>
+              <div class="fact"><div class="l">Term</div><div class="v">31.12.2026</div></div>
+              <div class="fact"><div class="l">Whose move</div><div class="v mine">Mine</div></div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab" type="button">Key terms</button>
+            <button class="tab on" type="button">Document</button>
+            <button class="tab" type="button">Signing</button>
+            <button class="tab" type="button">History</button>
+            <span class="tabsp"></span>
+            <span class="step">A<sup>&minus;</sup> <b style="font-weight:600;color:#0E1A18">15px</b> A<sup>+</sup></span>
+            <button class="btn" type="button" data-go="nego">Open Negotiate · 2 waiting</button>
+          </div>
+
+          <div class="work">
+            <div class="doc">
+              <div class="paper">
+                <h1 class="ptitle-doc">WAREHOUSING AND TRANSPORTATION SERVICES AGREEMENT</h1>
+                <p class="psub">Contract · Jurisdiction: Sweden (EU/GDPR)</p>
+                <div class="prule"></div>
+                <p class="p">This Warehousing and Transportation Services Agreement (&ldquo;Agreement&rdquo;) is entered into between: (&ldquo;Customer&rdquo;), and (&ldquo;AIT&rdquo; or &ldquo;Service Provider&rdquo;).</p>
+                <p class="p">The parties agree as follows:</p>
+                <div class="h2">1. Services and Applicable Terms</div>
+                <p class="p">AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this Agreement. The services shall be governed by: The Nordic Association of Freight Forwarders&rsquo; General Conditions (NSAB 2015).</p>
+                <div class="h2">2. Term and Termination</div>
+                <p class="p">This Agreement shall remain in force for an initial term of three (3) years from the Effective Date.</p>
+                <p class="p">The parties shall review renewal options at least three (3) months before the expiry of the initial term.</p>
+                <p class="p">Either party may terminate this Agreement by providing six (6) months&rsquo; written notice.</p>
+                <div class="h2">3. Pricing and Payment</div>
+                <p class="p">The Customer shall pay all rates and charges specified in the applicable rate schedules and appendices to this Agreement.</p>
+              </div>
+            </div>
+
+            <div class="dcol">
+              <div class="card">
+                <div class="cardh">Checks</div>
+                <div class="crow"><div><div class="rn">Our standards</div><div class="rs">2 clauses off-standard</div></div><span class="go">Open</span></div>
+                <div class="crow"><div><div class="rn">Risk scan</div><div class="rs">Last run 27 Aug 2026</div></div><span class="go">Open</span></div>
+                <div class="crow"><div><div class="rn">Obligations</div><div class="rs">4 tracked</div></div><span class="go">Open</span></div>
+              </div>
+              <div class="card">
+                <div class="cardh">Provenance</div>
+                <div class="kv">Received from <b>AIT Worldwide Logistics Norway AS</b> on 12 Aug 2026. Filed by <b>Young Mbagaya</b>. Text read out of the Word file.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 2 · NEGOTIATION ======================= -->
+      <div class="branch" data-screen="nego">
+        <div class="screen">
+          <div class="band">
+            <div class="crumbrow">
+              <button class="crumb" type="button" style="background:none;border:0;padding:0;color:#54635F" data-go="doc">MK-363</button>
+              <span class="crumb">·</span>
+              <span class="rtitle">Warehousing and Transportation Services Agreement</span>
+              <span class="status">In Review</span>
+              <span class="acts">
+                <span class="lead"><span class="av">YM</span>You lead</span>
+                <button class="btn" type="button">Internal review</button>
+                <button class="btn" type="button">Share</button>
+                <button class="btn" type="button">··· More</button>
+              </span>
+            </div>
+            <div class="sub">AIT Worldwide Logistics Norway AS · External Document · Round 1 of negotiation</div>
+            <div class="facts">
+              <div class="fact"><div class="l">Counterparty</div><div class="v">AIT Worldwide Logistics Norway AS</div></div>
+              <div class="fact"><div class="l">Value</div><div class="v">SEK 2 500 000</div></div>
+              <div class="fact"><div class="l">Term</div><div class="v">31.12.2026</div></div>
+              <div class="fact"><div class="l">Whose move</div><div class="v mine">Mine</div></div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab on" type="button">Redlined <span class="cnt">2</span></button>
+            <button class="tab" type="button">As agreed</button>
+            <button class="tab" type="button">With changes</button>
+            <span class="tabsp"></span>
+            <span class="step">A<sup>&minus;</sup> <b style="font-weight:600;color:#0E1A18">15px</b> A<sup>+</sup></span>
+            <span class="seg"><span class="on">Internal</span><span>Counterparty</span></span>
+            <button class="back" type="button">&lsaquo; All negotiations <b>17</b></button>
+          </div>
+
+          <div class="work">
+            <div class="queue">This round&rsquo;s queue &nbsp;0/2</div>
+            <div class="doc">
+              <div class="paper">
+                <h1 class="ptitle-doc">WAREHOUSING AND TRANSPORTATION SERVICES AGREEMENT</h1>
+                <p class="psub">Contract · Jurisdiction: Sweden (EU/GDPR)</p>
+                <div class="prule"></div>
+                <p class="p">This Warehousing and Transportation Services Agreement (&ldquo;Agreement&rdquo;) is entered into between: (&ldquo;Customer&rdquo;), and (&ldquo;AIT&rdquo; or &ldquo;Service Provider&rdquo;).</p>
+                <p class="p">The parties agree as follows:</p>
+
+                <div class="clause changed">
+                  <div class="h2">1. Services and Applicable Terms
+                    <button class="pen" type="button" title="Edit this clause" data-go="edit"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this <span class="del">Agreement.</span> <span class="ins">Agreement only.</span><br>
+                  <span class="del">The services shall be governed by: The Nordic Association of Freight Forwarders&rsquo; General Conditions (NSAB 2015).</span><br>
+                  <span class="ins">AIT&rsquo;s standard terms and conditions, if any, shall be attached as Appendix and must be signed by both parties to form part of this Agreement.</span></p>
+                </div>
+
+                <div class="clause">
+                  <div class="h2">2. Term and Termination
+                    <button class="pen" type="button" title="Edit this clause" data-go="edit"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">This Agreement shall remain in force for an initial term of three (3) years from the Effective Date.</p>
+                  <p class="p">The parties shall review renewal options at least three (3) months before the expiry of the initial term.</p>
+                  <p class="p">Either party may terminate this Agreement by providing six (6) months&rsquo; written notice.</p>
+                  <p class="p">Either party may terminate this Agreement immediately upon written notice if:</p>
+                  <p class="p">a) the other party becomes insolvent, enters bankruptcy proceedings, or makes an assignment for the benefit of creditors; or</p>
+                </div>
+
+                <div class="clause">
+                  <div class="h2">3. Pricing and Payment
+                    <button class="pen" type="button" title="Edit this clause" data-go="edit"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">The Customer shall pay all rates and charges specified in the applicable rate schedules and appendices to this Agreement.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="side">
+              <div class="idx">
+                <span class="idxt">Redlines <em>(2)</em></span>
+                <button class="sendall" type="button">Send all 1</button>
+              </div>
+              <div class="idxrule"></div>
+              <div class="cards">
+                <div class="bandh"><span>With AIT Worldwide Logistics Norway AS</span><b>1</b></div>
+                <div class="row">
+                  <div>
+                    <div class="ref">CHG-001</div>
+                    <div class="sum">Governing conditions moved to a signed Appendix</div>
+                    <div class="meta">Clause 1 · Services and Applicable Terms</div>
+                  </div>
+                  <div class="verbs">
+                    <button class="v ok" type="button" data-go="edit">Edit</button>
+                    <button class="v more" type="button">···</button>
+                  </div>
+                </div>
+                <div class="bandh"><span>Your drafts</span><b>1</b></div>
+                <div class="row">
+                  <div>
+                    <div class="ref">CHG-002</div>
+                    <div class="sum">Price rises capped and notice extended to 60 days</div>
+                    <div class="meta">Clause 3 · Pricing and Payment</div>
+                  </div>
+                  <div class="verbs">
+                    <button class="v ok" type="button">Send</button>
+                    <button class="v ok" type="button" data-go="edit">Edit</button>
+                    <button class="v more" type="button">···</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 3 · EDIT WITH COPILOT ======================= -->
+      <div class="branch" data-screen="edit">
+        <div class="cegrid">
+
+          <div class="cecol">
+            <div class="cehead">
+              <div class="crumbrow">
+                <button class="crumb" type="button" style="background:none;border:0;padding:0;color:#54635F" data-go="nego">MK-363 &nbsp;·&nbsp; Warehousing and Transportation Services Agreement</button>
+                <span class="acts">
+                  <button class="btn" type="button" data-go="nego">&lsaquo; Back to negotiation</button>
+                </span>
+              </div>
+              <div class="crumbrow" style="margin-top:8px">
+                <span class="rtitle">Clause 2 · Term and Termination</span>
+                <span class="tabsp"></span>
+                <button class="tab on" type="button" style="padding:6px 1px">Redlined</button>
+                <button class="tab" type="button" style="padding:6px 1px">As agreed</button>
+                <button class="tab" type="button" style="padding:6px 1px">With changes</button>
+                <span style="margin-left:18px;font-size:13px;color:#54635F">
+                  <b style="color:#047857;font-weight:600">+0</b> <b style="color:#be123c;font-weight:600">&minus;0</b>
+                </span>
+              </div>
+              <div class="sub">Nothing on the table for this clause · Round 1 of negotiation</div>
+            </div>
+
+            <!-- THE WHOLE CONTRACT, with the one clause you opened typeable -->
+            <div class="cedoc">
+              <div class="paper">
+                <h1 class="ptitle-doc">WAREHOUSING AND TRANSPORTATION SERVICES AGREEMENT</h1>
+                <p class="psub">Contract · Jurisdiction: Sweden (EU/GDPR)</p>
+                <div class="prule"></div>
+                <p class="p">This Warehousing and Transportation Services Agreement (&ldquo;Agreement&rdquo;) is entered into between: (&ldquo;Customer&rdquo;), and (&ldquo;AIT&rdquo; or &ldquo;Service Provider&rdquo;).</p>
+                <p class="p">The parties agree as follows:</p>
+
+                <div class="clause changed">
+                  <div class="h2">1. Services and Applicable Terms
+                    <button class="pen" type="button" title="Edit this clause"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this <span class="del">Agreement.</span> <span class="ins">Agreement only.</span><br>
+                  <span class="del">The services shall be governed by: The Nordic Association of Freight Forwarders&rsquo; General Conditions (NSAB 2015).</span><br>
+                  <span class="ins">AIT&rsquo;s standard terms and conditions, if any, shall be attached as Appendix and must be signed by both parties to form part of this Agreement.</span></p>
+                </div>
+
+                <div class="clause live">
+                  <div class="h2">2. Term and Termination
+                    <button class="pen on" type="button" title="Stop editing"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">This Agreement shall remain in force for an initial term of three (3) years from the Effective Date.</p>
+                  <p class="p">The parties shall review renewal options at least three (3) months before the expiry of the initial term.</p>
+                  <p class="p">Either party may terminate this Agreement by providing six (6) months&rsquo; written notice.<span class="caret"></span></p>
+                  <p class="p">Either party may terminate this Agreement immediately upon written notice if:</p>
+                  <p class="p">a) the other party becomes insolvent, enters bankruptcy proceedings, or makes an assignment for the benefit of creditors; or</p>
+                  <p class="p">b) the Customer&rsquo;s goods are materially affected by a casualty event, force majeure incident, or condemnation affecting the warehouse where the goods are stored.</p>
+                </div>
+
+                <div class="clause">
+                  <div class="h2">3. Pricing and Payment
+                    <button class="pen" type="button" title="Edit this clause"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">The Customer shall pay all rates and charges specified in the applicable rate schedules and appendices to this Agreement.</p>
+                  <p class="p">Where no agreed rate exists, AIT shall provide a written quotation before performing the requested service.</p>
+                  <p class="p">AIT may adjust pricing if there are significant increases in external costs, including fuel, taxes, duties, tolls, levies, or where information provided by the Customer materially affects service costs.</p>
+                </div>
+
+                <div class="clause">
+                  <div class="h2">4. Liability
+                    <button class="pen" type="button" title="Edit this clause"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M11 2.5 13.5 5 5.5 13H3v-2.5Z"></path></svg></button>
+                  </div>
+                  <p class="p">AIT&rsquo;s liability for loss of or damage to goods shall be limited in accordance with the applicable mandatory transport conventions.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Copilot: floor to ceiling. Nothing spans above it. -->
+          <div class="rail">
+            <div class="railhead">
+              <span class="cop"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5 9.4 6 14 7.4 9.4 8.8 8 13.4 6.6 8.8 2 7.4 6.6 6Z"></path></svg>Copilot</span>
+              <span class="rtabs">
+                <button class="rtab on" type="button">Suggestions</button>
+                <button class="rtab" type="button">Playbook scan <span class="cnt">2</span></button>
+              </span>
+            </div>
+            <div class="warnline">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#0D9488"><path d="M8 1.5 9.4 6 14 7.4 9.4 8.8 8 13.4 6.6 8.8 2 7.4 6.6 6Z"></path></svg>
+              Written by Copilot. Check it before you send it.
+            </div>
+            <div class="feed">
+              <div class="greet">Ask me anything about Clause 2 · Term and Termination. I can suggest wording, weigh what the other side has asked for, or explain what a change would mean.</div>
+            </div>
+            <div class="chips">
+              <span class="chip">Give me a softer version</span>
+              <span class="chip">What does our playbook say here?</span>
+              <span class="chip">What is the risk in this clause?</span>
+              <span class="chip">Say this in plain English</span>
+            </div>
+            <div class="askrow">
+              <div class="ask">Ask for different wording, or a scenario&hellip;</div>
+              <button class="send" type="button"><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M14 2 2 7l5 2 2 5Z"></path></svg></button>
+            </div>
+            <div class="railfoot">
+              <span class="state">no change yet</span>
+              <span style="flex:1"></span>
+              <button class="fbtn" type="button">Discard</button>
+              <button class="fbtn p" type="button" data-go="nego">Save change</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  var SAY = {
+    doc:  ['Documents — read only.',
+           'Press Open Negotiate, or Negotiations in the sidebar.'],
+    nego: ['Negotiation — review only, cards on the right.',
+           'Press the pencil on any clause heading, or Edit on a card.'],
+    edit: ['Edit with Copilot — every edit happens here.',
+           'Back to negotiation returns you.']
+  };
+  var TITLE = { doc:'Contracts', nego:'Negotiations', edit:'Edit with Copilot' };
+  var ptitle = document.getElementById('ptitle');
+  var what   = document.getElementById('hintWhat');
+  var where  = document.getElementById('hintWhere');
+  var wpx    = document.getElementById('wpx');
+  var page   = 'doc';
+
+  function show(next){
+    page = next;
+    document.querySelectorAll('[data-screen]').forEach(function(el){
+      el.hidden = el.getAttribute('data-screen') !== page;
+    });
+    document.querySelectorAll('[data-step]').forEach(function(el){
+      var on = el.getAttribute('data-step').split(' ').indexOf(page) > -1;
+      el.classList.toggle('on', on);
+      if (el.classList.contains('step')) el.setAttribute('aria-current', on ? 'step' : 'false');
+    });
+    ptitle.textContent = TITLE[page];
+    what.textContent   = SAY[page][0];
+    where.textContent  = SAY[page][1];
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-go]') : null;
+    if (b) { e.preventDefault(); show(b.getAttribute('data-go')); }
+  });
+
+  function measure(){ wpx.textContent = window.innerWidth; }
+  window.addEventListener('resize', measure);
+
+  measure();
+  show('doc');
+})();
+</script>

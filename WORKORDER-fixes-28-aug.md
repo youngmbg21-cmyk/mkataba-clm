@@ -36,11 +36,31 @@ wanting a real answer.
 decided, it is independent, and an earlier draft of this file wrongly made it
 conditional on item 1 — see the note inside it.
 
+**THE PLAN HAS BEEN DRAWN AND IT RUNS.** Three screens with the doors between
+them working, at
+**https://claude.ai/code/artifact/c30df276-538f-4a02-aa17-645790c2e7e3**, source
+committed at `docs/design/three-contract-screens.html`. It fills the reader's
+window, so it is also the only place item 1's question can be LOOKED at rather
+than reasoned about. **Read *THE PICTURES* below before starting anything** —
+one of the three drawings recorded there shows a design that was ruled against,
+and it is named so nobody builds from it by accident.
+
 ---
 
 ## The plain-English version, for the owner
 
 Seven things, and they are seven different kinds of problem.
+
+**Before the seven — the plan has been drawn, and it works.** There is a page
+you can click through at
+**https://claude.ai/code/artifact/c30df276-538f-4a02-aa17-645790c2e7e3**: the
+Documents page, the Negotiation page and the Edit with Copilot page, with the
+doors between them working the way this order says they should. A dark strip
+along the top lets you jump straight to any of the three, and the product's own
+buttons work as well. It fills your window, so if you drag the window wider you
+will watch problem 1 happen in front of you. **Nothing in HaTi has changed** —
+it is a picture that you can press, and it is there so you can look at the plan
+before anybody builds it.
 
 **1 — Screens do not use a big monitor.** You are right, and here is why.
 Almost every page in HaTi has a maximum width written into it. On a laptop the
@@ -148,6 +168,105 @@ is on the table for a clause?
 **And one question comes back to life:** I had said this might make item 1's
 "cards or white space" question go away. It does not — the cards keep that column
 all the time now, so that question is real again.
+
+**And that question can now be seen rather than argued about.** The walkthrough
+under *THE PICTURES* fills the window and prints its own width; drag it wide and
+the lake of grey beside the contract is the thing being asked about. The written
+argument on both sides is the spare-width explainer listed there beside it.
+
+---
+
+## THE PICTURES — what was drawn in this sitting, and what each one is evidence for
+
+**Three things were drawn while this order was being written, and none of them
+is code.** Nothing in the product changed. They are recorded here because two of
+them settled a decision that is now written into this file, and because a
+reference somebody cannot find is a reference that does not exist.
+
+### 1 · THE WALKTHROUGH — the accepted plan, as a working page
+
+**https://claude.ai/code/artifact/c30df276-538f-4a02-aa17-645790c2e7e3**
+**Source: `docs/design/three-contract-screens.html`** (committed beside this
+order, on the convention `card-opens-out.html` and `negotiate-moves-out.html`
+already set in that folder).
+
+Three screens with the doors between them working: **Documents → Negotiation →
+Edit with Copilot**. It draws the plan as items 6 and 7 leave it — the
+negotiation page purely for review with the cards on the right, the pencil going
+straight to the editor, and the editor showing the WHOLE contract with the
+pressed clause marked live and the Copilot rail running floor to ceiling.
+
+**How to move around it**, because the first attempt was reported as unusable:
+
+- A dark **step strip** along the top — *1 Documents · 2 Negotiation · 3 Edit
+  with Copilot* — always present, one press from anywhere. **That strip is
+  prototype furniture and is not part of the design.** It exists because the
+  product's own doors (a button in a tab row, a pencil on a clause) are easy to
+  miss on a drawing, and a screen nobody can reach is a screen nobody reviewed.
+- The product's own doors work too: *Open Negotiate* on the Documents tab,
+  *Negotiations* in the sidebar, the pencil on any clause heading, *Edit* on any
+  card, *Back to negotiation* at the top of the editor.
+
+**IT FILLS THE READER'S WINDOW, AND THAT IS DELIBERATE — it is the only
+demonstration of item 1 that exists.** The strip prints the current window width
+in its right-hand corner. Widen the window and the sheet stops growing at 860px
+while the cards column stays at 460, so the paper ends up in a lake of grey and
+the walk from a clause to its card gets long; narrow it and everything closes
+up. **That is item 1's open question made visible** — see *cards or white space*
+under item 1 — and it is worth putting in front of the owner before that
+question is answered.
+
+**WHAT IT IS AND IS NOT.** Its markup is a hand-built mock, not HaTi's own
+renderers. **So it is a specification of ARRANGEMENT, never of pixels**: what
+sits where, what is reachable from what, and what each screen is FOR. Do not
+lift measurements out of it and do not treat a difference between it and the
+running product as a defect in either. Every colour, type size and spacing in it
+was lifted from HaTi's own `:root`, so it should read as the same product — but
+the authority on a number is the source, not this file.
+
+**HOW IT WAS CHECKED**, because a drawing nobody drove is a drawing that lies:
+it was opened in a real browser and every door was pressed — the tab-row button,
+the pencil, a card's Edit, all three step buttons and *Back to negotiation* —
+with the visible screen read back after each press; the Copilot rail was
+measured as starting at the same vertical as the page area itself (floor to
+ceiling, which is the thing this page had already got wrong twice); and the
+whole page was resized to 1280, 1512 and 2200 with no sideways scroll at any of
+them.
+
+### 2 · THE SPARE-WIDTH EXPLAINER — item 1's open question, drawn out
+
+**https://claude.ai/code/artifact/3f3bc369-519f-4fba-9554-c0790f4b20c2**
+*"Where the Spare Width Goes"*
+
+Written for the owner's own question — *should the spare width go to the
+tracked-changes cards, or stay as white space beside the contract?* It is the
+argument on both sides with the measured numbers behind it, not a
+recommendation. **It is the companion to item 1 and should be read with it.**
+
+### 3 · THE MERGE RENDER — a design that was RULED AGAINST
+
+**https://claude.ai/code/artifact/b0d1145f-d0ff-4425-bcdb-4fe7a78054aa**
+
+**DO NOT BUILD FROM THIS ONE.** It draws item 7's ORIGINAL proposal — the
+negotiation page becoming the editor, with Copilot sliding over the cards — and
+the owner ruled against it after seeing it. It is kept, and named here, for the
+reason item 7 already gives: *the render earning its cost*. A drawing that
+changed a decision is part of the record of that decision, and deleting it would
+leave item 7's reversal resting on nobody's word but mine.
+
+**IT HAS NOT BEEN REDRAWN TO THE ACCEPTED PLAN**, and it should not be — the
+walkthrough above is that. If anybody opens it cold, the middle frame will
+contradict this order.
+
+### ONE NOTE FOR WHOEVER DRAWS THE NEXT ONE
+
+**The first version of the walkthrough was built on the design-canvas tool and
+reached the owner as a single flat picture.** That tool only becomes a live,
+clickable page where canvas saving is enabled for the viewer's account; where it
+is not, the reader gets a view-and-export preview. **It is not enabled for this
+owner.** The working version is an ordinary HTML page with about thirty lines of
+plain JavaScript. Reach for the plain page when the point is *press this and see
+what happens*.
 
 ---
 
@@ -813,6 +932,12 @@ quietly edited away, because the reasoning matters:
   half the size and repeated the instruction. **That is the decision. Stop
   asking.**
 
+### THE THREE SCREENS ARE DRAWN AGREEING, AND THAT IS WHAT TO BUILD TOWARD
+
+The walkthrough under *THE PICTURES* shows all three side by side in the state
+this item asks for: one ground, one sheet, one measure. It is a picture of the
+ARRANGEMENT and not of the numbers — the rule below is still what gets built.
+
 ### WHAT MAKES IT SURVIVE ITEM 1 — BUILD THE RULE, NOT THE LOOK
 
 The only reason this looked like it depended on item 1 is that it CAN be built
@@ -934,7 +1059,9 @@ open questions were answered (the rail takes the second track floor to ceiling;
 the clause panel goes; one clause at a time) and the History question was ruled.
 
 **WHAT KILLED IT WAS SEEING IT.** A render was built to the answered spec and
-the owner ruled against it. That is the render earning its cost — the decision
+the owner ruled against it — it is drawing 3 under *THE PICTURES*, and it is
+named there with a warning across it precisely because it draws a design this
+order rejects. The ACCEPTED shape is drawing 1, the walkthrough. That is the render earning its cost — the decision
 cost one drawing rather than a merge of a 2,462-line page into a 14,128-line
 one, which is exactly the risk this file recorded when the item was raised.
 
@@ -950,7 +1077,14 @@ the product is already almost there.
 ## What was deliberately NOT done in this sitting
 
 - **Nothing in the product was changed.** The owner asked for a review and a
-  filing, and the Scope rules say do only what the request asks.
+  filing, and the Scope rules say do only what the request asks. **ONE FILE WAS
+  ADDED OUTSIDE THIS ORDER AND IT IS NAMED RATHER THAN SLIPPED IN**:
+  `docs/design/three-contract-screens.html`, the walkthrough's source. It is a
+  standalone page, nothing in `js/` or `index.html` loads it or knows it exists,
+  and it sits in the folder that already holds two prototypes filed beside their
+  own work order. It is committed because a published link outlives the machine
+  it was drawn on and the source does not, and an order pointing at a drawing
+  nobody can reopen is an order pointing at nothing.
 - **BUGLOG.md was not appended to.** These seven items ARE the request rather
   than something noticed on the way past it, and this file is where the request
   lives.
