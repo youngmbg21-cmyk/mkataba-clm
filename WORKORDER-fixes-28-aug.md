@@ -1,4 +1,4 @@
-# WORK ORDER — four off a desktop sitting, 28 Aug 2026
+# WORK ORDER — five off a desktop sitting, 28 Aug 2026
 
 **Raised by:** Young, 28 Aug 2026, over two messages and two screenshots —
 the Insights → Portfolio *What needs attention* card with its pager ringed, and
@@ -11,17 +11,25 @@ the clause panel open on a clause whose heading cannot be edited.
 product was changed.** Every finding below is read off the source and is quoted
 with its file so the next person can check it rather than take it on trust.
 
-**Two of the four carry a warning and both are at the top rather than buried.**
-Item 1 asks for something that **reverses a decision the owner approved on
-22 Aug 2026**, so it needs a ruling before anybody types. Item 2 **could not be
-reproduced from the code**, and what was found says the obvious explanation is
-probably the wrong one — it must be watched happening before it is touched.
+**Two of the five carry a warning and both are at the top rather than buried.**
+Item 1 **reverses a decision the owner approved on 22 Aug 2026** — they have now
+ruled on it in so many words (see *The owner's ruling* under item 1), so the
+reversal is deliberate and on the record rather than something to rediscover.
+Item 2 **could not be reproduced from the code**, and what was found says the
+obvious explanation is probably the wrong one — it must be watched happening
+before it is touched.
+
+**ONE QUESTION IS STILL OPEN AND ONE MORE WAS RAISED**, and neither should be
+guessed at: whether the negotiation page's surplus width goes to the cards or to
+white space (item 1), and whether the counterparty may rename our clause headings
+(item 4). Item 5 adds a third — whether "the notes panel" means that one face or
+the whole shell drawer.
 
 ---
 
 ## The plain-English version, for the owner
 
-Four things, and they are four different kinds of problem.
+Five things, and they are five different kinds of problem.
 
 **1 — Screens do not use a big monitor.** You are right, and here is why.
 Almost every page in HaTi has a maximum width written into it. On a laptop the
@@ -50,6 +58,11 @@ do it — I could not find anything I would repeat to you. Their screens are
 behind a login and none of them publishes design guidance, so anything I told
 you would be a guess with a brand name on it, which is worse than no answer.
 
+**You have taken that recommendation, so item 1 is now decided rather than open.**
+One thing in it is still unanswered and it is a small one: on the negotiation
+screen, should the spare width go to the tracked-changes cards, or stay as white
+space beside the contract?
+
 **2 — The redline losing its marks when you press Edit.** I could not make this
 happen by reading the code, and I found something that suggests it is not what
 it looks like. The setting behind *Redlined / As agreed / With changes* can only
@@ -73,6 +86,17 @@ heading, so a heading has to be edited in place rather than replaced, or the app
 loses track of which clause is which. There is also one question only you can
 answer: **should the other side be able to rename our clauses?** Their screen
 uses the same panel, so unless we say otherwise, they will be able to.
+
+**5 — The notes panel a quarter wider.** Small, and it costs the page nothing —
+that drawer floats over the page rather than pushing it aside, so making it wider
+just covers more. Two things worth knowing. It is not one number but three: the
+drawer is already set to different widths on a big monitor, a normal one and a
+smaller laptop, and all three have to move together or it will be wider on some
+machines and not others. And there is really only **one** drawer with three
+faces — Notes, Alerts and Activity are the same panel showing different things.
+So: **do you want all three wider, or Notes only?** My suggestion is all three,
+because it is one object and a reader has no way to know why it is sometimes
+wider. Say the word if you want Notes alone.
 
 ---
 
@@ -226,6 +250,39 @@ it to the owner as its own question.
 range (css-tricks.com, *Optimizing for Large-Scale Displays*), and the line-length
 research (baymard.com, *Readability: The Optimal Line Length*; uxpin.com, *The
 50–75 Character Rule*).
+
+
+### THE OWNER'S RULING — 28 Aug 2026
+
+> *"I will take your recommendation."*
+
+**OPTION 1 IS TAKEN. Build it: uncap the chrome, keep the paper capped, and give
+the platform ONE measure.** The reversal of the 22 Aug decision is therefore
+deliberate and on the record — **the negotiation page's sheet keeps its cap**,
+which is the half of that decision that was ever load-bearing; what changes is
+everything around it.
+
+**THE THREE THINGS THAT MAKE THIS BUILDABLE WITHOUT ANOTHER CONVERSATION:**
+
+1. **ONE TOKEN, AND EVERY PAGE READS IT.** `--room-measure` (1440) is the
+   precedent and is already at the top of the researched band; the sensible move
+   is to rename it to something that admits it governs the whole platform and
+   point the 860s, the 900 and the 78ch at it — or to remove the cap outright on
+   the pages that are pure chrome. **Whichever, the answer is ONE declaration**,
+   so the next retune is one line and no two pages can drift apart again.
+2. **THE PAPER IS THE EXCEPTION AND IT IS NAMED.** `.rl-paper` and the Document
+   tab's own column keep a measure of their own. **Write down beside each that
+   it is deliberately not the platform measure**, or the next sweep takes it.
+3. **MEASURE THE PAPER BEFORE ASSUMING 860 IS RIGHT.** Count the characters on a
+   full line of a real contract at the default type size. Above 80 and the sheet
+   is already too wide — the honest change there is narrower, not wider, and it
+   is a separate decision from this one.
+
+**STILL OPEN, AND IT IS THE ONE QUESTION THE OWNER HAS NOT ANSWERED:** on the
+negotiation page, does the surplus width go to the CARD COLUMN or stay as white
+space beside the sheet? It was put to them and not picked. **Ask before
+building** — it is a change to the resting split (`RL_RIGHT_W0`) rather than to
+any cap, and it is probably what "a full screen experience" means on that page.
 
 ### Notes for whoever builds it
 
@@ -534,18 +591,112 @@ invite the two-changes problem above.
 
 ---
 
+## 5 — THE NOTES PANEL IS A QUARTER TOO NARROW
+
+> *"Image 1, increase the notes panel by 25%."*
+
+Reported with a screenshot of the Notes drawer open on **CHG-002 · Clause 1 ·
+Purpose**, Internal and External tabs, one note, and the *Add a note for your
+team…* box beneath.
+
+### THE ONE THING TO SETTLE FIRST — IT IS NOT THE NOTES PANEL'S WIDTH
+
+**There is no notes panel.** There is ONE shell drawer, `#context-panel`, with
+**three faces** — Activity, Alerts and Notes — and `PANEL_FACES` in `js/app.js`
+is that list. All three are the same element at the same width.
+
+**So "increase the notes panel by 25%" has two readings and the owner has to
+pick one:**
+
+- **(a) The whole drawer widens.** All three faces go with it. One object, one
+  width, and the drawer keeps reading as one thing however it was opened.
+- **(b) Only the Notes face widens.** It is the one face with a *typing box* in
+  it, so it has a genuine reason to be wider than two read-only lists. The cost
+  is that the same drawer arrives at two different widths depending on which
+  button you pressed, which is how one object starts reading as two.
+
+**MY READ, offered rather than assumed: (a).** The drawer is a single object and
+the reader has no way to know why it is sometimes wider. If (b) is wanted, the
+hook already exists — `body.pb-flow` is set for the Notes face and nothing else,
+so the rule can be scoped to it with nothing new invented.
+
+### It is not one number — it is a responsive ladder of three
+
+`--shell-panel-w` in `index.html`:
+
+| Window | Today | +25% |
+| --- | --- | --- |
+| 1800px and up | **320px** | **400px** |
+| 1440–1799px | **292px** | **365px** |
+| 1439px and down | **264px** | **330px** |
+
+**Miss one and the panel is a quarter wider on some laptops and not on others**
+— which is the same class of fault as item 1 and would be embarrassing to ship
+in the same work order.
+
+### The good news, and it is the reason this is genuinely small
+
+**The drawer no longer takes width off the page.** It used to be a grid column,
+so opening it squeezed the content; it is `position:fixed` and overlays now. So
+widening it costs the page nothing — **it covers more, it does not shrink
+anything.** Nothing about the layout underneath has to be re-fitted.
+
+**THE COMMENT IN `index.html` STILL SAYS OTHERWISE AND IS STALE.** Beside the
+token it reads *"--shell-panel-w is read by applyPanelLayout, which is the ONLY
+writer of #body-grid's columns"* — `applyPanelLayout` writes no columns at all
+any more, and `js/app.js` says so in its own words a few lines further down
+(*"It used to be a grid track, and this function wrote #body-grid's columns"*).
+**Correct that comment in the same change.** A rule that misdescribes the code
+is worse than no rule, and whoever picks this up will read it and expect a
+squeeze that cannot happen.
+
+### Three things not to break
+
+1. **KEEP THE `min(…, 88vw)` CLAMP.** It stops the drawer swallowing a narrow
+   window. At 400px it never bites on any window this shell draws on (below
+   768px the phone shell replaces it entirely), so it becomes belt-and-braces —
+   keep it anyway; a later rung might need it.
+2. **THE SLIDE NEEDS NOTHING.** The closed state is `translateX(105%)`, which is
+   relative to the element's own width and therefore scales by itself.
+3. **THE NOTES FACE HAS NO SCRIM, DELIBERATELY** (owner-ruled 27 Aug 2026, on
+   the clause panel's rule that the page behind must stay lit and pressable
+   because a note is written while reading the change it is about). **So a wider
+   Notes panel covers a quarter more of the thing being read, with nothing
+   dimmed to say so.** That is the real cost of this ask and it is small — but
+   check it on the negotiation page, where the drawer lands over the change
+   column, before calling it done.
+
+### Notes for whoever builds it
+
+- **THE COLOUR CENSUS SHOULD NOT MOVE.** A width is not a colour;
+  `theme-tokens-verify` staying at 40/40 is the check that nothing else was
+  disturbed on the way past.
+- **NETS:** the notes drawer is driven for real in `notes-two-rooms-verify` —
+  the only place it can be, since the harness pages do not load the shell. The
+  claim to write is a RELATION, not a number: **all three rungs are 25% above
+  what they were**, read off the computed width at three window sizes, so the
+  next retune costs no test edit.
+- **IT INTERACTS WITH ITEM 1 AND THE ORDER MATTERS.** Item 1 widens the page
+  under this drawer. Do item 1 first, then look at the notes panel again on a
+  real desktop — a quarter more width may read differently once the page behind
+  it has stopped being letterboxed.
+
+---
+
 ## What was deliberately NOT done in this sitting
 
 - **Nothing in the product was changed.** The owner asked for a review and a
   filing, and the Scope rules say do only what the request asks.
-- **BUGLOG.md was not appended to.** These four items ARE the request rather
+- **BUGLOG.md was not appended to.** These five items ARE the request rather
   than something noticed on the way past it, and this file is where the request
   lives.
-- **No estimate is given, and the four are not the same size.** Item 1 is a
-  product decision before it is work; item 2 has not been reproduced and may not
-  be what it looks like; item 3 is understood well enough to size honestly and
-  is small; item 4 is small in code and carries the largest risk of quiet
-  damage, because the clause id lives on the thing being edited.
+- **No estimate is given, and the five are not the same size.** Item 1 is now
+  decided and is the largest, because it touches every page; item 2 has not been
+  reproduced and may not be what it looks like; item 3 is understood well enough
+  to size honestly and is small; item 4 is small in code and carries the largest
+  risk of quiet damage, because the clause id lives on the thing being edited;
+  item 5 is the smallest thing here — three numbers and a stale comment — and
+  should be done AFTER item 1, since item 1 changes the page underneath it.
 - **NO BRAND-SPECIFIC CLM COMPARISON WAS WRITTEN**, because none could be
   verified. See *What I could not verify* under item 1. If the owner wants one,
   it needs a trial account and screenshots, not a search.
