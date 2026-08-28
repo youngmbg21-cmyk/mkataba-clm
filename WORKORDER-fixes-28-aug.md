@@ -19,18 +19,17 @@ Item 2 **could not be reproduced from the code**, and what was found says the
 obvious explanation is probably the wrong one — it must be watched happening
 before it is touched.
 
-**THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the negotiation
-page's surplus width goes to the cards or to white space (item 1), whether the
-counterparty may rename our clause headings (item 4), and whether "the notes
-panel" means that one face or the whole shell drawer (item 5). **Item 7 was REVERSED on 28 Aug** — the
-merge was ruled against after it was drawn, and the pencil now simply opens the
-existing editor page. One thing is loose there: whether the clause panel is
+**THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the counterparty
+may rename our clause headings (item 4), and whether "the notes panel" means that
+one face or the whole shell drawer (item 5). **Item 7 was REVERSED on 28 Aug** —
+the merge was ruled against after it was drawn, and the pencil now simply opens
+the existing editor page. One thing is loose there: whether the clause panel is
 retired or kept as a read-only look.
 
-**ITEM 1's QUESTION IS LIVE AGAIN.** An earlier draft said item 7 might dissolve
-it by changing what the right-hand column is for. Item 7 was reversed, the cards
-hold that column at all times, and "cards or white space" is a real question
-wanting a real answer.
+**ITEM 1's OWN QUESTION IS CLOSED — see *THE SURPLUS STAYS GREY* inside item 1.**
+Two earlier drafts of this file carried it as open, one of them after the owner
+had already ruled on it. It is not open. The surplus beside the contract stays
+as the page's own grey ground and the cards column does not grow into it.
 
 **ITEM 6 IS NOT ONE OF THEM AND MUST NOT BE TURNED BACK INTO ONE.** It is
 decided, it is independent, and an earlier draft of this file wrongly made it
@@ -89,10 +88,10 @@ do it — I could not find anything I would repeat to you. Their screens are
 behind a login and none of them publishes design guidance, so anything I told
 you would be a guess with a brand name on it, which is worse than no answer.
 
-**You have taken that recommendation, so item 1 is now decided rather than open.**
-One thing in it is still unanswered and it is a small one: on the negotiation
-screen, should the spare width go to the tracked-changes cards, or stay as white
-space beside the contract?
+**You have taken that recommendation, so item 1 is decided.** And the one small
+thing left inside it — where the spare space beside the contract goes — **you
+have ruled on too: it stays grey**, exactly as it looks today, and the
+tracked-changes cards do not grow into it. Nothing about that split changes.
 
 **2 — The redline losing its marks when you press Edit.** I could not make this
 happen by reading the code, and I found something that suggests it is not what
@@ -165,14 +164,10 @@ buttons become the pencil's job, its History belongs on the History tab, and the
 rest is already on screen. Do you want it gone, or kept as a quick look at what
 is on the table for a clause?
 
-**And one question comes back to life:** I had said this might make item 1's
-"cards or white space" question go away. It does not — the cards keep that column
-all the time now, so that question is real again.
-
-**And that question can now be seen rather than argued about.** The walkthrough
-under *THE PICTURES* fills the window and prints its own width; drag it wide and
-the lake of grey beside the contract is the thing being asked about. The written
-argument on both sides is the spare-width explainer listed there beside it.
+**And one thing this does NOT reopen.** An earlier draft said reversing the merge
+brought item 1's "cards or white space" question back to life. The cards do keep
+that column at all times — but the question itself is answered: **the surplus
+stays grey.** See *THE SURPLUS STAYS GREY* inside item 1.
 
 ---
 
@@ -210,11 +205,10 @@ pressed clause marked live and the Copilot rail running floor to ceiling.
 **IT FILLS THE READER'S WINDOW, AND THAT IS DELIBERATE — it is the only
 demonstration of item 1 that exists.** The strip prints the current window width
 in its right-hand corner. Widen the window and the sheet stops growing at 860px
-while the cards column stays at 460, so the paper ends up in a lake of grey and
-the walk from a clause to its card gets long; narrow it and everything closes
-up. **That is item 1's open question made visible** — see *cards or white space*
-under item 1 — and it is worth putting in front of the owner before that
-question is answered.
+while the cards column stays at 460, so the paper sits in a widening field of
+grey; narrow it and everything closes up. **That grey is the ANSWER rather than
+the question** — see *THE SURPLUS STAYS GREY* under item 1, ruled 28 Aug — so
+what this drawing now shows is the decision, not a choice still to be made.
 
 **WHAT IT IS AND IS NOT.** Its markup is a hand-built mock, not HaTi's own
 renderers. **So it is a specification of ARRANGEMENT, never of pixels**: what
@@ -233,15 +227,22 @@ ceiling, which is the thing this page had already got wrong twice); and the
 whole page was resized to 1280, 1512 and 2200 with no sideways scroll at any of
 them.
 
-### 2 · THE SPARE-WIDTH EXPLAINER — item 1's open question, drawn out
+### 2 · THE SPARE-WIDTH EXPLAINER — the question it argues is now ANSWERED
 
 **https://claude.ai/code/artifact/3f3bc369-519f-4fba-9554-c0790f4b20c2**
 *"Where the Spare Width Goes"*
 
-Written for the owner's own question — *should the spare width go to the
-tracked-changes cards, or stay as white space beside the contract?* It is the
-argument on both sides with the measured numbers behind it, not a
-recommendation. **It is the companion to item 1 and should be read with it.**
+**READ IT AS HISTORY, NOT AS A LIVE CHOICE.** It sets out both sides of *should
+the spare width go to the tracked-changes cards, or stay as white space beside
+the contract?* with the measured numbers behind each. **The owner has since
+ruled: the surplus stays grey** (see *THE SURPLUS STAYS GREY* under item 1), so
+its second option is the decision and its first is not on the table.
+
+**It has not been rewritten and should not be** — the same reasoning as the
+merge render below: a drawing that helped settle a decision is part of the
+record of that decision. **What it is still good for** is the measurements: the
+walk between a clause and its card at each window width, which is the one
+consequence of the ruling anybody may need to look at again.
 
 ### 3 · THE MERGE RENDER — a design that was RULED AGAINST
 
@@ -448,11 +449,43 @@ everything around it.
    is already too wide — the honest change there is narrower, not wider, and it
    is a separate decision from this one.
 
-**STILL OPEN, AND IT IS THE ONE QUESTION THE OWNER HAS NOT ANSWERED:** on the
-negotiation page, does the surplus width go to the CARD COLUMN or stay as white
-space beside the sheet? It was put to them and not picked. **Ask before
-building** — it is a change to the resting split (`RL_RIGHT_W0`) rather than to
-any cap, and it is probably what "a full screen experience" means on that page.
+### THE SURPLUS STAYS GREY — RULED 28 Aug 2026, DO NOT ASK AGAIN
+
+> *"We said the space on the right and left should be grey"* — with a screenshot
+> of the negotiation page at a wide window, the contract sheet centred and the
+> page's own grey ground showing either side of it.
+
+**THE ANSWER IS: LEAVE IT.** The surplus beside the contract stays as the page's
+own ground. **The card column does NOT grow into it** — `RL_RIGHT_W0` stays at
+460, the resting split is untouched, and nothing about the negotiation page's
+two columns moves.
+
+**AND THIS ORDER CARRIED THE QUESTION AS OPEN TWICE AFTER IT HAD BEEN
+ANSWERED**, which is why the ruling is written out here rather than noted in
+passing. It was put to the owner, answered, and asked again in a later summary.
+**It is closed.**
+
+**WHAT THAT GREY IS**, since item 6 answers the same question from the other
+side: it is not a colour anybody chose for that gap. `.rl-doc` paints nothing,
+so what shows through is `--color-bg`, the page's own ground. Keeping it means
+writing NO rule — which is what makes this the cheapest of the two answers as
+well as the chosen one.
+
+**THE ONE CONSEQUENCE, STATED ONCE AND NOT RE-ARGUED.** Item 1 uncaps the
+chrome, so on a wide monitor the working area gets wider while the sheet stays
+at 860 and the cards stay at 460 — so the gap between a clause and its card
+grows with the window. **MEASURED**: about 163px of walk at 1920 and about 483px
+at 2560. That was the case against, the owner has seen the page and ruled, and
+the decision is theirs. **If it ever bites, the fix is not to widen the cards** —
+it is to cap and centre the working area so sheet and cards travel together and
+the surplus falls OUTSIDE the pair. That is a different change and would want
+its own ask.
+
+**WHAT IS NOT DECIDED BY THIS**, so nobody reads it too wide: it says where the
+SURPLUS goes on the negotiation page. It does not touch the divider (the reader
+still drags it), its two minimums, or `RL_SHEET_MAX`. And it does not license
+capping the chrome on other pages — item 1's ruling still stands everywhere
+else.
 
 ### Notes for whoever builds it
 
