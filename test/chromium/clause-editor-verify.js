@@ -127,11 +127,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       headInsideColumn: Math.round(head.width) <= Math.round(cr.width) + 1
         && Math.round(head.right) <= Math.round(rr.left) + 1,
       headW: Math.round(head.width),
-      title: (page.querySelector('#ce-title')||{}).textContent || '',
-      /* RE-POINTED 25 Aug 2026: the facts wear the room head's own .room-facet
-         markup now, so one rule dresses both heads. The claim is unchanged —
-         four facts under the clause's name. */
-      facts: page.querySelectorAll('#ce-facts .room-facet').length };
+      /* HOW MUCH CHROME STANDS BETWEEN THE TOP OF THE PAGE AND THE CONTRACT.
+         The prototype draws a strip and a readings row and nothing else; a
+         header creeping back in shows up here as a number before it shows up
+         as a missing element. */
+      chromeAbovePaper: Math.round(
+        page.querySelector('.ce-paperwrap').getBoundingClientRect().top - r.top),
+      stripH: Math.round(page.querySelector('.ce-barrow').getBoundingClientRect().height) };
   });
   ck('2a the page mounted and covers the window',
      !!opened && opened.coversWindow && opened.pos === 'fixed',
@@ -152,9 +154,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      + 'full-width header is what pushes the rail down',
      !!opened && opened.headInsideColumn,
      opened && `header ${opened.headW}px of a ${opened.colW}px column`);
-  ck('2e the clause is named, with four facts under it',
-     !!opened && opened.title.trim().length > 0 && opened.facts === 4,
-     opened && `"${opened.title.trim()}" / ${opened.facts} facts`);
+  /* REVERSED IN PLACE 28 Aug 2026 — the header went, so "the clause is named
+     with four facts under it" is a claim about a thing that is deliberately not
+     drawn. What replaces it is the measurement that made the case for removing
+     it: the contract starts near the top of the page. The prototype's own
+     chrome is a 44px strip plus a 26px readings row and their gaps — call it
+     100px — so anything much past that is a header growing back. */
+  ck('2e THE CONTRACT STARTS NEAR THE TOP — chrome, not a header',
+     !!opened && opened.chromeAbovePaper < 130,
+     opened && `${opened.chromeAbovePaper}px of chrome, strip ${opened.stripH}px`);
 
   /* The one control that floats OVER the page rather than sitting inside the
      shell's grid, and therefore the one z-index alone does not settle: two
@@ -179,38 +187,47 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      + 'screen offer different things',
      launcher.display === 'none', `display ${launcher.display}`);
 
-  /* ---- 2h. THE HEADER IS THE NEGOTIATION HEAD'S OWN DESIGN ----
-     Owner-asked 25 Aug 2026, off two screenshots: "the highlighted part should
-     be the same exact design as image 2 including the font sizes." Measured as
-     a RELATION against the real head rather than against typed numbers, so a
-     later type pass costs no edit here: whatever this product decides a room
-     title, a facet label and a facet value are, this page wears the same. */
-  const dress = await p.evaluate(() => {
-    const T = el => { if (!el) return null; const s = getComputedStyle(el);
-      return { fs:s.fontSize, fw:s.fontWeight, c:s.color, tt:s.textTransform,
-        ls:s.letterSpacing, lh:s.lineHeight }; };
-    const ref = document.querySelector('#ws-head');
-    const ed = document.querySelector('#ce-head');
-    if (!ref || !ed) return null;
-    return {
-      h1: [T(ref.querySelector('h1')), T(ed.querySelector('h1'))],
-      sub: [T(ref.querySelector('.room-headsub')), T(ed.querySelector('.room-sub'))],
-      l: [T(ref.querySelector('.room-facet .l')), T(ed.querySelector('.room-facet .l'))],
-      v: [T(ref.querySelector('.room-facet .v')), T(ed.querySelector('.room-facet .v'))],
-      facets: ed.querySelectorAll('.room-facet').length,
-      dividers: [...ed.querySelectorAll('.room-facet')]
-        .filter(f => getComputedStyle(f).borderRightWidth !== '0px').length };
+  /* ---- 2h. THE STRIP IS THE PROTOTYPE'S, AND THERE IS NO HEADER ----
+     REVERSED IN PLACE 28 Aug 2026. What stood here compared this page's header
+     against the negotiation room's, property for property — the right claim
+     while this screen HAD a header, and the owner has since ruled it away
+     against the approved prototype. Comparing a thing that is not drawn is not
+     a weaker claim, it is a claim about nothing, so what is measured now is the
+     strip that replaced it: the tools at the left, whatever the page has to
+     say, and the way out at the wall, on ONE line of the prototype's own
+     height. */
+  const toolStrip = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const row = page.querySelector('.ce-barrow');
+    if (!row) return null;
+    const r = row.getBoundingClientRect();
+    const kids = [...row.children].filter(el => el.getBoundingClientRect().height > 0);
+    const mid = r.top + r.height / 2;
+    return { h: Math.round(r.height),
+      /* ONE LINE is a claim about CENTRES: the children are deliberately
+         different heights, so equal tops would report a correctly-centred row
+         as three lines. */
+      offCentre: kids.filter(el => { const k = el.getBoundingClientRect();
+        return Math.abs((k.top + k.height / 2) - mid) > 3; }).length,
+      barFirst: !!kids.length && kids[0].id === 'ce-bar',
+      exitLast: !!kids.length && kids[kids.length - 1].classList.contains('ce-exit'),
+      /* IT STOPS AT THE DIVIDER — the owner's own instruction, and what keeps
+         the Copilot rail running floor to ceiling. */
+      right: Math.round(r.right),
+      railLeft: Math.round(page.querySelector('.ce-rail').getBoundingClientRect().left),
+      says: !!row.querySelector('#ce-say') };
   });
-  const alike = k => dress && JSON.stringify(dress[k][0]) === JSON.stringify(dress[k][1]);
-  ck('2h the clause name is set exactly as the head it copies', alike('h1'),
-     dress && JSON.stringify(dress.h1[1]));
-  ck('2i the line under it too', alike('sub'), dress && JSON.stringify(dress.sub[1]));
-  ck('2j and the fact labels and values, property for property',
-     alike('l') && alike('v'),
-     dress && `label ${JSON.stringify(dress.l[1])} / value ${JSON.stringify(dress.v[1])}`);
-  ck('2k four facts, ruled apart the way that head rules its own',
-     !!dress && dress.facets === 4 && dress.dividers === 3,
-     dress && `${dress.facets} facts, ${dress.dividers} dividers`);
+  ck('2h THE STRIP IS ONE ROW at the prototype\'s own height',
+     !!toolStrip && toolStrip.h >= 40 && toolStrip.h <= 52 && toolStrip.offCentre === 0,
+     toolStrip && `${toolStrip.h}px, ${toolStrip.offCentre} off centre`);
+  ck('2i the tools lead it and the way out ends it',
+     !!toolStrip && toolStrip.barFirst && toolStrip.exitLast,
+     toolStrip && `bar first ${toolStrip.barFirst}, exit last ${toolStrip.exitLast}`);
+  ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction',
+     !!toolStrip && Math.abs(toolStrip.right - toolStrip.railLeft) <= 1,
+     toolStrip && `strip ends ${toolStrip.right}, rail starts ${toolStrip.railLeft}`);
+  ck('2k and a refusal still has somewhere to be spoken on it',
+     !!toolStrip && toolStrip.says === true, toolStrip && `#ce-say on the strip: ${toolStrip.says}`);
 
   /* ---- 2l. NO COLLAPSE CONTROL ANYWHERE ON THIS PAGE ----
      "remove the collapse feature entirely in the page with image 1". Asserted
@@ -236,49 +253,51 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      highlighted and it should look like the button in image 3." The reference
      is built here exactly as the Document tab builds #ws-to-nego, so this is a
      comparison against the real control rather than against typed values. */
-  const back = await p.evaluate(() => {
+  /* REVERSED IN PLACE 28 Aug 2026 — THE HEADER IS GONE, and with it the button
+     these three checks measured. Owner-ruled against the approved prototype,
+     which opens straight into the toolbar and the contract: "work mode where
+     all disappears apart from the contract and the side panels."
+
+     WHAT THEY WERE REALLY GUARDING SURVIVES AND IS STRONGER AS AN ABSENCE
+     PLUS A REPLACEMENT: there is exactly ONE way out of this page, it is
+     reachable, and it is at the far right of the strip where the prototype
+     draws it. The dressing comparison went with the button it compared — that
+     one was a bordered .ui-btn quoting the tab row's door, and the prototype's
+     is a filled square at the wall. */
+  const out = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
-    const head = page.querySelector('#ce-head');
-    const mine = page.querySelector('.ce-back-btn');
-    if (!mine) return null;
-    const ref = document.createElement('button');
-    ref.className = 'ui-btn';
-    ref.setAttribute('style', 'flex:none;font-size:14px;padding:7px 14px');
-    ref.textContent = 'Open Negotiate';
-    page.appendChild(ref);
-    const T = el => { const s = getComputedStyle(el); return { fs:s.fontSize, fw:s.fontWeight,
-      c:s.color, bg:s.backgroundColor, bw:s.borderTopWidth, bc:s.borderTopColor, pad:s.padding }; };
-    const out = { ref:T(ref), mine:T(mine),
-      hr: head.getBoundingClientRect(), br: mine.getBoundingClientRect(),
-      crumbHasBack: !!page.querySelector('.ce-crumb [data-ce-act="close"]'),
-      waysOut: page.querySelectorAll('[data-ce-act="close"]').length };
-    ref.remove();
-    return out;
+    const doors = [...page.querySelectorAll('[data-ce-act="close"]')];
+    const strip = page.querySelector('.ce-barrow');
+    const exit = page.querySelector('.ce-exit');
+    if (!strip || !exit) return { doors: doors.length, exit: false };
+    const sr = strip.getBoundingClientRect(), er = exit.getBoundingClientRect();
+    const cs = getComputedStyle(exit);
+    return { doors: doors.length, exit: true,
+      onStrip: !!exit.closest('.ce-barrow'),
+      fromRight: Math.round(sr.right - er.right),
+      w: Math.round(er.width), h: Math.round(er.height),
+      filled: cs.backgroundColor, ink: cs.color,
+      named: (exit.getAttribute('aria-label') || ''),
+      /* every retired piece of the head, named literally so this cannot be
+         re-pointed at whatever sits there next */
+      head: ['#ce-title', '#ce-crumb', '#ce-ostat', '#ce-facts', '#ce-sel', '#ce-headacts']
+        .filter(sel => !!page.querySelector(sel)),
+      backBtn: !!page.querySelector('.ce-back-btn') };
   });
-  /* REVERSED IN PLACE 25 Aug 2026 (owner-asked: "Remove bold lettering from the
-     back to negotiations as well … the same size font like the other buttons in
-     the platform"). The claim this check was written for is UNCHANGED and is
-     still the whole of what it measures — this button is the tab row's own door,
-     compared against the real control rather than against typed values. What
-     moved is ONE property: the weight. MEASURED against the negotiation head's
-     own row, those buttons are --w-body and this was 600, so it read heavier
-     than every button the owner was comparing it with. So the comparison now
-     names the exception out loud and still fails on a drift in any of the other
-     six — which is what it was really guarding. */
-  const BACK_SAME = ['fs', 'c', 'bg', 'bw', 'bc', 'pad'];
-  const backSame = !!back && BACK_SAME.every(k => back.ref[k] === back.mine[k]);
-  ck('2m it is dressed like the tab row\'s own door — every property but the '
-     + 'weight, which the owner asked to come off',
-     backSame && back.mine.fw !== back.ref.fw,
-     back && (backSame
-       ? `same but the weight — ref ${back.ref.fw}, mine ${back.mine.fw}`
-       : `ref ${JSON.stringify(back.ref)} / mine ${JSON.stringify(back.mine)}`));
-  ck('2n it sits at the RIGHT of the header, not in the crumb',
-     !!back && Math.round(back.hr.right - back.br.right) < 40 && !back.crumbHasBack,
-     back && `${Math.round(back.hr.right - back.br.right)}px from the right edge`);
-  ck('2o and it is the ONE way out — two controls leaving the same page is the '
-     + 'duplication reported on the contract room the same morning',
-     !!back && back.waysOut === 1, back && `${back.waysOut}`);
+  ck('2m THE HEADER IS GONE — no crumb, no clause name, no status, no facts, no '
+     + 'clause picker, no back button',
+     out.head.length === 0 && out.backBtn === false,
+     out.head.length ? out.head.join(', ') : 'none of it drawn');
+  ck('2n the way out is the LAST thing on the strip, at the wall',
+     out.exit === true && out.onStrip === true && out.fromRight < 20,
+     out.exit ? `${out.fromRight}px from the strip's right edge` : 'no exit button');
+  ck('2o …filled, square, and named — the prototype\'s own drawing',
+     out.exit && out.w === out.h && /rgb/.test(out.filled)
+       && !/rgba\(0, 0, 0, 0\)/.test(out.filled) && /work mode|arbetsläget/i.test(out.named),
+     out.exit ? `${out.w}x${out.h} ${out.filled} "${out.named}"` : '');
+  ck('2p and it is the ONE way out — two controls leaving one page is the '
+     + 'duplication reported on the contract room',
+     out.doors === 1, `${out.doors}`);
 
   /* ---- 3. THE MIDDLE OF THE PAGE IS THE CONTRACT ----
      REVERSED IN PLACE 26 Aug 2026 (owner-asked: "There is no current wording vs
@@ -1376,11 +1395,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     }
     /* AND THE SPACE THE STRIP ACTUALLY HELD, which is a different gap: it was
        a sibling of this column rather than a child of it, so a walk over the
-       column's own children never saw it. Measured from the last thing in the
-       page head down to the paper, the only band in there is the readings row
-       and the gaps around it. */
-    const facts = page.querySelector('#ce-facts');
-    const fr = facts.getBoundingClientRect();
+       column's own children never saw it. RE-POINTED 28 Aug 2026 from the
+       retired fact row to the WRITING BAR, which is now the last thing above
+       the paper — the claim is unchanged and is about the gap, not about which
+       element happens to sit at the top of it. */
+    const fr = write.getBoundingClientRect();
     const headToPaper = pr.top - fr.bottom;
     const chips = [...page.querySelectorAll('#ce-readbar .ce-chip')];
     const segs = page.querySelector('#ce-readbar .rl-segwrap')
@@ -1408,9 +1427,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
          the Copilot rail down. */
       writeDrawn: !!write && write.getBoundingClientRect().height > 0,
       writeInHead: !!write && !!write.closest('.ce-head'),
-      writeAbovePaper: !!write
-        && write.getBoundingClientRect().bottom <= pr.top + 1
-        && write.getBoundingClientRect().top >= fr.bottom - 1,
+      writeAbovePaper: !!write && write.getBoundingClientRect().bottom <= pr.top + 1,
       chips: chips.length,
       chipText: chips.map(b => b.textContent.trim()),
       chipLeft: chips.length ? chips[0].getBoundingClientRect().left : null,
@@ -1692,35 +1709,40 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('19h …without throwing — the repaint used to race the blur handler',
      errs.length === errsBefore, errs.slice(errsBefore).join(' | ') || 'clean');
 
-  const wideCtl = await p.evaluate(async () => {
-    const b = document.querySelector('#ce-bar [data-ce-wide]');
+  /* REVERSED IN PLACE 28 Aug 2026. These three measured a CONTRACT-ALONE toggle
+     that hid the Copilot rail — my own reading of the button the owner reported
+     missing from the render. Comparing the artifact against the build settled
+     it: the prototype's button in that slot is the WAY OUT of work mode, and
+     with the header gone it is the only one. So the claim moves to what that
+     button really has to do, and 2n/2o already pin where it sits and how it is
+     drawn. */
+  const leave = await p.evaluate(async () => {
+    const b = document.querySelector('#clause-editor .ce-exit');
     if (!b) return { there: false };
-    const rail = () => Math.round(document.querySelector('.ce-rail').getBoundingClientRect().width);
-    const col = () => Math.round(document.querySelector('.ce-col').getBoundingClientRect().width);
-    const was = { rail: rail(), col: col() };
-    b.click(); await new Promise(r => setTimeout(r, 400));
-    const on = { rail: rail(), col: col(),
-      pressed: document.querySelector('#ce-bar [data-ce-wide]').getAttribute('aria-pressed') };
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise(r => setTimeout(r, 400));
-    return { there: true, was, on, back: { rail: rail(), col: col() },
-      stillOpen: !!document.getElementById('clause-editor') };
+    b.click();
+    await new Promise(r => setTimeout(r, 500));
+    return { there: true, gone: !document.getElementById('clause-editor'),
+      backOnNegotiation: !!document.querySelector('.redline-page') };
   });
-  ck('19i THE CONTRACT-ALONE CONTROL IS ON THE BAR — the render had it, the build did not',
-     wideCtl.there === true, wideCtl.there ? 'drawn' : 'missing');
-  ck('19j pressing it gives the whole page to the contract',
-     wideCtl.there && wideCtl.on.rail === 0 && wideCtl.on.col > wideCtl.was.col && wideCtl.on.pressed === 'true',
-     wideCtl.there ? `rail ${wideCtl.was.rail}→${wideCtl.on.rail}, contract ${wideCtl.was.col}→${wideCtl.on.col}` : '');
-  ck('19k Escape brings Copilot back and does NOT close the page',
-     wideCtl.there && wideCtl.back.rail > 100 && wideCtl.stillOpen === true,
-     wideCtl.there ? `rail back to ${wideCtl.back.rail}, page open ${wideCtl.stillOpen}` : '');
+  ck('19i THE WAY OUT IS ON THE STRIP, as the prototype draws it',
+     leave.there === true, leave.there ? 'drawn' : 'missing');
+  ck('19j pressing it LEAVES work mode',
+     leave.there && leave.gone === true, leave.there ? `page gone: ${leave.gone}` : '');
+  ck('19k …and lands back on the negotiation it came from',
+     leave.there && leave.backOnNegotiation === true,
+     leave.there ? `negotiation drawn: ${leave.backOnNegotiation}` : '');
+  /* Re-open for the checks below, which are about the tools. */
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
 
   const greyed = await p.evaluate(async () => {
     const read = () => ({
       bold: document.querySelector('#ce-bar [data-rb="bold"]').disabled,
       size: document.querySelector('#ce-bar [data-rb-size-open]').disabled,
       undo: document.querySelector('#ce-bar [data-rb="undo"]').disabled,
-      wide: document.querySelector('#ce-bar [data-ce-wide]').disabled,
+      /* THE WAY OUT NEVER GREYS — it is not a writing tool and it is the only
+         way off this page. */
+      exit: document.querySelector('#clause-editor .ce-exit').disabled,
       tip: document.querySelector('#ce-bar [data-rb="bold"]').getAttribute('title'),
       dim: getComputedStyle(document.querySelector('#ce-bar [data-rb="bold"]')).opacity });
     const live = read();
@@ -1737,9 +1759,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      greyed.off.bold === true && greyed.off.size === true
        && /pencil|penna/i.test(greyed.off.tip || '') && Number(greyed.off.dim) < 0.6,
      JSON.stringify(greyed.off));
-  ck('19n …but Undo and the contract-alone control still work, because they can',
-     greyed.off.undo === false && greyed.off.wide === false,
-     `undo off=${greyed.off.undo}, wide off=${greyed.off.wide}`);
+  ck('19n …but Undo and the way out still work, because they can',
+     greyed.off.undo === false && greyed.off.exit === false,
+     `undo off=${greyed.off.undo}, exit off=${greyed.off.exit}`);
   ck('19o and pressing the pencil again brings the tools back',
      greyed.back.bold === false, JSON.stringify(greyed.back));
 

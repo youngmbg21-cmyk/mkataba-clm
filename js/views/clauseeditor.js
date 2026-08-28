@@ -114,7 +114,6 @@ let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
 let _ceRendering = false;   /* the paper is being written over — see ceRenderPaper */
-let _ceWide = false;        /* the contract has the whole page — see ceSetWide */
 let _ceLead = null;         /* the change this editor opened on, if any */
 
 const clauseEditorOpen = () => !!_ceClauseId;
@@ -206,8 +205,10 @@ function clauseEditorCss(){
      THE COLLAPSE CONTROL IS GONE (same ask, "remove the collapse feature
      entirely"): .ce-fold, .ce-ohwrap and the is-folded rule are deleted rather
      than hidden. */
-  .ce-head{flex:none; background:var(--color-surface);
-    border-bottom:1px solid var(--color-divider); padding:10px 18px var(--s-3)}
+  /* THE HEAD IS THE STRIP NOW — no padding, no border of its own; the row
+     inside it carries both. The room-head rules below dress nothing and are
+     kept only so a head added here later does not have to rediscover them. */
+  .ce-head{flex:none; background:var(--color-surface)}
   .ce-head .room-head{flex-wrap:nowrap}
   /* THE ONE DECLARATION THE SHARED RULES DO NOT CARRY. Image 2 is the
      NEGOTIATION page's head, and that page zeroes the global h1 tracking of
@@ -223,8 +224,7 @@ function clauseEditorCss(){
      them is how the same bar comes out looking like two different controls.
      It wraps rather than clipping: the divider can be dragged to 380px and a
      tool that has fallen off the end is a tool nobody can reach. */
-  .ce-bar{display:flex; align-items:center; flex-wrap:wrap; gap:2px;
-    margin-top:10px; padding-top:9px; border-top:1px solid var(--color-divider)}
+  .ce-bar{display:flex; align-items:center; flex-wrap:wrap; gap:2px}
   .ce-bar:empty{display:none}
   .ce-crumb{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
   .ce-crumb .sep{color:var(--color-neutral-500)}
@@ -248,9 +248,9 @@ function clauseEditorCss(){
      button the owner was comparing it with. .ui-btn's base weight is 600 and
      .ui-btn-lg's is --w-body; this takes the head row's answer.
      .ce-act-plain is STALE — the row's other button has gone; flag any
-     mention. */
-  .ce-head .ce-acts .ce-back-btn{flex:none; font-size:var(--t-body); font-weight:var(--w-body);
-    padding:7px 14px}
+     mention. AND SO IS .ce-back-btn ITSELF since 28 Aug 2026: the header went
+     and the way out is the filled square at the end of the strip, dressed by
+     .ce-exit. The rule is deleted rather than left dressing nothing. */
   .ce-say{flex:0 1 auto; min-width:0; max-width:300px; font-size:var(--t-label); color:var(--accent-ink);
     font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     opacity:0; transition:opacity var(--dur-2)}
@@ -303,11 +303,25 @@ function clauseEditorCss(){
   #clause-editor.is-wide .ce-grid{grid-template-columns:minmax(0,1fr)}
   #clause-editor.is-wide .ce-rail{display:none}
   #clause-editor.is-wide .ce-grid > .rl-resizer{display:none}
-  .ce-wide-btn[aria-pressed="true"]{background:var(--color-accent-700);
-    border-color:var(--color-accent-700); color:#fff}
   /* A greyed tool has to LOOK greyed, or it is a live-looking button that does
      nothing — the fault this whole pass is about, in its own clothes. */
   .rb-btn:disabled,.rb-size:disabled{opacity:.38; cursor:not-allowed}
+  /* ---- THE WHITE STRIP, AS THE PROTOTYPE DRAWS IT ----
+     The tools, then whatever the page has to say, then the way out at the wall.
+     It stops at the divider because it lives in the LEFT COLUMN — the owner's
+     own instruction, and what keeps the Copilot rail running floor to
+     ceiling. */
+  .ce-barrow{flex:none; display:flex; align-items:center; gap:var(--s-2);
+    min-height:44px; padding:5px 12px; border-bottom:1px solid var(--color-divider)}
+  .ce-barg{flex:1; min-width:0}
+  .ce-barrow .ce-bar{border:0; padding:0; min-height:0}
+  .ce-barrow .ce-say{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap}
+  .ce-exit{flex:none; width:28px; height:28px; display:inline-grid; place-items:center;
+    background:var(--accent-ink); border:1px solid var(--accent-ink); color:#fff;
+    cursor:pointer; padding:0; border-radius:var(--radius)}
+  .ce-exit:hover{background:var(--color-accent-700); border-color:var(--color-accent-700)}
+  .ce-exit:focus-visible{box-shadow:var(--focus)}
   .ce-col{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
@@ -938,15 +952,12 @@ function clauseEditorFits(){
 const CE_SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
   + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   + '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>';
-/* THE CONTRACT ALONE. Two faces on one control — corners pointing out to take
-   the width, pointing in to give it back — so the button says which way it
-   goes rather than needing a word beside it. */
-const CE_WIDE_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"'
+/* THE WAY OUT OF WORK MODE, drawn as the prototype draws it: corners pointing
+   in, filled, at the end of the strip. It is the only way out now the header
+   has gone. */
+const CE_LEAVE_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"'
   + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
-  + ' aria-hidden="true"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
-const CE_NARROW_ICON = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"'
-  + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
-  + ' aria-hidden="true"><path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4"/></svg>';
+  + ' aria-hidden="true"><path d="M6 2H2v4M10 14h4v-4M2 10v4h4M14 6V2h-4"/></svg>';
 
 function clauseEditorHtml(){
   return `<div id="clause-editor" role="region" aria-label="${_ceea(_cet('ce_page_label'))}">
@@ -980,19 +991,28 @@ function clauseEditorHtml(){
            tidying away four facts on a page that has nothing else in its head
            is furniture. .ce-fold, .ce-ohwrap and the is-folded rule went with
            it rather than being hidden. */}
+    ${''/* ---- NO HEADER. WORK MODE OPENS STRAIGHT INTO THE CONTRACT ----
+           REVERSED IN PLACE 28 Aug 2026, owner-ruled against the approved
+           prototype: "work mode where all disappears apart from the contract
+           and the side panels."
+
+           WHAT STOOD HERE was the room head's own dress — a crumb, the clause
+           name, a status chip, a clause dropdown, the way out, and a four-fact
+           row — carried forward from the ONE-CLAUSE page this screen replaced.
+           MEASURED against the prototype: 132px of header the prototype does
+           not draw, so the contract began 231px down where the prototype
+           begins it at 92.
+
+           NOTHING IS LOST THAT IS NOT A PRESS AWAY: the facts, the status and
+           the clause list are all on the negotiation page this opens from, and
+           the way out is the button at the end of the toolbar, where the
+           prototype draws it. `#ce-title`, `#ce-crumb`, `#ce-ostat`,
+           `#ce-facts`, `#ce-sel`, `#ce-headacts` and `.ce-back-btn` are STALE.
+
+           `#ce-say` STAYS and is the exception: it is where a refusal is
+           spoken, and a refusal with nowhere to appear is a dead press. It sits
+           on the toolbar's own row now. */}
     <div class="ce-head" id="ce-head">
-      <div class="room-head">
-        <div class="room-id">
-          <div class="room-name">
-            <h1 id="ce-title"></h1>
-            <span class="ce-ostat" id="ce-ostat"></span>
-          </div>
-          <div class="room-sub ce-crumb" id="ce-crumb"></div>
-        </div>
-        <span class="ce-say" id="ce-say" role="status"></span>
-        <div class="room-acts ce-acts" id="ce-headacts"></div>
-      </div>
-      <div class="room-facts"><div class="room-facets" id="ce-facts"></div></div>
     ${''/* ---- THE WRITING BAR ----
            INSIDE .ce-head, which is inside the left column — never above
            .ce-grid. A full-width row there pushes the Copilot rail down by its
@@ -1000,8 +1020,18 @@ function clauseEditorHtml(){
            repeatedly, and the comment at the top of this builder says so.
            Drawn by richBarHtml, the product's ONE shelf: the same builder the
            clause panel's inline editor draws, at its 'full' setting. */}
-      <div class="ce-bar" id="ce-bar" role="toolbar"
-        aria-label="${_ceea(_cet('ce_bar_label'))}"></div>
+      <div class="ce-barrow">
+        <div class="ce-bar" id="ce-bar" role="toolbar"
+          aria-label="${_ceea(_cet('ce_bar_label'))}"></div>
+        <span class="ce-say" id="ce-say" role="status"></span>
+        <span class="ce-barg"></span>
+        ${''/* THE WAY OUT, where the prototype draws it: the last thing on the
+               strip, filled, corners pointing in. It is the ONLY way out now
+               that the header has gone, so it is never conditional. */}
+        <button type="button" class="ce-exit" data-ce-act="close"
+          title="${_ceea(_cet('ce_leave_work_mode'))}"
+          aria-label="${_ceea(_cet('ce_leave_work_mode'))}">${CE_LEAVE_ICON}</button>
+      </div>
     </div>
         <div class="ce-left">
     ${''/* ---- THE THREE READINGS, FROM THE PRODUCT'S OWN BUILDER ----
@@ -1217,7 +1247,7 @@ function ceFitSplit(scope){
      not own, and an inline gridTemplateColumns written here would beat the
      rule that makes them — an inline declaration cannot be overridden by a
      stylesheet without !important, which this codebase has paid for twice. */
-  if (ceStacked() || _ceWide){
+  if (ceStacked()){
     grid.style.gridTemplateColumns = '';
     rez.style.left = '';
     rez.removeAttribute('data-rl-at-limit');
@@ -1404,8 +1434,16 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
   ceScrollToClause();
-  const back = page.querySelector('[data-ce-act="close"]');
-  if (back && back.focus){ try{ back.focus({ preventScroll: true }); }catch(_){ try{ back.focus(); }catch(_e){} } }
+  /* WHERE A KEYBOARD READER LANDS. It used to be the way out — the first
+     control on a page that had a header. With the header gone the way out is
+     the LAST thing on the strip, and landing on it means tabbing backwards
+     through every writing tool to reach the contract. The paper is what this
+     page is for, so that is where arrival puts them. */
+  const land = page.querySelector('#ce-doc');
+  if (land && land.focus){
+    try{ land.setAttribute('tabindex', '-1'); land.focus({ preventScroll: true }); }
+    catch(_){ try{ land.focus(); }catch(_e){} }
+  }
   return true;
 }
 
@@ -1419,7 +1457,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null;
-  _ceWide = false; _ceRendering = false;
+  _ceRendering = false;
   _ceOpenText = '';
   _ceBusy = false;
   clearTimeout(_ceSayTimer);
@@ -1446,84 +1484,19 @@ function ceRenderAll(){
   ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane(); ceRenderChips();
 }
 
+/* ---- THE HEAD DRAWS NOTHING BUT THE TOOLBAR ----
+   Kept as a function rather than deleted: it is called from ceRenderAll and
+   from ceApply/ceUndo/ceRedo, and a page that stops calling it is a page where
+   the next thing added to the head silently never paints. What it USED to draw
+   — the crumb, the clause name, the status chip, the clause dropdown, the way
+   out and the four facts — went on 28 Aug 2026 when the owner ruled work mode
+   should open straight into the contract, as the approved prototype draws it.
+
+   ceClauseLabel, ceDeviationCount and _ceLead all still have other readers; the
+   only thing that left is this drawing of them. */
 function ceRenderHead(){
-  /* NOTHING DRAWS ONCE THE PAGE IS SHUT. An ask that comes back after the
-     reader has left, a resize, a stray Apply — each of these reaches a
-     renderer, and the ones that read the contract would throw on a null. The
-     toast lesson, paid once already in this codebase: a renderer must never
-     take an act down with it. */
   if (!clauseEditorOpen()) return;
-  const cl = ceClause(), on = ceOnTable();
-  const crumb = _ceQ('#ce-crumb');
-  if (crumb){
-    /* THE WAY BACK LEFT THIS LINE FOR THE RIGHT-HAND ACTS (owner-asked 25 Aug
-       2026: "move the back to negotiations button to the right where I have
-       highlighted and it should look like the button in image 3"). What stays
-       here is what the line is for — which contract, and which clause of it. */
-    const name = String((_ceC && (_ceC.name || _ceC.id)) || '').trim();
-    crumb.innerHTML =
-      `<span>${_cee(name)}</span>`
-      + `<span class="sep">&rsaquo;</span>`
-      + `<select class="ce-sel" id="ce-sel" aria-label="${_ceea(_cet('ce_which_clause'))}"></select>`;
-    const sel = crumb.querySelector('#ce-sel');
-    let list = [];
-    try{ list = window.negoClauseList ? negoClauseList(_ceC) : []; }catch(_){ list = []; }
-    if (!list.length && cl) list = [cl];
-    sel.innerHTML = list.map(x => `<option value="${_ceea(x.clauseId)}"${
-      x.clauseId === _ceClauseId ? ' selected' : ''}>${_cee(ceClauseLabel(x) || x.clauseId)}</option>`).join('');
-  }
-  const title = _ceQ('#ce-title');
-  if (title) title.textContent = ceClauseLabel(cl) || _cet('ce_this_clause');
-
-  /* Whose move, from the change record and not from a second reading of it. */
-  const theirs = on.some(x => x.authorSide === 'counterparty');
-  const st = _ceQ('#ce-ostat');
-  if (st){
-    if (!on.length){ st.className = 'ce-ostat neu'; st.innerHTML = `<i></i>${_cee(_cet('ce_nothing_on_table'))}`; }
-    else { st.className = 'ce-ostat ' + (theirs ? 'wait' : 'neu');
-      st.innerHTML = `<i></i>${_cee(_cet(on.length === 1 ? 'ce_n_on_table_one' : 'ce_n_on_table_other',
-        { n: on.length }))}`; }
-  }
-  /* The acts a negotiator reaches for while READING — never the ones that
-     change the wording. Those are the one act in the rail's foot. */
-  const acts = _ceQ('#ce-headacts');
-  /* ---- ONE WAY OUT, DRESSED LIKE THE DOOR IT MIRRORS ----
-     .ui-btn with the tab-row door's own metrics, because the owner named that
-     button as the model. It REPLACES the old Close: both did the same thing,
-     and two controls that leave the same page is precisely the duplication
-     reported on the contract room the same morning.
-     ---- AND PLAYBOOK SCAN HAS GONE FROM THIS ROW (owner-asked 25 Aug 2026:
-     "remove the playbook scan on the left because it is a duplicate") ----
-     It carried data-ce-tab="scan" — the SAME attribute, the same handler and
-     the same act as the Playbook scan tab at the top of the Copilot rail, so
-     pressing it changed a panel on the far side of the screen. Nothing is lost:
-     the rail's own tab is the one door and it is on screen throughout.
-     `.ce-act-plain` went with it — it had no other caller — so a control cannot
-     come back wearing a dress nobody remembered writing. */
-  if (acts) acts.innerHTML =
-    `<button type="button" class="ui-btn ce-back-btn" data-ce-act="close">${
-      _cet('ce_back_negotiation')}</button>`;
-
-  const f = _ceLead;
-  let round = '';
-  try{ round = window.negoRound ? String(negoRound(_ceC)) : ''; }catch(_){ round = ''; }
-  const dev = ceDeviationCount();
-  const facts = [
-    [_cet('ce_f_proposed_by'), f ? (f.author || (f.authorSide === 'counterparty'
-      ? (_ceC.counterparty || _cet('ce_other_side')) : _cet('ce_our_side'))) : _cet('ce_nobody_yet')],
-    [_cet('ce_f_round'), (f && f.roundN) ? String(f.roundN) : (round || '—')],
-    [_cet('ce_f_deviates'), dev ? _cet(dev === 1 ? 'ce_n_rules_one' : 'ce_n_rules_other', { n: dev })
-      : _cet('ce_deviates_nothing')],
-    [_cet('ce_f_whose_move'), theirs ? _cet('ce_move_yours')
-      : (on.length ? (_ceC.counterparty || _cet('ce_other_side')) : _cet('ce_move_nobody'))],
-  ];
-  const box = _ceQ('#ce-facts');
-  /* THE ROOM'S OWN FACET MARKUP, down to the em-dash class it uses for an
-     absence — so the two heads cannot come to read differently. */
-  if (box) box.innerHTML = facts.map(([k, v]) =>
-    `<div class="room-facet"><div class="l">${_cee(k)}</div><div class="v">${
-      v === '—' ? '<span class="room-facet-none">&mdash;</span>' : _cee(v)}</div></div>`).join('');
-
+  ceRenderBar();
 }
 /* ---- WHICH ASK THIS EDITOR IS SPEAKING FOR ----
    (owner-asked 26 Aug 2026, off a drawn render: "the name of number of the edit
@@ -1696,23 +1669,10 @@ function ceApplyMark(cls){
 function ceRenderBar(){
   const host = _ceQ('#ce-bar');
   if (!host || !window.richBarHtml) return;
-  /* ---- THE CONTRACT ALONE, AT THE END OF THE BAR ----
-     It was on the approved render and was left out of the first build; the
-     owner reported it missing by name. It is THIS PAGE'S control rather than
-     the shared shelf's — the clause panel's compact bar has no rail to stand
-     down — so it is appended here and richBarHtml is untouched.
-
-     IT IS NOT THE PRODUCT'S FOCUS MODE and must not become it: focus mode
-     hides the app's OWN chrome (the sidebar and the top bar) on the pages that
-     have them, and this page already covers the whole window. What this gives
-     up is the Copilot rail, which is the only chrome left here. */
-  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() })
-    + `<span class="rb-sep"></span>`
-    + `<button type="button" class="rb-btn ce-wide-btn" data-ce-wide="1"`
-    + ` aria-pressed="${_ceWide ? 'true' : 'false'}"`
-    + ` title="${_ceea(_cet(_ceWide ? 'ce_wide_off_title' : 'ce_wide_on_title'))}"`
-    + ` aria-label="${_ceea(_cet(_ceWide ? 'ce_wide_off' : 'ce_wide_on'))}">`
-    + (_ceWide ? CE_NARROW_ICON : CE_WIDE_ICON) + `</button>`;
+  /* THE SHARED SHELF AND NOTHING ELSE. The button at the end of the strip is
+     the WAY OUT and lives in the markup beside this host rather than inside it,
+     because it is not a writing tool and must never grey with them. */
+  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() });
   /* ---- GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS ----
      This product's own rule for exactly that. There is ONE thing it can know:
      whether anything is typeable at all. With the caret out of the clause —
@@ -1734,20 +1694,6 @@ function ceRenderBar(){
     if (why) b.setAttribute('title', why); else b.removeAttribute('title');
   });
   ceSyncBarSteps();
-}
-/* ---- THE CONTRACT TAKES THE PAGE ----
-   A class flip and nothing else: no repaint, so the caret, the selection and
-   the reader's place on the page all survive it. The layout is the grid's own
-   job and is stated once, in this page's sheet. */
-function ceSetWide(on){
-  if (!clauseEditorOpen()) return;
-  _ceWide = !!on;
-  const page = document.getElementById('clause-editor');
-  if (page) page.classList.toggle('is-wide', _ceWide);
-  ceRenderBar();
-  ceSay(_cet(_ceWide ? 'ce_wide_on_said' : 'ce_wide_off_said'));
-  /* The divider measures the grid, and the grid has just changed shape. */
-  try{ if (typeof ceFitSplit === 'function') ceFitSplit(); }catch(_){}
 }
 /* What size is the caret in? The stored size nearest the selection, falling
    back to the base the paper draws its clauses at. */
@@ -2763,12 +2709,6 @@ function ceWirePage(page){
       else ceAddMissingClause(it, words, scan);
       return; }
 
-    /* THE CONTRACT ALONE — a class flip, so nothing the reader is holding is
-       thrown away. It is not the app's focus mode and does not pretend to be:
-       this page has no sidebar or top bar to hide. */
-    const wide = hit('[data-ce-wide]');
-    if (wide){ ev.preventDefault(); ceSetWide(!_ceWide); return; }
-
     const inlineChip = hit('[data-ce-inline-chip]');
     if (inlineChip){ ev.preventDefault(); ceInlineGo(inlineChip.getAttribute('data-ce-inline-chip')); return; }
 
@@ -2883,10 +2823,6 @@ if (typeof document !== 'undefined' && !document._ceWired){
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
     if (_ceSel){ ceCloseInline(); return; }
-    /* THE POSTURE COMES OFF BEFORE THE PAGE DOES. One Escape that both narrowed
-       the page and closed it would be two acts on one press — the fault the
-       clause panel and the round queue each defer to avoid. */
-    if (_ceWide){ ceSetWide(false); return; }
     rlCloseClauseEditor();
   });
   /* A window dragged below the width where two columns stop making sense: the
@@ -2904,7 +2840,7 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
-  ceSetWide, ceBoxDirty,
+  ceBoxDirty,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,

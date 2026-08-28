@@ -445,15 +445,31 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
       'the button knows about typing the stack has not taken yet');
   });
 
-  test('THE CONTRACT-ALONE CONTROL IS BACK, and it is not the app\'s focus mode', () => {
-    assert.ok(/data-ce-wide/.test(CODE), 'the control is drawn on the bar');
-    assert.ok(/is-wide .ce-rail\{display:none\}/.test(CODE),
-      'pressing it stands the Copilot rail down');
-    assert.ok(/if \(_ceWide\)\{ ceSetWide\(false\); return; \}/.test(CODE),
-      'Escape takes the posture off before it closes the page');
+  /* REVERSED IN PLACE 28 Aug 2026, after comparing the approved prototype with
+     the build. This pinned a CONTRACT-ALONE toggle that hid the Copilot rail —
+     my own reading of the button the owner reported missing. The prototype's
+     button in that slot is the WAY OUT of work mode, and with the header gone
+     it is the only one. */
+  test('THE WAY OUT IS ON THE STRIP, and it is the only one', () => {
+    assert.ok(/class="ce-exit" data-ce-act="close"/.test(CODE),
+      'the last thing on the strip leaves the page');
+    /* THAT IT IS THE ONLY ONE is a claim about the drawn page and is measured
+       there (clause-editor-verify 2p): a source count would also catch the
+       querySelector that finds it. */
+    assert.ok(!/data-ce-wide|ceSetWide|_ceWide/.test(CODE),
+      'the contract-alone toggle is gone rather than left beside it');
     /* It must not grow into the product's focus mode: that one hides the app's
        OWN chrome, and this page has none to hide. */
     assert.ok(!/rlSetFocus/.test(CODE), 'and it never reaches for the app-wide one');
+  });
+
+  test('AND THE HEADER IS GONE — work mode opens into the contract', () => {
+    for (const id of ['ce-title', 'ce-crumb', 'ce-ostat', 'ce-facts', 'ce-sel', 'ce-headacts'])
+      assert.ok(!new RegExp('id="' + id + '"').test(CODE), id + ' is not drawn');
+    assert.ok(!/class="ui-btn ce-back-btn"/.test(CODE), 'and neither is the back button');
+    /* #ce-say stays: it is where a refusal is spoken, and a refusal with
+       nowhere to appear is a dead press. */
+    assert.ok(/id="ce-say"/.test(CODE), 'but the status line does, on the strip');
   });
 
   test('a tool that cannot act GREYS, with the reason on its hover', () => {
@@ -464,8 +480,7 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
   });
 
   test('both languages carry the new control\'s words', () => {
-    for (const k of ['ce_wide_on', 'ce_wide_off', 'ce_wide_on_title', 'ce_wide_off_title',
-      'ce_wide_on_said', 'ce_wide_off_said']){
+    for (const k of ['ce_leave_work_mode']){
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
         k + ' is in BOTH languages');
     }
