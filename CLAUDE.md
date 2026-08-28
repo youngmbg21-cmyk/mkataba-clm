@@ -3118,6 +3118,133 @@ THE PANEL IS WHERE YOU WRITE (owner-asked 16 Aug 2026: "Now build the editing in
 - **THE OFFER NARROWS, THE MENU DOES NOT FORK.** `rlSelMenu` takes `ctx.only` (a list of action ids); the panel passes `['edit']` and nothing else does. An unknown id falls back to the whole list rather than opening an empty menu. **THE DOCUMENT'S OWN SELECTION MENU IS UNTOUCHED and keeps all three** — deliberately left alone and said out loud: the owner's "remove simplify and compare with company standards" was about what the PANEL offers, and both are acts on the clause AS IT STANDS, while in the panel the reader is highlighting their own half-typed draft where each is a different question. One word from the owner removes them everywhere.
 - Both seats get the ＋ — the panel is built in the shared panes and proposing wording is exactly what the counterparty's page is for. A read-only seat gets no acts section at all.
 
+## THE WRITING BAR, AND SAVE IN ONE PRESS (owner-asked 28 Aug 2026)
+
+Ten messages, one settled design, three builds. The owner's own words:
+*"most of the best in class CLM companies have a contract on screen that is
+like a Google Docs or word document with regards to the features on top of the
+bar … my platform lacks that completely"*, and then *"build it but make sure
+you do not forget the copilot panel goes all the way to the top."*
+
+**ONE SHELF, TWO SETTINGS, AND IT LIVES BESIDE THE ALLOWLIST.** `richBarHtml`
+is in **js/richdoc.js**, next to the sanitiser that decides what a stored body
+may carry — because a tool that writes a mark and a rule that permits one are
+the same fact, and a bar in a view file would be a second opinion about it.
+`RICH_BAR_TOOLS` is ONE list where `full:1` marks the tools the compact shelf
+omits, so the clause panel's inline editor and work mode's bar cannot come to
+disagree about what a button does. `richBarPress` is the press,
+`richMarkSelection` the mark, `richUnmark` the removal, `richSizeAt` the
+reading of what size the caret is in.
+
+**THE COLOUR DOOR IS OPEN AND IT IS NARROW.** The sanitiser refuses `style` on
+everything and always will; what it now permits on a SPAN is a fixed list of
+CLASS names and nothing else — five inks, four highlights, ten sizes
+(`RICH_MARK_CLASSES`, `richSpanClassOk`, asked by `_stripAttrs` AND by
+`_normaliseStructure`'s span unwrap, which is one reading with two callers).
+**GREEN AND RED ARE NOT ON THE LIST**: they are the redline's own grammar —
+an insertion is green and a deletion is struck in ruby — and a reader who
+could colour a sentence green would be writing something the page already
+means. **THE MARKS FOLLOW THE PAPER**: every rule is `var(--mk-token,
+#literal)` so a standalone document still colours, and every token has a dark
+answer.
+
+**WHERE THE BAR SITS IS THE LOAD-BEARING PART.** Inside `.ce-head`, which is
+inside the LEFT column. A full-width row above `.ce-grid` pushes the Copilot
+rail down by its own height — the one thing about that layout that has been
+corrected repeatedly, and the comment at the top of the builder says so.
+clause-editor-verify 17l3 pins the bar's HOME and 2d2 measures the rail itself.
+
+**ONE CLAIM REVERSED IN PLACE, and the two bands are not the same kind of
+thing.** 17l2 asserted that the readings row was the ONLY band between the head
+and the paper. What it was written about was a NOTICE — "On this clause", the
+change's name, a sentence saying nothing had been proposed — three facts the
+crumb and the fact row twelve pixels above already carried. That one is still
+gone (17j/17k pin its absence in their own right). **A band that carries an act
+is what the standing rule keeps; a band that restates the screen is what it
+removes.**
+
+**SAVE IS ONE PRESS.** Owner-asked: *"we need to remove the mandate for adding
+why this change for every change. Users can use the notes feature to add notes
+on changes."* Both filing paths changed together — the engine's inline editor
+and the clause editor page quoted each other button for button so one page
+could not refuse what another permitted, and they still agree.
+
+- **WHAT STOOD, because the reasoning is the useful part**: Save led INTO the
+  question, on the argument that a reason offered as one more optional field is
+  a field people scroll past. Skip was always a visible button, so the ANSWER
+  was never mandatory; it was the QUESTION that was unavoidable, and a pass over
+  six clauses cost six extra presses.
+- **WHAT IS LOST, SAID OUT LOUD.** `why` TRAVELS — its own label said "the
+  other side sees it beside the redline" — and a note does not: the composer
+  defaults to Internal on our seat and an internal note never leaves the
+  building. The sentence that explained a redline to the counterparty at the
+  moment it was made now has to be typed on purpose, in the clause panel's note
+  box with the switch thrown to "Send to them".
+- **THE COPILOT PROPOSAL CARD KEEPS ITS OWN OPTIONAL REASON**, which blocks
+  nothing and was never the mandate — it is the one surface that still WRITES a
+  `why`, which is what keeps the field from being orphaned. The field on the
+  record, the fingerprint (which never carried `why`), every renderer that
+  prints one and `negoWireWhyClamp` are untouched. The REJECTION dialog's own
+  reason is a different question by a different person and was not in the ask.
+- **STALE, left inert in BOTH dictionaries**: `ng_why_this_change`,
+  `ng_file_change`, `ng_skip_no_reason`, `ng_back_to_wording`, `ce_reason_hint`;
+  and `data-nego-save` / `-skip` / `-back` / `-reason` and the three
+  `data-ce-act="reason-*"`. `data-nego-next` and `data-ce-act="save"` KEPT their
+  names — half a dozen checks and both browser files reach the button by them,
+  and a rename would cost those and buy nothing; what changed is where they go.
+
+**HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER.** Owner-asked, off
+Oneflow. ONE strip and ONE box, and the box always holds the PROPOSED WORDING —
+whoever wrote it. It opens carrying the passage, selected, so the common act is
+editing a sentence rather than retyping one; the three chips ask Copilot and the
+answer lands IN THE BOX rather than on the paper, which is what lets one strip
+serve both hands without becoming two.
+
+- **IT FILES NOTHING.** Enter APPLIES to the draft; the one act in the rail's
+  foot still puts it on the record. A strip that filed would be a third door
+  onto an act that already has one.
+- **`ceReplacePassage` IS THE ONE READING** of "put this wording in place of
+  that passage", shared by the reader's hand and by a Copilot rewrite. The rest
+  of the clause is carried across character for character, and a passage dragged
+  across two sub-paragraphs is still refused — the same reasoning that refuses a
+  highlight across two clauses.
+- **THE CONTEXT LINE IS GONE** (owner-asked, ringing it: "remove this because it
+  takes space away"). It printed the passage the box is now prefilled with.
+  `ce_inline_about` is STALE.
+- **WHAT CHANGES FOR THE READER**: the box used to take a free-form instruction
+  to Copilot and now takes wording. A free-form ask has its own door — the edit
+  symbol, which lands in the side panel, which is what the owner asked for by
+  name.
+
+**NOT BUILT, AND SAID OUT LOUD: RENAMING A CLAUSE HEADING.** The owner asked for
+it ("the ability to edit the name of the header") and it is a change to the
+CHANGE MODEL rather than a control: `headingText` is carried and drawn for
+`insertClause` ONLY, so an edit that renamed an existing clause would need the
+funnel to carry it on a `modifyClause`, `negoBuildBody` to apply it at round
+close, BOTH document renderers to draw the rename as a redline, the payload
+allow-list to pass it, and a decision about whether it joins the fingerprint. A
+half-built version that filed but did not draw is worse than none. It wants its
+own piece of work.
+
+**TWO TEST FAULTS FOUND ON THE WAY, both mine, and both worth recording.**
+round-delivery-verify held a RACE — sections 3 and 4 need an answer the owner's
+browser has not collected, and that was left to timing; losing one press moved
+the sequence about a second earlier and six checks failed on an answer that had
+simply arrived. The contract now leaves the owner's browser BEFORE the round is
+sent, which is section 3's own mechanism moved earlier: **the window is closed
+rather than the clock re-tuned.** And clause-door-verify's hand-staged reason
+drew nothing, because **the panel's bodies are built by the CANVAS**
+(redlineDocHtml pushes them into `cpSink`) and `rlCpSetShown` only flips which
+one shows — a repaint is what reaches it.
+
+Tests: f245 (8) reversed in place and made stronger (it pinned that this page's
+reason step MATCHED the engine's; it pins that NEITHER asks), f245 (16) for the
+strip, clause-editor-verify (140 — sections 17l2/17l3 and a new section 18 that
+DRIVES the strip with a real Range and a real Enter), clause-door-verify 99,
+live-verify 40 (its reason-box geometry claims re-pointed at the editor box,
+which is the furniture that is left), paper-grows-verify 59, round-delivery 34,
+f144, f92, six-round-audit and the four-round audit simulation.
+
 ## EDIT WITH COPILOT IS A PAGE, NOT A DRAWER (owner-approved prototype, 25 Aug 2026 — "The Clause Journey")
 
 The panel's Copilot button used to hand the clause to the Copilot DRAWER, which is a chat about a clause you cannot see. It opens **js/views/clauseeditor.js** instead: the whole window goes to one clause, with Copilot down a third of the screen. Six of the journey's thirteen steps needed nothing built; what is new is **one page and two doors**.
