@@ -80,7 +80,16 @@ let _ceAgain = null;        /* the caller's repaint */
 let _ceRead0 = null;
 let _ceBase = '';           /* the wording AS IT STANDS (negoClauseNowById) */
 let _ceText = '';           /* the wording being proposed */
-let _ceSteps = [];          /* [{label, text}] — Apply stacks, Undo steps back */
+/* ---- AND THE CLAUSE'S NAME, WHICH IS PART OF THE CLAUSE (owner-asked
+   28 Aug 2026: "the ability to edit the name of the header") ----
+   A contract is cited by its headings, so "3. Payment Terms" proposed as
+   "3. Charges" is a change to the agreement and not a caption on a screen. It
+   is held beside the wording rather than in a store of its own, and it rides
+   the SAME undo stack: a step is "the draft as it stood", and a draft that has
+   two parts has to step back in both or Undo would put half of it back. */
+let _ceHeadBase = '';       /* the heading AS IT STANDS */
+let _ceHead = '';           /* the heading being proposed */
+let _ceSteps = [];          /* [{label, text, head}] — Apply stacks, Undo steps back */
 let _ceStep = 0;
 /* ---- IS THE CLAUSE BEING TYPED IN RIGHT NOW ----
    The two-way Redlines|Edit toggle this replaces was a reading of a BOX; with
@@ -139,7 +148,9 @@ const clauseEditorContract = () => _ceC;
    measured against the text it opened WITH. Applying twice and stepping back
    twice lands on that text again and is honestly not dirty. */
 let _ceOpenText = '';
-const clauseEditorDirty = () => clauseEditorOpen() && _ceText !== _ceOpenText;
+let _ceOpenHead = '';
+const clauseEditorDirty = () => clauseEditorOpen()
+  && (_ceText !== _ceOpenText || _ceHead !== _ceOpenHead);
 
 /* ============================================================================
    THE STYLESHEET
@@ -421,6 +432,14 @@ function clauseEditorCss(){
     outline-offset:4px; padding:8px 10px; margin:-8px -10px}
   .ce-paperwrap .ce-typing:focus{outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
     outline-offset:4px; box-shadow:none}
+  /* ---- AND THE CLAUSE'S NAME WEARS THE SAME LINE ----
+     It IS the same rule: .ce-headbox adds no colour, no fill and no size of its
+     own, so the heading keeps the paper's own heading type and merely gains the
+     dashed frame that says where the editable region is. The negative margins
+     the wording's box uses would pull the name off the row it shares with the
+     pencil, so this one insets instead — the outline sits clear of the words
+     either way and nothing on the row moves when it appears. */
+  .ce-paperwrap .ce-headbox{padding:2px 4px; margin:0; min-width:60px}
   .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
   .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:var(--w-body)}
@@ -769,6 +788,30 @@ function ceLeadChange(named){
 /* The plain wording a change proposes. A change stores its own newText, which
    is exactly what was filed; falling back to the standing wording means "this
    change proposes nothing new", which the redline then shows as no marks. */
+/* ---- THE CLAUSE'S OWN NAME, AND THE NAME AN ASK PROPOSES FOR IT ----
+   Two readings, deliberately separate, exactly as ceStanding and ceWordingOf
+   are for the wording: one answers "what does the contract call this clause"
+   and the other "what is on the table". A clause with no heading of its own
+   answers '' from both, and the box below is not drawn — see ceHeadEditable. */
+function ceStandingHeading(){
+  const cl = ceClause();
+  return String((cl && cl.headingText) || '').trim();
+}
+function ceHeadingOf(ch){
+  if (!ch) return _ceHeadBase;
+  const h = String(ch.headingText == null ? '' : ch.headingText).trim();
+  return h || _ceHeadBase;
+}
+/* ---- ONLY WHERE THE DOCUMENT ALREADY HAS ONE, AND THIS IS A REFUSAL ----
+   A clause with no heading is an upload that arrived as a wall of paragraphs,
+   and in that document HEADINGS DO NOT MARK THE CLAUSES — clauseSegment reads
+   one clause per top-level block and the ids sit on paragraphs. Writing a
+   heading into it would not rename a clause; it would change how the whole
+   document segments, under a reader who asked to change a name. The model
+   refuses it too: clauseReplaceHeading finds nothing to rewrite and answers
+   null, so the box is simply not drawn where the act cannot work. */
+const ceHeadEditable = () => !!_ceHeadBase;
+
 function ceWordingOf(ch){
   if (!ch) return _ceBase;
   /* bodyHtml first: it is what the change actually stores and what the funnel
@@ -1457,13 +1500,17 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     return false;
   }
   _ceBase = ceStanding();
+  _ceHeadBase = ceStandingHeading();
   _ceLead = ceLeadChange(opts.changeId);
   _ceText = ceWordingOf(_ceLead);
-  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase }];
-  if (_ceText !== _ceBase) _ceSteps.push({ label: (_ceLead && _ceLead.id) || _cet('ce_proposed'), text: _ceText });
+  _ceHead = ceHeadingOf(_ceLead);
+  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
+  if (_ceText !== _ceBase || _ceHead !== _ceHeadBase)
+    _ceSteps.push({ label: (_ceLead && _ceLead.id) || _cet('ce_proposed'), text: _ceText, head: _ceHead });
   _ceStep = _ceSteps.length - 1;
   _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
-  _ceSavedAt = _ceText !== _ceBase ? ceNowHm() : null;
+  _ceOpenHead = _ceHead;
+  _ceSavedAt = (_ceText !== _ceBase || _ceHead !== _ceHeadBase) ? ceNowHm() : null;
   /* THE CLAUSE YOU CAME IN ON OPENS TYPEABLE. This page was pressed to change
      wording; arriving on a read-only contract and having to find the pencil
      first is a step nobody asked for. It stands down by itself on a reading
@@ -1814,6 +1861,22 @@ function ceRenderPaper(){
         role="textbox" spellcheck="true">${window.sanitizeRich ? sanitizeRich(_ceText) : _ceText}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
+  /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
+     One editor, one press: the heading is part of the clause the reader opened,
+     so it is typed where it sits rather than in a control of its own somewhere
+     else on the page. It wears the SAME dashed outline the wording does, which
+     is the owner's own 26 Aug ruling about what an editable region on the paper
+     should look like, so nothing new is introduced to the sheet's vocabulary.
+
+     ANSWERING THE READING, exactly as the body does: 'As agreed' is the name
+     the clause has, 'With changes' the name being proposed, and only the
+     redlined reading shows both. Drawn only where the clause HAS a heading —
+     see ceHeadEditable for why creating one is refused. */
+  const headBox = !ceHeadEditable() ? null
+    : typing
+      ? `<h4 class="rl-clause-h ce-typing ce-headbox" id="ce-clausehead" contenteditable="true"
+          role="textbox" spellcheck="true">${_cee(_ceHead)}</h4>`
+      : ceHeadReadHtml();
   /* The reader's place on the page is the one thing they are holding on to, so
      a repaint on every keystroke's worth of Apply must not throw it away. */
   const keep = host.scrollTop;
@@ -1823,7 +1886,8 @@ function ceRenderPaper(){
       side: 'owner',
       canEdit: true,
       noAi: true,
-      live: { clauseId: _ceClauseId, html: body },
+      live: { clauseId: _ceClauseId, html: body,
+        ...(headBox == null ? {} : { head: headBox }) },
       /* THE PENCIL IS THE PRODUCT'S OWN and this page only says what its own
          one does: here it turns typing on and off, and on another clause it
          moves the page to that clause. */
@@ -1918,22 +1982,55 @@ function ceLinesHtml(text){
   const out = lines.map(l => `<p>${_cee(l) || '<br>'}</p>`).join('');
   return out || '<p><br></p>';
 }
+/* ---- THE HEADING WHEN NOBODY IS TYPING IN IT ----
+   The same three answers the wording gives, so the clause's name and its words
+   never disagree about which reading is on screen. Nothing is drawn where the
+   draft proposes the name the clause already has — that is not a rename, and a
+   struck heading over an identical one would be the page inventing a change. */
+function ceHeadReadHtml(){
+  const from = _ceHeadBase, to = _ceHead;
+  if (!to || to === from) return `<h4 class="rl-clause-h">${_cee(from)}</h4>`;
+  const mode = (window.rlReadMode ? rlReadMode() : 'marks');
+  if (mode === 'agreed') return `<h4 class="rl-clause-h">${_cee(from)}</h4>`;
+  if (mode === 'proposed') return `<h4 class="rl-clause-h">${_cee(to)}</h4>`;
+  return `<h4 class="rl-clause-h">${from
+    ? `<span class="nego-del">${_cee(from)}</span> ` : ''}<span class="nego-ins">${_cee(to)}</span></h4>`;
+}
+/* ---- WHAT IS IN THE BOXES, TAKEN ONTO ONE STEP ----
+   IT PULLS BOTH HALVES, and that is why the heading did not get a puller of
+   its own: this function is called from about ten places — the bar, the
+   pencil, the reading tabs, Save, blur — and a second one would have had to be
+   remembered at every one of them. A draft is the wording AND the clause's
+   name; taking them onto one step is what makes Undo put the pair back
+   together rather than half of it.
+
+   THE NAME IS TEXT, NEVER MARKUP: a heading is a citation string and the
+   document model writes it with textContent, so markup a paste brought in
+   would be thrown away on the way to the record and the box would be lying
+   about what it holds. The WORDING is sanitised rather than flattened, exactly
+   as the clause panel's editor does it — reading textContent there is what used
+   to throw the reader's bold and bullets away on every keystroke. */
 function cePullText(){
+  if (!ceIsTyping()) return;
   const box = _ceQ('#ce-clausebody');
-  if (!ceIsTyping() || !box) return;
-  /* SANITISED ON THE WAY OUT, exactly as the clause panel's editor is: what
-     leaves this box is a stored body, and the allowlist is what decides what a
-     stored body may carry. Reading textContent here is what used to throw the
-     reader's bold and bullets away on every keystroke. */
-  const raw = String(box.innerHTML || '');
-  const next = window.sanitizeRich ? sanitizeRich(raw) : raw;
-  if (next === _ceText) return;
-  ceApply(next, _cet('ce_step_typed'), { keepView: true });
+  const headBox = _ceQ('#ce-clausehead');
+  let next = _ceText;
+  if (box){
+    const raw = String(box.innerHTML || '');
+    next = window.sanitizeRich ? sanitizeRich(raw) : raw;
+  }
+  const nextHead = headBox
+    ? String(headBox.textContent || '').replace(/\s+/g, ' ').trim() : _ceHead;
+  const headMoved = nextHead !== _ceHead;
+  if (next === _ceText && !headMoved) return;
+  _ceHead = nextHead;
+  ceApply(next, (headMoved && next === _ceText) ? _cet('ce_step_named') : _cet('ce_step_typed'),
+    { keepView: true, headMoved });
 }
 
 function ceRenderFoot(){
   if (!clauseEditorOpen()) return;
-  const moved = _ceText !== _ceBase;
+  const moved = _ceText !== _ceBase || _ceHead !== _ceHeadBase;
   /* ---- THE ACTS STAND DOWN WITH THE CARET (Phase 4) ----
      A page whose band says "This page is not editable" over a live Save button
      is a page arguing with itself. Undo, Discard and File all act on the draft,
@@ -1997,14 +2094,14 @@ function ceApply(text, label, opts = {}){
     return false;
   }
   const next = ceRich(text);
-  if (next === _ceText){ ceSay(_cet('ce_already_in_box')); return false; }
+  if (next === _ceText && !opts.headMoved){ ceSay(_cet('ce_already_in_box')); return false; }
   /* Two bodies that project to the same wording and differ only in dressing are
      still a change — the funnel has a formatting-only path for exactly that —
      so this compares the stored form, never the projection. */
   /* The reason was written about the OLD wording — it may not travel with new
      wording nobody has read it against. */
   _ceSteps = _ceSteps.slice(0, _ceStep + 1);
-  _ceSteps.push({ label: label || _cet('ce_step_applied'), text: next });
+  _ceSteps.push({ label: label || _cet('ce_step_applied'), text: next, head: _ceHead });
   _ceStep = _ceSteps.length - 1;
   _ceText = next;
   _ceSavedAt = ceNowHm();
@@ -2024,9 +2121,12 @@ function ceApply(text, label, opts = {}){
    buttons ask this as well. OWNER-REPORTED 28 Aug 2026: Undo did nothing after
    typing, because it was greyed out. */
 function ceBoxDirty(){
-  const box = _ceQ('#ce-clausebody');
-  if (!ceIsTyping() || !box) return false;
+  if (!ceIsTyping()) return false;
   try{
+    const headBox = _ceQ('#ce-clausehead');
+    if (headBox && String(headBox.textContent || '').replace(/\s+/g, ' ').trim() !== _ceHead) return true;
+    const box = _ceQ('#ce-clausebody');
+    if (!box) return false;
     const raw = String(box.innerHTML || '');
     return (window.sanitizeRich ? sanitizeRich(raw) : raw) !== _ceText;
   }catch(_){ return false; }
@@ -2050,7 +2150,7 @@ function ceUndo(){
   cePullText();
   if (_ceStep <= 0) return;
   _ceStep -= 1;
-  _ceText = _ceSteps[_ceStep].text;
+  ceRestoreStep();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }));
 }
@@ -2064,14 +2164,23 @@ function ceRedo(){
   if (!clauseEditorOpen()) return;
   if (_ceStep >= _ceSteps.length - 1) return;
   _ceStep += 1;
-  _ceText = _ceSteps[_ceStep].text;
+  ceRestoreStep();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }));
 }
+/* A step is the draft as it stood, and the draft has two halves — so stepping
+   is restoring both. A step recorded before the heading joined the stack
+   carries no `head`; it falls to the standing heading, which is what that step
+   really meant. */
+function ceRestoreStep(){
+  const st = _ceSteps[_ceStep] || {};
+  _ceText = st.text;
+  _ceHead = st.head == null ? _ceHeadBase : st.head;
+}
 function ceDiscard(){
   if (!clauseEditorOpen()) return;
-  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase }];
-  _ceStep = 0; _ceText = _ceBase; _ceSavedAt = null;
+  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
+  _ceStep = 0; _ceText = _ceBase; _ceHead = _ceHeadBase; _ceSavedAt = null;
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   ceSay(_cet('ce_discarded'));
 }
@@ -2657,7 +2766,7 @@ async function ceInlineGo(instruction){
    ========================================================================== */
 async function ceFile(why){
   if (_ceBusy) return;
-  if (_ceText === _ceBase){ ceSay(_cet('ce_nothing_to_file')); return; }
+  if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return; }
   const c = _ceC, clauseId = _ceClauseId;
   /* ---- ONE EDITOR, TWO KINDS OF ASK ----
      A clause somebody PROPOSED is revised through negoReviseInsert, which files
@@ -2679,10 +2788,17 @@ async function ceFile(why){
   try{
     const o = { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
       why: String(why || '').trim() || undefined, note };
-    /* The HEADING is not passed: this page writes wording and never the label,
-       and negoReviseInsert reads an absent headingText as "leave it as it is"
-       rather than as "clear it". */
-    ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html }, o)
+    /* ---- THE CLAUSE'S NAME GOES WITH ITS WORDING (owner-asked 28 Aug 2026) ----
+       ONE record, one press, one fingerprint. It is passed only where the
+       document HAS a heading to rename (ceHeadEditable) — elsewhere an absent
+       headingText is read by both funnel doors as "leave it as it is" rather
+       than as "clear it", which is the behaviour every caller written before
+       this one relies on. The funnel decides what a rename IS: a name equal to
+       the one the clause already carries is not one, and is stored as '' so a
+       reader who types the original back clears the record's own rename rather
+       than leaving a stale one standing. */
+    if (ceHeadEditable()) o.headingText = _ceHead;
+    ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html, ...(ceHeadEditable() ? { headingText: _ceHead } : {}) }, o)
       : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
   _ceBusy = false;
@@ -2962,7 +3078,7 @@ function ceWirePage(page){
      because blur does not bubble. */
   page.addEventListener('blur', ev => {
     const t = ev.target;
-    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
     /* NOT WHILE THE PAPER IS BEING WRITTEN OVER. A repaint blurs the box it is
        replacing, and pulling from a box that is halfway gone renders again on
        top of a half-written DOM — see the fence in ceRenderPaper. */
@@ -2976,8 +3092,22 @@ function ceWirePage(page){
      the moment somebody reaches for it. */
   page.addEventListener('input', ev => {
     const t = ev.target;
-    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
     ceSyncBarSteps();
+  });
+
+  /* ---- A HEADING IS ONE LINE ----
+     The box is contenteditable, so Enter would put a paragraph break inside a
+     citation string — and the document model writes the heading with
+     textContent, so that break would be silently flattened on the way to the
+     record and the box would stop showing what is stored. Enter finishes the
+     name instead, which is what it does in every field this reader has used.
+     Escape puts the name back to what it was before this sitting's typing. */
+  page.addEventListener('keydown', ev => {
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-clausehead')) return;
+    if (ev.key === 'Enter'){ ev.preventDefault(); t.blur(); return; }
+    if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
   });
 
   /* ONE SENTENCE AT A TIME — only in the reading, never while typing: a drag

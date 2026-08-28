@@ -140,6 +140,45 @@ function negoClauseNowById(c, clauseId){
 const negoMeasuredFrom = ch => String((ch && ch.oldText) == null ? '' : ch.oldText);
 const negoMeasuredAlike = (a, b) => negoMeasuredFrom(a) === negoMeasuredFrom(b);
 
+/* ---------- DID THIS CHANGE MOVE THE WORDS? ----------
+   Three kinds of ask now file all-keep ops: a formatting-only edit, a heading
+   rename, and the two together. A renderer that drew any of them from the ops
+   would redraw the clause as its TEXT PROJECTION — flattening the lists,
+   emphasis and sub-paragraphs of a clause whose wording nobody touched — so
+   both document renderers ask this before they reach for the ops.
+
+   Named once and published, because the two canvases have to agree about it:
+   this rulebook's own rule is that the DRAWING may differ between surfaces and
+   the READING never may. */
+const negoWordsMoved = ch => !!(ch && Array.isArray(ch.ops)
+  && ch.ops.some(o => o && o.op !== 'keep'));
+
+/* ---------- WHAT HEADING A CHANGE PROPOSES (owner-asked 28 Aug 2026) ----------
+   A clause's heading is part of the document — a contract is cited by those
+   strings — so proposing “Charges” where it says “Payment Terms” is a tracked
+   change like any other. It rides on the change record's `headingText`, the
+   field insertClause has always carried, and NULL means the ask says nothing
+   about the heading at all.
+
+   ONE READING, so the paper, the room, the card and the panel cannot come to
+   disagree about whether a heading moved. It answers null where the proposed
+   heading is the one the clause already carries, which is what makes typing
+   the original back a real revision rather than a stale rename left behind. */
+function negoHeadingAsk(cl, ch){
+  if (!ch || ch.changeType !== 'modify') return null;
+  const to = String(ch.headingText == null ? '' : ch.headingText).trim();
+  if (!to) return null;
+  const from = String((cl && cl.headingText) || '').trim();
+  return to === from ? null : { from, to };
+}
+/* The heading the clause stands with — what a rename is measured against, and
+   the same reading the wording itself is measured against (negoClauseNowById:
+   baseline plus whatever is adopted on it). */
+function negoStandingHeading(c, clauseId){
+  const cl = negoClauseNowById(c, clauseId);
+  return String((cl && cl.headingText) || '').trim();
+}
+
 /* ---------- IS THIS CONTRACT EXECUTED ----------
    One predicate, named, because the answer decides three different things and
    was written out longhand at each of them. An executed record takes no new
@@ -827,11 +866,26 @@ function negoNextId(c){
    v2 or v3 and goes on verifying under the version stamped on it — the same
    rule this file already kept for v2 when v3 arrived. Only new issuances are
    v4, and verifyChangeChain reads each record's own stamp. */
-const NEGO_HASH_V = 4;
+/* ---- v5: THE HEADING IS INSIDE IT (owner-asked 28 Aug 2026) ----
+   A clause's heading became something a change can move — "3. Payment Terms"
+   proposed as "3. Charges" — and a contract is cited by those strings. Left
+   outside the attestation the heading would have been the one part of the
+   document a change carries and the fingerprint does not: the visible rename
+   could be rewritten without disturbing the hash, which is exactly the v4
+   argument for bringing `ops` inside, one field along.
+
+   It is written through the same length prefix as everything else, so no
+   content can imitate a separator, and it is appended AFTER ops rather than
+   spliced between existing fields — a v5 input is a v4 input with one more
+   field on the end, which is what keeps the two readings easy to compare.
+
+   NOTHING ALREADY FILED MOVES. Every record keeps the version stamped on it
+   and verifies under that version for ever; only new issuances are v5. */
+const NEGO_HASH_V = 5;
 /* Every format a record on a live contract may legitimately be stamped with.
    A record verifies under the version it was WRITTEN under, forever — bumping
    the format must never accuse an existing contract of tampering. */
-const NEGO_HASH_VERIFIES = new Set([2, 3, 4]);
+const NEGO_HASH_VERIFIES = new Set([2, 3, 4, 5]);
 /* length-prefixed, so a field's own content can never look like the separator */
 const _lp = s => { const t = String(s == null ? '' : s); return `${t.length}:${t}`; };
 const _lpOps = ops => (Array.isArray(ops) ? ops : [])
@@ -848,7 +902,11 @@ function negoHashInput(contractRef, iss){
     String(iss.createdAt || ''),
     String(iss.prevChangeHash || ''),
   ];
-  if (v >= 4) return 'hati-change-v4' + fields.map(_lp).join('')
+  if (v >= 5) return 'hati-change-v5' + fields.map(_lp).join('')
+    + _lp(iss.bodyHtml == null ? '' : iss.bodyHtml)
+    + _lp(_lpOps(iss.ops))
+    + _lp(iss.headingText == null ? '' : iss.headingText);
+  if (v === 4) return 'hati-change-v4' + fields.map(_lp).join('')
     + _lp(iss.bodyHtml == null ? '' : iss.bodyHtml)
     + _lp(_lpOps(iss.ops));
   if (v === 3) return ['hati-change-v3', ...fields,
@@ -1246,11 +1304,66 @@ async function negoFileChange(c, draft, opts = {}){
      that is the true no-op this guard has always existed for. */
   const live = c.changes.find(x => x.clauseId === draft.clauseId
     && x.status === 'pending' && x.authorSide === side && x.roundN === roundN);
+  /* ---------- AND WHETHER THE HEADING MOVED (owner-asked 28 Aug 2026) ----------
+     A rename is proposed through the SAME funnel and the same record: nothing
+     new is minted, `headingText` is the field insertClause has always carried,
+     and every guard above — the executed-wording freeze, the desk rule, the
+     review gate — applies to it without knowing it needs to.
+
+     NULL MEANS THE FILING SAYS NOTHING ABOUT THE HEADING, which is what every
+     caller that predates this passes and is why no existing route changes
+     behaviour. A heading equal to the one the clause already carries is stored
+     as '' rather than as itself: it is not a rename, and storing it would leave
+     a record claiming one.
+
+     THE TEST IS WHETHER THIS FILING MOVES WHAT THE RECORD SAYS, not merely
+     whether it differs from the clause. Typing the original heading back over
+     a pending rename is a genuine revision — the record has to stop claiming a
+     rename — and measuring against the clause alone would have made it a no-op
+     and left the stale rename standing. */
+  const headStands = draft.changeType === 'modify'
+    ? negoStandingHeading(c, draft.clauseId) : '';
+  const headAsk = draft.changeType !== 'modify' ? null
+    : draft.headingText == null ? null
+    : (String(draft.headingText).trim() === headStands ? '' : String(draft.headingText).trim());
+  const headingMoved = headAsk != null
+    && headAsk !== String((live && live.headingText) || '').trim();
+  /* What is written onto the record. A modify uses the normalised reading
+     above; every other kind keeps the raw field it always did. */
+  const headingText = draft.changeType === 'modify' ? headAsk
+    : (draft.headingText != null ? String(draft.headingText) : null);
+
   let formattingOnly = false;
-  if (draft.changeType === 'modify' && window.redlineIsNoop && redlineIsNoop(ops)){
+  const bodyNoop = !!(draft.changeType === 'modify' && window.redlineIsNoop && redlineIsNoop(ops));
+  if (bodyNoop){
     formattingOnly = _negoFormattingMoved(c, draft, live);
-    if (!formattingOnly) return null;
+    /* ---- A HEADING RENAME JOINS THE FORMATTING-ONLY EXEMPTION ----
+       It is a real change with no-op body ops, so without this the guard that
+       stops a clause somebody merely LOOKED at filing a fingerprint would
+       swallow it.
+       BOTH HALVES ARE REQUIRED, and the second is what keeps this consistent
+       with the wording beside it: the filing must MOVE what the record says
+       about the heading, and the record must still be proposing one
+       afterwards. So typing the original name back over a pending rename is
+       refused with "nothing changed" — exactly as typing the original WORDING
+       back over a pending edit already is — rather than leaving a change on the
+       column that proposes nothing at all. Taking a rename back is Withdraw,
+       which is the verb for it and is on the card. */
+    const proposesHeading = headAsk != null ? !!headAsk : !!(live && live.headingText);
+    if (!formattingOnly && !(headingMoved && proposesHeading)) return null;
   }
+  /* ---- WHAT THE RECORD SAYS ABOUT ITSELF WHERE NOBODY WROTE A SUMMARY ----
+     A rename with no wording change must not read "Wording changed — …": that
+     is the record stating something untrue about the clause, quietly, for the
+     life of the negotiation. English, like every other stamped string here. */
+  const headLine = `“${headStands || '—'}” → “${(headAsk || headStands) || '—'}”`;
+  const autoSummary = bodyNoop
+    ? (formattingOnly
+        ? (headingMoved ? `${NEGO_FMT_ONLY_SUMMARY}; heading ${headLine}` : NEGO_FMT_ONLY_SUMMARY)
+        : `Heading changed — ${headLine}`)
+    : (headingMoved
+        ? `${negoSummariseOps(draft.changeType, ops, oldText, newText)}; heading ${headLine}`
+        : negoSummariseOps(draft.changeType, ops, oldText, newText));
 
   if (live){
     /* A revision: same slot, new content, new link in the chain. The previous
@@ -1267,7 +1380,7 @@ async function negoFileChange(c, draft, opts = {}){
     live.oldText = oldText;
     live.newText = newText;
     live.bodyHtml = draft.bodyHtml != null ? draft.bodyHtml : live.bodyHtml;
-    live.headingText = draft.headingText != null ? draft.headingText : live.headingText;
+    live.headingText = headingText != null ? headingText : live.headingText;
     live.ops = ops;
     /* Recomputed on every revision: a formatting-only ask revised into a
        wording change stops being formatting-only, and the flag must follow. */
@@ -1300,8 +1413,7 @@ async function negoFileChange(c, draft, opts = {}){
       delete live.revisedBy;
       delete live.revisedAt;
     }
-    live.summary = String(opts.summary || '').trim()
-      || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText));
+    live.summary = String(opts.summary || '').trim() || autoSummary;
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
     if (window.logAudit) logAudit(c, 'Negotiation',
       `#${live.id} revised by ${author} — “${live.summary}” on ${live.clauseLabel || live.clauseId};` +
@@ -1317,7 +1429,7 @@ async function negoFileChange(c, draft, opts = {}){
     changeType: draft.changeType,
     oldText, newText,
     bodyHtml: draft.bodyHtml || null,
-    headingText: draft.headingText || null,
+    headingText: headingText || null,
     afterClauseId: draft.afterClauseId || null,
     ops,
     hash: null, hashV: NEGO_HASH_V, prevChangeHash: null, seq: 0,
@@ -1331,8 +1443,7 @@ async function negoFileChange(c, draft, opts = {}){
     roundN,
     formattingOnly,
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
-    summary: String(opts.summary || '').trim()
-      || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText)),
+    summary: String(opts.summary || '').trim() || autoSummary,
     note: opts.note || null,
     /* WHY THE ASKER ASKED, IN THEIR OWN WORDS — and deliberately not `note`.
        `note` is provenance: "Copilot — Simplify", written by the
@@ -1427,8 +1538,16 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
   if (!cl) return null;
   const body = window.sanitizeRich ? sanitizeRich(newBodyHtml) : String(newBodyHtml || '');
   const newText = window.richToText ? richToText(body) : '';
+  /* ---- THE HEADING RIDES WITH THE WORDING (owner-asked 28 Aug 2026) ----
+     One editor, one press, one record: the heading is part of the clause the
+     reader opened, so renaming it is not a second act with a second door. An
+     ABSENT opts.headingText says nothing about the heading, which is what
+     every caller written before this passes — so the playbook, the Word round
+     trip, Copilot and the clause library all file exactly as they did. */
   return negoFileChange(c, { clauseId, changeType: 'modify',
-    oldText: cl.text, newText, bodyHtml: body, clauseLabel: negoClauseLabel(cl) }, opts);
+    oldText: cl.text, newText, bodyHtml: body,
+    headingText: opts.headingText == null ? null : String(opts.headingText),
+    clauseLabel: negoClauseLabel(cl) }, opts);
 }
 /* A new clause, placed where it was proposed. `afterClauseId` is the clause it
    follows — null puts it at the top. The id is minted at FILING time and
@@ -1828,6 +1947,16 @@ function negoBuildBody(c, take){
     }
     const next = clauseReplaceBody(body, ch.clauseId, replacement);
     if (next != null) body = next;
+    /* ---- AND ITS HEADING, WHERE THE ASK RENAMED ONE ----
+       clauseReplaceHeading keeps the element, its rank and its id and rewrites
+       only the words, so a renamed clause is the same clause: every change
+       already filed against it goes on pointing at it, and the ids the other
+       side holds still resolve. A change that proposes no rename carries no
+       headingText and this does nothing at all. */
+    if (ch.headingText && window.clauseReplaceHeading){
+      const withHead = clauseReplaceHeading(body, ch.clauseId, ch.headingText);
+      if (withHead != null) body = withHead;
+    }
   }
   for (const ch of accepted){
     if (ch.changeType !== 'insertClause') continue;
@@ -3632,13 +3761,15 @@ if (typeof window !== 'undefined') Object.assign(window, {
   cardName, negoTheirCopy,
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
   negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,
+  negoWordsMoved, negoHeadingAsk, negoStandingHeading,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
   negoAnySignature, negoWordingFrozen, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
-  verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
+  verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,
+  NEGO_HASH_V, NEGO_HASH_VERIFIES,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,

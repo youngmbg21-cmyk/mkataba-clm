@@ -3628,6 +3628,19 @@ function redlineLayoutCss(){
   .redline-page .rl-card [data-rl-dead]{opacity:.45;cursor:not-allowed}
   .redline-page .rl-cp-clname{margin:0 0 var(--s-3);font-family:var(--font-heading);
     font-size:16px;font-weight:var(--w-title);color:var(--color-text)}
+  /* ---- THE CLAUSE'S NAME WHILE IT IS BEING TYPED IN ----
+     The SAME name in the same place, wearing the dashed frame this product
+     uses for an editable region on the paper (the owner's 26 Aug ruling: a very
+     light almost dotted line, and nothing that reads as a form field). It adds
+     no colour, no fill and no size of its own, so the name does not move or
+     change weight when the box opens — only the frame arrives, and an OUTLINE
+     takes no space, so nothing under it shifts either. */
+  .redline-page .rl-cp-clname.nego-name-edit{
+    outline:1px dashed color-mix(in srgb, var(--color-text) 26%, transparent);
+    outline-offset:4px}
+  .redline-page .rl-cp-clname.nego-name-edit:focus{
+    outline:1px dashed color-mix(in srgb, var(--color-text) 26%, transparent);
+    outline-offset:4px; box-shadow:none}
   .redline-page .rl-cp-sec{margin:0 0 18px}
   /* ---- THE THINGS THAT POINT AT SOMETHING ARE BLACK ----
      (owner-asked 16 Aug 2026: "the highlighted features that bring your

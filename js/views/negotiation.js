@@ -831,9 +831,35 @@ function negoDocHtml(c, opts){
   /* Every clause carries its own heading, rebuilt from num and title on this
      render. The label is never stored and never hashed, so renumbering the
      contract changes what is printed here and nothing else. */
-  const head = cl => {
+  /* ---- AND A CHANGE CAN PROPOSE A NEW ONE (owner-asked 28 Aug 2026) ----
+     BOTH document renderers or neither: this canvas is what the contract tab
+     and the room draw, redlineDocHtml is what the negotiation page and the
+     counterparty's copy draw, and the rulebook's first rule is that the
+     DRAWING may differ between two surfaces while the READING never may. So
+     the reading is the shared one — negoHeadingAsk — and only the clothes
+     differ: this canvas prints the LABEL (number and title, rebuilt), the
+     other prints the document's own heading verbatim.
+
+     Read the clause's own lead change, which is the change whose body is drawn
+     below it, so the heading and the wording tell one story. */
+  const _headLabel = h => {
+    const raw = String(h || '').trim();
+    if (!raw) return '';
+    if (!window.clauseParseHeading) return raw;
+    try { return negoClauseLabel(clauseParseHeading(raw)) || raw; } catch (_){ return raw; }
+  };
+  const head = (cl, ch) => {
+    const ask = (typeof negoHeadingAsk === 'function') ? negoHeadingAsk(cl, ch) : null;
     const label = negoClauseLabel(cl);
-    return label ? _ne(label) : '';
+    if (!ask) return label ? _ne(label) : '';
+    const to = _headLabel(ask.to);
+    /* A settled rename keeps its marks; a live one follows the reading, the
+       same rule the body under it obeys. */
+    const settled = ch.status !== 'pending' || ch.withdrawn;
+    const which = settled ? 'marks' : rlReadSideOf(ch, rlReadMode());
+    if (which === 'del') return label ? _ne(label) : '';
+    if (which === 'ins') return _ne(to);
+    return `${label ? `<span class="nego-del">${_ne(label)}</span> ` : ''}<span class="nego-ins">${_ne(to)}</span>`;
   };
   /* The redline comes from the change's STORED ops, never from a diff run now.
      Two renders of one record are identical by construction, which is what
@@ -962,7 +988,7 @@ function negoDocHtml(c, opts){
     const rest = _list.filter(x => x !== ch);
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-        ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
+        ${tools(cl)}${head(cl, null) ? `<h2 data-nego-chrome>${head(cl, null)}</h2>` : ''}${negoRichBody(cl)}</div>`;
 
     let body, badgeCls = '', badgeSuffix = '', note = '';
     /* A FORMATTING-ONLY change has all-keep ops — rendered from them it would
@@ -972,7 +998,14 @@ function negoDocHtml(c, opts){
        ask it is. No rich-diff marks are invented — the words are unchanged by
        definition, and the summary and chip say so. */
     const fmtBody = (ch.formattingOnly && ch.bodyHtml && window.sanitizeRich)
-      ? `<div class="nego-redline nego-fmt-only">${sanitizeRich(ch.bodyHtml)}</div>` : null;
+      ? `<div class="nego-redline nego-fmt-only">${sanitizeRich(ch.bodyHtml)}</div>`
+      /* ---- A RENAME MOVES NO WORDS, SO THE CLAUSE READS AS THE DOCUMENT ----
+         Drawn from all-keep ops the clause comes back as its text projection,
+         which costs a numbered or indented clause its shape the moment
+         somebody proposes a new name for it. Same reading and same remedy as
+         redlineDocHtml's, so the two canvases agree. */
+      : (Array.isArray(ch.ops) && ch.ops.length && !negoWordsMoved(ch))
+        ? `<div class="nego-redline">${negoRichBody(cl)}</div>` : null;
     if (ch.status === 'pending'){
       /* A proposed DELETION strikes the clause through whole and leaves every
          word of it on the page. The text is not removed until the deletion is
@@ -1039,7 +1072,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${changeIds}">
       ${row}${restBadges}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="${_ne(i18t('ng_change_aria',{id:ch.id,status:ch.status}))}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${head(cl) ? `<h2 data-nego-chrome>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
+      ${head(cl, ch) ? `<h2 data-nego-chrome>${head(cl, ch)}${inHead}</h2>` : inHead}${body}</div>`;
   };
 
   const insertBlock = ch => {
@@ -4091,6 +4124,53 @@ function wireNegotiationTab(c, opts = {}){
        one path assigned storage straight into a live element. */
     holder.innerHTML = window.sanitizeRich ? sanitizeRich(openOn) : openOn;
     body.replaceWith(holder);
+    /* ---- AND THE CLAUSE'S NAME OPENS WITH ITS WORDING (owner-asked 28 Aug
+       2026: "the ability to edit the name of the header") ----
+       ONE editor, one press, one record: a heading is part of the clause the
+       reader opened, so renaming it is not a second act with a second door and
+       there is no second control anywhere on the page. It opens on what is ON
+       THE TABLE, exactly as the wording below it does — a pending ask's
+       proposed name where there is one, the standing name otherwise — so the
+       box never disagrees with the paper an inch away.
+
+       THE PANEL ONLY, and that is a decision rather than an omission. The
+       panel is the door the paper's own pencil opens, so this is where a
+       reader on the negotiation page arrives. The ROOM's inline editor
+       (negoDocHtml, the contract tab) deliberately gets no name box: that
+       canvas prints a REBUILT LABEL — number and title, assembled on every
+       render — rather than the heading string the document stores, so a box
+       over it would be editing something the record does not hold.
+
+       ONLY WHERE THERE IS A HEADING TO RENAME. A clause with none is an upload
+       that arrived as a wall of paragraphs, and in that document headings do
+       not mark the clauses at all — writing one in would re-segment the whole
+       agreement under a reader who asked to change a name. clauseReplaceHeading
+       refuses it too, so this is the screen agreeing with the model. */
+    const headStands = String((shown && shown.headingText) || (cl && cl.headingText) || '').trim();
+    const headOpen = (newAsk ? String(newAsk.headingText || '').trim() : '')
+      || (onTable ? String(onTable.headingText || '').trim() : '') || headStands;
+    let headEl = null;
+    if (inPanel && headStands){
+      const nameEl = block.querySelector('.rl-cp-clname');
+      if (nameEl){
+        headEl = document.createElement('p');
+        headEl.className = 'rl-cp-clname nego-name-edit';
+        headEl.setAttribute('contenteditable', 'true');
+        headEl.setAttribute('role', 'textbox');
+        headEl.setAttribute('spellcheck', 'true');
+        headEl.setAttribute('aria-label', i18t('ng_cp_name_edit'));
+        headEl.setAttribute('title', i18t('ng_cp_name_edit'));
+        headEl.textContent = headOpen;
+        nameEl.replaceWith(headEl);
+        /* A HEADING IS ONE LINE. The box is contenteditable, so Enter would put
+           a break inside a citation string — and the document model writes a
+           heading with textContent, so that break would be flattened on the way
+           to the record and the box would stop showing what is stored. */
+        headEl.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter'){ ev.preventDefault(); headEl.blur(); }
+        });
+      }
+    }
     /* The clause says it is being written in, so its hover verbs can stand
        down; the repaint that closes the editor takes the class with it. */
     block.classList.add('is-editing');
@@ -4165,11 +4245,17 @@ function wireNegotiationTab(c, opts = {}){
          NO `why` IS PASSED, so the funnel files without one exactly as Skip
          always did. The option is still on the funnel for the Copilot card,
          which is the one surface that still writes a reason. */
+      /* The name, where a box for it was drawn. Absent, both funnel doors read
+         it as "leave the heading as it is" rather than as "clear it", which is
+         what every caller written before this relies on. */
+      const headingText = headEl
+        ? String(headEl.textContent || '').replace(/\s+/g, ' ').trim() : null;
+      const headOpt = headingText == null ? {} : { headingText };
       fileAndRepaint(() => (newAsk
-        ? negoReviseInsert(c, clauseId, { bodyHtml: holder.innerHTML },
+        ? negoReviseInsert(c, clauseId, { bodyHtml: holder.innerHTML, ...headOpt },
           { side, author: opts.by })
         : negoEditClause(c, clauseId, holder.innerHTML,
-          { side, author: opts.by })),
+          { side, author: opts.by, ...headOpt })),
         ch => `#${ch.id} filed — ${ch.summary}`,
         /* Nothing changed — neither words nor formatting. Said IN the bar,
            beside the button that was pressed: the toast alone made File
@@ -9514,6 +9600,12 @@ function redlineDocHtml(c, opts = {}){
          rather than assumed. */
   const liveId = (opts.live && opts.live.clauseId != null) ? String(opts.live.clauseId) : null;
   const liveHtml = liveId ? String(opts.live.html == null ? '' : opts.live.html) : '';
+  /* The clause's NAME is part of the draft too (owner-asked 28 Aug 2026), and
+     it comes through the same seam and under the same four properties: one
+     clause, nothing re-diffed, never persisted, and the counterparty's page
+     neither passes it nor can reach the page that does. Absent, the canvas
+     draws the heading it always drew. */
+  const liveHead = (liveId && opts.live.head != null) ? String(opts.live.head) : null;
   /* ONE PENCIL FOR THE WHOLE CANVAS, so the four clause branches cannot come to
      disagree about which door it opens. */
   const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill });
@@ -9564,10 +9656,38 @@ function redlineDocHtml(c, opts = {}){
      summary and may be reformatted; this is the document, which may not.
      A headingless clause — the fallback for an upload that arrived as a wall of
      paragraphs — gets no heading rather than an invented "Clause". */
+  /* ---- AND A HEADING CAN BE PROPOSED ON, LIKE ANY OTHER WORDING
+     (owner-asked 28 Aug 2026) ----
+     The clause's OWN changes are read here rather than passed in by each of
+     the four call sites below, so the four cannot come to disagree about
+     whether a heading moved — and so the heading and the body under it always
+     tell the same change's story: both ask negoLeadChange, which is the one
+     reading of which change a clause's paper draws.
+
+     IT HONOURS THE READING, exactly as the body does. Under "As agreed" the
+     clause keeps the heading it has; under "With changes" it wears the
+     proposed one; only the redlined reading shows both. A SETTLED rename keeps
+     its marks in every reading for the reason the body's own note gives — the
+     marks are the record of what was decided, and a clean reading is about the
+     questions still open rather than about erasing the answers.
+
+     A clause with no heading of its own still draws one where a change
+     proposes one: there is nothing to strike, and the new name is the whole of
+     what is being asked for. */
   const heading = cl => {
     const raw = String(cl.headingText || '').trim();
-    if (!raw) return '';
-    return `<h4 class="rl-clause-h">${_ne(raw)}</h4>`;
+    const lead = (() => {
+      const chs = byClause.get(cl.clauseId) || [];
+      return chs.length ? negoLeadChange(c, cl, chs) : null;
+    })();
+    const ask = negoHeadingAsk(cl, lead);
+    if (!ask) return raw ? `<h4 class="rl-clause-h">${_ne(raw)}</h4>` : '';
+    const settled = lead.status !== 'pending' || lead.withdrawn;
+    const which = settled ? 'marks' : rlReadSideOf(lead, readMode);
+    if (which === 'del') return raw ? `<h4 class="rl-clause-h">${_ne(ask.from)}</h4>` : '';
+    if (which === 'ins') return `<h4 class="rl-clause-h">${_ne(ask.to)}</h4>`;
+    return `<h4 class="rl-clause-h">${ask.from
+      ? `<span class="nego-del">${_ne(ask.from)}</span> ` : ''}<span class="nego-ins">${_ne(ask.to)}</span></h4>`;
   };
   /* ---- THE BODY, WITH ITS SHAPE ON ----
      negoRichBody renders the clause's own sanitised markup — paragraphs, bold,
@@ -9619,6 +9739,17 @@ function redlineDocHtml(c, opts = {}){
     if (ch.formattingOnly && which === 'del') return null;
     if (ch.formattingOnly && ch.bodyHtml && window.sanitizeRich)
       return `<div class="nego-body${which === 'marks' ? ' nego-fmt-only' : ''}"${tip ? ` title="${_nea(tip)}"` : ''}>${sanitizeRich(ch.bodyHtml)}</div>`;
+    /* ---- THE WORDS DID NOT MOVE, SO THE CLAUSE READS AS THE DOCUMENT ----
+       A heading rename files all-keep ops, exactly as a formatting-only ask
+       does, and drawn from those ops the clause would come back as its TEXT
+       PROJECTION — one flat run where the document has a numbered list, a
+       schedule or an indented sub-paragraph. The wording nobody touched would
+       visibly lose its shape the moment somebody proposed a new name for it.
+
+       So the clause is drawn as itself and the heading above carries the mark.
+       Guarded on the ops actually BEING a list: a change that arrived with no
+       ops at all (an older payload) keeps the fallback it has always had. */
+    if (Array.isArray(ch.ops) && ch.ops.length && !ch.formattingOnly && !negoWordsMoved(ch)) return null;
     const ops = rlOpsAsSide(ch.ops, which);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
       return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip })}</div>`;
@@ -9640,7 +9771,8 @@ function redlineDocHtml(c, opts = {}){
       const liveLabel = String(ch.headingText || '').trim();
       return `<section class="nego-clause rl-clause is-changed rl-clause-new rl-clause-live" data-clause="${_ne(ch.clauseId)}" data-nego-working="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
-          ${liveLabel ? `<h4 class="rl-clause-h">${_ne(liveLabel)}</h4>` : ''}
+          ${liveHead != null ? liveHead
+            : liveLabel ? `<h4 class="rl-clause-h">${_ne(liveLabel)}</h4>` : ''}
           ${pillFor({ clauseId: ch.clauseId })}
         </div>
         ${liveHtml}
@@ -9727,7 +9859,7 @@ function redlineDocHtml(c, opts = {}){
       return `<section class="nego-clause rl-clause is-changed rl-clause-live" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}"${
         liveAnchor ? ` data-nego-card-anchor="${liveAnchor}"` : ''}>
         <div class="rl-clause-top">
-          ${heading(cl)}
+          ${liveHead == null ? heading(cl) : liveHead}
           ${pillFor(cl)}
         </div>
         ${liveHtml}

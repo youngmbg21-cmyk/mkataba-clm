@@ -1501,7 +1501,12 @@ describe('f210 (13) — a clause you proposed is editable too', () => {
     /* The one editor has two homes and now two kinds of ask. Read from the
        source because the branch is what matters: a proposed clause must not
        reach negoEditClause, which measures against a baseline it is not in. */
-    assert.match(SRC, /negoReviseInsert\(c, clauseId, \{ bodyHtml: holder\.innerHTML \}/,
+    /* RE-POINTED 28 Aug 2026: this pinned the whole argument list as a literal,
+       so adding the clause's NAME to the same call read as the branch being
+       gone. The claim was never the arguments — it is that the proposed-clause
+       branch goes to the revise door and carries the wording from the editor's
+       own box. */
+    assert.match(SRC, /negoReviseInsert\(c, clauseId, \{ bodyHtml: holder\.innerHTML/,
       'the save routes a proposed clause to the revise door');
     assert.match(SRC, /newAsk\s*\?\s*negoReviseInsert/,
       'and only when the clause is one that is only proposed');

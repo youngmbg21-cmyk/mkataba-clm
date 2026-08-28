@@ -1653,6 +1653,93 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## A CLAUSE'S NAME IS PART OF THE CLAUSE (owner-asked 28 Aug 2026)
+
+*"the ability to edit the name of the header."* A contract is CITED by its
+headings — "subject to Clause 9", "the limits in Section 4" — so proposing
+“Charges” where the document says “Payment Terms” is a change to the agreement
+and not a caption on a screen. It was the one part of a clause nothing could
+move: `headingText` was carried and applied for an `insertClause` ONLY.
+
+- **IT IS THE ONE FUNNEL, THE ONE RECORD AND NO NEW ACT.** `negoEditClause`
+  gained an optional `opts.headingText` and the change carries it on a `modify`.
+  **ABSENT MEANS THE FILING SAYS NOTHING ABOUT THE HEADING**, which is what every
+  caller written before this passes — the playbook, the Word round trip, Copilot,
+  the clause library — so no existing route changes behaviour and there is
+  nothing to migrate. Every guard the funnel carries (the executed-wording
+  freeze, the desk rule, the review gate) applies without being repeated.
+- **THE NO-OP GUARD HAD TO LEARN ABOUT IT.** A rename files ALL-KEEP ops, so the
+  rule that stops a clause somebody merely LOOKED at filing a fingerprint would
+  have swallowed it. It joins the formatting-only exemption — **on both halves**:
+  the filing must MOVE what the record says about the heading, AND the record
+  must still propose one afterwards. So typing the original name back over a
+  pending rename is refused with “nothing changed”, exactly as typing the
+  original WORDING back already is, rather than leaving a change on the column
+  that proposes nothing at all. **Taking a rename back is Withdraw**, which is
+  the verb for it and is on the card.
+- **THE NAME THE CLAUSE ALREADY HAS IS NOT A RENAME**, and is stored as `''`
+  rather than as itself: storing it would leave a record claiming one.
+  `negoHeadingAsk(cl, ch)` is the ONE reading of whether a heading moved, so the
+  paper, the room, the card and the panel cannot come to disagree about it.
+- **v5, AND THE HEADING IS INSIDE IT.** Left outside the attestation the rename
+  would have been the one part of the document a change carries and the
+  fingerprint does not — the visible rename rewritable without disturbing the
+  hash, which is the v4 argument for `ops`, one field along. Appended AFTER ops
+  through the same length prefix, so a v5 input is a v4 input with one more field
+  on the end. `NEGO_HASH_VERIFIES` gains 5 and **nothing already filed moves**:
+  every record keeps the version stamped on it and verifies under that version
+  for ever.
+- **A CLAUSE WHOSE WORDS DID NOT MOVE READS AS THE DOCUMENT.** Drawn from
+  all-keep ops it would come back as its TEXT PROJECTION — one flat run where the
+  document has a numbered list or an indented sub-paragraph — so the wording
+  nobody touched would visibly lose its shape the moment somebody proposed a new
+  name for it. `negoWordsMoved(ch)` is that reading and BOTH canvases ask it;
+  guarded on the ops actually being a list, so a change that arrived with no ops
+  at all keeps the fallback it has always had.
+- **BOTH RENDERERS, ONE READING, DIFFERENT CLOTHES.** redlineDocHtml prints the
+  document's own heading verbatim; negoDocHtml prints the REBUILT LABEL (number
+  and title). Both honour the reading exactly as the body under them does — As
+  agreed keeps the name the clause has, With changes wears the proposed one, only
+  Redlined shows both — and **a settled rename keeps its marks in every reading**,
+  for the reason the body's own note gives: the marks are the record of what was
+  decided.
+- **ACCEPTING IT KEEPS THE CLAUSE.** `clauseReplaceHeading` rewrites the words and
+  keeps the element, its rank and its id, so a renamed clause is the same clause:
+  every change already filed against it still points at it and the ids the other
+  side holds still resolve.
+- **TWO EDITORS OFFER IT AND ONE DELIBERATELY DOES NOT.** The clause panel (which
+  is the door the paper's own pencil opens) draws an editable `.rl-cp-clname`
+  when the editor opens on it; work mode types it on the paper itself
+  (`#ce-clausehead`), in the same dashed frame the wording wears. **THE ROOM'S
+  INLINE EDITOR GETS NO NAME BOX**: that canvas prints a rebuilt LABEL rather
+  than the heading string the document stores, so a box over it would be editing
+  something the record does not hold.
+- **AND A CLAUSE WITH NO HEADING IS REFUSED ONE.** That is an upload that arrived
+  as a wall of paragraphs, and in that document HEADINGS DO NOT MARK THE CLAUSES
+  — `clauseSegment` reads one clause per top-level block and the ids sit on
+  paragraphs — so writing a heading in would not rename a clause, it would
+  re-segment the whole agreement under a reader who asked to change a name.
+  `clauseReplaceHeading` finds nothing to rewrite and answers null, so the box is
+  simply not drawn where the act cannot work: the screen agreeing with the model.
+- **A HEADING IS ONE LINE AND IT IS TEXT.** Enter finishes the name rather than
+  putting a paragraph break inside a citation string, and what is read back is
+  `textContent` — the document model writes a heading with textContent, so markup
+  a paste brought in would be flattened on the way to the record and the box
+  would stop showing what is stored.
+- **IN WORK MODE THE DRAFT HAS TWO HALVES AND ONE STEP STACK.** `_ceSteps` entries
+  carry `head` beside `text`, `cePullText` takes BOTH onto one step (which is why
+  the heading got no puller of its own — that function is called from about ten
+  places and a second would have had to be remembered at each), and
+  `ceRestoreStep` puts the pair back. A step recorded before the heading joined
+  the stack falls to the standing name, which is what that step meant.
+
+Tests: f249 (39 — **23 of the 28 that run against the parent commit fail there**),
+f35 and f151 (the hash-version claims REVERSED IN PLACE — f151's literal is kept
+as a literal ON PURPOSE, with its own stated reason, and now checks the canonical
+string beside the number so the two cannot drift), f210 (one source claim
+RE-POINTED: it pinned a whole argument list, so adding the name to the same call
+read as the branch being gone).
+
 ## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
 
 Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
@@ -3350,15 +3437,12 @@ starts, the way out driven, the zoom measured bigger and smaller with the
 furniture held still, the Changes rows counted against the record, and the
 delete driven. 168/168.
 
-**NOT BUILT, AND SAID OUT LOUD: RENAMING A CLAUSE HEADING.** The owner asked for
-it ("the ability to edit the name of the header") and it is a change to the
-CHANGE MODEL rather than a control: `headingText` is carried and drawn for
-`insertClause` ONLY, so an edit that renamed an existing clause would need the
-funnel to carry it on a `modifyClause`, `negoBuildBody` to apply it at round
-close, BOTH document renderers to draw the rename as a redline, the payload
-allow-list to pass it, and a decision about whether it joins the fingerprint. A
-half-built version that filed but did not draw is worse than none. It wants its
-own piece of work.
+**RENAMING A CLAUSE HEADING WAS THE ONE THING LEFT, AND IT IS BUILT — see A
+CLAUSE'S NAME IS PART OF THE CLAUSE below.** What stood here listed exactly what
+it would cost (the funnel, negoBuildBody, both renderers, the payload, a
+fingerprint decision) and every line of that list turned out to be the work; the
+one thing it did not predict is that the guard which stops an untouched clause
+filing a fingerprint had to learn about it too.
 
 **TWO TEST FAULTS FOUND ON THE WAY, both mine, and both worth recording.**
 round-delivery-verify held a RACE — sections 3 and 4 need an answer the owner's

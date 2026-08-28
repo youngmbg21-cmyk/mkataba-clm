@@ -1591,7 +1591,11 @@ const STRINGS = {
     ce_step_copilot: 'From Copilot',
     ce_step_playbook: 'From the playbook',
     ce_step_passage: 'One passage rewritten',
+    ng_cp_name_edit: 'The clause\u2019s name \u2014 type to rename it',
     ce_step_typed: 'Typed here',
+    /* The step a heading rename lands on. A draft is the wording AND the
+       clause's name, and the stack has to be able to name which half moved. */
+    ce_step_named: 'Renamed the clause',
     ce_tabs_group: 'Copilot, or the playbook scan',
     ce_tab_chat: 'Suggestions',
     ce_tab_changes: 'Changes',
@@ -6672,7 +6676,9 @@ const STRINGS = {
     ce_step_copilot: 'Från Copilot',
     ce_step_playbook: 'Från spelboken',
     ce_step_passage: 'Ett stycke omskrivet',
+    ng_cp_name_edit: 'Klausulens namn \u2014 skriv för att döpa om den',
     ce_step_typed: 'Skrivet här',
+    ce_step_named: 'Klausulen omdöpt',
     ce_tabs_group: 'Copilot, eller spelbokskontrollen',
     ce_tab_chat: 'Förslag',
     ce_tab_changes: 'Ändringar',

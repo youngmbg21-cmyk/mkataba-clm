@@ -75,9 +75,18 @@ describe('a change is anchored on a clause, not on a position', () => {
       assert.equal(ch.authorSide, 'counterparty');
       /* v3 since the formatting-only work: the canonical string now carries
          the stored rich body, so two asks with the same words and different
-         formatting hash differently. v2 records keep verifying under v2. */
-      // v4 since 14 Aug 2026 — length-prefixed fields, marks inside the hash.
-      assert.equal(ch.hashV, 4, 'and stamped with the hash format it was written under');
+         formatting hash differently. v2 records keep verifying under v2.
+         v4 since 14 Aug 2026 — length-prefixed fields, marks inside the hash.
+         v5 since 28 Aug 2026 — the clause's heading inside it too.
+
+         PINNED AS A RELATION, NOT A NUMBER (28 Aug 2026): the claim is that a
+         record is stamped with the format this build WRITES, and that every
+         format it may legitimately carry still verifies. A literal here made
+         the next honest bump look like a defect, which is the fault this
+         codebase's own rule about pinning relations exists to stop. */
+      assert.equal(ch.hashV, win.NEGO_HASH_V, 'and stamped with the hash format it was written under');
+      assert.ok(win.NEGO_HASH_VERIFIES ? win.NEGO_HASH_VERIFIES.has(ch.hashV) : true,
+        'which this build still verifies');
     }
     assert.deepEqual(own(filed.map(x => x.clauseLabel)),
       ['Clause 4 · Payment Terms', 'Clause 5 · Storage Conditions and Duration',

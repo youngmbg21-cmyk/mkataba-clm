@@ -51,11 +51,20 @@ describe('filing: the funnel tells "unchanged" and "reformatted" apart', () => {
     assert.equal(ch.summary, 'Formatting changed — the wording is unchanged',
       'the summary is truthful — not the "Wording changed" fallback');
     /* v4 since 14 Aug 2026 — the fields are length-prefixed and the redline
-       marks are inside the fingerprint. The version is pinned as a literal on
-       purpose: reading it off NEGO_HASH_V would make this assertion true
-       whatever the constant said, and the whole point of the stamp is that a
-       record can be read back under the format it was written under. */
-    assert.equal(ch.hashV, 4, 'fingerprinted under the format that covers the rich body and the marks');
+       marks are inside the fingerprint. v5 since 28 Aug 2026 — the clause's
+       heading is inside it too, because a heading became something a change
+       can move and a contract is cited by those strings.
+
+       THE VERSION IS PINNED AS A LITERAL ON PURPOSE, and this is the one place
+       in the suite where that is right: reading it off NEGO_HASH_V would make
+       the assertion true whatever the constant said, and the whole point of
+       the stamp is that a record can be read back under the format it was
+       written under. So a bump is a DECISION somebody makes here, with the
+       input string checked beside the number so the two cannot drift. */
+    assert.equal(ch.hashV, 5, 'fingerprinted under the format that covers the rich body and the marks');
+    assert.equal(win.NEGO_HASH_V, 5, 'and that is the format this build writes');
+    assert.ok(win.negoHashInput(c.id, ch).startsWith('hati-change-v5'),
+      'and the canonical string says so itself');
     /* The sanitiser canonicalises B → STRONG on the way in (RICH_MAP), so the
        stored record carries the canonical tag, not the editor's. */
     assert.ok(ch.bodyHtml.includes('<strong>'), 'the proposed markup is on the record');
@@ -145,7 +154,7 @@ describe('the fingerprint attests to the formatting, and old records still verif
     c.negotiation.chainHead = a.hash;
     const b = await win.negoEditClause(c, cl5.clauseId, bolded(cl5.bodyHtml),
       { side: 'counterparty', author: 'Erik Lindqvist' });
-    assert.equal(b.hashV, 4);
+    assert.equal(b.hashV, 5);
     assert.equal(b.prevChangeHash, a.hash, 'the new record chains onto the v2 one');
     const v = await win.verifyChangeChain(c);
     assert.equal(v.ok, true, `mixed-version chain verifies: ${v.detail}`);
