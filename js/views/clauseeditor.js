@@ -633,6 +633,10 @@ function clauseEditorCss(){
     padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
     color:#fff}
   .ce-inline .snd svg{width:15px; height:15px; display:block}
+  .ce-inline .cut{flex:none; width:30px; height:30px; display:inline-grid; place-items:center;
+    padding:0; font:inherit; font-size:var(--t-meta); background:var(--color-surface);
+    border:1px solid var(--color-divider); color:var(--st-ruby-fg); cursor:pointer}
+  .ce-inline .cut:hover{border-color:var(--st-ruby-fg)}
   .ce-inline .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:var(--s-2)}
   .ce-inline .chips button{height:23px; padding:0 var(--s-2); font:inherit; font-size:var(--t-label);
     background:var(--color-surface); color:var(--accent-ink);
@@ -1104,6 +1108,26 @@ function clauseEditorHtml(){
               <div class="row">
                 <textarea id="ce-inline-ask" rows="1"
                   placeholder="${_ceea(_cet('ce_inline_ph'))}"></textarea>
+                ${''/* ---- AND THE ONE THING THE PROTOTYPE'S MENU CARRIED ----
+                       The approved prototype opens a MENU on a highlight —
+                       Replace this wording / Suggest deleting it / Comment on
+                       it / Ask Copilot to redraft it — and only ONE of those
+                       four is a capability this strip does not already have.
+
+                       Replace IS the strip. Ask Copilot is the three chips on
+                       it, so a menu row for it would be a second door onto an
+                       act that already has one. Comment cannot work from here
+                       at all: the notes drawer belongs to the shell and this
+                       page covers the shell, so it would open behind it.
+
+                       So the deleting is put ON the strip rather than behind a
+                       menu in front of it — which also keeps the owner's own
+                       instruction, "a single strip to enter your change". The
+                       departure from the prototype's drawing is deliberate and
+                       is written down here rather than slipped in. */}
+                <button type="button" class="cut" data-ce-act="inline-cut"
+                  aria-label="${_ceea(_cet('ce_inline_cut'))}"
+                  title="${_ceea(_cet('ce_inline_cut_title'))}">&#10005;</button>
                 <button type="button" class="snd" data-ce-act="inline-go"
                   aria-label="${_ceea(_cet('ce_inline_replace'))}"
                   title="${_ceea(_cet('ce_inline_replace_title'))}">${CE_SEND_ICON}</button>
@@ -2864,6 +2888,27 @@ function ceWirePage(page){
       case 'ask': {
         const box = _ceQ('#ce-ask');
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
+        break;
+      }
+      /* ---- STRIKE THE HIGHLIGHTED WORDS OUT ----
+         The passage goes and what is left is tidied where the cut would
+         otherwise leave two spaces or a space before a full stop. It goes
+         through ceReplacePassage like everything else, so the rest of the
+         clause is still carried across character for character — and like
+         everything else on this strip it APPLIES rather than files. */
+      case 'inline-cut': {
+        const sel = _ceSel;
+        if (!sel) break;
+        const lines = ceLines();
+        const ln = lines[sel.line];
+        const at = (ln == null) ? -1 : ln.indexOf(sel.text);
+        if (at < 0){ ceSay(_cet('ce_inline_moved')); break; }
+        const cut = (ln.slice(0, at) + ln.slice(at + sel.text.length))
+          .replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1').trim();
+        if (!cut){ ceSay(_cet('ce_inline_cut_all')); break; }
+        lines[sel.line] = cut;
+        ceCloseInline();
+        ceApply(lines.join('\n'), _cet('ce_step_cut'));
         break;
       }
       /* THE ARROW IS THE ENTER KEY'S TWIN — it applies what is in the box. */

@@ -1583,7 +1583,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       value: ta.value, focused: document.activeElement === ta,
       ctx: !!document.getElementById('ce-inline-q'),
       chips: [...pop.querySelectorAll('[data-ce-inline-chip]')].length,
-      arrow: !!pop.querySelector('[data-ce-act="inline-go"]') };
+      arrow: !!pop.querySelector('[data-ce-act="inline-go"]'),
+      cut: !!pop.querySelector('[data-ce-act="inline-cut"]') };
   });
   ck('18a highlighting a sentence opens ONE strip, as visible pixels',
      sel18.ok && strip.on && strip.w > 100 && strip.h > 20,
@@ -1609,6 +1610,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       text: h.innerText.replace(/\s+/g, ' ').trim(),
       where: (document.getElementById('ce-inline-where') || {}).textContent || '' };
   });
+  ck('18e1 …and the one capability the prototype\'s menu carried: striking words out',
+     strip.cut === true, strip.cut ? 'drawn on the strip' : 'no delete on the strip');
   ck('18e2 …with one quiet line saying where the words go and which keys work',
      hint.there && /clause|klausul/i.test(hint.where) && /Shift|Skift/.test(hint.text)
        && /Esc/.test(hint.text),
@@ -1786,6 +1789,65 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      ============================================================ */
   await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
   await pause(900);
+
+  /* ---- AND STRIKING WORDS OUT, DRIVEN ----
+     THE STRIP IS FOR THE READING, never for a caret already in the clause: a
+     drag inside the typing box is somebody selecting words to bold them, which
+     is why the page's own mouseup bails on it. A freshly opened page has the
+     caret in the clause, so the pencil comes off first. */
+  await p.evaluate(() => {
+    const pen = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
+    if (pen) pen.click();
+  });
+  await pause(500);
+  const cutRun = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody');
+    const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+    const nodes = []; let n;
+    while ((n = w.nextNode())) if (n.data.trim().length >= 24) nodes.push(n);
+    nodes.sort((a, b) => b.data.trim().length - a.data.trim().length);
+    const s = window.getSelection();
+    let picked = '';
+    for (const node of nodes){
+      const t = node.data, from = t.search(/\S/);
+      let to = Math.min(t.length, from + 30); const sp = t.lastIndexOf(' ', to);
+      if (sp > from + 10) to = sp;
+      const r = document.createRange(); r.setStart(node, from); r.setEnd(node, to);
+      s.removeAllRanges(); s.addRange(r);
+      if (window.ceSelection && ceSelection()){
+        picked = String(s.toString()).trim();
+        document.getElementById('ce-doc').dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        break;
+      }
+    }
+    if (!picked) return { ok: false };
+    await new Promise(r => setTimeout(r, 400));
+    const before = (window.CONTRACT.changes || []).length;
+    const btn = document.querySelector('#ce-inline [data-ce-act="inline-cut"]');
+    const found = !!btn;
+    const openBefore = document.getElementById('ce-inline').classList.contains('is-on');
+    const boxVal = (document.getElementById('ce-inline-ask')||{}).value;
+    if (btn) btn.click();
+    await new Promise(r => setTimeout(r, 600));
+    const doc = document.getElementById('ce-clausebody');
+    return { ok: true, picked,
+      struck: doc.querySelectorAll('.nego-del, del').length,
+      found, openBefore, boxVal, say: (document.getElementById('ce-say')||{}).textContent,
+      reading: (window.rlReadMode ? rlReadMode() : '?'),
+      typing: doc.getAttribute('contenteditable'),
+      html: doc.innerHTML.slice(0, 140),
+      shut: !document.getElementById('ce-inline').classList.contains('is-on'),
+      filed: (window.CONTRACT.changes || []).length, before };
+  });
+  ck('18j STRIKING WORDS OUT really strikes them out on the paper',
+     cutRun.ok && cutRun.struck > 0,
+     cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken');
+  ck('18k …the strip closes, and it files nothing either',
+     cutRun.ok && cutRun.shut === true && cutRun.filed === cutRun.before,
+     cutRun.ok ? `shut ${cutRun.shut}, ${cutRun.filed} changes` : '');
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="discard"]');
+    if (b && !b.disabled) b.click(); });
+  await pause(400);
 
   /* ---- ZOOM IS A VIEW, NOT A FONT SIZE ----
      The size box on the toolbar sets the size of the WORDS and stores it in the
