@@ -694,12 +694,20 @@ function ceLeadChange(named){
    change proposes nothing new", which the redline then shows as no marks. */
 function ceWordingOf(ch){
   if (!ch) return _ceBase;
-  const t = String(ch.newText == null ? '' : ch.newText);
-  return t || _ceBase;
+  /* bodyHtml first: it is what the change actually stores and what the funnel
+     takes back. newText is its projection and is the fallback for a change
+     filed before rich bodies existed. */
+  const rich = String(ch.bodyHtml == null ? '' : ch.bodyHtml).trim();
+  if (rich) return rich;
+  const t = String(ch.newText == null ? '' : ch.newText).trim();
+  return t ? ceRich(t) : _ceBase;
 }
 function ceStanding(){
   const cl = ceClause();
-  return String((cl && cl.text) || '').trim();
+  if (!cl) return '';
+  const rich = String(cl.bodyHtml == null ? '' : cl.bodyHtml).trim();
+  if (rich) return window.sanitizeRich ? sanitizeRich(rich) : rich;
+  return ceRich(String(cl.text || '').trim());
 }
 /* The playbook rules this clause is off, counted from the review the contract
    already holds. Never run on open: a scan costs money and a number nobody
@@ -782,6 +790,43 @@ const ceDeviationCount = () => ceScanItems().filter(it => it.v && it.v.status !=
    alarm that is always on, which this rulebook records as the way the one real
    warning stops being read. The label shade, and no colour of its own.
    ========================================================================== */
+/* ---------- RICH IN, WORDS OUT ----------
+   This page's wording is RICH HTML — the same thing the clause and the change
+   already store — because a page whose spine is a plain string throws away
+   bold, a bullet and a size on every keystroke, which made the writing bar a
+   set of dead buttons here.
+
+   NOTHING NEW IS STORED AND THERE IS NO MIGRATION: a clause has carried
+   `bodyHtml` beside its `text` and a change has carried `bodyHtml` beside its
+   `newText` since they were built, and negoEditClause — the funnel this page
+   files through — has always TAKEN rich HTML, because the clause panel's editor
+   hands it `innerHTML`. This page was reading the stripped-down copy of data
+   that was already rich.
+
+   THE REDLINE STILL COMPARES WORDS, deliberately. What the other side verifies
+   is the wording; the funnel already has a formatting-only path for an edit
+   whose words did not move; and a mark drawn from anything else would not be
+   the mark that was filed. So every reading that wants WORDS asks ceWords, and
+   the one representation on the page is the rich one. */
+function ceWords(v){
+  const t = String(v == null ? '' : v);
+  if (!/[<&]/.test(t)) return t;                     /* already plain */
+  if (window.richToText){ try{ return richToText(t); }catch(_){} }
+  const d = document.createElement('div');
+  d.innerHTML = t;
+  return (d.textContent || '');
+}
+/* Anything arriving from somewhere that speaks plain text — a Copilot card, a
+   playbook standard, the replacement strip — becomes rich on the way in, so the
+   page holds ONE representation rather than two that can drift. */
+function ceRich(v){
+  const t = String(v == null ? '' : v);
+  if (/<(p|div|ul|ol|li|h[1-4]|blockquote|pre|table|span|strong|em|u|s|b|i)\b/i.test(t)){
+    return window.sanitizeRich ? sanitizeRich(t) : t;
+  }
+  if (window.negoRichFromLines){ try{ return negoRichFromLines(t); }catch(_){} }
+  return '<p>' + _cee(t).replace(/\n/g, '</p><p>') + '</p>';
+}
 function ceWordCount(t){
   const w = String(t == null ? '' : t).trim();
   return w ? w.split(/\s+/).length : 0;
@@ -790,8 +835,9 @@ function ceWordCount(t){
    there is no wording to compare. The caller draws nothing rather than a line
    reading "changes 0 of 16". */
 function ceCostLine(from, to){
-  const total = ceWordCount(from);
-  if (!total || String(from) === String(to)) return null;
+  const a = ceWords(from), b = ceWords(to);
+  const total = ceWordCount(a);
+  if (!total || a === b) return null;
   const { ins, del } = ceCounts(from, to);
   if (!ins && !del) return null;
   /* PURE ADDITION — nothing of the reader's wording is at risk, so the line
@@ -807,17 +853,19 @@ function ceCostLine(from, to){
    lower box, the marks are worked out one way. */
 function ceOps(a, b){
   if (!window.redlineOps) return null;
-  try{ return redlineOps(String(a == null ? '' : a), String(b == null ? '' : b)); }
+  /* THE PROJECTION, NOT THE MARKUP. redlineOps compares wording; handed HTML it
+     would diff tag soup and mark every formatting change as a word change. */
+  try{ return redlineOps(ceWords(a), ceWords(b)); }
   catch(_){ return null; }
 }
 function ceRedlineHtml(a, b){
   const ops = ceOps(a, b);
-  if (!ops) return `<p>${_cee(b)}</p>`;
+  if (!ops) return `<p>${_cee(ceWords(b))}</p>`;
   try{
     if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops);
     if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops)}</p>`;
   }catch(_){}
-  return `<p>${_cee(b)}</p>`;
+  return `<p>${_cee(ceWords(b))}</p>`;
 }
 function ceCounts(a, b){
   const ops = ceOps(a, b);
@@ -1524,12 +1572,19 @@ function ceRenderPaper(){
   let clean = null;
   if (!typing){
     const mode = (window.rlReadMode ? rlReadMode() : 'marks');
-    if (mode === 'agreed') clean = ceRedlineHtml(_ceBase, _ceBase);
-    else if (mode === 'proposed') clean = ceRedlineHtml(_ceText, _ceText);
+    /* THE CLEAN READINGS SHOW THE WORDING AS IT IS DRESSED, which is the whole
+       point of asking for them: bold, a size and a colour are invisible in the
+       marked reading (it is built from the words that moved) and this is where
+       they show. rlHangRichHtml is the paper's own treatment of rendered
+       markup, so the sub-paragraph shape and the hanging indents are the same
+       here as everywhere else it draws. */
+    const dress = h => (window.rlHangRichHtml ? rlHangRichHtml(h) : h);
+    if (mode === 'agreed') clean = dress(_ceBase);
+    else if (mode === 'proposed') clean = dress(_ceText);
   }
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${ceLinesHtml(_ceText)}</div>`
+        role="textbox" spellcheck="true">${window.sanitizeRich ? sanitizeRich(_ceText) : _ceText}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
   /* The reader's place on the page is the one thing they are holding on to, so
@@ -1587,12 +1642,12 @@ function ceLinesHtml(text){
 function cePullText(){
   const box = _ceQ('#ce-clausebody');
   if (!ceIsTyping() || !box) return;
-  /* Block by block, so the sub-paragraph structure survives a hand edit. */
-  const blocks = [...box.children].filter(el => el.tagName);
-  const lines = blocks.length
-    ? blocks.map(el => String(el.textContent || '').replace(/\s+/g, ' ').trim())
-    : [String(box.textContent || '').replace(/\s+/g, ' ').trim()];
-  const next = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  /* SANITISED ON THE WAY OUT, exactly as the clause panel's editor is: what
+     leaves this box is a stored body, and the allowlist is what decides what a
+     stored body may carry. Reading textContent here is what used to throw the
+     reader's bold and bullets away on every keystroke. */
+  const raw = String(box.innerHTML || '');
+  const next = window.sanitizeRich ? sanitizeRich(raw) : raw;
   if (next === _ceText) return;
   ceApply(next, _cet('ce_step_typed'), { keepView: true });
 }
@@ -1662,8 +1717,11 @@ function ceApply(text, label, opts = {}){
     if (window.toast) toast(_cet('ce_reading_only'), 'warn');
     return false;
   }
-  const next = String(text);
+  const next = ceRich(text);
   if (next === _ceText){ ceSay(_cet('ce_already_in_box')); return false; }
+  /* Two bodies that project to the same wording and differ only in dressing are
+     still a change — the funnel has a formatting-only path for exactly that —
+     so this compares the stored form, never the projection. */
   /* The reason was written about the OLD wording — it may not travel with new
      wording nobody has read it against. */
   if (_ceReason) ceCloseReason();
@@ -2097,7 +2155,7 @@ function ceSelection(){
 /* The wording as LINES, with horizontal runs collapsed and the breaks kept —
    the one reading both the selection and the replacement work in. */
 function ceLines(){
-  return String(_ceText == null ? '' : _ceText).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
+  return ceWords(_ceText).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
 }
 function ceOpenInline(sel){
   const pop = _ceQ('#ce-inline'); if (!pop || !sel) return;
@@ -2213,8 +2271,9 @@ async function ceFile(why){
   const proposed = ceIsProposed();
   const need = proposed ? window.negoReviseInsert : window.negoEditClause;
   if (!need){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return; }
-  const html = window.negoRichFromLines ? negoRichFromLines(_ceText)
-    : `<p>${_cee(_ceText).replace(/\n/g, '</p><p>')}</p>`;
+  /* Already rich, and already sanitised on its way out of the box — the funnel
+     sanitises again on the way in, which is this codebase's standing rule. */
+  const html = _ceText;
   const note = _cet('ce_provenance');
   _ceBusy = true;
   let ch = null, err = null;

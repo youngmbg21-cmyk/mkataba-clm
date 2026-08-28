@@ -222,9 +222,25 @@ describe('f245 (5) — sub-paragraph lines survive', () => {
     p.win.rlCloseClauseEditor();
   });
 
-  test('filing hands the lines to the document builder', () => {
-    assert.ok(/negoRichFromLines\(_ceText\)/.test(CODE),
-      'negoRichFromLines is what reads line openers back into real numbering');
+  /* REVERSED IN PLACE 28 Aug 2026, and the claim is unchanged: line openers are
+     still read back into real numbering by negoRichFromLines. What moved is
+     WHEN. This page's wording is rich HTML now rather than a plain string, so
+     the conversion happens on the way IN — ceRich, the one coercion every plain
+     route goes through — and by the time a change is filed the numbering is
+     already real markup. Filing therefore hands the body straight over.
+     Pinning `negoRichFromLines(_ceText)` would now pin a step that has moved,
+     not the property it was written to protect. */
+  test('line openers are read back into real numbering, on the way in', () => {
+    assert.ok(/function ceRich\(/.test(CODE), 'ceRich is the one coercion');
+    assert.ok(/negoRichFromLines\(t\)/.test(CODE),
+      'and it is what reads line openers back into real numbering');
+  });
+
+  test('filing hands over the rich body it already holds', () => {
+    assert.ok(/const html = _ceText;/.test(CODE),
+      'no second conversion at the filing step — one representation on the page');
+    assert.ok(/negoEditClause\(c, clauseId, html/.test(CODE),
+      'and it still goes through the same funnel');
   });
 });
 
