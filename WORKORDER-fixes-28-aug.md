@@ -21,10 +21,11 @@ before it is touched.
 
 **THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the negotiation
 page's surplus width goes to the cards or to white space (item 1), whether the
-counterparty may rename our clause headings (item 4), whether "the notes panel"
-means that one face or the whole shell drawer (item 5), and item 7's three —
-what is in the right-hand column and when, whether the clause panel survives,
-and whether editing is one clause at a time.
+counterparty may rename our clause headings (item 4), and whether "the notes
+panel" means that one face or the whole shell drawer (item 5). **Item 7's three
+were answered on 28 Aug and are recorded inside it**; the only thing still loose
+there is whether History earns a third tab on the Copilot rail, and that is a
+recommendation the owner can take or leave rather than a blocker.
 
 **ITEM 7 MAY ANSWER ITEM 1's QUESTION BY REMOVING IT.** If the Copilot rail
 takes the right-hand column while a clause is open, "cards or white space" is
@@ -135,9 +136,15 @@ editing toward being one thing in one place, and this is the last layer between
 you and the wording. It also solves item 6 by deletion: two screens to keep alike
 instead of three. Every piece already exists, so nothing is being invented; it is
 a rearrangement. It is not small, though — it merges a page into one six times its
-size. And three things need your answer first: what sits in the right-hand column
-and when, whether the clause panel survives (its **History** has nowhere else to
-live), and whether you edit one clause at a time.
+size. **You have now answered the three things I asked**, so it is fully specified:
+the Copilot window slides over the cards exactly as the clause panel does today,
+you edit one clause at a time, and the clause panel goes.
+
+**One correction I owe you:** I said the panel's *History* section had nowhere
+else to live. That was wrong — I checked, and the contract's own History tab can
+already be filtered to a single clause, so the same record is there. Nothing is
+lost. I have suggested giving the Copilot window a third tab for it anyway, so it
+stays one press away while you edit, but dropping it is a fair choice too.
 
 ---
 
@@ -921,29 +928,65 @@ the move itself**, and it is real: this merges a 2,462-line page into a
 14,128-line one. That is the honest size of it and it should not be sold as
 small.
 
-### THREE QUESTIONS THE OWNER HAS TO ANSWER BEFORE ANYONE BUILDS
+### ANSWERED — 28 Aug 2026. ALL THREE, BY THE OWNER
 
-None is a coding question and none can be defaulted:
+**1 · THE RIGHT-HAND COLUMN.**
 
-1. **WHAT IS IN THE RIGHT-HAND COLUMN, AND WHEN?** Today it is the tracked-changes
-   cards. The Copilot rail wants the same space. The natural answer is that the
-   rail takes the column the way the clause panel ALREADY does — that track,
-   whole, while you are editing — and the cards come back when you close.
-   **Three columns (contract / cards / Copilot) is not an option**: at the
-   divider's own minimum the cards are already 300px and a third column would
-   crush all three.
-2. **DOES THE CLAUSE PANEL SURVIVE?** It carries *As it stands*, *On the table*
-   and *History*. If the Copilot rail takes its place, **History has nowhere to
-   go**, and a settled clause's record is the one thing on that panel with no
-   second home. Either the rail grows a third tab, or the panel and the rail
-   become one object with tabs. **Do not let History fall off the edge** — this
-   file's standing rule is that a fact must be findable somewhere else before its
-   slot is deleted.
-3. **ONE CLAUSE AT A TIME?** The pencil is currently one-at-a-time and should
-   almost certainly stay so, but say it rather than discover it.
+> *"Cards are there initially but when you click the edit symbol, the copilot
+> slides in covering all the way to the top of the page as designed now."*
+
+So the Copilot rail behaves **exactly as the clause panel behaves today**: it
+takes the second track whole, floor to ceiling, over the cards; the cards come
+back when it closes. **That is not a new mechanism — it is the mechanism already
+built and already owner-approved**, with the rail as its content instead of the
+panel's three sections. `rlCpSetShown`'s placement rules, its no-scrim ruling
+(the page behind stays lit and pressable, because you are writing while reading
+it) and its ways out all carry over unchanged.
+
+**2 · THE CLAUSE PANEL, AND A CORRECTION I OWE THE RECORD.**
+
+> *"what history tab are you talking about?"*
+
+The panel's THIRD section, at the bottom of the owner's own screenshot, reading
+**HISTORY — "Nothing has been settled on this clause yet."** It lists what has
+already been agreed or refused **on that one clause**.
+
+**AND MY EARLIER CLAIM THAT IT HAD NOWHERE ELSE TO LIVE WAS WRONG.** Checked
+rather than assumed: `roomHistoryFiltersHtml` gives the room's own History tab a
+**Clause** filter, alongside Person, Side, Round and Outcome. So the same settled
+events are already reachable, filtered to one clause, on another tab. **Nothing
+is lost by the panel going — only convenience.** That materially lowers the cost
+of this item and the file should not have overstated it.
+
+**WHAT HAPPENS TO THE PANEL'S OTHER TWO SECTIONS, since the panel itself goes:**
+- **"As it stands"** — you are looking at it. The clause is on the paper in front
+  of you and you are typing in it. The section was answering a question the
+  merged page answers by construction.
+- **"On the table"** — carried by the context chips on the readings row, which
+  name which ask you are working from. Already built, already there.
+- **"History"** — the only one with no home in the merged layout.
+
+**RECOMMENDED, and it is a recommendation rather than a refusal to decide: give
+the Copilot rail a THIRD TAB.** It already carries Suggestions and Playbook scan;
+History beside them is one more tab, no new concept, and it keeps a clause's
+record one press away while you edit. **The cheaper option is honest too** — drop
+it and let the room's History tab carry it, since it already can. Either is
+defensible; the third tab costs little and keeps the clause's record where the
+clause is.
+
+**3 · ONE CLAUSE AT A TIME.**
+
+> *"One clause at a time"*
+
+Confirmed, and it is what `_ceClauseId` and `_rlCpId` already enforce — one
+value, not a set. Nothing to build; a rule to keep.
 
 ### Notes for whoever builds it
 
+- **THE PANEL IS RETIRED, NOT HIDDEN.** `rlClausePanelHtml` is exported and has
+  callers; follow this file's convention and leave a `return ''` stub rather than
+  deleting it, so a third caller cannot bring a second editing surface back
+  through a door nobody remembered.
 - **THE COUNTERPARTY'S SEAT IS NOT IN THIS.** Their page mounts the same panes.
   Typing on the paper must not turn on there, and `clauseEditorRefusal` already
   refuses their seat — keep that refusal as the wall, wherever the code ends up.
