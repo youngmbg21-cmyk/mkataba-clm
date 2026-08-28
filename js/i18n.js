@@ -1662,12 +1662,18 @@ const STRINGS = {
     ce_scan_add_failed: 'That could not be filed as a new clause.',
     ce_scan_add_unavailable: 'Adding a clause is not available on this screen.',
     ce_rule: 'Playbook rule',
-    ce_inline_ph: 'Shorten this sentence…',
+    ce_inline_ph: 'Type the replacement wording…',
+    ce_inline_replace: 'Replace',
+    ce_inline_replace_title: 'Replace the highlighted wording (Enter)',
+    ce_inline_suggested: 'Copilot\u2019s wording is in the box \u2014 change it if you want to, then press Enter.',
+    /* STALE 28 Aug 2026 — the strip's context line went when the box began
+       carrying the passage itself (owner-asked: "remove this because it takes
+       space away"). Left INERT in both dictionaries. */
     ce_inline_about: 'About: {text}',
     ce_inline_shorten: 'Shorten this',
     ce_inline_firmer: 'Make it firmer',
     ce_inline_plain: 'Plain English',
-    ce_inline_say_what: 'Say what to change about it.',
+    ce_inline_say_what: 'Type the wording that should stand in its place.',
     ce_inline_moved: 'That passage has moved. Highlight it again and try once more.',
     /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'The other side sees this beside the redline.',
@@ -6719,12 +6725,16 @@ const STRINGS = {
     ce_scan_add_failed: 'Det gick inte att registrera det som en ny klausul.',
     ce_scan_add_unavailable: 'Att lägga till en klausul är inte tillgängligt på den här skärmen.',
     ce_rule: 'Spelboksregel',
-    ce_inline_ph: 'Korta ned den här meningen…',
+    ce_inline_ph: 'Skriv den nya formuleringen…',
+    ce_inline_replace: 'Ersätt',
+    ce_inline_replace_title: 'Ersätt den markerade formuleringen (Enter)',
+    ce_inline_suggested: 'Copilots formulering ligger i rutan \u2014 ändra den om du vill och tryck sedan Enter.',
+    /* STALE 28 Aug 2026 — se den engelska noten. Lämnad inaktiv. */
     ce_inline_about: 'Om: {text}',
     ce_inline_shorten: 'Korta ned det här',
     ce_inline_firmer: 'Gör det fastare',
     ce_inline_plain: 'Enkel svenska',
-    ce_inline_say_what: 'Skriv vad som ska ändras.',
+    ce_inline_say_what: 'Skriv formuleringen som ska stå i stället.',
     ce_inline_moved: 'Stycket har flyttat sig. Markera det igen och försök en gång till.',
     /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'Motparten ser det här bredvid ändringen.',

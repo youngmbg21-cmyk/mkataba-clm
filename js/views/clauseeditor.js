@@ -534,6 +534,11 @@ function clauseEditorCss(){
   .ce-ask button:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
+  /* ---- THE REASON PANEL'S RULES, DRESSING NOTHING ----
+     Kept rather than deleted, on this file's own convention for a retired
+     surface: the step went on 28 Aug 2026 (owner-asked) and nothing emits
+     .ce-reason any more. If a reason box ever comes back it wants a decision,
+     not a rediscovery of what it used to look like. */
   .ce-reason{flex:none; background:var(--color-surface); border:1px solid var(--accent-solid);
     padding:11px var(--s-3)}
   .ce-reason[hidden]{display:none}
@@ -551,19 +556,22 @@ function clauseEditorCss(){
   .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
 
-  /* ---- rewriting ONE passage in place ----
-     Highlight a sentence in the proposed wording and a small field opens under
-     it. What comes back replaces THAT passage only — the rest of the clause is
-     untouched, and the redline is recomputed from the two texts as always. */
+  /* ---- HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER ----
+     Highlight a sentence in the contract and this strip opens under it,
+     carrying that sentence. What is in the box replaces THAT passage only —
+     the rest of the clause is untouched, and the redline is recomputed from
+     the two texts as always.
+
+     THE BOX GROWS WITH THE WORDING (ceInlineFit), so max-height is what bounds
+     it rather than a fixed row: a replacement is a sentence, and a strip that
+     shows three words of one is a strip nobody can proof-read. .ce-inline .q
+     is STALE — the context line went with the prefill. */
   .ce-inline{position:absolute; z-index:6; width:min(420px, calc(100% - 24px));
     background:var(--color-surface); border:1px solid var(--accent-solid);
     box-shadow:var(--shadow-md); padding:9px 10px; display:none}
   .ce-inline.is-on{display:block}
-  .ce-inline .q{display:block; font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.45;
-    margin-bottom:var(--s-2); max-height:34px; overflow:hidden}
-  .ce-inline .q b{color:var(--color-text); font-weight:var(--w-strong)}
   .ce-inline .row{display:flex; gap:7px; align-items:flex-end}
-  .ce-inline textarea{flex:1; min-width:0; min-height:30px; max-height:76px; padding:6px 9px;
+  .ce-inline textarea{flex:1; min-width:0; min-height:30px; max-height:120px; overflow-y:auto; padding:6px 9px;
     font:inherit; font-size:var(--t-meta); line-height:1.4; resize:none; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-inline textarea:focus{box-shadow:var(--focus)}
@@ -988,14 +996,35 @@ function clauseEditorHtml(){
               <div class="nego-scroll" id="ce-doc"
                 aria-label="${_ceea(_cet('ce_paper_label'))}"></div>
             </div>
+    ${''/* ---- HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER ----
+           Owner-asked, off Oneflow: "you can highlight a word or sentence and
+           it opens up a window and you enter the replacement redline manually
+           … you get a single strip to enter your change and click and enter
+           button."
+
+           ONE STRIP AND ONE BOX, and the box always holds the PROPOSED
+           WORDING — whoever wrote it. It opens carrying the passage you
+           highlighted, so the common act is editing a sentence rather than
+           retyping one; the three chips ask Copilot for a rewrite and the
+           answer lands IN THE BOX rather than in the contract, which is what
+           lets one strip serve both hands without becoming two.
+
+           AND IT DOES NOT FILE. Enter APPLIES the wording to the draft, so the
+           redline appears against what stands and the one act in the rail's
+           foot is still what puts it on the record. A strip that filed would be
+           a third door onto an act that already has one.
+
+           THE CONTEXT LINE IS GONE (owner-asked, ringing it in a screenshot:
+           "remove this because it takes space away"). It printed the passage
+           the box is now prefilled with — the same words twice, and the second
+           printing costing a row. `ce_inline_about` is STALE. */}
             <div class="ce-inline" id="ce-inline">
-              <span class="q" id="ce-inline-q"></span>
               <div class="row">
                 <textarea id="ce-inline-ask" rows="1"
                   placeholder="${_ceea(_cet('ce_inline_ph'))}"></textarea>
                 <button type="button" class="snd" data-ce-act="inline-go"
-                  aria-label="${_ceea(_cet('ce_send'))}"
-                  title="${_ceea(_cet('ce_send'))}">${CE_SEND_ICON}</button>
+                  aria-label="${_ceea(_cet('ce_inline_replace'))}"
+                  title="${_ceea(_cet('ce_inline_replace_title'))}">${CE_SEND_ICON}</button>
               </div>
               <div class="chips" id="ce-inline-chips"></div>
               <div id="ce-inline-note"></div>
@@ -2281,9 +2310,6 @@ function ceLines(){
 function ceOpenInline(sel){
   const pop = _ceQ('#ce-inline'); if (!pop || !sel) return;
   _ceSel = sel;
-  const q = _ceQ('#ce-inline-q');
-  if (q) q.innerHTML = _cet('ce_inline_about', {
-    text: `<b>${_cee(sel.text.length > 120 ? sel.text.slice(0, 119) + '…' : sel.text)}</b>` });
   const chips = _ceQ('#ce-inline-chips');
   if (chips) chips.innerHTML = [_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain')]
     .map(w => `<button type="button" data-ce-inline-chip="${_ceea(w)}">${_cee(w)}</button>`).join('');
@@ -2301,12 +2327,61 @@ function ceOpenInline(sel){
     pop.style.left = '12px';
   }
   pop.classList.add('is-on');
-  const ta = _ceQ('#ce-inline-ask'); if (ta){ ta.value = ''; try{ ta.focus(); }catch(_){} }
+  /* THE BOX OPENS CARRYING THE PASSAGE, selected, so the first keystroke either
+     replaces it outright or the reader edits in place — which is what a person
+     does with a sentence they want changed rather than removed. */
+  const ta = _ceQ('#ce-inline-ask');
+  if (ta){
+    ta.value = sel.text;
+    ta.style.height = '';
+    try{ ta.focus(); ta.select(); }catch(_){}
+    ceInlineFit(ta);
+  }
+}
+/* The box grows with the wording rather than scrolling inside a one-line slot:
+   a replacement is a sentence, and a strip that shows three words of it is one
+   nobody can proof-read. Capped by the sheet's own max-height. */
+function ceInlineFit(ta){
+  if (!ta) return;
+  try{ ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }catch(_){}
 }
 function ceCloseInline(){
   const pop = _ceQ('#ce-inline'); if (pop) pop.classList.remove('is-on');
   _ceSel = null;
 }
+/* ---- THE ONE REPLACEMENT ----
+   The passage goes, the wording arrives, and every other line of the clause is
+   carried across character for character. ONE reading, because the reader's own
+   typing and a Copilot rewrite are the same act on the record and a second copy
+   is how the two come to disagree about what a line break costs. */
+function ceReplacePassage(sel, wording){
+  const note = _ceQ('#ce-inline-note');
+  const words = String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
+  if (!words){ if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_say_what'))}</p>`; return false; }
+  const lines = ceLines();
+  const ln = lines[sel.line];
+  const at = (ln == null) ? -1 : ln.indexOf(sel.text);
+  if (at < 0){
+    if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_moved'))}</p>`;
+    return false;
+  }
+  if (words === sel.text){ ceCloseInline(); return false; }
+  lines[sel.line] = ln.slice(0, at) + words + ln.slice(at + sel.text.length);
+  ceCloseInline();
+  ceApply(lines.join('\n'), _cet('ce_step_passage'));
+  return true;
+}
+/* THE READER'S OWN HAND: what is in the box IS the wording. It does not file —
+   the redline appears against what stands and the one act in the rail's foot
+   still puts it on the record. */
+function ceInlineApply(wording){
+  const sel = _ceSel; if (!sel) return false;
+  return ceReplacePassage(sel, wording);
+}
+/* A CHIP ASKS COPILOT AND ANSWERS INTO THE BOX, never into the contract: the
+   reader reads the suggestion, edits it if they want to, and presses Enter.
+   That is what keeps ONE strip honest — the box always holds the wording that
+   is about to be proposed, whoever wrote it. */
 async function ceInlineGo(instruction){
   const sel = _ceSel; if (!sel) return;
   const q = String(instruction == null ? '' : instruction).trim();
@@ -2337,19 +2412,16 @@ async function ceInlineGo(instruction){
       : _cet('ce_ask_nothing'))}</p>`;
     return;
   }
-  /* THE REST OF THE CLAUSE IS PROVABLY UNTOUCHED: one replacement, inside the
-     one line the passage was selected from, in the text we already hold. Every
-     other line is carried across character for character. */
-  const lines = ceLines();
-  const ln = lines[sel.line];
-  const at = (ln == null) ? -1 : ln.indexOf(sel.text);
-  if (at < 0){
-    if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_moved'))}</p>`;
-    return;
+  /* INTO THE BOX, NOT INTO THE CONTRACT. The strip stays open on the same
+     passage, so the reader can read what came back, change it, and press
+     Enter — or highlight something else and start again. */
+  const ta = _ceQ('#ce-inline-ask');
+  if (ta){
+    ta.value = wording.replace(/\s+/g, ' ').trim();
+    try{ ta.focus(); }catch(_){}
+    ceInlineFit(ta);
   }
-  lines[sel.line] = ln.slice(0, at) + wording.replace(/\s+/g, ' ').trim() + ln.slice(at + sel.text.length);
-  ceCloseInline();
-  ceApply(lines.join('\n'), _cet('ce_step_passage'));
+  if (note) note.innerHTML = `<p class="work">${_cee(_cet('ce_inline_suggested'))}</p>`;
 }
 
 /* ============================================================================
@@ -2591,9 +2663,10 @@ function ceWirePage(page){
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
         break;
       }
+      /* THE ARROW IS THE ENTER KEY'S TWIN — it applies what is in the box. */
       case 'inline-go': {
         const ta = _ceQ('#ce-inline-ask');
-        ceInlineGo(ta ? ta.value : '');
+        ceInlineApply(ta ? ta.value : '');
         break;
       }
       case 'scan-run': ceRunScan(); break;
@@ -2621,10 +2694,17 @@ function ceWirePage(page){
       }
     });
   }
+  /* ENTER APPLIES THE WORDING; SHIFT+ENTER MAKES A LINE. Bound to the element
+     rather than delegated because this box is written into the page once and is
+     never rebuilt by a paint — and it is the one control on this page whose
+     press is a keystroke rather than a button. */
   const inlineAsk = page.querySelector('#ce-inline-ask');
-  if (inlineAsk) inlineAsk.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); ceInlineGo(inlineAsk.value); }
-  });
+  if (inlineAsk){
+    inlineAsk.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); ceInlineApply(inlineAsk.value); }
+    });
+    inlineAsk.addEventListener('input', () => ceInlineFit(inlineAsk));
+  }
 
   /* A hand edit is an Apply like any other, taken when the box loses focus —
      so the redline, the counts, the draft line and the file button all follow

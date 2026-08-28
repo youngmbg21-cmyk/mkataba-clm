@@ -351,6 +351,58 @@ describe('f245 (8) — nothing asks why, on either path', () => {
   });
 });
 
+describe('f245 (16) — the highlight strip is one strip, and it files nothing', () => {
+  test('the box holds the WORDING, not an instruction to a model', () => {
+    assert.ok(/ceInlineApply/.test(CODE), 'the reader\'s own hand has a name');
+    assert.ok(/ta\.value = sel\.text/.test(CODE),
+      'it opens carrying the passage, so the common act is editing a sentence');
+    assert.ok(!/ce_inline_about/.test(CODE),
+      'and the context line is gone — the words are not printed twice');
+  });
+
+  test('ONE reading of the replacement, shared by the hand and by Copilot', () => {
+    const m = CODE.match(/function ceReplacePassage\([\s\S]{0,900}?\n\}/);
+    assert.ok(m, 'there is one replacement');
+    assert.ok(/lines\[sel\.line\] = ln\.slice\(0, at\)/.test(m[0]),
+      'inside ONE line, with every other line carried across');
+    /* A second copy is how the reader\'s typing and a rewrite come to disagree
+       about what a line break costs. */
+    assert.equal(CODE.split('lines[sel.line] = ln.slice(0, at)').length - 1, 1,
+      'and only one');
+  });
+
+  test('ENTER APPLIES, SHIFT+ENTER MAKES A LINE', () => {
+    assert.ok(/key === 'Enter' && !ev\.shiftKey\){ ev\.preventDefault\(\); ceInlineApply/.test(CODE),
+      'Enter files the wording into the draft');
+  });
+
+  test('A CHIP ANSWERS INTO THE BOX, never into the contract', () => {
+    const go = CODE.match(/async function ceInlineGo\([\s\S]{0,2400}?\n\}/);
+    assert.ok(go, 'the Copilot path is its own function');
+    assert.ok(/ta\.value = wording/.test(go[0]),
+      'what comes back lands in the box for the reader to read and edit');
+    assert.ok(!/ceApply\(/.test(go[0]),
+      'and never straight onto the paper — one strip, one box, one press');
+  });
+
+  test('AND THE STRIP IS NOT A THIRD DOOR — it files nothing', () => {
+    const rep = CODE.match(/function ceReplacePassage\([\s\S]{0,900}?\n\}/)[0];
+    for (const door of ['negoEditClause', 'negoFileChange', 'negoReviseInsert', 'persist('])
+      assert.ok(!rep.includes(door), door + ' must not be reachable from the strip');
+    assert.ok(/ceApply\(lines\.join/.test(rep),
+      'it applies to the draft; the one act in the rail\'s foot still files');
+  });
+
+  test('both languages carry its words', () => {
+    for (const k of ['ce_inline_ph', 'ce_inline_replace', 'ce_inline_replace_title',
+      'ce_inline_suggested', 'ce_inline_say_what']){
+      assert.ok(new RegExp('\\b' + k + ':').test(I18N), k + ' is in the dictionary');
+      assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+});
+
 describe('f245 (9) — the counterparty\'s seat is untouched', () => {
   test('the row door is never drawn on their page', () => {
     const m = NEGO.match(/const ceBtn = \([\s\S]{0,220}/);

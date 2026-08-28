@@ -1491,6 +1491,123 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('17p pressing the chip lights it, on the row it now lives on',
      chipPress.on === true && chipPress.where === true, JSON.stringify(chipPress));
 
+  /* ============================================================
+     18. HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER
+     ============================================================
+     Owner-asked, off Oneflow: "you can highlight a word or sentence and it
+     opens up a window and you enter the replacement redline manually … you get
+     a single strip to enter your change and click and enter button."
+
+     DRIVEN, never inspected. Whether a strip exists is a different question
+     from whether a person can highlight a sentence, retype it and see the
+     redline — and only the second one matters. The selection is made with a
+     real Range over the clause's own text node. */
+  /* THE STRIP IS FOR THE READING, never for a caret already in the clause: a
+     drag inside the typing box is somebody selecting words to bold them, which
+     is why the page's own mouseup bails on it. Section 17 left typing ON, so
+     the pencil is pressed once to come out of it. */
+  await p.evaluate(() => {
+    const pen = document.querySelector('#clause-editor [data-ce-pencil][aria-pressed="true"]')
+      || document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
+    if (pen) pen.click();
+  });
+  await pause(500);
+  const beforeStrip = await p.evaluate(() => (window.CONTRACT.changes || []).length);
+  const sel18 = await p.evaluate(() => {
+    /* THE CLAUSE THIS PAGE IS ABOUT, not the longest paragraph on the paper:
+       ceSelection refuses a highlight outside #ce-clausebody, and it has to —
+       a passage in another clause has no line in the text this page holds.
+
+       AND IT ASKS THE PAGE'S OWN RULE WHETHER THE HIGHLIGHT COUNTS, rather
+       than assuming any forty characters will do: the paper is drawn as a
+       REDLINE, so a text node can be a struck run that is not in the wording
+       at all, and a slice cut mid-word can straddle two of them. The candidate
+       nodes are tried in order and the first one ceSelection accepts is the
+       one used — which is exactly what a person dragging over a sentence gets. */
+    const box = document.getElementById('ce-clausebody');
+    if (!box) return { ok: false, why: 'no live clause on the paper' };
+    if (window.ceIsTyping && ceIsTyping()) return { ok: false, why: 'still typing' };
+    const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    let n;
+    while ((n = w.nextNode())){
+      if (n.parentElement && n.parentElement.closest('.rl-marker, .mk')) continue;
+      if (n.data.trim().length >= 24) nodes.push(n);
+    }
+    nodes.sort((a, b) => b.data.trim().length - a.data.trim().length);
+    const s = window.getSelection();
+    for (const node of nodes){
+      const txt = node.data;
+      const from = txt.search(/\S/);
+      /* Cut on a word boundary — a slice ending mid-word is a highlight no
+         person makes and no rule has to accept. */
+      let to = Math.min(txt.length, from + 44);
+      const sp = txt.lastIndexOf(' ', to);
+      if (sp > from + 12) to = sp;
+      const r = document.createRange();
+      r.setStart(node, from); r.setEnd(node, to);
+      s.removeAllRanges(); s.addRange(r);
+      if (window.ceSelection && ceSelection()){
+        document.getElementById('ce-doc')
+          .dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        return { ok: true, text: String(s.toString()) };
+      }
+    }
+    s.removeAllRanges();
+    return { ok: false, why: `no candidate the page accepts (${nodes.length} tried)` };
+  });
+  await pause(400);
+  const strip = await p.evaluate(() => {
+    const pop = document.getElementById('ce-inline');
+    const ta = document.getElementById('ce-inline-ask');
+    if (!pop || !ta) return { on: false };
+    const r = pop.getBoundingClientRect();
+    return { on: pop.classList.contains('is-on'), w: Math.round(r.width), h: Math.round(r.height),
+      value: ta.value, focused: document.activeElement === ta,
+      ctx: !!document.getElementById('ce-inline-q'),
+      chips: [...pop.querySelectorAll('[data-ce-inline-chip]')].length,
+      arrow: !!pop.querySelector('[data-ce-act="inline-go"]') };
+  });
+  ck('18a highlighting a sentence opens ONE strip, as visible pixels',
+     sel18.ok && strip.on && strip.w > 100 && strip.h > 20,
+     sel18.ok ? `${strip.w}x${strip.h}` : sel18.why);
+  ck('18b the box CARRIES the highlighted wording, ready to be edited',
+     !!strip.value && strip.value.trim() === (sel18.text || '').trim(),
+     `"${(strip.value || '').slice(0, 46)}…"`);
+  ck('18c and the caret is in it — no second press to start typing', strip.focused === true,
+     strip.focused ? 'focused' : 'not focused');
+  ck('18d THE CONTEXT BOX IS GONE — the words are not printed twice',
+     strip.ctx === false, strip.ctx ? '#ce-inline-q still drawn' : 'no context line');
+  ck('18e Copilot is still one press away, on the same strip',
+     strip.chips === 3 && strip.arrow === true, `${strip.chips} chips, arrow ${strip.arrow}`);
+
+  /* THE PRESS ITSELF: type a replacement and hit Enter for real. */
+  const enterPress = await p.evaluate(async () => {
+    const ta = document.getElementById('ce-inline-ask');
+    ta.value = 'Payment falls due within forty-five (45) days of a valid invoice.';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.dispatchEvent(new KeyboardEvent('keydown',
+      { key: 'Enter', shiftKey: false, bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 500));
+    const doc = document.getElementById('ce-clausebody');
+    return {
+      shut: !document.getElementById('ce-inline').classList.contains('is-on'),
+      ins: [...doc.querySelectorAll('.nego-ins')].map(e => e.textContent).join(' '),
+      del: doc.querySelectorAll('.nego-del').length,
+      words: doc.textContent.replace(/\s+/g, ' '),
+      filed: (window.CONTRACT.changes || []).length };
+  });
+  ck('18f pressing Enter puts the new wording on the paper',
+     /forty-five \(45\) days/.test(enterPress.ins) || /forty-five \(45\) days/.test(enterPress.words),
+     (enterPress.ins || '').slice(0, 60) || 'nothing inserted');
+  ck('18g …as a REDLINE — the words it replaces are struck, not deleted',
+     enterPress.del > 0, `${enterPress.del} struck runs`);
+  ck('18h the strip closes behind it', enterPress.shut === true, enterPress.shut ? 'shut' : 'still open');
+  /* THE ONE DOOR: a strip that FILED would be a third way onto an act that
+     already has one. It applies to the draft; the rail's foot still files. */
+  ck('18i AND IT FILES NOTHING — the record is untouched until the one act is pressed',
+     enterPress.filed === beforeStrip, `${enterPress.filed} changes, ${beforeStrip} before`);
+
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
 
