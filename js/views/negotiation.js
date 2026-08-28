@@ -6011,7 +6011,13 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
      where to look the first time they need it, and "nothing has been asked
      about this clause yet" is a real answer to a real question. */
   return `<div class="rl-cp-src${rlCpOpenId() === String(cl.clauseId) ? ' is-on' : ''}" data-rl-cp-for="${id}">
-    <p class="rl-cp-clname">${_ne(String(cl.headingText || cl.title || '').trim() || i18t('ng_cp_stands'))}</p>
+    ${''/* The region has no heading of its own — its title is INSIDE its own
+           markup, which is what makes editing the region edit the title — so it
+           is named here in the reader's own language. `cl.title` is the RECORD's
+           word (English, stamped into clauseLabel) and is deliberately not what
+           a screen prints. */}
+    <p class="rl-cp-clname">${cl.front ? _ne(i18t('ng_front_matter'))
+      : _ne(String(cl.headingText || cl.title || '').trim() || i18t('ng_cp_stands'))}</p>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t(isNew ? 'ng_cp_proposed' : 'ng_cp_stands')}</h5>
       <p class="rl-cp-note">${i18t(isNew ? 'ng_cp_proposed_note' : 'ng_cp_stands_note')}</p>
@@ -9996,16 +10002,78 @@ function redlineDocHtml(c, opts = {}){
      what belongs here today. Where a document has no front matter of its own
      (an upload that arrived as a wall of paragraphs) the old label head
      stands, because inventing a recital would be worse than naming the file. */
-  const front = (window.clauseFrontMatter
+  /* ---- AND IT IS PROPOSED ON LIKE ANYTHING ELSE (owner-ruled 28 Aug 2026) ----
+     The front matter is a REGION the change model can address under one
+     reserved id (see CLAUSE_FRONT_ID). It is deliberately not in
+     negoClauseList, so no count, queue or numbering knows about it; what it
+     gets is a pencil of its own, a redline over its own words, and a body in
+     the clause panel.
+
+     THE THREE READINGS ARE DRAWN AS DOCUMENTS, not as marks. A clean reading
+     has real markup available on both sides — the baseline's, and the one the
+     change proposes — so 'As agreed' and 'With changes' keep the title's own
+     size and the recital's own shape. ONLY the redlined reading flattens the
+     region to its text, which is what a redline is and is the same trade every
+     clause on this page already makes.
+
+     WHERE THE REGION DOES NOT EXIST (an upload that arrived as a wall of
+     paragraphs) nothing changes at all: the old label head still stands, and
+     no pencil is drawn, because clauseFrontClause answers null and the act
+     cannot work there. */
+  const frontCl = (typeof negoFrontClause === 'function') ? negoFrontClause(c) : null;
+  const frontChs = frontCl ? (byClause.get(frontCl.clauseId) || []) : [];
+  const frontCh = frontChs.length ? negoLeadChange(c, frontCl, frontChs) : null;
+  const frontLive = !!(frontCl && liveId && String(frontCl.clauseId) === liveId);
+  /* The region's markup for a clean reading, or null when the marks are what
+     this reading wants. */
+  const frontMarkup = () => {
+    if (!frontCl) return null;
+    if (!frontCh) return frontCl.bodyHtml;
+    const settled = frontCh.status !== 'pending' || frontCh.withdrawn;
+    const which = settled ? 'marks' : rlReadSideOf(frontCh, readMode);
+    if (which === 'del') return frontCl.bodyHtml;
+    if (which === 'ins'){
+      const rich = String(frontCh.bodyHtml || '').trim();
+      return rich ? (window.sanitizeRich ? sanitizeRich(rich) : rich) : null;
+    }
+    return null;
+  };
+  const frontDrawn = frontLive ? null : frontMarkup();
+  const frontParts = (frontCl && frontDrawn != null && window.clauseFrontParts)
+    ? clauseFrontParts(frontDrawn) : null;
+  const front = frontParts || (window.clauseFrontMatter
     ? clauseFrontMatter((window.negoBodyOf ? negoBodyOf(c) : negoBaseBody(c)))
     : null) || { titleText: '', leadHtml: '', bodyHtml: '' };
-  const head = front.titleText
-    ? `<header class="rl-paper-head">
+  /* The pencil rides in the header, not over the paper: it is the one control
+     the region has, and it opens the same panel every clause's does. */
+  const frontPill = frontCl ? pillFor(frontCl) : '';
+  const frontAttrs = frontCl
+    ? ` data-clause="${_ne(frontCl.clauseId)}" data-nego-working="${_ne(frontCl.clauseId)}"${
+      frontChs.length ? ` data-nego-card-anchor="${_ne(frontChs.map(x => x.id).reverse().join(' '))}"` : ''}`
+    : '';
+  const frontMarks = () => {
+    if (frontLive) return liveHtml;
+    if (!frontCh) return '';
+    const tip = String((frontCh.author || '') || '').trim();
+    const ops = rlOpsAsSide(frontCh.ops, 'marks');
+    if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '' })}</div>`;
+    return `<div class="nego-body"><p>${_ne(frontCh.newText || '')}</p></div>`;
+  };
+  const head = (frontCl && frontDrawn == null)
+    ? `<header class="rl-paper-head rl-front is-changed"${frontAttrs}>
+      <div class="rl-front-top">${frontPill}</div>
+      ${frontMarks()}
+    </header>${frontCl ? cpPush(frontCl, frontChs) : ''}`
+    : front.titleText
+    ? `<header class="rl-paper-head${frontCl ? ' rl-front' : ''}"${frontAttrs}>
+      ${frontCl ? `<div class="rl-front-top">${frontPill}</div>` : ''}
       ${front.leadHtml ? `<div class="rl-paper-kick">${front.leadHtml}</div>` : ''}
       <h3 class="rl-paper-title">${_ne(front.titleText)}</h3>
       ${front.leadHtml ? '' : `<p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>`}
     </header>
-    ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}`
+    ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}${
+      frontCl ? cpPush(frontCl, frontChs) : ''}`
     : `<header class="rl-paper-head">
       <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
       <p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>
@@ -13045,6 +13113,13 @@ function rlQueueRows(c, opts = {}){
      Changes are filed in the order somebody happened to make them; a queue
      that does not run top-to-bottom down the contract is not a reading order. */
   const order = new Map();
+  /* ---- THE FRONT MATTER IS THE TOP OF THE DOCUMENT, SO IT READS FIRST ----
+     It is a REGION rather than a clause, so it is deliberately not in
+     negoClauseList and its place in the reading order has to be stated rather
+     than looked up. Left to the fallback it would sort LAST, which is the one
+     thing this queue's own note says it must never do. */
+  const _frontId = (typeof window !== 'undefined' && window.CLAUSE_FRONT_ID) || 'front';
+  order.set(_frontId, -1);
   (typeof negoClauseList === 'function' ? negoClauseList(c) : [])
     .forEach((cl, i) => { if (cl && cl.clauseId) order.set(cl.clauseId, i); });
 
@@ -13058,7 +13133,11 @@ function rlQueueRows(c, opts = {}){
       const parsed = window.clauseParseHeading
         ? clauseParseHeading(ch.clauseLabel || '') : { num: '', title: '' };
       row = { key, clauseId: ch.clauseId || null,
-        num: parsed.num || '', title: parsed.title || String(ch.clauseLabel || '').trim(),
+        num: parsed.num || '',
+        /* The region is named in the reader's own language; `clauseLabel` is
+           the RECORD's word and stays on the record. */
+        title: key === _frontId ? i18t('ng_front_matter')
+          : (parsed.title || String(ch.clauseLabel || '').trim()),
         at: order.has(key) ? order.get(key) : Number.MAX_SAFE_INTEGER,
         changes: [], pending: 0, held: 0, accepted: 0, rejected: 0, why: [], lead: null };
       rows.set(key, row);

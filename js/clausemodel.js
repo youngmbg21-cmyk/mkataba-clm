@@ -505,12 +505,19 @@ function clauseSegment(html){
 /* ---------- the chrome, on request ----------
    clauseSegment deliberately skips the document's own front matter — the
    kicker line, the title <h1> and the recital / party paragraph between the
-   title and the first clause heading. Right for the CHANGE MODEL (nobody
-   negotiates the title), wrong to lose from a PAGE that claims to show the
-   document: the Doc page prints all of it, so a workbench that starts at
-   "1." reads as a different contract. This returns exactly what the
-   segmentation skips, detected by the same rule so the two can never
-   disagree about where the clauses start. */
+   title and the first clause heading. Right for the CHANGE MODEL, wrong to
+   lose from a PAGE that claims to show the document: the Doc page prints all
+   of it, so a workbench that starts at "1." reads as a different contract.
+   This returns exactly what the segmentation skips, detected by the same rule
+   so the two can never disagree about where the clauses start.
+
+   ---- "NOBODY NEGOTIATES THE TITLE" WAS REVERSED ON 28 Aug 2026 ----
+   This note used to give that as the reason the segmentation skips the front
+   matter, and the owner has ruled the other way: the recital names the parties
+   and states what the agreement is FOR, and both are argued over on real paper.
+   The skip STANDS — the front matter is not one of the numbered clauses and
+   must not turn up in the queue, the counts or the clause index — and it is
+   reachable as a REGION instead: see CLAUSE_FRONT_ID below. */
 function clauseFrontMatter(html){
   const none = { titleText: '', titleHtml: '', leadHtml: '', bodyHtml: '' };
   const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
@@ -533,6 +540,123 @@ function clauseFrontMatter(html){
     leadHtml: blocks.slice(0, first).map(el => el.outerHTML).join(''),
     bodyHtml: body.join(''),
   };
+}
+
+/* ============================================================
+   THE FRONT MATTER AS A REGION THE CHANGE MODEL CAN ADDRESS
+   ------------------------------------------------------------
+   (owner-ruled 28 Aug 2026: front matter "editable, recorded as a document
+   change".)
+
+   The title, the kicker line above it and the recital under it are the
+   agreement's own words — they name the parties and state what the contract is
+   for — and until now they were the one part of the document nothing could
+   propose against, because the change model keys everything on a clause id and
+   the front matter has none.
+
+   IT IS GIVEN ONE. `front` is a reserved id and it is deliberately NOT
+   `cl_`-prefixed: clauseNewId only ever mints `cl_…`, and clauseStampIds only
+   ever writes what clauseNewId returns, so no document's own clause can carry
+   this id and no collision is possible by construction rather than by luck.
+
+   WHAT THAT BUYS is the whole reason for doing it this way: the funnel, the
+   fingerprint, the revision fold, the cards, the round close, the payload
+   allow-list and the counterparty's copy all address a change by clauseId and
+   already work. Nothing new is minted, no new changeType, no new store, no
+   migration.
+
+   WHAT IT IS NOT: a clause. clauseSegment still skips it, so it never appears
+   in the clause list, the round queue, the numbering or the counts — a reader
+   is not asked to decide "clause 0". Only the region's own pencil reaches it.
+   ============================================================ */
+const CLAUSE_FRONT_ID = 'front';
+/* Where the front matter ends and the clauses begin — the SAME reading
+   clauseSegment and clauseFrontMatter use, asked once so the three can never
+   disagree about where the document's own words stop. Returns -1 where this
+   document has no front-matter region at all. */
+function _clFrontEnd(blocks, headings){
+  const titleAt = _clTitleIndex(blocks, headings);
+  if (titleAt < 0) return -1;
+  /* ---- ONLY WHERE HEADINGS MARK THE CLAUSES, AND THIS IS A REFUSAL ----
+     In a document whose headings do NOT mark its clauses, every block under the
+     title is a clause in its own right and the ids sit on paragraphs. A front
+     matter region there is one block wide and an edit to it that happened to
+     introduce a heading would re-segment the entire agreement under a reader
+     who was correcting a party's name. Not offered rather than guarded. */
+  if (!_clHeadingsMarkClauses(blocks, headings)) return -1;
+  for (let i = titleAt + 1; i < blocks.length; i++)
+    if (CLAUSE_HEADINGS.has(blocks[i].tagName)) return i;
+  return blocks.length;
+}
+/* The region, shaped like a clause so every reader that already knows how to
+   read one needs no second shape. It carries no headingText on purpose: the
+   title is INSIDE the region's own markup, which is what makes editing the
+   region edit the title, and a heading of its own would be a second answer to
+   "what is this called". */
+function clauseFrontClause(html){
+  const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
+  const blocks = Array.from(root.children);
+  const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+  const end = _clFrontEnd(blocks, headings);
+  if (end < 0) return null;
+  const bodyHtml = blocks.slice(0, end).map(el => el.outerHTML).join('');
+  if (!bodyHtml) return null;
+  return { clauseId: CLAUSE_FRONT_ID, front: true, rank: 0,
+    num: '', title: 'Front matter', headingText: '', headingHtml: '',
+    bodyHtml, text: window.richToText ? richToText(bodyHtml) : '' };
+}
+/* The region's own shape, for whichever markup is being drawn — the baseline's
+   or the one a change proposes. clauseFrontMatter answers the same question
+   about a WHOLE DOCUMENT and is untouched; this answers it about the region on
+   its own, which is what a renderer needs once the region has two versions.
+   The first heading is the title, whatever rank it carries: inside the region
+   there is nothing else a heading could be. */
+function clauseFrontParts(frontHtml){
+  const none = { titleText: '', titleHtml: '', leadHtml: '', bodyHtml: '' };
+  const root = _clParse(window.sanitizeRich ? sanitizeRich(frontHtml) : frontHtml);
+  const blocks = Array.from(root.children);
+  if (!blocks.length) return none;
+  const at = blocks.findIndex(el => CLAUSE_HEADINGS.has(el.tagName));
+  if (at < 0) return { ...none, bodyHtml: blocks.map(el => el.outerHTML).join('') };
+  return {
+    titleText: (blocks[at].textContent || '').replace(/\s+/g, ' ').trim(),
+    titleHtml: blocks[at].outerHTML,
+    leadHtml: blocks.slice(0, at).map(el => el.outerHTML).join(''),
+    bodyHtml: blocks.slice(at + 1).map(el => el.outerHTML).join(''),
+  };
+}
+/* Replace the region's blocks in place.
+   ---- IT MAY NOT CHANGE WHAT THE CLAUSES ARE, AND THAT IS MEASURED ----
+   A heading pasted into the recital is a NEW CLAUSE as far as this model is
+   concerned, and the document would re-segment under a reader who was editing
+   the parties' names — every clause id in the agreement re-pointed, silently,
+   by a paste. So the result is read back through the segmentation the rest of
+   the product uses and refused unless it returns the same clause ids in the
+   same order. Refusing is null, which every caller here already treats as
+   "this could not be written". */
+function clauseReplaceFront(html, frontHtml){
+  const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
+  const blocks = Array.from(root.children);
+  const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+  const end = _clFrontEnd(blocks, headings);
+  if (end < 0) return null;
+  const before = clauseSegment(root.innerHTML).map(cl => cl.clauseId).join('|');
+  const frag = _clParse(window.sanitizeRich ? sanitizeRich(frontHtml) : frontHtml);
+  const incoming = Array.from(frag.children);
+  if (!incoming.length) return null;
+  const mark = blocks[end] || null;
+  for (const el of incoming) root.insertBefore(el, mark);
+  for (let i = 0; i < end; i++) blocks[i].remove();
+  const out = root.innerHTML;
+  if (clauseSegment(out).map(cl => cl.clauseId).join('|') !== before) return null;
+  /* ---- AND THE REGION HAS TO SURVIVE ITS OWN EDIT ----
+     The region is detected by its TITLE — a rank-1 heading above the first
+     clause — so an edit that deletes the title leaves the recital orphaned and
+     the region itself unreachable for ever: nothing would draw a pencil on it
+     again and nothing could ever propose against it. One accepted change would
+     quietly close a door and there would be no way back. Refused. */
+  if (!clauseFrontClause(out)) return null;
+  return out;
 }
 
 function _clauseFallback(blocks, html){
@@ -1113,6 +1237,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
   clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
+  CLAUSE_FRONT_ID, clauseFrontClause, clauseFrontParts, clauseReplaceFront,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,
   clauseHeadingRenumber, clauseRenumberText, clauseRenumberBodyHtml, clauseRenumberPlan,

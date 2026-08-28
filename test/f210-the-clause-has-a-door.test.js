@@ -71,7 +71,11 @@ function page(p, opts = {}){
   box.innerHTML = p.win.redlinePanesHtml(p.c, { side: 'owner', hiddenIds: [], ...opts });
   return box;
 }
-const pills = box => [...box.querySelectorAll('.rl-cp-pill')];
+/* THE CLAUSES' pencils. NARROWED 28 Aug 2026: the front matter became a region
+   the change model can address (owner-ruled) and it carries the same control in
+   a row of its own, so a bare class selector no longer means "one per clause".
+   The claims in this file are about CLAUSES; the region's own pencil is f249's. */
+const pills = box => [...box.querySelectorAll('.rl-clause .rl-cp-pill')];
 const bodies = box => [...box.querySelectorAll('#rl-cp-body .rl-cp-src')];
 
 describe('f210 (1) — the pill', () => {

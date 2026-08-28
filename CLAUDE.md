@@ -1740,6 +1740,101 @@ string beside the number so the two cannot drift), f210 (one source claim
 RE-POINTED: it pinned a whole argument list, so adding the name to the same call
 read as the branch being gone).
 
+## THE FRONT MATTER IS A REGION, AND IT IS PROPOSED ON (owner-ruled 28 Aug 2026)
+
+*Front matter — the title, the parties, the recitals and the signature block —
+"editable, recorded as a document change."*
+
+The opening names the parties and states what the agreement is FOR, and both are
+argued over on real paper. It was the one part of the document nothing could
+propose against, because the change model keys everything on a clause id and the
+front matter has none. **`clauseSegment`'s own note gave the reason in so many
+words — "nobody negotiates the title" — and that line is REVERSED IN PLACE.**
+
+- **THE SKIP STANDS; THE REGION IS NEW.** `clauseSegment` still skips the front
+  matter, so it never appears in the clause list, the round queue's document
+  order lookup, the numbering or any count — **a reader is never asked to decide
+  "clause 0"**. What it gains is one reserved id, `CLAUSE_FRONT_ID = 'front'`,
+  and that id is **deliberately not `cl_`-prefixed**: `clauseNewId` only ever
+  mints `cl_…` and `clauseStampIds` only ever writes what `clauseNewId` returns,
+  so a collision is impossible by construction rather than by luck.
+- **WHAT THAT BUYS IS THE WHOLE REASON FOR DOING IT THIS WAY.** The funnel, the
+  fingerprint, the revision fold, the cards, the round close, the payload
+  allow-list and the counterparty's copy all address a change by `clauseId` and
+  already work. No new changeType, no new store, no new route, no migration.
+  `negoClauseById` and `negoClauseNowById` route on the id and everything
+  downstream inherits it.
+- **THREE FUNCTIONS IN THE MODEL, and they are the only new machinery**:
+  `clauseFrontClause(html)` reads the region as a clause-shaped object,
+  `clauseFrontParts(frontHtml)` splits whichever version is being drawn into
+  kicker / title / recital, and `clauseReplaceFront(html, frontHtml)` writes it
+  back. `_clFrontEnd` is where the region ends, asked once so the segmentation,
+  `clauseFrontMatter` and the writer cannot disagree about where the document's
+  own words stop.
+- **IT MAY NOT CHANGE WHAT THE CLAUSES ARE, AND THAT IS MEASURED.** A heading
+  pasted into the recital is a NEW CLAUSE as far as this model is concerned, and
+  the agreement would re-segment under a reader who was correcting a party's
+  name — every clause id re-pointed, silently, by a paste. So the result is read
+  back through the segmentation the rest of the product uses and refused unless
+  it returns the same clause ids in the same order. **The trial runs at the
+  filing door**, so the reader is told in words at the moment they press rather
+  than having the change file, travel, and then quietly fail to apply when the
+  round closes.
+- **AND THE REGION HAS TO SURVIVE ITS OWN EDIT.** The region is detected by its
+  TITLE — a rank-1 heading above the first clause — so an edit that deleted the
+  title would leave the recital orphaned and the region itself unreachable for
+  ever: no pencil would draw on it again and nothing could propose against it.
+  One accepted change would quietly close a door with no way back. Refused.
+  Dropping the RECITAL is allowed; only the title is load-bearing.
+- **ONLY WHERE HEADINGS MARK THE CLAUSES.** In a document whose headings do not
+  — an upload that arrived as a wall of paragraphs — every block under the title
+  IS a clause and the ids sit on paragraphs, so a front-matter edit that happened
+  to introduce a heading would re-segment the whole agreement. **Not offered
+  rather than guarded**: `clauseFrontClause` answers null, no pencil is drawn,
+  and the paper draws exactly what it always drew.
+- **THE THREE READINGS ARE DOCUMENTS, NOT MARKS.** A clean reading has real
+  markup on both sides — the baseline's, and the one the change proposes — so
+  'As agreed' and 'With changes' keep the title's own size and the recital's own
+  shape. **Only the redlined reading flattens the region to its text**, which is
+  what a redline is and is the same trade every clause on this page already
+  makes.
+- **ONE CONTROL AND NOTHING ELSE ON THE PAPER.** The pencil every clause carries,
+  at the region's top right, hover-only like theirs, opening the same clause
+  panel through the same `data-rl-cp-open`. `is-changed` borrows the clause's own
+  red margin rule rather than inventing a second mark. **No band, no caption, no
+  box** — the standing rule about what may go on a page.
+- **THE RECORD SAYS "Front matter"; THE SCREENS SAY the reader's own words.**
+  `clauseLabel` builds the stored `clauseLabel` from the region's `title`, and a
+  stamped string keeps English like every other record here. The panel's name and
+  the queue row print `ng_front_matter` instead.
+- **AND IT READS FIRST IN THE ROUND QUEUE.** The region is the top of the
+  document, and it is not in `negoClauseList`, so its place in the reading order
+  is STATED (`order.set(front, -1)`) rather than looked up — left to the
+  fallback it would sort LAST, which is the one thing that queue's own note says
+  it must never do.
+- **THE ROOM IS DELIBERATELY UNCHANGED.** `negoDocHtml` has never drawn the front
+  matter — it prints a label head of its own — and still does not. No reading
+  differs: the page that has always drawn the document's own words is the page
+  that draws their redline.
+- **THE SIGNATURE BLOCK IS NOT IN THE REGION, and that is said out loud.**
+  `rlPaperFootHtml` is DERIVED from `c.party` and `c.counterparty` — it is not
+  document text at all — so editing it means editing the record, and Key terms is
+  its one door. Building a second one here would be the duplication this rulebook
+  opens by warning about.
+
+Tests: f250 (26 — **all 26 fail against the parent commit**), f210 (its pencil
+selector NARROWED in place: the region carries the same control in a row of its
+own, so a bare class selector stopped meaning "one per clause"; the claims in
+that file are about CLAUSES and the region's own pencil is f250's).
+
+**AND THE BACKTICK FAULT WAS PAID A FOURTH TIME, in the same file that records
+it.** A CSS comment in js/views/negotiation-css.js quoted a class name in
+backticks; the file returns CSS from a JS template literal, so the pair ended the
+string and the browser tried to parse the rules after it as code. Nine tests in
+an unrelated file went red with `SyntaxError: Unexpected identifier`. Say
+"the is-changed class" in prose. f236 is the net and the linter caught it in one
+run.
+
 ## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
 
 Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4

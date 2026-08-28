@@ -77,7 +77,26 @@ function negoClauseList(c){
   negoInit(c);
   return window.clauseSegment ? clauseSegment(c.negotiation.baselineBody || '') : [];
 }
-const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === id) || null;
+/* ---------- THE FRONT MATTER IS A REGION, NOT A CLAUSE ----------
+   (owner-ruled 28 Aug 2026: "editable, recorded as a document change".)
+   The title, the kicker above it and the recital under it are the agreement's
+   own words and are argued over on real paper, so they are addressable by the
+   change model under one reserved id — see CLAUSE_FRONT_ID in js/clausemodel.js
+   for why that id can never collide with a document's own.
+
+   IT IS NOT IN negoClauseList AND MUST NOT BE. Every count, the round queue,
+   the numbering and the clause index read that list, and a reader must never be
+   asked to decide "clause 0". Only the region's own pencil reaches it. */
+const negoFrontId = () => (typeof window !== 'undefined' && window.CLAUSE_FRONT_ID) || 'front';
+const negoIsFrontId = id => String(id || '') === negoFrontId();
+function negoFrontClause(c){
+  negoInit(c);
+  if (!window.clauseFrontClause) return null;
+  try{ return clauseFrontClause(c.negotiation.baselineBody || ''); }catch(_){ return null; }
+}
+const negoClauseById = (c, id) => (negoIsFrontId(id)
+  ? negoFrontClause(c)
+  : negoClauseList(c).find(cl => cl.clauseId === id) || null);
 
 /* ---------- THE CLAUSE AS THE PERSON TYPING IS SHOWN IT ----------
    negoClauseList above is the ROUND BASELINE, and it is the right reading for
@@ -117,7 +136,12 @@ function negoClauseNowById(c, clauseId){
     && x.status === 'accepted' && x.changeType === 'modify');
   if (!moved) return base;
   let now = null;
-  try { now = clauseSegment(negoResolvedBody(c)).find(cl => cl.clauseId === clauseId) || null; }
+  try {
+    const resolved = negoResolvedBody(c);
+    now = negoIsFrontId(clauseId)
+      ? (window.clauseFrontClause ? clauseFrontClause(resolved) : null)
+      : (clauseSegment(resolved).find(cl => cl.clauseId === clauseId) || null);
+  }
   catch (_){ now = null; }
   return now || base;
 }
@@ -1538,6 +1562,24 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
   if (!cl) return null;
   const body = window.sanitizeRich ? sanitizeRich(newBodyHtml) : String(newBodyHtml || '');
   const newText = window.richToText ? richToText(body) : '';
+  /* ---- A FRONT-MATTER EDIT MAY NOT CHANGE WHAT THE CLAUSES ARE ----
+     A heading pasted into the recital is a NEW CLAUSE as far as the model is
+     concerned, and the agreement would re-segment under a reader who was
+     correcting a party's name. clauseReplaceFront measures exactly that and
+     refuses; the trial is run HERE, at the door, so the reader is told in words
+     at the moment they press rather than having the change file, travel, and
+     then quietly fail to apply when the round closes. Measured against the
+     ROUND BASELINE, because that is what negoBuildBody replays from. */
+  if (negoIsFrontId(clauseId) && window.clauseReplaceFront){
+    let ok = null;
+    try{ ok = clauseReplaceFront(negoBaseBody(c), body); }catch(_){ ok = null; }
+    if (ok == null){
+      const why = i18t('ne_front_restructures');
+      negoLastRefusal = why;
+      if (!opts.quiet && window.toast) toast(why, 'err');
+      return null;
+    }
+  }
   /* ---- THE HEADING RIDES WITH THE WORDING (owner-asked 28 Aug 2026) ----
      One editor, one press, one record: the heading is part of the clause the
      reader opened, so renaming it is not a second act with a second door. An
@@ -1945,7 +1987,16 @@ function negoBuildBody(c, take){
         ? negoBodyFromText(was.bodyHtml, ch.newText)
         : `<p>${_negoEsc(ch.newText)}</p>`;
     }
-    const next = clauseReplaceBody(body, ch.clauseId, replacement);
+    /* ---- THE FRONT MATTER IS WRITTEN BACK AS A REGION ----
+       Its blocks are the document's own words above the first clause, so they
+       are replaced whole rather than by clause id. clauseReplaceFront refuses
+       (null) any replacement that would change what the clauses ARE, and the
+       refusal is honoured here in the safe direction: the region simply does
+       not move, so the document is never left re-segmented. The filing door
+       refuses in words long before this, so a reader never meets the silence. */
+    const next = negoIsFrontId(ch.clauseId)
+      ? (window.clauseReplaceFront ? clauseReplaceFront(body, replacement) : null)
+      : clauseReplaceBody(body, ch.clauseId, replacement);
     if (next != null) body = next;
     /* ---- AND ITS HEADING, WHERE THE ASK RENAMED ONE ----
        clauseReplaceHeading keeps the element, its rank and its id and rewrites
@@ -3761,7 +3812,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   cardName, negoTheirCopy,
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
   negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,
-  negoWordsMoved, negoHeadingAsk, negoStandingHeading,
+  negoWordsMoved, negoHeadingAsk, negoStandingHeading, negoFrontClause, negoIsFrontId,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,

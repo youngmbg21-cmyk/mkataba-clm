@@ -2196,6 +2196,7 @@ function redlineLayoutCss(){
     transition:background var(--dur-1),color var(--dur-1)}
   .redline-page .rl-cp-pill svg{width:calc(15px * var(--doc-scale,1));height:calc(15px * var(--doc-scale,1));display:block}
   .redline-page .rl-clause:hover .rl-cp-pill,
+  .redline-page .rl-front:hover .rl-cp-pill,
   .redline-page .rl-cp-pill:focus-visible,
   .redline-page .rl-cp-pill[aria-expanded="true"]{opacity:1}
   @media (hover:none){ .redline-page .rl-cp-pill{opacity:1} }
@@ -3626,6 +3627,22 @@ function redlineLayoutCss(){
      see redlineChangeCardsHtml's previewSeat. The tab row's own dead rule is
      scoped to the tab row, so the cards need their own. */}
   .redline-page .rl-card [data-rl-dead]{opacity:.45;cursor:not-allowed}
+  /* ---- THE FRONT MATTER IS A REGION WITH ONE CONTROL ----
+     (owner-ruled 28 Aug 2026.) The pencil sits at the region's top right,
+     exactly where every clause's does, and it is the ONLY thing added to the
+     paper — no band, no caption, no box. The row reserves no height of its own:
+     the pencil is hover-only like the clause's, so on a resting page the front
+     matter is drawn exactly as it always was.
+     The is-changed class borrows the clause's own red margin rule rather than
+     inventing a second mark for "this has been argued over".
+     NO BACKTICKS IN THIS FILE'S COMMENTS — it returns CSS from a JS template
+     literal, so a pair of them ends the string and EVALUATES what is between.
+     Caught here for the fourth time; f236 is the net. */
+  .redline-page .rl-front{position:relative}
+  .redline-page .rl-front-top{line-height:0}
+  .redline-page .rl-front.is-changed::after{content:''; position:absolute;
+    top:0; bottom:0; right:-18px; width:3px; border-radius:0; background:var(--danger)}
+  html.dark .redline-page .rl-front.is-changed::after{background:#f87171}
   .redline-page .rl-cp-clname{margin:0 0 var(--s-3);font-family:var(--font-heading);
     font-size:16px;font-weight:var(--w-title);color:var(--color-text)}
   /* ---- THE CLAUSE'S NAME WHILE IT IS BEING TYPED IN ----

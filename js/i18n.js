@@ -1592,6 +1592,8 @@ const STRINGS = {
     ce_step_playbook: 'From the playbook',
     ce_step_passage: 'One passage rewritten',
     ng_cp_name_edit: 'The clause\u2019s name \u2014 type to rename it',
+    ne_front_restructures: 'That edit would change how the agreement is divided into clauses. The opening keeps its title, and headings belong to clauses rather than to the title and recital.',
+    ng_front_matter: 'Title and recital',
     ce_step_typed: 'Typed here',
     /* The step a heading rename lands on. A draft is the wording AND the
        clause's name, and the stack has to be able to name which half moved. */
@@ -6677,6 +6679,8 @@ const STRINGS = {
     ce_step_playbook: 'Från spelboken',
     ce_step_passage: 'Ett stycke omskrivet',
     ng_cp_name_edit: 'Klausulens namn \u2014 skriv för att döpa om den',
+    ne_front_restructures: 'Den ändringen skulle ändra hur avtalet delas in i klausuler. Inledningen behåller sin titel, och rubriker hör till klausuler och inte till titeln och ingressen.',
+    ng_front_matter: 'Titel och ingress',
     ce_step_typed: 'Skrivet här',
     ce_step_named: 'Klausulen omdöpt',
     ce_tabs_group: 'Copilot, eller spelbokskontrollen',
