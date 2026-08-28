@@ -19,11 +19,14 @@ Item 2 **could not be reproduced from the code**, and what was found says the
 obvious explanation is probably the wrong one — it must be watched happening
 before it is touched.
 
-**ONE QUESTION IS STILL OPEN AND ONE MORE WAS RAISED**, and neither should be
-guessed at: whether the negotiation page's surplus width goes to the cards or to
-white space (item 1), and whether the counterparty may rename our clause headings
-(item 4). Item 5 adds a third — whether "the notes panel" means that one face or
-the whole shell drawer.
+**THREE QUESTIONS ARE OPEN AND NONE SHOULD BE GUESSED AT:** whether the
+negotiation page's surplus width goes to the cards or to white space (item 1),
+whether the counterparty may rename our clause headings (item 4), and whether
+"the notes panel" means that one face or the whole shell drawer (item 5).
+
+**ITEM 6 IS NOT ONE OF THEM AND MUST NOT BE TURNED BACK INTO ONE.** It is
+decided, it is independent, and an earlier draft of this file wrongly made it
+conditional on item 1 — see the note inside it.
 
 ---
 
@@ -112,7 +115,11 @@ magnifies the contract by up to double to fill the screen.** That is why it has
 always looked the best to you. Making it match the negotiation page will make its
 words **smaller** on your desktop, not bigger. That's the honest price and you
 should hear it before I build it — though the A⁻/A⁺ size buttons already let you
-choose the size yourself, which is arguably the better way round.
+choose the size yourself, which is arguably the better way round. **You have
+said this twice and been told the cost, so it is decided — nobody should ask you
+again.** It does not wait on anything else: built properly, all three screens
+read one setting, so a later change to the negotiation page carries the other two
+with it automatically.
 
 ---
 
@@ -758,35 +765,55 @@ doing a job that control already does — and doing it by guessing from the wind
 width rather than from what the reader asked for. One deliberate setting beats
 two mechanisms arguing.
 
-### THE DIRECTION HAS FLIPPED ONCE ALREADY — SAY SO RATHER THAN DISCOVER IT
+### DECIDED — 28 Aug 2026. NO PICK IS NEEDED AND NONE SHOULD BE ASKED FOR
 
-- **13 Aug 2026, owner-asked:** *"widening the negotiation and counterparty
-  pages must make the WORDING bigger, not the margin — the thing the Document
-  tab already does."* Magnify everywhere.
-- **22 Aug 2026, the redesign:** reversed that for the negotiation page and
-  pinned its zoom at 1, because the divider is a control you move all day and a
-  magnifying sheet changes the type size on every drag.
-- **28 Aug 2026, this ask:** make the Document tab match the negotiation page.
-  Steady everywhere.
+> *"I do not understand why i need to pick as I just said i want what is in the
+> negotiation screen."*
 
-**This ask is consistent with the most recent decision and finishes it across
-the platform** — it is not a new argument, it is the 22 Aug direction applied to
-the two screens that never got it. But it does reverse the 13 Aug call, and the
-owner has now asked for both directions at different times, so **confirm before
-building** rather than risking a third flip.
+**The owner is right and this file was wrong.** An earlier draft of this item
+made itself conditional on item 1's A/B/C/D and asked for the direction to be
+confirmed a third time. Both were mistakes and are struck out here rather than
+quietly edited away, because the reasoning matters:
+
+- **"Copy the negotiation page" is fully defined TODAY.** It does not need item
+  1 answered. It is a RELATION — these three screens agree — and a relation is
+  true whatever the thing they agree on turns out to be.
+- **THE DIRECTION HAS BEEN GIVEN TWICE AND THE COST WAS STATED IN BETWEEN.** On
+  13 Aug 2026 the owner asked for magnify-everywhere; 22 Aug reversed that for
+  the negotiation page; this ask finishes the 22 Aug direction across the
+  platform. The owner was told plainly that the Document tab's words get up to
+  half the size and repeated the instruction. **That is the decision. Stop
+  asking.**
+
+### WHAT MAKES IT SURVIVE ITEM 1 — BUILD THE RULE, NOT THE LOOK
+
+The only reason this looked like it depended on item 1 is that it CAN be built
+the wrong way. **Do not copy today's numbers onto the other two screens.** Make
+all three read the same declaration:
+
+- ONE sheet width, one token, read by the negotiation page, the Document tab and
+  the clause editor. `DOC_PAGE_W` (660) and `RL_SHEET_MAX` (860) are two numbers
+  for one fact and must become one.
+- ONE ground behind the sheet — the page's own, `.rl-doc`'s transparent column.
+  `.ce-paperwrap` gives up its surface fill and its border.
+- ONE answer to "does the sheet magnify" — no. `#doc-zoom` and `DOC_ZOOM_MAX`
+  retire from the Document tab, as `rlApplyDocZoom` already has from the
+  negotiation page. **The A⁻/A⁺ stepper is the reader's own control and is what
+  covers the case magnification was guessing at.**
+
+Built that way, **item 1 later moves all three screens at once, for free**, and
+there is nothing to come back and redo. Built as a copy of today's look, item 1
+would mean doing the Document tab twice — which is the only real risk here, and
+it is a build instruction rather than a question for the owner.
 
 ### Notes for whoever builds it
 
-- **THIS IS ITEM 1's QUESTION ON THREE SCREENS AT ONCE.** Whatever the owner
-  picks for the negotiation page (A, B, C or D) is what the Document tab and the
-  Copilot page must then copy — so **do item 1 first and this second**, or the
-  Document tab gets built to match a layout that is about to change.
-- **THE COPILOT PAGE'S HALF CAN GO FIRST AND SAFELY.** It is a ground colour,
-  it matches whatever the negotiation page does today, and it survives item 1
-  unchanged because it inherits `.rl-doc`.
-- **`DOC_PAGE_W` (660) AND `RL_SHEET_MAX` (860) ARE TWO NUMBERS FOR ONE FACT.**
-  If the tabs are to agree, the sheet is ONE token both read — the same
-  one-declaration rule item 1's ruling already carries. Do not leave two.
+- **THIS DOES NOT WAIT ON ITEM 1**, and an earlier draft of this file said it
+  did. Built as one shared declaration (above) the two are independent: this one
+  makes the three screens agree, item 1 later decides what they agree ON.
+- **THE COPILOT PAGE'S HALF IS THE SMALLEST THING IN THIS WHOLE WORK ORDER.** A
+  ground colour and a border, on a page that already inherits everything else
+  from `.rl-doc`. It can ship on its own, today, and nothing later disturbs it.
 - **CHECK THE PHONE AND THE COUNTERPARTY BEFORE SWEEPING.** Both paint the same
   sheet from the same tokens; neither was in this ask. The counterparty's page
   in particular is read by people outside the building and is its own decision.
@@ -815,7 +842,8 @@ building** rather than risking a third flip.
   item 5 is the smallest thing here — three numbers and a stale comment — and
   should be done AFTER item 1, since item 1 changes the page underneath it;
   item 6 is two fixes wearing one report, one of them a single declaration and
-  the other a decision that changes how big the words are on the Documents tab.
+  the other a decision that changes how big the words are on the Documents tab —
+  and it is DECIDED and independent, not waiting on item 1.
 - **NO BRAND-SPECIFIC CLM COMPARISON WAS WRITTEN**, because none could be
   verified. See *What I could not verify* under item 1. If the owner wants one,
   it needs a trial account and screenshots, not a search.
