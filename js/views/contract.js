@@ -4249,7 +4249,11 @@ function openNegoProposeModal(c){
   if(c.templateForm){ toast(i18t('ct_standard_template_readonly'),'err'); return; }
   const base=negoBaseText(c);
   if(!base.trim()){ toast(i18t('ct_no_wording_to_propose'),'err'); return; }
-  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
+  /* THE AGREEMENT'S OWN MEASURE, not the platform's: this window shows contract
+     WORDING, so it is capped for the same reason the sheet is and reads the
+     same token (29 Aug 2026 — it typed 860 itself, which is how the sheets came
+     to disagree in the first place). */
+  const COL='width:100%;max-width:var(--doc-sheet-max,860px);margin-left:auto;margin-right:auto';
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
@@ -4645,17 +4649,42 @@ function layoutDocResizer(){
    window would render a contract at poster size.
    DOC_PAGE_W is the page's border-box width — it sets the max-width in the
    markup below, so the two cannot drift apart. */
-const DOC_PAGE_W = 660;
-const DOC_ZOOM_MAX = 2.0;   // fills a 2560-wide window; past this it stops being a contract
+/* ---- THE THREE SCREENS THAT DRAW THE AGREEMENT NOW AGREE (owner-asked
+   28 Aug 2026, and ruled a second time when the cost was put to them) ----
+   DOC_PAGE_W was 660 and the negotiation page's sheet was 860: TWO NUMBERS FOR
+   ONE FACT, which is how the same contract came to look like a different
+   product on each tab. Both read `--doc-sheet-max` in index.html now, and so
+   does the clause editor, which draws the same .rl-paper. The constant survives
+   because the markup below and any measurement want a number rather than a
+   token string; it is DERIVED from the token so the two cannot drift.
+
+   AND THIS TAB NO LONGER MAGNIFIES. It scaled the whole sheet by up to 2× to
+   fill the pane, which is why it always read as the good tab — and it is the
+   half of this that costs something: ON A WIDE MONITOR ITS WORDS GET SMALLER,
+   up to half. The owner was told that plainly and repeated the instruction.
+
+   THE ARGUMENT FOR IT, so the next reader does not undo it: the A⁻/A⁺ stepper
+   already writes --doc-scale on both screens, so the reader has a deliberate
+   size control — and the magnification was doing that same job by GUESSING
+   from the window width. One setting the reader asked for beats two mechanisms
+   arguing, and the negotiation page settled the same question the same way on
+   22 Aug 2026.
+
+   PINNED AT 1 RATHER THAN DELETED, which is rlApplyDocZoom's own precedent on
+   the negotiation page: several callers ask the layout to re-fit and one named
+   thing they can all keep calling is better than four private opinions. */
+const DOC_SHEET_FALLBACK = 860;
+function docSheetMax(){
+  if(typeof document==='undefined'||!document.documentElement) return DOC_SHEET_FALLBACK;
+  const v=getComputedStyle(document.documentElement).getPropertyValue('--doc-sheet-max');
+  const n=parseFloat(v);
+  return n>0 ? n : DOC_SHEET_FALLBACK;
+}
+const DOC_PAGE_W = DOC_SHEET_FALLBACK;
 function applyDocZoom(){
-  const pane=document.getElementById('doc-scroll'), wrap=document.getElementById('doc-zoom');
-  if(!pane||!wrap) return;
-  const cs=getComputedStyle(pane);
-  // clientWidth already excludes the scrollbar; the 2px keeps a rounding
-  // overshoot from tipping the pane into a horizontal scroll.
-  const room=pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
-  const fit=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
-  wrap.style.setProperty('--doc-zoom', fit.toFixed(3));
+  const wrap=document.getElementById('doc-zoom');
+  if(!wrap) return;
+  wrap.style.setProperty('--doc-zoom', '1');
   /* ---- AND THE READER'S TEXT SIZE, WHICH IS THE TYPE AND NOT THE PAGE ----
      (13 Aug 2026, owner-asked: "lower it to 8 but keep the page filling the
      column".) The A⁻/A⁺ stepper both tabs carry — persisted by the workbench,
@@ -5864,9 +5893,12 @@ function renderWorkspace(){
       <section style="overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
         <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:var(--s-1) 2px var(--s-6)">
-          <!-- The page and its banners scale together to fill whatever width the
-               divider gives them (see applyDocZoom), so a wider contract is a
-               bigger contract rather than a wider margin. -->
+          <!-- THE SHEET DOES NOT MAGNIFY (29 Aug 2026): it is capped at
+               --doc-sheet-max and centres, exactly as the negotiation page's
+               is, and the surplus either side is the page's own ground. The
+               reader's own A⁻/A⁺ stepper is what changes the size of the
+               words. The wrapper stays so applyDocZoom keeps one place to
+               pin. -->
           <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
           ${''/* THE SECOND EXPLANATORY BAR IS GONE. The quiet line under the
                  tabs already says how this tab reads and how to leave it; a
@@ -5896,7 +5928,7 @@ function renderWorkspace(){
                  with the contract's other facts in the right-hand column
                  (Young, 10 Aug 2026: "open this space up for the contract
                  exclusively"). Same builder, same words, one column across. */}
-          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:0;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
             ${''/* The parties' lines at the foot are NOT drawn here. Every

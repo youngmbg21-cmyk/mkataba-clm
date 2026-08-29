@@ -1054,9 +1054,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      The old "hover verbs stand down while typing" check went with the hover
      verbs themselves. */
   const dressed = await page.evaluate(async () => {
+    /* RE-STAGED 29 Aug 2026: the pill opens the clause EDITOR page on this
+       seat now, so this opens the panel the way the pill used to. What is
+       being measured is the panel's own editor dress, which is unchanged. */
     if (!document.querySelector('.redline-page .rl-cp.is-open')){
-      const pill = document.querySelector('#rl-doc [data-rl-cp-open]');
-      if (pill) pill.click();
+      const cl = document.querySelector('#rl-doc .rl-clause[data-clause]');
+      if (cl) window.rlCpSetShown(document, cl.getAttribute('data-clause'));
     }
     await new Promise(r => setTimeout(r, 120));
     const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
@@ -1195,7 +1198,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* THE ROUTE THAT REPLACED IT: the Edit pill raises the clause panel, and
        the panel's Copilot button hands the whole clause over. Two real presses,
        the same two a person makes. */
-    document.querySelector('#rl-doc .rl-clause .rl-cp-pill').click();
+    window.rlCpSetShown(document,
+      document.querySelector('#rl-doc .rl-clause[data-clause]').getAttribute('data-clause'));
     await new Promise(r => setTimeout(r, 400));
     const btn = document.querySelector('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
     btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));

@@ -66,7 +66,7 @@ function renderDirectory(){
   const people=dirPeople();
   const admin=(typeof isAdmin==='function')&&isAdmin();
   host.innerHTML=`
-  <div id="dir-page" class="view-enter" style="padding:var(--page-pad);max-width:860px">
+  <div id="dir-page" class="view-enter" style="padding:var(--page-pad);max-width:var(--page-measure)">
     <section class="dir-card">
       <div class="dir-head">
         <span class="dir-head-n">${i18tn('dir_count',people.length,{n:people.length})}</span>

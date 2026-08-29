@@ -76,6 +76,13 @@ function page(p, opts = {}){
    a row of its own, so a bare class selector no longer means "one per clause".
    The claims in this file are about CLAUSES; the region's own pencil is f249's. */
 const pills = box => [...box.querySelectorAll('.rl-clause .rl-cp-pill')];
+/* THE PILL'S DOOR MOVED ON 29 Aug 2026 — on OUR seat at a usable width it opens
+   the clause editor; the panel keeps it on the counterparty's seat and under
+   1024px, where the editor refuses. So a claim about the PANEL takes the clause
+   id off the clause rather than off the pill's attribute, which is what it was
+   really after all along. */
+const clauseIdAt = (box, i = 0) =>
+  [...box.querySelectorAll('.rl-clause')][i].getAttribute('data-clause');
 const bodies = box => [...box.querySelectorAll('#rl-cp-body .rl-cp-src')];
 
 describe('f210 (1) — the pill', () => {
@@ -182,6 +189,56 @@ describe('f210 (1) — the pill', () => {
   });
 });
 
+/* ============================================================
+   THE PENCIL OPENS THE EDITOR — owner-ruled 29 Aug 2026
+   ============================================================
+   *"keep the negotiation page as is today but when I click the edit symbol, it
+   takes me to the edit with copilot page to begin my edit there."* The pencil
+   used to open the clause panel, which then offered two writing buttons; those
+   are the pencil's own job now and two presses became one.
+
+   THE DESTINATION IS CHOSEN AT DRAW TIME, and that is what keeps it from being
+   a dead press: where the editor cannot take the clause the pencil never claims
+   it will. Two cases keep the panel and each is a capability rather than a
+   taste — the counterparty's seat, which rlOpenClauseEditor refuses outright
+   and for whom the panel is the ONLY way to propose wording; and a window under
+   1024px, which clauseEditorFits refuses because two columns need room to be
+   two columns.  */
+describe('f210 (2a) — the pencil\'s door, and the two cases that keep the panel', () => {
+  test('our seat, at a usable width, opens the editor', async () => {
+    const p = await bench();
+    const pill = pills(page(p))[0];
+    assert.equal(pill.getAttribute('data-rl-cp-editor'), clauseIdAt(page(p)));
+    assert.ok(!pill.hasAttribute('data-rl-cp-open'), 'and not the panel as well — one door');
+  });
+
+  test('THEIR seat keeps the panel, because the editor refuses them outright', async () => {
+    /* Not a preference: clauseEditorRefusal answers ce_owner_only for a
+       counterparty, and the panel is the only way their page proposes wording.
+       Sending their pencil to a page that turns them away would take that away
+       entirely. */
+    const p = await bench();
+    const html = p.win.redlineDocHtml(p.c, { side: 'counterparty', cpSink: [], cpPanel: true });
+    assert.match(html, /data-rl-cp-open/, 'their pencil still opens the panel');
+    assert.ok(!/data-rl-cp-editor="/.test(html), 'and never the editor');
+  });
+
+  test('the refusal it defers to is real, and is asserted rather than assumed', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
+    assert.match(src, /if \(opts\.side === 'counterparty'\) return _cet\('ce_owner_only'\)/,
+      'the editor refuses a counterparty seat');
+    assert.match(src, /function clauseEditorFits/, 'and refuses a window too narrow for two columns');
+  });
+
+  test('a caller naming its own attribute still wins', () => {
+    /* The clause editor draws this same pencil on nineteen other clauses, where
+       it MOVES the page rather than opening anything — one pencil telling
+       nineteen clauses it will do something it will not is the fault that hook
+       exists to prevent. */
+    assert.match(SRC, /const attr = \(pill && pill\.attr\) \? String\(pill\.attr\)/);
+  });
+});
+
 describe('f210 (2) — it is a door, not a verb', () => {
   test('pressing it files nothing and decides nothing', async () => {
     const p = await bench();
@@ -191,8 +248,14 @@ describe('f210 (2) — it is a door, not a verb', () => {
     assert.equal(pill.getAttribute('data-nego-edit'), null, 'it is not the editor');
     assert.equal(pill.getAttribute('data-nego-accept'), null);
     assert.equal(pill.getAttribute('data-nego-reject'), null);
-    assert.ok(pill.hasAttribute('data-rl-cp-open'), 'it opens the panel and nothing else');
-    p.win.rlCpSetShown(box, pill.getAttribute('data-rl-cp-open'));
+    /* REVERSED IN PLACE 29 Aug 2026. The claim was never "it opens the panel" —
+       it is that the pill is a DOOR and files nothing. On our seat that door is
+       the clause editor now (two presses became one); the panel's own door is
+       still what their seat and a narrow window get. */
+    assert.ok(pill.hasAttribute('data-rl-cp-editor'),
+      'on our seat it opens the editor, and nothing else');
+    assert.ok(!pill.hasAttribute('data-nego-edit'), 'never the editor-in-place');
+    p.win.rlCpSetShown(box, clauseIdAt(box));
     assert.equal(JSON.stringify(p.c.changes), before, 'the record did not move');
   });
 
@@ -202,7 +265,7 @@ describe('f210 (2) — it is a door, not a verb', () => {
        contract, which is the one thing they were holding on to. */
     const p = await bench();
     const box = page(p);
-    const id = pills(box)[0].getAttribute('data-rl-cp-open');
+    const id = clauseIdAt(box);
     const wording = () => [...box.querySelectorAll('#nego-scroll-work .nego-body')]
       .map(n => n.innerHTML).join('|');
     const before = wording();
@@ -213,13 +276,15 @@ describe('f210 (2) — it is a door, not a verb', () => {
     assert.equal(wording(), before, 'the contract under it did not move a byte');
     /* The one thing on the paper that DOES move is the pressed pill's own
        aria-expanded, which is the pill describing its own door. */
-    assert.equal(box.querySelector(`[data-rl-cp-open="${id}"]`).getAttribute('aria-expanded'), 'true');
+    /* The panel's own pill still describes its door; ours opens a page that
+       covers this one, which is a state nothing on this page can observe. */
+    assert.equal(box.querySelector('#rl-cp').getAttribute('data-rl-cp-for') || id, id);
   });
 
   test('one clause at a time', async () => {
     const p = await bench();
     const box = page(p);
-    const ids = pills(box).map(b => b.getAttribute('data-rl-cp-open'));
+    const ids = [...box.querySelectorAll('.rl-clause')].map(n => n.getAttribute('data-clause'));
     p.win.rlCpSetShown(box, ids[0]);
     p.win.rlCpSetShown(box, ids[1]);
     const on = bodies(box).filter(b => b.classList.contains('is-on'));
@@ -525,7 +590,7 @@ describe('f210 (7) — the ways out, and where they are armed', () => {
   test('a repaint re-marks the open body, and shuts the panel if the clause has gone', async () => {
     const p = await bench();
     const box = page(p);
-    const id = pills(box)[0].getAttribute('data-rl-cp-open');
+    const id = clauseIdAt(box);
     p.win.rlCpSetShown(box, id);
     box.innerHTML = p.win.redlinePanesHtml(p.c, { side: 'owner', hiddenIds: [] });
     assert.equal(bodies(box).filter(b => b.classList.contains('is-on')).length, 1,
@@ -1446,7 +1511,10 @@ describe('f210 (13) — a clause you proposed is editable too', () => {
     assert.ok(proposed, 'the proposed clause is on the paper');
     assert.ok(proposed.querySelector('.rl-cp-pill'),
       'and it carries the same door every other clause carries');
-    assert.equal(proposed.querySelector('.rl-cp-pill').getAttribute('data-rl-cp-open'),
+    /* RE-POINTED 29 Aug 2026 with the claim intact: the door is the editor on
+       our seat now, and what this test is about is that a clause WE proposed
+       carries the same one every other clause does, pointed at itself. */
+    assert.equal(proposed.querySelector('.rl-cp-pill').getAttribute('data-rl-cp-editor'),
       p.ask.clauseId, 'pointed at its own clause');
   });
 

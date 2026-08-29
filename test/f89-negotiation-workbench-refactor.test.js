@@ -451,7 +451,13 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
          · the zoom wrapper pinned at 1, in the stylesheet, so nothing can
            magnify it by accident. */
     assert.match(r, /width:100%/, 'the sheet fills its column');
-    assert.match(r, /max-width:860px/, 'up to a readable measure and no further');
+    /* RE-POINTED 29 Aug 2026 with the claim intact. The measure was a literal
+       here and 660 on the Document tab — two numbers for one fact, which is how
+       the same contract came to look like a different product on each tab. It
+       is one token now, read by this sheet, the Document tab and the clause
+       editor. Pinned as reading the TOKEN rather than as the number, so the
+       next retune is one line in index.html and costs no test edit. */
+    assert.match(r, /max-width:var\(--doc-sheet-max/, 'up to a readable measure and no further');
     assert.ok(!/max-width:660px/.test(r), 'not the fixed page it used to be');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly past the cap');
     assert.match(r, /padding:30px 56px 34px/, "the render's own margins");

@@ -6,7 +6,39 @@ the clause panel open on a clause whose heading cannot be edited.
 
 **Branch this was filed on:** `claude/desktop-layout-ui-bugs-n4p7ha`.
 
-**Status: NOT BUILT.** Filed for a later job on the owner's own instruction —
+> # BUILT — 29 Aug 2026. This order is DONE.
+>
+> All seven are closed. **Two were already finished on main** (items 2 and 4 —
+> see *WHAT MAIN ALREADY DID*), and **the remaining five were built on
+> 29 Aug 2026**, together with the one rule item 4 shipped without. What was
+> built, and where the map records it:
+>
+> | Item | Built | Recorded in CLAUDE.md under |
+> | --- | --- | --- |
+> | 1 · desktop widths | `--page-measure`, the chrome uncapped | *THE PLATFORM FILLS THE MONITOR* |
+> | 2 · redline losing marks | on main, 28 Aug | *THE PAGE NEVER OPENS IN A STATE…* |
+> | 3 · page jumps to the top | `keepScroll` wired, fixed and at the funnel | *A FILTER MAY NOT THROW THE READER…* |
+> | 4 · clause headings | on main, 28 Aug — **plus the counterparty rule** | *THE OTHER SIDE MAY NOT RENAME…* |
+> | 5 · notes drawer | 330 / 365 / 400, all three faces | *THE NOTES DRAWER IS A QUARTER WIDER* |
+> | 6 · three screens agree | `--doc-sheet-max`, no magnification, one ground | *THE THREE SCREENS THAT DRAW…* |
+> | 7 · the pencil | opens the editor on our seat | *THE PENCIL OPENS THE EDITOR…* |
+>
+> **THREE THINGS TURNED UP IN THE BUILDING AND ARE NAMED RATHER THAN BURIED:**
+> `keepScroll` read the wrong element, so wiring it up alone would have shipped
+> a fix and left the bug; **the reported pager did not go through the funnel this
+> order named**, which is why it was the button the owner saw; and **the clause
+> panel could not simply be retired** — the editor refuses the counterparty's
+> seat outright and the panel is their only way to propose wording, so it stays
+> for them and for a window under 1024px. Each is written up in the item.
+>
+> Node 4964/4964, lint 0 errors. Browser: clause-door 105, clause-editor 171,
+> redline 171, contracts-page 72, insights-panels 40, theme-tokens 40/40,
+> laptops 21, **keeps-your-place 7 (NEW — it reports the owner's own bug against
+> the parent commit)**. `pages-read-alike-verify` has three failures on the
+> negotiation head; **they are NOT this run's** — proved by running the file on
+> the unmodified tree, where it reports the identical three.
+
+**Status: BUILT 29 Aug 2026. Filed as NOT BUILT on 28 Aug; that is the history below.** Filed for a later job on the owner's own instruction —
 *"Review all these and save these for a later work job."* **Nothing in the
 product was changed.** Every finding below is read off the source and is quoted
 with its file so the next person can check it rather than take it on trust.

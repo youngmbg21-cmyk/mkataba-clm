@@ -72,6 +72,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(500);
   ck('the fixture has an ask on a clause', !!staged.id, staged.id);
 
+  /* ---- THE PILL'S DOOR MOVED, 29 Aug 2026 (owner-ruled) ----
+     On OUR seat the pencil opens the clause EDITOR page now; the panel keeps it
+     on the counterparty's seat and under 1024px, where the editor refuses. This
+     file's subject is the PANEL — where it hangs, what it holds, the three ways
+     out — so it opens the panel the way the pill used to, and the pill's own
+     destination is asserted once, on its own, below. */
+  const openPanel = async id => {
+    await p.evaluate(cid => window.rlCpSetShown(document, cid), id);
+    await pause(500);
+  };
+
   /* ---- 1. THE PILL, AS PIXELS ---- */
   const pill = await p.evaluate(id => {
     const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
@@ -143,8 +154,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     return { w:Math.round(r.width), left:Math.round(r.left),
       text: d.innerText.replace(/\s+/g,' ').trim().slice(0, 400) };
   });
-  await p.click(`.redline-page .nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
-  await pause(600);
+  await openPanel(staged.clauseId);
   const open = await p.evaluate(id => {
     const panel = document.querySelector('.redline-page #rl-cp');
     if (!panel) return null;
@@ -319,8 +329,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   /* ---- 4. THE THREE WAYS OUT, EACH PRESSED ---- */
   const reopen = async () => {
-    await p.click(`.redline-page .nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
-    await pause(500);
+    await openPanel(staged.clauseId);
     return p.evaluate(()=>document.querySelector('.redline-page #rl-cp').classList.contains('is-open'));
   };
   const shut = () => p.evaluate(()=>!document.querySelector('.redline-page #rl-cp').classList.contains('is-open'));
@@ -357,8 +366,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const clear = pills.find(b => b.getBoundingClientRect().right < cp.left
       && b.getBoundingClientRect().top > 0);
     if (!clear) return { none: true };
-    const want = clear.getAttribute('data-rl-cp-open');
-    clear.click();
+    /* RE-STAGED 29 Aug 2026: the pill opens the editor on this seat now, so
+       the SWAP this claim is about is asked of the panel's own opener. What is
+       being pinned is that the panel moves clause to clause without needing a
+       close first — which is what the geometry above buys. */
+    const want = clear.closest('.rl-clause').getAttribute('data-clause');
+    window.rlCpSetShown(document, want);
     const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
     return { want, got: on && on.getAttribute('data-rl-cp-for') };
   });
@@ -440,7 +453,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         Math.round(sc.scrollTop), Math.round(g.scrollLeft), Math.round(window.scrollX)].join(',');
     };
     out.push(read());
-    document.querySelector(`.nego-clause[data-clause="${id}"] .rl-cp-pill`).click();
+    window.rlCpSetShown(document, id);
     const tick = () => { out.push(read());
       if (performance.now() - t0 < 700) requestAnimationFrame(tick); else done(out); };
     requestAnimationFrame(tick);
@@ -515,7 +528,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(()=>window.SHOW_OWNER&&window.SHOW_OWNER()); await pause(800);
   const target = await p.evaluate(()=>negoClauseList(window.CONTRACT)[2].clauseId);
   const nBefore = await p.evaluate(()=>(window.CONTRACT.changes||[]).length);
-  await p.click(`.nego-clause[data-clause="${target}"] .rl-cp-pill`); await pause(650);
+  await openPanel(target); await pause(150);
   const acts = await p.evaluate(()=>[...document.querySelectorAll(
     '#rl-cp .rl-cp-src.is-on .rl-cp-acts button')].map(b => ({
       t:b.textContent.trim(), plus:b.hasAttribute('data-rl-cp-edit'),
@@ -794,8 +807,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     band: !!document.querySelector('.rl-unsent'),
     arrived: document.querySelectorAll('#rl-changes .rl-card').length }));
   const cpAfter = await p.evaluate(async () => {
-    const pill = document.querySelector('.rl-clause .rl-cp-pill');
-    pill.click(); await new Promise(r=>setTimeout(r,500));
+    const cl = document.querySelector('.rl-clause[data-clause]');
+    window.rlCpSetShown(document, cl.getAttribute('data-clause'));
+    await new Promise(r=>setTimeout(r,500));
     document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-cp-edit]').click();
     await new Promise(r=>setTimeout(r,450));
     const e = document.querySelector('#rl-cp [data-nego-editor]');
@@ -965,8 +979,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      and that the drawer opens on the press, is notes-two-rooms-verify's job —
      it drives the real shell, which this harness page does not load. */
   await p.evaluate(() => {
-    const pill = document.querySelector('.rl-clause .rl-cp-pill');
-    if (pill) pill.click();
+    const cl = document.querySelector('.rl-clause[data-clause]');
+    if (cl) window.rlCpSetShown(document, cl.getAttribute('data-clause'));
   });
   await pause(500);
   const notesDoor = await p.evaluate(() => {
@@ -1022,7 +1036,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await new Promise(r => setTimeout(r, 600));
     const sec = document.querySelector(`#rl-doc .nego-clause[data-clause="${cl.clauseId}"]`);
     if (!sec || !sec.querySelector('.rl-cp-pill')) return { none: 'the staged clause has no door' };
-    sec.querySelector('.rl-cp-pill').click();
+    window.rlCpSetShown(document, sec.getAttribute('data-clause'));
     await new Promise(r => setTimeout(r, 450));
     const stands = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-stands');
     if (!stands) return { none: 'the panel did not open' };
@@ -1168,7 +1182,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     newPill.drawn && newPill.w > 12 && newPill.h > 10 && newPill.reachable,
     JSON.stringify(newPill));
   await p.evaluate(id => {
-    document.querySelector(`.redline-page .nego-clause[data-clause="${id}"] .rl-cp-pill`).click();
+    window.rlCpSetShown(document, id);
   }, ins.clauseId);
   await pause(500);
   const newPanel = await p.evaluate(id => {
@@ -1233,7 +1247,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const hr = head ? head.getBoundingClientRect() : null;
     return { head: !!head, pen: !!pen,
       w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
-      opens: pen ? pen.getAttribute('data-rl-cp-open') : null,
+      /* RE-POINTED 29 Aug 2026 — the door moved for the whole canvas and the
+         claim was always that the region carries the SAME one, pointed at
+         itself. */
+      opens: pen ? pen.getAttribute('data-rl-cp-editor') : null,
       /* top right of the region, exactly where a clause's sits */
       rightGap: (r && hr) ? Math.round(hr.right - r.right) : -1,
       topGap: (r && hr) ? Math.round(r.top - hr.top) : -1,
@@ -1249,8 +1266,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('15d and NOTHING else is added to the paper \u2014 no band, no caption',
      fm.title === true && fm.bands === 0, `title ${fm.title}, bands ${fm.bands}`);
   const fmOpen = await p.evaluate(async () => {
-    const pen = document.querySelector('.redline-page .rl-paper-head .rl-cp-pill');
-    pen.click(); await new Promise(r => setTimeout(r, 600));
+    window.rlCpSetShown(document, 'front');
+    await new Promise(r => setTimeout(r, 600));
     const body = document.querySelector('#rl-cp-body .rl-cp-src[data-rl-cp-for="front"]');
     const r = body ? body.getBoundingClientRect() : null;
     return { shown: !!(body && body.classList.contains('is-on')),

@@ -497,7 +497,17 @@ function portfolioFrameHtml(){
    different control to undo a choice. */
 function wirePortfolioFrame(rerender){
   const F=pfState();
-  const again=()=>{ if(typeof rerender==='function') rerender(); };
+  /* THE ONE FUNNEL FOR THIS PAGE'S REPAINTS, so the reader's place is kept at
+     ONE place rather than at eleven presses — the pager, the category and
+     counterparty filters, every un-filter chip and Clear all arrive here.
+     Wrapping the presses instead would be eleven places for the twelfth to be
+     forgotten. keepScroll is read through window: this file is loaded on
+     stages that do not carry the shell. */
+  const again=()=>{
+    if(typeof rerender!=='function') return;
+    if(typeof window!=='undefined' && typeof window.keepScroll==='function') keepScroll(rerender);
+    else rerender();
+  };
   /* ---- EVERY FILTER ON THIS PAGE TAKES THE KEYBOARD ---- (25 Aug 2026)
      The rows, the bars and the risk-map dots all carried a click, a pointer
      cursor and nothing else — so the whole of Insights' filtering was a mouse
@@ -540,7 +550,13 @@ function wirePortfolioFrame(rerender){
   document.querySelectorAll('[data-pf-find-page]').forEach(el=>el.addEventListener('click',()=>{
     const F=pfState();
     F.findPage=Math.max(0,(F.findPage|0)+(el.getAttribute('data-pf-find-page')==='next'?1:-1));
-    if(typeof renderIntel==='function') renderIntel();
+    /* THROUGH THE FUNNEL, LIKE EVERY OTHER PRESS ON THIS CARD (29 Aug 2026).
+       It called renderIntel() directly and so walked straight past again() —
+       which is why THIS was the button the owner reported: every filter beside
+       it went through the one place, and the pager did not. That is the whole
+       argument for a funnel written down as a defect: a rule at the funnel only
+       holds while everything actually arrives there. */
+    again();
   }));
 }
 

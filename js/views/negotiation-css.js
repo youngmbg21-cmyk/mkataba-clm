@@ -1882,7 +1882,7 @@ function redlineLayoutCss(){
      contract page prints square, and the rounded sheet read as an app card
      rather than paper. The radius comes off the paper and off the clause
      panel ONLY — every other rounded control on this page keeps its own. */}
-  .redline-page .rl-paper{padding:30px 56px 34px;max-width:860px;background:var(--color-doc-warm);
+  .redline-page .rl-paper{padding:30px 56px 34px;max-width:var(--doc-sheet-max,860px);background:var(--color-doc-warm);
     border:1px solid var(--color-doc-warm-line);border-radius:0;box-shadow:none;margin:0 auto;
     width:100%}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----

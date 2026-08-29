@@ -1235,6 +1235,33 @@ async function negoFileChange(c, draft, opts = {}){
      person meant to perform, and stage 1 of this feature stamps a name without
      changing what anybody may do. */
   if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
+  /* ---------- THE OTHER SIDE MAY NOT RENAME OUR CLAUSES ----------
+     Owner-ruled 29 Aug 2026. The rename shipped on 28 Aug with no rule about
+     seats, and their page mounts the same panel ours does, so until now they
+     could propose a new name for a clause of ours.
+
+     A CLAUSE'S NAME IS HOW THE AGREEMENT IS CITED — "subject to Clause 9" —
+     and the numbering and the cross-references are ours to keep coherent. What
+     is NOT narrowed, and this is the whole width of the rule: their right to
+     propose new WORDING is untouched, they still see a rename we propose, and
+     they still accept or refuse it like any other change.
+
+     NAMING A CLAUSE THEY ARE PROPOSING IS NOT RENAMING ONE OF OURS, so the
+     guard is on `modify` alone. An insertClause carries the heading of a clause
+     that does not exist yet; refusing that would leave them able to propose a
+     new clause and unable to call it anything.
+
+     AT THE FUNNEL, for the reason the two guards around it already give: the
+     Copilot shortcut in core.js, both playbook entrances, the Word round-trip
+     and an inbound link all reach this function without passing any screen.
+     The name box also stands down on their seat — a control whose only outcome
+     is a refusal is furniture — but that is the SIGN and this is the WALL.
+
+     IT DROPS THE RENAME AND KEEPS THE EDIT, rather than refusing the filing:
+     the wording they typed is a legitimate ask and throwing it away to punish a
+     field they cannot even be shown would cost them work they meant to do. */
+  if (side === 'counterparty' && draft && draft.changeType === 'modify'
+      && draft.headingText != null) draft = { ...draft, headingText: null };
   /* ---------- AND WHERE THE RULE IS ON, IT REFUSES HERE ----------
      THE LOCK, not the sign. js/views/negotiation.js stops OFFERING the verbs to
      somebody who is only reading, and that is the right thing for a screen to

@@ -490,7 +490,7 @@ async function openTemplateLibDetail(id) {
     </div>`).join('');
 
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:860px">
+  <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:14px;max-width:var(--page-measure)">
     <div>
       <button id="tpllib-back" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} Library</button>
     </div>

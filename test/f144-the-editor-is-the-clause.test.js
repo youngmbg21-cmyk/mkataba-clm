@@ -91,7 +91,12 @@ async function page(opts = {}){
       const id = cl.getAttribute('data-clause');
       const body = () => [...doc.querySelectorAll('#rl-cp .rl-cp-src')]
         .find(b => b.getAttribute('data-rl-cp-for') === id);
-      if (!body().classList.contains('is-on')) cl.querySelector('[data-rl-cp-open]').click();
+      /* STAGED THROUGH THE PANEL'S OWN OPENER SINCE 29 Aug 2026. The pill on
+         OUR seat opens the clause editor page now, so pressing it here would
+         stage the wrong surface; this file's subject is the PANEL's inline
+         editor, which is still what the counterparty's seat and a narrow
+         window get. Opening it directly is what the pill used to do. */
+      if (!body().classList.contains('is-on')) win.rlCpSetShown(doc, id);
       body().querySelector('[data-rl-cp-edit]').click();
       return doc.querySelector('[data-nego-editor]');
     },

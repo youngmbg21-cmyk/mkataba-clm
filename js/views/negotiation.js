@@ -4150,7 +4150,16 @@ function wireNegotiationTab(c, opts = {}){
     const headOpen = (newAsk ? String(newAsk.headingText || '').trim() : '')
       || (onTable ? String(onTable.headingText || '').trim() : '') || headStands;
     let headEl = null;
-    if (inPanel && headStands){
+    /* ---- AND NOT ON THEIR SEAT (owner-ruled 29 Aug 2026) ----
+       The other side may not rename our clauses: the numbering and the
+       cross-references that cite them are ours to keep coherent. The WALL is in
+       negoFileChange, which every route reaches without passing a screen; this
+       is the SIGN, and it is here because a control whose only outcome is a
+       refusal is furniture. Their wording box below is untouched — proposing
+       new wording is what their page is for — and a rename WE propose still
+       draws for them and is still theirs to accept or refuse. */
+    const mayName = meSide === 'owner';
+    if (inPanel && headStands && mayName){
       const nameEl = block.querySelector('.rl-cp-clname');
       if (nameEl){
         headEl = document.createElement('p');
@@ -5789,9 +5798,18 @@ function rlClauseEditPillHtml(cl, opts = {}){
      to ask it again. */
   if (rlReadOnlyReading()) return '';
   const id = _ne(cl.clauseId);
-  const attr = (pill && pill.attr) ? String(pill.attr) : 'data-rl-cp-open';
+  /* THE PENCIL'S OWN DOOR. A caller that names its own attribute still wins —
+     the clause editor's own pencil means something different on the clause it
+     is working on — and where nobody names one this is our seat's door onto the
+     editor, or the panel where the editor cannot take the clause (see the note
+     at pillFor, which is where that is decided). */
+  const attr = (pill && pill.attr) ? String(pill.attr)
+    : (opts.toEditor ? 'data-rl-cp-editor' : 'data-rl-cp-open');
+  /* A DOOR ONTO A FULL-WINDOW PAGE IS NEVER "OPEN": the page covers this one,
+     so aria-expanded on a control nobody can see would be a claim about a state
+     that cannot be observed. The panel's pencil still reports its own. */
   const on = pill ? String(pill.pressed == null ? '' : pill.pressed) === String(cl.clauseId)
-    : rlCpOpenId() === String(cl.clauseId);
+    : (!opts.toEditor && rlCpOpenId() === String(cl.clauseId));
   /* A caller's words may be a FUNCTION of the clause, because on the clause
      editor the same pencil means two different things depending on whether it
      is the clause being worked on — and the alternative is one pencil telling
@@ -9614,7 +9632,30 @@ function redlineDocHtml(c, opts = {}){
   const liveHead = (liveId && opts.live.head != null) ? String(opts.live.head) : null;
   /* ONE PENCIL FOR THE WHOLE CANVAS, so the four clause branches cannot come to
      disagree about which door it opens. */
-  const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill });
+  /* ---- AND ON OUR SEAT IT OPENS THE EDITOR (owner-ruled 29 Aug 2026) ----
+     *"the negotiation page stays as it is … when I click the edit symbol, it
+     takes me to the edit with copilot page to begin my edit there."* The
+     pencil used to open the clause panel, which then offered two writing
+     buttons; those become the pencil's own job and two presses become one.
+     Nothing about this page's layout, cards or columns moves.
+
+     THE DESTINATION IS CHOSEN AT DRAW TIME, NOT BY FALLING THROUGH A REFUSAL,
+     and that is the difference between this and a dead press: where the editor
+     cannot take the clause the pencil never claims it will.
+
+     TWO CASES KEEP THE PANEL, and each is a capability rather than a taste:
+      · THEIR SEAT. rlOpenClauseEditor refuses a counterparty outright, and the
+        panel is the ONLY way their page proposes wording. Sending their pencil
+        to a page that will turn them away would take that away entirely.
+      · A WINDOW UNDER 1024px, which clauseEditorFits refuses because two
+        columns need room to be two columns. The panel works at every width.
+     Read through window, and TRUE where the module is absent: a stage without
+     the editor is one where the panel is still the right answer. */
+  const editorTakesIt = side === 'owner'
+    && (typeof window === 'undefined' || typeof window.clauseEditorFits !== 'function'
+        || clauseEditorFits());
+  const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill,
+    toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
     /* The notes options ride through because the panel now renders each

@@ -498,14 +498,27 @@ describe('F84 — the text size is a control on this page again', () => {
     assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
     assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
     assert.ok(/rlDocType\(\)/.test(src), 'applyDocZoom reads the stored preference');
-    /* ---- CLAIM REVERSED, 13 Aug 2026 (owner-asked) ----
-       It used to MULTIPLY the zoom by the preference, which sized the page as
-       well as the words — so choosing the new floor of 8 shrank the sheet to
-       half its column and left it floating in white space. "Lower it to 8 but
-       keep the page filling the column." The zoom is the fit alone now and the
-       preference is a ratio the type follows. */
-    assert.ok(/setProperty\('--doc-zoom', fit\.toFixed/.test(src),
-      'the zoom is the width-fit alone — the page always fills its column');
+    /* ---- CLAIM REVERSED A SECOND TIME, 29 Aug 2026 (owner-asked: the three
+       screens that draw the agreement must agree) ----
+       13 Aug took the PREFERENCE out of the zoom, leaving the width-fit: the
+       sheet magnified up to 2× to fill its column, which is why this tab always
+       read as the good one. 29 Aug takes the fit out too. The sheet is capped
+       at --doc-sheet-max and centres, exactly as the negotiation page's does,
+       and the surplus either side is the page's own ground.
+
+       WHAT IT COSTS WAS STATED BEFORE IT WAS BUILT: on a wide monitor this
+       tab's words get smaller, up to half. The owner was told and repeated the
+       instruction. The argument for it is that the A⁻/A⁺ stepper below is the
+       reader's own size control, and the magnification was doing that same job
+       by guessing from the window width — one setting the reader asked for
+       beats two mechanisms arguing.
+
+       PINNED, NOT DELETED: rlApplyDocZoom's own precedent on the negotiation
+       page. Several callers ask the layout to re-fit and one named thing they
+       can all keep calling beats four private opinions. */
+    assert.ok(/setProperty\('--doc-zoom', '1'\)/.test(src),
+      'the sheet does not magnify — it is capped and centred like every other screen');
+    assert.ok(!/DOC_ZOOM_MAX/.test(src), 'and the ceiling it used to need is gone');
     assert.ok(/setProperty\('--doc-scale', pref/.test(src),
       'and the reader\'s choice sizes the type inside it');
   });

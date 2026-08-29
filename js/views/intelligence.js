@@ -730,6 +730,16 @@ const IG_SUGGESTIONS=[
   'Which contracts end in the next 6 months?',
   'Group by customer',
 ];
+/* A FILTER ON THIS PAGE KEEPS THE READER'S PLACE; A TAB DOES NOT, and that is
+   the rule rather than an oversight. Switching tab puts entirely different
+   content on screen, so a remembered offset would drop the reader at an
+   arbitrary point in it — the rule keepScroll states says a press that
+   NAVIGATES may land at the top. Filtering and paging redraw the same reading
+   and must not move anybody, so those presses come through here. */
+function intelRepaint(){
+  if(typeof window!=='undefined' && typeof window.keepScroll==='function') keepScroll(renderIntel);
+  else renderIntel();
+}
 function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   /* Two surfaces under one nav item: the graph, and the negotiation-friction
@@ -856,13 +866,13 @@ function renderIntel(){
       <div id="ig-friction" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelFrictionHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
-    document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; renderIntel(); });
+    document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; intelRepaint(); });
     document.querySelectorAll('[data-igf-days]').forEach(b=>b.addEventListener('click',()=>{
       const v=b.getAttribute('data-igf-days');
       intel.frictionFilter={...(intel.frictionFilter||{}), days:v?Number(v):null};
       if(!intel.frictionFilter.days) delete intel.frictionFilter.days;
       if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
-      renderIntel();
+      intelRepaint();
     }));
     /* The brief's own verbs (WO friction redesign): the clause link opens Our
        standards; "See the six" unfolds the named deadlocks in place; any
@@ -875,7 +885,7 @@ function renderIntel(){
       e.stopPropagation(); openWorkspace(b.getAttribute('data-igf-open')); }));
     document.querySelectorAll('[data-igf-cp]').forEach(el=>el.addEventListener('click',()=>{
       intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:el.getAttribute('data-igf-cp')};
-      renderIntel();
+      intelRepaint();
     }));
     intelFrictionWireAI();
     setActiveNav('intel');
@@ -1147,6 +1157,12 @@ function intelFrictionHtml(){
      width (see below), these paragraphs ran ~130 characters a line on a wide
      monitor — past the point where prose is comfortable. The CARD is full
      width, as the owner asked; the SENTENCES are not. */
+  /* A READING MEASURE, DELIBERATELY NOT THE PLATFORM'S (29 Aug 2026). The
+     chrome fills the monitor now — --page-measure is `none` — and this column
+     is PROSE, capped for the same reason the contract sheet is: a line past
+     about 80 characters measurably slows reading down. Left as a literal
+     because it has exactly one consumer and a token with one reader is noise;
+     what it needs is the reason written beside it, which is this. */
   const left=`<div style="padding:var(--s-3) 18px;min-width:0;max-width:78ch">
     <div style="font-size:16px;font-weight:var(--w-title);letter-spacing:-.01em">${i18t('int_what_slowing')}</div>
     <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>

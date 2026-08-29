@@ -463,7 +463,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */
   await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
   await pause(200);
-  await p.click(`.redline-page .nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
+  /* RE-STAGED 29 Aug 2026: the pill opens THIS page now, so pressing it here
+     would open the editor rather than the panel whose button is the subject.
+     The panel is opened the way the pill used to open it. */
+  await p.evaluate(id => window.rlCpSetShown(document, id), staged.clauseId);
   await pause(500);
   const panelDoor = await p.evaluate(() => {
     /* The panel holds ONE body per clause and only the open one is visible, so

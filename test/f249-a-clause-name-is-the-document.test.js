@@ -317,8 +317,16 @@ describe('f249 (10) — the two editors that offer it, and the one that does not
     const code = strip(VIEW_SRC);
     assert.match(code, /nego-name-edit/, 'the panel draws an editable name');
     assert.match(code, /headEl\s*=\s*document\.createElement/, 'built once, in the one handler');
-    assert.match(code, /if \(inPanel && headStands\)/,
+    /* REVERSED IN PLACE 29 Aug 2026 — the claim is unchanged and one condition
+       joined it: the panel draws the box, only where the clause HAS a heading,
+       and only on OUR seat. Pinned as the three conditions rather than as the
+       literal line, so the next one added costs no edit here. */
+    assert.match(code, /if \(inPanel && headStands/,
       'in the panel, and only where the clause HAS a heading to rename');
+    assert.match(code, /if \(inPanel && headStands && mayName\)/,
+      'and only on our own seat — the other side may not rename our clauses');
+    assert.match(code, /const mayName = meSide === .owner./,
+      'the seat is read from the mount, not guessed');
   });
 
   test('work mode opens it on the paper itself', () => {
@@ -347,6 +355,91 @@ describe('f249 (10) — the two editors that offer it, and the one that does not
     assert.match(code, /_ceHead = st\.head == null \? _ceHeadBase : st\.head/,
       'a step recorded before the name joined the stack falls to the standing name');
     assert.match(code, /head: _ceHead/, 'and every new step carries it');
+  });
+});
+
+/* ============================================================
+   THE OTHER SIDE MAY NOT RENAME OUR CLAUSES — owner-ruled 29 Aug 2026
+   ============================================================
+   The rename shipped on 28 Aug with NO rule about seats, and their page mounts
+   the same panel ours does, so until now they could propose a new name for a
+   clause of ours. A clause's name is how the agreement is CITED — "subject to
+   Clause 9" — and the numbering and cross-references are ours to keep coherent.
+
+   WHAT IS NOT NARROWED, and it is the width of the rule: their right to propose
+   new WORDING is untouched, a rename WE propose still reaches them, and they
+   still accept or refuse it like any other change.
+
+   NAMING A CLAUSE THEY ARE PROPOSING IS NOT RENAMING ONE OF OURS, so the guard
+   is on `modify` alone: an insertClause carries the heading of a clause that
+   does not exist yet, and refusing that would leave them able to propose a new
+   clause and unable to call it anything.  */
+describe('f249 (12) — the other side may not rename our clauses', () => {
+  const theirs = (win, c, cl, to, over = {}) => win.negoEditClause(c, cl.clauseId,
+    over.bodyHtml || cl.bodyHtml,
+    { side: 'counterparty', author: 'Erik Lindqvist', headingText: to, ...over.opts });
+
+  test('a rename-only attempt from their seat proposes nothing at all', async () => {
+    /* With the name dropped and the wording untouched, what is left proposes
+       nothing — and the no-op guard refuses it in the product's own words,
+       exactly as it refuses one of OUR renames typed back to the standing name.
+       So the rule needs no refusal of its own: it lands on one that exists. */
+    const { win, c, cl } = stage();
+    const ch = await theirs(win, c, cl, 'Clause 4 · Deras namn');
+    assert.equal(ch, null, 'nothing is filed');
+    assert.equal(c.changes.length, 0, 'and nothing is left on the column');
+  });
+
+  test('THE WORDING THEY TYPED SURVIVES — the rename is dropped, the edit is kept', async () => {
+    /* Refusing the whole filing would cost them work they meant to do, over a
+       field they cannot even be shown. */
+    const { win, c, cl } = stage();
+    const body = '<p>The Customer shall pay within thirty (30) days.</p>';
+    const ch = await theirs(win, c, cl, 'Charges', { bodyHtml: body });
+    assert.ok(ch, 'their ask still files');
+    assert.equal(ch.changeType, 'modify');
+    assert.match(String(ch.newText || ''), /thirty \(30\) days/, 'their wording is on the record');
+    assert.ok(!ch.headingText, 'only the name was dropped');
+  });
+
+  test('OUR OWN rename is untouched by the rule', async () => {
+    const { win, c, cl } = stage();
+    const ch = await rename(win, c, cl, 'Clause 4 · Charges');
+    assert.equal(ch.headingText, 'Clause 4 · Charges', 'our side still renames');
+  });
+
+  test('they may still NAME A CLAUSE THEY ARE PROPOSING', async () => {
+    /* The exemption that keeps the rule narrow: an insertClause is their own
+       new clause, not a rename of ours. */
+    const { win, c, cl } = stage();
+    const ch = await win.negoInsertClause(c, cl.clauseId,
+      { headingText: 'Insurance', bodyHtml: '<p>Each party shall maintain insurance.</p>' },
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+    assert.ok(ch, 'they may propose a new clause');
+    assert.equal(ch.changeType, 'insertClause');
+    assert.equal(ch.headingText, 'Insurance', 'and it may carry its own name');
+  });
+
+  test('the wall is at the FUNNEL, so no door can walk round it', () => {
+    /* The Copilot shortcut in core.js, both playbook entrances, the Word round
+       trip and an inbound link all reach negoFileChange without passing a
+       screen. A rule written at a wrapper is a rule those four never make. */
+    const src = strip(NEGO_SRC);
+    assert.match(src, /side === .counterparty. && draft && draft\.changeType === .modify.\s*&& draft\.headingText != null/,
+      'negoFileChange itself drops it');
+    const fileAt = NEGO_SRC.indexOf('async function negoFileChange');
+    const editAt = NEGO_SRC.indexOf('async function negoEditClause');
+    const guardAt = NEGO_SRC.indexOf('MAY NOT RENAME OUR CLAUSES');
+    assert.ok(guardAt > fileAt && guardAt < editAt,
+      'and it lives inside the funnel, not inside one of its wrappers');
+  });
+
+  test('the SIGN stands down on their seat too', () => {
+    /* A control whose only outcome is a refusal is furniture — this codebase's
+       own standing rule. The wall above is what makes it safe; this is what
+       makes it honest. */
+    assert.match(strip(VIEW_SRC), /const mayName = meSide === .owner./);
+    assert.match(strip(VIEW_SRC), /if \(inPanel && headStands && mayName\)/);
   });
 });
 

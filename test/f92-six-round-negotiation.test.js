@@ -98,7 +98,11 @@ async function table(){
       const id = cl.getAttribute('data-clause');
       const body = () => t.$$('#rl-cp .rl-cp-src')
         .find(b => b.getAttribute('data-rl-cp-for') === id);
-      if (!body().classList.contains('is-on')) cl.querySelector('[data-rl-cp-open]').click();
+      /* RE-STAGED 29 Aug 2026: our seat's pencil opens the clause EDITOR page
+         now, so pressing it here would stage the wrong surface. This journey is
+         about the panel's inline editor and the record it files, so the panel
+         is opened directly — which is what the pill used to do. */
+      if (!body().classList.contains('is-on')) t.win.rlCpSetShown(t.doc, id);
       body().querySelector('[data-rl-cp-edit]').click();
       const box = body().querySelector('[data-nego-editor]');
       assert.ok(box, 'the editor must open in the clause\'s panel');

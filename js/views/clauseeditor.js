@@ -368,8 +368,14 @@ function clauseEditorCss(){
   /* The paper's own frame. position:relative because the one-sentence popup
      hangs inside it — it used to hang inside .ce-box.ce-prop, and a popup
      measured from a box that no longer exists lands in the corner. */
-  .ce-paperwrap{flex:1; min-width:0; min-height:0; display:flex; position:relative;
-    background:var(--color-surface); border:1px solid var(--color-divider)}
+  /* ---- THE SAME GROUND AS THE NEGOTIATION PAGE (owner-asked 28 Aug 2026:
+     "this includes the grey lighting in the sides on the panel") ----
+     THAT GREY IS NOT A COLOUR ANYBODY CHOSE. .rl-doc paints nothing, so what
+     shows beside a sheet capped at --doc-sheet-max is --color-bg, the page's
+     own ground. This wrapper painted --color-surface over it and drew a border
+     besides, which is the whole of why this page read as a different product
+     from the one it opens out of. One declaration removed, not a colour added. */
+  .ce-paperwrap{flex:1; min-width:0; min-height:0; display:flex; position:relative}
   .ce-paperwrap .rl-doc{flex:1; min-width:0; min-height:0}
   /* THE CLAUSE BEING TYPED IN, marked so a reader can see at a glance which of
      twenty clauses this page is about. Quiet on purpose: the paper already

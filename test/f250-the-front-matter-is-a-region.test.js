@@ -224,12 +224,19 @@ describe('f250 (7) — the paper draws it, and a clean reading is a document', (
 });
 
 describe('f250 (8) — one control, the pencil every clause already has', () => {
-  test('the region carries a pencil, and it opens the same panel', () => {
+  test('the region carries a pencil, and it opens the same door every clause does', () => {
+    /* REVERSED IN PLACE 29 Aug 2026: the pencil's destination moved for the
+       whole canvas — our seat opens the clause editor — and the claim here was
+       never about WHICH door, it was that the region carries the SAME one as
+       every clause and points it at itself. negoClauseNowById resolves 'front',
+       so the editor takes it; the re-segmentation refusal that guards a
+       front-matter edit lives in negoEditClause, which is the funnel the editor
+       files through, so it applies unchanged. */
     const { win, c } = stage();
     const sink = [];
     const html = win.redlineDocHtml(c, { side: 'owner', cpSink: sink });
     const head = (html.match(/<header class="rl-paper-head[\s\S]*?<\/header>/) || [''])[0];
-    assert.match(head, /data-rl-cp-open="front"/, 'the same door every clause has');
+    assert.match(head, /data-rl-cp-editor="front"/, 'the same door every clause has');
     assert.match(head, /class="rl-cp-pill"/, 'and the same control');
     assert.ok(sink.some(x => /data-rl-cp-for="front"/.test(x)),
       'with a body waiting for it in the panel');

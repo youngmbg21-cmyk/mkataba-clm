@@ -1877,6 +1877,196 @@ press away, not two), 20e/20f reversed onto the tab's absence, and 20i-20l new
 (6 of the file's checks fail against the parent, the headline one reporting the
 owner's screenshot).
 
+## THE PLATFORM FILLS THE MONITOR, AND THE CONTRACT DOES NOT (owner-ruled 28 Aug 2026 — WORKORDER-fixes-28-aug.md)
+
+*"Many pages in the app shrink when I am in a desktop which does not give me a
+full screen experience."* Recommendation taken the same day: **let everything
+that is not the contract fill the monitor, keep the contract itself a readable
+page, and give the whole platform one setting so no two screens can drift.**
+
+**WHAT WAS WRONG WAS NOT THE WIDTHS, IT WAS THAT THEY DISAGREED.** A dozen pages
+had each decided their own — 860 on two sheets, 900 on the Negotiations list,
+1440 on the contract room's tabs, 78ch on a friction column — and **Insights →
+Portfolio had never set one at all**, which is exactly why that is the page the
+owner reads as correct. SAP calls the pattern **letterboxing** and its rule is
+the one HaTi was breaking: an app may cap its width, but it may not let some
+pages cap and others not when people move between them.
+
+- **`--page-measure` IS THE ONE DECLARATION and its value is `none`.** `none` is
+  a real value and it is the point: the chrome fills the monitor today, and if a
+  cap is ever wanted it is ONE line rather than a dozen edits. `.ngl-wrap`, the
+  People directory and the template library read it; `--room-measure` is KEPT as
+  a name (three rules read it) and DERIVED from it, so it can no longer be a
+  fourth opinion.
+- **TWO THINGS ARE DELIBERATELY NOT IT, and each says why beside itself.** The
+  AGREEMENT (`--doc-sheet-max`, below) and the friction brief's 78ch prose
+  column — both capped for the same reason, that a line past about 80 characters
+  measurably slows reading down. **The prose column is left a LITERAL on
+  purpose**: it has exactly one consumer and a token with one reader is noise;
+  what it needed was the reason written next to it.
+- **NOT SWEPT, each for its own reason:** the counterparty's page (read by people
+  outside the building on unknown screens — its own decision, and not in the
+  ask), and the standalone documents in `js/views/healthreport.js` and
+  `js/views/weekly.js`, which open their own windows and carry no `:root`, so a
+  token there resolves to nothing.
+- **THE SURPLUS BESIDE THE CONTRACT STAYS GREY** — owner-ruled 28 Aug with a
+  screenshot. `RL_RIGHT_W0` stays 460, the resting split is untouched, and the
+  cards do not grow into it. Keeping it means writing NO rule, which makes it
+  the cheapest answer as well as the chosen one. **The cost, stated once:** the
+  walk from a clause to its card grows with the window — about 163px at 1920 and
+  483px at 2560. If it ever bites, the fix is to cap and centre the working area
+  so sheet and cards travel together, never to widen the cards.
+
+## THE THREE SCREENS THAT DRAW THE AGREEMENT AGREE (owner-asked 28 Aug 2026)
+
+*"I would prefer that the Document and the edit with copilot page reflect
+exactly what has been built in the negotiations page … including the grey
+lighting in the sides."*
+
+**THAT GREY IS NOT A FORMATTING — IT IS NOTHING.** `.rl-doc` paints no
+background, so what shows beside a capped sheet is `--color-bg`, the page's own
+ground. Two screens differed and in two separate ways:
+
+- **`.ce-paperwrap` PAINTED OVER IT.** It set `--color-surface` and drew a
+  border besides, which is the whole of why the clause editor read as a
+  different product from the page it opens out of. **One declaration removed,
+  not a colour added** — the smallest change in that whole work order.
+- **AND THE DOCUMENT TAB MAGNIFIED, up to 2×.** `DOC_PAGE_W` was 660 and
+  `RL_SHEET_MAX` 860: **two numbers for one fact**, with a zoom on top fitting
+  the smaller one to the pane. Both read **`--doc-sheet-max`** now, and so does
+  the clause editor, which draws the same `.rl-paper`.
+- **WHAT IT COSTS WAS SAID BEFORE IT WAS BUILT AND THE OWNER RULED TWICE: on a
+  wide monitor the Document tab's words get SMALLER, up to half.** "Looks great"
+  on that tab WAS the magnification. **The argument for it:** the A⁻/A⁺ stepper
+  writes `--doc-scale` on both screens, so the reader already has a deliberate
+  size control — and the magnification was doing that same job by GUESSING from
+  the window width. One setting the reader asked for beats two mechanisms
+  arguing, and the negotiation page settled the same question the same way on
+  22 Aug 2026.
+- **`applyDocZoom` IS PINNED AT 1, NOT DELETED** — `rlApplyDocZoom`'s own
+  precedent: several callers ask the layout to re-fit and one named thing they
+  can all keep calling beats four private opinions. `DOC_ZOOM_MAX` is gone.
+- **BUILT AS THE RULE, NOT THE LOOK**, which is what makes it survive the
+  measure changing later: all three read one declaration, so a future retune
+  moves all three at once and there is nothing to redo.
+
+## THE PENCIL OPENS THE EDITOR, AND TWO CASES KEEP THE PANEL (owner-ruled 29 Aug 2026)
+
+*"Keep the negotiation page as is today but when I click the edit symbol, it
+takes me to the edit with copilot page to begin my edit there."* The pencil
+opened the clause panel, which then offered two writing buttons; those are the
+pencil's own job now. **Two presses became one and nothing about the negotiation
+page's layout, cards or columns moved.**
+
+- **THE DESTINATION IS CHOSEN AT DRAW TIME, NOT BY FALLING THROUGH A REFUSAL**,
+  and that is what keeps it from being a dead press: where the editor cannot
+  take the clause the pencil never claims it will. `rlClauseEditPillHtml` takes
+  `toEditor`; `redlineDocHtml` decides it ONCE for the whole canvas, so the four
+  clause branches cannot disagree.
+- **THE PANEL IS NOT RETIRED, AND THAT IS A CAPABILITY RATHER THAN A TASTE.**
+  **THEIR SEAT** — `clauseEditorRefusal` answers `ce_owner_only` for a
+  counterparty, and the panel is the ONLY way their page proposes wording;
+  sending their pencil to a page that turns them away would take that away
+  entirely. **AND A WINDOW UNDER 1024px**, which `clauseEditorFits` refuses
+  because two columns need room to be two columns; the panel works at every
+  width. So on our seat, at a usable width, the panel never opens — which is
+  what the ruling asked for — and it is still there for the two cases that need
+  it. **Said out loud rather than reported as "retired".**
+- **A DOOR ONTO A FULL-WINDOW PAGE IS NEVER "OPEN"**: the editor covers this
+  page, so `aria-expanded` on it would claim a state nobody can observe. The
+  panel's own pencil still reports its own.
+- **THE FRONT MATTER GOES TO THE EDITOR TOO** — `negoClauseNowById` resolves
+  `'front'` and the editor does not refuse it, so the region carries the same
+  door every clause does. The re-segmentation refusal that guards a front-matter
+  edit lives in `negoEditClause`, which is the funnel the editor files through,
+  so it applies unchanged.
+
+## THE OTHER SIDE MAY NOT RENAME OUR CLAUSES (owner-ruled 29 Aug 2026)
+
+The rename shipped on 28 Aug with **no rule about seats**, and their page mounts
+the same panel ours does — so they could propose a new name for a clause of
+ours. A clause's name is how the agreement is CITED ("subject to Clause 9") and
+the numbering and cross-references are ours to keep coherent.
+
+- **AT THE FUNNEL**, for the reason the two guards around it already give:
+  `negoFileChange` is what the Copilot shortcut, both playbook entrances, the
+  Word round-trip and an inbound link all reach without passing any screen.
+- **`modify` ALONE.** Naming a clause THEY are proposing is not renaming one of
+  ours; an `insertClause` carries the heading of a clause that does not exist
+  yet, and refusing that would leave them able to propose a new clause and
+  unable to call it anything.
+- **IT DROPS THE RENAME AND KEEPS THE EDIT**, rather than refusing the filing:
+  the wording they typed is a legitimate ask, and throwing it away over a field
+  they cannot even be shown would cost them work they meant to do. **A
+  rename-only attempt then proposes nothing, and the no-op guard refuses it in
+  the product's own words** — so the rule needed no refusal of its own.
+- **THE NAME BOX STANDS DOWN ON THEIR SEAT TOO** (`mayName`), because a control
+  whose only outcome is a refusal is furniture. That is the SIGN; the funnel is
+  the WALL. **Their right to propose new WORDING is untouched, a rename WE
+  propose still reaches them, and they still accept or refuse it.**
+
+## A FILTER MAY NOT THROW THE READER TO THE TOP (owner-asked 28 Aug 2026)
+
+*"When I click on the highlighted button the page jumps me to the top of the
+screen. Fix and make a rule that and in any other area where this is an issue."*
+
+**THE RULE IS AN OLD ONE APPLIED ONE LEVEL DOWN.** `setView` has enforced it
+between views since it was written — re-entering the SAME view leaves the reader
+exactly where they were — and every in-page repaint is the same case, each
+re-deciding it by accident. **A press that NAVIGATES may land at the top; a
+press that FILTERS, PAGES, SORTS or TOGGLES may not move the reader's place.**
+
+**THREE THINGS WERE WRONG AND ONLY THE FIRST WAS KNOWN.**
+
+- **`keepScroll` HAD ZERO CALLERS.** It sat in js/app.js doing exactly this job,
+  published on window, and nothing in the product ever called it. **That is this
+  codebase's most repeated defect wearing its other face**: the rlPaperFootHtml
+  family is a name that was never PUBLISHED and so could never be reached; this
+  is a name that IS published and that nobody ever reached FOR. f232's sweep is
+  built to catch the first kind and cannot catch this one.
+- **AND IT READ THE WRONG ELEMENT.** It measured `#content-scroll` alone — but
+  every view on `VIEW_OWNS_HEIGHT` builds its own scroller inside `#content`,
+  and Insights is one of them (`#ig-frame`). **Wired up as it stood, the fix
+  would have shipped and the jump would have stayed.** It sweeps the id-carrying
+  descendants of `#content` now and restores **BY ID**, because the caller is
+  about to replace the markup and the element the position was read off will not
+  survive it.
+- **AND THE REPORTED BUTTON DID NOT ARRIVE AT THE FUNNEL.** The pager called
+  `renderIntel()` directly while every filter beside it went through `again()` —
+  which is precisely why THAT was the button the owner saw. **A rule at a funnel
+  only holds while everything really arrives there**, and f251 pins it.
+- **A SCROLLER WITH NO ID STARTS AT ITS OWN TOP, and that is the decision** the
+  work order asked to be made once: the findings list (`.pf-find-scroll`) holds
+  a different set of rows after any of these presses, so its own top is where it
+  belongs. It falls out of keying on ids rather than needing a rule.
+- **A TAB IS NAVIGATION AND MAY LAND AT THE TOP** (`intelRepaint` wraps the
+  filters; the tabs call `renderIntel` plain). Different content arrives, so a
+  remembered offset would drop the reader at an arbitrary point in it.
+- **NOT SWEPT:** `openSettingsAt`, which writes `scrollTop=0` deliberately
+  because everything arriving through it is a navigation with a name on it; and
+  the settings page's patch-in-place rule, which is a stronger answer to the
+  same problem. `js/views/negotiation.js`'s own `_keepScroll` map is a different
+  job (many inner scrollers, not the page).
+
+Tests: f251 (7), **keeps-your-place-verify (7, browser — the only place this can
+be asked, because jsdom lays nothing out; it reports the owner's own bug against
+the parent commit, 461 → 0, and 461 → 461 with the fix).** **NOTE THE INSTRUMENT
+FAULT IT COST AN HOUR TO FIND: Playwright SCROLLS AN ELEMENT INTO VIEW before it
+clicks it**, so a driver-click on a control above the fold moves the scroller
+and the check then measures its own actionability rather than the product. The
+presses are dispatched in the page, which runs the same delegated handler a
+mouse does and touches nothing else.
+
+## THE NOTES DRAWER IS A QUARTER WIDER (owner-asked 28 Aug 2026)
+
+264 / 292 / 320 became **330 / 365 / 400** — **all three rungs together**,
+because a drawer wider on a big monitor and not on a laptop is the fault that
+ladder exists to prevent. **ALL THREE FACES** (owner-ruled 29 Aug): there is no
+notes panel — `#context-panel` shows Activity, Alerts or Notes and they are the
+same element at the same width, so widening one alone would make the drawer
+change size as the reader switched face with nothing saying why. **It costs the
+page nothing**: the drawer floats OVER the page rather than pushing it aside.
+
 ## THE PLATFORM CARRIES A 2px CORNER, AND THE CONTRACT DOES NOT (owner-ruled 26 Aug 2026)
 
 Owner-asked off a drawn preview of Home and the negotiation page at 0, 2, 3, 4
@@ -5853,7 +6043,11 @@ hour of it, which reviewed a branch three commits behind main and reported two
 faults that were already fixed. **Check the remote before measuring.** What still
 stands:
 
-- **One measure for the contract room's four tabs** — `--room-measure:1440px`,
+- **One measure for the contract room's four tabs** — `--room-measure`, **which
+  is `var(--page-measure)` since 29 Aug 2026 and no longer 1440px; see THE
+  PLATFORM FILLS THE MONITOR. The reason it exists is unchanged and is answered
+  more widely: the tabs still agree with each other, now with every other page
+  as well** —
   read by `.terms-grid`, `.sign-grid` and `#ws-history-pane`. They had three
   different caps, so one contract read as three differently-sized pages.
 - **The History tab's five filters take the row**: `flex:1 1 0` with a 132px

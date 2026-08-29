@@ -339,8 +339,25 @@
        are exactly what shipped before, so the standard-desktop layout is
        unchanged. --shell-panel-w is read by applyPanelLayout (js/app.js),
        which is the ONLY writer of #body-grid's columns — it writes an inline
-       style, so a media query aimed at that element would silently lose. */
-    --shell-panel-w:292px;
+       style, so a media query aimed at that element would silently lose.
+
+       A QUARTER WIDER SINCE 29 Aug 2026 (owner-asked: "increase the notes panel
+       by 25%") — 264/292/320 became 330/365/400, all three rungs together,
+       because a drawer that is wider on a big monitor and not on a laptop is
+       the same fault this ladder exists to prevent.
+
+       AND IT IS ONE DRAWER WITH THREE FACES, so all three widen. There is no
+       notes panel: #context-panel shows Activity, Alerts or Notes (PANEL_FACES
+       in js/app.js) and they are the same element at the same width. Widening
+       one alone would make the drawer change size as the reader switched face,
+       with nothing on screen saying why. Owner-ruled on the same day.
+
+       IT COSTS THE PAGE NOTHING: the drawer floats OVER the page rather than
+       pushing it aside, so a wider one covers more and moves none of it. The
+       line below is the ONE place these values are written — the sentence above
+       that said "the values here are exactly what shipped before" was true
+       until this change and is now this note instead. */
+    --shell-panel-w:365px;
     /* THE PLATFORM FACE IS IBM PLEX SANS (owner-asked, 25 Aug 2026), replacing
        Inter, which carried it from 22 Aug and SAP's "72" before that. All four
        face tokens point at the one family — headings, body, figures and the
@@ -488,7 +505,53 @@
        A TOKEN RATHER THAN THE NUMBER THREE TIMES: this drifted precisely
        because each tab typed its own, and the next tab added here inherits the
        decision instead of inventing a fourth. */
-    --room-measure:1440px;
+    /* ---- THE PLATFORM'S OWN MEASURE, AND IT IS ONE DECLARATION ----
+       (owner-reported 28 Aug 2026: "many pages in the app shrink when I am in
+       a desktop"; recommendation taken 28 Aug — *"let everything that is not
+       the contract fill your monitor, keep the contract itself a readable
+       page, and give the whole platform one setting so no two screens can ever
+       drift apart again."*)
+
+       WHAT WAS WRONG WAS NOT THE WIDTHS, IT WAS THAT THEY DISAGREED. A dozen
+       pages had each decided their own — 860 here, 900 there, 1440 on the
+       contract room's tabs — and Insights → Portfolio had never set one at all,
+       which is exactly why that is the page the owner reads as correct. SAP
+       calls the pattern letterboxing and its rule is the one HaTi was breaking:
+       an app may cap its width, but it may not let some pages cap and others
+       not when people move between them.
+
+       `none` IS A REAL VALUE AND IT IS THE POINT. The chrome fills the monitor
+       today; if a cap is ever wanted it is ONE line here rather than a dozen
+       edits, and no two pages can drift apart in the meantime.
+
+       TWO THINGS ARE DELIBERATELY NOT THIS MEASURE, and each is named where it
+       is written: the AGREEMENT (--doc-sheet-max, because a line of contract
+       wording past about 80 characters measurably slows reading down), and the
+       friction brief's own 78ch prose column, which is a reading measure for
+       the same reason and says so beside itself. */
+    --page-measure:none;
+
+    /* THE CONTRACT ROOM'S FOUR TABS, kept as a name because three rules read
+       it and DERIVED so it can no longer be a fourth opinion. It was 1440 from
+       25 Aug 2026, when three different caps made one contract read as three
+       differently-sized pages; that reason is answered by the platform measure
+       and the tabs still agree with each other by construction. */
+    --room-measure:var(--page-measure);
+
+    /* ---- THE CONTRACT'S OWN MEASURE, AND IT IS ONE NUMBER (owner-asked
+       28 Aug 2026: "I would prefer that the Document and the edit with copilot
+       page reflect exactly what has been built in the negotiations page") ----
+       THREE SCREENS DRAW THE AGREEMENT — the Document tab, the negotiation
+       page and the clause editor — and they carried TWO numbers for one fact
+       (DOC_PAGE_W 660 and RL_SHEET_MAX 860), which is how they came to look
+       like different products. One declaration, read by all three, so the next
+       change to what a line of an agreement may measure is one line here.
+
+       IT IS DELIBERATELY NOT --room-measure. The platform's chrome may fill a
+       monitor; the PAPER may not, because a line of contract wording past
+       about 80 characters measurably slows reading down. Two different facts,
+       two tokens, and this one is the named exception item 1 must not sweep. */
+    --doc-sheet-max:860px;
 
     /* CARDS — square, never 16/18. The 2px axis difference in `16px 18px` is
        why the KPI row (12/14) and the pipeline card (16/18) sat out of column. */
@@ -1897,7 +1960,7 @@
      the .ngl-row / .ngl-list rules survive because the EMPTY state (no live
      negotiation anywhere) is still a page of its own rather than an empty table
      under a filter bar. */
-  .ngl-wrap{ padding:var(--page-pad); max-width:900px; }
+  .ngl-wrap{ padding:var(--page-pad); max-width:var(--page-measure); }
   /* 700, not 600 — Home sets the tone at 20/700 and every page head matches it
      (owner-asked 25 Aug 2026). The SIZE was already right here; only the weight
      was a shade light against the rest. */
@@ -3271,9 +3334,9 @@
      ============================================================ */
 
   /* -- ultrawide: the activity column takes a little more -- */
-  @media (min-width:1800px){ :root{ --shell-panel-w:320px; } }
+  @media (min-width:1800px){ :root{ --shell-panel-w:400px; } }
   /* -- laptop: trim it before anything has to be clipped -- */
-  @media (max-width:1439px){ :root{ --shell-panel-w:264px; } }
+  @media (max-width:1439px){ :root{ --shell-panel-w:330px; } }
 
   /* -- THE SIDEBAR'S WIDTH IS NOT DECIDED HERE --
         An earlier version of this block collapsed the sidebar to an icon rail
@@ -4277,7 +4340,7 @@
      element. Both halves now start below the bar. */
   #context-panel{
     position:fixed;top:var(--shell-head-h,44px);right:0;bottom:0;z-index:46;
-    width:min(var(--shell-panel-w,292px),88vw);
+    width:min(var(--shell-panel-w,365px),88vw);
     display:flex;flex-direction:column;min-height:0;overflow:hidden;
     box-shadow:var(--shadow-lg);
     transform:translateX(105%);

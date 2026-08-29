@@ -718,15 +718,48 @@ function setView(view){
   }
 }
 /* Repaint a same-view surface without losing the reader's place. For callers
-   that repaint DIRECTLY (renderRegister after a delete) rather than through
-   setView — the rebuild's shorter intermediate paint clamps scrollTop to 0,
-   and this puts it back once the new frame has its height. */
+   that repaint DIRECTLY (renderRegister after a delete, a filter or a pager
+   inside a page) rather than through setView — the rebuild's shorter
+   intermediate paint clamps scrollTop to 0, and this puts it back once the new
+   frame has its height.
+
+   THE RULE, AND IT IS AN OLD ONE APPLIED ONE LEVEL DOWN (owner-asked 28 Aug
+   2026, "make a rule … and in any other area where this is an issue"): a press
+   that NAVIGATES may land the reader at the top; a press that FILTERS, PAGES,
+   SORTS or TOGGLES may not move their place. setView has enforced exactly that
+   between views since it was written — "re-entering the SAME view must leave
+   them exactly where they were" — and every in-page repaint is the same case.
+
+   IT REMEMBERS THE INNER SCROLLERS TOO, AND THAT IS THE HALF THAT MATTERS.
+   The shell's #content-scroll is NOT what scrolls on half the product: every
+   view on VIEW_OWNS_HEIGHT builds its own scroller inside #content (Insights
+   is #ig-frame / #ig-friction / #ig-oblig), so a helper reading the shell
+   alone measures 0, restores 0, and silently does nothing on the very pages
+   that need it. Keyed BY ID, because the caller is about to replace the
+   markup wholesale and the element the position was read off will not survive
+   it — the id is what does.
+
+   A SCROLLER WITH NO ID DELIBERATELY STARTS AT ITS TOP, and that is the answer
+   to "what about the list inside the page". The findings list (.pf-find-scroll)
+   is a fresh set of rows after any of these presses, so its own top is where it
+   belongs; it falls out of keying on ids rather than needing a rule of its own.
+
+   TWO FRAMES, and the second is not belt-and-braces: the intermediate paint is
+   shorter than the final one, so a single assignment is clamped by a height
+   that has not arrived yet. Never hand-roll this. */
 function keepScroll(fn){
   const sc=document.getElementById('content-scroll');
-  const top=sc?sc.scrollTop:0;
+  const host=document.getElementById('content');
+  const tops=[];
+  if(sc && sc.scrollTop) tops.push(['content-scroll',sc.scrollTop]);
+  if(host && host.querySelectorAll) host.querySelectorAll('[id]').forEach(el=>{
+    if(el.scrollTop) tops.push([el.id,el.scrollTop]);
+  });
   fn();
-  if(sc){ sc.scrollTop=top;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=top; }); }
+  if(!tops.length) return;
+  const put=()=>tops.forEach(([id,top])=>{ const el=document.getElementById(id); if(el) el.scrollTop=top; });
+  put();
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(put);
 }
 function openFolder(fid){
   if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
