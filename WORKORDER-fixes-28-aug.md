@@ -19,12 +19,20 @@ Item 2 **could not be reproduced from the code**, and what was found says the
 obvious explanation is probably the wrong one — it must be watched happening
 before it is touched.
 
-**THE OPEN QUESTIONS, AND NONE SHOULD BE GUESSED AT:** whether the counterparty
-may rename our clause headings (item 4), and whether "the notes panel" means that
-one face or the whole shell drawer (item 5). **Item 7 was REVERSED on 28 Aug** —
-the merge was ruled against after it was drawn, and the pencil now simply opens
-the existing editor page. One thing is loose there: whether the clause panel is
-retired or kept as a read-only look.
+**THERE ARE NO OPEN QUESTIONS LEFT. All four were put to the owner on 29 Aug
+2026 and all four were answered** — each is written into its own item and each
+says *ruled* with the date. Do not re-open one; do not ask again.
+
+**AND MAIN HAS MOVED UNDER THIS ORDER — READ *WHAT MAIN ALREADY DID* BELOW
+BEFORE ANYTHING ELSE.** Two of the seven are finished: **item 4 SHIPPED on main**
+on 28 Aug and **item 2 was FIXED there the same day**. Five remain. Item 4 is not
+quite empty — it shipped without the counterparty rule, which has now been ruled
+and is the one thing left of it.
+
+**Item 7 was REVERSED on 28 Aug** — the merge was ruled against after it was
+drawn, and the pencil now simply opens the existing editor page. **Its loose end
+is closed too: the clause panel is RETIRED**, and main gave that panel a new
+control in the meantime, so read item 7's own note before removing it.
 
 **ITEM 1's OWN QUESTION IS CLOSED — see *THE SURPLUS STAYS GREY* inside item 1.**
 Two earlier drafts of this file carried it as open, one of them after the owner
@@ -93,29 +101,28 @@ thing left inside it — where the spare space beside the contract goes — **yo
 have ruled on too: it stays grey**, exactly as it looks today, and the
 tracked-changes cards do not grow into it. Nothing about that split changes.
 
-**2 — The redline losing its marks when you press Edit.** I could not make this
-happen by reading the code, and I found something that suggests it is not what
-it looks like. The setting behind *Redlined / As agreed / With changes* can only
-be changed by pressing one of those three words — nothing else anywhere in the
-product touches it. So the tab has almost certainly **not** moved. What is far
-more likely is that turning editing on takes the marks off **the one clause you
-are editing**, which from where you are sitting looks exactly the same. That is
-a different fix in a different place, so whoever picks this up has to watch it
-happen once before changing anything.
+**2 — The redline losing its marks when you press Edit. FIXED, and it is off
+your list.** I could not make it happen by reading the code, and what I found
+said the obvious explanation was wrong: the tab had not moved, and what was
+really happening was that turning editing on took the marks off **the one clause
+you were editing**. **That is exactly what was fixed on main on 28 August** — a
+clause with something on it now opens showing its marks, and the pencil is one
+press away. You confirmed on 29 August that it has gone. Nothing to build.
 
 **3 — The page jumping to the top.** Proven, and it is bigger than the button
 you ringed. **Every filter on that page has the same fault**, not just the
 pager. And there is already a helper in the app written to stop exactly this
 from happening — nothing in the product calls it.
 
-**4 — Editing a clause heading.** Straightforward, and the good news is the app
-already understands a heading as its own thing rather than as the first line of
-the clause — so this is a missing link rather than a rebuild. The one thing to be
-careful about is that a clause's hidden identity tag is stored **on** its
-heading, so a heading has to be edited in place rather than replaced, or the app
-loses track of which clause is which. There is also one question only you can
-answer: **should the other side be able to rename our clauses?** Their screen
-uses the same panel, so unless we say otherwise, they will be able to.
+**4 — Editing a clause heading. BUILT — it shipped on main on 28 August.** You
+can rename a clause, the rename travels to the other side as an ordinary tracked
+change, it sits inside the tamper-proof seal, and accepting it keeps the clause
+the same clause so nothing loses track of anything.
+
+**ONE THING IS LEFT, and it is the question you have now answered.** It shipped
+without a rule about the other side, and they use the same panel we do — **so
+today they CAN rename our clauses**. On 29 August you ruled: **block it.** That
+is a small change and it is the whole of what remains of item 4.
 
 **5 — The notes panel a quarter wider.** Small, and it costs the page nothing —
 that drawer floats over the page rather than pushing it aside, so making it wider
@@ -124,9 +131,8 @@ drawer is already set to different widths on a big monitor, a normal one and a
 smaller laptop, and all three have to move together or it will be wider on some
 machines and not others. And there is really only **one** drawer with three
 faces — Notes, Alerts and Activity are the same panel showing different things.
-So: **do you want all three wider, or Notes only?** My suggestion is all three,
-because it is one object and a reader has no way to know why it is sometimes
-wider. Say the word if you want Notes alone.
+**You ruled on 29 August: all three.** It is one object, and a reader has no way
+to know why it would be wider on some days and not on others.
 
 **6 — The three contract screens don't match.** You asked what the grey either
 side of the contract is. **It isn't a style — it's nothing.** It's the page's own
@@ -159,15 +165,78 @@ the negotiation page; the only way in is the little panel that opens when you
 press the pencil, and this simply sends that press to the editor instead. **Two
 presses become one, and nothing on the page moves.**
 
-**One thing to decide:** that little panel is now nearly empty — its two writing
-buttons become the pencil's job, its History belongs on the History tab, and the
-rest is already on screen. Do you want it gone, or kept as a quick look at what
-is on the table for a clause?
+**And the panel goes** — you ruled on 29 August. Its two writing buttons become
+the pencil's job, its History belongs on the History tab, and the rest is already
+on screen a few pixels away. **One thing to know before it is removed:** main
+gave that panel a new box on 28 August, for renaming a clause. Nothing is lost —
+the editor page has its own — but whoever removes the panel must check that
+first.
 
 **And one thing this does NOT reopen.** An earlier draft said reversing the merge
 brought item 1's "cards or white space" question back to life. The cards do keep
 that column at all times — but the question itself is answered: **the surplus
 stays grey.** See *THE SURPLUS STAYS GREY* inside item 1.
+
+---
+
+## WHAT MAIN ALREADY DID — checked 29 Aug 2026, READ THIS BEFORE STARTING
+
+**This order was written against main as it stood on 28 Aug and main moved
+underneath it the same day.** Seventeen commits landed. **Each of the seven was
+re-checked in the code on 29 Aug rather than assumed** — what follows is what was
+found, with the commit named so the next person can look.
+
+### TWO ARE FINISHED
+
+- **ITEM 4 IS BUILT — `a5a62f5`, *A clause's name is part of the clause, and can
+  be proposed on*.** Everything this order asked for and more: `negoEditClause`
+  gained an optional `headingText`, absent means the filing says nothing about
+  the heading (so no existing caller changed behaviour and there is nothing to
+  migrate), the fingerprint went to **v5** with the heading inside it, and
+  `clauseReplaceHeading` keeps the element, its rank and its id — which is the
+  trap this order flagged, answered. **The section in CLAUDE.md is *A CLAUSE'S
+  NAME IS PART OF THE CLAUSE*; read that, not item 4's own notes, which describe
+  a problem that no longer exists.** What is left of item 4 is ONE rule, below.
+- **ITEM 2 IS FIXED — `7e24ec7`, and CLAUDE.md's *THE PAGE NEVER OPENS IN A
+  STATE THAT HIDES MARKS THAT EXIST*.** It is the same report and this order's
+  own diagnosis turned out to be right: the reading never moved; what moved was
+  that a clause opened TYPEABLE, and a typeable box shows the draft, so the one
+  clause the reader was looking at was the one clause with no marks. The fix is
+  `_ceEditing = _ceText === _ceBase && _ceHead === _ceHeadBase` — a clause with
+  nothing on it opens typeable, a clause with something on it opens showing its
+  marks. **The owner confirmed on 29 Aug that it has gone.** Item 2 is closed.
+
+### FIVE ARE UNTOUCHED, AND THIS WAS MEASURED RATHER THAN ASSUMED
+
+- **Item 1** — the caps are where this order found them; `--room-measure` is
+  still three occurrences in index.html.
+- **Item 3** — `keepScroll` in js/app.js still has **zero callers**. (There is a
+  local `_keepScroll` object in js/views/negotiation.js; it is a different thing
+  and is not this.)
+- **Item 5** — `--shell-panel-w` is still 264 / 292 / 320.
+- **Item 6** — `.ce-paperwrap` still sets `background:var(--color-surface)`, so
+  the Copilot page still paints white where the negotiation page shows grey.
+- **Item 7** — `rlClauseEditPillHtml` still defaults its attribute to
+  `data-rl-cp-open`, so the pencil still opens the clause panel.
+
+### AND ONE THING CHANGED SHAPE — ITEM 7 HAS A NEW FACT UNDER IT
+
+**Main gave the clause panel the rename box** (`.rl-cp-clname`), and the pencil
+is that panel's only door. So item 7 — pencil straight to the editor — now
+strands a panel that had just gained something. **It was put to the owner on
+29 Aug with that fact stated, and the ruling is unchanged: the panel goes.**
+Nothing is lost, and it was checked rather than asserted: work mode types the
+name on the paper itself (`#ce-clausehead`), the live asks are the cards column
+twelve pixels away, and History is the room's own tab.
+
+### WHAT ELSE LANDED, so nobody reads a screen and thinks this order missed it
+
+Front matter became a region that can be proposed on (`497fec8`); work mode was
+rebuilt to the owner's own prototype and lost its header (`a7d4acc`); the writing
+bar arrived and the reason step was retired, so a change files in one press
+(`5afafdd`, `6e46e5a`); the Changes tab was built and then deleted on the owner's
+ask (`7e24ec7`). **None of these is in this order and none of them should be
+re-litigated here** — they are recorded in CLAUDE.md under their own headings.
 
 ---
 
@@ -522,6 +591,13 @@ else.
 
 ## 2 — THE REDLINE PAGE SHOWING CLEAN TEXT AFTER PRESSING EDIT
 
+> **CLOSED — FIXED ON MAIN, 28 Aug 2026 (`7e24ec7`), owner-confirmed 29 Aug.**
+> **Nothing here is to be built.** The whole section below is kept because its
+> reasoning was right and is worth reading: it said the reading had not moved and
+> the fault was in what the paper draws when editing turns on, and that is
+> precisely what was wrong. See CLAUDE.md, *THE PAGE NEVER OPENS IN A STATE THAT
+> HIDES MARKS THAT EXIST*, and *WHAT MAIN ALREADY DID* above.
+
 > *"Redline page, should always show you the redline. Currently while on the
 > page and click the edit button it changes to as agreed even though you have
 > not moved to the as agreed page."*
@@ -693,6 +769,40 @@ accident.
 
 ## 4 — A CLAUSE'S HEADING SHOULD BE EDITABLE TOO
 
+> **BUILT ON MAIN, 28 Aug 2026 (`a5a62f5`).** The feature this item asks for
+> exists, and it went further than this order specified — the fingerprint moved
+> to v5 with the heading inside it. **Read CLAUDE.md's *A CLAUSE'S NAME IS PART
+> OF THE CLAUSE* rather than the notes below**, which describe a gap that is
+> closed. The five dangers this order listed were all answered; the id-on-the-
+> heading trap in particular is handled by `clauseReplaceHeading`, which rewrites
+> the words and keeps the element, its rank and its id.
+
+### THE COUNTERPARTY MAY NOT RENAME OUR CLAUSES — RULED 29 Aug 2026
+
+**This is the only part of item 4 still to build, and it is a REMOVAL of
+behaviour that is live today rather than a new feature.**
+
+This order predicted it in its own words — *"their screen uses the same panel, so
+unless we say otherwise, they will be able to"* — and that is exactly how it
+shipped: **no seat rule was added.** MEASURED on main: the rename box is drawn
+inside the clause panel's editor, both seats mount that panel, and f249's own
+test 9 files a rename with `side:'counterparty'` and asserts it travels. So the
+other side can rename our clauses on main today.
+
+> **THE OWNER'S RULING, 29 Aug 2026: block it.** Only our side may propose a new
+> name for a clause. **Their ability to propose new WORDING is untouched** — that
+> is what their page is for and nothing here narrows it.
+
+**NOTES FOR WHOEVER BUILDS IT.** Ask it in ONE place, not at each screen — the
+funnel is where a rule that must always hold belongs, and this order's whole
+first rule is that the same thing is drawn in several places. The box should not
+be DRAWN on their seat either (a control whose only outcome is a refusal is
+furniture, which is this codebase's own standing rule), but the drawing is the
+sign and the model is the wall. **And check what a rename already in flight does
+on their copy**: a rename WE propose still has to draw and still has to be
+answerable there, so this narrows who may CREATE one, never who may see or
+decide one.
+
 > *"When I want to edit a clause, you should have the ability to also edit the
 > header of the clause if you want to. The headers should be included in
 > editing."*
@@ -752,7 +862,16 @@ BODY and nothing else, and files `oldText`/`newText` as that body's text.
    fact. Either offer the title alone, or decide out loud that a hand-typed
    number wins and teach the renumberer to respect it.
 
-### The questions a build has to answer, and not one of them is a coding question
+### The questions a build had to answer — ALL FIVE ARE ANSWERED, kept for the record
+
+**Every one of these was settled by `a5a62f5` or by the owner on 29 Aug.** In
+order: yes it is a tracked change and it goes through the one funnel; ONE change,
+folded exactly as a second body edit already folds; the paper draws it, and both
+renderers honour the reading; **the counterparty may NOT — ruled 29 Aug, and it
+is the one thing still to build**; and the fingerprint went to **v5** with the
+heading appended after `ops` through the same length prefix, `NEGO_HASH_VERIFIES`
+gaining 5 so nothing already filed moves. **Read this block as history.**
+
 
 - **IS A HEADING CHANGE A TRACKED CHANGE?** It has to be. Everything else on
   this page is, the counterparty must see it, and a heading is part of the
@@ -795,6 +914,11 @@ invite the two-changes problem above.
 ---
 
 ## 5 — THE NOTES PANEL IS A QUARTER TOO NARROW
+
+> **RULED 29 Aug 2026: ALL THREE FACES.** The drawer widens whichever of
+> Activity, Alerts or Notes is showing. It is one object and a reader has no way
+> to know why it would be wider on some days and not on others. **Not built** —
+> `--shell-panel-w` is still 264 / 292 / 320 on main, checked 29 Aug.
 
 > *"Image 1, increase the notes panel by 25%."*
 
@@ -1014,6 +1138,19 @@ it is a build instruction rather than a question for the owner.
 ---
 
 ## 7 — THE PENCIL GOES STRAIGHT TO THE EDITOR
+
+> **RULED 29 Aug 2026: the clause panel is RETIRED.** The loose end this item
+> left open is closed. **Not built** — the pencil still carries
+> `data-rl-cp-open` on main, checked 29 Aug.
+>
+> **READ THIS BEFORE REMOVING THE PANEL.** Main gave it a new control on 28 Aug:
+> an editable clause-name box (`.rl-cp-clname`), which is one of the two doors
+> onto the rename that shipped that day. **Nothing is lost by retiring it** and
+> that was checked rather than assumed — work mode types the name on the paper
+> itself (`#ce-clausehead`), the live asks are the cards column, and History is
+> the room's own tab. But the panel is a bigger object than it was when this item
+> was written, and the removal has to account for that box rather than meet it by
+> surprise.
 
 **REVERSED IN PLACE, 28 Aug 2026, by the owner, after seeing it drawn.** This
 item was raised as *one page: the negotiation screen becomes the editor*, it was
