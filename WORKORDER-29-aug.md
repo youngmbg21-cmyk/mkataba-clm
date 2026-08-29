@@ -963,10 +963,20 @@ written to match the code.
 
 **Raised by:** Young, 29 Aug 2026, off a screenshot of the clause editor with
 the green margin bar ringed.
-**Status:** **DONE.** Built on the owner's word after the understanding artifact
-was confirmed ("fully aligned"). What it turned into, and the one guard that was
-written and then taken out again, is recorded in CLAUDE.md under ONE PRESS
-REACHES TYPING AND THE STRIP.
+**Status:** **DONE, in two halves.** Built on the owner's word after the
+understanding artifact was confirmed ("fully aligned"). What it turned into, and
+the one guard that was written and then taken out again, is recorded in CLAUDE.md
+under ONE PRESS REACHES TYPING AND THE STRIP.
+
+**THE SECOND HALF WAS REPORTED BEFORE THE FIRST WAS FINISHED** — *"The only fix
+is when i click on pencil it takes me to the editor page but the rest is not
+working"* — and it was a real gap rather than a misunderstanding: the strip was
+mended and the DOOR still said nothing, so the page landed showing its marks and
+not typeable and the reader still needed a second pencil over there. The three
+controls that open that page now share one reading of what the press means. The
+lesson it cost is in CLAUDE.md too: the file that measured this staged the page
+by calling the door directly, so it proved the strip works from a state the
+reader never arrives in and passed throughout.
 
 **Owner's words, verbatim:**
 

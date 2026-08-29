@@ -4501,6 +4501,31 @@ function wireNegotiationTab(c, opts = {}){
           marked, settled, spans, passage });
       }));
     }
+    /* ---- WHAT A DOOR ONTO THE CLAUSE EDITOR MEANS (owner-reported 29 Aug 2026)
+       *"The only fix is when i click on pencil it takes me to the editor page
+       but the rest is not working."*
+
+       THREE CONTROLS OPEN THAT PAGE — the panel's Copilot button, the ✦ on a
+       tracked change and the paper's own pencil — and all three are one reading:
+       a reader saying *edit this clause*. So the reading is written ONCE and
+       they call it, rather than three call sites each remembering to say the
+       same thing; a fourth door added in this function inherits it.
+
+       `typing: true` IS THE ASK rlOpenClauseEditor ALREADY HONOURS — main built
+       it for a click into another clause's words, and a door needs it for the
+       same reason. Without it the reader pressed Edit, landed on a page still
+       showing marks, and had to find a SECOND pencil over there, which is the
+       "click the pencil symbol once" this whole job is about.
+
+       IT NARROWS THE 28 Aug ARRIVAL RULE AND DOES NOT REPEAL IT. That rule —
+       the page never opens in a state that hides marks that exist — still
+       governs every move INSIDE the page, because the ask is CONSUMED on
+       arrival: `ceGoClause` afterwards inherits nothing. What is overruled is
+       only the case the owner rang, where the press itself said "edit". */
+    const openEditor = (clauseId, extra) => !!(window.rlOpenClauseEditor
+      && rlOpenClauseEditor(c, clauseId,
+        { ...opts, side, again, by: opts && opts.by, typing: true, ...(extra || {}) }));
+
     /* ---- THE COPILOT BUTTON ON A CLAUSE ----
        Everything the selection path works out from a drag, worked out from the
        clause instead: the whole clause is the passage, and whether it is under
@@ -4540,7 +4565,7 @@ function wireNegotiationTab(c, opts = {}){
          the panel is closed by hand because its own data-rl-cp-close came off
          the button (see the note beside it). */
       if (btn.hasAttribute('data-rl-cp-editor') && window.rlOpenClauseEditor){
-        if (rlOpenClauseEditor(c, clauseId, { ...opts, side, again, by: opts && opts.by })) return;
+        openEditor(clauseId);
         return;
       }
       if (fromPanel && window.rlCpSetShown)
@@ -4561,10 +4586,8 @@ function wireNegotiationTab(c, opts = {}){
        beside it already states. */
     host.querySelectorAll('[data-rl-cp-editor-row]').forEach(btn => btn.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation();
-      if (!window.rlOpenClauseEditor) return;
-      rlOpenClauseEditor(c, btn.getAttribute('data-rl-cp-editor-row'),
-        { ...opts, side, again, by: opts && opts.by,
-          changeId: btn.getAttribute('data-rl-cp-editor-change') || '' });
+      openEditor(btn.getAttribute('data-rl-cp-editor-row'),
+        { changeId: btn.getAttribute('data-rl-cp-editor-change') || '' });
     }));
     /* ---- THE PAPER'S OWN PENCIL, WIRED WHERE THE ROW'S DOOR IS WIRED ----
        (owner-reported 29 Aug 2026: "when i click on the pencil i would go
@@ -4593,9 +4616,7 @@ function wireNegotiationTab(c, opts = {}){
     host.querySelectorAll('[data-rl-cp-editor]:not([data-nego-ai-clause])').forEach(btn =>
       btn.addEventListener('click', ev => {
         ev.preventDefault(); ev.stopPropagation();
-        if (!window.rlOpenClauseEditor) return;
-        rlOpenClauseEditor(c, btn.getAttribute('data-rl-cp-editor'),
-          { ...opts, side, again, by: opts && opts.by });
+        openEditor(btn.getAttribute('data-rl-cp-editor'));
       }));
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
        made the Redline workbench's AI Assist flash and vanish. The clause

@@ -80,11 +80,17 @@ describe('f245 (1) — the doors', () => {
   });
 
   test('the handler tries the editor FIRST and stops there either way', () => {
+    /* REVERSED IN PLACE 29 Aug 2026, and the claim is unchanged: it pinned the
+       shape of a call that has since moved into `openEditor`, the one reading
+       of what a door onto that page means (see f245 (19)). What it is about —
+       the press goes to the editor and STOPS there, rather than falling through
+       to the old menu once a refusal has already said why — is stronger now: it
+       is one unconditional return rather than two returns agreeing. */
     const m = NEGO.match(/data-rl-cp-editor'\)[\s\S]{0,260}/);
     assert.ok(m, 'the clause-AI handler asks for the marker');
-    assert.ok(/rlOpenClauseEditor\(c, clauseId/.test(m[0]),
+    assert.ok(/openEditor\(clauseId\)/.test(m[0]),
       'and opens the editor with the clause it was pressed on');
-    assert.ok(/return;[\s\S]{0,40}return;/.test(m[0]),
+    assert.ok(/openEditor\(clauseId\);\s*\n\s*return;/.test(m[0]),
       'a refusal has already said why, so the press stops rather than falling '
       + 'through to a second feature');
   });
@@ -108,8 +114,15 @@ describe('f245 (1) — the doors', () => {
   });
 
   test('neither door is a second route into the contract', () => {
-    const doors = (NEGO.match(/rlOpenClauseEditor\(/g) || []).length;
-    assert.ok(doors >= 2, 'both doors call it');
+    /* REVERSED IN PLACE 29 Aug 2026. It counted the CALL SITES and wanted two
+       of them; there is ONE now, and that is the point rather than a loss —
+       both doors (three, with the paper's pencil) reach it through `openEditor`,
+       so what a press onto that page means is decided once. f245 (19) holds
+       that claim; this one keeps its own, which is that neither door writes. */
+    assert.ok(/data-rl-cp-editor="1"/.test(NEGO) && /data-rl-cp-editor-row=/.test(NEGO),
+      'both doors exist');
+    const doors = (NEGO.match(/rlOpenClauseEditor\(c,/g) || []).length;
+    assert.equal(doors, 1, 'and they share one route in');
     assert.ok(!/negoFileChange|negoEditClause/.test(
       (NEGO.match(/data-rl-cp-editor-row'\)[\s\S]{0,400}/) || [''])[0]),
       'the row handler opens a page and files nothing');
@@ -1556,5 +1569,43 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
        act this page has. */
     assert.ok(!/negoFileChange\(/.test(CODE), 'no second filing path');
     assert.ok(!/changes\.push/.test(CODE), 'and nothing writes a change directly');
+  });
+
+  test('THE DOOR ITSELF: a press that says "edit" arrives ready to type', () => {
+    /* THE HALF THAT WAS ACTUALLY MISSING, and the report named it: "when i
+       click on pencil it takes me to the editor page but the rest is not
+       working". The page opened, correctly, in the state the 28 Aug ARRIVAL
+       rule asks for — showing the marks that exist — so the reader still had to
+       find a SECOND pencil on the far side. Three controls open that page and
+       none of them said what the press meant.
+
+       ONE READING, THREE CALLERS. The ask is written in `openEditor` and
+       nowhere else, so a fourth door in this function inherits it and cannot
+       forget; three call sites each remembering to say the same thing is how
+       two of them come to disagree. */
+    assert.match(NEGO_CODE, /const openEditor = \(clauseId, extra\)/,
+      'the reading is a named thing, not a phrase repeated at three presses');
+    assert.match(NEGO_CODE, /openEditor = [\s\S]{0,200}?typing: true/,
+      'and what it says is that the reader asked to edit');
+    const calls = NEGO_CODE.match(/rlOpenClauseEditor\(c,/g) || [];
+    assert.equal(calls.length, 1,
+      'exactly one place calls the door — a caller of its own would be a second '
+      + 'answer to what a press onto this page means');
+    const asks = NEGO_CODE.match(/typing: true/g) || [];
+    assert.equal(asks.length, 1, 'and the ask is made in exactly one place');
+    for (const attr of ['data-rl-cp-editor-row', 'data-rl-cp-editor'])
+      assert.ok(NEGO_CODE.includes(attr),
+        `${attr} is still a door onto the page`);
+  });
+
+  test('…and the ARRIVAL rule still governs every move inside the page', () => {
+    /* The narrowing is exactly one case: the press that said "edit". A move to
+       another clause from inside the editor is not that press, and must still
+       land showing whatever marks exist — which is what consuming the ask
+       buys, and why it is deleted rather than kept on the options. */
+    const open = SRC.match(/function rlOpenClauseEditor\([\s\S]*?\n\}/)[0];
+    assert.match(open, /delete .*typing|typing[\s\S]{0,120}delete/,
+      'the ask is consumed on arrival');
+    assert.match(CODE, /_ceEditing = /, 'and the conservative reading survives');
   });
 });

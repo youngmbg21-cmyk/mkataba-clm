@@ -1875,6 +1875,30 @@ one gesture safe for two jobs.** Two rules carry it, and neither is optional:
   highlights and then carries on writing has answered the question themselves,
   and the passage the strip was holding is the one they have just typed over.
 
+**AND THE OTHER HALF OF THE REPORT WAS THE DOOR** (owner-reported the same day,
+after the strip was fixed: *"The only fix is when i click on pencil it takes me
+to the editor page but the rest is not working."*). The strip was mended and the
+reader still could not reach it, because **the press never said what it meant**:
+the three controls that open this page — the panel's Copilot button, the ✦ on a
+tracked change and the paper's own pencil — opened it with no ask, so the 28 Aug
+arrival rule below applied, the page landed **showing its marks and not
+typeable**, and "click the pencil symbol once" was really click it once here and
+again over there.
+
+- **`typing: true` IS AN ASK THE PAGE ALREADY HONOURED.** Main built it for a
+  click into another clause's words; a door needs it for exactly the same
+  reason. Nothing new was invented and no state was added.
+- **ONE READING, THREE CALLERS — `openEditor` in wireNegotiationTab.** Three call
+  sites each remembering to say the same thing is how two of them come to
+  disagree, and a fourth door added later would have forgotten. It is written
+  once and they call it; `rlOpenClauseEditor(c, …)` is now reached from exactly
+  ONE place in that file, which f245 (1) and f245 (19) both pin.
+- **IT NARROWS THE 28 Aug ARRIVAL RULE AND DOES NOT REPEAL IT** — see the
+  section below, whose claim is reversed in place there. That rule still governs
+  every move INSIDE the page, because **the ask is CONSUMED on arrival**: a
+  later `ceGoClause` inherits nothing. What is overruled is only the case the
+  owner rang, where the press itself said *edit this clause*.
+
 **NOTHING ABOUT FILING MOVED.** The whole of this is which gestures reach which
 control; the one act in the rail's foot is still what puts a change on the
 record, and f245 (19) greps that no second filing path appeared.
@@ -1892,13 +1916,31 @@ the source where it lives.
 **THE GREEN MARGIN BAR WENT WITH THIS FIX** — see THE CLAUSE YOU ARE TYPING IN
 IS STILL THE PAPER, whose "untouched" claim is reversed in place there.
 
-Tests: f245 (19) (6 claims, **5 of them failing against the parent**), f245's
-margin-bar claim REVERSED IN PLACE, clause-editor-verify section 21 (9 — the
-gesture **driven with a real mouse**, because the fault had a second half that
-only a real mousedown/mouseup/click sequence exercises: a synthetic Range fires
-neither event and would have passed against the broken build) and 17g reversed
-in place. **Against the parent that file reports the owner's bug verbatim** —
+Tests: f245 (19) (8 claims, **6 of them failing against the parent**), f245's
+margin-bar claim REVERSED IN PLACE, f245 (1)'s two door claims REVERSED IN PLACE
+(each keeps what it was really about — the press stops at the editor, and
+neither door writes — and one is stronger for it: it counted two call sites and
+now asserts there is one), clause-editor-verify section 21 (9 — the gesture
+**driven with a real mouse**, because the fault had a second half that only a
+real mousedown/mouseup/click sequence exercises: a synthetic Range fires neither
+event and would have passed against the broken build) and 17g reversed in place.
+**Against the parent that file reports the owner's bug verbatim** —
 `21c … strip false` — and the green bar at 3px.
+
+**AND THE DOOR IS ASSERTED WHERE THE READER STARTS**, which is the lesson this
+one cost: clause-door-verify 16d2-16d5 press the pencil **on the contract** and
+then drag for real, because clause-editor-verify stages the page by calling the
+door directly and pressing the editor's OWN pencil — so it proved the strip
+works from a state the reader never arrives in, and passed throughout. Against
+the parent those checks report the fault verbatim: `typing false`, `marks 2`,
+`strip false`. **A PROBE MAY NOT SCROLL THE PAPER TO FIND ITS TARGET**, and an
+hour was lost to it: `.nego-scroll` — which is what `#ce-doc` is — carries
+`scroll-behavior:smooth`, so `scrollIntoView` ANIMATES and a rect read on the
+next line is the position the paper is LEAVING. Measured, the canvas moved 332px
+between mousedown and the third mouse move, the pointer left the clause, and the
+selection collapsed to nothing — which reads exactly like a product refusing to
+select. Take a point already on screen, or wait for the scroll to settle before
+measuring one.
 
 ## THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST (owner-reported 28 Aug 2026)
 
@@ -1906,6 +1948,16 @@ in place. **Against the parent that file reports the owner's bug verbatim** —
 because that is the whole purpose of having that tab"* — off a screenshot of
 work mode on **Redlined**, with a clause carrying CHG-001 and **not one mark on
 it**, while the rail beside it drew that change's marks perfectly.
+
+**NARROWED IN PLACE 29 Aug 2026, and the narrowing is exactly one case:** a
+press that SAID *edit this clause* — the paper's pencil, the ✦ on a change, the
+panel's Copilot button — now arrives typeable whatever marks the clause carries,
+because the owner asked for it in those words ("click the pencil symbol once …
+the redlines disappear to clean view"). See ONE PRESS REACHES TYPING AND THE
+STRIP above. **Everything below still governs every move INSIDE the page**,
+which is what consuming the ask on arrival buys: a reader who lands on Redlined
+without asking to edit still sees the marks that exist, which is the whole of
+what was reported here.
 
 **THIS REVERSES "THE CLAUSE YOU CAME IN ON OPENS TYPEABLE", and both decisions
 survive on the one question that separates them.** That rule was an owner

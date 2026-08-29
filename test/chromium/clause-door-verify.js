@@ -1314,11 +1314,20 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const box = document.querySelector('#ce-clausebody');
     const on = box && box.closest('[data-clause]');
     const pr = page ? page.getBoundingClientRect() : null;
+    const liveSec = document.querySelector('#ce-doc .rl-clause-live');
     return { attr,
       page: !!page,
       /* real pixels, not merely mounted */
       visible: !!(pr && pr.width > 400 && pr.height > 300),
       onClause: on ? on.getAttribute('data-clause') : null,
+      /* ---- AND WHAT STATE IT LANDED IN (owner-reported 29 Aug 2026) ----
+         "The only fix is when i click on pencil it takes me to the editor page
+         but the rest is not working." ONE press, so the page has to arrive
+         ready — read off the SAME press that opened it, because a second
+         probe that pressed the editor's own pencil first is precisely the
+         staging that let this ship. */
+      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
+      marks: liveSec ? liveSec.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
       /* and the panel is NOT what opened — that is the half the ruling changed */
       panel: !!document.querySelector('#rl-cp.is-on, #rl-cp-body .rl-cp-src.is-on') };
   }, staged.clauseId);
@@ -1330,6 +1339,92 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      landed.onClause === staged.clauseId, `${landed.onClause} vs ${staged.clauseId}`);
   ck('16d and the panel is not what opened',
      landed.panel === false, String(landed.panel));
+  /* THE STAGED CLAUSE CARRIES A FILED CHANGE (see the fixture at the top), so
+     this is the reported case and not a clause that would have opened typeable
+     whatever the door did. */
+  ck('16d2 THE REPORTED FAULT: that ONE press lands ready to type',
+     landed.typing === true, `typing ${landed.typing}`);
+  ck('16d3 …and the redlines have given way to a clean view',
+     landed.marks === 0, `marks ${landed.marks}`);
+
+  /* ---- 16d4. AND THE WHOLE JOURNEY, WITHOUT A SECOND PRESS ----
+     The lesson this fix cost: clause-editor-verify staged the page by calling
+     the door directly and then pressing the editor's OWN pencil, so it proved
+     the strip works from a state the reader never arrives in. THIS starts where
+     the reader starts — one press on the contract — and drags for real. */
+  /* AIMED AT A REAL LINE BOX, not at a container: a paragraph's own rect is
+     several lines tall and its vertical centre can fall between them, which
+     caught a single character and made the strip refuse — correctly — for a
+     reason that had nothing to do with the product. getClientRects()[0] is one
+     line box; getBoundingClientRect() over the same range is the union of them.
+
+     AND IT MAY NOT SCROLL THE PAPER TO FIND ONE, which cost an hour and is the
+     lesson worth keeping. .nego-scroll — which is what #ce-doc is — carries
+     scroll-behavior:smooth, so scrollIntoView ANIMATES: the rect read on the
+     next line is the position the paper is LEAVING, and the scroll then runs on
+     under the drag. Measured, the canvas moved 332px between mousedown and the
+     third mouse move, the pointer left the clause, and the selection collapsed
+     to nothing — which reads exactly like a product that refuses to select.
+     So it takes a line already on screen (the page arrives with the live clause
+     in view) and drags across that. */
+  const reach = await p.evaluate(() => {
+    const box = document.querySelector('#ce-clausebody');
+    if (!box) return null;
+    const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+    const sc = document.querySelector('#ce-doc') || document.scrollingElement;
+    let out = null;
+    while (walk.nextNode()){
+      const n = walk.currentNode;
+      if ((n.textContent || '').trim().length <= 45) continue;
+      const rg = document.createRange();
+      rg.setStart(n, 0); rg.setEnd(n, 40);
+      const r = Array.from(rg.getClientRects())[0];
+      if (!r || r.width < 20) continue;
+      if (r.top < 80 || r.bottom > window.innerHeight - 80) continue;
+      out = { x1: r.left + 2, y: r.top + r.height / 2, x2: r.right - 2,
+        at: (n.textContent || '').slice(0, 24), sc: sc ? sc.scrollTop : -1 };
+      break;
+    }
+    return out;
+  });
+  if (reach){
+    await p.mouse.move(reach.x1, reach.y);
+    await p.mouse.down();
+    await p.mouse.move((reach.x1 + reach.x2) / 2, reach.y, { steps: 8 });
+    await p.mouse.move(reach.x2, reach.y, { steps: 8 });
+    await p.mouse.up();
+    await pause(450);
+    const strip = await p.evaluate(() => {
+      const el = document.getElementById('ce-inline');
+      const r = el ? el.getBoundingClientRect() : null;
+      const act = document.activeElement;
+      return { on: !!(el && r && r.width > 0 && r.height > 0 && el.offsetParent !== null),
+        focus: act ? (act.id || act.tagName) : 'none' };
+    });
+    ck('16d4 …and highlighting then raises the strip, on that same one press',
+       strip.on === true, `strip ${strip.on}`);
+    ck('16d5 …without taking the caret out of the clause',
+       strip.focus === 'ce-clausebody', `focus ${strip.focus}`);
+  }
+
+  /* THE SMOOTH SCROLL HAS TO SETTLE BEFORE ANY POINT IS MEASURED. #ce-doc is
+     .nego-scroll, which carries scroll-behavior:smooth, so scrollIntoView
+     ANIMATES and a rect read on the next line is the position the paper is
+     LEAVING — every press aimed off it lands somewhere else entirely. Polled
+     rather than slept on, so a slow machine waits and a fast one does not. */
+  const settleDoc = async () => {
+    const at = () => p.evaluate(() => {
+      const sc = document.querySelector('#ce-doc');
+      return sc ? Math.round(sc.scrollTop) : -1;
+    });
+    let last = await at();
+    for (let i = 0; i < 25; i++){
+      await pause(60);
+      const now = await at();
+      if (now === last) return;
+      last = now;
+    }
+  };
 
   /* ---- 16e. CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026) ----
      *"I hate that I have to click on a pencil for me to edit in the edit with
@@ -1340,16 +1435,35 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      where a press lands: a click in the WORDING starts typing, and a click in
      ANOTHER clause's wording moves the page to that clause and starts typing
      there. The caret is read off the live selection rather than inferred. */
-  const typed = await p.evaluate(() => {
+  /* ---- THE POSTURE IS STAGED, NOT ASSUMED (29 Aug 2026) ----
+     This read the state it happened to be in, and the state changed under it:
+     since the pencil's door started asking for typing, the page ARRIVES
+     typeable and `before` was true, so the claim could no longer be made. The
+     state it needs is real and still reachable — moving to another clause from
+     inside the editor lands not-typing, and so does pressing the pencil again —
+     so it is turned off ON PURPOSE here. A check that stages what it wants
+     survives the next change to what it happens to get. */
+  const typed = await p.evaluate(async () => {
+    const box0 = document.querySelector('#ce-clausebody');
+    if (box0 && box0.isContentEditable){
+      const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
+        || document.querySelector('#ce-doc [data-ce-pencil]');
+      if (pen) pen.click();
+      await new Promise(r => setTimeout(r, 400));
+    }
     const box = document.querySelector('#ce-clausebody');
     if (!box) return null;
     box.scrollIntoView({ block: 'center' });
-    const r = box.getBoundingClientRect();
-    return { before: box.isContentEditable,
-      x: Math.round(r.left + 40), y: Math.round(r.top + 10) };
+    return { before: box.isContentEditable };
   });
   if (typed){
-    await pause(200);
+    await settleDoc();
+    const at = await p.evaluate(() => {
+      const box = document.querySelector('#ce-clausebody');
+      const r = box.getBoundingClientRect();
+      return { x: Math.round(r.left + 40), y: Math.round(r.top + 10) };
+    });
+    Object.assign(typed, at);
     await p.mouse.click(typed.x, typed.y);
     await pause(700);
     const after = await p.evaluate(() => {
@@ -1371,13 +1485,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       .find(x => x.getAttribute('data-clause') !== cur);
     if (!other) return null;
     other.scrollIntoView({ block: 'center' });
-    await new Promise(r => setTimeout(r, 200));
-    const body = other.querySelector('.nego-body p, .nego-body, p') || other;
-    const r = body.getBoundingClientRect();
-    return { want: other.getAttribute('data-clause'), from: cur,
-      x: Math.round(r.left + Math.min(120, r.width / 2)), y: Math.round(r.top + 10) };
+    return { want: other.getAttribute('data-clause'), from: cur };
   });
   if (ceMoved){
+    await settleDoc();
+    const at = await p.evaluate(want => {
+      const other = document.querySelector(`#ce-doc .rl-clause[data-clause="${want}"]`);
+      const body = other.querySelector('.nego-body p, .nego-body, p') || other;
+      const r = body.getBoundingClientRect();
+      return { x: Math.round(r.left + Math.min(120, r.width / 2)), y: Math.round(r.top + 10) };
+    }, ceMoved.want);
+    Object.assign(ceMoved, at);
     await p.mouse.click(ceMoved.x, ceMoved.y);
     await pause(900);
     const now = await p.evaluate(() => {
