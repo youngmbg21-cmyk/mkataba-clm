@@ -140,6 +140,7 @@ function commandMeta(view){
     case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
+    case 'obligations': return [i18t('nav_obligations'), ''];
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
@@ -442,6 +443,9 @@ function updateSidebarCounts(){
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
     intake: (typeof intakeCount==='function')?intakeCount():0,
+    /* WHAT IS LATE, across the book — the same reading the worklist's own head
+       prints, so the door and the page it opens cannot disagree. */
+    obligations: (typeof obligationsDoorCount==='function')?obligationsDoorCount():0,
     /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
        2027" produces "31 March 2", which is not a date either — the count
        simply left out every obligation whose date a person had typed. */
@@ -461,7 +465,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber',obligations:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
@@ -511,7 +515,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -645,6 +649,7 @@ function setView(view){
     else if(view==='migration') renderMigration();
     else if(view==='pipeline') renderPipeline();
     else if(view==='advice') renderAdviceDesk();
+    else if(view==='obligations') renderObligationsList();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();

@@ -3157,7 +3157,11 @@ function applyWsTabs(c){
   if(!keys.includes(_wsTab)) _wsTab='docs';
   const paint=k=>{
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
-      const on=p.getAttribute('data-ws-pane')===k;
+      /* A PANE MAY SERVE MORE THAN ONE TAB (J-1). The Document and Signing
+         tabs share one sheet; the attribute is a space-separated list and the
+         match is on a token, so a pane naming one tab behaves exactly as it
+         did. */
+      const on=String(p.getAttribute('data-ws-pane')||'').split(/\s+/).includes(k);
       p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
     });
     document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{
@@ -3232,6 +3236,11 @@ function applyWsTabs(c){
     else toast(i18t('ct_workbench_unavailable'),'err');
     return;
   }
+  /* THE RIGHT-HAND COLUMN FOLLOWS THE TAB (J-1). One pane, two tabs; this is
+     the only thing that differs between them. */
+  document.querySelectorAll('#doc-right [data-doc-col]').forEach(el=>{
+    el.style.display = el.getAttribute('data-doc-col')===_wsTab ? 'flex' : 'none';
+  });
   if(_wsTab==='history') roomPaintHistory(c);
   if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
   if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c); }
@@ -5918,7 +5927,23 @@ function renderWorkspace(){
     <div id="ws-notices-host"></div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
-    <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--s-3)">
+    ${''/* ---- ONE DOCUMENT PANE, TWO TABS (owner-asked 29 Aug 2026 — J-1) ----
+           *"the signing page will look like the attached … In essence, signing
+           tab will look exactly like the document page but the side panel will
+           be the change."*
+
+           NOT A SECOND CONTRACT PANE. Two tabs drawing the same agreement from
+           two renderers is the duplication this codebase opens by warning
+           about, and the standing rule is that the DRAWING may differ between
+           surfaces and the READING never may. So there is ONE sheet, one
+           resizer, one zoom and one set of element ids, and what changes with
+           the tab is the RIGHT-HAND COLUMN.
+
+           MEASURED BEFORE IT WAS WRITTEN, as the work order asked: it costs a
+           token match in applyWsTabs's paint and one extra child in #doc-right.
+           A second pane would have cost a second canvas, a second resizer and a
+           second set of ids for every test and every handler to choose between. */}
+    <div id="doc-grid" data-ws-pane="docs sign" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--s-3)">
 
       <!-- LEFT: document
            ---- THE SHEET SITS ON THE PAGE, NOT IN A CARD ----
@@ -5987,7 +6012,27 @@ function renderWorkspace(){
            the conversation your own side is having about it. -->
       <section id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:var(--s-3);min-height:0;overflow-y:auto;padding-right:2px">
 
-        <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+        ${''/* ---- THE SIGNING COLUMN (J-1) ----
+               The signing order on TOP and the signature block BELOW it, which
+               is the owner's own drawing. It is the SAME markup the Signing
+               tab drew when it was a page of its own — same ids, so
+               renderSignSide, signBlockHtml, renderSignButton and
+               wireCompliance all fill exactly where they filled before. What
+               changed is which column it sits in. */}
+        <div data-doc-col="sign" style="display:none;flex-direction:column;gap:var(--s-3)">
+          <div id="sign-side" style="display:flex;flex-direction:column;gap:var(--s-3)"></div>
+          <div style="${CARD};padding:var(--s-4) 18px;display:flex;flex-direction:column;gap:var(--s-3)">
+            <div id="sign-block"></div>
+            ${(!locked&&canEdit())?`
+            <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px;cursor:pointer">
+              <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+              <span style="font-size:var(--t-meta)"><span style="font-weight:var(--w-strong);display:block">${i18t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
+            </label>`:''}
+            <div id="sign-wrap"></div>
+          </div>
+        </div>
+
+        <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
           <!-- ---- CHECKS: THREE ROWS, NOT THREE CARDS ----
                The playbook review and the Copilot scan each used to open a
                full card carrying a paragraph of explanation and a filled
@@ -6158,20 +6203,14 @@ function renderWorkspace(){
            as each mark lands. Beside it, what is holding the signature up (the
            approval gate) and who is queued behind it (the route) — both of
            which were stacked on top of the button in a third of the screen. */}
-    <div data-ws-pane="sign" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
-      <div class="sign-grid">
-        <div style="${CARD};padding:var(--s-4) 18px;display:flex;flex-direction:column;gap:var(--s-3);align-self:start">
-          <div id="sign-block"></div>
-          ${(!locked&&canEdit())?`
-          <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px;cursor:pointer">
-            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-            <span style="font-size:var(--t-meta)"><span style="font-weight:var(--w-strong);display:block">${i18t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
-          </label>`:''}
-          <div id="sign-wrap"></div>
-        </div>
-        <div id="sign-side" style="display:flex;flex-direction:column;gap:var(--s-3);align-self:start"></div>
-      </div>
-    </div>
+    ${''/* ---- THE SIGNING TAB'S OWN PANE IS RETIRED (J-1) ----
+           It was a .sign-grid holding the block, the intent tick and the route
+           and NO DOCUMENT AT ALL — the page named after a signature showed
+           none of the paper being signed. All four of its ids moved, unchanged,
+           into the shared pane's right-hand column above; `.sign-grid` is STALE
+           for this pane. Nothing was deleted: the same markup, one column
+           along, with the signing order lifted above the block because that is
+           the owner's own drawing. */}
 
     <!-- ============ HISTORY — its own tab now ============
          The same screen the History button opened in a dialog: every proposal,
@@ -7123,6 +7162,314 @@ const READINESS_FIELD_KEYS = ['counterparty','value','placeholders'];
    another module and is called through `window` is one a stage without that
    module simply does not have. Every question it asks of another module is
    asked through `window` with the same fallback the old checks carried. */
+
+/* ============================================================
+   SIGNATURE SPOTS ON THE PAPER (owner-asked 29 Aug 2026 — J-1)
+   ============================================================
+   *"similar to docusign, i want to build my contract where by while in document
+   tab, you can enter signature on the contract in those instances where you
+   have to put signatures in the middle of the contract but to officially sign
+   you still go through the regular signing process."*
+
+   THE RULE EVERYTHING RESTS ON, and it is the owner's own instruction:
+   **PUTTING A MARK ON THE PAPER IS NOT SIGNING.** A spot collects a mark and
+   does nothing else. The contract becomes signed when `signDocument` runs,
+   behind `signBlockers`, exactly as it did before this existed.
+
+   FOUR THINGS FOLLOW, and each is a check rather than a sentiment:
+     1  the Sign button still refuses for every reason it refused before, and
+        still wears the first blocker as its label
+     2  THE WORDING STILL FREEZES AT THE FIRST REAL SIGNATURE. A placed mark
+        must not freeze it — `negoWordingFrozen` here and `anySignatureRow` +
+        SIGNED_WORDING_FROZEN on the server read BOTH signature stores, so a
+        draft mark written anywhere either of them looks would silently freeze
+        the wording of a contract nobody has signed. `c.signSpots` is neither
+        of those stores, and f256 asserts it by name.
+     3  a placed mark does not travel to the counterparty before execution
+     4  a mark sits OVER the paper and never inside the wording: it is not a
+        redline, it never reaches negoFileChange, and it never disturbs the
+        fingerprint that proves what the contract says.
+
+   WHAT IS DIFFERENT FROM D-1, AND IT IS MEASURED RATHER THAN CHOSEN. The
+   decision says a spot is anchored to a clause id — "the same anchor a change
+   uses; never a character offset, which does not survive an edit". That is
+   right, and the DOCUMENT TAB'S CANVAS CARRIES NO CLAUSE IDS AT ALL: it draws
+   `docBody`, which is renderDocHtml or documentTextHtml over the working text,
+   and findingsFromText's own comment already records the same thing in the
+   same words — "an uploaded document has no clause anchors to pin to". So the
+   ids are read HERE, at paint, with `clauseSegment` — the one splitter every
+   per-clause screen uses — and stamped onto the canvas. That gives the SAME
+   ids the negotiation page addresses a change with, which is what D-1 asked
+   for; what it costs is that a contract with no working text (a template draft
+   nobody has edited) has no addressable clause, and there spots are NOT
+   OFFERED rather than offered against something that would move. A verb that
+   cannot work is not drawn.
+   ============================================================ */
+
+/* A spot: { id, clauseId, signerId, kind:'signature'|'initials',
+             image, form, at, by }. `image` absent = waiting to be filled. */
+function signSpots(c){ return (c && Array.isArray(c.signSpots)) ? c.signSpots : []; }
+
+/* WHERE THE WORDING ASKS FOR ONE. Deliberately narrow: the phrases a contract
+   uses when it wants a mark in the middle of itself, plus a rule of underscores,
+   which is how a drafter draws a line to sign on. A cue that matched loosely
+   would propose a spot in every clause mentioning a signature, which is most of
+   an execution page. */
+const SIGN_SPOT_CUE = /(signed\s+(?:for\s+and\s+)?on\s+behalf|in\s+witness\s+whereof|signature\s*:|please\s+initial|initiall?ed\s+by|_{6,})/i;
+const SIGN_SPOT_INITIAL = /(please\s+initial|initiall?ed\s+by)/i;
+
+/* THE CLAUSES THIS CANVAS CAN ADDRESS, and null where it can address none.
+   Read through clauseSegment — the ONE splitter — rather than by looking at
+   the rendered DOM, so a spot's anchor is the same id a tracked change would
+   use on the same clause.
+
+   IT READS WITHOUT WRITING. negoClauseList runs negoInit, which CREATES a
+   negotiation on any contract that has none; a painting path must never do
+   that. clauseSegment is a pure reading of the html it is handed. */
+function signSpotClauses(c){
+  if(!c || typeof clauseSegment !== 'function') return null;
+  const html = isUpload(c) ? (c.redlineText || '') : (c.redlineText || '');
+  if(!html) return null;
+  let list = null;
+  try{ list = clauseSegment(html); }catch(_){ list = null; }
+  return (list && list.length) ? list : null;
+}
+/* WHERE HaTi WOULD PROPOSE ONE — a clause whose own wording asks for a mark and
+   which carries no spot yet. It PROPOSES; a person adds or removes. */
+function signSpotProposals(c){
+  const list = signSpotClauses(c);
+  if(!list) return [];
+  const taken = new Set(signSpots(c).map(s => String(s.clauseId)));
+  const out = [];
+  list.forEach((cl, i) => {
+    if(cl.clauseId && taken.has(String(cl.clauseId))) return;
+    if(!SIGN_SPOT_CUE.test(String(cl.text || ''))) return;
+    /* THE INDEX RIDES ALONGSIDE THE ID because a body that has never been
+       through the negotiation page carries no ids yet. Stamping is a WRITE and
+       a reading may not perform one, so the proposal is offered by position
+       and the id is minted at the press — by negoStampContract, the product's
+       ONE act for it, which adds attributes and never a word. Positions are
+       stable across that stamp, which is what makes this safe. */
+    out.push({ index: i, clauseId: cl.clauseId || '',
+      label: String(cl.title || cl.label || ''),
+      kind: SIGN_SPOT_INITIAL.test(String(cl.text || '')) ? 'initials' : 'signature' });
+  });
+  return out;
+}
+
+/* WHOSE CHAIR IS THIS? The signing route's own row, matched the way every
+   other surface in this product matches one: the member record first, the
+   address second — the order internalSignerRecipient uses. A counterparty row
+   is never this reader. */
+function signSpotSeat(c){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  if(!me) return null;
+  const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
+  return plan.find(s => s && s.party === 'internal' && (
+    (s.memberId && String(s.memberId) === String(me.id))
+    || (s.email && me.email && String(s.email).toLowerCase() === String(me.email).toLowerCase())
+    || (!s.email && !s.memberId && s.name && me.name && String(s.name).trim() === String(me.name).trim()))) || null;
+}
+const signSpotsMine = c => { const seat = signSpotSeat(c);
+  return seat ? signSpots(c).filter(s => String(s.signerId) === String(seat.id)) : []; };
+const signSpotsLeft = c => signSpotsMine(c).filter(s => !s.image);
+/* Is this spot this reader's to fill? A spot belonging to the other side is
+   DRAWN and not pressable, so you can see what they will have to do. */
+const signSpotIsMine = (c, s) => { const seat = signSpotSeat(c);
+  return !!(seat && s && String(s.signerId) === String(seat.id)); };
+
+/* ---- THE ACTS ----
+   None of them touches c.signatures, c.status, the signer plan's `signed`
+   flags or finalizeExecution. f256 greps this file for it. */
+function signSpotAdd(c, ref, signerId, kind){
+  if(!c || !ref) return null;
+  if(!canEdit()){ toast(i18t('ct_viewers_no_edit_doc'), 'err'); return null; }
+  if(c.status === 'Signed'){ toast(i18t('ct_executed_readonly'), 'err'); return null; }
+  let clauseId = (typeof ref === 'string') ? ref : String((ref && ref.clauseId) || '');
+  if(!clauseId && ref && ref.index != null){
+    /* THE IDS ARE MINTED BY THE PRODUCT'S OWN ACT, not by a second stamper
+       here: negoStampContract writes clauseStampIds' output back into the rich
+       stored body and nothing else. Attributes only — not one word of the
+       agreement moves, and a body that already carries ids comes back
+       byte-identical. */
+    try{ if(window.negoStampContract) negoStampContract(c); }catch(_){}
+    const list = signSpotClauses(c);
+    clauseId = String((list && list[ref.index] && list[ref.index].clauseId) || '');
+  }
+  if(!clauseId){ toast(i18t('ct_spot_no_anchor'), 'err'); return null; }
+  c.signSpots = signSpots(c).slice();
+  const s = { id: 'sp_' + Math.abs(Date.now() + Math.floor(Math.random() * 1e6)).toString(36),
+    clauseId: String(clauseId), signerId: String(signerId || ''),
+    kind: kind === 'initials' ? 'initials' : 'signature' };
+  c.signSpots.push(s);
+  logAudit(c, 'Signing', `Signature spot added on ${clauseId}`);
+  persist(c);
+  return s;
+}
+function signSpotRemove(c, id){
+  if(!canEdit()){ toast(i18t('ct_viewers_no_edit_doc'), 'err'); return false; }
+  if(c.status === 'Signed'){ toast(i18t('ct_executed_readonly'), 'err'); return false; }
+  const list = signSpots(c);
+  const i = list.findIndex(s => String(s.id) === String(id));
+  if(i < 0) return false;
+  c.signSpots = list.slice(0, i).concat(list.slice(i + 1));
+  logAudit(c, 'Signing', `Signature spot removed`);
+  persist(c);
+  return true;
+}
+/* FILLING ONE IS A DRAFT MARK AND NOTHING ELSE. It goes through the signature
+   picker HaTi already has — draw, type, upload, saved — and never a second
+   capture path. */
+async function signSpotFill(c, id){
+  if(!canEdit()){ toast(i18t('ct_viewers_no_edit_doc'), 'err'); return null; }
+  if(c.status === 'Signed'){ toast(i18t('ct_executed_readonly'), 'err'); return null; }
+  const s = signSpots(c).find(x => String(x.id) === String(id));
+  if(!s) return null;
+  if(!signSpotIsMine(c, s)){ toast(i18t('ct_spot_not_yours'), 'err'); return null; }
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const sig = await captureSignature((me && me.name) || '');
+  if(!sig) return null;
+  s.image = sig.image || null;
+  s.form = sig.form || 'drawn';
+  s.at = nowISO();
+  s.by = (me && me.name) || '';
+  persist(c);
+  return s;
+}
+const signSpotClear = (c, id) => { const s = signSpots(c).find(x => String(x.id) === String(id));
+  if(!s || c.status === 'Signed' || !canEdit() || !signSpotIsMine(c, s)) return false;
+  delete s.image; delete s.form; delete s.at; delete s.by; persist(c); return true; };
+
+/* ---- AND IT JOINS THE ONE LIST OF REFUSALS (D-3) ----
+   A row in signBlockers, so the button disables itself and wears the reason
+   like every other refusal in the product rather than being a new kind of
+   thing. MINE ONLY: a spot waiting on the other side is not a reason this
+   reader cannot sign. */
+function signSpotBlocker(c){
+  const left = signSpotsLeft(c);
+  if(!left.length) return null;
+  return { key: 'spots',
+    label: i18tn('ct_spots_left', left.length, { n: left.length }),
+    short: i18tn('ct_spots_left_short', left.length, { n: left.length }) };
+}
+
+
+/* ---- THE MARKS ON THE PAPER ----
+   Drawn AFTER the canvas is painted rather than inside docBody, and that is
+   what keeps three promises at once: docBody is what the share copy, the
+   exports and the counterparty's page all render, so a mark that lived in it
+   would travel; the wording is untouched, so no fingerprint moves; and the
+   spot is a sibling of the clause's own blocks rather than something inside
+   the sentence.
+
+   ONE CANVAS, BOTH TABS. The owner's words name the Document tab ("while in
+   document tab, you can enter signature on the contract") and the design puts
+   the walk on Signing; they are the same sheet since J-1, so the spots draw on
+   both and there is nothing to keep in step. */
+function signSpotBlockFor(canvas, clauseId){
+  const attr = window.RICH_CLAUSE_ATTR || 'data-clause-id';
+  const head = canvas.querySelector(`[${attr}="${String(clauseId).replace(/"/g, '')}"]`);
+  if(!head) return null;
+  /* THE END OF THE CLAUSE, not the end of its heading: walk forward to the
+     block before the next stamped clause, so the mark sits under the wording
+     it belongs to rather than between a heading and its own first line. */
+  let last = head;
+  for(let n = head.nextElementSibling; n; n = n.nextElementSibling){
+    if(n.hasAttribute && n.hasAttribute(attr)) break;
+    if(n.classList && n.classList.contains('sig-spot')) break;
+    last = n;
+  }
+  return last;
+}
+function signSpotHtml(c, s, mine){
+  const label = s.kind === 'initials' ? i18t('ct_spot_initials') : i18t('ct_spot_signature');
+  const who = (() => { const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
+    const row = plan.find(x => String(x.id) === String(s.signerId));
+    return row ? String(row.name || '') : ''; })();
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, ch =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+  const filled = !!s.image;
+  /* A SPOT THAT IS NOT YOURS IS DRAWN AND NOT PRESSABLE, so you can see what
+     the other side will have to do. It is a <div> rather than a disabled
+     button: a control that cannot be pressed by anybody in this chair is not a
+     control, and drawing one dead is how a reader comes to blame themselves. */
+  const inner = `${filled
+      ? `<img class="sig-spot-img" src="${esc(s.image)}" alt="${esc(who || label)}"/>`
+      : `<span class="sig-spot-line"></span>`}
+    <span class="sig-spot-cap">${esc(label)}${who ? ' &middot; ' + esc(who) : ''}${
+      filled && s.at ? ' &middot; ' + esc(String(s.at).slice(0, 10)) : ''}</span>`;
+  return mine
+    ? `<button type="button" class="sig-spot${filled ? ' is-filled' : ''}" data-sig-spot="${esc(s.id)}"
+         title="${esc(filled ? i18t('ct_spot_replace') : i18t('ct_spot_fill'))}">${inner}</button>`
+    : `<div class="sig-spot is-theirs${filled ? ' is-filled' : ''}" data-sig-spot-read="${esc(s.id)}"
+         title="${esc(i18t('ct_spot_theirs'))}">${inner}</div>`;
+}
+function signSpotsPaint(c){
+  const canvas = document.getElementById('doc-canvas');
+  if(!canvas || !c) return;
+  canvas.querySelectorAll('.sig-spot').forEach(n => n.remove());
+  const list = signSpots(c);
+  if(!list.length) return;
+  list.forEach(s => {
+    const at = signSpotBlockFor(canvas, s.clauseId);
+    if(!at || !at.parentNode) return;      // the clause has gone; the spot simply does not draw
+    const wrap = document.createElement('div');
+    wrap.innerHTML = signSpotHtml(c, s, signSpotIsMine(c, s));
+    const el = wrap.firstElementChild;
+    if(el) at.parentNode.insertBefore(el, at.nextSibling);
+  });
+  canvas.querySelectorAll('[data-sig-spot]').forEach(b => b.addEventListener('click', async ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const id = b.getAttribute('data-sig-spot');
+    await signSpotFill(c, id);
+    signSpotsPaint(c);
+    renderSignButton(c);
+    wsPaintTabRowEnd(c);
+  }));
+}
+/* ---- THE WALK ----
+   *"you will be navigated to the spaces where you can sign your name just like
+   docusign at final stage you will be directed to the signature block to sign
+   officially."*
+
+   ONE CONTROL, ON THE TAB ROW'S OWN SLOT — not floating over the page, which
+   is the standing rule, and the tab row is an in-flow strip that is on screen
+   wherever the reader has scrolled. It counts only the spots that are THIS
+   reader's, because a walk through somebody else's is a walk to nowhere. */
+function signWalkNext(c){ return signSpotsLeft(c)[0] || null; }
+function signWalkHtml(c){
+  if(!c || _wsTab !== 'sign') return '';
+  const mine = signSpotsMine(c);
+  if(!mine.length) return '';
+  const left = mine.filter(s => !s.image).length;
+  const at = mine.length - left + 1;
+  return `<button type="button" id="ws-walk" class="ui-btn" style="font-size:var(--t-label);padding:3px var(--s-2)"
+    title="${i18t(left ? 'ct_walk_title' : 'ct_walk_done_title')}">${
+    left ? i18t('ct_walk', { at, n: mine.length }) : i18t('ct_walk_done')}</button>`;
+}
+function signWalkGo(c){
+  const next = signWalkNext(c);
+  const canvas = document.getElementById('doc-canvas');
+  if(!canvas) return;
+  if(next){
+    const el = canvas.querySelector(`[data-sig-spot="${String(next.id).replace(/"/g, '')}"]`);
+    if(el){
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('is-walking');
+      setTimeout(() => el.classList.remove('is-walking'), 1400);
+      el.focus?.();
+    }
+    return;
+  }
+  /* NOTHING LEFT ON THE PAPER, so the last press lands on the block that
+     actually signs — data-anchor="sig", the anchor the room has scrolled to by
+     name since long before this feature. */
+  const foot = canvas.querySelector('[data-anchor="sig"]');
+  if(foot) foot.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const btn = document.getElementById('sign-btn');
+  if(btn){ btn.scrollIntoView({ block: 'center', behavior: 'smooth' }); try{ btn.focus(); }catch(_){} }
+}
+
 function signBlockers(c){
   const out=[];
   if(!c) return out;
@@ -7194,6 +7541,14 @@ function signBlockers(c){
   try{
     const fb=(window.signFolderBlocker)?signFolderBlocker(c):null;
     if(fb) add(fb.key, fb.label, fb.short);
+  }catch(_){}
+  /* ---- AND THE PLACES ON THE PAPER THAT STILL NEED THIS READER (J-1, D-3) ----
+     It joins THIS list rather than becoming a gate of its own, so the disabled
+     button and the refusal read the same sentence. MINE ONLY: a spot waiting on
+     the other side is not a reason this reader cannot sign. */
+  try{
+    const sp=signSpotBlocker(c);
+    if(sp) add(sp.key, sp.label, sp.short);
   }catch(_){}
   return out;
 }
@@ -7646,7 +8001,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

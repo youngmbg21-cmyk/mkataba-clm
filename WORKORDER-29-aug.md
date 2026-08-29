@@ -351,7 +351,13 @@ Nothing here is a description; each line is a check somebody can fail.
 
 # J-2 — OBLIGATIONS, END TO END
 
-**Status:** J-2.1 and J-2.2 BUILT 29 Aug 2026. J-2.3 follows.
+**Status:** BUILT 29 Aug 2026 — J-2.1, J-2.2 and the two acts of J-2.3.
+
+**ON-TIME REPORTING BY COUNTERPARTY IS NOT BUILT**, and it is the one piece of
+this job deliberately left: the reading exists and the figure would be honest,
+but it is only worth drawing once completion dates have been accumulating, and
+today every workspace would meet one panel of "cannot answer". It wants its own
+ask rather than a card nobody can read yet.
 
 **`chasedAt` / `chasedBy` were listed under J-2.2 and are built in J-2.3 instead**,
 with the act that writes them: a field nothing writes is a field nobody can
@@ -508,7 +514,7 @@ the same owner and the same cadence, and the dialog SAYS SO before the press.
   two stated blind spots close with no other change: `canSeeCompletedOn` and
   `canSeeScan` flip the day those fields exist.
 
-### J-2.3 — REACH AND EVIDENCE
+### J-2.3 — REACH AND EVIDENCE — **BUILT 29 Aug 2026, less the counterparty on-time report**
 
 - **The worklist**: a door in the sidebar's everyday group. A table of
   OBLIGATIONS (not contracts), filtered by whose / state / side / stream / due

@@ -320,6 +320,89 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       series.rows === wasN + 1, `${series.rows} rows`);
     await page.screenshot({ path: path.join(OUT, '04-series.png') });
 
+    /* ============ 8. THE WORKLIST (J-2.3) ===============================
+       The tab answers "what does THIS contract commit us to"; this answers the
+       question underneath it — what is waiting on somebody now, across
+       everything. Driven from the sidebar door, because a door that does not
+       open is indistinguishable in the markup from one that does. */
+    await page.evaluate(() => { const c = state.contracts.find(x => x.id !== state.activeId);
+      if (c){ c.counterpartyEmail = 'ops@nordkust.test';
+        c.obligations = [{ id: 'x1', desc: 'Deliver the audited accounts',
+          due: '2026-01-01', status: 'open', party: 'theirs' }]; persist(c); } });
+    await page.waitForTimeout(1400);
+    await page.click('#side-nav [data-view="obligations"]');
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: path.join(OUT, '05-worklist.png') });
+    const wl = await page.evaluate(`(() => {
+      const seen = ${SEEN};
+      const card = document.querySelector('.obw-card');
+      const rows = [...document.querySelectorAll('.obw-table tr[data-obw-row]')];
+      return { view: state.view, on: !!(card && seen(card) && seen(card).on),
+        rows: rows.length,
+        contracts: [...new Set(rows.map(r => r.getAttribute('data-obw-cid')))].length,
+        bands: [...document.querySelectorAll('.obw-band')].map(b => b.textContent.replace(/\s+/g,' ').trim()),
+        filters: document.querySelectorAll('.obw-filters [data-obw-f]').length,
+        chase: document.querySelectorAll('[data-obw-chase]').length,
+        sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    })()`);
+    check('the worklist draws, as pixels, from the sidebar door',
+      wl.view === 'obligations' && wl.on === true, JSON.stringify({ v: wl.view, on: wl.on }));
+    check('…listing obligations from MORE THAN ONE contract, banded by lateness',
+      wl.rows >= 2 && wl.contracts >= 2 && wl.bands.length >= 1,
+      `${wl.rows} rows over ${wl.contracts} contracts — ${wl.bands.join(' | ')}`);
+    check('…with its five filters and no sideways scroll',
+      wl.filters === 5 && wl.sideways === false, `${wl.filters} filters`);
+    /* EVERY Chase sits on a row that is theirs and still open — a count would
+       only pin today's fixture; this pins the rule. */
+    const chaseRows = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-obw-chase]')].map(b => {
+        const tr = b.closest('tr');
+        return { side: (tr.querySelector('.obt-side') || {}).className || '',
+          done: /Completed|Avklarade/.test((tr.previousElementSibling || {}).textContent || '') };
+      }));
+    check('and Chase is offered on a theirs row and nowhere else',
+      chaseRows.length > 0 && chaseRows.every(r => /obt-side-them/.test(r.side)),
+      `${chaseRows.length} chase buttons, all on theirs`);
+
+    /* A ROW LANDS ON THE CONTRACT'S OBLIGATIONS TAB — question six, and a row
+       that opened the Document tab would make the reader hunt for what they
+       pressed. */
+    const want = await page.evaluate(() =>
+      document.querySelector('.obw-table tr[data-obw-row]').getAttribute('data-obw-cid'));
+    await page.click('.obw-table tr[data-obw-row]');
+    await page.waitForTimeout(1400);
+    const back = await page.evaluate(`(() => {
+      const on = document.querySelector('#ws-tabs .room-tab.on');
+      return { id: state.activeId, tab: on ? on.getAttribute('data-ws-tab') : null };
+    })()`);
+    check('pressing a row opens that contract on its Obligations tab',
+      back.id === want && back.tab === 'oblig', JSON.stringify(back));
+
+    /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
+    await page.click('#side-nav [data-view="obligations"]');
+    await page.waitForTimeout(800);
+    const chased = await page.evaluate(async () => {
+      const b = document.querySelector('[data-obw-chase]');
+      if (!b) return { none: true };
+      const cid = b.getAttribute('data-obw-cid'), oid = b.getAttribute('data-obw-chase');
+      b.click();
+      await new Promise(r => setTimeout(r, 400));
+      /* confirmDialog mounts its own overlay — #confirm-overlay — rather than
+         going through openModal, so the press is found there. */
+      const go = [...document.querySelectorAll('#confirm-overlay button')]
+        .find(x => /Send the reminder/i.test(x.textContent || ''));
+      const asked = !!go;
+      if (go) go.click();
+      await new Promise(r => setTimeout(r, 1500));
+      const o = (getContract(cid).obligations || []).find(x => x.id === oid) || {};
+      return { asked, at: o.chasedAt || '', by: o.chasedBy || '',
+        trail: (getContract(cid).audit || []).filter(a => /Chased/.test(a.detail || '')).length };
+    });
+    check('chasing asks first — it is the one act here that leaves the building',
+      chased.asked === true, String(chased.asked));
+    check('…and the fact is on the record whatever the mail did',
+      !!chased.at && !!chased.by && chased.trail >= 1, JSON.stringify(chased));
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e){
     check('the run completed', false, e.message);

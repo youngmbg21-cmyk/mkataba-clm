@@ -600,12 +600,14 @@ function hmDashSlices(){
     /* THE PROMISES. Amber only when something is actually late — the same rule
        the tab's own count follows, and the reason this card can be trusted to
        mean something when it is coloured.
-       THE DESTINATION IS THE CALENDAR, which is where obligations are listed by
-       date today; J-2.3's worklist replaces it, and that is one line. */
+       THE DESTINATION IS THE WORKLIST (J-2.3), which lists obligations rather
+       than contracts and narrows with the same reading this card counts. It
+       pointed at the Calendar for the hour between the two phases; the note is
+       kept because the reasoning is what makes the next one cheap. */
     obligations: {label:KPI_META.obligations, val:Number(obDue.length).toLocaleString(jxLocale()),
                   delta:obLate?i18tn('home_ob_overdue',obLate,{n:obLate}):i18t('home_ob_none'),
                   get sub(){ return i18t('home_ob_sub'); },
-                  grad:obLate?G.amber:G.steel, ic:'calendar', go:{nav:'calendar'}},
+                  grad:obLate?G.amber:G.steel, ic:'calendar', go:{nav:'obligations'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,

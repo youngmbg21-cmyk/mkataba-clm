@@ -937,6 +937,65 @@ one — a stand-in that cannot behave like the thing it replaces turns its test
 into a description**, obligations-tab-verify (33 — the dialog driven, the
 reference on the record, and the series opened with the date the dialog promised).
 
+**AND THE WORKLIST, AND THE CHASE (J-2.3, the same day).** The tab answers *what
+does THIS contract commit us to*; the question underneath it — **what is waiting
+on somebody now, across everything** — had no screen at all. The Calendar
+answers *what falls in October*, which is a different question and a worse one
+to work from.
+
+- **IT IS A TABLE OF OBLIGATIONS, NOT OF CONTRACTS**, and that is the whole
+  difference from the register: a contract with six late promises is one row
+  there and six rows here, which is the shape of the morning.
+- **IT COUNTS NOTHING OF ITS OWN.** `allObligations` is the one reading of the
+  book, `obState` decides overdue, **`obligationBand` decides the pile — the
+  SAME four the contract's own tab uses**, so the two screens cannot disagree
+  about what "due this month" means, and `toggleObligation` is the one verb.
+  The sidebar's count is `openObligations`' own reading of what is late, so the
+  door and the page it opens cannot differ.
+- **FIVE FILTERS, PER SITTING, IN MEMORY** — whose · state · side · value stream
+  · due window. A stored filter lands a reader on a narrowed page a week later
+  with nothing on screen saying why, and this page has no saved-view machinery
+  to say it with. **A DATELESS OBLIGATION IS IN NO DUE WINDOW**: nothing is ever
+  sent about one, and dropping it there is what makes "due in 7 days" mean the
+  same thing here as it does in the bell.
+- **A ROW OPENS ITS CONTRACT ON THE OBLIGATIONS TAB.** A row that opened the
+  Document tab would make the reader hunt for what they pressed.
+- **CHASING RECORDS THE FACT WHATEVER THE MAIL DOES.** `chasedAt` / `chasedBy`
+  are written on the contract through the ordinary save BEFORE anything is sent
+  — that the other side was chased, and when, is the half that pays off at
+  renewal, and a fact that depends on a provider being up is not a record. The
+  message is the knock on the door, and the route is the only thing that knows
+  whether it landed: three honest answers, sent · outbox · refused-and-why.
+- **THE ADDRESS IS THE SERVER'S TO DECIDE.** `POST /api/contracts/:id/chase`
+  reads the counterparty's address off the STORED contract and **refuses a
+  body-supplied one outright** — the open-relay rule the review-request route
+  beside it already states. It refuses an obligation that is OURS (chasing is
+  what you do about a duty on the other side) and one already done, and
+  **nowhere to write is a FACT, not a failure**: the browser has already
+  recorded the chase, and the route says plainly that no message went and where
+  to put an address.
+- **IT ASKS BEFORE IT SENDS** — the one act on this page that leaves the
+  building — and **a refusal writes nothing**.
+- **AND THE Home CARD LANDS HERE NOW** rather than on the Calendar, which is the
+  one line J-2.1's note promised.
+- **OBLIGATIONS STILL NEVER TRAVEL.** The chase sends a SENTENCE, never the
+  record, and `buildSharePayload` is untouched — asserted, not assumed.
+
+**WHAT IS DELIBERATELY NOT BUILT, said out loud:** on-time reporting BY
+COUNTERPARTY, which the work order names as the third piece of J-2.3. The
+reading exists (`obligationOnTime`, and `allObligations` carries the
+counterparty on every row) and the figure would be honest, but it is only worth
+drawing once J-2.2 has been running long enough for most completions to carry a
+date — today every workspace would see one panel of "cannot answer". It wants
+its own ask rather than a card nobody can read yet.
+
+Tests: f255 (34 — the one population, every filter, the dateless rule, the
+door's three registrations, the record-before-the-message ordering, and the
+route attacked with a body-supplied address against a real server),
+obligations-tab-verify (40 — the worklist driven from the sidebar door, a row
+proved to land on the Obligations tab, and a chase driven through its own
+confirm with the fact read back off the record).
+
 ## WHERE OBLIGATIONS GO QUIET — the fourth Insights tab (owner-asked 26 Aug 2026)
 
 Built from the owner's own approved report. The friction tab beside it asks

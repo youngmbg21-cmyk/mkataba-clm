@@ -2989,6 +2989,55 @@
   /* Clear is a verb, not a field: it keeps its own size while the five grow. */
   .hist-filters #ht-clear{ flex:none; }
 
+  /* ---- THE OBLIGATIONS WORKLIST (J-2.3) ----
+     One white card the width of the page, the register's own shape: a filter
+     row over a ruled table, with the tab's four bands as full-width headings so
+     the two screens read alike. */
+  .obw-page{ padding:var(--page-pad-t) var(--page-pad-x) 28px; }
+  .obw-card{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius); max-width:var(--page-measure); }
+  .obw-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
+  .obw-filters{ display:flex; gap:var(--s-2) var(--s-3); flex-wrap:wrap; align-items:flex-end;
+    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
+  .obw-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
+  .obw-f > span{ font-size:var(--t-label); color:var(--color-neutral-600); margin-bottom:3px;
+    white-space:nowrap; }
+  .obw-f select{ font:inherit; font-size:var(--t-meta); border:1px solid var(--color-divider);
+    border-radius:var(--radius); padding:5px 9px; background:var(--color-surface);
+    color:var(--color-text); width:100%; min-width:0; }
+  .obw-filters #obw-clear{ flex:none; }
+  /* FIXED, so the columns do not move as the reader filters — the contracts
+     page's own lesson, and the same reason: an auto table sizes itself to the
+     rows it happens to be showing. */
+  .obw-table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  .obw-band > td{ padding:6px var(--s-4); background:var(--nav-well);
+    border-bottom:1px solid var(--rule); font-size:var(--t-label);
+    font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
+    color:var(--color-neutral-600); }
+  .obw-band b{ float:right; }
+  .obw-table tr[data-obw-row]{ cursor:pointer; }
+  .obw-table tr[data-obw-row]:hover{ background:var(--nav-well); }
+  .obw-table td{ padding:9px var(--s-4); border-bottom:1px solid var(--rule);
+    font-size:var(--t-meta); vertical-align:top; overflow:hidden; }
+  .obw-c{ width:46%; }
+  .obw-side{ width:9%; }
+  .obw-who{ width:17%; }
+  .obw-when{ width:13%; font-variant-numeric:tabular-nums; }
+  .obw-acts{ width:15%; text-align:right; white-space:nowrap; }
+  .obw-dot{ display:inline-block; margin:0 7px 1px 0; }
+  .obw-what{ display:inline; }
+  .obw-meta{ display:block; margin-left:15px; font-size:var(--t-label);
+    color:var(--color-neutral-500); }
+  .obw-chased{ display:block; font-size:var(--t-label); color:var(--color-neutral-500); }
+  /* A LINE OF ITS OWN, not a word tacked onto the name. Inline it read
+     "Naivas SupermarketsNobody owns this" — two facts run together, and the
+     second is the one somebody has to act on. */
+  .obw-who .obt-unowned{ display:block; font-size:var(--t-label); }
+  .obw-acts button{ border:0; background:none; padding:0 0 0 var(--s-3); font:inherit;
+    font-size:var(--t-label); color:var(--accent-ink); cursor:pointer; }
+  .obw-acts button:hover{ text-decoration:underline; }
+
   /* ---- OBLIGATIONS: a home of their own (owner-asked 29 Aug 2026, J-2.1) ----
      The trail's own shape, for the same reason: this is a worklist, so the rows
      are ruled edge to edge and the pane carries no padding. The bands are the
@@ -5277,6 +5326,18 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
             <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
+          </button>
+          <!-- THE OBLIGATIONS WORKLIST (J-2.3, owner-asked 29 Aug 2026).
+               In the EVERYDAY group, beside the Calendar, because it answers the
+               question the calendar cannot: the calendar says what falls in
+               October, and this says what is waiting on somebody now, across
+               every contract. Its count is what is LATE — amber, like every
+               other count on this column that means work owed, and hidden at
+               zero so it can never cry wolf. -->
+          <button data-view="obligations" class="nav-item" title="Obligations — every promise across the book" data-i18n-title="nav_obligations_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-check"/></svg>
+            <span style="flex:1;" data-i18n="nav_obligations">Obligations</span><span class="nav-count" data-count="obligations"></span>
           </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests

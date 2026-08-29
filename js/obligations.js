@@ -1008,4 +1008,219 @@ function openObligationDone(c, i){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+
+/* ============================================================
+   THE WORKLIST — every promise in the book (owner-asked 29 Aug 2026, J-2.3)
+   ============================================================
+   The Obligations tab answers "what does THIS contract commit us to". The
+   question underneath it — *what is waiting on me this week, across everything*
+   — had no screen at all: the Calendar answers "what falls in October", which
+   is a different question and a worse one to work from.
+
+   IT IS A TABLE OF OBLIGATIONS, NOT OF CONTRACTS, and that is the whole
+   difference from the register. A contract with six late promises is one row
+   there and six rows here, which is the shape of the morning.
+
+   AND IT COUNTS NOTHING OF ITS OWN. `allObligations` is the one reading of the
+   book, `obState` decides overdue, `obligationBand` decides which pile a row
+   sits in — the SAME four the contract's own tab uses, so the two cannot
+   disagree about what "due this month" means — and `toggleObligation` is the
+   one verb. This file adds a page and no arithmetic.
+   ============================================================ */
+const OBW_KEY = 'hati.v1.obFilters';
+/* Per sitting, in memory. A stored filter lands a reader on a narrowed page a
+   week later with nothing on screen saying why — the register's own lesson,
+   and this page has no saved-view machinery to say it with. */
+let _obwF = null;
+function obwFilters(){
+  if(!_obwF) _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all' };
+  return _obwF;
+}
+const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],
+  ['done','ob_f_state_done'],['all','ob_f_state_all']];
+const OBW_WHOSE = [['all','ob_f_whose_all'],['mine','ob_f_whose_mine'],['none','ob_f_whose_none']];
+const OBW_SIDE  = [['all','ob_f_side_all'],['ours','ob_side_ours'],['theirs','ob_side_theirs']];
+const OBW_DUE   = [['all','ob_f_due_all'],['7','ob_f_due_7'],['30','ob_f_due_30'],['90','ob_f_due_90']];
+
+/* THE ONE POPULATION, AND EVERY FILTER NARROWS IT. Read off allObligations —
+   which carries the contract's id, name and counterparty on each row, so a
+   list spanning contracts can name who owes a "theirs" without looking the
+   contract up again and cannot name the wrong one. */
+function obwRows(f){
+  f = f || obwFilters();
+  const live = new Set((state.contracts || [])
+    .filter(c => c && c.status !== 'Declined' && !c.archived).map(c => c.id));
+  const scoped = new Set((state.contracts || [])
+    .filter(c => !window.canAccessFolder || canAccessFolder(c.folder)).map(c => c.id));
+  return allObligations()
+    .filter(o => live.has(o.cid) && scoped.has(o.cid))
+    .map(o => ({ ...o, st: obState(o), band: obligationBand(o),
+      days: obligationDue(o) ? daysUntil(obligationDue(o)) : null }))
+    .filter(o => {
+      if(f.state === 'open' && o.st === 'done') return false;
+      if(f.state === 'overdue' && o.st !== 'overdue') return false;
+      if(f.state === 'done' && o.st !== 'done') return false;
+      if(f.side === 'ours' && obligationIsTheirs(o)) return false;
+      if(f.side === 'theirs' && !obligationIsTheirs(o)) return false;
+      if(f.whose === 'mine' && !obligationIsMine(o)) return false;
+      if(f.whose === 'none' && !!obligationReminderTo(o)) return false;
+      if(f.folder !== 'all'){
+        const c = (state.contracts || []).find(x => x.id === o.cid);
+        if(!c || c.folder !== f.folder) return false;
+      }
+      if(f.due !== 'all'){
+        /* A DATELESS OBLIGATION IS NOT IN A DUE WINDOW. Nothing is ever sent
+           about one and no window can contain it; dropping it here is what
+           makes "due in 7 days" mean the same thing on this page as it does
+           in the bell. */
+        if(o.days == null || o.days > Number(f.due)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      const r = OBLIG_BANDS.findIndex(x => x[0] === a.band) - OBLIG_BANDS.findIndex(x => x[0] === b.band);
+      if(r) return r;
+      if(a.days == null) return 1; if(b.days == null) return -1;
+      return a.days - b.days;
+    });
+}
+/* What the sidebar's own count says: how much is LATE across the book. Amber,
+   like every other count that means work owed, and hidden at zero. */
+function obligationsDoorCount(){
+  /* THROUGH openObligations, which is the ONE reading of what is still
+     outstanding across the book — it drops Declined and archived contracts
+     itself. Counting off allObligations instead would put a dead deal's
+     promises on the sidebar, which is the reading this page and the alerts
+     panel both already refuse. */
+  try{ return openObligations().filter(o => o.days != null && o.days < 0).length; }
+  catch(_){ return 0; }
+}
+
+function obwSelect(id, opts, cur){
+  return `<label class="obw-f"><span>${_obEsc(i18t('ob_f_' + id))}</span>
+    <select data-obw-f="${id}">${opts.map(([k, key]) =>
+      `<option value="${k}"${k === cur ? ' selected' : ''}>${_obEsc(i18t(key))}</option>`).join('')}</select></label>`;
+}
+
+function renderObligationsList(){
+  const host = document.getElementById('content');
+  if(!host) return;
+  const f = obwFilters();
+  const rows = obwRows(f);
+  const folders = (window.visibleFolders ? visibleFolders() : (window.FOLDERS || []));
+  const late = rows.filter(r => r.st === 'overdue').length;
+
+  const row = o => {
+    const theirs = obligationIsTheirs(o);
+    const unowned = (o.st !== 'done' && !obligationReminderTo(o))
+      ? `<span class="obt-unowned" title="${_obEsc(i18t('ob_no_owner_title'))}">${_obEsc(i18t('ob_no_owner'))}</span>` : '';
+    /* CHASING IS ONE ACT ON A THEIRS OBLIGATION and is drawn nowhere else: on
+       ours there is nobody to chase, and on a finished one there is nothing to
+       chase about. A verb that cannot work is not drawn. */
+    const chase = (theirs && o.st !== 'done' && (typeof canEdit !== 'function' || canEdit()))
+      ? `<button type="button" data-obw-chase="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">${_obEsc(i18t('ob_chase'))}</button>` : '';
+    return `<tr data-obw-row="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">
+      <td class="obw-c"><span class="obw-dot obt-dot obt-dot-${o.st}"></span>
+        <span class="obw-what">${_obEsc(o.desc || '')}</span>
+        <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}</span></td>
+      <td class="obw-side"><span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${
+        _obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span></td>
+      <td class="obw-who">${_obEsc(theirs ? (o.counterparty || i18t('ob_side_theirs')) : (o.assignee || ''))}${unowned}</td>
+      <td class="obw-when">${_obEsc(o.st === 'done'
+        ? (o.completedAt || i18t('ob_done_unknown'))
+        : (o.due || i18t('ob_no_date')))}${
+        o.chasedAt ? `<span class="obw-chased" title="${_obEsc(i18t('ob_chased_on', { date: o.chasedAt, who: o.chasedBy || '' }))}">${_obEsc(i18t('ob_chased'))}</span>` : ''}</td>
+      <td class="obw-acts">${chase}<button type="button" data-obw-open="${_obEsc(o.cid)}">${_obEsc(i18t('ob_open_contract'))}</button></td>
+    </tr>`;
+  };
+
+  const banded = OBLIG_BANDS.map(([k, key]) => {
+    const mine = rows.filter(r => r.band === k);
+    if(!mine.length) return '';
+    return `<tr class="obw-band"><td colspan="5">${_obEsc(i18t(key))}<b>${mine.length}</b></td></tr>`
+      + mine.map(row).join('');
+  }).join('');
+
+  host.innerHTML = `<div class="obw-page">
+    <div class="obw-card">
+      <div class="obw-head">
+        <span class="obt-cap">${_obEsc(i18tn('ob_head_open', rows.length, { n: rows.length }))}</span>
+        ${late ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', late, { n: late }))}</span>` : ''}
+      </div>
+      <div class="obw-filters">
+        ${obwSelect('whose', OBW_WHOSE, f.whose)}
+        ${obwSelect('state', OBW_STATE, f.state)}
+        ${obwSelect('side', OBW_SIDE, f.side)}
+        <label class="obw-f"><span>${_obEsc(i18t('ob_f_folder'))}</span>
+          <select data-obw-f="folder"><option value="all"${f.folder === 'all' ? ' selected' : ''}>${_obEsc(i18t('ob_f_folder_all'))}</option>${
+            folders.map(x => `<option value="${_obEsc(x.id)}"${f.folder === x.id ? ' selected' : ''}>${_obEsc(x.name)}</option>`).join('')}</select></label>
+        ${obwSelect('due', OBW_DUE, f.due)}
+        <button type="button" id="obw-clear" class="ui-btn">${_obEsc(i18t('reg_clear'))}</button>
+      </div>
+      ${rows.length ? `<table class="obw-table">${banded}</table>`
+        : `<div class="obt-empty">${_obEsc(i18t('ob_none_match'))}</div>`}
+    </div></div>`;
+
+  host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => {
+    f[sel.getAttribute('data-obw-f')] = sel.value;
+    renderObligationsList();
+  }));
+  host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; renderObligationsList(); });
+  /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
+     that opened the Document tab would make them hunt for what they pressed. */
+  const go = cid => { if(window.openWorkspace){ openWorkspace(cid);
+    const c = window.getContract ? getContract(cid) : null;
+    if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){} } };
+  host.querySelectorAll('[data-obw-open]').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation(); go(b.getAttribute('data-obw-open')); }));
+  host.querySelectorAll('[data-obw-row]').forEach(tr => tr.addEventListener('click', () =>
+    go(tr.getAttribute('data-obw-cid'))));
+  host.querySelectorAll('[data-obw-chase]').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    obligationChase(b.getAttribute('data-obw-cid'), b.getAttribute('data-obw-chase'));
+  }));
+  if(window.setActiveNav) setActiveNav('obligations');
+}
+
+/* ---- CHASING THEM (J-2.3) ----
+   THE RECORD IS WRITTEN FIRST AND WHATEVER THE MAIL DOES. That the other side
+   was chased, and when, is the half that pays off at renewal; a fact that
+   depends on a provider being up is not a record. The message is the knock on
+   the door and the route is the only thing that knows whether it landed.
+
+   IT ASKS BEFORE IT SENDS, because this is the one act on this page that
+   leaves the building — the standing rule for anything that reaches the
+   counterparty. */
+async function obligationChase(cid, obId){
+  const hit = findObligation(cid, obId);
+  if(!hit){ toast(i18t('ob_gone'), 'err'); return null; }
+  const { c, o } = hit;
+  if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return null; }
+  if(!obligationIsTheirs(o)){ toast(i18t('ob_chase_ours'), 'err'); return null; }
+  const ok = await confirmDialog({
+    title: i18t('ob_chase_title'),
+    message: i18t('ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),
+    confirmLabel: i18t('ob_chase_go') });
+  if(!ok) return null;
+  o.chasedAt = isoDay(new Date());
+  let by = '';
+  try{ by = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); }catch(_){ by = ''; }
+  o.chasedBy = by;
+  logAudit(c, 'Obligation', `Chased: ${o.desc} — ${c.counterparty || 'the counterparty'}`);
+  persist(c);
+  obligationSurfacesChanged();
+  if(state.view === 'obligations') renderObligationsList();
+  /* AND THEN THE MESSAGE, WHICH MAY OR MAY NOT GO. Three honest answers, the
+     shape every other mail in this product reports: it went, it is in the
+     outbox, or it was refused and here is why. */
+  if(!window.API_MODE || !API_MODE()){ toast(i18t('ob_chased_local'), 'warn'); return o; }
+  try{
+    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', { obligationId: obId });
+    if(r && r.emailSent) toast(i18t('ob_chase_sent', { to: r.to || '' }), 'ok');
+    else if(r && r.outbox) toast(i18t('ob_chase_outbox'), 'warn');
+    else toast(String((r && r.emailError) || i18t('ob_chase_failed')), 'warn');
+  }catch(e){ toast(String((e && e.message) || i18t('ob_chase_failed')), 'warn'); }
+  return o;
+}
+
+Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obligationsDoorCount,renderObligationsList,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

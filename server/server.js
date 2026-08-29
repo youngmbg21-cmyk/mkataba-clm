@@ -6653,6 +6653,56 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
     emailConfigured: EMAIL_ON(), notices: signerNoticesFor(req.params.id) });
 });
 
+/* ---- CHASING THE OTHER SIDE FOR SOMETHING THEY OWE (J-2.3) ----
+
+   THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. `chasedAt`
+   and `chasedBy` are written on the contract through the ordinary save, so a
+   mail provider that is down, misconfigured or absent loses a message and
+   never the fact that somebody chased — which is the half that pays off at
+   renewal, and the reason the "sent must mean sent" rule applies whole here.
+
+   THE ADDRESS IS OURS TO DECIDE. A route that emailed whatever the client sent
+   would be an open relay with this workspace's name on the envelope, which is
+   the rule the review-request route beside it already states. The client names
+   an obligation; the server reads the counterparty's address off the STORED
+   contract.
+
+   IT REFUSES AN OBLIGATION THAT IS OURS. Chasing is what you do about a duty
+   on the other side; ours is work, not a message, and mailing the counterparty
+   about our own late report would be telling them something they should not
+   hear from us by accident. */
+app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address)
+    return res.status(400).json({ error: 'This route resolves the counterparty’s address from the contract’s own record. Send obligationId, not an email address.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const o = (c.obligations || []).find(x => x && String(x.id) === String(b.obligationId || ''));
+  if (!o) return res.status(404).json({ error: 'That obligation is no longer on the contract.' });
+  if (String(o.party) !== 'theirs')
+    return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
+  if (o.status === 'done')
+    return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
+  const to = String(c.counterpartyEmail || '').trim();
+  /* NOWHERE TO WRITE IS A FACT, NOT A FAILURE — the same answer the obligation
+     nudge gives. The browser has already recorded the chase; this says plainly
+     that no message went and where to put an address. */
+  if (!/.+@.+\..+/.test(to))
+    return res.json({ ok: false, reason: 'no-address', to: null,
+      emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
+      emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
+  const L = langForEmail(to);
+  const vars = { desc: o.desc || '', name: c.name || c.id, id: c.id, due: o.due || '' };
+  const link = contractUrl(req, c.id);
+  const r = await sendEmail(to,
+    tFor(L, 'mail_ob_chase_subject', vars),
+    `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ob_chase_line', vars)}`
+      + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+    `chase: ${c.name || c.id}`);
+  res.json({ ok: true, to, ...mailReport(r) });
+});
+
 /* "Please look at this before it goes out" — the internal review request.
 
    THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. The request
