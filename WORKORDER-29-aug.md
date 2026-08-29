@@ -2,15 +2,15 @@
 
 **Raised by:** Young, 29 Aug 2026.
 **Branch:** `claude/contract-signature-workflow-8z1ic6`.
-**Status:** **OPEN — nothing built.** Job J-1 is specified and blocked on five
-decisions the owner has not yet answered (see *Decisions* under J-1). More jobs
-to follow; the owner has said so, and section **J-2 onward** is where they land.
+**Status:** **OPEN — nothing built.** Two jobs specified, each blocked on its
+own decisions, none of which the owner has answered yet. More jobs to follow;
+section **J-3 onward** is where they land.
 
 ---
 
 ## The plain-English version, for the owner
 
-One job so far. Today the Signing tab shows no contract at all — two cards on
+**J-1 — signing on the paper.** Today the Signing tab shows no contract at all — two cards on
 an empty page — and there is nowhere in HaTi to put a signature at a place in
 the *middle* of an agreement, the way a schedule that has to be initialled asks
 for one. This job puts the contract on the Signing tab, marks the places that
@@ -22,8 +22,17 @@ one press in one place, behind the same approval gate, the same "whose turn is
 it", the same settled redline and the same seal. Marking the paper is not
 signing it.
 
-Nothing is built. Five questions at the end of J-1 decide what gets built, and
-each has my recommendation against it.
+**J-2 — obligations, end to end.** A contract is a list of promises, and HaTi
+records them and then goes quiet. There is no obligations screen — they sit
+behind a card about checks you run *before* sending a contract out. Nothing
+about them appears on your home page or in the bell. Ticking one off records no
+date, so HaTi can never tell you whether you deliver on time. "Quarterly" is a
+word on a row that nothing acts on. And an obligation marked as the other
+side's is never chased by anything. J-2 gives obligations a home, a real life,
+and a list you can work down.
+
+Nothing is built. Each job ends with the questions that decide what gets built,
+and each question has my recommendation against it.
 
 ---
 
@@ -312,12 +321,344 @@ Nothing here is a description; each line is a check somebody can fail.
 
 ---
 
-# J-2 ONWARD — MORE JOBS TO FOLLOW
+# J-2 — OBLIGATIONS, END TO END
+
+**Raised by:** Young, 29 Aug 2026, after asking how obligations work today and
+how one is followed up per contract.
+
+**Owner's words, verbatim:**
+
+> *i want to first understand how obligations work in HaTi. I am not sure I
+> understand how I follow up on obligations per contract*
+
+and then:
+
+> *imagine a best in class platform and propose how it should ideally work in
+> Hati. Then show me a proposed solution and create an artifact showing me your
+> proposal including pictures on how the proposal would look like inside Hati.
+> The end to end solution to obligations*
+
+**The design was drawn and is awaiting approval** as an artifact — *The
+Obligations Register*,
+https://claude.ai/code/artifact/dc4c9091-7121-4f1a-8021-b9d87511dbad — which
+carries mock-ups of the contract's Obligations tab, the workspace worklist, the
+completion dialog and the alerts panel. Read it before building; this section is
+the specification, that is the picture.
+
+---
+
+## HOW IT WORKS TODAY — measured, not remembered
+
+Written down because half of this job is *leaving alone* what is already right.
+
+- **An obligation lives on the contract record** as an entry in `c.obligations`.
+  It carries a description, a due date, a recurrence word, whose it is
+  (ours/theirs), an assignee (free text, matched against members), a status
+  (open/done) and the quoted clause it came from.
+- **It survives the light contract list** — `HEAVY` spreads the record and
+  strips only the execution html, the upload's data URL and extracted text, the
+  comments and the audit trail. So every screen that counts obligations across
+  the book works in server mode. This is checked, not assumed, and it is what
+  makes the worklist in Phase 3 possible at all.
+- **One reading each, and they already exist**: `obState` (done / overdue /
+  open), `obligationDue` (the date NORMALISED — an obligation due
+  "31 March 2027" gives NaN through a raw comparison and is never overdue),
+  `obligationParty` / `obligationIsTheirs`, `obligationOwner`,
+  `openObligations`, `overdueObligationCount`, `allObligations`.
+- **One verb**: `toggleObligation(c, i, opts)` — refuses a viewer in words,
+  flips the status, writes an audit line naming whose it was, persists, and
+  calls `obligationSurfacesChanged()`. `toggleObligationById` is the by-id door
+  the Calendar presses.
+- **One repaint funnel**: `obligationSurfacesChanged()`.
+- **The per-contract card** is `renderObligationsSection`, filling
+  `#obligations-section`, which the Document tab's Checks card BORROWS into its
+  side panel by element id.
+- **The scan** is `runFindObligations` → `POST /api/ai/obligations` →
+  `openObligationsReview`, which is where proposals are accepted onto the record.
+- **The reminder ladder lives on the server**, in `runReminders`: where the
+  assignee resolves to a member (`obligationRecipient` — email first, then name),
+  THEY are written to at 7 days before, on the day and the day after, and the
+  admins are brought in on day 4. Where nothing resolves, one admin mail goes on
+  day 1 and nothing else, ever.
+- **Obligations DO NOT travel to the counterparty** — `buildSharePayload` never
+  touches them. Checked. This is what makes chasing an OUTBOUND act in Phase 3
+  rather than something they could see.
+- **They are deliberately mutable after execution** — `obligations` is not in
+  `EXECUTED_IMMUTABLE`, and the Checks panel's own `editableFor` exempts them
+  from the signed guard. **Nothing in this job may narrow that**: a quarterly
+  report starts mattering after signature, which is the whole point.
+
+## WHAT IS WRONG WITH IT — six, and the owner is feeling the first two
+
+1. **No home.** They are behind a card called *Checks*, which is about things
+   you run before sending a contract out. An obligation is not a check.
+2. **Nothing on Home, nothing in the bell.** `ALERT_KINDS` carries no
+   obligations kind and `KPI_CATALOG` no obligations metric. Every other kind of
+   work owed has a row in the alerts panel. **AND THERE IS DEAD WIRING**: the
+   dashboard's own `[data-ob-done]` and `#ob-open-cal` handlers survive in
+   js/views/home.js with nothing emitting either attribute, left behind when the
+   24 Aug redesign removed the obligations card. Reuse or remove them; do not
+   leave a second set beside them.
+3. **Completion records no date.** Only open or done, so an on-time figure is
+   impossible — the Insights obligations page says so itself, with
+   `canSeeCompletedOn:false` on its own data object.
+4. **Recurrence is a label.** `recurring` is stored, printed on the row, and
+   read by nothing. Ticking a quarterly duty done ends it for ever.
+5. **Nothing chases the other side.** `obligationRecipient` resolves against
+   OUR member records only, so a "theirs" obligation reaches nobody.
+6. **Silence reads as clean.** Nothing records that a contract was ever scanned,
+   so "no obligations tracked" and "nobody has looked" are the same screen —
+   the second thing the Insights page reports it cannot see
+   (`canSeeScan:false`).
+
+---
+
+## THE SHAPE — three homes, and a real life
+
+An obligation becomes a first-class object with three homes: **on the contract**
+(a tab of its own), **a worklist** (a sidebar door listing every obligation
+across every contract), and **where the reader already looks** (a row in the
+bell, an optional card on Home).
+
+Its life gains one state's worth of truth: completion carries a **date and a
+person**. **There is deliberately no "missed" state** — once completion has a
+date, late is the difference between two dates already on the record, so it is
+reportable without anybody classifying anything.
+
+A repeating duty becomes a **series**: closing this instance opens the next, on
+the same owner and the same cadence, and the dialog SAYS SO before the press.
+
+---
+
+## PHASING — three, each useful alone, and each shippable on its own
+
+### J-2.1 — GIVE THEM A HOME (no record change at all)
+
+- **A fifth tab in the contract room, "Obligations"**, carrying a count. Laid
+  out like the History tab — ONE full-width card, not two columns, because this
+  is a worklist and not a document. Bands: overdue, due this month, later,
+  completed.
+- **The count is amber only when something is overdue.** A count that is always
+  coloured is a warning nobody reads.
+- **A registered alert kind** in `ALERT_KINDS` — an obligation that is the
+  reader's OWN and due within 7 days or overdue. Same window the reminder mails
+  use, so the bell and the inbox cannot disagree. Ranked by the existing rule
+  (what only you can do, first).
+- **One entry in `KPI_CATALOG`** — *Obligations due*. The catalogue is chosen
+  from, four at a time, so this forces nothing onto anybody's Home.
+- **"Nobody owns this — no reminder will be sent."** A marker on any row whose
+  assignee does not resolve to a member with an address. **Probably the single
+  cheapest fix in this whole job**: today that obligation silently falls back to
+  nagging the admins once and nothing on screen says so.
+- Nothing is added to the record. Everything drawn already exists.
+
+### J-2.2 — MAKE COMPLETION MEAN SOMETHING (six fields, no migration)
+
+| New | What it holds | Absent means |
+|---|---|---|
+| `completedAt` | the day the work was actually done | unknown, never guessed |
+| `completedBy` | who closed it | unknown |
+| `completedNote` | one line of evidence — a reference, a filing number | nothing drawn |
+| `seriesId` | ties an instance to the repeating duty it belongs to | a one-off, as today |
+| `chasedAt` / `chasedBy` | when the other side was last chased, and by whom | never chased |
+| `obligationsReadAt` / `...ReadHash` *(on the contract)* | when it was last read for obligations, and against which wording | never read |
+
+- **Completing opens a small dialog**: the date (defaults to today, movable
+  BACK, because things are ticked off late and a wrong date makes the on-time
+  figure a lie) and an optional note. Where the obligation repeats, the dialog
+  **names the next instance and its date before the press**.
+- **The eleven already ticked off keep exactly the truth they have**: done, with
+  an unknown completion date. Nothing is inferred. An inference dressed as a
+  record is the fault this codebase has a standing rule against.
+- **The on-time figure falls out of it**, and the Insights obligations page's
+  two stated blind spots close with no other change: `canSeeCompletedOn` and
+  `canSeeScan` flip the day those fields exist.
+
+### J-2.3 — REACH AND EVIDENCE
+
+- **The worklist**: a door in the sidebar's everyday group. A table of
+  OBLIGATIONS (not contracts), filtered by whose / state / side / stream / due
+  window, banded by lateness, rows opening the contract on its Obligations tab.
+- **Chase**: one act on a "theirs" obligation. It drafts a message to the
+  counterparty contact HaTi already holds and records that you chased, either
+  way — **the record is the half that pays off at renewal, so it must not depend
+  on the mail working** (the "sent must mean sent" rule applies whole).
+- **On-time reporting by counterparty**, which is only possible once J-2.2 has
+  been running for a while.
+
+---
+
+## WHAT IS EXPLICITLY NOT TOUCHED
+
+- **The one verb.** Every new surface presses `toggleObligation`. A second way
+  to complete an obligation is the fault this rulebook opens by warning about.
+- **The one reading.** `obState`, `obligationDue`, `obligationIsTheirs`,
+  `obligationOwner` — borrowed, never re-derived. A new copy of "is this
+  overdue" is how two screens come to disagree about one commitment.
+- **The reminder ladder.** 7 / 0 / -1 to the owner, day 4 to the admins. It is
+  sensible, and a configurable ladder nobody ever changes is another screen to
+  maintain. **The Insights page reads those milestones off the server**, so a
+  change there fails a test rather than leaving that page confidently wrong.
+- **Editable after execution.** Untouched, and asserted.
+- **They never travel to the counterparty.** Untouched, and asserted.
+- **The Calendar** keeps obligations as dated events with its agenda and its
+  Done button — "what falls in October" is a real question and a calendar
+  answers it best. The worklist does not replace it.
+- **The Insights → Obligations page** keeps its reading of what has gone quiet.
+- **The Checks card** keeps its other three rows.
+
+---
+
+## NOTES FOR WHOEVER BUILDS IT — read before touching anything
+
+- **A FIFTH TAB IS ONE LIST READ TWICE.** `ROOM_TABS` is the list; the tab row
+  and the routing guard must both read it. The Insights tab row was written out
+  separately from its guard once, and the new tab **drew, registered its press,
+  and redrew the previous page** with nothing anywhere saying why. Nothing
+  failed and nothing logged.
+- **A NEW SERIES INSTANCE NEEDS ITS OWN ID.** The reminder dedupe key is
+  `${c.id}:ob:${o.id || due}:...`. An instance minted without a fresh id
+  inherits the previous one's dedupe rows and **its reminders never fire** —
+  silently, which is the worst shape this can take.
+- **EVERY NEW DATE GOES THROUGH THE NORMALISER.** `dateOnly` in the browser and
+  its mirror on the server. A date typed as "31 March 2027" compares as NaN, and
+  every comparison against NaN is false — which is exactly how an obligation
+  came to be never overdue however long ago it was due.
+- **READ `c.obligations` RAW.** Never through anything that writes. The standing
+  trap on this page is a counting surface that starts a negotiation on every
+  contract merely by asking about it.
+- **A NEW SURFACE JOINS `obligationSurfacesChanged()`** or it goes stale the
+  first time somebody ticks something off somewhere else.
+- **A NEW ALERT KIND IS REGISTERED**, in `ALERT_KINDS` with a rank — never a
+  special case at the draw. `buildAlerts` BORROWS every count and derives none;
+  this must too.
+- **THE DEAD HOME WIRING.** `[data-ob-done]` and `#ob-open-cal` are wired in
+  js/views/home.js and emitted by nothing. If the Home card returns, wire it
+  where it is PAINTED and clear the leftovers; do not end up with two.
+- **PUBLISH ANYTHING REACHED THROUGH `window`** — f232 is the net, and this
+  codebase has paid the unexported-function fault six times.
+- **NO BACKTICK IN A CSS COMMENT** inside a file that returns CSS from a
+  template literal — f236 is the net, and it has been paid four times.
+
+### The six questions, worked
+
+- **Q1 — the standard answer.** Set out as eight principles in the artifact,
+  owned as principles rather than asserted as any named product's behaviour.
+  HaTi already meets four of them; the departures are named in the decisions.
+- **Q2 — the cheapest channel.** Every count rides a tab, a row or a control.
+  **No band, strip, banner or callout is added anywhere in this job**, and
+  nothing floats over a page.
+- **Q3 — the contract's pixels.** This tab draws no agreement, so the number
+  above the wording cannot move — but the tab row gains a tab. Measure that the
+  room head does not grow and that the five tabs do not wrap at 1280px, in both
+  languages.
+- **Q4 — Copilot.** The scan already exists and is unchanged. The only new thing
+  is OFFERING it at execution, and it is an offer: **never a silent run**, because
+  that spends Copilot money nobody asked to spend.
+- **Q5 — the one door.** Completing has exactly one, and every new surface is a
+  door onto it rather than a second transport.
+- **Q6 — where the reader ends up.** Every row in the worklist and every row in
+  the bell opens the contract on its Obligations tab.
+
+---
+
+## DECISIONS — ALL FIVE OPEN, AND THE BUILD IS BLOCKED ON THEM
+
+**D-1 — A fifth tab, or a card back on Key terms?**
+A tab makes obligations first-class and can carry a count; a card is smaller and
+adds no tab, but puts a live worklist among the deal's static facts — and it is
+where they used to live before being moved to the Checks card on 14 Aug 2026.
+*Recommended:* **the tab.** A contract's promises are neither its facts nor its
+wording and they outlive both, and a count on a tab is the cheapest possible way
+to say "something here is overdue" without a banner.
+*Owner's answer:* —
+
+**D-2 — Offer the obligation scan at execution?**
+*Recommended:* **yes, as an offer.** An executed contract never read for
+obligations says so on its own next-action line and in the bell; one press runs
+it, and it stops asking once it has been run. **Never silently** — it costs
+money.
+*Owner's answer:* —
+
+**D-3 — How does a chase reach the other side?**
+Email to the counterparty contact on file; a message on a standing share link;
+or no message at all and only a dated record that you chased.
+*Recommended:* **email to the contact on file, drafted and sent on your press,
+with the fact recorded either way.**
+*Owner's answer:* —
+
+**D-4 — Should completion take an attachment?**
+*Recommended:* **not yet.** A note with a reference answers most of it, and this
+is the one part of the job that adds real storage. Revisit once J-2.2 has been
+in use.
+*Owner's answer:* —
+
+**D-5 — Who may complete an obligation?**
+Today anyone who can edit the contract. Stricter would be the owner or an admin.
+*Recommended:* **leave it open and record who closed it.** A rule that stops a
+colleague ticking something off while the owner is on leave costs more than it
+protects, and with a name against every completion the record is honest anyway.
+*Owner's answer:* —
+
+---
+
+## OUT OF SCOPE, SAID OUT LOUD
+
+- **A configurable escalation ladder in settings.** The one that exists is
+  sensible; a rule nobody changes is furniture.
+- **The phone beyond reading and ticking.** The whole worklist there is not
+  worth it yet.
+- **Letting the counterparty see or update their own obligations.** That is a
+  portal question and a much bigger one.
+- **Recurring reminders with no due date.** An obligation with no date cannot be
+  chased, and inventing one would be a guess wearing a fact's clothes.
+
+---
+
+## ACCEPTANCE
+
+Per phase, and each line is something a person can fail.
+
+**J-2.1**
+1. The Obligations tab draws for a contract with obligations and for one with
+   none, and its count is amber only when something is overdue.
+2. All five room tabs draw, in order, without wrapping, at 1280px, in both
+   languages.
+3. Completing from the new tab goes through the SAME verb as the Calendar's —
+   asserted from the source, not inferred.
+4. An obligation whose assignee resolves to nobody says so on its row.
+5. The bell row appears only for the reader's OWN obligation, only inside the
+   7-day window or overdue, and opens that contract's Obligations tab.
+6. Nothing is added to any record by this phase.
+
+**J-2.2**
+7. A completion records the date and the person; an obligation completed before
+   this phase reads as an unknown date and **no date is inferred for it**.
+8. Completing a repeating obligation opens exactly ONE next instance, with its
+   own id, and the dialog names it before the press.
+9. That new instance's reminders fire — proved against a real server, because
+   the dedupe key is where this silently fails.
+10. The on-time figure counts only obligations that carry a completion date.
+11. Every existing screen draws identically for a record carrying none of the
+    new fields.
+
+**J-2.3**
+12. The worklist lists obligations from more than one contract, banded by
+    lateness, and a row opens its contract on the Obligations tab.
+13. A chase records the fact whether or not the mail went, and the outbox
+    carries an honest row either way.
+14. Obligations still never travel to the counterparty — asserted against a real
+    share payload.
+
+---
+
+# J-3 ONWARD — MORE JOBS TO FOLLOW
 
 The owner has said more jobs are coming for this order. They land here, each
-with the same shape as J-1: the owner's words verbatim, what is built, what is
-explicitly not touched, notes for whoever builds it, any decisions the build is
-blocked on, what is out of scope, and acceptance checks that can be failed.
+with the same shape as J-1 and J-2: the owner's words verbatim, what is built,
+what is explicitly not touched, notes for whoever builds it, any decisions the
+build is blocked on, what is out of scope, and acceptance checks that can be
+failed.
 
-**Nothing in this file is built until the owner says so, and J-1 additionally
-waits on its five decisions.**
+**Nothing in this file is built until the owner says so, and both jobs
+additionally wait on their own decisions.**
