@@ -761,6 +761,41 @@ function keepScroll(fn){
   put();
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(put);
 }
+/* ---------- HOW MANY ROWS FIT ON THE READER'S OWN SCREEN ----------
+   (owner-reported 29 Aug 2026, off three screenshots: "pages are still not
+   using full monitor". The WIDTH was fixed the day before — every page measures
+   max-width:none now — and what was left is that a page showed the same small
+   slice on a 2000px-tall monitor as on a laptop: 9 templates of 47, 4 decisions
+   of 36, and the rest of the screen empty. Owner-ruled the same day: fill the
+   height.)
+
+   ONE READING, SO NO TWO LISTS CAN DRIFT. Every list that tops up to the window
+   asks this and nothing works it out for itself.
+
+   IT IS ASKED AFTER THE PAINT, WHICH IS THE ONLY TIME IT CAN BE ANSWERED —
+   the space left below a list depends on what was drawn above it, and that is
+   not known while the markup is being built. Same shape as rlFitTabRow,
+   ktFitSplit and regFitBandOffset, which all measure and write back.
+
+   A ZERO IS NOT AN ANSWER. A hidden pane, a page mid-transition and a stage
+   that never laid anything out all measure 0, and topping a list up to zero
+   rows would empty a screen that was working. Where the measurement is not
+   trustworthy the caller's own floor stands, which is what shipped before this
+   existed — so the worst this can do is leave a page exactly as it was.  */
+function rowsThatFit(el, rowH, min, max){
+  const floor = Math.max(1, min|0);
+  const ceil = Math.max(floor, max|0 || floor);
+  if(!el || typeof el.getBoundingClientRect!=='function') return floor;
+  const top = el.getBoundingClientRect().top;
+  /* The bottom of whatever is really scrolling: the page's own scroller where
+     the view owns its height, else the window. */
+  const host = el.closest && el.closest('#content-scroll, [id^="ig-"], .cal-page');
+  const bottom = host ? host.getBoundingClientRect().bottom
+    : (typeof innerHeight==='number' ? innerHeight : 0);
+  const room = bottom - top;
+  if(!(room > 0) || !(rowH > 0)) return floor;
+  return Math.max(floor, Math.min(ceil, Math.floor(room / rowH)));
+}
 function openFolder(fid){
   if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
@@ -2459,6 +2494,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
   buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,openNotesPanel,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

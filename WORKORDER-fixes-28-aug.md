@@ -31,6 +31,14 @@ the clause panel open on a clause whose heading cannot be edited.
 > seat outright and the panel is their only way to propose wording, so it stays
 > for them and for a window under 1024px. Each is written up in the item.
 >
+> **AND A FOLLOW-UP ON 29 Aug: the width was right and the HEIGHT was not.**
+> The owner reported three pages still not using the monitor. Measured first,
+> as this rulebook requires: every page already painted to 1990–2000 of a
+> 2000px window, so the width fix held. What the screenshots showed was fixed
+> limits on how much a page SHOWS — 9 templates of 47, 4 decisions of 36 — so a
+> big monitor was given a laptop's slice. Owner-ruled: fill the height. See
+> CLAUDE.md, *A PAGE FILLS THE READER'S OWN SCREEN*.
+>
 > Node 4964/4964, lint 0 errors. Browser: clause-door 105, clause-editor 171,
 > redline 171, contracts-page 72, insights-panels 40, theme-tokens 40/40,
 > laptops 21, **keeps-your-place 7 (NEW — it reports the owner's own bug against

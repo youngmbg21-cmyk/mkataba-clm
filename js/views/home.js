@@ -1038,9 +1038,15 @@ function renderDashboard(){
      was a ruby circle is a ruby left rule and nothing about which row is
      alarming has moved. */
   const ddAll=decisionItems||[];
-  const ddShown=ddAll.slice(0,4);
+  /* ---- AS MANY AS FIT ON THIS READER'S SCREEN (owner-ruled 29 Aug 2026) ----
+     It was a flat four, so a 2000px-tall monitor showed the same four a laptop
+     did and the rest of the screen was empty. HM_DD_MIN is what a laptop always
+     got and is the floor a bad measurement falls back to, so the worst case is
+     the page exactly as it shipped. The count is set after the paint by
+     hmFitDecisions, which is the only time the room below this list is known. */
+  const ddShown=ddAll.slice(0, Math.max(HM_DD_MIN, _hmDdFit|0));
   const ddRows=ddShown.length
-    ? `<div class="hm-rows">${ddShown.map(it=>`
+    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
         <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
@@ -1254,8 +1260,45 @@ function renderDashboard(){
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
   if(window.wireEmailSetupBanner) wireEmailSetupBanner();
+  hmFitDecisions();
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmDashSlices,gsSteps,gettingStartedHtml,gsIsSeed,
+/* ---- FILL THE HEIGHT WITH THE DECISIONS THAT ARE WAITING ----
+   Measured after the paint, because the room under this list is whatever the
+   two card rows above it left — a number that does not exist while the markup
+   is being built. Re-rendered ONLY when the answer actually changes, or a
+   window resize would repaint the dashboard on every pixel of a drag.
+   ONE ROW'S OWN HEIGHT IS MEASURED, never assumed: this row's padding has
+   moved twice this month and a typed number would have gone stale with it. */
+const HM_DD_MIN = 4;      /* what a laptop always showed, and the safe floor */
+const HM_DD_MAX = 40;     /* past this it is a list, and the list has a page */
+let _hmDdFit = HM_DD_MIN;
+function hmFitDecisions(){
+  if(typeof document==='undefined') return;
+  const rows=document.getElementById('hm-dd-rows');
+  if(!rows) return;
+  const first=rows.firstElementChild;
+  const rowH=first ? first.getBoundingClientRect().height : 0;
+  if(!(rowH>0)) return;              /* a hidden pane measures 0 — leave it be */
+  const want=(typeof window!=='undefined' && window.rowsThatFit)
+    ? rowsThatFit(rows, rowH, HM_DD_MIN, HM_DD_MAX) : HM_DD_MIN;
+  if(want===_hmDdFit) return;
+  _hmDdFit=want;
+  renderDashboard();
+}
+if(typeof window!=='undefined' && typeof ResizeObserver==='function'){
+  /* The WINDOW is what changes the room, and the dashboard is rebuilt on every
+     view change anyway — so one observer on the scroller, armed once. */
+  const arm=()=>{
+    const sc=document.getElementById('content-scroll');
+    if(!sc || sc.dataset.hmFitBound) return;
+    sc.dataset.hmFitBound='1';
+    try{ new ResizeObserver(()=>hmFitDecisions()).observe(sc); }catch(_){}
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', arm);
+  else arm();
+}
+
+Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

@@ -1283,6 +1283,15 @@ let _tplPage={ group:'all', stream:null, q:'', showAll:false };
    how many more there are. Written twice, the overview would offer "see all
    12 more" over a list that had already shown eight of them. */
 const TPL_PAGE_CAP=8;
+/* ---- AND THE WALL FILLS THE READER'S SCREEN (owner-ruled 29 Aug 2026) ----
+   TPL_PAGE_CAP is the FLOOR — what a laptop always showed and what a bad
+   measurement falls back to — and _tplOvFit is how many rows of cards actually
+   fit, set after the paint by tplOvFit(). The overview showed nine of
+   forty-seven on a 2000px-tall monitor with the rest of the screen empty; the
+   two counts below it ("39 more", "see all 47") read the same `shown` list, so
+   they follow without being told. */
+const TPL_OV_MAX=48;
+let _tplOvFit=TPL_PAGE_CAP;
 /* The window the overview's "most used" bars measure, and the floor under a
    deviation rate. Three is PRECEDENT_MIN's own reasoning: a rate off one
    contract is not a rate, it is that contract. */
@@ -1670,7 +1679,7 @@ function tplOverviewHtml(d){
       <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(note(c))}</span>
     </button>`;
   };
-  const shown=d.cards.slice(0,TPL_PAGE_CAP);
+  const shown=d.cards.slice(0, Math.max(TPL_PAGE_CAP, _tplOvFit|0));
   const more=d.cards.length-shown.length;
   const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
     style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:var(--s-2) 2px"
@@ -1697,7 +1706,7 @@ function tplOverviewHtml(d){
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">·</span>
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
       </div>
-      <div class="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${shown.map(cardHtml).join('')}</div>
+      <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${shown.map(cardHtml).join('')}</div>
       ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-3)">
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
         <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
@@ -1748,6 +1757,29 @@ function tplGoList(name){
   try{ box?.focus(); }catch(_){}
 }
 
+/* ---- HOW MANY CARDS FIT, MEASURED AFTER THE PAINT ----
+   The wall is a grid, so what fits is ROWS OF CARDS rather than cards: both
+   the row height and how many sit on a row are read off the wall itself, so a
+   change to the card, the gap or the breakpoints carries this with it and there
+   is no number here to go stale. A hidden pane measures 0 and the floor stands,
+   which is the page exactly as it shipped. */
+function tplOvFit(){
+  if(typeof document==='undefined') return;
+  const wall=document.getElementById('tpl-ov-cards');
+  const first=wall && wall.firstElementChild;
+  if(!first) return;
+  const fr=first.getBoundingClientRect();
+  if(!(fr.height>0) || !(fr.width>0)) return;
+  const wr=wall.getBoundingClientRect();
+  const perRow=Math.max(1, Math.round(wr.width / fr.width));
+  const gap=parseFloat(getComputedStyle(wall).rowGap)||0;
+  const want=(typeof window!=='undefined' && window.rowsThatFit)
+    ? rowsThatFit(wall, fr.height+gap, 1, Math.ceil(TPL_OV_MAX/perRow)) : 1;
+  const cards=Math.max(TPL_PAGE_CAP, Math.min(TPL_OV_MAX, want*perRow));
+  if(cards===_tplOvFit) return;
+  _tplOvFit=cards;
+  renderTemplatesPage();
+}
 function renderTemplatesPage(){
   const rows=tplPageRows();
   const counts=rows.reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{});
@@ -1815,6 +1847,7 @@ function renderTemplatesPage(){
     </section>
   </div>`;
   tplPagePaintRows();
+  tplOvFit();
   document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
   /* Every door on the overview lands on the same one: the table, narrowed to
      the template that was pressed. A card, an attention row and a bar are
@@ -1943,6 +1976,6 @@ function renderPlaybookPage(){
   setActiveNav('playbook');
 }
 
-Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
+Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,TPL_PAGE_TABS,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

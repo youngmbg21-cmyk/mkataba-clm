@@ -161,6 +161,29 @@ const check = (name, pass, detail) => {
       check('a TAB is navigation and may start at the top', nowScroller <= 40, String(nowScroller));
     } else check("a TAB is navigation and may start at the top", true, 'no friction tab in this book');
 
+    /* ---- AND THE PAGE FILLS THE SCREEN IT IS ON (owner-ruled 29 Aug 2026) ----
+       Measured, not read: what a page shows now depends on the window, so the
+       only honest check is to change the window and watch the count follow.
+       This file already drives a real book on a real server, so it is where
+       that belongs rather than in a third harness. */
+    await page.setViewportSize({ width: 2000, height: 1030 });
+    await page.evaluate(() => setView('templates'));
+    await page.waitForTimeout(1600);
+    const tall = await page.evaluate(() => ({
+      cards: document.querySelectorAll('#tpl-ov-cards > *').length,
+      bottom: Math.round(document.getElementById('tpl-ov-cards').getBoundingClientRect().bottom) }));
+    await page.setViewportSize({ width: 2000, height: 700 });
+    await page.evaluate(() => renderTemplatesPage());
+    await page.waitForTimeout(1600);
+    const short = await page.evaluate(() =>
+      document.querySelectorAll('#tpl-ov-cards > *').length);
+    check('the templates wall shows MORE on a taller screen',
+      tall.cards > short, `${tall.cards} at 1030 vs ${short} at 700`);
+    check('and it was more than the old fixed eight', tall.cards > 8, String(tall.cards));
+    check('the wall reaches down the tall screen rather than stopping a third of the way',
+      tall.bottom > 700, tall.bottom + 'px of 1030');
+    await page.setViewportSize({ width: 2000, height: 1030 });
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

@@ -1917,6 +1917,60 @@ pages cap and others not when people move between them.
   483px at 2560. If it ever bites, the fix is to cap and centre the working area
   so sheet and cards travel together, never to widen the cards.
 
+## A PAGE FILLS THE READER'S OWN SCREEN (owner-ruled 29 Aug 2026)
+
+*"Pages are still not using full monitor and i have attached examples"* — three
+screenshots, Home, Insights and Templates, each with the bottom half of a
+2000×1030 monitor empty.
+
+**THE WIDTH WAS ALREADY FIXED, AND THAT WAS MEASURED BEFORE ANYTHING WAS
+TOUCHED** (the rule this file records for exactly this case): every page
+reported `max-width:none` and painted to 1990–2000 of a 2000px window. **What
+the screenshots showed was HEIGHT, and it was not a layout bug** — it was fixed
+limits on how much a page shows. MEASURED at 2000×1030: **Templates drew 9 cards
+of 47 and stopped 439px short; Home drew 4 decisions of 36.** A big monitor was
+being shown a laptop's slice.
+
+- **`rowsThatFit(el, rowH, min, max)` IS THE ONE READING** and every list that
+  tops up asks it. **It is answered AFTER THE PAINT, which is the only time it
+  can be** — the room below a list is whatever was drawn above it, and that is
+  not known while the markup is being built. Same shape as `rlFitTabRow`,
+  `ktFitSplit` and `regFitBandOffset`.
+- **A ZERO IS NOT AN ANSWER, and that is the safety property the whole thing
+  rests on.** A hidden pane, a page mid-render and a stage that lays nothing out
+  all measure 0, and topping a working list up to zero rows would empty a screen
+  that was fine. Every caller keeps its OLD count as the FLOOR — Home's four,
+  the wall's eight — so where the measurement is not trustworthy the page is
+  exactly what shipped, and the worst this can do is nothing.
+- **IT ASKS THE SCROLLER THAT IS REALLY SCROLLING**, not the window: a view on
+  `VIEW_OWNS_HEIGHT` builds its own (`#ig-frame`, `.cal-page`), which is the
+  same trap `keepScroll` was carrying.
+- **THE WALL FITS ROWS OF CARDS, NOT CARDS.** The card height, the row gap and
+  how many sit on a row are all read off the wall itself, so a re-dressed card
+  carries this with it and there is no number here to go stale.
+- **IT RE-RENDERS ONLY WHEN THE ANSWER CHANGES**, or a resize drag would repaint
+  the dashboard on every pixel.
+- **THE COUNTING IS NOT CAPPED BY THE SCREEN — only the drawing is.** "39 more"
+  and "see all 47" read the same `shown` list, so they follow the fit without
+  being told, and the reading behind them is the whole book.
+- **AND THE FRICTION CARD HAD A GAP RATHER THAN A CAP.** Its left column is
+  PROSE and stops at 78ch for the reason written beside it, but its TRACK went
+  on growing with the card — so past about 1500px the reader got a column of
+  text with ~300px of dead white beside it and the tables squeezed. The track
+  is capped at the same measure above 1500px, so the surplus goes to the
+  evidence column. **Wide screens only**: at a laptop width nothing moves.
+- **WHAT IS DELIBERATELY NOT FITTED, said out loud:** the friction page's
+  most-contested clauses and friction-by-counterparty tables are a **top-8
+  READING**, not a queue. Stretching them to the monitor would make the same
+  report say different things on different screens, which is the fault the
+  "counting is not drawing" rule exists to prevent. If more rows are wanted
+  there it is a change to the reading and wants its own ask.
+
+Tests: f252 (6 — the helper run for real, because the floor is arithmetic and a
+browser is not needed for it), keeps-your-place-verify (the wall proved to show
+more on a taller screen and to reach down it — 17 cards at 1030 against 10 at
+700, bottom at 923px).
+
 ## THE THREE SCREENS THAT DRAW THE AGREEMENT AGREE (owner-asked 28 Aug 2026)
 
 *"I would prefer that the Document and the edit with copilot page reflect

@@ -4087,6 +4087,16 @@
 
   /* Insights — negotiation-friction split (was 1fr 1.15fr) */
   .igf-split{grid-template-columns:1fr 1.15fr;}
+  /* ---- ON A BIG MONITOR THE SURPLUS GOES TO THE EVIDENCE, NOT TO A GAP ----
+     (owner-reported 29 Aug 2026, third of three screenshots.) The left column
+     is PROSE and caps at 78ch for the reason written beside it — a line past
+     about 80 characters measurably slows reading down — but its TRACK went on
+     growing with the card, so past about 1500px the reader got a column of
+     text with 300px of dead white beside it and the tables squeezed. Capping
+     the track at the same measure hands that surplus to the evidence column,
+     which can use it. Wide screens only: at a laptop width the two columns
+     already share the room sensibly and nothing here moves. */
+  @media (min-width:1500px){ .igf-split{grid-template-columns:minmax(0,78ch) minmax(0,1fr);} }
   @media (max-width:1099px){ .igf-split{grid-template-columns:minmax(0,1fr);} }
   /* The Insights caption is a whole sentence. Given a second line it stays
      whole; below 900 there is no line to give it, and a sentence cut off
