@@ -11,31 +11,39 @@ screenshots of the Templates overview and the negotiation page.
 
 ---
 
-## 1 · The overview is segmented by library
+## 1 · The overview's cards ARE the categories
 
 > *"In templates overview, the cards are supposed to be segmented by library so
-> all in image 2."*
+> all in image 2."* — and then, when the first answer was wrong:
+> *"The cards should represent the categories in the attached so that you have a
+> card for all templates and the respective metrics. You have a card for
+> standard contracts, a card for warehousing etc."*
 
-The wall was one flat run of cards ordered by use. It is drawn under a heading
-per library now — the same five buckets the table's own rail counts, in the
-table's own order, each heading carrying that library's own total.
+**BUILT TWICE, and the first one was wrong.** I read "segmented by library" as
+the template cards grouped under library headings. The attachment was the
+table's own rail, and what it asks for is a card PER CATEGORY. The picture was
+the specification and the sentence was the caption.
 
-- **The counts agree with the table's rail** and are asserted against it rather
-  than worked out a second time.
-- **Headings sort, they do not hide.** Nothing left the screen.
-- **What fits is now measured in ROWS, not cards** — a segmented wall of eight
-  cards is four rows where a flat one is three, and counted as cards the wall
-  asked for a screen it did not have (measured: 248px spare became 14px of
-  overflow; it is back to 174px spare).
-- **Every library is on the first screen**: the fit is shared out a row at a
-  time, so the biggest library cannot swallow the whole opening view.
+The overview now shows one card for each row of that rail: **All templates,
+Company standard, Counterparty paper, HaTi standard, Samples**, then one for
+**every value stream** — each carrying that category's own metrics (how many
+templates, how many contracts have come off them, and the deviation rate across
+them), under the rail's own two captions.
 
-**NOT DONE, and said out loud:** the VALUE STREAM half of that rail is a
-different filter and was not what "by library" asked for — the card already
-prints its stream on its own line. And the card's **origin chip** now repeats
-what the heading above it says; it is left in place rather than removed on the
-way past, because taking a visible thing off a page is the owner's call. One
-word removes it.
+- **The counts are the rail's**, checked against it rather than worked out twice.
+- **A stream card wears its stream's colour**, a library card wears none —
+  which is what the picture draws.
+- **Pressing a card opens the table narrowed to that category**, with the rail
+  lighting the row it is narrowed to and "All templates" as the way back.
+- **A rolled-up rate flattens extremes on purpose**: a library holding one bad
+  template and eleven good ones is a middling library. The panel beside the wall
+  is still where single templates get named.
+- **Every value stream gets a card, even an empty one** — "have we any
+  warehousing paper?" is better answered by a card saying none than by an
+  absence you have to notice.
+- **Nothing is held back any more.** The wall used to show as many template
+  cards as fitted the screen with a "see all" under it; a bounded handful of
+  category cards always draws in full, so that machinery stands down.
 
 ## 2 · The pencil goes to the editor — it was a dead press
 

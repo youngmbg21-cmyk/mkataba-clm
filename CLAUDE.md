@@ -3295,54 +3295,79 @@ that will be called Templates. The connect the two to function together."*
 Fifth page of the page-by-page pass. **Templates overview** is the demo's card
 wall; **Templates** is the table this page has always been, unchanged.
 
-**THE WALL IS SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026: *"In templates
-overview, the cards are supposed to be segmented by library"*).** It was one
-flat run ordered by use, so the reader could not see what kind of paper they
-were looking at without reading every card's origin chip.
+**THE CARDS ARE THE CATEGORIES (owner-asked 29 Aug 2026: *"The cards should
+represent the categories in the attached so that you have a card for all
+templates and the respective metrics. You have a card for standard contracts, a
+card for warehousing etc."*).** The wall was a card per TEMPLATE, ordered by use.
 
-- **THE LIBRARIES ARE THE TABLE'S OWN AND SO IS THEIR ORDER** \u2014 company \u00b7 cp \u00b7
-  builtin \u00b7 sample, `TPL_OV_GROUPS`, which is `tplPageRows`' own ORD and the same
-  five buckets the table's rail already counts. **The heading prints the
-  library's own total, and it is the number the rail prints**, asserted against
-  it rather than recomputed. A second vocabulary here is how two tabs come to
-  disagree about what a library is.
-- **HEADINGS, NOT A FILTER**, which is the 26 Aug lesson from the change column:
-  a heading SORTS where a filter HIDES, so the reader gets the segmentation with
-  nothing leaving the screen.
-- **THE BUDGET IS SPENT IN ROWS, AND THAT WAS MEASURED RATHER THAN ASSUMED.**
-  The wall is a grid, so its HEIGHT is rows: eight cards flat is three rows of
-  three, and the same eight split two ways is four. Counted as CARDS the
-  segmented wall asked for a screen it did not have \u2014 measured, it went from
-  248px of room to spare to 14px of overflow. `tplOvSlice` hands each library
-  whole ROWS in turn, so only a section's LAST row can be short, which is what a
-  section looks like anywhere.
-- **ROUND-ROBIN, so every library is on the first screen.** Taking the budget in
-  order would spend it all on the biggest library and the reader would never
-  learn the others exist \u2014 which is the one thing segmenting by library is for.
-  Each library still shows its own most-used first, and the foot's "N more" is
-  what says the wall is a slice, exactly as it did when it was flat.
-- **`_tplOvCols` IS PART OF THE FIT'S ANSWER, not only the card count.** How
-  many cards sit on a row can only be read off a laid-out wall, which is
-  `tplOvFit`'s job after the paint; asked at BUILD time it answers for whichever
-  wall the last render left standing, and on the very first paint there is no
-  wall at all \u2014 so a section would be one card wide for the life of the page.
-  The fit redraws when EITHER the count or the column number moves.
-- **AND THE FIT MEASURES A CARD, never the wall's first child**, which is now a
-  HEADING \u2014 sizing a row of cards by a line of text. The headings' own height
-  comes out of the room they take up, measured off them rather than typed.
-- **ONE GRID, and the heading spans it** (`grid-column:1/-1`). A grid per
-  library would draw wider cards in a short one, and `tplOvFit` would have
-  several walls to measure.
-- **NOT DONE, said out loud:** the value-stream half of that rail is a different
-  filter and was not what "by library" asked for \u2014 the card already prints its
-  stream on its meta line. **And the card's ORIGIN CHIP now says what the
-  heading above it says**; it is left alone rather than removed on the way past,
-  because taking a visible thing off a page is the owner's call.
+**THIS REVERSES THE SAME MORNING'S FIRST ANSWER IN PLACE, and the misreading is
+the useful part.** That one read "segmented by library" as the template cards
+GROUPED under library headings — which is a reasonable reading of the words and
+the wrong reading of the PICTURE. The attachment is the table's own rail, and
+what it asks for is a card per BUCKET: one for the whole book, one per library,
+one per value stream, each carrying that bucket's metrics. **The picture was the
+specification and the sentence was the caption.**
 
-Tests: f244 (2b) (9 \u2014 the libraries and their order, every card in exactly one,
-the label read at draw time, the row arithmetic and the round), and
-templates-tabs-verify 7a-7e plus keeps-your-place-verify (the count re-pointed
-at CARDS, since the wall's children are headings too).
+- **THE BUCKETS ARE THE RAIL, EXACTLY** — `TPL_OV_LIBS` is the rail's five rows
+  in the rail's own order, then every value stream `FOLDERS` lists, in its
+  order, under the rail's own two captions (`lib_library`, `lib_value_stream`,
+  read through the same keys). A second vocabulary is how the two tabs come to
+  disagree about what a category is, and the rail is the thing the owner
+  pointed at.
+- **ALL TEMPLATES OVERLAPS THE FOUR BENEATH IT ON PURPOSE** — it is their sum,
+  which is what the rail already shows and what a row called "All templates"
+  means.
+- **`tplOvRoll` IS THE ONE ROLL-UP** and the honesty rules are the single
+  card's, unchanged: the rate's denominator is what a playbook has actually
+  READ, and what it has not is stated. **The two COUNTS are summed and divided
+  ONCE** — summing the rates would average an average.
+- **A ROLLED-UP RATE FLATTENS EXTREMES, and that is the honest reading rather
+  than a loss**: a library holding one bad template and eleven good ones is a
+  middling library. The ruby-at-50% threshold still exists and still matches
+  Needs attention, which is the one place on this page that still names single
+  templates — which is what makes the two worth having side by side.
+- **THE CARD IS THE DEMO CARD'S OWN SKELETON** — 3px tone bar, name, hairline,
+  two figures under sentence-case labels, one line qualifying them — with the
+  count at the top right on the name's own line, which is the shape the picture
+  draws ("Company standard  26"). **The tone bar is the STREAM's colour and a
+  library card carries none**, again the picture: a bar that said nothing on
+  five cards is a mark for a fact the section heading already carries. **No meta
+  line**: the section says the kind and the count is on the name's line.
+- **ITS THREE SENTENCES ARE ITS OWN.** The single card says "this template"; a
+  card standing for a library may not. `lib_ov_bucket_unused` /
+  `_not_checked` / `_empty`, "these" chosen deliberately as number-neutral so
+  one template and twelve read alike without four keys. **An empty bucket says
+  no templates are filed here** rather than "nothing has been drafted from it",
+  which is a checking gap reported on paper that does not exist.
+- **EVERY VALUE STREAM GETS A CARD, empty or not** — the rail draws them all,
+  and "have we any warehousing paper?" is answered better by a card saying none
+  than by an absence the reader has to notice.
+- **THE WORKSPACE'S OWN PUBLISHED PAPER CARRIES NO STREAM** (tplPageRows leaves
+  it null and gives it a CATEGORY instead), so it lands in no stream card —
+  exactly how the table's own stream filter behaves. The two agreeing is the
+  property that matters.
+- **A CATEGORY NARROWS BY THE RAIL, NOT BY THE SEARCH BOX** — `tplGoBucket`,
+  which clears the box so two narrowings cannot stack, and the rail then LIGHTS
+  the row it is narrowed to, which is the same say-so the filled search box
+  carried. "All templates" at the top of it is the way back. The two panels
+  still name single templates and still narrow by name: two doors because they
+  are two acts.
+- **AND THE FIT STANDS DOWN.** `tplOvFit` measured how many of forty-seven
+  template cards fitted and redrew the wall to fill the screen (the 29 Aug
+  fill-the-monitor ask). A bounded handful of category cards always draws in
+  full, which fills the screen better than any slice did, so there is nothing
+  to withhold and nothing to measure. **It is a named no-op rather than a
+  deletion** — published and called, and a third caller must not bring a cap
+  back through a door nobody remembered. `TPL_OV_MAX`, `_tplOvFit`,
+  `_tplOvCols` and `tplOvSlice` are STALE — flag any mention. `rowsThatFit` is
+  untouched and still fills Home's decisions list.
+
+Tests: f244 (2b) REVERSED IN PLACE onto the buckets (11), f244 (3) and (7)
+re-pointed (the card's own words, and the two doors), f252's two templates
+claims reversed in place (the wall withholds nothing now), templates-tabs-verify
+sections 2, 4, 6 and 7 reversed in place — **section 7 is that same morning's
+block, corrected rather than deleted** — and keeps-your-place-verify's fill
+claim reversed onto the stronger one: every category shows, whatever the window.
 
 - **THE OVERVIEW IS A SIGNPOST, NOT A SECOND LIBRARY.** It answers three
   questions the table cannot — how often is this paper actually used, how often

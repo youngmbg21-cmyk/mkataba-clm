@@ -133,90 +133,107 @@ describe('f244 (2) — one population, counted once', () => {
   });
 });
 
-describe('f244 (2b) — the wall is segmented by library (owner-asked 29 Aug 2026)', () => {
-  test('the libraries are the table\u2019s own, in the table\u2019s own order', () => {
-    /* A second vocabulary here is how two tabs come to disagree about what a
-       library is: these are the five buckets the table's rail already counts,
-       minus "all", and the order is tplPageRows' own ORD. */
-    assert.match(SRC, /const TPL_OV_GROUPS=\['company','cp','builtin','sample'\]/);
+describe('f244 (2b) — the cards ARE the categories (owner-asked 29 Aug 2026)', () => {
+  /* *"The cards should represent the categories in the attached so that you
+     have a card for all templates and the respective metrics. You have a card
+     for standard contracts, a card for warehousing etc."*
+
+     REVERSED IN PLACE. The morning's first answer read "segmented by library"
+     as the TEMPLATE cards grouped under headings; the owner's picture is the
+     table's rail, and what it asks for is a card per BUCKET. */
+  test('the libraries are the rail\u2019s five, in the rail\u2019s own order', () => {
+    assert.match(SRC, /const TPL_OV_LIBS=\['all','company','cp','builtin','sample'\]/);
     const s = stage();
-    const keys = s.tplOverviewData().groups.map(g => g.key);
-    assert.deepEqual(keys, ['company', 'cp', 'builtin', 'sample'].filter(k => keys.includes(k)),
-      'drawn in the table\u2019s order, never sorted by size');
+    const libs = s.tplOverviewData().buckets.filter(b => b.sec === 'library').map(b => b.key);
+    assert.deepEqual(libs, ['all', 'company', 'cp', 'builtin', 'sample']);
   });
 
-  test('every card is in exactly one library, and the totals ARE the population', () => {
+  test('and every value stream the workspace lists gets one, empty or not', () => {
+    const s = stage();
+    const streams = s.tplOverviewData().buckets.filter(b => b.sec === 'stream');
+    assert.equal(streams.length, Object.keys(STUB_FOLDERS).length,
+      'the rail draws them all, and "have we any warehousing paper?" is better '
+      + 'answered by a card saying none than by an absence');
+    for (const b of streams) assert.match(b.key, /^stream:/);
+  });
+
+  test('ALL TEMPLATES is the whole book, and the libraries under it sum to it', () => {
     const s = stage();
     const d = s.tplOverviewData();
-    const ids = d.groups.flatMap(g => g.cards.map(c => c.id));
-    assert.equal(ids.length, d.cards.length, 'nothing is dropped and nothing is doubled');
-    assert.equal(new Set(ids).size, ids.length, 'no card is in two libraries');
-    assert.equal(d.groups.reduce((n, g) => n + g.total, 0), d.total,
-      'the heading counts add up to the wall\u2019s own total');
-    for (const g of d.groups) assert.equal(g.total, g.cards.length);
+    const by = k => d.buckets.find(b => b.key === k);
+    assert.equal(by('all').templates, d.total);
+    assert.equal(['company', 'cp', 'builtin', 'sample']
+      .reduce((n, k) => n + by(k).templates, 0), d.total,
+      'the four beneath it are the same book cut four ways');
   });
 
-  test('a library the workspace does not hold draws no heading', () => {
-    const s = stage({ tplLibAll: () => ({ canManage: true, loaded: true, list: [] }) });
+  test('a bucket carries the metrics, and the rate is counted once rather than averaged', () => {
+    const s = stage();
     const d = s.tplOverviewData();
-    assert.ok(!d.groups.some(g => g.key === 'company'),
-      'a heading over nothing is worse than no heading');
-    assert.ok(d.groups.length > 0, 'and the libraries it does hold are still there');
+    const all = d.buckets.find(b => b.key === 'all');
+    assert.equal(all.used, d.cards.reduce((n, c) => n + (c.used || 0), 0));
+    assert.equal(all.scanned, d.checked);
+    assert.equal(all.unscanned, d.unchecked);
+    /* Summing the rate would average an average; the two COUNTS are summed and
+       divided once, which is the single card's own arithmetic. */
+    assert.equal(all.rate, all.scanned ? all.off / all.scanned : null);
   });
 
-  test('the label is READ at draw time, never stored on the group', () => {
+  test('a rate still counts only paper a playbook has read', () => {
+    const s = stage();
+    const all = s.tplOverviewData().buckets.find(b => b.key === 'all');
+    assert.ok(all.scanned <= all.scanned + all.unscanned);
+    assert.equal(all.off <= all.scanned, true,
+      'the numerator can never exceed what was checked');
+  });
+
+  test('the roll-up is one function, and an empty bucket is a real answer', () => {
+    const s = stage();
+    const empty = s.tplOvRoll([]);
+    assert.deepEqual(empty, { templates: 0, used: 0, scanned: 0, off: 0, unscanned: 0, rate: null },
+      'no templates is not a deviation rate of zero');
+  });
+
+  test('the label is READ at draw time, never stored on the bucket', () => {
     /* TPL_GROUP_LABEL is a getter table for exactly this reason: an object
        built once at module load freezes whatever language the page started in
        — this codebase\u2019s own recorded trap, met four separate times. */
     const s = stage();
-    for (const g of s.tplOverviewData().groups)
-      assert.equal('label' in g, false, `${g.key} carries a key and a count, not a word`);
-    assert.match(SRC, /TPL_GROUP_LABEL\[g\.key\]/, 'the drawing asks the getter table');
+    for (const b of s.tplOverviewData().buckets)
+      assert.equal('label' in b, false, `${b.key} carries a key and its metrics, not a word`);
+    assert.match(SRC, /TPL_GROUP_LABEL\[b\.key\]/, 'a library asks the getter table');
+    assert.match(SRC, /tplShortStream\(\(typeof FOLDERS/, 'and a stream asks FOLDERS');
   });
 
-  test('the budget is spent in ROWS, because the wall\u2019s height is rows', () => {
-    /* Measured, not assumed: eight cards flat is three rows of three, and the
-       same eight split two ways is four. Counted as cards the wall asks for a
-       screen it does not have. */
-    const s = stage();
-    const g = k => ({ key: k, total: 9, cards: Array.from({ length: 9 }, (_, i) => ({ id: k + i })) });
-    const out = s.tplOvSlice([g('a'), g('b')], 9, 3);
-    assert.equal(out.length, 2, 'both libraries are on the first screen');
-    const rows = out.reduce((n, x) => n + Math.ceil(x.cards.length / 3), 0);
-    assert.equal(rows, 3, `three rows of cards, not four \u2014 got ${rows}`);
-  });
-
-  test('a round gives every library its turn, strongest first', () => {
-    const s = stage();
-    const big = { key: 'big', total: 20, cards: Array.from({ length: 20 }, (_, i) => ({ id: 'b' + i })) };
-    const small = { key: 'small', total: 2, cards: [{ id: 's0' }, { id: 's1' }] };
-    const out = s.tplOvSlice([big, small], 6, 2);
-    assert.ok(out.find(g => g.key === 'small'),
-      'the small library is not swallowed by the big one');
-    assert.deepEqual(out.find(g => g.key === 'big').cards.map(c => c.id).slice(0, 2), ['b0', 'b1'],
-      'and each library shows its own most-used first');
-  });
-
-  test('a library that runs out simply stops taking', () => {
-    const s = stage();
-    const one = { key: 'one', total: 1, cards: [{ id: 'x' }] };
-    const many = { key: 'many', total: 8, cards: Array.from({ length: 8 }, (_, i) => ({ id: 'm' + i })) };
-    const out = s.tplOvSlice([one, many], 99, 3);
-    assert.equal(out.find(g => g.key === 'one').cards.length, 1);
-    assert.equal(out.find(g => g.key === 'many').cards.length, 8);
-  });
-
-  test('the heading spans the wall \u2014 one grid, so every card is one width', () => {
+  test('the wall draws under the rail\u2019s own two captions', () => {
+    assert.match(SRC, /const SECTIONS=\[\['library','lib_library'\],\['stream','lib_value_stream'\]\]/,
+      'the same keys the rail prints, so the two cannot name a category differently');
     assert.match(SRC, /class="tpl-ov-band"[^`]*grid-column:1\/-1/,
-      'a grid per library would draw wider cards in a short one');
+      'and the heading spans one grid, so every card keeps one width');
   });
 
-  test('and the fit measures a CARD, never the wall\u2019s first child', () => {
-    /* Since the wall is segmented its first child is a HEADING, and measuring
-       that would size a row of cards by a line of text. */
-    assert.match(SRC, /wall\.querySelector\('\[data-tpl-ov-card\]'\)/);
-    assert.match(SRC, /tpl-ov-band'\)\]\s*\n?\s*\.reduce/,
-      'and the headings\u2019 own height is taken out of the room they take up');
+  test('a category card narrows the table by the rail, not by the search box', () => {
+    /* A NAME narrows by search; a CATEGORY narrows by the table\u2019s own two
+       filters, which is what these cards are made of. The rail then SAYS which
+       narrowing is on and "All templates" is the way back. */
+    assert.match(SRC, /function tplGoBucket\(key\)\{/);
+    assert.match(SRC, /_tplPage\.q='';/, 'the search box is cleared, so two narrowings cannot stack');
+    assert.match(SRC, /const stream=k\.startsWith\('stream:'\)\?k\.slice\(7\):null;/);
+    assert.match(SRC, /data-tpl-ov-bucket/, 'the wall has its own door');
+    assert.match(SRC, /data-tpl-ov-card="\$\{_tplEsc\(a\.id\)\}"/,
+      'and the two panels still name single templates and still narrow by name');
+  });
+
+  test('an unknown bucket key lands on the whole book, never on an empty table', () => {
+    assert.match(SRC, /\['all','company','cp','builtin','sample'\]\.includes\(k\)\?k:'all'/,
+      'a door that lands on nothing looks exactly like a broken one');
+  });
+
+  test('the wall withholds nothing, so the fit stands down as a stub', () => {
+    assert.match(SRC, /function tplOvFit\(\)\{\}/,
+      'a named no-op, because it is published and called \u2014 never a deletion');
+    assert.ok(!/TPL_OV_MAX=/.test(SRC), 'and the cap it read is gone');
+    assert.ok(!/tplOvSlice\(/.test(SRC), 'and so is the slice — named in the note it left, called nowhere');
   });
 });
 
@@ -254,6 +271,11 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
   });
 
   test('nothing drafted is a different sentence from nothing checked', () => {
+    /* RE-POINTED 29 Aug 2026: the READING is unchanged and is what this test
+       is about — nothing drafted and nothing checked are two facts and must
+       never be read as one. What moved is the wall, which draws CATEGORIES
+       now, so the sentence on screen is the category card's own; the single
+       card's two are still what the wall's data says. */
     const s = stage();
     const d = s.tplOverviewData();
     assert.equal(card(d, 'ND').rate, null);
@@ -262,8 +284,10 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(card(d, 'ct1').rate, null);
     s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
-    assert.match(html, /No contract has been drafted from it yet\./);
-    assert.match(html, /None of the contracts drafted from this template have been checked against Our standards yet\./);
+    assert.match(html, /Nothing has been drafted from these yet\./);
+    assert.match(html, /Nothing drafted from these has been checked against Our standards yet\./);
+    assert.ok(!/from this template have been checked/.test(html),
+      'a card standing for a library may not say "this template"');
   });
 
   /* "0 of 3 contracts checked came back off-standard" is accurate and reads
@@ -384,12 +408,21 @@ describe('f244 (6) — counting is not drawing', () => {
 describe('f244 (7) — the two tabs work together', () => {
   /* A card, an attention row and a bar are three drawings of ONE act, so they
      carry one selector and share one handler. */
-  test('every door on the overview is the same door', () => {
+  test('every door on the overview is one of two, and each is one act', () => {
+    /* RE-POINTED 29 Aug 2026. There are TWO doors now because there are two
+       acts: the wall's cards are CATEGORIES and narrow by the table's own
+       rails, while the two panels still name single templates and still narrow
+       by name. Two doors because they do different things, never because they
+       drifted — and the "see all" foot went with the cap it belonged to, since
+       the wall withholds nothing to see. */
     const s = stage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
     const ov = html.slice(html.indexOf('data-tpl-sec="overview"'), html.indexOf('data-tpl-sec="list"'));
-    assert.ok((ov.match(/data-tpl-ov-card=/g) || []).length >= 10, 'cards, attention rows and bars alike');
-    assert.match(html, /id="tpl-ov-all"/, 'and one door onto the whole table');
+    assert.ok((ov.match(/data-tpl-ov-bucket=/g) || []).length >= 5,
+      'a card per library at least');
+    assert.ok((ov.match(/data-tpl-ov-card=/g) || []).length >= 1,
+      'and the panels keep the name door');
+    assert.ok(!/id="tpl-ov-all"/.test(html), 'no see-all, because nothing is held back');
   });
 
   test('pressing one lands on the table, narrowed to it — and the way back is in plain sight', () => {

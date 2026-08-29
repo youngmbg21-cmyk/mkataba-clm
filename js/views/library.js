@@ -1283,15 +1283,14 @@ let _tplPage={ group:'all', stream:null, q:'', showAll:false };
    how many more there are. Written twice, the overview would offer "see all
    12 more" over a list that had already shown eight of them. */
 const TPL_PAGE_CAP=8;
-/* ---- AND THE WALL FILLS THE READER'S SCREEN (owner-ruled 29 Aug 2026) ----
-   TPL_PAGE_CAP is the FLOOR — what a laptop always showed and what a bad
-   measurement falls back to — and _tplOvFit is how many rows of cards actually
-   fit, set after the paint by tplOvFit(). The overview showed nine of
-   forty-seven on a 2000px-tall monitor with the rest of the screen empty; the
-   two counts below it ("39 more", "see all 47") read the same `shown` list, so
-   they follow without being told. */
-const TPL_OV_MAX=48;
-let _tplOvFit=TPL_PAGE_CAP;
+/* ---- THE OVERVIEW WALL NO LONGER CAPS ANYTHING (owner-asked 29 Aug 2026) ----
+   TPL_OV_MAX and _tplOvFit measured how many of forty-seven TEMPLATE cards fit
+   the reader's screen. The wall draws CATEGORY cards now — five libraries and
+   one per value stream — a bounded handful that always draws in full, so there
+   is nothing to withhold and nothing to measure. Both are STALE, along with
+   _tplOvCols and tplOvSlice; flag any mention. TPL_PAGE_CAP above still governs
+   the TABLE, which is what it was written for.
+   rowsThatFit is untouched and still fills Home's decisions list. */
 /* The window the overview's "most used" bars measure, and the floor under a
    deviation rate. Three is PRECEDENT_MIN's own reasoning: a rate off one
    contract is not a rate, it is that contract. */
@@ -1504,67 +1503,45 @@ function tplRowContracts(r){
   return (typeof templateUsage==='function')?templateUsage(r.id).rows:[];
 }
 
-/* ---- THE WALL IS SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026) ----
-   *"In templates overview, the cards are supposed to be segmented by library."*
+/* ---- THE CARDS ARE THE CATEGORIES (owner-asked 29 Aug 2026) ----
+   *"The cards should represent the categories in the attached so that you have
+   a card for all templates and the respective metrics. You have a card for
+   standard contracts, a card for warehousing etc."*
 
-   THE LIBRARIES ARE THE TABLE'S OWN AND SO IS THEIR ORDER — the workspace's
-   published paper first, then the paper it brought in, then HaTi's own, then
-   the samples: tplPageRows' ORD, and the same five buckets the table's rail
-   already counts. A second vocabulary here is how two tabs come to disagree
-   about what a library is.
+   THIS REVERSES THE MORNING'S FIRST ANSWER IN PLACE. That one read "segmented
+   by library" as the template cards GROUPED under library headings; the owner's
+   own picture is the table's rail, and what it asks for is a card PER BUCKET —
+   one for the whole book, one per library, one per value stream — each carrying
+   that bucket's metrics. So the wall stops being a card per template.
 
-   HEADINGS, NOT A FILTER, and that is the 26 Aug lesson from the change
-   column: a heading SORTS where a filter HIDES, so the reader gets the
-   segmentation without anything leaving the screen — and a control that
-   narrows a wall is one that has to say so.
+   THE BUCKETS ARE THE TABLE'S RAIL, exactly: the five library rows in the rail's
+   own order, then every value stream it lists, in its order. A second
+   vocabulary here is how the two tabs come to disagree about what a category
+   is, and the rail is the thing the owner pointed at.
 
-   THE LABELS ARE READ AT DRAW TIME, never stored: TPL_GROUP_LABEL is a getter
-   table for exactly this reason, and a resolved string here would freeze
-   whatever language the page started in. */
-const TPL_OV_GROUPS=['company','cp','builtin','sample'];
-/* HOW THE FIT IS SHARED OUT, and it is round-robin on purpose. The wall shows
-   what fits (see tplOvFit) and the libraries are wildly different sizes, so
-   taking the budget in order would spend the whole first screen on the biggest
-   library and the reader would never learn the others exist — which is the one
-   thing segmenting by library is for. A round takes each library its next most-
-   used cards, so every library the workspace holds is on the first screen and
-   each shows its own strongest first.
+   A LIBRARY CARD AND THE 'ALL' CARD OVERLAP ON PURPOSE — All templates is the
+   sum of the four beneath it, which is what the rail already shows and what a
+   reader expects from a row called "All templates".
 
-   IT IS SPENT IN ROWS, NOT IN CARDS, and that was MEASURED rather than assumed.
-   The wall is a grid, so its HEIGHT is rows: eight cards flat is three rows of
-   three, and the same eight split two ways is four — two ragged rows instead of
-   one. Counted as cards the wall asked for a screen it did not have; counted as
-   rows a section takes whole rows and only its LAST row can be short, which is
-   what a section looks like anywhere.
-
-   A library that runs out simply stops taking; the foot's own "N more" is what
-   says the wall is a slice, exactly as it did when it was flat. */
-function tplOvSlice(groups, budget, perRow){
-  const cols=Math.max(1, perRow|0);
-  const out=groups.map(g=>({ key:g.key, total:g.total, cards:[] }));
-  let rows=Math.max(1, Math.ceil(Math.max(0, budget|0)/cols)), moved=true;
-  while(rows>0 && moved){
-    moved=false;
-    for(let n=0;n<groups.length && rows>0;n++){
-      const g=groups[n], o=out[n];
-      if(o.cards.length>=g.cards.length) continue;
-      const take=Math.min(cols, g.cards.length-o.cards.length);
-      for(let k=0;k<take;k++) o.cards.push(g.cards[o.cards.length]);
-      rows--; moved=true;
-    }
-  }
-  return out.filter(g=>g.cards.length);
+   THE LABEL IS READ AT DRAW TIME, never stored: TPL_GROUP_LABEL is a getter
+   table for exactly this reason, and a stream's name comes off FOLDERS the same
+   way, so a language change moves both. */
+const TPL_OV_LIBS=['all','company','cp','builtin','sample'];
+/* ONE ROLL-UP, and every bucket is measured the same way. The honesty rules are
+   the template card's own, unchanged: the deviation rate's denominator is what
+   a playbook has actually READ, and what it has not is stated rather than
+   quietly folded in. Summing the rate itself would average an average; summing
+   the two COUNTS and dividing once is the same arithmetic the single card does. */
+function tplOvRoll(list){
+  const cards=list||[];
+  const scanned=cards.reduce((n,c)=>n+(c.scanned||0),0);
+  const off=cards.reduce((n,c)=>n+(c.off||0),0);
+  return { templates:cards.length,
+    used:cards.reduce((n,c)=>n+(c.used||0),0),
+    scanned, off,
+    unscanned:cards.reduce((n,c)=>n+(c.unscanned||0),0),
+    rate:scanned?(off/scanned):null };
 }
-/* HOW MANY CARDS SIT ON A ROW. The grid is
-   `repeat(auto-fill, minmax(248px,1fr))`, so the browser decides and only a
-   laid-out wall can answer — which is tplOvFit's job, after the paint. The
-   builder READS this and never measures: asked at build time it would answer
-   for whichever wall the last render left standing, and on the very first
-   paint there is no wall at all, so a section would be one card wide for the
-   life of the page.
-   ONE is the honest starting answer and it is what a stage that lays nothing
-   out keeps. */
-let _tplOvCols=1;
 function tplOverviewData(){
   const rows=tplPageRows();
   const cut=Date.now()-TPL_RECENT_DAYS*86400000;
@@ -1618,15 +1595,30 @@ function tplOverviewData(){
     .sort((a,b)=>b.recent-a.recent||String(a.name).localeCompare(String(b.name)))
     .slice(0,5);
   const peak=mostUsed.length?mostUsed[0].recent:0;
-  /* COUNTING IS NOT DRAWING: the split is taken here, off the one population,
-     and tplOverviewHtml draws it. Each group carries its library's OWN total —
-     the same number the table's rail prints — so the heading states what the
-     workspace holds rather than what happens to be on screen. */
-  const groups=TPL_OV_GROUPS.map(k=>{
-    const own=cards.filter(c=>c.kind===k);
-    return { key:k, total:own.length, cards:own };
-  }).filter(g=>g.total);
-  return { cards, groups, attention, attentionShown:attention.slice(0,5),
+  /* COUNTING IS NOT DRAWING (the Insights panels' own rule): the roll-up is
+     taken here, off the one population, and tplOverviewHtml draws it and works
+     nothing out.
+
+     EVERY VALUE STREAM THE WORKSPACE LISTS GETS A CARD, including one holding
+     nothing — the rail draws all of them and "have we any warehousing paper?"
+     is answered better by a card saying none than by an absence the reader has
+     to notice. It says so in its own words, through the same note the single
+     card uses.
+
+     THE WORKSPACE'S OWN PUBLISHED PAPER CARRIES NO STREAM (tplPageRows leaves
+     it null and gives it a CATEGORY instead), so it lands in no stream card —
+     which is exactly how the table's own stream filter behaves, and the two
+     agreeing is the property that matters. */
+  const bucket=(sec,key,id,tone,own)=>({ sec, key, id, tone, ...tplOvRoll(own) });
+  const buckets=[
+    ...TPL_OV_LIBS.map(k=>bucket('library', k, k, null,
+      k==='all' ? cards : cards.filter(c=>c.kind===k))),
+    ...(typeof FOLDERS==='object' && FOLDERS ? Object.values(FOLDERS) : [])
+      .map(f=>bucket('stream', 'stream:'+f.id, f.id,
+        (typeof folderColor==='function')?folderColor(f.id):null,
+        cards.filter(c=>c.stream===f.id))),
+  ];
+  return { cards, buckets, attention, attentionShown:attention.slice(0,5),
     attentionMore:Math.max(0,attention.length-5),
     mostUsed, peak, days:TPL_RECENT_DAYS,
     total:cards.length,
@@ -1686,6 +1678,24 @@ function tplOverviewHtml(d){
       : i18tn('lib_ov_off_standard',c.scanned,{off:c.off,n:c.scanned});
     return c.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',c.unscanned,{n:c.unscanned})}`:first;
   };
+  /* ---- THE CATEGORY CARD'S OWN THREE SENTENCES ----
+     The reading is the single card's, unchanged — nothing drafted is a
+     different fact from nothing checked, and the rate's sample is stated
+     rather than trimmed — but the WORDS may not be, because the single card
+     says "this template" and this card stands for a library or a value stream.
+
+     AND A BUCKET WITH NOTHING IN IT SAYS THAT rather than "nothing has been
+     drafted from it", which is a checking gap reported on paper that does not
+     exist. */
+  const bucketNote=b=>{
+    if(b.templates===0) return i18t('lib_ov_bucket_empty');
+    if(b.rate==null) return b.used===0
+      ? i18t('lib_ov_bucket_unused') : i18t('lib_ov_bucket_not_checked');
+    const first=b.off===0
+      ? i18tn('lib_ov_all_clear',b.scanned,{n:b.scanned})
+      : i18tn('lib_ov_off_standard',b.scanned,{off:b.off,n:b.scanned});
+    return b.unscanned>0?`${first} ${i18tn('lib_ov_unchecked',b.unscanned,{n:b.unscanned})}`:first;
+  };
   /* RUBY IS THE ATTENTION RULE'S OWN THRESHOLD — a red figure on the card and
      a row in Needs attention are the same finding, or the page argues with
      itself. Amber is a rate worth noticing that has not earned the alarm;
@@ -1710,30 +1720,41 @@ function tplOverviewHtml(d){
      would be the only sub-10px type anywhere in this product. */
   const LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
   const FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
-  const cardHtml=c=>{
-    const sub=[c.category,c.version&&!c.mono?c.version:null,dated(c)].filter(Boolean).join(' · ');
-    return `<button data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}" title="${i18t('lib_ov_open_in_list')}"
+  /* ---- THE CARD IS A CATEGORY NOW (owner-asked 29 Aug 2026) ----
+     Same skeleton as the template card it replaces — the 3px tone bar, the
+     name, a hairline, the two figures under quiet sentence-case labels, the
+     line that qualifies them — with the bucket's own facts in it.
+
+     THE COUNT SITS AT THE RIGHT OF THE NAME, which is the shape the owner's
+     own picture draws: "Company standard  26". It FLOATS for the reason the
+     badge before it floated — in a flex row it takes a column and every line
+     of a long stream name is short.
+
+     THE TONE BAR IS THE STREAM'S OWN COLOUR and a library card carries none,
+     which is again the picture: only the value streams wear a swatch there. A
+     bar that said nothing on five cards would be a mark for a fact the section
+     heading already carries.
+
+     THERE IS NO META LINE. The section above the card says whether this is a
+     library or a value stream, and the count is on the name's own line, so a
+     third line would be one of those facts printed twice. */
+  const bucketLabel=b=>b.sec==='stream'
+    ? (tplShortStream((typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[b.id]||{}).name)||b.id)
+    : (TPL_GROUP_LABEL[b.key]||b.key);
+  const cardHtml=b=>`<button class="tpl-ov-card" data-tpl-ov-bucket="${_tplEsc(b.key)}"
+      title="${_tplEsc(i18t('lib_ov_open_in_list'))}"
       style="${CARD};display:flex;flex-direction:column;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;padding:0;overflow:hidden"
       onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='var(--color-divider)'">
-      <span style="display:block;height:3px;background:${topTone(c)}"></span>
-      ${''/* THE BADGE FLOATS, which is what the demo draws and what gives a
-            long name its second line whole: in a flex row the badge takes a
-            column and every line of the name is short, so "Freight &
-            Distribution Agreement" ran out of room on a card with an inch of
-            white beside it. Floated, only the FIRST line is narrowed. It also
-            rules out -webkit-line-clamp, which makes its own formatting
-            context and would ignore the float — so the name is capped by
-            reserving two lines rather than by clamping, and a name long
-            enough to need a third gets one. */}
+      <span style="display:block;height:3px;background:${b.tone||'transparent'}"></span>
       <span style="display:block;padding:13px 14px 0">
-        ${badge(c)}
-        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(c.name)}</span>
-        <span style="display:block;${LBL};margin-top:3px;clear:both;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(sub||'—')}</span>
+        <span class="tpl-ov-count" style="float:right;margin-left:10px;${FIG};color:var(--color-neutral-500)"
+          title="${_tplEsc(i18tn('lib_ov_head',b.templates,{n:b.templates}))}">${b.templates}</span>
+        <span class="tpl-ov-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${_tplEsc(bucketLabel(b))}</span>
       </span>
-      <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider)">
+      <span style="display:flex;gap:18px;margin:11px 14px 0;padding-top:11px;border-top:1px solid var(--color-divider);clear:both">
         <span style="flex:1;min-width:0">
           <span style="display:block;${LBL}" title="${i18t('lib_ov_used_title')}">${i18t('lib_ov_used')}</span>
-          <span style="display:block;${FIG};color:var(--color-text)">${c.used==null?'—':c.used}</span>
+          <span style="display:block;${FIG};color:var(--color-text)">${b.used}</span>
         </span>
         <span style="flex:1;min-width:0">
           ${''/* A LABEL THAT NEEDS EXPLAINING SAYS SO ON ITS OWN HOVER.
@@ -1742,31 +1763,11 @@ function tplOverviewHtml(d){
                 see; the line at the foot of the card states the sample and
                 this states the metric. */}
           <span style="display:block;${LBL}" title="${i18t('lib_ov_dev_rate_title')}">${i18t('lib_ov_dev_rate')}</span>
-          <span style="display:block;${FIG};color:${rateInk(c)}">${c.rate==null?'—':Math.round(c.rate*100)+'%'}</span>
+          <span style="display:block;${FIG};color:${rateInk(b)}">${b.rate==null?'—':Math.round(b.rate*100)+'%'}</span>
         </span>
       </span>
-      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(note(c))}</span>
+      <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(bucketNote(b))}</span>
     </button>`;
-  };
-  const budget=Math.max(TPL_PAGE_CAP, _tplOvFit|0);
-  /* A DATA OBJECT WITH NO GROUPS STILL DRAWS ITS CARDS. tplOverviewData always
-     sets them, but this builder is published and a caller handing over a
-     hand-built object would otherwise get an empty wall under a foot claiming
-     47 more — a silent nothing, which is the failure this codebase keeps
-     paying for. One unnamed library is the honest fallback. */
-  const groups=(d.groups && d.groups.length) ? d.groups
-    : (d.cards && d.cards.length ? [{ key:'all', total:d.cards.length, cards:d.cards }] : []);
-  const bands=tplOvSlice(groups, budget, _tplOvCols);
-  const shownN=bands.reduce((n,g)=>n+g.cards.length,0);
-  const more=d.cards.length-shownN;
-  /* THE HEADING SPANS THE WALL RATHER THAN NESTING A GRID PER LIBRARY. One
-     grid means one `repeat(auto-fill,...)`, so the cards stay the same width
-     across every library and a short library cannot draw wider cards than a
-     long one — and tplOvFit goes on measuring one wall. */
-  const bandHtml=g=>`<div class="tpl-ov-band" style="grid-column:1/-1;display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-2) 0 0">
-    <span style="${HEAD}">${_tplEsc(TPL_GROUP_LABEL[g.key]||g.key)}</span>
-    <span style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-500);font-variant-numeric:tabular-nums">${g.total}</span>
-  </div>`;
   const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
     style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:var(--s-2) 2px"
     onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
@@ -1783,6 +1784,25 @@ function tplOverviewHtml(d){
       <span style="display:block;height:6px;margin-top:var(--s-1);background:var(--color-neutral-100)">
         <span style="display:block;height:6px;width:${w}%;background:var(--accent-solid)"></span></span></button>`;
   };
+  /* ---- TWO SECTIONS, THE RAIL'S OWN ----
+     Library first, then Value stream, under the rail's own two captions and
+     read through the same keys, so the wall and the rail cannot come to call a
+     category by different names. The heading spans the wall (grid-column:1/-1)
+     so ONE grid governs every card's width — a grid per section would draw
+     wider cards in the shorter one.
+
+     NOTHING IS WITHHELD AND THERE IS NO "N MORE". This wall is a bounded
+     handful of summary cards rather than a card per template, so the fit that
+     used to decide how many of 47 to show has nothing to decide — see the
+     note at tplOvFit, which is why it now stands down. */
+  const SECTIONS=[['library','lib_library'],['stream','lib_value_stream']];
+  const bandHtml=key=>`<div class="tpl-ov-band" style="grid-column:1/-1;display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-2) 0 0">
+    <span style="${HEAD}">${i18t(key)}</span></div>`;
+  const buckets=Array.isArray(d.buckets)?d.buckets:[];
+  const wall=SECTIONS.map(([sec,key])=>{
+    const own=buckets.filter(b=>b.sec===sec);
+    return own.length ? bandHtml(key)+own.map(cardHtml).join('') : '';
+  }).join('');
   const EMPTY='font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600);margin:0';
   return `
   <div class="tpl-ov" style="display:grid;gap:var(--s-4);align-items:start">
@@ -1792,12 +1812,7 @@ function tplOverviewHtml(d){
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">·</span>
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
       </div>
-      <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${
-        bands.map(g=>bandHtml(g)+g.cards.map(cardHtml).join('')).join('')}</div>
-      ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-3)">
-        <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
-        <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
-      </div>`:''}
+      <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${wall}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--s-4)">
       <section id="tpl-ov-attention" style="${CARD};padding:14px">
@@ -1844,49 +1859,44 @@ function tplGoList(name){
   try{ box?.focus(); }catch(_){}
 }
 
-/* ---- HOW MANY CARDS FIT, MEASURED AFTER THE PAINT ----
-   The wall is a grid, so what fits is ROWS OF CARDS rather than cards: both
-   the row height and how many sit on a row are read off the wall itself, so a
-   change to the card, the gap or the breakpoints carries this with it and there
-   is no number here to go stale. A hidden pane measures 0 and the floor stands,
-   which is the page exactly as it shipped. */
-function tplOvFit(){
-  if(typeof document==='undefined') return;
-  const wall=document.getElementById('tpl-ov-cards');
-  /* A CARD, never the wall's first child: since the wall is segmented by
-     library its first child is a HEADING, and measuring that would size a row
-     of cards by a line of text. */
-  const first=wall && wall.querySelector('[data-tpl-ov-card]');
-  if(!first) return;
-  const fr=first.getBoundingClientRect();
-  if(!(fr.height>0) || !(fr.width>0)) return;
-  const wr=wall.getBoundingClientRect();
-  const perRow=Math.max(1, Math.round(wr.width / fr.width));
-  const gap=parseFloat(getComputedStyle(wall).rowGap)||0;
-  const rowH=fr.height+gap;
-  const want=(typeof window!=='undefined' && window.rowsThatFit)
-    ? rowsThatFit(wall, rowH, 1, Math.ceil(TPL_OV_MAX/perRow)) : 1;
-  /* ---- THE LIBRARY HEADINGS TAKE ROOM TOO ----
-     rowsThatFit divides the room by a CARD row, and since the wall was
-     segmented each library's heading is a full-width row of its own between
-     them. Unaccounted, the wall asked for a row more than it had and the page
-     grew a scrollbar. Measured off the headings themselves rather than typed,
-     so a change to their type or their margin carries this with it.
-     THE COUNT OF HEADINGS IS STABLE — round-robin draws every non-empty
-     library while the budget covers them — so this cannot oscillate against
-     its own effect. */
-  const bandPx=[...wall.querySelectorAll('.tpl-ov-band')]
-    .reduce((n,b)=>n+b.getBoundingClientRect().height+gap, 0);
-  const rows=Math.max(1, want - Math.ceil(bandPx/rowH));
-  const cards=Math.max(TPL_PAGE_CAP, Math.min(TPL_OV_MAX, rows*perRow));
-  /* THE COLUMN COUNT IS PART OF THE ANSWER, not only the card count: the slice
-     spends ROWS, so a wall that has changed how many cards sit on a row has to
-     be redrawn even where the same number of cards fits. Without this the very
-     first paint's one-column guess would stand for the life of the page. */
-  if(cards===_tplOvFit && perRow===_tplOvCols) return;
-  _tplOvFit=cards; _tplOvCols=perRow;
+/* ---- AND A CATEGORY CARD LANDS ON ITS OWN NARROWING ----
+   (owner-asked 29 Aug 2026, with the card wall.) The template cards narrowed
+   the table by NAME through the search box; a CATEGORY narrows it by the
+   table's own two filters — the library rail and the stream rail — which is
+   what those cards are made of.
+
+   THE NARROWING SAYS SO AND OFFERS THE WAY BACK BY CONSTRUCTION, exactly as
+   the search box did: the rail draws the pressed row lit, and "All templates"
+   at the top of it is the way back. The search box is CLEARED, so the two
+   narrowings can never stack into a list nobody can explain.
+
+   ONE KEY, PARSED ONCE: 'stream:<id>' is a stream and anything else is a
+   library, which is the shape the data hands over. An unknown key falls
+   through to the whole book rather than to an empty table — a door that lands
+   on nothing looks exactly like a broken one. */
+function tplGoBucket(key){
+  const k=String(key||'');
+  const stream=k.startsWith('stream:')?k.slice(7):null;
+  _tplPage.q='';
+  _tplPage.stream=stream;
+  _tplPage.group=stream?'all':(['all','company','cp','builtin','sample'].includes(k)?k:'all');
+  _tplPage.showAll=false;
+  tplPageSetTab('list');
+  const box=document.getElementById('tpl-search'); if(box) box.value='';
+  /* THE RAIL IS WHAT SAYS WHICH NARROWING IS ON, so it is repainted with the
+     rows. renderTemplatesPage rebuilds the page and re-reads _tplPage, which
+     is what lights the pressed rail row. */
   renderTemplatesPage();
 }
+
+/* ---- THE FIT STANDS DOWN, AS A STUB RATHER THAN A DELETION ----
+   It measured how many template cards fitted and redrew the wall to fill the
+   screen. The wall is category cards now and every one of them draws, always,
+   which fills the screen better than any slice of them did. It is left as a
+   named no-op because it is published on window and called from
+   renderTemplatesPage — this file's own convention, so a third caller cannot
+   bring a cap back through a door nobody remembered. */
+function tplOvFit(){}
 function renderTemplatesPage(){
   const rows=tplPageRows();
   const counts=rows.reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{});
@@ -1960,6 +1970,11 @@ function renderTemplatesPage(){
      the template that was pressed. A card, an attention row and a bar are
      three drawings of one act, so they share one handler and one selector. */
   document.querySelectorAll('[data-tpl-ov-card]').forEach(b=>b.addEventListener('click',()=>tplGoList(b.getAttribute('data-tpl-ov-name'))));
+  /* THE WALL'S CARDS ARE CATEGORIES and narrow by the table's own rails; the
+     two panels beside them still name single templates and still narrow by
+     name. Two doors because they are two acts, not because they drifted. */
+  document.querySelectorAll('[data-tpl-ov-bucket]').forEach(b=>b.addEventListener('click',
+    ()=>tplGoBucket(b.getAttribute('data-tpl-ov-bucket'))));
   document.getElementById('tpl-ov-all')?.addEventListener('click',()=>{
     _tplPage.q=''; _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=true;
     tplPageSetTab('list');
@@ -2085,4 +2100,4 @@ function renderPlaybookPage(){
 
 Object.assign(window,{tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,TPL_PAGE_TABS,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplRowContracts,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

@@ -166,28 +166,34 @@ const check = (name, pass, detail) => {
        only honest check is to change the window and watch the count follow.
        This file already drives a real book on a real server, so it is where
        that belongs rather than in a third harness. */
+    /* REVERSED IN PLACE 29 Aug 2026. This measured that the templates wall
+       showed MORE of forty-seven template cards on a taller screen — the fill-
+       the-monitor ask. The wall draws CATEGORIES now (five libraries and one
+       per value stream), a bounded handful that always draws in full, so there
+       is nothing left to fit and the claim becomes the stronger one: the
+       reader is shown the whole of it whatever the window, and the page never
+       withholds a category behind a screen size. */
     await page.setViewportSize({ width: 2000, height: 1030 });
     await page.evaluate(() => setView('templates'));
     await page.waitForTimeout(1600);
-    /* RE-POINTED 29 Aug 2026: the wall is segmented by library now, so its
-       children are headings as well as cards. The claim was always about
-       CARDS — how much of the book a taller screen shows — and counting
-       headings with them would make it move for the wrong reason. */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-card]').length,
+      cards: document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-bucket]').length,
       bands: document.querySelectorAll('#tpl-ov-cards .tpl-ov-band').length,
+      seeAll: !!document.getElementById('tpl-ov-all'),
       bottom: Math.round(document.getElementById('tpl-ov-cards').getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-card]').length);
-    check('the templates wall shows MORE on a taller screen',
-      tall.cards > short, `${tall.cards} at 1030 vs ${short} at 700`);
-    check('and it was more than the old fixed eight', tall.cards > 8, String(tall.cards));
-    check('and the wall is segmented by library, with a heading over each',
-      tall.bands > 0, `${tall.bands} libraries`);
-    check('the wall reaches down the tall screen rather than stopping a third of the way',
+      document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-bucket]').length);
+    check('the templates wall shows every category, whatever the window',
+      tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
+    check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);
+    check('the wall is segmented, with a heading over each half',
+      tall.bands === 2, `${tall.bands} headings`);
+    /* KEPT from the fill-the-monitor pass: whatever else changes, the wall may
+       not stop a third of the way down a tall screen with the rest empty. */
+    check('the wall reaches down the tall screen rather than stopping short',
       tall.bottom > 700, tall.bottom + 'px of 1030');
     await page.setViewportSize({ width: 2000, height: 1030 });
 

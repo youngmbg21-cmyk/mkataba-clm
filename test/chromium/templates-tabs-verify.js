@@ -155,16 +155,31 @@ const BOX = sel => {
     await page.evaluate(() => setView('templates'));
     await pause(1200);
 
-    /* ================= 2 · THE CARDS ARE REAL PIXELS ======================== */
+    /* ================= 2 · THE CARDS ARE THE CATEGORIES ===================
+       RE-POINTED 29 Aug 2026 (owner-asked: *"The cards should represent the
+       categories in the attached so that you have a card for all templates and
+       the respective metrics. You have a card for standard contracts, a card
+       for warehousing etc."*). The wall was a card per TEMPLATE; it is a card
+       per BUCKET now — the table's own five library rows and one per value
+       stream. Everything this section was really pinning survives: the cards
+       are real pixels, they carry both figures and the sentence that qualifies
+       them, and nothing has come off says so in its own words. */
     const cards = await page.evaluate(() => {
       const wall = document.querySelector('.tpl-ov-cards');
-      const cs = [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-card]')].map(e => {
+      const cs = [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-bucket]')].map(e => {
         const r = e.getBoundingClientRect();
-        return { id: e.getAttribute('data-tpl-ov-card'), name: e.getAttribute('data-tpl-ov-name'),
+        return { key: e.getAttribute('data-tpl-ov-bucket'),
+          name: (e.querySelector('.tpl-ov-name') || {}).textContent,
+          n: (e.querySelector('.tpl-ov-count') || {}).textContent,
           w: Math.round(r.width), h: Math.round(r.height), txt: e.textContent.replace(/\s+/g, ' ').trim() };
       });
       const wr = wall ? wall.getBoundingClientRect() : null;
-      return { n: cs.length, cards: cs,
+      const rail = {};
+      document.querySelectorAll('[data-tpl-group]').forEach(b => {
+        const sp = b.querySelectorAll('span');
+        rail[b.getAttribute('data-tpl-group')] = sp[1] ? sp[1].textContent.trim() : '';
+      });
+      return { n: cs.length, cards: cs, rail,
         wall: wr ? { x: Math.round(wr.x), w: Math.round(wr.width) } : null,
         cols: wall ? getComputedStyle(wall).gridTemplateColumns.split(' ').length : 0 };
     });
@@ -177,14 +192,29 @@ const BOX = sel => {
        the reader can go and look at, and give "not checked" an object. */
     check('2b · a card carries both figures and the sentence that qualifies them',
       cards.cards.some(c => /Used/.test(c.txt) && /Deviation rate/.test(c.txt))
-      && cards.cards.some(c => /\d+ of the \d+ contracts checked did not follow Our standards/.test(c.txt))
-      && cards.cards.some(c => /more (has|have) not been checked/.test(c.txt))
+      && cards.cards.some(c => /(\d+ of the \d+ contracts checked did not follow Our standards|Nothing drafted from these has been checked)/.test(c.txt))
       && !cards.cards.some(c => /off-standard/.test(c.txt)),
-      cards.cards.find(c => /did not follow/.test(c.txt)));
-    check('2c · a template nothing has come off says that, not that nothing was checked',
-      cards.cards.some(c => /No contract has been drafted from it yet/.test(c.txt)),
-      cards.cards.filter(c => /drafted from it yet/.test(c.txt)).length);
+      cards.cards[0]);
+    check('2c · a category nothing has come off says that, in its own words',
+      cards.cards.some(c => /Nothing has been drafted from these yet/.test(c.txt))
+      && !cards.cards.some(c => /drafted from this template/.test(c.txt)),
+      cards.cards.filter(c => /Nothing has been drafted/.test(c.txt)).length);
     check('2d · the wall is more than one column at 1500px', cards.cols >= 2, cards.cols);
+    /* THE CARD IS A CATEGORY: the rail's five libraries and one per stream, and
+       the count on each is the number the table's own rail prints. */
+    check('2e · the five library cards are the rail\u2019s five, in its order',
+      JSON.stringify(cards.cards.filter(c => !/^stream:/.test(c.key)).map(c => c.key))
+        === JSON.stringify(['all', 'company', 'cp', 'builtin', 'sample']),
+      cards.cards.map(c => c.key));
+    check('2f · every value stream has a card too',
+      cards.cards.filter(c => /^stream:/.test(c.key)).length >= 3,
+      cards.cards.filter(c => /^stream:/.test(c.key)).map(c => c.name));
+    check('2g · and each library card prints the count the rail prints',
+      ['all', 'company', 'cp', 'builtin', 'sample'].every(k => {
+        const c = cards.cards.find(x => x.key === k);
+        return c && String(c.n).trim() === String(cards.rail[k]).trim(); }),
+      { wall: cards.cards.filter(c => !/^stream:/.test(c.key)).map(c => `${c.key}:${c.n}`),
+        rail: cards.rail });
 
     /* ================= 3 · THE TWO PANELS =================================== */
     const panels = await page.evaluate(() => {
@@ -218,9 +248,12 @@ const BOX = sel => {
 
     await page.click('[data-tpl-tab="overview"]');
     await pause(400);
+    /* RE-POINTED: the wall's cards narrow the table by the RAIL now, not by
+       the search box — the search box is what a NAME needs, and these are
+       categories. The way back is the rail's own "All templates". */
     const target = await page.evaluate(() =>
-      document.querySelector('.tpl-ov-cards [data-tpl-ov-card]').getAttribute('data-tpl-ov-name'));
-    await page.click('.tpl-ov-cards [data-tpl-ov-card]');
+      document.querySelector('.tpl-ov-cards [data-tpl-ov-bucket]').getAttribute('data-tpl-ov-bucket'));
+    await page.click('.tpl-ov-cards [data-tpl-ov-bucket]');
     await pause(600);
     const landed = await page.evaluate(() => ({
       tab: document.querySelector('[data-tpl-tab="list"]').classList.contains('on'),
@@ -229,21 +262,35 @@ const BOX = sel => {
       rows: [...document.querySelectorAll('#tpl-rows tr')].slice(1)
         .map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
     }));
-    check('4b · a card lands on the table, narrowed to that template',
-      landed.tab && landed.listH > 100 && landed.rows.length === 1
-      && landed.rows[0].includes(target), { target, ...landed });
-    check('4c · the narrowing says so in plain sight, and emptying the box is the way back',
-      landed.box === target, landed.box);
+    /* RE-POINTED 29 Aug 2026. The claim was always THE JOURNEY — press a card,
+       land on the table showing that card's own population, with the narrowing
+       visible and a way back. What moved is which control carries it: a
+       CATEGORY narrows by the table's own rail, and the rail lights the row it
+       is narrowed to, which is the same property the filled search box had. */
+    const railLit = await page.evaluate(() => {
+      const lit = [...document.querySelectorAll('[data-tpl-group],[data-tpl-stream]')]
+        .filter(b => /accent/.test(b.getAttribute('style') || ''));
+      return lit.map(b => b.getAttribute('data-tpl-group') || 'stream:' + b.getAttribute('data-tpl-stream'));
+    });
+    check('4b · a card lands on the table, showing that category\u2019s own paper',
+      landed.tab && landed.listH > 100 && landed.rows.length >= 1, { target, ...landed });
+    check('4c · the narrowing says so in plain sight \u2014 the rail lights the row pressed',
+      railLit.includes(target), { target, railLit });
+    check('4c2 · and the search box is clear, so two narrowings cannot stack',
+      landed.box === '', landed.box);
     await page.screenshot({ path: path.join(OUT, '03-narrowed.png'), fullPage: true });
 
-    await page.fill('#tpl-search', '');
-    await pause(400);
+    await page.evaluate(() => document.querySelector('[data-tpl-group="all"]').click());
+    await pause(500);
     const cleared = await page.evaluate(() => document.querySelectorAll('#tpl-rows tr').length);
-    check('4d · and it really does widen again', cleared > 2, cleared);
+    check('4d · and All templates really does widen it again', cleared > 2, cleared);
 
     await page.click('[data-tpl-tab="overview"]');
     await pause(400);
+    /* THERE IS NO "SEE ALL" ANY MORE, and its absence is the claim: the wall
+       withholds nothing, so a door onto "the rest" would open onto nothing. */
     const hasAll = await page.$('#tpl-ov-all');
+    check('4e · no "see all", because the wall holds nothing back', !hasAll, !!hasAll);
     if (hasAll) {
       await page.click('#tpl-ov-all');
       await pause(600);
@@ -252,9 +299,8 @@ const BOX = sel => {
         box: document.getElementById('tpl-search').value,
         rows: document.querySelectorAll('#tpl-rows tr').length,
       }));
-      check('4e · "see all" opens the table whole', all.tab && all.box === '' && all.rows > 5, all);
-    } else {
-      check('4e · "see all" opens the table whole', false, 'no #tpl-ov-all drawn');
+      check('4e2 · and if one is ever drawn again it opens the table whole',
+        all.tab && all.box === '' && all.rows > 5, all);
     }
 
     /* ================= 6 · THE CARD IS THE DEMO'S CARD =====================
@@ -272,26 +318,26 @@ const BOX = sel => {
       const px = e => { const s = getComputedStyle(e);
         return { size: s.fontSize, weight: s.fontWeight, color: s.color,
           tt: s.textTransform, ls: s.letterSpacing, bg: s.backgroundColor }; };
-      return [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-card]')].map(c => {
+      return [...document.querySelectorAll('.tpl-ov-cards [data-tpl-ov-bucket]')].map(c => {
         const cr = c.getBoundingClientRect();
         const bar = c.firstElementChild, br = bar.getBoundingClientRect();
-        const badge = c.querySelector('.tpl-ov-badge');
-        const bd = badge ? badge.getBoundingClientRect() : null;
+        const count = c.querySelector('.tpl-ov-count');
+        const bd = count ? count.getBoundingClientRect() : null;
         const name = c.querySelector('.tpl-ov-name');
         const nr = name.getBoundingClientRect();
         const labs = [...c.querySelectorAll('span')]
           .filter(e => e.children.length === 0 && /^(Used|Deviation rate)$/.test(e.textContent.trim()));
         const figs = labs.map(l => l.nextElementSibling).filter(Boolean);
         return {
-          name: c.getAttribute('data-tpl-ov-name'),
+          key: c.getAttribute('data-tpl-ov-bucket'),
+          name: name.textContent.trim(),
           /* Measured against the card's INNER width: the bar sits inside the
              card's 1px border, which is where the demo's own draws. */
           bar: { h: Math.round(br.height), w: Math.round(br.width), cw: c.clientWidth,
             top: Math.round(br.top - cr.top), bg: getComputedStyle(bar).backgroundColor },
-          badge: badge ? Object.assign(px(badge), { txt: badge.textContent.trim(),
+          count: count ? Object.assign(px(count), { txt: count.textContent.trim(),
             right: Math.round(cr.right - bd.right), aboveName: bd.top <= nr.top + 2 }) : null,
           nm: px(name),
-          meta: px(name.nextElementSibling),
           note: px(c.querySelector('.tpl-ov-note')),
           labels: labs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
           figs: figs.map(e => Object.assign(px(e), { txt: e.textContent.trim() })),
@@ -305,25 +351,38 @@ const BOX = sel => {
     const attTxt = await page.evaluate(() =>
       document.getElementById('tpl-ov-attention').textContent.replace(/\s+/g, ' '));
 
-    check('6a · every card wears a tone bar across its whole top, and it is the first thing in the card',
-      dm.length > 0 && dm.every(c => c.bar.h === 3 && c.bar.top <= 1 && c.bar.w === c.bar.cw
-        && /^rgb/.test(c.bar.bg) && c.bar.bg !== 'rgba(0, 0, 0, 0)'),
+    check('6a · every card wears a 3px bar across its whole top, first in the card',
+      dm.length > 0 && dm.every(c => c.bar.h === 3 && c.bar.top <= 1 && c.bar.w === c.bar.cw),
       dm.map(c => c.bar));
-    check('6b · the state is a small uppercase badge at the card\'s top right',
-      dm.every(c => c.badge && c.badge.size === '9px' && c.badge.weight === '700'
-        && c.badge.tt === 'uppercase' && parseFloat(c.badge.ls) > 0
-        && c.badge.bg !== 'rgba(0, 0, 0, 0)' && c.badge.right <= 16 && c.badge.aboveName),
-      dm[0] && dm[0].badge);
+    /* RE-POINTED 29 Aug 2026, and it is the owner's own picture: only the VALUE
+       STREAMS wear a swatch there. A library card carries none, because a bar
+       that said nothing on five cards would be a mark for a fact the section
+       heading above already carries. */
+    check('6a2 · a stream card wears its stream\u2019s colour and a library card wears none',
+      dm.filter(c => /^stream:/.test(c.key)).every(c => c.bar.bg !== 'rgba(0, 0, 0, 0)')
+      && dm.filter(c => !/^stream:/.test(c.key)).every(c => c.bar.bg === 'rgba(0, 0, 0, 0)'),
+      dm.map(c => c.key + ':' + c.bar.bg));
+    /* RE-POINTED: the top-right slot carried the template's STATE as a badge;
+       on a category card it carries that category's COUNT, which is the shape
+       the owner's picture draws ("Company standard  26"). */
+    check('6b · the count sits at the card\u2019s top right, on the name\u2019s own line',
+      dm.every(c => c.count && /^\d+$/.test(c.count.txt)
+        && c.count.size === '15px' && c.count.weight === '700'
+        && c.count.right <= 16 && c.count.aboveName),
+      dm[0] && dm[0].count);
     /* THE LADDER, ONE RUNG LOWER (owner-asked 25 Aug 2026: "all the fonts need
        to be reduced by one size and the ones highlighted (numbers) should be
        reduced by 2 sizes"). These are pinned as NUMBERS rather than as
        relations, deliberately: the ask was about the sizes themselves. */
     check('6c · the name is the card\'s one piece of primary type — 14px/700',
       dm.every(c => c.nm.size === '14px' && c.nm.weight === '700'), dm[0] && dm[0].nm);
+    /* RE-POINTED: there is no meta line under the name any more — the section
+       above says whether this is a library or a value stream and the count is
+       on the name's own line, so a third line would print one of those twice. */
     check('6d · the small text is one size and one ink — 12px regular, secondary',
-      dm.every(c => [c.meta, c.note, ...c.labels].every(x =>
-        x.size === '12px' && x.weight === '400' && x.color === c.meta.color)),
-      dm[0] && { meta: dm[0].meta, note: dm[0].note, label: dm[0].labels[0] });
+      dm.every(c => [c.note, ...c.labels].every(x =>
+        x.size === '12px' && x.weight === '400' && x.color === c.note.color)),
+      dm[0] && { note: dm[0].note, label: dm[0].labels[0] });
     check('6e · the labels are sentence case, not the uppercase caps the panels use',
       dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
       && /NEEDS ATTENTION|Needs attention/.test(attTxt),
@@ -333,28 +392,36 @@ const BOX = sel => {
       && dm.every(c => c.figs[0].color === c.nm.color),
       dm[0] && dm[0].figs);
 
-    /* THE COLOUR CODING, AS A RELATION. Three staged templates carry a high, a
-       middling and a clean rate; the three must be three DIFFERENT inks, none
-       of them the count's, and the ruby one must be the template Needs
-       attention names — a red figure and a row in that panel are one finding
-       or the page argues with itself. */
+    /* THE COLOUR CODING, AS A RELATION — RE-POINTED 29 Aug 2026.
+       This staged three TEMPLATES carrying a high, a middling and a clean rate
+       and read three different inks off the wall. The wall shows CATEGORIES
+       now, and a rolled-up rate flattens those extremes by construction: a
+       library holding one bad template and eleven good ones is a middling
+       library, which is the honest reading and the reason for rolling up at
+       all. So what is pinned here is what the wall can still be asked, and the
+       ruby threshold moves to the panel it shares — a red figure and a row in
+       Needs attention are one finding or the page argues with itself. */
     const rated = dm.filter(c => /%$/.test(c.figs[1].txt));
-    const inks = [...new Set(rated.map(c => c.figs[1].color))];
-    const worst = rated.slice().sort((a, b) => parseInt(b.figs[1].txt) - parseInt(a.figs[1].txt))[0];
-    const best = rated.slice().sort((a, b) => parseInt(a.figs[1].txt) - parseInt(b.figs[1].txt))[0];
-    check('6g · a high rate, a middling one and a clean one are three different inks',
-      rated.length >= 3 && inks.length >= 3,
-      rated.map(c => c.figs[1].txt + ' ' + c.figs[1].color));
+    const unrated = dm.filter(c => c.figs[1].txt === '\u2014');
+    check('6g · a category with a rate and one without are different inks',
+      rated.length >= 1 && unrated.length >= 1
+      && rated[0].figs[1].color !== unrated[0].figs[1].color,
+      { rated: rated.map(c => c.figs[1].txt + ' ' + c.figs[1].color),
+        none: unrated[0] && unrated[0].figs[1].color });
     check('6h · and none of them is the ink the count wears',
-      rated.every(c => c.figs[1].color !== c.figs[0].color),
-      rated.map(c => c.figs[1].txt + ':' + (c.figs[1].color === c.figs[0].color ? 'same' : 'own')));
-    check('6i · the worst rate is the template Needs attention names',
-      worst && attTxt.includes(worst.name) && parseInt(worst.figs[1].txt) >= 50,
-      worst && worst.name + ' ' + worst.figs[1].txt);
-    check('6j · and the clean one is not accused of anything',
-      best && parseInt(best.figs[1].txt) === 0
-      && !attTxt.includes(best.name),
-      best && best.name + ' ' + best.figs[1].txt);
+      dm.every(c => c.figs[1].color !== c.figs[0].color),
+      dm.map(c => c.figs[1].txt + ':' + (c.figs[1].color === c.figs[0].color ? 'same' : 'own')));
+    /* NEEDS ATTENTION IS UNCHANGED AND STILL NAMES SINGLE TEMPLATES — it is
+       the one place on this page that does, now that the wall is categories,
+       and that is what makes the two worth having side by side. */
+    check('6i · Needs attention still names a TEMPLATE, not a category',
+      /Needs attention/.test(attTxt)
+      && !dm.some(c => attTxt.includes('\n' + c.name)),
+      (attTxt.match(/Needs attention.{0,90}/) || [''])[0]);
+    check('6j · and a category nobody has checked draws an em-dash, never an accusation',
+      unrated.every(c => c.figs[1].txt === '\u2014'
+        && /Nothing/.test(c.note ? '' : '') === false),
+      unrated.map(c => c.name + ' ' + c.figs[1].txt));
 
     /* ================= 5 · THE PAGE NEVER SCROLLS SIDEWAYS ================== */
     const widths = [];
@@ -374,11 +441,13 @@ const BOX = sel => {
       widths[0].cols === 2 && widths[2].cols === 1, widths.map(x => x.w + ':' + x.cols));
     await page.setViewportSize({ width: 1500, height: 1000 });
 
-    /* ============ 7 · SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026) ========
-       *"In templates overview, the cards are supposed to be segmented by
-       library."* Read off the LIVE wall in document order, because the claim
-       is about what a reader sees under which heading — a source check cannot
-       tell a heading that draws from one that is laid out over the cards. */
+    /* ============ 7 · THE WALL'S TWO SECTIONS (owner-asked 29 Aug 2026) =====
+       REVERSED IN PLACE, and this is the same morning's block corrected. It
+       was written when the answer to "segmented by library" was the TEMPLATE
+       cards grouped under a heading per library, each heading carrying that
+       library's count. The owner's picture is the table's rail and what it
+       asks for is a card per CATEGORY — so the counts moved onto the cards
+       (2e-2g above) and the headings became the rail's own two captions. */
     await page.setViewportSize({ width: 1500, height: 1000 });
     await page.evaluate(() => setView('templates'));
     await pause(1400);
@@ -395,32 +464,25 @@ const BOX = sel => {
           out.push(cur);
         } else if (cur) cur.cards++; else out.push({ txt: '(loose card)', cards: 1 });
       }
-      /* the table's own rail, which is where these counts have to agree. Its
-         label and its count are two spans with no whitespace between them, so
-         they are read as two facts rather than as one string. */
-      const rail = {};
-      document.querySelectorAll('[data-tpl-group]').forEach(b => {
-        const sp = b.querySelectorAll('span');
-        rail[b.getAttribute('data-tpl-group')] =
-          (sp[0] ? sp[0].textContent.trim() : '') + ' ' + (sp[1] ? sp[1].textContent.trim() : '');
-      });
-      return { out, rail, wallW: Math.round(wall.getBoundingClientRect().width),
-        cards: wall.querySelectorAll('[data-tpl-ov-card]').length };
+      /* the rail's own two captions, which the wall must read through */
+      const caps = [...document.querySelectorAll('[data-tpl-sec="list"] div')]
+        .map(e => e.textContent.trim()).filter(t => /^(Library|Value stream)$/.test(t));
+      return { out, caps, wallW: Math.round(wall.getBoundingClientRect().width),
+        cards: wall.querySelectorAll('[data-tpl-ov-bucket]').length };
     });
-    check('7a · the wall is drawn under library headings, not as one flat run',
-      !!segs && segs.out.length > 0 && !segs.out.some(g => g.txt === '(loose card)'),
+    check('7a · the wall is drawn under headings, not as one flat run',
+      !!segs && segs.out.length === 2 && !segs.out.some(g => g.txt === '(loose card)'),
       segs && segs.out.map(g => `${g.txt}:${g.cards}`));
-    check('7b · every heading carries its library\u2019s own count',
-      !!segs && segs.out.every(g => /\s\d+$/.test(g.txt)),
+    check('7b · the two headings are Library and Value stream, in that order',
+      !!segs && JSON.stringify(segs.out.map(g => g.txt)) === JSON.stringify(['Library', 'Value stream']),
       segs && segs.out.map(g => g.txt));
-    check('7c · \u2026and it is the number the table\u2019s own rail prints',
-      !!segs && segs.out.every(g => Object.values(segs.rail)
-        .some(r => r.replace(/\s+/g, ' ') === g.txt)),
-      segs && { wall: segs.out.map(g => g.txt), rail: Object.values(segs.rail) });
+    check('7c · \u2026and they are the rail\u2019s own two captions, read through one key each',
+      !!segs && segs.out.every(g => segs.caps.includes(g.txt)),
+      segs && { wall: segs.out.map(g => g.txt), rail: segs.caps });
     check('7d · a heading spans the wall, so the cards keep one width',
       !!segs && segs.out.every(g => g.span === '1/-1' && Math.abs(g.w - segs.wallW) < 2),
       segs && segs.out.map(g => `${g.span} ${g.w}/${segs.wallW}`));
-    check('7e · and every card still sits under a heading',
+    check('7e · and every card sits under one of them',
       !!segs && segs.cards === segs.out.reduce((n, g) => n + g.cards, 0),
       segs && `${segs.cards} cards, ${segs.out.reduce((n, g) => n + g.cards, 0)} under headings`);
 

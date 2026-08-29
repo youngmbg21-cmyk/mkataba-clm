@@ -4249,6 +4249,13 @@ const STRINGS = {
     lib_ov_why_deviates: '{pct}% of the contracts checked did not follow Our standards.',
     lib_ov_why_draft: 'Not published — nobody can draft from it.',
     lib_ov_why_unused: 'No contract has been drafted from it yet.',
+    lib_ov_bucket_empty: 'No templates are filed here yet.',
+    /* THE CATEGORY CARD'S OWN TWO SENTENCES. The single card says "this
+       template"; a card standing for a library or a value stream must not,
+       and "these" is deliberately number-neutral so one template and twelve
+       read alike without four keys. */
+    lib_ov_bucket_unused: 'Nothing has been drafted from these yet.',
+    lib_ov_bucket_not_checked: 'Nothing drafted from these has been checked against Our standards yet.',
     lib_grp_all: 'All templates',
     lib_grp_company: 'Company standard',
     lib_grp_cp: 'Counterparty paper',
@@ -9142,6 +9149,9 @@ const STRINGS = {
     lib_ov_why_deviates: '{pct} % av de kontrollerade avtalen följde inte Våra standarder.',
     lib_ov_why_draft: 'Inte publicerad — ingen kan skriva avtal från den.',
     lib_ov_why_unused: 'Inget avtal har ännu skrivits från den.',
+    lib_ov_bucket_empty: 'Inga mallar är arkiverade här ännu.',
+    lib_ov_bucket_unused: 'Inget har ännu skrivits från dessa.',
+    lib_ov_bucket_not_checked: 'Inget som skrivits från dessa har ännu kontrollerats mot Våra standarder.',
     lib_grp_all: 'Alla mallar',
     lib_grp_company: 'Företagets standard',
     lib_grp_cp: 'Motpartens avtal',

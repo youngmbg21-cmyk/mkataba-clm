@@ -27,7 +27,8 @@
      2  a zero measurement is refused — the caller's floor stands
      3  it never returns more than the caller's own ceiling
      4  Home's list reads it, with its old four as the floor
-     5  the templates wall reads it, with its old eight as the floor
+     5  the templates wall withholds nothing (reversed 29 Aug — it draws
+        categories now, a bounded handful, so there is nothing to fit)
      6  the counting is not capped by the screen — only the drawing is
    ============================================================ */
 'use strict';
@@ -68,9 +69,12 @@ describe('F252 — a page fills the reader\'s own screen', () => {
     assert.match(APP, /Object\.assign\(window,\{[^}]*rowsThatFit/,
       'it is published, or the views reach for a name that is not there');
     assert.match(HOME, /rowsThatFit\(/, 'Home asks it');
-    assert.match(LIB, /rowsThatFit\(/, 'the templates wall asks it');
-    /* Neither may carry its own arithmetic — two readings of "how much room is
-       left" is how two pages come to disagree about the same screen. */
+    /* RE-POINTED 29 Aug 2026: the templates wall was the second reader and it
+       has no fit any more — its cards are the page's categories, a bounded
+       handful that always draws in full. Home is the one caller now, and what
+       still has to hold is that a caller never works the room out for itself:
+       two readings of "how much room is left" is how two pages come to
+       disagree about one screen. */
     for (const [name, src] of [['home', HOME], ['library', LIB]])
       assert.ok(!/innerHeight\s*-\s*/.test(src),
         name + ' must not measure the window for itself');
@@ -104,34 +108,33 @@ describe('F252 — a page fills the reader\'s own screen', () => {
       + 'must not repaint the dashboard on every pixel');
   });
 
-  test('5 · the templates wall keeps its old eight as the floor', () => {
-    /* RE-POINTED 29 Aug 2026 — the wall is segmented by library now, so the
-       budget is handed to tplOvSlice rather than sliced flat. THE FLOOR IS THE
-       CLAIM and it is unchanged: where the measurement cannot be trusted the
-       wall is exactly what shipped. */
-    assert.match(LIB, /const budget=Math\.max\(TPL_PAGE_CAP, _tplOvFit\|0\);/);
-    assert.match(LIB, /tplOvSlice\(groups, budget, _tplOvCols\)/,
-      'and the budget is what the segmentation spends');
-    assert.match(LIB, /const perRow=Math\.max\(1, Math\.round\(wr\.width \/ fr\.width\)\)/,
-      'a grid fits ROWS of cards, so how many sit on a row is measured too');
-    /* The card height, the gap and the columns are all read off the wall — a
-       typed number here would go stale the next time the card is re-dressed. */
-    assert.ok(!/cardH\s*=\s*\d+/.test(LIB), 'no typed card height');
+  test('5 · the templates wall withholds nothing at all — REVERSED IN PLACE', () => {
+    /* WHAT STOOD HERE, and its reasoning was right for the wall it was written
+       for: the overview showed nine of forty-seven templates on a 2000px-tall
+       monitor, so it measured what fitted and drew that many, with the old
+       eight as the floor where the measurement could not be trusted.
+
+       THE WALL IS CATEGORY CARDS NOW (owner-asked, the same day): five
+       libraries and one per value stream. That is a bounded handful, so there
+       is nothing to withhold and nothing to measure — every card draws, which
+       fills the screen better than any slice of forty-seven did. The claim
+       this test still makes is the one that matters: the reader is not shown
+       a fraction of the page's own subject. */
+    assert.match(LIB, /function tplOvFit\(\)\{\}/,
+      'a named no-op, because it is published and called — never a deletion');
+    assert.ok(!/TPL_OV_MAX=/.test(LIB), 'the cap it read is gone');
+    assert.ok(!/_tplOvFit=/.test(LIB), 'and so is the count it kept');
+    assert.match(LIB, /const wall=SECTIONS\.map/,
+      'the wall is every bucket the data holds, sliced by nothing');
   });
 
-  test('6 · the COUNTING is not capped by the screen — only the drawing is', () => {
-    /* The two counts beside the wall ("39 more", "see all 47") read what was
-       actually DRAWN, so they follow the fit without being told; and the
-       reading behind them is the whole book, not what happens to be on screen.
-
-       RE-POINTED 29 Aug 2026: what was drawn is now the sum of the libraries'
-       own slices rather than one flat list, and the arithmetic is the same
-       arithmetic — the book minus what was drawn. */
-    assert.match(LIB, /const shownN=bands\.reduce\(\(n,g\)=>n\+g\.cards\.length,0\);/,
-      'what was drawn is counted off the sections, never guessed');
-    assert.match(LIB, /const more=d\.cards\.length-shownN;/,
-      'what is left over is the book minus what was drawn');
+  test('6 · and Home still counts the whole book, capping only the drawing', () => {
+    /* Home is unchanged and is where this rule still bites: its decisions list
+       fits rows to the screen, and its see-all reads the WHOLE list rather
+       than the fitted one, so the count cannot follow the window. */
     assert.match(HOME, /const ddLink=ddAll\.length>ddShown\.length/,
-      'and Home\'s see-all draws only where it shows something new');
+      "Home's see-all draws only where it shows something new");
+    assert.match(HOME, /const ddShown=ddAll\.slice\(0, Math\.max\(HM_DD_MIN, _hmDdFit\|0\)\)/,
+      'and the fit caps the drawing, never the reading');
   });
 });
