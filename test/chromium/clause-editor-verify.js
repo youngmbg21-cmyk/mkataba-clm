@@ -707,7 +707,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      + 'this same builder and still gets nothing',
      backOn.retired, backOn.retired ? 'still empty there' : 'the band came back on that page');
 
-  /* Moving to another clause is ONE act, whether it is the crumb or a pencil. */
+  /* Moving to another clause is ONE act, whether it is the crumb, a pencil or
+     a press in another clause's words — and since 29 Aug it ASKS FIRST where
+     the draft has moved, because that act throws an unfiled draft away and the
+     third door made the gesture cheap. Same predicate and same words the page
+     already uses when the reader leaves it entirely. */
   const moved = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
     const here = window.clauseEditorClauseId();
@@ -715,8 +719,19 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       .map(b => b.getAttribute('data-ce-pencil')).find(id => id && id !== here);
     if (!other) return null;
     page.querySelector(`[data-ce-pencil="${other}"]`).click();
-    return { from: here, to: other };
+    return { from: here, to: other, dirty: !!window.clauseEditorDirty() };
   });
+  await pause(400);
+  const guard = await p.evaluate(() => {
+    const ok = document.getElementById('cf-ok');
+    const t = document.querySelector('#confirm-overlay') ;
+    const said = t ? t.textContent : '';
+    return { asked: !!ok, said: said.slice(0, 60) };
+  });
+  ck('12m-pre a draft is not thrown away without asking',
+     moved && moved.dirty ? guard.asked : !guard.asked,
+     `dirty ${moved && moved.dirty} · asked ${guard.asked}`);
+  if (guard.asked){ await p.click('#cf-ok'); }
   await pause(600);
   const landed = await p.evaluate(() => ({
     on: window.clauseEditorClauseId(),

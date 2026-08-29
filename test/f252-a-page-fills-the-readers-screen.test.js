@@ -105,7 +105,13 @@ describe('F252 — a page fills the reader\'s own screen', () => {
   });
 
   test('5 · the templates wall keeps its old eight as the floor', () => {
-    assert.match(LIB, /d\.cards\.slice\(0, Math\.max\(TPL_PAGE_CAP, _tplOvFit\|0\)\)/);
+    /* RE-POINTED 29 Aug 2026 — the wall is segmented by library now, so the
+       budget is handed to tplOvSlice rather than sliced flat. THE FLOOR IS THE
+       CLAIM and it is unchanged: where the measurement cannot be trusted the
+       wall is exactly what shipped. */
+    assert.match(LIB, /const budget=Math\.max\(TPL_PAGE_CAP, _tplOvFit\|0\);/);
+    assert.match(LIB, /tplOvSlice\(groups, budget, _tplOvCols\)/,
+      'and the budget is what the segmentation spends');
     assert.match(LIB, /const perRow=Math\.max\(1, Math\.round\(wr\.width \/ fr\.width\)\)/,
       'a grid fits ROWS of cards, so how many sit on a row is measured too');
     /* The card height, the gap and the columns are all read off the wall — a
@@ -114,10 +120,16 @@ describe('F252 — a page fills the reader\'s own screen', () => {
   });
 
   test('6 · the COUNTING is not capped by the screen — only the drawing is', () => {
-    /* The two counts beside the wall ("39 more", "see all 47") read the same
-       `shown` list, so they follow the fit without being told; and the reading
-       behind them is the whole book, not what happens to be on screen. */
-    assert.match(LIB, /const more=d\.cards\.length-shown\.length;/,
+    /* The two counts beside the wall ("39 more", "see all 47") read what was
+       actually DRAWN, so they follow the fit without being told; and the
+       reading behind them is the whole book, not what happens to be on screen.
+
+       RE-POINTED 29 Aug 2026: what was drawn is now the sum of the libraries'
+       own slices rather than one flat list, and the arithmetic is the same
+       arithmetic — the book minus what was drawn. */
+    assert.match(LIB, /const shownN=bands\.reduce\(\(n,g\)=>n\+g\.cards\.length,0\);/,
+      'what was drawn is counted off the sections, never guessed');
+    assert.match(LIB, /const more=d\.cards\.length-shownN;/,
       'what is left over is the book minus what was drawn');
     assert.match(HOME, /const ddLink=ddAll\.length>ddShown\.length/,
       'and Home\'s see-all draws only where it shows something new');

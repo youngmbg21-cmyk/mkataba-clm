@@ -1504,6 +1504,67 @@ function tplRowContracts(r){
   return (typeof templateUsage==='function')?templateUsage(r.id).rows:[];
 }
 
+/* ---- THE WALL IS SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026) ----
+   *"In templates overview, the cards are supposed to be segmented by library."*
+
+   THE LIBRARIES ARE THE TABLE'S OWN AND SO IS THEIR ORDER — the workspace's
+   published paper first, then the paper it brought in, then HaTi's own, then
+   the samples: tplPageRows' ORD, and the same five buckets the table's rail
+   already counts. A second vocabulary here is how two tabs come to disagree
+   about what a library is.
+
+   HEADINGS, NOT A FILTER, and that is the 26 Aug lesson from the change
+   column: a heading SORTS where a filter HIDES, so the reader gets the
+   segmentation without anything leaving the screen — and a control that
+   narrows a wall is one that has to say so.
+
+   THE LABELS ARE READ AT DRAW TIME, never stored: TPL_GROUP_LABEL is a getter
+   table for exactly this reason, and a resolved string here would freeze
+   whatever language the page started in. */
+const TPL_OV_GROUPS=['company','cp','builtin','sample'];
+/* HOW THE FIT IS SHARED OUT, and it is round-robin on purpose. The wall shows
+   what fits (see tplOvFit) and the libraries are wildly different sizes, so
+   taking the budget in order would spend the whole first screen on the biggest
+   library and the reader would never learn the others exist — which is the one
+   thing segmenting by library is for. A round takes each library its next most-
+   used cards, so every library the workspace holds is on the first screen and
+   each shows its own strongest first.
+
+   IT IS SPENT IN ROWS, NOT IN CARDS, and that was MEASURED rather than assumed.
+   The wall is a grid, so its HEIGHT is rows: eight cards flat is three rows of
+   three, and the same eight split two ways is four — two ragged rows instead of
+   one. Counted as cards the wall asked for a screen it did not have; counted as
+   rows a section takes whole rows and only its LAST row can be short, which is
+   what a section looks like anywhere.
+
+   A library that runs out simply stops taking; the foot's own "N more" is what
+   says the wall is a slice, exactly as it did when it was flat. */
+function tplOvSlice(groups, budget, perRow){
+  const cols=Math.max(1, perRow|0);
+  const out=groups.map(g=>({ key:g.key, total:g.total, cards:[] }));
+  let rows=Math.max(1, Math.ceil(Math.max(0, budget|0)/cols)), moved=true;
+  while(rows>0 && moved){
+    moved=false;
+    for(let n=0;n<groups.length && rows>0;n++){
+      const g=groups[n], o=out[n];
+      if(o.cards.length>=g.cards.length) continue;
+      const take=Math.min(cols, g.cards.length-o.cards.length);
+      for(let k=0;k<take;k++) o.cards.push(g.cards[o.cards.length]);
+      rows--; moved=true;
+    }
+  }
+  return out.filter(g=>g.cards.length);
+}
+/* HOW MANY CARDS SIT ON A ROW. The grid is
+   `repeat(auto-fill, minmax(248px,1fr))`, so the browser decides and only a
+   laid-out wall can answer — which is tplOvFit's job, after the paint. The
+   builder READS this and never measures: asked at build time it would answer
+   for whichever wall the last render left standing, and on the very first
+   paint there is no wall at all, so a section would be one card wide for the
+   life of the page.
+   ONE is the honest starting answer and it is what a stage that lays nothing
+   out keeps. */
+let _tplOvCols=1;
 function tplOverviewData(){
   const rows=tplPageRows();
   const cut=Date.now()-TPL_RECENT_DAYS*86400000;
@@ -1557,7 +1618,15 @@ function tplOverviewData(){
     .sort((a,b)=>b.recent-a.recent||String(a.name).localeCompare(String(b.name)))
     .slice(0,5);
   const peak=mostUsed.length?mostUsed[0].recent:0;
-  return { cards, attention, attentionShown:attention.slice(0,5),
+  /* COUNTING IS NOT DRAWING: the split is taken here, off the one population,
+     and tplOverviewHtml draws it. Each group carries its library's OWN total —
+     the same number the table's rail prints — so the heading states what the
+     workspace holds rather than what happens to be on screen. */
+  const groups=TPL_OV_GROUPS.map(k=>{
+    const own=cards.filter(c=>c.kind===k);
+    return { key:k, total:own.length, cards:own };
+  }).filter(g=>g.total);
+  return { cards, groups, attention, attentionShown:attention.slice(0,5),
     attentionMore:Math.max(0,attention.length-5),
     mostUsed, peak, days:TPL_RECENT_DAYS,
     total:cards.length,
@@ -1679,8 +1748,25 @@ function tplOverviewHtml(d){
       <span class="tpl-ov-note" style="display:block;padding:9px 14px 13px;${LBL}">${_tplEsc(note(c))}</span>
     </button>`;
   };
-  const shown=d.cards.slice(0, Math.max(TPL_PAGE_CAP, _tplOvFit|0));
-  const more=d.cards.length-shown.length;
+  const budget=Math.max(TPL_PAGE_CAP, _tplOvFit|0);
+  /* A DATA OBJECT WITH NO GROUPS STILL DRAWS ITS CARDS. tplOverviewData always
+     sets them, but this builder is published and a caller handing over a
+     hand-built object would otherwise get an empty wall under a foot claiming
+     47 more — a silent nothing, which is the failure this codebase keeps
+     paying for. One unnamed library is the honest fallback. */
+  const groups=(d.groups && d.groups.length) ? d.groups
+    : (d.cards && d.cards.length ? [{ key:'all', total:d.cards.length, cards:d.cards }] : []);
+  const bands=tplOvSlice(groups, budget, _tplOvCols);
+  const shownN=bands.reduce((n,g)=>n+g.cards.length,0);
+  const more=d.cards.length-shownN;
+  /* THE HEADING SPANS THE WALL RATHER THAN NESTING A GRID PER LIBRARY. One
+     grid means one `repeat(auto-fill,...)`, so the cards stay the same width
+     across every library and a short library cannot draw wider cards than a
+     long one — and tplOvFit goes on measuring one wall. */
+  const bandHtml=g=>`<div class="tpl-ov-band" style="grid-column:1/-1;display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-2) 0 0">
+    <span style="${HEAD}">${_tplEsc(TPL_GROUP_LABEL[g.key]||g.key)}</span>
+    <span style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-500);font-variant-numeric:tabular-nums">${g.total}</span>
+  </div>`;
   const attRow=a=>`<button data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}"
     style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;color:inherit;padding:var(--s-2) 2px"
     onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
@@ -1706,7 +1792,8 @@ function tplOverviewHtml(d){
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">·</span>
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_ov_coverage',{checked:d.checked,open:d.unchecked})}</span>
       </div>
-      <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${shown.map(cardHtml).join('')}</div>
+      <div class="tpl-ov-cards" id="tpl-ov-cards" style="display:grid;gap:var(--s-3)">${
+        bands.map(g=>bandHtml(g)+g.cards.map(cardHtml).join('')).join('')}</div>
       ${more>0?`<div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-3)">
         <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18tn('lib_ov_more',more,{n:more})}</span>
         <button id="tpl-ov-all" style="border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)">${i18tn('lib_ov_see_all',d.total,{n:d.total})}</button>
@@ -1766,18 +1853,38 @@ function tplGoList(name){
 function tplOvFit(){
   if(typeof document==='undefined') return;
   const wall=document.getElementById('tpl-ov-cards');
-  const first=wall && wall.firstElementChild;
+  /* A CARD, never the wall's first child: since the wall is segmented by
+     library its first child is a HEADING, and measuring that would size a row
+     of cards by a line of text. */
+  const first=wall && wall.querySelector('[data-tpl-ov-card]');
   if(!first) return;
   const fr=first.getBoundingClientRect();
   if(!(fr.height>0) || !(fr.width>0)) return;
   const wr=wall.getBoundingClientRect();
   const perRow=Math.max(1, Math.round(wr.width / fr.width));
   const gap=parseFloat(getComputedStyle(wall).rowGap)||0;
+  const rowH=fr.height+gap;
   const want=(typeof window!=='undefined' && window.rowsThatFit)
-    ? rowsThatFit(wall, fr.height+gap, 1, Math.ceil(TPL_OV_MAX/perRow)) : 1;
-  const cards=Math.max(TPL_PAGE_CAP, Math.min(TPL_OV_MAX, want*perRow));
-  if(cards===_tplOvFit) return;
-  _tplOvFit=cards;
+    ? rowsThatFit(wall, rowH, 1, Math.ceil(TPL_OV_MAX/perRow)) : 1;
+  /* ---- THE LIBRARY HEADINGS TAKE ROOM TOO ----
+     rowsThatFit divides the room by a CARD row, and since the wall was
+     segmented each library's heading is a full-width row of its own between
+     them. Unaccounted, the wall asked for a row more than it had and the page
+     grew a scrollbar. Measured off the headings themselves rather than typed,
+     so a change to their type or their margin carries this with it.
+     THE COUNT OF HEADINGS IS STABLE — round-robin draws every non-empty
+     library while the budget covers them — so this cannot oscillate against
+     its own effect. */
+  const bandPx=[...wall.querySelectorAll('.tpl-ov-band')]
+    .reduce((n,b)=>n+b.getBoundingClientRect().height+gap, 0);
+  const rows=Math.max(1, want - Math.ceil(bandPx/rowH));
+  const cards=Math.max(TPL_PAGE_CAP, Math.min(TPL_OV_MAX, rows*perRow));
+  /* THE COLUMN COUNT IS PART OF THE ANSWER, not only the card count: the slice
+     spends ROWS, so a wall that has changed how many cards sit on a row has to
+     be redrawn even where the same number of cards fits. Without this the very
+     first paint's one-column guess would stand for the life of the page. */
+  if(cards===_tplOvFit && perRow===_tplOvCols) return;
+  _tplOvFit=cards; _tplOvCols=perRow;
   renderTemplatesPage();
 }
 function renderTemplatesPage(){

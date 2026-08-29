@@ -2035,6 +2035,97 @@ page's layout, cards or columns moved.**
   edit lives in `negoEditClause`, which is the funnel the editor files through,
   so it applies unchanged.
 
+**AND THE DOOR HAD NO READER FOR A DAY (owner-reported 29 Aug 2026: *"we
+agreed that the panel on the right would go away and when i click on the pencil
+i would go straight to edit with copilot page and that is not working"*).** It
+was a DEAD PRESS: the pencil started carrying `data-rl-cp-editor` when the
+editor became its destination, and **nothing on the paper listened for that
+attribute** — the only handler that reads it is bound to `[data-nego-ai-clause]`
+elements, which is the PANEL's Copilot button and not this. So the press fell
+through every branch and did nothing at all: no page, no panel, no refusal, no
+page error.
+
+- **THE FAMILY IS THIS CODEBASE'S OWN MOST REPEATED DEFECT**, in a third
+  costume. `rlPaperFootHtml` was a name nothing PUBLISHED; `keepScroll` was a
+  published name nothing REACHED FOR; this is an attribute nothing LISTENS FOR.
+  All three fail in silence with a plausible-looking fallback, and neither f232's
+  window sweep nor any source claim can see this one — every assertion about the
+  attribute passed throughout.
+- **IT IS WIRED BESIDE THE ROW'S OWN DOOR**, per paint in `wireNegotiationTab`,
+  because `rlOpenClauseEditor` needs the contract, the seat and the repaint —
+  none of which the module-load listener that owns `data-rl-cp-open` can see.
+  **The panel's Copilot button is excluded BY SELECTOR**
+  (`:not([data-nego-ai-clause])`), not by luck: it carries both attributes and is
+  already wired, and two handlers on one press would open the page, tear it down
+  and open it again.
+- **AND `editorTakesIt` NOW ASKS FOR THE MODULE BY NAME.** It asked only whether
+  the WIDTH suited the editor, and that check falls through as true on a stage
+  that does not load `js/views/clauseeditor.js` at all — a pencil claiming a page
+  nothing can open, which is the dead press the draw-time decision exists to
+  prevent. Its own note already said the answer should be the panel there; the
+  code said the opposite.
+- **NO FILE PRESSED IT, WHICH IS WHY IT SHIPPED.** clause-door-verify re-staged
+  itself away from pressing the pill in the same change that gave it somewhere
+  new to go (see its own note at `openPanel`), so the one file that used to
+  press this control stopped pressing it exactly when the destination moved.
+  **The destination is asserted by DRIVING it now** — a pill that opens nothing
+  looks identical in the markup to one that opens a page. Tests:
+  clause-door-verify 16a-16d (**16b and 16c fail against the parent, reporting
+  `page:false, panel:false`**).
+
+## CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026)
+
+*"I hate that I have to click on a pencil for me to edit in the edit with
+copilot page \u2026 Let me just edit like I am in Google Docs but the platform
+should track which clause I am editing."*
+
+- **THE PENCIL IS NOT RETIRED AND THIS IS NOT A SECOND ACT.** Both ends run the
+  two lines that handler already had \u2014 turn typing on where the reader is, or
+  move the page to the clause they pointed at \u2014 and `ceStartTyping` names the
+  first of them ONCE so the press in the words and the press on the pencil
+  cannot drift. What changed is that a press in the WORDING now counts as that
+  ask, so the pencil is the visible affordance rather than the toll gate.
+- **WHICH CLAUSE IS TRACKED BY THE PRESS.** `data-clause` is on the section the
+  press landed in, so the page follows the reader rather than the reader having
+  to tell it twice; another clause is `ceGoClause`, the crumb's own act, never a
+  second route.
+- **THE 28 Aug RULE IS REVERSED IN PLACE AND IS STRONGER FOR IT.** *The page
+  never opens in a state that hides marks that exist* governs ARRIVAL, which is
+  where it was reported, and it now sits behind one override: an explicit ask to
+  type. Nothing is being HIDDEN from somebody who has just put their cursor in a
+  clause. **THE ASK IS CONSUMED, NEVER STORED** \u2014 `_ceOpts` is what every later
+  `ceGoClause` inherits, so left on it one click into the words would silently
+  make every later move open typing too.
+- **A REFUSING READING DOES NOTHING, AND NEITHER DOES A CONTROL.** `As agreed`
+  and `With changes` draw the paper without its marks, so typing there would be
+  measured against a document the reader is not being shown \u2014 one predicate,
+  `ceEditableReading`, exactly as the pencil and Apply ask it. The branch runs
+  LAST, after every named control, and excludes buttons, links and fields by
+  selector, so a press on the paper's own pencil or an ask tag is never read as
+  a press in the wording. **Already typing does nothing at all**: the box is
+  contenteditable and the browser's own caret is the right answer.
+- **AND MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY.** The
+  draft lives in memory until it is filed, so moving off the clause loses it —
+  and this change made that gesture CHEAP, which is what turned a rare silent
+  loss into an easy one. `ceGoClause` asks, so all three doors onto the act
+  (the crumb, another clause's pencil, a press in another clause's words)
+  inherit it; it is **the product's own guard rather than a second one** —
+  `clauseEditorDirty` is the predicate `viewLayersClosed` already asks, and the
+  words are that dialog's own *"Leave this clause?"*, which is what this act
+  does whether or not the page goes with it. **A reader who has typed nothing
+  is never asked**, which is every ordinary move.
+- **THE CARET GOES WHERE THEY PUT IT, WHERE THAT CAN BE KNOWN.** Turning typing
+  on repaints the paper, so the node under the press is gone \u2014 the POINT is
+  re-asked of the new layout rather than remembered as an offset into the old
+  one, which is what makes it survive a clause that draws marks when it is not
+  being typed in and plain wording when it is. It degrades to the start of the
+  box and never to nothing.
+
+Tests: f245 (the opening rule reversed in place, the consumed ask, and the
+branch as the same two acts), clause-door-verify 16e-16h (driven with a real
+mouse at a real point \u2014 the only place "can I just click and type" can be
+asked).
+
 ## THE OTHER SIDE MAY NOT RENAME OUR CLAUSES (owner-ruled 29 Aug 2026)
 
 The rename shipped on 28 Aug with **no rule about seats**, and their page mounts
@@ -3203,6 +3294,55 @@ that will be called Templates. The connect the two to function together."*
 
 Fifth page of the page-by-page pass. **Templates overview** is the demo's card
 wall; **Templates** is the table this page has always been, unchanged.
+
+**THE WALL IS SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026: *"In templates
+overview, the cards are supposed to be segmented by library"*).** It was one
+flat run ordered by use, so the reader could not see what kind of paper they
+were looking at without reading every card's origin chip.
+
+- **THE LIBRARIES ARE THE TABLE'S OWN AND SO IS THEIR ORDER** \u2014 company \u00b7 cp \u00b7
+  builtin \u00b7 sample, `TPL_OV_GROUPS`, which is `tplPageRows`' own ORD and the same
+  five buckets the table's rail already counts. **The heading prints the
+  library's own total, and it is the number the rail prints**, asserted against
+  it rather than recomputed. A second vocabulary here is how two tabs come to
+  disagree about what a library is.
+- **HEADINGS, NOT A FILTER**, which is the 26 Aug lesson from the change column:
+  a heading SORTS where a filter HIDES, so the reader gets the segmentation with
+  nothing leaving the screen.
+- **THE BUDGET IS SPENT IN ROWS, AND THAT WAS MEASURED RATHER THAN ASSUMED.**
+  The wall is a grid, so its HEIGHT is rows: eight cards flat is three rows of
+  three, and the same eight split two ways is four. Counted as CARDS the
+  segmented wall asked for a screen it did not have \u2014 measured, it went from
+  248px of room to spare to 14px of overflow. `tplOvSlice` hands each library
+  whole ROWS in turn, so only a section's LAST row can be short, which is what a
+  section looks like anywhere.
+- **ROUND-ROBIN, so every library is on the first screen.** Taking the budget in
+  order would spend it all on the biggest library and the reader would never
+  learn the others exist \u2014 which is the one thing segmenting by library is for.
+  Each library still shows its own most-used first, and the foot's "N more" is
+  what says the wall is a slice, exactly as it did when it was flat.
+- **`_tplOvCols` IS PART OF THE FIT'S ANSWER, not only the card count.** How
+  many cards sit on a row can only be read off a laid-out wall, which is
+  `tplOvFit`'s job after the paint; asked at BUILD time it answers for whichever
+  wall the last render left standing, and on the very first paint there is no
+  wall at all \u2014 so a section would be one card wide for the life of the page.
+  The fit redraws when EITHER the count or the column number moves.
+- **AND THE FIT MEASURES A CARD, never the wall's first child**, which is now a
+  HEADING \u2014 sizing a row of cards by a line of text. The headings' own height
+  comes out of the room they take up, measured off them rather than typed.
+- **ONE GRID, and the heading spans it** (`grid-column:1/-1`). A grid per
+  library would draw wider cards in a short one, and `tplOvFit` would have
+  several walls to measure.
+- **NOT DONE, said out loud:** the value-stream half of that rail is a different
+  filter and was not what "by library" asked for \u2014 the card already prints its
+  stream on its meta line. **And the card's ORIGIN CHIP now says what the
+  heading above it says**; it is left alone rather than removed on the way past,
+  because taking a visible thing off a page is the owner's call.
+
+Tests: f244 (2b) (9 \u2014 the libraries and their order, every card in exactly one,
+the label read at draw time, the row arithmetic and the round), and
+templates-tabs-verify 7a-7e plus keeps-your-place-verify (the count re-pointed
+at CARDS, since the wall's children are headings too).
 
 - **THE OVERVIEW IS A SIGNPOST, NOT A SECOND LIBRARY.** It answers three
   questions the table cannot — how often is this paper actually used, how often

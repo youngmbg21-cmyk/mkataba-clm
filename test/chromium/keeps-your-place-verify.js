@@ -169,17 +169,24 @@ const check = (name, pass, detail) => {
     await page.setViewportSize({ width: 2000, height: 1030 });
     await page.evaluate(() => setView('templates'));
     await page.waitForTimeout(1600);
+    /* RE-POINTED 29 Aug 2026: the wall is segmented by library now, so its
+       children are headings as well as cards. The claim was always about
+       CARDS — how much of the book a taller screen shows — and counting
+       headings with them would make it move for the wrong reason. */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('#tpl-ov-cards > *').length,
+      cards: document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-card]').length,
+      bands: document.querySelectorAll('#tpl-ov-cards .tpl-ov-band').length,
       bottom: Math.round(document.getElementById('tpl-ov-cards').getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('#tpl-ov-cards > *').length);
+      document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-card]').length);
     check('the templates wall shows MORE on a taller screen',
       tall.cards > short, `${tall.cards} at 1030 vs ${short} at 700`);
     check('and it was more than the old fixed eight', tall.cards > 8, String(tall.cards));
+    check('and the wall is segmented by library, with a heading over each',
+      tall.bands > 0, `${tall.bands} libraries`);
     check('the wall reaches down the tall screen rather than stopping a third of the way',
       tall.bottom > 700, tall.bottom + 'px of 1030');
     await page.setViewportSize({ width: 2000, height: 1030 });

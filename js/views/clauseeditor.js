@@ -1494,7 +1494,15 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
   const probeC = c, probeId = String(clauseId || '');
   if (!probeId){ if (window.toast) toast(_cet('ce_no_clause'), 'err'); return false; }
+  /* ---- AN EXPLICIT ASK TO TYPE OUTRANKS THE OPENING POSTURE ----
+     Set when the reader clicked INTO another clause's words, which is that
+     reader saying "type here" as plainly as a pencil press does. It is
+     CONSUMED rather than stored: _ceOpts is what every later ceGoClause
+     inherits, so left on it one click into the words would silently make every
+     later move to another clause open typing too. */
+  const wantTyping = !!(opts && opts.typing === true);
   _ceC = probeC; _ceClauseId = probeId; _ceOpts = opts || {};
+  if (wantTyping){ _ceOpts = { ..._ceOpts }; delete _ceOpts.typing; }
   try{ _ceRead0 = window.rlReadMode ? rlReadMode() : null; }catch(_){ _ceRead0 = null; }
   _ceAgain = typeof opts.again === 'function' ? opts.again
     : (window.renderRedline ? () => renderRedline() : () => {});
@@ -1540,8 +1548,14 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      the pencil — on the clause, one press — starts typing.
 
      It stands down by itself on a reading that refuses editing anyway —
-     ceEditableReading is asked at the paint. */
-  _ceEditing = _ceText === _ceBase && _ceHead === _ceHeadBase;
+     ceEditableReading is asked at the paint.
+
+     AND AN EXPLICIT ASK STILL WINS (owner-asked 29 Aug 2026). Clicking into a
+     clause's words is the reader saying "type here", so it opens typing even
+     on a clause carrying marks — nothing is being HIDDEN from somebody who has
+     just put their cursor in it. What the rule above still governs is ARRIVAL,
+     which is where it was reported. */
+  _ceEditing = wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase);
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
   _ceScan = null; _ceScanFiled = {};
@@ -1683,11 +1697,33 @@ function ceCtxChipsHtml(){
    come to disagree about what an unfinished draft costs. Reopening is what
    resets the whole page: the wording, the step stack, the Copilot thread and
    the change this editor is speaking for. */
-function ceGoClause(clauseId){
+/* ---- MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY ----
+   The draft lives in memory until it is filed, so moving off the clause loses
+   it — and there are three doors onto this act (the crumb's dropdown, another
+   clause's pencil, and a press in another clause's words). The third made the
+   gesture CHEAP, and a cheap gesture that silently destroys typing is a worse
+   bug than the one it was built to fix.
+
+   IT IS THE PRODUCT'S OWN GUARD, not a second one: clauseEditorDirty is the
+   same predicate viewLayersClosed asks when the reader leaves the page
+   entirely, and the words are that dialog's own — "Leave this clause?", which
+   is what this act does whether or not the page goes with it. Two doors out of
+   one draft answering differently is the drift this file keeps warning about.
+
+   NOT DIRTY, NO QUESTION: a reader who has typed nothing is not asked
+   anything, which is every ordinary move. */
+function ceGoClause(clauseId, extra){
   if (!clauseEditorOpen() || !clauseId || clauseId === _ceClauseId) return;
-  const c = _ceC, opts = _ceOpts;
-  rlCloseClauseEditor();
-  rlOpenClauseEditor(c, clauseId, opts);
+  const go = () => {
+    const c = _ceC, opts = _ceOpts;
+    rlCloseClauseEditor();
+    rlOpenClauseEditor(c, clauseId, extra ? { ...opts, ...extra } : opts);
+  };
+  const dirty = (typeof clauseEditorDirty === 'function') && clauseEditorDirty();
+  if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
+  confirmDialog({ title: _cet('ce_leave_title'), message: _cet('ce_leave_body'),
+    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
+    .then(ok => { if (ok) go(); }).catch(() => {});
 }
 /* Bring the clause this page is about into the reader's view. Deferred a frame
    for the same reason the caret is: the paper it scrolls inside is written by
@@ -1707,14 +1743,68 @@ function ceScrollToClause(){
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
 }
 /* The caret goes where the reader just asked to type. Deferred a frame because
-   the box it belongs to is written by the paint that is still running. */
-function ceFocusTyping(){
+   the box it belongs to is written by the paint that is still running.
+
+   ---- AND WHERE THEY PUT IT, WHERE THAT CAN BE KNOWN (owner-asked 29 Aug
+   2026: "Let me just edit like I am in google docs").
+
+   `point` is the screen position of the press that started the typing. The
+   node under it is gone by now — turning typing on repaints the paper — so the
+   point is re-asked of the NEW layout rather than remembered as an offset into
+   the old one, which is what makes it survive a clause that draws marks when
+   it is not being typed in and plain wording when it is.
+
+   IT DEGRADES TO THE START OF THE BOX AND NEVER TO NOTHING: an older browser
+   with neither reader, a point that lands outside the box because the wording
+   reflowed, or a throw of any kind, all end with the box focused. A caret in
+   roughly the right place is the ask; a caret nowhere is a dead press. */
+function ceFocusTyping(point){
   if (typeof requestAnimationFrame !== 'function') return;
   requestAnimationFrame(() => {
     const box = _ceQ('#ce-clausebody');
     if (!box || !ceIsTyping()) return;
     try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(__){} }
+    if (!point || typeof document === 'undefined') return;
+    try{
+      let range = null;
+      if (typeof document.caretRangeFromPoint === 'function'){
+        range = document.caretRangeFromPoint(point.x, point.y);
+      } else if (typeof document.caretPositionFromPoint === 'function'){
+        const pos = document.caretPositionFromPoint(point.x, point.y);
+        if (pos && pos.offsetNode){
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+        }
+      }
+      if (!range || !range.startContainer) return;
+      const node = range.startContainer;
+      const el = node.nodeType === 1 ? node : node.parentNode;
+      if (!el || !box.contains(el)) return;   /* the wording moved under them */
+      range.collapse(true);
+      const sel = window.getSelection && window.getSelection();
+      if (!sel) return;
+      sel.removeAllRanges(); sel.addRange(range);
+    }catch(_){}
   });
+}
+
+/* ---- START TYPING WHERE THE READER IS ----
+   The pencil's own on-direction, named once so the press in the words is the
+   same act rather than a second one. It REFUSES rather than toggles: this is
+   reached from a click inside the wording, where turning typing OFF would be
+   the opposite of what the press asked for, and the pencil beside it is still
+   what turns it off. Returns whether it did anything, so a caller can fall
+   through to the browser's own caret when typing is already on. */
+function ceStartTyping(point){
+  if (_ceEditing) return false;
+  cePullText();
+  _ceEditing = !_ceEditing;
+  /* THE BAR FOLLOWS, for the reason the pencil's own note gives: its tools
+     grey when nothing is typeable, so a start that did not repaint it would
+     leave the whole shelf dressed for the state before the press. */
+  ceCloseInline(); ceRenderPaper(); ceRenderBar();
+  if (ceIsTyping()) ceFocusTyping(point);
+  return true;
 }
 
 /* ---- A READING THAT REFUSES EDITING (Phase 4) ----
@@ -2982,6 +3072,53 @@ function ceWirePage(page){
 
     const inlineChip = hit('[data-ce-inline-chip]');
     if (inlineChip){ ev.preventDefault(); ceInlineGo(inlineChip.getAttribute('data-ce-inline-chip')); return; }
+
+    /* ---- CLICK IN THE WORDS AND TYPE, LIKE ANY DOCUMENT ----
+       (owner-asked 29 Aug 2026: *"I hate that I have to click on a pencil for
+       me to edit in the edit with copilot page … Let me just edit like I am in
+       Google Docs but the platform should track which clause I am editing."*)
+
+       THE PENCIL IS NOT RETIRED and this is not a second act: both ends run the
+       same two lines this handler already had — turn typing on where the reader
+       is, or move the page to the clause they pointed at. What changes is that
+       the press in the WORDS now counts as that ask, so the pencil is the
+       visible affordance rather than the toll gate.
+
+       WHICH CLAUSE IS TRACKED BY THE PRESS: `data-clause` is on the section the
+       press landed in, so the page follows the reader rather than the reader
+       having to tell it twice.
+
+       IT RUNS LAST, after every named control above, so a press on a button, a
+       tag or a field is never read as a press in the wording — and it asks for
+       a real control anyway, because the paper carries its own (the pencil, the
+       ask tags) and a hit on one of those is not a hit on the words.
+
+       ALREADY TYPING IN THIS CLAUSE: it does nothing at all, and must. The box
+       is contenteditable, so the browser's own caret is the right answer and
+       anything here would fight it.
+
+       A REFUSING READING DOES NOTHING EITHER. 'As agreed' and 'With changes'
+       draw the paper without its marks, so typing there would be measured
+       against a document the reader is not being shown; the band already says
+       so and carries the way back. One predicate, ceEditableReading, exactly as
+       the pencil and Apply ask it. */
+    const inDoc = hit('#ce-doc');
+    if (inDoc && ceEditableReading()
+        && !hit('button, a, input, textarea, select, [role="button"], [contenteditable="true"]')){
+      const sec = hit('[data-clause]');
+      const id = sec && sec.getAttribute('data-clause');
+      if (id){
+        const point = { x: ev.clientX, y: ev.clientY };
+        if (id !== _ceClauseId){
+          ev.preventDefault();
+          cePullText();
+          ceGoClause(id, { typing: true });
+          ceFocusTyping(point);
+          return;
+        }
+        if (ceStartTyping(point)){ ev.preventDefault(); return; }
+      }
+    }
 
     const act = hit('[data-ce-act]');
     if (!act) return;

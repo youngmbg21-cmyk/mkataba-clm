@@ -1402,15 +1402,64 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
   test('the page never opens in a state that hides marks that exist', () => {
     /* The rule, read off the source: the opening posture is a QUESTION about
        whether the draft differs from what stands, not a constant. A literal
-       `_ceEditing = true` here is the reported fault. */
-    assert.match(CODE, /_ceEditing = _ceText === _ceBase && _ceHead === _ceHeadBase/,
+       `_ceEditing = true` here is the reported fault.
+
+       REVERSED IN PLACE 29 Aug 2026 and made STRONGER, not weaker: the
+       question is unchanged and now sits behind one override — an explicit ask
+       to type, which is the reader clicking into the words. What the rule
+       governs is ARRIVAL, which is where it was reported; a reader who has
+       just put their cursor in a clause is not having anything hidden from
+       them. */
+    assert.match(CODE, /_ceEditing = wantTyping \|\| \(_ceText === _ceBase && _ceHead === _ceHeadBase\)/,
       'it opens typeable only where there is nothing being kept from anybody');
     assert.equal(/_ceEditing = true;/.test(CODE), false,
       'and never unconditionally');
   });
 
+  test('the ask to type is CONSUMED, so it cannot leak into every later move', () => {
+    /* _ceOpts is what every later ceGoClause inherits. Left on it, one click
+       into the words would silently make every subsequent move to another
+       clause open typing too — a posture nobody chose, spreading. */
+    assert.match(CODE, /delete _ceOpts\.typing/,
+      'the flag is taken off the stored options at the moment it is read');
+  });
+
   test('and the pencil is still the one press that starts the writing', () => {
     assert.match(CODE, /_ceEditing = !_ceEditing/,
       'the control that turns typing on is unchanged and is on the clause');
+  });
+
+  test('moving to another clause asks before it throws a draft away', () => {
+    /* The draft lives in memory until it is filed, and there are three doors
+       onto this act — the crumb, another clause's pencil, and a press in
+       another clause's words. The third made the gesture cheap, and a cheap
+       gesture that silently destroys typing is a worse bug than the one it was
+       built to fix. It is the PRODUCT'S OWN guard, not a second one: the same
+       predicate and the same words the page uses when the reader leaves it. */
+    assert.match(CODE, /const dirty = \(typeof clauseEditorDirty === 'function'\) && clauseEditorDirty\(\)/,
+      'asked in ceGoClause, so all three doors inherit it');
+    assert.match(CODE, /if \(!dirty \|\| typeof window === 'undefined' \|\| !window\.confirmDialog\)\{ go\(\); return; \}/,
+      'a reader who has typed nothing is never asked \u2014 every ordinary move');
+    assert.match(CODE, /_cet\('ce_leave_title'\)/,
+      'and it borrows the leave dialog\'s own words rather than minting a key');
+  });
+
+  test('clicking in the words is the same two acts, never a second path', () => {
+    /* (owner-asked 29 Aug 2026: "Let me just edit like I am in Google Docs but
+       the platform should track which clause I am editing.")
+
+       The pencil is not retired and this is not a new act: a press in the
+       wording runs the two lines the pencil handler already had — move to the
+       clause, or turn typing on where the reader is. What it must never do is
+       grow its own way of getting there. */
+    assert.match(CODE, /const inDoc = hit\('#ce-doc'\)/,
+      'the branch is scoped to the paper');
+    assert.match(CODE, /ceGoClause\(id, \{ typing: true \}\)/,
+      'another clause is the crumb\'s own act, with the ask to type on it');
+    assert.match(CODE, /if \(inDoc && ceEditableReading\(\)/,
+      'and it asks the ONE predicate the pencil and Apply ask');
+    /* A press on a control is not a press in the words. */
+    assert.match(CODE, /!hit\('button, a, input, textarea, select/,
+      'controls inside the paper are excluded by selector');
   });
 });

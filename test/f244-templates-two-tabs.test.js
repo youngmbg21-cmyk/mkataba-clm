@@ -133,6 +133,93 @@ describe('f244 (2) — one population, counted once', () => {
   });
 });
 
+describe('f244 (2b) — the wall is segmented by library (owner-asked 29 Aug 2026)', () => {
+  test('the libraries are the table\u2019s own, in the table\u2019s own order', () => {
+    /* A second vocabulary here is how two tabs come to disagree about what a
+       library is: these are the five buckets the table's rail already counts,
+       minus "all", and the order is tplPageRows' own ORD. */
+    assert.match(SRC, /const TPL_OV_GROUPS=\['company','cp','builtin','sample'\]/);
+    const s = stage();
+    const keys = s.tplOverviewData().groups.map(g => g.key);
+    assert.deepEqual(keys, ['company', 'cp', 'builtin', 'sample'].filter(k => keys.includes(k)),
+      'drawn in the table\u2019s order, never sorted by size');
+  });
+
+  test('every card is in exactly one library, and the totals ARE the population', () => {
+    const s = stage();
+    const d = s.tplOverviewData();
+    const ids = d.groups.flatMap(g => g.cards.map(c => c.id));
+    assert.equal(ids.length, d.cards.length, 'nothing is dropped and nothing is doubled');
+    assert.equal(new Set(ids).size, ids.length, 'no card is in two libraries');
+    assert.equal(d.groups.reduce((n, g) => n + g.total, 0), d.total,
+      'the heading counts add up to the wall\u2019s own total');
+    for (const g of d.groups) assert.equal(g.total, g.cards.length);
+  });
+
+  test('a library the workspace does not hold draws no heading', () => {
+    const s = stage({ tplLibAll: () => ({ canManage: true, loaded: true, list: [] }) });
+    const d = s.tplOverviewData();
+    assert.ok(!d.groups.some(g => g.key === 'company'),
+      'a heading over nothing is worse than no heading');
+    assert.ok(d.groups.length > 0, 'and the libraries it does hold are still there');
+  });
+
+  test('the label is READ at draw time, never stored on the group', () => {
+    /* TPL_GROUP_LABEL is a getter table for exactly this reason: an object
+       built once at module load freezes whatever language the page started in
+       — this codebase\u2019s own recorded trap, met four separate times. */
+    const s = stage();
+    for (const g of s.tplOverviewData().groups)
+      assert.equal('label' in g, false, `${g.key} carries a key and a count, not a word`);
+    assert.match(SRC, /TPL_GROUP_LABEL\[g\.key\]/, 'the drawing asks the getter table');
+  });
+
+  test('the budget is spent in ROWS, because the wall\u2019s height is rows', () => {
+    /* Measured, not assumed: eight cards flat is three rows of three, and the
+       same eight split two ways is four. Counted as cards the wall asks for a
+       screen it does not have. */
+    const s = stage();
+    const g = k => ({ key: k, total: 9, cards: Array.from({ length: 9 }, (_, i) => ({ id: k + i })) });
+    const out = s.tplOvSlice([g('a'), g('b')], 9, 3);
+    assert.equal(out.length, 2, 'both libraries are on the first screen');
+    const rows = out.reduce((n, x) => n + Math.ceil(x.cards.length / 3), 0);
+    assert.equal(rows, 3, `three rows of cards, not four \u2014 got ${rows}`);
+  });
+
+  test('a round gives every library its turn, strongest first', () => {
+    const s = stage();
+    const big = { key: 'big', total: 20, cards: Array.from({ length: 20 }, (_, i) => ({ id: 'b' + i })) };
+    const small = { key: 'small', total: 2, cards: [{ id: 's0' }, { id: 's1' }] };
+    const out = s.tplOvSlice([big, small], 6, 2);
+    assert.ok(out.find(g => g.key === 'small'),
+      'the small library is not swallowed by the big one');
+    assert.deepEqual(out.find(g => g.key === 'big').cards.map(c => c.id).slice(0, 2), ['b0', 'b1'],
+      'and each library shows its own most-used first');
+  });
+
+  test('a library that runs out simply stops taking', () => {
+    const s = stage();
+    const one = { key: 'one', total: 1, cards: [{ id: 'x' }] };
+    const many = { key: 'many', total: 8, cards: Array.from({ length: 8 }, (_, i) => ({ id: 'm' + i })) };
+    const out = s.tplOvSlice([one, many], 99, 3);
+    assert.equal(out.find(g => g.key === 'one').cards.length, 1);
+    assert.equal(out.find(g => g.key === 'many').cards.length, 8);
+  });
+
+  test('the heading spans the wall \u2014 one grid, so every card is one width', () => {
+    assert.match(SRC, /class="tpl-ov-band"[^`]*grid-column:1\/-1/,
+      'a grid per library would draw wider cards in a short one');
+  });
+
+  test('and the fit measures a CARD, never the wall\u2019s first child', () => {
+    /* Since the wall is segmented its first child is a HEADING, and measuring
+       that would size a row of cards by a line of text. */
+    assert.match(SRC, /wall\.querySelector\('\[data-tpl-ov-card\]'\)/);
+    assert.match(SRC, /tpl-ov-band'\)\]\s*\n?\s*\.reduce/,
+      'and the headings\u2019 own height is taken out of the room they take up');
+  });
+});
+
 describe('f244 (3) — a deviation rate counts only paper a playbook has read', () => {
   test('the denominator is what was checked, and what was not is stated', () => {
     const c = card(stage().tplOverviewData(), 'tpl_1');

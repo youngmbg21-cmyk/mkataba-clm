@@ -374,6 +374,56 @@ const BOX = sel => {
       widths[0].cols === 2 && widths[2].cols === 1, widths.map(x => x.w + ':' + x.cols));
     await page.setViewportSize({ width: 1500, height: 1000 });
 
+    /* ============ 7 · SEGMENTED BY LIBRARY (owner-asked 29 Aug 2026) ========
+       *"In templates overview, the cards are supposed to be segmented by
+       library."* Read off the LIVE wall in document order, because the claim
+       is about what a reader sees under which heading — a source check cannot
+       tell a heading that draws from one that is laid out over the cards. */
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.evaluate(() => setView('templates'));
+    await pause(1400);
+    const segs = await page.evaluate(() => {
+      const wall = document.getElementById('tpl-ov-cards');
+      if (!wall) return null;
+      const out = []; let cur = null;
+      for (const k of wall.children) {
+        if (k.classList.contains('tpl-ov-band')) {
+          const s = getComputedStyle(k);
+          cur = { txt: k.textContent.trim().replace(/\s+/g, ' '), cards: 0,
+            span: s.gridColumnStart + '/' + s.gridColumnEnd,
+            w: Math.round(k.getBoundingClientRect().width) };
+          out.push(cur);
+        } else if (cur) cur.cards++; else out.push({ txt: '(loose card)', cards: 1 });
+      }
+      /* the table's own rail, which is where these counts have to agree. Its
+         label and its count are two spans with no whitespace between them, so
+         they are read as two facts rather than as one string. */
+      const rail = {};
+      document.querySelectorAll('[data-tpl-group]').forEach(b => {
+        const sp = b.querySelectorAll('span');
+        rail[b.getAttribute('data-tpl-group')] =
+          (sp[0] ? sp[0].textContent.trim() : '') + ' ' + (sp[1] ? sp[1].textContent.trim() : '');
+      });
+      return { out, rail, wallW: Math.round(wall.getBoundingClientRect().width),
+        cards: wall.querySelectorAll('[data-tpl-ov-card]').length };
+    });
+    check('7a · the wall is drawn under library headings, not as one flat run',
+      !!segs && segs.out.length > 0 && !segs.out.some(g => g.txt === '(loose card)'),
+      segs && segs.out.map(g => `${g.txt}:${g.cards}`));
+    check('7b · every heading carries its library\u2019s own count',
+      !!segs && segs.out.every(g => /\s\d+$/.test(g.txt)),
+      segs && segs.out.map(g => g.txt));
+    check('7c · \u2026and it is the number the table\u2019s own rail prints',
+      !!segs && segs.out.every(g => Object.values(segs.rail)
+        .some(r => r.replace(/\s+/g, ' ') === g.txt)),
+      segs && { wall: segs.out.map(g => g.txt), rail: Object.values(segs.rail) });
+    check('7d · a heading spans the wall, so the cards keep one width',
+      !!segs && segs.out.every(g => g.span === '1/-1' && Math.abs(g.w - segs.wallW) < 2),
+      segs && segs.out.map(g => `${g.span} ${g.w}/${segs.wallW}`));
+    check('7e · and every card still sits under a heading',
+      !!segs && segs.cards === segs.out.reduce((n, g) => n + g.cards, 0),
+      segs && `${segs.cards} cards, ${segs.out.reduce((n, g) => n + g.cards, 0)} under headings`);
+
     check('6a · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
     check('harness', false, String(e && e.message || e));

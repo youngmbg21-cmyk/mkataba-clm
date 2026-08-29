@@ -495,10 +495,17 @@ const CARD_EDIT = async () => {
      under it) and leaves theirs exactly as it was, which was the whole
      condition on building it. The PANEL is what this check is about and what
      the owner asked about, and the panel is still one stylesheet for both. */
+  /* RE-POINTED 29 Aug 2026, and the claim is unchanged. This opened the panel
+     by pressing a pill carrying data-rl-cp-open — and on OUR seat that pencil
+     opens the clause EDITOR now, so it carried a different attribute, the
+     selector found nothing, and this check had been red on main since the door
+     moved. What it is about is the PANEL'S TYPE ON BOTH SEATS, so it opens the
+     panel by its own act, which is the same door both seats' controls press. */
   const PANEL_TYPE = `(() => {
-    const pill = document.querySelector('.rl-cp-pill[data-rl-cp-open]');
+    const pill = document.querySelector('.rl-cp-pill[data-rl-cp-open], .rl-cp-pill[data-rl-cp-editor]');
     if (!pill) return { err: 'no pill' };
-    pill.click();
+    const id = pill.getAttribute('data-rl-cp-open') || pill.getAttribute('data-rl-cp-editor');
+    if (window.rlCpSetShown) rlCpSetShown(document, id); else pill.click();
     const panel = document.querySelector('.rl-cp');
     if (!panel) return { err: 'no panel' };
     const fz = sel => { const el = panel.querySelector(sel);

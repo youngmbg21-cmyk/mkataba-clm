@@ -94,9 +94,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const inColumn = await p.evaluate(a=>!!document.querySelector(`[data-nego-card="${a}"]`),staged.a);
   ck('the adopted change has no card — which is why "reopen it first" was unreachable',!inColumn);
 
-  await p.click(`.nego-clause[data-clause="${staged.clauseId}"] .rl-cp-pill`);
+  /* RE-POINTED 29 Aug 2026, claim unchanged. On OUR seat the clause's pencil
+     opens the clause EDITOR now (owner-ruled), so pressing it here would cover
+     the panel this section is about with a full-window page. The panel is
+     opened by its own act — the same door the pencil pressed when this was
+     written — and what is asserted below is what the PANEL offers, which is
+     what the owner's report was about. */
+  await p.evaluate(id => window.rlCpSetShown(document, id), staged.clauseId);
   await pause(600);
-  ck('pressing the clause\'s Edit pill opens its panel',
+  ck('the clause\'s panel opens on it',
      await p.evaluate(id=>!!document.querySelector(
        `#rl-cp .rl-cp-src.is-on[data-rl-cp-for="${id}"]`),staged.clauseId));
   const btn = await p.evaluate(a=>{

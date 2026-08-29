@@ -1283,6 +1283,117 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
   await pause(300);
 
+  /* ---- 16. THE PENCIL REALLY LANDS ON THE EDITOR ----
+     ------------------------------------------------------------
+     (owner-reported 29 Aug 2026: *"we agreed that the panel on the right would
+     go away and when i click on the pencil i would go straight to edit with
+     copilot page and that is not working"*.)
+
+     IT WAS TRUE, AND NOTHING IN THE SUITE COULD SEE IT. The pill started
+     carrying data-rl-cp-editor when the editor became its destination, and
+     nothing on the paper listened for that attribute — the only handler that
+     read it is bound to [data-nego-ai-clause], which is the PANEL's Copilot
+     button. So the press fell through every branch and did nothing at all: no
+     page, no panel, no refusal, no error, and every source claim about the
+     attribute passed.
+
+     THIS FILE HAD RE-STAGED ITSELF AWAY FROM PRESSING IT the day the door
+     moved (see the note at openPanel), which is exactly why the dead press
+     shipped: the one file that used to press this control stopped pressing it
+     in the same change that gave it somewhere new to go. So the destination is
+     asserted here by DRIVING it, and a state check would not do — a pill that
+     opens nothing looks identical in the markup to one that opens a page. */
+  const landed = await p.evaluate(async id => {
+    const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
+    const b = sec && sec.querySelector('.rl-cp-pill');
+    if (!b) return { none: 'no pencil on the staged clause' };
+    const attr = b.getAttribute('data-rl-cp-editor');
+    b.click();
+    await new Promise(r => setTimeout(r, 800));
+    const page = document.getElementById('clause-editor');
+    const box = document.querySelector('#ce-clausebody');
+    const on = box && box.closest('[data-clause]');
+    const pr = page ? page.getBoundingClientRect() : null;
+    return { attr,
+      page: !!page,
+      /* real pixels, not merely mounted */
+      visible: !!(pr && pr.width > 400 && pr.height > 300),
+      onClause: on ? on.getAttribute('data-clause') : null,
+      /* and the panel is NOT what opened — that is the half the ruling changed */
+      panel: !!document.querySelector('#rl-cp.is-on, #rl-cp-body .rl-cp-src.is-on') };
+  }, staged.clauseId);
+  ck('16a the pencil names the editor as its door',
+     landed.attr === staged.clauseId, String(landed.attr));
+  ck('16b A REAL PRESS OPENS THE EDITOR PAGE, as pixels',
+     landed.page === true && landed.visible === true, JSON.stringify(landed));
+  ck('16c \u2026on the clause that was pressed',
+     landed.onClause === staged.clauseId, `${landed.onClause} vs ${staged.clauseId}`);
+  ck('16d and the panel is not what opened',
+     landed.panel === false, String(landed.panel));
+
+  /* ---- 16e. CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026) ----
+     *"I hate that I have to click on a pencil for me to edit in the edit with
+     copilot page \u2026 Let me just edit like I am in Google Docs but the platform
+     should track which clause I am editing."*
+
+     Driven with a real mouse at a real point, because the whole claim is about
+     where a press lands: a click in the WORDING starts typing, and a click in
+     ANOTHER clause's wording moves the page to that clause and starts typing
+     there. The caret is read off the live selection rather than inferred. */
+  const typed = await p.evaluate(() => {
+    const box = document.querySelector('#ce-clausebody');
+    if (!box) return null;
+    box.scrollIntoView({ block: 'center' });
+    const r = box.getBoundingClientRect();
+    return { before: box.isContentEditable,
+      x: Math.round(r.left + 40), y: Math.round(r.top + 10) };
+  });
+  if (typed){
+    await pause(200);
+    await p.mouse.click(typed.x, typed.y);
+    await pause(700);
+    const after = await p.evaluate(() => {
+      const box = document.querySelector('#ce-clausebody');
+      const sel = window.getSelection && window.getSelection();
+      return { typing: !!(box && box.isContentEditable),
+        caretInBox: !!(sel && sel.rangeCount && box
+          && box.contains(sel.getRangeAt(0).startContainer)) };
+    });
+    ck('16e a click in the wording starts typing \u2014 no pencil press',
+       typed.before === false && after.typing === true, JSON.stringify({ ...typed, ...after }));
+    ck('16f \u2026with the caret in the box the reader clicked in',
+       after.caretInBox === true, String(after.caretInBox));
+  }
+  const ceMoved = await p.evaluate(async () => {
+    const cur = (document.querySelector('#ce-clausebody') || {}).closest
+      ? document.querySelector('#ce-clausebody').closest('[data-clause]').getAttribute('data-clause') : null;
+    const other = [...document.querySelectorAll('#ce-doc .rl-clause[data-clause]')]
+      .find(x => x.getAttribute('data-clause') !== cur);
+    if (!other) return null;
+    other.scrollIntoView({ block: 'center' });
+    await new Promise(r => setTimeout(r, 200));
+    const body = other.querySelector('.nego-body p, .nego-body, p') || other;
+    const r = body.getBoundingClientRect();
+    return { want: other.getAttribute('data-clause'), from: cur,
+      x: Math.round(r.left + Math.min(120, r.width / 2)), y: Math.round(r.top + 10) };
+  });
+  if (ceMoved){
+    await p.mouse.click(ceMoved.x, ceMoved.y);
+    await pause(900);
+    const now = await p.evaluate(() => {
+      const box = document.querySelector('#ce-clausebody');
+      const sec = box && box.closest('[data-clause]');
+      return { on: sec ? sec.getAttribute('data-clause') : null,
+        typing: !!(box && box.isContentEditable) };
+    });
+    ck('16g a click in ANOTHER clause moves the page to it \u2014 the platform tracks it',
+       now.on === ceMoved.want, `${ceMoved.from} \u2192 ${now.on} (wanted ${ceMoved.want})`);
+    ck('16h \u2026and opens typing there, so the reader carries on writing',
+       now.typing === true, String(now.typing));
+  }
+  await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+  await pause(400);
+
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;
   console.log(`\n${pass}/${R.length} checks passed`);

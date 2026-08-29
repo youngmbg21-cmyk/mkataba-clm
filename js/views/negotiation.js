@@ -4566,6 +4566,37 @@ function wireNegotiationTab(c, opts = {}){
         { ...opts, side, again, by: opts && opts.by,
           changeId: btn.getAttribute('data-rl-cp-editor-change') || '' });
     }));
+    /* ---- THE PAPER'S OWN PENCIL, WIRED WHERE THE ROW'S DOOR IS WIRED ----
+       (owner-reported 29 Aug 2026: "when i click on the pencil i would go
+       straight to edit with copilot page and that is not working".)
+
+       The pencil started carrying data-rl-cp-editor when the editor became its
+       destination — and NOTHING LISTENED FOR IT ON THE PAPER. The only handler
+       that read that attribute is the one a few lines above, bound to
+       [data-nego-ai-clause] elements, which is the PANEL's Copilot button and
+       not this. So the press fell through every branch and did nothing at all:
+       no page, no panel, no refusal, no error. A dead press is the one outcome
+       the draw-time decision at pillFor exists to prevent, and it was defeated
+       by the attribute having no reader rather than by the decision being wrong.
+
+       It is wired HERE, beside the row's own door, because rlOpenClauseEditor
+       needs the contract, the seat and the repaint — none of which the
+       module-load listener that owns data-rl-cp-open can see.
+
+       THE PANEL'S COPILOT BUTTON IS EXCLUDED BY SELECTOR, not by luck: it
+       carries both attributes and is already wired above, and two handlers on
+       one press would open the page, tear it down and open it again.
+
+       stopPropagation for the reason the pill's other door already gives — the
+       pencil sits inside .rl-clause, whose own press navigates, and a door that
+       also moves you is two acts on one press. */
+    host.querySelectorAll('[data-rl-cp-editor]:not([data-nego-ai-clause])').forEach(btn =>
+      btn.addEventListener('click', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (!window.rlOpenClauseEditor) return;
+        rlOpenClauseEditor(c, btn.getAttribute('data-rl-cp-editor'),
+          { ...opts, side, again, by: opts && opts.by });
+      }));
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
        made the Redline workbench's AI Assist flash and vanish. The clause
        toolbar sits inside this host, so pressing it fires this handler too;
@@ -9649,11 +9680,15 @@ function redlineDocHtml(c, opts = {}){
         to a page that will turn them away would take that away entirely.
       · A WINDOW UNDER 1024px, which clauseEditorFits refuses because two
         columns need room to be two columns. The panel works at every width.
-     Read through window, and TRUE where the module is absent: a stage without
-     the editor is one where the panel is still the right answer. */
+      · A STAGE THAT DOES NOT LOAD THE EDITOR AT ALL. The module is asked for
+        BY NAME rather than only asked whether the width suits it: the fits
+        check falling through as true on a page with no editor on it is a
+        pencil claiming a page nothing can open, which is the dead press this
+        whole draw-time decision exists to prevent. */
   const editorTakesIt = side === 'owner'
-    && (typeof window === 'undefined' || typeof window.clauseEditorFits !== 'function'
-        || clauseEditorFits());
+    && typeof window !== 'undefined'
+    && typeof window.rlOpenClauseEditor === 'function'
+    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
   const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
