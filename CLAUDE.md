@@ -1861,6 +1861,121 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## AN UPLOADED CONTRACT KEEPS ITS STRUCTURE (owner-asked 29 Aug 2026, J-3.1/3.2)
+
+*"When you upload received contract, it should be uploaded in the same exact
+structure as the original. Currently the contract loses structure and it
+becomes hard to follow."*
+
+**THE READER WAS A TEXT SCRAPER.** It opened one file inside the zip
+(`word/document.xml`) and kept the words; the paragraph styles, the numbering
+definition, the list levels, the tables and the emphasis were all discarded at
+that moment, and the screen then GUESSED the structure back out of the wording
+— a short line in capitals is a heading, a line opening "3.2 " is a clause.
+Reasonable guesses about paper that follows those conventions, wrong about
+paper that does not.
+
+**AND THE WORST OF IT WAS THE NUMBERING: where Word numbers automatically the
+numbers ARE NOT IN THE TEXT AT ALL.** Word generates them from a definition in
+another file, so an automatically numbered agreement — which is how most
+professionally drafted contracts are written — arrived with no clause numbers
+whatsoever, and nothing downstream could put them back because they were never
+there to read.
+
+**IT COST MORE THAN READABILITY, and that is why it was worth the work.** HaTi
+decides what a CLAUSE is from the document's own headings, so an upload that
+lost its headings fell back to one clause per paragraph — and with that, a
+clause heading could not be renamed, the front-matter region was not offered,
+the playbook's clause-kind matcher typed every clause as unknown, and "subject
+to clause 9" could not be followed. **All four now work on received paper**,
+and the browser file drives each of them.
+
+- **`docxExtractRich` IS THE READER** and `docxExtract` is untouched beside it.
+  `extractWordText` is the ONE door both the upload and the Re-read control go
+  through, so there is no second reading to keep in step.
+- **THE SIZE GUARD REACHES EVERY PART IT OPENS.** `DOCX_PARTS` names the three
+  and the ceiling each is trusted to; the old reader guarded `document.xml`
+  alone, and **a numbering definition is attacker-controlled input exactly as
+  the document is**. A damaged part reads as ABSENT and never takes an import
+  down — the document itself is guarded separately.
+- **RESOLVING A NUMBER IS A WALK, NOT A LOOKUP.** The number a reader sees comes
+  from the list's definition, the paragraph's level and how many paragraphs at
+  that level have gone before — including the restarts, which is why it cannot
+  be answered for one paragraph on its own. **Counters are kept per ABSTRACT
+  list**, because two `numId`s pointing at one abstract definition continue the
+  same sequence: that is how Word writes a list that is interrupted and
+  resumed, and counting per `numId` would restart it and make every number
+  after it wrong.
+- **NO NUMBER IS EVER INVENTED (D-4).** Where the definition cannot be read the
+  paragraph draws with no number and the count is REPORTED, so the file strip
+  can say so. **A guessed clause number is a wrong citation**, which is worse
+  than a missing one and would be repeated in every redline made against it.
+- **THE DOCUMENT'S OWN TITLE TAKES h1 AND THE LEVELS SHIFT UNDER IT.** HaTi's
+  clause model reads a LEADING h1 as the title and the headings below it as the
+  clauses — which is exactly how a Word contract is drafted, a Title paragraph
+  over Heading 1 clauses. Mapped one-for-one the title is not a heading at all
+  and the front-matter region is not offered; mapped without the shift the title
+  becomes clause 1. So where the file HAS a Title paragraph the levels shift by
+  one, decided ONCE from the file before a block is emitted; **where it has none
+  nothing shifts**, which is byte-identical to reading it without the rule.
+- **A STYLE IS A HEADING BY ITS OUTLINE LEVEL OR BY ITS NAME**, because a
+  contract drafted from a firm's own template regularly uses a style called
+  something else entirely with `outlineLvl` set.
+- **THE ALLOW-LIST IS NOT WIDENED BY ONE TAG.** Everything emitted is already
+  permitted by `js/richdoc.js` and the body goes through `sanitizeRich` on the
+  way to the record like any other. **NO `colspan`**: a merged cell is emitted
+  as the cells it spans, the first carrying the wording and the rest empty — a
+  visible, honest approximation that keeps the row's column count, rather than
+  something smuggled past the allow-list.
+- **THE MONOSPACE FALLBACK STANDS DOWN BY CONSTRUCTION**: a real table is drawn
+  from the stored body, so `documentTextHtml`'s ruled-block guess never runs on
+  a document that has one.
+- **A TABLE ROW IS A ROW.** The plain text joins a row's cells with tabs where
+  the scraper emitted one line per CELL — which is why a rate card came out as
+  a stream of words. It is the one place the LINES differ, and it differs the
+  right way.
+
+**THE TWO ACCEPTANCE CONDITIONS CANNOT BOTH BE MET LITERALLY, and that is said
+out loud rather than quietly picked between.** The work order asks for the
+plain text to carry *"the same words in the same order as today's"* AND for the
+document to *"show the same numbers Word shows"* — and those numbers were never
+in today's text. A byte-identical string would mean the numbering was not
+resolved. **So the property is asserted where it is exact**: every line's
+wording is that line's wording, and the only thing that may appear in front of
+it is a resolved marker and a tab. Nothing is added inside a sentence, nothing
+is dropped, and nothing moves — f257 (5) checks it piece by piece against the
+scraper's own output on the same file.
+
+**THE GUESSWORK STAYS, AS THE FALLBACK IT SHOULD ALWAYS HAVE BEEN.** A Word
+file with no styles and no numbering reads BYTE-IDENTICALLY to the scraper and
+stores no body at all (`docxHasStructure`), so the screen goes on guessing for
+it — and for PDFs and scans, which genuinely have no structure to read. J-3.3
+is not built.
+
+**NOTHING ALREADY UPLOADED IS RE-READ (D-5).** A sealed record must not change
+under anybody. The existing "Re-read document" control is the one door, it
+already refuses a sealed record, and it now **refuses to overwrite an EDITED
+one** — once somebody has redlined this document the wording is theirs, and a
+re-read of the file must not throw that away.
+
+**CLAUSE IDENTITY CHANGES FOR NEW UPLOADS, AND THAT IS THE POINT.** With real
+headings the segmentation finds real clauses rather than one per paragraph.
+Nothing already on file moves, because nothing is re-read — but the same file
+uploaded after this ships is segmented differently from before it.
+
+**WHAT IS DELIBERATELY NOT CARRIED (D-1, D-2)**: fonts, page size, margins,
+headers, footers and images. Those belong to a printed page. **Comments and
+tracked changes inside an incoming file** keep their own feature and are
+untouched — the counts still ride back and the audit line still says the
+document was read with every change accepted.
+
+Tests: f257 (34 — every file built as Word writes one, a real zip with a real
+`numbering.xml`, and read through the real reader; nothing here is a fixture
+written to match the code), upload-structure-verify (17, browser — a real
+.docx through the real file input, the headings measured as PAINTED elements
+larger or heavier than the body, the four downstream capabilities driven, and
+the strip's line proved to be a line and not a band).
+
 ## SIGNING ON THE PAPER (owner-asked 29 Aug 2026, J-1)
 
 *"while in document tab, you can enter signature on the contract ... you will

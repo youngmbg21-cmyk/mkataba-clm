@@ -62,12 +62,47 @@ const docXml = inner =>
   '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
   inner + '</w:body></w:document>';
 
+/* `opts.parts` is ADDITIVE and every existing caller passes none, so a file
+   built before J-3.1 is byte-identical. It exists because a Word file's
+   NUMBERS live in word/numbering.xml and its headings in word/styles.xml —
+   the two parts the structured reader opens beside the document. */
 function mkDocx(inner, opts) {
   return zip([
     { name: '[Content_Types].xml', data: '<Types/>' },
     { name: 'word/document.xml', data: docXml(inner) },
+    ...(((opts && opts.parts) || [])),
   ], opts);
 }
+/* The numbering definition a commercial contract is actually written with:
+   decimal at the top, "%1.%2" beneath it, lower letters in brackets under
+   that, and a bullet list beside them. NOT ONE NUMBER IS IN THE DOCUMENT —
+   that is the whole point, and it is how Word writes one. */
+const NUMBERING_XML = '<?xml version="1.0"?><w:numbering xmlns:w="http://schemas.'
+  + 'openxmlformats.org/wordprocessingml/2006/main">'
+  + '<w:abstractNum w:abstractNumId="0">'
+  + '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl>'
+  + '<w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1.%2"/></w:lvl>'
+  + '<w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="(%3)"/></w:lvl>'
+  + '</w:abstractNum>'
+  + '<w:abstractNum w:abstractNumId="1">'
+  + '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="&#8226;"/></w:lvl>'
+  + '</w:abstractNum>'
+  + '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>'
+  + '<w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>';
+const STYLES_XML = '<?xml version="1.0"?><w:styles xmlns:w="http://schemas.'
+  + 'openxmlformats.org/wordprocessingml/2006/main">'
+  + '<w:style w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:outlineLvl w:val="0"/></w:pPr></w:style>'
+  + '<w:style w:styleId="Heading2"><w:name w:val="heading 2"/><w:pPr><w:outlineLvl w:val="1"/></w:pPr></w:style>'
+  + '<w:style w:styleId="Title"><w:name w:val="Title"/></w:style></w:styles>';
+const WORD_PARTS = [
+  { name: 'word/numbering.xml', data: NUMBERING_XML },
+  { name: 'word/styles.xml', data: STYLES_XML },
+];
+/* A paragraph the way Word writes a STYLED and NUMBERED one. */
+const styledPara = (style, numId, ilvl, text) =>
+  `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${numId != null
+    ? `<w:numPr><w:ilvl w:val="${ilvl}"/><w:numId w:val="${numId}"/></w:numPr>` : ''}</w:pPr>`
+  + `<w:r><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r></w:p>`;
 
 const b64 = bytes => Buffer.from(bytes).toString('base64');
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -97,4 +132,5 @@ function erikRedline(sentText, edits) {
   return mkDocx(parts.join(''));
 }
 
-module.exports = { zip, mkDocx, para, trackedPara, docXml, dataUrl, b64, fileOf, erikRedline, DOCX_MIME, xmlEsc };
+module.exports = { zip, mkDocx, para, trackedPara, styledPara, docXml, dataUrl, b64, fileOf, erikRedline,
+  DOCX_MIME, xmlEsc, NUMBERING_XML, STYLES_XML, WORD_PARTS };

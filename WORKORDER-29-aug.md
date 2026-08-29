@@ -64,7 +64,7 @@ questions.
 
 ---
 
-# J-1 — SIGNING ON THE PAPER
+# J-1 — SIGNING ON THE PAPER — **BUILT 29 Aug 2026**
 
 **Reported with a screenshot** of MK-363's Document tab, with the Signing tab
 and the right-hand panel both ringed.
@@ -692,7 +692,7 @@ Per phase, and each line is something a person can fail.
 
 ---
 
-# J-3 — AN UPLOADED CONTRACT KEEPS ITS STRUCTURE
+# J-3 — AN UPLOADED CONTRACT KEEPS ITS STRUCTURE — **J-3.1 AND J-3.2 BUILT 29 Aug 2026; J-3.3 NOT BUILT**
 
 **Raised by:** Young, 29 Aug 2026.
 
@@ -815,16 +815,16 @@ guessed clause number is a wrong citation**, which is worse than a missing one.
 
 ## PHASING
 
-### J-3.1 — HEADINGS, NUMBERING AND LISTS
+### J-3.1 — HEADINGS, NUMBERING AND LISTS — **BUILT 29 Aug 2026**
 The structure a contract is cited by, and the phase that makes the clause model
 work on received paper. Reading the paragraph styles, opening the numbering
 definition inside the file, resolving the numbers, and nesting the levels.
 
-### J-3.2 — TABLES AND EMPHASIS
+### J-3.2 — TABLES AND EMPHASIS — **BUILT 29 Aug 2026**
 Rate cards, service-level tables and schedules as real tables; bold, italic and
 underline preserved. Both already permitted by the stored-body allowlist.
 
-### J-3.3 — PDFs AND SCANS
+### J-3.3 — PDFs AND SCANS — **NOT BUILT**
 The PDF reader already knows each run's font size and position, so it could
 infer headings far better than reading the words does. Lower value than the
 first two and considerably harder; may end as "accept the guesswork and say so

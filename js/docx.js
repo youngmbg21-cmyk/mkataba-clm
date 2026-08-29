@@ -127,6 +127,390 @@ async function docxExtract(bytes){
   return out;
 }
 
+/* ============================================================
+   J-3.1 — READ THE STRUCTURE INSTEAD OF GUESSING IT (owner-asked 29 Aug 2026)
+   ============================================================
+   *"When you upload received contract, it should be uploaded in the same exact
+   structure as the original. Currently the contract loses structure and it
+   becomes hard to follow."*
+
+   THE READER ABOVE IS A TEXT SCRAPER. It opens one file inside the zip and
+   keeps the words; the paragraph styles, the numbering definition, the list
+   levels, the tables and the emphasis are all discarded at that moment. The
+   screen then GUESSES the structure back out of the wording — a short line in
+   capitals is a heading, a line opening "3.2 " is a clause — which is a
+   reasonable guess about paper that follows those conventions and wrong about
+   paper that does not.
+
+   AND THE WORST OF IT IS THE NUMBERING. Where Word numbers automatically —
+   which is how most professionally drafted contracts are written — THE NUMBERS
+   ARE NOT IN THE TEXT AT ALL. Word generates them from a definition in another
+   file. So an automatically numbered agreement arrived with no clause numbers
+   whatsoever, and nothing downstream could put them back because they were
+   never there to read.
+
+   IT COSTS MORE THAN READABILITY, which is why this is worth the work: HaTi
+   decides what a CLAUSE is from the document's own headings, so an upload that
+   lost its headings falls back to one clause per paragraph — and with that,
+   renaming a clause heading refuses outright, the front-matter region is not
+   offered, the playbook's clause-kind matcher types every clause as unknown,
+   and "subject to clause 9" cannot be followed because clause 9 has no number.
+
+   WHAT IS DELIBERATELY NOT CARRIED (D-1, D-2): fonts, page size, margins,
+   headers, footers and images. Those belong to a printed page. This carries
+   the DOCUMENT STRUCTURE — the same headings at the same levels, the same
+   numbers, the same nesting — which is what makes a contract followable and
+   citable.
+
+   THE ALLOW-LIST IS NOT WIDENED BY ONE TAG. What a person may not write, a
+   file may not smuggle in: everything below is already permitted by
+   js/richdoc.js, and the output goes through sanitizeRich on the way to the
+   record like any other body.
+
+   ---- NUMBERING IS RESOLVED, NEVER INVENTED (D-4) ----
+   Where the definition cannot be read for a given document the paragraph draws
+   with NO number and the file strip says the document uses automatic numbering
+   HaTi could not read. A GUESSED CLAUSE NUMBER IS A WRONG CITATION, which is
+   worse than a missing one and would be repeated in every redline made
+   against it.
+   ============================================================ */
+
+/* The three parts this reader opens, and the size each is trusted to. The
+   guard the old reader applied to document.xml alone now applies to every one
+   of them — a numbering definition is attacker-controlled input exactly as the
+   document is. */
+const DOCX_PARTS = { 'word/document.xml': 30, 'word/numbering.xml': 8, 'word/styles.xml': 8 };
+
+async function docxReadParts(bytes, entries){
+  const out = {};
+  for(const name of Object.keys(DOCX_PARTS)){
+    const e = entries.find(x => x.name === name);
+    if(!e) continue;
+    if(e.rawLen === 0xFFFFFFFF || e.rawLen > DOCX_PARTS[name] * 1024 * 1024) continue;
+    try{
+      let raw;
+      if(e.method === 0) raw = zipEntryBytes(bytes, e);
+      else if(e.method === 8) raw = await inflateRawBytes(zipEntryBytes(bytes, e));
+      else continue;
+      out[name] = new TextDecoder().decode(raw);
+    }catch(_){ /* a damaged part reads as absent — it must never take an
+                  import down, and the document itself is guarded above */ }
+  }
+  return out;
+}
+
+/* ---- HOW A NUMBER IS SPELT ----
+   Word's own formats. `bullet` and `none` are the two that produce no
+   citation: a bullet is a mark rather than a number, and `none` means the
+   level is deliberately unnumbered. */
+function docxNumFormat(n, fmt){
+  const i = Number(n);
+  if(!isFinite(i) || i < 1) return '';
+  switch(String(fmt || 'decimal')){
+    case 'lowerLetter': return docxAlpha(i).toLowerCase();
+    case 'upperLetter': return docxAlpha(i);
+    case 'lowerRoman':  return docxRoman(i).toLowerCase();
+    case 'upperRoman':  return docxRoman(i);
+    case 'decimalZero': return (i < 10 ? '0' : '') + i;
+    case 'bullet':      return '';
+    case 'none':        return '';
+    default:            return String(i);
+  }
+}
+/* a, b, … z, aa, ab — Word's own wrap, not a base-26 number */
+function docxAlpha(i){
+  let s = '', n = i;
+  while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function docxRoman(i){
+  if(i > 3999) return String(i);
+  const T = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],
+             [50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+  let n = i, s = '';
+  for(const [v, r] of T){ while(n >= v){ s += r; n -= v; } }
+  return s;
+}
+
+/* ---- THE NUMBERING DEFINITION ----
+   Two hops, and both are in the file: a paragraph names a `numId`, `w:num`
+   maps that to an `abstractNumId`, and the abstract definition carries one
+   `w:lvl` per level with its format, its start and its lvlText — the template
+   a reader actually sees, e.g. "%1.%2" or "(%1)".
+
+   READ WITH REGULAR EXPRESSIONS AND NOT A PARSER, deliberately: this file has
+   read WordprocessingML that way since it was written, the shapes are shallow
+   and well-known, and adding an XML parser to the browser bundle for three
+   attributes is a dependency nobody needs. */
+function docxNumbering(xml){
+  const out = { abs: {}, num: {} };
+  if(!xml) return out;
+  /* numId → abstractNumId, plus any per-instance level override. */
+  const numRe = /<w:num\b[^>]*w:numId="(\d+)"[^>]*>([\s\S]*?)<\/w:num>/g;
+  let m;
+  while((m = numRe.exec(xml))){
+    const body = m[2] || '';
+    const a = (body.match(/<w:abstractNumId\b[^>]*w:val="(\d+)"/) || [])[1];
+    if(a != null) out.num[m[1]] = { abs: a, over: docxLevels(body) };
+  }
+  const absRe = /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g;
+  while((m = absRe.exec(xml))){ out.abs[m[1]] = docxLevels(m[2] || ''); }
+  return out;
+}
+function docxLevels(xml){
+  const lv = {};
+  const re = /<w:lvl\b[^>]*w:ilvl="(\d+)"[^>]*>([\s\S]*?)<\/w:lvl>/g;
+  let m;
+  while((m = re.exec(xml))){
+    const b = m[2] || '';
+    lv[m[1]] = {
+      fmt:   (b.match(/<w:numFmt\b[^>]*w:val="([^"]*)"/) || [])[1] || 'decimal',
+      text:  decodeXmlEntities((b.match(/<w:lvlText\b[^>]*w:val="([^"]*)"/) || [])[1] || ''),
+      start: Number((b.match(/<w:start\b[^>]*w:val="(-?\d+)"/) || [])[1] || 1),
+      restart: (b.match(/<w:lvlRestart\b[^>]*w:val="(-?\d+)"/) || [])[1],
+    };
+  }
+  return lv;
+}
+
+/* ---- RESOLVING A NUMBER IS A WALK, NOT A LOOKUP ----
+   The number a reader sees comes from the list's definition, the paragraph's
+   level, and HOW MANY PARAGRAPHS AT THAT LEVEL HAVE GONE BEFORE — including
+   restarts, which is why this has to be a single pass over the document in
+   order and cannot be answered for one paragraph on its own.
+
+   Counters are kept per ABSTRACT list, because two numIds pointing at one
+   abstract definition continue the same sequence — which is exactly how Word
+   writes a list that is interrupted and resumed. */
+function docxNumberWalker(numbering){
+  const counts = {};                       // abs → { level → n }
+  return function next(numId, ilvl){
+    const inst = numbering.num[String(numId)];
+    if(!inst) return null;                 // a numId with no definition: no number
+    const lv = (inst.over && inst.over[String(ilvl)]) || (numbering.abs[inst.abs] || {})[String(ilvl)];
+    if(!lv) return null;
+    const abs = inst.abs;
+    const c = counts[abs] || (counts[abs] = {});
+    const L = Number(ilvl);
+    c[L] = (c[L] == null) ? lv.start : c[L] + 1;
+    /* A DEEPER LEVEL RESTARTS when a shallower one moves on — Word's default,
+       and `lvlRestart:0` is how a document says "do not". */
+    for(const k of Object.keys(c)){
+      const n = Number(k);
+      if(n <= L) continue;
+      const deeper = (inst.over && inst.over[k]) || (numbering.abs[abs] || {})[k];
+      if(deeper && String(deeper.restart) === '0') continue;
+      delete c[k];
+    }
+    if(lv.fmt === 'bullet' || lv.fmt === 'none') return { text: '', bullet: lv.fmt === 'bullet', level: L };
+    /* %1..%9 are the counters at levels 0..8 — that is how "7.1.4" is written
+       down: lvlText "%1.%2.%3" at ilvl 2. A placeholder for a level that has
+       not started yet reads as its own start value, which is what Word draws. */
+    let text = lv.text || '%' + (L + 1);
+    text = text.replace(/%([1-9])/g, (mm, d) => {
+      const idx = Number(d) - 1;
+      const at = c[idx];
+      if(at != null) return docxNumFormat(at, ((inst.over && inst.over[String(idx)])
+        || (numbering.abs[abs] || {})[String(idx)] || {}).fmt);
+      const def = (inst.over && inst.over[String(idx)]) || (numbering.abs[abs] || {})[String(idx)];
+      return def ? docxNumFormat(def.start, def.fmt) : '';
+    });
+    return { text: text.trim(), bullet: false, level: L };
+  };
+}
+
+/* ---- WHICH STYLES ARE HEADINGS ----
+   Word names them "Heading1".."Heading9" by convention, and a document may
+   also mark any style with an outlineLvl. Both are read, because a contract
+   drafted from a firm's own template regularly uses a style called something
+   else entirely with the outline level set. */
+function docxHeadingStyles(xml){
+  const out = {};
+  if(!xml) return out;
+  const re = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
+  let m;
+  while((m = re.exec(xml))){
+    const id = (m[1].match(/w:styleId="([^"]*)"/) || [])[1];
+    if(!id) continue;
+    const b = m[2] || '';
+    const ol = (b.match(/<w:outlineLvl\b[^>]*w:val="(\d+)"/) || [])[1];
+    const byName = /^heading\s*([1-9])$/i.exec(String(id).replace(/[-_]/g, ' '))
+      || /<w:name\b[^>]*w:val="heading\s*([1-9])"/i.exec(b);
+    if(ol != null) out[id] = Math.min(4, Number(ol) + 1);
+    else if(byName) out[id] = Math.min(4, Number(byName[1]));
+  }
+  return out;
+}
+
+/* ---- ONE PARAGRAPH'S RUNS, WITH THE EMPHASIS KEPT (J-3.2) ----
+   The same reading the scraper does, plus bold/italic/underline. It returns
+   HTML and the PLAIN text side by side, because the plain text has to stay the
+   contract every other feature in the product reads. */
+function docxRunsHtml(para, opts){
+  const rich = !!(opts && opts.rich);
+  let html = '', text = '';
+  const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+  /* Runs in order; a w:tab is a tab and a w:br is a line break, exactly as the
+     scraper reads them, so the text projection cannot drift. */
+  const re = /<w:r\b[^>]*>([\s\S]*?)<\/w:r>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g;
+  let m;
+  while((m = re.exec(para))){
+    if(m[1] == null){
+      const tab = m[0].indexOf('w:tab') >= 0;
+      html += tab ? '\t' : '<br/>';
+      text += tab ? '\t' : '\n';
+      continue;
+    }
+    const r = m[1];
+    const pr = (r.match(/<w:rPr\b[^>]*>[\s\S]*?<\/w:rPr>/) || [''])[0];
+    const on = tag => new RegExp('<w:' + tag + '\\b(?![^>]*w:val="(?:0|false|none)")').test(pr);
+    let t = '';
+    r.replace(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g, (mm, txt) => {
+      if(txt != null) t += decodeXmlEntities(txt);
+      else if(mm.indexOf('w:tab') >= 0) t += '\t';
+      else t += '\n';
+      return '';
+    });
+    if(!t) continue;
+    text += t;
+    let h = esc(t).replace(/\n/g, '<br/>');
+    if(rich){
+      if(on('u')) h = '<u>' + h + '</u>';
+      if(on('i')) h = '<em>' + h + '</em>';
+      if(on('b')) h = '<strong>' + h + '</strong>';
+    }
+    html += h;
+  }
+  return { html, text };
+}
+
+/* ---- THE STRUCTURED READER ----
+   One pass over the body in document order, because the numbering walk demands
+   it. Returns the HTML for the record, the plain text for everything else, and
+   an honest report of what could not be read. */
+function docxXmlToRich(xml, parts){
+  const numbering = docxNumbering(parts && parts['word/numbering.xml']);
+  const heads = docxHeadingStyles(parts && parts['word/styles.xml']);
+  const nextNum = docxNumberWalker(numbering);
+  const tracked = { ins: (xml.match(/<w:ins[ >]/g) || []).length,
+                    del: (xml.match(/<w:del[ >]/g) || []).length };
+  let body = xml.replace(/^[\s\S]*?<w:body[^>]*>/, '').replace(/<\/w:body>[\s\S]*$/, '');
+  body = body
+    .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g, '')
+    .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g, '');
+  /* ---- WHERE THE DOCUMENT'S OWN TITLE GOES, AND WHY THE LEVELS SHIFT ----
+     HaTi's clause model reads a LEADING h1 as the document's title and the
+     headings below it as the clauses — which is exactly how a Word contract is
+     drafted, a Title paragraph over Heading 1 clauses. Mapped one-for-one
+     (Title → p, Heading1 → h1) the title is not a heading at all, so the
+     front-matter region is not offered and the reader cannot edit the parties
+     or the recitals; mapped Title → h1 with Heading1 also h1, the title
+     becomes clause 1.
+
+     So where the file HAS a Title paragraph, the title takes h1 and every
+     heading level shifts down one. Where it has none, nothing shifts and a
+     Heading 1 is an h1 — which is what a document with no title of its own
+     means, and is byte-identical to reading it without this rule. The decision
+     is made ONCE, from the file, before a single block is emitted. */
+  const titleStyles = /^(title|subtitle)$/i;
+  const hasTitle = new RegExp('<w:pStyle\\b[^>]*w:val="(?:Title|Subtitle)"', 'i').test(body);
+  const shift = hasTitle ? 1 : 0;
+  const report = { headings: 0, numbered: 0, unnumbered: 0, tables: 0, styled: !!Object.keys(heads).length };
+  const out = [], lines = [];
+  /* PARAGRAPHS AND TABLES IN ORDER. A table's own paragraphs must not also be
+     emitted as loose paragraphs, so the body is walked as a sequence of
+     top-level w:p and w:tbl rather than split on one of them. */
+  const blockRe = /<w:tbl\b[^>]*>[\s\S]*?<\/w:tbl>|<w:p\b[^>]*\/>|<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
+  let b;
+  while((b = blockRe.exec(body))){
+    const blk = b[0];
+    if(blk.indexOf('<w:tbl') === 0){
+      const t = docxTableHtml(blk, report);
+      if(t){ out.push(t.html); lines.push(...t.lines); }
+      continue;
+    }
+    const pr = (blk.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/) || [''])[0];
+    const style = (pr.match(/<w:pStyle\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
+    const numId = (pr.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
+    const ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
+    const runs = docxRunsHtml(blk, { rich: true });
+    let mark = '';
+    if(numId != null){
+      const n = nextNum(numId, ilvl);
+      if(n && n.text){ mark = n.text + '\t'; report.numbered++; }
+      /* A NUMBER THAT COULD NOT BE RESOLVED IS NOT INVENTED (D-4) — the
+         paragraph draws without one and the count is reported, so the file
+         strip can say the document numbers automatically and HaTi could not
+         read it. */
+      else if(!n) report.unnumbered++;
+      else if(n.bullet) mark = '•\t';
+    }
+    const plain = (mark + runs.text);
+    if(!plain.trim() && !runs.html){ lines.push(''); out.push('<p><br></p>'); continue; }
+    const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+    const lead = mark ? esc(mark) : '';
+    let lvl = heads[style] || (/^heading\s*([1-9])$/i.test(String(style).replace(/[-_]/g, ' '))
+      ? Math.min(4, Number(/([1-9])/.exec(style)[1])) : 0);
+    if(lvl) lvl = Math.min(4, lvl + shift);
+    else if(titleStyles.test(String(style))) lvl = 1;
+    if(lvl){ report.headings++; out.push(`<h${lvl}>${lead}${runs.html}</h${lvl}>`); }
+    else out.push(`<p>${lead}${runs.html}</p>`);
+    lines.push(plain);
+  }
+  const text = lines.join('\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { html: out.join(''), text, tracked, report };
+}
+
+/* ---- A TABLE IS A TABLE (J-3.2) ----
+   THE ALLOW-LIST HAS NO colspan, so a merged cell cannot be represented and is
+   not smuggled past: a horizontally merged cell is emitted as the cells it
+   spans, the first carrying the wording and the rest empty. That is a visible,
+   honest approximation rather than a silent one — the row still has the right
+   number of columns, which is what a rate card is read by. */
+function docxTableHtml(tbl, report){
+  const rows = tbl.match(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g) || [];
+  if(!rows.length) return null;
+  const lines = [], html = [];
+  rows.forEach((tr, i) => {
+    const cells = tr.match(/<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g) || [];
+    if(!cells.length) return;
+    const cs = [], txt = [];
+    cells.forEach(tc => {
+      const span = Number((tc.match(/<w:gridSpan\b[^>]*w:val="(\d+)"/) || [])[1] || 1);
+      const paras = tc.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) || [];
+      const parts = paras.map(pp => docxRunsHtml(pp, { rich: true }));
+      cs.push(parts.map(x => x.html).join('<br/>'));
+      txt.push(parts.map(x => x.text).join(' ').trim());
+      for(let k = 1; k < span && k < 12; k++){ cs.push(''); txt.push(''); }
+    });
+    const tag = i === 0 ? 'th' : 'td';
+    html.push('<tr>' + cs.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>');
+    lines.push(txt.join('\t'));
+  });
+  if(report) report.tables++;
+  return { html: `<table><tbody>${html.join('')}</tbody></table>`, lines };
+}
+
+/* Read a .docx as STRUCTURE. Same refusals as docxExtract, word for word, so
+   a file that could not be read still says the same thing to the person
+   holding it. */
+async function docxExtractRich(bytes){
+  let entries;
+  try{ entries = zipEntries(bytes); }
+  catch(e){ throw new Error('this is not a readable .docx file — re-save it from Word and try again'); }
+  const doc = entries.find(e => e.name === 'word/document.xml')
+    || entries.find(e => /^word\/document[^\/]*\.xml$/.test(e.name));
+  if(!doc) throw new Error('no document found inside this file — it is not a Word .docx');
+  if(doc.rawLen === 0xFFFFFFFF || doc.rawLen > 30 * 1024 * 1024)
+    throw new Error('the document inside this file is too large to read safely');
+  const parts = await docxReadParts(bytes, entries);
+  const xml = parts['word/document.xml'];
+  if(!xml) throw new Error('this .docx uses a compression HaTi cannot read — re-save it from Word');
+  const out = docxXmlToRich(xml, parts);
+  if(!out.text) throw new Error('no readable text found in this Word document');
+  return out;
+}
+
 /* ---- document-structure line classifier ----
    Contract text keeps its shape as PATTERNS even after extraction to plain
    text: section titles are short ALL-CAPS lines, clauses open with "3.2 ",
@@ -763,12 +1147,12 @@ function docxExportTracked(html, opts = {}){
   return { bytes, xml: built.document, paragraphs: built.paragraphs, tracked: built.tracked };
 }
 
-if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxXmlToText,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxHeadingStyles,docxRunsHtml,docxTableHtml,docxNumFormat,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,
   DOCX_UI_CLASSES,DOCX_UI_ID});
-if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix,
+if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxHeadingStyles,docxRunsHtml,docxTableHtml,docxNumFormat,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,

@@ -937,10 +937,40 @@ async function extractDocText(dataUrl, mime){
   return '';
 }
 /* .docx extraction that keeps the tracked-changes counts, for the flows that
-   must put "markup was found and read as accepted" on the audit record. */
+   must put "markup was found and read as accepted" on the audit record.
+
+   ---- IT READS THE STRUCTURE NOW, NOT ONLY THE WORDS (J-3.1) ----
+   docxExtractRich opens the numbering definition and the style sheet beside
+   the document and gives back BOTH a structured body and the plain text. The
+   text is what Copilot, the search index, the obligation scan, the playbook
+   and the metadata reader all use, and it carries the same words in the same
+   order as the scraper's — plus the numbers Word was generating and HaTi could
+   not see. THE SCRAPER IS THE FALLBACK, kept and still correct: a Word file
+   with no styles and no numbering reads exactly as it did. */
 async function extractWordText(dataUrl){
-  const out=await docxExtract(dataUrlBytes(dataUrl));
+  const bytes=dataUrlBytes(dataUrl);
+  if(window.docxExtractRich){
+    try{
+      const r=await docxExtractRich(bytes);
+      return { text:r.text.slice(0,EXTRACT_MAX_CHARS), tracked:r.tracked,
+        html:r.html, report:r.report };
+    }catch(e){
+      /* A refusal is a refusal — the same sentence either way, so a person
+         holding an unreadable file is told the same thing. It is re-thrown
+         rather than quietly falling back, because the two readers refuse for
+         the same reasons and a silent fallback would hide a real fault. */
+      throw e;
+    }
+  }
+  const out=await docxExtract(bytes);
   return { text:out.text.slice(0,EXTRACT_MAX_CHARS), tracked:out.tracked };
+}
+/* Did the file carry structure worth storing? A document with no headings, no
+   resolved numbers and no tables read exactly as the scraper read it, so there
+   is nothing to store and the guesswork stays — which is the fallback it
+   should always have been. */
+function docxHasStructure(rep){
+  return !!(rep && (rep.headings || rep.numbered || rep.tables));
 }
 const trackedNote=t=>(t&&(t.ins||t.del))
   ? `The file carried ${t.ins+t.del} tracked change${t.ins+t.del===1?'':'s'} (Word markup) — read with all changes accepted`
@@ -1319,11 +1349,12 @@ async function runUploadPipeline(file){
   const word=detectWordFile(dataUrl, mime, file.name);
   if(word==='doc'){ refuse(WORD_REFUSAL); return; }
   const fileHash=await sha256(dataUrl);
-  let extractedText, wordTracked=null;
+  let extractedText, wordTracked=null, wordHtml='', wordReport=null;
   if(word==='docx'){
     // read the wording out of the Word file itself; a failure here is a
     // refusal, not an empty shell — the person can re-save and try again
-    try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked; }
+    try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked;
+      wordHtml=w.html||''; wordReport=w.report||null; }
     catch(e){ refuse('Could not read this Word file: '+e.message); return; }
   } else {
     extractedText=await extractDocText(dataUrl, mime);   // real text extraction
@@ -1357,7 +1388,12 @@ async function runUploadPipeline(file){
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
     docKind:word||null, extractedText, textChars:extractedText.length, dataUrl, textSource,
     ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
-    ocrIllegible: ocr?ocr.illegible:0, ocrPartialPages: ocr?ocr.partialPages:0 };
+    ocrIllegible: ocr?ocr.illegible:0, ocrPartialPages: ocr?ocr.partialPages:0,
+    /* WHAT THE STRUCTURED READER FOUND (J-3.1), so the file strip can say it
+       and D-4's honest sentence has a fact to rest on. It is a REPORT and
+       never a promise: `unnumbered` is how many paragraphs said they were
+       numbered and whose number could not be resolved. */
+    docStructure: wordReport||null };
   // E1, flipped (WO N2): the machine reads BEFORE the person types. No seed —
   // there is nothing typed yet to seed with; the person corrects on the card.
   let meta=null;
@@ -1371,7 +1407,7 @@ async function runUploadPipeline(file){
   renderUploadSteps(3);   // Step 3 — Ready for your review
   const s1=document.getElementById('up-step-1'), s2=document.getElementById('up-step-2');
   if(!s1||!s2) return;    // the dialog was closed mid-read — nothing is filed
-  _up={ file, mime, word, wordTracked, extractedText, textSource, upload, meta };
+  _up={ file, mime, word, wordTracked, wordHtml, extractedText, textSource, upload, meta };
   s2.innerHTML=uploadConfirmHtml(_up, meta);
   s1.classList.add('hidden');
   s2.classList.remove('hidden');
@@ -1393,7 +1429,7 @@ async function runUploadPipeline(file){
    machine's confidence, a value they corrected is theirs and reads high. */
 async function submitUpload(){
   if(!_up||!_up.file){ toast(i18t('ct_choose_file_upload'),'err'); return; }
-  const { file, mime, wordTracked, extractedText, textSource, upload, meta }=_up;
+  const { file, mime, wordTracked, wordHtml, extractedText, textSource, upload, meta }=_up;
   const cp=fval('up-cp');
   /* Our entity on this agreement — see contractParty in js/core.js. Left
      blank it stays absent and the reading falls back to the workspace, so
@@ -1433,6 +1469,30 @@ async function submitUpload(){
   // this line tells a reader that resolution happened at upload, not in Word.
   if(wordTracked&&(wordTracked.ins||wordTracked.del)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'Document',
     detail:trackedNote(wordTracked) });
+  /* ---- THE STRUCTURE IS STORED, THE WAY AN EDITED CONTRACT ALREADY IS
+     (J-3.1) ----
+     A body with real headings is what makes the rest of the product work on
+     received paper: clauseSegment then finds those clauses rather than one per
+     paragraph, so a clause heading can be renamed, the front-matter region is
+     offered, the playbook's clause-kind matcher has a heading to read, and
+     "subject to clause 9" resolves. THE PLAIN TEXT STAYS BESIDE IT on
+     upload.extractedText, which is what Copilot, the search index, the
+     obligation scan and the metadata reader all read — unchanged in what it
+     is, and now carrying the numbers Word was generating.
+
+     ONLY WHERE THERE IS STRUCTURE TO STORE. A Word file with no styles and no
+     numbering read exactly as the scraper read it, so storing an html
+     projection of it would buy nothing and would put a rich body on a
+     document that has none. The guesswork stays for those, and for PDFs and
+     scans, which is the fallback it should always have been.
+
+     IT GOES THROUGH sanitizeRich LIKE ANY OTHER BODY: what a person may not
+     write, a file may not smuggle in. */
+  if(wordHtml && window.docxHasStructure && docxHasStructure(upload.docStructure)
+     && window.sanitizeRich){
+    const body=sanitizeRich(wordHtml);
+    if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
+  }
   c._loaded=true; c._light=false; c._v=0;
   if(meta){
     const conf=meta.confidence||{};
@@ -1777,6 +1837,29 @@ function uploadDocBody(c){
       <span style="color:${u.textChars>200&&!isOcrText(u.textSource)?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${u.textChars>200
         ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'}`
         : 'Text not machine-readable'}</span>
+      ${''/* ---- WHAT THE STRUCTURE READ SAYS, ON THE STRIP THAT ALREADY
+           CARRIES HOW WELL THE FILE WAS READ (J-3.1, D-4) ----
+           NO BAND AND NO BANNER: the standing rule, and this line's neighbour
+           already answers exactly this kind of question about the same file.
+           TWO FACTS AND NEITHER IS A GUESS — how many headings and numbers
+           were resolved, and, in amber, how many paragraphs said they were
+           numbered and could not be. A GUESSED CLAUSE NUMBER IS A WRONG
+           CITATION, which is worse than a missing one, so none is invented and
+           the reader is told instead. Drawn only where there is something to
+           say. */}
+      ${(()=>{ const st=u.docStructure; if(!st) return '';
+        const got=(st.headings||0)+(st.numbered||0)+(st.tables||0);
+        const bad=st.unnumbered||0;
+        if(!got && !bad) return '';
+        const parts=[];
+        if(st.headings) parts.push(i18tn('ct_struct_headings', st.headings, {n:st.headings}));
+        if(st.numbered) parts.push(i18tn('ct_struct_numbers', st.numbered, {n:st.numbered}));
+        if(st.tables)   parts.push(i18tn('ct_struct_tables', st.tables, {n:st.tables}));
+        return `<span style="opacity:.5">·</span>
+          ${parts.length?`<span>${esc(parts.join(', '))}</span>`:''}
+          ${bad?`<span style="color:var(--st-amber-fg)" title="${esc(i18t('ct_struct_unnumbered_title'))}">${
+            esc(i18tn('ct_struct_unnumbered', bad, {n:bad}))}</span>`:''}`;
+      })()}
       <span style="flex:1 1 auto"></span>
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
       ${canEdit()?`<button type="button" data-reread class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
@@ -1842,12 +1925,35 @@ async function rereadUploadText(c, btn){
       const f=await api('files/'+u.fileId); u.dataUrl=f.dataUrl;
     }
     if(!u.dataUrl) throw new Error('the original file is not available on this record');
-    const text=await extractDocText(u.dataUrl, u.mime||'');
+    /* ---- THE ONE DOOR TO A FRESH READ (D-5) ----
+       Nothing already on file is re-read automatically — a sealed record must
+       not change under anybody, and this control has always refused one. What
+       it gains here is the STRUCTURE the upload path now stores, so an unsigned
+       upload filed before J-3.1 can be brought up to date by the person who
+       owns it, one press, deliberately. A Word file goes through the same one
+       reader the upload uses; everything else reads exactly as it did. */
+    let text='', html='', rep=null;
+    if(window.isWordDoc && isWordDoc(c)){
+      const w=await extractWordText(u.dataUrl);
+      text=w.text; html=w.html||''; rep=w.report||null;
+    } else {
+      text=await extractDocText(u.dataUrl, u.mime||'');
+    }
     // …and the same gate on the repair path: a re-read that produced bytes must
     // not overwrite text that was readable
     if(!text || text.length<40 || !looksLikeText(text)) throw new Error('no machine-readable text in this file');
     const before=Number(u.textChars||0);
     u.extractedText=text; u.textChars=text.length;
+    if(rep) u.docStructure=rep;
+    /* THE STORED BODY IS ONLY WRITTEN WHERE THERE IS STRUCTURE TO STORE, and
+       never over an EDITED one: once somebody has redlined this document the
+       wording is theirs, and a re-read of the file must not throw that away.
+       A signed record never reaches here — the caller refuses first. */
+    if(html && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
+       && !c.changes?.length && !c.versions?.length){
+      const body=sanitizeRich(html);
+      if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
+    }
     c.lastAction=todayStr();
     logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
     persist(c);
@@ -8108,7 +8214,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
