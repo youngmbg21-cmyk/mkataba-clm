@@ -2,11 +2,18 @@
 
 **Raised by:** Young, 29 Aug 2026.
 **Branch:** `claude/contract-signature-workflow-8z1ic6`.
-**Status:** **OPEN — nothing built.** Four jobs specified. J-1 to J-3 are each
-blocked on their own decisions, none of which the owner has answered yet. **J-4
-is a REGRESSION FIX, is diagnosed, and is the one job here that needs no
-decision before it is built** — it waits only on the owner confirming the
-understanding. More jobs to follow; section **J-5 onward** is where they land.
+**Status:** **J-4 BUILT AND PUSHED (29 Aug 2026). J-1 to J-3 are UNBLOCKED and
+not started.** The owner answered all fifteen decisions on 29 Aug 2026 in one
+word — *"all as recommended"* — and chose the order: J-4 first. Every
+`Owner's answer` below reads **as recommended** because of that one ruling, not
+because each was asked separately. More jobs to follow; section **J-5 onward**
+is where they land.
+
+**THE BRANCH WAS RESTARTED FROM THE LATEST MAIN BEFORE J-4 WAS BUILT**, on the
+owner's instruction, and it mattered: main had moved 16 commits, one of them
+touching this very page. **The J-4 diagnosis was re-measured against that code
+rather than trusted** — it held, and main's own click-to-type change had made it
+sharper. Check the remote before measuring.
 
 ---
 
@@ -279,30 +286,30 @@ every time).
 has a signature line, and a person may add or remove one on the paper. The
 anchor is a **clause id** (`clauseSegment`'s own durable ids), the same anchor a
 change uses; never a character offset, which does not survive an edit.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-2 — Who does a spot belong to?**
 *Recommended:* **a row on the signing order** (`signerPlan`). No second list of
 people to keep in step, and a spot travels with that signer's link.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-3 — May you sign with spots left empty?**
 *Recommended:* **no** — it joins `signBlockers`, so the button disables itself
 and says "2 places on the contract still need you".
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-4 — Does the mark reach the sealed document?**
 *Recommended:* **yes, baked in at the moment of signing**, so the sealed copy
 looks like a signed contract. Before that it is a draft that can be taken back,
 and if the contract is never signed nothing is kept.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-5 — Does the counterparty get the same walk?**
 Their screen is `renderSharePortal`, a different page reached by a link. Giving
 them the same walk is roughly as much work again as everything above.
 *Recommended:* **not in this round.** Their spots are still drawn on their copy,
 so nothing is lost while it is decided.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 ---
 
@@ -592,34 +599,34 @@ where they used to live before being moved to the Checks card on 14 Aug 2026.
 *Recommended:* **the tab.** A contract's promises are neither its facts nor its
 wording and they outlive both, and a count on a tab is the cheapest possible way
 to say "something here is overdue" without a banner.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-2 — Offer the obligation scan at execution?**
 *Recommended:* **yes, as an offer.** An executed contract never read for
 obligations says so on its own next-action line and in the bell; one press runs
 it, and it stops asking once it has been run. **Never silently** — it costs
 money.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-3 — How does a chase reach the other side?**
 Email to the counterparty contact on file; a message on a standing share link;
 or no message at all and only a dated record that you chased.
 *Recommended:* **email to the contact on file, drafted and sent on your press,
 with the fact recorded either way.**
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-4 — Should completion take an attachment?**
 *Recommended:* **not yet.** A note with a reference answers most of it, and this
 is the one part of the job that adds real storage. Revisit once J-2.2 has been
 in use.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-5 — Who may complete an obligation?**
 Today anyone who can edit the contract. Stricter would be the owner or an admin.
 *Recommended:* **leave it open and record who closed it.** A rule that stops a
 colleague ticking something off while the owner is on leave costs more than it
 protects, and with a name against every completion the record is honest anyway.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 ---
 
@@ -888,31 +895,31 @@ business and are not carried. If you meant a visual facsimile of the original,
 say so: that is a different and much larger job, and it would mean showing the
 file rather than reading it — which costs redlining, signing on the paper and
 everything else HaTi does with wording.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-2 — Images and logos inside the Word file?**
 *Recommended:* **not in this round.** They are real files inside the zip and
 carrying them means storing them. The letterhead HaTi already draws is a
 separate thing and is untouched.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-3 — Tables in phase two, or phase one?**
 *Recommended:* **phase two.** Headings and numbering are what the clause model
 needs and what makes the document navigable; tables are the next most valuable
 thing and are self-contained.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-4 — What is shown when the numbering cannot be resolved?**
 *Recommended:* **the paragraph, with no number, and a line on the file strip
 saying so.** Never a guessed number — a wrong clause number is a wrong citation
 and it would be repeated in every redline made against it.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 **D-5 — Do contracts already uploaded get re-read?**
 *Recommended:* **not automatically.** A sealed record must not change under
 anybody. The existing "Re-read document" control is the door for an unsigned
 upload somebody wants to fix, and it already refuses a sealed one.
-*Owner's answer:* —
+*Owner's answer:* **As recommended** (29 Aug 2026, "all as recommended").
 
 ---
 
@@ -952,10 +959,14 @@ written to match the code.
 
 ---
 
-# J-4 — ONE PRESS TO EDIT (a regression)
+# J-4 — ONE PRESS TO EDIT (a regression) — **BUILT 29 Aug 2026**
 
 **Raised by:** Young, 29 Aug 2026, off a screenshot of the clause editor with
 the green margin bar ringed.
+**Status:** **DONE.** Built on the owner's word after the understanding artifact
+was confirmed ("fully aligned"). What it turned into, and the one guard that was
+written and then taken out again, is recorded in CLAUDE.md under ONE PRESS
+REACHES TYPING AND THE STRIP.
 
 **Owner's words, verbatim:**
 
