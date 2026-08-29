@@ -394,9 +394,25 @@ function clauseEditorCss(){
   .ce-zoom .out{font-family:var(--font-mono); font-size:var(--t-micro);
     color:var(--color-neutral-600); min-width:38px; text-align:center;
     font-variant-numeric:tabular-nums}
-  .ce-paperwrap .rl-clause-live{position:relative}
-  .ce-paperwrap .rl-clause-live::before{content:""; position:absolute; left:-14px; top:-6px;
-    bottom:-6px; width:3px; background:var(--accent-solid)}
+  /* ---- NO MARGIN BAR ON THE CLAUSE BEING WORKED ON (owner-asked 29 Aug 2026,
+     ringing it: "delete the green line bar on highlighted in the attached") ----
+     The live clause's own rule carried a 3px accent bar in the left margin
+     and this is where it was. It said WHICH clause is live, and THREE things
+     already say that, which is why taking it costs nothing: the dashed frame
+     round the wording, the caret sitting in it, and the fact that this page is
+     about ONE clause and names it at the top.
+     DELETED RATHER THAN MADE TRANSPARENT — a bar drawn in the page's own colour
+     still reserves its margin and still has to be ruled out by the next reader.
+     Its position:relative went with it and is not needed: the clause is
+     already positioned by the redline page's own rl-clause rule in
+     negotiation-css.js, and this page's wrapper IS a redline page. (NO
+     BACKTICKS IN HERE — this block is CSS inside a JS template literal, and a
+     pair of them ends the string and evaluates the words between. Paid a fifth
+     time writing this very note, and caught by the linter in one run.)
+     That is what the RED
+     changed-clause bar hangs off, and that one STAYS — a different mark, saying
+     the clause carries a change, drawn on every changed clause in the product
+     rather than only on this page's live one. */
   /* ---- THE CLAUSE YOU ARE TYPING IN IS STILL THE PAPER (owner-asked 26 Aug
      2026, Option A off a drawn render: "I want when you click on edit the field
      to not change color and just have a very light almost dotted line around
@@ -2697,6 +2713,18 @@ function ceSelection(){
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
   return { text, rect, line: li, at };
 }
+/* ---- NOTICED WHILE FIXING THE STRIP, AND DELIBERATELY NOT FIXED ----
+   (29 Aug 2026.) With typing OFF, a DRAG in the wording is read as a press in
+   the wording: click-to-type runs on the `click` that follows mouseup, starts
+   typing and drops the caret at the point, which COLLAPSES the selection the
+   drag just made. So a reader selecting words to copy off a clause that is
+   showing its marks loses the selection under them.
+   IT DOES NOT REACH THE REPORTED FAULT and is not fixed here: while typing —
+   which is where the owner's whole report lives — the click branch is already
+   excluded by its own contenteditable selector, so this cannot bite there. A
+   guard was written for it and taken out again, because refusing the drag would
+   partly undo the click-to-type feature of 29 Aug for the sake of a case nobody
+   has reported. Logged rather than fixed on the way past. */
 /* The wording as LINES, with horizontal runs collapsed and the breaks kept —
    the one reading both the selection and the replacement work in. */
 function ceLines(){
@@ -2732,7 +2760,17 @@ function ceOpenInline(sel){
   if (ta){
     ta.value = sel.text;
     ta.style.height = '';
-    try{ ta.focus(); ta.select(); }catch(_){}
+    /* ---- AND IT DOES NOT TAKE THE CARET WHILE THE READER IS TYPING ----
+       (29 Aug 2026, with the guard above.) Focusing and selecting this box was
+       right while the strip only ever opened in the reading: nothing else held
+       the caret, and the reader's next keystroke was meant for it.
+
+       A highlight can now be made mid-sentence, and taking focus there would
+       move the reader out of the clause every single time they selected
+       something — which is the opposite of the promise this fix rests on. So
+       the box takes focus only when the reader was NOT typing; otherwise it
+       sits holding the passage until they press into it. */
+    if (!ceIsTyping()){ try{ ta.focus(); ta.select(); }catch(_){} }
     ceInlineFit(ta);
   }
 }
@@ -3223,6 +3261,15 @@ function ceWirePage(page){
   page.addEventListener('input', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
+    /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
+       (29 Aug 2026.) With the strip live during typing, a reader who highlights
+       a sentence and then simply carries on writing has answered the question
+       themselves — the passage the strip was holding is the passage they have
+       just typed over. Leaving it open would leave a box offering to replace
+       wording that is no longer there, and ceReplacePassage would then refuse
+       in words for a reason the reader never caused.
+       Guarded on there BEING one, so an ordinary keystroke costs nothing. */
+    if (_ceSel) ceCloseInline();
     ceSyncBarSteps();
   });
 
@@ -3240,10 +3287,37 @@ function ceWirePage(page){
     if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
   });
 
-  /* ONE SENTENCE AT A TIME — only in the reading, never while typing: a drag
-     inside a contenteditable box is somebody selecting words to work on them. */
+  /* ---- ONE SENTENCE AT A TIME, AND IT NO LONGER WAITS ITS TURN ----
+     (owner-reported 29 Aug 2026: "I am still clicking the pencil sign various
+     times and I do not know for what reason ... highlight a sentence and a strip
+     bar appears (which was there before but you seem to have deleted it)".)
+
+     THIS HANDLER OPENED `if (ceIsTyping()) return;` AND THAT LINE IS THE WHOLE
+     REPORT. Typing and the strip could not be live at once, so the pencil was
+     one switch pointing at one of two jobs and NO NUMBER OF PRESSES REACHED
+     BOTH: press it to type and the strip went; press it again for the strip and
+     the typing went. Nothing on screen said so, which is why the only thing left
+     to try was pressing it again.
+
+     THE STRIP WAS NOT DELETED, WHICH THE OWNER ALSO HAD RIGHT: this guard —
+     and ceIsTyping itself — arrived in 79551c8 (26 Aug 2026), the change that
+     made this page edit on the paper. Before it the strip carried no such
+     condition. The 28 Aug rule about ARRIVAL then made the conflict a daily one
+     rather than a latent one, because the reader now lands needing a press.
+
+     ITS REASONING IS NOT WRONG ABOUT WHAT A DRAG CAN MEAN — inside a
+     contenteditable box it really can be somebody selecting words to embolden.
+     It is wrong that it can only mean that. On this page a reader who
+     highlights a sentence is usually reaching for Copilot, which is the one
+     thing the strip exists for. So a drag now means BOTH: the browser's own
+     selection stands and every tool on the bar still acts on it, AND the strip
+     opens beside it.
+
+     THE STRIP WAITS RATHER THAN TAKING OVER, which is the promise that makes
+     one gesture safe for two jobs. It does not take the caret while the reader
+     is typing (ceOpenInline), and the next keystroke in the clause closes it
+     having done nothing (the input handler above). */
   page.addEventListener('mouseup', ev => {
-    if (ceIsTyping()) return;
     if (ev.target && ev.target.closest && ev.target.closest('#ce-inline')) return;
     setTimeout(() => {
       const sel = ceSelection();

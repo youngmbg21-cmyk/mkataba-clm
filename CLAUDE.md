@@ -1835,6 +1835,71 @@ an unrelated file went red with `SyntaxError: Unexpected identifier`. Say
 "the is-changed class" in prose. f236 is the net and the linter caught it in one
 run.
 
+## ONE PRESS REACHES TYPING AND THE STRIP (owner-reported 29 Aug 2026)
+
+*"I am still clicking the pencil sign various times and I do not know for what
+reason ... Just click the pencil symbol once, you can then edit manually by
+typing or highlight a sentence and a strip bar appears (which was there before
+but you seem to have deleted it)."*
+
+**THE STRIP WAS NEVER DELETED — IT WAS MADE CONDITIONAL ON NOT TYPING**, and
+the owner's memory was right on both counts. `page.addEventListener('mouseup')`
+opened `if (ceIsTyping()) return;`, so **typing and the strip could not be live
+at once**: the pencil was one switch pointing at one of two jobs and **no number
+of presses reached both**. Nothing on screen said so, which is why the only
+thing left to try was pressing it again.
+
+**IT WENT IN ON 26 Aug 2026** with the change that made this page edit on the
+paper, along with `ceIsTyping` itself; before that commit the strip carried no
+such condition. **THE 28 Aug ARRIVAL RULE (the section below) THEN TURNED A
+LATENT CONFLICT INTO A DAILY ONE** — the reader now lands on a marked clause
+needing a press, and the press takes the strip away. **Both of those decisions
+stand**; what was wrong was that they met.
+
+**THE REASONING IT WAS WRITTEN ON IS NOT WRONG ABOUT WHAT A DRAG CAN MEAN** —
+inside a contenteditable box it really can be somebody selecting words to
+embolden. It is wrong that it can only mean that. On this page a reader who
+highlights a sentence is usually reaching for Copilot, which is the one thing
+the strip exists for. **So a drag means BOTH**: the browser's own selection
+stands and every tool on the bar still acts on it, AND the strip opens beside
+it.
+
+**THE STRIP WAITS RATHER THAN TAKING OVER, and that is the promise that makes
+one gesture safe for two jobs.** Two rules carry it, and neither is optional:
+- **It does not take the caret while the reader is typing.** `ceOpenInline` used
+  to focus and select its box unconditionally — right while the strip only ever
+  opened in the reading, where nothing else held the caret. Now that a highlight
+  can be made mid-sentence, that would move the reader out of the clause every
+  time they selected something.
+- **Typing in the clause closes it, having done nothing.** A reader who
+  highlights and then carries on writing has answered the question themselves,
+  and the passage the strip was holding is the one they have just typed over.
+
+**NOTHING ABOUT FILING MOVED.** The whole of this is which gestures reach which
+control; the one act in the rail's foot is still what puts a change on the
+record, and f245 (19) greps that no second filing path appeared.
+
+**AND ONE THING WAS NOTICED AND DELIBERATELY NOT FIXED, said out loud.** With
+typing OFF, a DRAG in the wording is read as a press in the wording:
+click-to-type runs on the `click` that follows mouseup, starts typing and drops
+a caret, which collapses the selection the drag just made. **It cannot reach the
+reported fault** — while typing, that branch is already excluded by its own
+contenteditable selector — so a guard written for it was **taken out again**
+rather than shipped, because refusing the drag would have narrowed the 29 Aug
+click-to-type feature for a case nobody has reported. The finding is recorded in
+the source where it lives.
+
+**THE GREEN MARGIN BAR WENT WITH THIS FIX** — see THE CLAUSE YOU ARE TYPING IN
+IS STILL THE PAPER, whose "untouched" claim is reversed in place there.
+
+Tests: f245 (19) (6 claims, **5 of them failing against the parent**), f245's
+margin-bar claim REVERSED IN PLACE, clause-editor-verify section 21 (9 — the
+gesture **driven with a real mouse**, because the fault had a second half that
+only a real mousedown/mouseup/click sequence exercises: a synthetic Range fires
+neither event and would have passed against the broken build) and 17g reversed
+in place. **Against the parent that file reports the owner's bug verbatim** —
+`21c … strip false` — and the green bar at 3px.
+
 ## THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST (owner-reported 28 Aug 2026)
 
 *"ensure when you are in the redlines tab you are able to see the redlines
@@ -4299,7 +4364,7 @@ because none of that was what the owner was looking at.
 - **THE FILL AND THE RING BOTH GO AND THE PAPER SHOWS THROUGH.** What is left is `outline:1px dashed` at `outline-offset:4px` — an OUTLINE rather than a border, so it takes no space and nothing on the page moves when it appears; a border would reflow the clause under the reader mid-sentence.
 - **THE COLOUR IS THE DOCUMENT'S OWN INK AT A FIFTH STRENGTH, NEVER A TYPED GREY**, and that is what makes ONE declaration right in both themes: the sheet is cream by day and near-black at night, so a fixed light grey that whispers on the cream is invisible on the other — and the dark override is the half that gets forgotten. `color-mix(in srgb, var(--color-doc-text) 22%, transparent)`, so the line follows the paper. MEASURED in both: `srgb .055 .102 .094 / .22` on the cream, `srgb .886 .910 .941 / .22` on the near-black.
 - **WHAT CARRIES FOCUS IS THE CARET**, which is the strongest indicator a text field has and is why this line does not need to shout: the line says WHERE the editable region is, the caret says you are in it. The `:focus` rule is the resting rule repeated rather than a stronger one — a mark that holds until the reader clicks into it is no mark, because typing is the one moment this state is ever seen.
-- **THE TEAL MARGIN BAR IS UNTOUCHED and is the one signal here still at full strength.** It says WHICH clause is live; taking it down with the fill would have left the page saying nothing at all. Asserted in both files so the removal is never read as covering it.
+- **THE TEAL MARGIN BAR WAS UNTOUCHED HERE AND IS RETIRED — REVERSED IN PLACE 29 Aug 2026** (owner-asked, ringing it: *"delete the green line bar on highlighted in the attached"*). It said WHICH clause is live, and keeping it while the fill came off was right at the time: taking BOTH marks in one pass would have left the page saying nothing at all. **What makes removing it safe now is that three other things already answer that question** — the dashed frame this section is about, the caret sitting in it, and the page naming its ONE clause at the top. **DELETED, NOT MADE TRANSPARENT**: a bar painted in the page's own colour still reserves its margin and still has to be ruled out by the next reader. Its `position:relative` went with it and is not needed — the clause is already positioned by the redline page's own rule, which is what the RED changed-clause bar hangs off. **THAT RED BAR STAYS** and is asserted beside the removal in both files, so this can never be read as covering it: a different mark, saying the clause carries a change, drawn on every changed clause in the product rather than only on this page's live one.
 
 **AND THE CHIPS MOVED ONTO THE READINGS ROW (owner-asked the same day: *"the name of number of the edit plus the something of my own are taking up space from the contract. They would maybe go on the far right of the contract tab changes and give space back to the contract."*)** They had a full-width strip of their own directly above the paper — MEASURED at 40px with its rule, on a page whose middle is meant to be the contract. `ceCtxChipsHtml` is drawn by `ceRenderReadBar` and by nothing else (two callers would be the same chips in two places disagreeing about which is lit), and they sit inside the running `+N −N` readout, which is where the reader's eye already goes for what their typing is doing.
 

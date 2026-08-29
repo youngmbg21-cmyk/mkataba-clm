@@ -1393,8 +1393,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      alphaOf(quiet.colour) > 0 && alphaOf(quiet.colour) < 0.5
        && quiet.colour !== quiet.accent,
      `${quiet.colour} against an accent of ${quiet.accent}`);
-  ck('17g THE MARGIN BAR IS UNTOUCHED — the one signal still at full strength',
-     alphaOf(quiet.barBg) === 1 && parseFloat(quiet.barW) >= 3,
+  /* ---- REVERSED IN PLACE 29 Aug 2026 (owner-asked, ringing it) ----
+     This read "THE MARGIN BAR IS UNTOUCHED — the one signal still at full
+     strength", and it was true and worth pinning while the fill came off the
+     typing box: taking BOTH marks in one pass would have left the page saying
+     nothing about which clause was live. The owner has now looked at it in
+     place and asked for the bar to go, and three things still answer that
+     question — the dashed frame this section measures directly above, the caret
+     in it, and the page naming its one clause at the top. Section 21 asserts
+     the RED changed-clause bar is not taken with it. */
+  ck('17g the margin bar on the live clause draws nothing',
+     alphaOf(quiet.barBg) === 0 || parseFloat(quiet.barW) === 0 || !quiet.barW,
      `${quiet.barBg} at ${quiet.barW}`);
 
   /* ---- ONE DECLARATION, BOTH THEMES ----
@@ -1993,6 +2002,127 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
   await pause(300);
+
+  /* ==========================================================================
+     21. ONE PRESS TO EDIT (owner-reported 29 Aug 2026)
+     ==========================================================================
+     "I am still clicking the pencil sign various times and I do not know for
+     what reason ... Just click the pencil symbol once, you can then edit
+     manually by typing or highlight a sentence and a strip bar appears (which
+     was there before but you seem to have deleted it)."
+
+     DRIVEN WITH A REAL MOUSE, and that is the whole reason this section is
+     here rather than in the node file. The fault had TWO halves and only a real
+     gesture exercises the second: the strip stood down while typing, AND
+     click-to-type — which runs on the `click` that follows mouseup — dropped a
+     caret that COLLAPSED the selection before the strip's deferred read ran. A
+     synthetic Range fires neither event and would have passed against the
+     broken build on both counts.
+     ========================================================================== */
+  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await pause(250);
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
+
+  /* ONE press, and BOTH halves of what it owes are asserted together — a fix
+     that cleared the marks without making the clause typeable, or the other way
+     round, has to fail here rather than pass on half the job. */
+  const onePress = await p.evaluate(async () => {
+    const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
+      || document.querySelector('#ce-doc [data-ce-pencil]');
+    const before = { presses: 0 };
+    if (pen){ pen.click(); before.presses = 1; }
+    await new Promise(r => setTimeout(r, 400));
+    const live = document.querySelector('#ce-doc .rl-clause-live');
+    const box = document.getElementById('ce-clausebody');
+    return { presses: before.presses,
+      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
+      marks: live ? live.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1 };
+  });
+  ck('21a ONE press of the pencil starts typing AND clears the marks',
+     onePress.presses === 1 && onePress.typing === true && onePress.marks === 0,
+     `presses ${onePress.presses} · typing ${onePress.typing} · marks ${onePress.marks}`);
+
+  /* ---- THE HIGHLIGHT, DRAGGED FOR REAL ---- */
+  const target = await p.evaluate(() => {
+    const box = document.getElementById('ce-clausebody');
+    if (!box) return null;
+    /* A paragraph long enough that a drag across most of it is an unambiguous
+       passage — the strip refuses a two-word or a repeated one, and staging one
+       of those would prove nothing about the guard being removed. */
+    const ps = Array.from(box.querySelectorAll('p, div'))
+      .filter(el => (el.innerText || '').trim().length > 40);
+    const el = ps[0] || box;
+    const r = el.getBoundingClientRect();
+    return { x1: r.left + 6, y1: r.top + r.height / 2, x2: r.right - 10, y2: r.top + r.height / 2 };
+  });
+  ck('21b a passage long enough to drag was found', !!target, target ? 'ok' : 'none');
+  if (target){
+    await p.mouse.move(target.x1, target.y1);
+    await p.mouse.down();
+    await p.mouse.move(target.x1 + (target.x2 - target.x1) / 2, target.y2, { steps: 8 });
+    await p.mouse.move(target.x2, target.y2, { steps: 8 });
+    await p.mouse.up();
+    await pause(450);
+  }
+  const afterDrag = await p.evaluate(() => {
+    const strip = document.getElementById('ce-inline');
+    const r = strip ? strip.getBoundingClientRect() : null;
+    const sel = window.getSelection();
+    const act = document.activeElement;
+    return {
+      /* VISIBLE PIXELS, never a class: a strip carrying is-on but painted
+         nowhere is the same dead press from the reader's chair. */
+      strip: !!(strip && r && r.width > 0 && r.height > 0 && strip.offsetParent !== null),
+      selected: !!(sel && !sel.isCollapsed && String(sel.toString() || '').trim().length > 3),
+      focus: act ? (act.id || act.tagName) : 'none',
+      typing: !!(document.getElementById('ce-clausebody')
+        && document.getElementById('ce-clausebody').getAttribute('contenteditable') === 'true'),
+    };
+  });
+  ck('21c THE REPORTED FIX: highlighting while typing raises the strip',
+     afterDrag.strip === true, `strip ${afterDrag.strip}`);
+  /* A SUPPORTING CLAIM, NOT A REGRESSION ONE, and labelled so: this passes
+     against the unfixed code too, because while typing the click branch is
+     already excluded by its own contenteditable selector. It is here because
+     the strip can only open if the selection survived the gesture, and pinning
+     that separately says WHICH half failed if this ever goes red. */
+  ck('21d …the selection survived the gesture, which is what the strip reads',
+     afterDrag.selected === true, `selected ${afterDrag.selected}`);
+  ck('21e …the reader is still typing in the clause, not switched out of it',
+     afterDrag.typing === true, `typing ${afterDrag.typing}`);
+  ck('21f THE STRIP WAITS: it does not take the caret',
+     afterDrag.focus === 'ce-clausebody', `focus ${afterDrag.focus}`);
+
+  /* Carrying on typing answers the question, so the strip goes — having done
+     nothing to the wording. */
+  const afterType = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody');
+    if (box) box.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 200));
+    const strip = document.getElementById('ce-inline');
+    return { on: !!(strip && strip.classList.contains('is-on')) };
+  });
+  ck('21g typing in the clause closes the strip', afterType.on === false, `open ${afterType.on}`);
+
+  /* ---- THE GREEN BAR, AND THE RED ONE THAT IS NOT IT ---- */
+  const bars = await p.evaluate(() => {
+    const live = document.querySelector('#ce-doc .rl-clause-live');
+    const changed = document.querySelector('#ce-doc .rl-clause.is-changed');
+    const px = (el, which) => {
+      if (!el) return -1;
+      const cs = getComputedStyle(el, which);
+      if (cs.content === 'none') return 0;
+      const w = parseFloat(cs.width);
+      return isNaN(w) ? 0 : w;
+    };
+    return { green: px(live, '::before'), red: px(changed, '::after') };
+  });
+  ck('21h the green margin bar on the live clause is gone', bars.green === 0,
+     `drawn ${bars.green}px`);
+  ck('21i …and the red changed-clause bar is untouched', bars.red > 0,
+     `drawn ${bars.red}px`);
 
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');

@@ -1271,13 +1271,33 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
       'the accent belongs to the margin bar on this page, not to the text box');
   });
 
-  test('THE MARGIN BAR IS UNTOUCHED — the one signal still at full strength', () => {
-    /* Said out loud because taking the fill down without checking this would
-       have left the page saying nothing at all about which clause is live. */
-    const bar = CE.match(/\.ce-paperwrap \.rl-clause-live::before\{[\s\S]*?\}/)[0];
-    assert.match(bar, /background:var\(--accent-solid\)/,
-      'the teal bar still says WHICH clause is live');
-    assert.match(bar, /width:3px/, 'at the weight it has always had');
+  test('THE MARGIN BAR IS GONE — and the red changed-clause bar is not', () => {
+    /* REVERSED IN PLACE 29 Aug 2026, owner-asked, ringing it: "delete the green
+       line bar on highlighted in the attached".
+
+       WHAT THIS TEST USED TO SAY, and why reversing it is safe rather than a
+       loss: it asserted the teal bar was UNTOUCHED, on the reasoning that
+       taking it would leave the page saying nothing about which clause is live.
+       Three things already say that — the dashed frame round the wording, the
+       caret in it, and the page naming its one clause at the top — so the
+       reasoning was right about the question and wrong about this bar being the
+       only answer to it.
+
+       DELETED, NOT MADE TRANSPARENT: a bar painted in the page's own colour
+       still reserves its margin and still has to be ruled out by the next
+       reader. So the claim is the ABSENCE of the rule, which is stronger than
+       asserting a colour. */
+    assert.ok(!/\.rl-clause-live::before/.test(CE),
+      'no margin bar is drawn on the clause being worked on');
+    assert.ok(!/\.ce-paperwrap \.rl-clause-live\{/.test(CE),
+      'and its positioning rule went with it — the clause is already positioned '
+      + 'by the redline page, which is what the RED bar hangs off');
+    /* THE RED ONE IS A DIFFERENT MARK AND STAYS, asserted here so this removal
+       can never be read as covering it: it says the clause carries a change and
+       it draws on every changed clause in the product, not only this page's. */
+    const NEGOCSS = read('js/views/negotiation-css.js');
+    assert.match(NEGOCSS, /\.rl-clause\.is-changed::after\{[\s\S]{0,200}background:var\(--danger\)/,
+      'the changed-clause bar is untouched');
   });
 
   test('THE STRIP IS GONE, and nothing can draw one', () => {
@@ -1461,5 +1481,80 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     /* A press on a control is not a press in the words. */
     assert.match(CODE, /!hit\('button, a, input, textarea, select/,
       'controls inside the paper are excluded by selector');
+  });
+});
+
+/* ============================================================
+   f245 (19) — one press to edit
+   ============================================================
+   Owner-reported 29 Aug 2026: "I am still clicking the pencil sign various
+   times and I do not know for what reason ... Just click the pencil symbol
+   once, you can then edit manually by typing or highlight a sentence and a
+   strip bar appears (which was there before but you seem to have deleted it)."
+
+   THE CAUSE WAS ONE LINE AND IT IS NOT WHAT IT LOOKED LIKE. The strip was not
+   deleted; it was made conditional on NOT typing, so typing and the strip could
+   never be live at once and no number of pencil presses reached both. That
+   guard arrived in 79551c8 (26 Aug 2026); the 28 Aug rule about ARRIVAL then
+   turned a latent conflict into a daily one, because the reader now lands on a
+   marked clause needing a press.
+
+   AND A SECOND FAULT SAT UNDER IT, found only by reading the click path: since
+   click-to-type landed, a DRAG in the wording started typing on the `click`
+   that follows mouseup, which dropped a caret and COLLAPSED the selection
+   before the strip's own deferred read ran. Removing the guard alone would have
+   fixed nothing.
+
+   What a browser has to answer — is the strip visible pixels, is the caret
+   still in the clause — is clause-editor-verify's. This file holds the rules.
+   ============================================================ */
+describe('f245 (19) — one press reaches typing AND the strip', () => {
+
+  test('THE REPORTED CAUSE: the strip no longer stands down while typing', () => {
+    const up = CODE.match(/addEventListener\('mouseup'[\s\S]*?\n  \}\);/);
+    assert.ok(up, 'the selection handler is still there to read');
+    assert.ok(!/ceIsTyping\(\)\s*\)\s*return;/.test(up[0]),
+      'it must not refuse a drag because the reader is typing — that refusal IS '
+      + 'the report, and with it in place the pencil is one switch pointing at '
+      + 'one of two jobs');
+    assert.match(up[0], /ceOpenInline\(sel\)/, 'and it still opens the strip');
+  });
+
+  test('the fix is scoped to the strip — click-to-type is untouched', () => {
+    /* A guard against a drag being read as a click was written here and TAKEN
+       OUT AGAIN, said out loud because the reasoning is the useful part: while
+       typing — which is where the whole report lives — the click branch is
+       already excluded by its own contenteditable selector, so it cannot bite
+       there. Refusing the drag would have narrowed the click-to-type feature of
+       29 Aug for a case nobody reported. The finding is recorded in the source
+       instead. */
+    assert.match(CODE, /if \(inDoc && ceEditableReading\(\)\n\s+&& !hit\('button, a, input/,
+      'click-to-type asks exactly what it asked before');
+    assert.ok(!/ceDragSelected/.test(CODE), 'and no guard of ours sits in front of it');
+  });
+
+  test('the strip WAITS: it does not take the caret while the reader is typing', () => {
+    const open = CODE.match(/function ceOpenInline\([\s\S]*?\n\}/)[0];
+    assert.match(open, /if \(!ceIsTyping\(\)\)\{ try\{ ta\.focus\(\); ta\.select\(\); \}/,
+      'focus is taken only when the reader was not already typing');
+    assert.ok(!/^\s*try\{ ta\.focus\(\); ta\.select\(\); \}catch/m.test(open),
+      'and never unconditionally — that would move the reader out of the clause '
+      + 'every time they highlighted something');
+  });
+
+  test('and typing in the clause closes it, having done nothing', () => {
+    const input = CODE.match(/addEventListener\('input'[\s\S]*?\n  \}\);/)[0];
+    assert.match(input, /if \(_ceSel\) ceCloseInline\(\);/,
+      'a reader who highlights and then carries on writing has answered the '
+      + 'question themselves');
+    assert.match(input, /ceSyncBarSteps\(\)/, 'and the step buttons still follow');
+  });
+
+  test('nothing about filing moved', () => {
+    /* The whole of this fix is which gestures reach which control. A change
+       that started filing on a highlight would be a second door onto the one
+       act this page has. */
+    assert.ok(!/negoFileChange\(/.test(CODE), 'no second filing path');
+    assert.ok(!/changes\.push/.test(CODE), 'and nothing writes a change directly');
   });
 });
