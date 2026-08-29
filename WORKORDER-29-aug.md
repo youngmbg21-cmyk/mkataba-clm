@@ -349,7 +349,7 @@ Nothing here is a description; each line is a check somebody can fail.
 
 ---
 
-# J-2 — OBLIGATIONS, END TO END
+# J-2 — OBLIGATIONS, END TO END — **BUILT 29 Aug 2026, less the counterparty on-time report**
 
 **Status:** BUILT 29 Aug 2026 — J-2.1, J-2.2 and the two acts of J-2.3.
 
