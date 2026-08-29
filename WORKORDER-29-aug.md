@@ -2,9 +2,9 @@
 
 **Raised by:** Young, 29 Aug 2026.
 **Branch:** `claude/contract-signature-workflow-8z1ic6`.
-**Status:** **OPEN — nothing built.** Two jobs specified, each blocked on its
+**Status:** **OPEN — nothing built.** Three jobs specified, each blocked on its
 own decisions, none of which the owner has answered yet. More jobs to follow;
-section **J-3 onward** is where they land.
+section **J-4 onward** is where they land.
 
 ---
 
@@ -30,6 +30,16 @@ date, so HaTi can never tell you whether you deliver on time. "Quarterly" is a
 word on a row that nothing acts on. And an obligation marked as the other
 side's is never chased by anything. J-2 gives obligations a home, a real life,
 and a list you can work down.
+
+**J-3 — an uploaded contract keeps its structure.** A Word contract that comes
+in from the other side arrives on screen having lost its shape: headings,
+numbering, sub-paragraph levels and tables. It is hard to follow, and it costs
+more than reading comfort — HaTi works out what a clause IS from the document's
+own headings, so a contract that arrives without them cannot have a clause
+renamed, cannot offer its front matter, and cannot have a playbook rule matched
+to the right clause. The cause is one step: the reader takes the words out of
+the Word file and throws away everything else the file knew, and the screen then
+guesses the structure back from the words.
 
 Nothing is built. Each job ends with the questions that decide what gets built,
 and each question has my recommendation against it.
@@ -652,13 +662,292 @@ Per phase, and each line is something a person can fail.
 
 ---
 
-# J-3 ONWARD — MORE JOBS TO FOLLOW
+# J-3 — AN UPLOADED CONTRACT KEEPS ITS STRUCTURE
+
+**Raised by:** Young, 29 Aug 2026.
+
+**Owner's words, verbatim:**
+
+> *When you upload received contract, it should be uploaded in the same exact
+> structure as the original. Currently the contract loses structure and it
+> becomes hard to follow.*
+
+---
+
+## WHAT ACTUALLY HAPPENS TODAY — read, not remembered
+
+**A .docx is a zip of XML.** HaTi opens exactly one file inside it,
+`word/document.xml`, and pulls out the text nodes, the tabs and the line
+breaks. Everything else Word wrote down is discarded at that moment:
+
+- **the paragraph style** — Word's own statement that a paragraph is a Heading,
+  and at what level;
+- **the numbering properties** — which list a paragraph belongs to and at which
+  level, which is how Word knows "7.1", "(a)" and how far to indent it;
+- **indentation**;
+- **tables** — a table's cells are ordinary text runs, so a rate card comes out
+  as a stream of words with no rows and no columns;
+- **bold, italic and underline.**
+
+**AND THE WORST OF IT IS THE NUMBERING.** Where a Word document numbers
+automatically — which is how most professionally drafted contracts are written —
+**the numbers are not in the text at all.** Word generates them from the
+numbering definition. So an automatically numbered agreement arrives in HaTi
+with no clause numbers whatsoever, and nothing downstream can put them back
+because they were never there to read.
+
+**THE SCREEN THEN GUESSES THE STRUCTURE BACK FROM THE WORDS.** A short line in
+capitals is treated as a heading; a line opening `3.2 ` is treated as a clause
+and its number set in bold; four or more spaces in a row make the whole block a
+monospace box. Those are reasonable guesses about paper that follows those
+conventions, and they are wrong about paper that does not — and they are all
+that stands between the reader and a wall of prose.
+
+**THE SAME IS TRUE OF PDFs AND SCANS, and there it is the right answer.** Those
+routes genuinely have no structure to read — a PDF knows where ink sits on a
+page, and a scan knows even less — so guessing from the wording is the only
+thing available. **The fault is that a Word file, which does know, is put
+through the same guesswork.**
+
+## WHY THIS COSTS MORE THAN READABILITY
+
+The owner's report is that it is hard to follow. It is, and there is a second
+bill underneath it, because **HaTi decides what a CLAUSE is from the document's
+own headings**. Where headings mark the clauses, a clause is a heading and
+everything under it; where there are none, it falls back to **one clause per
+top-level paragraph**. On an uploaded contract that has lost its headings, that
+fallback is what is running, and so:
+
+- **a clause heading cannot be renamed** — that feature refuses outright on a
+  document whose headings do not mark its clauses, because writing one in would
+  re-segment the whole agreement under a reader who asked to change a name;
+- **the front-matter region is not offered** at all, for the same reason;
+- **the playbook's clause-kind matcher reads the heading and nothing else**, so
+  on a headingless upload every clause types as unknown and a rule cannot be
+  narrowed to the clause it governs;
+- **citations cannot be followed.** "Subject to clause 9" is unresolvable when
+  clause 9 has no number;
+- **the redline's hanging indent has no marker to hang**, so sub-paragraphs
+  stop reading as sub-paragraphs.
+
+## THE ONE ENCOURAGING FINDING
+
+**HaTi's document model can already hold all of it.** The allowlist that governs
+what a stored contract body may contain already permits headings at four levels,
+ordered and unordered lists, tables with heads, rows and cells, bold, italic and
+underline. **Nothing new has to be permitted.** The destination is ready; only
+the reader is throwing the structure away.
+
+The one thing that list does not permit is **merged table cells** — no
+`colspan`. That is an honest limit and is named in the decisions below.
+
+---
+
+## WHAT "THE SAME EXACT STRUCTURE" SHOULD MEAN
+
+Worth settling before anything is built, because the phrase can be read two
+ways and only one of them is achievable.
+
+A .docx is a **page layout** format and HaTi's paper is a document on a screen
+that the reader can resize, restyle, redline and export. So "exactly the same"
+cannot mean pixel-identical: fonts, page breaks, margins, headers and footers
+belong to a printed page and not to an agreement.
+
+**It should mean the same DOCUMENT STRUCTURE** — the same headings at the same
+levels, the same numbering showing the same numbers, the same sub-paragraph
+nesting, the same tables with the same rows and columns, and the same emphasis.
+That is what makes a contract followable and citable, and it is what is being
+lost. Stated as a decision below rather than assumed.
+
+---
+
+## THE SHAPE
+
+**Read the structure instead of guessing it.** The Word reader stops being a
+text scraper and becomes a structured reader: paragraph styles become real
+headings, the numbering definition is resolved into the numbers a reader sees,
+list levels become real nesting, tables become tables, and emphasis survives.
+
+**The upload stores a structured body**, the way an edited contract already
+does, and **keeps the plain text beside it** — Copilot, search, the obligation
+scan and the fingerprint all read the text, and none of them may change
+behaviour because of this job.
+
+**The guesswork stays, as the fallback it should always have been** — for PDFs,
+for scans, and for a Word file that genuinely carries no styles.
+
+**Numbering is RESOLVED, never invented.** Where the numbering definition cannot
+be read for a given document, the paragraph draws without a number and the
+screen says the document uses automatic numbering HaTi could not read. **A
+guessed clause number is a wrong citation**, which is worse than a missing one.
+
+---
+
+## PHASING
+
+### J-3.1 — HEADINGS, NUMBERING AND LISTS
+The structure a contract is cited by, and the phase that makes the clause model
+work on received paper. Reading the paragraph styles, opening the numbering
+definition inside the file, resolving the numbers, and nesting the levels.
+
+### J-3.2 — TABLES AND EMPHASIS
+Rate cards, service-level tables and schedules as real tables; bold, italic and
+underline preserved. Both already permitted by the stored-body allowlist.
+
+### J-3.3 — PDFs AND SCANS
+The PDF reader already knows each run's font size and position, so it could
+infer headings far better than reading the words does. Lower value than the
+first two and considerably harder; may end as "accept the guesswork and say so
+on screen" rather than as a build.
+
+---
+
+## WHAT IS EXPLICITLY NOT TOUCHED
+
+- **The words.** Every character comes out in the same order. This job adds
+  structure around the wording and changes none of it.
+- **The plain-text projection**, which Copilot, the search index, the obligation
+  scan, the playbook and the metadata reader all use. Its CONTENT must be
+  unchanged.
+- **Anything already uploaded.** No stored record is re-read. A contract
+  uploaded before this ships draws exactly as it draws today, and a sealed one
+  keeps its fingerprint. The existing "Re-read document" control on the file
+  strip is the one door to a fresh read, and it already refuses a sealed record.
+- **The stored-body allowlist.** Nothing new is permitted just because it
+  arrived in a file. What a person may not write, a file may not smuggle in.
+- **The PDF and OCR routes**, until J-3.3.
+
+---
+
+## NOTES FOR WHOEVER BUILDS IT — read before touching anything
+
+- **THE NUMBERS LIVE IN A DIFFERENT FILE.** Word's automatic numbering is
+  defined in `word/numbering.xml` and referenced from the paragraph. The reader
+  opens only `word/document.xml` today, so this needs more zip entries opened —
+  **and the existing size guards extended to each of them**, not just the one.
+- **RESOLVING A NUMBER IS A WALK, NOT A LOOKUP.** The number a reader sees comes
+  from the list's definition, the paragraph's level, and how many paragraphs at
+  that level have gone before — including restarts. Get it wrong and every
+  citation in the document is wrong, which is worse than no numbers.
+- **THE TEXT PROJECTION IS A CONTRACT WITH EVERY OTHER FEATURE.** Whatever the
+  structured reader produces, the plain text taken from it must carry the same
+  words in the same order as today, or the obligation scan, the playbook, the
+  metadata extraction and the search index all shift underneath at once.
+- **THE MONOSPACE FALLBACK MUST STAND DOWN WHERE A REAL TABLE EXISTS**, or a
+  document gets both — a real table and the guessed one built from its spacing.
+- **NO `colspan`.** A merged cell has to be represented some other way or
+  reported as a limit; it may not be smuggled past the allowlist.
+- **CLAUSE IDENTITY WILL CHANGE FOR NEW UPLOADS, and that is the point.** With
+  real headings the segmentation finds real clauses rather than one per
+  paragraph. Nothing already on file moves, because nothing is re-read — but a
+  contract uploaded after this ships is segmented differently from the same file
+  uploaded before it, and that is the fix rather than a regression.
+- **PUBLISH ANYTHING REACHED THROUGH `window`** — f232 is the net.
+- **NO BACKTICK IN A CSS COMMENT** in a file that returns CSS from a template
+  literal — f236 is the net.
+
+### The six questions, worked
+
+- **Q1 — the standard answer.** The general practice is that a contract system
+  reads a Word file's own structure rather than inferring it from the words, and
+  degrades to inference only where the format carries none. HaTi infers in all
+  cases; that is the departure this job closes.
+- **Q2 — the cheapest channel.** Where a document's numbering cannot be read,
+  the fact is said on the file strip that already carries how well the file was
+  read — **no band, no banner**.
+- **Q3 — the contract's pixels.** Nothing is added above the wording. Measure it
+  before and after and report both numbers; this job should move that figure by
+  zero.
+- **Q4 — Copilot.** Not involved. Structure is read from the file, never asked
+  of a model — a model guessing a clause number would be the same fault in more
+  expensive clothes.
+- **Q5 — the one door.** The upload path is one funnel and stays one. "Re-read
+  document" is the existing second entrance and is unchanged.
+- **Q6 — where the reader ends up.** The reader ends up on a document they can
+  follow and cite — which is the whole ask.
+
+---
+
+## DECISIONS — ALL FIVE OPEN, AND THE BUILD IS BLOCKED ON THEM
+
+**D-1 — Structure, or appearance?**
+*Recommended:* **structure** — the same headings, numbering, nesting, tables and
+emphasis. Fonts, page size, margins, headers and footers are a printed page's
+business and are not carried. If you meant a visual facsimile of the original,
+say so: that is a different and much larger job, and it would mean showing the
+file rather than reading it — which costs redlining, signing on the paper and
+everything else HaTi does with wording.
+*Owner's answer:* —
+
+**D-2 — Images and logos inside the Word file?**
+*Recommended:* **not in this round.** They are real files inside the zip and
+carrying them means storing them. The letterhead HaTi already draws is a
+separate thing and is untouched.
+*Owner's answer:* —
+
+**D-3 — Tables in phase two, or phase one?**
+*Recommended:* **phase two.** Headings and numbering are what the clause model
+needs and what makes the document navigable; tables are the next most valuable
+thing and are self-contained.
+*Owner's answer:* —
+
+**D-4 — What is shown when the numbering cannot be resolved?**
+*Recommended:* **the paragraph, with no number, and a line on the file strip
+saying so.** Never a guessed number — a wrong clause number is a wrong citation
+and it would be repeated in every redline made against it.
+*Owner's answer:* —
+
+**D-5 — Do contracts already uploaded get re-read?**
+*Recommended:* **not automatically.** A sealed record must not change under
+anybody. The existing "Re-read document" control is the door for an unsigned
+upload somebody wants to fix, and it already refuses a sealed one.
+*Owner's answer:* —
+
+---
+
+## OUT OF SCOPE, SAID OUT LOUD
+
+- **A visual facsimile of the original file.** See D-1.
+- **Comments and tracked changes inside an incoming Word file.** The import
+  route for a counterparty's marked-up .docx is its own feature and is
+  untouched.
+- **Headers, footers and page furniture.** Deliberately dropped, as today.
+- **Anything already uploaded.** See D-5.
+
+---
+
+## ACCEPTANCE
+
+Measured against real Word files put through the real reader, never a fixture
+written to match the code.
+
+1. A contract whose headings are Word Heading styles arrives with those headings
+   at those levels — and HaTi's clause segmentation then finds those clauses,
+   not one per paragraph.
+2. A contract numbered AUTOMATICALLY arrives showing the same numbers Word
+   shows. Checked against the numbers a person reads in Word, not against what
+   the file happens to contain.
+3. Sub-paragraph nesting matches the original's levels.
+4. A table arrives as a table with the same rows and columns (J-3.2).
+5. Bold, italic and underline survive (J-3.2).
+6. **The plain text taken from the new reader carries the same words in the same
+   order as today's** — proved on the same file through both readers.
+7. A contract uploaded before this shipped draws **byte-identically** after it.
+8. A sealed upload's fingerprint is unchanged.
+9. A file whose numbering cannot be resolved says so on the file strip and
+   **invents no numbers**.
+10. The distance from the top of the window to the first line of the wording is
+    unchanged.
+
+---
+
+# J-4 ONWARD — MORE JOBS TO FOLLOW
 
 The owner has said more jobs are coming for this order. They land here, each
-with the same shape as J-1 and J-2: the owner's words verbatim, what is built,
-what is explicitly not touched, notes for whoever builds it, any decisions the
-build is blocked on, what is out of scope, and acceptance checks that can be
-failed.
+with the same shape as the three above: the owner's words verbatim, what is
+built, what is explicitly not touched, notes for whoever builds it, any
+decisions the build is blocked on, what is out of scope, and acceptance checks
+that can be failed.
 
-**Nothing in this file is built until the owner says so, and both jobs
-additionally wait on their own decisions.**
+**Nothing in this file is built until the owner says so, and every job
+additionally waits on its own decisions.**
