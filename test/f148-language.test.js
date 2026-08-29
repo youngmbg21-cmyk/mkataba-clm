@@ -595,13 +595,20 @@ describe('f148 — the shared renderers follow the language in both shells', () 
       ['Draft', 'Under Review', 'Signed', 'Declined']);
   });
 
-  test('the room tab row — workspace view and phone (four tabs, both languages)', () => {
-    /* FOUR, not five. Negotiate left this row in Aug 2026 for a door of its own
-       in the sidebar; the workbench no longer draws the row at all. */
+  test('the room tab row — workspace view and phone (five tabs, both languages)', () => {
+    /* REVERSED IN PLACE 29 Aug 2026: Obligations joined the row (J-2.1), after
+       Signing and before History, which is the order a contract's life runs in.
+       The claim is unchanged — every tab is translated and the row is read from
+       ONE list, so the tab and the routing guard cannot come apart.
+       NEGOTIATE IS STILL NOT ONE OF THEM: it left this row in Aug 2026 for a
+       door of its own in the sidebar, and the workbench draws no row at all. */
     win.langSet('en', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Key terms Document Signing History');
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')),
+      'Key terms Document Signing Obligations History');
     win.langSet('sv', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Nyckelvillkor Dokument Undertecknande Historik');
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')),
+      'Nyckelvillkor Dokument Undertecknande Åtaganden Historik');
+    assert.ok(!strip(win.roomTabsHtml({}, 'docs')).includes('Förhandla'));
   });
 
   test('the negotiations door and its two doors in are translated', () => {

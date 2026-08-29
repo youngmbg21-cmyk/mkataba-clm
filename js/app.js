@@ -1194,6 +1194,19 @@ const ALERT_KINDS = [
      here, like everything else waiting on this reader.
      AMBER, because it is work owed rather than a failure: nothing is lost, the
      answer is safe on the server and this browser keeps trying. */
+  /* ---- AN OBLIGATION OF YOUR OWN (owner-asked 29 Aug 2026, J-2.1) ----
+     A REGISTERED KIND with a rank, never a special case at the draw. Amber,
+     because it is work owed by this reader and by nobody else.
+
+     RANKED HERE, under the approvals and over the workspace's own conditions:
+     everything above it blocks a live deal and somebody else is waiting on it;
+     an obligation is work on a contract already done, and the only person who
+     can clear it is the one reading this row.
+
+     THE WINDOW IS THE REMINDER MAILS' OWN — inside seven days, or already late
+     — so the bell and the inbox cannot say different things about the same
+     promise on the same morning. */
+  { k:'obligation',  tone:'amber', ic:'&#128203;' },
   { k:'answer-stuck',tone:'amber', ic:'&#8635;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
@@ -1343,6 +1356,37 @@ function buildAlerts(){
       if(!mine) return;
       push('signature',c,i18t('al_signature'),
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+    });
+  }
+  /* ---- 6. AN OBLIGATION THAT IS YOURS AND FALLS DUE (J-2.1) ----
+     BORROWED, NEVER DERIVED, like every count on this panel: openObligations
+     is the one reading of what is still outstanding across the book (it drops
+     Declined and archived contracts itself), obState decides overdue, and
+     obligationIsMine resolves the assignee exactly as the server's reminder
+     sweep does — email first, then name — so the row and the mail agree about
+     whose it is.
+
+     AN OBLIGATION WITH NO DATE IS NOT IN THIS WINDOW, and that is the honest
+     answer rather than an omission: nothing is ever sent about one, so a row
+     claiming it falls due inside seven days would be the panel inventing a
+     deadline. The Insights obligations page is where that silence is reported.
+
+     READ WITHOUT WRITING — c.obligations is read raw by every one of those
+     functions, and this loop calls nothing that persists. */
+  if(window.openObligations && window.obligationIsMine){
+    const byId=new Map(cs.map(c=>[c.id,c]));
+    let obs=[]; try{ obs=openObligations(7)||[]; }catch(_){ obs=[]; }
+    obs.forEach(o=>{
+      if(o.days==null) return;
+      const c=byId.get(o.cid); if(!c) return;
+      if(!obligationIsMine(o)) return;
+      const d=String(o.desc||'');
+      const desc=d.length>70?d.slice(0,69)+'\u2026':d;
+      const text=o.days<0 ? i18t('al_ob_overdue',{desc})
+        : o.days===0 ? i18t('al_ob_today',{desc})
+        : i18tn('al_ob_due',o.days,{n:o.days,desc});
+      push('obligation',c,text,
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} });
     });
   }
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----

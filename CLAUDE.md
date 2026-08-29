@@ -788,6 +788,155 @@ Insights has FOUR tabs since 26 Aug 2026 — Portfolio · Negotiation friction �
 THE SHAPED FILL: project-shaped panels (workload runway, money held back, live promises, won/lost) or a renewal runway for standing agreements. Which shapes, and the word for a piece of work, are COMPANY settings (js/workshape.js; org record, browser fallback, PUT /api/org/workshape). wsIsProject() is the ONE classification rule — the Settings suggestion, the panels and their counts all call it. Won/lost is the one panel past the live book: won = Signed, lost = Declined, still out = Under Review or draft with a live share; no new status invented.
 
 
+## OBLIGATIONS HAVE A HOME (owner-asked 29 Aug 2026 — J-2.1, WORKORDER-29-aug.md)
+
+*"i want to first understand how obligations work in HaTi. I am not sure I
+understand how I follow up on obligations per contract"*
+
+**THE ANSWER WAS THAT THERE WAS NOWHERE TO.** A contract's promises lived behind
+a card called **Checks** — the things you run BEFORE sending a contract out: the
+playbook pass, the risk scan, the brief. An obligation is the opposite. It starts
+mattering the day the paper is signed and it outlives every one of those checks.
+So a reader asking how to follow one up was being sent to a card whose own name
+says it is somewhere else.
+
+**IT IS A READING AND IT ADDS NO STORE, NO ROUTE AND NO FIELD.** Every figure is
+counted off `c.obligations`, which the record already carries and which survives
+the light contract list. **This phase writes nothing**, and f253 asserts that by
+name — `completedAt`, `completedBy`, `seriesId` and `chasedAt` belong to J-2.2
+and must not appear here.
+
+- **A FIFTH TAB, AND IT READS AFTER SIGNING AND BEFORE HISTORY** — the order a
+  contract's life runs in: what it says, who signs it, what it commits you to,
+  then the record of all three. **`ROOM_TABS` IS STILL ONE LIST READ TWICE**: the
+  count is a THIRD ELEMENT on the entry, a function of the contract, so the tab
+  row and the routing guard cannot come apart. That is the fault the Insights tab
+  row paid for, where a new tab drew, registered its press and redrew the
+  previous page because the guard was written out separately.
+- **ONE FULL-WIDTH CARD, laid out like the History tab** and not like Key terms:
+  this is a worklist, so it wants the width and rows ruled edge to edge. Four
+  bands — overdue · due this month · later · completed — and **a band with
+  nothing in it draws nothing**, the change column's own rule.
+- **THE COUNT IS WHAT IS OUTSTANDING, AND IT IS AMBER ONLY WHEN SOMETHING IS
+  OVERDUE.** A count that is always coloured is a warning nobody reads — the
+  sidebar counts' rule, on a tab. A contract with nothing outstanding draws no
+  count at all, because "0" is furniture.
+- **A COUNT ON A TAB GOES STALE, so it is PAINTED and not merely built.**
+  `wsPaintTabCounts` reads ROOM_TABS and is called from `applyWsTabs` on every
+  tab change AND from **`obligationSurfacesChanged`**, which is the funnel every
+  act that can move this number already goes through. A new surface joins that
+  funnel or it goes stale the first time somebody ticks something off elsewhere.
+- **EVERY VERB PRESSES `toggleObligation`.** A second way to complete an
+  obligation is the fault this rulebook opens by warning about, and f253 greps
+  for one. Every reading is borrowed too — `obState`, `obligationDue`,
+  `obligationIsTheirs`, `obligationOwner` — so this tab cannot come to disagree
+  with the Calendar about one commitment.
+- **"NOBODY OWNS THIS", AND IT IS THE SERVER'S OWN READING.**
+  `obligationReminderTo` is the browser twin of the server's
+  `obligationRecipient`: email first, then name, case-insensitively, and only
+  where the member has an address. **THE INSIGHTS PAGE ASKS IT NOW** — it had
+  worked the resolution out for itself when it was built, and two answers to
+  "will anybody be told" is exactly how a page comes to contradict the sweep
+  that sends the mail. **Drawn only where a reminder could still matter**: a
+  completed obligation is nobody's to chase.
+- **A REGISTERED ALERT KIND**, `obligation`, amber, ranked **under the approvals
+  and over the workspace's own conditions** — everything above it blocks a live
+  deal and somebody else is waiting on it; this is work on a contract already
+  done and only the reader can clear it. **THE WINDOW IS THE REMINDER MAILS'
+  OWN** (seven days, or already late), so the bell and the inbox cannot say
+  different things about one promise on one morning. **AN UNDATED OBLIGATION IS
+  NOT IN IT** — nothing is ever sent about one, so a row claiming a deadline
+  would be the panel inventing it; that silence is the Insights page's subject.
+  Borrowed, never derived, and it writes nothing.
+- **ONE ENTRY IN `KPI_CATALOG`** — *Obligations due*, dated obligations only,
+  amber only when something is late, and NOT in the default four, so it forces
+  nothing onto anybody's Home. **Its destination is the Calendar until J-2.3's
+  worklist exists**, which is one line to change.
+- **NO BAND, STRIP, BANNER OR CALLOUT IS ADDED ANYWHERE IN THIS PHASE.** Every
+  count rides a tab, a row or a control.
+
+**WHAT IS DELIBERATELY UNTOUCHED, and each is asserted rather than assumed:** the
+reminder ladder (7 / 0 / -1 to the owner, day 4 to the admins); that obligations
+stay editable after execution; that they never travel to the counterparty; the
+Calendar's own dated view; the Insights obligations page's reading of what has
+gone quiet; and the Checks card's other three rows.
+
+Tests: f253 (41 — the one list, the amber rule, the one verb, the four bands,
+the server-mirrored resolution, the registered kind and both languages), f148's
+tab-row claim REVERSED IN PLACE (five tabs, and Negotiate still not one of them),
+obligations-tab-verify (26, browser — the tab as pixels, the count's computed
+amber, a real press moving the record AND the count, the bell row driven through
+to the tab it names, and the five tabs proved to hold one line at 1280px in both
+languages, which is the one way this job could have cost the contract its pixels).
+
+**AND THEN COMPLETION STARTED MEANING SOMETHING (J-2.2, the same day).** Two
+states, open and done, and nothing else — so there was no answer to *was it met
+on time*, and the Insights page said so on its own data object. And a QUARTERLY
+duty ticked off ended for ever: `recurring` was stored, printed on the row, and
+read by nothing at all.
+
+**SIX FIELDS AND NO MIGRATION, AND ABSENT MEANS UNKNOWN FOR EVERY ONE OF THEM.**
+`completedAt` · `completedBy` · `completedNote` · `seriesId` on the obligation,
+`obligationsReadAt` / `obligationsReadHash` on the contract. **The obligations
+already ticked off keep exactly the truth they have** — done, on a day nobody
+wrote down — and no date is inferred for any of them. An inference dressed as a
+record is the fault this codebase has a standing rule against.
+
+- **THE COMPLETION IS WRITTEN IN ONE PLACE.** `obligationMarkDone`, called by
+  `toggleObligation` and by nothing else, so the tab, the Checks panel, the
+  Calendar and the dashboard all record the same three facts the same way. A
+  caller that supplies no date gets today, which is true — it is the day it was
+  ticked. **THE DIALOG EXISTS TO MOVE THAT DATE BACK** and to leave one line of
+  evidence; it decides nothing and presses the same verb. **FORWARD IS REFUSED**:
+  a completion dated after today is a claim about work nobody has done yet.
+- **REOPENING CLEARS IT.** A record carrying a completion date under a status of
+  'open' is a contradiction the on-time figure would count.
+- **A REPEATING DUTY OPENS ITS NEXT INSTANCE — EXACTLY ONE, WITH ITS OWN ID.**
+  `obligationNextInstance` is the one builder, so **the dialog names the date it
+  will open before the press** and the verb files the object that was named.
+  **THE FRESH ID IS LOAD-BEARING**: the reminder sweep's dedupe key is
+  `${c.id}:ob:${o.id || due}:…`, so an instance minted without one inherits the
+  previous instance's rows and **its reminders never fire, silently** — f254
+  proves that against a real server AND proves the control, that reusing the id
+  is what would have silenced it.
+- **ONE CADENCE STEP FROM THE DATE IT WAS DUE, never from the day it was
+  ticked** — a quarterly report due on the 1st is due on the 1st next quarter
+  whether it was filed early or three weeks late, and dating from the completion
+  would drift a series a month a year. **THE MONTH IS CLAMPED** (31 January plus
+  a month is the end of February, not 3 March). **AND THE NEXT ONE MAY ARRIVE
+  OVERDUE**, which is true rather than tidy: skipping to the next date in the
+  future would quietly erase a missed quarter.
+- **THE CONTRACT REMEMBERS THAT IT WAS READ.** `obligationsReadStamp` is written
+  by the SCAN and by nothing else — a stamp written anywhere else would claim a
+  reading that never happened — and **whatever it found**, because a contract
+  read and genuinely clear is the case this fact exists to tell apart from one
+  nobody has opened. Never where there was nothing to read.
+- **THE TWO BLIND SPOTS ON THE INSIGHTS PAGE CLOSE**, which is what that page's
+  own claim asked for in its own words. `canSeeScan` and `canSeeCompletedOn` are
+  true; the coverage card splits "nothing on file" into read-and-clear and
+  **no record of a reading** (never "never read" — a contract scanned before the
+  field existed carries no stamp, and calling it unread would be the page
+  inventing a fact); the on-time card counts only what can answer and **prints
+  the rest** rather than quietly working a rate over the answerable half. Its
+  two colours are green and ruby — a third question wants a third pair, and
+  amber/ruby already answers "is anything still being sent". The footer draws a
+  blind spot only while it is still one, and the wording is KEPT rather than
+  deleted: it is right again the day either field stops being written.
+- **NOTHING ELSE MOVED.** The sweep reads status and due and has learned nothing
+  from this phase; obligations still never travel to the counterparty; they are
+  still editable after execution; every existing reading answers identically on
+  a record carrying none of the new fields.
+
+Tests: f254 (41 — the six fields both ways, the date refused forward, the series
+with its own id, **the dedupe proved on a real server with its control**, the
+scan's one caller, the two blind spots and both languages), f247's blind-spot
+claim REVERSED IN PLACE (and made stronger — it now asserts that nothing is
+guessed), f253's two claims REVERSED IN PLACE, **f68's stage corrected: its
+`openModal` was a no-op, which was harmless until something in this file opened
+one — a stand-in that cannot behave like the thing it replaces turns its test
+into a description**, obligations-tab-verify (33 — the dialog driven, the
+reference on the record, and the series opened with the date the dialog promised).
+
 ## WHERE OBLIGATIONS GO QUIET — the fourth Insights tab (owner-asked 26 Aug 2026)
 
 Built from the owner's own approved report. The friction tab beside it asks

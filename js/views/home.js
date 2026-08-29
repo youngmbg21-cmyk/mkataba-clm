@@ -18,14 +18,15 @@ const KPI_EN={
   negotiations:'Live negotiations',
   approvals:'Pending approvals', compliance:'Compliance rating', expiring30:'Expiring < 30 days',
   expiring60:'Expiring < 60 days', expiring90:'Expiring < 90 days', expired:'Term already ended',
-  highrisk:'High-risk findings', avgcycle:'Avg turnaround time' };
+  highrisk:'High-risk findings', avgcycle:'Avg turnaround time',
+  obligations:'Obligations due' };
 /* Falls back to the English WORD, never the dictionary key — a tile reading
    `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
    on a Swedish screen looks only untranslated. */
 const KPI_META=Object.keys(KPI_EN)
   .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
     get(){ return typeof t==='function' ? i18t('kpi_'+k) : KPI_EN[k]; }}),o),{});
-const KPI_ALL_ORDER=['approvals','negotiations','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
+const KPI_ALL_ORDER=['approvals','negotiations','obligations','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
 /* ---- THE DEFAULT FOUR ARE "WHAT NEEDS ME TODAY" (owner-ruled 24 Aug 2026) ----
    They were Active contracts · Avg turnaround · Pending approvals · Compliance
    rating, and two of those were saying what the row beneath them already says:
@@ -548,6 +549,17 @@ function hmDashSlices(){
      tile and that page can never report different numbers. */
   const importQ=cs.filter(c=>c.migration&&c.migration.needsReview).length;
   const cov=copilotCoverage(live);
+  /* ---- WHAT IS OWED, AND WHEN (J-2.1) ----
+     openObligations is the ONE reading of what is still outstanding across the
+     book — it drops Declined and archived contracts itself, exactly as the
+     alerts panel and the Insights page read it. A DATED obligation only: one
+     with no date is never chased and never reminded about, so counting it
+     under a card headed "due" would put a deadline on the record that the
+     record does not carry. Read through window because this module draws on
+     stages where js/obligations.js is not loaded. */
+  const obDue=(typeof window.openObligations==='function'
+    ? (openObligations(30)||[]) : []).filter(o=>o&&o.days!=null);
+  const obLate=obDue.filter(o=>o.days<0).length;
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
     /* W2-1: the figure is ONE currency, and where a foreign contract could not
@@ -585,6 +597,15 @@ function hmDashSlices(){
                   sub:negoLive.length?i18tn('home_nego_needs_you',negoNeedsMe,{n:negoNeedsMe})
                                      :i18t('home_nego_none'),
                   grad:negoNeedsMe?G.amber:G.steel, ic:'clock', go:{nav:'redline'}},
+    /* THE PROMISES. Amber only when something is actually late — the same rule
+       the tab's own count follows, and the reason this card can be trusted to
+       mean something when it is coloured.
+       THE DESTINATION IS THE CALENDAR, which is where obligations are listed by
+       date today; J-2.3's worklist replaces it, and that is one line. */
+    obligations: {label:KPI_META.obligations, val:Number(obDue.length).toLocaleString(jxLocale()),
+                  delta:obLate?i18tn('home_ob_overdue',obLate,{n:obLate}):i18t('home_ob_none'),
+                  get sub(){ return i18t('home_ob_sub'); },
+                  grad:obLate?G.amber:G.steel, ic:'calendar', go:{nav:'calendar'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,

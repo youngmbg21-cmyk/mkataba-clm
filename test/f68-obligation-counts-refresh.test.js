@@ -32,7 +32,8 @@ const isoDay = off => { const d = at(off);
    to render and its own buttons to be pressed — the file under test is the one
    that ships. */
 function stage(contract) {
-  const dom = new JSDOM('<!doctype html><html><body><div id="obligations-section"></div></body></html>',
+  const dom = new JSDOM('<!doctype html><html><body><div id="obligations-section"></div>'
+    + '<div id="modal-root"></div></body></html>',
     { runScripts: 'outside-only', url: 'https://hati.test/' });
   const win = dom.window;
   const counted = [];
@@ -42,7 +43,16 @@ function stage(contract) {
     document: win.document, localStorage: win.localStorage, Event: win.Event,
     state: { contracts: [contract], settings: {}, view: 'workspace', activeId: contract.id },
     esc: s => String(s == null ? '' : s), icon: () => '', fmtDT: s => String(s || ''),
-    toast() {}, persist() {}, logAudit() {}, openModal() {}, closeModal() {},
+    toast() {}, persist() {}, logAudit() {},
+    /* ---- THE MODAL HAS TO REALLY DRAW (29 Aug 2026, J-2.2) ----
+       It was `openModal(){}` — a no-op — which was harmless while nothing in
+       this file opened one. Completing now asks two questions first, and a
+       stub that draws nothing makes the dialog's own button unreachable: the
+       record would not move and the test would report a broken product. A
+       stand-in that cannot behave like the thing it replaces turns its test
+       into a description. */
+    openModal(html) { win.document.getElementById('modal-root').innerHTML = html; },
+    closeModal() { win.document.getElementById('modal-root').innerHTML = ''; },
     canEdit: () => true, API_MODE: () => true, getUsers: () => [], nowISO: () => new Date().toISOString(),
     isUpload: () => false, effectiveExpiry: c => c.expiry || null,
     daysUntil: iso => Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000),
@@ -80,8 +90,15 @@ describe('F68 — the sidebar count follows the obligation it counts', () => {
     const t = stage(c);
     t.sb.renderObligationsSection(c);
     assert.equal(t.counted.length, 0, 'nothing has changed yet');
+    /* COMPLETING ASKS TWO QUESTIONS FIRST since J-2.2 — the day it was done and
+       an optional reference — and the dialog presses the SAME verb this test
+       has always been about. The claim is unchanged: the number that counts
+       them has to move with the record. */
     t.press('[data-ob-toggle="0"]');
+    assert.equal(c.obligations[0].status, 'open', 'the press opens the dialog, it does not complete');
+    t.press('#od-go');
     assert.equal(c.obligations[0].status, 'done', 'the record moved');
+    assert.ok(c.obligations[0].completedAt, 'and it carries the day it was done');
     assert.ok(t.counted.length >= 1,
       'and the number beside Calendar has to move with it — otherwise it reads 1 '
       + 'over a portfolio with nothing due, and corrects itself only when the '

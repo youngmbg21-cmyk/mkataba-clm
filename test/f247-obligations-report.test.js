@@ -249,11 +249,24 @@ describe('f247 · the live book, and only the live book', () => {
 
   test('what it cannot see is reported as unknown rather than guessed', () => {
     const { d } = stage();
-    /* Nothing on the record says a contract was ever READ for obligations, and
-       nothing says WHEN one was completed. Both are stated, and the day either
-       field exists these flip and the panels become real. */
-    assert.equal(d.canSeeScan, false);
-    assert.equal(d.canSeeCompletedOn, false);
+    /* REVERSED IN PLACE 29 Aug 2026 (J-2.2), and this is the reversal the
+       original claim asked for in its own words: "the day either field exists
+       these flip and the panels become real". `obligationsReadAt` is stamped
+       by the scan and `completedAt` by the one verb, so both are real now.
+
+       WHAT THE CLAIM IS STILL ABOUT is that this page never guesses. The two
+       readings under it are what make that checkable: a contract with no read
+       stamp is reported as "no record of a reading" rather than as "never
+       read", and an obligation completed before the field existed is UNKNOWN
+       and is counted neither on time nor late. */
+    assert.equal(d.canSeeScan, true);
+    assert.equal(d.canSeeCompletedOn, true);
+    /* Nothing in this book has been scanned or dated, so every one of them
+       lands in the honest column rather than being assumed either way. */
+    assert.equal(d.cover.noneClear, 0);
+    assert.equal(d.cover.noneUnknown, d.cover.none);
+    assert.equal(d.ontime.on + d.ontime.late, 0);
+    assert.equal(d.ontime.unknown, d.done, 'no completion date is inferred for any of them');
   });
 });
 

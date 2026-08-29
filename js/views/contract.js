@@ -2927,16 +2927,53 @@ function wsTabDefaults(c){
 
    The row is still written once and still drawn by both shells — renderRedline
    simply no longer asks for it. Add a tab here and it appears on both. */
+/* ---- AND A FIFTH, FOR THE PROMISES (owner-asked 29 Aug 2026, J-2.1) ----
+   A contract's obligations lived behind the Document tab's CHECKS card, which
+   is about the things you run BEFORE sending a contract out. An obligation
+   starts mattering the day the paper is signed. It reads AFTER Signing and
+   BEFORE History, which is the order a contract's life runs in: what it says,
+   who signs it, what it commits you to, and then the record of all three.
+
+   THE COUNT RIDES THE LIST, NOT THE ROW BUILDER. A third element on the entry
+   is a function of the contract, so the tab row and the routing guard still
+   read ONE list — the fault the Insights tab row paid for, where a new tab
+   drew, registered its press and redrew the previous page because the guard
+   was written out separately. */
 const ROOM_TABS=[
   ['terms','tab_key_terms'],['docs','tab_document'],
-  ['sign','tab_signing'],['history','tab_history'],
+  ['sign','tab_signing'],
+  ['oblig','tab_obligations',c=>{
+    if(!c||!window.obligationTabState) return '';
+    let st; try{ st=obligationTabState(c); }catch(_){ return ''; }
+    if(!st.open) return '';
+    /* AMBER ONLY WHEN SOMETHING IS OVERDUE. A count that is always coloured is
+       a warning nobody reads — the sidebar counts' own rule, on a tab. */
+    return `<span class="room-tab-n${st.overdue?' is-late':''}">${st.open}</span>`;
+  }],
+  ['history','tab_history'],
 ];
 function roomTabsHtml(c,active){
   return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="${i18t('tab_room_aria')}">${
-    ROOM_TABS.map(([k,key])=>{
+    ROOM_TABS.map(([k,key,count])=>{
       const on=k===active;
-      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${t(key)}</button>`;
+      const n=(typeof count==='function')?count(c):'';
+      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${t(key)}${n}</button>`;
     }).join('')}</div>`;
+}
+/* ---- A COUNT ON A TAB GOES STALE, so it is PAINTED and not merely built ----
+   The row is built once per workspace render; ticking an obligation off is not
+   a render. Same reasoning, and the same shape, as wsPaintRoundNeeds beside it:
+   one function, called from applyWsTabs on every tab change AND from
+   obligationSurfacesChanged, which is the funnel every act that can move this
+   number already goes through. It reads ROOM_TABS, so a count added to another
+   tab later is drawn here with nothing to remember. */
+function wsPaintTabCounts(c){
+  const row=document.getElementById('ws-tabs'); if(!row||!c) return;
+  ROOM_TABS.forEach(([k,key,count])=>{
+    const b=row.querySelector(`[data-ws-tab="${k}"]`); if(!b) return;
+    const n=(typeof count==='function')?count(c):'';
+    b.innerHTML=t(key)+n;
+  });
 }
 /* ---- THE OTHER TABS STILL HAVE TO ADMIT A NEGOTIATION IS RUNNING ----
    The amber count on the Negotiate tab was how a reader standing on Key terms
@@ -3155,6 +3192,7 @@ function applyWsTabs(c){
      is built once per render. This is the tab change catching it up; see
      wsPaintRoundNeeds. */
   wsPaintRoundNeeds(c);
+  wsPaintTabCounts(c);
   /* The floating notices survive the tab change too. They describe the
      CONTRACT rather than the tab, so what this call is really for is re-arming
      their buttons after any repaint — see wsPaintNotices. */
@@ -3195,6 +3233,7 @@ function applyWsTabs(c){
     return;
   }
   if(_wsTab==='history') roomPaintHistory(c);
+  if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
   if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c); }
   /* The Document pane has just been given a width for the first time since it
      was hidden. Measure it NOW — see the note in layoutDocResizer about why it
@@ -6144,6 +6183,18 @@ function renderWorkspace(){
 
          The header's History button still opens the dialog; both read one
          builder, so they cannot tell different stories. -->
+    <!-- ============ OBLIGATIONS: what this contract commits somebody to ============
+         ONE FULL-WIDTH CARD, laid out like the trail below rather than like Key
+         terms: this is a worklist, not a document, so it wants the width and
+         rows ruled edge to edge. Painted by roomPaintObligations when the tab
+         is selected, so a contract nobody opens it on pays nothing for it.
+         Nothing here is a second way to complete an obligation — every verb
+         presses toggleObligation, the same one the Calendar and the dashboard
+         press. -->
+    <div data-ws-pane="oblig" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div id="ws-obligations-pane" style="${CARD};align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
+    </div>
+
     <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       ${''/* ---- ONE FULL-WIDTH TRAIL (owner-approved render, 24 Aug 2026) ----
              This was a two-column grid with the trail squeezed into 1.6fr and a
@@ -7616,5 +7667,5 @@ Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTrack
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});

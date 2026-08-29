@@ -351,6 +351,12 @@ Nothing here is a description; each line is a check somebody can fail.
 
 # J-2 — OBLIGATIONS, END TO END
 
+**Status:** J-2.1 and J-2.2 BUILT 29 Aug 2026. J-2.3 follows.
+
+**`chasedAt` / `chasedBy` were listed under J-2.2 and are built in J-2.3 instead**,
+with the act that writes them: a field nothing writes is a field nobody can
+trust, and the chase is J-2.3's.
+
 **Raised by:** Young, 29 Aug 2026, after asking how obligations work today and
 how one is followed up per contract.
 
@@ -460,7 +466,7 @@ the same owner and the same cadence, and the dialog SAYS SO before the press.
 
 ## PHASING — three, each useful alone, and each shippable on its own
 
-### J-2.1 — GIVE THEM A HOME (no record change at all)
+### J-2.1 — GIVE THEM A HOME (no record change at all) — **BUILT 29 Aug 2026**
 
 - **A fifth tab in the contract room, "Obligations"**, carrying a count. Laid
   out like the History tab — ONE full-width card, not two columns, because this
@@ -480,7 +486,7 @@ the same owner and the same cadence, and the dialog SAYS SO before the press.
   nagging the admins once and nothing on screen says so.
 - Nothing is added to the record. Everything drawn already exists.
 
-### J-2.2 — MAKE COMPLETION MEAN SOMETHING (six fields, no migration)
+### J-2.2 — MAKE COMPLETION MEAN SOMETHING (six fields, no migration) — **BUILT 29 Aug 2026**
 
 | New | What it holds | Absent means |
 |---|---|---|

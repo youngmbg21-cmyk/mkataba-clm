@@ -1395,16 +1395,20 @@ function intelObligationsData(){
      every browser already (the reviewer picker and the approval rules need
      it), so this needs no route — but it must stay the SAME reading, or the
      page and the sweep disagree about who gets told. */
-  const mem=(typeof window.getUsers==='function')?(getUsers()||[]):[];
-  const byEmail=new Set(), byName=new Set();
-  mem.forEach(u=>{
-    const em=String((u&&u.email)||'').trim();
-    if(!/.+@.+\..+/.test(em)) return;      // an account with no address is nowhere to write to
-    byEmail.add(em.toLowerCase());
-    const nm=String((u&&u.name)||'').trim(); if(nm) byName.add(nm.toLowerCase());
-  });
-  const resolves=a=>{ const q=String(a||'').trim().toLowerCase();
-    return !!q&&(byEmail.has(q)||byName.has(q)); };
+  /* ---- ONE READING, RE-POINTED 29 Aug 2026 (J-2.1) ----
+     This page worked the resolution out for itself when it was built, and the
+     Obligations tab then needed the same answer. Two answers to "will anybody
+     be told" is exactly how a page comes to contradict the sweep that sends
+     the mail, so it is `obligationReminderTo` in js/obligations.js now — the
+     same rule, in one place, asked by both. Read through window because this
+     module draws on stages where that file is not loaded; without it the
+     fallback below answers "nobody resolves", which over-reports silence
+     rather than under-reporting it, and that is the safe direction on a page
+     whose whole subject is what goes unsaid. */
+  const resolves=a=>{
+    if(typeof window.obligationReminderTo!=='function') return false;
+    return !!obligationReminderTo({ assignee:a });
+  };
 
   const dueOf=o=>(typeof obligationDue==='function')?obligationDue(o):(((o&&o.due)||null));
   const stateOf=o=>(typeof obState==='function')?obState(o):((o&&o.status)==='done'?'done':'open');
@@ -1418,13 +1422,26 @@ function intelObligationsData(){
   const owners=new Map();                  // our side, by the person carrying it
   const repeat={ monthly:0, quarterly:0, annual:0 };
   let repeatTotal=0, ahead=0, aheadOurs=0, aheadTheirs=0;
-  const cover={ withOb:0, none:0, noneSigned:0, noneReview:0, noneDraft:0, noneOther:0 };
+  /* J-2.2: the record carries `obligationsReadAt` now, stamped by the scan and
+     by nothing else, so the contracts with nothing on file finally split — one
+     read and genuinely clear, one nobody has ever opened. ABSENCE IS "NO
+     RECORD OF A READING", never "never read": a contract scanned before that
+     field existed carries no stamp, and calling it unread would be this page
+     inventing a fact rather than reporting one. */
+  const cover={ withOb:0, none:0, noneSigned:0, noneReview:0, noneDraft:0, noneOther:0,
+    noneClear:0, noneUnknown:0 };
+  /* AND WHETHER THEY WERE MET ON TIME, counted only where the record can
+     answer: a completion date AND a due date. `unknown` is every obligation
+     ticked off before completion carried a date — not counted either way,
+     because an inferred date is a guess wearing a fact's clothes. */
+  const ontime={ on:0, late:0, unknown:0 };
 
   live.forEach(c=>{
     const list=(c.obligations||[]);
     if(list.length) cover.withOb++;
     else {
       cover.none++;
+      if(c.obligationsReadAt) cover.noneClear++; else cover.noneUnknown++;
       if(c.status==='Signed') cover.noneSigned++;
       else if(c.status==='Under Review') cover.noneReview++;
       else if(c.status==='Draft') cover.noneDraft++;
@@ -1434,11 +1451,19 @@ function intelObligationsData(){
       total++;
       if(stateOf(o)==='done'){
         done++;
-        /* MARKED REPEATING, NEVER REPEATED. Ticking a quarterly report done
-           does not create next quarter's — nothing in this product rolls a
-           cadence forward. A commitment counts as STOPPED only where no
-           obligation with the same wording is still open on the same contract,
-           so somebody who re-created it by hand is not accused of dropping it. */
+        /* ON TIME, LATE, OR UNANSWERABLE — obligationOnTime is the one reading
+           and it returns null wherever either date is missing, which is every
+           obligation ticked off before J-2.2 and every one with no due date.
+           Those are counted as UNKNOWN and printed as unknown; inferring a
+           completion date would be the fault this whole page exists to name. */
+        const ot=(typeof window.obligationOnTime==='function')?obligationOnTime(o):null;
+        if(ot===true) ontime.on++; else if(ot===false) ontime.late++; else ontime.unknown++;
+        /* MARKED REPEATING, AND SINCE J-2.2 IT REALLY DOES REPEAT — completing
+           an instance opens the next one on the same cadence. The reading is
+           unchanged and is what makes that safe: a commitment counts as
+           STOPPED only where no obligation with the same wording is still open
+           on the same contract, so a rolled series is not accused of dropping
+           anything and neither is somebody who re-created one by hand. */
         const cad=String((o&&o.recurring)||'none').toLowerCase();
         if(cad!=='none'&&Object.prototype.hasOwnProperty.call(repeat,cad)){
           const d=String((o&&o.desc)||'').trim().toLowerCase();
@@ -1529,7 +1554,12 @@ function intelObligationsData(){
     ownersMore:Math.max(0,ownerRows.length-(OB_ROWS+1)),
     repeat, repeatTotal, cover,
     /* SAID OUT LOUD, not guessed: neither of these is on the record today. */
-    canSeeScan:false, canSeeCompletedOn:false,
+    ontime,
+    /* BOTH CLOSED 29 Aug 2026 (J-2.2). They were `false` and said so on the
+       cards; the fields exist now, so the panels are real. What is still not
+       on the record — who owns a duty on THEIR side — is deliberate and stays
+       in the footer. */
+    canSeeScan:true, canSeeCompletedOn:true,
   };
 }
 
@@ -1640,7 +1670,13 @@ function intelObligationsHtml(){
     <td style="padding:6px 0;${RULE};font-size:var(--t-meta)"><b>${E(t)}</b><br><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${E(w)}</span></td>
     <td style="padding:6px 0;${RULE};text-align:right;font-size:var(--t-card);${OB_NUM};color:${c}">${n(v)}</td></tr>`).join('');
   const covPct=d.contracts?Math.round(d.cover.withOb/d.contracts*100):0;
-  const coverage=obCard(i18t('int_ob_cov_title'), obFlag(i18t('int_ob_flag_blind'),'var(--st-amber-bg,#fef3c7)','var(--st-amber-fg,#b45309)'),
+  /* THE FLAG GOES WITH THE BLIND SPOT (J-2.2). It said "Blind spot" because
+     nothing on the record told a contract read and clear from one nobody had
+     opened; `obligationsReadAt` does, so the card reports rather than confesses.
+     It is a FUNCTION of canSeeScan rather than a deletion, because what the
+     flag says is true again the moment that flag is false. */
+  const coverage=obCard(i18t('int_ob_cov_title'),
+    d.canSeeScan?'':obFlag(i18t('int_ob_flag_blind'),'var(--st-amber-bg,#fef3c7)','var(--st-amber-fg,#b45309)'),
     `<p style="${OB_LEAD}">${i18t('int_ob_cov_lead')}</p>
      <div role="img" aria-label="${E(i18t('int_ob_cov_aria',{total:n(d.contracts),withOb:n(d.cover.withOb),none:n(d.cover.none)}))}"
        style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
@@ -1651,7 +1687,9 @@ function intelObligationsHtml(){
        <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_cov_key_on')}</span>
        <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_cov_key_none')}</span>
      </div>
-     ${d.cover.none?`<p style="${OB_NOTE}">${i18t('int_ob_cov_split',{n:n(d.cover.none)})}</p>
+     ${d.cover.none?`<p style="${OB_NOTE}">${d.canSeeScan
+        ? i18t('int_ob_cov_split_known',{n:n(d.cover.none),clear:n(d.cover.noneClear),never:n(d.cover.noneUnknown)})
+        : i18t('int_ob_cov_split',{n:n(d.cover.none)})}</p>
      <table style="border-collapse:collapse;width:100%;margin-top:8px">${covRows}</table>`:''}`,
     d.cover.noneSigned?i18t('int_ob_cov_foot',{n:n(d.cover.noneSigned)}):i18t('int_ob_cov_foot_clear'));
 
@@ -1756,19 +1794,59 @@ function intelObligationsHtml(){
      that field yet", which is neither. It also may not wear the accent —
      --st-steel-* resolves to the workspace accent, and on this page the accent
      already means OURS. */
-  const ontime=obCard(i18t('int_ob_time_title'), obFlag(i18t('int_ob_flag_field'),'var(--color-neutral-100)','var(--color-neutral-600)'),
-    `<p style="${OB_LEAD}">${i18t('int_ob_time_lead')}</p>
-     <div style="display:flex;flex-direction:column;gap:9px;padding:12px 14px;border:1px dashed var(--color-neutral-300);border-radius:var(--radius);background:var(--color-bg)">
-       <p style="${OB_NOTE};margin:0">${i18t('int_ob_time_a',{n:n(d.done)})}</p>
-       <p style="${OB_NOTE};margin:0">${i18t('int_ob_time_b')}</p>
-     </div>`,'');
+  /* ---- WERE THEY MET ON TIME (J-2.2) ----
+     This card was a confession: the record kept no completion date, so "done
+     on time" and "done three weeks late" were the same word on the same field.
+     It carries one now, and this counts ONLY the obligations that can answer.
+
+     THE UNCOUNTED ARE PRINTED, NOT HIDDEN. Every obligation ticked off before
+     that field existed has no date, and so does every one with no due date;
+     both are `unknown` and neither is guessed at. A rate quietly worked out
+     over the answerable half, with the rest dropped, is the silent-trim fault
+     this product refuses on money and on charts.
+
+     THE TWO COLOURS ARE THE PAGE'S OWN and are not the ours/theirs pair: on
+     time is the reached tone, late is the unreached one, which is the same
+     vocabulary the ageing chart beside it already uses. */
+  /* GREEN AND RUBY, NOT THE PAGE'S OTHER TWO PAIRS. Amber/ruby on the ageing
+     chart answers "is anything still being sent"; accent/amber answers "ours
+     or theirs". This card asks a third question — was it kept — and green for
+     kept is the product's own word for it, the same pair the Obligations tab's
+     own row dots use. A colour does one job per chart. */
+  const OT_ON='var(--st-green-dot,#10b981)', OT_LATE='var(--st-ruby-dot,#e11d48)';
+  const otAnswerable=d.ontime.on+d.ontime.late;
+  const otPct=otAnswerable?Math.round(d.ontime.on/otAnswerable*100):0;
+  const ontime=obCard(i18t('int_ob_time_title'),
+    d.canSeeCompletedOn?'':obFlag(i18t('int_ob_flag_field'),'var(--color-neutral-100)','var(--color-neutral-600)'),
+    `<p style="${OB_LEAD}">${i18t('int_ob_time_lead2')}</p>
+     ${otAnswerable?`
+     <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px">
+       <span style="${OB_NUM};font-size:34px">${otPct}%</span>
+       <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('int_ob_time_on')}</span>
+     </div>
+     <div role="img" aria-label="${E(i18t('int_ob_time_aria',{on:n(d.ontime.on),late:n(d.ontime.late)}))}"
+       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
+       ${d.ontime.on?`<span style="width:${otPct}%;min-width:2px;background:${OT_ON};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.on)}</span>`:''}
+       ${d.ontime.late?`<span style="flex:1;min-width:2px;background:${OT_LATE};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.late)}</span>`:''}
+     </div>
+     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
+       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_ON};display:inline-block"></i>${i18t('int_ob_time_on')}</span>
+       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_LATE};display:inline-block"></i>${i18t('int_ob_time_late')}</span>
+     </div>`
+     :`<p style="${OB_NOTE};margin:0">${i18t('int_ob_time_none')}</p>`}
+     ${d.ontime.unknown?`<p style="${OB_NOTE}">${i18t('int_ob_time_unknown',{n:n(d.ontime.unknown)})}</p>`:''}`,'');
 
   /* ---- the honest footer ---- */
   const blind=`<section style="${OB_CARD};padding:15px 17px">
     <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('int_ob_blind_title')}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
-      ${[[i18t('int_ob_blind_1'),i18t('int_ob_blind_1_why')],
-         [i18t('int_ob_blind_2'),i18t('int_ob_blind_2_why')],
+      ${''/* TWO OF THESE THREE CLOSED ON 29 Aug 2026 (J-2.2) and are drawn only
+             while they are still true — a report that goes on listing a blind
+             spot it can now see is one nobody trusts about the third. The
+             wording is KEPT, not deleted: it is right again the day either
+             field stops being written. */}
+      ${[...(d.canSeeScan?[]:[[i18t('int_ob_blind_1'),i18t('int_ob_blind_1_why')]]),
+         ...(d.canSeeCompletedOn?[]:[[i18t('int_ob_blind_2'),i18t('int_ob_blind_2_why')]]),
          [i18t('int_ob_blind_3'),i18t('int_ob_blind_3_why')]]
         .map(([t,w])=>`<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
     </div>

@@ -2989,6 +2989,60 @@
   /* Clear is a verb, not a field: it keeps its own size while the five grow. */
   .hist-filters #ht-clear{ flex:none; }
 
+  /* ---- OBLIGATIONS: a home of their own (owner-asked 29 Aug 2026, J-2.1) ----
+     The trail's own shape, for the same reason: this is a worklist, so the rows
+     are ruled edge to edge and the pane carries no padding. The bands are the
+     change column's — a filled strip with its own count, wall to wall, and a
+     band with nothing in it draws nothing at all. */
+  .obt-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
+  .obt-cap{ font-size:var(--t-meta); color:var(--color-neutral-600); }
+  /* AMBER IS THE ONE SIGNAL ON THIS CARD and it means work already late.
+     Nothing else here is coloured, so it cannot be missed and cannot cry wolf. */
+  .obt-over{ font-size:var(--t-meta); font-weight:var(--w-title); color:var(--st-amber-fg); }
+  .obt-acts{ margin-left:auto; display:flex; gap:var(--s-2); }
+  .obt-empty{ padding:22px var(--s-4); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .obt-band{ display:flex; align-items:center; gap:var(--s-2);
+    padding:6px var(--s-4); background:var(--nav-well); border-bottom:1px solid var(--rule);
+    font-size:var(--t-label); font-weight:var(--w-title); letter-spacing:.09em;
+    text-transform:uppercase; color:var(--color-neutral-600); }
+  .obt-band b{ margin-left:auto; font-weight:var(--w-title); font-variant-numeric:tabular-nums; }
+  .obt-row{ display:flex; gap:14px; align-items:flex-start;
+    padding:11px var(--s-4); border-bottom:1px solid var(--rule); }
+  .obt-row:last-child{ border-bottom:0; }
+  .obt-row:hover{ background:var(--nav-well); }
+  /* The state is a dot in its own tone — the same four-tone vocabulary the
+     calendar's legend and the register's stage dot already use. */
+  .obt-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px;
+    background:var(--st-amber-dot); }
+  .obt-dot-overdue{ background:var(--st-ruby-dot); }
+  .obt-dot-done{ background:var(--st-green-dot); }
+  .obt-body{ flex:1; min-width:0; }
+  .obt-what{ font-size:var(--t-body); line-height:20px; }
+  .obt-meta{ display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;
+    font-size:var(--t-label); color:var(--color-neutral-500); margin-top:1px; }
+  .obt-side{ border:1px solid var(--color-divider); border-radius:var(--radius);
+    padding:0 4px; font-size:var(--t-figure); text-transform:uppercase; letter-spacing:.09em; }
+  .obt-side-them{ color:var(--st-amber-fg); border-color:var(--st-amber-line); }
+  .obt-side-us{ color:var(--accent-ink); border-color:var(--btn-edge); }
+  /* NOBODY IS GOING TO BE TOLD. Amber ink and no fill: it is a fact about the
+     record rather than a second warning competing with the overdue count. */
+  .obt-unowned{ color:var(--st-amber-fg); }
+  .obt-quote{ font-size:var(--t-label); color:var(--color-neutral-600); margin-top:5px;
+    border-left:2px solid var(--color-divider); padding-left:9px; }
+  .obt-due{ flex:none; width:104px; text-align:right; font-size:var(--t-meta);
+    color:var(--color-neutral-600); font-variant-numeric:tabular-nums; line-height:20px; }
+  .obt-verbs{ flex:none; display:flex; gap:var(--s-3); line-height:20px; }
+  .obt-verbs button{ border:0; background:none; padding:0; font:inherit;
+    font-size:var(--t-label); color:var(--accent-ink); cursor:pointer; }
+  .obt-verbs button.is-del{ color:var(--danger); }
+  .obt-verbs button:hover{ text-decoration:underline; }
+  /* The count on the tab itself. Quiet by default — it is a fact about how much
+     is outstanding — and amber only when something is actually late. */
+  .room-tab-n{ margin-left:5px; font-size:var(--t-label); font-variant-numeric:tabular-nums;
+    color:var(--color-neutral-500); }
+  .room-tab-n.is-late{ color:var(--st-amber-fg); font-weight:var(--w-title); }
+
   .sign-grid{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
     gap:14px; max-width:var(--room-measure); width:100%; margin:0 auto; }
   @media (max-width:980px){ .sign-grid{ grid-template-columns:1fr; max-width:660px; } }

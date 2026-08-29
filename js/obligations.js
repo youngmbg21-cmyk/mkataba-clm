@@ -266,6 +266,18 @@ function obligationSurfacesChanged(){
     const c=getContract(state.activeId);
     if(c) renderChecksCard(c);
   }
+  /* AND THE ROOM'S OWN TAB, which carries the outstanding count and the amber
+     that says something is overdue (J-2.1). A new surface joins this funnel or
+     it goes stale the first time somebody ticks something off somewhere else —
+     which is the whole reason this function exists. Both are no-ops off the
+     contract room. */
+  if(window.state && window.getContract){
+    const c=getContract(state.activeId);
+    if(c){
+      if(window.wsPaintTabCounts) wsPaintTabCounts(c);
+      if(window.roomPaintObligations) roomPaintObligations(c);
+    }
+  }
 }
 
 /* ---- ONE VERB, PRESSED FROM THREE SCREENS ----
@@ -292,10 +304,41 @@ function toggleObligation(c, i, opts={}){
   if(!canEdit()){ toast(i18t('ob_viewers_no_change'),'err'); return null; }
   const o=(c&&c.obligations||[])[i]; if(!o) return null;
   o.status = o.status==='done' ? 'open' : 'done';
+  /* ---- COMPLETION CARRIES A DATE AND A PERSON (J-2.2) ----
+     Written HERE and nowhere else, so every surface — the tab, the Checks
+     panel, the Calendar, the dashboard — records the same three facts in the
+     same way. A caller that supplies no date gets today, which is true: it is
+     the day it was ticked. The dialog exists to move that date BACK.
+
+     AND A REPEATING DUTY OPENS ITS NEXT INSTANCE. `recurring` was stored,
+     printed on the row and read by nothing at all, so ticking a quarterly
+     report off ended it for ever. EXACTLY ONE, with its own id — the reminder
+     sweep's dedupe key is `${c.id}:ob:${o.id||due}:…`, so an instance minted
+     without a fresh id inherits the previous one's rows and its reminders
+     never fire, silently. Built by the one builder the dialog also names, so
+     what was promised before the press is what is filed. */
+  let next=null;
+  if(o.status==='done'){
+    obligationMarkDone(o, opts);
+    next=obligationNextInstance(o);
+    if(next){
+      /* The duty this instance belongs to, stamped on the one it came from
+         too, so a series can be read from either end. */
+      if(!o.seriesId) o.seriesId=obligationSeriesId(o);
+      c.obligations.push(next);
+    }
+  } else {
+    /* Reopening un-completes it. A record still carrying a completion date
+       under a status of 'open' is a contradiction the on-time figure counts. */
+    obligationClearDone(o);
+  }
   logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`
     +` — ${obligationIsTheirs(o)?`${c.counterparty||'the counterparty'}'s to deliver`:'ours'}`
+    +(o.status==='done'&&o.completedAt?` on ${o.completedAt}`:'')
     +(opts.from?` (from the ${opts.from})`:''));
+  if(next) logAudit(c,'Obligation',`Next in series opened: ${next.desc} (due ${next.due})`);
   persist(c);
+  if(next && window.toast) toast(i18tn('ob_next_opened',1,{date:next.due}),'ok');
   if(window.renderObligationsSection) renderObligationsSection(c);
   obligationSurfacesChanged();
   return o;
@@ -396,8 +439,15 @@ function renderObligationsSection(c){
         <button id="ob-find" class="ob-btn ob-btn-find">${icon('sparkle','w-3 h-3')} Find obligations</button>
       </div>`:''}
     </div>`;
-  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>
-    toggleObligation(c, Number(b.getAttribute('data-ob-toggle')))));
+  /* THE SAME DOOR AS THE TAB'S. This panel and the Obligations tab are the two
+     per-contract surfaces, and one asking for a completion date while the
+     other did not is precisely the drift this file's first rule warns about. */
+  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.getAttribute('data-ob-toggle'));
+    const o=(c.obligations||[])[i];
+    if(o&&o.status!=='done'&&window.openObligationDone) openObligationDone(c,i);
+    else toggleObligation(c, i);
+  }));
   host.querySelectorAll('[data-ob-edit]').forEach(b=>b.addEventListener('click',()=>{
     const i=Number(b.getAttribute('data-ob-edit'));
     openObligationForm(c, { ...obs[i], _i:i }); }));
@@ -497,7 +547,23 @@ async function runFindObligations(c){
   const btn=document.getElementById('ob-find'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ob_scanning')}</span>`; }
   const found=await extractObligations(c);
   if(btn){ btn.disabled=false; }
+  /* ---- THE CONTRACT REMEMBERS THAT IT WAS READ (J-2.2) ----
+     "No obligations tracked" and "nobody has looked" were the same screen, and
+     the Insights obligations page named that as one of its two blind spots.
+     Stamped by the SCAN and by nothing else — a stamp written anywhere else
+     would claim a reading that never happened — and WHATEVER IT FOUND,
+     including nothing: a contract read and genuinely clear is exactly the case
+     this fact exists to tell apart from one nobody has opened.
+
+     NOT WHERE THERE WAS NOTHING TO READ. extractObligations refuses a document
+     under 120 characters in words and returns an empty list, and a stamp there
+     would record a reading of a document that could not be read. Asked the
+     same way it asks — one reading, not a second copy of the test. */
+  const _obText = isUpload(c) ? (c.upload&&c.upload.extractedText)||''
+    : (window.contractPlainText?contractPlainText(c):'');
+  if(_obText && _obText.length>=120){ obligationsReadStamp(c, _obText); persist(c); }
   renderObligationsSection(c);
+  if(window.roomPaintObligations) roomPaintObligations(c);
   /* AND IT MUST SAY SO OUT LOUD, WITH A WAY FORWARD. This was a BARE toast
      call, which by this product's own rule is SILENT — so pressing Find
      obligations on a contract that returned nothing did nothing visible at
@@ -553,4 +619,393 @@ function openObligationsReview(c, found){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+
+/* ============================================================
+   THE OBLIGATIONS TAB — a home of their own (owner-asked 29 Aug 2026, J-2.1)
+   ============================================================
+   *"i want to first understand how obligations work in HaTi. I am not sure I
+   understand how I follow up on obligations per contract"*
+
+   THEY HAD NO HOME. A contract's promises lived behind a card called CHECKS,
+   which is about the things you run BEFORE sending a contract out — the
+   playbook pass, the risk scan, the brief. An obligation is the opposite: it
+   starts mattering the day the paper is signed and it outlives every one of
+   those checks. So the reader who asked "how do I follow up per contract" was
+   being sent to a card whose own name says it is somewhere else.
+
+   IT IS A READING AND IT ADDS NO STORE, NO ROUTE AND NO FIELD. Every figure
+   here is counted off `c.obligations`, which the record already carries and
+   which survives the light contract list. Nothing in this phase writes.
+
+   AND IT BORROWS EVERY READING. `obState` for open/overdue/done,
+   `obligationDue` for the date, `obligationIsTheirs` for the side,
+   `obligationOwner` for who has it, and `toggleObligation` for the one act. A
+   second copy of "is this overdue" is how two screens come to disagree about
+   one commitment — which is the whole reason this file has those functions.
+   ============================================================ */
+const _obEsc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
+  ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+
+/* ---- WHO THE REMINDER WOULD ACTUALLY REACH ----
+   THE SERVER'S `obligationRecipient` IS THE AUTHORITY and this is its browser
+   twin: email first, then name, case-insensitively, and only where the member
+   has an address to write to. The whole roster is in every browser already —
+   the reviewer picker and the approval rules need it — so this needs no route.
+
+   IT MUST STAY ONE READING. The Insights obligations page worked this out for
+   itself when it was built; that copy now asks this function, because two
+   answers to "will anybody be told" is exactly how a page comes to contradict
+   the sweep that sends the mail.
+
+   NULL IS A FACT, NOT A FAILURE. An obligation whose assignee resolves to
+   nobody still gets ONE admin note on day one and then silence for ever — so
+   the row says so, which is the cheapest fix in this whole job. */
+function obligationReminderTo(o){
+  const q = String((o && o.assignee) || '').trim().toLowerCase();
+  if(!q) return null;
+  let mem = [];
+  try{ mem = (typeof window.getUsers === 'function') ? (getUsers() || []) : []; }catch(_){ mem = []; }
+  const addressed = u => /.+@.+\..+/.test(String((u && u.email) || '').trim());
+  const hit = mem.find(u => addressed(u) && String(u.email).trim().toLowerCase() === q)
+    || mem.find(u => addressed(u) && String((u && u.name) || '').trim().toLowerCase() === q);
+  return hit || null;
+}
+/* Is this the reader's own? Asked of the RESOLUTION above rather than of the
+   assignee string, so "wanjiku@…" and "Wanjiku Kamau" are one person here
+   exactly as they are one person to the sweep. */
+function obligationIsMine(o){
+  let me = null;
+  try{ me = (typeof currentUser === 'function') ? currentUser() : null; }catch(_){ me = null; }
+  if(!me) return false;
+  const to = obligationReminderTo(o);
+  return !!(to && String(to.id) === String(me.id));
+}
+
+/* ---- FOUR BANDS, AND EVERY OBLIGATION LANDS IN EXACTLY ONE ----
+   Overdue · due this month · later · completed. The last branch is a catch-all,
+   so a record in a shape nobody thought of is drawn rather than dropped.
+
+   AN OBLIGATION WITH NO DATE READS AS 'later' and its row says "no date". It
+   is not overdue — nothing can be — and burying it under "completed" would be
+   a lie; the row is where that fact belongs, not a fifth band. */
+const OBLIG_BANDS = [
+  ['overdue', 'ob_band_overdue'],
+  ['month',   'ob_band_month'],
+  ['later',   'ob_band_later'],
+  ['done',    'ob_band_done'],
+];
+function obligationBand(o){
+  const st = obState(o);
+  if(st === 'done') return 'done';
+  if(st === 'overdue') return 'overdue';
+  const due = obligationDue(o);
+  if(!due) return 'later';
+  const d = new Date(due), now = new Date();
+  if(isNaN(d)) return 'later';
+  return (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth())
+    ? 'month' : 'later';
+}
+
+/* ---- WHAT THE TAB SAYS ABOUT ITSELF ----
+   The count is what is still OUTSTANDING, and it is AMBER ONLY WHEN SOMETHING
+   IS OVERDUE. A count that is always coloured is a warning nobody reads — the
+   sidebar's own rule, applied to a tab. */
+function obligationTabState(c){
+  const obs = (c && c.obligations) || [];
+  let open = 0, overdue = 0;
+  obs.forEach(o => { const st = obState(o); if(st === 'done') return; open++; if(st === 'overdue') overdue++; });
+  return { open, overdue, total: obs.length };
+}
+
+/* ---- THE PANE ----
+   ONE FULL-WIDTH CARD, laid out like the History tab rather than like Key
+   terms: this is a worklist and not a document, so it wants the width and it
+   wants rows ruled edge to edge. */
+function roomObligationsHtml(c){
+  const obs = (c && c.obligations) || [];
+  const editable = (typeof canEdit === 'function') ? canEdit() : false;
+  const st = obligationTabState(c);
+  const rows = obs.map((o, i) => ({ o, i, band: obligationBand(o) }));
+
+  /* "0 outstanding" over an empty state that already says nothing is tracked is
+     the same fact printed twice, and the second printing is the one that reads
+     like a fault. The acts stay: they are the way in. */
+  const head = `<div class="obt-head">
+      ${obs.length ? `<span class="obt-cap">${_obEsc(i18tn('ob_head_open', st.open, { n: st.open }))}</span>` : ''}
+      ${st.overdue ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', st.overdue, { n: st.overdue }))}</span>` : ''}
+      ${editable ? `<span class="obt-acts">
+        <button type="button" id="obt-add" class="ui-btn">${_obEsc(i18t('ob_add'))}</button>
+        <button type="button" id="obt-find" class="ui-btn">${_obEsc(i18t('ob_find'))}</button>
+      </span>` : ''}
+    </div>`;
+
+  if(!obs.length)
+    return head + `<div class="obt-empty">${_obEsc(i18t('ob_none_tracked'))}</div>`;
+
+  /* THE ROW. State as a dot in its own tone, the promise, then who has it and
+     when it falls due — and the acts at the right wall, which is the shape
+     every list in this product uses. */
+  const row = r => {
+    const { o, i } = r;
+    const s = obState(o);
+    const due = o.due ? String(o.due) : '';
+    const theirs = obligationIsTheirs(o);
+    /* NOBODY IS GOING TO BE TOLD, and it is said on the row it is true of.
+       Only where a reminder could still matter: a completed obligation is
+       nobody's to chase, and saying so there would be noise on the one band
+       that needs none. */
+    const unowned = (s !== 'done' && !obligationReminderTo(o))
+      ? `<span class="obt-unowned" title="${_obEsc(i18t('ob_no_owner_title'))}">${_obEsc(i18t('ob_no_owner'))}</span>` : '';
+    return `<div class="obt-row" data-obt-row="${_obEsc(o.id || '')}">
+      <span class="obt-dot obt-dot-${s}" aria-hidden="true"></span>
+      <div class="obt-body">
+        <div class="obt-what">${_obEsc(o.desc || '')}</div>
+        <div class="obt-meta">
+          <span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${_obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span>
+          <span>${_obEsc(obligationOwner(o, c))}</span>
+          ${o.recurring && o.recurring !== 'none'
+            ? `<span>${_obEsc((OBLIG_RECUR.find(x => x[0] === o.recurring) || [])[1] || o.recurring)}</span>` : ''}
+          ${unowned}
+          ${s === 'done' && o.completedBy ? `<span>${_obEsc(i18t('ob_done_by', { who: o.completedBy }))}</span>` : ''}
+        </div>
+        ${s === 'done' && o.completedNote ? `<div class="obt-quote">${_obEsc(o.completedNote)}</div>` : ''}
+        ${o.quote ? `<div class="obt-quote">&ldquo;${_obEsc(o.quote)}&rdquo;</div>` : ''}
+      </div>
+      ${''/* A COMPLETED ROW SAYS WHEN, and an older one says it does not know.
+             Nothing is inferred for the obligations ticked off before this
+             field existed: "completed" with no date is the truth they carry. */}
+      <span class="obt-due">${_obEsc(s === 'done'
+        ? (o.completedAt || i18t('ob_done_unknown'))
+        : (due || i18t('ob_no_date')))}</span>
+      ${editable ? `<span class="obt-verbs">
+        <button type="button" data-obt-toggle="${i}">${_obEsc(o.status === 'done' ? i18t('ob_reopen') : i18t('ob_done'))}</button>
+        <button type="button" data-obt-edit="${i}">${_obEsc(i18t('ob_edit'))}</button>
+        <button type="button" data-obt-del="${i}" class="is-del">${_obEsc(i18t('ob_remove'))}</button>
+      </span>` : ''}
+    </div>`;
+  };
+
+  const bands = OBLIG_BANDS.map(([k, key]) => {
+    const mine = rows.filter(r => r.band === k);
+    /* A BAND WITH NOTHING IN IT DRAWS NOTHING — the change column's own rule.
+       Four empty headings over an empty page is furniture. */
+    if(!mine.length) return '';
+    return `<div class="obt-band">${_obEsc(i18t(key))}<b>${mine.length}</b></div>`
+      + mine.map(row).join('');
+  }).join('');
+
+  return head + bands;
+}
+
+/* Painted when the tab is selected, exactly as roomPaintHistory is: a contract
+   nobody opens this tab on pays nothing for it. The handlers are bound HERE,
+   where the markup is written, because this repaints on every completion and a
+   listener bound elsewhere would be attached to nodes that have gone. */
+function roomPaintObligations(c){
+  const host = document.getElementById('ws-obligations-pane');
+  if(!host || !c) return;
+  host.innerHTML = roomObligationsHtml(c);
+  const obs = c.obligations || [];
+  /* THROUGH THE ONE VERB. toggleObligation is what the calendar, the dashboard
+     and the Checks panel all press; a second way to complete an obligation is
+     the fault this rulebook opens by warning about. */
+  /* COMPLETING ASKS TWO QUESTIONS; REOPENING ASKS NONE. The dialog exists to
+     move the date back and to leave a reference — neither of which a reopen
+     has anything to say about — and it presses the same verb either way. */
+  host.querySelectorAll('[data-obt-toggle]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.getAttribute('data-obt-toggle'));
+    const o = (c.obligations || [])[i];
+    if(o && o.status !== 'done') openObligationDone(c, i);
+    else toggleObligation(c, i, { from: 'obligations tab' });
+  }));
+  host.querySelectorAll('[data-obt-edit]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.getAttribute('data-obt-edit'));
+    openObligationForm(c, { ...obs[i], _i: i });
+  }));
+  host.querySelectorAll('[data-obt-del]').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.getAttribute('data-obt-del'));
+    const o = obs[i];
+    obs.splice(i, 1);
+    if(o) logAudit(c, 'Obligation', `Removed: ${o.desc}`);
+    persist(c);
+    if(window.renderObligationsSection) renderObligationsSection(c);
+    roomPaintObligations(c);
+    obligationSurfacesChanged();
+  }));
+  host.querySelector('#obt-add')?.addEventListener('click', () => openObligationForm(c));
+  host.querySelector('#obt-find')?.addEventListener('click', () => runFindObligations(c));
+}
+
+
+/* ============================================================
+   COMPLETION MEANS SOMETHING (owner-asked 29 Aug 2026, J-2.2)
+   ============================================================
+   An obligation had two states — open and done — and nothing else. So there
+   was no answer to "was it done on time", and the Insights obligations page
+   said so on its own data object (`canSeeCompletedOn:false`). And a QUARTERLY
+   duty ticked off ended for ever: `recurring` was stored, printed on the row
+   and read by nothing at all.
+
+   SIX FIELDS AND NO MIGRATION. Every one of them is ABSENT on every record
+   written before today, and absent means UNKNOWN — never guessed. The eleven
+   obligations already ticked off keep exactly the truth they have: done, on a
+   day nobody wrote down. An inference dressed as a record is the fault this
+   codebase has a standing rule against.
+   ============================================================ */
+
+/* ---- WHEN THE NEXT ONE FALLS DUE ----
+   ONE CADENCE STEP FROM THE ONE THAT WAS DUE, never from the day it was ticked
+   off. A quarterly report due on the 1st is due on the 1st next quarter
+   whether it was filed early or three weeks late, and dating the next instance
+   from the completion would let a series drift a month a year.
+
+   AND IF THAT DATE IS ALREADY PAST, IT IS ALREADY PAST. The next instance
+   arrives overdue, which is true — somebody is behind — and it is what the
+   reader needs to see. Skipping forward to the next date in the future would
+   quietly erase a missed quarter.
+
+   THE MONTH IS CLAMPED. Adding a month to 31 January in plain JavaScript gives
+   3 March; the end of February is what a person means. */
+function obligationNextDue(o){
+  const due = obligationDue(o);
+  const every = String((o && o.recurring) || 'none');
+  if(!due || every === 'none' || !OBLIG_RECUR.some(r => r[0] === every)) return null;
+  const d = new Date(due + 'T00:00:00');
+  if(isNaN(d)) return null;
+  const months = every === 'monthly' ? 1 : every === 'quarterly' ? 3 : every === 'annual' ? 12 : 0;
+  if(!months) return null;
+  const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+  const last = new Date(y, m + months + 1, 0).getDate();
+  return isoDay(new Date(y, m + months, Math.min(day, last)));
+}
+/* An instance belongs to the duty it was minted from; the first one IS the
+   duty, so it stands for itself. */
+const obligationSeriesId = o => String((o && (o.seriesId || o.id)) || '');
+
+/* ---- THE NEXT INSTANCE, BUILT BUT NOT FILED ----
+   Returned rather than pushed, so the dialog can NAME IT BEFORE THE PRESS and
+   the verb can file the same object it showed. Two functions building it would
+   be two answers to what the next one looks like.
+
+   ITS OWN ID IS LOAD-BEARING. The reminder sweep's dedupe key is
+   `${contract}:ob:${o.id || due}:...`, so an instance minted without a fresh id
+   inherits the previous one's dedupe rows and ITS REMINDERS NEVER FIRE —
+   silently, which is the worst shape this could take. */
+function obligationNextInstance(o){
+  const due = obligationNextDue(o);
+  if(!due) return null;
+  return {
+    id: 'ob_' + Math.abs(Date.now() + Math.floor(Math.random() * 1e6)).toString(36),
+    seriesId: obligationSeriesId(o),
+    desc: o.desc || '', due,
+    recurring: o.recurring, party: obligationParty(o),
+    assignee: obligationIsTheirs(o) ? '' : (o.assignee || ''),
+    quote: o.quote || '', status: 'open',
+  };
+}
+
+/* ---- THE ONE PLACE A COMPLETION IS WRITTEN ----
+   Called by toggleObligation and by nothing else, so every surface — the tab,
+   the Checks panel, the Calendar, the dashboard, the phone — records the same
+   three facts in the same way.
+
+   THE DATE IS A DAY, THROUGH THE NORMALISER, and it may be moved BACK but not
+   forward: things are ticked off late, and a completion dated after today is a
+   claim about work nobody has done yet. A wrong date makes the on-time figure
+   a lie, which is the whole reason the field exists.
+
+   REOPENING CLEARS IT. A record still carrying a completion date under a
+   status of 'open' would be a contradiction the on-time figure would count. */
+function obligationMarkDone(o, opts = {}){
+  const today = isoDay(new Date());
+  const asked = opts.at ? (window.dateOnly ? dateOnly(opts.at) : opts.at) : null;
+  o.completedAt = (asked && asked <= today) ? asked : today;
+  let by = '';
+  try{ by = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); }catch(_){ by = ''; }
+  o.completedBy = by;
+  const note = String(opts.note || '').trim();
+  if(note) o.completedNote = note.slice(0, OB_NOTE_MAX);
+  else delete o.completedNote;
+  return o;
+}
+const OB_NOTE_MAX = 200;
+function obligationClearDone(o){
+  delete o.completedAt; delete o.completedBy; delete o.completedNote;
+  return o;
+}
+/* Was it done by the day it was due? NULL is the honest answer wherever
+   either date is missing — which is every obligation completed before this
+   phase, and every one that never carried a due date. The on-time figure
+   counts only the ones that can answer. */
+function obligationOnTime(o){
+  const done = (o && o.completedAt) ? (window.dateOnly ? dateOnly(o.completedAt) : o.completedAt) : null;
+  const due = obligationDue(o);
+  if(!done || !due) return null;
+  return done <= due;
+}
+
+/* ---- WHEN THIS CONTRACT WAS LAST READ FOR OBLIGATIONS ----
+   "No obligations tracked" and "nobody has looked" were the same screen, and
+   the Insights page reported that as one of its two blind spots by name. This
+   is the fact that tells them apart, and it is stamped by the SCAN and by
+   nothing else — a stamp written anywhere else would claim a reading that
+   never happened.
+
+   THE HASH IS OF THE WORDING THAT WAS READ, so a contract read and then
+   renegotiated reads as read against text it no longer has. simhash64 is the
+   product's own fingerprint and needs no new machinery; where it is absent
+   (a stage without js/dedupe.js) the stamp keeps its DATE and carries no
+   hash, which is a smaller fact rather than a wrong one. */
+function obligationsReadStamp(c, text){
+  if(!c) return null;
+  c.obligationsReadAt = isoDay(new Date());
+  let h = null;
+  try{ h = (typeof window.simhash64 === 'function') ? simhash64(String(text || '')) : null; }catch(_){ h = null; }
+  if(h) c.obligationsReadHash = String(h); else delete c.obligationsReadHash;
+  return c.obligationsReadAt;
+}
+
+/* ---- THE DIALOG ----
+   Two questions and one press. The date defaults to today and may be moved
+   BACK; the note is optional and is one line of evidence — a filing number, a
+   reference — rather than a second description.
+
+   WHERE THE DUTY REPEATS IT NAMES THE NEXT ONE BEFORE THE PRESS, because
+   opening a new instance is a thing that happens TO the reader's book and a
+   product that does it silently is one that surprises them. */
+function openObligationDone(c, i){
+  const o = (c && c.obligations || [])[i];
+  if(!o) return;
+  if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return; }
+  const today = isoDay(new Date());
+  const next = obligationNextInstance(o);
+  openModal(`
+    <div class="p-6">
+      <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ob_done_title')}</h3>
+      <p class="text-[12px] text-ink/60 mb-4">${_obEsc(o.desc || '')}</p>
+      <label class="block mb-3"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_when')}</span>
+        <input id="od-at" type="date" value="${today}" max="${today}"
+          class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
+        <span class="mt-1 block text-[11px] text-ink/55">${i18t('ob_done_when_why')}</span></label>
+      <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_note')}</span>
+        <input id="od-note" maxlength="${OB_NOTE_MAX}" placeholder="${_obEsc(i18t('ob_done_note_ph'))}"
+          class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+      ${next ? `<p id="od-next" class="mb-4 rounded-lg border border-line bg-slate-50 px-3 py-2 text-[12px] text-ink/70">${
+        _obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}
+      <div class="flex justify-end gap-2">
+        <button id="od-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        <button id="od-go" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ob_done_go')}</button>
+      </div>
+    </div>`);
+  document.getElementById('od-cancel')?.addEventListener('click', closeModal);
+  document.getElementById('od-go')?.addEventListener('click', () => {
+    const at = (document.getElementById('od-at') || {}).value || '';
+    const note = (document.getElementById('od-note') || {}).value || '';
+    closeModal();
+    /* THROUGH THE ONE VERB. This dialog collects two answers and presses the
+       same function the Calendar presses; it decides nothing of its own. */
+    toggleObligation(c, i, { at, note, from: 'obligations tab' });
+  });
+}
+
+Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
