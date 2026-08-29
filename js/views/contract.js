@@ -1847,10 +1847,33 @@ function uploadDocBody(c){
            CITATION, which is worse than a missing one, so none is invented and
            the reader is told instead. Drawn only where there is something to
            say. */}
-      ${(()=>{ const st=u.docStructure; if(!st) return '';
+      ${(()=>{ const st=u.docStructure;
+        /* ---- J-3.3, AND IT IS THE HALF THE ORDER ITSELF NAMED ----
+           "may end as 'accept the guesswork and say so on screen' rather than
+           as a build." A PDF knows where ink sits on a page and a scan knows
+           less, so guessing the structure from the wording is the only thing
+           available there and is the RIGHT answer — what was missing is that
+           nobody was told. The heading a reader sees on a PDF is HaTi's
+           reading of a short line in capitals, not the document's own
+           statement, and that is worth one phrase where the file's own facts
+           already are.
+
+           IT IS NOT A BAND: it is a word on the row that already says the
+           file's name, who filed it and how well it was read — the second rung
+           of the cheapest-channel ladder, not the fourth. And it says
+           something the screen does not already say: nothing else in the
+           product distinguishes a heading Word declared from one HaTi
+           inferred. Drawn for a PDF, a scan or a Word file that carried no
+           styles; never where the structure was really read. */
+        if(!st){
+          const guessed=(u.textChars||0)>200;
+          return guessed?`<span style="opacity:.5">·</span>
+            <span title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
+        }
         const got=(st.headings||0)+(st.numbered||0)+(st.tables||0);
         const bad=st.unnumbered||0;
-        if(!got && !bad) return '';
+        if(!got && !bad) return `<span style="opacity:.5">·</span>
+          <span title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
         const parts=[];
         if(st.headings) parts.push(i18tn('ct_struct_headings', st.headings, {n:st.headings}));
         if(st.numbered) parts.push(i18tn('ct_struct_numbers', st.numbered, {n:st.numbered}));

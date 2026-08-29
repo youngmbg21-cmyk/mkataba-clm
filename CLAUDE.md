@@ -1949,8 +1949,19 @@ scraper's own output on the same file.
 **THE GUESSWORK STAYS, AS THE FALLBACK IT SHOULD ALWAYS HAVE BEEN.** A Word
 file with no styles and no numbering reads BYTE-IDENTICALLY to the scraper and
 stores no body at all (`docxHasStructure`), so the screen goes on guessing for
-it — and for PDFs and scans, which genuinely have no structure to read. J-3.3
-is not built.
+it — and for PDFs and scans, which genuinely have no structure to read.
+
+**J-3.3 IS THE HALF THE ORDER ITSELF NAMED, AND NO MORE.** Its own words were
+that it *"may end as 'accept the guesswork and say so on screen' rather than as
+a build"* — so what is built is the saying so, and inferring headings from a
+PDF's font sizes is NOT. A file whose structure was guessed carries one phrase
+on the same strip, *"Structure read from the wording"*, with the reason on its
+hover. **IT IS A FACT AND NOT A WARNING** — guessing is the RIGHT answer for a
+format that carries no structure, and it takes no amber; what was missing is
+that nothing in the product distinguished a heading Word declared from one HaTi
+inferred. It is a word on the row that already carries the file's name, who
+filed it and how well it was read — the second rung of the cheapest-channel
+ladder, not the fourth.
 
 **NOTHING ALREADY UPLOADED IS RE-READ (D-5).** A sealed record must not change
 under anybody. The existing "Re-read document" control is the one door, it

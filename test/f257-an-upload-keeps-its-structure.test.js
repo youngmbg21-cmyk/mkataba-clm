@@ -484,18 +484,40 @@ describe('f257 (9) — what the strip says, in both languages', () => {
   test('it is a line on the file strip and NOT a band', () => {
     /* The standing rule. The strip already carries how well the file was read,
        which is the same kind of question about the same file. */
-    assert.match(ROOM, /u\.docStructure; if\(!st\) return ''/,
-      'drawn only where there is something to say');
-    const near = ROOM.slice(ROOM.indexOf('const st=u.docStructure'),
-      ROOM.indexOf('const st=u.docStructure') + 900);
+    const at = ROOM.indexOf('const st=u.docStructure');
+    assert.ok(at > 0, 'the line is findable');
+    const near = ROOM.slice(at, at + 1800);
     assert.ok(!/st-amber-bg|border:1px solid var\(--st-amber-line\)/.test(near),
       'no band, no banner — one line among the file’s own facts');
+    assert.match(near, /if\(!got && !bad\)/,
+      'a Word file that carried no structure does not claim any');
   });
 
   test('the amber is spent on the ONE thing a reader can act on', () => {
-    const near = ROOM.slice(ROOM.indexOf('const st=u.docStructure'),
-      ROOM.indexOf('const st=u.docStructure') + 900);
+    const at = ROOM.indexOf('const st=u.docStructure');
+    const near = ROOM.slice(at, at + 1800);
     assert.match(near, /bad\?`<span style="color:var\(--st-amber-fg\)"/,
       'what could not be read is amber; what was read is not');
+    assert.ok(!/ct_struct_inferred[\s\S]{0,80}st-amber/.test(near),
+      'and the inferred-structure line is a FACT, not a warning: guessing is '
+      + 'the right answer for a format that carries no structure');
+  });
+
+  /* ================================================ 10 — J-3.3 */
+  test('J-3.3 — a file whose structure was GUESSED says so', () => {
+    /* The order's own words: "may end as accept the guesswork and say so on
+       screen rather than as a build." A PDF knows where ink sits on a page and
+       a scan knows less, so reading the structure out of the wording is the
+       right answer there — what was missing is that nobody was told which
+       they were looking at. */
+    const at = ROOM.indexOf('const st=u.docStructure');
+    const near = ROOM.slice(at, at + 1800);
+    assert.match(near, /ct_struct_inferred/, 'the phrase is drawn');
+    assert.match(near, /const guessed=\(u\.textChars\|\|0\)>200/,
+      'and only where there is text on screen whose structure could be guessed');
+    ['ct_struct_inferred', 'ct_struct_inferred_title'].forEach(k => {
+      const n = (I18N.match(new RegExp(`^\\s*${k}:`, 'gm')) || []).length;
+      assert.equal(n, 2, `${k} must be in both languages`);
+    });
   });
 });

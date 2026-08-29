@@ -692,7 +692,7 @@ Per phase, and each line is something a person can fail.
 
 ---
 
-# J-3 — AN UPLOADED CONTRACT KEEPS ITS STRUCTURE — **J-3.1 AND J-3.2 BUILT 29 Aug 2026; J-3.3 NOT BUILT**
+# J-3 — AN UPLOADED CONTRACT KEEPS ITS STRUCTURE — **BUILT 29 Aug 2026**
 
 **Raised by:** Young, 29 Aug 2026.
 
@@ -824,7 +824,7 @@ definition inside the file, resolving the numbers, and nesting the levels.
 Rate cards, service-level tables and schedules as real tables; bold, italic and
 underline preserved. Both already permitted by the stored-body allowlist.
 
-### J-3.3 — PDFs AND SCANS — **NOT BUILT**
+### J-3.3 — PDFs AND SCANS — **ANSWERED 29 Aug 2026 AS THIS PHASE'S OWN RECOMMENDATION: the guesswork is accepted and said on screen. Inferring headings from a PDF's font sizes is NOT built.**
 The PDF reader already knows each run's font size and position, so it could
 infer headings far better than reading the words does. Lower value than the
 first two and considerably harder; may end as "accept the guesswork and say so

@@ -2833,6 +2833,12 @@ const STRINGS = {
     ct_struct_unnumbered_one: '{n} number could not be read',
     ct_struct_unnumbered_other: '{n} numbers could not be read',
     ct_struct_unnumbered_title: 'This document numbers automatically and HaTi could not read the definition for these paragraphs. They are shown without a number rather than with a guessed one — a wrong clause number is a wrong citation.',
+    /* J-3.3, and the phrase is deliberately about the READING rather than
+       about a failure: guessing from the wording is the right answer for a
+       format that carries no structure. What was missing is that nobody was
+       told which they were looking at. */
+    ct_struct_inferred: 'Structure read from the wording',
+    ct_struct_inferred_title: 'This file carries no headings or numbering HaTi can read — a PDF knows where ink sits on a page and a scan knows less. The headings and clause numbers on screen are read from the wording itself, so they follow the document’s own conventions rather than its own statement of them.',
     ct_spots_head: 'Places to sign',
     ct_spots_marked: '{n} of {of} marked',
     ct_spot_marked: 'Marked',
@@ -7924,6 +7930,8 @@ const STRINGS = {
     ct_struct_unnumbered_one: '{n} nummer kunde inte läsas',
     ct_struct_unnumbered_other: '{n} nummer kunde inte läsas',
     ct_struct_unnumbered_title: 'Dokumentet numrerar automatiskt och HaTi kunde inte läsa definitionen för dessa stycken. De visas utan nummer i stället för med ett gissat — ett felaktigt klausulnummer är en felaktig hänvisning.',
+    ct_struct_inferred: 'Struktur tolkad ur texten',
+    ct_struct_inferred_title: 'Filen har inga rubriker eller numrering som HaTi kan läsa — en PDF vet var bläcket sitter på sidan och en inskanning vet ännu mindre. Rubrikerna och klausulnumren på skärmen är tolkade ur själva texten och följer alltså dokumentets konventioner snarare än dess egen uppgift om dem.',
     ct_spots_head: 'Platser att skriva under',
     ct_spots_marked: '{n} av {of} märkta',
     ct_spot_marked: 'Märkt',
