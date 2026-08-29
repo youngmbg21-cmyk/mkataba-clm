@@ -2,9 +2,11 @@
 
 **Raised by:** Young, 29 Aug 2026.
 **Branch:** `claude/contract-signature-workflow-8z1ic6`.
-**Status:** **OPEN — nothing built.** Three jobs specified, each blocked on its
-own decisions, none of which the owner has answered yet. More jobs to follow;
-section **J-4 onward** is where they land.
+**Status:** **OPEN — nothing built.** Four jobs specified. J-1 to J-3 are each
+blocked on their own decisions, none of which the owner has answered yet. **J-4
+is a REGRESSION FIX, is diagnosed, and is the one job here that needs no
+decision before it is built** — it waits only on the owner confirming the
+understanding. More jobs to follow; section **J-5 onward** is where they land.
 
 ---
 
@@ -41,8 +43,17 @@ to the right clause. The cause is one step: the reader takes the words out of
 the Word file and throws away everything else the file knew, and the screen then
 guesses the structure back from the words.
 
-Nothing is built. Each job ends with the questions that decide what gets built,
-and each question has my recommendation against it.
+**J-4 — one press to edit.** A regression, reported by the owner: on the clause
+editor page the pencil has to be pressed over and over with no visible reason.
+The cause is found. Typing and the highlight strip are refusing to work at the
+same time — turn one on and the other goes off — so there is no number of
+presses that reaches both. It went in on 26 August and a second change on
+28 August is what made it visible. The green bar down the left of the clause
+being edited goes with the fix.
+
+Nothing is built. J-1 to J-3 each end with the questions that decide what gets
+built, and each question has my recommendation against it. J-4 has no open
+questions.
 
 ---
 
@@ -941,13 +952,209 @@ written to match the code.
 
 ---
 
-# J-4 ONWARD — MORE JOBS TO FOLLOW
+# J-4 — ONE PRESS TO EDIT (a regression)
+
+**Raised by:** Young, 29 Aug 2026, off a screenshot of the clause editor with
+the green margin bar ringed.
+
+**Owner's words, verbatim:**
+
+> *In a previous request, you have not fixed the request to edit the editor page
+> and have actually regressed. I am still clicking the pencil sign various times
+> and I do not know for what reason. Direction and fix should be: Just click the
+> pencil symbol once, you can then edit manually by typing or highlight a
+> sentence and a strip bar appears (which was there before but you seem to have
+> deleted it) so you can edit with copilot. Finally you can simply just got to
+> the right panel to edit a whole clause with copilot. If the clause has
+> redlines, when you click the pencil the one time, the redlines disappear to
+> clean view of the edits so you can edit accordingly. Also delete the green
+> line bar on highlighted in the attached.*
+
+**The understanding was confirmed first, as asked**, as an artifact — *One Press
+to Edit*, https://claude.ai/code/artifact/83f2a825-0e07-4525-b5f5-757333709f95 —
+which carries the loop the owner is stuck in and a picture of the fixed state.
+**Do not build until the owner has said the five points on it are right.**
+
+---
+
+## THE CAUSE — found, not guessed
+
+**The strip is refused whenever the reader is typing.** The page's own selection
+handler opens with a guard that returns early while typing is on, under a
+comment reasoning that a drag inside a box you are typing in is somebody
+selecting words to embolden or delete.
+
+**So typing and the strip can never be live at once.** The pencil is one switch
+pointing at one of two jobs, and nothing on screen says so — which is the whole
+of the reported symptom. There is no number of presses that reaches both,
+because there is no state in which both exist.
+
+**THE OWNER'S MEMORY IS CORRECT AND IT IS EVIDENCED.** That guard — and the
+predicate it asks — both arrived in `79551c8`, *"Edit with Copilot becomes the
+paper"*, **26 Aug 2026**. Before that commit the strip carried no such
+condition. It was not deleted; it was made conditional on the one state the
+reader is in whenever they are working.
+
+**AND A SECOND CHANGE TURNED A LATENT CONFLICT INTO A DAILY ONE.** On 28 Aug the
+page stopped opening typeable on a clause that carries changes and started
+opening with its marks showing — which is right, is what this rulebook records
+as *the page never opens in a state that hides marks that exist*, and **is what
+the owner has now asked for by name**. What it cost is that the reader now
+arrives needing a pencil press, and the press takes the strip away.
+
+## THE LOOP, AS THE READER MEETS IT
+
+| | can type | strip |
+|---|---|---|
+| arrive on a clause with redlines | no | yes |
+| press 1 — typing on, marks clear | **yes** | no |
+| press 2 — wanting the strip back | no | **yes** |
+| press 3 — wanting to type again | **yes** | no |
+
+---
+
+## WHAT IS BUILT
+
+**One press of the pencil puts the clause into a state where all three ways of
+editing are live at once:**
+
+1. **Typing by hand** on the clause, with the writing bar above it. Unchanged.
+2. **Highlight a sentence → the strip appears** under it, offering the ready-made
+   Copilot asks and a box for the replacement wording. **This is the fix**: the
+   strip's condition changes so a highlight inside the clause being typed in
+   raises it, rather than being refused.
+3. **The panel on the right**, for the whole clause. Untouched.
+
+**AND THE GREEN MARGIN BAR GOES.** It is a 3px accent rule drawn in the left
+margin of the clause being worked on. **Nothing is lost with it**, checked
+rather than asserted: the dashed frame round the wording, the caret in it, and
+the page naming the clause at the top all already say which clause is live.
+
+**THE RED MARGIN BAR ON THE RIGHT STAYS.** It is a different mark saying the
+clause carries a change, it draws on every changed clause throughout the
+product, and it was not in the ask.
+
+---
+
+## THE RULE FOR A HIGHLIGHT WHILE TYPING
+
+With both live, a drag has to mean one thing without guessing:
+
+**The highlight SHOWS the strip, and the strip WAITS.** Carry on typing and it
+closes on its own, having done nothing. Use it, and it replaces the passage that
+was highlighted. **It never takes over what the reader was doing**, and it never
+files anything — filing is still the one act in the rail's foot.
+
+The comment that currently justifies the guard is not wrong about what a drag
+can mean; it is wrong that it can only mean that. Replace the reasoning, do not
+just delete the line.
+
+---
+
+## WHAT IS EXPLICITLY NOT TOUCHED
+
+- **Arriving on a clause with redlines still shows them.** The owner asked for
+  this by name and it is right; only the number of presses after it changes.
+- **The one press still clears the marks to the clean draft.** Unchanged.
+- **Pressing the pencil again still stops editing.** It stays a toggle, because
+  that is the way OUT — what changes is that it is never a way to reach
+  something.
+- **On a reading that refuses editing** (*As agreed*, *With changes*) the pencil
+  is still not drawn and typing is still refused. That rule is separate and
+  correct, and the strip must inherit it rather than growing its own copy.
+- **The Copilot panel on the right**, the writing bar, the delete-passage button,
+  and every rule about what files a change.
+- **The negotiation page's own paper**, which deliberately raises no selection
+  menu at all — that was an owner ruling of 19 Aug 2026 and this job must not
+  reach it.
+
+---
+
+## NOTES FOR WHOEVER BUILDS IT
+
+- **ONE PREDICATE, NOT TWO.** Whatever decides that the strip may open must ask
+  the SAME reading-is-editable question the pencil and the caret already ask. A
+  second copy is how the three come to disagree — which is precisely the fault
+  being fixed, one layer along.
+- **THE STRIP'S OWN PRESSES MUST NOT RE-TRIGGER IT.** The handler already
+  ignores a press inside the strip; with the strip live during typing, the box
+  inside it is also a place a person selects text, and selecting there must not
+  re-open it against itself.
+- **THE STRIP MUST NOT STEAL THE CARET.** Opening it may not move focus out of
+  the clause, or the reader loses their place mid-sentence every time they
+  highlight something.
+- **A REPAINT DROPS THE SELECTION.** Anything that redraws the paper while the
+  strip is open has to leave the highlighted passage resolvable, or Enter
+  replaces the wrong words. This page already fences its own writes for a
+  related reason; read that fence before adding another.
+- **THE GREEN BAR IS ONE RULE**, on the live clause's own marker, in this page's
+  stylesheet. Delete the rule rather than colouring it transparent — a
+  transparent bar still reserves its space and still has to be explained to the
+  next reader.
+- **NO BACKTICK IN A CSS COMMENT** in a file that returns CSS from a template
+  literal. This page's stylesheet is exactly such a file, and this fault has
+  been paid four times.
+
+### The six questions, worked
+
+- **Q2 — the cheapest channel.** Nothing is added to the page. A control that
+  already exists stops refusing. **No band, no notice, no explanation strip.**
+- **Q3 — the contract's pixels.** Removing the green bar takes furniture out of
+  the margin and adds nothing. Measure and report; it should move by zero or
+  gain a little.
+- **Q5 — the one door.** Three ways to edit, one act that files. Unchanged —
+  this job makes the three reachable at once rather than adding a fourth.
+- **Q6 — where the reader ends up.** One press, and everything on the page
+  works. That is the ask.
+
+Q1 and Q4 do not bite: nothing is added, and no model is asked anything new.
+
+---
+
+## DECISIONS
+
+**None open.** This is a regression with a found cause and a stated fix. The one
+judgement inside it — what a highlight means while typing — is answered above
+(*it shows the strip, and the strip waits*), and the artifact puts that to the
+owner in plain words. If they want the strip on a deliberate press instead, that
+is the one thing to change before building.
+
+---
+
+## ACCEPTANCE
+
+Every line driven in a real browser, because every one of these is a press.
+
+1. Arriving on a clause **with** redlines: the marks show, and the pencil is
+   drawn.
+2. **ONE** press: the marks clear to the clean draft AND the clause takes
+   typing — asserted in the same check, so a fix that delivers one without the
+   other fails.
+3. With typing live, a highlight inside the clause **raises the strip** —
+   measured as visible pixels, not as a class.
+4. With the strip open, the caret is still in the clause and the reader's place
+   has not moved.
+5. Typing on after a highlight closes the strip and changes nothing.
+6. Using the strip replaces the highlighted passage and nothing else in the
+   clause moves.
+7. Arriving on a clause with **nothing** on it still opens typeable — no press
+   at all.
+8. A second press still stops editing and brings the marks back.
+9. On *As agreed* and *With changes*: no pencil, no typing, **and no strip**.
+10. The green margin bar is **absent** from the live clause; the red
+    changed-clause bar is **present**.
+11. The negotiation page's own paper still raises no selection menu.
+12. Nothing is filed by any of the above — the change count on the record is
+    unmoved until the filing act is pressed.
+
+---
+
+# J-5 ONWARD — MORE JOBS TO FOLLOW
 
 The owner has said more jobs are coming for this order. They land here, each
-with the same shape as the three above: the owner's words verbatim, what is
+with the same shape as the four above: the owner's words verbatim, what is
 built, what is explicitly not touched, notes for whoever builds it, any
 decisions the build is blocked on, what is out of scope, and acceptance checks
 that can be failed.
 
-**Nothing in this file is built until the owner says so, and every job
-additionally waits on its own decisions.**
+**Nothing in this file is built until the owner says so.**
