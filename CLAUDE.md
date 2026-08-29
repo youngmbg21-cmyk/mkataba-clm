@@ -1861,6 +1861,117 @@ measuring all twelve claims. Node 4,388/4,388. Browser: settings-tabs 65,
 pages-read-alike 38, redline 95, clause-door 89, nav-floats 69,
 home-pipeline 54, calendar 39, kpi-four 19, theme-tokens 40 — all green.
 
+## SIGNING ON THE PAPER (owner-asked 29 Aug 2026, J-1)
+
+*"while in document tab, you can enter signature on the contract ... you will
+be navigated to the spaces where you can sign your name just like docusign at
+final stage you will be directed to the signature block to sign officially."*
+
+**THE RULE EVERYTHING RESTS ON, and every claim in f256 is a way of failing
+it: PUTTING A MARK ON THE PAPER IS NOT SIGNING. The contract is executed by
+one press, in one place.** A feature that draws signatures on a contract and
+half-executes it is worse than no feature at all, so the four promises are
+asserted DIRECTLY rather than inferred: `c.signatures`, the status, the seal
+and the plan rows are untouched by every act here; the wording does not freeze
+(`c.signSpots` is neither of the two stores `negoAnySignature` and
+`anySignatureRow` read); a placed mark does not travel; and a mark sits OVER
+the paper, never inside the wording — it never reaches `negoFileChange` and no
+fingerprint moves.
+
+- **ONE SHEET, TWO TABS.** The Signing tab draws the Document tab's own canvas
+  — `data-ws-pane="docs sign"`, a space-separated TOKEN LIST, matched with
+  `.split(/\s+/).includes(k)`, so a pane naming one tab behaves exactly as it
+  did. **MEASURED BEFORE IT WAS WRITTEN**, as the work order demanded: a second
+  contract pane would have been a second paper to keep in step, and what this
+  costs instead is a token match plus one extra child of `#doc-right`. The
+  right column carries `[data-doc-col]` and `applyWsTabs` toggles which of the
+  two is showing — the signing order and the signature block, or the Checks
+  card and the discussion.
+- **A SPOT IS ANCHORED TO A CLAUSE ID (D-1) AND CARRIES NO OFFSET AT ALL.**
+  It is the SAME id a change is filed against, which is what makes the anchor
+  survive an edit — and it only survives at all because `richdoc`'s allow-list
+  admits `data-clause-id` by name. **THE IDS ARE MINTED AT THE PRESS**, by
+  `negoStampContract` — the product's ONE act for it, attributes only, not a
+  word of the agreement moves — because a READING may not perform a write:
+  `signSpotProposals` offers by POSITION, and positions are stable across that
+  stamp, which is what makes it safe. Where there is no working text there is
+  no addressable clause and **nothing is offered**, rather than offered against
+  something that would move.
+- **HaTi PROPOSES, A PERSON PLACES (D-1).** `SIGN_SPOT_CUE` is deliberately
+  narrow — the phrases a contract uses when it wants a mark in the middle of
+  itself, plus a rule of underscores. "sign" alone is ordinary contract
+  language and matching it puts a signature box in the middle of an indemnity,
+  which is worse than missing one.
+- **A SPOT BELONGS TO A ROW ON THE SIGNING ORDER (D-2)**, so there is no second
+  list of people to keep in step. `signSpotSeat` matches the member record
+  first and the address second — `internalSignerRecipient`'s own order — and a
+  counterparty row is NEVER this reader.
+- **"SPOTS STILL TO FILL" JOINS `signBlockers` (D-3)**, so the button disables
+  itself and wears the reason like every other refusal in the product rather
+  than being a new kind of thing. **MINE ONLY**: a spot waiting on the other
+  side is not a reason this reader cannot sign.
+- **A SPOT THAT IS NOT YOURS IS DRAWN AND NOT PRESSABLE.** It is a `<div>` and
+  not a disabled `<button>`: a control nobody in this chair can press is not a
+  control, and drawing one dead is how a reader comes to blame themselves.
+- **TWO ACTS, TWO DOORS.** Filling a spot is done ON the paper, where the spot
+  is; ARRANGING who signs where is done in the signing column, where the
+  signing order already lives — that is what a person is doing when they are
+  arranging one, and it keeps the paper a contract rather than a form with a
+  toolbar on it. The card draws NOTHING where there are no spots and no
+  proposals; a third card describing an empty list is furniture.
+- **THE WALK IS IN THE TAB ROW'S OWN SLOT AND NEVER FLOATS** — the standing
+  rule *NOTHING FLOATS OVER THE PAGE*, and that row is an in-flow strip on
+  screen wherever the reader has scrolled. It counts only THIS reader's spots,
+  because a walk through somebody else's is a walk to nowhere, and its last
+  press lands on `data-anchor="sig"` and `#sign-btn` — the block that actually
+  signs.
+- **THE MARKS ARE PAINTED AFTER THE CANVAS, ON `wireDocCanvas`** — the one
+  funnel that re-arms everything inside `#doc-canvas` on every re-render — and
+  never inside `docBody`. That is what keeps three promises at once: docBody is
+  what the share copy, the exports and the counterparty's page all render, so a
+  mark that lived in it would travel; the wording is untouched, so no
+  fingerprint moves; and the spot is a SIBLING of the clause's blocks rather
+  than something inside a sentence.
+- **THE MARK FOLLOWS THE READER'S OWN TEXT SIZE**, `calc(px * var(--doc-scale,1))`
+  — the lesson this page has learned four times, applied without waiting for a
+  fifth report: the paper scales, the furniture does not, and a mark ON the
+  paper is paper.
+
+**D-4 IS DELIVERED WHERE IT CAN BE, AND THE DEPARTURE IS NAMED RATHER THAN
+SLIPPED IN.** The decision asked for the mark to be *"baked in at the moment of
+signing, so the sealed copy looks like a signed contract"*. **IT IS NOT BAKED
+INTO `execution.html`, and the reason is a fact about this codebase rather than
+an opinion**: `freezeContractHtml` seals the SANITISED fragment, and
+`js/richdoc.js`'s allow-list has **no IMG tag at all** and refuses `href` by
+design — so baking a signature image in means admitting an arbitrary URL into
+stored markup on every contract in the workspace in order to draw a picture on
+one. That is a security boundary this product holds deliberately and a
+signature mark is not a good enough reason to widen it.
+
+**SO "BAKED IN" IS DELIVERED AS IMMUTABILITY INSTEAD.** The marks live on
+`c.signSpots` — which is where a signature image already lives in this record,
+beside `c.signatures[].image`, so it is not a new class of storage — and
+`signSpots` joins **EXECUTED_IMMUTABLE** on the server. **A sealed record's
+marks are the marks it was sealed with.** Safe for the same reason `status` is:
+`finalizeExecution` writes the seal, the status and the spots in ONE save, and
+that guard is asked as a DIFFERENCE against the STORED record, which is not yet
+executed when the save arrives. f256 asserts the reason as well as the rule —
+**if `IMG` ever joins the allow-list that test fails and somebody re-reads this
+decision** rather than discovering it.
+
+**NOT BUILT, said out loud (D-5): the counterparty does not get the walk.**
+Their screen is `renderSharePortal`, a different page reached by a link, and
+giving them the same walk is roughly as much work again as everything above.
+Their spots are still drawn on their copy, so nothing is lost while it is
+decided. **Their page is proved BYTE-IDENTICAL** rather than assumed — the
+method clause-editor-verify section 11 already uses.
+
+Tests: f256 (node — the rule, the anchor, the refusals, the seat, the walk's
+arithmetic, D-4's departure and both languages), signing-on-paper-verify
+(browser — the pixels above the wording measured on BOTH tabs and the Document
+tab's own number proved unmoved, the spot on the sheet, the walk pressed for
+real, and the counterparty's page unmoved).
+
 ## A CLAUSE'S NAME IS PART OF THE CLAUSE (owner-asked 28 Aug 2026)
 
 *"the ability to edit the name of the header."* A contract is CITED by its

@@ -3027,7 +3027,16 @@ function negoRoundNeedsHtml(c){
 
    The count is negoNeedsYouIds, like the sidebar door and the round line. */
 function wsTabRowEndHtml(c){
-  if(!c || _wsTab!=='docs') return '';
+  /* ---- THE WALK LIVES IN THIS SLOT (J-1) ----
+     "It sits on the tab row's right-hand end, beside the text-size stepper,
+     and NOT floating over the page" — the standing rule NOTHING FLOATS OVER
+     THE PAGE governs, and this row is an in-flow strip that is on screen
+     wherever the reader has scrolled. It is drawn on the SIGNING tab, which is
+     the tab that asks somebody to sign; signWalkHtml asks that question itself
+     and answers '' anywhere else, so this is one reading and not two. */
+  if(!c) return '';
+  if(_wsTab==='sign') return window.signWalkHtml?signWalkHtml(c):'';
+  if(_wsTab!=='docs') return '';
   const step=window.rlTypeStepHtml?rlTypeStepHtml():'';
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
      negotiation on a contract that has none — and this builder runs on every
@@ -3151,6 +3160,10 @@ function wsPaintTabRowEnd(c){
     if(window.roomGoTab) roomGoTab(c,'redline');
     else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
   });
+  /* Wired where it is PAINTED and never also in wireWsTabs — both re-run, and
+     a handler bound in each stacks one per tab change. This slot's own note
+     three functions up is the reason it exists. */
+  end.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
 }
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
@@ -6347,6 +6360,11 @@ function renderWorkspace(){
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
+  /* THE MARKS ON THE PAPER GO ON THIS FUNNEL AND NOWHERE ELSE (J-1). A spot
+     is drawn AFTER the canvas rather than inside docBody — see the note over
+     signSpotsPaint — so it dies with every re-render, exactly like the two
+     buttons above, and for exactly the same reason it is re-armed here. */
+  if(window.signSpotsPaint) signSpotsPaint(c);
 }
 
 /* ============================================================
@@ -7082,8 +7100,30 @@ function renderSignSide(c){
         esc(i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
       ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:var(--t-meta);padding:7px var(--s-3);margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
       ${may?`<p style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
-    </section>`;
+    </section>
+    ${''/* ---- AND THE PLACES ON THE PAPER, UNDER THE ORDER THEY BELONG TO (J-1)
+           A spot belongs to a row on the signing order (D-2), so the list of
+           spots reads directly under that order and not somewhere else in the
+           column. It draws nothing when there is nothing to say. */}
+    ${window.signSpotsCardHtml?signSpotsCardHtml(c,{CARD,H,may}):''}`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  /* ---- THE PLACEMENT ACTS ----
+     Bound here, in the one paint of this host, so nothing stacks. Each press
+     repaints the column, the paper and the button, because all three read the
+     same list: the card says how many places there are, the paper draws them,
+     and the Sign button refuses while any of MINE is empty. */
+  const spRepaint=()=>{ renderSignSide(c); if(window.signSpotsPaint) signSpotsPaint(c);
+    if(window.renderSignButton) renderSignButton(c); wsPaintTabRowEnd(c); };
+  host.querySelectorAll('[data-sp-add]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.getAttribute('data-sp-add'));
+    const sel=host.querySelector(`[data-sp-who="${i}"]`);
+    const who=sel?sel.value:'';
+    if(!who){ toast(i18t('ct_spots_no_signers'),'err'); return; }
+    if(signSpotAdd(c,{index:i},who,b.getAttribute('data-sp-kind'))) spRepaint();
+  }));
+  host.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(signSpotRemove(c,b.getAttribute('data-sp-del'))) spRepaint();
+  }));
   /* ---- AND ON A CLOSED CONTRACT NOTHING IN IT IS PRESSABLE ----
      The cards are built by two other modules (approvalChainHtml,
      signerRouteHtml) and neither takes a read-only flag; threading one through
@@ -7403,6 +7443,73 @@ function signSpotHtml(c, s, mine){
          title="${esc(filled ? i18t('ct_spot_replace') : i18t('ct_spot_fill'))}">${inner}</button>`
     : `<div class="sig-spot is-theirs${filled ? ' is-filled' : ''}" data-sig-spot-read="${esc(s.id)}"
          title="${esc(i18t('ct_spot_theirs'))}">${inner}</div>`;
+}
+/* ---- WHERE A MARK IS PLACED AND TAKEN AWAY ----
+   ONE CARD, IN THE SIGNING COLUMN, and deliberately NOT on the paper. Filling
+   a spot is done where the spot is; ARRANGING who signs where is done in the
+   column where the signing order already lives, because that is what a person
+   is doing when they are arranging one. Two acts, two doors, each where it
+   belongs — and the paper stays a contract rather than becoming a form with a
+   toolbar on it.
+
+   IT IS A CARD, NOT A BAND. It states a list of a real thing (the places on
+   this contract that ask for a mark) and carries the acts that change that
+   list, which is what a card in this column is for; the standing rule about
+   bands governs strips laid over a page and is untouched.
+
+   IT DRAWS NOTHING WHERE THERE IS NOTHING TO SAY — no spots, no proposals, no
+   card. A third card in that column describing an empty list is exactly the
+   furniture this rulebook keeps warning about. */
+function signSpotsCardHtml(c, o){
+  const CARD = (o && o.CARD) || '';
+  const H = (o && o.H) || '';
+  const may = !!(o && o.may);
+  const list = signSpots(c);
+  const props = may ? signSpotProposals(c) : [];
+  if(!list.length && !props.length) return '';
+  const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
+  const nameOf = id => { const r = plan.find(x => String(x.id) === String(id));
+    return r ? String(r.name || '') : ''; };
+  const marked = list.filter(s => s.image).length;
+  const row = s => {
+    const kind = s.kind === 'initials' ? i18t('ct_spot_initials') : i18t('ct_spot_signature');
+    const who = nameOf(s.signerId);
+    return `<li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
+      <span style="flex:1;min-width:0;font-size:var(--t-meta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${esc(kind + (who ? ' · ' + who : ''))}">${esc(kind)}${who ? ` <span style="color:var(--color-neutral-600)">&middot; ${esc(who)}</span>` : ''}</span>
+      <span style="flex:none;font-size:var(--t-label);color:${s.image ? 'var(--st-green-fg)' : 'var(--color-neutral-600)'}">${
+        esc(s.image ? i18t('ct_spot_marked') : i18t('ct_spot_waiting'))}</span>
+      ${may ? `<button type="button" data-sp-del="${esc(s.id)}" class="ui-btn-plain"
+        style="flex:none;font-size:var(--t-label);padding:2px 6px" title="${esc(i18t('ct_spot_remove_title'))}">&times;</button>` : ''}
+    </li>`;
+  };
+  /* THE SIGNER IS CHOSEN, NEVER GUESSED. A spot belongs to a row on the
+     signing order (D-2) and there is nothing in the wording that reliably says
+     which row — so the reader picks, and where there is nobody to pick the
+     card says so and points at the one door that adds signers rather than
+     drawing a select with nothing in it. */
+  const opts = plan.map(sp => `<option value="${esc(sp.id)}">${esc(sp.name || '')}</option>`).join('');
+  const prop = pr => `<li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
+      <span style="flex:1;min-width:0;font-size:var(--t-meta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${esc(pr.label || '')}">${esc(pr.label || i18t('ct_spot_signature'))}</span>
+      <select data-sp-who="${pr.index}" style="flex:none;max-width:44%;font-size:var(--t-label);padding:2px 4px">${opts}</select>
+      <button type="button" data-sp-add="${pr.index}" data-sp-kind="${esc(pr.kind)}" class="ui-btn"
+        style="flex:none;font-size:var(--t-label);padding:3px 8px">${esc(i18t('ct_spot_add'))}</button>
+    </li>`;
+  return `<section style="${CARD}">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
+      <h6 style="${H};flex:1">${i18t('ct_spots_head')}</h6>
+      ${list.length ? `<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${
+        i18t('ct_spots_marked', { n: marked, of: list.length })}</span>` : ''}
+    </div>
+    ${list.length ? `<ul style="list-style:none;margin:0;padding:0">${list.map(row).join('')}</ul>` : ''}
+    ${props.length ? `<p style="margin:9px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${
+      i18tn('ct_spots_found', props.length, { n: props.length })}</p>
+      ${plan.length
+        ? `<ul style="list-style:none;margin:0;padding:0">${props.map(prop).join('')}</ul>`
+        : `<p style="margin:6px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--st-amber-fg)">${
+            esc(i18t('ct_spots_no_signers'))}</p>`}` : ''}
+  </section>`;
 }
 function signSpotsPaint(c){
   const canvas = document.getElementById('doc-canvas');
@@ -8001,7 +8108,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

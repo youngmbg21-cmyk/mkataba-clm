@@ -2675,6 +2675,49 @@
   .field-frozen[title]{ background:var(--st-amber-bg); border-bottom-color:var(--st-amber-dot);
     color:var(--st-amber-fg); font-weight:var(--w-title); }
 
+  /* ---- A SIGNATURE SPOT ON THE PAPER (J-1, owner-asked 29 Aug 2026) ----
+     The mark the reader presses where the wording asks for one. It sits OVER
+     the paper as a block of its own, between two clauses, and never inside a
+     sentence: it is not a redline, and nothing about the agreement's own words
+     moves to make room for it.
+
+     IT WEARS THE SIGNATURE BLOCK'S OWN GRAMMAR, twenty lines down, rather than
+     a second one: dashed while it waits, solid and tinted once a mark lands.
+     Two objects that mean "sign here" reading differently is how a reader
+     comes to think they mean different things.
+
+     THE PAPER'S OWN INK AND THE PAPER'S OWN SCALE. --color-doc-text follows
+     the sheet in both themes, and every size is calc(px * var(--doc-scale,1))
+     so the mark grows and shrinks with the wording the A-/A+ stepper is
+     setting — a mark pinned at one size on a document the reader has made
+     bigger stops looking like part of it. */
+  .sig-spot{ display:flex; align-items:center; gap:var(--s-2);
+    margin:var(--s-3) 0; padding:var(--s-2) var(--s-3);
+    min-height:calc(46px * var(--doc-scale,1));
+    border:1.5px dashed var(--color-accent-400); border-radius:var(--radius);
+    background:transparent; text-align:left; width:100%;
+    font-family:inherit; color:var(--color-doc-text); }
+  button.sig-spot{ cursor:pointer; transition:background var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease); }
+  button.sig-spot:hover{ background:var(--st-steel-bg); border-color:var(--color-accent-500); }
+  .sig-spot.is-filled{ border-style:solid; background:var(--st-steel-bg); }
+  /* A SPOT THAT IS NOT YOURS IS DRAWN AND NOT PRESSABLE, so you can see what
+     the other side will have to do. It is quieter, and it is not a control —
+     no pointer, no hover, nothing that invites a press that would be refused. */
+  .sig-spot.is-theirs{ border-color:var(--color-neutral-400); opacity:.72; cursor:default; }
+  .sig-spot-line{ flex:1 1 auto; min-width:0;
+    border-bottom:1px solid var(--color-doc-muted); height:calc(20px * var(--doc-scale,1)); }
+  .sig-spot-img{ flex:none; max-height:calc(40px * var(--doc-scale,1)); max-width:60%;
+    object-fit:contain; }
+  .sig-spot-cap{ flex:none; margin-left:auto; color:var(--color-doc-muted);
+    font-size:calc(11px * var(--doc-scale,1)); letter-spacing:.09em; text-transform:uppercase; }
+  /* WHERE THE WALK HAS JUST LANDED — a brief mark, three seconds, so the
+     reader's eye finds the spot the press scrolled to. It is a POSTURE and
+     never printed: @media print draws the paper, not where somebody was. */
+  .sig-spot.is-walking{ border-color:var(--color-accent-600); background:var(--st-steel-bg);
+    box-shadow:0 0 0 3px rgb(var(--color-accent-500-rgb)/.22); }
+  @media print{ .sig-spot.is-walking{ box-shadow:none; } }
+
   /* ---- THE SIGNATURE BLOCK ----
      One box per party, in signing order. A dashed edge while it is empty — a
      line waiting to be signed on — turning solid and tinted once a mark lands,

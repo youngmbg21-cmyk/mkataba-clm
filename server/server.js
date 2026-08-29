@@ -2637,6 +2637,27 @@ const EXECUTED_IMMUTABLE = [
      half. Frozen at execution, along with the rounds they were archived into
      and the versions that carry each round's body. */
   'changes', 'rounds', 'negotiation', 'versions',
+  /* ---- THE MARKS ON THE PAPER (J-1, 29 Aug 2026) ----
+     D-4 asked for the mark to be "baked in at the moment of signing, so the
+     sealed copy looks like a signed contract". THIS IS WHERE THAT IS
+     DELIVERED, and the departure from the decision's literal words is
+     recorded in CLAUDE.md under SIGNING ON THE PAPER: baking an <img> into
+     `execution.html` would mean admitting IMG with a src into the document
+     allow-list (js/richdoc.js), which admits an arbitrary URL into stored
+     markup on every contract in the workspace to draw a signature on one.
+     That allow-list refuses href by design and this is not a good enough
+     reason to widen it.
+
+     So the marks stay on `signSpots` — which is where a signature image
+     already lives in this record, beside c.signatures[].image — and what
+     makes them permanent is this line: after execution they cannot move.
+     A sealed record's marks are the marks it was sealed with.
+
+     Safe for the same reason `status` is: finalizeExecution writes the seal,
+     the status and the spots in ONE save, and this guard is asked as a
+     DIFFERENCE against the STORED record, which is not yet executed when that
+     save arrives. */
+  'signSpots',
 ];
 /* THREE SIGNALS, MATCHING negoExecuted IN THE BROWSER (js/negotiation.js).
    This read two — a seal or an execution stamp — and the client reads three.

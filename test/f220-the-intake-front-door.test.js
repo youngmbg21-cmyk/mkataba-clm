@@ -169,7 +169,15 @@ describe('F220 — the screen, pinned at the source', () => {
   test('it is wired into the shell like any other view', () => {
     assert.match(read('js/app.js'), /else if\(view==='intake'\) renderIntake\(\);/);
     assert.match(read('js/app.js'), /import '\.\/views\/intake\.js';/);
-    assert.match(read('js/core.js'), /'pipeline','advice','intake','folder'/, 'a saved link reopens it');
+    /* ---- RE-POINTED 29 Aug 2026 (J-2.1) ----
+       This pinned a LITERAL SLICE of the session-restore whitelist —
+       'pipeline','advice','intake','folder' — so a view added anywhere near
+       it failed a claim that was still perfectly true. What it is about is
+       that a saved link reopens THIS door; the neighbours were never part of
+       it. Read off the list itself, so the next view added costs nothing. */
+    const restore = read('js/core.js').match(/setView\(\[([^\]]*)\]\.includes\(state\.view\)/);
+    assert.ok(restore, 'the session-restore whitelist is findable');
+    assert.match(restore[1], /'intake'/, 'a saved link reopens it');
     assert.match(read('index.html'), /data-view="intake"/, 'and it has a door in the sidebar');
     assert.match(read('index.html'), /data-count="intake"/);
   });

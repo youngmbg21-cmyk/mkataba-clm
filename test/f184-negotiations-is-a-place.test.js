@@ -77,22 +77,37 @@ function theirAsk(c, id){
   return c;
 }
 
-describe('F184 (1) — four tabs in the room, none on the negotiation screen', () => {
-  test('ROOM_TABS is the four, and Negotiate is not among them', () => {
+describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
+  /* ---- REVERSED IN PLACE 29 Aug 2026 (J-2.1) ----
+     This read "four tabs" and asserted the literal four. The row is FIVE since
+     Obligations got a home, and the four-ness was never what this file is
+     about: F184's subject is that NEGOTIATE LEFT THE ROW for a door of its
+     own. So the claim is re-pointed at what it always meant — Negotiate is not
+     among them, whatever else is — and the count is read off the list rather
+     than typed, which is this rulebook's own rule: pin the relation, not the
+     number, or the next tab costs a test edit for nothing. */
+  test('ROOM_TABS carries no Negotiate, and the room’s own four still lead it', () => {
     const w = buildWorld({ contractView: true });
     /* join, not deepEqual: the world runs in its own realm, so its Array is not
        this realm's Array and a strict deep-equal fails on the constructor. */
-    assert.equal(w.win.ROOM_TABS.map(t => t[0]).join(','), 'terms,docs,sign,history');
+    const keys = w.win.ROOM_TABS.map(t => t[0]);
+    assert.ok(!keys.includes('redline'), 'Negotiate is a place, not a tab');
+    assert.equal(keys.slice(0, 3).join(','), 'terms,docs,sign',
+      'and the tabs that were always here are where they were');
+    assert.ok(keys.includes('history'), 'the trail is still one of them');
   });
 
-  test('the row itself draws four buttons and no count pill', () => {
+  test('the row draws one button per tab, and no Negotiate tab', () => {
     const w = buildWorld({ contractView: true });
     const html = w.win.roomTabsHtml({ id: 'MK-1' }, 'docs');
-    assert.equal((html.match(/data-ws-tab=/g) || []).length, 4);
+    assert.equal((html.match(/data-ws-tab=/g) || []).length, w.win.ROOM_TABS.length,
+      'the row is the list — one button each, and nothing invented at the draw');
     assert.ok(!/data-ws-tab="redline"/.test(html), 'no Negotiate tab');
-    /* The count pill went with the tab. Nothing else ever drew one, so a
-       .rt-n appearing here again means somebody put the tab back. */
-    assert.ok(!/rt-n/.test(html), 'no tab carries a count any more');
+    /* The Negotiate tab's own count pill went with it. Nothing else ever drew
+       a `.rt-n`, so one appearing here again means somebody put the tab back.
+       The Obligations count is a DIFFERENT class (.room-tab-n) on purpose,
+       precisely so this claim goes on meaning what it meant. */
+    assert.ok(!/rt-n/.test(html), 'no tab carries the negotiation count any more');
   });
 
   test('a stored tab of "redline" falls back to Document rather than to nothing', () => {
