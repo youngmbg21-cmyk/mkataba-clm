@@ -344,10 +344,31 @@ function signingLocked(c){
    every outstanding signing link without a second mechanism to keep in step. */
 function signingRestart(c){
   const was = signerPlan(c).length, marks = (c.signatures || []).length;
+  const before = signerPlan(c).map(s => String(s.id));
   c.signerPlan = signerPlan(c).map((s, i) => ({
     ...s, id: 'sg_' + Math.random().toString(36).slice(2, 7), order: i + 1,
     signed: false, at: null, by: null, signature: null }));
   c.signatures = [];
+  /* ---- THE PLACES ON THE PAPER COME WITH IT (audit, 30 Aug 2026) ----
+     This minted fresh row ids and never touched c.signSpots, so every placed
+     mark became nobody's: the reader could no longer fill one, the refusal
+     that stops a signature with places outstanding SILENTLY DISARMED, and any
+     signature already drawn stayed on the contract as an unnamed "theirs"
+     mark — the document showing a signature this very line says was discarded.
+
+     The plan is rewritten one-for-one by index, so old row i IS new row i and
+     the remap is exact rather than a guess. WHERE people sign is unchanged;
+     WHAT they signed is discarded, which is what the audit line already says
+     and what restarting means. */
+  const remap = {};
+  before.forEach((id, i) => { if(c.signerPlan[i]) remap[id] = c.signerPlan[i].id; });
+  if(Array.isArray(c.signSpots) && c.signSpots.length){
+    c.signSpots = c.signSpots.map(s => {
+      const next = { ...s, signerId: remap[String(s.signerId)] || s.signerId };
+      delete next.image; delete next.form; delete next.at; delete next.by;
+      return next;
+    });
+  }
   /* The intent to sign was given against the arrangement being discarded. */
   if (c.compliance) c.compliance.consent = false;
   logAudit(c, 'Signing restarted',

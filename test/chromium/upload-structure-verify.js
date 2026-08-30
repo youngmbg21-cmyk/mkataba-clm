@@ -46,9 +46,19 @@ const seen = (page, sel) => page.evaluate(s => {
 }, sel);
 
 /* The distance to the first line of the AGREEMENT, off a Range rather than a
-   box: a box is the LINE box and half-leading puts the glyphs elsewhere. */
+   box: a box is the LINE box and half-leading puts the glyphs elsewhere.
+
+   IT IS ROOTED AT THE PAPER, NOT AT THE CANVAS, AND THAT IS THE WHOLE CHECK.
+   Rooted at #doc-canvas the first text node of eight characters on an UPLOAD
+   is the FILE NAME inside the strip — which sits above the wording and whose
+   own top never moves however many lines the strip wraps to. So the check
+   compared the strip's top against the strip's top, reported PASS, and could
+   not fail: it measured the one thing this job cannot move while the wording
+   underneath it moved 36px. A net that cannot fail is worse than no net,
+   because it reads as a measurement. */
 const INK = `(() => {
-  const box = document.getElementById('doc-canvas'); if (!box) return null;
+  const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc')
+    || document.getElementById('doc-canvas'); if (!box) return null;
   const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
   while (walk.nextNode()) { const n = walk.currentNode;
     if ((n.textContent || '').trim().length < 8) continue;
@@ -230,7 +240,10 @@ const BODY =
       delete c.upload.docStructure;
       const dc = document.getElementById('doc-canvas');
       dc.innerHTML = docBodyStructured(c);
-      const box = document.getElementById('doc-canvas');
+      /* The PAPER, for the same reason the shared helper reads it — rooted at
+         the canvas this walker found the file name and reported the strip's
+         own top on both sides of the comparison. */
+      const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc') || dc;
       const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
       let top = null;
       while (walk.nextNode()) { const n = walk.currentNode;
@@ -246,6 +259,34 @@ const BODY =
       inkWith != null && inkWithout != null && Math.abs(inkWith - inkWithout) <= 1,
       `with the line ${inkWith} · without it ${inkWithout} `
       + `(a template contract, for scale: ${inkBefore})`);
+
+    /* ---- 4b. AND IT CANNOT GROW AT ANY WIDTH THIS PRODUCT SUPPORTS ----
+       4a measures ONE window. The strip used to WRAP, so the growth appeared
+       only where the row ran out of room — measured at 1440 and 1280 and not
+       at 1500 or 1366, which is exactly the shape a single-width check misses.
+       The strip is nowrap now, so the claim is that it is ONE LINE at every
+       laptop width on laptops-verify's own set, whatever is on it. */
+    const stripAt = [];
+    for (const w of [1500, 1440, 1366, 1280]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      const m = await page.evaluate(() => {
+        const box = document.getElementById('doc-canvas'); if (!box) return null;
+        const hit = [...box.querySelectorAll('span')].find(s => /Download original|Re-read|KB/i.test(s.textContent || ''))
+          || [...box.querySelectorAll('div')].find(d => /Download original/i.test(d.textContent || ''));
+        const row = hit && (hit.closest('div[style*="display:flex"]') || hit.closest('div'));
+        if (!row) return null;
+        const cs = getComputedStyle(row);
+        return { h: Math.round(row.getBoundingClientRect().height),
+          line: Math.round(parseFloat(cs.lineHeight) || 0), wrap: cs.flexWrap };
+      });
+      stripAt.push({ w, ...(m || {}) });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const tallest = Math.max(...stripAt.map(x => x.h || 0));
+    const shortest = Math.min(...stripAt.map(x => x.h || 1e9));
+    check('4b the file strip is ONE LINE at every supported width',
+      stripAt.every(x => x.wrap === 'nowrap') && tallest - shortest <= 1,
+      stripAt.map(x => `${x.w}:${x.h}px/${x.wrap}`).join(' · '));
 
     /* ---- 5. THE FILE STRIP, AND NO BAND ---- */
     const strip = await page.evaluate(() => {
@@ -285,17 +326,33 @@ const BODY =
 
     await page.screenshot({ path: path.join(OUT, '02-document.png') });
 
-    /* ---- 6. AND THE GUESSWORK STAYS FOR A FILE THAT CARRIES NOTHING ---- */
-    const plainOk = await page.evaluate(() => {
-      /* Read through the same one reader, in the page, so the claim is about
-         the shipped code and not about a copy of it. */
-      return (async () => {
-        const enc = new TextEncoder();
-        return true;
-      })();
+    /* ---- 6. AND THE GUESSWORK STAYS FOR A FILE THAT CARRIES NOTHING ----
+       REWRITTEN 30 Aug 2026. This was an async IIFE whose whole body was
+       `const enc = new TextEncoder(); return true;` — it could not return
+       anything but true, so the check was a hardcoded pass sitting in the
+       run's tally that no product change could turn red. A green check that
+       measures nothing is worse than no check, because it reads as a
+       measurement.
+
+       WHAT IT ASKS NOW is the claim itself, driven in the page: a Word file
+       with real numbering and NO heading styles — the ordinary counterparty
+       shape, headings typed in capitals — must still come out with headings,
+       because the guesswork is kept exactly where the file declares none. */
+    const plain = await page.evaluate(async () => {
+      const p = t => `<w:p><w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+      const body = p('SUPPLY AGREEMENT') + p('Between Highland Ltd and Naivas Ltd.')
+        + p('DEFINITIONS') + p('In this Agreement the words below have the meanings given.')
+        + p('PAYMENT') + p('The Buyer shall pay within thirty (30) days.');
+      const xml = '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/'
+        + 'wordprocessingml/2006/main"><w:body>' + body + '</w:body></w:document>';
+      const out = docxXmlToRich(xml, {});
+      const heads = (out.html.match(/<h[1-4]>/g) || []).length;
+      const segs = (window.clauseSegment ? clauseSegment(out.html) : []).length;
+      return { heads, segs, styled: out.report.styled, html: out.html.slice(0, 120) };
     });
-    check('6a (the no-structure fallback is f257’s — proved there against a real file)',
-      plainOk === true, 'see f257 (6)');
+    check('6a a file with NO heading styles still finds its clauses — the guesswork stays',
+      !!(plain && plain.styled === false && plain.heads >= 3 && plain.segs === 2),
+      plain ? `${plain.heads} headings, ${plain.segs} clauses, styled ${plain.styled}` : '—');
 
     check('7 no page errors anywhere in the journey', errors.length === 0,
       errors.slice(0, 3).join(' | '));

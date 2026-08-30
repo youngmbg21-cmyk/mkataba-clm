@@ -165,14 +165,40 @@ describe('F22 — adoption keeps the document formatted (checklist 9)', () => {
       'the contract that reaches the seal is the formatted one');
   });
 
+  /* REVERSED IN PLACE 30 Aug 2026. This staged its unplaceable edit by putting
+     a TABLE in the document — because any opaque block made the merge decline
+     outright — and asserted the document was flattened to plain text. A table
+     is now an ANCHOR rather than a bail-out (see _richEditAroundBlocks): an
+     edit made AROUND one is placed and the table is kept, which is the whole
+     point of J-3.2 storing tables at all. The claim this test exists to make
+     is UNCHANGED and is asserted below on an edit that genuinely cannot be
+     placed — one made INSIDE the table: it still falls back, and the fallback
+     still says so in the record. A silent flattening is the thing this fix
+     exists to stop, and that is as true as it ever was. */
+  test('an edit AROUND a table keeps the table, and the document stays formatted', () => {
+    const w4 = buildWorld();
+    const c4 = supplyContract({ redlineText: '<h1>T</h1><p>Body.</p><table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>', format: 'rich' });
+    w4.win.captureVersion(c4, 'Drafted', 'Wanjiru Kamau');
+    const base = w4.win.docPlainText(c4);
+    c4.rounds.push({ n: 1, at: w4.win.nowISO(), by: 'Erik', status: 'open', resolution: null,
+      comment: 'x', baseText: base, proposedText: base.replace('Body.', 'Amended body.') });
+    w4.win.acceptProposedRound(c4, 1);
+    assert.equal(w4.win.docFormat(c4.format), 'rich', 'it stayed formatted');
+    assert.match(c4.redlineText, /<table/, 'and the table is still a table');
+    assert.match(w4.win.docPlainText(c4), /Amended body\./, 'with the agreed wording in place');
+  });
+
   test('when the merge cannot be verified the record SAYS the document was flattened', () => {
     const w3 = buildWorld();
-    // a table makes the line mapping unsafe, so the merge declines
-    const c3 = supplyContract({ redlineText: '<h1>T</h1><p>Body.</p><table><tr><td>a</td></tr></table>', format: 'rich' });
+    /* An edit INSIDE the table: its own lines no longer come back, so the
+       anchor cannot be found and the merge declines — which is exactly what
+       must happen rather than a guess about which cell moved. */
+    const c3 = supplyContract({ redlineText: '<h1>T</h1><p>Body.</p><table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>', format: 'rich' });
     w3.win.captureVersion(c3, 'Drafted', 'Wanjiru Kamau');
     const base = w3.win.docPlainText(c3);
     c3.rounds.push({ n: 1, at: w3.win.nowISO(), by: 'Erik', status: 'open', resolution: null,
-      comment: 'x', baseText: base, proposedText: base.replace('Body.', 'Amended body.') });
+      comment: 'x', baseText: base,
+      proposedText: base.replace('Body.', 'Amended body.').replace(/\ba\b/, 'z') });
     w3.win.acceptProposedRound(c3, 1);
 
     assert.equal(w3.win.docFormat(c3.format), 'text', 'it fell back, as designed');

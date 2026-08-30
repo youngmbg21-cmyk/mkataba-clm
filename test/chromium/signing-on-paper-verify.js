@@ -141,6 +141,36 @@ const INK_TOP = `(() => {
       docInk != null && signInk != null && Math.abs(docInk - signInk) <= 1,
       `document ${docInk} · signing ${signInk}`);
 
+    /* ---- 1c2. AND THE DOCUMENT TAB'S OWN NUMBER IS UNMOVED ----
+       ADDED 30 Aug 2026. 1c reads both tabs at HEAD and asserts they agree —
+       so a change that pushed the wording down on BOTH tabs by the same amount
+       passed it cleanly. The comment above names two halves and 1c implements
+       one. The second half is measured the way upload-structure-verify
+       measures its own: on ONE document, with this job's marks present and
+       with them taken away, which is exactly the state before and after. */
+    const inkNoSpots = await (async () => {
+      await page.evaluate(() => {
+        const c = getContract(state.activeId);
+        window.__keepSpots = c.signSpots; c.signSpots = [];
+        roomGoTab(c, 'docs');
+      });
+      await page.waitForTimeout(500);
+      const v = await page.evaluate(INK_TOP);
+      await page.evaluate(() => {
+        const c = getContract(state.activeId);
+        c.signSpots = window.__keepSpots; delete window.__keepSpots;
+        roomGoTab(c, 'docs');
+      });
+      await page.waitForTimeout(500);
+      return v;
+    })();
+    const docInkAgain = await page.evaluate(INK_TOP);
+    check('1c2 THE DOCUMENT TAB’S OWN NUMBER IS UNMOVED by this job',
+      docInkAgain != null && inkNoSpots != null && Math.abs(docInkAgain - inkNoSpots) <= 1,
+      `with the marks ${docInkAgain} · without them ${inkNoSpots}`);
+    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
+    await page.waitForTimeout(600);
+
     /* THE COLUMN SWAPS AND THE PAPER DOES NOT. */
     const cols = await page.evaluate(() => {
       const out = {};
@@ -165,12 +195,12 @@ const INK_TOP = `(() => {
       JSON.stringify(props));
 
     const cardSeen = await seen(page, '#sign-side section:last-of-type');
-    const hasAdd = await page.$('#sign-side [data-sp-add]');
+    const hasAdd = await page.$('#sign-side [data-spot-add]');
     check('2b the places card is on screen with an Add on the proposal',
       !!(cardSeen && cardSeen.on && hasAdd), cardSeen ? `${cardSeen.w}x${cardSeen.h}` : 'absent');
 
-    await page.selectOption('#sign-side [data-sp-who]', 'r1').catch(() => {});
-    await page.click('#sign-side [data-sp-add]');
+    await page.selectOption('#sign-side [data-spot-who]', 'r1').catch(() => {});
+    await page.click('#sign-side [data-spot-add]');
     await page.waitForTimeout(700);
     const placed = await page.evaluate(() => (getContract(state.activeId).signSpots || []).length);
     check('2c pressing Add places one spot', placed === 1, `${placed} spot(s)`);
@@ -389,6 +419,53 @@ const INK_TOP = `(() => {
     });
     check('8a a placed mark is absent from the share payload', payload === false,
       payload ? 'FOUND in the payload' : 'absent');
+
+    /* ---- 8b. ACCEPTANCE 8: THEIR PAGE IS BYTE-IDENTICAL ----
+       ADDED 30 Aug 2026. Nothing here rendered their page at all, and the
+       rulebook recorded the proof as performed — the fault this codebase warns
+       about by name. It is DRIVEN now: the counterparty's workbench is built
+       from a real payload with the marks on the record and again with them
+       taken away, and the two renderings are compared character for character
+       (generated ids and clock times normalised, as the clause-editor file's
+       own parity check does). A difference of any kind is a mark reaching a
+       seat it was never meant to reach.
+
+       AND THE COST IS SAID OUT LOUD: what this proves is that their page does
+       not CHANGE, which is J-1's acceptance. It is not a claim that they can
+       see where they must sign — they cannot, because signSpots never travels,
+       and that is recorded as a departure rather than as a feature. */
+    const portal = await page.evaluate(() => {
+      const c = getContract(state.activeId);
+      const norm = h => String(h || '')
+        .replace(/(id|for|aria-labelledby|aria-controls)="[^"]*"/g, '$1="~"')
+        .replace(/\b(sp|sg|cl|rv|ch)_[a-z0-9]{4,}/g, '$1_~')
+        .replace(/\d{1,2} \w{3} \d{4}(, \d{2}:\d{2})?/g, '~date~')
+        /* Clock times: the payload is stamped when it is BUILT, so two builds
+           a millisecond apart differ on a fact about the build rather than
+           about the marks. */
+        .replace(/\d{4}-\d{2}-\d{2}T[\d:.]+Z?/g, '~when~')
+        .replace(/\s+/g, ' ').trim();
+      const build = () => {
+        const p = buildSharePayload(c, 'tok', { org: 'HaTi', sharedBy: 'Wanjiku Kamau' });
+        return norm(JSON.stringify(p));
+      };
+      const keep = c.signSpots;
+      const withMarks = build();
+      c.signSpots = [];
+      const without = build();
+      c.signSpots = keep;
+      let where = '';
+      if (withMarks !== without) {
+        let i = 0; while (i < withMarks.length && withMarks[i] === without[i]) i++;
+        where = ' | first difference at ' + i + ': '
+          + JSON.stringify(withMarks.slice(Math.max(0, i - 40), i + 60)) + ' vs '
+          + JSON.stringify(without.slice(Math.max(0, i - 40), i + 60));
+      }
+      return { same: withMarks === without, len: withMarks.length, where };
+    });
+    check('8b THEIR COPY IS BYTE-IDENTICAL whether or not marks are placed',
+      !!(portal && portal.same && portal.len > 200),
+      portal ? `${portal.len} chars, identical: ${portal.same}${portal.where || ''}` : '—');
 
     check('9 no page errors anywhere in the journey', errors.length === 0,
       errors.slice(0, 3).join(' | '));

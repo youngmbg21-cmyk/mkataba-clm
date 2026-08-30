@@ -2250,6 +2250,13 @@ const STRINGS = {
     mail_ob_chase_subject: "A reminder about {desc}",
     mail_ob_chase_line: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}), which was due on {due}. Could you let us know where it stands?",
     mail_ob_open: "Open the contract:",
+    /* An obligation with no date on it is still worth asking about, and a
+       sentence saying "due on ." is not the way to ask. */
+    mail_ob_chase_line_nodate: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}). Could you let us know where it stands?",
+    /* NOT mail_ob_open, which points at the contract inside HaTi: the reader
+       of this message has no account here. This one is only ever written
+       beside the share link they already hold. */
+    mail_ob_chase_open: "You can open the agreement here — no account needed:",
     // ---- the Contract Brief (WO-2) ----
     br_title: "Contract brief",
     br_written: "Written {date} by {name}",
@@ -2688,6 +2695,10 @@ const STRINGS = {
     ob_band_done: 'Completed',
     ob_head_open_one: '{n} outstanding',
     ob_head_open_other: '{n} outstanding',
+    /* The head names the cut it is counting: over a list narrowed to finished
+       work, "outstanding" is untrue of every row beneath it. */
+    ob_head_done_one: '{n} completed',
+    ob_head_done_other: '{n} completed',
     ob_head_overdue_one: '{n} overdue',
     ob_head_overdue_other: '{n} overdue',
     ob_add: 'Add obligation',
@@ -2839,6 +2850,17 @@ const STRINGS = {
        told which they were looking at. */
     ct_struct_inferred: 'Structure read from the wording',
     ct_struct_inferred_title: 'This file carries no headings or numbering HaTi can read — a PDF knows where ink sits on a page and a scan knows less. The headings and clause numbers on screen are read from the wording itself, so they follow the document’s own conventions rather than its own statement of them.',
+    /* A record filed before the structured reader existed carries no reading
+       of its own, so what is on screen really is worked out from the wording —
+       but nothing about the FILE may be asserted from that absence. This says
+       only what is known. */
+    ct_struct_inferred_old_title: 'This contract was filed before HaTi read a document’s own headings and numbering. Its words are the ones read out of the file; the headings and clause numbers on screen are worked out from the wording. Re-read the document to read its structure.',
+    /* A place to sign whose clause has left the wording, or whose signer left
+       the signing order when it was restarted. It counts for nothing and
+       blocks nothing; it is drawn so it can be cleared. */
+    ct_spots_stale_one: '{n} place no longer points anywhere in the contract:',
+    ct_spots_stale_other: '{n} places no longer point anywhere in the contract:',
+    ct_spot_frozen: 'The wording is locked because this contract has been signed, and a place to sign has to be attached to a clause. Open it in the negotiation once before it is signed, or restart the signing.',
     ct_spots_head: 'Places to sign',
     ct_spots_marked: '{n} of {of} marked',
     ct_spot_marked: 'Marked',
@@ -7394,6 +7416,8 @@ const STRINGS = {
     mail_ob_chase_subject: "En påminnelse om {desc}",
     mail_ob_chase_line: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som skulle vara klart den {due}. Kan ni återkomma med hur det ligger till?",
     mail_ob_open: "Öppna avtalet:",
+    mail_ob_chase_line_nodate: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}). Kan ni återkomma med hur det ligger till?",
+    mail_ob_chase_open: "Ni kan öppna avtalet här — inget konto behövs:",
     br_title: "Avtalssammanfattning",
     br_written: "Skriven {date} av {name}",
     br_rewrite: "Skriv om sammanfattningen",
@@ -7797,6 +7821,8 @@ const STRINGS = {
     ob_band_done: 'Avklarade',
     ob_head_open_one: '{n} utestående',
     ob_head_open_other: '{n} utestående',
+    ob_head_done_one: '{n} avklarad',
+    ob_head_done_other: '{n} avklarade',
     ob_head_overdue_one: '{n} försenat',
     ob_head_overdue_other: '{n} försenade',
     ob_add: 'Lägg till åtagande',
@@ -7932,6 +7958,10 @@ const STRINGS = {
     ct_struct_unnumbered_title: 'Dokumentet numrerar automatiskt och HaTi kunde inte läsa definitionen för dessa stycken. De visas utan nummer i stället för med ett gissat — ett felaktigt klausulnummer är en felaktig hänvisning.',
     ct_struct_inferred: 'Struktur tolkad ur texten',
     ct_struct_inferred_title: 'Filen har inga rubriker eller numrering som HaTi kan läsa — en PDF vet var bläcket sitter på sidan och en inskanning vet ännu mindre. Rubrikerna och klausulnumren på skärmen är tolkade ur själva texten och följer alltså dokumentets konventioner snarare än dess egen uppgift om dem.',
+    ct_struct_inferred_old_title: 'Det här avtalet lades in innan HaTi läste ett dokuments egna rubriker och numrering. Orden är de som lästes ur filen; rubrikerna och klausulnumren på skärmen är tolkade ur texten. Läs om dokumentet för att läsa in dess struktur.',
+    ct_spots_stale_one: '{n} plats pekar inte längre någonstans i avtalet:',
+    ct_spots_stale_other: '{n} platser pekar inte längre någonstans i avtalet:',
+    ct_spot_frozen: 'Texten är låst eftersom avtalet har undertecknats, och en plats att skriva under måste fästas vid en klausul. Öppna det i förhandlingen en gång innan det undertecknas, eller starta om undertecknandet.',
     ct_spots_head: 'Platser att skriva under',
     ct_spots_marked: '{n} av {of} märkta',
     ct_spot_marked: 'Märkt',

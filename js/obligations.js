@@ -300,6 +300,22 @@ function findObligation(cid, obId){
   const i=list.findIndex(o=>o&&String(o.id)===String(obId));
   return i<0 ? null : { c, o:list[i], i };
 }
+/* Is an instance of this series already open on that day? Read off the record
+   rather than remembered, so it is true however the duplicate came to be —
+   a reopen, a second device, an older import. The series is matched by its own
+   id where both carry one, and by what a series IS otherwise: the same duty,
+   on the same contract, at the same date. */
+function obligationSeriesOpenAt(c, want){
+  const list=(c&&c.obligations)||[];
+  const sid=want&&want.seriesId, due=String((want&&want.due)||'');
+  const desc=String((want&&want.desc)||'').replace(/\s+/g,' ').trim().toLowerCase();
+  return list.some(x=>{
+    if(!x||x.status==='done') return false;
+    if(String(x.due||'')!==due) return false;
+    if(sid&&x.seriesId) return String(x.seriesId)===String(sid);
+    return String(x.desc||'').replace(/\s+/g,' ').trim().toLowerCase()===desc;
+  });
+}
 function toggleObligation(c, i, opts={}){
   if(!canEdit()){ toast(i18t('ob_viewers_no_change'),'err'); return null; }
   const o=(c&&c.obligations||[])[i]; if(!o) return null;
@@ -321,6 +337,17 @@ function toggleObligation(c, i, opts={}){
   if(o.status==='done'){
     obligationMarkDone(o, opts);
     next=obligationNextInstance(o);
+    /* ---- EXACTLY ONE, AND THAT HAS TO SURVIVE A REOPEN ----
+       "Exactly one" was written as one push per completion, which is only the
+       same thing while nobody presses Reopen. Done → Reopen → Done pushed a
+       SECOND instance with the same description, the same date and the same
+       series — and because the reminder sweep dedupes on the obligation's own
+       id, the two duplicates take two dedupe rows and the assignee is nudged
+       twice at seven days, twice on the day and twice the day after. The
+       question is asked of the LIST rather than of the press: an open instance
+       of this series already standing at that date IS the next instance, so
+       there is nothing to open. */
+    if(next && obligationSeriesOpenAt(c, next)) next=null;
     if(next){
       /* The duty this instance belongs to, stamped on the one it came from
          too, so a series can be read from either end. */
@@ -700,7 +727,13 @@ function obligationBand(o){
   if(st === 'overdue') return 'overdue';
   const due = obligationDue(o);
   if(!due) return 'later';
-  const d = new Date(due), now = new Date();
+  /* LOCAL MIDNIGHT, the convention every other date reading in this file uses
+     (renewalDecisionDate and obligationNextDue both write it out). A bare
+     `new Date('2026-08-01')` is parsed as UTC midnight, so at any negative
+     offset the month comparison shifts by a day and an obligation due on the
+     1st bands as `later`. This is the reading BOTH the contract's tab and the
+     worklist share, so they were wrong together. */
+  const d = new Date(String(due) + 'T00:00:00'), now = new Date();
   if(isNaN(d)) return 'later';
   return (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth())
     ? 'month' : 'later';
@@ -1096,12 +1129,42 @@ function obligationsDoorCount(){
   catch(_){ return 0; }
 }
 
+/* ---- A DOOR NARROWS TO WHAT ITS OWN NUMBER COUNTED ----
+   Home's card counts the dated obligations due inside thirty days and the
+   sidebar counts what is LATE, and both landed on this page at its default
+   narrowing — every open obligation, dated or not, at any horizon. So a card
+   reading 2 opened a list of 4, and a door reading 1 opened the same 4. The
+   standing rule is that the number on a door matches the list behind it.
+
+   IT IS ALSO WHAT RESETS THE PAGE. `_obwF` is per sitting and was never
+   cleared on arrival, so a named door could land a reader on whatever
+   narrowing they had left behind an hour earlier with nothing saying why.
+   Every door goes through here and states the whole set, so there is nothing
+   stale to inherit. */
+function obwGoFiltered(patch){
+  _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all', ...(patch || {}) };
+  if(typeof setView === 'function') setView('obligations');
+  else renderObligationsList();
+}
 function obwSelect(id, opts, cur){
   return `<label class="obw-f"><span>${_obEsc(i18t('ob_f_' + id))}</span>
     <select data-obw-f="${id}">${opts.map(([k, key]) =>
       `<option value="${k}"${k === cur ? ' selected' : ''}>${_obEsc(i18t(key))}</option>`).join('')}</select></label>`;
 }
 
+/* ---- A FILTER MAY NOT THROW THE READER TO THE TOP ----
+   The standing rule: a press that NAVIGATES may land at the top; a press that
+   FILTERS, PAGES, SORTS or TOGGLES may not move the reader's place. This page
+   replaces `#content` wholesale and is not on VIEW_OWNS_HEIGHT, so the shell's
+   own scroller is what scrolls it — the markup goes, the height collapses to
+   zero, the browser clamps scrollTop, and the reader is at the top of a list
+   they were halfway down. `keepScroll` exists for exactly this and is
+   published; the funnel is here so every press that merely re-reads the same
+   page arrives at it, which is what the rule needs to hold. */
+function obwRepaint(){
+  if(typeof keepScroll === 'function') keepScroll(() => renderObligationsList());
+  else renderObligationsList();
+}
 function renderObligationsList(){
   const host = document.getElementById('content');
   if(!host) return;
@@ -1144,8 +1207,18 @@ function renderObligationsList(){
   host.innerHTML = `<div class="obw-page">
     <div class="obw-card">
       <div class="obw-head">
-        <span class="obt-cap">${_obEsc(i18tn('ob_head_open', rows.length, { n: rows.length }))}</span>
-        ${late ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', late, { n: late }))}</span>` : ''}
+        ${''/* THE HEADLINE NAMES WHAT IT IS COUNTING. `ob_head_open` reads
+             "N outstanding" and was computed off the filtered rows whatever
+             the state filter said, so a list narrowed to Completed was headed
+             "2 outstanding" over two finished obligations — the page stating
+             something untrue about the rows directly beneath it. The count is
+             the same count; only the word follows the cut. */}
+        <span class="obt-cap">${_obEsc(f.state === 'done'
+          ? i18tn('ob_head_done', rows.length, { n: rows.length })
+          : f.state === 'overdue'
+          ? i18tn('ob_head_overdue', rows.length, { n: rows.length })
+          : i18tn('ob_head_open', rows.length, { n: rows.length }))}</span>
+        ${late && f.state !== 'overdue' ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', late, { n: late }))}</span>` : ''}
       </div>
       <div class="obw-filters">
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
@@ -1163,9 +1236,9 @@ function renderObligationsList(){
 
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => {
     f[sel.getAttribute('data-obw-f')] = sel.value;
-    renderObligationsList();
+    obwRepaint();
   }));
-  host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; renderObligationsList(); });
+  host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; obwRepaint(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
   const go = cid => { if(window.openWorkspace){ openWorkspace(cid);
@@ -1209,7 +1282,7 @@ async function obligationChase(cid, obId){
   logAudit(c, 'Obligation', `Chased: ${o.desc} — ${c.counterparty || 'the counterparty'}`);
   persist(c);
   obligationSurfacesChanged();
-  if(state.view === 'obligations') renderObligationsList();
+  if(state.view === 'obligations') obwRepaint();
   /* AND THEN THE MESSAGE, WHICH MAY OR MAY NOT GO. Three honest answers, the
      shape every other mail in this product reports: it went, it is in the
      outbox, or it was refused and here is why. */
@@ -1223,4 +1296,4 @@ async function obligationChase(cid, obId){
   return o;
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obligationsDoorCount,renderObligationsList,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

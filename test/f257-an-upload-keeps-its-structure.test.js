@@ -378,15 +378,44 @@ describe('f257 (5) — the plain text is a contract with every other feature', (
 
 /* ================================================ 6 — THE FALLBACK STAYS */
 describe('f257 (6) — the guesswork is the fallback it should always have been', () => {
-  test('a Word file with no styles and no numbering reads as it always did', async () => {
+  test('a Word file with no styles reads BYTE-IDENTICALLY to the scraper', async () => {
     const plain = P(null, null, 0, R('CONFIDENTIALITY'))
       + P(null, null, 0, R('3.2 Each party shall keep the other’s information confidential.'));
     const r = await D.docxExtractRich(mk(plain, { noNumbering: true, noStyles: true }));
     const o = await D.docxExtract(mk(plain, { noNumbering: true, noStyles: true }));
     assert.equal(r.text, o.text, 'byte-identical to the scraper');
-    assert.ok(!D.DOCX_PARTS ? true : true);
-    assert.equal(r.report.headings, 0);
-    assert.equal(r.report.numbered, 0);
+    assert.equal(r.report.numbered, 0, 'no numbering in the file, so none is resolved');
+  });
+
+  test('...AND ITS CAPS HEADINGS ARE STILL GUESSED — REVERSED IN PLACE', async () => {
+    /* ---- WHY THIS CLAIM TURNED OVER (found by audit, 30 Aug 2026) ----
+       It read `report.headings === 0`, and that was the defect rather than the
+       rule. A great many contracts type their headings in CAPITALS rather than
+       styling them, and Word records nothing about them; before this reader
+       existed negoRichFromLines guessed those lines into h1/h2 with
+       docLineKind, so the clause model found real clauses on such a file.
+       Storing a structured body WITHOUT the guess made those documents WORSE
+       than they had been — every block a <p>, and the clause model back to one
+       clause per paragraph.
+
+       So the guess is kept where the file declares no heading style, and the
+       claim is now the stronger one: the WORDS are byte-identical (above) and
+       the STRUCTURE is at least as good as the reading it replaced. */
+    const plain = P(null, null, 0, R('CONFIDENTIALITY'))
+      + P(null, null, 0, R('Each party shall keep the other’s information confidential.'));
+    const r = await D.docxExtractRich(mk(plain, { noNumbering: true, noStyles: true }));
+    assert.equal(r.report.headings, 1, 'the caps line is read as a heading');
+    assert.match(r.html, /<h1>CONFIDENTIALITY<\/h1>/);
+  });
+
+  test('but a file that DOES declare headings is never guessed at', async () => {
+    /* The file's own statement wins; the guess is the fallback and nothing
+       more. A caps line inside a styled document stays body text. */
+    const mixed = P('Heading1', null, 0, R('Definitions'))
+      + P(null, null, 0, R('NOTWITHSTANDING THE FOREGOING the parties agree.'));
+    const r = await D.docxExtractRich(mk(mixed, { noNumbering: true }));
+    assert.equal(r.report.headings, 1, 'only the styled one');
+    assert.match(r.html, /<p>NOTWITHSTANDING/);
   });
 
   test('and NOTHING IS STORED for it — the screen goes on guessing', () => {
@@ -416,8 +445,17 @@ describe('f257 (7) — the size guard reaches every part it opens', () => {
       ['word/document.xml', 'word/numbering.xml', 'word/styles.xml']);
     Object.values(D.DOCX_PARTS).forEach(mb =>
       assert.ok(mb > 0 && mb <= 30, 'every part carries a real ceiling'));
-    assert.match(DOCX, /e\.rawLen > DOCX_PARTS\[name\] \* 1024 \* 1024/,
+    /* RE-POINTED 30 Aug 2026: this pinned the literal expression, and the
+       ceiling is now read into a local so a part not on the list (a .docx
+       whose main part is word/document2.xml) inherits the document's own
+       ceiling rather than none. The CLAIM is that the guard is applied PER
+       PART inside the loop, which is what the old reader did not do. */
+    assert.match(DOCX, /const capMb = DOCX_PARTS\[name\] != null/,
+      'each part takes its own ceiling, and an unlisted one inherits a real one');
+    assert.match(DOCX, /e\.rawLen > capMb \* 1024 \* 1024/,
       'and the guard is applied per part rather than to one of them');
+    assert.ok(!/rawLen[\s\S]{0,80}30 \* 1024 \* 1024[\s\S]{0,200}for\(const name/.test(DOCX),
+      'never one ceiling for the whole zip');
   });
 
   test('a damaged part reads as absent and never takes the import down', async () => {
@@ -496,8 +534,15 @@ describe('f257 (9) — what the strip says, in both languages', () => {
   test('the amber is spent on the ONE thing a reader can act on', () => {
     const at = ROOM.indexOf('const st=u.docStructure');
     const near = ROOM.slice(at, at + 1800);
-    assert.match(near, /bad\?`<span style="color:var\(--st-amber-fg\)"/,
-      'what could not be read is amber; what was read is not');
+    /* RE-POINTED 30 Aug 2026: this pinned the amber span's whole opening tag,
+       so adding the eliding rules that keep the strip on one line read as the
+       amber being gone. The claim is a RELATION — the unread count wears the
+       amber ink and nothing else on this line does — and it is written as one
+       now, so a later restyling of the strip costs no test edit. */
+    assert.match(near, /bad\?`<span style="[^"]*color:var\(--st-amber-fg\)/,
+      'what could not be read is amber');
+    assert.equal((near.match(/--st-amber-fg/g) || []).length, 1,
+      'and it is the only thing on the line that is — what WAS read is not');
     assert.ok(!/ct_struct_inferred[\s\S]{0,80}st-amber/.test(near),
       'and the inferred-structure line is a FACT, not a warning: guessing is '
       + 'the right answer for a format that carries no structure');
@@ -515,9 +560,103 @@ describe('f257 (9) — what the strip says, in both languages', () => {
     assert.match(near, /ct_struct_inferred/, 'the phrase is drawn');
     assert.match(near, /const guessed=\(u\.textChars\|\|0\)>200/,
       'and only where there is text on screen whose structure could be guessed');
-    ['ct_struct_inferred', 'ct_struct_inferred_title'].forEach(k => {
+    ['ct_struct_inferred', 'ct_struct_inferred_title', 'ct_struct_inferred_old_title'].forEach(k => {
       const n = (I18N.match(new RegExp(`^\\s*${k}:`, 'gm')) || []).length;
       assert.equal(n, 2, `${k} must be in both languages`);
     });
+  });
+});
+
+/* ================================================ 11 — WHAT WAS ALREADY ON FILE
+   ACCEPTANCE 7 and 8: nothing already uploaded is re-read, and a sealed
+   upload's fingerprint is unchanged. Both were asserted in PROSE and by one
+   grep that no migration path calls the structured reader — which is a claim
+   about D-5, is weaker than "the fingerprint is unchanged", and passes at the
+   parent commit too. Nothing computed a seal, a docHash or a canonical form
+   for a record filed before this job.
+
+   THE SHAPE THAT MATTERS is the pre-J-3 one: an upload carrying
+   `upload.extractedText` and NO stored body. Every reading this job could have
+   moved is taken on such a record here, and then the whole record is compared
+   against itself after the new machinery has been asked about it. */
+describe('f257 (11) — a record filed before this job does not move', () => {
+  const preJ3 = () => ({
+    id: 'MK-OLD', name: 'Filed last year', counterparty: 'Nordkust Industri AB',
+    status: 'Signed', source: 'upload', format: 'text',
+    upload: { fileName: 'supply.docx', size: 40960, uploadedBy: 'Amina Otieno',
+      uploadedAt: '2025-11-02T09:00:00.000Z', textChars: 678,
+      extractedText: 'SUPPLY AGREEMENT\nThis Agreement is made between Highland Ltd and Naivas Ltd.\n'
+        + 'DEFINITIONS\nIn this Agreement the words below have the meanings given.\n'
+        + 'PAYMENT\nThe Buyer shall pay each invoice within thirty (30) days.' },
+    fields: {}, metadata: {}, obligations: [], audit: [], rounds: [], versions: [],
+    signatures: [], comments: [] });
+
+  test('its wording, its canonical form and its fingerprint are what they were', async () => {
+    const { buildWorld } = require('./world');
+    const w = buildWorld({ negotiationView: true });
+    const win = w.win;
+    const c = preJ3();
+    const before = JSON.stringify(c);
+
+    /* THE READINGS. A pre-J-3 record has no stored body, so every one of these
+       must still come off the reader's own text — the branch this job did not
+       touch — rather than off anything structured. */
+    const text = win.docPlainText(c);
+    assert.equal(text, c.upload.extractedText,
+      'the words are the ones read out of the file, exactly as before');
+    const canon = win.docCanonical(c);
+    assert.ok(canon && canon.length, 'and it has a canonical form');
+
+    /* THE FINGERPRINT, computed the way a filed change computes one — the
+       input string first, because that is what the hash is OVER and what a
+       change to the reader could have moved. */
+    const iss = { id: 'CHG-001', clauseId: 'cl_x', changeType: 'modify',
+      oldText: 'The Buyer shall pay each invoice within thirty (30) days.',
+      newText: 'The Buyer shall pay each invoice within forty-five (45) days.',
+      author: 'Wanjiku Kamau', at: '2026-01-01T00:00:00.000Z', side: 'owner',
+      hashV: 5, seq: 1, prevChangeHash: null, ops: [] };
+    const input = win.negoHashInput(c.id, iss);
+    const hash = await win.negoHash(c.id, iss);
+    assert.ok(input && input.length, 'a fingerprint input is built');
+    assert.ok(hash && String(hash).length >= 16, 'and a fingerprint is issued');
+
+    /* AND THE NEW MACHINERY, ASKED ABOUT IT, CHANGES NOTHING. */
+    assert.equal(c.upload.docStructure, undefined,
+      'it carries no reading of its own, so nothing structured is offered for it');
+    assert.equal(JSON.stringify(c), before, 'and the record itself has not moved a byte');
+    assert.equal(win.negoHashInput(c.id, iss), input, 'the fingerprint input is stable');
+    assert.equal(await win.negoHash(c.id, iss), hash, 'and so is the fingerprint');
+    assert.equal(win.docPlainText(c), text, 'the wording is stable across the readings');
+    assert.equal(win.docCanonical(c), canon, 'and so is the canonical form the seal binds');
+  });
+
+  test('the fingerprint of a change filed before this job still VERIFIES', async () => {
+    /* The real acceptance: an existing contract's chain must not be accused of
+       tampering. Every historic hash version verifies for ever — the rule
+       NEGO_HASH_VERIFIES exists for — and this job added no version. */
+    const { buildWorld } = require('./world');
+    const win = buildWorld({ negotiationView: true }).win;
+    /* Read by duck-typing, never `instanceof`: this Set is built in the page's
+       own realm and an instanceof across realms is false however right the
+       value is — the lesson this suite has already paid for twice. */
+    assert.equal(typeof win.NEGO_HASH_VERIFIES.has, 'function',
+      'the set of accepted versions is readable');
+    const vs = Array.from(win.NEGO_HASH_VERIFIES);
+    for (const v of [2, 3, 4, 5])
+      assert.ok(vs.includes(v), `v${v} still verifies — a bump would accuse existing contracts`);
+  });
+
+  test('and no path in this job re-reads a record that is already on file', () => {
+    /* D-5, kept from the original block and still the wall: the one door is
+       the existing Re-read control, and it refuses a sealed record and an
+       edited one. */
+    const fn = ROOM.slice(ROOM.indexOf('async function rereadUploadText'),
+      ROOM.indexOf('async function rereadUploadText') + 2600);
+    assert.match(fn, /const sealed\s*=/, 'it asks whether the record is sealed');
+    assert.match(fn, /!c\.changes\?\.length && !c\.versions\?\.length/,
+      'and refuses to overwrite wording somebody has redlined');
+    assert.match(fn, /clauseCarryIds/,
+      'and where it does re-read, the clause ids are carried so nothing '
+      + 'anchored on them is orphaned');
   });
 });

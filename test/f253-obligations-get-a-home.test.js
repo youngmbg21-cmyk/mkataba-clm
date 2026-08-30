@@ -173,14 +173,27 @@ describe('f253 (3) — one verb, one reading, nothing new written', () => {
         + 'opens by warning about');
   });
 
+  /* REWRITTEN 30 Aug 2026. This read `html.includes(fn) || strip(OB).includes(fn)`
+     — and every one of those names is DEFINED in js/obligations.js, so the
+     right-hand side was unconditionally true and nothing was ever asked of the
+     renderer. It had already stopped being true for one of them: obligationDue
+     does not appear in roomObligationsHtml at all, and the message said it
+     did. The claim is the same claim; it is now asked of the RENDERER, and of
+     the names the renderer really has to ask. */
   test('and the readings are BORROWED, never re-derived', () => {
     const html = OB_CODE.match(/function roomObligationsHtml\(c\)\{[\s\S]*?\n\}/)[0];
-    for (const fn of ['obState', 'obligationDue', 'obligationIsTheirs', 'obligationOwner'])
-      assert.ok(html.includes(fn) || strip(OB).includes(fn),
-        `${fn} is the one reading and this tab asks it`);
+    for (const fn of ['obState', 'obligationBand', 'obligationIsTheirs', 'obligationOwner'])
+      assert.ok(html.includes(fn),
+        `${fn} is the one reading and this tab asks it, in its own body`);
     assert.ok(!/daysUntil\(/.test(html),
       'a new copy of "is this overdue" is how two screens come to disagree '
       + 'about one commitment');
+    /* And the two readings the renderer does NOT ask directly are asked by the
+       ones it does — obligationBand asks obligationDue, obState asks it too —
+       so the chain is one reading deep and never a second copy. */
+    const band = OB_CODE.match(/function obligationBand\(o\)\{[\s\S]*?\n\}/)[0];
+    assert.ok(band.includes('obligationDue(o)') && band.includes('obState(o)'),
+      'obligationBand is where the date and the state are read, once');
   });
 
   test('the renderer writes nothing — it is a reading', () => {
@@ -369,9 +382,20 @@ describe('f253 (7) — the stylesheet, and what it is not', () => {
   test('and the tokens it uses have a night answer', () => {
     /* --st-*-fg and --accent-ink are all redefined under html.dark; a raw
        accent ramp step used as text is the fault Phase A swept. */
-    const rules = CSS.match(/\.obt-[\s\S]{0,2600}?\.room-tab-n\.is-late[^}]*\}/)[0];
-    assert.ok(!/var\(--color-accent-[6-9]00\)/.test(rules),
-      'the accent ramp has no dark answer; --accent-ink does');
+    /* REWRITTEN 30 Aug 2026: the old window was `\.obt-[\s\S]{0,2600}?` up to a
+       named end marker, and the 2600-character budget forced the engine
+       FORWARD past the first `.obt-` rule — so `.obt-head`, `.obt-cap`,
+       `.obt-over`, `.obt-acts`, `.obt-empty`, `.obt-band` and `.obt-unowned`
+       all sat outside the region the test said it swept, including three the
+       test above names by hand. Every rule whose selector mentions one of this
+       feature's own classes is swept now, by collecting them rather than by
+       guessing a window; the count is asserted so a sweep that silently stops
+       matching fails rather than passing over nothing. */
+    const rules = (CSS.match(/[^{}]*\.ob[tw]-[^{}]*\{[^}]*\}/g) || []);
+    assert.ok(rules.length >= 20, `the sweep found ${rules.length} rules — it must reach them all`);
+    for (const r of rules)
+      assert.ok(!/var\(--color-accent-[6-9]00\)/.test(r),
+        `the accent ramp has no dark answer; --accent-ink does — ${r.slice(0, 90)}`);
   });
 });
 

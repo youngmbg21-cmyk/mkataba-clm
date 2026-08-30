@@ -4433,10 +4433,10 @@ function uploadedTextForPrint(c){
   return `
     <div style="margin-top:22px;">
       <div style="font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-body);border-bottom:1px solid var(--color-doc-rule);padding-bottom:6px;margin-bottom:10px;color:var(--color-doc-text);">
-        Contract text${c.redlineText?' (working text)':''}
+        Contract text${(window.uploadWordingEdited?uploadWordingEdited(c):!!c.redlineText)?' (working text)':''}
       </div>
       ${body}
-      <p class="doc-muted" style="font-size:var(--t-figure);margin-top:10px;line-height:1.5;">${i18t('po_text_extracted_from')} <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document.</p>
+      <p class="doc-muted" style="font-size:var(--t-figure);margin-top:10px;line-height:1.5;">${i18t('po_text_extracted_from')} <strong>${u.fileName||'the uploaded file'}</strong>${(window.uploadWordingEdited?uploadWordingEdited(c):!!c.redlineText)?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document.</p>
     </div>`;
 }
 /* THE EXECUTION BLOCK, FOR PRINT.

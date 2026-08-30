@@ -1784,6 +1784,16 @@ function uploadDocBody(c){
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
     ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
        ${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}`
+    /* ---- A CONTRACT ON SCREEN IS NOT A FILE THAT CANNOT BE PREVIEWED ----
+       This chain ends in a dashed card saying the file cannot be shown and to
+       download the original, which was right while a .docx's only rendering
+       was the text read out of it. Since J-3.2 a structured upload stores its
+       wording, the block below draws the whole agreement, and the card then
+       drew UNDER it — telling the reader the document they were reading could
+       not be shown. Where the wording is on the page there is nothing left for
+       a placeholder to say. */
+    : (c.redlineText && String(c.redlineText).trim())
+    ? ''
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
@@ -1827,14 +1837,24 @@ function uploadDocBody(c){
          above the paper it describes. NOTHING WAS DROPPED: every fact and
          both buttons are here, and data-reread still carries the same
          handler. */}
-    <div class="mb-4" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:var(--t-label);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
-      <span style="display:inline-flex;align-items:center;gap:5px;min-width:0">
-        ${icon('file','w-3.5 h-3.5')}<b style="font-weight:var(--w-strong);color:var(--color-text)">${esc(u.fileName||'—')}</b>${sizeKB?` · ${sizeKB} KB`:''}
+    ${''/* ---- THE STRIP IS ONE LINE, WHATEVER IS ON IT (Q3) ----
+         It was a WRAPPING flex row, so every fact added to it could drop to a
+         second line and push the first line of the agreement down with it —
+         MEASURED at 36px on two of the four laptop widths this product
+         supports, which Q3 refuses outright. The row does not wrap now: the
+         pixels come off other chrome on the same screen, which is what that
+         rule asks for. The two acts are flex:none and can never be squeezed
+         off; the FACTS elide, longest-lived first, and each keeps its own
+         hover. A strip that cannot grow cannot cost the paper anything, at any
+         width and however many facts land on it later. */}
+    <div class="mb-4" style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:var(--t-label);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:9px">
+      <span style="display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis">
+        ${icon('file','w-3.5 h-3.5')}<b style="font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis">${esc(u.fileName||'—')}</b>${sizeKB?` · ${sizeKB} KB`:''}
       </span>
-      <span style="opacity:.5">·</span>
-      <span style="min-width:0">${esc(u.uploadedBy||'—')}${u.uploadedAt?` · ${fmtDT(u.uploadedAt)}`:''}</span>
-      <span style="opacity:.5">·</span>
-      <span style="color:${u.textChars>200&&!isOcrText(u.textSource)?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${u.textChars>200
+      <span style="opacity:.5;flex:none">·</span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(u.uploadedBy||'—')}${u.uploadedAt?` · ${fmtDT(u.uploadedAt)}`:''}</span>
+      <span style="opacity:.5;flex:none">·</span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;color:${u.textChars>200&&!isOcrText(u.textSource)?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${u.textChars>200
         ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'}`
         : 'Text not machine-readable'}</span>
       ${''/* ---- WHAT THE STRUCTURE READ SAYS, ON THE STRIP THAT ALREADY
@@ -1865,22 +1885,30 @@ function uploadDocBody(c){
            product distinguishes a heading Word declared from one HaTi
            inferred. Drawn for a PDF, a scan or a Word file that carried no
            styles; never where the structure was really read. */
+        /* A RECORD FILED BEFORE J-3 CARRIES NO READING AT ALL, and the
+           phrase is still true of it — what is on screen for such a document
+           IS worked out from its wording, because nothing structured was ever
+           stored. What was NOT true was the hover, which asserted the FILE
+           carries no headings HaTi can read: for an old upload of a properly
+           styled Word file that is false, and it is not a claim this record
+           can support. It says what is known instead — the words were read,
+           the shape was not. */
         if(!st){
           const guessed=(u.textChars||0)>200;
-          return guessed?`<span style="opacity:.5">·</span>
-            <span title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
+          return guessed?`<span style="opacity:.5;flex:none">·</span>
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_old_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
         }
         const got=(st.headings||0)+(st.numbered||0)+(st.tables||0);
         const bad=st.unnumbered||0;
-        if(!got && !bad) return `<span style="opacity:.5">·</span>
-          <span title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
+        if(!got && !bad) return `<span style="opacity:.5;flex:none">·</span>
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
         const parts=[];
         if(st.headings) parts.push(i18tn('ct_struct_headings', st.headings, {n:st.headings}));
         if(st.numbered) parts.push(i18tn('ct_struct_numbers', st.numbered, {n:st.numbered}));
         if(st.tables)   parts.push(i18tn('ct_struct_tables', st.tables, {n:st.tables}));
-        return `<span style="opacity:.5">·</span>
-          ${parts.length?`<span>${esc(parts.join(', '))}</span>`:''}
-          ${bad?`<span style="color:var(--st-amber-fg)" title="${esc(i18t('ct_struct_unnumbered_title'))}">${
+        return `<span style="opacity:.5;flex:none">·</span>
+          ${parts.length?`<span style="min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</span>`:''}
+          ${bad?`<span style="flex:none;color:var(--st-amber-fg)" title="${esc(i18t('ct_struct_unnumbered_title'))}">${
             esc(i18tn('ct_struct_unnumbered', bad, {n:bad}))}</span>`:''}`;
       })()}
       <span style="flex:1 1 auto"></span>
@@ -1917,7 +1945,18 @@ function uploadDocBody(c){
          If it is wanted back it wants a home of its own — the evidence pack or
          the seal's own panel — not a caption over the contract.
          ct_working_text is STALE. */}
+    ${''/* WHERE THE WORDS CAME FROM FOLLOWS THE WORDS. `ct_reading_view` is the
+         one line on this tab that says the wording was read out of the file,
+         and it hung off the branch above — which a structured upload no longer
+         takes, so it stopped drawing on exactly the documents it was written
+         for. It is drawn here instead, and only while it is TRUE: once
+         somebody has redlined or versioned this document the words on screen
+         are the workspace's, not the file's, and a caption claiming otherwise
+         would be worse than none. */}
     ${c.redlineText?`
+    ${(isDocx && !(window.uploadWordingEdited ? uploadWordingEdited(c)
+        : ((c.changes||[]).length || (c.versions||[]).length)))
+      ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
     <div class="mb-4" data-anchor="redline" style="color:var(--color-doc-text)">${
       docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>`:''}
     ${preview}
@@ -1968,13 +2007,38 @@ async function rereadUploadText(c, btn){
     const before=Number(u.textChars||0);
     u.extractedText=text; u.textChars=text.length;
     if(rep) u.docStructure=rep;
-    /* THE STORED BODY IS ONLY WRITTEN WHERE THERE IS STRUCTURE TO STORE, and
-       never over an EDITED one: once somebody has redlined this document the
-       wording is theirs, and a re-read of the file must not throw that away.
-       A signed record never reaches here — the caller refuses first. */
-    if(html && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
+    /* ---- THE STORED BODY IS ONLY WRITTEN WHERE IT IS SAFE TO WRITE IT ----
+       Three guards, and the FIRST one was missing and is the reason this note
+       is longer than it was (found by audit, 30 Aug 2026).
+
+       1. NEVER ON A SEALED RECORD. This function's own comment used to say a
+          signed contract "never reaches here — the caller refuses first". THAT
+          WAS FALSE: rereadUploadText guards on canEdit() and nothing else, and
+          the button is drawn for any editor. It was harmless while a re-read
+          only replaced upload.extractedText, which an upload's seal does not
+          bind (see sealString) — that is why the old code says it is safe on
+          an executed contract, and it still is. J-3 made it write redlineText
+          and format, BOTH of which are in EXECUTED_IMMUTABLE: against the
+          server that is a 403 and a red "Save failed", and in local mode it
+          quietly rewrites the wording of a sealed agreement. D-5's whole point
+          is that a sealed record must not change under anybody.
+       2. NEVER OVER AN EDITED ONE: once somebody has redlined this document
+          the wording is theirs, and a re-read of the file must not discard it.
+       3. AND THE CLAUSE IDS ARE CARRIED ACROSS. clauseCarryIds is what makes a
+          re-read of an unchanged document return the SAME document — without
+          it every clause is stamped afresh and anything anchored to a clause
+          (a signature spot, a note) points at an id that no longer exists. */
+    const sealed = !!(c.status==='Signed' || c.hash || (c.execution && c.execution.at)
+      || (window.negoExecuted && negoExecuted(c)));
+    if(html && !sealed && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
        && !c.changes?.length && !c.versions?.length){
-      const body=sanitizeRich(html);
+      let body=sanitizeRich(html);
+      if(window.clauseStampIds && window.clauseCarryIds && c.redlineText){
+        try{
+          const stamped=clauseStampIds(body);
+          body=clauseCarryIds(String(c.redlineText), stamped.html || body);
+        }catch(_){ /* an unreadable previous body leaves the fresh one as it is */ }
+      }
       if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
     }
     c.lastAction=todayStr();
@@ -3164,7 +3228,15 @@ function wsTabRowEndHtml(c){
      the tab that asks somebody to sign; signWalkHtml asks that question itself
      and answers '' anywhere else, so this is one reading and not two. */
   if(!c) return '';
-  if(_wsTab==='sign') return window.signWalkHtml?signWalkHtml(c):'';
+  /* ---- AND THE READER'S OWN SIZE CONTROL GOES WITH THE PAPER ----
+     The Signing tab draws the same sheet as the Document tab, and this slot
+     returned the walk ALONE — so the one tab that asks somebody to read a
+     contract carefully was the one tab they could not set the type size on
+     (the stored preference still applied, they simply could not change it),
+     and on a contract with no places to fill the slot was empty. The stepper
+     belongs to the PAPER, and both tabs draw the paper. */
+  if(_wsTab==='sign') return (window.signWalkHtml?signWalkHtml(c):'')
+    + (window.rlTypeStepHtml?rlTypeStepHtml():'');
   if(_wsTab!=='docs') return '';
   const step=window.rlTypeStepHtml?rlTypeStepHtml():'';
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
@@ -3389,7 +3461,14 @@ function applyWsTabs(c){
   /* The Document pane has just been given a width for the first time since it
      was hidden. Measure it NOW — see the note in layoutDocResizer about why it
      refuses to measure a hidden pane at all. */
-  if(_wsTab==='docs'&&window.layoutDocResizer) layoutDocResizer();
+  /* ---- THE PANE IS SHARED, SO THE RE-MEASURE IS SHARED (J-1) ----
+     #doc-grid serves the Document tab AND the Signing tab (data-ws-pane="docs
+     sign"), and the window-resize listener bails on a hidden pane — so a
+     window narrowed while the reader stood on Key terms left the pane with its
+     stale wide columns and the handle pinned at its stale left, and pressing
+     Signing showed it that way for ever. Pressing Document repaired it and
+     pressing Signing never did. Both tabs ask now, because both draw it. */
+  if((_wsTab==='docs'||_wsTab==='sign')&&window.layoutDocResizer) layoutDocResizer();
 }
 /* The one router BOTH shells press. From the Docs page a tab is a pane swap;
    from the workbench every tab but Negotiate is a journey back to this view,
@@ -7243,15 +7322,15 @@ function renderSignSide(c){
      and the Sign button refuses while any of MINE is empty. */
   const spRepaint=()=>{ renderSignSide(c); if(window.signSpotsPaint) signSpotsPaint(c);
     if(window.renderSignButton) renderSignButton(c); wsPaintTabRowEnd(c); };
-  host.querySelectorAll('[data-sp-add]').forEach(b=>b.addEventListener('click',()=>{
-    const i=Number(b.getAttribute('data-sp-add'));
-    const sel=host.querySelector(`[data-sp-who="${i}"]`);
+  host.querySelectorAll('[data-spot-add]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.getAttribute('data-spot-add'));
+    const sel=host.querySelector(`[data-spot-who="${i}"]`);
     const who=sel?sel.value:'';
     if(!who){ toast(i18t('ct_spots_no_signers'),'err'); return; }
-    if(signSpotAdd(c,{index:i},who,b.getAttribute('data-sp-kind'))) spRepaint();
+    if(signSpotAdd(c,{index:i},who,b.getAttribute('data-spot-kind'))) spRepaint();
   }));
-  host.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{
-    if(signSpotRemove(c,b.getAttribute('data-sp-del'))) spRepaint();
+  host.querySelectorAll('[data-spot-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(signSpotRemove(c,b.getAttribute('data-spot-del'))) spRepaint();
   }));
   /* ---- AND ON A CLOSED CONTRACT NOTHING IN IT IS PRESSABLE ----
      The cards are built by two other modules (approvalChainHtml,
@@ -7439,8 +7518,46 @@ function signSpotSeat(c){
     || (s.email && me.email && String(s.email).toLowerCase() === String(me.email).toLowerCase())
     || (!s.email && !s.memberId && s.name && me.name && String(s.name).trim() === String(me.name).trim()))) || null;
 }
+/* ---- WHICH SPOTS ARE STILL REAL, AND IN WHAT ORDER (audit, 30 Aug 2026) ----
+   A spot points at TWO things that can go away underneath it — a clause id and
+   a row on the signing order — and nothing reconciled it against either. Three
+   defects came out of that one gap:
+
+     · the walk visited spots in the order they were ADDED, not in document
+       order, which is what the plan's acceptance 6 asks for;
+     · a clause deleted from the wording left a spot that still REFUSED the
+       signature ("1 place on the contract still needs you") while drawing
+       nowhere — a refusal naming a place that is not on the paper, and a walk
+       that is a dead press;
+     · a signing restart mints fresh row ids, so every spot became nobody's:
+       signSpotsMine emptied, the refusal silently disarmed, and any drawn
+       signature was stranded on the paper as an unnamed "theirs" mark.
+
+   ONE READING ANSWERS ALL THREE. A spot is LIVE when its clause is still in
+   the wording and its signer is still on the plan, and the list comes back in
+   the order the clauses appear. A spot that is not live is not hidden — it is
+   listed in the places card with a way to remove it, because a refusal's way
+   forward belongs on the same screen. */
+function signSpotsLive(c){
+  const list = signSpots(c);
+  if(!list.length) return [];
+  const clauses = signSpotClauses(c) || [];
+  const at = new Map();
+  clauses.forEach((cl, i) => { if(cl && cl.clauseId) at.set(String(cl.clauseId), i); });
+  const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
+  const rows = new Set(plan.map(r => String(r.id)));
+  return list
+    .map((s, i) => ({ s, i, at: at.has(String(s.clauseId)) ? at.get(String(s.clauseId)) : -1 }))
+    .filter(x => x.at >= 0 && rows.has(String(x.s.signerId)))
+    .sort((a, b) => (a.at - b.at) || (a.i - b.i))
+    .map(x => x.s);
+}
+/* The rest: a spot whose clause or signer has gone. Drawn in the card so it
+   can be cleared, and counted by nothing. */
+const signSpotsStale = c => { const live = new Set(signSpotsLive(c));
+  return signSpots(c).filter(s => !live.has(s)); };
 const signSpotsMine = c => { const seat = signSpotSeat(c);
-  return seat ? signSpots(c).filter(s => String(s.signerId) === String(seat.id)) : []; };
+  return seat ? signSpotsLive(c).filter(s => String(s.signerId) === String(seat.id)) : []; };
 const signSpotsLeft = c => signSpotsMine(c).filter(s => !s.image);
 /* Is this spot this reader's to fill? A spot belonging to the other side is
    DRAWN and not pressable, so you can see what they will have to do. */
@@ -7456,6 +7573,18 @@ function signSpotAdd(c, ref, signerId, kind){
   if(c.status === 'Signed'){ toast(i18t('ct_executed_readonly'), 'err'); return null; }
   let clauseId = (typeof ref === 'string') ? ref : String((ref && ref.clauseId) || '');
   if(!clauseId && ref && ref.index != null){
+    /* ---- A READING MAY NOT REWRITE FROZEN WORDING (audit, 30 Aug 2026) ----
+       negoStampContract writes clause ids back into c.redlineText, and
+       redlineText is in SIGNED_WORDING_FROZEN — so on a contract that already
+       carries ONE signature this save is refused by the server (403, "Save
+       failed") and the browser's copy is left carrying ids the server's does
+       not. Attributes only is still true; frozen is still frozen. Where the
+       document has no anchors yet and the wording can no longer be stamped,
+       the spot is refused in words rather than filed against nothing. */
+    const frozen = !!(window.negoWordingFrozen ? negoWordingFrozen(c)
+      : (window.negoAnySignature && negoAnySignature(c)));
+    const stampedAlready = /data-clause-id=/.test(String(c.redlineText || ''));
+    if(frozen && !stampedAlready){ toast(i18t('ct_spot_frozen'), 'err'); return null; }
     /* THE IDS ARE MINTED BY THE PRODUCT'S OWN ACT, not by a second stamper
        here: negoStampContract writes clauseStampIds' output back into the rich
        stored body and nothing else. Attributes only — not one word of the
@@ -7515,6 +7644,19 @@ const signSpotClear = (c, id) => { const s = signSpots(c).find(x => String(x.id)
    thing. MINE ONLY: a spot waiting on the other side is not a reason this
    reader cannot sign. */
 function signSpotBlocker(c){
+  /* ---- THE PHONE DRAWS NO SPOTS, SO IT MAY NOT BE REFUSED BY ONE ----
+     (audit, 30 Aug 2026.) This refusal joins signBlockers, which the PHONE's
+     sign path reads too — and J-1 is deliberately a desktop feature: there is
+     not one signSpot anywhere in js/mobile*.js. So a phone signer met "2
+     places on the contract still need you" with nothing on that shell to
+     press: a refusal with no way forward, which is the one thing this codebase
+     forbids by name.
+
+     The desktop refusal is unchanged and is where the work actually is. The
+     phone is not given a second, weaker rule — it is given the SAME rule and
+     simply is not the screen that enforces it, exactly as it files no
+     negotiation changes and draws no signing-order card. */
+  if(typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) return null;
   const left = signSpotsLeft(c);
   if(!left.length) return null;
   return { key: 'spots',
@@ -7593,9 +7735,10 @@ function signSpotsCardHtml(c, o){
   const CARD = (o && o.CARD) || '';
   const H = (o && o.H) || '';
   const may = !!(o && o.may);
-  const list = signSpots(c);
+  const list = signSpotsLive(c);
+  const stale = signSpotsStale(c);
   const props = may ? signSpotProposals(c) : [];
-  if(!list.length && !props.length) return '';
+  if(!list.length && !stale.length && !props.length) return '';
   const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
   const nameOf = id => { const r = plan.find(x => String(x.id) === String(id));
     return r ? String(r.name || '') : ''; };
@@ -7608,7 +7751,7 @@ function signSpotsCardHtml(c, o){
         title="${esc(kind + (who ? ' · ' + who : ''))}">${esc(kind)}${who ? ` <span style="color:var(--color-neutral-600)">&middot; ${esc(who)}</span>` : ''}</span>
       <span style="flex:none;font-size:var(--t-label);color:${s.image ? 'var(--st-green-fg)' : 'var(--color-neutral-600)'}">${
         esc(s.image ? i18t('ct_spot_marked') : i18t('ct_spot_waiting'))}</span>
-      ${may ? `<button type="button" data-sp-del="${esc(s.id)}" class="ui-btn-plain"
+      ${may ? `<button type="button" data-spot-del="${esc(s.id)}" class="ui-btn-plain"
         style="flex:none;font-size:var(--t-label);padding:2px 6px" title="${esc(i18t('ct_spot_remove_title'))}">&times;</button>` : ''}
     </li>`;
   };
@@ -7621,8 +7764,8 @@ function signSpotsCardHtml(c, o){
   const prop = pr => `<li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
       <span style="flex:1;min-width:0;font-size:var(--t-meta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
         title="${esc(pr.label || '')}">${esc(pr.label || i18t('ct_spot_signature'))}</span>
-      <select data-sp-who="${pr.index}" style="flex:none;max-width:44%;font-size:var(--t-label);padding:2px 4px">${opts}</select>
-      <button type="button" data-sp-add="${pr.index}" data-sp-kind="${esc(pr.kind)}" class="ui-btn"
+      <select data-spot-who="${pr.index}" style="flex:none;max-width:44%;font-size:var(--t-label);padding:2px 4px">${opts}</select>
+      <button type="button" data-spot-add="${pr.index}" data-spot-kind="${esc(pr.kind)}" class="ui-btn"
         style="flex:none;font-size:var(--t-label);padding:3px 8px">${esc(i18t('ct_spot_add'))}</button>
     </li>`;
   return `<section style="${CARD}">
@@ -7632,6 +7775,20 @@ function signSpotsCardHtml(c, o){
         i18t('ct_spots_marked', { n: marked, of: list.length })}</span>` : ''}
     </div>
     ${list.length ? `<ul style="list-style:none;margin:0;padding:0">${list.map(row).join('')}</ul>` : ''}
+    ${''/* ---- A PLACE THAT HAS GONE STALE IS SHOWN, NOT HIDDEN ----
+           Its clause has left the wording, or the signing was restarted. It
+           counts for nothing and blocks nothing, and it is drawn here with a
+           Remove so the reader can clear it — a refusal's way forward on the
+           same screen, rather than a mark nobody can see or reach. */}
+    ${(stale.length && may) ? `<p style="margin:9px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--st-amber-fg)">${
+      esc(i18tn('ct_spots_stale', stale.length, { n: stale.length }))}</p>
+      <ul style="list-style:none;margin:0;padding:0">${stale.map(s => `
+        <li style="display:flex;align-items:center;gap:var(--s-2);padding:6px 0;border-top:1px solid var(--color-divider)">
+          <span style="flex:1;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${
+            esc(s.kind === 'initials' ? i18t('ct_spot_initials') : i18t('ct_spot_signature'))}</span>
+          <button type="button" data-spot-del="${esc(s.id)}" class="ui-btn-plain"
+            style="flex:none;font-size:var(--t-label);padding:2px 6px" title="${esc(i18t('ct_spot_remove_title'))}">&times;</button>
+        </li>`).join('')}</ul>` : ''}
     ${props.length ? `<p style="margin:9px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${
       i18tn('ct_spots_found', props.length, { n: props.length })}</p>
       ${plan.length
@@ -8237,7 +8394,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

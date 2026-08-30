@@ -2220,6 +2220,18 @@ function wireShell(){
          own bottom bar already landed on the list, so the two shells agree
          now rather than differ. */
       if(v==='redline'&&window.openNegotiations) openNegotiations({list:true});
+      /* ---- AND THE OBLIGATIONS DOOR NARROWS TO ITS OWN COUNT ----
+         This door's badge counts what is LATE across the book, and a bare
+         setView landed on the page's default narrowing — every open
+         obligation at any horizon — so a door reading 1 opened a list of 4.
+         The standing rule is that the number on a door matches the list
+         behind it. It also states the whole filter set, which is what clears
+         a narrowing the reader left behind an hour ago. */
+      else if(v==='obligations'&&window.obwGoFiltered)
+        /* Only while the badge is SAYING something. At zero the door carries
+           no number, so there is nothing for the list to match and narrowing
+           to an empty cut would be a door onto a blank page. */
+        obwGoFiltered((window.obligationsDoorCount&&obligationsDoorCount())?{state:'overdue'}:{});
       else setView(v);
       // On a phone the nav is a drawer over the page: having chosen a
       // destination, get out of the way of it.

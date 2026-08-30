@@ -28,11 +28,12 @@
    WHAT DRAWS is the browser file's: the pixels above the wording, the spot on
    the sheet, the walk pressed for real, and the counterparty's page proved
    unmoved. The two files name each other. */
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld, supplyContract } = require('./world');
+const { startHati, seedWorkspace } = require('./helpers');
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -392,9 +393,10 @@ describe('f256 (9) — one card, one measure, and both languages', () => {
     const { win, c } = bench();
     win.signSpotAdd(c, 'cl_aaaa1111', 'r1', 'signature');
     const html = win.signSpotsCardHtml(c, { CARD: '', H: '', may: true });
-    assert.match(html, /data-sp-del=/, 'a placed spot can be taken away');
-    assert.match(html, /data-sp-add=/, 'and a proposal can be added');
-    assert.match(html, /data-sp-who=/, 'the signer is chosen, never guessed');
+    assert.match(html, /data-spot-del=/, 'a placed spot can be taken away (data-spot-*, NOT data-sp-*: the signer-plan '
+      + 'editor already owns that namespace and its document-wide listener threw on ours)');
+    assert.match(html, /data-spot-add=/, 'and a proposal can be added');
+    assert.match(html, /data-spot-who=/, 'the signer is chosen, never guessed');
   });
 
   test('with nobody on the signing order it says so rather than drawing an empty picker', () => {
@@ -402,7 +404,7 @@ describe('f256 (9) — one card, one measure, and both languages', () => {
     const html = win.signSpotsCardHtml(c, { CARD: '', H: '', may: true });
     assert.match(html, /ct_spots_no_signers|belong to somebody/,
       'a refusal carries its way forward');
-    assert.ok(!/data-sp-add=/.test(html), 'and no dead Add');
+    assert.ok(!/data-spot-add=/.test(html), 'and no dead Add');
   });
 
   test('a VIEWER sees the list and is offered no placement act', () => {
@@ -410,7 +412,7 @@ describe('f256 (9) — one card, one measure, and both languages', () => {
     win.signSpotAdd(c, 'cl_aaaa1111', 'r1', 'signature');
     const html = win.signSpotsCardHtml(c, { CARD: '', H: '', may: false });
     assert.match(html, /ct_spot_signature|Signature/, 'the list still draws');
-    assert.ok(!/data-sp-del=|data-sp-add=/.test(html), 'and nothing to press');
+    assert.ok(!/data-spot-del=|data-spot-add=/.test(html), 'and nothing to press');
   });
 
   test('every key this feature draws exists in BOTH languages', () => {
@@ -442,5 +444,239 @@ describe('f256 (9) — one card, one measure, and both languages', () => {
     const m = CSS.match(/\.sig-spot\{[^}]*\}/)[0];
     assert.match(m, /dashed/, 'dashed while it waits');
     assert.match(CSS, /\.sig-spot\.is-filled\{[^}]*solid/, 'solid once a mark lands');
+  });
+});
+
+/* ============================ 10 — WHAT THE AUDIT FOUND (30 Aug 2026) */
+describe('f256 (10) — a spot is reconciled against the document and the route', () => {
+  /* Four defects came out of ONE gap: c.signSpots pointed at a clause id and a
+     signing-order row and was never checked against either. Each of these
+     REPRODUCES the reported fault against the code of 29 Aug. */
+
+  test('THE WALK IS IN DOCUMENT ORDER, however the spots were added', () => {
+    /* Acceptance 6. It returned them in the order they were ADDED, so placing
+       one on the execution clause first and one on clause 1 second walked the
+       reader backwards up the page. */
+    const { win, c } = bench();
+    win.signSpotAdd(c, 'cl_cccc3333', 'r1', 'signature');   // last clause first
+    win.signSpotAdd(c, 'cl_aaaa1111', 'r1', 'initials');
+    assert.equal(win.signWalkNext(c).clauseId, 'cl_aaaa1111', 'the first in the DOCUMENT');
+    /* join, not deepEqual: the stage is another realm and a foreign Array does
+       not pass a strict deep-equal against one of ours. */
+    assert.equal(win.signSpotsLeft(c).map(s => s.clauseId).join(','),
+      'cl_aaaa1111,cl_cccc3333');
+  });
+
+  test('a spot whose clause has left the wording blocks NOTHING and is not walked to', () => {
+    /* It kept refusing the signature — "1 place on the contract still needs
+       you" — while signSpotBlockFor drew nothing for it, so the refusal named
+       a place that was not on the paper and the walk was a dead press. */
+    const { win, c } = bench();
+    win.signSpotAdd(c, 'cl_cccc3333', 'r1', 'signature');
+    assert.ok(win.signSpotBlocker(c), 'it blocks while its clause is there');
+    c.redlineText = BODY.replace(/<h2 data-clause-id="cl_cccc3333">[\s\S]*$/, '');
+    assert.equal(win.signSpotBlocker(c), null, 'and blocks nothing once it is not');
+    assert.equal(win.signWalkNext(c), null, 'and is never walked to');
+  });
+
+  test('...but it is DRAWN in the card, with a way to clear it', () => {
+    /* A refusal's way forward on the same screen: a mark nobody can see and
+       nobody can reach is worse than one that blocks. */
+    const { win, c } = bench();
+    win.signSpotAdd(c, 'cl_cccc3333', 'r1', 'signature');
+    c.redlineText = BODY.replace(/<h2 data-clause-id="cl_cccc3333">[\s\S]*$/, '');
+    assert.equal(win.signSpotsStale(c).length, 1);
+    const html = win.signSpotsCardHtml(c, { CARD: '', H: '', may: true });
+    assert.match(html, /data-spot-del=/, 'it can be removed');
+  });
+
+  test('A SIGNING RESTART REMAPS THE PLACES AND DISCARDS THE MARKS — the source', () => {
+    /* signingRestart lives in js/approvals.js, which this stage deliberately
+       does not load, so the FIX is pinned where it is written rather than
+       through a stand-in. A stand-in that always succeeds where the real thing
+       can fail turns its test into a description — this file's own lesson. */
+    const AP = fs.readFileSync(path.join(ROOT, 'js/approvals.js'), 'utf8');
+    const fn = AP.slice(AP.indexOf('function signingRestart'),
+      AP.indexOf('function signerLinkState'));
+    assert.match(fn, /c\.signatures = \[\]/, 'it still discards the signatures');
+    assert.match(fn, /remap\[String\(s\.signerId\)\]/,
+      'and re-points every place at its new row, one for one by index');
+    assert.match(fn, /delete next\.image/,
+      'and clears the MARK, because the signatures it belonged to are discarded');
+    assert.ok(/before\.forEach\(\(id, i\) => \{ if\(c\.signerPlan\[i\]\)/.test(fn),
+      'the map is built from the plan it rewrote, so it cannot be a guess');
+  });
+
+  test('...and the reading recovers once the rows are remapped, not before', async () => {
+    /* The behavioural half, on the reading this file DOES load. Before the fix
+       the spot pointed at a row that no longer existed, so signSpotsMine
+       emptied and signSpotBlocker went quiet — the Sign button stopped
+       refusing over a place still waiting. */
+    const { win, c } = bench();
+    win.captureSignature = async () => ({ image: 'data:image/png;base64,AAAA', form: 'drawn' });
+    win.signSpotAdd(c, 'cl_cccc3333', 'r1', 'signature');
+    assert.ok(win.signSpotBlocker(c), 'it refuses while the row exists');
+
+    const old = c.signerPlan.map(r => String(r.id));
+    c.signerPlan = c.signerPlan.map((r, i) => ({ ...r, id: 'sg_new' + i }));
+    assert.equal(win.signSpotsMine(c).length, 0, 'the place is nobody\'s while it is orphaned');
+    assert.equal(win.signSpotBlocker(c), null, 'and it blocks nothing — the reported fault');
+    assert.equal(win.signSpotsStale(c).length, 1, 'but it is NOT invisible');
+    assert.match(win.signSpotsCardHtml(c, { CARD: '', H: '', may: true }), /data-spot-del=/,
+      'and can be cleared');
+
+    const remap = {};
+    old.forEach((id, i) => { remap[id] = c.signerPlan[i].id; });
+    c.signSpots = c.signSpots.map(sp => ({ ...sp, signerId: remap[String(sp.signerId)] }));
+    assert.equal(win.signSpotsMine(c).length, 1, 'remapped, the reader owns it again');
+    assert.ok(win.signSpotBlocker(c), 'and the Sign button refuses again rather than staying quiet');
+  });
+
+  test('placing a spot may not rewrite FROZEN wording', () => {
+    /* signSpotAdd stamps clause ids into c.redlineText, which is in
+       SIGNED_WORDING_FROZEN — so on a contract carrying one signature the save
+       was refused (403) and the browser kept ids the server did not. */
+    const { win, c } = bench({ redlineText: BODY.replace(/ data-clause-id="[^"]*"/g, '') });
+    c.signatures = [{ by: 'Somebody', at: '2026-08-01T00:00:00.000Z' }];
+    let said = null;
+    win.toast = (m, k) => { said = { m, k }; };
+    const before = c.redlineText;
+    const out = win.signSpotAdd(c, { index: 2 }, 'r1', 'signature');
+    assert.equal(out, null, 'refused');
+    assert.equal(c.redlineText, before, 'AND THE FROZEN WORDING IS UNTOUCHED');
+    assert.ok(said && said.k === 'err', 'and it said so');
+  });
+
+  test('THE PHONE IS NOT REFUSED BY A PLACE IT CANNOT DRAW', () => {
+    /* J-1 is a desktop feature — there is not one signSpot in js/mobile*.js —
+       and this refusal joins signBlockers, which the phone's sign path reads.
+       A phone signer met "2 places still need you" with nothing to press. */
+    const { win, c } = bench();
+    win.signSpotAdd(c, 'cl_cccc3333', 'r1', 'signature');
+    const wide = win.innerWidth;
+    assert.ok(win.signSpotBlocker(c), 'the desktop refuses, unchanged');
+    try {
+      Object.defineProperty(win, 'innerWidth', { value: 390, configurable: true });
+      assert.equal(win.signSpotBlocker(c), null, 'the phone does not');
+    } finally {
+      Object.defineProperty(win, 'innerWidth', { value: wide, configurable: true });
+    }
+    const M = fs.readFileSync(path.join(ROOT, 'js/mobile-contract.js'), 'utf8');
+    assert.ok(!/signSpot/.test(M), 'and the phone still draws no spot — that is why');
+  });
+
+  test('the card’s attributes are NOT in the signer-plan editor’s namespace', () => {
+    /* openSignerPlanEditor's wire() runs a document-wide query for data-sp-*
+       and reads each one as an INDEX. Ours carried a spot id, so removing a
+       place threw. */
+    const AP = fs.readFileSync(path.join(ROOT, 'js/approvals.js'), 'utf8');
+    assert.match(AP, /data-sp-del="\$\{i\}"/, 'the editor owns data-sp-del, keyed by index');
+    const card = ROOM_SRC.slice(ROOM_SRC.indexOf('function signSpotsCardHtml'),
+      ROOM_SRC.indexOf('function signSpotsPaint'));
+    assert.ok(!/data-sp-(del|add|who|kind)=/.test(card),
+      'so the J-1 card uses data-spot-* and cannot collide');
+  });
+});
+
+/* ================================================ 11 — THE SERVER'S OWN HALF
+   ACCEPTANCE 2 is a claim about the WALL, not about a string: "placing a mark
+   is not signing, and the wording still freezes at the first signature". f256
+   proved it by greps — that `signSpots` is not inside SIGNED_WORDING_FROZEN
+   and does not appear near anySignatureRow — which pass at the parent commit
+   for the trivial reason that the identifier did not exist there at all, and
+   can only go red if somebody actively writes it. They cannot see the freeze
+   being reached by another route, and they cannot see whether the server
+   really accepts a mark on a part-signed contract.
+
+   So it is driven against a running server: a signature is put on the record,
+   and then a save that moves ONLY the marks is accepted while a save that
+   moves the WORDING is refused — the two halves of the same sentence, on the
+   same record, one request apart. */
+describe('f256 (11) — the freeze holds and the marks are not it', () => {
+  let h, W;
+  const base = over => Object.assign({
+    id: 'MK-SPOT', name: 'Spotted', counterparty: 'Nordkust Industri AB',
+    status: 'Under Review', format: 'rich',
+    redlineText: '<h1 data-clause-id="cl_aaaa1111">One</h1><p>The first clause.</p>'
+      + '<h2 data-clause-id="cl_bbbb2222">Two</h2><p>The second clause.</p>',
+    fields: {}, metadata: {}, obligations: [], audit: [], rounds: [], versions: [],
+    signatures: [], comments: [] }, over || {});
+  /* The save route is optimistic-locked, so each write carries the version the
+     one before it returned — which is what the browser does too. */
+  let ver = 0;
+  const put = async body => {
+    const r = await W.admin.raw('/api/contracts/MK-SPOT', { method: 'PUT', body: { baseVersion: ver, contract: body } });
+    if (r.status === 200 && r.json && r.json.version != null) ver = r.json.version;
+    return r;
+  };
+
+  before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+  after(async () => { await h.stop(); });
+
+  test('a mark may be placed AFTER somebody has signed; the wording may not move', async () => {
+    let r = await put(base());
+    assert.equal(r.status, 200, 'the record is filed');
+
+    /* One signature — which is what negoWordingFrozen and the server's
+       anySignatureRow both read, and the moment the words stop moving. */
+    r = await put(base({ signatures: [{ name: 'Wanjiku Kamau', at: new Date().toISOString(),
+      method: 'in-app', capacity: 'Director' }] }));
+    assert.equal(r.status, 200, 'a signature is recorded');
+
+    /* THE MARK. Same wording, one place added. */
+    r = await put(base({
+      signatures: [{ name: 'Wanjiku Kamau', at: new Date().toISOString(),
+        method: 'in-app', capacity: 'Director' }],
+      signSpots: [{ id: 'sp_1', clauseId: 'cl_bbbb2222', signerId: 'r1', kind: 'signature' }] }));
+    assert.equal(r.status, 200,
+      'placing a mark is not signing, so the wording freeze has nothing to say about it');
+
+    /* THE WORDING. Same marks, one word moved. */
+    r = await put(base({
+      signatures: [{ name: 'Wanjiku Kamau', at: new Date().toISOString(),
+        method: 'in-app', capacity: 'Director' }],
+      signSpots: [{ id: 'sp_1', clauseId: 'cl_bbbb2222', signerId: 'r1', kind: 'signature' }],
+      redlineText: '<h1 data-clause-id="cl_aaaa1111">One</h1><p>The first clause, rewritten.</p>'
+        + '<h2 data-clause-id="cl_bbbb2222">Two</h2><p>The second clause.</p>' }));
+    assert.equal(r.status, 409, 'and the words stop moving at the FIRST signature');
+    assert.match(String(r.json && r.json.error || ''), /already been signed by one party/i,
+      'in words that say why, and what to do about it');
+    assert.match(String(r.json && r.json.error || ''), /redlineText/,
+      'naming the wording, and only the wording — a signature, an obligation '
+      + 'and every additive fact still pass, or an SME with two signers is '
+      + 'stuck between them');
+  });
+
+  test('and once it is executed the marks stop moving too', async () => {
+    /* signSpots is in EXECUTED_IMMUTABLE, which is how D-4's "baked in" is
+       delivered: the sealed record's marks are the marks it was sealed with.
+       Safe because finalizeExecution writes the seal, the status and the spots
+       in ONE save, and the guard is asked as a DIFFERENCE against the stored
+       record — which is not yet executed when that save arrives. */
+    const sealed = {
+      id: 'MK-SEALED', name: 'Sealed', counterparty: 'Nordkust Industri AB',
+      status: 'Signed', format: 'rich', hash: 'a'.repeat(64),
+      execution: { at: new Date().toISOString(), by: 'Wanjiku Kamau' },
+      redlineText: '<h1 data-clause-id="cl_aaaa1111">One</h1><p>The first clause.</p>',
+      signSpots: [{ id: 'sp_1', clauseId: 'cl_aaaa1111', signerId: 'r1', kind: 'signature' }],
+      fields: {}, metadata: {}, obligations: [], audit: [], rounds: [], versions: [],
+      signatures: [{ name: 'Wanjiku Kamau', at: new Date().toISOString(), method: 'in-app' }],
+      comments: [] };
+    let r = await W.admin.raw('/api/contracts/MK-SEALED', { method: 'PUT', body: { baseVersion: 0, contract: sealed } });
+    assert.equal(r.status, 200, 'the sealed record is filed');
+    r = await W.admin.raw('/api/contracts/MK-SEALED', { method: 'PUT', body: { baseVersion: r.json.version,
+      contract: { ...sealed, signSpots: [
+        { id: 'sp_1', clauseId: 'cl_aaaa1111', signerId: 'r1', kind: 'signature' },
+        { id: 'sp_2', clauseId: 'cl_aaaa1111', signerId: 'r2', kind: 'initial' }] } } });
+    assert.ok(r.status === 403 || r.status === 409,
+      `a sealed record’s marks are the marks it was sealed with — got ${r.status}`);
+    assert.match(String(r.json && r.json.error || ''), /executed|signed|sealed|immutable/i,
+      'and it says why');
+    /* AND THE REASON IS WHY THE DEPARTURE FROM D-4 IS SAFE: if IMG ever joins
+       js/richdoc.js's allow-list, somebody must re-read that decision rather
+       than discover it. */
+    const RD = read('js/richdoc.js');
+    assert.ok(!/'IMG'|"IMG"/.test(RD.match(/const RICH_TAGS = new Set\(\[[\s\S]*?\]\)/)[0]),
+      'the allow-list still has no IMG, which is why the mark is not baked into the sealed HTML');
   });
 });

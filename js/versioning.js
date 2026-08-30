@@ -31,6 +31,24 @@ function htmlToStructuredText(html){
     .replace(/\n{3,}/g,'\n\n').trim();
 }
 
+/* ---- HAS ANYBODY EDITED THIS UPLOAD'S WORDING? ----
+   `c.redlineText` was the proxy for that all over the product, and it was a
+   true one for as long as an upload only ever gained a stored body once a
+   person redlined it. J-3.2 sets it AT UPLOAD, so the proxy now answers yes
+   for every structured .docx the moment it is filed — and the exported PDF
+   captioned an untouched contract "(working text)" and "extracted from
+   supply.docx and edited in HaTi", which is a false statement about the
+   provenance of a document on a record.
+
+   The question is asked of the RECORD OF EDITING rather than of the body's
+   existence: a filed change or a captured version is what "edited" means here,
+   and both are what the re-read control already refuses on. */
+function uploadWordingEdited(c){
+  if(!c) return false;
+  return !!((c.changes && c.changes.length) || (c.versions && c.versions.length)
+    || (c.rounds && c.rounds.some(r => r && r.status === 'closed')));
+}
+
 /* Plain text of a contract's current body — the unit versions/diffs work on,
    and the unit every Copilot feature reads. For a RICH body this is the text
    projection, which reconstructs ordered-list numbering, so clause numbers
@@ -1080,4 +1098,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{uploadWordingEdited,applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

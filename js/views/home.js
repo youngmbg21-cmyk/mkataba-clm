@@ -607,7 +607,12 @@ function hmDashSlices(){
     obligations: {label:KPI_META.obligations, val:Number(obDue.length).toLocaleString(jxLocale()),
                   delta:obLate?i18tn('home_ob_overdue',obLate,{n:obLate}):i18t('home_ob_none'),
                   get sub(){ return i18t('home_ob_sub'); },
-                  grad:obLate?G.amber:G.steel, ic:'calendar', go:{nav:'obligations'}},
+                  grad:obLate?G.amber:G.steel, ic:'calendar',
+                  /* THE LIST NARROWS WITH THE READING THE CARD COUNTED — open
+                     and dated, inside the same thirty days. A door whose
+                     destination counts differently from its own figure is the
+                     fault Home's own rule exists to prevent. */
+                  go:{obligations:{state:'open', due:'30'}}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -1143,6 +1148,11 @@ function renderDashboard(){
       /* A metric whose list is not the register names the view it belongs to
          instead — Live negotiations is a list of negotiations, not of rows in
          the contracts table. */
+      if(g.obligations){
+        if(typeof window.obwGoFiltered === 'function') obwGoFiltered(g.obligations);
+        else setView('obligations');
+        return;
+      }
       if(g.nav){ setView(g.nav); return; }
       goReg(g);
     });

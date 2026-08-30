@@ -1964,10 +1964,20 @@ filed it and how well it was read — the second rung of the cheapest-channel
 ladder, not the fourth.
 
 **NOTHING ALREADY UPLOADED IS RE-READ (D-5).** A sealed record must not change
-under anybody. The existing "Re-read document" control is the one door, it
-already refuses a sealed record, and it now **refuses to overwrite an EDITED
-one** — once somebody has redlined this document the wording is theirs, and a
-re-read of the file must not throw that away.
+under anybody. The existing "Re-read document" control is the one door, and it
+now **refuses a SEALED record and refuses to overwrite an EDITED one** — once
+somebody has redlined this document the wording is theirs, and a re-read of the
+file must not throw that away.
+
+**THE FIRST WRITING OF THIS SAID THE CONTROL "ALREADY REFUSES A SEALED RECORD"
+AND THAT WAS NOT TRUE**, which is worth recording rather than quietly
+correcting: its only guard was `canEdit()`, and it wrote `c.redlineText`
+straight from a fresh read on a signed contract. The refusal is real now
+(`status`, the seal hash, an execution stamp, or `negoExecuted`), and it
+**carries the clause ids across** with `clauseCarryIds` — without that a
+re-read returned a body with no ids at all, so every signature place anchored
+on one was orphaned while the blocker went on counting it, and the same clause
+could then be spotted a second time.
 
 **CLAUSE IDENTITY CHANGES FOR NEW UPLOADS, AND THAT IS THE POINT.** With real
 headings the segmentation finds real clauses rather than one per paragraph.
@@ -1980,12 +1990,120 @@ tracked changes inside an incoming file** keep their own feature and are
 untouched — the counts still ride back and the audit line still says the
 document was read with every change accepted.
 
-Tests: f257 (34 — every file built as Word writes one, a real zip with a real
+Tests: f257 (50 — every file built as Word writes one, a real zip with a real
 `numbering.xml`, and read through the real reader; nothing here is a fixture
-written to match the code), upload-structure-verify (17, browser — a real
-.docx through the real file input, the headings measured as PAINTED elements
-larger or heavier than the body, the four downstream capabilities driven, and
-the strip's line proved to be a line and not a band).
+written to match the code — plus **section 11, what a record filed BEFORE this
+job reads as**), upload-structure-verify (18, browser — a real .docx through
+the real file input, the headings measured as PAINTED elements larger or
+heavier than the body, the four downstream capabilities driven, the strip's
+line proved to be a line and not a band, **and the strip proved to be ONE LINE
+at every laptop width**).
+
+## THE AUDIT OF J-1 TO J-3, AND WHAT IT FOUND (owner-asked 30 Aug 2026)
+
+*"go back to the request for the fixes and audit the fixes you have delivered
+to ensure they work according to the plan we agreed on. Audit that they all
+work and especially with regards to the redlining."*
+
+**THEY DID NOT ALL WORK.** Fifty-nine defects survived adversarial
+verification. The redlining ENGINE was sound and was proved so at model level
+and in a browser — a change files, fingerprints under v5, verifies, draws its
+marks, is accepted, and the round closes with the document's numbers and tables
+intact. **What was broken was everything the new reader put in ITS way**, and
+the shape of it is one sentence: *storing a structure the product had never
+stored before made three readings of one document disagree.*
+
+- **A TABLE WAS DESTROYED BY AN HONEST EDIT MADE ABOVE IT.** J-3.2 put real
+  `<table>` markup into uploaded contracts for the first time. Any proposal
+  arriving as TEXT — the Word round trip, a pasted redraft, the portal's box —
+  goes through `richFromTextEdit`, which **returned null on any opaque block**
+  and left the clause to a plain-text fallback that rebuilds it as one `<p>` per
+  line. A rate card was rebuilt as paragraphs and the clause's emphasis went
+  with it, silently, into the contract the seal would later freeze.
+  **A TABLE IS AN ANCHOR NOW, NOT A BAIL-OUT** (`_richEditAroundBlocks`): its
+  own projected lines must come back unchanged and in order, the wording around
+  it takes the edit, and the block is re-emitted verbatim. Where the anchor
+  cannot be found the answer is still null — an edit INSIDE a table is one this
+  cannot place, and refusing is what it has always done.
+- **AND THE TWO READERS DISAGREED ABOUT WHAT A TABLE SAYS.** `docxXmlToText`
+  split the body on `</w:p>` and a cell IS a `w:p`, so a row came out as one
+  line per CELL while the structured reader beside it joins a row's cells with
+  a TAB. That is the defect class this file names by name — *the drawing may
+  differ, the reading never may* — and it was not cosmetic: an UNTOUCHED rate
+  card compared as changed, so a Word round trip filed a phantom change on its
+  clause AND one "new clause" per cell, and accepting those is what destroyed
+  the table. **A ROW IS A LINE AND ITS CELLS ARE SEPARATED BY TABS, on both
+  readers.** A cell's own paragraphs join with a SPACE on both, for the same
+  reason: a `<br>` makes `richToText` flush a line, so a two-paragraph cell
+  split its row and glued its tail to the next cell's value.
+  MEASURED end to end afterwards: one change filed, the table on it, the table
+  still there after accepting, and the edit applied.
+- **AND THE .docx HaTi SENDS CARRIED NO TABLE AT ALL.** The writer had no table
+  support and `td`/`th` were not on its block list, so a two-column rate card
+  left as two paragraphs reading "ServiceRate". The Word round trip is the
+  documented channel for redlining a received contract, so from the day J-3.2
+  shipped that was the default outcome for any contract with a schedule of
+  rates. **The table is LIFTED OUT before the tokeniser sees it**
+  (`docxHtmlBlocks`) rather than the tokeniser being taught about cells: every
+  existing caller reads byte-identically, and a cell's wording goes through the
+  SAME paragraph builder, so a tracked insertion inside a cell is a real
+  `<w:ins>` like any other. Proved by round trip: export, re-read, and the
+  table comes back as the same table.
+- **THE FILE STRIP COULD PUSH THE CONTRACT DOWN, WHICH Q3 REFUSES OUTRIGHT.**
+  It was a WRAPPING flex row, so the two facts J-3 added to it dropped to a
+  second line at 1440 and 1280 — measured, 36px off the paper on two of the
+  four laptop widths this product supports. **It does not wrap now**: the acts
+  are `flex:none` and can never be squeezed off, the facts elide and each keeps
+  its own hover, and a strip that cannot grow cannot cost the paper anything
+  however many facts land on it later. **The net that should have caught it was
+  measuring the strip's own top** — rooted at `#doc-canvas`, the first text node
+  on an upload is the FILE NAME, which sits above the wording and never moves —
+  so it compared the strip against the strip and could not fail. It is rooted at
+  the WORDING now, and there is a second check that the strip is one line at
+  every supported width.
+- **THREE MORE READERS WERE DOUBLE-COUNTING OR MISDESCRIBING THE UPLOAD.**
+  `contractFullBody` pushed the reader's text AND the stored body — the same
+  document twice — so the FTS window cut the metadata off the end of the index
+  and `copilotDetail` reported `textTruncated` on a document that was not cut
+  short, and paid for the duplicate tokens on every turn (**one copy now, the
+  stored wording winning**). The Document tab drew a "this file type can't
+  preview" card UNDER the contract's own wording (**it draws nothing where the
+  wording is on the page**), and lost the one line saying where the words came
+  from (**it follows the words, and only while it is true**). And the exported
+  PDF told the counterparty an untouched upload had been "edited in HaTi",
+  because `c.redlineText` was the proxy for "somebody edited this" and J-3 sets
+  it at upload — **`uploadWordingEdited` is the one reading now**, and it asks
+  the record of EDITING rather than the existence of a body.
+- **A REPEATING OBLIGATION OPENED A SECOND NEXT INSTANCE.** "Exactly one" was
+  written as one push per completion, which is only the same thing while nobody
+  presses Reopen: Done → Reopen → Done left two identical open obligations on
+  two dedupe rows, so the assignee was nudged twice at seven days, twice on the
+  day and twice the day after. **The question is asked of the LIST, not of the
+  press** (`obligationSeriesOpenAt`).
+- **AND THE CHASE HANDED THE COUNTERPARTY A DOOR THEY CANNOT OPEN** — an
+  in-app `#contract=` link, resolved on the far side of the sign-in wall
+  against a bootstrap they do not have. It carries the standing SHARE link
+  where there is one and **no link at all** where there is none, which is the
+  rule every other counterparty-facing mail here already follows; and an
+  obligation with no date is chased with its own sentence rather than "due
+  on .".
+
+**FOUR NETS WERE FOUND TO BE DESCRIPTIONS RATHER THAN MEASUREMENTS**, and that
+is the half worth carrying forward. A claim of the form `a.includes(x) ||
+WHOLE_FILE.includes(x)` is unconditionally true. A block that hand-writes the
+shape the product produces passes on the commit before the product could
+produce it. A scope check on a contract that exists for nobody proves nothing
+about scope. And an `async` probe whose whole body is `return true` is a green
+tally entry no product change can turn red. Each is rewritten to ask the
+renderer, to join the two halves, to use a contract that really exists in a
+stream the caller cannot see, and to drive the claim in the page.
+
+**AND TWO FINDINGS ARE REPORTED RATHER THAN FIXED, because they are not this
+job's**: the clause editor's selection strip opens on the two readings that
+refuse editing (so its Copilot chips spend money for an answer that is then
+refused), and using the strip switches typing off so the reader must press the
+pencil again. Both are J-4, both predate this run, and the Scope rules say a
+separate problem is a line in the log and not a fix made on the way past.
 
 ## SIGNING ON THE PAPER (owner-asked 29 Aug 2026, J-1)
 
@@ -2085,18 +2203,40 @@ executed when the save arrives. f256 asserts the reason as well as the rule —
 **if `IMG` ever joins the allow-list that test fails and somebody re-reads this
 decision** rather than discovering it.
 
-**NOT BUILT, said out loud (D-5): the counterparty does not get the walk.**
-Their screen is `renderSharePortal`, a different page reached by a link, and
-giving them the same walk is roughly as much work again as everything above.
-Their spots are still drawn on their copy, so nothing is lost while it is
-decided. **Their page is proved BYTE-IDENTICAL** rather than assumed — the
-method clause-editor-verify section 11 already uses.
+**AND WHAT IMMUTABILITY DOES NOT BUY, said plainly rather than left to be
+inferred.** D-4's goal was that *the sealed copy looks like a signed contract*,
+and the substitution does not reach it by any route: `freezeContractHtml`
+renders the wording alone, `exportPDF` rebuilds from a fresh `docBody`,
+`exportWordTracked` renders `redlineDocHtml`, and the share payload carries
+nothing. **So the marks exist only as runtime paint on the owner's own screen**
+— after execution the sealed copy, every export and both parties' copies look
+exactly like an unsigned contract in the middle. What is delivered is that the
+RECORD of where each mark was placed cannot be altered afterwards; what is not
+delivered is a picture of it on the paper. If that is wanted it needs the
+allow-list decision above taken deliberately, not slipped in.
+
+**NOT BUILT, said out loud (D-5): the counterparty does not get the walk, and
+they cannot see the marks at all.** Their screen is `renderSharePortal`, a
+different page reached by a link, and giving them the same walk is roughly as
+much work again as everything above. **THE FIRST WRITING OF THIS PARAGRAPH SAID
+"their spots are still drawn on their copy" AND THAT WAS FALSE** — `signSpots`
+is not on `buildSharePayload`'s allow-list, so a place drawn for a counterparty
+signer (which our sheet draws as an un-pressable div, so we can see what they
+will have to do) is invisible to them. Nothing about the wording is lost; what
+is lost is the signpost, and it is a real gap rather than a decision. **Their
+page IS byte-identical** and that is now measured rather than asserted:
+signing-on-paper-verify 8b builds the payload with the marks on the record and
+again with them taken away and compares the two character for character. A rule
+that misdescribes the code is worse than no rule, and this one did for a day.
 
 Tests: f256 (node — the rule, the anchor, the refusals, the seat, the walk's
-arithmetic, D-4's departure and both languages), signing-on-paper-verify
-(browser — the pixels above the wording measured on BOTH tabs and the Document
-tab's own number proved unmoved, the spot on the sheet, the walk pressed for
-real, and the counterparty's page unmoved).
+arithmetic, D-4's departure, both languages, and **section 11, the server's own
+half against a running server: a mark placed AFTER a signature is accepted and
+a word moved in the same breath is refused**), signing-on-paper-verify
+(browser — the pixels above the wording measured on BOTH tabs **and the
+Document tab's own number measured with the marks and without them**, the spot
+on the sheet, the walk pressed for real, and the counterparty's copy proved
+identical).
 
 ## A CLAUSE'S NAME IS PART OF THE CLAUSE (owner-asked 28 Aug 2026)
 

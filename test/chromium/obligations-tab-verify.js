@@ -347,9 +347,33 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     })()`);
     check('the worklist draws, as pixels, from the sidebar door',
       wl.view === 'obligations' && wl.on === true, JSON.stringify({ v: wl.view, on: wl.on }));
+    /* REVERSED IN PLACE 30 Aug 2026. This pressed the sidebar door and then
+       asserted the WHOLE book was on screen — which was true only because the
+       door landed on the page's default narrowing while its own badge counts
+       what is LATE. A door reading 1 opened a list of 4, and the standing rule
+       is that the number on a door matches the list behind it. So the door's
+       arrival is asserted as the cut it names, and the claim this check was
+       really making — this page lists obligations from more than one contract,
+       banded — is asserted where it is true: with the state filter widened. */
+    check('…and it lands on the cut its own badge counts — what is LATE',
+      wl.rows >= 1 && wl.bands.length >= 1 && /Overdue|Försenad/i.test(wl.bands.join(' ')),
+      `${wl.rows} rows — ${wl.bands.join(' | ')}`);
+    const whole = await page.evaluate(`(() => {
+      const sel = document.querySelector('.obw-filters [data-obw-f="state"]');
+      sel.value = 'all'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      return null;
+    })()`);
+    await page.waitForTimeout(500);
+    const wl2 = await page.evaluate(`(() => {
+      const rows = [...document.querySelectorAll('.obw-table tr[data-obw-row]')];
+      return { rows: rows.length,
+        contracts: [...new Set(rows.map(r => r.getAttribute('data-obw-cid')))].length,
+        bands: [...document.querySelectorAll('.obw-band')].map(b => b.textContent.replace(/\s+/g,' ').trim()) };
+    })()`);
     check('…listing obligations from MORE THAN ONE contract, banded by lateness',
-      wl.rows >= 2 && wl.contracts >= 2 && wl.bands.length >= 1,
-      `${wl.rows} rows over ${wl.contracts} contracts — ${wl.bands.join(' | ')}`);
+      wl2.rows >= 2 && wl2.contracts >= 2 && wl2.bands.length >= 1,
+      `${wl2.rows} rows over ${wl2.contracts} contracts — ${wl2.bands.join(' | ')}`);
+    void whole;
     check('…with its five filters and no sideways scroll',
       wl.filters === 5 && wl.sideways === false, `${wl.filters} filters`);
     /* EVERY Chase sits on a row that is theirs and still open — a count would

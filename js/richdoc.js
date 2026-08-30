@@ -462,11 +462,83 @@ function _lineUnits(root){
 }
 /* Merge edited plain text back into a rich body. Returns the new HTML, or null
    when the result cannot be verified — the caller then keeps the plain text. */
+/* The lines one opaque block projects to, read the same way every other
+   surface reads it — richToText, never a second projection. */
+function _richBlockLines(node){
+  return richToText(node.outerHTML).split('\n')
+    .map(l => l.replace(/[ \t]+/g,' ').trim()).filter(l => l);
+}
+function _richEditAroundBlocks(root, units, newText){
+  const doc = root.ownerDocument;
+  const blocks = units.filter(u => u.opaque).map(u => u.node);
+  /* Only a block sitting directly in the body can be split around: one nested
+     inside a list item or a quote has no segment boundary to cut on. */
+  if(blocks.some(b => b.parentNode !== root)) return null;
+  const newLines = String(newText==null?'':newText).split('\n')
+    .map(l => l.replace(/[ \t]+/g,' ').trim()).filter(l => l);
+  /* Where each block's own lines sit in what came back. In order, and each
+     run whole — a table half-quoted is not a table we can keep. */
+  const at = [];
+  let from = 0;
+  for(const b of blocks){
+    const want = _richBlockLines(b);
+    if(!want.length) return null;
+    let found = -1;
+    for(let i = from; i + want.length <= newLines.length; i++){
+      let ok = true;
+      for(let k = 0; k < want.length; k++) if(newLines[i+k] !== want[k]){ ok = false; break; }
+      if(ok){ found = i; break; }
+    }
+    if(found < 0) return null;
+    at.push({ node: b, at: found, len: want.length });
+    from = found + want.length;
+  }
+  /* The document as alternating segments: wording, block, wording, block …
+     Each wording segment is merged by the ordinary reading; an empty one
+     stays empty rather than inventing a paragraph. */
+  const kids = Array.from(root.childNodes);
+  const out = [];
+  let kidFrom = 0, lineFrom = 0;
+  for(const b of at){
+    const cut = kids.indexOf(b.node);
+    const seg = kids.slice(kidFrom, cut).map(n => n.nodeType===1 ? n.outerHTML : '').join('');
+    const segText = newLines.slice(lineFrom, b.at).join('\n');
+    if(seg.trim() || segText.trim()){
+      if(!seg.trim()) return null;              // wording arrived where the document has none
+      const merged = segText.trim() ? richFromTextEdit(seg, segText) : '';
+      if(merged == null) return null;
+      out.push(merged);
+    }
+    out.push(b.node.outerHTML);
+    kidFrom = cut + 1;
+    lineFrom = b.at + b.len;
+  }
+  const tailHtml = kids.slice(kidFrom).map(n => n.nodeType===1 ? n.outerHTML : '').join('');
+  const tailText = newLines.slice(lineFrom).join('\n');
+  if(tailHtml.trim() || tailText.trim()){
+    if(!tailHtml.trim()) return null;
+    const merged = tailText.trim() ? richFromTextEdit(tailHtml, tailText) : '';
+    if(merged == null) return null;
+    out.push(merged);
+  }
+  const html = out.join('');
+  return html.trim() ? sanitizeRich(html) : null;
+}
+
 function richFromTextEdit(html, newText){
   let root;
   try{ root=_parseInert(sanitizeRich(html)); }catch(e){ return null; }
   const units=_lineUnits(root);
-  if(units.some(u=>u.opaque)) return null;      // a table or preformatted block: leave it to plain text
+  /* A TABLE IS NOT REWRITTEN, AND IT IS NOT THROWN AWAY EITHER.
+     This returned null on any opaque block and left the whole clause to the
+     caller's plain-text fallback — which rebuilds it as one <p> per line, so a
+     rate card was destroyed by an honest edit made three paragraphs above it.
+     The block is an ANCHOR instead: its own projected lines must come back
+     unchanged and in order, the wording around it takes the edit, and the
+     block itself is re-emitted verbatim. Where the anchor cannot be found the
+     answer is still null — an edit inside a table is one this cannot place,
+     and refusing is what it has always done. */
+  if(units.some(u=>u.opaque)) return _richEditAroundBlocks(root, units, newText);
   if(!units.length) return null;
   const oldLines=units.map(u=>u.line);
   const newLines=String(newText==null?'':newText).split('\n').map(l=>l.replace(/[ \t]+/g,' ').trim()).filter(l=>l);

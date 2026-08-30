@@ -180,8 +180,34 @@ describe('f255 (3) — the door, and where a row lands', () => {
       + 'they pressed');
   });
 
-  test('and the Home card lands on this list rather than on the calendar', () => {
-    assert.match(HOME, /go:\{nav:'obligations'\}/);
+  /* REVERSED IN PLACE 30 Aug 2026. This pinned `go:{nav:'obligations'}`, which
+     is a bare setView — and a bare setView lands on the page's DEFAULT
+     narrowing (every open obligation at any horizon) while the card counts
+     the dated ones due inside thirty days. A card reading 2 opened a list of
+     4. The claim it was making — this card lands on the worklist and not on
+     the Calendar — is unchanged and is asserted below; what is added is the
+     half that makes it honest, that the list narrows with the reading the card
+     counted. */
+  test('and the Home card lands on this list, narrowed to what it counted', () => {
+    assert.match(HOME, /go:\{obligations:\{state:'open', due:'30'\}\}/,
+      'the destination is this page, and it names the cut');
+    assert.match(HOME, /openObligations\(30\)[\s\S]{0,80}days!=null/,
+      'which is the same reading the number itself is counted from');
+    assert.match(HOME, /obwGoFiltered\(g\.obligations\)/, 'and one door applies it');
+  });
+
+  test('the sidebar door narrows to its own count too, and only while it has one', () => {
+    /* Its badge counts what is LATE. At zero the door carries no number, so
+       there is nothing for the list to match and narrowing to an empty cut
+       would be a door onto a blank page. */
+    assert.match(APP, /v==='obligations'&&window\.obwGoFiltered/);
+    assert.match(APP, /obligationsDoorCount\(\)\)\?\{state:'overdue'\}:\{\}/);
+  });
+
+  test('and a named door states the WHOLE filter set, so nothing stale is inherited', () => {
+    const fn = OB_CODE.match(/function obwGoFiltered\(patch\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /_obwF = \{ whose:'all', state:'open', side:'all', folder:'all', due:'all', \.\.\./,
+      'the filters are per sitting and were never cleared on arrival');
   });
 });
 
@@ -260,6 +286,50 @@ describe('f255 (5) — the address is the server’s to decide', () => {
     assert.equal(got[0].to, 'ops@nordkust.test');
   });
 
+  /* ---- WHAT LEAVES THE BUILDING HAS TO BE READABLE BY THE PERSON IT IS SENT
+     TO. The recipient is the COUNTERPARTY: no account here, no session, no
+     scope. A `#contract=<id>` link is resolved by openFromHash against the
+     signed-in reader's own bootstrap, on the far side of the sign-in wall, so
+     it handed an outside reader a sign-in page — the exact class the launch
+     audit closed once already. */
+  test('the chase carries a link the counterparty can actually open, or none', async () => {
+    mail.reset();
+    await chase({ obligationId: 'th' });
+    await pause(200);
+    const m = mail.sent.find(x => (x.subject + ' ' + x.text).includes('Deliver the audited accounts'));
+    assert.ok(m, 'the message went');
+    assert.ok(!/#contract=/.test(m.text),
+      'never the app deep link — its reader has no account to sign in with');
+    const share = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { kind: 'hati-share', org: 'Highland Corporate Ltd',
+        contract: { id: 'MK-CHASE', name: 'Chase — MK-CHASE', counterparty: 'Nordkust Industri AB' } },
+      channel: 'copy', durable: true, purpose: 'view',
+      recipient: { name: 'Nordkust', email: 'ops@nordkust.test' } } });
+    mail.reset();
+    await chase({ obligationId: 'th' });
+    await pause(200);
+    const m2 = mail.sent.find(x => (x.subject + ' ' + x.text).includes('Deliver the audited accounts'));
+    assert.ok(m2 && /#share=/.test(m2.text),
+      'once they hold a standing link, that is what the message points at');
+    assert.ok(share && (share.link || share.token), 'and it is a real link');
+  });
+
+  test('an obligation with no date is chased without "due on ."', async () => {
+    await W.admin.json('/api/contracts/MK-NODATE', { method: 'PUT', body: { contract: {
+      id: 'MK-NODATE', name: 'Supply agreement', counterparty: 'Nordkust',
+      counterpartyEmail: 'ops@nordkust.test', status: 'Signed', fields: {}, metadata: {},
+      obligations: [{ id: 'th', desc: 'Deliver the audited accounts', status: 'open', party: 'theirs' }],
+      audit: [], rounds: [], versions: [], signatures: [], comments: [] } } });
+    mail.reset();
+    const r = await W.admin.raw('/api/contracts/MK-NODATE/chase', { method: 'POST', body: { obligationId: 'th' } });
+    assert.equal(r.status, 200);
+    await pause(200);
+    const m = mail.sent.find(x => (x.subject + ' ' + x.text).includes('Deliver the audited accounts'));
+    assert.ok(m, 'it still goes — an undated duty is a legitimate thing to ask about');
+    assert.ok(!/due on \./.test(m.text), 'and it does not say "due on ."');
+    assert.ok(!/\{due\}/.test(m.text), 'nor leave the placeholder in');
+  });
+
   test('it refuses one of OURS and one already done', async () => {
     const a = await chase({ obligationId: 'us' });
     assert.equal(a.status, 409);
@@ -284,9 +354,24 @@ describe('f255 (5) — the address is the server’s to decide', () => {
     assert.match(r.json.emailError, /no email address on file/);
   });
 
+  /* REWRITTEN 30 Aug 2026. This POSTed to MK-NOPE — a contract nothing ever
+     creates — as the UNRESTRICTED member, so the 404 meant "no such contract"
+     and said nothing about scope: delete the inScope guard from the route and
+     it still passed, and it passed at the parent too, where the route does not
+     exist and Express 404s the path. It now uses a contract that REALLY EXISTS
+     in a stream the caller cannot see, and proves the same request works for
+     somebody who can. */
   test('a contract out of the caller’s scope is invisible here too', async () => {
-    const r = await W.unrestricted.raw('/api/contracts/MK-NOPE/chase', { method: 'POST', body: { obligationId: 'x' } });
-    assert.equal(r.status, 404);
+    await W.admin.json('/api/contracts/MK-SCOPE', { method: 'PUT', body: { contract: {
+      id: 'MK-SCOPE', name: 'Out of reach', counterparty: 'Nordkust',
+      counterpartyEmail: 'ops@nordkust.test', status: 'Signed', folder: 'sales',
+      fields: {}, metadata: {}, obligations: [
+        { id: 'th', desc: 'Something they owe', due: '2026-01-01', status: 'open', party: 'theirs' }],
+      audit: [], rounds: [], versions: [], signatures: [], comments: [] } } });
+    const mine = await W.admin.raw('/api/contracts/MK-SCOPE/chase', { method: 'POST', body: { obligationId: 'th' } });
+    assert.equal(mine.status, 200, 'the admin can see it, so the request itself is good');
+    const r = await W.restricted.raw('/api/contracts/MK-SCOPE/chase', { method: 'POST', body: { obligationId: 'th' } });
+    assert.equal(r.status, 404, 'and a member scoped to another stream cannot');
   });
 });
 
@@ -320,7 +405,8 @@ describe('f255 (7) — both languages', () => {
     }
   });
   test('and the mail that leaves the building is written twice too', () => {
-    for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line'])
+    for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line',
+      'mail_ob_chase_line_nodate', 'mail_ob_chase_open'])
       assert.equal((I18N.match(new RegExp('^    ' + k + ':', 'gm')) || []).length, 2, k);
   });
 });

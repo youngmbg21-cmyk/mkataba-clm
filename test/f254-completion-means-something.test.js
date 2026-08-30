@@ -227,15 +227,24 @@ describe('f254 (4) — the new instance is reminded about', () => {
     await settle(() => about('Series quarterly filing').length >= 1);
     assert.equal(about('Series quarterly filing').length, 1, 'the first instance is nudged');
 
-    /* Now the shape completing one leaves behind: the first done, the next
-       open with a FRESH id and its own date, seven days out. */
-    await put('MK-SER-1', [
-      { id: 'ob_q1', desc: 'Series quarterly filing', due: isoDay(-2), status: 'done',
-        assignee: MEMBER, recurring: 'quarterly', seriesId: 'ob_q1',
-        completedAt: isoDay(-2), completedBy: 'Admin' },
-      { id: 'ob_q2', desc: 'Series quarterly filing', due: isoDay(7), status: 'open',
-        assignee: MEMBER, recurring: 'quarterly', seriesId: 'ob_q1' },
-    ], 1);
+    /* THE SHAPE IS THE PRODUCT'S OWN, NOT A HAND-WRITTEN COPY OF IT.
+       Written out by hand this whole block passed on the parent commit, where
+       obligationNextInstance does not exist: what it proved was the server
+       property "an obligation with a distinct id gets its own dedupe row",
+       which was true before this job. The two halves are joined now — the
+       browser's real verb produces the array, the server is then given exactly
+       that — so deleting obligationNextInstance turns this red. */
+    const { win, c: bc } = bench([
+      { id: 'ob_q1', desc: 'Series quarterly filing', due: isoDay(-2), status: 'open',
+        assignee: MEMBER, recurring: 'quarterly' }]);
+    win.toggleObligation(bc, 0, { at: isoDay(-2) });
+    const madeByTheProduct = JSON.parse(JSON.stringify(bc.obligations));
+    assert.equal(madeByTheProduct.length, 2, 'the verb opened the next instance');
+    assert.notEqual(madeByTheProduct[1].id, madeByTheProduct[0].id, 'with an id of its own');
+    /* Its date is one cadence step from the date it was DUE, so it lands in
+       the future; the sweep's seven-day rung is what this measures. */
+    madeByTheProduct[1].due = isoDay(7);
+    await put('MK-SER-1', madeByTheProduct, 1);
     mail.reset();
     assert.equal((await run()).status, 200);
     await settle(() => about('Series quarterly filing').length >= 1);

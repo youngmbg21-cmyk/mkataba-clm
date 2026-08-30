@@ -91,16 +91,43 @@ function docxXmlToText(xml){
   body=body
     .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g,'')    // struck-out wording is not content
     .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g,''); // field codes (TOC, page refs) are plumbing
-  const lines=[];
-  for(const para of body.split(/<\/w:p>/)){
-    let t='';
-    para.replace(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g,(m,txt)=>{
+  /* ---- ONE READING OF A TABLE, ON BOTH READERS ----
+     This split the body on `</w:p>` and a table CELL is a w:p, so a row came
+     out as one line per cell while the structured reader beside it joins a
+     row's cells with a tab. Two readings of one document is the defect class
+     this codebase names by name, and it was not cosmetic: the Word round trip
+     compares the returned text against the stored body's own projection, so a
+     rate card that nobody had touched read as changed — filing a phantom
+     change on its clause AND one "new clause" per cell, and accepting those
+     destroyed the table. A ROW IS A LINE AND ITS CELLS ARE SEPARATED BY TABS,
+     here as there, so an untouched table compares equal by construction.
+
+     The blocks are COUNTED rather than matched, for the same reason
+     docxTopBlocks exists: a text box nests a whole w:p inside the paragraph
+     that carries it, and splitting on the close tag cut the outer paragraph
+     in two. */
+  const runText = frag => {
+    let t = '';
+    String(frag).replace(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\s*\/>|<w:(?:br|cr)\s*\/>/g,(m,txt)=>{
       if(txt!=null) t+=decodeXmlEntities(txt);
       else if(m.indexOf('w:tab')>=0) t+='\t';
       else t+='\n';
       return '';
     });
-    lines.push(t);
+    return t;
+  };
+  const lines=[];
+  for(const b of docxTopBlocks(body)){
+    if(b.kind === 'w:tbl'){
+      for(const tr of (b.xml.match(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g) || [])){
+        const cells = tr.match(/<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g) || [];
+        if(!cells.length) continue;
+        lines.push(cells.map(tc =>
+          (tc.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) || [tc]).map(runText).join(' ').trim()).join('\t'));
+      }
+      continue;
+    }
+    lines.push(runText(b.xml));
   }
   const text=lines.join('\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
   return { text, tracked };
@@ -181,12 +208,19 @@ async function docxExtract(bytes){
    document is. */
 const DOCX_PARTS = { 'word/document.xml': 30, 'word/numbering.xml': 8, 'word/styles.xml': 8 };
 
-async function docxReadParts(bytes, entries){
+async function docxReadParts(bytes, entries, docName){
   const out = {};
-  for(const name of Object.keys(DOCX_PARTS)){
+  /* THE MAIN PART IS NOT ALWAYS CALLED document.xml. Word writes
+     word/document2.xml often enough that the scraper has always had a fallback
+     for it, and reading only the canonical name here would REFUSE a file the
+     old reader read. The caller passes the entry it actually found. */
+  const names = Object.keys(DOCX_PARTS);
+  if(docName && !names.includes(docName)) names.push(docName);
+  for(const name of names){
     const e = entries.find(x => x.name === name);
     if(!e) continue;
-    if(e.rawLen === 0xFFFFFFFF || e.rawLen > DOCX_PARTS[name] * 1024 * 1024) continue;
+    const capMb = DOCX_PARTS[name] != null ? DOCX_PARTS[name] : DOCX_PARTS['word/document.xml'];
+    if(e.rawLen === 0xFFFFFFFF || e.rawLen > capMb * 1024 * 1024) continue;
     try{
       let raw;
       if(e.method === 0) raw = zipEntryBytes(bytes, e);
@@ -199,13 +233,66 @@ async function docxReadParts(bytes, entries){
   return out;
 }
 
+/* ---- TOP-LEVEL BLOCKS, COUNTED RATHER THAN MATCHED ----
+   The body is a sequence of paragraphs and tables, and BOTH NEST: a Word text
+   box puts a whole <w:p> inside a run of the paragraph that carries it, and a
+   table cell may hold another table. A non-greedy regex cuts the outer block
+   at the INNER close and then skips everything between there and the outer
+   one — so the wording after a text box was SILENTLY DELETED from the
+   contract, and a nested table broke its outer table apart. Losing a
+   customer's wording is the worst thing this reader can do, so the nesting is
+   counted rather than matched.
+
+   A self-closing <w:p/> is a real (empty) paragraph and is emitted as one. */
+function docxTopBlocks(body){
+  const out = [];
+  const re = /<(w:p|w:tbl)\b([^>]*)>|<\/(w:p|w:tbl)>/g;
+  let m, dP = 0, dT = 0, start = -1, kind = '';
+  while((m = re.exec(body))){
+    const open = m[1], close = m[3], attrs = m[2] || '';
+    if(open){
+      if(/\/$/.test(attrs)){ if(!dP && !dT) out.push({ kind: open, xml: m[0] }); continue; }
+      if(!dP && !dT){ start = m.index; kind = open; }
+      if(open === 'w:p') dP++; else dT++;
+    } else {
+      if(close === 'w:p') dP = Math.max(0, dP - 1); else dT = Math.max(0, dT - 1);
+      if(!dP && !dT && start >= 0){ out.push({ kind, xml: body.slice(start, m.index + m[0].length) }); start = -1; }
+    }
+  }
+  return out;
+}
+
+/* ---- WHICH STYLES CARRY THE NUMBERING ----
+   Read beside docxHeadingStyles and for the same reason: a contract drafted
+   from a firm's own template states its numbering ONCE, in the style, and
+   writes nothing on each paragraph. */
+function docxStyleNums(xml){
+  const out = {};
+  if(!xml) return out;
+  const re = /<w:style\b([^>]*)>([\s\S]*?)<\/w:style>/g;
+  let m;
+  while((m = re.exec(xml))){
+    const id = (m[1].match(/w:styleId="([^"]*)"/) || [])[1];
+    if(!id) continue;
+    const np = (String(m[2] || '').match(/<w:numPr\b[^>]*>[\s\S]*?<\/w:numPr>/) || [''])[0];
+    if(!np) continue;
+    const numId = (np.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
+    const ilvl = (np.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
+    if(numId != null && numId !== '0') out[id] = { numId, ilvl };
+  }
+  return out;
+}
+
 /* ---- HOW A NUMBER IS SPELT ----
    Word's own formats. `bullet` and `none` are the two that produce no
    citation: a bullet is a mark rather than a number, and `none` means the
    level is deliberately unnumbered. */
 function docxNumFormat(n, fmt){
   const i = Number(n);
-  if(!isFinite(i) || i < 1) return '';
+  /* A list may legitimately start at 0 (w:start 0), and a level below zero is
+     not a number at all. Refusing everything under 1 blanked the first item of
+     a zero-based list and left it off by one thereafter, silently. */
+  if(!isFinite(i) || i < 0) return '';
   switch(String(fmt || 'decimal')){
     case 'lowerLetter': return docxAlpha(i).toLowerCase();
     case 'upperLetter': return docxAlpha(i);
@@ -217,11 +304,16 @@ function docxNumFormat(n, fmt){
     default:            return String(i);
   }
 }
-/* a, b, … z, aa, ab — Word's own wrap, not a base-26 number */
+/* a, b, … z, aa, bb, cc — WORD'S OWN WRAP, and it is not a base-26 number.
+   Past the twenty-sixth item Word REPEATS the letter rather than counting on
+   in columns, so item 27 is `aa` and item 28 is `bb` (a spreadsheet column
+   would say `ab`). The difference only shows on a list longer than the
+   alphabet, which a schedule of sub-paragraphs reaches, and a wrong letter is
+   a wrong citation. */
 function docxAlpha(i){
-  let s = '', n = i;
-  while(n > 0){ const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
-  return s;
+  if(!(i > 0)) return '';
+  const r = (i - 1) % 26, reps = Math.floor((i - 1) / 26) + 1;
+  return String.fromCharCode(65 + r).repeat(reps);
 }
 function docxRoman(i){
   if(i > 3999) return String(i);
@@ -230,6 +322,43 @@ function docxRoman(i){
   let n = i, s = '';
   for(const [v, r] of T){ while(n >= v){ s += r; n -= v; } }
   return s;
+}
+
+/* ---- A BULLET'S OWN MARK, WHICH IS HOW A LEVEL READS ----
+   A numbered list says its level in its number — 1., then (a), then (i) — and
+   a BULLET list says it in the mark: Word's own three levels are a filled
+   round, a hollow round and a filled square, and the file states each one in
+   its level's `lvlText`. Hard-coding a single bullet made three nested levels
+   arrive byte-identical, so the original's nesting could not be recovered from
+   the stored body at all.
+
+   THE MARKS ARE MAPPED INTO THE ONES THIS PRODUCT ALREADY READS. Word writes
+   its bullets as private-use characters in the Symbol and Wingdings fonts
+   (U+F0B7, U+F0A7 …) which have no meaning outside those fonts and draw as
+   tofu anywhere else; and its second level is the LETTER `o` in Courier, which
+   reads as a word rather than a mark. Each is mapped to the character it is
+   drawn as — and every one of them is in DOC_BULLET, so the marker still lands
+   in the hanging indent's gutter rather than in the wording.
+
+   WHAT THIS DOES NOT DO, said out loud: it carries the level's MARK, not its
+   INDENT. This product expresses a sub-paragraph as a marker in a hanging
+   indent of one width — `rl-hang`, one text column whatever the marker is —
+   so a deeper level is told apart by its mark and not by how far in it sits.
+   Real <ul>/<li> nesting is representable by the allow-list and was refused
+   here: it would be a SECOND mechanism for the fact the marker already
+   carries, and two mechanisms for one fact drift. */
+const DOCX_BULLET_MAP = {
+  '\uF0B7': '\u2022', '\uF0A7': '\u25AA', '\uF075': '\u25AA', '\uF06C': '\u25CF',
+  '\uF0D8': '\u25B8', '\uF04A': '\u25CB', '\uF02D': '\u2013', 'o': '\u25E6',
+  '\uF076': '\u25AA', '\uF0FC': '\u2022', '\uF0A8': '\u25AA' };
+function docxBulletMark(text){
+  const t = String(text == null ? '' : text).trim();
+  if(!t) return '\u2022';
+  if(DOCX_BULLET_MAP[t]) return DOCX_BULLET_MAP[t];
+  /* Anything still in a private-use area is a font's own glyph and means
+     nothing here — draw the ordinary bullet rather than a box. */
+  if(/[\uE000-\uF8FF]/.test(t)) return '\u2022';
+  return t;
 }
 
 /* ---- THE NUMBERING DEFINITION ----
@@ -251,10 +380,27 @@ function docxNumbering(xml){
   while((m = numRe.exec(xml))){
     const body = m[2] || '';
     const a = (body.match(/<w:abstractNumId\b[^>]*w:val="(\d+)"/) || [])[1];
-    if(a != null) out.num[m[1]] = { abs: a, over: docxLevels(body) };
+    if(a != null) out.num[m[1]] = { abs: a, over: docxLevels(body), start: docxStartOverrides(body) };
   }
   const absRe = /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g;
   while((m = absRe.exec(xml))){ out.abs[m[1]] = docxLevels(m[2] || ''); }
+  return out;
+}
+/* ---- HOW WORD SAYS "RESTART THIS LIST" ----
+   A <w:lvlOverride> may carry ONLY a <w:startOverride>, with no nested
+   <w:lvl> at all — and that is the shape Word actually writes when a second
+   list restarts at 1. Reading only the nested <w:lvl> meant the override was
+   ignored and the second list CONTINUED the first one's numbers, so every
+   citation in it was wrong. That is exactly what D-4 forbids. */
+function docxStartOverrides(xml){
+  const out = {};
+  const re = /<w:lvlOverride\b[^>]*w:ilvl="(\d+)"[^>]*>([\s\S]*?)<\/w:lvlOverride>|<w:lvlOverride\b[^>]*w:ilvl="(\d+)"[^>]*\/>/g;
+  let m;
+  while((m = re.exec(xml))){
+    const il = m[1] != null ? m[1] : m[3];
+    const s = (String(m[2] || '').match(/<w:startOverride\b[^>]*w:val="(-?\d+)"/) || [])[1];
+    if(s != null) out[il] = Number(s);
+  }
   return out;
 }
 function docxLevels(xml){
@@ -283,16 +429,27 @@ function docxLevels(xml){
    abstract definition continue the same sequence — which is exactly how Word
    writes a list that is interrupted and resumed. */
 function docxNumberWalker(numbering){
-  const counts = {};                       // abs → { level → n }
+  const counts = {};                       // abs (or numId, when overridden) → { level → n }
   return function next(numId, ilvl){
     const inst = numbering.num[String(numId)];
     if(!inst) return null;                 // a numId with no definition: no number
     const lv = (inst.over && inst.over[String(ilvl)]) || (numbering.abs[inst.abs] || {})[String(ilvl)];
     if(!lv) return null;
     const abs = inst.abs;
-    const c = counts[abs] || (counts[abs] = {});
+    /* ---- WHICH SEQUENCE THIS PARAGRAPH BELONGS TO ----
+       Per ABSTRACT list by default, because two numIds pointing at one
+       definition are how Word writes a list that is interrupted and resumed —
+       counting per numId there would restart it and every number after would
+       be wrong. But a numId carrying a startOverride is Word saying THIS
+       INSTANCE RESTARTS, so that one gets a sequence of its own. Both shapes
+       are real and they mean opposite things; the override is what tells them
+       apart. */
+    const ov = inst.start || {};
+    const key = Object.keys(ov).length ? ('n' + numId) : ('a' + abs);
+    const c = counts[key] || (counts[key] = {});
     const L = Number(ilvl);
-    c[L] = (c[L] == null) ? lv.start : c[L] + 1;
+    const startAt = ov[String(ilvl)] != null ? ov[String(ilvl)] : lv.start;
+    c[L] = (c[L] == null) ? startAt : c[L] + 1;
     /* A DEEPER LEVEL RESTARTS when a shallower one moves on — Word's default,
        and `lvlRestart:0` is how a document says "do not". */
     for(const k of Object.keys(c)){
@@ -302,7 +459,7 @@ function docxNumberWalker(numbering){
       if(deeper && String(deeper.restart) === '0') continue;
       delete c[k];
     }
-    if(lv.fmt === 'bullet' || lv.fmt === 'none') return { text: '', bullet: lv.fmt === 'bullet', level: L };
+    if(lv.fmt === 'bullet' || lv.fmt === 'none') return { text: '', bullet: lv.fmt === 'bullet', mark: docxBulletMark(lv.text), level: L };
     /* %1..%9 are the counters at levels 0..8 — that is how "7.1.4" is written
        down: lvlText "%1.%2.%3" at ilvl 2. A placeholder for a level that has
        not started yet reads as its own start value, which is what Word draws. */
@@ -310,10 +467,10 @@ function docxNumberWalker(numbering){
     text = text.replace(/%([1-9])/g, (mm, d) => {
       const idx = Number(d) - 1;
       const at = c[idx];
-      if(at != null) return docxNumFormat(at, ((inst.over && inst.over[String(idx)])
-        || (numbering.abs[abs] || {})[String(idx)] || {}).fmt);
       const def = (inst.over && inst.over[String(idx)]) || (numbering.abs[abs] || {})[String(idx)];
-      return def ? docxNumFormat(def.start, def.fmt) : '';
+      if(at != null) return docxNumFormat(at, (def || {}).fmt);
+      if(!def) return '';
+      return docxNumFormat(ov[String(idx)] != null ? ov[String(idx)] : def.start, def.fmt);
     });
     return { text: text.trim(), bullet: false, level: L };
   };
@@ -391,6 +548,7 @@ function docxRunsHtml(para, opts){
 function docxXmlToRich(xml, parts){
   const numbering = docxNumbering(parts && parts['word/numbering.xml']);
   const heads = docxHeadingStyles(parts && parts['word/styles.xml']);
+  const styleNums = docxStyleNums(parts && parts['word/styles.xml']);
   const nextNum = docxNumberWalker(numbering);
   const tracked = { ins: (xml.match(/<w:ins[ >]/g) || []).length,
                     del: (xml.match(/<w:del[ >]/g) || []).length };
@@ -412,27 +570,49 @@ function docxXmlToRich(xml, parts){
      Heading 1 is an h1 — which is what a document with no title of its own
      means, and is byte-identical to reading it without this rule. The decision
      is made ONCE, from the file, before a single block is emitted. */
-  const titleStyles = /^(title|subtitle)$/i;
-  const hasTitle = new RegExp('<w:pStyle\\b[^>]*w:val="(?:Title|Subtitle)"', 'i').test(body);
+  /* ONLY `Title` IS THE DOCUMENT'S OWN TITLE. Subtitle is a second line under
+     it; mapping both to h1 made a Title+Subtitle contract collapse into one
+     clause, because the clause model reads the FIRST leading h1 as the title
+     and everything after it as clauses. A subtitle takes h2 with the shift, so
+     it reads as what it is. */
+  const titleStyles = /^title$/i;
+  const subtitleStyles = /^subtitle$/i;
+  const hasTitle = new RegExp('<w:pStyle\\b[^>]*w:val="Title"', 'i').test(body);
   const shift = hasTitle ? 1 : 0;
   const report = { headings: 0, numbered: 0, unnumbered: 0, tables: 0, styled: !!Object.keys(heads).length };
+  let guessedTitle = false;
   const out = [], lines = [];
   /* PARAGRAPHS AND TABLES IN ORDER. A table's own paragraphs must not also be
      emitted as loose paragraphs, so the body is walked as a sequence of
      top-level w:p and w:tbl rather than split on one of them. */
-  const blockRe = /<w:tbl\b[^>]*>[\s\S]*?<\/w:tbl>|<w:p\b[^>]*\/>|<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
-  let b;
-  while((b = blockRe.exec(body))){
-    const blk = b[0];
-    if(blk.indexOf('<w:tbl') === 0){
+  for(const b of docxTopBlocks(body)){
+    const blk = b.xml;
+    if(b.kind === 'w:tbl'){
       const t = docxTableHtml(blk, report);
       if(t){ out.push(t.html); lines.push(...t.lines); }
       continue;
     }
     const pr = (blk.match(/<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>/) || [''])[0];
     const style = (pr.match(/<w:pStyle\b[^>]*w:val="([^"]*)"/) || [])[1] || '';
-    const numId = (pr.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
-    const ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
+    /* ---- NUMBERING MAY LIVE ON THE STYLE, NOT THE PARAGRAPH ----
+       A firm's own contract template regularly puts <w:numPr> in the STYLE
+       definition and writes nothing on each paragraph, which is how Word
+       carries "every Clause Heading is numbered 1., 2., 3.". Reading the
+       paragraph alone gave those documents NO numbers at all — and, because
+       numId was absent, no honest report either, so the file strip did not
+       even say the numbering could not be read. The paragraph's own <w:numPr>
+       still wins where it has one. */
+    let numId = (pr.match(/<w:numId\b[^>]*w:val="(\d+)"/) || [])[1];
+    let ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || '0';
+    if(numId == null && style && styleNums[style]){
+      numId = styleNums[style].numId;
+      ilvl = (pr.match(/<w:ilvl\b[^>]*w:val="(\d+)"/) || [])[1] || styleNums[style].ilvl;
+    }
+    /* numId="0" is OOXML's reserved way of saying THIS PARAGRAPH CARRIES NO
+       NUMBERING — Word writes it whenever numbering is removed from a
+       paragraph that would otherwise inherit it from its style. It is an
+       answer, not a failure, so it must not be counted as one. */
+    if(numId === '0') numId = undefined;
     const runs = docxRunsHtml(blk, { rich: true });
     let mark = '';
     if(numId != null){
@@ -443,7 +623,7 @@ function docxXmlToRich(xml, parts){
          strip can say the document numbers automatically and HaTi could not
          read it. */
       else if(!n) report.unnumbered++;
-      else if(n.bullet) mark = '•\t';
+      else if(n.bullet) mark = (n.mark || '\u2022') + '\t';
     }
     const plain = (mark + runs.text);
     if(!plain.trim() && !runs.html){ lines.push(''); out.push('<p><br></p>'); continue; }
@@ -453,6 +633,27 @@ function docxXmlToRich(xml, parts){
       ? Math.min(4, Number(/([1-9])/.exec(style)[1])) : 0);
     if(lvl) lvl = Math.min(4, lvl + shift);
     else if(titleStyles.test(String(style))) lvl = 1;
+    else if(subtitleStyles.test(String(style))) lvl = Math.min(4, 1 + shift);
+    /* ---- A DOCUMENT THAT DECLARES NO HEADING STYLE STILL HAS HEADINGS ----
+       A great many contracts are typed with their headings in CAPITALS rather
+       than styled, and Word records nothing about them. Before this reader
+       existed, negoRichFromLines guessed those lines into h1/h2 with
+       docLineKind, so the clause model found real clauses. Storing a
+       structured body for such a file WITHOUT the guess made it WORSE than
+       before: every block a <p>, and the clause model back to one clause per
+       paragraph.
+
+       So where the file declares no heading style at all, the guess is kept —
+       exactly the reading it replaced, first heading as the title and the rest
+       as clauses. Where the file DOES declare headings, its own statement
+       wins and nothing is guessed. */
+    if(!lvl && !Object.keys(heads).length && typeof docLineKind === 'function'){
+      const plainLine = String(runs.text || '').trim();
+      if(plainLine && docLineKind(plainLine) === 'heading'){
+        lvl = guessedTitle ? 2 : 1;
+        guessedTitle = true;
+      }
+    }
     if(lvl){ report.headings++; out.push(`<h${lvl}>${lead}${runs.html}</h${lvl}>`); }
     else out.push(`<p>${lead}${runs.html}</p>`);
     lines.push(plain);
@@ -470,6 +671,13 @@ function docxXmlToRich(xml, parts){
 function docxTableHtml(tbl, report){
   const rows = tbl.match(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g) || [];
   if(!rows.length) return null;
+  const head = new Set();
+  rows.forEach((tr, i) => {
+    const pr = (tr.match(/<w:trPr\b[^>]*>[\s\S]*?<\/w:trPr>/) || [''])[0];
+    const h = pr.match(/<w:tblHeader\b([^>]*)>/);
+    if(h && !/w:val="(?:0|false|off)"/.test(h[1] || '')) head.add(i);
+  });
+  const marked = head.size > 0;
   const lines = [], html = [];
   rows.forEach((tr, i) => {
     const cells = tr.match(/<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g) || [];
@@ -479,11 +687,30 @@ function docxTableHtml(tbl, report){
       const span = Number((tc.match(/<w:gridSpan\b[^>]*w:val="(\d+)"/) || [])[1] || 1);
       const paras = tc.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) || [];
       const parts = paras.map(pp => docxRunsHtml(pp, { rich: true }));
-      cs.push(parts.map(x => x.html).join('<br/>'));
+      /* ONE LINE PER CELL, IN THE MARKUP AND IN THE TEXT ALIKE. A <br> inside
+         a cell makes richToText flush a line, so a cell holding two paragraphs
+         split its ROW across lines and glued the tail of that cell to the next
+         cell's value — a different projection from the plain reader's, which
+         joins a cell's paragraphs with a space. Two readings of one table is
+         what this whole pass exists to stop. The break is worth less than the
+         agreement. */
+      cs.push(parts.map(x => x.html).filter(h => h !== '').join(' '));
       txt.push(parts.map(x => x.text).join(' ').trim());
-      for(let k = 1; k < span && k < 12; k++){ cs.push(''); txt.push(''); }
+      /* The cap is a runaway guard, not a shape rule — a merged cell wider
+         than this is a damaged file rather than a rate card, and a cap set at
+         a plausible column count left the row SHORT and the table out of
+         line. */
+      for(let k = 1; k < span && k < 64; k++){ cs.push(''); txt.push(''); }
     });
-    const tag = i === 0 ? 'th' : 'td';
+    /* ---- A HEADER ROW IS ONE THE FILE SAYS IS ONE ----
+       `w:tblHeader` is how Word records "repeat this row at the top of each
+       page", which is what a header row IS. Calling the first row a header
+       whatever it holds gets it wrong on the commonest shape of all — a
+       two-column table of terms whose first row is already data — and a <th>
+       is read aloud as a column name. Where the file marks NO row, the first
+       row is taken as the header, which is the ordinary case and is what a
+       reader of a rate card expects. */
+    const tag = (marked ? head.has(i) : i === 0) ? 'th' : 'td';
     html.push('<tr>' + cs.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>');
     lines.push(txt.join('\t'));
   });
@@ -503,8 +730,8 @@ async function docxExtractRich(bytes){
   if(!doc) throw new Error('no document found inside this file — it is not a Word .docx');
   if(doc.rawLen === 0xFFFFFFFF || doc.rawLen > 30 * 1024 * 1024)
     throw new Error('the document inside this file is too large to read safely');
-  const parts = await docxReadParts(bytes, entries);
-  const xml = parts['word/document.xml'];
+  const parts = await docxReadParts(bytes, entries, doc.name);
+  const xml = parts['word/document.xml'] || parts[doc.name];
   if(!xml) throw new Error('this .docx uses a compression HaTi cannot read — re-save it from Word');
   const out = docxXmlToRich(xml, parts);
   if(!out.text) throw new Error('no readable text found in this Word document');
@@ -845,7 +1072,12 @@ function docxStripUiBadges(html){
    Deliberately a scanner rather than a DOM walk: this has to run in the export
    path on a server or in a test with no document, and the input is markup this
    product generated, not arbitrary web HTML. */
-const DOCX_BLOCK_TAGS = /^(?:p|div|h[1-6]|li|tr|blockquote|section|article|ol|ul|table|tbody)$/i;
+/* `td` and `th` are on this list for the same reason `tr` is: without them a
+   row's cells were concatenated with no separator at all, so a two-column rate
+   card left HaTi reading "ServiceRate". The segmenter below normally lifts a
+   table out before this tokeniser sees it; this is what catches one that is
+   nested or malformed. */
+const DOCX_BLOCK_TAGS = /^(?:p|div|h[1-6]|li|tr|td|th|blockquote|section|article|ol|ul|table|tbody|thead|tfoot)$/i;
 function docxRunsFromHtml(html){
   const src = docxStripUiBadges(html);
   const paras = [];
@@ -937,6 +1169,71 @@ function docxTrackedParagraphXml(p, state){
   return `<w:p>${props.length ? `<w:pPr>${props.join('')}</w:pPr>` : ''}${body}</w:p>`;
 }
 
+/* ---- A TABLE LEAVES HaTi AS A TABLE (J-3.2, the other direction) ----
+   J-3.2 put real tables into uploaded contracts for the first time, and the
+   Word round trip is the documented channel for redlining a received one — so
+   from that day the .docx HaTi SENDS had to carry one too. It did not: the
+   writer had no table support at all, and a schedule of rates left as two
+   ordinary paragraphs. The counterparty was shown a commercial table run
+   together, and the same mangled text came back through the round trip and
+   filed a phantom change on a clause nobody had touched.
+
+   THE TABLE IS LIFTED OUT BEFORE THE TOKENISER SEES IT, rather than the
+   tokeniser being taught about cells: every existing caller then reads
+   byte-identically, and the cell's own wording goes through the SAME
+   paragraph builder as everything else, so a tracked insertion inside a cell
+   is a real <w:ins> like any other. The nesting is COUNTED, not matched — the
+   docxTopBlocks lesson, on the way out. */
+function docxHtmlBlocks(html){
+  const out = [];
+  const re = /<(table)\b[^>]*>|<\/table>/gi;
+  let m, depth = 0, start = -1, at = 0;
+  while((m = re.exec(html))){
+    const opening = !/^<\//.test(m[0]);
+    if(opening){
+      if(!depth){ start = m.index; if(m.index > at) out.push({ kind: 'html', html: html.slice(at, m.index) }); }
+      depth++;
+    } else if(depth){
+      depth--;
+      if(!depth){ out.push({ kind: 'table', html: html.slice(start, m.index + m[0].length) }); at = m.index + m[0].length; }
+    }
+  }
+  if(at < html.length) out.push({ kind: 'html', html: html.slice(at) });
+  return out.filter(b => b.kind === 'table' || (b.html || '').trim());
+}
+/* The rows and cells of one table, as HTML. A row with no cells is dropped
+   rather than emitted empty — OOXML refuses a <w:tr> with no <w:tc>. */
+function docxHtmlTableRows(html){
+  const rows = [];
+  (html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) || []).forEach(tr => {
+    const cells = (tr.match(/<(?:td|th)\b[^>]*>[\s\S]*?<\/(?:td|th)>/gi) || [])
+      .map(c => c.replace(/^<(?:td|th)\b[^>]*>/i, '').replace(/<\/(?:td|th)>$/i, ''));
+    if(cells.length) rows.push(cells);
+  });
+  return rows;
+}
+function _dxTableXml(rows, state){
+  const cols = rows.reduce((n, r) => Math.max(n, r.length), 0) || 1;
+  const w = Math.floor(9638 / cols);
+  const grid = '<w:tblGrid>' + Array.from({ length: cols }, () => `<w:gridCol w:w="${w}"/>`).join('') + '</w:tblGrid>';
+  const pr = '<w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>'
+    + ['top','left','bottom','right','insideH','insideV']
+      .map(e => `<w:${e} w:val="single" w:sz="4" w:space="0" w:color="auto"/>`).join('')
+    + '</w:tblBorders></w:tblPr>';
+  const body = rows.map(r => {
+    const cells = [];
+    for(let i = 0; i < cols; i++){
+      const paras = docxRunsFromHtml(r[i] == null ? '' : r[i]);
+      /* A <w:tc> must contain at least one <w:p> — an empty cell is an empty
+         paragraph, not nothing. */
+      const inner = paras.length ? paras.map(x => docxTrackedParagraphXml(x, state)).join('') : '<w:p/>';
+      cells.push(`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/></w:tcPr>${inner}</w:tc>`);
+    }
+    return `<w:tr>${cells.join('')}</w:tr>`;
+  }).join('');
+  return `<w:tbl>${pr}${grid}${body}</w:tbl>`;
+}
+
 /* HTML in, WordprocessingML body out. The export string is stripped of badges
    on the way in (docxRunsFromHtml does it), so a caller cannot forget. */
 function docxTrackedXml(html, opts = {}){
@@ -946,9 +1243,21 @@ function docxTrackedXml(html, opts = {}){
     /* Word wants a second-resolution timestamp with no milliseconds. */
     date: String(opts.date || new Date().toISOString()).replace(/\.\d+Z$/, 'Z')
   };
-  const paras = docxRunsFromHtml(html);
-  const xml = paras.map(p => docxTrackedParagraphXml(p, state)).join('');
-  return { xml, paragraphs: paras.length,
+  let count = 0;
+  const xml = docxHtmlBlocks(html).map(b => {
+    if(b.kind === 'table'){
+      const rows = docxHtmlTableRows(b.html);
+      /* A "table" with no rows we can read is not smuggled through as an
+         empty <w:tbl>, which Word refuses to open — its wording goes out as
+         ordinary paragraphs, which is what the writer did before. */
+      if(rows.length) return _dxTableXml(rows, state);
+      const flat = docxRunsFromHtml(b.html); count += flat.length;
+      return flat.map(pp => docxTrackedParagraphXml(pp, state)).join('');
+    }
+    const paras = docxRunsFromHtml(b.html); count += paras.length;
+    return paras.map(pp => docxTrackedParagraphXml(pp, state)).join('');
+  }).join('');
+  return { xml, paragraphs: count,
     tracked: { ins: (xml.match(/<w:ins /g) || []).length,
                del: (xml.match(/<w:del /g) || []).length } };
 }
@@ -1147,12 +1456,12 @@ function docxExportTracked(html, opts = {}){
   return { bytes, xml: built.document, paragraphs: built.paragraphs, tracked: built.tracked };
 }
 
-if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxHeadingStyles,docxRunsHtml,docxTableHtml,docxNumFormat,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,
   DOCX_UI_CLASSES,DOCX_UI_ID});
-if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxHeadingStyles,docxRunsHtml,docxTableHtml,docxNumFormat,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,

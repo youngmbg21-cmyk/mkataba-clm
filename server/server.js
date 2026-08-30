@@ -371,12 +371,23 @@ const richBodyToSearchText = html => String(html || '')
 function contractFullBody(c) {
   const parts = [c.name, c.counterparty, c.id, c.searchText];
   if (c.fields) parts.push(Object.values(c.fields).join(' '));
-  if (c.upload && c.upload.extractedText) parts.push(c.upload.extractedText);
+  /* ONE COPY OF THE DOCUMENT, NOT TWO. A structured .docx upload stores its
+     wording as a rich body AND keeps the reader's plain text beside it, and
+     they are the same document character for character. Pushing both doubled
+     every uploaded contract in this string: the FTS window then cut the
+     metadata and the obligations off the end of the index, and copilotDetail
+     — which measures the read cap off exactly this — reported textTruncated
+     on a document that was not cut short, and paid for the duplicate tokens
+     on every turn. The stored WORDING is the senior of the two, because it is
+     what the product renders and what a change is filed against; the reader's
+     text answers only where there is no stored body. */
+  const hasBody = !!(c.redlineText && String(c.redlineText).trim());
+  if (!hasBody && c.upload && c.upload.extractedText) parts.push(c.upload.extractedText);
   // A rich body is sanitised HTML; index the words, not the markup, or a
   // search for "strong" would match every bolded contract in the workspace.
   // (Deliberately a plain strip, not the client's richToText — the server has
   // no DOM, and a search index is a convenience, not evidence.)
-  if (c.redlineText) parts.push(c.format === 'rich' ? richBodyToSearchText(c.redlineText) : c.redlineText);
+  if (hasBody) parts.push(c.format === 'rich' ? richBodyToSearchText(c.redlineText) : c.redlineText);
   if (c.metadata) parts.push(Object.values(c.metadata).filter(v => typeof v === 'string').join(' '));
   if (Array.isArray(c.obligations)) parts.push(c.obligations.map(o => o.desc).join(' '));
   return parts.filter(Boolean).join('  ');
@@ -6715,11 +6726,33 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
   const L = langForEmail(to);
   const vars = { desc: o.desc || '', name: c.name || c.id, id: c.id, due: o.due || '' };
-  const link = contractUrl(req, c.id);
+  /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
+     The line reads "...which was due on {due}. Could you let us know where it
+     stands?", and an obligation with no date produced "due on ." in a message
+     that leaves the building to a customer's counterparty. There is a second
+     sentence for that case rather than a blank in the first one; the worklist
+     draws Chase on a dated obligation and an undated one alike, and both are
+     legitimate things to ask about. */
+  const line = tFor(L, o.due ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+  /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
+     This sent `#contract=<id>`, which openFromHash resolves against the
+     signed-in reader's own scoped bootstrap — on the far side of the sign-in
+     wall. The recipient here is the COUNTERPARTY: no account, no session, no
+     scope. They were handed a sign-in page. Every other counterparty-facing
+     mail in this product uses the share link they already hold, so this uses
+     the standing one where there is one — and where there is none it says
+     nothing, because a button that leads nowhere is worse than no button. The
+     launch audit closed this exact class once already. */
+  const st = db.prepare(
+    `SELECT token FROM shares WHERE contract_id=? AND revoked_at IS NULL AND durable=1
+       AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
+  ).get(c.id, new Date().toISOString());
+  const link = st && st.token ? shareUrl(req, st.token) : '';
   const r = await sendEmail(to,
     tFor(L, 'mail_ob_chase_subject', vars),
-    `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ob_chase_line', vars)}`
-      + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
+    `${tFor(L, 'mail_hello')},\n\n${line}`
+      + (link ? `\n\n${tFor(L, 'mail_ob_chase_open')}\n${link}` : '')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`,
     `chase: ${c.name || c.id}`);
   res.json({ ok: true, to, ...mailReport(r) });
 });
