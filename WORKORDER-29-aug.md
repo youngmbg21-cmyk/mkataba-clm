@@ -1182,10 +1182,324 @@ Every line driven in a real browser, because every one of these is a press.
 
 ---
 
-# J-5 ONWARD — MORE JOBS TO FOLLOW
+# J-5 — THE DATE, THE AMOUNT, AND THREE BUGS IN Find obligations
+
+**NOT BUILT. A render was shared and approved in shape; the code is not
+written.** Owner-instructed 30 Aug 2026: *"Fix all three bugs as part of this
+job so add to the work order but do not code yet."*
+
+## WHERE THIS CAME FROM
+
+Market feedback, relayed by the owner 30 Aug 2026:
+
+> *"They need to track the sign dates, milestones, disbursements plus
+> renewals. How well does HaTi track these and are they easily understood and
+> accessible?"*
+
+The four were assessed against the code rather than from memory. **Renewals are
+strong** — the expiry that follows a signed amendment, a decision deadline
+worked back from the notice period, the Renewal card quoting the phrase it read
+the notice period out of, six reminder milestones, the calendar, the horizon
+chart and written advice, with ten surfaces reading one figure. Nothing owed
+there. **Sign dates are recorded well per contract and cannot be scanned, and
+one copy of the date is broken.** **Milestones do not exist as a concept** —
+obligations do the job without ordering or dependency. **Disbursements are not
+tracked at all**: an obligation has no amount, so money owed on a date is a
+sentence and cannot be summed, charted or forecast.
+
+The owner then ruled: *"Fix the signed date bug and add the amount field but
+first share a render of how they would look like."* Milestone ordering and a
+committed-against-paid reading are **out of scope** and stay unbuilt.
+
+---
+
+## J-5.1 — A DATE THAT WAS NEVER A DATE
+
+### THE FAULT, MEASURED
+
+`signDocument` writes the execution record with a real timestamp and then
+writes a SECOND copy beside it:
+
+```
+c.execution = exec;                 // exec.at is a proper ISO moment — correct
+c.signedAt  = fmtDT(at) + ' EAT';   // "12 Aug 2026, 10:00 EAT" — a display string
+```
+
+`fmtDT` formats through `langLocale()`, so the stored value is **the reader's
+own language**. Measured:
+
+| what is asked of it | what comes back |
+|---|---|
+| `String(c.signedAt).slice(0,10)` | `"12 Aug 202"` |
+| that, read as a date | **the year 202** |
+| `String(c.signedAt).slice(0,7)` vs `"2026-08"` | `"12 Aug "` — never matches |
+| the same value in Swedish | `"12 aug. 2026 10:00 EAT"` → `"12 aug. 20"` |
+
+### SIX READERS, AND THE SIXTH IS A LEGAL RECORD
+
+1. `js/aichart.js` — the **Contracts signed** series. Measured live: a contract
+   signed in August 2026 returns **0** for `2026-08`. Every month reads zero.
+2. `js/workshape.js` — `wsStartOf`, a project's **start date**.
+3. `js/family.js` — an amendment family's **effective date**.
+4. `js/dedupe.js` — `effDateOf`, used by **duplicate detection**.
+5. `server/server.js` — the server's own copy of the same reading.
+6. **`downloadEvidence` (js/core.js) — `seal.signedAt`.** The evidence pack is
+   the exportable legal record, its sibling field `generatedAt` is `nowISO()`,
+   and this one is a **localised display string**: the same contract signed by
+   the same person exports differently depending on **who pressed the button
+   and what language they read in**. This was found after the render was shared
+   and is the strongest single reason to do the repair.
+
+`repSignedAt` (Reports' cycle time) is **not** affected — it reads the audit
+trail — and is correct today.
+
+### WHAT IS BUILT
+
+- **One truth: the execution stamp.** `c.execution.at` is already a proper
+  moment on every in-app signing (`signDocument` sets `exec` before it sets
+  `signedAt`), so this is a repair, not a migration.
+- **`contractSignedAt(c)` is the ONE reading**, and every one of the six asks
+  it: the execution stamp first, then a real `signedAt` where one is stored,
+  then the first `Signed` entry in the audit trail. It returns an ISO day or
+  null. Published, so the server can read the same shape.
+- **`c.signedAt` is written as a real date**, not a display string. What a
+  screen PRINTS is formatted at the moment of drawing, exactly as every other
+  date in the product already is.
+- **The evidence pack carries a machine-readable moment**, beside a formatted
+  one if a human copy is wanted. A record whose value depends on who exported
+  it is not a record.
+
+### WHAT IS EXPLICITLY NOT TOUCHED
+
+- **Nothing on screen moves.** The Signing tab's signature block, the History
+  trail's Signed row and the executed panel all draw from the correct copy
+  today and keep drawing what they draw.
+- **The seal, the fingerprint and the wording freeze.** None of them reads
+  `signedAt`.
+- **Contracts filed as executed elsewhere.** The migration importer stores a
+  real date from the manifest and was never affected.
+- **Reports' cycle time**, which is correct.
+
+### NOTES FOR WHOEVER BUILDS IT
+
+- **Records already on file repair themselves and nothing is migrated** —
+  every in-app signing carries `execution.at`. Do not write a backfill; the
+  ordering in `signDocument` is what makes that safe, so do not reorder it.
+- **`c.signedAt` is on the light contract list.** Check `HEAVY` before changing
+  its shape, or the register and the dashboard read one thing and the contract's
+  own page another.
+- **Three of the six readers `.slice()` it.** A slice of an ISO day is still an
+  ISO day, so those callers can be left alone once the value is right — but
+  each must be READ, not assumed.
+- **The display string is not deleted from the screens.** `fmtDT` stays where
+  a person reads a date; what changes is what is STORED.
+
+### ACCEPTANCE
+
+1. A contract signed today reports the correct month to the **Contracts
+   signed** series — the reproduction that returns `0` today returns `1`.
+2. `contractSignedAt` returns an ISO day, and returns **null** rather than a
+   guess where nothing was ever signed.
+3. Its three fallbacks are each exercised: the execution stamp, a stored date,
+   the audit trail.
+4. The evidence pack's signed moment is **identical whichever language the
+   exporter reads in** — asserted in both.
+5. A record filed before this job (a migrated, executed-outside contract)
+   reads **byte-identically** before and after.
+6. The signature block, the History row and Reports' cycle time are unchanged,
+   asserted rather than assumed.
+7. The seal still verifies on a contract signed before the repair.
+
+---
+
+## J-5.2 — AN OBLIGATION CARRIES AN AMOUNT
+
+### THE FAULT
+
+An obligation holds a description, a due date, a cadence, an owner, a side and
+a completion record. **It cannot hold a number.** So *"Second tranche — KES
+4,000,000"* is prose: it cannot be added up, charted, forecast, or set against
+the contract's own value. Disbursement tracking is the market's word for the
+thing this single missing field prevents.
+
+### WHAT IS BUILT
+
+- **One field on the obligation: `amount`.** A number, blank by default, never
+  a zero. `currency` is NOT stored — see the decisions.
+- **On the form**, in a row of its own directly under Due date / Recurring,
+  with the contract's currency as a fixed prefix. **Nothing existing moves, is
+  renamed, or is taken away** — see the note below, which is there because the
+  first render broke this rule.
+- **On the contract's Obligations tab**, a right-aligned column in tabular
+  figures, beside the due date. An obligation with no amount draws an em-dash.
+- **On the worklist**, the same column, taking its width from the description
+  column so the table still sums to 100%.
+- **On each band's heading**, the band's own sum beside the count it already
+  carries. No new box, no new panel, no band.
+- **One total at the foot of the worklist.**
+- `obligationAmount(o)` and `obligationBandTotal(rows)` are the ONE arithmetic;
+  every surface asks them.
+
+### WHAT IS EXPLICITLY NOT TOUCHED
+
+- **Obligations still never travel to the counterparty.** `buildSharePayload`
+  is unchanged, asserted.
+- **The chase message stays one sentence** and does not gain a figure.
+- The reminder ladder, the four bands, `obState`, `obligationDue`,
+  `toggleObligation` and the series machinery.
+- **The contract's own `value`.** An obligation's amount is not subtracted from
+  it, reconciled against it, or shown beside it. That is J-6's question.
+
+### NOTES FOR WHOEVER BUILDS IT
+
+- **DRAW FROM THE SCREEN, NOT FROM INTENT.** The first render of the obligation
+  dialog was redrawn from memory and got six things wrong: it **dropped the
+  "Whose obligation is this?" Us / counterparty toggle entirely**, renamed
+  *Description* → "What has to happen", *Recurring* → "Repeats", *Assign to* →
+  "Who owns it" (placeholder *Team member* → "Nobody yet"), *Save* → "Add", and
+  added a subtitle that does not exist. The owner caught the renamed **Assign
+  to**; the dropped toggle was the more serious. **The only new thing on that
+  dialog is Amount.**
+- **`Assign to` is hidden when the obligation is theirs**, and the second party
+  button carries the counterparty's own name. Both behaviours are untouched.
+- **The amount is drawn on BOTH sides of that toggle** — money they owe us
+  matters as much as money we owe them.
+- **Money obeys `canViewValues()`**: a reader without it sees no amounts, no
+  band sums and no total. **Not drawn at all**, rather than drawn as dashes —
+  the register's own convention.
+- **A cross-contract total converts** through `fxHomeValue` like every other
+  total in the product, and **says what it left out** (`fxMissing`) rather than
+  quietly trimming. A per-contract total does not convert: one contract is one
+  currency.
+- `amount` must survive the light contract list, or the worklist and the
+  contract's own tab disagree.
+
+### DECISIONS — TAKEN, AND THE OWNER MAY REVERSE ANY OF THEM
+
+1. **Currency is the contract's and is not editable per obligation.** It is
+   shown as a fixed prefix. `contractCurrency(c)` is the one reading; no second
+   currency is stored, so nothing can drift. *Reversible: store a per-obligation
+   currency and offer a picker.*
+2. **The amount follows the money permission.** Not a new rule; the product's
+   existing one.
+3. **Totals ride the band heading**, which already carries a count. No new
+   furniture — the cheapest channel that carries the fact.
+4. **Blank by default, never zero.** A zero is a figure somebody typed.
+5. **`done` already means paid.** Completion records the day and the person, so
+   a ticked tranche reads "Paid 12 Mar 2026" with nothing new built. **No
+   separate paid/disbursed state** — a second word for one fact is two facts
+   that drift.
+
+### ACCEPTANCE
+
+1. An obligation saved with an amount reads it back; one saved without carries
+   no `amount` key at all.
+2. The dialog draws **every field it draws today, with today's labels, in
+   today's order**, plus Amount — asserted field by field.
+3. `Assign to` still disappears when the obligation is theirs; the party toggle
+   still names the counterparty.
+4. Amount draws on both sides of that toggle.
+5. A reader without `canViewValues` sees no amount, no band sum and no total —
+   proved off a real restricted member.
+6. The band sums equal the sum of their own rows, and the foot total equals the
+   sum of the bands.
+7. A cross-contract total in mixed currencies converts and **names what it left
+   out** where a rate is missing.
+8. The share payload still carries no obligations.
+9. An obligation filed before this job draws identically.
+10. Both languages.
+
+---
+
+## J-5.3 — Find obligations, AND THE THREE THINGS WRONG WITH IT
+
+Owner-reported 30 Aug 2026, off a screenshot of a preferred-stock charter
+carrying 18 obligations: *"what is the purpose of find obligations? It seems to
+have a bug today."*
+
+**WHAT IT IS FOR**, since the screen never says: it reads the wording with
+Copilot and proposes the ongoing duties it finds — payment milestones, notice
+deadlines, deliverables, reporting obligations — each with the verbatim clause
+it came from. The reader ticks; nothing is saved until they confirm. It exists
+so nobody reads forty pages hunting for promises.
+
+### THE THREE BUGS
+
+1. **NO DEDUPE — pressing it twice adds everything twice.** `openObligationsReview`'s
+   add handler pushes every ticked proposal with a fresh random id and **never
+   asks whether it is already on the contract**. 18 becomes 36 becomes 54.
+   With J-5.2 in, a duplicated list is duplicated MONEY, which is what makes
+   this the one to fix first.
+2. **EVERY PROPOSAL ARRIVES TICKED.** All 18 checkboxes are `checked`, so the
+   natural press adds all of them — which is what makes (1) so easy to trigger.
+3. **THE CONFIRMATION IS SILENT.** ``toast(`Added ${n} obligation…`)`` is a
+   BARE call, and by this product's own rule a bare toast prints nothing. So
+   the act that changes the record says nothing on screen. It is also hardcoded
+   English.
+
+### WHAT IS BUILT
+
+- **`obligationAlreadyOn(c, proposal)` is the one reading**, asked at the add.
+  A proposal already on the contract is **shown and pre-unticked with a word
+  saying why**, never silently dropped — the reader must be able to see that
+  the scan found it and that they already have it.
+- The remaining proposals stay ticked, so the common case is still one press.
+- The confirmation says what happened, out loud, with a kind: how many were
+  added and how many were already there. Through the dictionary, both
+  languages.
+
+### WHAT IS EXPLICITLY NOT TOUCHED
+
+- **The scan itself**, its prompt, its schema and its 20-item ceiling.
+- **The retry offered on an empty result**, which is measured behaviour and
+  correct.
+- The read-stamp the scan writes.
+
+### TWO THINGS THAT LOOK LIKE BUGS AND ARE NOT — reported, not fixed
+
+- **Every row reading "no date" was correct** on the document reported. The
+  schema asks for a date only where the contract states a concrete one, and a
+  charter states conditional deadlines (*"the 90th day after the Deemed
+  Liquidation Event"*). **But it matters and is said out loud: an obligation
+  with no date is never reminded about and is in no due window**, so eighteen
+  undated rows are a list to remember rather than a follow-up system.
+- **The descriptions reading like clause fragments.** The document is a
+  corporate charter; the reader's prompt was written and measured against
+  commercial supply, distribution and services agreements. Outside what it was
+  built for. Not this job.
+
+### ACCEPTANCE
+
+1. Running the scan twice on the same contract and confirming both times leaves
+   **one** copy of each obligation.
+2. A proposal already on the contract is **drawn**, unticked, and says why.
+3. Confirming says how many were added and how many were already there,
+   **visibly** — asserted against the real toast root, not against the call.
+4. The words are in both dictionaries and are not the same words.
+5. The scan, its prompt and its retry are unchanged, asserted.
+6. Nothing is saved until confirm, unchanged.
+
+---
+
+## OUT OF SCOPE FOR J-5, SAID OUT LOUD
+
+- **A Signed column in the contracts list, and a signature mark on the
+  calendar.** Offered and not taken — sign dates stay unscannable across the
+  book after this job.
+- **A committed-against-paid reading.** Cheap once amounts exist; a new screen,
+  and a separate decision.
+- **Ordering or dependency between milestones.** Nothing will know that tranche
+  2 follows tranche 1.
+- **On-time reporting by counterparty**, still waiting on J-2.2 completions to
+  accumulate.
+- **The obligations reader's behaviour on non-commercial paper.**
+
+---
+
+# J-6 ONWARD — MORE JOBS TO FOLLOW
 
 The owner has said more jobs are coming for this order. They land here, each
-with the same shape as the four above: the owner's words verbatim, what is
+with the same shape as the five above: the owner's words verbatim, what is
 built, what is explicitly not touched, notes for whoever builds it, any
 decisions the build is blocked on, what is out of scope, and acceptance checks
 that can be failed.
