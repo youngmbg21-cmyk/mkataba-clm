@@ -35,7 +35,11 @@
 /* Per sitting, in memory. A view and a scope are working preferences, not
    settings: a reader who looked at the quarter once must not find the calendar
    on Quarter next week with no memory of asking. */
-let calState = { ym:null, view:'month', scope:'all' };
+/* `days` starts NULL rather than at the constant: this object is built at load
+   and CAL_AGENDA_DAYS is a const declared below it, so naming it here is a read
+   inside its own temporal dead zone — the getter trap this codebase records,
+   one keyword along. calAgendaDays() supplies the default. */
+let calState = { ym:null, view:'month', scope:'all', days:null };
 /* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
    Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
    three compact months of the same grid, which is the Month view three times
@@ -51,7 +55,40 @@ let calState = { ym:null, view:'month', scope:'all' };
    for anything not on this list, so a reader whose stored tab was 'list' lands
    on the month rather than on a blank page. */
 const CAL_VIEWS = ['month','horizon'];
+/* ---- THE AGENDA'S WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4) ----
+   *"the highlighted area that shows the next 14 days, change that to a filter
+   where you can look next 14, 30, 60, 90 days."*
+
+   HALF OF IT WAS ALREADY BUILT: calUpcoming has always taken a window and
+   every caller passed nothing, so the fortnight was simply the only value
+   anybody ever handed it. What was missing is the control.
+
+   ONE VALUE, READ BY THE READING, THE HEADING AND THE EMPTY STATE. This panel
+   has been caught once already headed 30 with an empty state saying 60, and
+   the correction was to make one number answer for all three — that property
+   is the condition on this change, not a nicety.
+
+   PER SITTING, IN MEMORY, on calState beside the tab and the scope switch.
+   Those two are not stored and neither is this: a reader who widened to ninety
+   days last Tuesday should not quietly still be on ninety a week later. */
 const CAL_AGENDA_DAYS = 14;
+const CAL_AGENDA_WINDOWS = [14, 30, 60, 90];
+/* An unknown stored or supplied value falls back to the fortnight rather than
+   drawing a blank panel — calView's own rule, one control along. */
+function calAgendaDays(){
+  const n = Number(calState.days);
+  return CAL_AGENDA_WINDOWS.includes(n) ? n : CAL_AGENDA_DAYS;
+}
+function calSetAgendaDays(n){
+  const v = Number(n);
+  if(!CAL_AGENDA_WINDOWS.includes(v) || v === calAgendaDays()) return;
+  calState.days = v; renderCalendar();
+}
+/* The panel draws at most this many rows. At a fortnight that ceiling is
+   almost never reached; at ninety days it will be reached constantly, and a
+   list that quietly stops at 40 of 137 reads as a list of 40. A CAP IS A FACT,
+   NEVER A SILENT TRIM — so past it the panel says how many of how many. */
+const CAL_AGENDA_ROWS = 40;
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
 function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'month'; }
@@ -275,12 +312,16 @@ function calIcsFor(evs){
    which this file has already been caught doing once (a panel headed 30 whose
    empty state said 60). */
 function calUpcoming(evs, days){
-  const n=days||CAL_AGENDA_DAYS;
+  const n=days||calAgendaDays();
   return evs.filter(e=>{ const d=daysUntil(e.date); return d>=0 && d<=n && !e.done; })
     .sort((a,b)=>a.date.localeCompare(b.date));
 }
-function calSummaryLines(evs){
-  return calUpcoming(evs).slice(0,40).map(e=>{
+/* WHAT LEAVES THE PAGE IS WHAT IS ON IT (J-5.4). This asked calUpcoming with
+   no window, so a reader looking at ninety days would mail a colleague a
+   fortnight of dates. The window joins the period and the scope, which this
+   page already carries into both Export and Share. */
+function calSummaryLines(evs, days){
+  return calUpcoming(evs, days||calAgendaDays()).slice(0,CAL_AGENDA_ROWS).map(e=>{
     const d=daysUntil(e.date);
     return `${e.date} · ${CAL_EVENT[e.type].label} — ${e.cname} (${e.cid})`
       +(e.note&&e.type==='obligation'?` · ${e.note}`:'')
@@ -515,8 +556,9 @@ function calHorizonHtml(){
    also carries Done, which is the verb people come to this screen wanting and
    which used to mean opening the contract and scrolling to its own panel. */
 function calPanelHtml(evs){
-  const up=calUpcoming(evs);
-  const rows=up.slice(0,40).map(e=>{
+  const win=calAgendaDays();
+  const up=calUpcoming(evs,win);
+  const rows=up.slice(0,CAL_AGENDA_ROWS).map(e=>{
     const ev=CAL_EVENT[e.type], d=daysUntil(e.date);
     const when=d===0?i18t('cal_today'):i18t('cal_in_days',{n:d});
     const done=(e.type==='obligation'&&e.obId&&window.toggleObligationById&&(!window.canEdit||canEdit()))
@@ -541,7 +583,23 @@ function calPanelHtml(evs){
     </div>`;
   }).join('');
   return `<section class="cal-card cal-panel">
-    <div class="cal-panel-head"><h5>${_esc(i18t('cal_next_30',{n:CAL_AGENDA_DAYS}))}</h5><span class="g"></span><span class="cal-cnt">${up.length}</span></div>
+    ${''/* ---- THE HEADING IS THE CONTROL (J-5.4) ----
+           NOT a title beside a dropdown. A heading reading "Next 14 days"
+           twelve pixels from a control set to 14 days is one fact printed
+           twice, and the second printing is the one that reads as furniture —
+           the standing rule about what may go on a page, and the reason the
+           reader's own choice read back to them is never a band. The
+           tracked-changes column settled the identical question the same way:
+           the control is labelled, it names the live cut, and it prints that
+           cut's own count, so a narrowed list states its own narrowing by
+           being set to it. */}
+    <div class="cal-panel-head">
+      <select id="cal-days" class="cal-days" aria-label="${_esc(i18t('cal_window_title'))}" title="${_esc(i18t('cal_window_title'))}">${
+        CAL_AGENDA_WINDOWS.map(n=>`<option value="${n}"${n===win?' selected':''}>${_esc(i18t('cal_next_30',{n}))}</option>`).join('')}</select>
+      <span class="g"></span><span class="cal-cnt">${up.length}</span></div>
+    ${''/* A CAP IS A FACT, NEVER A SILENT TRIM — and below the cap it says
+           nothing, because a caveat that is always there is one nobody reads. */}
+    ${up.length>CAL_AGENDA_ROWS?`<div class="cal-panel-cap">${_esc(i18t('cal_showing_of',{shown:CAL_AGENDA_ROWS,total:up.length}))}</div>`:''}
     ${''/* id="cal-agenda" is KEPT from the screen this panel replaces: it is
            still the agenda, and f83's four claims about it — a Done on an
            obligation and not on an expiry, a theirs row marked, no button for a
@@ -549,8 +607,8 @@ function calPanelHtml(evs){
            still true of it. An anchor moved for no reason is a test rewritten
            for no reason. */}
     <div id="cal-agenda" class="cal-upn-list scroll-thin">${rows||`<div class="cal-empty">${typeof window.emptyStateHtml==='function'
-      ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}), sub:i18t('cal_nothing_due_sub') })
-      : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:CAL_AGENDA_DAYS}))}</div>`
+      ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:win}), sub:i18t('cal_nothing_due_sub') })
+      : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:win}))}</div>`
         + `<div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div>`}</div>`}</div>
     <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))} →</button></div>
   </section>`;
@@ -821,6 +879,19 @@ function calStyleCss(){ return `
     box-shadow:inset 0 -1px var(--color-divider)}
   .cal-panel-head h5{margin:0;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
   .cal-panel-head .g{flex:1}
+  /* THE CONTROL WEARS THE HEADING IT REPLACED — the same size, weight and ink
+     the h5 carried, so the panel's head did not change shape when it stopped
+     being a title. It is the field line rather than the accent at rest: this
+     narrows a list and the product's own convention is that an accent border
+     means a filter is ON, which at the default fortnight it is not. */
+  .cal-days{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);
+    color:var(--color-text);background:var(--color-surface);border:1px solid var(--field-line);
+    border-radius:var(--radius);padding:3px 8px;cursor:pointer;max-width:100%}
+  .cal-days:hover{border-color:var(--accent-ink)}
+  /* The cap, stated only while it bites. */
+  .cal-panel-cap{flex:none;padding:7px 14px;font-size:var(--t-label);
+    color:var(--color-neutral-600);background:var(--nav-well);
+    border-bottom:1px solid var(--color-divider)}
   .cal-cnt{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);
     font-variant-numeric:tabular-nums}
   .cal-upn-list{flex:1;min-height:0;overflow-y:auto}
@@ -907,6 +978,7 @@ function wireCalendar(evs, byDay, p){
     el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }); };
   document.querySelectorAll('[data-cal-view]').forEach(el=>press(el,()=>calSetView(el.getAttribute('data-cal-view'))));
   document.querySelectorAll('[data-cal-scope]').forEach(el=>press(el,()=>calSetScope(el.getAttribute('data-cal-scope'))));
+  document.getElementById('cal-days')?.addEventListener('change',e=>calSetAgendaDays(e.target.value));
 
   /* THE DAY CELL. One contract opens; several go to the register narrowed to
      exactly those. Keyboard too: the cell carries role="button" and a tab
@@ -1052,4 +1124,5 @@ function openCalendarShare(evs){
 Object.assign(window,{calState,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
+  CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar});

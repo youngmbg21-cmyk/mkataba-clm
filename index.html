@@ -3063,11 +3063,30 @@
   .obw-table tr[data-obw-row]:hover{ background:var(--nav-well); }
   .obw-table td{ padding:9px var(--s-4); border-bottom:1px solid var(--rule);
     font-size:var(--t-meta); vertical-align:top; overflow:hidden; }
-  .obw-c{ width:46%; }
+  /* ---- THE AMOUNT'S WIDTH COMES OFF THE DESCRIPTION (J-5.2) ----
+     46 to 36, so the six still sum to 100 and nothing else on the row moves.
+     That sum is what keeps this table exactly its pane; the register paid for
+     learning it once and this table is held to the same rule. */
+  .obw-c{ width:36%; }
   .obw-side{ width:9%; }
   .obw-who{ width:17%; }
+  .obw-amt{ width:10%; text-align:right; font-variant-numeric:tabular-nums;
+    white-space:nowrap; font-weight:var(--w-label); }
+  .obw-amt.is-none{ color:var(--color-neutral-600); font-weight:var(--w-body); }
   .obw-when{ width:13%; font-variant-numeric:tabular-nums; }
   .obw-acts{ width:15%; text-align:right; white-space:nowrap; }
+  /* A band's own sum rides the heading that already carries its count, and one
+     total sits under the table. No new box and no new panel — the cheapest
+     channel that carries the fact. */
+  .obw-bandsum{ font-style:normal; margin-left:var(--s-3); font-weight:var(--w-title);
+    font-variant-numeric:tabular-nums; letter-spacing:0; text-transform:none;
+    color:var(--color-neutral-700); }
+  .obw-total{ display:flex; align-items:baseline; gap:var(--s-2);
+    padding:10px var(--s-4); border-top:1px solid var(--color-divider);
+    font-size:var(--t-label); color:var(--color-neutral-600); }
+  .obw-total b{ margin-left:auto; font-size:var(--t-meta); color:var(--color-text);
+    font-variant-numeric:tabular-nums; }
+  .obw-total i{ font-style:normal; flex-basis:100%; color:var(--st-amber-fg); }
   .obw-dot{ display:inline-block; margin:0 7px 1px 0; }
   .obw-what{ display:inline; }
   .obw-meta{ display:block; margin-left:15px; font-size:var(--t-label);
@@ -3099,6 +3118,28 @@
     font-size:var(--t-label); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--color-neutral-600); }
   .obt-band b{ margin-left:auto; font-weight:var(--w-title); font-variant-numeric:tabular-nums; }
+  /* The band's sum sits after its count, in the row that already exists. */
+  .obt-bandsum{ font-style:normal; font-weight:var(--w-title); letter-spacing:0;
+    text-transform:none; font-variant-numeric:tabular-nums; color:var(--color-neutral-700); }
+  /* The amount column, right-aligned in tabular figures beside the due date.
+     An em-dash where there is none — never an empty cell, which reads as a
+     broken row rather than as an absent figure. */
+  .obt-amt{ flex:none; width:112px; text-align:right; font-size:var(--t-meta);
+    font-weight:var(--w-label); font-variant-numeric:tabular-nums; line-height:20px;
+    color:var(--color-text); }
+  .obt-amt.is-none{ color:var(--color-neutral-600); font-weight:var(--w-body); }
+  /* The form's one new row: the contract's currency as a fixed prefix rather
+     than a picker, so a second currency can never be stored beside the
+     contract's own and drift from it. */
+  .of-amt{ display:flex; align-items:stretch; width:100%;
+    border:1px solid var(--field-line); border-radius:var(--radius);
+    background:var(--color-surface); overflow:hidden; }
+  .of-amt i{ font-style:normal; display:flex; align-items:center; padding:0 10px;
+    background:var(--nav-well); border-right:1px solid var(--field-line);
+    font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-600); }
+  .of-amt input{ flex:1; min-width:0; border:0; background:none; outline:none;
+    padding:8px 12px; font:inherit; font-size:var(--t-body);
+    font-variant-numeric:tabular-nums; color:inherit; }
   .obt-row{ display:flex; gap:14px; align-items:flex-start;
     padding:11px var(--s-4); border-bottom:1px solid var(--rule); }
   .obt-row:last-child{ border-bottom:0; }
@@ -3124,7 +3165,14 @@
     border-left:2px solid var(--color-divider); padding-left:9px; }
   .obt-due{ flex:none; width:104px; text-align:right; font-size:var(--t-meta);
     color:var(--color-neutral-600); font-variant-numeric:tabular-nums; line-height:20px; }
-  .obt-verbs{ flex:none; display:flex; gap:var(--s-3); line-height:20px; }
+  /* ---- THE VERBS RESERVE ONE WIDTH, SO THE COLUMNS LEFT OF THEM LINE UP ----
+     They were flex:none at their natural width, and a completed row says
+     "Reopen" where an open one says "Done" — MEASURED, an 11px difference,
+     which pushed the due date and the amount to a different vertical on every
+     band. A right-aligned column of figures that does not line up is not a
+     column. */
+  .obt-verbs{ flex:none; display:flex; justify-content:flex-end; gap:var(--s-3);
+    line-height:20px; min-width:172px; }
   .obt-verbs button{ border:0; background:none; padding:0; font:inherit;
     font-size:var(--t-label); color:var(--accent-ink); cursor:pointer; }
   .obt-verbs button.is-del{ color:var(--danger); }

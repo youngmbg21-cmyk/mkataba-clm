@@ -85,7 +85,7 @@ function wsSet(shapes, word){
    heuristic does not. */
 const WS_PROJECT_MAX_DAYS = 550;
 const wsStartOf = c => (c.metadata && c.metadata.effectiveDate) || (c.fields && c.fields.effDate)
-  || (c.signedAt ? String(c.signedAt).slice(0, 10) : null) || null;
+  || (typeof window.contractSignedAt === 'function' ? contractSignedAt(c) : null) || null;
 const wsEndOf = c => (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : null)
   || (c.metadata && c.metadata.expiryDate) || c.expiry || null;
 

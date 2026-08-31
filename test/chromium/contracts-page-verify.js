@@ -552,11 +552,21 @@ const check = (name, ok, detail) => {
     check('11c its columns are fixed too, and it does not scroll sideways',
       nego && nego.layout === 'fixed' && nego.sideways === 0,
       nego && `${nego.layout} · ${nego.sideways}px`);
-    /* THE SIX SHARED COLUMNS — MK, counterparty, stream, value, expiry, status */
-    const SHARED = [0, 2, 3, 4, 5, 6];
+    /* ---- THE SIX SHARED COLUMNS — RE-POINTED IN PLACE 31 Aug 2026 (J-5.1) ----
+       MK, counterparty, stream, value, expiry and status, and the CLAIM IS
+       UNCHANGED: a reader moving between the two lists sees the same columns cut
+       the same way, which is what one renderer drawing both pages is for.
+       WHAT WAS A DESCRIPTION WAS THE INDEXING. `[0,2,3,4,5,6]` was true while
+       both seats drew eight columns; Contracts draws nine now, so from the sixth
+       onwards the two lists no longer name the same column — index 5 is Signed
+       here and Expiry there. Paired BY KEY off the seat's own column list, so
+       the next column added to either seat costs no edit. */
+    const SHARED = ['mk', 'counterparty', 'stream', 'value', 'expiry', 'stage'];
+    const keys = await page.evaluate(() => [REG_COL_KEYS, REG_COL_KEYS_NEGO]);
+    const pair = k => [pages[0].w[keys[0].indexOf(k)], nego && nego.w[keys[1].indexOf(k)]];
     check('11d and the six columns both tables share are cut identically',
-      nego && SHARED.every(i => nego.w[i] === pages[0].w[i]),
-      nego && SHARED.map(i => `${pages[0].w[i]}/${nego.w[i]}`).join(' '));
+      nego && SHARED.every(k => { const [a, b] = pair(k); return a != null && a === b; }),
+      nego && SHARED.map(k => { const [a, b] = pair(k); return `${k} ${a}/${b}`; }).join(' · '));
 
     /* ---- 14 · THE ROW MENU IS NOT CLIPPED AWAY (owner-reported 25 Aug 2026:
        "Previously, the 3 dots at the end were a filter where I had options to

@@ -735,7 +735,7 @@ const pfCapped = (rows, n) => ({ rows:rows.slice(0, n==null?PF_DATA_ROWS:n),
    planned. That is one of the two ordinary reasons a runway spikes, and it is
    invisible on the chart. */
 const pfStartSource = c => ((c.metadata&&c.metadata.effectiveDate)||(c.fields&&c.fields.effDate))
-  ? 'on-file' : (c.signedAt ? 'signature-date' : 'none');
+  ? 'on-file' : ((typeof window.contractSignedAt==='function'?contractSignedAt(c):null) ? 'signature-date' : 'none');
 /* Just enough to name a contract in a sentence — never the full record, and
    never its wording. Every figure attached to it comes through pfWeight, which
    is ALREADY the one place money visibility is decided: a member who may not

@@ -6162,6 +6162,45 @@ function pdfJpegImage(dataUrl) {
 }
 const pdfImageFromDataUrl = u => pdfPngImage(u) || pdfJpegImage(u);
 // A circle as four beziers — PDF has no circle primitive.
+/* ---- WHEN WAS THIS SIGNED — THE SERVER'S TWIN OF contractSignedAt (J-5.1) ----
+   The browser's reading is in js/core.js and this answers identically. It is a
+   twin rather than a shared function for the reason every other pair here is:
+   there is no module boundary between them, and a route may never depend on
+   the client having computed something. Any change here changes there. */
+const SRV_SIGNED_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const SRV_SIGNED_MONTHS_SV = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+const srvPlainDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s == null ? '' : s).trim())
+  ? String(s).trim().slice(0, 10) : null;
+function srvDayAt(iso, offMin) {
+  const t = Date.parse(String(iso == null ? '' : iso));
+  if (!Number.isFinite(t)) return null;
+  const off = Number(offMin);
+  return new Date(t + (Number.isFinite(off) ? off : 0) * 60000).toISOString().slice(0, 10);
+}
+function srvLegacyDay(s) {
+  const m = /^(\d{1,2})\s+([^\s.,]{3,})\.?\s+(\d{4})/.exec(String(s == null ? '' : s).trim());
+  if (!m) return null;
+  const k = m[2].slice(0, 3).toLowerCase();
+  const i = SRV_SIGNED_MONTHS.indexOf(k) >= 0 ? SRV_SIGNED_MONTHS.indexOf(k) : SRV_SIGNED_MONTHS_SV.indexOf(k);
+  if (i < 0) return null;
+  const d = Number(m[1]);
+  if (!(d >= 1 && d <= 31)) return null;
+  return `${m[3]}-${String(i + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+function contractSignedOn(c) {
+  if (!c) return null;
+  const ex = c.execution || null;
+  const plain = srvPlainDay(ex && ex.signedOn) || srvPlainDay(c.signedAt);
+  if (plain) return plain;
+  const stamped = srvDayAt(ex && ex.at, ex && ex.tzOffsetMin);
+  if (stamped) return stamped;
+  const legacy = srvLegacyDay(c.signedAt);
+  if (legacy) return legacy;
+  const trail = Array.isArray(c.audit) ? c.audit : [];
+  const e = trail.find(a => a && a.action === 'Signed');
+  return srvDayAt(e && e.at, 0) || srvDayAt(c.signedAt, 0) || null;
+}
+
 function pdfCircleOps(cx, cy, r) {
   const k = 0.5523 * r;
   return `${(cx + r).toFixed(1)} ${cy.toFixed(1)} m ` +
@@ -6180,6 +6219,18 @@ function pdfSigTime(iso, c) {
   const t = Date.parse(String(iso || ''));
   if (!Number.isFinite(t)) return String(iso || '');
   let offMin = 0, label = 'UTC';
+  /* THE OFFSET IS RECORDED NOW, NOT DERIVED (J-5.1). Every signing since that
+     repair carries execution.tzOffsetMin, so this reads the fact. The parse
+     below stays for every record filed before it — those still carry the old
+     display string in c.signedAt and it is the only thing that knows their
+     wall clock. Never delete it. */
+  const rex = c && c.execution;
+  if (rex && Number.isFinite(Number(rex.tzOffsetMin))) {
+    const d0 = new Date(t + Number(rex.tzOffsetMin) * 60000);
+    const mon0 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d0.getUTCMonth()];
+    const lab0 = rex.tzLabel ? ' ' + rex.tzLabel : '';
+    return `${d0.getUTCDate()} ${mon0} ${d0.getUTCFullYear()}, ${String(d0.getUTCHours()).padStart(2,'0')}:${String(d0.getUTCMinutes()).padStart(2,'0')}${lab0}`;
+  }
   try {
     const sm = /^(\d{1,2}) (\w{3}) (\d{4}), (\d{2}):(\d{2})(?::\d{2})?\s*(\S+)?$/.exec(String(c.signedAt || '').trim());
     const base = Date.parse(String((c.execution && c.execution.at) || ''));
@@ -6192,6 +6243,16 @@ function pdfSigTime(iso, c) {
   const d = new Date(t + offMin * 60000);
   const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];
   return `${d.getUTCDate()} ${mon} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}${label ? ' ' + label : ''}`;
+}
+
+/* WHAT A SEAL PANEL PRINTS. One builder for the four places the server states
+   the sealed moment, so a PDF and its HTML twin can never word it differently.
+   It goes through pdfSigTime, which puts it in the SIGNER's clock. */
+function sealWhen(c) {
+  const at = (c && c.execution && c.execution.at) || null;
+  if (at) return pdfSigTime(at, c);
+  const day = contractSignedOn(c);
+  return day || (typeof (c && c.signedAt) === 'string' ? c.signedAt : '');
 }
 
 function pdfAssemble(pages, imgs) {
@@ -6321,7 +6382,7 @@ function executedPdf(c) {
     y -= 18;
   }
   para(`${c.name || 'Contract'}`, { size: 15, font: F.bold, align: centeredHeads ? 'center' : null, after: 2 });
-  para(`${c.id}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${c.signedAt ? ' · ' + c.signedAt : ''}`,
+  para(`${c.id}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${sealWhen(c) ? ' · ' + sealWhen(c) : ''}`,
     { size: 8.5, color: '5c6a72', align: centeredHeads ? 'center' : null, after: 12 });
 
   // ---- the frozen sealed wording ----
@@ -6404,7 +6465,7 @@ function executedPdf(c) {
   ops.push(`q ${pdfRgb('11332d')} rg ${px.toFixed(1)} ${(y - 50).toFixed(1)} ${pw.toFixed(1)} 56 re f Q`);
   y -= 12; line('# DOCUMENT SEAL (SHA-256)', { x: px + 12, size: 7.5, font: 'F6', color: 'c79a3e' });
   y -= 13; line(String(c.hash || ''), { x: px + 12, size: 8.5, font: 'F6', color: 'e8f2ee' });
-  y -= 13; line(String(c.signedAt || 'Timestamp recorded'), { x: px + 12, size: 8, font: 'F6', color: '8fb3a8' });
+  y -= 13; line(sealWhen(c) || 'Timestamp recorded', { x: px + 12, size: 8, font: 'F6', color: '8fb3a8' });
   y -= 20;
   para('Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.',
     { size: 7.5, font: 'F4', color: '5c6f68', before: 4, after: 4 });
@@ -6462,7 +6523,7 @@ function executedAttachmentHtml(c) {
   const headerHtml = designed ? docDesignHeaderHtml(b, c) : `
     <header style="border-bottom:2px solid #1d2733;padding-bottom:12px;margin-bottom:24px">
       <h1 style="font-size:22px;margin:0 0 4px">${esc(c.name)}</h1>
-      <div style="font-size:12px;color:#57636b">${esc(c.id)}${c.counterparty ? ' · with ' + esc(c.counterparty) : ''} · Fully executed${c.signedAt ? ' · ' + esc(c.signedAt) : ''}</div>
+      <div style="font-size:12px;color:#57636b">${esc(c.id)}${c.counterparty ? ' · with ' + esc(c.counterparty) : ''} · Fully executed${sealWhen(c) ? ' · ' + esc(sealWhen(c)) : ''}</div>
     </header>`;
   const footerHtml = designed ? docDesignFooterHtml(b, c) : '';
   const paperStyle = designed ? docDesignPaperStyle(b) : '';
@@ -6503,7 +6564,7 @@ function executedAttachmentHtml(c) {
         <div class="seal-dark">
           <div class="seal-dark-label"># DOCUMENT SEAL (SHA-256)</div>
           <div class="seal-dark-hash">${esc(c.hash || '')}</div>
-          <div class="seal-dark-time">${esc(c.signedAt || 'Timestamp recorded')}</div>
+          <div class="seal-dark-time">${esc(sealWhen(c) || 'Timestamp recorded')}</div>
         </div>
         <div class="seal-note">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
       </div>
@@ -7931,7 +7992,7 @@ function contractExecution(contractId) {
   /* WHEN, and nothing else. This is served on a public no-login endpoint, so
      it carries the one fact the reader's page needs and not a word about who
      signed, in what capacity, or under which seal. */
-  return { at: at || c.signedAt || null };
+  return { at: at || contractSignedOn(c) || null };
 }
 
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
@@ -9069,7 +9130,7 @@ function effExpiryReader(rows, parsed) {
     return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
   const amendDate = (r) => { const f = parsed.get(r.id) || {};
     return (f.metadata && f.metadata.effectiveDate) || (f.fields && f.fields.effDate) ||
-      (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
+      contractSignedOn(f) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
   const kidsOf = new Map();
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
   const executedKid = (k) => { const f = parsed.get(k.id) || {};

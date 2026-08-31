@@ -869,9 +869,16 @@ describe('F184 — the whose-move column is words, not pills', () => {
 
   test('the words are pressable — the row press reaches them', () => {
     const reg = read('js/views/register.js');
-    const i = reg.indexOf('negoMovePillHtml(c)');
-    assert.ok(i > 0);
-    const cell = reg.slice(reg.lastIndexOf('<td', i), i);
+    /* ---- CORRECTED 31 Aug 2026: THIS WAS A DESCRIPTION, NOT A MEASUREMENT ----
+       It took indexOf('negoMovePillHtml(c)'), which finds the FUNCTION
+       DEFINITION five hundred lines above the row, and then sliced back to the
+       previous '<td' — landing in the stream drawer's pager and reading 43KB of
+       unrelated source. The claim passed for as long as nothing in those 43KB
+       happened to contain the word it was looking for, and went red the day
+       something did. It reads the CELL now: the one in the row, found by the
+       markup that draws it. */
+    const cell = (reg.match(/<td style="text-align:right;white-space:nowrap">\$\{negoMovePillHtml\(c\)\}<\/td>/) || [])[0];
+    assert.ok(cell, 'the whose-move cell is drawn by the row');
     assert.ok(!/stopPropagation/.test(cell),
       'the contracts page stops the row press on its ACTIONS cell; this one is a state and must not');
     assert.match(css, /tr\[data-nego-row\]:hover \.ngl-w\{ text-decoration:underline/,

@@ -1184,11 +1184,58 @@ Every line driven in a real browser, because every one of these is a press.
 
 # J-5 — THE DATE, THE AMOUNT, THREE BUGS, AND TWO WAYS TO LOOK
 
-**NOT BUILT. A render was shared and approved in shape; the code is not
-written.** Owner-instructed 30 Aug 2026: *"Fix all three bugs as part of this
-job so add to the work order but do not code yet."* — and again on 31 Aug,
-after the render: *"add the signed column and filter to J-5.1 ... No coding
-yet."*
+**BUILT 31 Aug 2026.** Owner-instructed the same day: *"Build the work order
+autonomously to completion but also make it that in the contracts and
+negotiations columns you can adjust the width of the columns like in excel
+sheets."* All four parts are in, plus the draggable columns, which are recorded
+as **J-5.5** below because they were asked for after the order was written.
+
+**WHAT CHANGED FROM THE PLAN, said out loud rather than absorbed:**
+
+- **The reading lives in `js/negotiation.js`, not `js/core.js`.** Beside
+  `negoExecuted`, which asks the sibling question — HAS this been signed — off
+  the same two stores. Written in core.js it would have been a name half the
+  product reaches through `window` on a stage that does not carry it, and every
+  caller would have fallen back to the broken arithmetic this repair exists to
+  remove. Measured: the portfolio panels' own stage loads six modules and core
+  is not among them, and the first build of this had `pfStartSource` silently
+  answering "no start date" for every contract there.
+- **THE OFFSET HAD TO BE RECORDED BEFORE THE DATE COULD MOVE.** `pdfSigTime`
+  derived the signer's timezone by PARSING the display string — that is why the
+  string could not simply become a date. `execution.tzOffsetMin` / `tzLabel`
+  are written at signing now, the PDF reads them first, and the old parse stays
+  for every record filed before, because it is the only thing that knows their
+  wall clock.
+- **THE DAY IS THE SIGNER'S DAY.** A signing at 01:00 EAT is 22:00 UTC the day
+  before; answering with the UTC day would put a contract in the wrong month —
+  the fault `calToday()` records one screen along.
+- **The Signed sort had to ask its own direction.** `regFiltered` sorts with
+  `dir*cmp`, so a sentinel that puts the unsigned last ascending puts them
+  FIRST descending — and the default is newest-first, which would have opened
+  on a screen of em-dashes.
+- **The obligations tab's verbs now reserve one width.** They were at their
+  natural width and a completed row says "Reopen" where an open one says
+  "Done" — measured, an 11px difference, which put the due date and the new
+  amount on a different vertical in every band. A right-aligned column of
+  figures that does not line up is not a column.
+- **The confirmation counts what was ALREADY THERE, off the proposals.** The
+  dialog unticks a duplicate on the reader's behalf, so counting only the
+  ticked ones reported "1 added" and said nothing about the two it had set
+  aside — the silent half of the reported bug returning in politer clothes.
+- **The ninth column is paid for by the TITLE alone.** The register's own rule
+  is that the six columns both seats share are cut identically and the title is
+  the column with the give. A first pass spread the cost over five of them and
+  the two lists stopped lining up; `contracts-page-verify` 11d is the net and
+  reported it. Signed takes eight points rather than nine, measured against the
+  Expiry column beside it, which carries the same dotted date PLUS `· 30 d` in
+  thirteen.
+- **The Signed filter keeps the cut in force on its own list.** The years come
+  off the book, so a chosen year can stop being offered under the reader who
+  chose it — and a `<select>` whose value matches no option falls back to its
+  first, so the control would have read "Any" over a narrowed, empty table.
+  Not in the plan; found by asking what happens over New Year.
+
+Everything else was built as written.
 
 **FOUR PARTS.** J-5.1 makes the signed date a date **and adds the two controls
 that make one findable**; J-5.2 gives an obligation an amount; J-5.3 fixes the
@@ -1399,6 +1446,14 @@ after it.
 13. The eight column widths still **sum to 100** with the ninth in, and the table
     does not scroll sideways at 1280, 1366, 1440 or 1500.
 14. The Negotiations seat draws **no** Signed column, asserted.
+15. The **six columns both seats share are cut identically** and the ninth is
+    paid for by the TITLE alone — the register's own rule, and the reason a
+    reader moving between the two lists finds the same columns in the same
+    places. Caught by contracts-page-verify 11d against a first pass that
+    spread the cost over five of them.
+16. A **chosen year that has left the book is still offered**, so the control
+    cannot read "Any" over a narrowed, empty table. Asked in a browser, because
+    the fallback that causes it is the browser's own.
 
 ---
 
@@ -1661,6 +1716,67 @@ not one to make on the way past.
 8. The words are in both dictionaries.
 9. The month grid, the Horizon, the scope switch and the Done button are
    unchanged, asserted rather than assumed.
+
+---
+
+## J-5.5 — THE COLUMNS ARE DRAGGABLE, LIKE A SPREADSHEET
+
+**BUILT 31 Aug 2026.** Owner-asked in the same breath as the build:
+*"make it that in the contracts and negotiations columns you can adjust the
+width of the columns like in excel sheets."*
+
+### WHAT IS BUILT
+
+- **A grip on every column head but the last**, on both seats. The last has
+  nothing to its right to trade with, and a control whose only outcome is a
+  refusal is furniture.
+- **A drag is a TRADE between the column and the one to its right**, which is
+  what a spreadsheet does when you take hold of the boundary between two
+  columns — and it is what keeps the widths summing to **100**, which is the
+  property that makes the table exactly its pane at every width and closed the
+  reported sideways scroll of 24 Aug.
+- **MEASURED FROM WHERE THE POINTER IS**, never from how far it has travelled —
+  the rule the negotiation divider and Key terms both state in their own words,
+  and the reason is recorded: distance-travelled is what made the other handle
+  fall behind the cursor.
+- **A pixel floor** (`REG_COL_MIN_PX`, 54), converted against the table's live
+  width, so a column can never be dragged to nothing — and a pair too narrow to
+  hold two floors is left alone rather than fudged.
+- **Remembered per browser, per seat**, and **the stored array is read, never
+  trusted**: a length that does not match the seat's own column count is
+  IGNORED. That is the whole migration story for the Signed column — a browser
+  that stored eight widths before it existed falls back to the defaults rather
+  than shifting every column one place left.
+- **Double-click puts it back**, and reset REMOVES the stored value rather than
+  rewriting it with today's defaults — or a later change to those defaults
+  would never reach a reader who had once double-clicked.
+- **And it takes the keyboard**: arrows move it a point, Home resets. A control
+  reachable only by mouse is not reachable, which is why the column heads
+  gained Enter and Space in the first place.
+
+### TWO THINGS THAT ONLY A REAL BROWSER FOUND
+
+- **THE GRIP WAS UNREACHABLE AT `right:-3px`.** The head carries
+  `overflow:hidden` (the "a cut cell says so" rule), so the grip's centre landed
+  on the clipped side, `elementFromPoint` returned the TH, and the control could
+  not be taken hold of at all — perfectly correct in the source. It sits wholly
+  inside the head now. **Never give it a negative offset.**
+- **STOPPING THE POINTERDOWN DOES NOT STOP THE CLICK.** The sort is wired on
+  `click`, a separate event, so the first build refused the drag AND re-sorted
+  the book under the reader. The click is stopped in the CAPTURE phase, before
+  the head's own handler sees it.
+
+### ACCEPTANCE
+
+1. Every column but the last carries a grip, on both seats.
+2. A real mouse drag widens the column and the one to its right gives up
+   exactly what it gained — measured as painted boxes, not as stored numbers.
+3. Every other column is untouched, and the table is still exactly its pane.
+4. A press on the grip is a drag and **never** a sort.
+5. The split survives a repaint and still sums to 100.
+6. Double-click restores the defaults and clears the stored value.
+7. A stored array of the wrong length, the wrong total or junk falls back.
+8. Both languages.
 
 ---
 

@@ -2042,7 +2042,7 @@ function negoRoomBannerHtml(c, opts = {}, ready){
    contract telling its owner it was their turn to propose changes. */
 function negoClosedBannerHtml(c, opts = {}){
   const signed = String(c.status || '') === 'Signed';
-  const when = c.signedAt || (c.negotiation && c.negotiation.turnAt) || '';
+  const when = (window.contractSignedLabel?contractSignedLabel(c):c.signedAt) || (c.negotiation && c.negotiation.turnAt) || '';
   return `<div class="nego-closed" id="nego-closed" data-state="${signed ? 'signed' : 'declined'}" role="status">
     <span class="tick" aria-hidden="true">${signed ? '✓' : '✕'}</span>
     <span class="body"><b>${signed ? 'This contract is executed and sealed.' : 'This contract was declined.'}</b>

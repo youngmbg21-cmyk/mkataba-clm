@@ -6058,6 +6058,26 @@ turns "reported" into "recorded". It is not a defect and needs no chase.
 it read 39/40; the tree actually measured 38/40. A number nobody re-measures is
 the fault this whole file exists to stop, so: re-measure before quoting one.
 
+**RE-RECORDED 31 Aug 2026 for the calendar's agenda-window control (J-5.4), and
+it is the smallest kind: TWO screens, ONE value, and NOTHING LEAVING.**
+`rgb(138, 151, 149)` — `--field-line`, the border on the new `.cal-days`
+`<select>` — ARRIVING on `calendar--light` and `calendar--dark`, with nothing
+gone on either and no other screen moved. It is the token WO-4 measured for
+exactly this job (a control boundary at 3.03:1 on white and 5.90:1 at night,
+against the old shared mix's 1.97:1), so the value was already in the census on
+every screen that draws a filter — only the calendar had never drawn one.
+
+**AND ONE FAILURE WAS DELIBERATELY LEFT RED RATHER THAN SAVED WITH IT.**
+`templates--light` fails, on `rgb(241, 245, 249)` (`--color-neutral-100`) having
+gone from that screen. **IT IS NOT THIS RUN'S**, and that was PROVED rather than
+asserted: a worktree at the parent commit, the same file run there, the same
+`templates--light` failure and the same 39/40. So its line in the baseline was
+restored by hand after `--save` had overwritten it, and the file is 39/40 with
+one honest red. **THIS IS THE STANDING RULE DOING ITS JOB IN THE AWKWARD
+DIRECTION**: `--save` re-records EVERY screen, so owning your own palette change
+and burying somebody else's regression are the same keystroke. Diff the baseline
+after saving, and put back any line you cannot explain.
+
 **THE OLD NOTE, KEPT FOR ITS LESSON — it read 26/40 as of 22 Aug 2026.** (This paragraph said 39/40 and named one lost shade; the real figure was
 taken by stashing an unrelated change and running the file on the clean tree.
 The 22 Aug button and typography work moved colours on nine of the twenty
@@ -7125,6 +7145,296 @@ stands:
   foot's**: `clauseEditorDirty` measures against the text the editor OPENED with,
   because the foot's own reading is TRUE from the first frame on a clause that
   already carries an ask. `_leavingCe` is what makes it one question per press.
+
+## WHEN A CONTRACT WAS SIGNED — ONE READING (owner-asked 30–31 Aug 2026, J-5.1)
+
+`signDocument` wrote the execution record with a real timestamp and then wrote
+a SECOND copy beside it: `c.signedAt = fmtDT(at) + ' EAT'` — **the words a
+reader saw, in the reader's own LANGUAGE.** That is fine while something only
+ever prints it and fatal the moment anything does arithmetic with it, and six
+things did. MEASURED: `slice(0,10)` of it is `"12 Aug 202"`, read as a date
+that is **the year 202**, and in Swedish it is `"12 aug. 20"`.
+
+**THE SIX, AND THE SIXTH IS A LEGAL RECORD.** The **Contracts signed** series
+(every month read **zero**); a project's start date; an amendment family's
+effective date; duplicate detection; the server's own copy; and
+**`downloadEvidence`'s `seal.signedAt`** — the exportable proof of execution,
+whose sibling `generatedAt` is proper ISO, so the same contract signed by the
+same person **exported differently depending on who pressed the button**.
+
+**`contractSignedAt(c)` IS THE ONE READING AND IT LIVES IN js/negotiation.js**,
+beside `negoExecuted`, which asks the sibling question — HAS this been signed —
+off the same two stores. **That home is deliberate**: written in core.js it
+would be a name half the product reaches through `window` on a stage that does
+not carry it, and every caller would fall back to the broken arithmetic — the
+rlPaperFootHtml class in its quietest costume. Measured: the portfolio panels'
+own stage loads six modules and core is not among them. **Callers outside that
+module read it through `window` and fall back to NULL, never to a guess.**
+
+**THE DAY IS THE SIGNER'S DAY, NOT THE UTC DAY.** A signing at 01:00 EAT is
+22:00 UTC the day before, and answering with the UTC day puts a contract in the
+wrong month — the fault `calToday()` records one screen along. **FOUR SOURCES,
+IN THIS ORDER**, and each is a fact somebody wrote down: a plain day somebody
+RECORDED (a paper filing's `signedOn`, a migration manifest) → the execution
+stamp moved into the signer's own clock → a legacy display string, read by its
+own WORDS in either language → the audit trail's first `Signed` entry (and
+`_signedAt`, the light row's transport). **Returns an ISO day or null**, never a
+guess: a record that says nothing answers null and every caller draws an
+em-dash.
+
+**THE OFFSET IS RECORDED, NOT REVERSE-ENGINEERED, AND THAT IS WHY THE DATE
+COULD MOVE AT ALL.** `pdfSigTime` derived the signer's timezone by PARSING the
+display string — so the string could not simply become a date without the
+evidence PDF falling back to UTC. `execution.tzOffsetMin` / `tzLabel` are
+written at signing; the PDF reads them first and **KEEPS the old parse** for
+every record filed before, because it is the only thing that knows their wall
+clock. **Never delete it.** `sealWhen(c)` is the ONE builder the server's four
+seal panels go through, so a PDF and its HTML twin cannot word one moment
+differently. `contractSignedLabel(c)` (js/core.js) is what a SCREEN prints —
+formatted at the moment of drawing, like every other date here.
+
+**NOTHING IS MIGRATED AND NOTHING NEEDS TO BE.** Every in-app signing carries
+`execution.at`; a legacy display string is read by its words; a migrated record
+stored a real date all along. Do not write a backfill, and do not reorder
+`signDocument` — the ordering is what makes that safe.
+
+Tests: f258 (the four sources, the midnight edge, both languages of the legacy
+string, the six readers, the offset, the evidence pack), signed-and-columns-verify.
+
+## THE CONTRACTS PAGE ANSWERS "WHICH DID WE SIGN IN 2021?" (owner-asked 31 Aug 2026)
+
+*"If I am in 2029 and i want to find a contract that was signed in 2021, how
+would i find it?"* — and MEASURED, there was no way to ask. The stage filter
+gives every contract ever signed with no year and no range; the six sorts hold
+no signed date; the box on the bar reads title, counterparty and reference
+only; **the full-text index does not carry the date at all** (so "2021" finds
+contracts that MENTION 2021); the calendar marks no signature; and Copilot's
+`list_portfolio` is never given one. **A repair that makes the date trustworthy
+and stops there leaves a correct figure nobody can look up.**
+
+- **A NINTH COLUMN ON CONTRACTS, IMMEDIATELY BEFORE EXPIRY** — two dates side
+  by side read as a term. Drawn with `regDotDate`, the builder the Expiry cell
+  already uses, so two dates on one row can never be written differently, and
+  **no countdown**: a signature has no deadline. **An em-dash where nothing is
+  signed, and the column always draws** — one that came and went with the
+  filter would be a table changing shape under the reader.
+- **A SEVENTH SORT, AND IT ASKS ITS OWN DIRECTION.** `regFiltered` sorts with
+  `dir*cmp`, so a sentinel that puts the unsigned last ascending puts them
+  FIRST descending — and the default is newest-first, which would open on a
+  screen of em-dashes. The comparator reads `regState().dir` and returns a
+  value that survives the multiplication.
+- **A SIXTH FILTER, AND DELIBERATELY NOT ONE OF THE DEFAULT FOUR.** The row
+  already fits one line and keeping it there was the owner's ruling (WO-15), so
+  it lives behind *Adapt filters* — and draws on its own the moment it is
+  narrowing, which is the safety property that catalogue already carries.
+  **Its options are the years this workspace actually signed something in**,
+  newest first, with This year and Last year ahead of them; both of those
+  resolve against the CLOCK, so a page left open over New Year cannot narrow to
+  the wrong twelve months.
+- **AND THE CUT IN FORCE IS ALWAYS ON THE LIST.** The years come off the BOOK,
+  so a chosen year can stop being offered under the reader who chose it — the
+  last 2021 contract deleted, or that same page over New Year, where "This
+  year" now resolves to a year nothing is signed in yet. **A `<select>` whose
+  value matches no option falls back to its first**, so the control would have
+  read *Any* over a narrowed, empty table: the filter saying one thing and the
+  list another, which is the fault the WHOSE ASKS label exists to prevent. The
+  chosen value is appended when nothing else offers it, **labelled with its
+  YEAR rather than "This year"** — the year is the fact, and the phrase would
+  be naming a window it no longer names. It is the stream picker's own rule
+  ("a picker keeps a record's CURRENT stream even when out of reach") pointed
+  the other way: there it is the RECORD that must not be silently re-filed,
+  here it is the READER who must not be stranded. **Asked in a browser**,
+  because the fallback is the browser's behaviour and the markup looks
+  perfectly correct either way.
+- **NEVER ON THE NEGOTIATIONS SEAT.** One renderer draws both; a Signed column
+  on a page of live negotiations is an em-dash on every row.
+- **AND THE NINTH COLUMN IS PAID FOR BY THE TITLE ALONE.** The register's own
+  rule since the two lists became one renderer is that the SIX columns both
+  seats share are cut identically and **the title is the column with the give**
+  — that is what lets a reader move between Contracts and Negotiations and find
+  the same columns in the same places. A first pass spread the cost over five
+  of them (counterparty, stream and expiry each losing a point or two) and the
+  two pages stopped lining up; **contracts-page-verify 11d is the net and
+  reported it** as `201/228 · 174/201 · 121/174 · 161/148`. So Signed comes out
+  of the title, 23 → 15, and the six are byte-identical to the Negotiations
+  row. **EIGHT POINTS RATHER THAN NINE, measured against Expiry beside it**:
+  that column carries the same dotted date PLUS `· 30 d` in 13%, so a date on
+  its own wants appreciably less, and the point saved goes to the title, which
+  is what people scan.
+- **AND 11d ITSELF WAS A DESCRIPTION FROM THE WAIST DOWN.** It paired the two
+  tables by INDEX (`[0,2,3,4,5,6]`), true while both seats drew eight columns
+  and wrong from the sixth onwards the moment one drew nine — index 5 is Signed
+  here and Expiry there. **The claim was right and its indexing was not**, so it
+  is paired BY KEY off each seat's own column list and the next column added to
+  either seat costs no test edit. Pin the relation, not the number.
+- **ONE READING, FOUR SURFACES** — the column, the sort, the filter and the
+  chart all ask `contractSignedAt` and none works a signed date out for itself.
+
+**STILL NOT BUILT, said out loud:** a mark on the calendar the day a contract
+executes. It is the last piece of "where does a signed date show up".
+
+## THE COLUMNS ARE DRAGGABLE, LIKE A SPREADSHEET (owner-asked 31 Aug 2026)
+
+*"in the contracts and negotiations columns you can adjust the width of the
+columns like in excel sheets."*
+
+**THE WIDTHS STAY PERCENTAGES AND STILL SUM TO 100**, which is not a detail: it
+is what makes the table exactly its pane at every width and what closed the
+reported sideways scroll of 24 Aug. **So a drag is a TRADE between the column
+and the one to its right** — which is also what a spreadsheet does when you take
+hold of the boundary between two columns. Nothing else on the row moves and the
+total cannot drift.
+
+- **ONE LIST OF DEFAULTS PER SEAT** (`REG_COL_W` / `REG_COL_W_NEGO`), read by
+  the head, the reset and the store. They used to be nine literals typed into
+  the head row, so three places would each have had their own opinion of what
+  the default is.
+- **MEASURED FROM WHERE THE POINTER IS**, never distance travelled — the rule
+  the negotiation divider and Key terms both state, and the reason is recorded.
+- **A PIXEL FLOOR** converted against the table's live width, so a column can
+  never be dragged to nothing; a pair too narrow for two floors is left alone
+  rather than fudged.
+- **THE STORED ARRAY IS READ, NEVER TRUSTED.** A length that does not match the
+  seat's own column count is IGNORED — the whole migration story for the Signed
+  column, since a browser holding eight widths must not shift every column one
+  place left. So is a total that has drifted off 100, which would put the table
+  back into sideways scroll.
+- **DOUBLE-CLICK PUTS IT BACK, AND RESET MEANS "NOBODY HAS CHOSEN"** — the
+  stored value is REMOVED rather than rewritten with today's defaults, or a
+  later change to those defaults would never reach a reader who once reset.
+- **ONE DELEGATED LISTENER, ARMED ONCE ON THE DOCUMENT** — the head is rebuilt
+  on every full render, and a listener armed inside a renderer belongs to
+  whichever page rendered first (the 15 Aug lesson).
+
+**TWO THINGS ONLY A REAL BROWSER FOUND, and both are worth carrying forward:**
+
+- **THE GRIP WAS UNREACHABLE AT `right:-3px`.** The head carries
+  `overflow:hidden` (the "a cut cell says so" rule), so the grip's centre landed
+  on the clipped side, `elementFromPoint` returned the TH, and the control could
+  not be taken hold of at all — while looking perfectly correct in the source.
+  It sits wholly inside the head now. **Never give it a negative offset.**
+- **STOPPING THE POINTERDOWN DOES NOT STOP THE CLICK.** The sort is wired on
+  `click`, a separate event, so the first build refused the drag AND re-sorted
+  the book under the reader. The click is stopped in the CAPTURE phase.
+
+Tests: f258 (5), signed-and-columns-verify (the drag with a REAL mouse — a
+synthetic event fires no pointer capture and would pass against a control
+nobody can take hold of).
+
+## AN OBLIGATION CARRIES AN AMOUNT (owner-asked 30 Aug 2026, J-5.2)
+
+An obligation held a description, a due date, a cadence, an owner, a side and a
+completion record. **It could not hold a NUMBER** — so *"Second tranche — KES
+4,000,000"* was prose that could not be added up, charted or forecast.
+Disbursement tracking is the market's word for the thing this one field
+prevented.
+
+- **ONE FIELD, `amount`, AND NO CURRENCY BESIDE IT.** The currency is the
+  CONTRACT'S, read through `contractCurrency` and shown as a fixed prefix; a
+  second currency stored on the obligation is a second answer that can drift.
+- **BLANK BY DEFAULT AND NEVER ZERO**, and an obligation saved without one
+  carries **no `amount` key at all** — which is why every record filed before
+  reads identically and there is nothing to migrate.
+- **`obligationAmount` / `obligationBandTotal` ARE THE ONE ARITHMETIC**, asked
+  by the contract's tab, the worklist, every band heading and the foot total.
+- **MONEY OBEYS THE PRODUCT'S EXISTING PERMISSION**, never a new rule: a reader
+  without `canViewValues` sees **no** amount, band sum, total or form row —
+  **not drawn at all** rather than drawn as dashes, the register's convention,
+  because a column of dashes says a figure is being kept from you. The field is
+  CARRIED FORWARD from the record on that path, or opening an obligation would
+  silently erase its figure.
+- **THE SUM RIDES THE HEADING THAT ALREADY CARRIES A COUNT** — no new box, no
+  new panel, no band.
+- **A CROSS-CONTRACT TOTAL CONVERTS** through `fxHome` and **says what it left
+  out**; a per-contract one does not, because one contract is one currency.
+- **THE ONLY NEW THING ON THAT DIALOG IS AMOUNT.** The first render of it was
+  drawn from intent rather than from the screen and got six things wrong — the
+  worst being that it dropped the "Whose obligation is this?" toggle outright.
+  **Draw from the screen.** The amount is on BOTH sides of that toggle: money
+  they owe us matters as much as money we owe them.
+- **THE VERBS NOW RESERVE ONE WIDTH.** They sat at their natural width and a
+  completed row says "Reopen" where an open one says "Done" — measured, an 11px
+  difference, which put the due date and the amount on a different vertical in
+  every band. A right-aligned column of figures that does not line up is not a
+  column.
+
+**NOT TOUCHED, asserted rather than assumed:** obligations still never travel
+to the counterparty; the chase message stays one sentence and gains no figure;
+the reminder ladder, the four bands and the series machinery are unchanged; and
+the contract's own `value` is not reconciled against any of this.
+
+Tests: f259, amount-and-window-verify.
+
+## Find obligations — THE THREE THINGS WRONG WITH IT (owner-reported 30 Aug 2026, J-5.3)
+
+*"what is the purpose of find obligations? It seems to have a bug today."* —
+off a charter carrying 18 proposals. **WHAT IT IS FOR**, since the screen never
+says: it reads the wording with Copilot and proposes the ongoing duties it
+finds, each with the verbatim clause it came from; the reader ticks and nothing
+is saved until they confirm.
+
+1. **NO DEDUPE — pressing it twice added everything twice.** 18 → 36 → 54. With
+   amounts on obligations that is duplicated MONEY, which is what made it the
+   one to fix first.
+2. **EVERY PROPOSAL ARRIVED TICKED**, which is what made (1) so easy to hit.
+3. **THE CONFIRMATION WAS SILENT** — a bare `toast()` prints nothing in this
+   product, so the one act that changes the record said nothing on screen, and
+   it was hardcoded English besides.
+
+**`obligationAlreadyOn(c, proposal)` IS THE ONE READING**, matched on the
+DESCRIPTION with whitespace collapsed and case folded — the scan mints nothing,
+so a proposal's wording is the only identity it and a stored obligation share.
+**Asked at the DRAW and again at the ADD**: the checkbox is the sign, the check
+inside the handler is the wall. **A duplicate is SHOWN, unticked, with a word
+saying why** — never silently dropped, because the reader must be able to see
+that the scan found it AND that they already have it. The button counts what
+will actually be added, and **the confirmation counts what was already there
+off the PROPOSALS**, not off the boxes: the dialog unticks a duplicate on the
+reader's behalf, so counting the ticked ones alone said nothing about what it
+had set aside. Zero is its own sentence, not a plural form — `tn` knows only
+`_one` and `_other`.
+
+**NOT TOUCHED:** the scan, its prompt, its 20-item ceiling, the retry it offers
+on an empty result, and the read-stamp it writes.
+
+Tests: f260, amount-and-window-verify.
+
+## THE CALENDAR'S AGENDA WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4)
+
+*"the highlighted area that shows the next 14 days, change that to a filter
+where you can look next 14, 30, 60, 90 days."*
+
+**HALF OF IT WAS ALREADY BUILT:** `calUpcoming` has always taken a window and
+every caller passed nothing, so the fortnight was simply the only value anybody
+handed it. What was missing is the control.
+
+- **THE HEADING IS THE CONTROL**, not a title beside a dropdown. A heading
+  reading "Next 14 days" twelve pixels from a control set to *14 days* is one
+  fact printed twice, and the second printing is the one that reads as
+  furniture. The tracked-changes column settled the identical question the same
+  way: **a narrowed list states its own narrowing by being set to it.**
+- **ONE VALUE ANSWERS FOR THE READING, THE HEADING AND THE EMPTY STATE.** This
+  panel has been caught once headed 30 with an empty state saying 60, and the
+  correction was to make one number answer for all three. That property is the
+  condition on making it a choice. `CAL_AGENDA_DAYS` survives as the DEFAULT.
+- **PER SITTING, IN MEMORY**, on `calState` beside the tab and the scope. Note
+  `days:null` rather than the constant: `calState` is built at load and the
+  constant is declared below it — naming it there is a read inside its own
+  temporal dead zone.
+- **THE 40-ROW CAP STOPS BEING SILENT.** At a fortnight it is almost never
+  reached; at ninety days it is reached constantly, and a list that quietly
+  stops at 40 of 137 reads as a list of 40. Past it the panel says how many of
+  how many; below it, nothing — a caveat that is always there is unread.
+- **SHARE CARRIES THE WINDOW ON SCREEN.** `calSummaryLines` asked with no
+  window, so a reader on ninety days would mail a colleague a fortnight.
+- **EXPORT DELIBERATELY DOES NOT CHANGE**: the `.ics` carries the PERIOD — the
+  month or the horizon on screen — which is a different question, and somebody
+  exporting August expects August. Named so nobody "fixes" it.
+
+**ONE STALE NAME, reported not fixed:** the heading's dictionary key is
+`cal_next_30` and the panel says 14.
+
+Tests: f261, amount-and-window-verify.
 
 ## Line numbers drift
 

@@ -75,7 +75,13 @@ const CONTRACTS = [
 
 function world(over = {}) {
   return loadViews(
-    ['js/obligations.js', 'js/family.js', 'js/aichart.js', 'js/workshape.js',
+    /* js/negotiation.js is here for ONE function: contractSignedAt, the single
+       reading of when a contract was signed (J-5.1). wsStartOf and
+       pfStartSource both ask it, and a stage without it answers "no start
+       date" for every contract whose only date is its signature — which is
+       exactly the reading these buckets are about. A stub would be kinder than
+       the product and would turn this file into a description. */
+    ['js/negotiation.js', 'js/obligations.js', 'js/family.js', 'js/aichart.js', 'js/workshape.js',
      'js/views/portfolio.js', 'js/ai.js'],
     Object.assign({
       TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,

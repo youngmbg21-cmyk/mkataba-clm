@@ -82,7 +82,17 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
              locked: document.querySelectorAll('[data-adapt][disabled]').length };
   });
   ok('it opens through openModal, so it is a real dialog', dlg.open && dlg.named);
-  ok('it offers all five filters', dlg.boxes === 5, dlg.boxes + ' boxes');
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (J-5.1) ---- It was five and is six:
+     Signed joined the catalogue, deliberately outside the default four, so it
+     costs the bar nothing until a reader asks for it. THE CLAIM IS PINNED AS A
+     RELATION rather than a number — the chooser offers exactly what the
+     catalogue holds — so the next filter costs no test edit, which is this
+     rulebook's own rule. */
+  const catalogue = await page.evaluate(() => REG_BAR_FILTERS.map(f => f.k));
+  ok('it offers every filter the catalogue holds, and no more',
+    dlg.boxes === catalogue.length, `${dlg.boxes} boxes for ${catalogue.length}: ${catalogue.join(', ')}`);
+  ok('and Signed is one of them, off by default',
+    catalogue.includes('signed') && !(await page.evaluate(() => REG_BAR_DEFAULT.includes('signed'))));
   ok('the two the register is always asked are locked on', dlg.locked === 2, dlg.locked + ' locked');
 
   await page.check('[data-adapt="renewal"]');

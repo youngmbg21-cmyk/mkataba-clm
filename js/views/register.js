@@ -19,6 +19,7 @@ const FOLDER_SORTS=[
   {k:'value',get label(){ return i18t('reg_sort_value'); }},
   {k:'expiry',get label(){ return i18t('reg_sort_expiring'); }},
   {k:'name',get label(){ return i18t('reg_sort_name'); }},
+  {k:'signed',get label(){ return i18t('reg_sort_signed'); }},
 ];
 // The filtered + sorted contracts for the current folder (shared by the full
 // render and the search/keystroke body re-render).
@@ -151,6 +152,57 @@ function renderFolder(){
 function regDotDate(iso){
   const d=new Date(iso+'T00:00:00');
   return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+/* ---- WHEN A CONTRACT WAS SIGNED, ON THE PAGE YOU SCAN (J-5.1) ----
+   Owner-asked 31 Aug 2026: *"If I am in 2029 and i want to find a contract
+   that was signed in 2021, how would i find it?"* — and, measured, there was
+   no way to ask. The stage filter gives you every contract ever signed with no
+   year and no range; the six sorts hold no signed date; the box on this bar
+   reads title, counterparty and reference only; the full-text index does not
+   carry the date at all; the calendar marks no signature; and Copilot is never
+   given one. A repair that makes the date trustworthy and stops there leaves a
+   correct figure nobody can look up.
+
+   ONE READING, FOUR SURFACES. The column, the sort, the filter and the
+   Contracts-signed chart all ask contractSignedAt and none of them works a
+   signed date out for itself. Read through `window` (the ES-module rule) and
+   falling back to NULL, never to c.signedAt — which is the broken arithmetic
+   this repair exists to remove. */
+const regSignedOn = c => (typeof window.contractSignedAt==='function' ? contractSignedAt(c) : null) || null;
+/* THE YEARS THIS WORKSPACE ACTUALLY SIGNED SOMETHING IN, newest first — never
+   an empty year, never an alphabet of them. The FX picker's own rule: the list
+   is built from this book's facts and grows by use, with nothing for an admin
+   to maintain. Counted over the WHOLE book rather than the filtered set, or
+   choosing a year would empty the list that offered it. */
+/* "This year" and "Last year" lead the list because they are what people ask
+   for most, and neither should cost the reader a moment's arithmetic. They
+   resolve against the clock at the moment of asking rather than being frozen
+   into the option, or a page left open over New Year would narrow to the wrong
+   twelve months without a word. */
+function regSignedYear(v){
+  const now=new Date().getFullYear();
+  if(v==='this') return String(now);
+  if(v==='last') return String(now-1);
+  return String(v||'');
+}
+function regSignedYears(){
+  const seen=new Set();
+  for(const c of (state.contracts||[])){
+    const d=regSignedOn(c);
+    if(d) seen.add(d.slice(0,4));
+  }
+  return [...seen].sort().reverse();
+}
+/* The cell. The SAME dotted builder the Expiry cell beside it uses, so two
+   dates on one row can never be written differently — and NO countdown,
+   because a signature has no deadline. An em-dash where nothing is signed, and
+   the column draws on every row: one that came and went with the filter would
+   be a table changing shape under the reader. */
+function regSignedCell(c){
+  const d=regSignedOn(c);
+  return d
+    ? `<span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${regDotDate(d)}</span>`
+    : `<span style="color:var(--color-neutral-600)">—</span>`;
 }
 function folderExpiryCell(c){
   // the family-aware term: a master agreement shows the date its latest
@@ -347,6 +399,12 @@ const REG_BAR_FILTERS = [
   { k:'view',     fixed:false, get label(){ return i18t('reg_saved_views'); } },
   { k:'category', fixed:false, get label(){ return i18t('me_category'); } },
   { k:'renewal',  fixed:false, get label(){ return i18t('reg_renewal'); } },
+  /* DELIBERATELY NOT ONE OF THE DEFAULT FOUR (J-5.1). This row already fits on
+     one line and keeping it there was the owner's own ruling (WO-15), so the
+     control lives behind `Adapt filters` until somebody wants it — and it
+     draws on its own the moment it is narrowing, which is the safety property
+     this catalogue already carries. */
+  { k:'signed',   fixed:false, get label(){ return i18t('reg_signed'); } },
 ];
 /* Stage and stream are `fixed` — they are the two questions this register is
    always asked, and a bar with neither is not a filter bar. */
@@ -374,12 +432,208 @@ function regFilterActive(k, R){
   if(k==='view')     return !!R.view;
   if(k==='category') return !!R.category && R.category!=='all';
   if(k==='renewal')  return !!R.renewal && R.renewal!=='all';
+  if(k==='signed')   return !!R.signed && R.signed!=='all';
   return false;
 }
 /* Chosen, PLUS anything currently narrowing the list. */
 function regBarShown(R){
   const chosen = regBarChosen();
   return REG_BAR_FILTERS.filter(f=>chosen.includes(f.k)||regFilterActive(f.k,R)).map(f=>f.k);
+}
+
+/* ---- THE COLUMNS ARE DRAGGABLE, LIKE A SPREADSHEET (owner-asked 31 Aug 2026)
+   ----
+   *"in the contracts and negotiations columns you can adjust the width of the
+   columns like in excel sheets."*
+
+   THE WIDTHS STAY PERCENTAGES AND STILL SUM TO 100, which is not a detail: it
+   is what makes the table exactly its pane at every width, on every page, and
+   what closed the reported sideways scroll of 24 Aug. So a drag is a TRADE
+   between the column being resized and the one to its right — which is also
+   what a spreadsheet does when you take hold of the boundary between two
+   columns. Nothing else on the row moves, and the total cannot drift.
+
+   THE DEFAULTS LIVE HERE ONCE. They used to be typed into the head row as nine
+   literals, so the head, a reset and a stored array would each have had their
+   own opinion of what "the default" is. One list, read by all three.
+
+   THE LAST COLUMN CARRIES NO GRIP — it has nothing to its right to trade with,
+   and a control whose only outcome is a refusal is furniture. */
+const REG_COL_KEYS      = ['mk','name','counterparty','stream','value','signed','expiry','stage','acts'];
+const REG_COL_KEYS_NEGO = ['mk','name','counterparty','stream','value','expiry','stage','move'];
+/* THE SIX COLUMNS BOTH SEATS SHARE ARE CUT IDENTICALLY, AND THE TITLE IS THE
+   COLUMN WITH THE GIVE — the register's own rule since the two lists became one
+   renderer, and the reason a reader moving between Contracts and Negotiations
+   sees the same columns in the same places. A FIRST PASS PAID FOR THE NINTH
+   COLUMN OUT OF FIVE OF THEM (counterparty, stream and expiry each losing a
+   point or two) and the two pages stopped lining up; contracts-page-verify 11d
+   is the net and reported it as 201/228, 174/201, 121/174, 161/148.
+   So Signed is paid for by the TITLE alone: 23 → 15, and mk · counterparty ·
+   stream · value · expiry · status are byte-identical to the Negotiations row.
+   EIGHT POINTS RATHER THAN NINE, measured against the Expiry column beside it:
+   that one carries the same dotted date PLUS " · 30 d" in 13%, so a date on its
+   own wants appreciably less, and the point saved goes to the title, which is
+   what people scan. Both still sum to 100, which is what makes each table
+   exactly its pane at every width. */
+const REG_COL_W         = [8,15,17,15,10,8,13,11,3];
+const REG_COL_W_NEGO    = [8,17,17,15,10,13,11,9];
+/* A column may not be dragged to nothing. A PIXEL floor rather than a percent
+   one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
+   reasoning that made the divider's own limits pixels. Converted against the
+   table's live width at the moment of the drag. */
+const REG_COL_MIN_PX = 54;
+const REG_COL_KEY = 'hati.v1.regCols';
+const regColDefaults = () => (regScope()==='negotiations' ? REG_COL_W_NEGO : REG_COL_W).slice();
+/* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
+   seat's own column count is IGNORED rather than applied — which is the whole
+   migration story for the Signed column: a browser that stored eight widths
+   before it existed falls back to the defaults instead of shifting every
+   column one place left. Same for a total that has drifted off 100, which
+   would put the table back into sideways scroll. */
+function regColWidths(){
+  const def = regColDefaults();
+  try{
+    const raw = localStorage.getItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : ''));
+    if(!raw) return def;
+    const w = JSON.parse(raw);
+    if(!Array.isArray(w) || w.length !== def.length) return def;
+    if(!w.every(n => typeof n === 'number' && isFinite(n) && n > 0)) return def;
+    if(Math.abs(w.reduce((a,b)=>a+b,0) - 100) > 0.5) return def;
+    return w;
+  }catch(_){ return def; }
+}
+function regColSetWidths(w){
+  try{ localStorage.setItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : ''), JSON.stringify(w)); }catch(_){}
+}
+function regColReset(){
+  try{ localStorage.removeItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : '')); }catch(_){}
+}
+
+/* ---- THE DRAG ITSELF ----
+   MEASURED FROM WHERE THE POINTER IS, never from how far it has travelled.
+   That is the rule the negotiation page's divider and Key terms' both state in
+   their own words, and the reason is recorded: distance-travelled is what made
+   the other handle fall behind the cursor and gave it a dead band.
+
+   The boundary between column i and i+1 is put where the pointer is, and the
+   two columns TRADE the difference. Everything left of i is untouched, so the
+   arithmetic is local and the total is 100 by construction rather than by
+   correction afterwards.
+
+   IT WRITES THE HEADS DIRECTLY AND DOES NOT REPAINT. table-layout:fixed reads
+   its widths off the head row, so setting them live is what makes the drag
+   follow the hand; a repaint per pointermove would rebuild the tbody on every
+   pixel and drop the row handlers with it. */
+function regColApply(w, ths){
+  for(let i=0;i<ths.length && i<w.length;i++) ths[i].style.width = w[i] + '%';
+}
+function regColTrade(w, i, wantPct, minPct){
+  const out = w.slice();
+  const pair = out[i] + out[i+1];
+  let a = Math.max(minPct, Math.min(pair - minPct, wantPct));
+  /* A pair too narrow to hold two floors cannot be traded at all — splitting it
+     would push BOTH columns under the floor, which is the state the floor
+     exists to prevent. Left alone rather than fudged. */
+  if(pair < minPct * 2) return out;
+  out[i] = a; out[i+1] = pair - a;
+  return out;
+}
+function regColHeads(){
+  const t = document.querySelector('.reg-table');
+  return t ? [t, [...t.querySelectorAll('thead th')]] : [null, []];
+}
+/* ONE DELEGATED LISTENER, ARMED ONCE ON THE DOCUMENT. The register rebuilds its
+   head on every full render, so a listener bound to the elements would be
+   re-bound per paint and stack; and one armed inside a renderer belongs to
+   whichever page rendered first — the lesson of 15 Aug, paid once already. */
+function regWireColResize(){
+  if(document._regColWired) return;
+  document._regColWired = true;
+  let drag = null;
+  const down = e => {
+    const g = e.target && e.target.closest && e.target.closest('[data-reg-grip]');
+    if(!g) return;
+    /* A PRESS ON THE GRIP IS A DRAG, NEVER A SORT. The head around it is
+       itself a control, so without this every resize would also re-order the
+       book underneath the reader. */
+    e.preventDefault(); e.stopPropagation();
+    const [table, ths] = regColHeads();
+    if(!table || !ths.length) return;
+    const i = Number(g.getAttribute('data-reg-grip'));
+    if(!(i >= 0 && i < ths.length - 1)) return;
+    const rect = table.getBoundingClientRect();
+    if(!(rect.width > 0)) return;            // a hidden table has no width to divide
+    drag = { i, rect, ths, start: regColWidths(), min: (REG_COL_MIN_PX / rect.width) * 100 };
+    g.classList.add('is-drag');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    try{ g.setPointerCapture && g.setPointerCapture(e.pointerId); }catch(_){}
+  };
+  const move = e => {
+    if(!drag) return;
+    /* WHERE THE POINTER IS, as a percentage of the table — then minus every
+       column left of the pair, which is what turns "the boundary is here" into
+       "this column is this wide". */
+    const pct = ((e.clientX - drag.rect.left) / drag.rect.width) * 100;
+    let left = 0; for(let k = 0; k < drag.i; k++) left += drag.start[k];
+    const next = regColTrade(drag.start, drag.i, pct - left, drag.min);
+    regColApply(next, drag.ths);
+    drag.now = next;
+  };
+  const up = () => {
+    if(!drag) return;
+    if(drag.now) regColSetWidths(drag.now);
+    document.querySelectorAll('.reg-grip.is-drag').forEach(el => el.classList.remove('is-drag'));
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    drag = null;
+  };
+  /* A CLICK IS A SEPARATE EVENT FROM A POINTERDOWN, and the sort is wired on
+     the click. Stopping the pointerdown does nothing to it — measured, the
+     drag was refused AND the book re-sorted under the reader. Captured, so it
+     is stopped before the head's own delegated handler ever sees it. */
+  document.addEventListener('click', e => {
+    const g = e.target && e.target.closest && e.target.closest('[data-reg-grip]');
+    if(!g) return;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener('pointerdown', down);
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+  document.addEventListener('pointercancel', up);
+  /* DOUBLE-CLICK PUTS IT BACK — the divider's own rule, and reset has to mean
+     the same thing as "nobody has chosen": the stored value is REMOVED rather
+     than rewritten with today's defaults, or a later change to those defaults
+     would never reach a reader who had once double-clicked. */
+  document.addEventListener('dblclick', e => {
+    const g = e.target && e.target.closest && e.target.closest('[data-reg-grip]');
+    if(!g) return;
+    e.preventDefault(); e.stopPropagation();
+    regColReset();
+    const [, ths] = regColHeads();
+    regColApply(regColDefaults(), ths);
+  });
+  /* AND IT TAKES THE KEYBOARD. The column heads gained Enter and Space for
+     sorting on 25 Aug precisely because a control reachable only by mouse is
+     not reachable; a grip is the same control in a smaller costume. One
+     percentage point a press, which is about 12px on a laptop. */
+  document.addEventListener('keydown', e => {
+    const g = e.target && e.target.closest && e.target.closest('[data-reg-grip]');
+    if(!g) return;
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.stopPropagation(); return; }
+    const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+    if(!step && e.key !== 'Home') return;
+    e.preventDefault(); e.stopPropagation();
+    const [table, ths] = regColHeads();
+    if(!table) return;
+    const rect = table.getBoundingClientRect();
+    if(!(rect.width > 0)) return;
+    if(e.key === 'Home'){ regColReset(); regColApply(regColDefaults(), ths); return; }
+    const i = Number(g.getAttribute('data-reg-grip'));
+    const w = regColWidths();
+    const next = regColTrade(w, i, w[i] + step, (REG_COL_MIN_PX / rect.width) * 100);
+    regColApply(next, ths); regColSetWidths(next);
+  });
 }
 
 const REG_DENSITY = {
@@ -408,7 +662,7 @@ function regDensityVars(k){
 
 function regScope(){ return REG_SCOPE; }
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
 function regState(){
   if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
   if(!state.reg) state.reg=REG_STATE_DEF(); return state.reg;
@@ -496,9 +750,26 @@ const REG_CMP={
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
   expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },
   stage:(a,b)=>((REG_STAGE_ORDER[a.status]??9)-(REG_STAGE_ORDER[b.status]??9)),
+  /* A CONTRACT WITH NO SIGNATURE SORTS LAST IN BOTH DIRECTIONS, which is the
+     guard the expiry comparator above already carries: '' sorts before every
+     real date ascending and after none descending, so an unsigned draft would
+     lead the list one way round. The sentinel is compared as a STRING because
+     an ISO day already sorts correctly as one. */
+  signed:(a,b)=>{
+    const A=regSignedOn(a), B=regSignedOn(b);
+    if(!A&&!B) return 0;
+    /* A SENTINEL CANNOT DO THIS. regFiltered sorts with `dir*cmp`, so a value
+       that puts the unsigned last ascending puts them FIRST descending — and
+       the default here is newest-first, which would open on a screen of
+       em-dashes. The comparator asks which way it is being read and returns a
+       value that survives the multiplication. */
+    const d=(regState().dir===1?1:-1);
+    if(!A) return d;
+    if(!B) return -d;
+    return A<B?-1:A>B?1:0; },
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
-const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1 };
+const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1 };
 /* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
    Contracts pages at 40 because a register holds every agreement a company has
    ever had. Live negotiations are the handful being argued over right now — a
@@ -586,6 +857,14 @@ function regFiltered(){
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
   if(R.category&&R.category!=='all') cs=cs.filter(c=>regCatMatch(c,R.category));
+  /* SIGNED IN A GIVEN YEAR (J-5.1). Asked of the ONE reading, so this list and
+     the Signed column above it can never disagree about which year a contract
+     belongs to. A contract with no signature is in no year and is narrowed out
+     of every one of them, which is the honest answer rather than a bucket. */
+  if(R.signed&&R.signed!=='all'){
+    const y=regSignedYear(R.signed);
+    cs=cs.filter(c=>{ const d=regSignedOn(c); return !!d && d.slice(0,4)===y; });
+  }
   // E3-T5 saved views (presets over metadata/obligations)
   // family-aware: expiry views work on AGREEMENTS and on the term the latest
   // amendment actually set, not on whatever was typed on the master
@@ -749,6 +1028,8 @@ function negoMovePillHtml(c){
    is generated during render rather than being a member of the filtered set, so
    the footer's "showing 1–8 of 8" can never count one. */
 function negoBandRowHtml(band, n){
+  /* EIGHT, not nine: a band only ever draws on the Negotiations seat, which
+     is the seat that has no Signed column. */
   return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="8">
     <div class="ngl-band-in" role="heading" aria-level="3">
       <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
@@ -771,7 +1052,7 @@ function regRowsHtml(cs){
     /* THIS SHAPE IS NOW THE PRODUCT'S — it was the one screen that had a
        designed empty state, and emptyStateHtml is it, extracted so the other
        six can be it too. Read through window: this is a module. */
-    return `<tr><td colspan="8" style="padding:var(--s-12) var(--s-3);text-align:center">${
+    return `<tr><td colspan="${neg?8:9}" style="padding:var(--s-12) var(--s-3);text-align:center">${
       typeof window.emptyStateHtml==='function'
         ? window.emptyStateHtml({ icon:'list', title:line, sub, action:btn })
         : `<div style="max-width:340px;margin:0 auto"><div style="font-size:var(--t-card);font-weight:var(--w-strong)">${line}</div>`
@@ -865,6 +1146,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
+      ${neg?'':`<td style="white-space:nowrap">${regSignedCell(c)}</td>`}
       <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><span style="font-weight:var(--w-body);color:${renDateColor}">${renDate}</span>${renIn?` <span style="font-size:var(--t-meta);font-weight:var(--w-body);color:${renColor}">· ${renIn}</span>`:''}</td>
       ${''/* ---- THE STAGE IS A DOT AND A WORD (owner-approved render, 24 Aug
              2026) ---- It was a filled chip, and five of them running down the
@@ -1107,7 +1389,7 @@ function renderRegister(opts){
   const BAR=regBarShown(R);
   const densityOpts=['comfortable','compact','condensed']
     .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
-  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||(R.signed&&R.signed!=='all')||!!R.only;
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
@@ -1146,8 +1428,52 @@ function renderRegister(opts){
      make the existing handler reachable; Enter and Space are wired beside the
      click rather than in it, because a <th> is not a <button> and fires
      neither by itself. */
-  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+  /* ---- THE WIDTHS COME OFF ONE LIST AND THE GRIP RIDES THE HEAD ----
+     `colAt` hands each head its own width and its own grip, so a column can
+     never be given a width in one place and a grip in another. The grip is a
+     SEPARATE control inside the head: the head itself sorts, and a press on
+     the grip must never sort, which is what its own handler's stopPropagation
+     buys. The last column gets none — it has nothing to its right. */
+  const COLW=regColWidths();
+  let _colN=0;
+  const gripFor=i=>(i>=COLW.length-1) ? '' :
+    `<span class="reg-grip" data-reg-grip="${i}" role="separator" aria-orientation="vertical" tabindex="0"
+       title="${esc(i18t('reg_col_drag'))}" aria-label="${esc(i18t('reg_col_drag'))}"></span>`;
+  const colAt=(extra='')=>{ const i=_colN++; return `width:${COLW[i]}%;${extra}`; };
+  const sortableTh=(key,label,extra='')=>{ const i=_colN;
+    return `<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" role="button" tabindex="0" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${colAt(extra)}">${label}${sortCaret(key)}${gripFor(i)}</th>`; };
   const catActive=!!(R.category&&R.category!=='all');
+  /* ---- THE SIGNED FILTER'S OWN OPTIONS (J-5.1) ----
+     "This year" and "Last year" lead, then the years this book was actually
+     signed in, newest first. Never an empty year: the list comes off
+     regSignedYears, which reads the whole book. A year already covered by one
+     of the two leading options is not offered twice. */
+  const signedActive=!!(R.signed&&R.signed!=='all');
+  const signedYears=regSignedYears();
+  const nowY=String(new Date().getFullYear()), lastY=String(new Date().getFullYear()-1);
+  const signedOpts=(()=>{
+    const opts=[['all',i18t('reg_any')]]
+      .concat(signedYears.includes(nowY)?[['this',i18t('reg_signed_this_year')]]:[])
+      .concat(signedYears.includes(lastY)?[['last',i18t('reg_signed_last_year')]]:[])
+      .concat(signedYears.filter(y=>y!==nowY&&y!==lastY).map(y=>[y,y]));
+    /* ---- THE CUT IN FORCE IS ALWAYS ON THE LIST ----
+       The stream picker's own rule, in this file's own words: "a picker keeps a
+       record's CURRENT stream even when out of reach, or reopening silently
+       re-files it." Here the same shape strands the READER rather than the
+       record. The years come off the book, so a cut can leave the list under a
+       reader who has chosen it — the last contract signed in 2021 is deleted,
+       or a page is left open over New Year and "This year" resolves to a year
+       nothing is signed in yet. The select would then show "Any" while the list
+       was still narrowed and empty: the control saying one thing and the table
+       another, which is the fault the WHOSE ASKS label was built to prevent.
+       So the chosen value is appended when nothing else offers it, and it is
+       LABELLED WITH ITS YEAR rather than "This year" — the year is the fact,
+       and the phrase would be describing a window it no longer names. */
+    const cur=R.signed||'all';
+    if(cur!=='all' && !opts.some(([k])=>k===cur)) opts.push([cur, regSignedYear(cur)]);
+    return opts
+      .map(([k,l])=>`<option value="${k}" ${cur===k?'selected':''}>${esc(String(l))}</option>`).join('');
+  })();
   const catOpts=[['all',i18t('reg_any')]].concat(regCategories().map(k=>[k,regCatLabel(k)]))
     .concat([['none',i18t('reg_uncategorised')]]);
   /* These two already carried a visible label, inline to the left of the
@@ -1237,6 +1563,36 @@ function renderRegister(opts){
          text at 14px. Recorded as the owner's ruling. */
       .reg-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--t-meta)}
       .reg-table thead th{position:sticky;top:0;z-index:3}
+      /* ---- THE GRIP (owner-asked 31 Aug 2026) ----
+         It hangs on the head's RIGHT EDGE and overhangs it by 3px, so the
+         hit area straddles the rule between two columns exactly as a
+         spreadsheet's does. The sticky rule above already makes the head a
+         positioned element, so this anchors to it without the head needing a
+         relative position of its own — which would have broken the sticky
+         heading. NO BACKTICKS IN A COMMENT HERE: this stylesheet is returned
+         from a JS template literal and one ends the string.
+         AT REST IT DRAWS NOTHING. The hairline between the columns is already
+         there and a second mark for it would be the same fact twice; what
+         appears on hover is the ACCENT, which is how this product says "this
+         is a control". */
+      ${''/* IT SITS WHOLLY INSIDE THE HEAD, and that is not a preference.
+             MEASURED: hung over the edge at right:-3px its centre landed on
+             the clipped side of the head's own overflow:hidden (the "a cut
+             cell says so" rule, three hundred lines down), elementFromPoint
+             returned the TH, and the grip could not be taken hold of at all —
+             a control that looks perfectly correct in the source and is
+             unreachable with a mouse. Never give it a negative offset. */}
+      .reg-grip{position:absolute;top:0;right:0;width:10px;height:100%;
+        cursor:col-resize;z-index:4;background:none;border:0;padding:0;display:block}
+      .reg-grip::after{content:'';position:absolute;right:2px;top:22%;height:56%;width:1px;
+        background:transparent;transition:background var(--dur-1)}
+      .reg-grip:hover::after,.reg-grip:focus-visible::after,.reg-grip.is-drag::after{
+        background:var(--accent-ink)}
+      .reg-grip:focus-visible{outline:none}
+      /* While a drag is running the whole page takes the resize cursor, so it
+         does not flicker back to a pointer the moment the hand leaves the 7px
+         strip — which at speed is most of the drag. */
+      .reg-grip.is-drag::after{width:2px;right:1px}
       /* ---- THE COLUMN HEADS ARE NOT SHOUTED (owner-asked 24 Aug 2026: "the
          headers highlighted should not be in capital letters apart from the
          first letters of the words", then ruled: only the first) ----
@@ -1486,6 +1842,10 @@ function renderRegister(opts){
         ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
+        ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
+               and narrowing them by the year they were signed would be a
+               control whose only outcome is an empty page. */}
+        ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
@@ -1559,14 +1919,26 @@ function renderRegister(opts){
                      on Contracts and a sentence about whose move it is on
                      Negotiations, and the title is the column with the give. */}
               <tr>
-                <th style="width:8%">MK</th>
-                ${sortableTh('name',i18t('reg_col_title'),`width:${neg?17:23}%`)}
-                <th style="width:17%">${i18t('reg_col_counterparty')}</th>
-                <th style="width:15%">${i18t('reg_value_stream')}</th>
-                ${sortableTh('value',i18t('reg_col_value'),'text-align:right;width:10%')}
-                ${sortableTh('expiry',i18t('reg_col_expiry'),'width:13%')}
-                ${sortableTh('stage',i18t('reg_col_status'),'width:11%')}
-                <th style="text-align:right;width:${neg?9:3}%">${neg?i18t('ngl_col_move'):''}</th>
+                ${''/* ---- A NINTH COLUMN ON CONTRACTS, AND THE WIDTHS STILL SUM
+                       TO 100 (J-5.1) ---- that sum is what makes the table
+                       exactly its pane at every width, on every page, and it is
+                       not negotiable. The nine come out of five columns that
+                       can each spare a point or two; the SIGNED column sits
+                       immediately before Expiry, so the two dates read as a
+                       term — start and end.
+                       NEVER ON THE NEGOTIATIONS SEAT. One renderer draws both
+                       and two of these columns already differ by seat; a Signed
+                       column on a page of live negotiations is an em-dash on
+                       every row. */}
+                ${(()=>{ const i=_colN; return `<th style="${colAt()}">MK${gripFor(i)}</th>`; })()}
+                ${sortableTh('name',i18t('reg_col_title'))}
+                ${(()=>{ const i=_colN; return `<th style="${colAt()}">${i18t('reg_col_counterparty')}${gripFor(i)}</th>`; })()}
+                ${(()=>{ const i=_colN; return `<th style="${colAt()}">${i18t('reg_value_stream')}${gripFor(i)}</th>`; })()}
+                ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
+                ${neg?'':sortableTh('signed',i18t('reg_col_signed'))}
+                ${sortableTh('expiry',i18t('reg_col_expiry'))}
+                ${sortableTh('stage',i18t('reg_col_status'))}
+                ${(()=>{ const i=_colN; return `<th style="text-align:right;${colAt()}">${neg?i18t('ngl_col_move'):''}${gripFor(i)}</th>`; })()}
               </tr>
             </thead>
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
@@ -1676,12 +2048,14 @@ function renderRegister(opts){
   }));
   document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-signed')?.addEventListener('change',e=>{ R.signed=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; regRepaint(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.only=null; R.page=1; regRepaint(); });
 
+  regWireColResize();
   regFitBandOffset();
   setActiveNav(_regOpts.nav);
 }
@@ -1735,5 +2109,8 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+  REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
+  regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

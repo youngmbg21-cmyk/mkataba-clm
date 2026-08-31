@@ -2500,7 +2500,7 @@ function externalExecutionBlock(c){
           <div class="mt-1 text-xs text-brand-800/60">${i18t('ct_signed_before_migration')} <strong>${i18t('ct_no_esig_here')}</strong> ${i18t('ct_sigs_on_original')}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
             ${cell('Filed into HaTi by', filedBy, filedAt)}
-            ${cell('Executed on (as recorded)', c.signedAt||'—', 'from the migrated record, not verified by HaTi')}
+            ${cell('Executed on (as recorded)', (window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||'—', 'from the migrated record, not verified by HaTi')}
           </div>
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ORIGINAL FILE FINGERPRINT (SHA-256)</div>
@@ -2557,7 +2557,7 @@ function signatureBlock(c){
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ${i18t('ct_document_seal')}</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
-            <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded'}</div>
+            <div class="text-brand-300 mt-1.5">${(window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||'Timestamp recorded'}</div>
           </div>
           <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
         </div>
@@ -8204,7 +8204,15 @@ async function finalizeExecution(c, opts={}){
        never follow a later change of the workspace's market setting, and the
        server-built PDF must quote the same sentence the screen showed the
        signer (the eIDAS-vs-Kenya divergence of 02 Aug 2026). */
-    esignature:(typeof jxEsignatureShort==='function'?jxEsignatureShort():'') };
+    esignature:(typeof jxEsignatureShort==='function'?jxEsignatureShort():''),
+    /* THE SIGNER'S OWN CLOCK, RECORDED RATHER THAN REVERSE-ENGINEERED (J-5.1).
+       The evidence PDF prints the wall time the signer saw, and it used to
+       derive that offset by parsing the display string in c.signedAt — which
+       is why that string could not simply become a date. The fact is written
+       down now: pdfSigTime reads these first and keeps the old parse for
+       every record filed before this. */
+    tzOffsetMin:(typeof signedTzOffsetMin==='function'?signedTzOffsetMin():0),
+    tzLabel:(typeof signedTzLabel==='function'?signedTzLabel():'') };
   if(!isUpload(c)){
     exec.html=freezeContractHtml(c);
     // Record WHAT was sealed and HOW it was hashed, on the execution record
@@ -8219,7 +8227,11 @@ async function finalizeExecution(c, opts={}){
     exec.textHash=await sha256(window.execHashInput?execHashInput(exec):normText(exec.html));
   }
   c.execution=exec;
-  c.signedAt=fmtDT(at)+' EAT';
+  /* A DATE, NOT THE WORDS A READER SAW (J-5.1). This was fmtDT(at)+' EAT' —
+     the display string, in whatever language the signer read in — and six
+     things did arithmetic with it. What a screen PRINTS is formatted at the
+     moment of drawing, through contractSignedLabel. */
+  c.signedAt=at;
   c.lastAction=todayStr();
   // The capacity someone signed in, not the permissions they hold. With no
   // title recorded this is just their name — which is true — rather than a

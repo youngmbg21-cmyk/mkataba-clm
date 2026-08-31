@@ -394,7 +394,11 @@ const AI_CHART_RECIPES = {
    read, which answers both. */
 const AI_SERIES = {
   'contracts.signed':    { get label(){ return _acT('ch_s_contracts_signed','Contracts signed'); },       unit: 'count',
-    at: (cs, k) => cs.filter(c => c.status === 'Signed' && String(c.signedAt || '').slice(0, 7) === k).length },
+    /* THROUGH THE ONE READING (J-5.1). This asked String(c.signedAt).slice(0,7)
+       of a display string and got "12 Aug " back, which matches no month key —
+       so every bar on this chart read zero. */
+    at: (cs, k) => cs.filter(c => c.status === 'Signed'
+      && String((typeof window.contractSignedAt === 'function' ? contractSignedAt(c) : null) || '').slice(0, 7) === k).length },
   'contracts.expiring':  { get label(){ return _acT('ch_s_contracts_expiring','Contracts expiring'); },     unit: 'count',
     at: (cs, k) => cs.filter(c => String(_acExpiry(c) || '').slice(0, 7) === k).length },
   'value.expiring':      { get label(){ return _acT('ch_s_value_expiring','Value expiring'); },         unit: 'money',

@@ -103,7 +103,8 @@ const SIMHASH_DUPLICATE = 3, SIMHASH_RELATED = 6;
 const normParty = s => String(s||'').toLowerCase()
   .replace(/\b(limited|ltd|plc|llp|inc|incorporated|company|co|kenya|k)\b/g,' ')
   .replace(/[^a-z0-9]+/g,'').trim();
-const effDateOf = c => (c.metadata&&c.metadata.effectiveDate) || (c.fields&&c.fields.effDate) || c.signedAt && String(c.signedAt).slice(0,10) || null;
+const effDateOf = c => (c.metadata&&c.metadata.effectiveDate) || (c.fields&&c.fields.effDate)
+  || (typeof window.contractSignedAt==='function' ? contractSignedAt(c) : null) || null;
 function valueWithin(a,b,pct){
   const x=Number(a||0), y=Number(b||0);
   if(!(x>0)&&!(y>0)) return true;          // both non-monetary

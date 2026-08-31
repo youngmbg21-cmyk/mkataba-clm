@@ -214,6 +214,81 @@ function negoStandingHeading(c, clauseId){
 function negoExecuted(c){
   return !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
 }
+/* ---------- WHEN WAS THIS SIGNED — ONE READING (J-5.1) ----------
+   IT LIVES HERE, BESIDE negoExecuted, AND THAT IS DELIBERATE. That predicate
+   asks the sibling question — HAS this been signed — off the same two stores,
+   and this file is on every stage the change model is on. Written in core.js
+   it would be a name half the product reaches through `window` on a stage that
+   does not carry it, and every caller would fall back to the broken arithmetic
+   this repair exists to remove: the rlPaperFootHtml class, in its quietest
+   costume. Callers outside this module read it through `window` and fall back
+   to NULL, never to a guess.
+   `c.signedAt` used to be written by signDocument as fmtDT(at)+' EAT' — the
+   words a reader saw, in the reader's own LANGUAGE. That is fine while
+   something only ever prints it and fatal the moment anything does arithmetic
+   with it, and six things did: the Contracts-signed chart (which returned 0
+   for every month), a project's start date, an amendment family's effective
+   date, duplicate detection, the server's own copy of the same reading, and —
+   worst — the evidence pack, whose exported seal time depended on who pressed
+   the button. Measured: slice(0,10) of it is "12 Aug 202", read as a date that
+   is the year 202, and in Swedish it is "12 aug. 20".
+
+   THE DAY IS ASKED IN THE SIGNER'S OWN CLOCK, not in UTC. A signing at 01:00
+   EAT is 22:00 UTC the previous day, and answering with the UTC day would put
+   a contract in the wrong month — the fault the calendar's own `calToday()`
+   records. The offset is RECORDED at signing (execution.tzOffsetMin) rather
+   than reverse-engineered afterwards.
+
+   FOUR SOURCES, IN THIS ORDER, and every one of them is a fact somebody wrote
+   down rather than a guess:
+     1  a plain day somebody recorded — paper filing's signedOn, a migration
+        manifest's date. It IS the day the parties signed and outranks the day
+        the file reached us.
+     2  the execution stamp, moved into the signer's own clock.
+     3  a display string written before this was a date. Its own words carry
+        the local day, which is why this reads the WORDS rather than parsing.
+     4  the first `Signed` entry in the audit trail (and `_signedAt`, the
+        server's transport field for a light list row).
+   Returns an ISO day or null. NEVER a guess: a record that says nothing about
+   when it was signed answers null, and every caller draws an em-dash. */
+const SIGNED_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const SIGNED_MONTHS_SV = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+const _sdPlainDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s==null?'':s).trim())
+  ? String(s).trim().slice(0,10) : null;
+/* An ISO instant plus an offset in minutes, as the day it was in that clock. */
+function _sdDayAt(iso, offMin){
+  const t = Date.parse(String(iso==null?'':iso));
+  if(!Number.isFinite(t)) return null;
+  const off = Number(offMin);
+  return new Date(t + (Number.isFinite(off)?off:0)*60000).toISOString().slice(0,10);
+}
+/* "12 Aug 2026, 10:00 EAT" / "12 aug. 2026 10:00 EAT" — the local wall clock,
+   which is exactly the day we want, so it is read rather than parsed. */
+function _sdLegacyDay(s){
+  const m = /^(\d{1,2})\s+([^\s.,]{3,})\.?\s+(\d{4})/.exec(String(s==null?'':s).trim());
+  if(!m) return null;
+  const k = m[2].slice(0,3).toLowerCase();
+  const i = SIGNED_MONTHS.indexOf(k) >= 0 ? SIGNED_MONTHS.indexOf(k) : SIGNED_MONTHS_SV.indexOf(k);
+  if(i < 0) return null;
+  const d = Number(m[1]);
+  if(!(d >= 1 && d <= 31)) return null;
+  return `${m[3]}-${String(i+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function contractSignedAt(c){
+  if(!c) return null;
+  const ex = c.execution || null;
+  const plain = _sdPlainDay(ex && ex.signedOn) || _sdPlainDay(c.signedAt);
+  if(plain) return plain;
+  const stamped = _sdDayAt(ex && ex.at, ex && ex.tzOffsetMin);
+  if(stamped) return stamped;
+  const legacy = _sdLegacyDay(c.signedAt);
+  if(legacy) return legacy;
+  const trail = Array.isArray(c.audit) ? c.audit : [];
+  const e = trail.find(a => a && a.action === 'Signed');
+  return _sdDayAt(e && e.at, 0) || _sdDayAt(c._signedAt, 0) || _sdDayAt(c.signedAt, 0) || null;
+}
+Object.assign(window,{contractSignedAt,SIGNED_MONTHS,SIGNED_MONTHS_SV});
+
 /* ---- AND THE WORDING FREEZES AT THE FIRST SIGNATURE (owner-ruled 14 Aug 2026) ----
    negoExecuted is true when the LAST signer has signed and the seal is taken.
    On a route with more than one signer there is a window between the first

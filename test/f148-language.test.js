@@ -724,12 +724,25 @@ describe('f148 — the upcoming panel names one window, in both languages', () =
     return m ? Number(m[1]) : null;
   })();
 
-  test('the window is one named constant, and the panel uses it', () => {
-    assert.ok(defWindow, 'CAL_AGENDA_DAYS names the window');
-    assert.match(CAL, /function\s+calUpcoming[\s\S]{0,200}days\s*\|\|\s*CAL_AGENDA_DAYS/,
-      'calUpcoming defaults to it rather than to a literal');
-    assert.match(CAL, /calPanelHtml\(evs\)\{[\s\S]*?calUpcoming\(evs\)/,
-      'the panel asks for that default rather than passing its own number');
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (J-5.4) ----
+     The window is a CHOICE now — 14 / 30 / 60 / 90 — so a claim that the panel
+     passes the CONSTANT is a claim about a fixed fortnight this page no longer
+     has. THE PROPERTY IT WAS WRITTEN FOR IS UNCHANGED AND IS STILL WHAT IS
+     PINNED: one value answers for the reading, the heading and the empty state,
+     so they cannot disagree even in principle — which is the fault this block
+     exists for (a panel headed 30 whose empty state said 60). It is simply
+     calAgendaDays() rather than CAL_AGENDA_DAYS, and the constant survives as
+     the DEFAULT. */
+  test('the window is one reading, and the panel uses it', () => {
+    assert.ok(defWindow, 'CAL_AGENDA_DAYS still names the default');
+    assert.match(CAL, /const\s+CAL_AGENDA_WINDOWS\s*=\s*\[\s*14\s*,\s*30\s*,\s*60\s*,\s*90\s*\]/,
+      'four windows are offered');
+    assert.match(CAL, /function\s+calAgendaDays\(\)[\s\S]{0,220}CAL_AGENDA_DAYS/,
+      'an unknown value falls back to the default rather than drawing a blank panel');
+    assert.match(CAL, /function\s+calUpcoming[\s\S]{0,200}days\s*\|\|\s*calAgendaDays\(\)/,
+      'the reading defaults to the chosen window, never to a literal');
+    assert.match(CAL, /calPanelHtml\(evs\)\{[\s\S]*?const win=calAgendaDays\(\)/,
+      'the panel asks for it ONCE and hands the same value to everything below');
   });
 
   for (const lang of ['en', 'sv']){
@@ -741,9 +754,16 @@ describe('f148 — the upcoming panel names one window, in both languages', () =
         assert.ok(!/\b\d{2}\b/.test(v), `${k} spells no number of its own — got "${v}"`);
       }
     });
-    test(`${lang}: and both are passed it`, () => {
-      assert.match(CAL, new RegExp("cal_next_30'\\s*,\\s*\\{\\s*n\\s*:\\s*CAL_AGENDA_DAYS"));
-      assert.match(CAL, new RegExp("cal_nothing_due'\\s*,\\s*\\{\\s*n\\s*:\\s*CAL_AGENDA_DAYS"));
+    test(`${lang}: and both are passed the ONE value the panel resolved`, () => {
+      /* The heading is the control itself now, so it takes each option's own
+         number; the empty state and the count take `win` — the single value
+         calPanelHtml asked for once. */
+      assert.match(CAL, new RegExp("cal_next_30'\\s*,\\s*\\{\\s*n\\s*\\}"),
+        'each option in the control names its own window');
+      assert.match(CAL, new RegExp("cal_nothing_due'\\s*,\\s*\\{\\s*n\\s*:\\s*win\\s*\\}"),
+        'the empty state names the window that is actually showing');
+      assert.ok(!/CAL_AGENDA_DAYS\s*\}\)/.test(CAL),
+        'and neither sentence is still pinned to the default');
     });
   }
 });

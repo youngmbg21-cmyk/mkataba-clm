@@ -128,7 +128,7 @@ const ownExpiry = c => (window.dateOnly
 /* When an amendment took effect — used to order them. Falls back through the
    dates a migrated document actually tends to carry. */
 const amendmentDate = c => (c&&((c.metadata&&c.metadata.effectiveDate) || (c.fields&&c.fields.effDate) ||
-  (c.signedAt&&String(c.signedAt).slice(0,10)) || (c.migration&&c.migration.importedAt&&String(c.migration.importedAt).slice(0,10)))) || '';
+  (typeof window.contractSignedAt==='function'&&contractSignedAt(c)) || (c.migration&&c.migration.importedAt&&String(c.migration.importedAt).slice(0,10)))) || '';
 /* ---- ONLY A SIGNED AMENDMENT MOVES THE LIVE DATE (owner-ruled 14 Aug 2026) ----
    This counted any non-Declined child, so typing a new end date into a DRAFT
    amendment moved the master agreement's live expiry — and its renewal
@@ -509,7 +509,8 @@ function amendmentSkeletonBody(parent, opts={}){
   const us = _famEsc(String((parent&&parent.party) || window.FIRST_PARTY || '').trim());
   const them = _famEsc(String((parent&&parent.counterparty)||'').trim());
   const pname = _famEsc(String((parent&&parent.name)||'').replace(/\s*\(draft\)\s*$/i,'').trim());
-  const eff = (parent&&((parent.metadata&&parent.metadata.effectiveDate)||(parent.fields&&parent.fields.effDate)||parent.signedAt))||'';
+  const eff = (parent&&((parent.metadata&&parent.metadata.effectiveDate)||(parent.fields&&parent.fields.effDate)
+    ||(typeof window.contractSignedAt==='function'?contractSignedAt(parent):null)))||'';
   /* Written the way the paper writes a date — "31 July 2026", never the date
      input's 2026-07-31. fmtDocDate is the one formatter for this and it reads
      a fixed month list, so the recital does not change wording with the

@@ -86,8 +86,15 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        so the 3px tick beside the title stops being the only carrier. */
     /* RE-POINTED 24 Aug 2026, claim unchanged: every column carries a stated
        width now (table-layout:fixed, so the columns hold from page to page), so
-       the heading is no longer a bare <th>. */
-    assert.match(reg, /<th[^>]*>\$\{i18t\('reg_value_stream'\)\}<\/th>/);
+       the heading is no longer a bare <th>.
+       RE-POINTED AGAIN 31 Aug 2026, claim STILL unchanged: the widths moved off
+       nine literals into one list (REG_COL_W / REG_COL_W_NEGO) so the head, the
+       reset and a stored array cannot each hold their own opinion of the
+       default, and the heading now also carries a resize grip. What is pinned
+       is that the register writes this heading out — it is not the stream
+       drawer's — and that it takes its width from the one list. */
+    assert.match(reg, /\$\{i18t\('reg_value_stream'\)\}\$\{gripFor\(i\)\}/);
+    assert.match(reg, /const colAt=\(extra=''\)=>\{ const i=_colN\+\+; return `width:\$\{COLW\[i\]\}%/);
   });
 
   /* ONE LEGEND, AND IT IS THE FOLDER PAGE'S. Both tables used to carry it. The
@@ -130,14 +137,31 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
       'and every dot names its own state on hover');
   });
 
-  test('the full-width rows were widened with the tables', () => {
-    /* An empty-state row that still spans 7 of 8 columns leaves a ragged gap —
-       the kind of thing only a rendered page shows. */
-    assert.ok(!/colspan="7"/.test(reg), 'no row still spans the old column count');
-    /* Four now: the register's own three (two empty states and the folder
-       page's), plus the Negotiations page's band header, which is a full-width
-       row between groups — see negoBandRowHtml. */
-    assert.equal((reg.match(/colspan="8"/g) || []).length, 4);
+  /* ---- REVERSED IN PLACE, J-5.1 (31 Aug 2026) ----
+     This counted colspan="8" and asserted exactly four, which was the right
+     CLAIM written as a number: the claim is that no full-width row spans a
+     stale column count. Contracts gained a ninth column (Signed) and
+     Negotiations did not, so the register's own empty row is now seat-aware
+     and a literal count is meaningless. Pinned as the RELATION, which is
+     stronger — it fails on a row spanning any width the tables do not draw. */
+  test('the full-width rows span a real column count, on the seat that draws them', () => {
+    assert.ok(!/colspan="7"/.test(reg), 'no row still spans a retired column count');
+    const spans = [...reg.matchAll(/colspan="([^"]+)"/g)].map(m => m[1]);
+    assert.ok(spans.length >= 4, 'the full-width rows are still there');
+    for (const v of spans) {
+      /* Either a literal that is one of the two real counts, or the seat's own
+         expression. Nine on Contracts (MK · title · counterparty · stream ·
+         value · SIGNED · expiry · status · ⋯), eight on Negotiations, whose
+         last column is the whose-move sentence and which draws no Signed. */
+      assert.ok(v === '8' || v === '9' || v === '${neg?8:9}',
+        `a full-width row spans ${v}, which is not a count either table draws`);
+    }
+    /* THE BAND ROW IS THE NEGOTIATIONS SEAT'S OWN and stays at eight — it only
+       ever draws there, and that is the seat with no Signed column. */
+    const band = reg.slice(reg.indexOf('function negoBandRowHtml'));
+    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="8"/);
+    /* And the register's own empty row follows the seat rather than a number. */
+    assert.match(reg, /colspan="\$\{neg\?8:9\}"/);
   });
 });
 

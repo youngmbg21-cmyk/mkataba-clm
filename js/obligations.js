@@ -487,7 +487,7 @@ function renderObligationsSection(c){
   document.getElementById('ob-find')?.addEventListener('click',()=>runFindObligations(c));
 }
 function openObligationForm(c, seed){
-  seed=seed||{desc:'',due:'',recurring:'none',assignee:'',quote:''};
+  seed=seed||{desc:'',due:'',recurring:'none',assignee:'',quote:'',amount:''};
   const members=(getUsers()||[]).map(u=>u.name);
   openModal(`
     <div class="p-6">
@@ -522,6 +522,20 @@ function openObligationForm(c, seed){
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
           <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>
+      ${''/* ---- THE AMOUNT (J-5.2) ----
+              A ROW OF ITS OWN, directly under Due date / Recurring, with the
+              CONTRACT'S currency as a fixed prefix rather than a picker.
+              NOTHING ABOVE OR BELOW IT MOVED, was renamed or was taken away —
+              the first render of this dialog was redrawn from intent rather
+              than from the screen and got six things wrong, the worst being
+              that it dropped the "Whose obligation is this?" toggle outright.
+              The only new thing on this dialog is this row.
+              DRAWN ON BOTH SIDES OF THAT TOGGLE: money they owe us matters as
+              much as money we owe them, so it is not hidden with Assign to.
+              NOT DRAWN AT ALL for a reader without the money permission. */}
+      ${obligationMoneyVisible() ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_amount')}</span>
+        <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span>
+        <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_amount_hint'))}</span></label>` : ''}
       ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
               independent — "assign to" only means anything for an obligation
               that is ours — so the field that decides it comes first, and the
@@ -561,6 +575,19 @@ function openObligationForm(c, seed){
          stale colleague's name on it would put their job in our queue. */
       assignee: party==='theirs' ? '' : document.getElementById('of-assignee').value.trim(),
       status:seed.status||'open', quote:seed.quote||'' };
+    /* NEVER A ZERO AND NEVER AN EMPTY KEY. An obligation saved without an
+       amount carries no `amount` at all, which is what makes every record
+       filed before this field existed read identically. A reader without the
+       money permission draws no box, so the field is CARRIED FORWARD from the
+       record rather than read off a control that is not there — otherwise
+       opening an obligation would silently erase its figure. */
+    if(!obligationMoneyVisible()){
+      if(seed.amount!=null&&seed.amount!=='') o.amount=Number(seed.amount);
+    } else {
+      const raw=(document.getElementById('of-amount')?.value||'').trim();
+      const n=Number(raw);
+      if(raw!==''&&isFinite(n)&&n>0) o.amount=n;
+    }
     if(!o.desc){ toast('Enter a description','err'); return; }
     c.obligations=c.obligations||[];
     const editing=seed._i!=null;
@@ -617,32 +644,101 @@ async function runFindObligations(c){
   }
   openObligationsReview(c, found);
 }
+/* ---- Find obligations, AND THE THREE THINGS WRONG WITH IT (J-5.3) ----
+   Owner-reported 30 Aug 2026, off a preferred-stock charter carrying 18
+   proposals: *"what is the purpose of find obligations? It seems to have a bug
+   today."*
+
+   WHAT IT IS FOR, since the screen never says: it reads the wording with
+   Copilot and proposes the ongoing duties it finds — payment milestones,
+   notice deadlines, deliverables, reporting — each with the verbatim clause it
+   came from. The reader ticks; nothing is saved until they confirm. It exists
+   so nobody reads forty pages hunting for promises.
+
+   THE THREE:
+     1  NO DEDUPE. This handler pushed every ticked proposal with a fresh
+        random id and never asked whether it was already on the contract, so
+        pressing it twice turned 18 into 36 into 54. With J-5.2 in, a
+        duplicated list is duplicated MONEY, which is what makes it the one to
+        fix first.
+     2  EVERY PROPOSAL ARRIVED TICKED, which is what made (1) so easy to
+        trigger — the natural press added all eighteen.
+     3  THE CONFIRMATION WAS SILENT. `toast('Added N…')` is a BARE call, and by
+        this product's own rule a bare toast prints nothing, so the act that
+        changed the record said nothing on screen. It was hardcoded English
+        besides.
+
+   A DUPLICATE IS SHOWN, NOT HIDDEN. It arrives unticked with a word saying
+   why — never silently dropped, because the reader has to be able to see that
+   the scan found it AND that they already have it. */
+/* ONE READING OF "we already have this", asked at the draw and again at the
+   add, so a proposal cannot slip in between the two. Matched on the DESCRIPTION
+   rather than on an id: the scan mints nothing and a proposal has no identity
+   of its own — its wording is the only thing it and the stored obligation
+   share. Compared with whitespace collapsed and case folded, because the same
+   clause read twice comes back punctuated a little differently. */
+const _obKey = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').replace(/[.,;:]+$/, '').trim();
+function obligationAlreadyOn(c, proposal){
+  const k = _obKey(proposal && proposal.desc);
+  if(!k) return false;
+  return ((c && c.obligations) || []).some(o => _obKey(o && o.desc) === k);
+}
 function openObligationsReview(c, found){
+  const dupe = found.map(o => obligationAlreadyOn(c, o));
+  const fresh = dupe.filter(d => !d).length;
   openModal(`
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">${i18t('ob_proposed')}</h3></div>
       <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')} <b>ours</b> — open any one afterwards to mark it as the counterparty&rsquo;s, or to set a date and an owner. Nothing is saved until you confirm.</p>
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
-        ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer">
-          <input type="checkbox" data-ob-pick="${i}" checked class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
+        ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer${dupe[i]?' opacity-70':''}">
+          <input type="checkbox" data-ob-pick="${i}"${dupe[i]?'':' checked'} class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
           <span class="min-w-0"><span class="block text-[12.5px] font-normal text-ink">${(o.desc||'').replace(/</g,'&lt;')}</span>
-          ${o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">“${o.quote.replace(/</g,'&lt;')}”</span>`:''}</span></label>`).join('')}
+          ${dupe[i]
+            ? `<span class="block text-[10px] text-gold-700 mt-0.5">${_obEsc(i18t('ob_already_on'))}</span>`
+            : (o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">&ldquo;${o.quote.replace(/</g,'&lt;')}&rdquo;</span>`:'')}</span></label>`).join('')}
       </div>
       <div class="flex justify-end gap-2">
         <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ob_add_selected')}</button>
+        ${''/* THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED, so a press on a
+               second scan that finds nothing new says so before it is pressed
+               rather than afterwards. */}
+        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${_obEsc(fresh ? i18tn('ob_add_n', fresh, { n: fresh }) : i18t('ob_add_none'))}</button>
       </div>
     </div>`);
   document.getElementById('or-cancel').addEventListener('click',closeModal);
   document.getElementById('or-add').addEventListener('click',()=>{
     c.obligations=c.obligations||[];
-    let n=0;
-    document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(cb.checked){ const o=found[Number(cb.getAttribute('data-ob-pick'))];
-      c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++; } });
-    logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`);
+    /* WHAT WAS ALREADY THERE IS COUNTED OFF THE PROPOSALS, not off the boxes.
+       The dialog unticks a duplicate on the reader's behalf, so counting only
+       the ticked ones would report "1 added" and say nothing at all about the
+       two it had set aside — which is the silent half of the reported bug
+       returning in politer clothes. */
+    let n=0, skipped=dupe.filter(d=>d).length;
+    document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(!cb.checked) return;
+      const o=found[Number(cb.getAttribute('data-ob-pick'))];
+      /* ASKED AGAIN AT THE ADD, not only at the draw. The dialog can be open
+         while another surface files an obligation, and this is the wall — the
+         checkbox is the sign. */
+      /* And the wall: a proposal the reader ticked anyway, or one that became
+         a duplicate while the dialog was open, is still not added twice. */
+      if(obligationAlreadyOn(c,o)) return;
+      c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++; });
+    logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`
+      +(skipped?` — ${skipped} already on the contract`:''));
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
-    toast(`Added ${n} obligation${n===1?'':'s'}`);
+    if(window.roomPaintObligations) roomPaintObligations(c);
+    /* AND IT SAYS SO OUT LOUD. A bare toast prints NOTHING in this product, so
+       the one act on this dialog that changes the record said nothing at all.
+       'ok' because something arrived; 'warn' when nothing did, because a
+       confirmation reading "0 added" is a refusal wearing a receipt's clothes. */
+    /* ZERO IS A DIFFERENT SENTENCE, NOT A PLURAL FORM — tn knows only _one and
+       _other, so a _zero suffix would be a key nothing ever reads. */
+    toast(n === 0
+      ? (skipped ? i18t('ob_added_none_dupes', { d: skipped }) : i18t('ob_added_none'))
+      : (skipped ? i18tn('ob_added_n_dupes', n, { n, d: skipped }) : i18tn('ob_added_n', n, { n })),
+      n ? 'ok' : 'warn');
   });
 }
 
@@ -721,6 +817,47 @@ const OBLIG_BANDS = [
   ['later',   'ob_band_later'],
   ['done',    'ob_band_done'],
 ];
+/* ---- AN OBLIGATION CARRIES AN AMOUNT (J-5.2) ----
+   It held a description, a due date, a cadence, an owner, a side and a
+   completion record, and it could not hold a NUMBER — so "Second tranche —
+   KES 4,000,000" was prose that could not be added up, charted or forecast.
+   Disbursement tracking is the market's word for the thing this one missing
+   field prevented.
+
+   ONE FIELD, AND NO CURRENCY BESIDE IT. The currency is the CONTRACT'S,
+   read through contractCurrency, and is shown as a fixed prefix — a second
+   currency stored on the obligation is a second answer that can drift from
+   the contract's own. One contract, one currency.
+
+   BLANK BY DEFAULT AND NEVER ZERO. A zero is a figure somebody typed, and an
+   obligation with no money on it must read as having none rather than as
+   having nothing owed. An obligation saved without one carries no `amount`
+   key at all, which is why every existing record draws identically. */
+const obligationAmount = o => {
+  const n = Number(o && o.amount);
+  return (o && o.amount != null && o.amount !== '' && isFinite(n)) ? n : null;
+};
+const obligationHasAmount = o => obligationAmount(o) !== null;
+/* A band's own sum, and the same function the foot total asks. Rows carrying
+   no amount contribute nothing rather than a zero. */
+const obligationBandTotal = rows => (rows || []).reduce((sum, r) => {
+  const n = obligationAmount(r && r.o ? r.o : r);
+  return n === null ? sum : sum + n;
+}, 0);
+/* Money obeys the product's existing permission, never a new rule of this
+   feature's own. Read through `window`: this module draws on stages that do
+   not carry the shell, and there the honest answer is that nothing is hidden. */
+const obligationMoneyVisible = () => (typeof window.canViewValues === 'function') ? !!canViewValues() : true;
+/* WHAT A FIGURE PRINTS. The contract's own currency, through the product's own
+   short formatter, so an obligation and the contract it sits on can never be
+   written in different money. */
+function obligationMoneyText(n, c){
+  if(n === null || n === undefined) return '';
+  if(typeof window.fmtMoneyShortIn === 'function' && typeof window.contractCurrency === 'function')
+    return fmtMoneyShortIn(n, contractCurrency(c));
+  if(typeof window.fmtMoneyShort === 'function') return fmtMoneyShort(n);
+  return String(n);
+}
 function obligationBand(o){
   const st = obState(o);
   if(st === 'done') return 'done';
@@ -759,6 +896,7 @@ function roomObligationsHtml(c){
   const editable = (typeof canEdit === 'function') ? canEdit() : false;
   const st = obligationTabState(c);
   const rows = obs.map((o, i) => ({ o, i, band: obligationBand(o) }));
+  const money = obligationMoneyVisible();
 
   /* "0 outstanding" over an empty state that already says nothing is tracked is
      the same fact printed twice, and the second printing is the one that reads
@@ -807,6 +945,14 @@ function roomObligationsHtml(c){
       ${''/* A COMPLETED ROW SAYS WHEN, and an older one says it does not know.
              Nothing is inferred for the obligations ticked off before this
              field existed: "completed" with no date is the truth they carry. */}
+      ${''/* THE AMOUNT, right-aligned in tabular figures beside the date, and
+             an em-dash where there is none. NOT DRAWN AT ALL for a reader
+             without the money permission — the register's own convention, and
+             the reason is that a column of dashes tells somebody a figure is
+             being kept from them, which is a different message from "there is
+             no figure". */}
+      ${money ? `<span class="obt-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
+        obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '&mdash;'}</span>` : ''}
       <span class="obt-due">${_obEsc(s === 'done'
         ? (o.completedAt || i18t('ob_done_unknown'))
         : (due || i18t('ob_no_date')))}</span>
@@ -823,7 +969,12 @@ function roomObligationsHtml(c){
     /* A BAND WITH NOTHING IN IT DRAWS NOTHING — the change column's own rule.
        Four empty headings over an empty page is furniture. */
     if(!mine.length) return '';
-    return `<div class="obt-band">${_obEsc(i18t(key))}<b>${mine.length}</b></div>`
+    /* THE SUM RIDES THE HEADING THAT ALREADY CARRIES A COUNT — no new box, no
+       new panel, no band. The cheapest channel that carries the fact. Drawn
+       only where there is money in that band to sum. */
+    const sum = obligationBandTotal(mine);
+    return `<div class="obt-band">${_obEsc(i18t(key))}<b>${mine.length}</b>${
+      money && sum ? `<i class="obt-bandsum">${_obEsc(obligationMoneyText(sum, c))}</i>` : ''}</div>`
       + mine.map(row).join('');
   }).join('');
 
@@ -1087,7 +1238,14 @@ function obwRows(f){
     .filter(c => !window.canAccessFolder || canAccessFolder(c.folder)).map(c => c.id));
   return allObligations()
     .filter(o => live.has(o.cid) && scoped.has(o.cid))
+    /* THE CONTRACT RIDES ALONG (J-5.2). An amount is stated in the CONTRACT'S
+       own currency and converted through the CONTRACT'S own record, so this
+       page needs the record rather than the id — and looking it up per row per
+       repaint is the same lookup done four times. Underscored because it is
+       transport: nothing writes it back, and it is stripped by the spread
+       every consumer already does. */
     .map(o => ({ ...o, st: obState(o), band: obligationBand(o),
+      _c: (state.contracts || []).find(x => x.id === o.cid) || null,
       days: obligationDue(o) ? daysUntil(obligationDue(o)) : null }))
     .filter(o => {
       if(f.state === 'open' && o.st === 'done') return false;
@@ -1189,6 +1347,14 @@ function renderObligationsList(){
       <td class="obw-side"><span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${
         _obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span></td>
       <td class="obw-who">${_obEsc(theirs ? (o.counterparty || i18t('ob_side_theirs')) : (o.assignee || ''))}${unowned}</td>
+      ${''/* THE AMOUNT (J-5.2). Its width comes off the DESCRIPTION column,
+             so the table still sums to 100% and nothing else on the row moves.
+             A CROSS-CONTRACT list converts, because two rows here can be in two
+             currencies — see the foot, which says what it left out. Per ROW the
+             figure is stated in its own contract's money, which is what the
+             contract's own page says. */}
+      ${money ? `<td class="obw-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
+        obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), o._c || o)) : '&mdash;'}</td>` : ''}
       <td class="obw-when">${_obEsc(o.st === 'done'
         ? (o.completedAt || i18t('ob_done_unknown'))
         : (o.due || i18t('ob_no_date')))}${
@@ -1197,12 +1363,46 @@ function renderObligationsList(){
     </tr>`;
   };
 
+  const money = obligationMoneyVisible();
+  /* ---- A CROSS-CONTRACT TOTAL CONVERTS, AND SAYS WHAT IT LEFT OUT ----
+     Two rows on this page can be in two currencies, so a bare sum would add
+     shillings to euros. Converted through fxHomeValue like every other total
+     in the product, and where a rate is missing the row is LEFT OUT and the
+     figure says so — the standing rule that a silent trim on a money headline
+     is the fault the insights panels were rebuilt to stop. */
+  const homeSum = list => {
+    let sum = 0, missing = {};
+    for(const o of list){
+      const n = obligationAmount(o);
+      if(n === null) continue;
+      if(typeof window.fxHome === 'function' && o._c){
+        const h = fxHome({ ...o._c, value: n });
+        if(h && h.missing){ missing[h.code || '?'] = (missing[h.code || '?'] || 0) + 1; continue; }
+        sum += (h && typeof h.v === 'number') ? h.v : n;
+      } else sum += n;
+    }
+    return { sum, missing };
+  };
   const banded = OBLIG_BANDS.map(([k, key]) => {
     const mine = rows.filter(r => r.band === k);
     if(!mine.length) return '';
-    return `<tr class="obw-band"><td colspan="5">${_obEsc(i18t(key))}<b>${mine.length}</b></td></tr>`
+    const h = money ? homeSum(mine) : null;
+    return `<tr class="obw-band"><td colspan="${money ? 6 : 5}">${_obEsc(i18t(key))}<b>${mine.length}</b>${
+      h && h.sum ? `<i class="obw-bandsum">${_obEsc(window.fmtMoneyShort ? fmtMoneyShort(h.sum) : String(h.sum))}</i>` : ''}</td></tr>`
       + mine.map(row).join('');
   }).join('');
+  /* ONE TOTAL AT THE FOOT, over every row on the page. Drawn only where there
+     is money to state; a foot reading nothing is furniture. */
+  const foot = (() => {
+    if(!money) return '';
+    const h = homeSum(rows);
+    const left = Object.entries(h.missing);
+    if(!h.sum && !left.length) return '';
+    return `<div class="obw-total"><span>${_obEsc(i18t('ob_total'))}</span><b>${
+      _obEsc(window.fmtMoneyShort ? fmtMoneyShort(h.sum) : String(h.sum))}</b>${
+      left.length ? `<i>${_obEsc(i18tn('ob_total_left_out', left.reduce((a, [, n]) => a + n, 0),
+        { n: left.reduce((a, [, n]) => a + n, 0), codes: left.map(([code]) => code).join(', ') }))}</i>` : ''}</div>`;
+  })();
 
   host.innerHTML = `<div class="obw-page">
     <div class="obw-card">
@@ -1230,7 +1430,7 @@ function renderObligationsList(){
         ${obwSelect('due', OBW_DUE, f.due)}
         <button type="button" id="obw-clear" class="ui-btn">${_obEsc(i18t('reg_clear'))}</button>
       </div>
-      ${rows.length ? `<table class="obw-table">${banded}</table>`
+      ${rows.length ? `<table class="obw-table">${banded}</table>${foot}`
         : `<div class="obt-empty">${_obEsc(i18t('ob_none_match'))}</div>`}
     </div></div>`;
 
@@ -1296,4 +1496,5 @@ async function obligationChase(cid, obId){
   return o;
 }
 
-Object.assign(window,{OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{obligationAlreadyOn,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+  OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

@@ -895,6 +895,31 @@ Object.assign(window,{LS,REMOTE,lsGet,lsSet});
 const nowISO = () => new Date().toISOString();
 const fmtDT = iso => new Date(iso).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});
 const todayStr = () => new Date().toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'});
+
+/* WHAT A SCREEN PRINTS. The moment as a person reads it, formatted at the
+   moment of drawing like every other date in this product — never the stored
+   value, which is now a machine-readable one. A record carrying only a day
+   prints the day; there is no clock to invent. */
+function contractSignedLabel(c){
+  if(!c) return '';
+  const ex = c.execution || null;
+  const t = Date.parse(String((ex && ex.at) || ''));
+  if(Number.isFinite(t)) return fmtDT(new Date(t).toISOString());
+  const day = (typeof window.contractSignedAt === 'function') ? contractSignedAt(c) : null;
+  if(!day) return typeof c.signedAt === 'string' ? c.signedAt : '';
+  try{ return new Date(day + 'T00:00:00').toLocaleDateString(langLocale(),
+    {day:'2-digit',month:'short',year:'numeric'}); }catch(_){ return day; }
+}
+/* The offset this browser is in, recorded at signing so the evidence PDF can
+   print the signer's own wall clock without reverse-engineering it out of a
+   display string. getTimezoneOffset is minutes BEHIND UTC, so it is negated. */
+const signedTzOffsetMin = () => { try{ return -new Date().getTimezoneOffset(); }catch(_){ return 0; } };
+const signedTzLabel = () => { try{
+  const p = new Intl.DateTimeFormat('en-GB',{timeZoneName:'short'}).formatToParts(new Date());
+  return (p.find(x => x.type === 'timeZoneName') || {}).value || '';
+}catch(_){ return ''; } };
+Object.assign(window,{contractSignedLabel,signedTzOffsetMin,signedTzLabel});
+
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
 /* ---------- persistence (per-contract at scale) ----------
@@ -2603,7 +2628,15 @@ function downloadEvidence(c){
       : null,
     contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, status:c.status },
-    seal:{ sha256:c.hash, signedAt:c.signedAt,
+    /* A MACHINE-READABLE MOMENT (J-5.1). This exported c.signedAt — a display
+       string in the EXPORTER's language — so the same contract signed by the
+       same person exported differently depending on who pressed the button,
+       while the generatedAt beside it was proper ISO. `signedOn` is the day in
+       the signer's own clock; `signedLabel` is the human copy. */
+    seal:{ sha256:c.hash,
+      signedAt:(c.execution&&c.execution.at)||null,
+      signedOn:(typeof window.contractSignedAt==='function'?contractSignedAt(c):null),
+      signedLabel:contractSignedLabel(c),
       sealedTextSha256:c.execution?.textHash||null,
       sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
