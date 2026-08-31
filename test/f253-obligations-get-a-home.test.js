@@ -191,9 +191,16 @@ describe('f253 (3) — one verb, one reading, nothing new written', () => {
     /* And the two readings the renderer does NOT ask directly are asked by the
        ones it does — obligationBand asks obligationDue, obState asks it too —
        so the chain is one reading deep and never a second copy. */
-    const band = OB_CODE.match(/function obligationBand\(o\)\{[\s\S]*?\n\}/)[0];
+    /* ---- RE-POINTED IN PLACE 31 Aug 2026 (L-1) ---- obligationBand takes the
+       CONTRACT now, so it can read the payment chain; the claim is unchanged
+       and is stronger for naming the third reading it borrows. Anchored on the
+       bare arity it went null and took the whole check down with a TypeError,
+       which is a description failing rather than a product fault. */
+    const band = OB_CODE.match(/function obligationBand\(o, c\)\{[\s\S]*?\n\}/)[0];
     assert.ok(band.includes('obligationDue(o)') && band.includes('obState(o)'),
       'obligationBand is where the date and the state are read, once');
+    assert.ok(band.includes('obligationBlocked(o, c)'),
+      'and where "is this held back" is read — once, for both screens');
   });
 
   test('the renderer writes nothing — it is a reading', () => {
@@ -209,10 +216,20 @@ describe('f253 (3) — one verb, one reading, nothing new written', () => {
     assert.ok(!/completedAt\s*=/.test(html), 'and stamps nothing');
   });
 
-  test('the four bands are one list, and every obligation lands in exactly one', () => {
+  test('the bands are one list, and every obligation lands in exactly one', () => {
     const { win } = bench();
-    assert.deepEqual(Array.from(win.OBLIG_BANDS).map(b => b[0]),
-      ['overdue', 'month', 'later', 'done']);
+    /* ---- REVERSED IN PLACE 31 Aug 2026 (L-1), AND STRONGER FOR IT ----
+       It pinned the literal FOUR and went red the day a fifth arrived. What it
+       was ever about is that there is ONE list, urgent first and finished
+       last, with every obligation landing in exactly one of them — so it is
+       pinned as that relation and the next band costs no test edit.
+       "Pin the relation, not the number", paid for six times this week. */
+    const keys = Array.from(win.OBLIG_BANDS).map(b => b[0]);
+    assert.equal(keys[0], 'overdue', 'urgent first: ' + keys.join(','));
+    assert.equal(keys[keys.length - 1], 'done', 'finished last: ' + keys.join(','));
+    assert.equal(new Set(keys).size, keys.length, 'every band named once');
+    /* AND WITH NO CONTRACT NOTHING MOVED — the whole migration story of the
+       payment chain, asserted here where the four original cases live. */
     const cases = [
       [{ due: day(-1), status: 'open' }, 'overdue'],
       [{ due: day(-1), status: 'done' }, 'done'],

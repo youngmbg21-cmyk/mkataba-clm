@@ -7436,6 +7436,93 @@ handed it. What was missing is the control.
 
 Tests: f261, amount-and-window-verify.
 
+## THE PAYMENT CHAIN (owner-instructed 31 Aug 2026, L)
+
+*"Build based on your recommendation"* — off a before/after render of the two
+screens that change. **The render is the specification** and
+`WORKORDER-payment-chain.md` records the three rulings it settled.
+
+An obligation was a single dated promise. Four tranches of an equipment
+purchase were four items in a list with nothing linking them, **so HaTi would
+email a supplier about the commissioning payment while the delivery payment was
+still unpaid.**
+
+- **ONE NEW FIELD, `after`, AND EVERYTHING ELSE IS A READING OF IT.** Absent
+  means not in a chain, which is every obligation on file, so **there is no
+  migration and nothing already stored reads differently on any screen** —
+  f262's first claim, and the condition on all the rest.
+- **BLOCKED IS THE DIRECT PREDECESSOR ONLY, and that is not a shortcut — it is
+  what makes it safe.** Step 4 waits on 3 and 3 waits on 2, so 4 stays held for
+  as long as 3 is, **with no walk and therefore no cycle to fall into.** A
+  record hand-edited into a loop still draws.
+- **A POINTER AT A STEP THAT IS NOT THERE IS NOT A BLOCK.** Deleting a step must
+  not silently freeze everything after it, on screen or in the sweep.
+- **THE READINGS MATCH ON THE ID, NEVER ON IDENTITY.** The worklist hands them a
+  SPREAD COPY, so `x !== o` is true of the row's own original — a self-reference
+  would then find ITSELF as its predecessor and block for ever.
+- **`obligationChains` PARTITIONS**, which is what lets the tab draw the chains
+  and then the bands over what is left with nothing appearing twice. Two steps
+  pointing at one predecessor is branching, which is deliberately not built.
+- **`obState` IS UNTOUCHED, DELIBERATELY.** A blocked step is still open or
+  overdue by its own date, so the calendar, the alerts window and every existing
+  count behave exactly as they did. **What moved is the BAND** — `waiting`
+  outranks `overdue`, because a step nobody could have done is not late by
+  anybody's fault — plus the head counts, the door's number and who is chased.
+- **A FIFTH BAND, AFTER `later` AND BEFORE `done`** — a **departure from the
+  render**, which drew it second. These bands are ordered by what needs you
+  first and a waiting step needs nobody; it stays above `done` because the money
+  on it is outstanding. Said out loud rather than slipped in.
+- **THE MONEY IS ONE ARITHMETIC.** `obligationRoll` returns committed / paid /
+  outstanding / overdue, and **paid + outstanding IS committed by construction**
+  rather than by three sums agreeing. `paid` is not a new state — it is what
+  completing a step already records, so no figure is entered twice.
+- **THE WHOLE COMMITTED-AGAINST-PAID READING IS ONE LINE GROWN.** The tab's head
+  already carried the counts and the worklist's foot already carried converted
+  money and already said what it left out — so it needed **no new screen, no
+  card, no panel and no band**, only more figures on lines that were there.
+- **AND A DESCENDANT SELECTOR REACHED INTO THE NEW MARKUP.** `.obw-total i` was
+  correct while the foot held one figure and one note; each new pair's LABEL is
+  an `<i>`, so every one of them took `flex-basis:100%` and wrapped its value
+  onto a second line. MEASURED: each pair 36px inside a 17px row. It is
+  `.obw-total > i` now. **A rule written for one shape reaches the next one.**
+- **THE SWEEP IS THE PAYOFF AND IT IS PROVED AGAINST A REAL SERVER.**
+  `srvObligationBlocked` is the server's twin, read off the STORED contract;
+  a held step fires **none** of the four milestones; and on the day it comes
+  due **one** mail goes to the contract's OWNER (admins where none resolves)
+  saying it is held. **The control is written first**: the same obligation,
+  same day, same person, unchained — it must still be nudged, or "no mail
+  arrived" proves nothing.
+- **ONE DOOR ONTO THE ORDER.** The obligation form's "Comes after" picker. The
+  render drew an *Edit the order* button on the chain head as well; **it is not
+  built** — a second door onto one act is the drift this file opens by warning
+  about. It never offers itself, draws nothing where there is no sibling to
+  point at, **refuses a loop in words** (bounded, so an already-looped record
+  cannot hang the check) and writes the order into the contract's history.
+- **HELD BACK IS A SHAPE, NOT A TINT.** The row is set in from the spine and its
+  connector is dashed, so colour is never the only carrier — and the browser
+  file measures both as computed values, because a rule that loses a cascade
+  fight looks perfectly correct in the source.
+- **AND IT IS NOT FADED, WHICH REVERSES THE APPROVED RENDER.** That drew the held
+  row at `opacity:.74`, and MEASURED that costs more than it buys: the label ink
+  falls from **6.31:1 to 3.48:1** on white and the chip from 6.92 to 3.70 —
+  **both under AA, on the one row a reader most needs to read to understand why
+  nothing is happening.** *An opacity is not an ink*, this file's own rule, paid
+  for once already on `.text-ink/40…/60`. The state is still carried four ways
+  and none of them is contrast.
+
+**WHAT IS DELIBERATELY NOT BUILT:** branching; a paid state of its own; a trend,
+a chart or a fifth Insights tab (ruling 2); and anything at all on the
+counterparty's page — obligations have never travelled and still do not,
+asserted rather than assumed.
+
+Tests: f262 (62 — the model's edges, the partition, the four figures agreeing,
+both renderers, both languages, and **section 13 against a running server with
+its own control**), f255's two claims REVERSED IN PLACE (one pinned the literal
+four bands and is now the relation it was always about), payment-chain-verify
+(34, browser — the chain measured as paint, the set-back and the dashed
+connector as computed values, the loop refused through the real toast root, and
+completing a step proved to free the next one and not the one after it).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

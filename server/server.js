@@ -9098,6 +9098,20 @@ function runShareNudges() {
    nobody: only a member's own address is written to (the open-relay rule the
    notify-signer route learned), and a name matching nobody keeps the old
    admin-only path so nothing is quieter than it was. WO-1, WORKORDER-gap-map. */
+/* ---- THE SERVER'S TWIN OF THE CHAIN (L-4) ----
+   Read off the STORED contract, never a request body — the rule every guard on
+   this file states. THE DIRECT PREDECESSOR ONLY, exactly like the browser's
+   obligationBlocked: step 4 waits on 3 and 3 waits on 2, so 4 stays held for
+   as long as 3 is, with no walk and therefore no cycle to hang the sweep. A
+   pointer at a step that is not there is NOT a block — deleting a step must
+   not silently stop every reminder after it. */
+function srvObligationBlocked(full, o) {
+  if (!o || o.status === 'done') return false;
+  const id = String((o && o.after) || '').trim();
+  if (!id || id === String(o.id || '')) return false;
+  const p = (full.obligations || []).find(x => x && String(x.id) === id);
+  return !!p && p.status !== 'done';
+}
 function obligationRecipient(assignee) {
   const q = String(assignee || '').trim().toLowerCase();
   if (!q) return null;
@@ -9230,6 +9244,33 @@ function runReminders() {
       if (!due) return;
       const od = daysTo(due);
       const okey = o.id || due;
+      /* ---- A HELD-BACK STEP IS NOT CHASED, AND THE SILENCE IS NOT SILENT ----
+         (L-4, owner-ruled) This is the whole payoff of the payment chain: before
+         it, HaTi emailed a supplier about the commissioning payment on a plant
+         purchase while the delivery payment was still outstanding.
+         NONE of the four milestones fires. On the day the step comes due, ONE
+         mail goes to the contract's OWNER — not to the person who owes it,
+         because nothing is being asked of them — saying it is held and nobody
+         is being chased. Its own dedupe key, so it is sent once and never
+         again for that step. Where no owner resolves it falls to the admins,
+         which is the same fallback the unowned branch below already uses. */
+      if (srvObligationBlocked(full, o)) {
+        if (od === 0) {
+          const prev = (full.obligations || []).find(x => x && String(x.id) === String(o.after || ''));
+          const to = obligationRecipient((c.owner && c.owner.name) || '');
+          const vars = { desc: o.desc, name: c.name, id: c.id, due, step: (prev && prev.desc) || '' };
+          const link = contractUrl(null, c.id);
+          const held = a => {
+            const L = to && a === to.email ? (to.lang || I18N_DEFAULT) : langForEmail(a);
+            return { subject: tFor(L, 'mail_ob_held_subject', vars),
+              body: `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ob_held_line', vars)}`
+                + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}` };
+          };
+          if (fireTo(`${c.id}:ob:${okey}:held`, to ? [to.email] : admins, held,
+            `obligation held: ${c.name}`)) queued++;
+        }
+        return;
+      }
       const who = obligationRecipient(o.assignee);
       if (who) {
         const link = contractUrl(null, c.id);

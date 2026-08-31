@@ -86,17 +86,38 @@ describe('f255 (1) — a table of obligations, counting nothing of its own', () 
        pile, toggleObligation for the act. A new copy of any of them is how two
        screens come to disagree about one commitment. */
     const fn = OB_CODE.match(/function obwRows\(f\)\{[\s\S]*?\n\}/)[0];
-    for (const r of ['allObligations()', 'obState(o)', 'obligationBand(o)', 'obligationDue(o)'])
+    /* ---- RE-POINTED IN PLACE 31 Aug 2026 (L-3) ---- The claim is unchanged and
+       is STRONGER: obligationBand takes the CONTRACT now, so this page reads the
+       payment chain through the same function the contract's own tab does. It
+       was `obligationBand(o)`; a bare-arity match would pass on a page that had
+       quietly stopped passing the contract and so stopped seeing chains at all. */
+    for (const r of ['allObligations()', 'obState(o)', 'obligationBand(o,', 'obligationDue(o)'])
       assert.ok(fn.includes(r), `${r} is the one reading and this page asks it`);
     assert.ok(!/status\s*=\s*['"]/.test(fn), 'and it writes nothing');
   });
 
-  test('the bands are the tab’s own four, so the two screens agree', () => {
+  test('the bands are the tab’s own, so the two screens agree', () => {
     const { win } = book();
     const list = OB_CODE.match(/function renderObligationsList\(\)\{[\s\S]*?\n\}/)[0];
+    const tab  = OB_CODE.match(/function roomObligationsHtml\(c\)\{[\s\S]*?\n\}/)[0];
+    /* ---- REVERSED IN PLACE 31 Aug 2026 (L-3), AND STRONGER FOR IT ----
+       It pinned the LITERAL four and went red the day a fifth arrived — but
+       what it was ever about is that BOTH screens read ONE list, which is why
+       "due this month" cannot come to mean two things. Pinned as that relation
+       now, so the next band costs no test edit: the rulebook's own "pin the
+       relation, not the number", paid for four times in the J-5 build. */
     assert.match(list, /OBLIG_BANDS\.map/);
-    assert.deepEqual(Array.from(win.OBLIG_BANDS).map(b => b[0]),
-      ['overdue', 'month', 'later', 'done']);
+    assert.match(tab,  /OBLIG_BANDS\.map/, 'and the contract tab maps the same list');
+    const keys = Array.from(win.OBLIG_BANDS).map(b => b[0]);
+    assert.ok(keys.length >= 4 && keys[0] === 'overdue' && keys[keys.length - 1] === 'done',
+      'urgent first, finished last: ' + keys.join(','));
+    assert.equal(new Set(keys).size, keys.length, 'every band is named once');
+    /* AND THE WAITING BAND SITS AFTER 'later', NOT SECOND — a step waiting on
+       an earlier one needs nobody, and these bands are ordered by what needs
+       you first. This is the one place that decision is written down as a
+       check rather than as prose. */
+    assert.ok(keys.indexOf('waiting') > keys.indexOf('later'),
+      'waiting is not work you can do, so it does not sit above work you can');
   });
 
   test('and the door’s count is what is LATE, borrowed not derived', () => {

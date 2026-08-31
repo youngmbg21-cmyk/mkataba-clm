@@ -522,6 +522,28 @@ function openObligationForm(c, seed){
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
           <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>
+      ${''/* ---- COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5) ----
+              The render drew an "Edit the order" button on the chain head as
+              well. IT IS NOT BUILT: an obligation's facts are edited here, and
+              a second door onto one act is the drift this rulebook opens by
+              warning about. One picker, in the dialog that already owns every
+              other fact about a step.
+              IT OFFERS ITS SIBLINGS AND NEVER ITSELF, and a choice that would
+              close a loop is refused on save rather than hidden — the reader
+              is told which step they cannot point at and why.
+              DRAWN ONLY WHERE THERE IS A SIBLING TO POINT AT: on a contract
+              with one obligation the control's only outcome is "Nothing", and
+              a control whose one answer is its own default is furniture. */}
+      ${(() => {
+        const sibs = ((c && c.obligations) || []).filter(o => o && o.id && (seed._i == null || o !== (c.obligations || [])[seed._i]));
+        if(!sibs.length) return '';
+        return `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_after')}</span>
+          <select id="of-after" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">
+            <option value="">${_obEsc(i18t('ob_after_none'))}</option>
+            ${sibs.map(o => `<option value="${_obEsc(o.id)}"${String(seed.after || '') === String(o.id) ? ' selected' : ''}>${_obEsc(o.desc || o.id)}</option>`).join('')}
+          </select>
+          <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_after_hint'))}</span></label>`;
+      })()}
       ${''/* ---- THE AMOUNT (J-5.2) ----
               A ROW OF ITS OWN, directly under Due date / Recurring, with the
               CONTRACT'S currency as a fixed prefix rather than a picker.
@@ -575,6 +597,11 @@ function openObligationForm(c, seed){
          stale colleague's name on it would put their job in our queue. */
       assignee: party==='theirs' ? '' : document.getElementById('of-assignee').value.trim(),
       status:seed.status||'open', quote:seed.quote||'' };
+    /* THE ORDER. Absent means no chain, which is what every obligation on file
+       carries — so the key is only ever written when a step is actually chosen,
+       and a record that never had one is byte-identical to what it was. */
+    const afterSel = (document.getElementById('of-after')?.value || '').trim();
+    if(afterSel) o.after = afterSel; else if(seed.after && !document.getElementById('of-after')) o.after = seed.after;
     /* NEVER A ZERO AND NEVER AN EMPTY KEY. An obligation saved without an
        amount carries no `amount` at all, which is what makes every record
        filed before this field existed read identically. A reader without the
@@ -591,9 +618,33 @@ function openObligationForm(c, seed){
     if(!o.desc){ toast('Enter a description','err'); return; }
     c.obligations=c.obligations||[];
     const editing=seed._i!=null;
+    /* ---- A LOOP IS REFUSED IN WORDS (L-5) ----
+       Two steps pointing at each other would leave both waiting for ever with
+       nothing on screen able to say why. Checked against the list AS IT WOULD
+       STAND after this save, which is the only version that can be wrong, and
+       named rather than silently cleared: the reader chose that step and is
+       owed the reason. Bounded by the list's own length, so a record already
+       hand-edited into a loop cannot hang the check either. */
+    if(o.after){
+      const next = (c.obligations || []).slice();
+      if(editing) next[seed._i] = o; else next.push(o);
+      const seen = new Set([String(o.id)]);
+      let cur = o, hops = next.length + 1;
+      while(hops-- > 0){
+        const pid = String(cur.after || ''); if(!pid) break;
+        const p = next.find(x => x && String(x.id) === pid); if(!p) break;
+        if(seen.has(String(p.id))){ toast(i18t('ob_after_loop',{ desc: p.desc || p.id }),'err'); return; }
+        seen.add(String(p.id)); cur = p;
+      }
+    }
     if(editing) c.obligations[seed._i]=o; else c.obligations.push(o);
+    /* THE ORDER IS WRITTEN INTO HISTORY (ruling 3). Setting it changes when
+       reminders fire, which is closer to a rule than to a note — and unlike
+       completing a step, it is not otherwise recorded anywhere. */
+    const afterOb = o.after ? (c.obligations || []).find(x => x && String(x.id) === String(o.after)) : null;
     logAudit(c,'Obligation',`${editing?'Updated':'Added'}: ${o.desc}${o.due?` (due ${o.due})`:''}`
-      +` — ${party==='theirs'?`${c.counterparty||'the counterparty'}'s to deliver`:`ours${o.assignee?`, assigned to ${o.assignee}`:''}`}`);
+      +` — ${party==='theirs'?`${c.counterparty||'the counterparty'}'s to deliver`:`ours${o.assignee?`, assigned to ${o.assignee}`:''}`}`
+      +(afterOb?` — comes after "${afterOb.desc||afterOb.id}"`:''));
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
   });
 }
@@ -811,12 +862,142 @@ function obligationIsMine(o){
    AN OBLIGATION WITH NO DATE READS AS 'later' and its row says "no date". It
    is not overdue — nothing can be — and burying it under "completed" would be
    a lie; the row is where that fact belongs, not a fifth band. */
+/* ---- AND A FIFTH, FOR A STEP THAT IS SOMEBODY ELSE'S TURN (L-1) ----
+   AFTER 'later' AND BEFORE 'done', which is a DEPARTURE FROM THE RENDER the
+   owner approved — that drew it second, under Overdue. These bands are ordered
+   by what needs you FIRST, and a step waiting on an earlier one needs nobody;
+   put second it would sit above work that really is yours to do. It is still
+   above 'done', because the money on it is outstanding and the promise is
+   live. Said out loud rather than slipped in.
+
+   IT IS ONLY EVER REACHED WITH A CONTRACT. obligationBand takes one now, and
+   without it there is no chain to read, so every caller written before this
+   answers exactly as it did — which is the whole migration story. */
 const OBLIG_BANDS = [
   ['overdue', 'ob_band_overdue'],
   ['month',   'ob_band_month'],
   ['later',   'ob_band_later'],
+  ['waiting', 'ob_band_waiting'],
   ['done',    'ob_band_done'],
 ];
+
+/* ============================================================================
+   THE PAYMENT CHAIN (L-1, owner-instructed 31 Aug 2026 off the before/after
+   render: "Build based on your recommendation.")
+
+   ONE NEW FIELD ON AN OBLIGATION — `after`, the id of the step it follows —
+   and everything else here is a READING of it. Absent means not in a chain,
+   which is every obligation on file today, so THERE IS NO MIGRATION and
+   nothing already stored reads differently on any screen.
+
+   WHAT IT BUYS, and the third is the one that matters: the steps draw in
+   order; the money on them splits into promised against paid; and a step whose
+   predecessor is unpaid STOPS BEING CHASED. Before this, HaTi would email a
+   supplier about the commissioning payment on a plant purchase while the
+   delivery payment was still outstanding.
+   ========================================================================== */
+const obligationAfter = o => { const v = String((o && o.after) || '').trim(); return v || null; };
+/* The step this one follows, resolved against its OWN contract's list.
+   NEVER ITSELF, and a pointer at a step that is not there answers null rather
+   than blocking: deleting a step must not silently freeze everything after it,
+   and the survivors read as unchained. */
+function obligationPrev(o, c){
+  const id = obligationAfter(o);
+  if(!id) return null;
+  /* BY ID AND NEVER BY IDENTITY. The worklist hands these readings a SPREAD
+     COPY (`{...o, cid, ...}`), so `x !== o` is true of the row's own original
+     and a self-reference would find ITSELF as its predecessor and block for
+     ever. Every reading below matches on the id for the same reason. */
+  const self = String((o && o.id) || '');
+  if(id === self) return null;
+  const list = (c && c.obligations) || [];
+  return list.find(x => x && String(x.id) === id) || null;
+}
+/* BLOCKED = the step before it exists and is not done.
+   THE DIRECT PREDECESSOR ONLY, and that is not a shortcut — it is what makes
+   this safe. Step 4 waits on 3 and 3 waits on 2, so 4 stays blocked for as
+   long as 3 is, WITH NO WALK AND THEREFORE NO CYCLE TO FALL INTO. A completed
+   step never blocks anything, including itself. */
+function obligationBlocked(o, c){
+  if(!o || o.status === 'done') return false;
+  const p = obligationPrev(o, c);
+  return !!p && obState(p) !== 'done';
+}
+/* THE CHAIN THIS STEP SITS IN, in order, or [] where it is in none.
+   Walks BACK to the head and then FORWARD, and both walks carry a seen-set —
+   a record hand-edited into a loop must draw something rather than hang the
+   contract's page. A chain of one is not a chain. */
+function obligationChain(o, c){
+  const list = (c && c.obligations) || [];
+  if(!o || !list.length) return [];
+  /* Start from the STORED object with this id, never the caller's copy, so a
+     chain read off a worklist row is the same chain the contract's own tab
+     draws — and an obligation with no id can be in no chain at all. */
+  const self = String((o && o.id) || '');
+  let head = self ? list.find(x => x && String(x.id) === self) : null;
+  if(!head) return [];
+  const back = new Set([self]);
+  for(;;){
+    const p = obligationPrev(head, c);
+    const pid = p ? String(p.id || '') : '';
+    if(!p || !pid || back.has(pid)) break;
+    back.add(pid); head = p;
+  }
+  const out = [head], used = new Set([String(head.id || '')]);
+  for(;;){
+    const id = String((out[out.length - 1] || {}).id || '');
+    if(!id) break;
+    const next = list.find(x => x && !used.has(String(x.id || '')) && obligationAfter(x) === id);
+    if(!next) break;
+    out.push(next); used.add(String(next.id || ''));
+  }
+  return out.length > 1 ? out : [];
+}
+/* EVERY CHAIN ON A CONTRACT, AS A PARTITION. Two steps pointing at the same
+   predecessor is branching, which this feature deliberately does not do — so
+   the second one is left where it is rather than drawn in a chain it would
+   also appear in twice. An obligation is in AT MOST ONE of these lists, and
+   that is what lets the tab draw the chains and then the bands over what is
+   left without anything appearing on the page twice. */
+function obligationChains(c){
+  const list = (c && c.obligations) || [];
+  const out = [], placed = new Set();
+  list.forEach(o => {
+    const id = String((o && o.id) || '');
+    if(!id || placed.has(id)) return;
+    const ch = obligationChain(o, c);
+    if(!ch.length || ch.some(x => placed.has(String(x.id || '')))) return;
+    ch.forEach(x => placed.add(String(x.id || '')));
+    out.push(ch);
+  });
+  return out;
+}
+/* "Step 2 of 4", for a row that is not being drawn inside its own chain — the
+   worklist's, where there is no room to draw the chain itself. */
+function obligationStepNo(o, c){
+  const ch = obligationChain(o, c);
+  if(!ch.length) return null;
+  const id = String((o && o.id) || '');
+  const i = ch.findIndex(x => String(x.id || '') === id);
+  return i < 0 ? null : { n: i + 1, of: ch.length };
+}
+/* WHAT IS OWED AND WHAT HAS MOVED, over one contract's own currency. THE ONE
+   ARITHMETIC behind the tab's money line, and the shape the worklist's foot
+   fills in home currency. `paid` is not a new state: it is what completing a
+   step already records, so no figure is ever entered twice and the two can
+   never disagree. */
+function obligationRoll(list){
+  let committed = 0, paid = 0, outstanding = 0, overdue = 0;
+  (list || []).forEach(o => {
+    const n = obligationAmount(o);
+    if(n === null) return;
+    committed += n;
+    if(obState(o) === 'done'){ paid += n; return; }
+    outstanding += n;
+    if(obState(o) === 'overdue') overdue += n;
+  });
+  return { committed, paid, outstanding, overdue };
+}
 /* ---- AN OBLIGATION CARRIES AN AMOUNT (J-5.2) ----
    It held a description, a due date, a cadence, an owner, a side and a
    completion record, and it could not hold a NUMBER — so "Second tranche —
@@ -858,9 +1039,19 @@ function obligationMoneyText(n, c){
   if(typeof window.fmtMoneyShort === 'function') return fmtMoneyShort(n);
   return String(n);
 }
-function obligationBand(o){
+function obligationBand(o, c){
   const st = obState(o);
   if(st === 'done') return 'done';
+  /* ---- WAITING OUTRANKS OVERDUE (L-1) ----
+     A held-back step whose date has passed IS late by the calendar and is not
+     late by anybody's fault — nobody could have done it. Banding it overdue
+     would put work nobody may act on at the top of the page, which is the
+     count-that-lies fault this whole job exists to close. `obState` is
+     deliberately NOT changed: the calendar, the alerts window and every
+     existing reading still see it as open or overdue by its own date.
+     WITHOUT A CONTRACT THERE IS NO CHAIN TO READ, so a caller written before
+     this answers exactly as it did. */
+  if(c && obligationBlocked(o, c)) return 'waiting';
   if(st === 'overdue') return 'overdue';
   const due = obligationDue(o);
   if(!due) return 'later';
@@ -880,11 +1071,20 @@ function obligationBand(o){
    The count is what is still OUTSTANDING, and it is AMBER ONLY WHEN SOMETHING
    IS OVERDUE. A count that is always coloured is a warning nobody reads — the
    sidebar's own rule, applied to a tab. */
+/* ---- AND THE COUNT STOPPED LYING (L-1) ----
+   "4 outstanding" over four tranches of which two were waiting their turn was
+   the tab claiming four things needed somebody this month. `open` counts what
+   can be ACTED ON; `waiting` is said beside it in its own words, so nothing is
+   hidden — only correctly named. */
 function obligationTabState(c){
   const obs = (c && c.obligations) || [];
-  let open = 0, overdue = 0;
-  obs.forEach(o => { const st = obState(o); if(st === 'done') return; open++; if(st === 'overdue') overdue++; });
-  return { open, overdue, total: obs.length };
+  let open = 0, overdue = 0, waiting = 0;
+  obs.forEach(o => {
+    if(obState(o) === 'done') return;
+    if(obligationBlocked(o, c)){ waiting++; return; }
+    open++; if(obState(o) === 'overdue') overdue++;
+  });
+  return { open, overdue, waiting, total: obs.length };
 }
 
 /* ---- THE PANE ----
@@ -895,15 +1095,27 @@ function roomObligationsHtml(c){
   const obs = (c && c.obligations) || [];
   const editable = (typeof canEdit === 'function') ? canEdit() : false;
   const st = obligationTabState(c);
-  const rows = obs.map((o, i) => ({ o, i, band: obligationBand(o) }));
+  const rows = obs.map((o, i) => ({ o, i, band: obligationBand(o, c) }));
   const money = obligationMoneyVisible();
 
   /* "0 outstanding" over an empty state that already says nothing is tracked is
      the same fact printed twice, and the second printing is the one that reads
      like a fault. The acts stay: they are the way in. */
+  /* ---- ONE MONEY LINE, IN THE HEAD (L-2) ----
+     Committed against paid, and it goes HERE rather than into a card of its
+     own: the head already carries the counts, so this is the cheapest channel
+     that carries the fact and it costs the page no height. Drawn only where
+     the reader may see money AND there is money to state — a line reading
+     "0 paid of 0" is furniture. */
+  const roll = obligationRoll(obs);
+  const moneyLine = (money && roll.committed)
+    ? `<span class="obt-paid">${_obEsc(i18t('ob_paid_of', {
+        paid: obligationMoneyText(roll.paid, c), all: obligationMoneyText(roll.committed, c) }))}</span>` : '';
   const head = `<div class="obt-head">
       ${obs.length ? `<span class="obt-cap">${_obEsc(i18tn('ob_head_open', st.open, { n: st.open }))}</span>` : ''}
       ${st.overdue ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', st.overdue, { n: st.overdue }))}</span>` : ''}
+      ${st.waiting ? `<span class="obt-wait">${_obEsc(i18tn('ob_head_waiting', st.waiting, { n: st.waiting }))}</span>` : ''}
+      ${moneyLine}
       ${editable ? `<span class="obt-acts">
         <button type="button" id="obt-add" class="ui-btn">${_obEsc(i18t('ob_add'))}</button>
         <button type="button" id="obt-find" class="ui-btn">${_obEsc(i18t('ob_find'))}</button>
@@ -964,8 +1176,69 @@ function roomObligationsHtml(c){
     </div>`;
   };
 
+  /* ---- THE CHAINS DRAW FIRST, IN ORDER, AND THE BANDS DRAW WHAT IS LEFT ----
+     (L-2) A chained step is grouped by its ORDER rather than by its date,
+     which is the whole point of the feature; the four bands underneath hold
+     only what is in no chain and are otherwise exactly what they were.
+     NOTHING IS DRAWN TWICE, and that is by construction rather than by care:
+     obligationChains partitions, so a step is in at most one chain, and the
+     band pass filters those ids out. */
+  const chains = obligationChains(c);
+  const inChain = new Set();
+  chains.forEach(ch => ch.forEach(o => inChain.add(String(o.id || ''))));
+
+  const chainHtml = chains.map(ch => {
+    const roll = obligationRoll(ch);
+    let paid = 0, over = 0, wait = 0;
+    ch.forEach(o => { if(obState(o) === 'done') paid++;
+      else if(obligationBlocked(o, c)) wait++;
+      else if(obState(o) === 'overdue') over++; });
+    const head = `<div class="obt-chain-hd">
+        <span class="t">${_obEsc(i18t('ob_chain'))}</span>
+        <span class="s">${_obEsc(i18t('ob_chain_sub', { n: ch.length, paid, overdue: over, waiting: wait }))}</span>
+        ${money && roll.committed ? `<i>${_obEsc(obligationMoneyText(roll.committed, c))}</i>` : ''}
+      </div>`;
+    return head + ch.map((o, n) => {
+      const i = obs.indexOf(o);
+      const blocked = obligationBlocked(o, c);
+      const done = obState(o) === 'done';
+      /* THE STATE IN ONE WORD, AND THE ROW SAYS WHAT IT WAITS ON. Colour is
+         never the only carrier here: a blocked step is set back, its
+         connector is dashed AND its chip names the step it waits on. */
+      const chip = done
+        ? `<span class="obt-chip is-done">${_obEsc(i18t('ob_chain_paid', { date: o.completedAt || i18t('ob_done_unknown') }))}</span>`
+        : blocked
+        ? `<span class="obt-chip is-wait">${_obEsc(i18t('ob_waiting_on', { n: n }))}</span>`
+        : obState(o) === 'overdue'
+        ? `<span class="obt-chip is-over">${_obEsc(i18t('ob_band_overdue'))}</span>` : '';
+      return `<div class="obt-step${done ? ' is-done' : ''}${blocked ? ' is-wait' : ''}${
+          obState(o) === 'overdue' && !blocked ? ' is-over' : ''}" data-obt-row="${_obEsc(o.id || '')}">
+        <span class="obt-spine"><i class="obt-pip">${done ? '&#10003;' : (n + 1)}</i></span>
+        <div class="obt-body">
+          <div class="obt-what">${_obEsc(o.desc || '')}</div>
+          <div class="obt-meta">
+            <span class="obt-side obt-side-${obligationIsTheirs(o) ? 'them' : 'us'}">${
+              _obEsc(obligationIsTheirs(o) ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span>
+            <span>${_obEsc(obligationOwner(o, c))}</span>
+            <span>${_obEsc(i18t('ob_step_n', { n: n + 1, of: ch.length }))}</span>
+            ${blocked ? `<span class="obt-quiet">${_obEsc(i18t('ob_waiting_note', { n: n }))}</span>` : ''}
+          </div>
+        </div>
+        ${chip}
+        ${money ? `<span class="obt-amt${obligationHasAmount(o) ? '' : ' is-none'}">${
+          obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '&mdash;'}</span>` : ''}
+        <span class="obt-due">${_obEsc(done ? (o.completedAt || i18t('ob_done_unknown'))
+          : (obligationDue(o) || i18t('ob_no_date')))}</span>
+        ${editable && i >= 0 ? `<span class="obt-verbs">
+          <button type="button" data-obt-toggle="${i}">${_obEsc(done ? i18t('ob_reopen') : i18t('ob_done'))}</button>
+          <button type="button" data-obt-edit="${i}">${_obEsc(i18t('ob_edit'))}</button>
+        </span>` : ''}
+      </div>`;
+    }).join('');
+  }).join('');
+
   const bands = OBLIG_BANDS.map(([k, key]) => {
-    const mine = rows.filter(r => r.band === k);
+    const mine = rows.filter(r => r.band === k && !inChain.has(String(r.o.id || '')));
     /* A BAND WITH NOTHING IN IT DRAWS NOTHING — the change column's own rule.
        Four empty headings over an empty page is furniture. */
     if(!mine.length) return '';
@@ -978,7 +1251,7 @@ function roomObligationsHtml(c){
       + mine.map(row).join('');
   }).join('');
 
-  return head + bands;
+  return head + chainHtml + bands;
 }
 
 /* Painted when the tab is selected, exactly as roomPaintHistory is: a contract
@@ -1220,7 +1493,7 @@ function obwFilters(){
   if(!_obwF) _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all' };
   return _obwF;
 }
-const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],
+const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],['waiting','ob_f_state_waiting'],
   ['done','ob_f_state_done'],['all','ob_f_state_all']];
 const OBW_WHOSE = [['all','ob_f_whose_all'],['mine','ob_f_whose_mine'],['none','ob_f_whose_none']];
 const OBW_SIDE  = [['all','ob_f_side_all'],['ours','ob_side_ours'],['theirs','ob_side_theirs']];
@@ -1244,13 +1517,18 @@ function obwRows(f){
        repaint is the same lookup done four times. Underscored because it is
        transport: nothing writes it back, and it is stripped by the spread
        every consumer already does. */
-    .map(o => ({ ...o, st: obState(o), band: obligationBand(o),
+    .map(o => ({ ...o, st: obState(o), band: obligationBand(o, (state.contracts || []).find(x => x.id === o.cid)),
       _c: (state.contracts || []).find(x => x.id === o.cid) || null,
       days: obligationDue(o) ? daysUntil(obligationDue(o)) : null }))
     .filter(o => {
       if(f.state === 'open' && o.st === 'done') return false;
       if(f.state === 'overdue' && o.st !== 'overdue') return false;
       if(f.state === 'done' && o.st !== 'done') return false;
+      /* ---- ONE MORE OPTION IN A CONTROL THAT IS ALREADY THERE (L-3) ----
+         "What is held up across the whole book?" had no answer and needed no
+         new page to get one. Read off the BAND rather than re-deriving it, so
+         the cut and the heading it lands under cannot disagree. */
+      if(f.state === 'waiting' && o.band !== 'waiting') return false;
       if(f.side === 'ours' && obligationIsTheirs(o)) return false;
       if(f.side === 'theirs' && !obligationIsTheirs(o)) return false;
       if(f.whose === 'mine' && !obligationIsMine(o)) return false;
@@ -1283,7 +1561,15 @@ function obligationsDoorCount(){
      itself. Counting off allObligations instead would put a dead deal's
      promises on the sidebar, which is the reading this page and the alerts
      panel both already refuse. */
-  try{ return openObligations().filter(o => o.days != null && o.days < 0).length; }
+  /* AND A HELD-BACK STEP IS NOT LATE WORK (L-1). The door's own rule is that
+     its number matches the list behind it, and the worklist now bands a
+     blocked step apart from the overdue ones. A number counting work nobody
+     may do is the fault this feature exists to remove. */
+  try{
+    const byId = new Map((state.contracts || []).map(c => [c.id, c]));
+    return openObligations().filter(o => o.days != null && o.days < 0
+      && !obligationBlocked(o, byId.get(o.cid))).length;
+  }
   catch(_){ return 0; }
 }
 
@@ -1329,10 +1615,17 @@ function renderObligationsList(){
   const f = obwFilters();
   const rows = obwRows(f);
   const folders = (window.visibleFolders ? visibleFolders() : (window.FOLDERS || []));
-  const late = rows.filter(r => r.st === 'overdue').length;
+  /* THE THREE COUNTS THE HEAD PRINTS, AND THEY DO NOT OVERLAP (L-3).
+     `late` is what is overdue AND actionable — a held-back step whose date has
+     passed is counted as waiting, never as late, which is the same reading the
+     bands below use and the same one the sidebar's door now counts. */
+  const late = rows.filter(r => r.st === 'overdue' && r.band !== 'waiting').length;
+  const held = rows.filter(r => r.band === 'waiting').length;
+  const open = rows.filter(r => r.st !== 'done' && r.band !== 'waiting').length;
 
   const row = o => {
     const theirs = obligationIsTheirs(o);
+    const step = obligationStepNo(o, o._c);
     const unowned = (o.st !== 'done' && !obligationReminderTo(o))
       ? `<span class="obt-unowned" title="${_obEsc(i18t('ob_no_owner_title'))}">${_obEsc(i18t('ob_no_owner'))}</span>` : '';
     /* CHASING IS ONE ACT ON A THEIRS OBLIGATION and is drawn nowhere else: on
@@ -1341,9 +1634,16 @@ function renderObligationsList(){
     const chase = (theirs && o.st !== 'done' && (typeof canEdit !== 'function' || canEdit()))
       ? `<button type="button" data-obw-chase="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">${_obEsc(i18t('ob_chase'))}</button>` : '';
     return `<tr data-obw-row="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">
-      <td class="obw-c"><span class="obw-dot obt-dot obt-dot-${o.st}"></span>
-        <span class="obw-what">${_obEsc(o.desc || '')}</span>
-        <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}</span></td>
+      ${''/* ---- A CHAINED ROW NAMES ITS PLACE (L-3) ----
+             There is no room to draw the chain itself here, so the row says
+             where in one it sits — and a held-back row says what it waits on,
+             which is why it is in the band it is in. Both read through the ONE
+             chain reading; this page derives nothing of its own. */}
+      <td class="obw-c"><span class="obw-dot obt-dot obt-dot-${o.band === 'waiting' ? 'wait' : o.st}"></span>
+        <span class="obw-what${o.band === 'waiting' ? ' is-wait' : ''}">${_obEsc(o.desc || '')}</span>
+        <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}${
+          step ? ' &middot; ' + _obEsc(i18t('ob_step_n', { n: step.n, of: step.of })) : ''}${
+          o.band === 'waiting' && step ? ' &middot; ' + _obEsc(i18t('ob_waiting_on', { n: step.n - 1 })) : ''}</span></td>
       <td class="obw-side"><span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${
         _obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span></td>
       <td class="obw-who">${_obEsc(theirs ? (o.counterparty || i18t('ob_side_theirs')) : (o.assignee || ''))}${unowned}</td>
@@ -1398,9 +1698,28 @@ function renderObligationsList(){
     const h = homeSum(rows);
     const left = Object.entries(h.missing);
     if(!h.sum && !left.length) return '';
-    return `<div class="obw-total"><span>${_obEsc(i18t('ob_total'))}</span><b>${
-      _obEsc(window.fmtMoneyShort ? fmtMoneyShort(h.sum) : String(h.sum))}</b>${
-      left.length ? `<i>${_obEsc(i18tn('ob_total_left_out', left.reduce((a, [, n]) => a + n, 0),
+    /* ---- COMMITTED AGAINST PAID, AND IT IS THIS LINE GROWN (L-3) ----
+       This foot already said "Total on this page" over converted money and
+       already stated what it left out for want of a rate. So the whole
+       committed-against-paid reading needed NO new screen, no panel and no
+       band — only three more figures on a line that was already here, which
+       is the cheapest channel that carries the fact.
+       SPLIT THROUGH THE SAME homeSum, so the four cannot disagree with each
+       other or with the band sums above them: paid + outstanding IS the total,
+       by construction, because they are the same rows partitioned once.
+       "ON THIS PAGE" IS KEPT AND IS LOAD-BEARING — these are the rows the
+       filters left, not the whole book, and the wording has always said so. */
+    const money4 = window.fmtMoneyShort ? fmtMoneyShort : String;
+    const paid = homeSum(rows.filter(r => r.st === 'done')).sum;
+    const over = homeSum(rows.filter(r => r.band === 'overdue')).sum;
+    const out  = homeSum(rows.filter(r => r.st !== 'done')).sum;
+    return `<div class="obw-total">
+      <span>${_obEsc(i18t('ob_total'))}</span>
+      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_committed'))}</i><b>${_obEsc(money4(h.sum))}</b></span>
+      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_paid'))}</i><b class="is-ok">${_obEsc(money4(paid))}</b></span>
+      <span class="obw-m"><i>${_obEsc(i18t('ob_roll_outstanding'))}</i><b>${_obEsc(money4(out))}</b></span>
+      ${over ? `<span class="obw-m"><i>${_obEsc(i18t('ob_roll_overdue'))}</i><b class="is-bad">${_obEsc(money4(over))}</b></span>` : ''}
+      ${left.length ? `<i class="obw-left">${_obEsc(i18tn('ob_total_left_out', left.reduce((a, [, n]) => a + n, 0),
         { n: left.reduce((a, [, n]) => a + n, 0), codes: left.map(([code]) => code).join(', ') }))}</i>` : ''}</div>`;
   })();
 
@@ -1413,12 +1732,20 @@ function renderObligationsList(){
              "2 outstanding" over two finished obligations — the page stating
              something untrue about the rows directly beneath it. The count is
              the same count; only the word follows the cut. */}
+        ${''/* THE WORD FOLLOWS THE CUT — and the waiting cut needed its own,
+               or a page narrowed to held-back steps would be headed "N
+               outstanding" over rows that are precisely NOT outstanding: the
+               page stating something untrue about what is beneath it, which
+               is the fault this head has already been corrected for once. */}
         <span class="obt-cap">${_obEsc(f.state === 'done'
           ? i18tn('ob_head_done', rows.length, { n: rows.length })
           : f.state === 'overdue'
           ? i18tn('ob_head_overdue', rows.length, { n: rows.length })
-          : i18tn('ob_head_open', rows.length, { n: rows.length }))}</span>
+          : f.state === 'waiting'
+          ? i18tn('ob_head_waiting', rows.length, { n: rows.length })
+          : i18tn('ob_head_open', open, { n: open }))}</span>
         ${late && f.state !== 'overdue' ? `<span class="obt-over">${_obEsc(i18tn('ob_head_overdue', late, { n: late }))}</span>` : ''}
+        ${held && f.state !== 'waiting' ? `<span class="obt-wait">${_obEsc(i18tn('ob_head_waiting', held, { n: held }))}</span>` : ''}
       </div>
       <div class="obw-filters">
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
@@ -1496,5 +1823,10 @@ async function obligationChase(cid, obId){
   return o;
 }
 
-Object.assign(window,{obligationAlreadyOn,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+/* THE CHAIN'S READINGS ARE PUBLISHED. A name this module defines and another
+   reaches through `window` is unreachable unless it is on this list — the
+   rlPaperFootHtml fault, which this codebase has paid for six times and which
+   fails in SILENCE with a plausible fallback. f232 sweeps for it. */
+Object.assign(window,{obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
+  obligationAlreadyOn,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

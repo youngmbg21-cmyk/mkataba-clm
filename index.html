@@ -3086,7 +3086,15 @@
     font-size:var(--t-label); color:var(--color-neutral-600); }
   .obw-total b{ margin-left:auto; font-size:var(--t-meta); color:var(--color-text);
     font-variant-numeric:tabular-nums; }
-  .obw-total i{ font-style:normal; flex-basis:100%; color:var(--st-amber-fg); }
+  /* ---- A DIRECT CHILD, NEVER A DESCENDANT (L-3) ----
+     This was `.obw-total i`, which was correct while the foot held one figure
+     and one note. The foot holds four label-and-value pairs now, and each
+     pair's own label is an <i> — so a descendant selector reached inside them
+     and gave every LABEL flex-basis:100%, wrapping its value onto a second
+     line and taking the foot from one line to two. MEASURED: each pair 36px
+     tall inside a 17px row. The left-out note carries its own class, so
+     narrowing this to the direct child costs nothing and closes the reach. */
+  .obw-total > i{ font-style:normal; flex-basis:100%; color:var(--st-amber-fg); }
   .obw-dot{ display:inline-block; margin:0 7px 1px 0; }
   .obw-what{ display:inline; }
   .obw-meta{ display:block; margin-left:15px; font-size:var(--t-label);
@@ -3150,6 +3158,77 @@
     background:var(--st-amber-dot); }
   .obt-dot-overdue{ background:var(--st-ruby-dot); }
   .obt-dot-done{ background:var(--st-green-dot); }
+  /* ---- THE PAYMENT CHAIN (L, 31 Aug 2026) ----
+     A step waiting on an earlier one is drawn HELD BACK rather than merely
+     tinted: it is set in from the spine, its connector is dashed and its chip
+     names the step it waits on. Colour is never the only carrier, and the
+     shape is what makes "this chain is not flowing" readable at a glance. */
+  .obt-dot-wait{ background:var(--st-gray-dot); }
+  .obt-paid{ margin-left:var(--s-2); font-size:var(--t-meta); font-weight:var(--w-strong);
+    font-variant-numeric:tabular-nums; color:var(--color-text); }
+  .obt-wait{ font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .obt-chain-hd{ display:flex; align-items:center; gap:var(--s-2);
+    padding:8px var(--s-4); background:var(--color-accent-50);
+    border-top:1px solid var(--color-accent-200); border-bottom:1px solid var(--color-accent-200); }
+  .obt-chain-hd .t{ font-size:var(--t-meta); font-weight:var(--w-title); color:var(--accent-ink); }
+  .obt-chain-hd .s{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .obt-chain-hd i{ margin-left:auto; font-style:normal; font-size:var(--t-label);
+    font-weight:var(--w-strong); font-variant-numeric:tabular-nums;
+    color:var(--color-neutral-700); }
+  .obt-step{ display:flex; gap:14px; align-items:center; position:relative;
+    padding:10px var(--s-4) 10px 10px; border-bottom:1px solid var(--rule); }
+  .obt-step:hover{ background:var(--nav-well); }
+  .obt-spine{ flex:none; width:22px; align-self:stretch; position:relative; }
+  /* The connector runs THROUGH the row and is clipped by the group's own
+     first and last step, so a chain reads as one object rather than as rows
+     that happen to be next to each other. */
+  .obt-spine::before{ content:''; position:absolute; left:10px; top:-11px; bottom:-11px;
+    width:2px; background:var(--color-divider); }
+  .obt-step:first-of-type .obt-spine::before{ top:50%; }
+  .obt-step:last-of-type .obt-spine::before{ bottom:50%; }
+  .obt-step.is-wait .obt-spine::before{
+    background:repeating-linear-gradient(to bottom,var(--color-divider) 0 3px,transparent 3px 7px); }
+  .obt-pip{ position:absolute; left:3px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; border-radius:50%; background:var(--color-surface);
+    border:2px solid var(--color-divider); display:flex; align-items:center;
+    justify-content:center; font-style:normal; font-size:var(--t-figure);
+    font-weight:var(--w-title); font-variant-numeric:tabular-nums;
+    color:var(--color-neutral-600); }
+  .obt-step.is-done .obt-pip{ background:var(--st-green-dot); border-color:var(--st-green-dot);
+    color:#fff; }
+  .obt-step.is-over .obt-pip{ border-color:var(--st-ruby-dot); color:var(--st-ruby-fg); }
+  /* ---- SET BACK, BUT NEVER FADED ----
+     The approved render drew this row at opacity .74 and MEASURED that costs
+     more than it buys: the label ink falls from 6.31:1 to 3.48:1 on white and
+     the chip from 6.92 to 3.70 — both under AA, on the one row a reader most
+     needs to be able to read to understand why nothing is happening. An
+     OPACITY IS NOT AN INK, which is this file's own recorded rule, paid for
+     once on `.text-ink/40…/60`.
+     THE STATE IS STILL CARRIED FOUR WAYS AND NONE OF THEM IS CONTRAST: the row
+     is set in from the spine, its connector is dashed, its chip names the step
+     it waits on, and its description drops to the label shade — which is the
+     four-shades rule doing exactly the job a fade was doing badly. */
+  .obt-step.is-wait{ padding-left:34px; }
+  .obt-step.is-wait .obt-what{ color:var(--color-neutral-600); }
+  .obt-quiet{ color:var(--color-neutral-500); }
+  .obt-chip{ flex:none; font-size:var(--t-micro); font-weight:var(--w-strong);
+    padding:2px 8px; border-radius:var(--radius); white-space:nowrap;
+    background:var(--st-gray-bg); color:var(--st-gray-fg); }
+  .obt-chip.is-done{ background:var(--st-green-bg); color:var(--st-green-fg); }
+  .obt-chip.is-over{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
+  /* The worklist's own held-back row: the same reading, quieter, because that
+     page bands them together and the band heading carries the fact. */
+  .obw-what.is-wait{ color:var(--color-neutral-600); }
+  /* THE FOOT GREW FROM ONE FIGURE TO FOUR (L-3) and stays ONE LINE: each
+     figure is a label-and-value pair, and the left-out note keeps its own. */
+  .obw-m{ display:flex; align-items:baseline; gap:6px; }
+  .obw-m i{ font-style:normal; color:var(--color-neutral-600); }
+  .obw-m b{ margin-left:0; font-size:var(--t-meta); color:var(--color-text);
+    font-variant-numeric:tabular-nums; font-weight:var(--w-strong); }
+  .obw-m b.is-ok{ color:var(--st-green-fg); }
+  .obw-m b.is-bad{ color:var(--st-ruby-fg); }
+  .obw-m:first-of-type{ margin-left:auto; }
+  .obw-left{ font-style:normal; flex-basis:100%; color:var(--st-amber-fg); }
   .obt-body{ flex:1; min-width:0; }
   .obt-what{ font-size:var(--t-body); line-height:20px; }
   .obt-meta{ display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;
