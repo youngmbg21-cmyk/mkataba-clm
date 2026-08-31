@@ -8139,3 +8139,16 @@ Noticed, not fixed:
 - negotiations-door-verify's two "four tabs" checks fail identically on
   origin/main and here — the room has had FIVE tabs since J-2.1 (Obligations)
   and that claim was never re-pointed.
+- theme-tokens-verify is 37/40 on origin/main as well as here, and TWO of the
+  three are a palette change on main that was never re-recorded. DIAGNOSED
+  rather than merely noticed, so whoever owns it can re-record in a minute:
+  the Copilot violet (rgb(109,40,217) light / rgb(196,181,253) dark) has left
+  the negotiate screen because the ⋯ menu's lead row is now suppressed on any
+  card whose FACE already carries data-rl-cp-editor-row — which is every card
+  on that screen since the card's own Edit became that act on 30 Aug. So the
+  row survives only for a card with a bare face (a decided or withdrawn ask),
+  and the census stages none. Not re-recorded here: re-recording is a
+  deliberate palette-ownership act and doing it in passing would bury
+  somebody else's change under this run's commit. The third failure,
+  templates--light, is this branch's own and is deliberately left red (see
+  CLAUDE.md).
