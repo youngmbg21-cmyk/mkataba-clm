@@ -328,7 +328,19 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await page.evaluate(() => { const c = state.contracts.find(x => x.id !== state.activeId);
       if (c){ c.counterpartyEmail = 'ops@nordkust.test';
         c.obligations = [{ id: 'x1', desc: 'Deliver the audited accounts',
-          due: '2026-01-01', status: 'open', party: 'theirs' }]; persist(c); } });
+          due: '2026-01-01', status: 'open', party: 'theirs' },
+          /* ---- A REAL ONE, SO THE CLAMP CLAIM DISCRIMINATES (M-6) ----
+             Every obligation this fixture carried was four or five words, so a
+             check that the date column holds one vertical passed on the unfixed
+             code too — a description, not a measurement. This is the shape the
+             report came off: a duty read straight out of a preferred-stock
+             charter, which wraps to six lines in that column unclamped. */
+          { id: 'x2', status: 'open', party: 'theirs', due: '2026-02-01',
+            desc: 'Corporation shall not declare, pay or set aside dividends on any '
+              + 'other class or series of stock unless the Preferred Stock first '
+              + 'receives a preferential non-cumulative dividend of at least six per '
+              + 'cent per annum of the applicable Original Issue Price per share' }];
+        persist(c); } });
     await page.waitForTimeout(1400);
     await page.click('#side-nav [data-view="obligations"]');
     await page.waitForTimeout(900);
@@ -376,6 +388,111 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     void whole;
     check('…with its five filters and no sideways scroll',
       wl.filters === 5 && wl.sideways === false, `${wl.filters} filters`);
+
+    /* ---- THE WORKLIST READS AS A TABLE (M-6, owner-reported 31 Aug 2026) ----
+       Four reports on one screenshot: no column headers, a Clear that never
+       says whether anything is on, an obligation that wraps to six lines so the
+       date beside it sits at a different height on every row, and a door
+       nothing on the row admits to.
+
+       MEASURED, never read: every one of these is a question about pixels. The
+       clamp in particular is only answerable by comparing the DATE cell's own
+       top across rows — the markup looks identical either way. */
+    const tbl = await page.evaluate(() => {
+      const head = [...document.querySelectorAll('.obw-table thead th')];
+      const rows = [...document.querySelectorAll('.obw-table tr[data-obw-row]')];
+      /* ---- MEASURED AS ROW HEIGHT, NOT AS THE CELL'S OWN TOP ----
+         A table cell stretches to its row, so its top is 0 from the row's top
+         on every row whatever the row's height — a check written that way
+         passes on the unfixed code and is a description. What the report is
+         about is that the ROWS are one height, so the date column reads down
+         one vertical rhythm instead of drifting. */
+      const dates = rows.map(r => {
+        const td = r.querySelector('.obw-when');
+        const rr = td.getBoundingClientRect(), tr = r.getBoundingClientRect();
+        return { off: Math.round(rr.top - tr.top), h: Math.round(tr.height) };
+      });
+      const hs = dates.map(d => d.h);
+      const what = rows.map(r => r.querySelector('.obw-what'));
+      const clamp = what.map(w => { const cs = getComputedStyle(w);
+        return cs.whiteSpace + '/' + cs.textOverflow + '/' + cs.overflow; });
+      const titled = what.every(w => (w.getAttribute('title') || '').trim().length > 0);
+      const whole = what.every(w => (w.getAttribute('title') || '').trim()
+        .startsWith(w.textContent.trim().slice(0, 20)));
+      const clear = document.getElementById('obw-clear');
+      const cs = getComputedStyle(clear);
+      return { cols: head.map(h => h.className), names: head.map(h => h.textContent.trim()),
+        sticky: head[0] ? getComputedStyle(head[0]).position : 'no head row at all',
+        cells: rows.length ? rows[0].querySelectorAll('td').length : 0,
+        offs: [...new Set(dates.map(d => d.off))], heights: [...new Set(hs)],
+        spread: hs.length ? Math.max(...hs) - Math.min(...hs) : -1, tallest: hs.length ? Math.max(...hs) : -1,
+        clamp: [...new Set(clamp)], titled, whole,
+        clearOff: clear.disabled, clearInk: cs.color, clearOn: clear.classList.contains('is-on'),
+        clearTip: clear.getAttribute('title') || '' };
+    });
+    check('M-6 the table names its columns, one head cell per body cell',
+      tbl.cols.length === tbl.cells && tbl.names.filter(Boolean).length >= 4,
+      `${tbl.cols.length} heads vs ${tbl.cells} cells — ${tbl.names.join(' | ')}`);
+    check('M-6 …and the head does not scroll away from the columns it names',
+      tbl.sticky === 'sticky', tbl.sticky);
+    /* THE REPORTED FAULT ITSELF: the date column on one vertical at every row.
+       Before the clamp a long obligation wrapped to six lines, so the row grew
+       and the date sat at the top of whatever height that row happened to be. */
+    check('M-6 THE DATE COLUMN HOLDS ONE VERTICAL — every row is one height',
+      tbl.spread === 0 && tbl.tallest <= 70,
+      `spread ${tbl.spread}px, tallest ${tbl.tallest}px — heights ${tbl.heights.join(', ')}`);
+    check('M-6 …because the obligation is cut to one line, with an ellipsis saying so',
+      tbl.clamp.length === 1 && tbl.clamp[0] === 'nowrap/ellipsis/hidden', tbl.clamp.join(', '));
+    check('M-6 …and nothing is hidden silently — the whole wording is on the row',
+      tbl.titled && tbl.whole, `titled ${tbl.titled}, whole ${tbl.whole}`);
+    /* CLEAR STATES ITSELF. Measured from the page's OWN DEFAULT CUT, which is
+       what the reader arrives on — so the checks above (which widened State to
+       'all' for the sake of having rows from two contracts) are undone first.
+       That widening IS a narrowing as far as this reading is concerned, because
+       State opens on `open`: comparing against 'all' rather than against the
+       default would have reported the page as filtered the moment it drew. */
+    await page.evaluate(() => document.getElementById('obw-clear').click());
+    await page.waitForTimeout(500);
+    const clearNow = await page.evaluate(() => {
+      const c = document.getElementById('obw-clear');
+      const before = { off: c.disabled, tip: c.getAttribute('title'),
+        marked: !!document.querySelector('.obw-f.is-on') };
+      const sel = document.querySelector('.obw-filters [data-obw-f="side"]');
+      sel.value = 'theirs'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      return before;
+    });
+    await page.waitForTimeout(500);
+    const clearAfter = await page.evaluate(() => {
+      const c = document.getElementById('obw-clear');
+      const f = document.querySelector('.obw-f.is-on');
+      return { off: c.disabled, on: c.classList.contains('is-on'),
+        count: (c.textContent.match(/\d+/) || [''])[0],
+        tip: c.getAttribute('title') || '',
+        marked: !!f, markedWhich: f ? (f.querySelector('select') || {}).getAttribute?.('data-obw-f') : null };
+    });
+    check('M-6 CLEAR IS DEAD AND QUIET WITH NOTHING NARROWING THE LIST',
+      clearNow.off === true && clearNow.marked === false && /narrow/i.test(clearNow.tip || ''),
+      `disabled ${clearNow.off}, marked ${clearNow.marked} · "${clearNow.tip}"`);
+    check('M-6 …and comes alive, counting, the moment a filter is on',
+      clearAfter.off === false && clearAfter.on === true && clearAfter.count === '1',
+      `disabled ${clearAfter.off}, accented ${clearAfter.on}, count ${clearAfter.count}`);
+    check('M-6 …and the control doing the narrowing says so itself',
+      clearAfter.marked === true && clearAfter.markedWhich === 'side',
+      `marked ${clearAfter.markedWhich}`);
+    await page.evaluate(() => document.getElementById('obw-clear').click());
+    await page.waitForTimeout(500);
+    const cleared = await page.evaluate(() => {
+      const c = document.getElementById('obw-clear');
+      return { off: c.disabled, marked: !!document.querySelector('.obw-f.is-on') };
+    });
+    check('M-6 …and pressing it puts the page back and stands the button down',
+      cleared.off === true && cleared.marked === false,
+      `disabled ${cleared.off}, still marked ${cleared.marked}`);
+    await page.evaluate(`(() => {
+      const sel = document.querySelector('.obw-filters [data-obw-f="state"]');
+      sel.value = 'all'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    await page.waitForTimeout(500);
     /* EVERY Chase sits on a row that is theirs and still open — a count would
        only pin today's fixture; this pins the rule. */
     const chaseRows = await page.evaluate(() =>

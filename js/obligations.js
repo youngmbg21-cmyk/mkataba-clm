@@ -618,6 +618,28 @@ function openObligationForm(c, seed){
     if(!o.desc){ toast('Enter a description','err'); return; }
     c.obligations=c.obligations||[];
     const editing=seed._i!=null;
+    /* ---- NO DUPLICATE OBLIGATIONS, EVER (M-4) ----
+       (owner-reported 31 Aug 2026: *"never allow for addition of duplicate
+       obligations."*)
+
+       THE SCAN ALREADY REFUSED ONE and this form did not — so the one door a
+       person types into was the one door with no guard, and with J-5.2 in, a
+       duplicated obligation is duplicated MONEY on every figure that sums them.
+
+       IT ASKS obligationAlreadyOn, THE ONE READING, rather than growing a
+       second: description matched with whitespace collapsed and case folded,
+       exactly as the scan matches, so the two doors cannot come to disagree
+       about what "the same obligation" means.
+
+       NEVER AGAINST ITSELF. Editing an obligation and saving it without
+       changing its wording is not a duplicate, so the row being edited is left
+       out of the comparison — otherwise every second save of an existing
+       obligation would be refused.
+
+       REFUSED IN WORDS, never silently dropped: the reader typed it and is owed
+       the reason and the name of what it clashes with. */
+    const others = { obligations:(c.obligations||[]).filter((_,i)=>!(editing&&i===seed._i)) };
+    if(obligationAlreadyOn(others,o)){ toast(i18t('ob_dupe',{ desc:o.desc }),'err'); return; }
     /* ---- A LOOP IS REFUSED IN WORDS (L-5) ----
        Two steps pointing at each other would leave both waiting for ever with
        nothing on screen able to say why. Checked against the list AS IT WOULD
@@ -648,10 +670,51 @@ function openObligationForm(c, seed){
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
   });
 }
+/* ---- THE SCAN SAYS IT IS WORKING, AT EVERY DOOR (M-3) ----
+   (owner-reported 31 Aug 2026, off a screenshot of the contract's Obligations
+   tab: *"when you click on find obligations or scanning of obligations, it is
+   not clear that something is working in the background so provide a symbol
+   that a search is ongoing within the button."*)
+
+   THE BUSY STATE EXISTED AND REACHED ONE DOOR OF TWO. runFindObligations wrote
+   it onto `#ob-find` — the Checks card's door — and the contract's own
+   Obligations tab draws `#obt-find`, which was never touched at all. The tab
+   is the door in the screenshot, so on the screen the owner was looking at, a
+   scan that takes twenty seconds said nothing whatsoever.
+
+   ONE HELPER, EVERY DOOR, so a third one added later cannot be forgotten: it
+   is a list rather than two lines, and OB_FIND_DOORS is where a new door joins.
+
+   A SYMBOL, NOT ONLY A WORD, which is what was asked for — a spinning ring
+   beside the word, defined in HaTi's own sheet and standing still under
+   prefers-reduced-motion.
+
+   THE LABEL IS REMEMBERED ON THE ELEMENT rather than rebuilt from a key: these
+   two doors do not read the same word (one is a card row, one is a tab act),
+   and a helper that put one word back on both would rename the other. */
+const OB_FIND_DOORS = ['ob-find', 'obt-find'];
+function obFindBusy(on){
+  OB_FIND_DOORS.forEach(id => {
+    const b = document.getElementById(id); if(!b) return;
+    if(on){
+      if(b.dataset.obWas == null) b.dataset.obWas = b.innerHTML;
+      b.disabled = true; b.setAttribute('aria-busy', 'true');
+      b.innerHTML = `<span class="ob-spin" aria-hidden="true"></span>${_obEsc(i18t('ob_scanning'))}`;
+    } else {
+      b.disabled = false; b.removeAttribute('aria-busy');
+      if(b.dataset.obWas != null){ b.innerHTML = b.dataset.obWas; delete b.dataset.obWas; }
+    }
+  });
+}
 async function runFindObligations(c){
-  const btn=document.getElementById('ob-find'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ob_scanning')}</span>`; }
-  const found=await extractObligations(c);
-  if(btn){ btn.disabled=false; }
+  obFindBusy(true);
+  /* AND IT STOPS SPINNING WHATEVER HAPPENS. A refusal deep in the reader — no
+     key, a provider saying no, a document too short — must not leave a button
+     disabled and spinning for the life of the page, which is a dead screen
+     wearing a working one's clothes. */
+  let found = [];
+  try{ found = await extractObligations(c) || []; }
+  finally{ obFindBusy(false); }
   /* ---- THE CONTRACT REMEMBERS THAT IT WAS READ (J-2.2) ----
      "No obligations tracked" and "nobody has looked" were the same screen, and
      the Insights obligations page named that as one of its two blind spots.
@@ -1489,9 +1552,24 @@ const OBW_KEY = 'hati.v1.obFilters';
    week later with nothing on screen saying why — the register's own lesson,
    and this page has no saved-view machinery to say it with. */
 let _obwF = null;
+/* ---- ONE STATEMENT OF WHAT THIS PAGE SHOWS BY DEFAULT (M-6) ----
+   Named rather than written into obwFilters, because "is anything narrowing
+   this list?" has to be asked of the SAME answer the page opens on — and it is
+   not simply "everything is set to All": the State filter opens on `open`,
+   which is a cut, and a reading that compared against 'all' would report the
+   page as filtered the moment it was drawn. */
+const OBW_DEF = { whose:'all', state:'open', side:'all', folder:'all', due:'all' };
 function obwFilters(){
-  if(!_obwF) _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all' };
+  if(!_obwF) _obwF = { ...OBW_DEF };
   return _obwF;
+}
+/* WHICH FILTERS ARE NARROWING THE LIST, as a list of their own names. Asked by
+   the Clear button (which counts them and stands down at zero) and by each
+   control (which wears the accent when it is the one doing the narrowing) — one
+   reading, so the button and the controls cannot say different things. */
+function obwNarrowing(f){
+  f = f || obwFilters();
+  return Object.keys(OBW_DEF).filter(k => String(f[k]) !== String(OBW_DEF[k]));
 }
 const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],['waiting','ob_f_state_waiting'],
   ['done','ob_f_state_done'],['all','ob_f_state_all']];
@@ -1590,8 +1668,20 @@ function obwGoFiltered(patch){
   if(typeof setView === 'function') setView('obligations');
   else renderObligationsList();
 }
+/* ---- A CONTROL THAT IS NARROWING THE LIST SAYS SO (M-6) ----
+   (owner-reported 31 Aug 2026: *"it is never clear if there is a filter on so
+   you can click clear."*)
+
+   The register settled this question on 25 Aug — an active filter takes
+   `--accent-ink`, and the accent is kept for the active one alone — so this
+   page takes that answer rather than inventing a second vocabulary. `is-on` is
+   set against OBW_DEF, never against 'all', because State opens on a cut.
+
+   ONE more thing on the same row answers it too: the Clear button counts them,
+   so the reader learns BOTH which control is narrowing and how many are. */
 function obwSelect(id, opts, cur){
-  return `<label class="obw-f"><span>${_obEsc(i18t('ob_f_' + id))}</span>
+  const on = String(cur) !== String(OBW_DEF[id]);
+  return `<label class="obw-f${on ? ' is-on' : ''}"><span>${_obEsc(i18t('ob_f_' + id))}</span>
     <select data-obw-f="${id}">${opts.map(([k, key]) =>
       `<option value="${k}"${k === cur ? ' selected' : ''}>${_obEsc(i18t(key))}</option>`).join('')}</select></label>`;
 }
@@ -1615,6 +1705,7 @@ function renderObligationsList(){
   const f = obwFilters();
   const rows = obwRows(f);
   const folders = (window.visibleFolders ? visibleFolders() : (window.FOLDERS || []));
+  const narrowing = obwNarrowing(f);
   /* THE THREE COUNTS THE HEAD PRINTS, AND THEY DO NOT OVERLAP (L-3).
      `late` is what is overdue AND actionable — a held-back step whose date has
      passed is counted as waiting, never as late, which is the same reading the
@@ -1639,11 +1730,36 @@ function renderObligationsList(){
              where in one it sits — and a held-back row says what it waits on,
              which is why it is in the band it is in. Both read through the ONE
              chain reading; this page derives nothing of its own. */}
-      <td class="obw-c"><span class="obw-dot obt-dot obt-dot-${o.band === 'waiting' ? 'wait' : o.st}"></span>
-        <span class="obw-what${o.band === 'waiting' ? ' is-wait' : ''}">${_obEsc(o.desc || '')}</span>
-        <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}${
-          step ? ' &middot; ' + _obEsc(i18t('ob_step_n', { n: step.n, of: step.of })) : ''}${
-          o.band === 'waiting' && step ? ' &middot; ' + _obEsc(i18t('ob_waiting_on', { n: step.n - 1 })) : ''}</span></td>
+      ${''/* ---- THE OBLIGATION IS CLAMPED, AND IT IS THE DOOR (M-6) ----
+             (owner-reported 31 Aug 2026: *"the overdue column needs to be the
+             same size in every line therefore shorten the obligation. User can
+             click the obligation and it takes them to the contract in
+             question's obligation page for the full writing."*)
+
+             A clause read out of a charter can run to forty words, and this
+             column let it wrap to six lines — so the row was six lines tall,
+             every row a different height, and the date beside it sat at the top
+             of whatever height its own row happened to be. Clamped to TWO, so
+             every row is one height and the date column holds one vertical.
+
+             NOTHING IS HIDDEN SILENTLY: the whole wording is on the row's own
+             title, and one press away in full on the contract's own tab — which
+             is where the press has always gone and which nothing on the row
+             said. The description carries the underline on hover now, so the
+             door the row has always been is visible.
+
+             THE DOT MOVED OUT OF THE TEXT FLOW into a flex row beside it: as an
+             inline-block inside a clamped box it would have counted as one of
+             the two lines. */}
+      <td class="obw-c"><span class="obw-cw">
+        <span class="obw-dot obt-dot obt-dot-${o.band === 'waiting' ? 'wait' : o.st}"></span>
+        <span class="obw-txt">
+          <span class="obw-what${o.band === 'waiting' ? ' is-wait' : ''}"
+            title="${_obEsc(o.desc || '')}">${_obEsc(o.desc || '')}</span>
+          <span class="obw-meta">${_obEsc(o.cname || o.cid)} &middot; ${_obEsc(o.cid)}${
+            step ? ' &middot; ' + _obEsc(i18t('ob_step_n', { n: step.n, of: step.of })) : ''}${
+            o.band === 'waiting' && step ? ' &middot; ' + _obEsc(i18t('ob_waiting_on', { n: step.n - 1 })) : ''}</span>
+        </span></span></td>
       <td class="obw-side"><span class="obt-side obt-side-${theirs ? 'them' : 'us'}">${
         _obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))}</span></td>
       <td class="obw-who">${_obEsc(theirs ? (o.counterparty || i18t('ob_side_theirs')) : (o.assignee || ''))}${unowned}</td>
@@ -1751,13 +1867,45 @@ function renderObligationsList(){
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
         ${obwSelect('state', OBW_STATE, f.state)}
         ${obwSelect('side', OBW_SIDE, f.side)}
-        <label class="obw-f"><span>${_obEsc(i18t('ob_f_folder'))}</span>
+        <label class="obw-f${f.folder !== OBW_DEF.folder ? ' is-on' : ''}"><span>${_obEsc(i18t('ob_f_folder'))}</span>
           <select data-obw-f="folder"><option value="all"${f.folder === 'all' ? ' selected' : ''}>${_obEsc(i18t('ob_f_folder_all'))}</option>${
             folders.map(x => `<option value="${_obEsc(x.id)}"${f.folder === x.id ? ' selected' : ''}>${_obEsc(x.name)}</option>`).join('')}</select></label>
         ${obwSelect('due', OBW_DUE, f.due)}
-        <button type="button" id="obw-clear" class="ui-btn">${_obEsc(i18t('reg_clear'))}</button>
+        ${''/* ---- CLEAR STATES ITSELF (M-6) ----
+               It was a live button whatever the page was showing, so a reader
+               could not tell a narrowed list from a whole one by looking at it
+               — and pressing it on a whole one did nothing, which reads as a
+               broken control. Dead and quiet with nothing narrowing, counting
+               and accented when something is; the reason on the hover either
+               way, which is this product's rule for what it can know before the
+               press. */}
+        <button type="button" id="obw-clear" class="ui-btn${narrowing.length ? ' is-on' : ''}"${
+          narrowing.length ? '' : ' disabled'} title="${_obEsc(narrowing.length
+            ? i18tn('ob_clear_on', narrowing.length, { n: narrowing.length })
+            : i18t('ob_clear_none'))}">${_obEsc(i18t('reg_clear'))}${
+          narrowing.length ? ` <b>${narrowing.length}</b>` : ''}</button>
       </div>
-      ${rows.length ? `<table class="obw-table">${banded}</table>${foot}`
+      ${''/* ---- THE TABLE NAMES ITS COLUMNS (M-6) ----
+             (owner-reported 31 Aug 2026: *"the table has no column headers."*)
+
+             It never had any: the bands were the only thing above a row, so a
+             reader met six columns of facts with nothing saying what any of
+             them was — the amount and the date in particular, which are two
+             right-aligned numbers side by side.
+
+             ON THE WIDTHS THE TABLE ALREADY DECLARES, and drawn from the same
+             `money` reading as the cells, so the head and the body cannot come
+             to disagree about how many columns there are. The last column is
+             deliberately unnamed: it holds verbs, and a heading over a verb
+             column names nothing a reader needs. */}
+      ${rows.length ? `<table class="obw-table"><thead><tr>
+          <th class="obw-c">${_obEsc(i18t('ob_col_what'))}</th>
+          <th class="obw-side">${_obEsc(i18t('ob_col_side'))}</th>
+          <th class="obw-who">${_obEsc(i18t('ob_col_who'))}</th>
+          ${money ? `<th class="obw-amt">${_obEsc(i18t('ob_amount'))}</th>` : ''}
+          <th class="obw-when">${_obEsc(i18t('ob_col_when'))}</th>
+          <th class="obw-acts"><span class="sr-only">${_obEsc(i18t('ob_col_acts'))}</span></th>
+        </tr></thead><tbody>${banded}</tbody></table>${foot}`
         : `<div class="obt-empty">${_obEsc(i18t('ob_none_match'))}</div>`}
     </div></div>`;
 
@@ -1828,5 +1976,5 @@ async function obligationChase(cid, obId){
    rlPaperFootHtml fault, which this codebase has paid for six times and which
    fails in SILENCE with a plausible fallback. f232 sweeps for it. */
 Object.assign(window,{obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
-  obligationAlreadyOn,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+  obligationAlreadyOn,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

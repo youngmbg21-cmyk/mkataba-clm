@@ -641,43 +641,44 @@ function clauseEditorCss(){
   .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
 
-  /* ---- HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER ----
-     Highlight a sentence in the contract and this strip opens under it,
-     carrying that sentence. What is in the box replaces THAT passage only —
-     the rest of the clause is untouched, and the redline is recomputed from
-     the two texts as always.
+  /* ---- THE HIGHLIGHTED PASSAGE, IN THE RAIL (M-1, owner-chose Option A) ----
+     It sits between the conversation and the ready-made questions, DIRECTLY
+     over the ask box — which is the whole of why Option A was recommended and
+     chosen: what is attached and what you are typing are read together, and a
+     card pinned to the foot of the rail can neither scroll away nor be left
+     attached with no way to release it.
 
-     THE BOX GROWS WITH THE WORDING (ceInlineFit), so max-height is what bounds
-     it rather than a fixed row: a replacement is a sentence, and a strip that
-     shows three words of one is a strip nobody can proof-read. .ce-inline .q
-     is STALE — the context line went with the prefill. */
-  .ce-inline{position:absolute; z-index:6; width:min(420px, calc(100% - 24px));
-    background:var(--color-surface); border:1px solid var(--accent-solid);
-    box-shadow:var(--shadow-md); padding:9px 10px; display:none}
-  .ce-inline.is-on{display:block}
-  .ce-inline .row{display:flex; gap:7px; align-items:flex-end}
-  .ce-inline textarea{flex:1; min-width:0; min-height:30px; max-height:120px; overflow-y:auto; padding:6px 9px;
-    font:inherit; font-size:var(--t-meta); line-height:1.4; resize:none; background:var(--color-surface);
-    border:1px solid var(--color-divider); color:var(--color-text); outline:none}
-  .ce-inline textarea:focus{box-shadow:var(--focus)}
-  .ce-inline .snd{flex:none; display:inline-grid; place-items:center; width:30px; height:30px;
-    padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
-    color:#fff}
-  .ce-inline .snd svg{width:15px; height:15px; display:block}
-  .ce-inline .cut{flex:none; width:30px; height:30px; display:inline-grid; place-items:center;
-    padding:0; font:inherit; font-size:var(--t-meta); background:var(--color-surface);
+     It takes no flex, so the conversation above it gives up the height and never
+     the box below it; and it draws NOTHING when nothing is attached, so the
+     ordinary rail is the rail it has always been. NO BACKTICK MAY APPEAR IN A
+     COMMENT IN THIS BLOCK — the whole sheet is returned from a template literal,
+     so one ends the string and the browser parses the rules after it as code.
+     This file's own history records that fault twice; it was paid a third time
+     writing this very note.
+
+     THE QUOTE IS CLAMPED TO FOUR LINES and carries the whole passage on its own
+     title — a sentence of contract drafting can run to sixty words and the rail
+     is not where it is read; the paper twelve pixels to the left is. */
+  .ce-rail #ce-scope{flex:none}
+  .ce-scope{margin:0 13px 9px; padding:8px 10px;
+    background:var(--color-neutral-100); border:1px solid var(--color-divider)}
+  .ce-scope .eb{display:flex; align-items:center; gap:6px; font-size:var(--t-figure);
+    font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
+    color:var(--accent-ink)}
+  .ce-scope .eb b{font-weight:var(--w-title)}
+  .ce-scope .eb .g{flex:1; min-width:4px}
+  .ce-scope .x{flex:none; width:20px; height:20px; display:inline-grid; place-items:center; padding:0;
+    font:inherit; font-size:var(--t-label); background:none; border:0;
+    color:var(--color-neutral-600); cursor:pointer}
+  .ce-scope .x:hover{color:var(--color-text)}
+  .ce-scope q{display:block; margin-top:5px; padding-left:8px; quotes:none;
+    border-left:2px solid var(--st-amber-dot);
+    font-size:var(--t-label); line-height:1.55; color:var(--color-text);
+    display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
+  .ce-scope .cut{margin-top:7px; height:22px; padding:0 var(--s-2); font:inherit;
+    font-size:var(--t-label); font-weight:var(--w-strong); background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--st-ruby-fg); cursor:pointer}
-  .ce-inline .cut:hover{border-color:var(--st-ruby-fg)}
-  .ce-inline .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:var(--s-2)}
-  .ce-inline .chips button{height:23px; padding:0 var(--s-2); font:inherit; font-size:var(--t-label);
-    background:var(--color-surface); color:var(--accent-ink);
-    border:1px solid var(--color-divider)}
-  .ce-inline .chips button:hover{border-color:var(--accent-solid)}
-  .ce-inline-hint{display:flex; gap:14px; flex-wrap:wrap; margin-top:var(--s-2);
-    font-size:var(--t-label); color:var(--color-neutral-600)}
-  .ce-inline-hint b{font-weight:var(--w-strong); color:var(--color-text)}
-  .ce-inline .work{font-size:var(--t-label); color:var(--accent-ink); font-weight:var(--w-strong); margin-top:var(--s-2)}
-  .ce-inline .bad{font-size:var(--t-label); color:var(--st-ruby-fg); font-weight:var(--w-strong); margin-top:var(--s-2)}
+  .ce-scope .cut:hover{border-color:var(--st-ruby-fg)}
 
   .ce-empty{font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.6}
 
@@ -1137,71 +1138,32 @@ function clauseEditorHtml(){
               <div class="nego-scroll" id="ce-doc"
                 aria-label="${_ceea(_cet('ce_paper_label'))}"></div>
             </div>
-    ${''/* ---- HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER ----
-           Owner-asked, off Oneflow: "you can highlight a word or sentence and
-           it opens up a window and you enter the replacement redline manually
-           … you get a single strip to enter your change and click and enter
-           button."
+    ${''/* ---- THE STRIP IS RETIRED; THE HIGHLIGHT GOES TO THE RAIL (M-1) ----
+           (owner-asked 31 Aug 2026, off three drawn options: *"Let's make it so
+           that when I highlight the sentence, it appears in the Copilot screen
+           on the right and I can then ask Copilot for what I want. This change
+           then eliminates the pop-up strip. To manually make a change, I just
+           write the change in the contract as currently designed."* Then, of
+           the three: *"Build option A."*)
 
-           ONE STRIP AND ONE BOX, and the box always holds the PROPOSED
-           WORDING — whoever wrote it. It opens carrying the passage you
-           highlighted, so the common act is editing a sentence rather than
-           retyping one; the three chips ask Copilot for a rewrite and the
-           answer lands IN THE BOX rather than in the contract, which is what
-           lets one strip serve both hands without becoming two.
+           WHAT STOOD HERE was a box that opened ON the contract holding the
+           passage, with its own send button and its own three asks — so there
+           were TWO places to ask Copilot one question about one clause, and
+           the louder of them covered the sentence it was about. Its reasoning
+           is kept in the rail's own note, because the useful half survives:
+           one field, always holding the wording that is about to be proposed,
+           whoever wrote it.
 
-           AND IT DOES NOT FILE. Enter APPLIES the wording to the draft, so the
-           redline appears against what stands and the one act in the rail's
-           foot is still what puts it on the record. A strip that filed would be
-           a third door onto an act that already has one.
+           NOTHING TAKES ITS PLACE ON THE PAPER. Replacing a sentence by hand
+           is typing over it in the contract, which the contenteditable box has
+           done since 26 Aug and which is what the owner asked for in the same
+           breath. `.ce-inline` and its five functions are deleted; the two
+           readings they rested on — ceSelection and ceReplacePassage — are
+           untouched and are what the rail now presses.
 
-           THE CONTEXT LINE IS GONE (owner-asked, ringing it in a screenshot:
-           "remove this because it takes space away"). It printed the passage
-           the box is now prefilled with — the same words twice, and the second
-           printing costing a row. `ce_inline_about` is STALE. */}
-            <div class="ce-inline" id="ce-inline">
-              <div class="row">
-                <textarea id="ce-inline-ask" rows="1"
-                  placeholder="${_ceea(_cet('ce_inline_ph'))}"></textarea>
-                ${''/* ---- AND THE ONE THING THE PROTOTYPE'S MENU CARRIED ----
-                       The approved prototype opens a MENU on a highlight —
-                       Replace this wording / Suggest deleting it / Comment on
-                       it / Ask Copilot to redraft it — and only ONE of those
-                       four is a capability this strip does not already have.
-
-                       Replace IS the strip. Ask Copilot is the three chips on
-                       it, so a menu row for it would be a second door onto an
-                       act that already has one. Comment cannot work from here
-                       at all: the notes drawer belongs to the shell and this
-                       page covers the shell, so it would open behind it.
-
-                       So the deleting is put ON the strip rather than behind a
-                       menu in front of it — which also keeps the owner's own
-                       instruction, "a single strip to enter your change". The
-                       departure from the prototype's drawing is deliberate and
-                       is written down here rather than slipped in. */}
-                <button type="button" class="cut" data-ce-act="inline-cut"
-                  aria-label="${_ceea(_cet('ce_inline_cut'))}"
-                  title="${_ceea(_cet('ce_inline_cut_title'))}">&#10005;</button>
-                <button type="button" class="snd" data-ce-act="inline-go"
-                  aria-label="${_ceea(_cet('ce_inline_replace'))}"
-                  title="${_ceea(_cet('ce_inline_replace_title'))}">${CE_SEND_ICON}</button>
-              </div>
-              <div class="chips" id="ce-inline-chips"></div>
-              ${''/* THE HINT ROW, from the approved prototype: where the words
-                     are going, and the two keys. It is NOT the context box the
-                     owner asked to be removed — that one printed the passage
-                     the box is now prefilled with, in a box of its own above
-                     the field. This is one quiet line under it naming the
-                     clause and the keystrokes, which is what a strip with two
-                     hidden keys owes its reader. */}
-              <div class="ce-inline-hint">
-                <span id="ce-inline-where"></span>
-                <span>${_cet('ce_inline_newline')}</span>
-                <span>${_cet('ce_inline_cancel')}</span>
-              </div>
-              <div id="ce-inline-note"></div>
-            </div>
+           `ce_inline_ph`, `ce_inline_newline`, `ce_inline_cancel`,
+           `ce_inline_replace`, `ce_inline_replace_title` and `ce_inline_where`
+           are STALE — flag any mention. */}
           </div>
     ${''/* THE REASON PANEL IS RETIRED (owner-asked 28 Aug 2026 — see FILING
            below). #ce-reason, #ce-why and the three reason-* acts are STALE;
@@ -1239,6 +1201,11 @@ function clauseEditorHtml(){
         </div>
         <div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>
         <div class="ce-lane" id="ce-lane"></div>
+        ${''/* ---- WHAT IS ATTACHED, DIRECTLY OVER THE BOX YOU TYPE IN ----
+               The passage the reader highlighted on the paper. Painted by
+               ceRenderScope and EMPTY when nothing is attached, so this slot
+               costs the ordinary rail nothing. */}
+        <div id="ce-scope"></div>
         <div class="ce-chips" id="ce-chips"></div>
         <div class="ce-ask" id="ce-askrow">
           <textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}"
@@ -1653,7 +1620,8 @@ const _ceQ = sel => { const p = document.getElementById('clause-editor'); return
 
 function ceRenderAll(){
   ceRenderBar();
-  ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane(); ceRenderChips();
+  ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane();
+  ceRenderScope(); ceRenderChips();
 }
 
 /* ---- THE HEAD DRAWS NOTHING BUT THE TOOLBAR ----
@@ -1818,7 +1786,7 @@ function ceStartTyping(point){
   /* THE BAR FOLLOWS, for the reason the pencil's own note gives: its tools
      grey when nothing is typeable, so a start that did not repaint it would
      leave the whole shelf dressed for the state before the press. */
-  ceCloseInline(); ceRenderPaper(); ceRenderBar();
+  ceDetachPassage(); ceRenderPaper(); ceRenderBar();
   if (ceIsTyping()) ceFocusTyping(point);
   return true;
 }
@@ -2041,9 +2009,39 @@ function ceRenderPaper(){
   _ceRendering = true;
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
-    host.scrollTop = keep;
+    ceRestoreScroll(host, keep);
   } finally { _ceRendering = false; }
   ceApplyZoom();
+}
+
+/* ---- PUTTING A SCROLL BACK IS NOT TRAVELLING TO IT (M-2) ----
+   (owner-reported 31 Aug 2026: *"whenever I make change or click in the box,
+   the contract moves up then back down to where I was."*)
+
+   THE PAPER IS `#ce-doc`, WHICH IS A `.nego-scroll`, AND THAT RULE IS
+   scroll-behavior:smooth — right for every scroll a reader ASKS for, because
+   pressing a change card should visibly travel to its clause so the eye can
+   follow. It is exactly wrong for restoring a position after a repaint: the
+   rebuilt scroller starts at 0, so `el.scrollTop = 1800` under a smooth rule is
+   a REQUEST TO ANIMATE from 0 to 1800. That is the whole report — the jump is
+   the rebuild and the crawl back down is the restore being read as a journey.
+
+   THE PRODUCT ALREADY SOLVED THIS, on the negotiation page, a fortnight before
+   this page was written; its note says so in its own words. This page simply
+   never called it. The smooth rule is NOT removed — it is suspended for the
+   width of the assignment.
+
+   THE FALLBACK IS THE FIX AGAIN, NEVER THE BARE ASSIGNMENT. A cross-module read
+   that falls back to the broken behaviour is how a fix silently reverts, which
+   is this codebase's most repeated defect; so where the name is unreachable
+   these four lines do the same job rather than putting the bug back. */
+function ceRestoreScroll(el, top){
+  if (!el || top == null) return;
+  if (typeof window !== 'undefined' && window.rlRestoreScroll){ rlRestoreScroll(el, top); return; }
+  const prev = el.style.scrollBehavior;
+  el.style.scrollBehavior = 'auto';
+  el.scrollTop = top;
+  el.style.scrollBehavior = prev;
 }
 
 /* The three readings, the band that says a reading refuses editing, and the
@@ -2241,6 +2239,17 @@ function ceApply(text, label, opts = {}){
      standard, a passage rewritten in place — drops out of typing so the marks
      it made are the first thing seen. Typing keeps the caret (keepView). */
   if (_ceEditing && !opts.keepView) _ceEditing = false;
+  /* ---- AND AN ATTACHED PASSAGE GOES WITH THE WORDING IT WAS IN (M-1) ----
+     A card in the rail quoting a sentence the clause no longer holds is a stale
+     statement on screen. The two acts that replace a passage detach BEFORE they
+     get here, so this reaches the case that matters: a clause-level suggestion
+     applied over the whole wording while something was still attached.
+     UNDO, REDO AND DISCARD ARE DELIBERATELY NOT SWEPT — they move between steps
+     the passage may well still be in, and throwing the reader's selection away
+     on every step would cost more than it saves. Where the words really have
+     moved, ceReplacePassage refuses in ceSay rather than replacing the wrong
+     thing, which is the wall this leans on. */
+  ceDetachPassage();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead();
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
@@ -2328,10 +2337,15 @@ function ceRenderTabs(){
   const n = ceDeviationCount();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
-  /* The ask box belongs to the conversation. The scan has nothing to be asked. */
-  const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips');
+  /* The ask box belongs to the conversation. The scan has nothing to be asked —
+     and the attached passage goes with it, because a card saying what the next
+     question is about, over a tab that takes no questions, is furniture. It is
+     not DETACHED, only undrawn: coming back to the conversation finds it where
+     it was left. */
+  const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-scope');
   if (ask) ask.style.display = _ceTab === 'chat' ? '' : 'none';
   if (chips) chips.style.display = _ceTab === 'chat' ? '' : 'none';
+  if (scope) scope.style.display = _ceTab === 'chat' ? '' : 'none';
 }
 function ceRenderLane(){
   if (!clauseEditorOpen()) return;
@@ -2361,7 +2375,15 @@ function ceGreetingHtml(){
    rests on, the wording it proposes marked against what stands, and a way to
    say whether it was any good. */
 function ceCardHtml(card, i, j){
-  const marked = ceRedlineHtml(_ceText, card.text || '');
+  /* ---- A CARD MARKED AGAINST WHAT IT ACTUALLY REPLACES (M-1) ----
+     A passage card carries the passage it was asked about, so its preview is
+     marked against THOSE words rather than against the whole clause — which
+     would strike out the entire clause to insert one sentence and read as a
+     rewrite of everything.
+     THE PASSAGE IS ON THE CARD RATHER THAN READ OFF `_ceSel` AT PRESS TIME, so
+     an answer stays applicable after the reader has let the passage go: the
+     card knows what it was about, which is the honest place for that fact. */
+  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
   const vote = card.vote || '';
   return `<div class="ce-card">
     <div class="n"><span>${_cee(card.name || _cet('ce_suggestion'))}</span><span class="g"></span>${
@@ -2370,7 +2392,8 @@ function ceCardHtml(card, i, j){
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
     <div class="av">
-      ${card.text ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
+      ${card.text ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${
+        _cet(card.passage ? 'ce_apply_passage' : 'ce_apply')}</button>` : ''}
       ${card.text ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
       <span class="g"></span>
       <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:up"
@@ -2382,13 +2405,27 @@ function ceCardHtml(card, i, j){
     </div>
   </div>`;
 }
+/* ---- THE READY-MADE QUESTIONS FOLLOW THE SCOPE (M-1) ----
+   With a passage attached they are the strip's own three — shorten, firmer,
+   plain English — because those are the questions a person asks about ONE
+   sentence; with nothing attached they are the four this rail has always
+   carried, which are questions about the whole clause.
+
+   ONE ROW EITHER WAY, and one attribute: a chip is a question and presses
+   ceAsk, which is what decides whether the answer is about the passage or the
+   clause. A second attribute for "passage chip" would be a second route to one
+   act, and the two would come to disagree about scope. */
 function ceRenderChips(){
   if (!clauseEditorOpen()) return;
   const box = _ceQ('#ce-chips'); if (!box) return;
-  const on = ceOnTable(), theirs = on.find(x => x.authorSide === 'counterparty');
   const qs = [];
-  if (theirs) qs.push(_cet('ce_q_answer', { id: theirs.id }));
-  qs.push(_cet('ce_q_softer'), _cet('ce_q_our_standard'), _cet('ce_q_risk'), _cet('ce_q_plain'));
+  if (_ceSel){
+    qs.push(_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain'));
+  } else {
+    const on = ceOnTable(), theirs = on.find(x => x.authorSide === 'counterparty');
+    if (theirs) qs.push(_cet('ce_q_answer', { id: theirs.id }));
+    qs.push(_cet('ce_q_softer'), _cet('ce_q_our_standard'), _cet('ce_q_risk'), _cet('ce_q_plain'));
+  }
   box.innerHTML = qs.map(q => `<button type="button" data-ce-chip="${_ceea(q)}">${_cee(q)}</button>`).join('');
 }
 
@@ -2500,6 +2537,12 @@ async function ceAsk(question, opts = {}){
   }
   const cl = ceClause();
   const read = ceReadList();
+  /* ---- WHAT THIS ASK IS ABOUT, CAPTURED AT THE PRESS (M-1) ----
+     Read once, here, rather than again when the answer lands: the reader can
+     let the passage go while the model is thinking, and an answer that then
+     silently became a rewrite of the whole clause is the worst thing this page
+     could do. The card carries it, so it stays true whatever happens next. */
+  const scope = _ceSel;
   /* The conversation so far, so a follow-up ("firmer than that") means what it
      says. Trimmed to the last few turns — the whole history of a long sitting
      is money spent restating what the model already answered. */
@@ -2508,8 +2551,8 @@ async function ceAsk(question, opts = {}){
   let res = null, err = null;
   try{
     res = await copilotPropose({
-      ask: _cet('ce_prompt_ask'),
-      passage: _ceText || _ceBase,
+      ask: _cet(scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
+      passage: scope ? scope.text : (_ceText || _ceBase),
       instruction: q,
       clauseLabel: ceClauseLabel(cl),
       party: (window.contractParty ? contractParty(_ceC) : (window.FIRST_PARTY || '')) || '',
@@ -2531,8 +2574,9 @@ async function ceAsk(question, opts = {}){
   _ceThread.push({ who: 'ai',
     text: String(res.advice || '').trim(),
     read,
-    cards: wording ? [{ name: _cet('ce_suggestion'), chip: _cet('ce_chip_copilot'), chipTone: 'wait',
-      line: '', rests, text: wording }] : [] });
+    cards: wording ? [{ name: _cet(scope ? 'ce_suggestion_passage' : 'ce_suggestion'),
+      chip: _cet('ce_chip_copilot'), chipTone: 'wait',
+      line: '', rests, text: wording, passage: scope || null }] : [] });
   ceRenderLane();
 }
 
@@ -2730,134 +2774,104 @@ function ceSelection(){
 function ceLines(){
   return ceWords(_ceText).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
 }
-function ceOpenInline(sel){
-  const pop = _ceQ('#ce-inline'); if (!pop || !sel) return;
-  _ceSel = sel;
-  const chips = _ceQ('#ce-inline-chips');
-  if (chips) chips.innerHTML = [_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain')]
-    .map(w => `<button type="button" data-ce-inline-chip="${_ceea(w)}">${_cee(w)}</button>`).join('');
-  const note = _ceQ('#ce-inline-note'); if (note) note.innerHTML = '';
-  const where = _ceQ('#ce-inline-where');
-  if (where) where.innerHTML = _cet('ce_inline_where',
-    { where: `<b>${_cee(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}</b>` });
-  /* POSITIONED AGAINST THE FRAME IT HANGS IN, not against the scrolling area
-     inside it. The popup is absolute inside .ce-paperwrap; measuring from the
-     scroller — which starts inside the frame — put it out by the frame's own
-     inset on every open, and measuring from a box that no longer exists put it
-     in the corner. */
-  const host = pop.parentElement, box = _ceQ('#ce-doc');
-  if (host && box && sel.rect){
-    const hb = host.getBoundingClientRect();
-    const top = Math.max(6, Math.min(sel.rect.bottom - hb.top + 6, hb.height - 46));
-    pop.style.top = top + 'px';
-    pop.style.left = '12px';
-  }
-  pop.classList.add('is-on');
-  /* THE BOX OPENS CARRYING THE PASSAGE, selected, so the first keystroke either
-     replaces it outright or the reader edits in place — which is what a person
-     does with a sentence they want changed rather than removed. */
-  const ta = _ceQ('#ce-inline-ask');
-  if (ta){
-    ta.value = sel.text;
-    ta.style.height = '';
-    /* ---- AND IT DOES NOT TAKE THE CARET WHILE THE READER IS TYPING ----
-       (29 Aug 2026, with the guard above.) Focusing and selecting this box was
-       right while the strip only ever opened in the reading: nothing else held
-       the caret, and the reader's next keystroke was meant for it.
+/* ---- ATTACHING A PASSAGE TO THE RAIL (M-1) ----
+   The drag on the paper is the whole gesture: what it produces is a scope on
+   the Copilot rail, not a box over the contract. It DOES NOT TAKE THE CARET —
+   a highlight can be made mid-sentence, and moving focus into the rail every
+   time somebody selected something would take them out of the clause they are
+   writing in, which is the opposite of the promise this rests on.
 
-       A highlight can now be made mid-sentence, and taking focus there would
-       move the reader out of the clause every single time they selected
-       something — which is the opposite of the promise this fix rests on. So
-       the box takes focus only when the reader was NOT typing; otherwise it
-       sits holding the passage until they press into it. */
-    if (!ceIsTyping()){ try{ ta.focus(); ta.select(); }catch(_){} }
-    ceInlineFit(ta);
-  }
+   THE SAME PASSAGE TWICE IS NOT A NEW ATTACHMENT: re-selecting identical words
+   repaints nothing, so a stray double-click does not clear a half-typed ask. */
+function ceAttachPassage(sel){
+  if (!sel) return;
+  if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line) return;
+  _ceSel = sel;
+  ceRenderScope(); ceRenderChips();
 }
-/* The box grows with the wording rather than scrolling inside a one-line slot:
-   a replacement is a sentence, and a strip that shows three words of it is one
-   nobody can proof-read. Capped by the sheet's own max-height. */
-function ceInlineFit(ta){
-  if (!ta) return;
-  try{ ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }catch(_){}
-}
-function ceCloseInline(){
-  const pop = _ceQ('#ce-inline'); if (pop) pop.classList.remove('is-on');
+function ceDetachPassage(){
+  if (!_ceSel) return;
   _ceSel = null;
+  ceRenderScope(); ceRenderChips();
+}
+/* ---- WHAT IS ATTACHED, SAID WHERE THE READER IS ABOUT TO TYPE ----
+   THE PAPER CANNOT KEEP THE MARK AND THAT IS SAID OUT LOUD. The highlight is
+   the browser's own selection, and it goes the moment the reader clicks into
+   the ask box — which is the very next thing they do. Wrapping the passage in
+   the rendered clause would mean editing the paper's markup to draw a posture,
+   on the one surface in this product that must never be edited to draw one. So
+   the CARD is the statement: it quotes the passage in full on its own title,
+   twelve pixels from the box the question is typed into.
+
+   THE ASK BOX SAYS WHAT IT IS FOR, because a narrowed control states the
+   narrowing by being set to it — the WHOSE ASKS rule, on a placeholder. */
+function ceRenderScope(){
+  if (!clauseEditorOpen()) return;
+  const box = _ceQ('#ce-scope');
+  const ask = _ceQ('#ce-ask');
+  const sel = _ceSel;
+  if (ask) ask.placeholder = _cet(sel ? 'ce_ask_ph_passage' : 'ce_ask_ph');
+  if (!box) return;
+  if (!sel){ box.innerHTML = ''; return; }
+  const where = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
+  box.innerHTML = `<div class="ce-scope">
+    <div class="eb"><b>&#9998; ${_cee(_cet('ce_scope_in', { where }))}</b><span class="g"></span>
+      <button type="button" class="x" data-ce-act="scope-off"
+        title="${_ceea(_cet('ce_scope_off'))}" aria-label="${_ceea(_cet('ce_scope_off'))}">&#10005;</button></div>
+    <q title="${_ceea(sel.text)}">${_cee(sel.text)}</q>
+    ${''/* ---- THE ONE VERB THE STRIP CARRIED THAT NOTHING ELSE DOES ----
+           "Suggest deleting these words" was the strip's own &times; and is the
+           only one-press way in the product to strike a sentence out. It is on
+           the passage's own card rather than in the chips row, which is a
+           DEPARTURE FROM THE APPROVED RENDER and is named here: that row holds
+           questions that spend money on Copilot, and an act that changes the
+           draft on the spot is a different kind of thing. */}
+    <button type="button" class="cut" data-ce-act="scope-cut"
+      aria-label="${_ceea(_cet('ce_inline_cut'))}"
+      title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>
+  </div>`;
 }
 /* ---- THE ONE REPLACEMENT ----
    The passage goes, the wording arrives, and every other line of the clause is
    carried across character for character. ONE reading, because the reader's own
    typing and a Copilot rewrite are the same act on the record and a second copy
-   is how the two come to disagree about what a line break costs. */
+   is how the two come to disagree about what a line break costs.
+
+   ITS REFUSALS SPEAK THROUGH ceSay NOW, which is the toolbar's own status slot
+   and this page's one place a refusal is spoken. They used to print inside the
+   strip; a refusal with nowhere to appear is a dead press. */
 function ceReplacePassage(sel, wording){
-  const note = _ceQ('#ce-inline-note');
   const words = String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
-  if (!words){ if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_say_what'))}</p>`; return false; }
+  if (!words){ ceSay(_cet('ce_inline_say_what')); return false; }
   const lines = ceLines();
   const ln = lines[sel.line];
   const at = (ln == null) ? -1 : ln.indexOf(sel.text);
-  if (at < 0){
-    if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_moved'))}</p>`;
-    return false;
-  }
-  if (words === sel.text){ ceCloseInline(); return false; }
+  if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
+  if (words === sel.text){ ceDetachPassage(); return false; }
   lines[sel.line] = ln.slice(0, at) + words + ln.slice(at + sel.text.length);
-  ceCloseInline();
+  ceDetachPassage();
   ceApply(lines.join('\n'), _cet('ce_step_passage'));
   return true;
 }
-/* THE READER'S OWN HAND: what is in the box IS the wording. It does not file —
-   the redline appears against what stands and the one act in the rail's foot
-   still puts it on the record. */
-function ceInlineApply(wording){
+/* ---- STRIKE THE HIGHLIGHTED WORDS OUT ----
+   The passage goes and what is left is tidied where the cut would otherwise
+   leave two spaces or a space before a full stop. It goes through the same
+   lines reading as everything else, so the rest of the clause is still carried
+   across character for character — and like everything else here it APPLIES
+   rather than files. */
+function ceCutPassage(){
   const sel = _ceSel; if (!sel) return false;
-  return ceReplacePassage(sel, wording);
-}
-/* A CHIP ASKS COPILOT AND ANSWERS INTO THE BOX, never into the contract: the
-   reader reads the suggestion, edits it if they want to, and presses Enter.
-   That is what keeps ONE strip honest — the box always holds the wording that
-   is about to be proposed, whoever wrote it. */
-async function ceInlineGo(instruction){
-  const sel = _ceSel; if (!sel) return;
-  const q = String(instruction == null ? '' : instruction).trim();
-  const note = _ceQ('#ce-inline-note');
-  if (!q){ if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_inline_say_what'))}</p>`; return; }
-  if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    if (note) note.innerHTML = `<p class="bad">${_cee(_cet('ce_not_connected'))}</p>`;
-    return;
-  }
-  if (note) note.innerHTML = `<p class="work">${_cee(_cet('ce_thinking'))}</p>`;
-  let res = null, err = null;
-  try{
-    res = await copilotPropose({
-      ask: _cet('ce_prompt_passage'),
-      passage: sel.text,
-      instruction: q,
-      clauseLabel: ceClauseLabel(ceClause()),
-      party: (window.contractParty ? contractParty(_ceC) : (window.FIRST_PARTY || '')) || '',
-      law: window.jxLaw ? jxLaw() : '',
-      playbook: cePlaybookLine(),
-    });
-  }catch(e){ err = e; }
-  if (!clauseEditorOpen() || _ceSel !== sel) return;
-  const wording = res ? String(res.proposedText || '').trim() : '';
-  if (err || !wording){
-    if (note) note.innerHTML = `<p class="bad">${_cee(err
-      ? _cet('ce_ask_failed', { why: (err && err.message) || String(err) })
-      : _cet('ce_ask_nothing'))}</p>`;
-    return;
-  }
-  /* INTO THE BOX, NOT INTO THE CONTRACT. The strip stays open on the same
-     passage, so the reader can read what came back, change it, and press
-     Enter — or highlight something else and start again. */
-  const ta = _ceQ('#ce-inline-ask');
-  if (ta){
-    ta.value = wording.replace(/\s+/g, ' ').trim();
-    try{ ta.focus(); }catch(_){}
-    ceInlineFit(ta);
-  }
-  if (note) note.innerHTML = `<p class="work">${_cee(_cet('ce_inline_suggested'))}</p>`;
+  const lines = ceLines();
+  const ln = lines[sel.line];
+  const at = (ln == null) ? -1 : ln.indexOf(sel.text);
+  if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
+  const cut = (ln.slice(0, at) + ln.slice(at + sel.text.length))
+    .replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1').trim();
+  if (!cut){ ceSay(_cet('ce_inline_cut_all')); return false; }
+  lines[sel.line] = cut;
+  ceDetachPassage();
+  ceApply(lines.join('\n'), _cet('ce_step_cut'));
+  return true;
 }
 
 /* ============================================================================
@@ -3021,7 +3035,7 @@ function ceWirePage(page){
       /* THE BAR FOLLOWS THE PENCIL. Its tools grey when nothing is typeable,
          so a pencil press that did not repaint it would leave the whole shelf
          dressed for the state before the press. */
-      ceCloseInline(); ceRenderPaper(); ceRenderBar();
+      ceDetachPassage(); ceRenderPaper(); ceRenderBar();
       if (ceIsTyping()) ceFocusTyping();
       return; }
 
@@ -3037,7 +3051,7 @@ function ceWirePage(page){
       if (window.rlSetReadMode) rlSetReadMode(read.getAttribute('data-rl-read'));
       /* The bar greys on a reading that draws no marks, so it repaints with
          the rest of the page rather than keeping the last reading's face. */
-      ceCloseInline(); ceRenderPaper(); ceRenderFoot(); ceRenderBar(); return; }
+      ceDetachPassage(); ceRenderPaper(); ceRenderFoot(); ceRenderBar(); return; }
 
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
@@ -3061,7 +3075,14 @@ function ceWirePage(page){
     const apply = hit('[data-ce-apply]');
     if (apply){ ev.preventDefault();
       const card = ceCardAt(apply.getAttribute('data-ce-apply'));
-      if (card) ceApply(card.text, _cet('ce_step_copilot'));
+      if (!card) return;
+      /* ONE REPLACEMENT EITHER WAY. A passage card goes through
+         ceReplacePassage — the same reading the reader's own typing goes
+         through — so the rest of the clause is carried across character for
+         character and no second copy of "what a line break costs" is written
+         here. A clause card is the whole wording and applies as it always has. */
+      if (card.passage) ceReplacePassage(card.passage, card.text);
+      else ceApply(card.text, _cet('ce_step_copilot'));
       return; }
 
     const refine = hit('[data-ce-refine]');
@@ -3107,9 +3128,6 @@ function ceWirePage(page){
       ceSetZoom(_ceZoom + (zoom.getAttribute('data-ce-zoom') === 'in'
         ? CE_ZOOM_STEP : -CE_ZOOM_STEP));
       return; }
-
-    const inlineChip = hit('[data-ce-inline-chip]');
-    if (inlineChip){ ev.preventDefault(); ceInlineGo(inlineChip.getAttribute('data-ce-inline-chip')); return; }
 
     /* ---- CLICK IN THE WORDS AND TYPE, LIKE ANY DOCUMENT ----
        (owner-asked 29 Aug 2026: *"I hate that I have to click on a pencil for
@@ -3174,33 +3192,13 @@ function ceWirePage(page){
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
         break;
       }
-      /* ---- STRIKE THE HIGHLIGHTED WORDS OUT ----
-         The passage goes and what is left is tidied where the cut would
-         otherwise leave two spaces or a space before a full stop. It goes
-         through ceReplacePassage like everything else, so the rest of the
-         clause is still carried across character for character — and like
-         everything else on this strip it APPLIES rather than files. */
-      case 'inline-cut': {
-        const sel = _ceSel;
-        if (!sel) break;
-        const lines = ceLines();
-        const ln = lines[sel.line];
-        const at = (ln == null) ? -1 : ln.indexOf(sel.text);
-        if (at < 0){ ceSay(_cet('ce_inline_moved')); break; }
-        const cut = (ln.slice(0, at) + ln.slice(at + sel.text.length))
-          .replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1').trim();
-        if (!cut){ ceSay(_cet('ce_inline_cut_all')); break; }
-        lines[sel.line] = cut;
-        ceCloseInline();
-        ceApply(lines.join('\n'), _cet('ce_step_cut'));
-        break;
-      }
-      /* THE ARROW IS THE ENTER KEY'S TWIN — it applies what is in the box. */
-      case 'inline-go': {
-        const ta = _ceQ('#ce-inline-ask');
-        ceInlineApply(ta ? ta.value : '');
-        break;
-      }
+      /* ---- THE TWO ACTS ON THE ATTACHED PASSAGE ----
+         Letting it go, and striking it out. Both are named functions rather
+         than bodies written here, because the Escape key and the paper's own
+         gestures reach the same two acts and a second copy is how they come to
+         disagree. `inline-cut` and `inline-go` are STALE. */
+      case 'scope-off': ceDetachPassage(); break;
+      case 'scope-cut': ceCutPassage(); break;
       case 'scan-run': ceRunScan(); break;
       default: break;
     }
@@ -3226,18 +3224,6 @@ function ceWirePage(page){
       }
     });
   }
-  /* ENTER APPLIES THE WORDING; SHIFT+ENTER MAKES A LINE. Bound to the element
-     rather than delegated because this box is written into the page once and is
-     never rebuilt by a paint — and it is the one control on this page whose
-     press is a keystroke rather than a button. */
-  const inlineAsk = page.querySelector('#ce-inline-ask');
-  if (inlineAsk){
-    inlineAsk.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); ceInlineApply(inlineAsk.value); }
-    });
-    inlineAsk.addEventListener('input', () => ceInlineFit(inlineAsk));
-  }
-
   /* A hand edit is an Apply like any other, taken when the box loses focus —
      so the redline, the counts, the draft line and the file button all follow
      typing exactly as they follow a suggestion. */
@@ -3261,15 +3247,15 @@ function ceWirePage(page){
   page.addEventListener('input', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
-    /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
-       (29 Aug 2026.) With the strip live during typing, a reader who highlights
-       a sentence and then simply carries on writing has answered the question
-       themselves — the passage the strip was holding is the passage they have
-       just typed over. Leaving it open would leave a box offering to replace
-       wording that is no longer there, and ceReplacePassage would then refuse
-       in words for a reason the reader never caused.
+    /* ---- AND TYPING IN THE CLAUSE LETS THE PASSAGE GO, HAVING DONE NOTHING ----
+       (29 Aug 2026.) A reader who highlights a sentence and then simply carries
+       on writing has answered the question themselves — the passage the rail is
+       holding is the passage they have just typed over. Leaving it attached
+       would leave a card offering to replace wording that is no longer there,
+       and ceReplacePassage would then refuse in words for a reason the reader
+       never caused.
        Guarded on there BEING one, so an ordinary keystroke costs nothing. */
-    if (_ceSel) ceCloseInline();
+    if (_ceSel) ceDetachPassage();
     ceSyncBarSteps();
   });
 
@@ -3287,41 +3273,39 @@ function ceWirePage(page){
     if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
   });
 
-  /* ---- ONE SENTENCE AT A TIME, AND IT NO LONGER WAITS ITS TURN ----
+  /* ---- ONE SENTENCE AT A TIME, AND THE DRAG IS THE WHOLE GESTURE ----
      (owner-reported 29 Aug 2026: "I am still clicking the pencil sign various
      times and I do not know for what reason ... highlight a sentence and a strip
      bar appears (which was there before but you seem to have deleted it)".)
 
-     THIS HANDLER OPENED `if (ceIsTyping()) return;` AND THAT LINE IS THE WHOLE
-     REPORT. Typing and the strip could not be live at once, so the pencil was
-     one switch pointing at one of two jobs and NO NUMBER OF PRESSES REACHED
-     BOTH: press it to type and the strip went; press it again for the strip and
-     the typing went. Nothing on screen said so, which is why the only thing left
-     to try was pressing it again.
+     THIS HANDLER OPENED `if (ceIsTyping()) return;` AND THAT LINE WAS THE WHOLE
+     REPORT. Typing and the highlight could not be live at once, so the pencil
+     was one switch pointing at one of two jobs and NO NUMBER OF PRESSES REACHED
+     BOTH. Its reasoning is not wrong about what a drag CAN mean — inside a
+     contenteditable box it really can be somebody selecting words to embolden —
+     it is wrong that it can only mean that. So a drag means BOTH: the browser's
+     own selection stands and every tool on the bar still acts on it, AND the
+     passage attaches to the rail beside it.
 
-     THE STRIP WAS NOT DELETED, WHICH THE OWNER ALSO HAD RIGHT: this guard —
-     and ceIsTyping itself — arrived in 79551c8 (26 Aug 2026), the change that
-     made this page edit on the paper. Before it the strip carried no such
-     condition. The 28 Aug rule about ARRIVAL then made the conflict a daily one
-     rather than a latent one, because the reader now lands needing a press.
+     ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
+     THIS IS THE LINE THAT MAKES OPTION A WORK, and getting it wrong would have
+     made the feature unusable in one press: with the box on the paper, a press
+     anywhere else that made no selection meant "the reader has moved on", and
+     detaching was right. With the box in the RAIL, the very next thing a reader
+     does after attaching a passage is click into the ask box to type — and that
+     press is not in `#ce-doc`, makes no selection, and would have detached the
+     passage they had just chosen.
 
-     ITS REASONING IS NOT WRONG ABOUT WHAT A DRAG CAN MEAN — inside a
-     contenteditable box it really can be somebody selecting words to embolden.
-     It is wrong that it can only mean that. On this page a reader who
-     highlights a sentence is usually reaching for Copilot, which is the one
-     thing the strip exists for. So a drag now means BOTH: the browser's own
-     selection stands and every tool on the bar still acts on it, AND the strip
-     opens beside it.
-
-     THE STRIP WAITS RATHER THAN TAKING OVER, which is the promise that makes
-     one gesture safe for two jobs. It does not take the caret while the reader
-     is typing (ceOpenInline), and the next keystroke in the clause closes it
-     having done nothing (the input handler above). */
+     So a press outside the paper is not this handler's business at all: it
+     neither attaches nor detaches. The ways to let a passage go are the card's
+     own ✕, Escape, typing over it in the clause, and choosing another passage.
+     Nothing else takes it away. */
   page.addEventListener('mouseup', ev => {
-    if (ev.target && ev.target.closest && ev.target.closest('#ce-inline')) return;
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-doc')) return;
     setTimeout(() => {
       const sel = ceSelection();
-      if (sel) ceOpenInline(sel); else ceCloseInline();
+      if (sel) ceAttachPassage(sel); else ceDetachPassage();
     }, 0);
   });
 }
@@ -3339,7 +3323,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
        and the round queue defer. */
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
-    if (_ceSel){ ceCloseInline(); return; }
+    if (_ceSel){ ceDetachPassage(); return; }
     rlCloseClauseEditor();
   });
   /* A window dragged below the width where two columns stop making sense: the
@@ -3361,6 +3345,8 @@ Object.assign(window, {
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
+  ceAttachPassage, ceDetachPassage, ceRenderScope, ceReplacePassage, ceCutPassage, ceSelection,
+  ceRestoreScroll,
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
 });

@@ -878,7 +878,18 @@ function regFiltered(){
   else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
-  const q=R.query.trim().toLowerCase();
+  /* ---- NO TEXT FILTER ON A SEAT THAT DRAWS NO BOX (M-5) ----
+     (owner-reported 31 Aug 2026: *"remove the search bar on the left under
+     negotiations because we already have one on top of the screen."*)
+
+     The Negotiations seat draws no search control, and a page narrowed by a
+     control nobody can see is the fault this whole file's filter rules exist to
+     prevent — worse than the duplicate box, because there would be nothing to
+     press to widen it again. The shell bar's own search writes regState().query
+     and then navigates to Contracts, so a stale value really can be left on
+     this seat's state; ignored HERE, in the one reading, rather than cleared in
+     a renderer that another path could go around. */
+  const q=(regScope()==='negotiations'?'':R.query).trim().toLowerCase();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
@@ -1499,7 +1510,19 @@ function renderRegister(opts){
      which is where the design puts it. The dropdown it opens (#reg-fts) is
      absolutely positioned against this wrapper, so the wrapper keeps
      position:relative and the whole suggestion list follows it unchanged. */
-  const ftsBlock=API_MODE()?`
+  /* ---- ONE SEARCH BOX, AND IT IS THE SHELL'S (M-5) ----
+     Owner-reported off a screenshot with both ringed. The shell bar's box says
+     "Search contracts, clauses, counterparties…" and this one said "Full-text:
+     names, parties & clauses…" — two controls answering almost the same
+     question, one directly above the other, on the page whose filter row is
+     already the crowded one.
+
+     CONTRACTS KEEPS ITS BOX: the ask names Negotiations and only Negotiations,
+     and that page has room for it. THE FTS WIRING IS NOT DELETED — every
+     handler already guards on the element existing (`if(si)`, `if(!box)
+     return`, `if(rs&&…)`), so the Contracts seat is byte-identical and there is
+     no second code path to keep in step. */
+  const ftsBlock=(API_MODE()&&regScope()!=='negotiations')?`
     <label class="reg-f" style="position:relative;flex:1 1 220px;min-width:180px;max-width:300px"><span class="reg-f-l">${esc(i18t('reg_search'))}</span>
       <span style="position:absolute;left:9px;bottom:8px;color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
       ${''/* WHITE, LIKE EVERY CONTROL BESIDE IT (owner-reported 22 Aug 2026).
@@ -1879,10 +1902,15 @@ function renderRegister(opts){
                because one builder is what stops them drifting apart. */}
         ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
         ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
-        ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
-               sorts the whole page. A control that quietly means something else
-               is a lie by omission, so the page says it beside the control. */}
-        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:var(--t-label);color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
+        ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
+               Owner-reported in the same breath: *"remove the 'sorts within
+               each group' writing."* It said that sorting on this page runs
+               inside a band rather than over the whole list — true, and a
+               sentence the page can carry only once the reader has already
+               seen the bands it is about. `ngl_sort_note` and `#reg-sort-note`
+               are STALE; the key is left inert in both dictionaries, because a
+               key removed from one and not the other is how a screen ends up
+               half-English. */}
       </div>
       </div>
 

@@ -3046,6 +3046,17 @@
   .obw-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
   .obw-f > span{ font-size:var(--t-label); color:var(--color-neutral-600); margin-bottom:3px;
     white-space:nowrap; }
+  /* ---- A CONTROL THAT IS NARROWING THE LIST SAYS SO (M-6) ----
+     The register's own answer, on this page: the accent marks the filter that
+     is doing the narrowing, and Clear beside it counts them. Neither is a new
+     colour — --accent-ink is the one accent ink with an answer in both themes,
+     which is why every other active-filter rule in the product reads it. */
+  .obw-f.is-on > span{ color:var(--accent-ink); }
+  .obw-f.is-on select{ border-color:var(--accent-solid); color:var(--accent-ink);
+    font-weight:var(--w-strong); }
+  #obw-clear.is-on{ border-color:var(--accent-solid); color:var(--accent-ink); }
+  #obw-clear.is-on b{ font-weight:var(--w-title); }
+  #obw-clear:disabled{ opacity:.5; cursor:default; }
   .obw-f select{ font:inherit; font-size:var(--t-meta); border:1px solid var(--color-divider);
     border-radius:var(--radius); padding:5px 9px; background:var(--color-surface);
     color:var(--color-text); width:100%; min-width:0; }
@@ -3067,6 +3078,17 @@
      46 to 36, so the six still sum to 100 and nothing else on the row moves.
      That sum is what keeps this table exactly its pane; the register paid for
      learning it once and this table is held to the same rule. */
+  /* ---- THE COLUMNS NAME THEMSELVES (M-6) ----
+     The register's own head treatment, so the two tables in this product read
+     alike: small, uppercase, the label ink, on the rule the bands already sit
+     against. Sticky, because this table scrolls inside the shell and a head
+     that scrolls away leaves six unlabelled columns again. */
+  .obw-table thead th{ position:sticky; top:0; z-index:1; text-align:left;
+    padding:7px var(--s-4); background:var(--color-surface);
+    border-bottom:1px solid var(--rule-strong);
+    font-size:var(--t-figure); font-weight:var(--w-title); letter-spacing:.06em;
+    text-transform:uppercase; color:var(--color-neutral-600); }
+  .obw-table thead th.obw-amt, .obw-table thead th.obw-acts{ text-align:right; }
   .obw-c{ width:36%; }
   .obw-side{ width:9%; }
   .obw-who{ width:17%; }
@@ -3095,9 +3117,35 @@
      tall inside a 17px row. The left-out note carries its own class, so
      narrowing this to the direct child costs nothing and closes the reach. */
   .obw-total > i{ font-style:normal; flex-basis:100%; color:var(--st-amber-fg); }
-  .obw-dot{ display:inline-block; margin:0 7px 1px 0; }
-  .obw-what{ display:inline; }
-  .obw-meta{ display:block; margin-left:15px; font-size:var(--t-label);
+  /* ---- THE DESCRIPTION IS ONE LINE, AND THE DOT IS BESIDE IT (M-6) ----
+     Owner-reported: "the overdue column needs to be the same size in every line
+     therefore shorten the obligation." A clause read out of a charter runs to
+     forty words and this column let it wrap to six lines, so every row was a
+     different height and the date beside it drifted down the page. MEASURED
+     before: heights of 91 and 236 in one table, a spread of 145px.
+
+     ONE LINE, NOT TWO, and that is the difference between better and what was
+     asked for. Clamped to two, a row is one line or two depending on its
+     wording — measured, still an 18px spread — so the column still does not
+     read down one rhythm. At one line every row is the description plus its
+     meta line and the table has ONE row height, which is what "the same size in
+     every line" means. Reserving two lines instead would buy the same evenness
+     and spend 18px of white on every short obligation in a list of thirty.
+
+     NOTHING IS HIDDEN SILENTLY: the ellipsis says there is more, the whole
+     wording is on the row's own title, and the row is a door to the contract's
+     own tab where it is printed in full.
+     THE DOT LEFT THE TEXT FLOW: as an inline-block inside a clamped box it
+     would have counted as one of the two lines, so on a long obligation the
+     reader would have got the dot and one line of wording. */
+  .obw-cw{ display:flex; gap:7px; align-items:flex-start; }
+  .obw-txt{ flex:1; min-width:0; }
+  .obw-dot{ flex:none; margin:6px 0 0 0; }
+  .obw-what{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* THE OBLIGATION IS THE DOOR, and the row has always been one. Nothing said
+     so, which is why the report asked for a behaviour the page already had. */
+  .obw-table tr[data-obw-row]:hover .obw-what{ text-decoration:underline; }
+  .obw-meta{ display:block; font-size:var(--t-label);
     color:var(--color-neutral-500); }
   .obw-chased{ display:block; font-size:var(--t-label); color:var(--color-neutral-500); }
   /* A LINE OF ITS OWN, not a word tacked onto the name. Inline it read
@@ -3154,6 +3202,18 @@
   .obt-row:hover{ background:var(--nav-well); }
   /* The state is a dot in its own tone — the same four-tone vocabulary the
      calendar's legend and the register's stage dot already use. */
+  /* ---- THE SCAN SAYS IT IS WORKING (M-3) ----
+     A ring beside the word, inside the button that was pressed, so the symbol
+     is where the reader's eye already is rather than somewhere else on screen.
+     currentColor, so it takes the button's own ink in both themes and in both
+     workspace accents with no second rule. It STANDS STILL under
+     prefers-reduced-motion — a reader who has asked for no motion is still
+     owed the fact, so the ring stays drawn rather than being hidden. */
+  .ob-spin{ display:inline-block; width:11px; height:11px; margin-right:6px;
+    vertical-align:-1px; border:2px solid currentColor; border-top-color:transparent;
+    border-radius:50%; animation:obSpin .7s linear infinite; }
+  @keyframes obSpin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .ob-spin{ animation:none; } }
   .obt-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px;
     background:var(--st-amber-dot); }
   .obt-dot-overdue{ background:var(--st-ruby-dot); }

@@ -364,13 +364,43 @@ describe('f245 (8) — nothing asks why, on either path', () => {
   });
 });
 
-describe('f245 (16) — the highlight strip is one strip, and it files nothing', () => {
-  test('the box holds the WORDING, not an instruction to a model', () => {
-    assert.ok(/ceInlineApply/.test(CODE), 'the reader\'s own hand has a name');
-    assert.ok(/ta\.value = sel\.text/.test(CODE),
-      'it opens carrying the passage, so the common act is editing a sentence');
-    assert.ok(!/ce_inline_about/.test(CODE),
-      'and the context line is gone — the words are not printed twice');
+/* REVERSED IN PLACE 31 Aug 2026 (M-1), owner-asked off three drawn options:
+   "when I highlight the sentence, it appears in the Copilot screen on the right
+   and I can then ask Copilot for what I want. This change then eliminates the
+   pop-up strip." Then: "Build option A."
+
+   WHAT THIS SECTION WAS REALLY ABOUT SURVIVES WHOLE and is what is still
+   pinned: there is ONE field for the wording, ONE replacement reading shared by
+   the hand and by Copilot, and nothing on this path files. What changed is
+   WHERE the passage goes — the rail, not a box over the contract — and that the
+   field beside it now takes the INSTRUCTION rather than the wording, because
+   typing the wording is done in the contract itself. */
+describe('f245 (16) — the highlighted passage goes to the rail, and it files nothing', () => {
+  test('nothing opens over the paper, and the passage is on the rail', () => {
+    assert.ok(!/class="ce-inline"/.test(CODE), 'the strip markup is gone');
+    assert.ok(!/ceOpenInline|ceCloseInline|ceInlineGo|ceInlineApply|ceInlineFit/.test(CODE),
+      'and its five functions with it — deleted, not left unreachable');
+    assert.ok(/<div id="ce-scope"><\/div>/.test(CODE),
+      'the rail carries the slot the passage lands in');
+    /* IT IS BETWEEN THE CONVERSATION AND THE ASK BOX, which is the whole of why
+       Option A was recommended: what is attached and what you are typing are
+       read together, and it cannot scroll away. */
+    assert.ok(CODE.indexOf('id="ce-lane"') < CODE.indexOf('id="ce-scope"')
+      && CODE.indexOf('id="ce-scope"') < CODE.indexOf('id="ce-askrow"'),
+      'and it sits under the conversation and over the ask box');
+  });
+
+  test('the card quotes the passage and offers the two acts on it', () => {
+    const r = CODE.match(/function ceRenderScope\([\s\S]*?\n\}/);
+    assert.ok(r, 'the scope has one painter');
+    assert.match(r[0], /data-ce-act="scope-off"/, 'a way to let the passage go');
+    assert.match(r[0], /data-ce-act="scope-cut"/,
+      'and the strip\'s own delete verb, which had no other home in the product');
+    assert.match(r[0], /box\.innerHTML = ''/, 'and it draws nothing when nothing is attached');
+    /* THE ASK BOX STATES THE NARROWING BY BEING SET TO IT — the WHOSE ASKS
+       rule, on a placeholder. */
+    assert.match(r[0], /ask\.placeholder = _cet\(sel \? 'ce_ask_ph_passage' : 'ce_ask_ph'\)/,
+      'and the box says what it is for');
   });
 
   test('ONE reading of the replacement, shared by the hand and by Copilot', () => {
@@ -384,31 +414,59 @@ describe('f245 (16) — the highlight strip is one strip, and it files nothing',
       'and only one');
   });
 
-  test('ENTER APPLIES, SHIFT+ENTER MAKES A LINE', () => {
-    assert.ok(/key === 'Enter' && !ev\.shiftKey\){ ev\.preventDefault\(\); ceInlineApply/.test(CODE),
-      'Enter files the wording into the draft');
+  test('ONE ENTER ON THIS PAGE, and it is the rail\'s ask box', () => {
+    /* The strip had an Enter of its own that applied wording. With the wording
+       typed in the contract there is nothing for a second Enter to do, and two
+       keystroke paths is how they come to disagree about what Enter means. */
+    assert.equal(CODE.split("key === 'Enter' && !ev.shiftKey").length - 1, 1,
+      'exactly one Enter path');
+    assert.match(CODE, /key === 'Enter' && !ev\.shiftKey\)\{\n\s+ev\.preventDefault\(\);\n\s+if \(ask\.value\.trim\(\)\)[\s\S]{0,120}?ceAsk\(q\)/,
+      'and it asks Copilot rather than applying');
   });
 
-  test('A CHIP ANSWERS INTO THE BOX, never into the contract', () => {
-    const go = CODE.match(/async function ceInlineGo\([\s\S]{0,2400}?\n\}/);
-    assert.ok(go, 'the Copilot path is its own function');
-    assert.ok(/ta\.value = wording/.test(go[0]),
-      'what comes back lands in the box for the reader to read and edit');
-    assert.ok(!/ceApply\(/.test(go[0]),
-      'and never straight onto the paper — one strip, one box, one press');
+  test('A CHIP IS A QUESTION, and the answer lands on a card', () => {
+    /* ONE ROW, ONE ATTRIBUTE. The chips follow the scope — the strip\'s three
+       with a passage attached, the clause\'s four without — and either way a
+       chip presses ceAsk, which is what decides the scope. A second attribute
+       for "passage chip" would be a second route to one act. */
+    assert.ok(!/data-ce-inline-chip/.test(CODE), 'the strip\'s own chip route is gone');
+    const ch = CODE.match(/function ceRenderChips\([\s\S]*?\n\}/)[0];
+    assert.match(ch, /if \(_ceSel\)\{[\s\S]{0,200}?ce_inline_shorten/,
+      'a passage gets the three rewrite questions');
+    assert.match(ch, /ce_q_softer/, 'and a clause gets its own four');
+    assert.equal(ch.split('data-ce-chip=').length - 1, 1, 'drawn by one line either way');
   });
 
-  test('AND THE STRIP IS NOT A THIRD DOOR — it files nothing', () => {
+  test('AND THE CARD KNOWS WHAT IT WAS ABOUT', () => {
+    /* The passage is recorded ON the card rather than read off `_ceSel` when
+       Apply is pressed, so an answer stays applicable after the reader has let
+       the passage go — and so a card marked against one sentence can never be
+       applied as a rewrite of the whole clause. */
+    assert.match(CODE, /const scope = _ceSel;/, 'the ask captures its scope at the press');
+    assert.match(CODE, /text: wording, passage: scope \|\| null/, 'and hands it to the card');
+    assert.match(CODE, /card\.passage \? card\.passage\.text : _ceText/,
+      'the preview is marked against what it really replaces');
+    assert.match(CODE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text\);\n\s+else ceApply\(/,
+      'and Apply routes by what the card is about');
+  });
+
+  test('AND IT IS NOT A THIRD DOOR — it files nothing', () => {
     const rep = CODE.match(/function ceReplacePassage\([\s\S]{0,900}?\n\}/)[0];
     for (const door of ['negoEditClause', 'negoFileChange', 'negoReviseInsert', 'persist('])
-      assert.ok(!rep.includes(door), door + ' must not be reachable from the strip');
+      assert.ok(!rep.includes(door), door + ' must not be reachable from the passage');
     assert.ok(/ceApply\(lines\.join/.test(rep),
       'it applies to the draft; the one act in the rail\'s foot still files');
+    /* THE CUT IS THE SAME, and it is a named function rather than a body in the
+       act handler, because Escape and the paper's own gestures reach the same
+       two acts and a second copy is how they come to disagree. */
+    const cut = CODE.match(/function ceCutPassage\([\s\S]{0,900}?\n\}/)[0];
+    for (const door of ['negoEditClause', 'negoFileChange', 'persist('])
+      assert.ok(!cut.includes(door), door + ' must not be reachable from the cut');
   });
 
   test('both languages carry its words', () => {
-    for (const k of ['ce_inline_ph', 'ce_inline_replace', 'ce_inline_replace_title',
-      'ce_inline_suggested', 'ce_inline_say_what']){
+    for (const k of ['ce_ask_ph_passage', 'ce_scope_in', 'ce_scope_off', 'ce_scope_cut',
+      'ce_apply_passage', 'ce_suggestion_passage', 'ce_inline_say_what']){
       assert.ok(new RegExp('\\b' + k + ':').test(I18N), k + ' is in the dictionary');
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
         k + ' is in BOTH languages');
@@ -1530,7 +1588,16 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'it must not refuse a drag because the reader is typing — that refusal IS '
       + 'the report, and with it in place the pencil is one switch pointing at '
       + 'one of two jobs');
-    assert.match(up[0], /ceOpenInline\(sel\)/, 'and it still opens the strip');
+    assert.match(up[0], /ceAttachPassage\(sel\)/, 'and it still attaches the passage');
+    /* ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
+       THE LINE THAT MAKES OPTION A WORK. With the box on the paper, a press
+       elsewhere that made no selection meant "the reader has moved on" and
+       detaching was right. With the box in the RAIL, the very next thing a
+       reader does after attaching is click into the ask box — which makes no
+       selection — and that would have detached the passage they had just
+       chosen, in one press, every time. */
+    assert.match(up[0], /if \(!t \|\| !t\.closest \|\| !t\.closest\('#ce-doc'\)\) return;/,
+      'a press outside the paper is not this handler\'s business at all');
   });
 
   test('the fix is scoped to the strip — click-to-type is untouched', () => {
@@ -1546,18 +1613,24 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     assert.ok(!/ceDragSelected/.test(CODE), 'and no guard of ours sits in front of it');
   });
 
-  test('the strip WAITS: it does not take the caret while the reader is typing', () => {
-    const open = CODE.match(/function ceOpenInline\([\s\S]*?\n\}/)[0];
-    assert.match(open, /if \(!ceIsTyping\(\)\)\{ try\{ ta\.focus\(\); ta\.select\(\); \}/,
-      'focus is taken only when the reader was not already typing');
-    assert.ok(!/^\s*try\{ ta\.focus\(\); ta\.select\(\); \}catch/m.test(open),
-      'and never unconditionally — that would move the reader out of the clause '
-      + 'every time they highlighted something');
+  /* REVERSED IN PLACE 31 Aug 2026 (M-1) AND STRONGER FOR IT. The claim was that
+     the strip took the caret only when the reader was not already typing — a
+     conditional, because the box was on the paper and its first keystroke was
+     usually meant for it. With the box in the rail there is nothing on the
+     paper to move the caret to, so attaching NEVER touches focus at all, which
+     is the same promise with the condition gone. */
+  test('attaching NEVER takes the caret', () => {
+    const at = CODE.match(/function ceAttachPassage\([\s\S]*?\n\}/)[0];
+    assert.ok(!/focus\(\)/.test(at),
+      'a drag mid-sentence must not move the reader out of the clause they are writing in');
+    assert.match(at, /if \(_ceSel && _ceSel\.text === sel\.text && _ceSel\.line === sel\.line\) return;/,
+      'and the same passage twice repaints nothing, so a stray double-click '
+      + 'does not clear a half-typed ask');
   });
 
-  test('and typing in the clause closes it, having done nothing', () => {
+  test('and typing in the clause lets it go, having done nothing', () => {
     const input = CODE.match(/addEventListener\('input'[\s\S]*?\n  \}\);/)[0];
-    assert.match(input, /if \(_ceSel\) ceCloseInline\(\);/,
+    assert.match(input, /if \(_ceSel\) ceDetachPassage\(\);/,
       'a reader who highlights and then carries on writing has answered the '
       + 'question themselves');
     assert.match(input, /ceSyncBarSteps\(\)/, 'and the step buttons still follow');
@@ -1607,5 +1680,85 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     assert.match(open, /delete .*typing|typing[\s\S]{0,120}delete/,
       'the ask is consumed on arrival');
     assert.match(CODE, /_ceEditing = /, 'and the conservative reading survives');
+  });
+});
+
+/* ============================================================
+   f245 (20) — the contract stops jumping
+   ============================================================
+   OWNER-REPORTED 31 Aug 2026, in the same message as Option A: *"whenever I
+   make change or click in the box, the contract moves up then back down to
+   where I was. Remove this bug."*
+
+   THE PAPER IS REBUILT ON EVERY CHANGE TO THE DRAFT, and a rebuilt scroller
+   starts at 0 — that is the jump. `ceRenderPaper` then puts the reader's place
+   back with a BARE ASSIGNMENT, and `#ce-doc` is a `.nego-scroll`, which is
+   scroll-behavior:smooth — so the restore is read as a REQUEST TO ANIMATE from
+   the top. That is the crawl back down.
+
+   THE PRODUCT ALREADY SOLVED THIS. rlRestoreScroll was written for the
+   identical fault on the negotiation page a fortnight earlier and its own note
+   says so in those words; this page never called it. The smooth rule is NOT
+   removed — it is what makes pressing a change card read as a journey to its
+   clause — it is suspended for the width of the assignment.
+
+   WHAT A BROWSER ANSWERS — does the paper visibly move — is
+   clause-editor-verify's. This file holds the rule.
+   ============================================================ */
+describe('f245 (20) — putting a scroll back is not travelling to it', () => {
+
+  test('THE REPORTED CAUSE: the restore is no longer a bare assignment', () => {
+    const paint = CODE.match(/_ceRendering = true;[\s\S]{0,600}?ceApplyZoom\(\);/);
+    assert.ok(paint, 'the paint that rebuilds the paper is still there to read');
+    assert.ok(!/host\.scrollTop = keep;/.test(paint[0]),
+      'a bare assignment under a smooth rule is a request to animate from the top — '
+      + 'which is the whole of the report');
+    assert.match(paint[0], /ceRestoreScroll\(host, keep\)/,
+      'it is put back rather than travelled to');
+  });
+
+  test('and the restore suspends the smooth rule rather than deleting it', () => {
+    const r = CODE.match(/function ceRestoreScroll\([\s\S]*?\n\}/)[0];
+    assert.match(r, /el\.style\.scrollBehavior = 'auto';/, 'suspended for the assignment');
+    assert.match(r, /el\.scrollTop = top;/, 'the position is put back');
+    assert.match(r, /el\.style\.scrollBehavior = prev;/,
+      'and handed back, because the reader\'s NEXT scroll is meant to be smooth');
+    /* THE RULE LIVES IN THE SPLIT STYLESHEET, which is where this page's paper
+       gets it from too: `#ce-doc` carries .nego-scroll. */
+    assert.match(read('js/views/negotiation-css.js'), /\.nego-scroll\{[^}]*scroll-behavior:smooth/,
+      'the rule itself is untouched — it is what makes rlLinkFocus read as a journey');
+    assert.match(CODE, /<div class="nego-scroll" id="ce-doc"/,
+      'and this page\'s paper really carries it, which is why the fault reached here');
+  });
+
+  test('THE FALLBACK IS THE FIX AGAIN, never the bare assignment', () => {
+    /* A cross-module read that falls back to the broken behaviour is how a fix
+       silently reverts — this codebase's most repeated defect, recorded six
+       times. So the fallback does the same job rather than putting the bug
+       back, AND the name it prefers is really published. */
+    const r = CODE.match(/function ceRestoreScroll\([\s\S]*?\n\}/)[0];
+    assert.match(r, /window\.rlRestoreScroll\)\{ rlRestoreScroll\(el, top\); return; \}/,
+      'it prefers the product\'s own one');
+    assert.match(read('js/views/negotiation.js'), /^\s*rlRestoreScroll,$/m,
+      'which is published, or the read is silence');
+  });
+
+  test('nothing else on this page assigns a scrollTop bare', () => {
+    /* ceScrollToClause is the one deliberate TRAVEL on this page — bringing the
+       clause into view on arrival — and is left alone. Everything else that
+       puts a position back goes through the helper. */
+    const live = CODE.replace(/\/\*[\s\S]*?\*\//g, '');
+    /* PINNED AS A RELATION, NOT A COUNT: every remaining assignment is either
+       the helper's own, a deliberate TRAVEL, or the rail's conversation — which
+       is a different scroller with no smooth rule on it. */
+    const sites = live.match(/[\w.]+\.scrollTop = /g) || [];
+    for (const site of sites)
+      assert.ok(/^(el|host|lane)\.scrollTop = $/.test(site), 'unexpected scroll site: ' + site);
+    assert.equal(sites.filter(x => x === 'host.scrollTop = ').length, 1,
+      'the paper is assigned in exactly one place, and it is the deliberate travel');
+    assert.match(live, /host\.scrollTop = Math\.max\(0, host\.scrollTop \+ \(tb\.top - hb\.top\)/,
+      'ceScrollToClause is the one deliberate TRAVEL and stays smooth on purpose');
+    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 2,
+      'and the rail keeps its own two — the scan tab\'s top and the last turn');
   });
 });

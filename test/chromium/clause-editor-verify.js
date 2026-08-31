@@ -1619,75 +1619,104 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     return { ok: false, why: `no candidate the page accepts (${nodes.length} tried)` };
   });
   await pause(400);
-  const strip = await p.evaluate(() => {
-    const pop = document.getElementById('ce-inline');
-    const ta = document.getElementById('ce-inline-ask');
-    if (!pop || !ta) return { on: false };
-    const r = pop.getBoundingClientRect();
-    return { on: pop.classList.contains('is-on'), w: Math.round(r.width), h: Math.round(r.height),
-      value: ta.value, focused: document.activeElement === ta,
-      ctx: !!document.getElementById('ce-inline-q'),
-      chips: [...pop.querySelectorAll('[data-ce-inline-chip]')].length,
-      arrow: !!pop.querySelector('[data-ce-act="inline-go"]'),
-      cut: !!pop.querySelector('[data-ce-act="inline-cut"]') };
-  });
-  ck('18a highlighting a sentence opens ONE strip, as visible pixels',
-     sel18.ok && strip.on && strip.w > 100 && strip.h > 20,
-     sel18.ok ? `${strip.w}x${strip.h}` : sel18.why);
-  ck('18b the box CARRIES the highlighted wording, ready to be edited',
-     !!strip.value && strip.value.trim() === (sel18.text || '').trim(),
-     `"${(strip.value || '').slice(0, 46)}…"`);
-  ck('18c and the caret is in it — no second press to start typing', strip.focused === true,
-     strip.focused ? 'focused' : 'not focused');
-  ck('18d THE CONTEXT BOX IS GONE — the words are not printed twice',
-     strip.ctx === false, strip.ctx ? '#ce-inline-q still drawn' : 'no context line');
-  ck('18e Copilot is still one press away, on the same strip',
-     strip.chips === 3 && strip.arrow === true, `${strip.chips} chips, arrow ${strip.arrow}`);
-  /* THE HINT ROW, from the approved prototype: where the words are going and
-     the two keys. NOT the context box the owner asked to be removed — that one
-     printed the passage the box is now prefilled with, in a box above the
-     field; this is one quiet line under it. */
-  const hint = await p.evaluate(() => {
-    const h = document.querySelector('#ce-inline .ce-inline-hint');
-    if (!h) return { there: false };
-    const r = h.getBoundingClientRect();
-    return { there: true, h: Math.round(r.height),
-      text: h.innerText.replace(/\s+/g, ' ').trim(),
-      where: (document.getElementById('ce-inline-where') || {}).textContent || '' };
-  });
-  ck('18e1 …and the one capability the prototype\'s menu carried: striking words out',
-     strip.cut === true, strip.cut ? 'drawn on the strip' : 'no delete on the strip');
-  ck('18e2 …with one quiet line saying where the words go and which keys work',
-     hint.there && /clause|klausul/i.test(hint.where) && /Shift|Skift/.test(hint.text)
-       && /Esc/.test(hint.text),
-     hint.there ? `"${hint.text.slice(0, 74)}"` : 'no hint row');
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (M-1) ----
+     Owner-asked, off three drawn options: "when I highlight the sentence, it
+     appears in the Copilot screen on the right and I can then ask Copilot for
+     what I want. This change then eliminates the pop-up strip." Then, of the
+     three: "Build option A."
 
-  /* THE PRESS ITSELF: type a replacement and hit Enter for real. */
-  const enterPress = await p.evaluate(async () => {
-    const ta = document.getElementById('ce-inline-ask');
-    ta.value = 'Payment falls due within forty-five (45) days of a valid invoice.';
-    ta.dispatchEvent(new Event('input', { bubbles: true }));
-    ta.dispatchEvent(new KeyboardEvent('keydown',
-      { key: 'Enter', shiftKey: false, bubbles: true, cancelable: true }));
+     WHAT THIS SECTION IS ABOUT SURVIVES WHOLE: a highlight gives the reader ONE
+     place to act on that passage, the act changes the paper as a REDLINE, and
+     nothing here files. What moved is WHERE — the rail, not a box over the
+     contract — and that the field beside it takes an instruction rather than
+     the wording, because typing the wording is done in the contract itself. */
+  const scope = await p.evaluate(() => {
+    const box = document.querySelector('#ce-scope .ce-scope');
+    const over = document.getElementById('ce-inline');
+    const ask = document.getElementById('ce-ask');
+    if (!box) return { on: false, over: !!over };
+    const r = box.getBoundingClientRect();
+    const paper = document.getElementById('ce-doc').getBoundingClientRect();
+    const q = box.querySelector('q');
+    return { on: r.width > 100 && r.height > 20, over: !!over,
+      w: Math.round(r.width), h: Math.round(r.height),
+      quote: q ? q.textContent.trim() : '', title: q ? q.getAttribute('title') : '',
+      /* NOT OVER THE PAPER: the whole complaint about the strip was that it
+         covered the sentence it was about. */
+      clear: r.left >= paper.right - 2,
+      focused: document.activeElement === document.getElementById('ce-ask'),
+      caretInClause: !!(document.activeElement
+        && document.activeElement.closest && document.activeElement.closest('#ce-clausebody')),
+      ph: ask ? ask.placeholder : '',
+      chips: [...document.querySelectorAll('#ce-chips [data-ce-chip]')].map(b => b.textContent.trim()),
+      cut: !!box.querySelector('[data-ce-act="scope-cut"]'),
+      off: !!box.querySelector('[data-ce-act="scope-off"]') };
+  });
+  ck('18a highlighting a sentence puts it on the RAIL, as visible pixels',
+     sel18.ok && scope.on, sel18.ok ? `${scope.w}x${scope.h}` : sel18.why);
+  ck('18a2 …and NOTHING opens over the contract — the strip is gone',
+     scope.over === false && scope.clear === true,
+     scope.over ? '#ce-inline still in the page' : 'clear of the paper');
+  ck('18b the card QUOTES the highlighted wording, whole on its own title',
+     !!scope.quote && (scope.title || '').trim() === (sel18.text || '').trim(),
+     `"${(scope.quote || '').slice(0, 46)}…"`);
+  /* REVERSED AND STRONGER: the claim was that the strip took the caret only
+     when the reader was not already typing. With the box in the rail there is
+     nothing on the paper to move the caret to, so attaching never touches focus
+     at all — which is the same promise with the condition gone. */
+  ck('18c attaching NEVER takes the caret — the reader stays where they were',
+     scope.focused === false, scope.focused ? 'the ask box stole focus' : 'focus not taken');
+  ck('18d the ask box says what it is for — a narrowed control states its narrowing',
+     /passage|stycket/i.test(scope.ph || ''), `"${(scope.ph || '').slice(0, 46)}"`);
+  ck('18e Copilot is one press away — the three rewrite questions are the chips now',
+     scope.chips.length === 3, `${scope.chips.length} chips: ${scope.chips.join(' · ').slice(0, 60)}`);
+  ck('18e1 …and the one capability the prototype\'s menu carried: striking words out',
+     scope.cut === true, scope.cut ? 'on the passage\'s own card' : 'no delete anywhere');
+  /* ---- THE ONE THING OPTION A COULD HAVE GOT WRONG IN ONE PRESS ----
+     With the box in the rail, the very next thing a reader does after
+     attaching a passage is click into the ask box — which makes no selection.
+     If the page read that as "the reader has moved on", the passage they had
+     just chosen would detach under them, every time. */
+  const stillThere = await p.evaluate(async () => {
+    const ask = document.getElementById('ce-ask');
+    ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    ask.focus();
+    ask.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 200));
+    return { there: !!document.querySelector('#ce-scope .ce-scope'),
+      focused: document.activeElement === ask };
+  });
+  ck('18e2 CLICKING INTO THE ASK BOX DOES NOT LET THE PASSAGE GO',
+     stillThere.there === true && stillThere.focused === true,
+     stillThere.there ? 'still attached, box focused' : 'the passage detached under the reader');
+
+  /* THE PRESS ITSELF: strike the passage out for real. It is the one act on the
+     card that needs no Copilot key, and it exercises the same replacement the
+     rail's Apply uses — so it answers the same four questions section 18 always
+     asked: the paper moves, it moves as a redline, the card goes, nothing files. */
+  const cutPress = await p.evaluate(async () => {
+    const before = document.getElementById('ce-clausebody').textContent.replace(/\s+/g, ' ');
+    document.querySelector('#ce-scope [data-ce-act="scope-cut"]').click();
     await new Promise(r => setTimeout(r, 500));
     const doc = document.getElementById('ce-clausebody');
-    return {
-      shut: !document.getElementById('ce-inline').classList.contains('is-on'),
-      ins: [...doc.querySelectorAll('.nego-ins')].map(e => e.textContent).join(' '),
+    return { before,
+      gone: !document.querySelector('#ce-scope .ce-scope'),
       del: doc.querySelectorAll('.nego-del').length,
       words: doc.textContent.replace(/\s+/g, ' '),
       filed: (window.CONTRACT.changes || []).length };
   });
-  ck('18f pressing Enter puts the new wording on the paper',
-     /forty-five \(45\) days/.test(enterPress.ins) || /forty-five \(45\) days/.test(enterPress.words),
-     (enterPress.ins || '').slice(0, 60) || 'nothing inserted');
+  const cutTxt = (sel18.text || '').trim();
+  ck('18f pressing it takes the passage out of the paper',
+     !!cutTxt && cutPress.before.includes(cutTxt) && !cutPress.words.includes(cutTxt),
+     cutPress.words.includes(cutTxt) ? 'the words are still there' : 'removed');
   ck('18g …as a REDLINE — the words it replaces are struck, not deleted',
-     enterPress.del > 0, `${enterPress.del} struck runs`);
-  ck('18h the strip closes behind it', enterPress.shut === true, enterPress.shut ? 'shut' : 'still open');
-  /* THE ONE DOOR: a strip that FILED would be a third way onto an act that
-     already has one. It applies to the draft; the rail's foot still files. */
+     cutPress.del > 0, `${cutPress.del} struck runs`);
+  ck('18h the card goes with it', cutPress.gone === true,
+     cutPress.gone ? 'released' : 'still attached');
+  /* THE ONE DOOR: an act here that FILED would be a third way onto something
+     that already has one. It applies to the draft; the rail's foot still files. */
   ck('18i AND IT FILES NOTHING — the record is untouched until the one act is pressed',
-     enterPress.filed === beforeStrip, `${enterPress.filed} changes, ${beforeStrip} before`);
+     cutPress.filed === beforeStrip, `${cutPress.filed} changes, ${beforeStrip} before`);
 
   /* ============================================================
      19. THE FOUR FAULTS REPORTED OFF THE SCREENSHOTS (28 Aug 2026)
@@ -1851,10 +1880,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(900);
 
   /* ---- AND STRIKING WORDS OUT, DRIVEN ----
-     THE STRIP IS FOR THE READING, never for a caret already in the clause: a
-     drag inside the typing box is somebody selecting words to bold them, which
-     is why the page's own mouseup bails on it. A freshly opened page has the
-     caret in the clause, so the pencil comes off first. */
+     Driven on a FRESHLY OPENED page rather than the one section 18 left, so
+     the act is exercised from the state a reader really arrives in. A drag
+     inside the typing box is somebody selecting words to bold them, which is
+     why the pencil comes off first. */
   await setTyping(false);
   await pause(300);
   const cutRun = await p.evaluate(async () => {
@@ -1880,10 +1909,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     if (!picked) return { ok: false };
     await new Promise(r => setTimeout(r, 400));
     const before = (window.CONTRACT.changes || []).length;
-    const btn = document.querySelector('#ce-inline [data-ce-act="inline-cut"]');
+    const btn = document.querySelector('#ce-scope [data-ce-act="scope-cut"]');
     const found = !!btn;
-    const openBefore = document.getElementById('ce-inline').classList.contains('is-on');
-    const boxVal = (document.getElementById('ce-inline-ask')||{}).value;
+    const openBefore = !!document.querySelector('#ce-scope .ce-scope');
+    const boxVal = (document.getElementById('ce-ask')||{}).value;
     if (btn) btn.click();
     await new Promise(r => setTimeout(r, 600));
     const doc = document.getElementById('ce-clausebody');
@@ -1893,13 +1922,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       reading: (window.rlReadMode ? rlReadMode() : '?'),
       typing: doc.getAttribute('contenteditable'),
       html: doc.innerHTML.slice(0, 140),
-      shut: !document.getElementById('ce-inline').classList.contains('is-on'),
+      shut: !document.querySelector('#ce-scope .ce-scope'),
       filed: (window.CONTRACT.changes || []).length, before };
   });
   ck('18j STRIKING WORDS OUT really strikes them out on the paper',
      cutRun.ok && cutRun.struck > 0,
      cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken');
-  ck('18k …the strip closes, and it files nothing either',
+  ck('18k …the card is released, and it files nothing either',
      cutRun.ok && cutRun.shut === true && cutRun.filed === cutRun.before,
      cutRun.ok ? `shut ${cutRun.shut}, ${cutRun.filed} changes` : '');
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="discard"]');
@@ -2067,7 +2096,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await pause(450);
   }
   const afterDrag = await p.evaluate(() => {
-    const strip = document.getElementById('ce-inline');
+    /* RE-POINTED IN PLACE 31 Aug 2026 (M-1): the passage lands on the rail
+       rather than in a box over the paper. The CLAIM is unchanged — a drag made
+       while typing must still reach the one control that acts on the passage. */
+    const strip = document.querySelector('#ce-scope .ce-scope');
     const r = strip ? strip.getBoundingClientRect() : null;
     const sel = window.getSelection();
     const act = document.activeElement;
@@ -2081,18 +2113,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         && document.getElementById('ce-clausebody').getAttribute('contenteditable') === 'true'),
     };
   });
-  ck('21c THE REPORTED FIX: highlighting while typing raises the strip',
-     afterDrag.strip === true, `strip ${afterDrag.strip}`);
+  ck('21c THE REPORTED FIX: highlighting while typing attaches the passage',
+     afterDrag.strip === true, `attached ${afterDrag.strip}`);
   /* A SUPPORTING CLAIM, NOT A REGRESSION ONE, and labelled so: this passes
      against the unfixed code too, because while typing the click branch is
      already excluded by its own contenteditable selector. It is here because
      the strip can only open if the selection survived the gesture, and pinning
      that separately says WHICH half failed if this ever goes red. */
-  ck('21d …the selection survived the gesture, which is what the strip reads',
+  ck('21d …the selection survived the gesture, which is what the rail reads',
      afterDrag.selected === true, `selected ${afterDrag.selected}`);
   ck('21e …the reader is still typing in the clause, not switched out of it',
      afterDrag.typing === true, `typing ${afterDrag.typing}`);
-  ck('21f THE STRIP WAITS: it does not take the caret',
+  ck('21f ATTACHING NEVER TAKES THE CARET — the reader stays in the clause',
      afterDrag.focus === 'ce-clausebody', `focus ${afterDrag.focus}`);
 
   /* Carrying on typing answers the question, so the strip goes — having done
@@ -2101,10 +2133,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const box = document.getElementById('ce-clausebody');
     if (box) box.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 200));
-    const strip = document.getElementById('ce-inline');
-    return { on: !!(strip && strip.classList.contains('is-on')) };
+    return { on: !!document.querySelector('#ce-scope .ce-scope') };
   });
-  ck('21g typing in the clause closes the strip', afterType.on === false, `open ${afterType.on}`);
+  ck('21g typing in the clause lets the passage go', afterType.on === false, `attached ${afterType.on}`);
 
   /* ---- THE GREEN BAR, AND THE RED ONE THAT IS NOT IT ---- */
   const bars = await p.evaluate(() => {
@@ -2123,6 +2154,81 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `drawn ${bars.green}px`);
   ck('21i …and the red changed-clause bar is untouched', bars.red > 0,
      `drawn ${bars.red}px`);
+
+  /* ============================================================
+     22. THE CONTRACT STOPS JUMPING (M-2)
+     ============================================================
+     OWNER-REPORTED 31 Aug 2026: "whenever I make change or click in the box,
+     the contract moves up then back down to where I was."
+
+     THE MECHANISM, MEASURED HERE AND NOWHERE ELSE. `#ce-doc` is a
+     `.nego-scroll`, which is scroll-behavior:smooth — right for every scroll a
+     reader ASKS for, and exactly wrong for putting a position back after a
+     repaint, because a bare assignment under that rule is a request to ANIMATE
+     from wherever the scroller currently is. jsdom lays nothing out and
+     animates nothing, so a node test can read the code and never the movement.
+
+     THE CONTROL IS THE FIRST CHECK AND IT IS WHAT MAKES THE REST MEAN
+     ANYTHING: a bare assignment on this very element is proved to animate,
+     frame by frame, before the helper is asked to suppress it. Without that,
+     "no intermediate frames" would be satisfied by a browser that never
+     animates at all.
+
+     WHAT THIS FILE DELIBERATELY DOES NOT CLAIM, said out loud: the owner's own
+     gesture is not reproduced here. The animation fires only when the rebuilt
+     paper CLAMPS the offset — a real contract, a long clause, a change that
+     moves the height — and this harness's contract is four short clauses whose
+     repaint leaves the height where it was, so the assignment asks for the
+     position it is already at and nothing moves either way. A check written on
+     that gesture passed identically with the fix patched out, which makes it a
+     description; it was taken out again rather than shipped. */
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
+  await pause(900);
+  const jump = await p.evaluate(async () => {
+    const host = document.getElementById('ce-doc');
+    if (!host) return { ok: false, why: 'no paper' };
+    const smooth = getComputedStyle(host).scrollBehavior;
+    const room = host.scrollHeight - host.clientHeight;
+    if (room < 120) return { ok: false, why: `paper too short to scroll (${room}px of room)`, smooth };
+    const target = Math.min(400, room);
+    const sample = async run => {
+      const prev = host.style.scrollBehavior;
+      host.style.scrollBehavior = 'auto'; host.scrollTop = 0; host.style.scrollBehavior = prev;
+      await new Promise(r => requestAnimationFrame(r));
+      const seen = [];
+      let going = true;
+      const tick = () => { if (!going) return; seen.push(Math.round(host.scrollTop)); requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+      run();
+      await new Promise(r => setTimeout(r, 600));
+      going = false;
+      return { frames: seen.length, min: seen.length ? Math.min(...seen) : -1,
+        max: seen.length ? Math.max(...seen) : -1, end: Math.round(host.scrollTop) };
+    };
+    /* THE CONTROL: what the page used to do. */
+    const bare = await sample(() => { host.scrollTop = target; });
+    /* THE FIX: what it does now. */
+    const put  = await sample(() => ceRestoreScroll(host, target));
+    return { ok: true, smooth, target, bare, put,
+      after: getComputedStyle(host).scrollBehavior,
+      inline: host.style.scrollBehavior };
+  });
+  ck('22a THE CONTROL: a bare assignment on this element really does animate',
+     jump.ok && jump.smooth === 'smooth' && jump.bare.frames > 3
+       && jump.bare.min < jump.target - 40,
+     jump.ok ? `smooth · lowest frame ${jump.bare.min} of ${jump.target}` : jump.why);
+  ck('22b PUTTING IT BACK TAKES NO TIME AT ALL — no frame below the target',
+     jump.ok && jump.put.frames > 3 && jump.put.min >= jump.target - 2,
+     jump.ok ? `${jump.put.frames} frames, lowest ${jump.put.min} of ${jump.target}` : 'not measured');
+  ck('22c …and it lands exactly where the reader was',
+     jump.ok && Math.abs(jump.put.end - jump.target) <= 1, `${jump.put.end} of ${jump.target}`);
+  ck('22d …and the smooth rule is handed back, so the NEXT scroll is a journey',
+     jump.ok && jump.after === 'smooth' && !jump.inline,
+     `${jump.after}, inline "${jump.inline}"`);
+  const bareLeft = await p.evaluate(() =>
+    /host\.scrollTop = keep/.test(String(window.ceRenderPaper || '')));
+  ck('22e and the repaint itself no longer carries a bare assignment',
+     bareLeft === false, bareLeft ? 'host.scrollTop = keep is back' : 'it goes through the helper');
 
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');

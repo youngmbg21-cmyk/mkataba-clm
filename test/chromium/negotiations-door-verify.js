@@ -601,14 +601,23 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('10 leaving focus brings the sidebar and the old geometry back',
       backGeo.left > 60, `grid left ${backGeo.left}px`);
 
-    /* ---- 11 · THE SEARCH BOX IS WHITE, LIKE EVERYTHING BESIDE IT ----
-       Owner-reported 22 Aug 2026 off this very list. It was --color-bg, the
-       PAGE's own grey, while all six dropdowns on the same row are
-       --color-surface — so the one box a reader types into was the only sunk
-       thing in a row of raised ones.
-       ASSERTED AS A RELATION, against its own neighbours rather than against
-       the word "white": if this product ever re-tones its controls, the claim
-       that still matters is that this row agrees with itself. */
+    /* ---- 11 · ONE SEARCH BOX, AND IT IS THE SHELL'S ----
+       REVERSED IN PLACE 31 Aug 2026 (M-5), owner-reported off a screenshot with
+       both ringed: "remove the search bar on the left under negotiations
+       because we already have one on top of the screen."
+
+       WHAT STOOD HERE was a colour claim from 22 Aug — this page's own box was
+       the PAGE's grey while the six dropdowns beside it were the surface, so
+       the one box a reader types into was the only sunk thing in a row of
+       raised ones. That claim has not stopped being true; it has stopped being
+       about THIS page, because this page no longer draws a box. It is pinned on
+       the Contracts seat instead, where the box still draws — asserted as a
+       RELATION against its own neighbours, so a re-tone of the controls costs
+       no test edit.
+
+       AND THE ABSENCE IS ASSERTED TOO: a filter row that quietly kept its box
+       would be the owner's report unfixed, and the same row is what carries the
+       claim, so the two sit together. */
     await page.evaluate(() => openNegotiations({ list: true }));
     await page.waitForTimeout(1600);
     const box = await page.evaluate(() => {
@@ -616,11 +625,29 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
       const g = e => e ? getComputedStyle(e).backgroundColor : null;
       return { drew: !!document.querySelector('.reg-table'), found: !!s,
+        note: !!document.getElementById('reg-sort-note'),
+        shell: !!document.getElementById('cmd-search'),
         search: g(s), neighbours: [...new Set(sels.map(g))] };
     });
-    check('11 the list and its search box really drew', box.drew && box.found, JSON.stringify(box));
-    check('11 the search box is the same colour as the controls beside it',
-      box.neighbours.length === 1 && box.search === box.neighbours[0], JSON.stringify(box));
+    check('11 the list drew, and it draws NO search box of its own',
+      box.drew && box.found === false, JSON.stringify(box));
+    check('11 …because the shell bar above it already carries one',
+      box.shell === true, `shell search ${box.shell}`);
+    check('11 and no "sorts within each group" line under the controls',
+      box.note === false, box.note ? '#reg-sort-note still drawn' : 'gone');
+    /* THE COLOUR CLAIM, ON THE SEAT THAT STILL HAS THE BOX. */
+    await page.evaluate(() => { regSetScope(null); setView('register'); });
+    await page.waitForTimeout(1400);
+    const cbox = await page.evaluate(() => {
+      const s = document.getElementById('reg-search');
+      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
+      const g = e => e ? getComputedStyle(e).backgroundColor : null;
+      return { found: !!s, search: g(s), neighbours: [...new Set(sels.map(g))] };
+    });
+    check('11 CONTRACTS KEEPS ITS BOX — the ask named Negotiations alone',
+      cbox.found === true, JSON.stringify(cbox));
+    check('11 …and it is still the same colour as the controls beside it',
+      cbox.neighbours.length === 1 && cbox.search === cbox.neighbours[0], JSON.stringify(cbox));
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

@@ -1394,15 +1394,21 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await p.mouse.move(reach.x2, reach.y, { steps: 8 });
     await p.mouse.up();
     await pause(450);
+    /* RE-POINTED IN PLACE 31 Aug 2026 (M-1): the highlighted passage attaches
+       to the Copilot rail rather than opening a box over the paper. The CLAIM
+       is exactly what it always was — one press on the contract must reach
+       BOTH the typing and the highlight — and only the control it reaches
+       moved. */
     const strip = await p.evaluate(() => {
-      const el = document.getElementById('ce-inline');
+      const el = document.querySelector('#ce-scope .ce-scope');
       const r = el ? el.getBoundingClientRect() : null;
       const act = document.activeElement;
       return { on: !!(el && r && r.width > 0 && r.height > 0 && el.offsetParent !== null),
+        over: !!document.getElementById('ce-inline'),
         focus: act ? (act.id || act.tagName) : 'none' };
     });
-    ck('16d4 …and highlighting then raises the strip, on that same one press',
-       strip.on === true, `strip ${strip.on}`);
+    ck('16d4 …and highlighting then attaches the passage, on that same one press',
+       strip.on === true && strip.over === false, `attached ${strip.on}, box over the paper ${strip.over}`);
     ck('16d5 …without taking the caret out of the clause',
        strip.focus === 'ce-clausebody', `focus ${strip.focus}`);
   }

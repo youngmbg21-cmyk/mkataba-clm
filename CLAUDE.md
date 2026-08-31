@@ -4528,28 +4528,119 @@ could not refuse what another permitted, and they still agree.
   names — half a dozen checks and both browser files reach the button by them,
   and a rename would cost those and buy nothing; what changed is where they go.
 
-**HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER.** Owner-asked, off
-Oneflow. ONE strip and ONE box, and the box always holds the PROPOSED WORDING —
-whoever wrote it. It opens carrying the passage, selected, so the common act is
-editing a sentence rather than retyping one; the three chips ask Copilot and the
-answer lands IN THE BOX rather than on the paper, which is what lets one strip
-serve both hands without becoming two.
+**HIGHLIGHT A PASSAGE — AND IT GOES TO THE COPILOT RAIL (M-1, owner-chose
+Option A off three drawn options, 31 Aug 2026).** *"Let's make it so that when I
+highlight the sentence, it appears in the Copilot screen on the right and I can
+then ask Copilot for what I want. This change then eliminates the pop-up strip.
+To manually make a change, I just write the change in the contract as currently
+designed."*
 
-- **IT FILES NOTHING.** Enter APPLIES to the draft; the one act in the rail's
-  foot still puts it on the record. A strip that filed would be a third door
-  onto an act that already has one.
+**THIS REVERSES THE STRIP IN PLACE, and the half that survives is the half that
+was ever load-bearing:** ONE field for the wording, ONE replacement reading
+shared by the hand and by Copilot, and nothing on this path files. What moved is
+WHERE the passage goes.
+
+- **IT ATTACHES DIRECTLY ABOVE THE ASK BOX**, between the conversation and the
+  ready-made questions. That placement is the whole of why Option A was
+  recommended and chosen: what is attached and what you are typing are read
+  together, and a card pinned to the foot of the rail can neither scroll away
+  nor be left attached with no way to release it. It draws nothing when nothing
+  is attached, so the ordinary rail is unchanged.
+- **THE ONE LINE THAT MAKES IT WORK**: the paper's mouseup handler answers ONLY
+  for a press inside `#ce-doc`. With the box on the paper, a press elsewhere
+  that made no selection meant "the reader has moved on" and detaching was
+  right; with the box in the RAIL, the very next thing a reader does is click
+  into the ask box — no selection — and that would have detached the passage
+  they had just chosen, in one press, every time. The ways to let one go are the
+  card's ✕, Escape, typing over it in the clause, and choosing another passage.
+  **Nothing else takes it away.**
+- **ATTACHING NEVER TAKES THE CARET.** The old rule was conditional (focus only
+  when the reader was not already typing) because the box was on the paper; with
+  it in the rail there is nothing to focus, so the promise holds with the
+  condition gone.
+- **THE CHIPS FOLLOW THE SCOPE, ONE ROW AND ONE ATTRIBUTE.** A passage gets the
+  strip's own three — shorten, firmer, plain English; a clause gets the four
+  this rail has always carried. Either way a chip presses `ceAsk`, which is what
+  decides the scope: a second attribute for "passage chip" would be a second
+  route to one act.
+- **THE ASK BOX SAYS WHAT IT IS FOR** — its placeholder follows the scope, so a
+  narrowed control states the narrowing by being set to it. The WHOSE ASKS rule,
+  on a placeholder.
+- **THE CARD KNOWS WHAT IT WAS ABOUT.** The passage is recorded ON the answer
+  card rather than read off `_ceSel` when Apply is pressed, so an answer stays
+  applicable after the reader lets the passage go — and a card marked against
+  one sentence can never be applied as a rewrite of the whole clause. Its
+  preview is marked against the PASSAGE, and Apply routes by what the card
+  carries.
+- **IT FILES NOTHING.** Apply changes the draft; the one act in the rail's foot
+  still puts it on the record.
 - **`ceReplacePassage` IS THE ONE READING** of "put this wording in place of
   that passage", shared by the reader's hand and by a Copilot rewrite. The rest
   of the clause is carried across character for character, and a passage dragged
-  across two sub-paragraphs is still refused — the same reasoning that refuses a
-  highlight across two clauses.
-- **THE CONTEXT LINE IS GONE** (owner-asked, ringing it: "remove this because it
-  takes space away"). It printed the passage the box is now prefilled with.
-  `ce_inline_about` is STALE.
-- **WHAT CHANGES FOR THE READER**: the box used to take a free-form instruction
-  to Copilot and now takes wording. A free-form ask has its own door — the edit
-  symbol, which lands in the side panel, which is what the owner asked for by
-  name.
+  across two sub-paragraphs is still refused. Its refusals speak through
+  `ceSay` now — the toolbar's own status slot — because they used to print
+  inside the strip, and a refusal with nowhere to appear is a dead press.
+- **ONE VERB HAD NO OTHER HOME AND IS NAMED RATHER THAN LOST**: the strip's ✕,
+  *"suggest deleting these words"*, is the only one-press way in the product to
+  strike a sentence out. It is on the passage's own card. **A DEPARTURE FROM THE
+  APPROVED RENDER**, which drew it as a fourth chip: that row holds questions
+  that spend money on Copilot, and an act that changes the draft on the spot is
+  a different kind of thing.
+- **AND THE PAPER CANNOT KEEP THE MARK, said out loud.** The highlight is the
+  browser's own selection and it goes the moment the reader clicks into the ask
+  box. Wrapping the passage in the rendered clause would mean editing the
+  paper's markup to draw a posture, on the one surface in this product that must
+  never be edited to draw one — so the CARD is the statement, quoting the
+  passage in full on its own title, twelve pixels from the box the question is
+  typed into. The render promised the highlight would stay lit; it does not.
+- **MANUAL REPLACEMENT IS TYPING IN THE CONTRACT**, which the contenteditable
+  box has done since 26 Aug and which is what the owner asked for in the same
+  breath. **A workspace with no Copilot key loses nothing**: the strip's manual
+  half is what typing already does.
+- `.ce-inline` and its five functions are DELETED, not left unreachable.
+  `ce_inline_ph`, `ce_inline_newline`, `ce_inline_cancel`, `ce_inline_replace`,
+  `ce_inline_replace_title`, `ce_inline_where`, `ce_inline_suggested` and
+  `ce_inline_about` are STALE — flag any mention.
+
+Tests: f245 (16) and (19) REVERSED IN PLACE (**14 of that file's checks fail
+against the parent**), clause-editor-verify sections 18 and 21 reversed the same
+way — 18f-18i now drive the CUT, which is the one act on the card that needs no
+Copilot key and answers the same four questions the section always asked — plus
+18e2, which presses into the ask box and proves the passage stays attached,
+clause-door-verify 16d4 re-pointed.
+
+**THE CONTRACT STOPS JUMPING (M-2, owner-reported in the same message:**
+*"whenever I make change or click in the box, the contract moves up then back
+down to where I was. Remove this bug."*)
+
+- `#ce-doc` is a `.nego-scroll`, which is `scroll-behavior:smooth` — right for
+  every scroll a reader ASKS for, and exactly wrong for putting a position back
+  after a repaint. `ceRenderPaper` restored the reader's place with a BARE
+  ASSIGNMENT, which under that rule is a **request to animate** from wherever
+  the scroller currently is.
+- **THE PRODUCT'S OWN ANSWER EXISTED AND THIS PAGE NEVER CALLED IT.**
+  `rlRestoreScroll` was written for the identical fault on the negotiation page
+  a fortnight earlier and its note says so in those words. The smooth rule is
+  NOT removed — it is what makes pressing a change card read as a journey to its
+  clause — it is suspended for the width of the assignment.
+- **THE FALLBACK IS THE FIX AGAIN, never the bare assignment.** A cross-module
+  read that falls back to the broken behaviour is how a fix silently reverts,
+  which is this codebase's most repeated defect; so where the name is
+  unreachable `ceRestoreScroll` does the same job itself.
+- **WHAT IS PROVED AND WHAT IS NOT, said out loud.** MEASURED in a browser: a
+  bare assignment on this element really does animate (frames at 0, 2, 8, 18,
+  32 … of 400) and the helper puts the same position back with no intermediate
+  frame at all. **The owner's own gesture is NOT reproduced in the harness** —
+  the animation fires only when the rebuilt paper CLAMPS the offset, which needs
+  a height change, and the test fixture's contract is four short clauses whose
+  repaint leaves the height where it was. A check written on that gesture passed
+  identically with the fix patched out, so it was taken out again rather than
+  shipped as a description. The mechanism is fixed; whether it was the whole of
+  what the owner saw wants their own screen to confirm.
+
+Tests: f245 (20) (4 claims), clause-editor-verify section 22 (5 — with the
+CONTROL first, because "no intermediate frames" would otherwise be satisfied by
+a browser that never animates at all).
 
 **FOUR FAULTS REPORTED OFF THE SCREENSHOTS (owner-reported 28 Aug 2026), and
 every one reproduced in a browser before it was touched.**
@@ -7522,6 +7613,111 @@ four bands and is now the relation it was always about), payment-chain-verify
 (34, browser — the chain measured as paint, the set-back and the dashed
 connector as computed values, the loop refused through the real toast root, and
 completing a step proved to free the next one and not the one after it).
+
+## FIVE THINGS OFF FOUR SCREENSHOTS (owner-reported 31 Aug 2026, M-3..M-6)
+
+Sent with the ruling on Option A, in one message. The work order is
+`WORKORDER-fixes-31-aug-pm.md`.
+
+**M-3 — THE SCAN SAYS IT IS WORKING, AT EVERY DOOR.** *"When you click on find
+obligations or scanning of obligations, it is not clear that something is
+working in the background so provide a symbol that a search is ongoing within
+the button."*
+
+- **THE BUSY STATE EXISTED AND REACHED ONE DOOR OF TWO.** `runFindObligations`
+  wrote it onto `#ob-find` — the Checks card's door — BY NAME, and the
+  contract's own Obligations tab draws `#obt-find`, which was never touched at
+  all. That tab is the screen in the screenshot, so on the page the owner was
+  looking at a scan taking twenty seconds said nothing whatsoever.
+- **`OB_FIND_DOORS` IS THE LIST AND `obFindBusy` IS THE ONE HELPER**, so a third
+  door added later joins a list rather than needing two more lines remembered.
+- **THE LABEL IS REMEMBERED ON THE ELEMENT**, never rebuilt from a key: the two
+  doors do not read the same word, and a helper that put one word back on both
+  would silently rename the other.
+- **IT STOPS WHATEVER HAPPENS** — the stop is in a `finally`, because a refusal
+  deep in the reader (no key, a provider saying no, a document too short) must
+  not leave a button disabled and spinning for the life of the page.
+- **A SYMBOL, NOT ONLY A WORD**: `.ob-spin`, a ring in `currentColor` so it
+  needs no rule per theme or per accent, and STILL DRAWN but not moving under
+  `prefers-reduced-motion` — a reader who asked for no motion is still owed the
+  fact.
+
+**M-4 — NO DUPLICATE OBLIGATIONS, EVER.** *"Never allow for addition of
+duplicate obligations."*
+
+- **THE SCAN ALREADY REFUSED ONE (J-5.3) AND THE FORM DID NOT** — so the one
+  door a person types into was the one door with no guard, and since J-5.2 a
+  duplicated obligation is duplicated MONEY on every figure that sums them.
+- **IT ASKS `obligationAlreadyOn`, THE ONE READING**, rather than growing a
+  second: description matched with whitespace collapsed and case folded, exactly
+  as the scan matches, so the two doors cannot come to disagree about what "the
+  same obligation" means.
+- **NEVER AGAINST ITSELF.** The row being edited is left out of the comparison,
+  or every second save of an existing obligation would be refused.
+- **REFUSED IN WORDS AND BEFORE ANYTHING IS WRITTEN**, naming the wording it
+  clashes with.
+
+**M-5 — ONE SEARCH BOX, AND NO NOTE UNDER IT.** *"Remove the search bar on the
+left under negotiations because we already have one on top of the screen. Also
+remove the 'sorts within each group' writing."*
+
+- The shell bar's box says "Search contracts, clauses, counterparties…" and this
+  one said "Full-text: names, parties & clauses…" — two controls answering
+  almost the same question, one directly above the other, on the page whose
+  filter row is already the crowded one.
+- **CONTRACTS KEEPS ITS BOX**: the ask names Negotiations and only Negotiations.
+- **THE FTS WIRING IS NOT DELETED.** Every handler already guarded on the
+  element existing (`if(si)`, `if(!box) return`, `if(rs&&…)`), so the Contracts
+  seat is byte-identical and there is no second code path to keep in step.
+- **AND A STALE QUERY ON THAT SEAT NARROWS NOTHING.** The shell bar writes
+  `regState().query` and then navigates to Contracts, so a value really can be
+  left on the negotiations state — and a page narrowed by a control nobody can
+  see is worse than the duplicate box was, because there would be nothing to
+  press to widen it again. Ignored in `regFiltered`, the ONE reading, rather
+  than cleared in a renderer another path could go around.
+- `ngl_sort_note` and `#reg-sort-note` are STALE; the key is left inert in BOTH
+  dictionaries, because a key removed from one and not the other is how a screen
+  ends up half-English.
+
+**M-6 — THE WORKLIST READS AS A TABLE.** Four reports on one screen.
+
+- **CLEAR STATES ITSELF.** It was live whatever the page was showing, so a
+  reader could not tell a narrowed list from a whole one by looking at it, and
+  pressing it on a whole one did nothing. Dead and quiet at zero; counting and
+  accented above it; the reason on the hover either way.
+- **`OBW_DEF` IS THE ONE STATEMENT OF THE DEFAULTS, and it is not "everything is
+  All"** — State opens on `open`, which is a cut, so a reading that compared
+  against `'all'` would report the page as filtered the moment it was drawn.
+  `obwNarrowing` is the one reading and both the button and the controls ask it.
+- **AND EACH CONTROL SAYS WHETHER IT IS THE ONE NARROWING** — `--accent-ink`,
+  the register's own answer from 25 Aug, rather than a second vocabulary.
+- **THE TABLE NAMES ITS COLUMNS**, on the widths it already declares and from
+  the same `money` reading as the cells, so the head and the body cannot
+  disagree about how many columns there are. Sticky, because this table scrolls
+  inside the shell and a head that scrolls away leaves six unlabelled columns
+  again. The verb column is deliberately unnamed on screen.
+- **THE DESCRIPTION IS CUT TO ONE LINE**, so every row is one height and the
+  date column holds one vertical — which is what was reported. **ONE LINE, NOT
+  TWO, AND THE DIFFERENCE WAS MEASURED**: unclamped the table held rows of 91px
+  and 236px, a spread of 145; clamped to TWO it still held 54 and 72, because a
+  row is then one line or two depending on its wording. At one line every row is
+  the description plus its meta line and the table has **one** height (measured:
+  spread 0px, every row 54). Reserving two lines instead would buy the same
+  evenness and spend 18px of white on every short obligation in a list of
+  thirty. Nothing is hidden silently: the ellipsis says there is more, the whole
+  wording is on the row's own title, and the row is a door to where it is
+  printed in full. **THE DOT LEFT THE TEXT FLOW** into a flex row beside it; an
+  inline-block dot inside the cut box would have taken the line the wording
+  needs.
+- **THE OBLIGATION IS THE DOOR, AND IT ALWAYS WAS** — the row has opened its
+  contract on the Obligations tab since J-2.3 and nothing said so, which is why
+  the report asked for a behaviour the page already had. The description carries
+  the underline on hover now.
+
+Tests: f263 (25 — **17 of them fail against the parent**, including the headline
+one for each report), obligations-tab-verify unchanged at 41,
+negotiations-door-verify's search-box claim REVERSED IN PLACE and re-pinned on
+the Contracts seat, contracts-page-verify unchanged at 72.
 
 ## Line numbers drift
 
