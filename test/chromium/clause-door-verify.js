@@ -1403,8 +1403,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     });
     ck('16d4 …and highlighting then raises the strip, on that same one press',
        strip.on === true, `strip ${strip.on}`);
-    ck('16d5 …without taking the caret out of the clause',
-       strip.focus === 'ce-clausebody', `focus ${strip.focus}`);
+    /* REVERSED IN PLACE, 30 Aug 2026 (owner-approved render). This pinned the
+       29 Aug rule — the strip waits and the caret stays in the wording — which
+       the owner has ruled the other way: "not have to click inside the strip to
+       start typing". The caret goes to the box, and the sentence stays visible
+       through the held mark rather than through the browser's own highlight. */
+    ck('16d5 …and the caret goes with it, so typing starts straight away',
+       strip.focus === 'ce-inline-ask', `focus ${strip.focus}`);
   }
 
   /* THE SMOOTH SCROLL HAS TO SETTLE BEFORE ANY POINT IS MEASURED. #ce-doc is

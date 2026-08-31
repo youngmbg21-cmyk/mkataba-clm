@@ -516,7 +516,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       workingMeta: working ? (working.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim() : '',
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
       moreBtn: !!(working && working.querySelector('.rl-more-btn')),
-      openRow: !!(working && working.querySelector('.rl-more-menu [data-rl-cp-open]')),
+      /* RE-POINTED 30 Aug 2026: the CLAIM is that the card carries a door into
+         the clause's reading matter. Which door has moved — the owner shut our
+         seat's two doors onto the clause panel, so here it is the edit page and
+         on the counterparty's seat (and below 1024px) it is still the panel. */
+      openRow: !!(working && working.querySelector('[data-rl-cp-open], [data-rl-cp-editor-row]')),
       popBtn: !!document.querySelector('#rl-changes [data-rl-pop]'),
       body: !!document.querySelector('#rl-changes .rl-card-body'),
       workingH: wr ? Math.round(wr.height) : 0 };
@@ -565,7 +569,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14 and not as a second copy of the paper', !delta.workingDiff);
   check('14 and names its clause', !!delta.workingMeta, delta.workingMeta);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
-  check('14 the card carries a ⋯ whose menu opens the clause panel',
+  check('14 the card carries a ⋯, and a door into the clause',
     delta.moreBtn && delta.openRow && !delta.popBtn && !delta.body);
   check('14 the column is banded, and every band is drawn once',
     delta.bands.length > 0 && delta.bandRepeats === 0,

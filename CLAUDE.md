@@ -2449,8 +2449,14 @@ the strip exists for. **So a drag means BOTH**: the browser's own selection
 stands and every tool on the bar still acts on it, AND the strip opens beside
 it.
 
-**THE STRIP WAITS RATHER THAN TAKING OVER, and that is the promise that makes
-one gesture safe for two jobs.** Two rules carry it, and neither is optional:
+**THE STRIP WAITS RATHER THAN TAKING OVER — REVERSED IN PLACE 30 Aug 2026; see
+HIGHLIGHT AND TYPE, AND TWO PRESSES ARE THE CEILING.** The owner met this rule
+and ruled the other way: the strip ALWAYS takes the caret now, so a highlight is
+followed by typing rather than by a click into the box. **The half of the
+reasoning below that was right is kept and is what pays for it** — the writing
+bar goes on working, by acting on the held sentence wherever the caret is. What
+follows is the record of the rule this replaced, because its reasoning is the
+useful part. Two rules carried it:
 - **It does not take the caret while the reader is typing.** `ceOpenInline` used
   to focus and select its box unconditionally — right while the strip only ever
   opened in the reading, where nothing else held the caret. Now that a highlight
@@ -2526,6 +2532,179 @@ between mousedown and the third mouse move, the pointer left the clause, and the
 selection collapsed to nothing — which reads exactly like a product refusing to
 select. Take a point already on screen, or wait for the scroll to settle before
 measuring one.
+
+## HIGHLIGHT AND TYPE, AND TWO PRESSES ARE THE CEILING (owner-approved render, 30 Aug 2026)
+
+*"Once I make an edit, I have to click multiple times in order for the redlines
+to be filed... I also want to simply highlight a sentence and the open strip
+where I can make my change highlighted the highlighted word inside the strip and
+not have to click inside the strip to start typing... press send and it is filed
+immediately."*
+
+**TWO OF THE PRESSES THE OWNER WAS MAKING WERE BEING THROWN AWAY BY THE PAGE,
+and that half was a DEFECT rather than a design.** REPRODUCED with a real mouse
+before anything was touched: type in the clause, press **File as a change**
+once, and nothing happens; press it again and it files. Same for the pencil —
+press one did not toggle, press two did.
+
+**THE CAUSE IS ONE LINE AND IT COST FOUR REGIONS.** A press is a mousedown and a
+mouseup, and the browser only calls it a click if both land on the same element.
+The mousedown moves focus out of the typing box, which fires blur, which pulls
+the text — and the pull rebuilt **the readings row, the paper, the rail foot and
+the writing bar**, replacing whatever the reader's finger was on. So the mouseup
+landed on an element that had never been pressed. Nothing failed and nothing
+logged; from the reader's chair it is a dead button. The owner met two of the
+four and reported those.
+
+- **WHILE THE CARET IS IN THE BOX, NOTHING IS REBUILT.** `keepView` already
+  meant exactly that state — `cePullText` is its only caller and returns early
+  unless the reader is typing — so it now also means "paint, do not rebuild".
+  The box already shows the words, the bar's greying asks a question whose
+  answer has not moved, and the readings and the zoom are untouched. What
+  genuinely moves is the running `+N −N` and the foot, and both are painted in
+  place. **`ceStatHtml` is the one builder** for that count, read by the
+  readings row and by the painter, because two places printing what the draft
+  has done is how they come to disagree.
+- **THE RAIL FOOT IS PATCHED, NEVER REWRITTEN** — the settings page's own rule,
+  applied to the one row on this page that is pressed while the caret is still
+  in the text. Its two buttons live for the life of the page and only their
+  state moves; the label is written as `textContent`, which is also what keeps
+  the element identity the fix rests on.
+- **THE PAPER IS STILL REBUILT WHERE IT IS OWED**, which is when the sanitiser
+  had to correct the box — there the screen is showing something the record will
+  not keep. MEASURED: a freshly rendered box is already clean and stays clean
+  through ordinary typing including pressing Enter, so that signal is rare, and
+  it goes true on exactly the paste that needs correcting.
+
+**THE STRIP TAKES THE CARET. THIS REVERSES THE 29 Aug RULE**, which withheld it
+while the reader was typing so that selecting words to embolden would not throw
+them out of the clause. MEASURED with a real drag before it was touched: the box
+carried the words, the caret stayed in the clause, and typing straight away went
+into the CONTRACT and over the very sentence just highlighted — so the gesture
+lost the sentence and the strip in one keystroke. **The old reasoning was right
+about the cost, and the cost is paid elsewhere: the writing bar now acts on the
+held sentence.**
+
+**THE HELD MARK IS A MARK ON THE CONTRACT AND THE OWNER RULED ON IT AS ONE.** A
+document has ONE selection, so the moment the caret moves into the strip the
+browser stops painting the highlight — the sentence being replaced would go
+invisible at the exact moment its replacement is typed. `.ce-held` is a teal
+wash with an inset 2px underline, mixed against `--accent-solid` so it is the
+same colour as the strip's own edge and needs no answer of its own at night, and
+drawn as a background and an INSET shadow so it occupies no space and no word
+moves when it appears.
+
+**IT CAN NEVER REACH THE RECORD, GUARANTEED THREE TIMES RATHER THAN REMEMBERED
+ONCE**: the pull reads a CLONE of the box with the mark unwrapped (`ceBoxHtml`,
+which `ceBoxDirty` asks too); `sanitizeRich` unwraps any span whose class is not
+on its own allow-list, and this class deliberately is not on it; and the strip
+closing clears it outright. **The first two are structural** — neither depends on
+anybody remembering to call anything — and f245 asserts all three, including
+that the class is absent from `richSpanClassOk`'s list, so the day somebody adds
+it there the test makes them re-read this.
+
+**IT IS A WRAPPER RATHER THAN AN OVERLAY** because a wrapper follows the words
+through a scroll, a re-wrap, a zoom and the reader's own text-size setting, where
+an overlay would have to be told about each.
+
+**THE BAR ACTS ON THE SENTENCE YOU HIGHLIGHTED, WHEREVER THE CARET IS.** One rule
+rather than two, and NOT "the bar acts on the strip when the caret is in the
+strip", which cannot work: the strip is a plain box whose value goes to the
+record as WORDING, so bold inside it has nowhere to live. The mark is what makes
+it possible — a real element wrapping exactly the passage, so the range is read
+off it rather than searched for. **The paper is rebuilt by almost every press of
+that bar and that is right** (the browser writes `<b>` where the record keeps
+`<strong>`, and an indent writes a style the record will not keep at all), so
+the reader is put back afterwards: the same passage held, their own typing
+intact, the caret in the box. Where the passage genuinely cannot be found again
+the strip CLOSES rather than standing open over wording it cannot place.
+
+**AND A PRESS ON A CONTROL IS NOT THE END OF A DRAG.** The page's mouseup
+handler excluded only the strip; the bar restores the strip after its own press
+and this handler then ran a frame later, found no selection in the wording and
+tore down what had just been put back. It excludes CONTROLS now rather than
+everything outside the clause, so a drag that ends past the wording's edge still
+opens the strip.
+
+**SEND FILES, AND FILING NEVER CLOSES THE PAGE.** Both are owner rulings and they
+go together. `ceInlineApply` files after replacing, and the **✕** beside it files
+the same way — a strip whose two buttons disagreed about reaching the record
+would be the worse answer. **IT IS NOT A SECOND FILING PATH**: the wording goes
+through `ceReplacePassage` and then `ceFile`, the same one act the foot presses,
+so the desk rule, the review gate and the executed-wording freeze all apply
+without being repeated. **ONLY WHERE SOMETHING MOVED** — a filing on wording the
+passage already says would be a revision proposing nothing.
+
+**THIS REVERSES "BACK WHERE YOU STARTED".** Closing the editor and returning was
+right while filing was a once-per-visit act at the end of a clause; with the
+strip filing it meant being thrown out and going back in twice to change three
+sentences. **ONE RULE, BOTH DOORS**: filing files, leaving is its own button.
+After a filing the record has moved, so the page is re-read from it —
+**`ceSeedDraft` is that reading and has TWO callers**, the door and the filing,
+because a second copy of it is how they would disagree about which baseline the
+marks are drawn against. The POSTURE is untouched: typing stays on, the rail
+stays where it was, and the reader's place is the one thing they were holding.
+
+- **A STRIP FILING KEEPS THE READER TYPING** (`keepView` on the replacement),
+  or the second sentence costs a second press of the pencil and the ceiling
+  breaks. The rule it narrows is untouched for what it was written about:
+  wording that arrives from a Copilot card or a playbook standard still drops
+  out of typing so the marks it made are the first thing seen.
+- **THE FILE BUTTON GREYS ONCE THE RECORD HAS CAUGHT UP.** With the page staying
+  open a just-filed draft still differs from what STANDS, so File asks
+  `clauseEditorDirty` instead — is there anything the record does not already
+  hold — or it would sit live over a press the funnel refuses. **Discard keeps
+  its own question**, which is whether the wording has moved from what stands,
+  because that is what it puts back.
+
+**MEASURED END TO END with a real mouse and keyboard: pencil, highlight, type,
+Enter → filed, page still open, still typing. Then highlight, type, Enter →
+filed again as a revision. The first change costs two presses and every one
+after it costs one.**
+
+**AND THE TWO DOORS ONTO THE CLAUSE PANEL ARE SHUT ON OUR SEAT** (*"shut the two
+doors that put it in front of me"*). The pencil has opened the edit page since
+29 Aug; the card's **Edit** still jumped to the clause and opened the PANEL on
+it, and the ⋯ carried an **Open clause panel** row besides — so one clause had
+three doors going to two places.
+
+- **`ceTakesIt` IS THE READING AND IT IS THE PENCIL'S OWN**, asked once for the
+  whole column: our seat, not a preview, the module present BY NAME, and a
+  window wide enough. Decided at draw time rather than by falling through a
+  refusal, which is what stops a door claiming a page nothing can open.
+- **THE MENU NEVER REPEATS THE FACE.** Edit now carries the editor door, so the
+  ⋯'s Copilot row stands down on any card whose face has it — the menu's own
+  rule — and survives on the cards whose face is bare.
+- **THE PANEL ITSELF IS NOT RETIRED AND THAT IS A CAPABILITY.** The counterparty
+  refuses `rlOpenClauseEditor` outright, so the panel is the ONLY way their page
+  proposes wording; the same is true below 1024px and on a stage that does not
+  load the module. All three are the one question `ceTakesIt` asks.
+- **THE ONE THING THE PANEL HELD THAT NOTHING ELSE DID MOVED FIRST**: the way
+  back from a decision already **accepted**. `negoResolve` refuses a second
+  acceptance on a clause whose rival is adopted and names reopening as the way
+  out, and a refusal whose stated remedy cannot be reached is worse than no
+  remedy — f208's whole lesson. It is on the accepted change's own card now,
+  which was only possible because the piles of 26 Aug gave a settled change a
+  card to carry it. **A refused ask of OUR OWN deliberately did not move**:
+  Withdraw is the verb for that and is already on the card.
+
+**AND THE PENCIL'S TOOLTIP NAMED THE WRONG PLACE.** It read "Open this clause —
+what it says now, what is on the table, and everything that has been asked about
+it", which describes the PANEL, while the pencil has opened the edit page since
+29 Aug. `ng_cp_edit_title`, both languages; `ng_cp_open_title` is still live and
+still right on the controls that really do open the panel. **A control that names
+somewhere it does not go is the same fault as one that goes nowhere, just
+quieter.**
+
+Tests: f245 (the two claims of 28 and 29 Aug REVERSED IN PLACE and made stronger
+— the strip always takes the caret, and the bar's half is asserted beside it so
+neither can ship alone — plus f245 (20), the held mark's three nets), f246 (the
+menu's lead-row claim reversed onto "drawn exactly once, never twice", with the
+no-editor stage read as its own world), f100 (eleven panel claims RE-POINTED,
+never deleted, at the stage where the panel is still the door, and the sent-ask
+claim written as the question it always was — *a sent ask still has a way into
+its own wording* — rather than as one answer), clause-editor-verify and
+clause-door-verify.
 
 ## THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST (owner-reported 28 Aug 2026)
 
@@ -4535,9 +4714,14 @@ editing a sentence rather than retyping one; the three chips ask Copilot and the
 answer lands IN THE BOX rather than on the paper, which is what lets one strip
 serve both hands without becoming two.
 
-- **IT FILES NOTHING.** Enter APPLIES to the draft; the one act in the rail's
-  foot still puts it on the record. A strip that filed would be a third door
-  onto an act that already has one.
+- **IT FILES NOTHING — REVERSED IN PLACE 30 Aug 2026** (owner-asked: "press
+  send and it is filed immediately"; see HIGHLIGHT AND TYPE, AND TWO PRESSES
+  ARE THE CEILING). Enter and the send arrow file, and so does the ✕ beside
+  them. **THE FEAR THIS RULE CARRIED IS ANSWERED RATHER THAN OVERRULED**: it is
+  not a third door onto the act, because the strip presses `ceFile` — the same
+  one act the rail's foot presses — so every guard the funnel carries applies
+  without being repeated, and f245 asserts there is still exactly one filing
+  path.
 - **`ceReplacePassage` IS THE ONE READING** of "put this wording in place of
   that passage", shared by the reader's hand and by a Copilot rewrite. The rest
   of the clause is carried across character for character, and a passage dragged

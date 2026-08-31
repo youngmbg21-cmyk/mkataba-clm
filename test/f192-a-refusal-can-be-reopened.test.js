@@ -82,7 +82,16 @@ describe('f192 (1) — the verb is on the refused card, in Edit\'s clothes', () 
     const p = await bench('rejected');
     const btn = cardOf(column(p)).querySelector('[data-rl-reopen]');
     assert.equal(btn.className, 'rl-edit');
-    const edit = cardOf(column(p)).querySelector('[data-rl-edit]');
+    /* RE-POINTED 30 Aug 2026: Edit is resolved by its PLACE — the card's own
+       verb row — rather than by one of the two attributes it can carry. Since
+       our seat's doors onto the clause panel were shut, Edit opens the edit page
+       (data-rl-cp-editor-row) here and jumps (data-rl-edit) elsewhere; reading
+       the attribute picked up the ⋯'s jump row instead and compared Reopen
+       against a menu row. The claim — Reopen wears the same quiet outlined
+       button as Edit — is unchanged. */
+    const edit = cardOf(column(p))
+      .querySelector('.rl-card-verbs [data-rl-edit], .rl-card-verbs [data-rl-cp-editor-row]');
+    assert.ok(edit, 'Edit is on the card\'s own verb row');
     assert.equal(btn.className, edit.className, 'the same class as the button beside it');
   });
 });
@@ -161,22 +170,47 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
       'and Edit is still on the card — in the menu, one press away, not gone');
   });
 
-  /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
-     This asserted an accepted ask has no card at all. It has one now: the
-     owner asked for Accepted and Withdrawn to be piles of their own, and a
-     pile nothing can land in is not a pile — so the column keeps this round's
-     settled work and files it under its own heading, reading quietly.
-     WHAT THIS TEST IS FOR IS UNCHANGED AND IS STILL MEASURED: Reopen answers
-     ONE state — refused, and still standing between the two companies — and an
-     accepted ask is not offered it here. */
-  test('an ACCEPTED ask sits under its own heading, and is not reopened from here', async () => {
+  /* ---- REVERSED IN PLACE A SECOND TIME, 30 Aug 2026 ----
+     26 Aug reversed this from "an accepted ask has no card at all" to "it has a
+     card, under its own heading, and is not reopened from here". The second
+     half has now gone too, and for a reason that is not about this column: the
+     owner shut our seat's two doors onto the CLAUSE PANEL, and the panel was
+     the only place an ACCEPTED decision could be reopened.
+
+     THAT REMEDY IS LOAD-BEARING RATHER THAN A CONVENIENCE. negoResolve refuses
+     a second acceptance on a clause whose rival is already adopted and refuses
+     IN WORDS naming reopening as the way out; its mirror refuses reopening an
+     accepted change a later one was written on top of and says "reopen the top
+     of the stack first". A refusal whose stated remedy cannot be reached is
+     worse than no remedy — f208's whole lesson — so the remedy MOVED HERE
+     before the doors were shut rather than after.
+
+     WHAT THIS TEST IS STILL FOR IS UNCHANGED: Reopen answers a SETTLED state
+     and never a live one, and it is our seat's alone. Both are measured below,
+     and the withdrawn case is what keeps "settled" from meaning "any card". */
+  test('an ACCEPTED ask sits under its own heading, and carries the way back', async () => {
     const p = await bench('accepted');
     const card = cardOf(column(p));
     assert.ok(card, 'settled work stays on the column, under Accepted');
     assert.match(column(p).innerHTML, /data-rl-band="accepted"/,
       'and the heading over it is the one that says so');
+    assert.ok(card.querySelector('[data-rl-reopen]'),
+      'and the way back from a decision already taken is on it — the clause '
+      + 'panel used to be the only place it lived, and our seat no longer opens '
+      + 'that panel');
+    assert.ok(card.querySelector('[data-nego-undo]'),
+      'through the engine\'s own re-open, never a second path');
+  });
+
+  test('and a LIVE ask is still not reopened from anywhere', async () => {
+    /* The bound that matters: Reopen is a way back from something SETTLED. On a
+       pending ask there is nothing to go back from, and offering it would be a
+       decision verb wearing an escape hatch's clothes. */
+    const p = await bench('pending');
+    const card = cardOf(column(p));
+    assert.ok(card, 'the live ask is on the column');
     assert.ok(!card.querySelector('[data-rl-reopen]'),
-      'but the refusal\'s own escape hatch is not offered on it');
+      'with no way back, because nothing has been decided yet');
   });
 });
 

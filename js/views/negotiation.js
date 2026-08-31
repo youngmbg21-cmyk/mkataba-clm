@@ -5871,7 +5871,16 @@ function rlClauseEditPillHtml(cl, opts = {}){
     return v || fb;
   };
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
-  const title = say(pill && pill.title, i18t('ng_cp_open_title'));
+  /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
+     this tooltip). The default said "Open this clause — what it says now, what
+     is on the table, and everything that has been asked about it", which
+     describes the CLAUSE PANEL — and this pencil has opened the edit page since
+     29 Aug wherever the editor can take the clause. A control that names
+     somewhere it does not go is the same fault as one that goes nowhere, just
+     quieter. The panel's own wording is kept and is still right on the controls
+     that really do open it. */
+  const title = say(pill && pill.title,
+    i18t(attr === 'data-rl-cp-editor' ? 'ng_cp_edit_title' : 'ng_cp_open_title'));
   return `<button type="button" class="rl-cp-pill" ${attr}="${id}"
     aria-expanded="${on ? 'true' : 'false'}"
     aria-label="${_nea(label)}"
@@ -8749,7 +8758,12 @@ function rlCardForgetPins(contractId){
    ours now leaves exactly one verb on the card — Edit — which is inert for its
    own reason, so the card still reads as needing nothing. f100 proves that off
    the rendered card rather than off this rule. */
-const RL_CARD_INERT = /data-rl-edit|data-nego-redecide|data-rl-reopen/;
+/* EDIT IS INERT WHICHEVER DOOR IT IS (30 Aug 2026). Since the owner shut our
+   seat's doors onto the clause panel, Edit carries data-rl-cp-editor-row here
+   and data-rl-edit elsewhere — the same verb, still a way INTO the wording
+   rather than a move waiting on anybody. Left out, a sent ask of ours read as
+   outstanding work on the one seat that had the editor. Caught by f192. */
+const RL_CARD_INERT = /data-rl-edit|data-rl-cp-editor-row|data-nego-redecide|data-rl-reopen/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }
@@ -10336,9 +10350,18 @@ function rlCardRank(ch, held){
    already records twice (Cancel in the review notice, Reopen behind a tag), so
    on exactly that card the ask is promoted to the front. */
 const RL_FACE_MAX = 2;
+/* EDIT RANKS ALIKE WHICHEVER DOOR IT IS. Since 30 Aug the card's Edit carries
+   data-rl-cp-editor-row on our seat and data-rl-edit elsewhere — the same verb,
+   in the same place, landing somewhere different. Left off this list the editor
+   form scored as UNRANKED, which sorts LAST, so Edit quietly fell into the ⋯ on
+   cards where it had always been on the face; f192 caught it by reading
+   Reopen's class against the button beside it. The two entries are ADJACENT
+   with nothing between them, so the two forms rank identically against every
+   other verb. A verb that changes its attribute has to be re-ranked with it. */
 const RL_FACE_RANK = ['data-nego-accept', 'data-nego-reject', 'data-rv-cancel',
   'data-rl-sendcopy', 'data-rl-send', 'data-nego-undo', 'data-nego-redecide',
-  'data-nego-withdraw', 'data-rl-edit', 'data-rl-retract', 'data-rl-ask-review'];
+  'data-nego-withdraw', 'data-rl-edit', 'data-rl-cp-editor-row',
+  'data-rl-retract', 'data-rl-ask-review'];
 function rlFaceRank(html, promoteAsk){
   const h = String(html || '');
   if (promoteAsk && h.includes('data-rl-ask-review')) return -1;
@@ -10437,11 +10460,42 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   const editable = !!st.editable;
   const own = side === 'owner' && !st.preview;
   const panel = !!(opts.cpPanel && ch.clauseId && ch.changeType !== 'insertClause');
-  if (own && editable && panel && typeof window !== 'undefined' && window.rlOpenClauseEditor)
+  /* THE EDITOR'S OWN ROW, and it never repeats the face. Since 30 Aug the
+     card's Edit IS this act on our seat, so on any card carrying one this row
+     would be the same door drawn twice twelve pixels apart — the rule this menu
+     states in its own words below. It survives for the cards whose face is bare
+     (a decided ask, a withdrawn one), which is exactly what that rule keeps it
+     for. `carried` is read further down, so the test is made here against the
+     same string. */
+  const _carriedNow = String(st.faceVerbs || '') + (st.overflow || []).join('');
+  if (own && editable && panel && typeof window !== 'undefined' && window.rlOpenClauseEditor
+      && !/data-rl-cp-editor-row=/.test(_carriedNow))
     rows.push(`<button type="button" class="rl-more-row rl-more-lead"
       data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
       >${i18t('ng_cp_copilot')}</button>`);
-  if (panel)
+  /* ---- OUR SEAT HAS NO DOOR ONTO THE CLAUSE PANEL (owner-ruled 30 Aug 2026) ----
+     "shut the two doors that put it in front of me." This was the second of
+     them. On our seat, at a usable width, the panel is not where a clause is
+     edited any more — the edit page is, and the pencil, the card's Edit and the
+     row above all go there. A row offering the panel besides is the second door
+     onto one act that this codebase's own rule refuses.
+
+     THEIR SEAT KEEPS IT, AND THAT IS A CAPABILITY RATHER THAN AN OVERSIGHT:
+     rlOpenClauseEditor refuses a counterparty outright, so the panel is the
+     ONLY way their page has to propose wording. The same is true of a window
+     too narrow for the editor's two columns, and of a stage that does not load
+     the module at all — `ceTakesIt` in the card renderer asks exactly those
+     three questions, and this asks the same one from the other side.
+
+     NOTHING IS LOST ON OUR SEAT. What the panel held that nothing else did was
+     the way back from a decision already accepted, and that moved onto the
+     accepted change's own card BEFORE this row was shut — see the branch in
+     redlineChangeCardsHtml, which says why it could only move once the piles of
+     26 Aug gave a settled change a card to carry it. */
+  const ceDoor = own && typeof window !== 'undefined'
+    && typeof window.rlOpenClauseEditor === 'function'
+    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
+  if (panel && !ceDoor)
     rows.push(`<button type="button" class="rl-more-row"
       data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
   /* ---- THE DOOR ONTO THE NOTES PANEL (owner-asked 27 Aug 2026) ----
@@ -12284,6 +12338,20 @@ function redlineChangeCardsHtml(c, opts = {}){
      so there is ONE order and both callers get it. The list arriving here is
      already narrowed by the filter and already in that order. */
   const shown = changes;
+  /* ---- WHERE THIS COLUMN'S EDIT BUTTON LANDS, DECIDED ONCE ----
+     (owner-ruled 30 Aug 2026, with the two doors onto the clause panel.) The
+     SAME reading rlClauseEditPillHtml's destination is chosen by, so the card's
+     Edit and the paper's pencil cannot come to disagree about where one clause
+     is edited — which is what put the panel in front of the owner in the first
+     place. Asked here rather than per card for the reason that page gives in
+     its own words: a destination chosen at draw time is what stops a door
+     claiming a page nothing can open.
+     The MODULE is asked for by name, not merely the width: a stage that does
+     not load the editor at all must keep the jump. */
+  const ceTakesIt = side === 'owner' && !previewSeat
+    && typeof window !== 'undefined'
+    && typeof window.rlOpenClauseEditor === 'function'
+    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
   let lastBand = null;
   const bandHead = ch => {
     if (!banded) return '';
@@ -12579,6 +12647,36 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}" data-rl-reopen="${_ne(ch.id)}"
         title="${_nea(i18t('ng_reopen_refusal_title'))}">${i18t('ng_change_decision')}</button>`);
     }
+    /* ---- AND AN ACCEPTED CHANGE HAS THE SAME WAY BACK (owner-ruled 30 Aug
+       2026, moved here so the clause panel's doors could be shut on our seat) ----
+       THIS IS THE ONE THING THE PANEL HELD THAT NOTHING ELSE DID, and it is
+       load-bearing rather than a convenience: negoResolve refuses to accept a
+       change whose clause already carries a DIFFERENT accepted change measured
+       alike, and it refuses IN WORDS naming reopening as the way out. Its
+       mirror — reopening an accepted change a later one was written on top of —
+       refuses the same way and says "reopen the top of the stack first". A
+       refusal whose stated remedy cannot be reached is worse than no remedy,
+       which is the whole of f208's lesson, so the remedy had to move BEFORE the
+       doors shut rather than after.
+
+       IT COULD ONLY MOVE HERE BECAUSE THE COLUMN CHANGED UNDER IT. Until the
+       piles of 26 Aug an accepted change was filtered off this column entirely
+       and had no card to carry anything; it sits under Accepted now.
+
+       WHAT DELIBERATELY DID NOT MOVE, said out loud: the panel also offered
+       this on a refused ask of OUR OWN, and this card does not. That is not an
+       oversight — Withdraw is the verb for our own refused ask and is already
+       on the card one branch up, and the mirror rule is that a refusal is
+       reopened by the side that GAVE it.
+
+       SAME ENGINE, SAME MARKER. data-nego-undo is decide(id,'pending'); the
+       data-rl-reopen beside it is what keeps RL_CARD_INERT from reading this
+       card as a move waiting on somebody, for the reason the branch above
+       states in its own words. */
+    if (canAct && side === 'owner' && ch.status === 'accepted' && !ch.withdrawn){
+      verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}" data-rl-reopen="${_ne(ch.id)}"
+        title="${_nea(i18t('ng_reopen_ask_title', { id: ch.id }))}">${i18t('ng_change_decision')}</button>`);
+    }
     if (canAct && heldHere){
       /* ---- THE SEND IS ON THE CARD THE DECISION WAS MADE ON ----
          Asked for directly (Young, 11 Aug 2026: "the send should be a button
@@ -12611,8 +12709,31 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">${i18t('ng_accept')}</button>`);
       verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">${i18t('ng_reject')}</button>`);
     }
-    if (editable && !heldHere) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
+    /* ---- EDIT GOES WHERE THE PENCIL GOES (owner-ruled 30 Aug 2026) ----
+       "shut the two doors that put it in front of me." This button was the one
+       the owner pressed to reach the clause panel: it jumped to the clause and
+       opened the panel on it, on a seat where the pencil, twelve pixels away on
+       the paper, has opened the EDIT PAGE since 29 Aug. So one clause had two
+       doors going to two different places, which is the drift the one-door rule
+       exists to prevent — and the panel was never meant to be in front of this
+       reader at all.
+
+       DECIDED AT DRAW TIME, NOT BY FALLING THROUGH A REFUSAL, which is this
+       page's own convention for exactly this and what keeps it from becoming a
+       dead press: `ceTakesIt` is the same reading rlClauseEditPillHtml's
+       destination is chosen by, asked once for the whole column.
+
+       THE COUNTERPARTY'S SEAT IS UNTOUCHED and keeps the jump: the editor
+       refuses them outright, so sending them to it would take away the only way
+       their page has to propose wording. Same button, same class, same place —
+       only where it lands differs, and only on our seat. */
+    if (editable && !heldHere){
+      verbs.push(ceTakesIt
+        ? `<button class="rl-edit" data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
+        title="${_nea(i18t('ng_cp_edit_title'))}">${i18t('act_edit')}</button>`
+        : `<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
         title="${i18t('ng_jump_to_clause')}">${i18t('act_edit')}</button>`);
+    }
     /* A draft that has never left the building can simply be taken back —
        negoRetractDraft removes the record, so nothing is withdrawn from
        anyone. Once sent, the honest verbs are Withdraw and revise, above. */

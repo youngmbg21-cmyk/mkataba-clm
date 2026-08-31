@@ -46,9 +46,14 @@ const NEG_CODE = strip(NEG);
 /* One bench, one contract, three changes in three different states — their
    live ask, our unsent draft, and a settled one — so every band the fixture
    can reach is reachable in one render. */
-async function bench(){
+async function bench(o = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
+  /* ceTakesIt asks for the module BY NAME rather than only whether the width
+     suits it, so this is what tells the two worlds apart: this world loads the
+     edit page, and `noEditor` stands in for the stages that do not — the
+     counterparty's seat, and a window too narrow for two columns. */
+  if (o.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
   win.promptDialog = async () => '';
   win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
   win.copilotAvailable = () => false;
@@ -542,15 +547,77 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
 
 /* ================================================================ 5 — THE ⋯ */
 describe('f246 (5) — the overflow menu', () => {
-  test('Edit with Copilot leads it, as the approved journey has always put it', async () => {
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-ruled: shut the doors that put
+     the clause panel in front of me) ----
+     This asserted that Edit with Copilot LEADS this menu on every card. It
+     still does wherever it is drawn — and on our seat the card's own Edit now
+     carries that same door, so on those cards the menu correctly draws no
+     second copy of it. That is not a loss: it is this menu's own rule, stated
+     two paragraphs down in its source, doing exactly what it is for.
+
+     BOTH HALVES ARE ASSERTED, because either alone would pass on a build that
+     had lost the door altogether. */
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 ----
+     This asserted that Edit with Copilot LEADS this menu on every card. It
+     still leads WHERE IT IS DRAWN — and since the owner shut the two doors onto
+     the clause panel, the card's own Edit carries that same door on our seat,
+     so the menu correctly draws no second copy of it. Not a loss: it is this
+     menu's own "never repeat a verb the face carries" rule doing its job.
+
+     THE CLAIM IS NOW THAT THE DOOR IS DRAWN EXACTLY ONCE, which is a stronger
+     thing to say than where it sits — a card offering the same page twice is
+     the fault, and so is a card offering it not at all. Both worlds are read,
+     because either alone would pass on a build that had lost it. */
+  test('the editor door is drawn exactly once per card, never twice', async () => {
     const p = await bench();
+    const cards = p.$$('#rl-changes .rl-card-d');
+    assert.ok(cards.length, 'there are cards to read');
+    let seen = 0;
+    cards.forEach(card => {
+      const doors = card.querySelectorAll('[data-rl-cp-editor-row]');
+      assert.ok(doors.length <= 1,
+        'one clause, one way into the edit page — ' + doors.length + ' drawn');
+      if (doors.length) seen += 1;
+      if (doors.length) assert.equal(doors[0].getAttribute('data-rl-cp-editor-change'),
+        card.getAttribute('data-nego-card'), 'named for this change');
+    });
+    assert.ok(seen, 'and the door really is drawn — without this the check '
+      + 'above would pass on a build that had lost it altogether');
+  });
+
+  test('our seat has no door onto the clause panel', async () => {
+    const p = await bench();
+    assert.ok(!p.$('#rl-changes [data-rl-cp-open]'),
+      'the panel row is shut on our seat — the second of the two doors the '
+      + 'owner asked to be closed');
+  });
+
+  test('a stage without the edit page keeps the jump AND the panel', async () => {
+    /* THE THIRD QUESTION ceTakesIt ASKS, and the reason it asks for the module
+       by name rather than only about the width: the counterparty's seat and a
+       window too narrow for two columns land here too, and on both the panel is
+       the only way a clause is edited at all. Taking it away from them would
+       take the capability, which is precisely what the owner was told would not
+       happen. */
+    const p = await bench({ noEditor: true });
     const card = p.$$('#rl-changes .rl-card-d').find(el => el.querySelector('.rl-more-menu'));
     assert.ok(card, 'the card carries a ⋯');
-    const rows = [...card.querySelectorAll('.rl-more-row')];
-    assert.ok(rows.length, 'with rows in it');
-    assert.ok(rows[0].hasAttribute('data-rl-cp-editor-row'), 'and Copilot is first');
-    assert.equal(rows[0].getAttribute('data-rl-cp-editor-change'),
-      card.getAttribute('data-nego-card'), 'named for this change');
+    assert.ok(!card.querySelector('[data-rl-cp-editor-row]'),
+      'no door onto a page this stage cannot open');
+    assert.ok(card.querySelector('[data-rl-edit]'),
+      'Edit is the jump again');
+    assert.ok(card.querySelector('[data-rl-cp-open]'),
+      'and the clause panel is back, because here it is the only way in');
+  });
+
+  test('and our seat has no door onto the clause panel at all', () => {
+    /* The second of the two doors the owner shut. Their seat keeps it — the
+       editor refuses a counterparty outright, so the panel is the only way
+       their page has to propose wording. */
+    assert.match(NEG_CODE, /const ceDoor = own && typeof window !== .undefined./,
+      'the row asks whether the editor can take this clause');
+    assert.match(NEG_CODE, /if \(panel && !ceDoor\)/,
+      'and draws only where it cannot');
   });
 
   test('Copilot is violet, and a rule groups the two doors from the two acts', () => {

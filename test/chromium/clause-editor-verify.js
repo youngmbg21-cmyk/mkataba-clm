@@ -90,10 +90,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('1a the Copilot door is real pixels once it is pressed',
      !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
      rowDoor && `${rowDoor.w}x${rowDoor.h}`);
-  ck('1b it LEADS — the menu\'s first row',
-     !!rowDoor && rowDoor.leads, rowDoor && `leads ${rowDoor.leads}`);
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 ----
+     These asserted that Edit with Copilot LEADS this menu. Since the owner shut
+     our seat's two doors onto the clause panel, the card's own Edit carries that
+     door — so the menu correctly draws no second copy of it, which is this
+     menu's own "never repeat a verb the face carries" rule.
+     THE CLAIM IS NOW THE STRONGER ONE: the door is drawn exactly once. Twice is
+     the fault; not at all is the other fault. */
+  const doorCount = await p.evaluate(id => {
+    const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
+      || document.querySelector('.redline-page .rl-card');
+    if (!card) return null;
+    const all = [...card.querySelectorAll('[data-rl-cp-editor-row]')];
+    return { n: all.length,
+      label: all[0] ? (all[0].textContent || '').trim() : '',
+      onFace: !!all[0] && !all[0].closest('.rl-more-menu') };
+  }, staged.id);
+  ck('1b the editor door is drawn exactly once — never twice, never nowhere',
+     !!doorCount && doorCount.n === 1, doorCount && `${doorCount.n} drawn`);
   ck('1c and it wears its words, not a bare mark',
-     !!rowDoor && /Copilot|Redigera/.test(rowDoor.label), rowDoor && rowDoor.label);
+     !!doorCount && doorCount.label.length > 1, doorCount && doorCount.label);
   ck('1d it is dressed, not left as an unstyled row',
      !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h >= 24,
      rowDoor && `ink ${rowDoor.colour}, ${rowDoor.h}px tall`);
@@ -456,9 +472,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `${filed.id} — "${(filed.newText||'').slice(0,50)}"`);
   ck('7d and it carries NO reason, because nothing asked for one',
      filed.why == null || filed.why === '', JSON.stringify(filed.why));
-  ck('7e the editor closed', filed.pageGone, 'closed');
-  ck('7f AND IT LANDED BACK ON THE CLAUSE PANEL it came from',
-     filed.panelOpen, filed.panelOpen ? 'panel up' : 'panel not up');
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-ruled: "stay on the page") ----
+     These pinned "BACK WHERE YOU STARTED": filing closed the editor and put the
+     reader back on the clause panel. Right while filing was a once-per-visit act
+     at the end of a clause; wrong the moment the strip started filing, because
+     changing three sentences meant being thrown out and going back in twice —
+     which breaks the two-press ceiling the owner set.
+     WHAT THEY WERE REALLY PINNING SURVIVES: after a filing the reader is looking
+     at the record as it now stands rather than at a stale page. */
+  ck('7e the editor STAYS — filing files, leaving is its own button',
+     filed.pageGone === false, filed.pageGone ? 'closed' : 'still open');
+  const reseed = await p.evaluate(() => ({
+    save: (document.querySelector('[data-ce-act="save"]') || {}).disabled,
+    label: ((document.querySelector('[data-ce-act="save"]') || {}).textContent || '').trim(),
+  }));
+  ck('7f and the page was re-read from the record — File greys, naming the change',
+     reseed.save === true && /CHG-/.test(reseed.label),
+     `${reseed.label} · disabled ${reseed.save}`);
 
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */
   await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
@@ -2076,6 +2106,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
          nowhere is the same dead press from the reader's chair. */
       strip: !!(strip && r && r.width > 0 && r.height > 0 && strip.offsetParent !== null),
       selected: !!(sel && !sel.isCollapsed && String(sel.toString() || '').trim().length > 3),
+      carries: (document.getElementById('ce-inline-ask') || {}).value || null,
+      held: document.querySelectorAll('#ce-clausebody .ce-held').length,
       focus: act ? (act.id || act.tagName) : 'none',
       typing: !!(document.getElementById('ce-clausebody')
         && document.getElementById('ce-clausebody').getAttribute('contenteditable') === 'true'),
@@ -2083,17 +2115,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   });
   ck('21c THE REPORTED FIX: highlighting while typing raises the strip',
      afterDrag.strip === true, `strip ${afterDrag.strip}`);
-  /* A SUPPORTING CLAIM, NOT A REGRESSION ONE, and labelled so: this passes
-     against the unfixed code too, because while typing the click branch is
-     already excluded by its own contenteditable selector. It is here because
-     the strip can only open if the selection survived the gesture, and pinning
-     that separately says WHICH half failed if this ever goes red. */
-  ck('21d …the selection survived the gesture, which is what the strip reads',
-     afterDrag.selected === true, `selected ${afterDrag.selected}`);
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-approved render) ----
+     21d pinned that the document selection survived the drag, and 21f that the
+     strip WAITED rather than taking the caret. Both describe the rule of 29 Aug,
+     which the owner has ruled the other way: the strip takes the caret now, so
+     the selection necessarily MOVES into the box — that is the whole point, and
+     what the held mark exists to replace on screen.
+     WHAT 21d WAS REALLY FOR — the strip can only carry a passage if the gesture
+     produced one — is measured better by reading what the box is HOLDING. */
+  ck('21d …and it carries the passage the drag selected',
+     afterDrag.carries != null && afterDrag.carries.length > 3,
+     `carries "${afterDrag.carries}"`);
   ck('21e …the reader is still typing in the clause, not switched out of it',
      afterDrag.typing === true, `typing ${afterDrag.typing}`);
-  ck('21f THE STRIP WAITS: it does not take the caret',
-     afterDrag.focus === 'ce-clausebody', `focus ${afterDrag.focus}`);
+  ck('21f THE STRIP TAKES THE CARET — no second press to start typing',
+     afterDrag.focus === 'ce-inline-ask', `focus ${afterDrag.focus}`);
+  ck('21f2 and the sentence stays marked in the contract while it holds it',
+     afterDrag.held === 1, `held spans ${afterDrag.held}`);
 
   /* Carrying on typing answers the question, so the strip goes — having done
      nothing to the wording. */
