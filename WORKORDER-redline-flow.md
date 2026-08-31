@@ -1,11 +1,13 @@
 # WORK ORDER — the redlining flow (31 Aug 2026, evening)
 
-Four items. **N-1 is NOT decided and nothing about it may be built yet.**
-N-2, N-3 and N-4 are fixes and are ready to build.
+Four items. All four are now built — see WHAT SHIPPED at the foot.
+N-1 was rejected as drawn and the owner came back with a compromise of their
+own on 31 Aug; that is what shipped, and what follows is the record of the
+argument, kept because the reasoning is the useful part.
 
 ---
 
-## N-1 — A NOTE TIED TO A CHANGE. **OPTIONS REJECTED; THE OWNER IS THINKING.**
+## N-1 — A NOTE TIED TO A CHANGE. **BUILT 31 Aug 2026, on the owner's own compromise.**
 
 > *"I am still not happy with the workflow of redlining especially with regards
 > to connecting the edit to the notes field ... once you redline, you can have
@@ -19,8 +21,13 @@ https://claude.ai/code/artifact/6f6d7d13-4903-4dbc-91bb-dc57ce3761b7
 
 > *"I do not like the options on the table so let me think it through for now."*
 
-**BUILD NOTHING FOR N-1.** Do not pick one of the three on the owner's behalf
-and do not "improve" one of them into a fourth. The next step is the owner's.
+**THE THREE DRAWN OPTIONS WERE ALL DECLINED and none of them was built.** The
+owner came back with a fourth of their own — file, then a pop-up offering Skip
+or Add note, the note kept on the change and read back through the same window,
+and the side panel given its own door called Chat. That is what shipped; the
+whole of it, with the four rulings and what each refuses, is in CLAUDE.md under
+A NOTE ON ONE REDLINE, AND CHAT IS WHERE THEY ARE READ. Read that before
+touching any of it.
 
 **WHAT THE RESEARCH ESTABLISHED, and it stands whatever is chosen** — this is
 the part worth keeping, because it is measured rather than argued:
@@ -156,8 +163,17 @@ Range fires no mousedown and passed against every configuration above.
 
 ## WHAT SHIPPED
 
-N-2, N-3 and N-4 went in one change on 31 Aug 2026. **N-1 still waits for the
-owner and nothing for it has been built.**
+N-2, N-3 and N-4 went in one change on 31 Aug 2026. **N-1 went in a second
+change the same day, on the owner's own compromise rather than on any of the
+three drawn options.**
+
+**WHAT N-1's BUILD FOUND THAT THIS ORDER GOT RIGHT, and it is the one thing
+worth carrying forward from the research above:** the z-index measurement was
+correct and it decided the design. The drawer really cannot be seen from the
+clause editor, so the note is a DIALOG (its own overlay at 88, above the editor
+at 54 and below confirmDialog at 90) and the drawer became Chat with a door of
+its own — dead, with a reason on its hover, while the editor covers the page.
+The bell and Activity have the same collision and were deliberately not swept.
 
 **WHAT THE BUILD FOUND THAT THIS ORDER DID NOT PREDICT, said out loud:**
 

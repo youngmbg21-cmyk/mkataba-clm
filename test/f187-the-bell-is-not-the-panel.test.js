@@ -52,11 +52,20 @@ describe('f187 (1) — two buttons, two jobs', () => {
       'the faces are one list');
     assert.match(app, /function panelFace\(\)\{ return PANEL_FACES\.includes/,
       'and both readings ask it rather than repeating the strings');
-    /* And it still says WHICH it is showing — three scopes in one drawer, so a
-       reader who cannot tell them apart will believe the wrong one. */
+    /* And it still says WHICH it is showing. REVERSED IN PLACE 31 Aug 2026 and
+       STRONGER for it: the notes face answers for TWO scopes now — Chat is the
+       whole contract's conversation and Notes is one change's thread — so the
+       heading names FOUR things in one drawer. The claim is unchanged and is
+       still the point: a reader who cannot tell them apart will believe the
+       wrong one. Pinned as the four readings rather than as one expression. */
     const fn = app.slice(app.indexOf('function renderContextPanel'));
-    assert.match(fn.slice(0, fn.indexOf('\n}')),
-      /title\.textContent=notes\?i18t\('ng_card_notes'\):alerts\?i18t\('sh_alerts'\):i18t\('sh_activity'\)/);
+    const head = fn.slice(0, fn.indexOf('\n}'));
+    for (const k of ['ng_chat', 'ng_card_notes', 'sh_alerts', 'sh_activity'])
+      assert.match(head, new RegExp(`title\\.textContent=[^;]*i18t\\('${k}'\\)`),
+        `the heading names ${k}`);
+    assert.match(head, /const _chat=notes&&!\(\(state\.notesFor\|\|\{\}\)\.changeId\);/,
+      'and Chat is told from Notes by whether a change was named — the one '
+      + 'fact that separates the two scopes');
   });
 
   test('pressing one while the other is showing SWAPS the content', () => {

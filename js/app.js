@@ -1444,7 +1444,50 @@ function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } 
    page that genuinely cannot host a layer may exist one day. Nothing answers
    true today. */
 function panelSuppressed(){ return false; }
+/* ---- THE CHAT DOOR (owner-ruled 31 Aug 2026) ----
+   *"means to access the notes in the side panel should have its own door called
+   Chat which should be accessed via a symbol ... between copilot and alerts."*
+
+   WHICH CONTRACT IT OPENS, named once so the door and the change's own Notes
+   row cannot come to disagree: the contract the negotiation page is actually
+   PAINTING first — redlineHeldId is recorded on the paint — then whatever was
+   last opened anywhere. Read through window, the ES-module rule; on a stage
+   without that module the fallback is the whole of it. */
+function chatContractId(){
+  try{ if(window.redlineHeldId){ const id=redlineHeldId(); if(id) return id; } }catch(_){}
+  return (window.state&&state.activeId)||null;
+}
+/* IT IS DEAD WHERE PRESSING IT WOULD DO NOTHING, with the reason on its hover —
+   the product's own rule, grey where it can be known before the press.
+
+   TWO WAYS IT CAN BE DEAD, and they are different facts with different
+   sentences. No contract is open, so there is no conversation to read. Or the
+   CLAUSE EDITOR is covering the page: it mounts at z-index 54 and this drawer
+   sits at 46, so a press would open a panel behind it — a live control that
+   appears to do nothing, which is the fault this rule exists to prevent.
+   Raising the drawer instead was weighed and refused: it sits BELOW the Copilot
+   panel deliberately (the Escape ladder reads that order), and lifting it over
+   the editor would lift it over Copilot too.
+
+   THE BELL AND ACTIVITY HAVE THE SAME COLLISION AND ARE DELIBERATELY NOT
+   SWEPT — it predates this door by a fortnight and belongs to whoever takes
+   that on; one line in BUGLOG rather than a fix made on the way past. */
+function paintChatDoor(){
+  const btn=document.getElementById('hdr-chat'); if(!btn) return;
+  let covered=false;
+  try{ covered=!!(window.clauseEditorOpen&&clauseEditorOpen()); }catch(_){}
+  const id=chatContractId();
+  const dead=covered||!id;
+  btn.disabled=dead;
+  btn.setAttribute('aria-disabled',dead?'true':'false');
+  btn.title=covered?i18t('ng_chat_not_here'):id?i18t('ng_chat_title'):i18t('ng_chat_none');
+}
 function updateAlertBadge(){
+  /* Painted on the same beat, and for the same reason: this runs on every view
+     change and every save, which is exactly when the answer can have moved. The
+     clause editor opens without a view change, so it calls this itself on the
+     way in and on the way out. */
+  try{ paintChatDoor(); }catch(_){}
   const dot=document.getElementById('hdr-notify-dot');
   const btn=document.getElementById('hdr-notify');
   const pan=document.getElementById('cmd-panel');
@@ -1824,9 +1867,18 @@ function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; 
    other two need nothing, so it is a named door rather than a bare face swap —
    and every caller (the row's count, the ⋯ menu row, the clause panel's line)
    arrives here rather than setting the state itself. */
+/* ---- THE CHANGE IS OPTIONAL SINCE 31 Aug 2026, AND THAT IS THE CHAT DOOR ----
+   Named with a change, this is what it always was: that change's thread. Named
+   with a contract alone — which is what the shell bar's Chat button can offer,
+   because it is pressed with no change in hand — it draws the CONTRACT'S
+   conversation, every note on every change with each row saying which. One
+   door, two scopes, and the panel's own heading says which it is showing.
+   A contract is still required: a drawer with no contract has nothing to draw
+   and the button that would press it is dead with a reason on its hover. */
 function openNotesPanel(contractId, changeId){
-  if(!contractId||!changeId) return;
-  state.notesFor={contractId:String(contractId), changeId:String(changeId)};
+  if(!contractId) return;
+  state.notesFor={contractId:String(contractId),
+    changeId: changeId==null?null:String(changeId)};
   setPanelFace('notes');
   state.panelOpen=true;
   applyPanelLayout();
@@ -1839,9 +1891,13 @@ function renderContextPanel(){
   const alerts=face==='alerts';
   const notes=face==='notes';
   /* THE PANEL SAYS WHICH IT IS SHOWING, in the heading and in the scope line
-     under it. Activity is the WORKSPACE; alerts are the PERSON, and a reader
-     who cannot tell them apart is a reader who will believe the wrong one. */
-  if(title) title.textContent=notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
+     under it. Activity is the WORKSPACE; alerts are the PERSON; and since
+     31 Aug 2026 the notes face answers for TWO scopes — Chat is the whole
+     contract's conversation, Notes is one change's thread. Four things in one
+     drawer, and a reader who cannot tell them apart is a reader who will
+     believe the wrong one. */
+  const _chat=notes&&!((state.notesFor||{}).changeId);
+  if(title) title.textContent=_chat?i18t('ng_chat'):notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
   const close=document.getElementById('panel-close');
   if(close){ const t=notes?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
     close.title=t; close.setAttribute('aria-label',t); }
@@ -1855,17 +1911,24 @@ function renderContextPanel(){
   if(notes){
     const nf=state.notesFor||{};
     const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(nf.contractId));
+    const opts={side:'owner',
+      author:(window.currentUser&&currentUser()?.name)||undefined,
+      messages:c?c._messages:null};
+    /* ---- NO CHANGE NAMED IS THE WHOLE CONTRACT, NOT AN ERROR ----
+       The shell bar's Chat door presses this with a contract and nothing else,
+       because it is pressed from anywhere. A named change still draws that
+       change's own thread — the counterparty's seat and the note dialog's own
+       "Open Chat" line both name one. */
+    if(c&&!nf.changeId&&window.rlChatPanelPaint){ rlChatPanelPaint(body,c,opts); return; }
     const ch=(c&&window.negoChangeById)?negoChangeById(c,nf.changeId):null;
     /* A change that has gone — archived by a closed round, or a contract this
        reader can no longer reach — leaves the panel with nothing to draw. It
        says so rather than drawing an empty shell. */
     if(!c||!ch||!window.rlNotesPanelHtml){
-      body.innerHTML=`<div style="padding:26px var(--s-4);font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ng_np_gone')}</div>`;
+      body.innerHTML=`<div style="padding:26px var(--s-4);font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t(c?'ng_np_gone':'ng_chat_none')}</div>`;
       return;
     }
-    rlNotesPanelPaint(body,c,ch,{side:'owner',
-      author:(window.currentUser&&currentUser()?.name)||undefined,
-      messages:c._messages});
+    rlNotesPanelPaint(body,c,ch,opts);
     return;
   }
   body.innerHTML=alerts?alertsPanelHtml():activityPanelHtml();
@@ -2348,6 +2411,13 @@ function wireShell(){
 
   document.getElementById('cmd-panel')?.addEventListener('click',()=>openPanel('activity'));
   document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
+  /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
+     change named — openNotesPanel is the one door onto that face and this is
+     the press arriving there, never a second way of putting the panel up. */
+  document.getElementById('hdr-chat')?.addEventListener('click',()=>{
+    const id=chatContractId(); if(id) openNotesPanel(id);
+  });
+  try{ paintChatDoor(); }catch(_){}
   /* A layer needs a way out that is not the button that opened it — the reader
      who pressed a header icon should not have to find that icon again. Scrim,
      its own close button, and Escape, which is what every other layer in this
@@ -2556,5 +2626,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,openNotesPanel,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

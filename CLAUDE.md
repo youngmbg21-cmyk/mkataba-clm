@@ -8054,6 +8054,141 @@ broken build — against the parent they report `down 2 / up 1` and `28 distinct
 offsets`**), contracts-page-verify section 16 plus six claims re-pointed from
 six controls to five.
 
+## A NOTE ON ONE REDLINE, AND CHAT IS WHERE THEY ARE READ (owner-ruled 31 Aug 2026)
+
+*"When you finish your edit of a redline and you click either the send button
+from copilot or click the pencil indicating you are done after making a redline
+(only if redline has been done), a pop up window appears ... You can then have
+options: 'Skip' or 'Add Note & File'. If you add note & file, this note is
+stored and can only be accessed by owner via the highlight in image 2 where if
+clicked, the pop up comes up again where you can edit or delete."*
+
+Then, on four questions put back: *"A,B,D go with your recommendation. As far as
+C, the note will be kept and accessed via image attached. Then means to access
+the notes in the side panel should have its own door called Chat which should be
+accessed via a symbol which should be where highlighted in image 2 between
+copilot and alerts."*
+
+**THIS IS THE COMPROMISE ON A LONGER ARGUMENT.** Three rendered options for
+tying a note to a redline were put up on 31 Aug and all three were declined
+("I do not like the options on the table so let me think it through"); this is
+what the owner came back with, and it is smaller than any of them.
+
+**IT ADDS NO STORE, NO ROUTE AND NO FIELD ON THE CHANGE.** A note tied to a
+redline is an ORDINARY INTERNAL MESSAGE on the change's own thread — the same
+`ch.thread` the notes panel has written since 27 Aug — so every screen that
+already reads a thread reads this one for free and there is nothing to migrate.
+The one new field is `byId` on a MESSAGE, absent on everything already on file.
+
+- **A — FILED FIRST, THEN ASKED, and that is a departure from the owner's own
+  words taken deliberately.** They wrote "Add Note & File"; on that reading a
+  dialog dismissed by Escape, by the backdrop or by a closed tab loses a change
+  somebody had finished writing. Filing first costs nothing — the note is
+  additive and the door back to it stands for the life of the contract — and it
+  means **no press in that dialog can ever be the difference between a redline
+  existing and not**. The dialog's lead begins "Filed." and its heading names the
+  change, so **the toast stands down where it opens**: two boxes twelve pixels
+  apart saying one thing is the furniture this rulebook keeps warning about.
+- **B — THE PENCIL FILES, AND `ceCanFile` IS THE ONE READING.** Pressing it to
+  stop typing says *I have finished this clause*, and until now that put the
+  reader back on a read-only page still carrying wording the record had never
+  seen — work that looked filed and was not. **The foot's File button greys on
+  exactly the same reading**, so a pencil that files where that button is dead
+  is not a thing that can happen; on a clause the reader only READ the branch
+  does not run and the pencil is the plain toggle it always was. **TYPING GOES
+  OFF AFTER THE RECORD MOVES AND ONLY WHERE IT MOVED** — `ceFile` answers null
+  on every refusal now, because turning the box read-only over wording the
+  funnel has just refused would hide the reader's own work behind a page drawing
+  the marks of a change that does not exist. **The 30 Aug rule is untouched**:
+  the rail's File, the strip's send and the cut all still leave the reader
+  writing. What this adds is the one gesture that asks for the opposite.
+- **C — THE NOTE IS READ BACK THROUGH THE SAME WINDOW IT WAS WRITTEN IN.** The
+  change's own Notes row raises the dialog rather than the drawer, prefilled,
+  with Save and Delete. **ONE BUILDER, TWO SHAPES, AND THE SHAPE IS READ RATHER
+  THAN PASSED**: whether there is already a note of yours decides the verbs, and
+  how you arrived decides the lead sentence.
+- **D — ASKED ONCE, AND THE READING IS THE RECORD'S OWN.** `negoFileChange`
+  gives a new change `revisions: []` and pushes the previous wording onto that
+  list every time it folds a second edit into a pending ask, so **an empty
+  revisions list IS "this press created this change"**, exactly. A caller-supplied
+  "is this new" flag would be the same fact remembered in two places, and the
+  fourth filing door added later would have to remember it too.
+
+**THE THREE ACTS ARE NARROW AND EACH NARROWING IS A DIFFERENT PROMISE.**
+`negoMyNote` / `negoEditNote` / `negoDeleteNote` sit beside `negoPostComment`,
+which is still the one writer.
+- **INTERNAL ONLY, and this is the load-bearing one.** A 'shared' message has
+  GONE: it travelled on the discussion channel and the other side holds a copy
+  nothing here can reach. Rewriting our half would leave two records of one
+  sentence disagreeing, and deleting it would take it off our screen while it
+  stayed on theirs — **worse than not offering the verb at all, because from
+  this chair it looks as though it worked**.
+- **OUR SIDE ONLY, AND YOUR OWN WORDS ONLY.** No supervisory edit, no admin
+  exception. Matched on the **id first and the name second** — the reading
+  `obligationRecipient` already uses, for the same reason: an id survives a
+  rename, a name survives the account being deleted.
+- **THEY READ `ch.thread`, NOT THE MERGED THREAD.** A merged thread carries the
+  channel's messages too, and those are 'shared' by definition and belong to a
+  store this cannot write to. An unwritable message is then not on the list
+  rather than on the list and refused.
+- **THE THREAD IS STILL APPEND-ONLY FOR EVERYBODY ELSE**, and every one of these
+  writes an audit line — a note that was changed or taken away leaves a trail
+  even though the sentence itself does not.
+
+**CHAT IS THE CONTRACT'S CONVERSATION, AND IT IS THE DRAWER'S OWN NOTES FACE.**
+A door in the shell bar is pressed with no change in hand, so `openNotesPanel`
+takes an optional change: named, it draws that change's thread as it always
+did; unnamed, `rlChatPanelHtml` draws every note on every live change, oldest
+last, each row naming its change and pressing through to that change's own note.
+**BOTH ROOMS IN ONE LIST** — the per-change panel splits them into tabs because
+that is where you WRITE and the room decides who reads it; this is where you
+READ. **NO COMPOSER**: there is one note box per change and it is on the change.
+**IT COUNTS AND READS NOTHING OF ITS OWN** — `negoRoomNotes`, `negoWhen` and
+`rlNpNoteHtml` are borrowed whole, so a note cannot read one way here and
+another there.
+
+**AND THE DOOR IS DEAD WHERE PRESSING IT WOULD DO NOTHING**, with three
+different sentences for three different facts. No contract open. Or the **clause
+editor covering the page**: it mounts at z-index 54 and this drawer sits at 46,
+so a press would put a panel up behind it. Raising the drawer instead was
+weighed and refused — it sits BELOW the Copilot panel deliberately and the
+Escape ladder reads that order. `paintChatDoor` is called on the same beat the
+bell is painted AND by the editor on the way in and **on the way out AFTER the
+state is cleared**: `clauseEditorOpen` reads `_ceClauseId`, so a paint taken
+beside `page.remove()` still answers "open" and leaves the door dead for the
+rest of the sitting.
+
+**THE BELL AND ACTIVITY HAVE THE SAME COLLISION WITH THE EDITOR AND ARE
+DELIBERATELY NOT SWEPT.** It predates this door by a fortnight; `panelSuppressed`
+still answers false and is asserted doing so, so nobody reads this as covering
+it. One line in BUGLOG rather than a fix made on the way past.
+
+**THE COUNTERPARTY'S SEAT IS UNCHANGED, in the owner's own words**: *"The
+counterparty will also access the notes through the same processes but fixing
+this will come at a later stage when we begin working on how the counterparty
+page will look like."* Their press on a Notes row falls through to exactly what
+it did before, told apart by `PORTAL_MODE` rather than by whether a lookup
+happened to fail — the dialog writes an INTERNAL note onto `ch.thread`, which is
+on the contract record, and their page is rebuilt from a share payload and
+thrown away on the next repaint, so a note written there would be typed and lost.
+
+**AND THE DIALOG IS ITS OWN OVERLAY AT z-index 88** — above the modal root (70)
+because the clause editor covers the page at 54, and below `confirmDialog` (90)
+because THIS dialog raises one for the delete. It carries `data-top-overlay`, so
+`openModal`'s Escape stands down while it is up, and it defers in turn to the
+confirm it raises: one press answers one layer.
+
+Tests: f264 (50 — **44 of them fail against the parent commit**), f245's File-button
+claim REVERSED IN PLACE and made stronger (it pinned the reading written out at
+its one call site; it now pins the NAMED reading and its two halves — pin the
+relation, not the expression), clause-editor-verify sections 12c and 25 (**12c
+reversed in place: the gesture it used to see an unfiled draft is the gesture
+that now files**, and 13d re-pointed onto the relation after the journey moved
+the fixture's wording), notes-two-rooms-verify (40 — its door claim reversed in
+place, the rooms re-staged through the dialog's own Open Chat, and the Chat door
+driven with its symbol proved to resolve and its dead state measured against a
+real clause editor).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

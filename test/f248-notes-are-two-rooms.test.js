@@ -239,8 +239,17 @@ describe('f248 — the seats, the doors and the words', () => {
     const src = read('js/views/negotiation.js');
     assert.match(src, /data-rl-notes="\$\{_nea\(ch\.id\)\}">\$\{i18t\('ng_card_notes'\)\}/,
       'and so is the row in the ⋯ menu');
-    assert.match(src, /document\._rlNotesWired[\s\S]{0,700}openNotesPanel\(cid, id\)/,
+    /* REVERSED IN PLACE 31 Aug 2026 (owner-ruled C). The CLAIM is unchanged and
+       is the whole point — one delegated listener, armed at module load, finds
+       every door — and only the DESTINATION moved: on our seat the press now
+       raises the note dialog, because the owner ruled that the same window
+       writes a note and reads it back. The drawer is still where their seat
+       lands, and is now Chat, with a door of its own in the shell bar. */
+    const wired = src.match(/document\._rlNotesWired = true;[\s\S]*?\n\}\n/)[0];
+    assert.match(wired, /openChangeNoteDialog\(c, ch,/,
       'ONE delegated listener, armed at module load, finds them all');
+    assert.match(wired, /if \(window\.openNotesPanel\) openNotesPanel\(cid, id\);/,
+      'and their seat falls through to exactly what it did before');
   });
 
   test('the count hides at zero — a column nobody has discussed carries none', async () => {

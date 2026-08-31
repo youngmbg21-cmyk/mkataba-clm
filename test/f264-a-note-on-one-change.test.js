@@ -1,0 +1,631 @@
+/* ============================================================
+   f264 — a note on one change, and Chat is where they are read
+   ============================================================
+   Owner-ruled 31 Aug 2026, in one message and then four answers:
+
+     "When you finish your edit of a redline and you click either the send
+      button from copilot or click the pencil indicating you are done after
+      making a redline (only if redline has been done), a pop up window appears.
+      You can then have options: Skip or Add Note & File. If you add note &
+      file, this note is stored and can only be accessed by owner via the
+      highlight in image 2 where if clicked, the pop up comes up again where you
+      can edit or delete."
+
+     "A,B,D go with your recommendation. As far as C, the note will be kept and
+      accessed via image attached. Then means to access the notes in the side
+      panel should have its own door called Chat which should be accessed via a
+      symbol which should be where highlighted in image 2 between copilot and
+      alerts."
+
+   THE FOUR RULINGS, and each is a claim below.
+     A — FILE FIRST, THEN ASK. The owner's own words were "Add Note & File"; on
+         that reading a dialog dismissed by Escape, by the backdrop or by a
+         closed tab loses a change somebody had finished writing. Filing first
+         costs nothing — the note is additive and the door back to it stands for
+         the life of the contract — and it means no press in that dialog can be
+         the difference between a redline existing and not.
+     B — THE PENCIL FILES, and only where there is something to file.
+     C — THE NOTE IS KEPT ON THE CHANGE, as an ordinary INTERNAL message on its
+         own thread: no new store, no new field, no migration. The change's
+         Notes row raises the same dialog; the side panel becomes Chat.
+     D — ASKED ONCE, on the filing that created the change.
+
+   WHAT IS DELIBERATELY OUT OF SCOPE, in the owner's own words: "The
+   counterparty will also access the notes through the same processes but fixing
+   this will come at a later stage when we begin working on how the counterparty
+   page will look like." So their seat is asserted UNCHANGED rather than built.
+   ============================================================ */
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { buildWorld } = require('./world');
+
+const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+const NEG = read('js/negotiation.js');
+const VIEW = read('js/views/negotiation.js');
+const CE = read('js/views/clauseeditor.js');
+const APP = read('js/app.js');
+const HTML = read('index.html');
+
+const BODY =
+  '<h1>Supply Agreement</h1><p>Between Mkataba Holdings Ltd and Saw Sawa Ltd</p>'
+  + '<h2>Clause 6 · Payment terms</h2><p>Pay each invoice within thirty (30) days.</p>'
+  + '<h2>Clause 7 · Liability</h2><p>Neither party is liable for indirect loss.</p>';
+
+const ME = { id: 'u_me', name: 'Amina Yusuf', role: 'legal', email: 'amina@mk.co.ke' };
+const MATE = { id: 'u_mate', name: 'Wanjiru Kamau', role: 'legal', email: 'w@mk.co.ke' };
+const VIEWER = { id: 'u_vw', name: 'Peter Njoroge', role: 'viewer', email: 'p@mk.co.ke' };
+
+const contract = () => ({ id: 'MK-N4', name: 'Supply Agreement',
+  counterparty: 'Saw Sawa Ltd', status: 'Under Review', folder: 'dist',
+  fields: {}, metadata: {}, audit: [], rounds: [], versions: [], signatures: [],
+  comments: [], value: 4800000, redlineText: BODY, format: 'rich' });
+
+/* ONE BENCH, and it files a real change through the real funnel — the note acts
+   read `ch.thread`, so a hand-built change object would be a fixture describing
+   the code rather than exercising it. */
+async function bench(user = ME){
+  const w = buildWorld({ user, negotiationView: true, contractView: true,
+    canEdit: user.role !== 'viewer' });
+  w.win.getUsers = () => [ME, MATE, VIEWER];
+  w.win.userById = id => [ME, MATE, VIEWER].find(u => u.id === id) || null;
+  w.win.saveSettings = () => {};
+  const c = contract();
+  w.win.negoInit(c);
+  const cl = w.win.negoClauseList(c).find(x => x.num === '6');
+  const ch = await w.win.negoEditClause(c, cl.clauseId,
+    '<p>Pay each invoice within forty-five (45) days.</p>', { side: 'owner' });
+  w.win.state = Object.assign({}, w.win.state,
+    { contracts: [c], activeId: c.id, view: 'redline', settings: {} });
+  w.win.getContract = id => (String(id) === String(c.id) ? c : null);
+  return { w, c, ch, cl };
+}
+const noteOf = (w, c, ch, text, o = {}) =>
+  w.win.negoPostComment(c, ch.id, text,
+    Object.assign({ side: 'owner', visibility: 'internal' }, o));
+
+/* ============================================================
+   1 — THE STORE IS THE THREAD, AND NOTHING ELSE IS ADDED
+   ============================================================ */
+describe('f264 (1) — a note is an ordinary internal message', () => {
+  test('it lands on the change’s own thread and adds no field to the change', async () => {
+    const p = await bench();
+    const before = Object.keys(p.ch).sort().join('|');
+    const m = noteOf(p.w, p.c, p.ch, 'Our fallback is thirty.');
+    assert.ok(m, 'the note is filed');
+    assert.equal(p.ch.thread.length, 1, 'onto ch.thread, which already existed');
+    assert.equal(p.ch.thread[0].visibility, 'internal',
+      'internal, which is negoPostComment’s own safe default');
+    const after = Object.keys(p.ch).filter(k => k !== 'thread').sort().join('|');
+    assert.equal(after, before.split('|').filter(k => k !== 'thread').join('|'),
+      'NO NEW FIELD ON THE CHANGE — the whole point of keeping it on the thread '
+      + 'is that every screen already reading a thread reads this for free, and '
+      + 'there is nothing to migrate');
+  });
+
+  test('the writer’s id rides beside their name, and only for their own note', async () => {
+    const p = await bench();
+    const mine = noteOf(p.w, p.c, p.ch, 'Mine.');
+    assert.equal(mine.byId, ME.id,
+      'an id survives a rename; the name survives the account being deleted — '
+      + 'the same pair a contract’s owner carries, for the same reason');
+    assert.equal(mine.who, ME.name);
+    /* A caller naming SOMEBODY ELSE gets no id: the counterparty's own seat
+       passes their company name through this same door. */
+    const theirs = noteOf(p.w, p.c, p.ch, 'Theirs.',
+      { side: 'counterparty', author: 'Priya Nair · Saw Sawa Ltd' });
+    assert.equal(theirs.byId, null);
+  });
+
+  test('a note filed before this existed still reads as its writer’s', async () => {
+    const p = await bench();
+    /* THE WHOLE MIGRATION STORY: `byId` is absent on everything already on
+       file, so the reading falls back to the NAME — and must, or a workspace
+       would wake up unable to edit any note it had ever written. */
+    p.ch.thread = [{ who: ME.name, side: 'owner', visibility: 'internal',
+      at: '2026-08-01T09:00:00.000Z', text: 'Filed before byId existed.' }];
+    assert.equal(p.w.win.negoNoteIsMine(p.ch.thread[0]), true);
+    assert.equal(p.w.win.negoMyNote(p.c, p.ch).text, 'Filed before byId existed.');
+  });
+});
+
+/* ============================================================
+   2 — WHOSE NOTE IT IS, AND THE THREE THINGS THAT REFUSE
+   ============================================================ */
+describe('f264 (2) — the acts are narrow, and each narrowing is a promise', () => {
+  test('a SHARED note cannot be changed or removed here', async () => {
+    const p = await bench();
+    const sent = noteOf(p.w, p.c, p.ch, 'We can hold at thirty.', { visibility: 'shared' });
+    assert.equal(p.w.win.negoNoteIsMine(sent), false,
+      'it travelled on the discussion channel and the other side holds a copy: '
+      + 'rewriting our half would leave two records of one sentence '
+      + 'disagreeing, and deleting it would take it off our screen while it '
+      + 'stayed on theirs');
+    assert.equal(p.w.win.negoEditNote(p.c, p.ch, sent, 'Changed.'), null);
+    assert.equal(p.w.win.negoDeleteNote(p.c, p.ch, sent), false);
+    assert.equal(sent.text, 'We can hold at thirty.', 'and nothing moved');
+  });
+
+  test('a colleague’s note is a colleague’s — no admin exception', async () => {
+    const p = await bench();
+    const theirs = noteOf(p.w, p.c, p.ch, 'Wanjiru’s aside.',
+      { author: MATE.name });
+    assert.equal(p.w.win.negoNoteIsMine(theirs), false);
+    assert.equal(p.w.win.negoEditNote(p.c, p.ch, theirs, 'No.'), null);
+    assert.equal(p.w.win.negoDeleteNote(p.c, p.ch, theirs), false);
+    assert.equal(theirs.text, 'Wanjiru’s aside.');
+  });
+
+  test('a note from THEIR side is never ours to touch', async () => {
+    const p = await bench();
+    const cp = noteOf(p.w, p.c, p.ch, 'From them.',
+      { side: 'counterparty', author: 'Priya Nair' });
+    assert.equal(p.w.win.negoNoteIsMine(cp), false);
+    assert.equal(p.w.win.negoDeleteNote(p.c, p.ch, cp), false);
+  });
+
+  test('editing replaces the words, re-stamps the hash and writes a line', async () => {
+    const p = await bench();
+    const m = noteOf(p.w, p.c, p.ch, 'Thirty is our fallback.');
+    const lines = p.c.audit.length;
+    const out = p.w.win.negoEditNote(p.c, p.ch, m, 'Thirty-five is our fallback.');
+    assert.equal(out.text, 'Thirty-five is our fallback.');
+    assert.equal(out.atHash, p.ch.hash,
+      'WRITTEN NOW, so it is stamped now: leaving yesterday’s hash on '
+      + 'today’s sentence would have the thread announce it as "written '
+      + 'against an earlier revision" when it was not');
+    assert.ok(out.editedAt, 'and it records that it was changed');
+    assert.ok(p.c.audit.length > lines,
+      'the thread is still a record — an edit leaves a trail even though the '
+      + 'sentence itself does not');
+  });
+
+  test('removing takes it off the thread and writes a line', async () => {
+    const p = await bench();
+    const m = noteOf(p.w, p.c, p.ch, 'Gone in a moment.');
+    const lines = p.c.audit.length;
+    assert.equal(p.w.win.negoDeleteNote(p.c, p.ch, m), true);
+    assert.equal(p.ch.thread.length, 0);
+    assert.ok(p.c.audit.length > lines);
+  });
+
+  test('an emptied note is a removed note, not a blank one', async () => {
+    const p = await bench();
+    const m = noteOf(p.w, p.c, p.ch, 'Something.');
+    p.w.win.negoEditNote(p.c, p.ch, m, '   ');
+    assert.equal(p.ch.thread.length, 0,
+      'a thread row holding an empty string is furniture with a name on it');
+  });
+
+  test('the newest of your own notes is the one the dialog opens on', async () => {
+    const p = await bench();
+    noteOf(p.w, p.c, p.ch, 'First thought.');
+    noteOf(p.w, p.c, p.ch, 'Second thought.');
+    noteOf(p.w, p.c, p.ch, 'Not mine.', { author: MATE.name });
+    assert.equal(p.w.win.negoMyNote(p.c, p.ch).text, 'Second thought.');
+  });
+
+  test('a caller holding a COPY of the message still edits the right one', async () => {
+    const p = await bench();
+    const m = noteOf(p.w, p.c, p.ch, 'The original object.');
+    /* The merged thread hands back rebuilt objects for the channel's half, and
+       a repaint can put a copy in a caller's hand. Identity first, content
+       second — never content only, which would match the wrong twin. */
+    const copy = Object.assign({}, m);
+    assert.ok(p.w.win.negoEditNote(p.c, p.ch, copy, 'Edited through a copy.'));
+    assert.equal(p.ch.thread[0].text, 'Edited through a copy.');
+  });
+
+  test('a message that is not on this thread at all is refused', async () => {
+    const p = await bench();
+    assert.equal(p.w.win.negoEditNote(p.c, p.ch,
+      { who: ME.name, side: 'owner', visibility: 'internal', text: 'Nowhere.' }, 'x'), null);
+    assert.equal(p.ch.thread.length, 0);
+  });
+});
+
+/* ============================================================
+   3 — IT NEVER TRAVELS
+   ============================================================ */
+describe('f264 (3) — the note stays inside this organisation', () => {
+  test('the share payload carries no thread', async () => {
+    const p = await bench();
+    noteOf(p.w, p.c, p.ch, 'Our fallback is thirty — do not send this.');
+    const pay = p.w.win.buildSharePayload
+      ? p.w.win.buildSharePayload(p.c, { purpose: 'negotiate' }) : null;
+    if (!pay) return;   /* the stage does not build one; the grep below stands */
+    const s = JSON.stringify(pay);
+    assert.equal(/do not send this/.test(s), false,
+      'ch.thread is not in the share payload and never has been — an internal '
+      + 'note reaches nobody by simply not being posted, which is a stronger '
+      + 'guarantee than any filter');
+  });
+});
+
+/* ============================================================
+   4 — ASKED ONCE, ON THE FILING THAT CREATED THE CHANGE (D)
+   ============================================================ */
+describe('f264 (4) — the ask is one reading of the record', () => {
+  test('a brand-new change is asked; a revision of it is not', async () => {
+    const p = await bench();
+    let opened = 0;
+    p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
+    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    assert.equal(opened, 1, 'revisions[] is empty, so this press created it');
+    /* THE READING IS THE RECORD'S OWN AND NEEDS NOTHING THREADED THROUGH IT:
+       negoFileChange pushes the previous wording onto revisions[] every time it
+       folds a second edit into a pending ask. */
+    const cl = p.w.win.negoClauseList(p.c).find(x => x.num === '6');
+    await p.w.win.negoEditClause(p.c, cl.clauseId,
+      '<p>Pay each invoice within sixty (60) days.</p>', { side: 'owner' });
+    assert.ok((p.ch.revisions || []).length, 'the fold really happened');
+    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    assert.equal(opened, 1, 'and a revision files silently');
+  });
+
+  test('their seat is never asked, and that is where the note would live', async () => {
+    const p = await bench();
+    let opened = 0;
+    p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
+    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'counterparty' });
+    assert.equal(opened, 0,
+      'their page is rebuilt from a share payload and thrown away on the next '
+      + 'repaint, so a note written there would be typed and lost');
+  });
+
+  test('a reader who may not write is not asked to', async () => {
+    const p = await bench(VIEWER);
+    let opened = 0;
+    p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
+    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    assert.equal(opened, 0);
+  });
+
+  test('both filing doors go through the one reading', () => {
+    assert.match(VIEW, /rlNoteAskAfterFile\(c, ch, \{ side, author: opts\.by/,
+      'the engine’s own inline editor, inside fileAndRepaint — the ONE '
+      + 'filing wrapper on that page, so the edit, the insert and the delete '
+      + 'all inherit it');
+    assert.match(CE, /rlNoteAskAfterFile\(c, ch, \{ side: 'owner'/,
+      'and the clause editor page');
+    assert.equal((VIEW.match(/openChangeNoteDialog\(c, ch, \{ \.\.\.opts, filed: true \}\)/g) || []).length, 1,
+      'ONE place decides whether to ask, so two doors cannot come to disagree '
+      + 'about when the question is put');
+  });
+
+  test('the ask comes AFTER the filing, the persist and the repaint', () => {
+    const fn = VIEW.match(/const fileAndRepaint = async[\s\S]*?\n  \};/)[0];
+    const persisted = fn.indexOf('persist(c)');
+    const asked = fn.indexOf('rlNoteAskAfterFile');
+    assert.ok(persisted > -1 && asked > persisted,
+      'the change exists on the record before the dialog is drawn, so nothing '
+      + 'a reader does with the dialog can be the difference between a redline '
+      + 'existing and not');
+  });
+
+  test('the toast stands down where the dialog opens', () => {
+    assert.match(CE, /if \(!_noteAsk && window\.toast\) toast\(_cet\('ce_filed'/,
+      'the dialog’s lead begins "Filed." and its heading names the change, '
+      + 'so two boxes twelve pixels apart saying one thing is exactly the '
+      + 'furniture this rulebook keeps warning about');
+  });
+});
+
+/* ============================================================
+   5 — ONE DIALOG, TWO SHAPES
+   ============================================================ */
+describe('f264 (5) — the dialog reads the record for its shape', () => {
+  const dlg = (p, mine, opts = {}) =>
+    p.w.win.rlNoteDialogHtml(p.c, p.ch, mine, Object.assign({ side: 'owner' }, opts));
+
+  test('no note yet: Add, and the way out says Skip when it arrived by itself', async () => {
+    const p = await bench();
+    const h = dlg(p, null, { filed: true });
+    assert.match(h, /ng_note_add|Add note/);
+    assert.equal(/ng_note_delete|>Delete</.test(h), false,
+      'Delete draws only where there is something of yours to delete');
+    assert.match(h, /Filed\./, 'and the lead carries the fact the toast stood down for');
+    assert.match(h, /Skip/);
+  });
+
+  test('a note of yours: Save and Delete, and the way out says Close', async () => {
+    const p = await bench();
+    const m = noteOf(p.w, p.c, p.ch, 'Thirty is our fallback.');
+    const h = dlg(p, m);
+    assert.match(h, /ng_note_save|>Save</);
+    assert.match(h, /rl-note-del/);
+    assert.match(h, /Thirty is our fallback\./, 'prefilled with what you wrote');
+    assert.equal(/Filed\./.test(h), false,
+      'it did not arrive by itself, so it does not claim to have just filed');
+  });
+
+  test('it names the change in its heading', async () => {
+    const p = await bench();
+    assert.match(dlg(p, null, { filed: true }), new RegExp(p.ch.id),
+      'the owner’s own example was "Note on CHG-004"');
+  });
+
+  test('it says the note stays inside, in the panel’s own words', async () => {
+    const p = await bench();
+    const h = dlg(p, null, { filed: true });
+    assert.match(h, /rl-note-keep/);
+    assert.match(h, /Saw Sawa Ltd/,
+      'ng_np_who_int names the counterparty who never sees it — ONE wording '
+      + 'for one fact, wherever a note is written');
+  });
+
+  test('notes that are not yours are counted, with a door to Chat', async () => {
+    const p = await bench();
+    noteOf(p.w, p.c, p.ch, 'Wanjiru’s aside.', { author: MATE.name });
+    noteOf(p.w, p.c, p.ch, 'And another.', { author: MATE.name });
+    const h = dlg(p, null);
+    assert.match(h, /rl-note-chat/,
+      'without this a reader whose colleagues have written three notes opens '
+      + 'their own empty box and is told nothing');
+    assert.match(h, /2 other notes/);
+    const mine = noteOf(p.w, p.c, p.ch, 'Mine.');
+    assert.match(dlg(p, mine), /2 other notes/,
+      'and the one in the box is not counted among the others');
+  });
+
+  test('with nothing else on the change there is no line and no door', async () => {
+    const p = await bench();
+    assert.equal(/rl-note-chat/.test(dlg(p, null, { filed: true })), false);
+  });
+
+  test('a viewer reads it and writes nothing', async () => {
+    const p = await bench(VIEWER);
+    const h = dlg(p, null);
+    assert.equal(/rl-note-in/.test(h), false, 'no box');
+    assert.equal(/rl-note-ok/.test(h), false, 'no verb');
+    assert.match(h, /rl-np-no/,
+      'and the refusal is the sentence the Document tab’s own discussion '
+      + 'has printed for viewers since long before this dialog');
+  });
+
+  test('it writes a note and nothing else — no second filing path', () => {
+    const one = VIEW.match(/function openChangeNoteDialog[\s\S]*?\n\}\n/)[0];
+    for (const bad of ['negoFileChange(', 'negoEditClause(', 'negoResolve(',
+      'changes.push', 'negoReviseInsert(']){
+      assert.equal(one.includes(bad), false,
+        `the dialog must not touch the change itself: found ${bad}`);
+    }
+    assert.match(one, /negoPostComment\(/, 'the one writer');
+    assert.match(one, /negoEditNote\(/);
+    assert.match(one, /negoDeleteNote\(/);
+  });
+});
+
+/* ============================================================
+   6 — THE PENCIL FILES (B)
+   ============================================================ */
+describe('f264 (6) — the gesture that means done, means done', () => {
+  test('one reading answers for the pencil and for the File button', () => {
+    assert.match(CE, /const ceCanFile = \(\) => \(_ceText !== _ceBase \|\| _ceHead !== _ceHeadBase\) && clauseEditorDirty\(\);/,
+      'the two questions joined: the wording has moved from what STANDS, and '
+      + 'there is something the RECORD does not already hold');
+    assert.match(CE, /const anyToFile = ceCanFile\(\);/, 'the foot asks it');
+    assert.match(CE, /if \(_ceEditing && ceCanFile\(\)\)\{/,
+      'and so does the pencil, so a pencil that files where the button is dead '
+      + 'is not a thing that can happen');
+  });
+
+  test('typing goes off only after the record moves', () => {
+    const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
+    assert.match(branch, /Promise\.resolve\(ceFile\(\)\)\.then\(ch => \{\s*\n\s*if \(!ch\) return;\s*\n\s*_ceEditing = false;/,
+      'turning the box read-only over wording the funnel has just REFUSED would '
+      + 'hide the reader’s own work behind a page drawing the marks of a '
+      + 'change that does not exist');
+  });
+
+  test('ceFile answers whether it filed, on every path', () => {
+    const fn = CE.match(/async function ceFile\([\s\S]*?\n\}\n/)[0];
+    /* Its OWN returns — two-space indent — not the ones inside the callbacks
+       it registers, which answer for themselves. */
+    assert.equal((fn.match(/\n  \s*return;\s*\n/g) || []).length, 0,
+      'every early exit says null rather than nothing, or the pencil cannot '
+      + 'tell a refusal from a success');
+    assert.match(fn, /\n  return ch;\n\}/);
+  });
+
+  test('a clause only READ still toggles, exactly as it always did', () => {
+    const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
+    assert.match(branch, /_ceEditing = !_ceEditing;/,
+      'the plain toggle is still there, below the branch, for the case where '
+      + 'there is nothing to file');
+  });
+
+  test('filing keeps typing on everywhere else — the 30 Aug rule is untouched', () => {
+    assert.match(CE, /keepView: true/,
+      'the strip’s cut still leaves the reader writing');
+    const fn = CE.match(/async function ceFile\([\s\S]*?\n\}\n/)[0];
+    assert.equal(/_ceEditing = false/.test(fn), false,
+      'and ceFile itself never turns typing off — only the one gesture that '
+      + 'asks for the opposite does');
+  });
+});
+
+/* ============================================================
+   7 — THE NOTES ROW RAISES THE DIALOG (C)
+   ============================================================ */
+describe('f264 (7) — one window for writing a note and one for reading it back', () => {
+  test('our seat opens the dialog, not the drawer', () => {
+    const wired = VIEW.match(/document\._rlNotesWired[\s\S]*?\n\}\n/)[0];
+    assert.match(wired, /openChangeNoteDialog\(c, ch,/);
+    assert.match(wired, /const portal = !!\(window\.PORTAL_MODE && PORTAL_MODE\(\)\);/,
+      'their seat is told apart explicitly rather than by whether a lookup '
+      + 'happened to fail');
+    assert.match(wired, /if \(window\.openNotesPanel\) openNotesPanel\(cid, id\);/,
+      'and their press falls through to exactly what it did before — the '
+      + 'owner’s own next sentence was that their access comes later');
+  });
+
+  test('the door is still one delegated listener armed at module load', () => {
+    assert.equal((VIEW.match(/document\._rlNotesWired = true;/g) || []).length, 1);
+    assert.equal((VIEW.match(/\[data-rl-notes\]'\)/g) || []).length, 1,
+      'three surfaces press it — the row’s count, the ⋯ menu and the '
+      + 'clause panel — and one listener finds all three');
+  });
+});
+
+/* ============================================================
+   8 — CHAT
+   ============================================================ */
+describe('f264 (8) — Chat is the whole contract’s conversation', () => {
+  test('it borrows every reading and counts nothing of its own', async () => {
+    const p = await bench();
+    const cl7 = p.w.win.negoClauseList(p.c).find(x => x.num === '7');
+    const ch7 = await p.w.win.negoEditClause(p.c, cl7.clauseId,
+      '<p>Neither party is liable for indirect or consequential loss.</p>',
+      { side: 'owner' });
+    noteOf(p.w, p.c, p.ch, 'On the payment clause.');
+    noteOf(p.w, p.c, ch7, 'On the liability clause.');
+    const rows = p.w.win.rlChatRows(p.c, { side: 'owner' });
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].ch.id, p.ch.id);
+    assert.equal(rows[1].ch.id, ch7.id);
+    const fn = VIEW.match(/function rlChatRows\([\s\S]*?\n\}/)[0];
+    assert.match(fn, /negoRoomNotes\(/,
+      'the one reading of what a seat may see and which room a note is in');
+  });
+
+  test('oldest last, so it reads in the order it happened', async () => {
+    const p = await bench();
+    p.ch.thread = [
+      { who: ME.name, byId: ME.id, side: 'owner', visibility: 'internal',
+        at: '2026-08-20T10:00:00.000Z', text: 'Later.' },
+      { who: ME.name, byId: ME.id, side: 'owner', visibility: 'internal',
+        at: '2026-08-19T10:00:00.000Z', text: 'Earlier.' }];
+    const rows = p.w.win.rlChatRows(p.c, { side: 'owner' });
+    assert.equal(rows[0].m.text, 'Earlier.');
+    assert.equal(rows[1].m.text, 'Later.');
+  });
+
+  test('both rooms in one list, each row saying which', async () => {
+    const p = await bench();
+    noteOf(p.w, p.c, p.ch, 'Kept here.');
+    noteOf(p.w, p.c, p.ch, 'Sent across.', { visibility: 'shared' });
+    const h = p.w.win.rlChatPanelHtml(p.c, { side: 'owner' });
+    assert.match(h, /ng_np_tab_int|Internal/);
+    assert.match(h, /ng_np_tab_ext|External/,
+      'this is where you READ, and a reader catching up wants the conversation '
+      + 'in the order it happened rather than in two halves');
+    assert.match(h, new RegExp(`data-rl-notes="${p.ch.id}"`),
+      'and each row is a door onto that change’s own note');
+  });
+
+  test('no composer — there is one note box per change and it is on the change', () => {
+    const fn = VIEW.match(/function rlChatPanelHtml\([\s\S]*?\n\}/)[0];
+    assert.equal(/data-rl-np-send|rl-np-in|textarea/.test(fn), false,
+      'a composer here would be a second one with no change to attach to');
+  });
+
+  test('an empty contract says so, and no contract says something else', async () => {
+    const p = await bench();
+    assert.match(p.w.win.rlChatPanelHtml(p.c, { side: 'owner' }), /ng_chat_empty|Nothing has been written/);
+    assert.match(p.w.win.rlChatPanelHtml(null), /ng_chat_none|Open a contract/);
+  });
+});
+
+/* ============================================================
+   9 — THE DOOR IN THE SHELL BAR
+   ============================================================ */
+describe('f264 (9) — the door, and where it is dead', () => {
+  test('it sits between Copilot and the bell, as asked', () => {
+    const ai = HTML.indexOf('id="cmd-ai"');
+    const chat = HTML.indexOf('id="hdr-chat"');
+    const bell = HTML.indexOf('id="hdr-notify"');
+    assert.ok(ai > -1 && chat > -1 && bell > -1, 'all three are drawn');
+    assert.ok(ai < chat && chat < bell,
+      'the owner ringed the gap between copilot and alerts');
+  });
+
+  test('its symbol is one the sprite actually carries', () => {
+    const btn = HTML.match(/<button id="hdr-chat"[\s\S]*?<\/button>/)[0];
+    const sym = btn.match(/href="#(i-[a-z-]+)"/)[1];
+    assert.match(HTML, new RegExp(`<symbol id="${sym}"`),
+      'a <use> pointing at a symbol that does not exist renders an EMPTY BOX — '
+      + 'no error, no warning, a button with a hole in it');
+  });
+
+  test('which contract it opens is named once', () => {
+    assert.match(APP, /function chatContractId\(\)\{[\s\S]*?redlineHeldId\(\)[\s\S]*?state\.activeId/,
+      'the contract the negotiation page is actually PAINTING first — '
+      + 'redlineHeldId is recorded on the paint — then whatever was last '
+      + 'opened anywhere');
+  });
+
+  test('it presses the one door onto the notes face', () => {
+    assert.match(APP, /getElementById\('hdr-chat'\)\?\.addEventListener\('click',\(\)=>\{\s*\n\s*const id=chatContractId\(\); if\(id\) openNotesPanel\(id\);/,
+      'openNotesPanel is the one door onto that face; this is the press '
+      + 'arriving there, never a second way of putting the panel up');
+  });
+
+  test('the change is optional, and a contract is not', () => {
+    assert.match(APP, /function openNotesPanel\(contractId, changeId\)\{\s*\n\s*if\(!contractId\) return;/);
+    assert.match(APP, /changeId: changeId==null\?null:String\(changeId\)/);
+    assert.match(APP, /if\(c&&!nf\.changeId&&window\.rlChatPanelPaint\)\{ rlChatPanelPaint/,
+      'no change named is the whole contract, not an error');
+  });
+
+  test('the heading says which scope it is showing', () => {
+    assert.match(APP, /const _chat=notes&&!\(\(state\.notesFor\|\|\{\}\)\.changeId\);/);
+    assert.match(APP, /_chat\?i18t\('ng_chat'\)/,
+      'Chat is the contract’s whole conversation and Notes is one '
+      + 'change’s thread — a reader who cannot tell them apart is a reader '
+      + 'who will believe the wrong one');
+  });
+
+  test('it is dead where pressing it would do nothing, with the reason on its hover', () => {
+    const fn = APP.match(/function paintChatDoor\(\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /clauseEditorOpen&&clauseEditorOpen\(\)/,
+      'the editor mounts at z-index 54 and the drawer sits at 46, so a press '
+      + 'would open a panel behind it');
+    assert.match(fn, /const dead=covered\|\|!id;/);
+    assert.match(fn, /btn\.disabled=dead;/,
+      'disabled, so the browser itself declines and a keyboard reader is told');
+    assert.match(fn, /covered\?i18t\('ng_chat_not_here'\):id\?i18t\('ng_chat_title'\):i18t\('ng_chat_none'\)/,
+      'THREE different facts, three different sentences');
+  });
+
+  test('the editor paints it on the way in AND on the way out', () => {
+    assert.equal((CE.match(/if \(window\.paintChatDoor\) paintChatDoor\(\)/g) || []).length, 2,
+      'both halves together, or the door stays dead for the rest of the sitting');
+    assert.match(APP, /try\{ paintChatDoor\(\); \}catch\(_\)\{\}\s*\n  const dot=/,
+      'and on the same beat the bell is painted — every view change and '
+      + 'every save');
+  });
+
+  test('panelSuppressed is untouched, and the bell’s own collision is not swept', () => {
+    assert.match(APP, /function panelSuppressed\(\)\{ return false; \}/,
+      'the bell and Activity have the same collision with the editor; it '
+      + 'predates this door by a fortnight and belongs to whoever takes that '
+      + 'on — one line in BUGLOG rather than a fix made on the way past');
+  });
+});
+
+/* ============================================================
+   10 — BOTH LANGUAGES
+   ============================================================ */
+describe('f264 (10) — every new sentence is written twice', () => {
+  test('the dictionary carries the note and Chat wording in EN and SV', () => {
+    const I18N = read('js/i18n.js');
+    const keys = ['ng_note_head', 'ng_note_filed_lead', 'ng_note_keep_lead',
+      'ng_note_ph', 'ng_note_skip', 'ng_note_add', 'ng_note_save',
+      'ng_note_delete', 'ng_note_added', 'ng_note_updated', 'ng_note_removed',
+      'ng_note_sent', 'ng_note_not_yours', 'ng_note_others_one',
+      'ng_note_others_other', 'ng_note_open_chat', 'ng_note_delete_title',
+      'ng_note_delete_msg', 'ng_chat', 'ng_chat_title', 'ng_chat_none',
+      'ng_chat_lead', 'ng_chat_empty', 'ng_chat_on', 'ng_chat_not_here'];
+    for (const k of keys){
+      const n = (I18N.match(new RegExp(`^\\s{4}${k}:`, 'gm')) || []).length;
+      assert.equal(n, 2, `${k} is written once in each dictionary, not ${n} times`);
+    }
+  });
+
+  test('the two refusals are dictionary keys, not English written into the model', () => {
+    assert.match(NEG, /toast\(i18t\('ng_note_sent'\), 'err'\)/);
+    assert.match(NEG, /toast\(i18t\('ng_note_not_yours'\), 'err'\)/);
+  });
+});

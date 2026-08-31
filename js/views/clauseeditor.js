@@ -151,6 +151,14 @@ let _ceOpenText = '';
 let _ceOpenHead = '';
 const clauseEditorDirty = () => clauseEditorOpen()
   && (_ceText !== _ceOpenText || _ceHead !== _ceOpenHead);
+/* ---- IS THERE SOMETHING TO FILE? ONE READING, TWO SURFACES ----
+   The foot's File button greys on exactly this, and since 31 Aug 2026 the
+   pencil FILES on exactly this — so a pencil that files where the button is
+   dead, or the other way round, is not a thing that can happen. It is the two
+   questions the foot's own note already spells out, joined: the wording has
+   moved from what STANDS, and there is something the RECORD does not already
+   hold. */
+const ceCanFile = () => (_ceText !== _ceBase || _ceHead !== _ceHeadBase) && clauseEditorDirty();
 
 /* ============================================================================
    THE STYLESHEET
@@ -1589,6 +1597,11 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const page = holder.firstElementChild;
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
+  /* THE SHELL BAR'S CHAT DOOR IS DEAD WHILE THIS PAGE COVERS THE WINDOW — the
+     drawer it opens sits at z-index 46 and this page at 54, so the press would
+     put a panel up behind it. It is painted here rather than on a view change,
+     because opening this page is not one. */
+  try{ if (window.paintChatDoor) paintChatDoor(); }catch(_){}
   ceWirePage(page);
   ceFitToShell(); ceObserveShell();
   /* AFTER ceFitToShell, so the first split is measured against the box this
@@ -1632,6 +1645,12 @@ function rlCloseClauseEditor(opts = {}){
   /* A repaint only where something actually moved. Closing without filing must
      leave the page underneath exactly as it was, scroll position included. */
   if ((opts.repaint || readMoved) && typeof again === 'function'){ try{ again(); }catch(_){} }
+  /* And the shell bar's Chat door comes back. AFTER the state is cleared, not
+     before: clauseEditorOpen reads _ceClauseId, so a paint taken beside
+     page.remove() still answers "the editor is open" and leaves the door dead
+     for the rest of the sitting. Both halves together, and both in the right
+     order. */
+  try{ if (window.paintChatDoor) paintChatDoor(); }catch(_){}
 }
 function ceNowHm(){
   const d = new Date();
@@ -2312,7 +2331,7 @@ function ceRenderFoot(){
      greys the moment the record catches up with the box, which is the same
      rule this product applies everywhere — grey where it can know before the
      press. */
-  const anyToFile = moved && clauseEditorDirty();
+  const anyToFile = ceCanFile();
   [[discard, _cet('ce_discard'), moved], [save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
@@ -3301,8 +3320,8 @@ function ceCutPassage(){
    into the contract.
    ========================================================================== */
 async function ceFile(why){
-  if (_ceBusy) return;
-  if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return; }
+  if (_ceBusy) return null;
+  if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return null; }
   const c = _ceC, clauseId = _ceClauseId;
   /* ---- ONE EDITOR, TWO KINDS OF ASK ----
      A clause somebody PROPOSED is revised through negoReviseInsert, which files
@@ -3314,7 +3333,7 @@ async function ceFile(why){
      filing path. The panel's own editor branches in exactly these words. */
   const proposed = ceIsProposed();
   const need = proposed ? window.negoReviseInsert : window.negoEditClause;
-  if (!need){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return; }
+  if (!need){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return null; }
   /* Already rich, and already sanitised on its way out of the box — the funnel
      sanitises again on the way in, which is this codebase's standing rule. */
   const html = _ceText;
@@ -3338,17 +3357,32 @@ async function ceFile(why){
       : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
   _ceBusy = false;
-  if (err){ if (window.toast) toast(_cet('ce_file_failed', { why: (err && err.message) || String(err) }), 'err'); return; }
+  if (err){ if (window.toast) toast(_cet('ce_file_failed', { why: (err && err.message) || String(err) }), 'err'); return null; }
   if (!ch){
     /* Said IN the page, beside the button that was pressed — a refusal
        delivered off-screen is how a live button reads as a dead one. */
     ceSay(_cet('ce_nothing_changed'));
     if (window.toast) toast(_cet('ng_nothing_changed_no_fp'), 'warn');
-    return;
+    return null;
   }
   try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
   try{ if ((!_ceOpts || _ceOpts.persist !== false) && window.persist) persist(c); }catch(_){}
-  if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+  /* ---- AND THEN IT ASKS FOR A NOTE (owner-ruled 31 Aug 2026) ----
+     The dialog's own lead sentence begins "Filed." and its heading names the
+     change, so where it opens the toast STANDS DOWN: two boxes twelve pixels
+     apart saying one thing is exactly the furniture this rulebook keeps warning
+     about, and the louder of the two would be the one that says less.
+
+     rlNoteAskAfterFile is the ONE reading of whether to ask — first filing,
+     our seat, a reader who may write — so this door and the engine's own inline
+     editor cannot come to disagree about when the question is put. Read
+     through window, the ES-module rule; absent, the toast is what it always
+     was. */
+  const _noteAsk = window.rlNoteAskAfterFile
+    ? rlNoteAskAfterFile(c, ch, { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
+        persist: (_ceOpts && _ceOpts.persist) })
+    : null;
+  if (!_noteAsk && window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
   /* ---- FILING NEVER CLOSES THE PAGE (owner-ruled 30 Aug 2026) ----
      THIS REVERSES "BACK WHERE YOU STARTED", which closed the editor and put the
      reader back on the negotiation page with the change on it. That was right
@@ -3379,6 +3413,20 @@ async function ceFile(why){
      BEHIND this page rather than on the way out of it. */
   try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
   try{ ceFitToShell(); }catch(_){}
+  /* A note lands on the change, and the column behind this page prints the
+     change's own note count — so the page underneath is repainted again once
+     the reader has answered, and not at all where they had nothing to answer. */
+  if (_noteAsk) _noteAsk.then(out => {
+    if (!out) return;
+    try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
+  });
+  /* ---- IT ANSWERS WHETHER IT FILED (owner-ruled 31 Aug 2026) ----
+     Every path above returns null where nothing landed on the record. The
+     pencil is the caller that needs this: it turns typing off, and turning it
+     off over wording the funnel has just REFUSED would hide the reader's own
+     unfiled work behind a read-only view. No caller written before this reads
+     the value, so it is additive and nothing else behaves differently. */
+  return ch;
 }
 
 /* ============================================================================
@@ -3461,6 +3509,40 @@ function ceWirePage(page){
       const id = pencil.getAttribute('data-ce-pencil');
       if (id && id !== _ceClauseId){ ceGoClause(id); return; }
       cePullText();
+      /* ---- THE PENCIL FILES WHEN THERE IS SOMETHING TO FILE ----
+         (owner-ruled 31 Aug 2026, decision B: "click the pencil indicating you
+         are done after making a redline (only if redline has been done)".)
+
+         PRESSING IT TO STOP TYPING SAYS "I HAVE FINISHED THIS CLAUSE", and
+         until now that put the reader back on a read-only page still carrying
+         wording the record had never seen — work that looked filed and was
+         not. So the one gesture that means "done" now means done.
+
+         ONLY WHERE THERE IS SOMETHING TO FILE, and ceCanFile is what says so —
+         the same reading the foot's own File button greys on, so a pencil that
+         files where that button is dead is not a thing that can happen. On a
+         clause the reader only READ, this branch does not run at all and the
+         pencil is the plain toggle it has always been.
+
+         TYPING GOES OFF AFTER THE RECORD MOVES, NOT BEFORE, and only where it
+         moved: ceFile answers null on every refusal, and turning the box
+         read-only over wording the funnel has just refused would hide the
+         reader's own work behind a page drawing the marks of a change that
+         does not exist. Where it refused, nothing moves and the refusal is
+         already on screen beside the control that was pressed.
+
+         AND FILING KEEPS TYPING ON EVERYWHERE ELSE — the 30 Aug rule is
+         untouched. What this adds is the one gesture that asks for the
+         opposite; the rail's File, the strip's send and the cut all still
+         leave the reader writing. */
+      if (_ceEditing && ceCanFile()){
+        Promise.resolve(ceFile()).then(ch => {
+          if (!ch) return;
+          _ceEditing = false;
+          ceDetachPassage(); ceRenderPaper(); ceRenderBar();
+        });
+        return;
+      }
       _ceEditing = !_ceEditing;
       /* THE BAR FOLLOWS THE PENCIL. Its tools grey when nothing is typeable,
          so a pencil press that did not repaint it would leave the whole shelf
@@ -3779,7 +3861,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
-  clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, clauseEditorCss,
+  clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,

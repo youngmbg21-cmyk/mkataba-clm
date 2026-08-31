@@ -3748,6 +3748,14 @@ function wireNegotiationTab(c, opts = {}){
     if (opts.persist !== false && window.persist) persist(c);
     if (window.toast) toast(msg(ch));
     again();
+    /* ---- AND THEN IT ASKS FOR A NOTE (owner-ruled 31 Aug 2026) ----
+       AFTER the filing, the persist and the repaint, deliberately: the change
+       exists on the record before the dialog is drawn, so nothing a reader does
+       with the dialog — skip it, dismiss it, close the tab — can be the
+       difference between a redline existing and not. rlNoteAskAfterFile decides
+       whether to ask at all; this is the press arriving there. */
+    rlNoteAskAfterFile(c, ch, { side, author: opts.by, persist: opts.persist })
+      .then(out => { if (out) again(); });
   };
 
   /* ---------- Ask Copilot ----------
@@ -12028,6 +12036,77 @@ function rlNotesPanelHtml(c, ch, opts = {}){
     ${foot}
   </div>`;
 }
+/* ---------- CHAT: EVERY NOTE ON THIS CONTRACT (owner-ruled 31 Aug 2026) ----------
+
+   *"means to access the notes in the side panel should have its own door called
+   Chat which should be accessed via a symbol ... between copilot and alerts"*
+
+   THE DRAWER WAS ALWAYS ONE CHANGE'S THREAD, reached from that change's own
+   row. Its door has moved to the shell bar, and a door in the shell bar is
+   about the CONTRACT — it is pressed from anywhere, with no change in hand — so
+   this is what it draws: every note on every live change, oldest last, each row
+   saying which change it is about.
+
+   IT COUNTS AND READS NOTHING OF ITS OWN. negoRoomNotes is the one reading of
+   what a seat may see and which room a note is in, negoWhen is the one clock,
+   and rlNpNoteHtml draws the note exactly as the per-change panel draws it — so
+   a note cannot read one way here and another way there. What this adds is the
+   line above each note saying where it came from, which is the only thing a
+   whole-contract list needs that a one-change list does not.
+
+   BOTH ROOMS, IN ONE LIST. The per-change panel splits them into tabs because
+   that is where you WRITE, and the room you are typing in decides who reads it;
+   this is where you READ, and a reader catching up on a contract wants the
+   conversation in the order it happened rather than in two halves. Each note
+   still says which room it is in, so nothing is ambiguous.
+
+   NO BOX. There is one note box per change in this product and it is on the
+   change; a composer here would be a second one with no change to attach to. */
+function rlChatRows(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const live = (c && Array.isArray(c.changes)) ? c.changes : [];
+  const out = [];
+  for (const ch of live){
+    if (!ch || !ch.id) continue;
+    for (const m of negoRoomNotes(c, ch, null, opts, side)) out.push({ ch, m });
+  }
+  return out.sort((a, b) => String(a.m.at || '').localeCompare(String(b.m.at || '')));
+}
+function rlChatPanelHtml(c, opts = {}){
+  if (!c) return `<div class="rl-chat-none">${i18t('ng_chat_none')}</div>`;
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const them = c.counterparty || i18t('ng_the_counterparty');
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
+  const other = side === 'counterparty' ? us : them;
+  const rows = rlChatRows(c, opts);
+  const body = rows.length
+    ? rows.map(({ ch, m }) => {
+        const room = negoNoteRoom(m);
+        return `<div class="rl-chat-row">
+          <button type="button" class="rl-chat-on" data-rl-notes="${_nea(ch.id)}">
+            <span class="id">${i18t('ng_chat_on', { id: _ne(ch.id) })}</span>
+            ${ch.clauseLabel ? `<em>${_ne(ch.clauseLabel)}</em>` : ''}
+            <span class="rm ${room === 'external' ? 'out' : ''}">${
+              i18t(room === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</span>
+          </button>
+          ${rlNpNoteHtml(m, room, side, other)}
+        </div>`;
+      }).join('')
+    : `<div class="rl-np-empty"><b>${i18t('ng_chat_empty')}</b>
+        <span>${i18t('ng_np_none_sub', { id: _ne(c.id) })}</span></div>`;
+  return `<div class="rl-chat">
+    <p class="rl-chat-lead">${i18t('ng_chat_lead', { name: _ne(c.name || c.id) })}</p>
+    <div class="rl-np-list"><div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>${body}</div>
+  </div>`;
+}
+/* Paint and re-wire in one, exactly as the per-change panel does. The rows are
+   [data-rl-notes], so the delegated door armed at module load carries the press
+   and there is nothing to bind here — a second handler for that act is what
+   this file records as always undoing the first. */
+function rlChatPanelPaint(host, c, opts = {}){
+  if (!host) return;
+  host.innerHTML = rlChatPanelHtml(c, opts);
+}
 /* Paint and re-wire in one. The panel is rebuilt on every act — a room switch,
    a note posted — so the handlers below are bound to fresh markup each time and
    cannot stack. */
@@ -12108,6 +12187,220 @@ function rlWireNotesPanel(host, c, ch, opts = {}){
   if (which) which.addEventListener('click', () => {
     const cl = which.getAttribute('data-rl-np-clause');
     if (cl && window.rlLinkFocus) rlLinkFocus(cl, 'card');
+  });
+}
+
+/* ---------- THE NOTE ON ONE CHANGE (owner-ruled 31 Aug 2026) ----------
+
+   *"When you finish your edit of a redline ... a pop up window appears. You can
+   then have options: Skip or Add Note & File. If you add note & file, this note
+   is stored and can only be accessed by owner via the highlight in image 2
+   where if clicked, the pop up comes up again where you can edit or delete."*
+
+   ONE BUILDER, TWO SHAPES, AND THE SHAPE IS READ RATHER THAN PASSED. Whether
+   there is already a note of yours decides the verbs — add, or save and delete
+   — and how you arrived decides the lead sentence. Two dialogs would be two
+   places for the wording, the wall and the store to drift apart.
+
+   THE FILING IS ALREADY DONE WHEN THIS OPENS, and that is the whole of what
+   makes it safe to dismiss. The owner's own words were "Add Note & File"; on
+   that reading a dialog dismissed by Escape, by the backdrop, or by a browser
+   that closed the tab would lose a change somebody had finished writing. Filing
+   first and then asking costs nothing — the note is additive and there is a
+   door back to it for the life of the contract — and it means no press in this
+   dialog can ever be the difference between a redline existing and not.
+
+   IT IS ITS OWN OVERLAY, appended to <body>, at a z-index between the modal
+   root (70) and confirmDialog (90). Above the modal root because the clause
+   editor covers the page at 54 and a dialog raised from it must be visible;
+   below confirmDialog because THIS dialog raises one, for the delete.
+
+   IT WRITES NOTHING BUT A NOTE. negoPostComment is the one writer and
+   negoEditNote / negoDeleteNote are the two acts beside it; nothing here
+   touches the change, its wording, its fingerprint or its status. */
+function rlNoteDialogHtml(c, ch, mine, opts){
+  const filed = !!opts.filed;
+  const mayWrite = notesMayWrite(c, opts);
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
+  /* HOW MANY NOTES ON THIS CHANGE ARE NOT THE ONE IN THE BOX. Without this line
+     a reader whose colleagues have written three notes opens their own empty
+     box and is told nothing — the dialog saying there is nothing where there is
+     plenty. It counts through negoNoteCounts, the same arithmetic the row's own
+     number prints, so the two cannot disagree. */
+  const total = negoNoteCounts(c, ch, opts, 'owner').total;
+  const others = Math.max(0, total - (mine ? 1 : 0));
+  const lead = filed
+    ? i18t('ng_note_filed_lead')
+    : i18t('ng_note_keep_lead', { id: _ne(ch.id) });
+  const box = mayWrite
+    ? `<textarea id="rl-note-in" rows="4" wrap="soft"
+        placeholder="${_nea(i18t('ng_note_ph'))}"
+        aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}"
+        style="box-sizing:border-box;width:100%;max-width:100%;min-height:96px;resize:vertical;border:1px solid var(--field-line);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--color-text)"
+        >${_ne(mine ? (mine.text || '') : '')}</textarea>`
+    : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
+  const otherLine = others
+    ? `<button type="button" id="rl-note-chat" class="rl-note-other">
+        <span>${i18tn('ng_note_others', others, { n: others })}</span>
+        <em>${i18t('ng_note_open_chat')}</em>
+      </button>`
+    : '';
+  /* THE VERBS. Delete draws only where there is something of yours to delete;
+     the quiet way out says Skip where the dialog arrived by itself and Close
+     where the reader opened it. */
+  const del = (mine && mayWrite)
+    ? `<button type="button" id="rl-note-del" class="ui-btn rl-note-del">${i18t('ng_note_delete')}</button>`
+    : '';
+  const go = mayWrite
+    ? `<button type="button" id="rl-note-ok" class="ui-btn ui-btn-primary">${
+        i18t(mine ? 'ng_note_save' : 'ng_note_add')}</button>`
+    : '';
+  return `<div class="rl-note-dlg" role="dialog" aria-modal="true"
+      aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}">
+    <h3 class="rl-note-h">${i18t('ng_note_head', { id: _ne(ch.id) })}</h3>
+    <p class="rl-note-lead">${lead}</p>
+    ${box}
+    <div class="rl-note-keep">${RL_NP_LOCK}<span>${
+      i18t('ng_np_who_int', { org: _ne(us), who: _ne(c.counterparty || i18t('ng_the_counterparty')) })}</span></div>
+    ${otherLine}
+    <div class="rl-note-acts">
+      ${del}
+      <span class="sp"></span>
+      <button type="button" id="rl-note-skip" class="ui-btn">${
+        i18t(filed ? 'ng_note_skip' : 'act_close')}</button>
+      ${go}
+    </div>
+  </div>`;
+}
+/* ---- ONE ASK PER CHANGE, ON THE FILING THAT CREATED IT ----
+   (owner-ruled 31 Aug 2026, decision D: asked once, on the first filing;
+   revisions file silently.)
+
+   THE READING IS THE RECORD'S OWN AND NEEDS NOTHING THREADED THROUGH IT.
+   negoFileChange gives a brand-new change `revisions: []` and pushes the
+   previous wording onto that list every time it folds a second edit into a
+   pending ask — so an empty revisions list IS "this press created this change",
+   exactly. A caller-supplied "is this new" flag would be the same fact
+   remembered in two places, and the fourth filing door added later would have
+   to remember it too; this way it inherits the rule for free.
+
+   IT IS ASKED OF EVERY KIND OF CHANGE — an edit, an inserted clause, a
+   deletion. A note saying why clause 7 came out is worth exactly as much as one
+   saying why clause 4 was softened, and a rule that asked on one of the three
+   is a rule nobody can predict.
+
+   OUR SEAT ONLY, and that is not a permission but a fact about where the note
+   would live: `ch.thread` is on the contract record, and the counterparty's
+   page is rebuilt from a share payload and thrown away on the next repaint.
+   Their own notes are a later piece of work, said out loud rather than half
+   built (owner: "fixing this will come at a later stage").
+
+   IT NEVER BLOCKS THE FILING. Every caller has already filed, persisted and
+   repainted before this runs, so a dismissed dialog, a stage without the door,
+   or a viewer who may not write costs nothing at all. */
+function rlNoteAskAfterFile(c, ch, opts = {}){
+  if (!c || !ch) return Promise.resolve(null);
+  if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
+  if ((ch.revisions || []).length) return Promise.resolve(null);
+  if (!notesMayWrite(c, opts)) return Promise.resolve(null);
+  if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);
+  return openChangeNoteDialog(c, ch, { ...opts, filed: true });
+}
+/* THE DOOR. Resolves the change, draws the dialog, and resolves to what
+   happened so a caller can say so — 'added' / 'updated' / 'removed' / null. */
+function openChangeNoteDialog(c, ch, opts = {}){
+  if (!c || !ch) return Promise.resolve(null);
+  return new Promise(resolve => {
+    const prev = document.getElementById('rl-note-overlay');
+    if (prev) prev.remove();
+    const paint = () => {
+      const mine = window.negoMyNote ? negoMyNote(c, ch) : null;
+      ov.innerHTML = `<div class="rl-note-scrim"></div>${rlNoteDialogHtml(c, ch, mine, opts)}`;
+      wire(mine);
+    };
+    const ov = document.createElement('div');
+    ov.id = 'rl-note-overlay';
+    /* openModal's Escape stands down while a top overlay is up — otherwise one
+       press answers this dialog AND closes whatever is behind it, which is a
+       fault this product has already paid for once. */
+    ov.setAttribute('data-top-overlay', '1');
+    let release = null;
+    const done = out => {
+      if (release){ try { release(); } catch (_){} release = null; }
+      ov.remove();
+      document.removeEventListener('keydown', onKey, true);
+      resolve(out);
+    };
+    function onKey(e){
+      if (e.key !== 'Escape') return;
+      /* A confirm raised BY this dialog sits on top of it and owns Escape
+         while it is up — the same deferral openModal makes to us. */
+      if (document.getElementById('confirm-overlay')) return;
+      e.preventDefault(); e.stopPropagation(); done(null);
+    }
+    function wire(mine){
+      if (release){ try { release(); } catch (_){} release = null; }
+      const panel = ov.querySelector('[role="dialog"]');
+      if (panel && typeof trapFocus === 'function') release = trapFocus(panel, { focus: false });
+      const scrim = ov.querySelector('.rl-note-scrim');
+      if (scrim) scrim.addEventListener('click', () => done(null));
+      const skip = ov.querySelector('#rl-note-skip');
+      if (skip) skip.addEventListener('click', () => done(null));
+      const chat = ov.querySelector('#rl-note-chat');
+      /* THE CONVERSATION HAS ITS OWN DOOR AND THIS IS NOT A SECOND ONE — it
+         presses openNotesPanel, the shell's own act, and closes behind itself
+         so the drawer is not opened underneath a dialog. */
+      if (chat) chat.addEventListener('click', () => {
+        done(null);
+        if (window.openNotesPanel) openNotesPanel(c.id, ch.id);
+      });
+      const box = ov.querySelector('#rl-note-in');
+      const ok = ov.querySelector('#rl-note-ok');
+      if (ok) ok.addEventListener('click', async () => {
+        const text = String((box && box.value) || '').trim();
+        if (!text){ if (box && box.focus) box.focus(); return; }
+        let out = null;
+        if (mine && window.negoEditNote){
+          if (!negoEditNote(c, ch, mine, text)) return;
+          out = 'updated';
+        } else {
+          const msg = negoPostComment(c, ch.id, text,
+            { side: 'owner', author: opts.author, visibility: 'internal' });
+          if (!msg) return;
+          out = 'added';
+        }
+        if (opts.persist !== false && window.persist) persist(c);
+        if (window.toast) toast(i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added',
+          { id: ch.id }), 'ok');
+        if (typeof opts.onDone === 'function') opts.onDone(out);
+        done(out);
+      });
+      const del = ov.querySelector('#rl-note-del');
+      if (del) del.addEventListener('click', async () => {
+        if (window.confirmDialog){
+          const yes = await confirmDialog({
+            title: i18t('ng_note_delete_title'),
+            message: i18t('ng_note_delete_msg', { id: ch.id }),
+            confirmLabel: i18t('ng_note_delete'), danger: true });
+          if (!yes) return;
+        }
+        if (!window.negoDeleteNote || !negoDeleteNote(c, ch, mine)) return;
+        if (opts.persist !== false && window.persist) persist(c);
+        if (window.toast) toast(i18t('ng_note_removed', { id: ch.id }), 'ok');
+        if (typeof opts.onDone === 'function') opts.onDone('removed');
+        done('removed');
+      });
+      if (box && box.focus){
+        box.focus();
+        /* THE CARET GOES TO THE END OF WHAT IS ALREADY THERE, not over it: a
+           reader opening their own note to add a sentence must not have it
+           selected and lose it to the next keystroke. */
+        try { const n = box.value.length; box.setSelectionRange(n, n); } catch (_){}
+      }
+    }
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(ov);
+    paint();
   });
 }
 
@@ -13880,7 +14173,41 @@ if (typeof document !== 'undefined' && !document._rlNotesWired){
     ev.stopPropagation();
     const id = t.getAttribute('data-rl-notes');
     const cid = (window.redlineHeldId && redlineHeldId()) || (window.state && state.activeId);
-    if (cid && id && window.openNotesPanel) openNotesPanel(cid, id);
+    /* ---- ON OUR SEAT IT OPENS THE NOTE, NOT THE DRAWER (owner-ruled 31 Aug
+       2026, decision C) ----
+       "this note is stored and can only be accessed by owner via the highlight
+       in image 2 where if clicked, the pop up comes up again where you can edit
+       or delete." So the Notes row raises the SAME dialog the filing raised —
+       one window for writing a note and one for reading it back, which is what
+       makes it learnable.
+
+       THE DRAWER IS NOT RETIRED AND IS NOT REACHED FROM HERE ANY MORE: it is
+       Chat, which has a door of its own in the shell bar, and it shows the
+       whole contract's conversation rather than one change's.
+
+       THEIR SEAT IS UNTOUCHED, and that is deliberate rather than an oversight
+       — the owner's own next sentence was that the counterparty's access "will
+       come at a later stage". The dialog writes an INTERNAL note onto
+       `ch.thread`, which is on the contract record; their page is rebuilt from
+       a share payload and thrown away on the next repaint, so a note written
+       there would be typed and lost. Their press falls through to exactly what
+       it did before. */
+    if (!cid || !id) return;
+    const portal = !!(window.PORTAL_MODE && PORTAL_MODE());
+    const c = (!portal && window.state && Array.isArray(state.contracts))
+      ? state.contracts.find(x => x && String(x.id) === String(cid)) : null;
+    const ch = (c && window.negoChangeById) ? negoChangeById(c, id) : null;
+    if (c && ch && typeof openChangeNoteDialog === 'function'){
+      openChangeNoteDialog(c, ch, { author: (window.currentUser && currentUser()?.name) || undefined })
+        /* BARE, like every other caller of it in this file — a cross-module
+           read is what the ES-module rule is about, and this is not one. The
+           node may be detached by then (the menu closes on the press), which
+           rlRepaintFrom already answers for: with no mount above it, the page's
+           one mount is what repaints. */
+        .then(out => { if (out) rlRepaintFrom(t); });
+      return;
+    }
+    if (window.openNotesPanel) openNotesPanel(cid, id);
   });
 }
 if (typeof document !== 'undefined' && !document._rlCpWired){
@@ -14525,6 +14852,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlPaperFootHtml,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
+  rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
+  rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlCardNotesCountHtml,
   rlNpRoom, rlNpSetRoom,

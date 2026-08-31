@@ -375,12 +375,25 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
       + 'about the paper');
   });
 
+  /* REVERSED IN PLACE 31 Aug 2026, and the claim is STRONGER for it. It pinned
+     the literal `moved && clauseEditorDirty()`, which was the whole reading
+     written out at its one call site; the pencil now files on exactly the same
+     question (owner-ruled B), so the reading is NAMED — ceCanFile — and what
+     this asserts is the RELATION the claim was always about: the foot asks that
+     one reading, and it is the two questions joined. Pin the relation, not the
+     expression. */
   test('the File button greys once the record has caught up', () => {
     const foot = CODE.match(/function ceRenderFoot\([\s\S]*?\n\}/)[0];
-    assert.match(foot, /const anyToFile = moved && clauseEditorDirty\(\);/,
+    assert.match(foot, /const anyToFile = ceCanFile\(\);/,
       'with the page staying open, a just-filed draft still differs from what '
       + 'STANDS — so File asks whether the record already holds it, or it would '
       + 'sit live over a press the funnel refuses as proposing nothing');
+    const read = CODE.match(/const ceCanFile = [^\n]+/)[0];
+    assert.match(read, /_ceText !== _ceBase \|\| _ceHead !== _ceHeadBase/,
+      'and that one reading is the two questions joined: the wording has moved '
+      + 'from what STANDS…');
+    assert.match(read, /clauseEditorDirty\(\)/,
+      '…and there is something the RECORD does not already hold');
     assert.match(foot, /\[discard, _cet\('ce_discard'\), moved\]/,
       'Discard keeps its own question — has the wording moved from what stands, '
       + 'because that is what it puts back');

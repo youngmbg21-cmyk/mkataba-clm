@@ -26,6 +26,21 @@ const EXEC=process.env.CHROMIUM_BIN
   ||(fs.existsSync('/opt/pw-browsers/chromium')?'/opt/pw-browsers/chromium':undefined);
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---- THE NOTE DIALOG COMES UP AFTER A FILING (owner-ruled 31 Aug 2026) ----
+   Every filing on this page now raises "Note on CHG-xxx" — Skip or Add note —
+   and it is a real overlay with a real scrim, so a probe that files and then
+   presses on takes the scrim instead of the control it meant. This is what a
+   reader does when they have nothing to add. Section 23 DRIVES the dialog
+   properly; everywhere else, the journey being tested is not about the note. */
+async function skipNote(p){
+  try{
+    const up = await p.evaluate(() => !!document.getElementById('rl-note-overlay'));
+    if (!up) return false;
+    await p.evaluate(() => { const b = document.getElementById('rl-note-skip'); if (b) b.click(); });
+    await pause(200);
+    return true;
+  }catch(_){ return false; }
+}
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
 function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
@@ -458,6 +473,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      JSON.stringify(noStep));
   await p.click('#clause-editor [data-ce-act="save"]');
   await pause(900);
+  await skipNote(p);
   const filed = await p.evaluate(() => {
     const c = window.CONTRACT;
     const mine = (c.changes||[]).filter(x => x.authorSide === 'owner');
@@ -585,14 +601,41 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     body.blur();
   });
   await pause(400);
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (owner-ruled B) ----
+     It pinned "a draft nobody has filed, drawn on the contract", and the
+     gesture it used to see that draft was the pencil. THE PENCIL NOW FILES:
+     pressing it to stop typing says "I have finished this clause", and until
+     that ruling it put the reader back on a read-only page still carrying
+     wording the record had never seen. So a draft cannot be seen with its
+     marks and left unfiled by THIS gesture any more — that is the ruling
+     rather than a loss, and the running +N −N counter is what says what your
+     typing is doing while you type.
+
+     WHAT THE CLAIM IS NOW, and it is the half that was always the point: the
+     product's own redline engine draws the reader's own typing as marks on the
+     paper, and the one gesture that means done reaches the record. */
+  /* How the draft's own acts look while they WORK — the reference 12i3 measures
+     the greyed state against. TAKEN BEFORE THE PENCIL FILES (31 Aug 2026):
+     once the record has caught up with the box, File greys on its own, so a
+     reference captured after the filing is a greyed button being compared with
+     a greyed button and the check can never fail. */
+  const actsLive = await p.evaluate(() => {
+    const page = document.getElementById('clause-editor');
+    const pick = sel => { const b = page.querySelector(sel); if (!b) return { look: '' };
+      const cs = getComputedStyle(b); return { look: cs.color + '|' + cs.opacity }; };
+    return { save: pick('[data-ce-act="save"]'), undo: pick('#ce-undo') };
+  });
+  const statWhileTyping = await p.evaluate(() =>
+    ((document.querySelector('#clause-editor #ce-stat') || {}).innerText || '')
+      .replace(/\s+/g, ' ').trim());
+  const nBefore = await p.evaluate(() => (window.CONTRACT.changes || []).length);
+  await p.evaluate(() => {
+    document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+  });
+  await pause(900);
+  const askedForNote = await skipNote(p);
   const typed = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
-    const stat = (page.querySelector('#ce-stat') || {}).innerText.replace(/\s+/g, ' ').trim();
-    /* THE COUNTS MOVE AS YOU TYPE; THE MARKS ARRIVE WHEN YOU STOP. While the
-       caret is in the clause the reader is looking at their own wording, not at
-       strikes drawn over it — the pencil is the toggle, and it is what this
-       presses. */
-    page.querySelector('.rl-clause-live [data-ce-pencil]').click();
     const body = page.querySelector('#ce-clausebody');
     /* THE WHOLE BODY, never a slice: a clause replaced outright draws as one
        long strike followed by the new sentence, so the typed words sit well
@@ -601,13 +644,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       text: body.innerText.replace(/\s+/g, ' ').trim(),
       ins: [...body.querySelectorAll('ins, .nego-ins')]
         .map(e => e.textContent).join(' ').replace(/\s+/g, ' ').trim(),
-      stat, editableAfter: body.getAttribute('contenteditable') };
+      n: (window.CONTRACT.changes || []).length,
+      editableAfter: body.getAttribute('contenteditable') };
   });
-  ck('12c TYPING ON THE PAPER PRODUCES A LIVE MARK — a draft nobody has filed, '
-     + 'drawn on the contract',
-     typed.marks > 0 && /ninety/.test(typed.ins) && /\+\s*\d/.test(typed.stat)
-       && typed.editableAfter !== 'true',
-     `${typed.marks} marks, counts "${typed.stat}", inserted "${typed.ins.slice(0, 60)}"`);
+  ck('12c TYPING ON THE PAPER IS DRAWN AS A MARK BY THE PRODUCT\'S OWN ENGINE',
+     typed.marks > 0 && /ninety/.test(typed.ins) && /\+\s*\d/.test(statWhileTyping),
+     `${typed.marks} marks, counts "${statWhileTyping}", inserted "${typed.ins.slice(0, 60)}"`);
+  ck('12c2 THE PENCIL FILES, AND THEN THE BOX IS READ-ONLY — the one gesture '
+     + 'that means done, means done',
+     typed.n === nBefore + 1 && typed.editableAfter !== 'true',
+     `${nBefore} changes before, ${typed.n} after; typeable ${typed.editableAfter}`);
+  ck('12c3 …and it asks for a note on the change it just created',
+     askedForNote === true, askedForNote ? 'the dialog came up and was skipped' : 'no dialog');
 
   /* ---- THE THREE READINGS ---- */
   const segs = await p.evaluate(() => {
@@ -633,14 +681,6 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const marksBefore = await p.evaluate(() =>
     document.querySelectorAll('.rl-clause-live ins, .rl-clause-live .nego-ins,'
       + ' .rl-clause-live del, .rl-clause-live .nego-del').length);
-  /* How the draft's own acts look while they WORK — the reference 12i3 measures
-     the greyed state against. */
-  const actsLive = await p.evaluate(() => {
-    const page = document.getElementById('clause-editor');
-    const pick = sel => { const b = page.querySelector(sel); if (!b) return { look: '' };
-      const cs = getComputedStyle(b); return { look: cs.color + '|' + cs.opacity }; };
-    return { save: pick('[data-ce-act="save"]'), undo: pick('#ce-undo') };
-  });
   await p.click('#clause-editor [data-rl-read="agreed"]');
   await pause(500);
   const agreed = await p.evaluate(() => {
@@ -1065,8 +1105,16 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `${cost.colour} (label ${cost.label}, amber ${cost.amber}, ruby ${cost.ruby})`);
   const t = cost.titles || {};
   const std = t['Use our standard'], draft = t["Use Copilot's draft"];
+  /* ---- PINNED AS A RELATION, NOT AS WHICH ONE IS BIGGER (31 Aug 2026) ----
+     It asserted std "keeps none" and draft "keeps N", which is a fact about
+     this fixture's WORDING rather than about the product: the clause the
+     journey above now leaves behind makes the library standard the small
+     change and Copilot's draft the wholesale one, and the claim flipped. What
+     the check is about is that the two verbs cost DIFFERENT things and each
+     says its own, so the reader can compare them without pressing either. */
   ck('13d each verb carries its OWN cost, so the two can be compared unpressed',
-     !!std && !!draft && std !== draft && /keeps none/.test(std) && /keeps \d/.test(draft),
+     !!std && !!draft && std !== draft
+       && /\d+ words?|keeps none/.test(std) && /\d+ words?|keeps none/.test(draft),
      JSON.stringify({ std, draft }));
 
   /* ---- 14. COMMENTARY NEVER REACHES THE CARD (owner-reported 26 Aug 2026) ----
@@ -1747,6 +1795,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       words: doc.textContent.replace(/\s+/g, ' '),
       filed: (window.CONTRACT.changes || []).length };
   });
+  await skipNote(p);
   const cutTxt = (sel18.text || '').trim();
   ck('18f pressing it takes the passage out of the paper',
      !!cutTxt && cutPress.before.includes(cutTxt) && !cutPress.words.includes(cutTxt),
@@ -2004,6 +2053,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       shut: !document.querySelector('#ce-scope .ce-scope'),
       filed: (window.CONTRACT.changes || []).length, before };
   });
+  await skipNote(p);
   ck('18j STRIKING WORDS OUT really strikes them out on the paper',
      cutRun.ok && cutRun.struck > 0,
      cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken on ' + cutClause + ' ' + cutRun.why);
@@ -2520,6 +2570,126 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const moved = await film(async () => { await p.evaluate(id => ceGoClause(id), other24); });
     ck('24c MOVING to another clause lands too',
        moved.distinct <= 2, `${moved.distinct} distinct offsets, ${moved.from} → ${moved.to}`);
+  }
+
+  /* ============================================================
+     25. THE NOTE ON A REDLINE (owner-ruled 31 Aug 2026, A + D)
+     ============================================================
+     "a pop up window appears ... You can then have options: Skip or Add Note &
+     File", and, on my recommendation which the owner took: filed FIRST, then
+     asked — so no press in the dialog can be the difference between a redline
+     existing and not.
+
+     f264 pins the model and the shape. This is here for the two things only a
+     browser can answer: that the dialog is REAL PIXELS with a real scrim over a
+     page that is itself a full-window layer, and that a REVISION files silently
+     — which is decision D, and the half a source check cannot see, because it
+     is about what happens on the SECOND press. */
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
+  const clean25 = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    const busy = new Set((window.CONTRACT.changes || []).map(x => x.clauseId));
+    const o = list.find(x => !busy.has(x.clauseId) && (x.text || '').length > 60);
+    return o ? o.clauseId : null; });
+  if (clean25){
+    await p.evaluate(id => rlOpenClauseEditor(window.CONTRACT, id, {}), clean25);
+    await pause(800);
+    await p.evaluate(() => {
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      if (b.getAttribute('contenteditable') !== 'true')
+        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    });
+    await pause(400);
+    await p.evaluate(() => {
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      b.focus(); b.innerHTML = '<p>Each party shall bear its own costs of the audit.</p>'; b.blur();
+    });
+    await pause(400);
+    await p.click('#clause-editor [data-ce-act="save"]');
+    await pause(1100);
+    const dlg = await p.evaluate(() => {
+      const ov = document.getElementById('rl-note-overlay');
+      if (!ov) return { up: false };
+      const panel = ov.querySelector('[role="dialog"]');
+      const r = panel && panel.getBoundingClientRect();
+      const scrim = ov.querySelector('.rl-note-scrim');
+      const page = document.getElementById('clause-editor');
+      const pz = page ? Number(getComputedStyle(page).zIndex) : null;
+      const oz = Number(getComputedStyle(ov).zIndex);
+      const mid = panel && document.elementFromPoint(r.left + r.width / 2, r.top + 12);
+      return { up: true,
+        painted: !!(r && r.width > 0 && r.height > 0),
+        onTop: !!(panel && mid && panel.contains(mid)),
+        overPage: oz > pz, oz, pz,
+        head: (ov.querySelector('.rl-note-h') || {}).textContent,
+        lead: (ov.querySelector('.rl-note-lead') || {}).textContent,
+        scrim: !!(scrim && scrim.getBoundingClientRect().width > 0),
+        box: !!ov.querySelector('#rl-note-in'),
+        skip: (ov.querySelector('#rl-note-skip') || {}).textContent,
+        go: (ov.querySelector('#rl-note-ok') || {}).textContent,
+        del: !!ov.querySelector('#rl-note-del'),
+        keep: (ov.querySelector('.rl-note-keep') || {}).textContent };
+    });
+    ck('25a filing raises the note dialog, as real pixels', dlg.up && dlg.painted,
+       dlg.up ? 'drawn' : 'no dialog');
+    ck('25b it sits OVER the clause editor, which covers the window',
+       dlg.overPage === true && dlg.onTop === true, `dialog z ${dlg.oz}, page z ${dlg.pz}`);
+    ck('25c it names the change, and its lead carries the fact the toast stood down for',
+       /CHG-/.test(dlg.head || '') && /Filed/i.test(dlg.lead || ''),
+       `"${(dlg.head || '').trim()}" / "${(dlg.lead || '').trim().slice(0, 50)}"`);
+    ck('25d two ways on — Skip, and Add note — and no Delete on a change with no note',
+       /skip/i.test(dlg.skip || '') && /add/i.test(dlg.go || '') && dlg.del === false,
+       `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
+    ck('25e it says the note stays inside, before you type rather than after',
+       /never sees|ser aldrig/i.test(dlg.keep || ''), (dlg.keep || '').trim().slice(0, 60));
+
+    /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
+    await p.evaluate(() => {
+      const b = document.getElementById('rl-note-in');
+      b.value = 'Audit costs: we have never paid theirs.';
+      b.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('rl-note-ok').click();
+    });
+    await pause(700);
+    const wrote = await p.evaluate(() => {
+      const c = window.CONTRACT;
+      const ch = (c.changes || [])[(c.changes || []).length - 1];
+      const t = (ch.thread || [])[0] || {};
+      return { gone: !document.getElementById('rl-note-overlay'),
+        text: t.text, vis: t.visibility, who: t.who };
+    });
+    ck('25f Add note files it, INTERNAL, onto the change it named',
+       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',
+       `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
+    ck('25g and the dialog goes', wrote.gone === true);
+
+    /* ---- D: A REVISION FILES SILENTLY ---- */
+    await p.evaluate(() => {
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      if (b.getAttribute('contenteditable') !== 'true')
+        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    });
+    await pause(400);
+    await p.evaluate(() => {
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      b.focus(); b.innerHTML = '<p>Each party shall bear its own costs of any audit.</p>'; b.blur();
+    });
+    await pause(400);
+    await p.click('#clause-editor [data-ce-act="save"]');
+    await pause(1100);
+    const again25 = await p.evaluate(() => ({
+      up: !!document.getElementById('rl-note-overlay'),
+      revs: (() => { const c = window.CONTRACT;
+        const ch = (c.changes || [])[(c.changes || []).length - 1];
+        return (ch.revisions || []).length; })() }));
+    ck('25h A REVISION FILES SILENTLY — asked once, on the filing that created it',
+       again25.up === false && again25.revs > 0,
+       `dialog ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions`);
+    await skipNote(p);
+    await p.evaluate(() => rlCloseClauseEditor({}));
+    await pause(300);
+  } else {
+    ck('25 a clean clause to stage the note dialog on', false, 'none left');
   }
 
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');

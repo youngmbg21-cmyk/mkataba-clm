@@ -8177,3 +8177,50 @@ Noticed, not fixed:
   #ce-lane is flex:1 and the card sits above it. Not the contract, and not
   reported; noting it because it is the one thing on this page that does move
   when a passage is taken.
+
+## 31 Aug 2026 (late) — N-1, the note on a redline
+
+The owner's own compromise after all three drawn options were declined: file
+first, then a pop-up offering Skip or Add note; the note kept on the change and
+read back through the same window; the side panel given its own door called
+Chat, between Copilot and the bell.
+
+Defects found and fixed while building it:
+
+- `ceFile` returned nothing on all four of its refusal paths, so the pencil —
+  which now files — could not tell a refusal from a success and would have
+  turned the box read-only over wording the funnel had just refused, hiding the
+  reader's own work behind marks for a change that does not exist. Every path
+  answers null or the change now.
+- The Chat door stayed dead for the rest of the sitting after the clause editor
+  closed. `clauseEditorOpen` reads `_ceClauseId`, and the repaint was taken
+  beside `page.remove()` — several lines before that value is cleared. Moved to
+  the end of the close. Caught by driving it in a browser; the source reads
+  correctly either way.
+- `byId` was stamped only when no author was passed, so the notes panel's own
+  send — which passes the current user's name — would never have stamped one
+  and every note written from the panel would have fallen back to name matching.
+  It now compares the resolved name against the signed-in person.
+- A `window.rlRepaintFrom` read inside the file that DEFINES it. f232 caught it
+  in one run; called bare, like every other caller in that file.
+
+Two claims REVERSED IN PLACE, and both were pinning an expression where the
+claim was a relation: f245's File-button check (the reading is named now, and
+both its halves are asserted) and clause-editor-verify's 13d (which one verb
+costs more is a fact about the fixture's wording, not about the product).
+clause-editor-verify 12c was reversed for a real behaviour change: the gesture
+it used to see an unfiled draft is the gesture that now files.
+
+Noticed, not fixed:
+- The bell and Activity have the same z-index collision with the clause editor
+  that Chat is now guarded against — the drawer is 46 and the page is 54, so
+  pressing either from the editor opens a panel behind it. It predates this
+  work by a fortnight. `panelSuppressed()` still answers false and f264 asserts
+  it doing so, so nobody reads the Chat guard as covering the other two.
+- `ng_np_gone` says "This change is no longer on the table"; with Chat named
+  with a contract and no change, the same branch can now be reached for a
+  contract this reader cannot see. It answers `ng_chat_none` there, which is
+  right, but the two sentences share one `if` and the next person may not
+  notice.
+- redline-verify's crash at line 677 (`press` on a null element) reproduces
+  identically in a clean worktree at this branch's parent. Not this run's.

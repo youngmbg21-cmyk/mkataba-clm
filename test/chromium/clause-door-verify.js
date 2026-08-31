@@ -35,6 +35,20 @@ const EXEC=process.env.CHROMIUM_BIN
   ||(fs.existsSync('/opt/pw-browsers/chromium')?'/opt/pw-browsers/chromium':undefined);
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---- THE NOTE DIALOG COMES UP AFTER A FILING (owner-ruled 31 Aug 2026) ----
+   Every filing now raises "Note on CHG-xxx" — Skip or Add note — over a real
+   scrim, so a probe that files and then presses on takes the scrim instead of
+   the control it meant. This is what a reader does when they have nothing to
+   add; the dialog itself is driven in f264 and in clause-editor-verify's
+   section 25, and none of the journeys in this file is about the note. */
+async function skipNote(p){
+  try{
+    if (!await p.evaluate(() => !!document.getElementById('rl-note-overlay'))) return false;
+    await p.evaluate(() => { const b = document.getElementById('rl-note-skip'); if (b) b.click(); });
+    await pause(200);
+    return true;
+  }catch(_){ return false; }
+}
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
 function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
@@ -619,6 +633,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('7h Save FILES — there is no reason step in the panel either',
      bar1.reason === false && bar1.bar.length === 2, bar1.bar.join(' / '));
   await p.click('#rl-cp [data-nego-next]'); await pause(1100);
+  await skipNote(p);
 
   const filed = await p.evaluate(t => {
     const c = window.CONTRACT;

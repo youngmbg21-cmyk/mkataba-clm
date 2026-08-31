@@ -4789,6 +4789,68 @@
     border-top:1px solid var(--color-divider);
     font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
   .rl-np-no .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
+  /* ---- THE NOTE ON ONE CHANGE (owner-ruled 31 Aug 2026) ----
+     Its own overlay, appended to <body>, between the modal root (70) and
+     confirmDialog (90): above the clause editor, which covers the page at 54,
+     and below the confirm this dialog itself raises for a delete. */
+  #rl-note-overlay{position:fixed;inset:0;z-index:88;
+    display:grid;place-items:center;padding:var(--s-4);}
+  .rl-note-scrim{position:absolute;inset:0;
+    background:color-mix(in srgb,#2b2b2d 50%,transparent);}
+  .rl-note-dlg{position:relative;width:100%;max-width:30rem;
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    box-shadow:var(--shadow-lg);border-radius:var(--radius);
+    padding:20px var(--s-5) var(--s-5);}
+  .rl-note-h{font-family:var(--font-heading);font-weight:var(--w-strong);
+    font-size:var(--t-section);color:var(--color-text);margin:0 0 5px;line-height:1.3;}
+  .rl-note-lead{font-size:var(--t-meta);line-height:1.55;
+    color:var(--color-neutral-600);margin:0 0 var(--s-3);}
+  /* The promise, said before they type rather than after they press. Same
+     words and same lock as the panel's internal room, so one fact is stated
+     one way wherever a note is written. */
+  .rl-note-keep{display:flex;align-items:flex-start;gap:6px;margin-top:var(--s-2);
+    font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
+  .rl-note-keep .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
+  /* Notes on this change that are not the one in the box — a fact, and a door
+     to where they are read. */
+  .rl-note-other{display:flex;align-items:center;gap:8px;width:100%;
+    margin-top:10px;padding:8px 10px;background:var(--surface-2);
+    border:1px solid var(--color-divider);border-radius:var(--radius);
+    font:inherit;font-size:var(--t-label);color:var(--color-neutral-600);
+    text-align:left;cursor:pointer;}
+  .rl-note-other em{margin-left:auto;font-style:normal;font-weight:var(--w-strong);
+    color:var(--accent-ink);}
+  .rl-note-other:hover{border-color:color-mix(in srgb,var(--color-accent) 45%,transparent);}
+  .rl-note-acts{display:flex;align-items:center;gap:var(--s-2);margin-top:16px;}
+  .rl-note-acts .sp{flex:1;}
+  /* NO !important: .ui-btn is a bare class rule 3,500 lines above this one, so
+     an equal-specificity rule later in the sheet already wins. Shouting here
+     would win this fight and hide the next. */
+  .rl-note-del{color:var(--danger);
+    border-color:color-mix(in srgb,var(--danger) 45%,transparent);}
+  .rl-note-dlg .rl-np-no{padding:12px 10px;border-top:0;border-radius:var(--radius);}
+  /* ---- CHAT: THE WHOLE CONTRACT'S CONVERSATION ----
+     The drawer's notes face with no change named. It borrows the per-change
+     panel's own note rule (.rl-np-note) so a note cannot read one way here and
+     another way there; what it adds is the line above each one saying which
+     change it came from, which is the only thing a whole-contract list needs
+     that a one-change list does not. */
+  .rl-chat{display:flex;flex-direction:column;min-height:0;flex:1;}
+  .rl-chat-lead{flex:none;margin:0;padding:10px var(--s-4) 0;
+    font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
+  .rl-chat-none{padding:26px var(--s-4);font-size:var(--t-meta);
+    line-height:1.55;color:var(--color-neutral-600);}
+  .rl-chat-row{padding-top:2px;}
+  .rl-chat-on{display:flex;align-items:baseline;gap:6px;width:100%;margin-top:8px;
+    padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);
+    text-align:left;cursor:pointer;color:var(--color-neutral-600);}
+  .rl-chat-on .id{font-weight:var(--w-strong);color:var(--accent-ink);}
+  .rl-chat-on em{font-style:normal;min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .rl-chat-on .rm{margin-left:auto;flex:none;font-size:var(--t-figure);
+    letter-spacing:.09em;text-transform:uppercase;}
+  .rl-chat-on .rm.out{color:var(--st-amber-fg);}
+  .rl-chat-on:hover .id{text-decoration:underline;}
   #panel-body .al-row.al-good{padding-left:9px!important;
     box-shadow:inset 3px 0 0 var(--st-green-dot);}
   #panel-body .al-row.al-good .al-t{color:var(--st-green-fg);}
@@ -5445,6 +5507,25 @@
     <button id="cmd-ai" class="hdr-icon-btn" title="Ask Copilot" data-i18n-title="sh_ask_copilot" style="position:relative;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
       <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span>
+    </button>
+
+    <!-- ---- CHAT: THE CONTRACT'S CONVERSATION (owner-ruled 31 Aug 2026) ----
+         "means to access the notes in the side panel should have its own door
+         called Chat which should be accessed via a symbol which should be ...
+         between copilot and alerts."
+
+         THE DRAWER IS NOT NEW AND THE DOOR IS. Its notes face used to be
+         reached only from a change's own Notes row, which now raises the note
+         dialog instead; this is where the panel is opened from. It shows the
+         WHOLE contract's conversation, because a button in the shell bar is
+         pressed with no change in hand.
+
+         IT IS DEAD WHERE THERE IS NO CONTRACT TO READ, with the reason on its
+         hover — the product's own rule, grey where it can know before the
+         press, never a live control that does nothing. paintChatDoor answers
+         for it on every view change. -->
+    <button id="hdr-chat" class="hdr-icon-btn" title="Chat — every note on this contract" data-i18n-title="ng_chat_title">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
     </button>
 
     <!-- THE BELL OPENS ALERTS: the things actually waiting on this person. The

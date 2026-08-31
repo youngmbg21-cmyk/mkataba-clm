@@ -2644,7 +2644,18 @@ function negoPostComment(c, id, text, opts = {}){
      the field, or passes something misspelt, keeps the note at home; the
      opposite default would publish a colleague's aside to the counterparty. */
   const visibility = opts.visibility === 'shared' ? 'shared' : 'internal';
-  const msg = { who, side, visibility,
+  /* THE WRITER'S ID RIDES BESIDE THEIR NAME, and it is what lets the three
+     acts below answer "is this yours" without matching on a name alone. The
+     name still has to stay: it survives an account being deleted, which is the
+     same reasoning that keeps both halves on a contract's owner. Absent on
+     every note already on file, so the reading below falls back to the name and
+     nothing needs migrating. It travels nowhere — ch.thread is not in the share
+     payload, and the channel post beside it carries author and body only. */
+  const me = (side === 'owner' && window.currentUser && window.currentUser()) || null;
+  const byId = (me && me.id
+    && String(who).trim().toLowerCase() === String(me.name || '').trim().toLowerCase())
+    ? me.id : null;
+  const msg = { who, byId, side, visibility,
     at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: ch.hash || null };
   ch.thread.push(msg);
@@ -2653,6 +2664,124 @@ function negoPostComment(c, id, text, opts = {}){
     + ` — the contract is unchanged and no round was opened`
     + (visibility === 'shared' ? '' : '; it stays inside this organisation'));
   return msg;
+}
+
+/* ---------- YOUR OWN NOTE ON A CHANGE (owner-ruled 31 Aug 2026) ----------
+
+   A note tied to a redline is an ORDINARY INTERNAL MESSAGE on the change's own
+   thread. No new store, no new field on the change, no migration — which is
+   what keeps every screen that already reads a thread reading this one for
+   free. What these three acts add is the one thing a thread has never allowed:
+   changing or removing something you wrote.
+
+   THEY ARE NARROW, AND EACH NARROWING IS A DIFFERENT PROMISE.
+
+   INTERNAL ONLY, and this is the load-bearing one. A 'shared' message has GONE:
+   it travelled on the discussion channel and the other side is holding a copy
+   that nothing here can reach. Rewriting our half would leave two records of
+   one sentence disagreeing, and deleting it would take it off our screen while
+   it stayed on theirs — which is worse than not offering the verb at all,
+   because from this chair it looks as though it worked.
+
+   OUR SIDE ONLY. The counterparty's page is assembled from a share payload and
+   thrown away on the next repaint; it has no thread of its own to edit, and
+   `ch.thread` is not in that payload, so their seat cannot reach these at all.
+
+   YOUR OWN WORDS ONLY. A colleague's note is a colleague's. There is no
+   supervisory edit here and an admin gets no exception — the thread is a record
+   of who said what, and an edit nobody can attribute is worse than the sentence
+   somebody wanted changed.
+
+   AND THE THREAD IS STILL APPEND-ONLY FOR EVERYBODY ELSE: every one of these
+   refuses rather than falling back to something quieter, and each writes an
+   audit line, so a note that was changed or taken away leaves a trail even
+   though the sentence itself does not.
+
+   THE LOCAL STORE IS WHAT THEY READ, deliberately: `ch.thread` rather than
+   negoMergedThread. A merged thread carries the channel's messages too, and
+   those are 'shared' by definition and belong to a store this cannot write to.
+   Reading the local half means an unwritable message is not on the list rather
+   than on the list and refused. */
+
+/* Is this message one this reader may change? The id first, the name second —
+   the reading obligationRecipient already uses, for the same reason: an id
+   survives a rename, a name survives the account being deleted. */
+function negoNoteIsMine(msg, user){
+  if (!msg || msg.visibility === 'shared') return false;
+  if ((msg.side || 'owner') !== 'owner') return false;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u) return false;
+  if (msg.byId && u.id) return msg.byId === u.id;
+  const a = String(msg.who || '').trim().toLowerCase();
+  const b = String(u.name || '').trim().toLowerCase();
+  return !!a && a === b;
+}
+/* The note this reader wrote on this change, or null. NEWEST wins, because the
+   dialog asks one question — "is there a note here to change?" — and a reader
+   who has written twice means the second one. */
+function negoMyNote(c, ch, user){
+  const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
+  for (let i = own.length - 1; i >= 0; i--) if (negoNoteIsMine(own[i], user)) return own[i];
+  return null;
+}
+/* Find the message on the record, by identity where we can and by content
+   where we cannot: a caller may be holding a copy that came back through a
+   merge or a repaint rather than the object on the thread itself. */
+function _negoNoteAt(ch, msg){
+  const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
+  let i = own.indexOf(msg);
+  if (i >= 0) return i;
+  if (!msg) return -1;
+  for (let j = own.length - 1; j >= 0; j--){
+    const m = own[j];
+    if (m && m.at === msg.at && String(m.text || '') === String(msg.text || '')
+      && String(m.who || '') === String(msg.who || '')) return j;
+  }
+  return -1;
+}
+function negoEditNote(c, ch, msg, text){
+  const i = _negoNoteAt(ch, msg);
+  if (i < 0) return null;
+  const m = ch.thread[i];
+  if (m.visibility === 'shared'){
+    if (window.toast) toast(i18t('ng_note_sent'), 'err');
+    return null;
+  }
+  if (!negoNoteIsMine(m)){
+    if (window.toast) toast(i18t('ng_note_not_yours'), 'err');
+    return null;
+  }
+  const body = String(text == null ? '' : text).trim();
+  if (!body) return negoDeleteNote(c, ch, m);
+  if (body === String(m.text || '')) return m;
+  m.text = body.slice(0, 2000);
+  /* THE HASH IS RE-STAMPED, because the note is being written NOW: leaving
+     yesterday's stamp on today's sentence would have the thread announce it as
+     "written against an earlier revision" when it was not. */
+  m.atHash = ch.hash || null;
+  m.editedAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `Internal note on #${ch.id} edited by ${m.who}`
+    + ` — the contract is unchanged and nothing was sent`);
+  return m;
+}
+function negoDeleteNote(c, ch, msg){
+  const i = _negoNoteAt(ch, msg);
+  if (i < 0) return false;
+  const m = ch.thread[i];
+  if (m.visibility === 'shared'){
+    if (window.toast) toast(i18t('ng_note_sent'), 'err');
+    return false;
+  }
+  if (!negoNoteIsMine(m)){
+    if (window.toast) toast(i18t('ng_note_not_yours'), 'err');
+    return false;
+  }
+  ch.thread.splice(i, 1);
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `Internal note on #${ch.id} removed by ${m.who}`
+    + ` — the contract is unchanged and nothing was sent`);
+  return true;
 }
 /* Is this comment about wording that has since been revised? A read, never a
    stored flag, so it cannot disagree with the change it describes. */
@@ -3929,6 +4058,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
+  negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,
