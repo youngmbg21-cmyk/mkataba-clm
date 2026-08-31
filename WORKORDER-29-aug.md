@@ -1182,11 +1182,18 @@ Every line driven in a real browser, because every one of these is a press.
 
 ---
 
-# J-5 — THE DATE, THE AMOUNT, AND THREE BUGS IN Find obligations
+# J-5 — THE DATE, THE AMOUNT, THREE BUGS, AND TWO WAYS TO LOOK
 
 **NOT BUILT. A render was shared and approved in shape; the code is not
 written.** Owner-instructed 30 Aug 2026: *"Fix all three bugs as part of this
-job so add to the work order but do not code yet."*
+job so add to the work order but do not code yet."* — and again on 31 Aug,
+after the render: *"add the signed column and filter to J-5.1 ... No coding
+yet."*
+
+**FOUR PARTS.** J-5.1 makes the signed date a date **and adds the two controls
+that make one findable**; J-5.2 gives an obligation an amount; J-5.3 fixes the
+three faults in *Find obligations*; J-5.4 turns the Calendar's fixed fortnight
+into a window a reader chooses.
 
 ## WHERE THIS CAME FROM
 
@@ -1210,6 +1217,10 @@ sentence and cannot be summed, charted or forecast.
 The owner then ruled: *"Fix the signed date bug and add the amount field but
 first share a render of how they would look like."* Milestone ordering and a
 committed-against-paid reading are **out of scope** and stay unbuilt.
+
+Two more asks followed the render, both about **looking things up rather than
+recording them**, and both are in this job: a Signed column and filter on the
+contracts list (J-5.1), and a chosen window on the Calendar's agenda (J-5.4).
 
 ---
 
@@ -1294,6 +1305,71 @@ trail — and is correct today.
 - **The display string is not deleted from the screens.** `fmtDT` stays where
   a person reads a date; what changes is what is STORED.
 
+### AND THE WAY TO FIND ONE (owner-asked 31 Aug 2026)
+
+Asked on being shown where a signed date appears:
+
+> *"If I am in 2029 and i want to find a contract that was signed in 2021, how
+> would i find it?"*
+
+**MEASURED, AND THE ANSWER IS THAT YOU CANNOT.** Every surface was checked:
+
+| where a reader would look | what it actually does |
+|---|---|
+| Contracts → stage `Signed` | every contract ever signed. No year, no range. |
+| the column heads | six sorts — last touched, value, risk, name, expiry, stage. **No signed date.** |
+| the box on the filter bar | title, counterparty and reference only. |
+| full-text search (⌘K) | searches the **wording**. `signedAt` is not in the index. "2021" finds contracts that MENTION 2021. |
+| the calendar | expiries, renewal deadlines, obligations, negotiation activity. **No signature date.** |
+| Copilot | `list_portfolio` filters by stage, stream, expiry horizon and value. It is never given a signed date, so it cannot answer — and if it answers, it is guessing. |
+
+The date is recorded exactly, per contract, on the signature block and in the
+History trail. What does not exist is any way to ask the question the other way
+round. **So a job that makes the date trustworthy and stops there leaves a
+correct figure nobody can look up.** Two controls, both on the contracts list.
+
+**THE COLUMN.** A ninth column on Contracts, **immediately before Expiry**: two
+dates side by side read as a term, which is what they are.
+
+- Drawn with `regDotDate`, the builder the Expiry cell already uses, so two
+  dates on one row can never be written differently. **No countdown** — a
+  signature has no deadline.
+- **An em-dash where nothing is signed, and the column always draws.** A column
+  that appears and disappears with the filter is a table that changes shape
+  under the reader; the Expiry column beside it is empty on most drafts and
+  draws anyway.
+- **Sortable — a SEVENTH key**, `signed`, reading `contractSignedAt`. A contract
+  with no signature sorts last in both directions, the guard the expiry
+  comparator already carries.
+- **Contracts only, never Negotiations.** One renderer draws both, and two of
+  the eight columns already differ by seat; a Signed column on a page of live
+  negotiations is an em-dash on every row.
+- **The widths still sum to 100** — that is what makes the table exactly its
+  pane at every width, on every page, and it is not negotiable. The nine come
+  out of five columns that can each spare a point or two.
+
+**THE FILTER.** A **sixth entry in the filter catalogue**, and deliberately
+**not one of the default four**.
+
+- So it costs the bar nothing until a reader turns it on under *Adapt filters*
+  — the row already fits one line and that was itself an owner's ruling — and
+  it draws automatically the moment it is narrowing, which is the safety
+  property that catalogue already carries: a hidden control quietly shortening
+  the book is exactly what it was built to prevent.
+- **Its options are the years this workspace has actually signed something in**,
+  newest first. Never an empty year, never an alphabet of them. The FX picker's
+  own rule: the list is built from this book's facts and grows by use, with
+  nothing for an admin to maintain.
+- **"This year" and "Last year" lead it**, because those are what is asked for
+  most and neither should cost the reader a moment's arithmetic.
+- `regFilterActive` learns it, so an active Signed filter wears the accent like
+  the other five and *Clear* clears it.
+
+**ONE READING, FOUR SURFACES.** The column, the sort, the filter and the chart
+all ask `contractSignedAt` and nothing works a signed date out for itself. That
+is the whole of why this belongs in the same job as the repair rather than
+after it.
+
 ### ACCEPTANCE
 
 1. A contract signed today reports the correct month to the **Contracts
@@ -1309,6 +1385,20 @@ trail — and is correct today.
 6. The signature block, the History row and Reports' cycle time are unchanged,
    asserted rather than assumed.
 7. The seal still verifies on a contract signed before the repair.
+8. The Signed column prints a date on a signed contract, an **em-dash** on one
+   that is not, and it is the SAME dotted form the Expiry cell beside it uses.
+9. Sorting by it orders the book by signature, and a contract with no signature
+   sorts **last in both directions**.
+10. The Signed filter is **absent from a bar nobody has adapted**, and appears
+    the moment it is narrowing — the catalogue's existing safety property,
+    asserted on this filter rather than inherited on trust.
+11. Its year list holds **only years this workspace signed something in**, newest
+    first, with "This year" and "Last year" ahead of them.
+12. Setting it to a year lists exactly the contracts whose Signed cell shows that
+    year — the column and the filter proved to agree, not assumed to.
+13. The eight column widths still **sum to 100** with the ninth in, and the table
+    does not scroll sideways at 1280, 1366, 1440 or 1500.
+14. The Negotiations seat draws **no** Signed column, asserted.
 
 ---
 
@@ -1481,11 +1571,105 @@ so nobody reads forty pages hunting for promises.
 
 ---
 
+## J-5.4 — THE AGENDA WINDOW IS A CONTROL
+
+Owner-asked 31 Aug 2026, off a screenshot of the Calendar with the panel's head
+ringed:
+
+> *"the highlighted area that shows the next 14 days, change that to a filter
+> where you can look next 14, 30, 60, 90 days."*
+
+### HALF OF IT IS ALREADY BUILT
+
+`calUpcoming(evs, days)` **already takes the window** — the parameter has been
+there since the panel was written and every caller passes nothing, so the
+reading is parameterised and the constant is simply the only value anybody
+ever hands it. What is missing is the control, and the callers passing it.
+
+The heading and the empty state already print `{n}` **from that one constant**
+rather than each stating a number of its own. That is not incidental: this
+panel has been caught once already headed 30 with an empty state saying 60, and
+the correction was to make one value answer for all three. **That property is
+the condition on this job**, not a nicety — one value, read by the reading, by
+the heading and by the empty state.
+
+### THE CONTROL IS THE HEADING
+
+A `<select>` reading **Next 14 days · Next 30 days · Next 60 days · Next 90
+days**, sitting where the title sits now, with the count staying at the right.
+
+**NOT a title beside a dropdown.** A heading reading "Next 14 days" twelve
+pixels from a control set to *14 days* is one fact printed twice, and the
+second printing is the one that reads as furniture — the standing rule about
+what may go on a page, and the reason the reader's own choice read back to them
+is never a band. The tracked-changes column settled the identical question the
+same way: the control is labelled, it names the live cut, and it prints that
+cut's own count, so **a narrowed list states its own narrowing by being set to
+it**.
+
+**PER SITTING, IN MEMORY**, on `calState` beside the tab and the scope switch.
+Those two are not stored and neither is this — a reader who widened to 90 days
+last Tuesday should not be quietly on 90 days a week later.
+
+### AND THE CAP STOPS BEING SILENT
+
+The panel draws at most **40** rows. At a fortnight that ceiling is rarely
+reached; at ninety days it will be reached routinely, and a list that quietly
+stops at 40 of 130 reads as a list of 40. **A cap is a FACT, never a silent
+trim** — the standing rule this product already applies to the insights panels
+and to the AI read caps — so past 40 the panel says how many it is showing of
+how many there are.
+
+### AND SHARE CARRIES THE WINDOW ON SCREEN
+
+`calSummaryLines` asks the same reading with no window, so a reader looking at
+ninety days would mail a colleague a fortnight of dates. This page's own rule is
+that **what leaves it is what is on it**, and it already holds for the period
+and the scope. The window joins them.
+
+**EXPORT IS DELIBERATELY NOT AFFECTED.** The `.ics` carries the PERIOD — the
+month or the horizon on screen — which is a different question from the
+agenda's window, and a reader exporting August expects August. Named here so
+nobody "fixes" it on the way past.
+
+### WHAT IS NOT TOUCHED
+
+The month grid, the Horizon, the four tones and their legend, the All dates |
+Mine scope, the Done button on an obligation row, the "Open the register" foot,
+and `CAL_AGENDA_DAYS` itself — which stays exactly where it is and becomes the
+**default** rather than the only value.
+
+### ONE STALE NAME, REPORTED AND NOT FIXED
+
+The heading's dictionary key is `cal_next_30` and the panel says 14. It is
+inert either way and renaming a key both dictionaries carry is its own edit,
+not one to make on the way past.
+
+### ACCEPTANCE
+
+1. Four windows are offered, and choosing one **changes what the list holds** —
+   measured by counting rows, never by reading the control's own value back.
+2. At each of the four, the heading, the empty state and the reading name the
+   **same** window — the property this panel was corrected for once.
+3. A window with nothing in it draws the empty state naming **that** window.
+4. Past 40 rows the panel says how many of how many; at or under 40 it says
+   nothing, because an always-on caveat is furniture.
+5. Share carries the window on screen — a reader on 90 days mails 90 days'
+   worth of lines, asserted against the composed message.
+6. Export is byte-identical at all four windows.
+7. A reader who touches nothing still gets a fortnight.
+8. The words are in both dictionaries.
+9. The month grid, the Horizon, the scope switch and the Done button are
+   unchanged, asserted rather than assumed.
+
+---
+
 ## OUT OF SCOPE FOR J-5, SAID OUT LOUD
 
-- **A Signed column in the contracts list, and a signature mark on the
-  calendar.** Offered and not taken — sign dates stay unscannable across the
-  book after this job.
+- **A signature mark on the calendar** — the day a contract executes is not
+  drawn on the grid and is not in the agenda beside it. The Signed column and
+  filter WERE taken (owner-asked 31 Aug 2026, J-5.1), so this is the last piece
+  of "where does a signed date show up" still outstanding.
 - **A committed-against-paid reading.** Cheap once amounts exist; a new screen,
   and a separate decision.
 - **Ordering or dependency between milestones.** Nothing will know that tranche
