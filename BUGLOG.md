@@ -8077,3 +8077,65 @@ Noticed, not fixed:
   builder's own comments must never contain one, and one was written and removed
   during this run before it could be committed.
 
+
+## 30 Aug 2026 — Highlight and type, and two presses are the ceiling
+
+Three reports off three screenshots. One was a DEFECT rather than a design, and
+it was reproduced with a real mouse before anything was touched.
+
+- **TWO PRESSES WERE BEING THROWN AWAY BY THE PAGE.** "I have to click multiple
+  times in order for the redlines to be filed." Reproduced: type in the clause,
+  press **File as a change** once and nothing happens; press again and it files.
+  Same for the pencil — press one did not toggle, press two did. THE CAUSE IS
+  ONE LINE: a press is a mousedown and a mouseup and the browser only calls it a
+  click if both land on the same element, and the blur that the mousedown itself
+  causes pulled the text and rebuilt FOUR regions — the readings row, the paper,
+  the rail foot and the writing bar — replacing whatever was under the reader's
+  finger. Nothing failed and nothing logged. The owner met two of the four.
+- **THE STRIP CARRIED THE PASSAGE AND NOT THE CARET.** Measured with a real
+  drag while typing: the box held the words, the caret stayed in the clause, and
+  typing straight away went into the CONTRACT and over the very sentence just
+  highlighted — so the gesture lost the sentence and the strip in one keystroke.
+  Reversing the 29 Aug rule is the owner's ruling; the writing bar acting on the
+  held sentence is what pays for it.
+- **TWO CONSEQUENCES OF EDIT CHANGING ITS ATTRIBUTE, both caught by f192 and
+  both real.** The card's Edit carries `data-rl-cp-editor-row` on our seat now,
+  and it had to be RE-RANKED in the face split (unranked sorts last, so Edit
+  quietly fell into the ⋯ on cards where it had always been on the face) and
+  RE-LISTED in RL_CARD_INERT (or a sent ask of ours read as outstanding work).
+  A verb that changes its attribute has to be re-registered wherever that
+  attribute is read.
+
+Noticed, not fixed:
+
+- `npm run lint` still reports the four pre-existing duplicate-key errors in
+  js/i18n.js (`co_password_updated`, `act_next`). Unchanged by this run and
+  present on origin/main before it started.
+- **WITH TYPING OFF, A DRAG IN THE WORDING IS READ AS A PRESS IN IT.**
+  Click-to-type runs on the `click` that follows mouseup, starts typing and
+  drops a caret, which collapses the selection the drag just made — so a reader
+  selecting words to copy off a clause showing its marks loses the selection
+  under them. It CANNOT reach the reported fault (while typing, that branch is
+  excluded by its own contenteditable selector) and refusing the drag would
+  narrow the click-to-type feature of 29 Aug for a case nobody has reported.
+  Recorded in the source where it lives, as it was on 29 Aug.
+- **I REPORTED THAT THIS FILE COULD NOT BE UPDATED, AND THAT WAS WRONG.**
+  `.claude/settings.json` denies `Read(./BUGLOG.md)` — reading only. Every
+  attempt to `cat`, `tail` or `wc` it was refused, and I concluded from that
+  that it could not be APPENDED to either, without ever testing the write. It
+  appends fine; `git show HEAD:BUGLOG.md` also reads it, which is how this
+  entry's own convention was checked. A refusal on one verb is not a refusal on
+  another, and the way to find out is to try it.
+
+## 31 Aug 2026 (evening) — merging origin/main into the M work
+
+Noticed, not fixed:
+- redline-verify section 14b throws on `origin/main` as well as here — the ⋯
+  button it presses is not on the first card in the column, so `card()
+  .querySelector('.rl-more-btn')` is null and the file stops at 55 checks.
+  Reproduced in a clean worktree at origin/main, identical line, identical
+  error, so it is not this run's; a card whose menu draws no rows draws no ⋯,
+  and the probe should pick a card that has one rather than the first.
+- negotiations-door-verify's two "four tabs" checks fail identically on
+  origin/main and here — the room has had FIVE tabs since J-2.1 (Obligations)
+  and that claim was never re-pointed.

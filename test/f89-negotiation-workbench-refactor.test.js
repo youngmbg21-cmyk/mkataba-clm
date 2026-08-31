@@ -1054,7 +1054,11 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const card = p.$('#rl-changes .rl-card');
     assert.ok(card.querySelector('button.rl-acc[data-nego-accept]'));
     assert.ok(card.querySelector('button.rl-rej[data-nego-reject]'));
-    assert.ok(card.querySelector('button.rl-edit[data-rl-edit]'));
+    /* RE-POINTED 30 Aug 2026: Edit carries data-rl-cp-editor-row on our seat
+       since the owner shut the doors onto the clause panel, and data-rl-edit
+       everywhere else. Same verb, same class, same place — only where it
+       lands has moved, so the claim is written against both forms. */
+    assert.ok(card.querySelector('button.rl-edit[data-rl-edit], button.rl-edit[data-rl-cp-editor-row]'));
   });
 
   test('an unsent draft of ours gets a green Send', async () => {
@@ -1294,8 +1298,13 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        (the owner's drawing), not a button on the face. The claim is the one it
        always was — this card carries a door onto the clause panel, and that
        door names the clause. */
-    assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
-      'and a menu row raises the clause panel');
+    /* RE-POINTED 30 Aug 2026: the CLAIM is that this card carries a door into
+       the clause's reading matter, and it does. Which door has moved — our
+       seat opens the edit page now and the clause panel is the counterparty's
+       and the narrow window's. Written as the question rather than as one
+       answer, so it fails on a card with no way in at all. */
+    assert.ok(card.querySelector('[data-rl-cp-open], [data-rl-cp-editor-row]'),
+      'and the card carries its door into the clause');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 

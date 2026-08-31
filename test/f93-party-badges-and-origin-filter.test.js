@@ -182,7 +182,12 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
        never a second one anywhere on the row. */
     assert.equal(card.querySelectorAll('.rl-badge').length,
       side.querySelectorAll('.rl-badge').length, 'the one status slot, and only there');
-    assert.ok(card.querySelector('.rl-more-menu [data-rl-cp-open]'),
+    /* RE-POINTED 30 Aug 2026: the CLAIM is that this card carries a door into
+       the clause's reading matter, and it does. Which door has moved — our
+       seat opens the edit page now and the clause panel is the counterparty's
+       and the narrow window's. Written as the question rather than as one
+       answer, so it fails on a card with no way in at all. */
+    assert.ok(card.querySelector('[data-rl-cp-open], [data-rl-cp-editor-row]'),
       'and the door into the reasoning');
     assert.equal(card.querySelector('.rl-origin'), null, 'and nothing else');
   });
@@ -301,7 +306,11 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
   test('your unsent ask offers Edit and Send, never Accept or Reject', async () => {
     const p = await page({ theirChange: false, myChange: true });
     const card = p.$('#rl-changes [data-rl-origin="us"]');
-    assert.ok(card.querySelector('.rl-edit[data-rl-edit]'), 'Edit, grey');
+    /* RE-POINTED 30 Aug 2026: Edit carries data-rl-cp-editor-row on our seat
+       since the owner shut the doors onto the clause panel, and data-rl-edit
+       everywhere else. Same verb, same class, same place — only where it
+       lands has moved, so the claim is written against both forms. */
+    assert.ok(card.querySelector('.rl-edit[data-rl-edit], .rl-edit[data-rl-cp-editor-row]'), 'Edit, grey');
     assert.ok(card.querySelector('.rl-send[data-rl-send]'), 'Send, green');
     assert.ok(!card.querySelector('[data-nego-accept]') && !card.querySelector('[data-nego-reject]'),
       'you do not rule on your own ask');

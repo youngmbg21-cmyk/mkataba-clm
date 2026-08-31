@@ -90,10 +90,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('1a the Copilot door is real pixels once it is pressed',
      !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
      rowDoor && `${rowDoor.w}x${rowDoor.h}`);
-  ck('1b it LEADS — the menu\'s first row',
-     !!rowDoor && rowDoor.leads, rowDoor && `leads ${rowDoor.leads}`);
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 ----
+     These asserted that Edit with Copilot LEADS this menu. Since the owner shut
+     our seat's two doors onto the clause panel, the card's own Edit carries that
+     door — so the menu correctly draws no second copy of it, which is this
+     menu's own "never repeat a verb the face carries" rule.
+     THE CLAIM IS NOW THE STRONGER ONE: the door is drawn exactly once. Twice is
+     the fault; not at all is the other fault. */
+  const doorCount = await p.evaluate(id => {
+    const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
+      || document.querySelector('.redline-page .rl-card');
+    if (!card) return null;
+    const all = [...card.querySelectorAll('[data-rl-cp-editor-row]')];
+    return { n: all.length,
+      label: all[0] ? (all[0].textContent || '').trim() : '',
+      onFace: !!all[0] && !all[0].closest('.rl-more-menu') };
+  }, staged.id);
+  ck('1b the editor door is drawn exactly once — never twice, never nowhere',
+     !!doorCount && doorCount.n === 1, doorCount && `${doorCount.n} drawn`);
   ck('1c and it wears its words, not a bare mark',
-     !!rowDoor && /Copilot|Redigera/.test(rowDoor.label), rowDoor && rowDoor.label);
+     !!doorCount && doorCount.label.length > 1, doorCount && doorCount.label);
   ck('1d it is dressed, not left as an unstyled row',
      !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h >= 24,
      rowDoor && `ink ${rowDoor.colour}, ${rowDoor.h}px tall`);
@@ -456,9 +472,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `${filed.id} — "${(filed.newText||'').slice(0,50)}"`);
   ck('7d and it carries NO reason, because nothing asked for one',
      filed.why == null || filed.why === '', JSON.stringify(filed.why));
-  ck('7e the editor closed', filed.pageGone, 'closed');
-  ck('7f AND IT LANDED BACK ON THE CLAUSE PANEL it came from',
-     filed.panelOpen, filed.panelOpen ? 'panel up' : 'panel not up');
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-ruled: "stay on the page") ----
+     These pinned "BACK WHERE YOU STARTED": filing closed the editor and put the
+     reader back on the clause panel. Right while filing was a once-per-visit act
+     at the end of a clause; wrong the moment the strip started filing, because
+     changing three sentences meant being thrown out and going back in twice —
+     which breaks the two-press ceiling the owner set.
+     WHAT THEY WERE REALLY PINNING SURVIVES: after a filing the reader is looking
+     at the record as it now stands rather than at a stale page. */
+  ck('7e the editor STAYS — filing files, leaving is its own button',
+     filed.pageGone === false, filed.pageGone ? 'closed' : 'still open');
+  const reseed = await p.evaluate(() => ({
+    save: (document.querySelector('[data-ce-act="save"]') || {}).disabled,
+    label: ((document.querySelector('[data-ce-act="save"]') || {}).textContent || '').trim(),
+  }));
+  ck('7f and the page was re-read from the record — File greys, naming the change',
+     reseed.save === true && /CHG-/.test(reseed.label),
+     `${reseed.label} · disabled ${reseed.save}`);
 
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */
   await p.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
@@ -1696,10 +1726,22 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      asked: the paper moves, it moves as a redline, the card goes, nothing files. */
   const cutPress = await p.evaluate(async () => {
     const before = document.getElementById('ce-clausebody').textContent.replace(/\s+/g, ' ');
+    const n0 = (window.CONTRACT.changes || []).length;
+    const sig = () => JSON.stringify((window.CONTRACT.changes || [])
+      .map(ch => [ch.id, ch.hash || '', String(ch.newText || '').length]));
+    const sig0 = sig();
     document.querySelector('#ce-scope [data-ce-act="scope-cut"]').click();
-    await new Promise(r => setTimeout(r, 500));
+    /* ---- POLLED, NEVER SLEPT ON ---- ceFile awaits the funnel and the save,
+       so a fixed wait is a race: a machine a beat slower reads the count
+       BEFORE the filing lands and reports "it filed nothing", which is the
+       opposite of the truth. */
+    for (let i = 0; i < 40; i++){
+      if (sig() !== sig0) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    await new Promise(r => setTimeout(r, 200));
     const doc = document.getElementById('ce-clausebody');
-    return { before,
+    return { before, n0, moved: sig() !== sig0,
       gone: !document.querySelector('#ce-scope .ce-scope'),
       del: doc.querySelectorAll('.nego-del').length,
       words: doc.textContent.replace(/\s+/g, ' '),
@@ -1713,10 +1755,22 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      cutPress.del > 0, `${cutPress.del} struck runs`);
   ck('18h the card goes with it', cutPress.gone === true,
      cutPress.gone ? 'released' : 'still attached');
-  /* THE ONE DOOR: an act here that FILED would be a third way onto something
-     that already has one. It applies to the draft; the rail's foot still files. */
-  ck('18i AND IT FILES NOTHING — the record is untouched until the one act is pressed',
-     cutPress.filed === beforeStrip, `${cutPress.filed} changes, ${beforeStrip} before`);
+  /* ---- REVERSED IN PLACE 31 Aug 2026, AND THE OLD CLAIM WAS PASSING ON A
+     RACE ---- It read "it files nothing", which was this page's rule until the
+     owner ruled on 30 Aug that a press here reaches the record in one ("press
+     send and it is filed immediately"). It went on passing because ceFile
+     awaits the funnel and this probe slept past it by a fixed 500ms and read
+     the count too early — so a check that had already been reversed by a
+     ruling was reporting the ruling's opposite, and would have flaked on a
+     slower machine either way.
+     WHAT THE CLAIM IS NOW: the cut files, and it files through the ONE act.
+     READ AS "THE RECORD MOVED", never as a count: this clause already carries
+     a pending ask, and the funnel FOLDS a second filing on it into that same
+     change rather than stacking a rival — so the number of changes is
+     deliberately unmoved and a count would report the fold as a failure. 18k
+     stages a clean clause and gets the +1. */
+  ck('18i AND IT FILES THROUGH THE ONE ACT — one press reaches the record',
+     cutPress.moved === true, `record moved: ${cutPress.moved} (${cutPress.filed} changes, ${cutPress.n0} before)`);
 
   /* ============================================================
      19. THE FOUR FAULTS REPORTED OFF THE SCREENSHOTS (28 Aug 2026)
@@ -1880,10 +1934,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(900);
 
   /* ---- AND STRIKING WORDS OUT, DRIVEN ----
-     Driven on a FRESHLY OPENED page rather than the one section 18 left, so
-     the act is exercised from the state a reader really arrives in. A drag
-     inside the typing box is somebody selecting words to bold them, which is
-     why the pencil comes off first. */
+     ON A CLAUSE OF ITS OWN, and that is the point rather than tidiness: this
+     block used to re-open the clause the sections above had been typing in,
+     on the reasoning that re-opening re-seeds the draft. It DOES re-seed — from
+     the newest pending change of ours — so once section 19 had filed one, the
+     draft came back as that change's wording while the paper drew the clause,
+     and every passage the probe tried was refused because it was not in the
+     draft at all. MEASURED as `line0:"delivery."` under a paper reading
+     "All invoices are payable within thirty (30) days".
+     A CHECK THAT STAGES ITS OWN GROUND cannot be broken by what a section
+     above it happened to leave behind. A drag inside the typing box is
+     somebody selecting words to bold them, which is why the pencil comes off
+     first. */
+  const cutClause = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    const cl = list.find(x => x.text && x.text.length > 60
+      && !(window.CONTRACT.changes || []).some(ch => ch.clauseId === x.clauseId));
+    if (cl) rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+    return cl ? cl.clauseId : null;
+  });
+  await pause(900);
   await setTyping(false);
   await pause(300);
   const cutRun = await p.evaluate(async () => {
@@ -1906,7 +1976,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         break;
       }
     }
-    if (!picked) return { ok: false };
+    if (!picked) return { ok: false, why: JSON.stringify({
+      nodes: nodes.length, lines: (window.ceLines?ceLines().length:-1),
+      typing: box.getAttribute('contenteditable'),
+      sample: nodes.slice(0,3).map(n=>n.data.trim().slice(0,40)),
+      line0: (window.ceLines?String(ceLines()[0]||'').slice(0,120):''),
+      hit: (window.ceLines?ceLines().map(l=>l.indexOf(nodes[0].data.trim().slice(0,20))):[]) }) };
     await new Promise(r => setTimeout(r, 400));
     const before = (window.CONTRACT.changes || []).length;
     const btn = document.querySelector('#ce-scope [data-ce-act="scope-cut"]');
@@ -1914,7 +1989,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const openBefore = !!document.querySelector('#ce-scope .ce-scope');
     const boxVal = (document.getElementById('ce-ask')||{}).value;
     if (btn) btn.click();
-    await new Promise(r => setTimeout(r, 600));
+    for (let i = 0; i < 40; i++){
+      if ((window.CONTRACT.changes || []).length > before) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    await new Promise(r => setTimeout(r, 200));
     const doc = document.getElementById('ce-clausebody');
     return { ok: true, picked,
       struck: doc.querySelectorAll('.nego-del, del').length,
@@ -1927,10 +2006,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   });
   ck('18j STRIKING WORDS OUT really strikes them out on the paper',
      cutRun.ok && cutRun.struck > 0,
-     cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken');
-  ck('18k …the card is released, and it files nothing either',
-     cutRun.ok && cutRun.shut === true && cutRun.filed === cutRun.before,
-     cutRun.ok ? `shut ${cutRun.shut}, ${cutRun.filed} changes` : '');
+     cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken on ' + cutClause + ' ' + cutRun.why);
+  /* REVERSED IN PLACE with 18i above, and for the same reason: the cut is the
+     one act on this page that still files in a single press, because it is the
+     one with nothing to type beside it. */
+  ck('18k …the card is released, and the one press reached the record',
+     cutRun.ok && cutRun.shut === true && cutRun.filed === cutRun.before + 1,
+     cutRun.ok ? `shut ${cutRun.shut}, ${cutRun.filed} changes, ${cutRun.before} before` : '');
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="discard"]');
     if (b && !b.disabled) b.click(); });
   await pause(400);
@@ -2108,6 +2190,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
          nowhere is the same dead press from the reader's chair. */
       strip: !!(strip && r && r.width > 0 && r.height > 0 && strip.offsetParent !== null),
       selected: !!(sel && !sel.isCollapsed && String(sel.toString() || '').trim().length > 3),
+      held: document.querySelectorAll('#ce-clausebody .ce-held').length,
       focus: act ? (act.id || act.tagName) : 'none',
       typing: !!(document.getElementById('ce-clausebody')
         && document.getElementById('ce-clausebody').getAttribute('contenteditable') === 'true'),
@@ -2118,14 +2201,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   /* A SUPPORTING CLAIM, NOT A REGRESSION ONE, and labelled so: this passes
      against the unfixed code too, because while typing the click branch is
      already excluded by its own contenteditable selector. It is here because
-     the strip can only open if the selection survived the gesture, and pinning
-     that separately says WHICH half failed if this ever goes red. */
+     the card can only open if the selection survived the gesture, and pinning
+     that separately says WHICH half failed if this ever goes red.
+     RESTORED 31 Aug 2026 (M-1). It was reversed on 30 Aug because the strip
+     took the caret and the selection necessarily moved into the box; with the
+     box in the rail nothing moves the caret, so the browser's own selection
+     stands again and this is once more the honest reading. */
   ck('21d …the selection survived the gesture, which is what the rail reads',
      afterDrag.selected === true, `selected ${afterDrag.selected}`);
   ck('21e …the reader is still typing in the clause, not switched out of it',
      afterDrag.typing === true, `typing ${afterDrag.typing}`);
+  /* REVERSED IN PLACE TWICE; see clause-door 16d5 for the three answers. */
   ck('21f ATTACHING NEVER TAKES THE CARET — the reader stays in the clause',
      afterDrag.focus === 'ce-clausebody', `focus ${afterDrag.focus}`);
+  /* KEPT FROM 30 Aug: the mark is what pays Option A's one named cost, so it
+     matters more now than it did when the strip drew beside the sentence. */
+  ck('21f2 and the sentence stays marked in the contract while the rail holds it',
+     afterDrag.held === 1, `held spans ${afterDrag.held}`);
 
   /* Carrying on typing answers the question, so the strip goes — having done
      nothing to the wording. */

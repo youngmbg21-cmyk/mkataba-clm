@@ -1496,6 +1496,13 @@ const STRINGS = {
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
     ng_this_rounds_queue: "This round's queue",
     ng_cp_edit: 'Edit',
+    /* WHERE THE PENCIL ACTUALLY GOES. It carried ng_cp_open_title — "what it
+       says now, what is on the table, and everything that has been asked about
+       it" — which describes the CLAUSE PANEL, and the pencil has opened the
+       edit page since 29 Aug 2026. Owner-reported off a screenshot of the
+       tooltip, 30 Aug. ng_cp_open_title is still live and still right on the
+       controls that really do open the panel. */
+    ng_cp_edit_title: 'Edit this clause — the wording, with Copilot beside it',
     /* The History | + notes switch in the panel head — default without notes. */
     ng_cp_notes_group: 'Show the clause history with or without its notes',
     ng_cp_hist: 'History',
@@ -6838,6 +6845,7 @@ const STRINGS = {
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',
     ng_this_rounds_queue: 'Den här rundans kö',
     ng_cp_edit: 'Redigera',
+    ng_cp_edit_title: 'Redigera klausulen — texten, med Copilot bredvid',
     ng_cp_notes_group: 'Visa klausulens historik med eller utan noteringar',
     ng_cp_hist: 'Historik',
     ng_cp_hist_title: 'Klausulen och dess \u00e4ndringar, utan konversationen',

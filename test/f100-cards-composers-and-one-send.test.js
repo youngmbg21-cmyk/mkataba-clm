@@ -134,9 +134,19 @@ describe('F100a — the address the dialog collected is kept', () => {
 describe('F100b — the card is a handle, not a copy', () => {
   /* Same mount as F93's: the real workbench over the shared supply fixture,
      with one ask of our own on the table. */
-  async function page(){
+  /* ---- WHICH SEAT'S DOOR THE PANEL IS (30 Aug 2026) ----
+     The owner shut our seat's two doors onto the clause panel: at a usable
+     width, with the edit page loaded, a clause is edited THERE and the panel is
+     not drawn in front of us at all. The panel itself is untouched and is still
+     the ONLY way the counterparty's page proposes wording — and the only way at
+     a window too narrow for two columns.
+     So the claims below, which are about the PANEL rather than about which seat
+     reaches it, stage the world where it is still the door. `noEditor` is what
+     ceTakesIt asks about by name. */
+  async function page(o = {}){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
+    if (o.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
     win.promptDialog = async () => '';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
@@ -193,7 +203,7 @@ describe('F100b — the card is a handle, not a copy', () => {
     /* REVERSED: the door is Open — data-rl-cp-open, the clause panel's own
        delegated control — and there is no hidden body waiting to be borrowed:
        the reading matter lives in the panel from the start. */
-    const p = await page();
+    const p = await page({ noEditor: true });
     const card = p.$('#rl-changes .rl-card');
     assert.equal(p.win.rlCpOpenId(), null,
       'a panel is open only because somebody opened it');
@@ -244,7 +254,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('Open raises the clause panel on the change\'s own clause', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     const clauseId = p.c.changes[0].clauseId;
     cpDoor(p).click();
     assert.equal(p.win.rlCpOpenId(), clauseId, 'the panel opened on the right clause');
@@ -257,7 +267,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('and the same press closes it', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     cpDoor(p).click();
     assert.ok(p.win.rlCpOpenId());
     cpDoor(p).click();
@@ -265,7 +275,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('the panel carries the wording in full, which the row does not carry at all', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     cpDoor(p).click();
     const body = p.$('#rl-cp-body .rl-cp-src.is-on');
     assert.ok(body.querySelector('.rl-cp-wd'), 'the ask\'s wording, unclamped');
@@ -273,7 +283,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('an open panel survives the column changing state underneath it', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     cpDoor(p).click();
     const id = p.win.rlCpOpenId();
     assert.ok(id);
@@ -285,7 +295,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   });
 
   test('and it shuts when its clause leaves the paper', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     cpDoor(p).click();
     p.win.rlCpSetOpen('CL-DOES-NOT-EXIST');
     p.again();
@@ -536,9 +546,10 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
      to its clause and does only that; the verbs are on the row whatever is
      open; and nothing but a press opens or closes the panel. */
 
-  async function page(){
+  async function page(o = {}){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
+    if (o.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
     win.promptDialog = async () => '';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
@@ -573,7 +584,7 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
   });
 
   test('one press opens it, the same press closes it', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     const clauseId = p.c.changes[0].clauseId;
     openBtn(p).click();
     assert.equal(p.win.rlCpOpenId(), clauseId);
@@ -643,7 +654,7 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
   });
 
   test('an open panel survives a repaint', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     openBtn(p).click();
     const id = p.win.rlCpOpenId();
     p.again();
@@ -652,7 +663,7 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
   });
 
   test('and it does not travel to another contract', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     openBtn(p).click();
     assert.ok(p.win.rlCpOpenId());
     p.win.rlCardForgetPins('SOME-OTHER-CONTRACT');
@@ -660,7 +671,7 @@ describe('F100e — the pop-out is retired; Open raises the clause panel', () =>
   });
 
   test('the choice is not persisted anywhere', async () => {
-    const p = await page();
+    const p = await page({ noEditor: true });
     openBtn(p).click();
     assert.ok(!/rlCp|rl-cp|rlPop|rl-pop/i.test(JSON.stringify(p.win.localStorage)),
       'a working preference is not a setting');
@@ -679,9 +690,10 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
      counterparty's page the pin was released in the record and the card stayed
      open on screen, because the page that had to redraw it was never asked. */
 
-  async function page(){
+  async function page(o = {}){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
+    if (o.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
     win.promptDialog = async () => '';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
@@ -966,9 +978,10 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
      say "this draft went and that one did not": it is one timestamp for the
      whole desk, and the moment a solo send moved it, every older draft would
      have silently flipped to Sent without ever leaving. */
-  async function page(){
+  async function page(o = {}){
     const w = buildWorld({ negotiationView: true, contractView: true });
     const { win } = w;
+    if (o.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
     win.promptDialog = async () => '';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
@@ -1062,8 +1075,15 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.equal(sent.querySelector('[data-nego-accept],[data-nego-reject]'), null,
       'and there is nothing to decide on our own ask');
     assert.equal(sent.querySelector('.rl-card-diff'), null, 'and carries no second copy of the paper');
-    assert.ok(sent.querySelector('.rl-more-menu [data-rl-cp-open]'),
-      'the ⋯ is its door onto the panel');
+    /* RE-POINTED 30 Aug 2026. The claim is what it always was — A SENT ASK
+       STILL HAS A WAY INTO ITS OWN WORDING — and only which door that is has
+       moved: on our seat, with the edit page loaded, the ⋯ opens THAT rather
+       than the clause panel, because the owner shut the panel's doors on this
+       seat. Written as the question rather than as one answer, so it holds on
+       either stage and fails on a card with no way in at all. */
+    assert.ok(sent.querySelector('[data-rl-cp-editor-row], [data-rl-cp-open]'),
+      'the card carries its door into the wording — on the face where there is '
+      + 'room for it, in the ⋯ where there is not');
     assert.ok(sent.querySelector('.rl-card-head'), 'and the body still presses through');
     assert.equal(sent.querySelector('.rl-badge'), null,
       'and says nothing itself — the heading two lines up is where it stands');

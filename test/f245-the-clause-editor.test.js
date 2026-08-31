@@ -309,9 +309,81 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
       'a refusal delivered off-screen is how a live button reads as a dead one');
   });
 
-  test('and it lands back on the panel it came from', () => {
-    assert.ok(/rlCpSetShown\(document, clauseId\)/.test(CODE),
-      'the clause panel is reopened on the same clause after a filing');
+  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-ruled: "stay on the page") ----
+     This pinned "BACK WHERE YOU STARTED": filing closed the editor and reopened
+     the clause panel on the same clause. That was right while filing was a
+     once-per-visit act at the end of a clause, and wrong the moment the strip
+     started filing — changing three sentences meant being thrown out and going
+     back in twice, which breaks the two-press ceiling the owner set.
+
+     WHAT IT WAS REALLY PINNING SURVIVES AND IS STRONGER: after a filing the
+     reader is left looking at the record as it now stands, rather than at a
+     stale page. It is simply the page they are already on. */
+  test('filing keeps the page, and re-reads it from the record', () => {
+    const file = CODE.match(/async function ceFile\([\s\S]*?\n\}/)[0];
+    assert.ok(!/rlCloseClauseEditor\(/.test(file),
+      'filing does not close the editor — leaving is its own button');
+    assert.match(file, /ceSeedDraft\(ch\.id\)/,
+      'the record has moved, so the draft is re-read from it — the same seeding '
+      + 'the door uses, never a second copy');
+    assert.match(file, /ceRenderAll\(\)/, 'and the page redraws in place');
+    assert.match(file, /_ceAgain\(\)/,
+      'the page underneath is repainted behind this one, because the column and '
+      + 'the counts read a record that has just changed');
+  });
+
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (M-1), AND THE RULING IS KEPT ----
+     This asserted that the strip's SEND filed immediately (owner-asked 30 Aug:
+     "press send and it is filed immediately") and that its delete button did
+     the same, so the two could not disagree. The send is gone with the strip —
+     a replacement is typed into the paper now and the one act in the rail's
+     foot files it — but the CUT has no such twin: it is a single press with
+     nothing to type, and dropping the filing would make it the one act on this
+     page costing two presses instead of one. So the ruling survives on the
+     control it still has, and the claim is that it is not a SECOND filing
+     path. */
+  test('ONE ACT: the cut files through the same ceFile the foot presses', () => {
+    const cut = CODE.match(/function ceCutPassage\([\s\S]*?\n\}/)[0];
+    assert.match(cut, /ceApply\(lines\.join\('\\n'\), _cet\('ce_step_cut'\), \{ keepView: true, repaint: true \}\)/,
+      'the wording still goes through the one apply');
+    assert.match(cut, /ceFile\(\);/,
+      'and the press reaches the record in one — "press send and it is filed '
+      + 'immediately", on the control that still has no typing beside it');
+    assert.match(cut, /if \(!ceApply\([\s\S]{0,120}?\) return false;\n\s+ceFile\(\);/,
+      'but only where something actually moved: a filing on a draft that already '
+      + 'says it would be a revision proposing nothing');
+    for (const door of ['negoEditClause', 'negoFileChange', 'persist('])
+      assert.ok(!cut.includes(door),
+        door + ' is not reachable from the cut — ceFile is the one act, so every '
+        + 'guard the funnel carries applies without being repeated here');
+  });
+
+  test('READY FOR THE NEXT SENTENCE: a strip filing keeps the reader typing', () => {
+    /* Without this the second sentence in a clause costs TWO presses — the
+       pencil again, then send — which is the ceiling the owner set. The rule it
+       narrows is untouched for what it was written about: wording that arrives
+       from a Copilot card or a playbook standard still drops out of typing so
+       the marks it made are the first thing seen. */
+    const rep = CODE.match(/function ceReplacePassage\([\s\S]*?\n\}/)[0];
+    assert.match(rep, /\{ keepView: true, repaint: true \}/,
+      'keepView holds the reader in the wording; repaint is owed because the '
+      + 'WORDS moved and the box would otherwise still show the sentence that '
+      + 'has just gone');
+    const apply = CODE.match(/function ceApply\([\s\S]*?\n\}/)[0];
+    assert.match(apply, /if \(_ceEditing && !opts\.keepView\) _ceEditing = false;/,
+      'and the two flags stay independent — one is about the caret, the other '
+      + 'about the paper');
+  });
+
+  test('the File button greys once the record has caught up', () => {
+    const foot = CODE.match(/function ceRenderFoot\([\s\S]*?\n\}/)[0];
+    assert.match(foot, /const anyToFile = moved && clauseEditorDirty\(\);/,
+      'with the page staying open, a just-filed draft still differs from what '
+      + 'STANDS — so File asks whether the record already holds it, or it would '
+      + 'sit live over a press the funnel refuses as proposing nothing');
+    assert.match(foot, /\[discard, _cet\('ce_discard'\), moved\]/,
+      'Discard keeps its own question — has the wording moved from what stands, '
+      + 'because that is what it puts back');
   });
 });
 
@@ -450,18 +522,17 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
       'and Apply routes by what the card is about');
   });
 
-  test('AND IT IS NOT A THIRD DOOR — it files nothing', () => {
-    const rep = CODE.match(/function ceReplacePassage\([\s\S]{0,900}?\n\}/)[0];
-    for (const door of ['negoEditClause', 'negoFileChange', 'negoReviseInsert', 'persist('])
+  test('AND IT IS NOT A THIRD DOOR — the replacement files nothing of its own', () => {
+    const rep = CODE.match(/function ceReplacePassage\([\s\S]{0,1400}?\n\}/)[0];
+    for (const door of ['negoEditClause', 'negoFileChange', 'negoReviseInsert', 'persist(', 'ceFile('])
       assert.ok(!rep.includes(door), door + ' must not be reachable from the passage');
     assert.ok(/ceApply\(lines\.join/.test(rep),
       'it applies to the draft; the one act in the rail\'s foot still files');
-    /* THE CUT IS THE SAME, and it is a named function rather than a body in the
-       act handler, because Escape and the paper's own gestures reach the same
-       two acts and a second copy is how they come to disagree. */
-    const cut = CODE.match(/function ceCutPassage\([\s\S]{0,900}?\n\}/)[0];
-    for (const door of ['negoEditClause', 'negoFileChange', 'persist('])
-      assert.ok(!cut.includes(door), door + ' must not be reachable from the cut');
+    /* AND THE CUT, WHICH DOES REACH THE RECORD, GETS THERE THE SAME WAY — see
+       the claim above. It is a named function rather than a body in the act
+       handler because Escape and the paper's own gestures reach the same two
+       acts and a second copy is how they come to disagree. */
+    assert.match(CODE, /function ceCutPassage\(/, 'the cut is one named act');
   });
 
   test('both languages carry its words', () => {
@@ -1616,9 +1687,11 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
   /* REVERSED IN PLACE 31 Aug 2026 (M-1) AND STRONGER FOR IT. The claim was that
      the strip took the caret only when the reader was not already typing — a
      conditional, because the box was on the paper and its first keystroke was
-     usually meant for it. With the box in the rail there is nothing on the
-     paper to move the caret to, so attaching NEVER touches focus at all, which
-     is the same promise with the condition gone. */
+     usually meant for it. Then 30 Aug reversed THAT: the strip ALWAYS took the
+     caret, because the owner had met the conditional and did not want it. With
+     the box in the RAIL there is nothing on the paper to move the caret to, so
+     attaching never touches focus at all — which is the same promise both
+     earlier rules were reaching for, with the condition gone. */
   test('attaching NEVER takes the caret', () => {
     const at = CODE.match(/function ceAttachPassage\([\s\S]*?\n\}/)[0];
     assert.ok(!/focus\(\)/.test(at),
@@ -1626,6 +1699,57 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     assert.match(at, /if \(_ceSel && _ceSel\.text === sel\.text && _ceSel\.line === sel\.line\) return;/,
       'and the same passage twice repaints nothing, so a stray double-click '
       + 'does not clear a half-typed ask');
+  });
+
+  /* KEPT FROM 30 Aug AND RE-POINTED, not deleted: the writing bar must go on
+     working while a passage is held, and it does by acting on the held sentence
+     rather than on a selection the caret has left behind. What CHANGED is that
+     there is no box on the paper to carry typing through the press. */
+  test('THE OTHER HALF: the writing bar acts on the held sentence', () => {
+    /* A document has ONE selection. A reader who highlights a sentence and then
+       presses B means that sentence, wherever the caret has since gone. */
+    const bar = CODE.match(/bar\.addEventListener\('mousedown'[\s\S]*?\n  \}\);/)[0];
+    assert.match(bar, /if \(_ceSel && ceBarOnHeld\(k\)\) return;/,
+      'a held passage is asked about FIRST');
+    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(\);/,
+      'and with nothing held the bar reads the reader\'s own selection exactly '
+      + 'as it did');
+    const held = CODE.match(/function ceBarOnHeld\([\s\S]*?\n\}/)[0];
+    assert.match(held, /richBarPress\(k\)/, 'the act is the shared bar\'s, never this page\'s own');
+    assert.match(held, /ceReopenHeld\(held\)/,
+      'and the reader is put back afterwards — the same passage held, marked '
+      + 'where it now sits');
+    /* REVERSED IN PLACE (M-1): it used to carry the strip's half-typed text
+       through the press. There is no box on the paper to carry, and the rail's
+       own ask box is never rebuilt by a paint, so there is nothing to save. */
+    assert.ok(!/const typed = ta0/.test(held),
+      'and it carries no typing through the press — the ask box is in the rail '
+      + 'and a paint does not touch it');
+  });
+
+  test('a passage that cannot be found again is let go, not held over nothing', () => {
+    const re = CODE.match(/function ceReopenHeld\([\s\S]*?\n\}/)[0];
+    assert.match(re, /if \(!r\)\{ ceDetachPassage\(\); return; \}/,
+      'where a rebuild genuinely moved the wording the rail lets it go rather '
+      + 'than standing a card over words it can no longer place');
+  });
+
+  /* REVERSED IN PLACE 31 Aug 2026 (M-1), and it is the OPPOSITE test now.
+     It asserted that the handler excluded CONTROLS and took everything else,
+     which was right while the strip was the only other thing on the page that
+     acted on a held passage. The rail is a card the reader reads and presses,
+     and a press anywhere in it that is not a control came back here a frame
+     later with no selection in the clause and tore the card down under the hand
+     using it. So it asks the DOCUMENT instead: a gesture that did not end in
+     the wording is not a gesture about the wording. */
+  test('a drag that did not end in the contract is not about the contract', () => {
+    const up = CODE.match(/addEventListener\('mouseup'[\s\S]*?\n  \}\);/)[0];
+    assert.match(up, /if \(!t \|\| !t\.closest \|\| !t\.closest\('#ce-doc'\)\) return;/,
+      'the press has to have landed inside the paper');
+    assert.ok(!/\[data-ce-act\], #ce-inline/.test(up),
+      'and the old control exclusion is gone with the strip it was written for');
+    assert.match(up, /if \(sel\) ceAttachPassage\(sel\); else ceDetachPassage\(\);/,
+      'a real selection attaches, and none lets the passage go');
   });
 
   test('and typing in the clause lets it go, having done nothing', () => {
@@ -1760,5 +1884,90 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
       'ceScrollToClause is the one deliberate TRAVEL and stays smooth on purpose');
     assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 2,
       'and the rail keeps its own two — the scan tab\'s top and the last turn');
+  });
+});
+
+/* ============================================================
+   f245 (21) — THE SENTENCE THE RAIL IS HOLDING
+   ------------------------------------------------------------
+   (owner-approved render, 30 Aug 2026; RE-POINTED 31 Aug 2026 with M-1.) A
+   document has ONE selection — so the moment the caret moves anywhere else the
+   browser stops painting the reader's highlight, and the sentence being worked
+   on would go invisible at the exact moment its replacement is being asked
+   for. This mark is what keeps it visible, and the owner ruled on it as a mark
+   on the CONTRACT rather than as a detail of the strip.
+
+   IT IS WHY OPTION A COST THE READER NOTHING. The render that chose the rail
+   named the lost highlight as its one cost; this mark, built for the strip the
+   day before, pays it — so the mark outlived the strip and every claim below
+   is still exactly the claim it was.
+
+   THE CLAIM THAT MATTERS IS THAT IT CANNOT REACH THE RECORD, and it is asserted
+   three times because it is guaranteed three times: the pull reads a copy with
+   the mark taken off, the sanitiser unwraps the class by construction, and the
+   strip closing clears it. Two of the three are structural — neither depends on
+   anybody remembering to call anything — and that is the point.
+   What a browser has to answer (is the wash painted, does typing reach the box)
+   is clause-editor-verify's.
+   ============================================================ */
+describe('f245 (21) — the sentence the rail is holding', () => {
+
+  test('the mark is drawn where the reader dragged, not where the words repeat', () => {
+    const sel = CODE.match(/function ceSelection\([\s\S]*?\n\}/)[0];
+    assert.match(sel, /range: r/,
+      'the live range travels with the selection, so the mark lands on exactly '
+      + 'the passage that was dragged');
+    const at = CODE.match(/function ceAttachPassage\([\s\S]*?\n\}/)[0];
+    assert.match(at, /if \(sel\.range\) ceMarkHeld\(sel\.range\)/,
+      'and it is marked BEFORE anything else can collapse the selection it is '
+      + 'read from');
+  });
+
+  test('NET 1 — the pull reads the box with the mark taken off', () => {
+    const pull = CODE.match(/function cePullText\([\s\S]*?\n\}/)[0];
+    assert.match(pull, /const raw = ceBoxHtml\(box\);/,
+      'the pull never reads the live box directly');
+    const boxHtml = CODE.match(/function ceBoxHtml\([\s\S]*?\n\}/)[0];
+    assert.match(boxHtml, /cloneNode\(true\)/,
+      'it reads a COPY, so the mark on screen is untouched');
+    assert.match(boxHtml, /ceClearHeld\(clone\)/, 'with the mark unwrapped out of it');
+  });
+
+  test('NET 2 — the sanitiser drops the class by construction', () => {
+    /* THE STRUCTURAL ONE, and the reason this mark is safe rather than careful:
+       richSpanClassOk answers for every span the sanitiser meets, and a span
+       whose class is not on its allow-list is UNWRAPPED. So the mark cannot
+       reach a stored body even if every explicit guard above were deleted.
+       IT FAILS THE DAY SOMEBODY PUTS THIS CLASS ON THAT LIST, which is exactly
+       when somebody should be made to re-read this. */
+    const rich = fs.readFileSync(path.join(ROOT, 'js/richdoc.js'), 'utf8');
+    assert.match(rich, /richSpanClassOk = v => v === RICH_FIELD_CLASS \|\| RICH_MARK_CLASSES\.has\(v\)/,
+      'one reading of whether a span may keep its class');
+    assert.ok(!/ce-held/.test(rich),
+      'and the held mark is deliberately NOT on the allow-list');
+    assert.match(rich, /querySelectorAll\('span'\)[\s\S]{0,200}richSpanClassOk[\s\S]{0,260}sp\.remove\(\)/,
+      'a span it does not know is unwrapped, keeping its text and leaving '
+      + 'nothing behind to hang meaning on');
+  });
+
+  test('NET 3 — letting the passage go clears it', () => {
+    const close = CODE.match(/function ceDetachPassage\([\s\S]*?\n\}/)[0];
+    assert.match(close, /ceClearHeld\(\)/,
+      'the mark says what the rail is holding, so it may not outlive it');
+    const paper = CODE.match(/function ceRenderPaper\([\s\S]*?ceRenderReadBar\(\)/)[0];
+    assert.match(paper, /ceDetachPassage\(\)/,
+      'and a rebuilt paper takes the card with it — the element the mark sat '
+      + 'on has gone, and the passage may genuinely have moved');
+  });
+
+  test('it changes no layout, and follows the workspace rather than a colour', () => {
+    const css = CODE.match(/\.ce-paperwrap \.ce-held\{[\s\S]*?\}/)[0];
+    assert.match(css, /background:color-mix\(in srgb, var\(--accent-solid\)/,
+      'the workspace accent, so it is the same colour as the rail card\'s own '
+      + 'quote rule and needs no answer of its own at night');
+    assert.match(css, /box-shadow:inset/,
+      'INSET, so the underline occupies no space');
+    assert.ok(!/\.ce-paperwrap \.ce-held\{[^}]*(?:padding|margin|border(?!-)|font-size)/.test(CODE),
+      'and nothing in it can move a word when it appears or goes');
   });
 });

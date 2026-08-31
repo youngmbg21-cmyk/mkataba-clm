@@ -1407,8 +1407,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         over: !!document.getElementById('ce-inline'),
         focus: act ? (act.id || act.tagName) : 'none' };
     });
-    ck('16d4 …and highlighting then attaches the passage, on that same one press',
+    ck('16d4 …and highlighting then attaches the passage to the rail, on that same one press',
        strip.on === true && strip.over === false, `attached ${strip.on}, box over the paper ${strip.over}`);
+    /* REVERSED IN PLACE TWICE, and the third answer is the one with no
+       condition in it. 29 Aug: the strip WAITS, caret stays in the wording.
+       30 Aug: the strip TAKES the caret, because the owner met the waiting and
+       did not want it ("not have to click inside the strip to start typing").
+       31 Aug (M-1): there is no box on the paper to move the caret TO, so
+       attaching never touches focus at all — the reader carries on typing
+       where they were, and the sentence stays visible through the held mark. */
     ck('16d5 …without taking the caret out of the clause',
        strip.focus === 'ce-clausebody', `focus ${strip.focus}`);
   }

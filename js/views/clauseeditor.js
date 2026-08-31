@@ -641,24 +641,41 @@ function clauseEditorCss(){
   .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
 
-  /* ---- THE HIGHLIGHTED PASSAGE, IN THE RAIL (M-1, owner-chose Option A) ----
-     It sits between the conversation and the ready-made questions, DIRECTLY
-     over the ask box — which is the whole of why Option A was recommended and
-     chosen: what is attached and what you are typing are read together, and a
-     card pinned to the foot of the rail can neither scroll away nor be left
-     attached with no way to release it.
+  /* ---- THE PASSAGE GOES TO THE COPILOT RAIL (M-1, 31 Aug 2026) ----
+     The strip that used to open over the paper is gone on the owner's ruling;
+     what is left here is the mark it left on the sentence, which the rail still
+     needs. See ceAttachPassage, and THE HIGHLIGHT GOES TO COPILOT in THE MAP.
 
-     It takes no flex, so the conversation above it gives up the height and never
-     the box below it; and it draws NOTHING when nothing is attached, so the
-     ordinary rail is the rail it has always been. NO BACKTICK MAY APPEAR IN A
-     COMMENT IN THIS BLOCK — the whole sheet is returned from a template literal,
-     so one ends the string and the browser parses the rules after it as code.
-     This file's own history records that fault twice; it was paid a third time
-     writing this very note.
+     THE CARD IS DRESSED HERE and it sits between the conversation and the
+     ready-made questions, DIRECTLY over the ask box. It takes no flex, so the
+     conversation above gives up the height and never the box below; and it
+     draws NOTHING when nothing is attached. NO BACKTICK MAY APPEAR IN A COMMENT
+     IN THIS BLOCK — the sheet is returned from a template literal, so one ends
+     the string and the browser parses the rules after it as code. */
+  /* ---- THE SENTENCE THE RAIL IS HOLDING (owner-approved render, 30 Aug 2026;
+     KEPT AND RE-POINTED 31 Aug 2026 by M-1) ----
+     A document has ONE selection, so the moment the caret moves anywhere else —
+     into the strip, when there was one; into the rail's ask box now — the
+     browser stops painting the reader's own highlight, and the sentence being
+     worked on would go invisible at the exact moment its replacement is being
+     asked for. This is the mark that keeps it visible, and the owner ruled on
+     it as a mark on the contract rather than as a detail.
 
-     THE QUOTE IS CLAMPED TO FOUR LINES and carries the whole passage on its own
-     title — a sentence of contract drafting can run to sixty words and the rail
-     is not where it is read; the paper twelve pixels to the left is. */
+     IT IS WHY OPTION A DID NOT HAVE TO GIVE UP THE LIT PASSAGE. The render that
+     chose the rail named the lost highlight as a cost; this mark, built the day
+     before for the strip, pays it. See ceMarkHeld for why it can never reach
+     the record.
+
+     THE WORKSPACE ACCENT, DELIBERATELY: it is the same colour as the card's own
+     quote rule in the rail, which is what ties the two together — this sentence
+     and that card are one thing shown twice. Drawn as a background and an INSET
+     shadow, so it occupies no space and no word moves when it appears or goes;
+     and mixed against the accent rather than typed as a colour, so it follows
+     the workspace's own brand and needs no answer of its own at night. */
+  .ce-paperwrap .ce-held{
+    background:color-mix(in srgb, var(--accent-solid) 16%, transparent);
+    box-shadow:inset 0 -2px 0 var(--accent-solid);
+  }
   .ce-rail #ce-scope{flex:none}
   .ce-scope{margin:0 13px 9px; padding:8px 10px;
     background:var(--color-neutral-100); border:1px solid var(--color-divider)}
@@ -672,7 +689,7 @@ function clauseEditorCss(){
     color:var(--color-neutral-600); cursor:pointer}
   .ce-scope .x:hover{color:var(--color-text)}
   .ce-scope q{display:block; margin-top:5px; padding-left:8px; quotes:none;
-    border-left:2px solid var(--st-amber-dot);
+    border-left:2px solid var(--accent-solid);
     font-size:var(--t-label); line-height:1.55; color:var(--color-text);
     display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden}
   .ce-scope .cut{margin-top:7px; height:22px; padding:0 var(--s-2); font:inherit;
@@ -1148,22 +1165,21 @@ function clauseEditorHtml(){
 
            WHAT STOOD HERE was a box that opened ON the contract holding the
            passage, with its own send button and its own three asks — so there
-           were TWO places to ask Copilot one question about one clause, and
-           the louder of them covered the sentence it was about. Its reasoning
-           is kept in the rail's own note, because the useful half survives:
-           one field, always holding the wording that is about to be proposed,
-           whoever wrote it.
+           were TWO places to ask Copilot one question about one clause, and the
+           louder of them covered the sentence it was about.
 
-           NOTHING TAKES ITS PLACE ON THE PAPER. Replacing a sentence by hand
-           is typing over it in the contract, which the contenteditable box has
-           done since 26 Aug and which is what the owner asked for in the same
-           breath. `.ce-inline` and its five functions are deleted; the two
-           readings they rested on — ceSelection and ceReplacePassage — are
-           untouched and are what the rail now presses.
+           NOTHING TAKES ITS PLACE ON THE PAPER, except the MARK: the held
+           sentence keeps the accent wash built for the strip the day before,
+           which is what lets the rail hold a passage without the reader losing
+           sight of it. Replacing a sentence by hand is typing over it in the
+           contract, which the contenteditable box has done since 26 Aug and
+           which is what the owner asked for in the same breath.
 
-           `ce_inline_ph`, `ce_inline_newline`, `ce_inline_cancel`,
-           `ce_inline_replace`, `ce_inline_replace_title` and `ce_inline_where`
-           are STALE — flag any mention. */}
+           `.ce-inline` and its five functions are deleted; the two readings
+           they rested on — ceSelection and ceReplacePassage — are untouched and
+           are what the rail now presses. `ce_inline_ph`, `ce_inline_newline`,
+           `ce_inline_cancel`, `ce_inline_replace`, `ce_inline_replace_title`
+           and `ce_inline_where` are STALE. */}
           </div>
     ${''/* THE REASON PANEL IS RETIRED (owner-asked 28 Aug 2026 — see FILING
            below). #ce-reason, #ce-why and the three reason-* acts are STALE;
@@ -1472,6 +1488,30 @@ function ceObserveShell(){
   try{ new ResizeObserver(() => ceFitToShell()).observe(sc); }catch(_){}
 }
 
+/* ---- WHAT THE DRAFT IS, READ OFF THE RECORD ----
+   ONE reading, TWO callers: the door seeds the page with it, and filing re-seeds
+   with it, because after a change lands the record has moved and everything on
+   this page is a statement about the record. A second copy of these nine lines
+   is how the two would come to disagree about what the reader is looking at —
+   which step stack, which lead ask, which baseline the marks are drawn against.
+
+   IT SETS NO POSTURE. Whether the reader is typing, which tab the rail is on
+   and where they are scrolled are all facts about the SITTING rather than about
+   the record, and filing must not disturb any of them. */
+function ceSeedDraft(changeId){
+  _ceBase = ceStanding();
+  _ceHeadBase = ceStandingHeading();
+  _ceLead = ceLeadChange(changeId);
+  _ceText = ceWordingOf(_ceLead);
+  _ceHead = ceHeadingOf(_ceLead);
+  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
+  if (_ceText !== _ceBase || _ceHead !== _ceHeadBase)
+    _ceSteps.push({ label: (_ceLead && _ceLead.id) || _cet('ce_proposed'), text: _ceText, head: _ceHead });
+  _ceStep = _ceSteps.length - 1;
+  _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
+  _ceOpenHead = _ceHead;
+  _ceSavedAt = (_ceText !== _ceBase || _ceHead !== _ceHeadBase) ? ceNowHm() : null;
+}
 function rlOpenClauseEditor(c, clauseId, opts = {}){
   const refusal = clauseEditorRefusal(c, opts);
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
@@ -1495,18 +1535,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     if (window.toast) toast(_cet('ce_clause_gone'), 'err');
     return false;
   }
-  _ceBase = ceStanding();
-  _ceHeadBase = ceStandingHeading();
-  _ceLead = ceLeadChange(opts.changeId);
-  _ceText = ceWordingOf(_ceLead);
-  _ceHead = ceHeadingOf(_ceLead);
-  _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
-  if (_ceText !== _ceBase || _ceHead !== _ceHeadBase)
-    _ceSteps.push({ label: (_ceLead && _ceLead.id) || _cet('ce_proposed'), text: _ceText, head: _ceHead });
-  _ceStep = _ceSteps.length - 1;
-  _ceOpenText = _ceText;   /* the mark clauseEditorDirty measures against */
-  _ceOpenHead = _ceHead;
-  _ceSavedAt = (_ceText !== _ceBase || _ceHead !== _ceHeadBase) ? ceNowHm() : null;
+  ceSeedDraft(opts.changeId);
   /* ---- THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST ----
      (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined
      with a clause carrying CHG-001 and not one mark on it: "ensure when you
@@ -1923,8 +1952,49 @@ function ceSizeNow(){
 }
 const CE_SIZE_BASE = 14;
 
+/* ---- PUTTING THE READER BACK MUST NOT BE A JOURNEY ----
+   (owner-reported 31 Aug 2026: "whenever I make change or click in the box, the
+   contract moves up then back down to where i was. Remove this bug.")
+
+   THE PAPER SCROLLS SMOOTHLY ON PURPOSE. `.nego-scroll` — which is what #ce-doc
+   is — carries `scroll-behavior:smooth`, so a jump to a clause glides rather
+   than teleporting, and that is right for a jump somebody asked for. It is
+   wrong for putting the reader back where they already were: a repaint that
+   rebuilds the paper resets the offset to zero, and the bare assignment that
+   restores it is then ANIMATED — measured on this very element as a glide
+   through 0, 2, 8, 18, 32 … 500 over about half a second. From the reader's
+   chair that is the contract jumping to the top and travelling back down, which
+   is exactly what was reported.
+
+   SUSPENDED FOR THE WIDTH OF THE ASSIGNMENT, never turned off: the property is
+   read back and put straight, so a jump the reader asks for a moment later
+   still glides. It borrows the negotiation page's own rlRestoreScroll where
+   that module is loaded, so the two pages cannot come to disagree about what
+   restoring a position costs; the fallback is the same three lines, because
+   this page must not depend on a module a stage may not carry (a bare
+   cross-module read throws, and a guarded one would silently take the animated
+   branch — the fault this codebase has recorded six times). */
+function ceRestoreScroll(el, top){
+  if (!el || top == null) return;
+  if (typeof window !== 'undefined' && window.rlRestoreScroll){ rlRestoreScroll(el, top); return; }
+  const prev = el.style.scrollBehavior;
+  el.style.scrollBehavior = 'auto';
+  el.scrollTop = top;
+  el.style.scrollBehavior = prev;
+}
+
 function ceRenderPaper(){
   if (!clauseEditorOpen()) return;
+  /* ---- A REBUILT PAPER TAKES THE STRIP WITH IT ----
+     The strip holds a passage that is ON SCREEN, and its mark is a wrapper
+     inside the box this is about to replace. Left open over fresh markup it
+     would be holding a sentence whose element no longer exists, and its own
+     "the wording has moved" refusal would then fire for a reason the reader
+     never caused. The paths that rebuild deliberately — a Copilot card, a
+     playbook standard, a reading change — are all cases where the passage may
+     genuinely have moved. Typing does NOT rebuild (see ceApply), so the strip
+     survives the one thing it has to survive. */
+  ceDetachPassage();
   ceRenderReadBar();
   const host = _ceQ('#ce-doc');
   if (!host || !window.redlineDocHtml) return;
@@ -2014,46 +2084,28 @@ function ceRenderPaper(){
   ceApplyZoom();
 }
 
-/* ---- PUTTING A SCROLL BACK IS NOT TRAVELLING TO IT (M-2) ----
-   (owner-reported 31 Aug 2026: *"whenever I make change or click in the box,
-   the contract moves up then back down to where I was."*)
-
-   THE PAPER IS `#ce-doc`, WHICH IS A `.nego-scroll`, AND THAT RULE IS
-   scroll-behavior:smooth — right for every scroll a reader ASKS for, because
-   pressing a change card should visibly travel to its clause so the eye can
-   follow. It is exactly wrong for restoring a position after a repaint: the
-   rebuilt scroller starts at 0, so `el.scrollTop = 1800` under a smooth rule is
-   a REQUEST TO ANIMATE from 0 to 1800. That is the whole report — the jump is
-   the rebuild and the crawl back down is the restore being read as a journey.
-
-   THE PRODUCT ALREADY SOLVED THIS, on the negotiation page, a fortnight before
-   this page was written; its note says so in its own words. This page simply
-   never called it. The smooth rule is NOT removed — it is suspended for the
-   width of the assignment.
-
-   THE FALLBACK IS THE FIX AGAIN, NEVER THE BARE ASSIGNMENT. A cross-module read
-   that falls back to the broken behaviour is how a fix silently reverts, which
-   is this codebase's most repeated defect; so where the name is unreachable
-   these four lines do the same job rather than putting the bug back. */
-function ceRestoreScroll(el, top){
-  if (!el || top == null) return;
-  if (typeof window !== 'undefined' && window.rlRestoreScroll){ rlRestoreScroll(el, top); return; }
-  const prev = el.style.scrollBehavior;
-  el.style.scrollBehavior = 'auto';
-  el.scrollTop = top;
-  el.style.scrollBehavior = prev;
-}
-
 /* The three readings, the band that says a reading refuses editing, and the
    count. One row, painted together because they are one statement about how
    this page is being read. */
+/* ---- THE RUNNING COUNT, BUILT ONCE ----
+   The readings row draws it as part of itself and the typing pull paints it
+   alone (see ceApply, which rebuilds nothing while the caret is in the box).
+   Two places printing what the draft has done is how they come to disagree
+   about it, so there is one builder and two callers. */
+function ceStatHtml(){
+  const n = ceCounts(_ceBase, _ceText);
+  return (n.ins || n.del)
+    ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
+    : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+}
+function cePaintStat(){
+  const el = _ceQ('#ce-stat');
+  if (el) el.innerHTML = ceStatHtml();
+}
 function ceRenderReadBar(){
   const bar = _ceQ('#ce-readbar');
   if (bar && window.rlReadSegsHtml){
-    const n = ceCounts(_ceBase, _ceText);
-    const stat = (n.ins || n.del)
-      ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
-      : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+    const stat = ceStatHtml();
     /* The chips sit INSIDE the running +N -N rather than outside it: that
        readout is where the reader's eye already goes for what their typing is
        doing, and moving it would cost more than the row gains. */
@@ -2145,9 +2197,19 @@ function cePullText(){
   const box = _ceQ('#ce-clausebody');
   const headBox = _ceQ('#ce-clausehead');
   let next = _ceText;
+  /* ---- DID THE SANITISER HAVE TO CORRECT THE BOX? ----
+     Almost never, and that is what makes it a useful signal. MEASURED in a real
+     browser: a freshly rendered box is already clean, and stays clean through
+     ordinary typing INCLUDING pressing Enter for a new paragraph. It goes true
+     when somebody pastes markup the allow-list will not keep — and that is
+     exactly the case where the box on screen is showing something the record
+     will not, so the paper is owed a repaint. Everywhere else the repaint is
+     pure cost, and see ceApply for what that cost turned out to be. */
+  let corrected = false;
   if (box){
-    const raw = String(box.innerHTML || '');
+    const raw = ceBoxHtml(box);
     next = window.sanitizeRich ? sanitizeRich(raw) : raw;
+    corrected = next !== raw;
   }
   const nextHead = headBox
     ? String(headBox.textContent || '').replace(/\s+/g, ' ').trim() : _ceHead;
@@ -2155,7 +2217,7 @@ function cePullText(){
   if (next === _ceText && !headMoved) return;
   _ceHead = nextHead;
   ceApply(next, (headMoved && next === _ceText) ? _cet('ce_step_named') : _cet('ce_step_typed'),
-    { keepView: true, headMoved });
+    { keepView: true, headMoved, repaint: corrected });
 }
 
 function ceRenderFoot(){
@@ -2172,8 +2234,6 @@ function ceRenderFoot(){
      The cost is one press — go back to Redlined and file from the reading that
      shows you what you are filing — and it is the honest one. */
   const live = ceEditableReading();
-  const why = live ? '' : ` title="${_ceea(_cet('ce_reading_only'))}"`;
-  const off = live ? '' : ' disabled';
   const draft = _ceQ('#ce-draft');
   if (draft) draft.innerHTML = moved
     ? _cet('ce_draft_saved', { at: `<b>${_cee(_ceSavedAt || ceNowHm())}</b>` })
@@ -2184,10 +2244,52 @@ function ceRenderFoot(){
     if (live) undo.removeAttribute('title'); else undo.setAttribute('title', _cet('ce_reading_only'));
   }
   const foot = _ceQ('#ce-railfoot');
-  if (foot) foot.innerHTML =
-    `<button type="button" data-ce-act="discard"${moved && live ? '' : ' disabled'}${why}>${_cet('ce_discard')}</button>`
-    + `<button type="button" class="p" data-ce-act="save"${moved && live ? '' : ' disabled'}${why}>${
-      _ceLead ? _cee(_cet('ce_save_to', { id: _ceLead.id })) : _cee(_cet('ce_file_as_change'))}</button>`;
+  if (!foot) return;
+  /* ---- PATCHED IN PLACE, NEVER REWRITTEN (owner-reported 30 Aug 2026) ----
+     "I have to click multiple times in order for the redlines to be filed."
+     REPRODUCED in a real browser before it was touched: type in the clause,
+     press File as a change ONCE, and nothing happens; press it again and it
+     files. The cause is here. A press is a mousedown and a mouseup, and the
+     browser only calls it a click if both land on the same element — so
+     rewriting this row on the blur that the mousedown itself causes replaced
+     the button under the reader's finger, and the mouseup landed on a button
+     that had never been pressed. Nothing failed and nothing logged; from the
+     reader's chair it is simply a dead button.
+
+     So this row keeps its two buttons for the life of the page and only their
+     state moves. It is the settings page's own rule — that screen answers a
+     selection by patching in place rather than re-rendering — applied to the
+     one row on this page that is pressed while the caret is still in the text.
+     THE LABEL IS WRITTEN AS textContent rather than as markup: it is a name,
+     never a fragment, and that is also what keeps the element identity the fix
+     rests on. */
+  let discard = foot.querySelector('[data-ce-act="discard"]');
+  let save = foot.querySelector('[data-ce-act="save"]');
+  if (!discard || !save){
+    foot.innerHTML = '<button type="button" data-ce-act="discard"></button>'
+      + '<button type="button" class="p" data-ce-act="save"></button>';
+    discard = foot.querySelector('[data-ce-act="discard"]');
+    save = foot.querySelector('[data-ce-act="save"]');
+  }
+  const label = _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
+  /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
+     DISCARD asks "has the wording moved from what STANDS in the contract" —
+     that is what it puts back, so that is what it is live for.
+     FILE asks "is there anything the RECORD does not already hold", which is
+     clauseEditorDirty's own question. They were both on `moved`, which was
+     right while filing closed the page: with the page staying open a
+     just-filed draft still differs from what stands, so File would have sat
+     there live over a press the funnel refuses as proposing nothing. Now it
+     greys the moment the record catches up with the box, which is the same
+     rule this product applies everywhere — grey where it can know before the
+     press. */
+  const anyToFile = moved && clauseEditorDirty();
+  [[discard, _cet('ce_discard'), moved], [save, label, anyToFile]].forEach(([b, word, on]) => {
+    if (!b) return;
+    b.disabled = !(on && live);
+    if (live) b.removeAttribute('title'); else b.setAttribute('title', _cet('ce_reading_only'));
+    if (b.textContent !== word) b.textContent = word;
+  });
 }
 
 function ceSay(msg){
@@ -2239,18 +2341,27 @@ function ceApply(text, label, opts = {}){
      standard, a passage rewritten in place — drops out of typing so the marks
      it made are the first thing seen. Typing keeps the caret (keepView). */
   if (_ceEditing && !opts.keepView) _ceEditing = false;
-  /* ---- AND AN ATTACHED PASSAGE GOES WITH THE WORDING IT WAS IN (M-1) ----
-     A card in the rail quoting a sentence the clause no longer holds is a stale
-     statement on screen. The two acts that replace a passage detach BEFORE they
-     get here, so this reaches the case that matters: a clause-level suggestion
-     applied over the whole wording while something was still attached.
-     UNDO, REDO AND DISCARD ARE DELIBERATELY NOT SWEPT — they move between steps
-     the passage may well still be in, and throwing the reader's selection away
-     on every step would cost more than it saves. Where the words really have
-     moved, ceReplacePassage refuses in ceSay rather than replacing the wrong
-     thing, which is the wall this leans on. */
-  ceDetachPassage();
-  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
+  /* ---- NOTHING IS REBUILT UNDER THE READER'S FINGER ----
+     (owner-reported 30 Aug 2026, with ceRenderFoot's own note.) Every blur
+     rebuilt FOUR regions of this page — the readings row, the paper, the rail
+     foot and the writing bar — and a press that causes the blur lands on
+     whichever of them it was aimed at. That is why the pencil and File as a
+     change each needed pressing twice, and it was equally true of the reading
+     tabs, the zoom and every tool on the bar; the owner reported the two they
+     met most.
+
+     keepView means the caret is still in the box, which is to say the pull:
+     cePullText is its only caller and returns early unless the reader is
+     typing. In that state NONE of the four needs rebuilding — the box already
+     shows the words, the bar's greying asks a question whose answer has not
+     moved, and the readings and the zoom are untouched. What genuinely moves is
+     the running count and the foot, and both are painted in place.
+
+     THE PAPER IS STILL REBUILT WHERE IT IS OWED, which is when the sanitiser
+     had to correct the box: there the screen is showing something the record
+     will not keep, and a repaint is the only thing that tells the truth. */
+  if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); }
+  else { ceRenderPaper(); ceRenderFoot(); ceRenderHead(); }
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
 }
@@ -2268,7 +2379,7 @@ function ceBoxDirty(){
     if (headBox && String(headBox.textContent || '').replace(/\s+/g, ' ').trim() !== _ceHead) return true;
     const box = _ceQ('#ce-clausebody');
     if (!box) return false;
-    const raw = String(box.innerHTML || '');
+    const raw = ceBoxHtml(box);
     return (window.sanitizeRich ? sanitizeRich(raw) : raw) !== _ceText;
   }catch(_){ return false; }
 }
@@ -2337,11 +2448,11 @@ function ceRenderTabs(){
   const n = ceDeviationCount();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
-  /* The ask box belongs to the conversation. The scan has nothing to be asked —
-     and the attached passage goes with it, because a card saying what the next
-     question is about, over a tab that takes no questions, is furniture. It is
-     not DETACHED, only undrawn: coming back to the conversation finds it where
-     it was left. */
+  /* The ask box belongs to the conversation. The scan has nothing to be asked.
+     THE PASSAGE CARD GOES WITH IT: it is the subject of the next question, and
+     over a list of playbook findings it would be a card about nothing. The
+     passage is NOT let go — coming back to the conversation finds it still
+     held, because a tab is a reading and not a decision. */
   const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-scope');
   if (ask) ask.style.display = _ceTab === 'chat' ? '' : 'none';
   if (chips) chips.style.display = _ceTab === 'chat' ? '' : 'none';
@@ -2375,14 +2486,11 @@ function ceGreetingHtml(){
    rests on, the wording it proposes marked against what stands, and a way to
    say whether it was any good. */
 function ceCardHtml(card, i, j){
-  /* ---- A CARD MARKED AGAINST WHAT IT ACTUALLY REPLACES (M-1) ----
-     A passage card carries the passage it was asked about, so its preview is
-     marked against THOSE words rather than against the whole clause — which
-     would strike out the entire clause to insert one sentence and read as a
-     rewrite of everything.
-     THE PASSAGE IS ON THE CARD RATHER THAN READ OFF `_ceSel` AT PRESS TIME, so
-     an answer stays applicable after the reader has let the passage go: the
-     card knows what it was about, which is the honest place for that fact. */
+  /* ---- MARKED AGAINST WHAT IT WOULD REPLACE ----
+     A card about a held passage proposes wording for THOSE WORDS, so marking it
+     against the whole clause would strike out every sentence around it and read
+     as a proposal to delete the clause. Marked against the passage it names, it
+     reads as the change it is. */
   const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
   const vote = card.vote || '';
   return `<div class="ce-card">
@@ -2392,8 +2500,7 @@ function ceCardHtml(card, i, j){
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
     <div class="av">
-      ${card.text ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${
-        _cet(card.passage ? 'ce_apply_passage' : 'ce_apply')}</button>` : ''}
+      ${card.text ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
       ${card.text ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
       <span class="g"></span>
       <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:up"
@@ -2405,20 +2512,20 @@ function ceCardHtml(card, i, j){
     </div>
   </div>`;
 }
-/* ---- THE READY-MADE QUESTIONS FOLLOW THE SCOPE (M-1) ----
-   With a passage attached they are the strip's own three — shorten, firmer,
-   plain English — because those are the questions a person asks about ONE
-   sentence; with nothing attached they are the four this rail has always
-   carried, which are questions about the whole clause.
-
-   ONE ROW EITHER WAY, and one attribute: a chip is a question and presses
-   ceAsk, which is what decides whether the answer is about the passage or the
-   clause. A second attribute for "passage chip" would be a second route to one
-   act, and the two would come to disagree about scope. */
 function ceRenderChips(){
   if (!clauseEditorOpen()) return;
   const box = _ceQ('#ce-chips'); if (!box) return;
   const qs = [];
+  /* ---- THE READY-MADE QUESTIONS FOLLOW THE SCOPE ----
+     With a passage held they are THE STRIP'S OWN THREE, word for word and key
+     for key — shorten it, make it firmer, plain English — which are the three
+     things anybody asks about one sentence and are already written in both
+     languages. With nothing held they are the clause's own four or five.
+
+     THE SAME CHIPS, NOT A SECOND SET: each is a question typed into the same
+     box and pressed through the same ceAsk, so what narrows the ask is the
+     PASSAGE rather than which chip was pressed. One attribute, one row, one
+     line that draws it either way. */
   if (_ceSel){
     qs.push(_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain'));
   } else {
@@ -2525,6 +2632,15 @@ function ceReadList(){
 async function ceAsk(question, opts = {}){
   const q = String(question == null ? '' : question).trim();
   if (!q || _ceBusy) return;
+  /* ---- WHAT THIS QUESTION IS ABOUT, TAKEN NOW ---- (owner-ruled 31 Aug 2026)
+     A held passage narrows the question to those words and the answer to a
+     replacement for them. TAKEN AT THE PRESS rather than read again when the
+     answer lands: the model takes seconds, and a reader who highlights
+     something else meanwhile must not have the first answer applied to the
+     second passage. It rides ON THE CARD for the same reason — Apply may be
+     pressed minutes later, and a card that asked about one sentence may never
+     replace another. */
+  const scope = _ceSel;
   if (!opts.silent) _ceThread.push({ who: 'you', text: q });
   _ceBusy = true;
   ceRenderLane();
@@ -2537,12 +2653,6 @@ async function ceAsk(question, opts = {}){
   }
   const cl = ceClause();
   const read = ceReadList();
-  /* ---- WHAT THIS ASK IS ABOUT, CAPTURED AT THE PRESS (M-1) ----
-     Read once, here, rather than again when the answer lands: the reader can
-     let the passage go while the model is thinking, and an answer that then
-     silently became a rewrite of the whole clause is the worst thing this page
-     could do. The card carries it, so it stays true whatever happens next. */
-  const scope = _ceSel;
   /* The conversation so far, so a follow-up ("firmer than that") means what it
      says. Trimmed to the last few turns — the whole history of a long sitting
      is money spent restating what the model already answered. */
@@ -2551,6 +2661,8 @@ async function ceAsk(question, opts = {}){
   let res = null, err = null;
   try{
     res = await copilotPropose({
+      /* ONE CALL, TWO SCOPES. The prompt says which, so an answer meant to
+         replace one sentence is never written as a whole clause. */
       ask: _cet(scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
       passage: scope ? scope.text : (_ceText || _ceBase),
       instruction: q,
@@ -2755,7 +2867,9 @@ function ceSelection(){
   if (seen > 1 && text.length < 40) return null;   /* ambiguous */
   let rect = null;
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
-  return { text, rect, line: li, at };
+  /* THE RANGE TRAVELS WITH IT, so the held mark is drawn over exactly what the
+     reader dragged rather than over the first copy of those words in the box. */
+  return { text, rect, line: li, at, range: r };
 }
 /* ---- NOTICED WHILE FIXING THE STRIP, AND DELIBERATELY NOT FIXED ----
    (29 Aug 2026.) With typing OFF, a DRAG in the wording is read as a press in
@@ -2774,12 +2888,86 @@ function ceSelection(){
 function ceLines(){
   return ceWords(_ceText).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
 }
-/* ---- ATTACHING A PASSAGE TO THE RAIL (M-1) ----
+/* ============================================================================
+   THE SENTENCE THE STRIP IS HOLDING (owner-approved render, 30 Aug 2026)
+   ----------------------------------------------------------------------------
+   The strip takes the caret now, and a document has ONE selection: the moment
+   the caret moves into the box, the browser stops painting the highlight in the
+   clause. So the sentence being replaced would go invisible at the exact moment
+   its replacement is being typed, which is the one thing the strip exists to
+   make easy. This is the mark that keeps it visible, and the owner ruled on it
+   as a mark on the contract rather than as a detail.
+
+   IT CAN NEVER REACH THE RECORD, and that is guaranteed three times over rather
+   than remembered once:
+     1. the pull reads a CLONE of the box with the mark unwrapped (ceBoxHtml);
+     2. sanitizeRich unwraps any span whose class is not on its own allow-list,
+        and this class deliberately is not on it — see richSpanClassOk;
+     3. the mark is cleared outright whenever the strip closes.
+   The first two are structural: neither depends on anybody remembering to call
+   anything. f245 asserts all three.
+
+   IT IS A WRAPPER RATHER THAN AN OVERLAY because a wrapper follows the words —
+   through a scroll, a re-wrap, a zoom and the reader's own text-size setting —
+   where an overlay would have to be told about each of them. It changes no
+   layout: a background and an inset shadow occupy no space. */
+const CE_HELD_CLASS = 'ce-held';
+function ceMarkHeld(range){
+  const box = _ceQ('#ce-clausebody');
+  if (!box || !range || !document.createElement) return false;
+  ceClearHeld(box);
+  const span = document.createElement('span');
+  span.className = CE_HELD_CLASS;
+  try{ range.surroundContents(span); }
+  catch(_){
+    /* surroundContents throws where the range crosses an element boundary —
+       half a bold run, say. Extract and re-insert handles it, which is the same
+       fallback richMarkSelection has carried since it was written. */
+    try{ span.appendChild(range.extractContents()); range.insertNode(span); }
+    catch(e){ return false; }
+  }
+  return true;
+}
+function ceClearHeld(scope){
+  const box = scope || _ceQ('#ce-clausebody');
+  if (!box || !box.querySelectorAll) return;
+  box.querySelectorAll('.' + CE_HELD_CLASS).forEach(sp => {
+    const p = sp.parentNode; if (!p) return;
+    while (sp.firstChild) p.insertBefore(sp.firstChild, sp);
+    sp.remove();
+    /* The unwrap leaves the line split across two text nodes, and the next
+       reader of this box is a Range walk. Put it back the way it was. */
+    try{ p.normalize(); }catch(_){}
+  });
+}
+/* WHAT THE BOX SAYS, WITH THE MARK TAKEN OFF — the one reading both the pull
+   and the dirty check use, so neither can mistake the mark for the reader's own
+   work. The live DOM keeps the mark; only this copy loses it. */
+function ceBoxHtml(box){
+  if (!box) return '';
+  if (!box.querySelector || !box.querySelector('.' + CE_HELD_CLASS)) return String(box.innerHTML || '');
+  try{
+    const clone = box.cloneNode(true);
+    ceClearHeld(clone);
+    return String(clone.innerHTML || '');
+  }catch(_){ return String(box.innerHTML || ''); }
+}
+/* ---- ATTACHING A PASSAGE TO THE RAIL (M-1, owner-chose Option A) ----
    The drag on the paper is the whole gesture: what it produces is a scope on
-   the Copilot rail, not a box over the contract. It DOES NOT TAKE THE CARET —
-   a highlight can be made mid-sentence, and moving focus into the rail every
-   time somebody selected something would take them out of the clause they are
-   writing in, which is the opposite of the promise this rests on.
+   the Copilot rail, not a box over the contract.
+
+   IT DOES NOT TAKE THE CARET, and that REVERSES the 30 Aug rule in place — a
+   rule written for a strip that had a box of its own to type into. With the
+   box in the rail there is nothing on the paper to focus, and taking the caret
+   would move the reader out of the clause they are writing in every time they
+   selected something. THE 30 Aug REASONING SURVIVES WHERE IT MATTERED: it was
+   about a strip that opened ready and was not, and the answer to that here is
+   that the ask box is one press away and says what it is for.
+
+   THE MARK IS WHY THIS COSTS THE READER NOTHING. ceMarkHeld wraps the passage
+   in the accent wash built the day before, so the sentence stays visible the
+   moment the caret moves into the ask box and the browser drops the reader's
+   own highlight — the one cost the render that chose Option A had to name.
 
    THE SAME PASSAGE TWICE IS NOT A NEW ATTACHMENT: re-selecting identical words
    repaints nothing, so a stray double-click does not clear a half-typed ask. */
@@ -2787,24 +2975,25 @@ function ceAttachPassage(sel){
   if (!sel) return;
   if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line) return;
   _ceSel = sel;
+  /* MARKED FROM THE RANGE THE READER JUST MADE, before anything else can
+     collapse it. */
+  if (sel.range) ceMarkHeld(sel.range);
   ceRenderScope(); ceRenderChips();
 }
 function ceDetachPassage(){
   if (!_ceSel) return;
   _ceSel = null;
+  /* THE MARK GOES WITH IT. It says what the rail is holding, so it may not
+     outlive it — and this is the third of the three nets that keep it off the
+     record (see ceMarkHeld). */
+  ceClearHeld();
   ceRenderScope(); ceRenderChips();
 }
 /* ---- WHAT IS ATTACHED, SAID WHERE THE READER IS ABOUT TO TYPE ----
-   THE PAPER CANNOT KEEP THE MARK AND THAT IS SAID OUT LOUD. The highlight is
-   the browser's own selection, and it goes the moment the reader clicks into
-   the ask box — which is the very next thing they do. Wrapping the passage in
-   the rendered clause would mean editing the paper's markup to draw a posture,
-   on the one surface in this product that must never be edited to draw one. So
-   the CARD is the statement: it quotes the passage in full on its own title,
-   twelve pixels from the box the question is typed into.
-
-   THE ASK BOX SAYS WHAT IT IS FOR, because a narrowed control states the
-   narrowing by being set to it — the WHOSE ASKS rule, on a placeholder. */
+   The card quotes the passage in full on its own title, twelve pixels from the
+   box the question is typed into, and the mark on the paper says which words
+   they are. THE ASK BOX SAYS WHAT IT IS FOR, because a narrowed control states
+   the narrowing by being set to it — the WHOSE ASKS rule, on a placeholder. */
 function ceRenderScope(){
   if (!clauseEditorOpen()) return;
   const box = _ceQ('#ce-scope');
@@ -2824,24 +3013,127 @@ function ceRenderScope(){
            only one-press way in the product to strike a sentence out. It is on
            the passage's own card rather than in the chips row, which is a
            DEPARTURE FROM THE APPROVED RENDER and is named here: that row holds
-           questions that spend money on Copilot, and an act that changes the
-           draft on the spot is a different kind of thing. */}
+           questions that spend money on Copilot, and an act that reaches the
+           record is a different kind of thing. */}
     <button type="button" class="cut" data-ce-act="scope-cut"
       aria-label="${_ceea(_cet('ce_inline_cut'))}"
       title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>
   </div>`;
 }
+/* ---- THE BAR ACTS ON THE SENTENCE YOU HIGHLIGHTED, WHEREVER THE CARET IS ----
+   (owner-approved render, 30 Aug 2026.) This is the price of the strip taking
+   the caret, and the whole of it: a document has one selection, so with the
+   caret in the strip every tool on the writing bar had nothing in the clause
+   left to act on and would have gone silently dead — the exact fault this run
+   is fixing two of elsewhere.
+
+   ONE RULE RATHER THAN TWO. Not "the bar acts on the strip when the caret is in
+   the strip", which cannot work: the strip is a plain box whose value goes to
+   the record as WORDING, so bold inside it has nowhere to live. The held
+   sentence is what the bar acts on, which is also the only thing a reader could
+   mean by pressing B while a sentence is held.
+
+   THE MARK IS WHAT MAKES IT POSSIBLE. It is a real element wrapping exactly the
+   passage, so the range is read off it rather than searched for — no second
+   reading of "which words were those", and nothing to go stale. The caret is
+   handed straight back to the strip, so the gesture the reader is in the middle
+   of is not interrupted. */
+function ceBarOnHeld(k){
+  const box = _ceQ('#ce-clausebody');
+  const span = box && box.querySelector ? box.querySelector('.' + CE_HELD_CLASS) : null;
+  const sel = (typeof window !== 'undefined' && window.getSelection) ? window.getSelection() : null;
+  if (!box || !span || !sel || !window.richBarPress) return false;
+  /* THIS OUTLIVES THE PRESS ON PURPOSE. The pull below can rebuild the paper,
+     which clears _ceSel — so what the reader was holding is taken now and
+     handed back afterwards. (The typed text used to be carried with it; there
+     is no box on the paper to carry any more, and the rail's own ask box is
+     never rebuilt by a paint.) */
+  const held = _ceSel;
+  let ran = false;
+  try{
+    const r = document.createRange();
+    r.selectNodeContents(span);
+    try{ box.focus({ preventScroll: true }); }catch(_){ box.focus(); }
+    sel.removeAllRanges(); sel.addRange(r);
+    ran = !!richBarPress(k);
+  }catch(_){ ran = false; }
+  if (!ran) return false;
+  /* ---- AND THE PAPER IS USUALLY REBUILT BY THIS, WHICH IS RIGHT ----
+     MEASURED: the browser writes <b> where the record keeps <strong>, so almost
+     every press of this bar leaves the box holding markup the sanitiser has to
+     correct — and an indent writes a style the record will not keep at all,
+     which is a real difference the reader must not be shown. So the repaint is
+     owed and the reader is put back after it rather than the repaint being
+     skipped. The text of the passage does not move under a dressing change,
+     which is what makes finding it again honest. */
+  cePullText();
+  ceReopenHeld(held);
+  return true;
+}
+/* WHERE THOSE WORDS ARE NOW. A walk of the box's text, because after a rebuild
+   the element the mark was on has gone — the words have not.
+   IT MATCHES THE FIRST OCCURRENCE, which is safe here rather than merely
+   convenient: ceSelection has already refused a passage it found twice unless
+   it is long enough to be unambiguous, so anything the strip is holding is
+   either unique or long. The worst a wrong match could do is draw the mark in
+   the wrong place; it cannot reach the record. */
+function ceRangeForText(text){
+  const box = _ceQ('#ce-clausebody');
+  const want = String(text == null ? '' : text);
+  if (!box || !want || !document.createTreeWalker) return null;
+  const nodes = []; let flat = '';
+  try{
+    const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+    let n;
+    while ((n = walk.nextNode())){ nodes.push({ n, at: flat.length }); flat += n.nodeValue || ''; }
+  }catch(_){ return null; }
+  const at = flat.indexOf(want);
+  if (at < 0) return null;
+  const find = pos => {
+    for (let i = nodes.length - 1; i >= 0; i--){
+      if (nodes[i].at <= pos) return { node: nodes[i].n, off: pos - nodes[i].at };
+    }
+    return null;
+  };
+  const s = find(at), e = find(at + want.length);
+  if (!s || !e) return null;
+  try{
+    const r = document.createRange();
+    r.setStart(s.node, s.off); r.setEnd(e.node, e.off);
+    return r;
+  }catch(_){ return null; }
+}
+/* PUT THE READER BACK: the same passage held, marked where it now sits. The
+   mark is a real element and a rebuild takes it with the box, so it is found
+   again by its WORDS and re-wrapped. Where the passage genuinely cannot be
+   found any more — a list or an indent can move it — the rail lets it go rather
+   than holding a card over wording it can no longer place.
+
+   IT RE-ATTACHES RATHER THAN RE-MARKING, so the card and the mark are put back
+   by the one act that draws them both and cannot come apart. The guard in
+   ceAttachPassage would refuse an identical passage as a no-op, so _ceSel is
+   cleared first — the card is being redrawn against a NEW range. */
+function ceReopenHeld(held){
+  if (!held) return;
+  const r = ceRangeForText(held.text);
+  if (!r){ ceDetachPassage(); return; }
+  let rect = null;
+  try{ rect = r.getBoundingClientRect(); }catch(_){ rect = held.rect || null; }
+  _ceSel = null;
+  ceAttachPassage({ text: held.text, line: held.line, at: held.at, rect, range: r });
+}
 /* ---- THE ONE REPLACEMENT ----
    The passage goes, the wording arrives, and every other line of the clause is
    carried across character for character. ONE reading, because the reader's own
    typing and a Copilot rewrite are the same act on the record and a second copy
-   is how the two come to disagree about what a line break costs.
-
-   ITS REFUSALS SPEAK THROUGH ceSay NOW, which is the toolbar's own status slot
-   and this page's one place a refusal is spoken. They used to print inside the
-   strip; a refusal with nowhere to appear is a dead press. */
+   is how the two come to disagree about what a line break costs. */
 function ceReplacePassage(sel, wording){
   const words = String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
+  /* ---- A REFUSAL IS SPOKEN WHERE EVERY OTHER REFUSAL ON THIS PAGE IS ----
+     These two used to write into the strip's own note line, which was the only
+     place a reader looking at a strip would see them. With the strip gone there
+     is no second channel and none is wanted: ceSay is the page's one refusal
+     line and the writing bar, Apply and Discard all already speak through it. */
   if (!words){ ceSay(_cet('ce_inline_say_what')); return false; }
   const lines = ceLines();
   const ln = lines[sel.line];
@@ -2850,17 +3142,45 @@ function ceReplacePassage(sel, wording){
   if (words === sel.text){ ceDetachPassage(); return false; }
   lines[sel.line] = ln.slice(0, at) + words + ln.slice(at + sel.text.length);
   ceDetachPassage();
-  ceApply(lines.join('\n'), _cet('ce_step_passage'));
+  /* ---- READY FOR THE NEXT SENTENCE (owner-ruled 30 Aug 2026) ----
+     keepView holds the reader IN the wording. Wording that arrives from
+     somewhere else — a Copilot card, a playbook standard — drops out of typing
+     so the marks it made are the first thing seen, and that rule is untouched
+     for those. This one is the reader's own hand, mid-flow, and the press that
+     follows it is the next highlight: dropping out would cost a second press of
+     the pencil for every sentence after the first, which is the ceiling the
+     owner set.
+     repaint because the WORDS moved — keepView says nothing about the paper,
+     and a passage replaced without a rebuild would leave the box showing the
+     sentence that has just gone. */
+  ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView: true, repaint: true });
   return true;
 }
 /* ---- STRIKE THE HIGHLIGHTED WORDS OUT ----
-   The passage goes and what is left is tidied where the cut would otherwise
-   leave two spaces or a space before a full stop. It goes through the same
-   lines reading as everything else, so the rest of the clause is still carried
-   across character for character — and like everything else here it APPLIES
-   rather than files. */
+   The one verb the strip carried that nothing else in the product does, moved
+   onto the passage's own card in the rail. The passage goes and what is left is
+   tidied where the cut would otherwise leave two spaces or a space before a
+   full stop; it goes through ceReplacePassage like every other change to this
+   clause, so the rest of the wording is carried across character for character.
+
+   ---- AND IT FILES (owner-asked 30 Aug 2026), WHICH THE STRIP'S REMOVAL DOES
+   NOT REVERSE ---- "press send and it is filed immediately." The strip's send
+   is gone with the strip — a replacement is typed into the paper now, and the
+   one act in the rail's foot files it — but the CUT has no such twin: it is a
+   single press with nothing to type, and dropping the filing would make it the
+   one act on this page that costs two presses instead of one.
+
+   IT IS NOT A SECOND FILING PATH, and that is the whole condition on it: ceFile
+   is the same one act the foot presses, so every guard the funnel carries — the
+   desk rule, the review gate, the executed-wording freeze — applies without
+   being repeated here.
+
+   ONLY WHERE SOMETHING MOVED: ceApply answers false when the draft already says
+   what the cut would say, and a filing on that would be a revision proposing
+   nothing. */
 function ceCutPassage(){
-  const sel = _ceSel; if (!sel) return false;
+  const sel = _ceSel;
+  if (!sel) return false;
   const lines = ceLines();
   const ln = lines[sel.line];
   const at = (ln == null) ? -1 : ln.indexOf(sel.text);
@@ -2870,7 +3190,8 @@ function ceCutPassage(){
   if (!cut){ ceSay(_cet('ce_inline_cut_all')); return false; }
   lines[sel.line] = cut;
   ceDetachPassage();
-  ceApply(lines.join('\n'), _cet('ce_step_cut'));
+  if (!ceApply(lines.join('\n'), _cet('ce_step_cut'), { keepView: true, repaint: true })) return false;
+  ceFile();
   return true;
 }
 
@@ -2948,11 +3269,36 @@ async function ceFile(why){
   try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
   try{ if ((!_ceOpts || _ceOpts.persist !== false) && window.persist) persist(c); }catch(_){}
   if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
-  /* BACK WHERE YOU STARTED: the editor closes and the page underneath repaints
-     with the change on it — the column, the contract and the clause panel the
-     reader came from, which rlCpPaint puts back up on the same clause. */
-  rlCloseClauseEditor({ repaint: true });
-  try{ if (window.rlCpSetShown) rlCpSetShown(document, clauseId); }catch(_){}
+  /* ---- FILING NEVER CLOSES THE PAGE (owner-ruled 30 Aug 2026) ----
+     THIS REVERSES "BACK WHERE YOU STARTED", which closed the editor and put the
+     reader back on the negotiation page with the change on it. That was right
+     while filing was a once-per-visit act at the end of a clause; it is wrong
+     now that the strip files, because changing three sentences in one clause
+     meant being thrown out and going back in twice. Asked and ruled: "stay on
+     the page."
+
+     ONE RULE, BOTH DOORS. The strip's send and the rail foot's File as a change
+     behave identically — filing files, and leaving is its own button. Two
+     filing doors with two different ideas of where the reader ends up is
+     exactly the drift this codebase opens by warning about.
+
+     WHAT THE PRESS COSTS, and it is what was promised: the first change in a
+     clause is two presses (the pencil, then send) and every one after it is
+     one, because the page the reader is already on is the page they carry on
+     in.
+
+     THE RECORD HAS MOVED, SO THE PAGE IS RE-READ FROM IT — the same seeding the
+     door uses, which is what makes the foot name the change that now exists and
+     the marks measure against the right baseline. The POSTURE is untouched:
+     typing stays on, the rail stays where it was, and the reader's place in the
+     contract is the one thing they were holding on to. */
+  ceSeedDraft(ch.id);
+  ceRenderAll();
+  /* The page underneath is stale the moment a change lands on the record — the
+     column, the contract and the counts all read it — so it is repainted
+     BEHIND this page rather than on the way out of it. */
+  try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
+  try{ ceFitToShell(); }catch(_){}
 }
 
 /* ============================================================================
@@ -2988,6 +3334,10 @@ function ceWirePage(page){
     if (k === 'redo'){ ceRedo(); return; }
     if (!ceIsTyping()){ ceSay(_cet('ce_bar_press_pencil')); return; }
     if (!ceEditableReading()){ ceSay(_cet('ce_reading_only')); return; }
+    /* A HELD SENTENCE IS WHAT THE BAR ACTS ON, asked first because it is the
+       state the caret is in whenever the strip is open. Everywhere else the
+       bar reads the reader's own selection in the clause, exactly as it did. */
+    if (_ceSel && ceBarOnHeld(k)) return;
     if (window.richBarPress && richBarPress(k)) cePullText();
   });
 
@@ -3076,11 +3426,13 @@ function ceWirePage(page){
     if (apply){ ev.preventDefault();
       const card = ceCardAt(apply.getAttribute('data-ce-apply'));
       if (!card) return;
-      /* ONE REPLACEMENT EITHER WAY. A passage card goes through
-         ceReplacePassage — the same reading the reader's own typing goes
-         through — so the rest of the clause is carried across character for
-         character and no second copy of "what a line break costs" is written
-         here. A clause card is the whole wording and applies as it always has. */
+      /* ---- A CARD REPLACES WHAT IT WAS ASKED ABOUT ----
+         The passage it was asked about, if there was one, and the whole clause
+         otherwise. ONE READING EITHER WAY: ceReplacePassage is the same one
+         replacement the reader's own hand and the cut both go through, so a
+         line break costs the same whoever wrote the wording. And it APPLIES
+         rather than files, like every other card on this rail — the one act in
+         the foot is still what puts it on the record. */
       if (card.passage) ceReplacePassage(card.passage, card.text);
       else ceApply(card.text, _cet('ce_step_copilot'));
       return; }
@@ -3192,11 +3544,8 @@ function ceWirePage(page){
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
         break;
       }
-      /* ---- THE TWO ACTS ON THE ATTACHED PASSAGE ----
-         Letting it go, and striking it out. Both are named functions rather
-         than bodies written here, because the Escape key and the paper's own
-         gestures reach the same two acts and a second copy is how they come to
-         disagree. `inline-cut` and `inline-go` are STALE. */
+      /* THE PASSAGE'S OWN CARD IN THE RAIL CARRIES BOTH: the way to let it go,
+         and the one verb that strikes it out. */
       case 'scope-off': ceDetachPassage(); break;
       case 'scope-cut': ceCutPassage(); break;
       case 'scan-run': ceRunScan(); break;
@@ -3247,13 +3596,13 @@ function ceWirePage(page){
   page.addEventListener('input', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody, #ce-clausehead')) return;
-    /* ---- AND TYPING IN THE CLAUSE LETS THE PASSAGE GO, HAVING DONE NOTHING ----
-       (29 Aug 2026.) A reader who highlights a sentence and then simply carries
-       on writing has answered the question themselves — the passage the rail is
-       holding is the passage they have just typed over. Leaving it attached
-       would leave a card offering to replace wording that is no longer there,
-       and ceReplacePassage would then refuse in words for a reason the reader
-       never caused.
+    /* ---- AND TYPING CLOSES THE STRIP, HAVING DONE NOTHING ----
+       (29 Aug 2026.) With the strip live during typing, a reader who highlights
+       a sentence and then simply carries on writing has answered the question
+       themselves — the passage the strip was holding is the passage they have
+       just typed over. Leaving it open would leave a box offering to replace
+       wording that is no longer there, and ceReplacePassage would then refuse
+       in words for a reason the reader never caused.
        Guarded on there BEING one, so an ordinary keystroke costs nothing. */
     if (_ceSel) ceDetachPassage();
     ceSyncBarSteps();
@@ -3273,7 +3622,7 @@ function ceWirePage(page){
     if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
   });
 
-  /* ---- ONE SENTENCE AT A TIME, AND THE DRAG IS THE WHOLE GESTURE ----
+  /* ---- ONE SENTENCE AT A TIME, AND IT NO LONGER WAITS ITS TURN ----
      (owner-reported 29 Aug 2026: "I am still clicking the pencil sign various
      times and I do not know for what reason ... highlight a sentence and a strip
      bar appears (which was there before but you seem to have deleted it)".)
@@ -3281,26 +3630,31 @@ function ceWirePage(page){
      THIS HANDLER OPENED `if (ceIsTyping()) return;` AND THAT LINE WAS THE WHOLE
      REPORT. Typing and the highlight could not be live at once, so the pencil
      was one switch pointing at one of two jobs and NO NUMBER OF PRESSES REACHED
-     BOTH. Its reasoning is not wrong about what a drag CAN mean — inside a
-     contenteditable box it really can be somebody selecting words to embolden —
-     it is wrong that it can only mean that. So a drag means BOTH: the browser's
-     own selection stands and every tool on the bar still acts on it, AND the
-     passage attaches to the rail beside it.
+     BOTH. A drag means BOTH now: the browser's own selection stands and every
+     tool on the writing bar still acts on it, AND the passage goes to the rail.
 
-     ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
-     THIS IS THE LINE THAT MAKES OPTION A WORK, and getting it wrong would have
-     made the feature unusable in one press: with the box on the paper, a press
-     anywhere else that made no selection meant "the reader has moved on", and
-     detaching was right. With the box in the RAIL, the very next thing a reader
-     does after attaching a passage is click into the ask box to type — and that
-     press is not in `#ce-doc`, makes no selection, and would have detached the
-     passage they had just chosen.
-
-     So a press outside the paper is not this handler's business at all: it
-     neither attaches nor detaches. The ways to let a passage go are the card's
-     own ✕, Escape, typing over it in the clause, and choosing another passage.
-     Nothing else takes it away. */
+     THE RAIL WAITS RATHER THAN TAKING OVER, which is the promise that makes one
+     gesture safe for two jobs and is the whole of what the 31 Aug ruling
+     changed. It never takes the caret — nothing here focuses anything, so the
+     reader carries on typing where they were, which is the fault the strip was
+     reported for. The next keystroke in the clause lets the passage go, having
+     done nothing (the input handler above). */
   page.addEventListener('mouseup', ev => {
+    /* ---- THE DRAG HAS TO END IN THE WORDING (31 Aug 2026) ----
+       This used to exclude CONTROLS and take everything else, because the strip
+       was the only other thing on the page that acted on a held passage. The
+       rail is now a card the reader reads, edits an ask beside, and presses —
+       and a press ANYWHERE in it that is not a control (the quoted passage, the
+       card's own body, a stray drag over its text) came back here a frame later
+       with no selection in the clause and tore the card down under the hand
+       that was using it. MEASURED as the ask box losing its passage the moment
+       the reader clicked into it.
+
+       So it asks the DOCUMENT rather than the page: a gesture that did not end
+       inside the wording is not a gesture about the wording. A drag that starts
+       in the clause and ends past its edge still lands, because ceSelection
+       reads the SELECTION rather than the pointer — what this refuses is a
+       press that never touched the paper at all. */
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-doc')) return;
     setTimeout(() => {
@@ -3342,11 +3696,11 @@ Object.assign(window, {
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
   ceBoxDirty,
+  ceSelection, ceAttachPassage, ceDetachPassage, ceRenderScope, ceRenderChips,
+  ceReplacePassage, ceCutPassage, ceRestoreScroll,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
-  ceAttachPassage, ceDetachPassage, ceRenderScope, ceReplacePassage, ceCutPassage, ceSelection,
-  ceRestoreScroll,
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
 });
