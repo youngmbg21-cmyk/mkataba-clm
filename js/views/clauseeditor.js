@@ -1741,6 +1741,32 @@ function ceGoClause(clauseId, extra){
 /* Bring the clause this page is about into the reader's view. Deferred a frame
    for the same reason the caret is: the paper it scrolls inside is written by
    the paint that is still running. */
+/* ---- LANDING ON THE CLAUSE IS NOT A JOURNEY TO IT (owner-reported 31 Aug 2026)
+   ---- *"The contracts still jumps around when you are trying to make edits.
+   The contracts should stay firm where it is unless you are scrolling."*
+
+   MEASURED, and it is the whole report: this wrote host.scrollTop BARE, and
+   #ce-doc is a `.nego-scroll` carrying scroll-behavior:smooth — so opening a
+   clause was a 28-frame ANIMATED GLIDE from the top of the contract down to it,
+   0 → 728 on an ordinary agreement. The reader presses the pencil to edit one
+   clause and watches half the contract fly past first.
+
+   THE SAME CLASS AS THE 31 Aug FIX, ONE FUNCTION ALONG: a position change drawn
+   as a journey. What was fixed then was putting the reader BACK where they were;
+   this is putting them AT the clause they asked for, and neither is a trip.
+
+   BOTH CALLERS LAND RATHER THAN TRAVEL, deliberately:
+     · ARRIVING — the page is a full-window layer that did not exist a frame
+       ago, so there is no position the reader was looking at to travel FROM.
+       Animating from the top animates from a state that existed for one frame.
+     · MOVING TO ANOTHER CLAUSE — ceGoClause re-seeds the draft and re-renders
+       the paper first, so the glide would be an animation between two unrelated
+       documents rather than a journey across one.
+
+   WHAT KEEPS ITS JOURNEY, and this is why the stylesheet rule is not touched:
+   the reader's own scrolling, and the negotiation page's rlLinkFocus, where
+   pressing a change card really is a trip to its clause across a document that
+   has not moved. */
 function ceScrollToClause(){
   const go = () => {
     const host = _ceQ('#ce-doc');
@@ -1750,7 +1776,10 @@ function ceScrollToClause(){
       const sec = box.closest ? box.closest('.rl-clause') : null;
       const target = sec || box;
       const hb = host.getBoundingClientRect(), tb = target.getBoundingClientRect();
-      host.scrollTop = Math.max(0, host.scrollTop + (tb.top - hb.top) - 24);
+      /* Through the ONE thing on this page that moves the paper, so there is a
+         single answer to "does the contract animate" rather than one per
+         caller. */
+      ceRestoreScroll(host, Math.max(0, host.scrollTop + (tb.top - hb.top) - 24));
     }catch(_){}
   };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
@@ -2839,14 +2868,29 @@ async function ceRunScan(){
    computed from the two whole texts and the rest of the clause is provably
    untouched.
    ========================================================================== */
-function ceSelection(){
-  const box = _ceQ('#ce-clausebody'); if (!box || typeof window.getSelection !== 'function') return null;
+/* ---- ONE READING, TWO READERS (31 Aug 2026) ----
+   ceSelectionRead answers the whole question — the passage, or the reason
+   there is not one — and the two thin wrappers under it are what everything
+   else calls. Split because a refusal on this page used to be SILENT: the
+   handler got null, drew nothing and said nothing, so a gesture the product
+   had decided against was indistinguishable from a broken page. That is this
+   codebase's own most repeated defect, and it is the half of the ✕ report that
+   would have made the other half findable in seconds.
+
+   NEVER TWO COPIES OF THE READING. A second function working out "why not"
+   beside one working out "what" is how the two come to disagree about which
+   passages are allowed. */
+function ceSelectionRead(){
+  const box = _ceQ('#ce-clausebody');
+  if (!box || typeof window.getSelection !== 'function') return { why: null };
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return { why: null };
   const r = sel.getRangeAt(0);
-  if (!box.contains(r.commonAncestorContainer)) return null;
+  if (!box.contains(r.commonAncestorContainer)) return { why: null };
   const text = String(sel.toString() || '').replace(/[^\S\n]+/g, ' ').replace(/\n+/g, ' ').trim();
-  if (text.length < 3) return null;
+  /* A CLICK IS NOT A REFUSAL. Below this there is nothing a reader could have
+     meant, so it answers null rather than naming a reason nobody needs. */
+  if (text.length < 3) return { why: null };
   /* ---- IT HAS TO SIT INSIDE ONE SUB-PARAGRAPH ----
      A clause's text carries one sub-paragraph per LINE and those line breaks
      are what the document builder reads back into real numbering. A passage
@@ -2863,14 +2907,19 @@ function ceSelection(){
     if (li < 0){ li = i; at = k; }
     if (ln.indexOf(text, k + 1) >= 0) seen += 1;
   });
-  if (li < 0) return null;
-  if (seen > 1 && text.length < 40) return null;   /* ambiguous */
+  /* NOT IN THE DRAFT AT ALL. Two honest causes and they want different words:
+     the passage runs across a line break (the sub-paragraph rule above), or it
+     takes in wording that is on the paper and not in the draft — struck-out
+     words in the redlined reading are exactly that. */
+  if (li < 0) return { why: /\s/.test(text) && lines.length > 1 ? 'ce_sel_two_paras' : 'ce_sel_not_in_draft' };
+  if (seen > 1 && text.length < 40) return { why: 'ce_sel_twice' };   /* ambiguous */
   let rect = null;
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
   /* THE RANGE TRAVELS WITH IT, so the held mark is drawn over exactly what the
      reader dragged rather than over the first copy of those words in the box. */
-  return { text, rect, line: li, at, range: r };
+  return { sel: { text, rect, line: li, at, range: r } };
 }
+function ceSelection(){ return ceSelectionRead().sel || null; }
 /* ---- NOTICED WHILE FIXING THE STRIP, AND DELIBERATELY NOT FIXED ----
    (29 Aug 2026.) With typing OFF, a DRAG in the wording is read as a press in
    the wording: click-to-type runs on the `click` that follows mouseup, starts
@@ -2982,11 +3031,42 @@ function ceAttachPassage(sel){
 }
 function ceDetachPassage(){
   if (!_ceSel) return;
+  const had = _ceSel;
   _ceSel = null;
   /* THE MARK GOES WITH IT. It says what the rail is holding, so it may not
      outlive it — and this is the third of the three nets that keep it off the
      record (see ceMarkHeld). */
   ceClearHeld();
+  /* ---- AND SO DOES THE BROWSER'S OWN SELECTION (owner-reported 31 Aug 2026)
+     ---- *"when I click the highlighted x in the card, I am unable to highlight
+     a sentence in the same clause and get a copilot to edit again."*
+
+     REPRODUCED, AND THE ✕ IS THE TRIGGER RATHER THAN THE CAUSE. Letting the
+     passage go took away the card and the mark and left the SELECTION standing
+     — and pressing the ✕ moves focus out of the box, at which point the browser
+     stops painting that selection. So from the reader's chair nothing is
+     selected while the document says otherwise.
+
+     WHAT THAT COSTS IS THE WHOLE REPORT: a mousedown inside an existing
+     selection in a contenteditable box starts a native DRAG OF THE TEXT rather
+     than a new selection, so the browser swallows the mouseup and this page's
+     handler never runs at all. MEASURED: two mousedowns, one mouseup. It is
+     that clause only, because that is where the stale selection is, and it
+     clears itself after one press elsewhere — which is what makes it read as
+     intermittent.
+
+     ONLY WHERE THE SELECTION IS STILL OURS, and that is what makes this safe
+     rather than merely effective: this runs on every path that lets a passage
+     go, including a rebuild and a refusal, and collapsing a selection the
+     reader has just made themselves would be the same rudeness pointing the
+     other way. Compared on the normalised text, because ceSelection normalises
+     and the live selection does not. */
+  try{
+    const s = window.getSelection && window.getSelection();
+    if (s && !s.isCollapsed && had && had.text
+        && String(s.toString() || '').replace(/[^\S\n]+/g, ' ').replace(/\n+/g, ' ').trim() === had.text)
+      s.removeAllRanges();
+  }catch(_){}
   ceRenderScope(); ceRenderChips();
 }
 /* ---- WHAT IS ATTACHED, SAID WHERE THE READER IS ABOUT TO TYPE ----
@@ -3658,8 +3738,16 @@ function ceWirePage(page){
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-doc')) return;
     setTimeout(() => {
-      const sel = ceSelection();
-      if (sel) ceAttachPassage(sel); else ceDetachPassage();
+      const read = ceSelectionRead();
+      if (read.sel){ ceAttachPassage(read.sel); return; }
+      ceDetachPassage();
+      /* ---- AND A REFUSAL SAYS WHY (31 Aug 2026) ----
+         This branch used to do nothing at all, so a passage the product had
+         decided against looked exactly like a page that had stopped working —
+         and there was no way for the reader to tell which. ceSay is the page's
+         one refusal line, which the writing bar, Apply and Discard already
+         speak through. A plain click answers no reason and stays silent. */
+      if (read.why) ceSay(_cet(read.why));
     }, 0);
   });
 }
@@ -3696,7 +3784,7 @@ Object.assign(window, {
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
   ceBoxDirty,
-  ceSelection, ceAttachPassage, ceDetachPassage, ceRenderScope, ceRenderChips,
+  ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,

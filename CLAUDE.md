@@ -7947,6 +7947,113 @@ one for each report), obligations-tab-verify unchanged at 41,
 negotiations-door-verify's search-box claim REVERSED IN PLACE and re-pinned on
 the Contracts seat, contracts-page-verify unchanged at 72.
 
+## LETTING GO MEANS LETTING GO, AND LANDING IS NOT TRAVELLING (owner-reported 31 Aug 2026)
+
+Two reports in one message, and each turned out to be a rule the product half
+kept. `WORKORDER-redline-flow.md` carries all four items; N-1 (a note tied to a
+change) is **NOT DECIDED** — three options were drawn, the owner rejected all
+three, and nothing for it may be built.
+
+**N-4 — THE ✕ IS THE TRIGGER, NOT THE CAUSE.** *"when I click the highlighted x
+in the card, I am unable to highlight a sentence in the same clause and get a
+copilot to edit again."*
+
+- **REPRODUCED, AND THE MECHANISM IS THE BROWSER'S.** Letting a passage go took
+  away the card and the mark and **left the browser's own selection standing** —
+  and pressing the ✕ moves focus out of the box, at which point Chrome stops
+  painting that selection. From the reader's chair nothing is selected; the
+  document says otherwise. **A mousedown inside an existing selection in a
+  contenteditable box starts a native DRAG OF THE TEXT rather than a new
+  selection**, so the browser swallows the mouseup and this page's handler never
+  runs. MEASURED: two mousedowns, one mouseup. **That clause only**, because
+  that is where the stale selection is — which is exactly the qualifier in the
+  report — and it clears after one press elsewhere, which is what made it read
+  as intermittent.
+- **`ceDetachPassage` RELEASES THE SELECTION, AND ONLY WHERE IT IS STILL OURS.**
+  That function runs on every path that lets a passage go — a rebuild and a
+  refusal included — so collapsing a selection the reader has just made
+  themselves would be the same rudeness pointing the other way. Compared on the
+  NORMALISED text, because ceSelection normalises and a live selection does not.
+- **AND THE SILENT REFUSAL SPEAKS, which is the half that matters more.** A
+  highlight this page could not place drew nothing and said nothing, so a
+  gesture the product had decided against was indistinguishable from a page that
+  had stopped working — this codebase's own most repeated defect. Had it been
+  speaking, the first half would have been findable in seconds.
+  **`ceSelectionRead` IS ONE READING WITH TWO READERS**: it answers the passage
+  or the reason there is not one, and `ceSelection` is a thin wrapper so every
+  existing caller is untouched. **Never two copies** — a second function working
+  out "why not" beside one working out "what" is how they come to disagree about
+  which passages are allowed. Three real reasons (across two sub-paragraphs;
+  those words appear twice; some of those words are struck out and not in the
+  draft), and **a click is not a refusal** — under three characters it answers
+  nothing and the page stays silent.
+
+**N-2 — LANDING ON A CLAUSE IS NOT A JOURNEY TO IT.** *"The contracts still
+jumps around when you are trying to make edits. The contracts should stay firm
+where it is unless you are scrolling."*
+
+- **THE 31 Aug FIX WAS REAL AND WAS NOT THE ONLY CAUSE.** That one was the
+  RESTORE — putting the reader back where they were, drawn as a glide. This is
+  the other half, one function along: **`ceScrollToClause` wrote `scrollTop`
+  BARE**, and `#ce-doc` is a `.nego-scroll` carrying `scroll-behavior:smooth`,
+  so opening a clause was a **28-frame animated glide from the top of the
+  contract down to it** — measured 0 → 728. The reader presses the pencil to
+  edit one clause and watches half the contract fly past first.
+- **BOTH CALLERS LAND RATHER THAN TRAVEL**, and neither is a journey: ARRIVING
+  opens a full-window layer that did not exist a frame ago, so there is no
+  position to travel FROM; MOVING TO ANOTHER CLAUSE re-seeds the draft and
+  re-renders the paper first, so a glide would animate between two unrelated
+  documents. Both go through `ceRestoreScroll`, so **there is one answer to
+  "does the contract animate"** rather than one per caller.
+- **THE STYLESHEET RULE IS NOT TOUCHED.** It is what makes the reader's own
+  scrolling behave and what makes the negotiation page's `rlLinkFocus` read as a
+  journey to its clause across a document that has not moved.
+- **MEASURED AS FRAMES, NEVER AS A FINAL POSITION** — 28 distinct offsets
+  before, 2 after. A probe that reads the offset once the dust settles passes
+  against a page that visibly travels, which is the whole reason this claim
+  lives in a browser file.
+
+**N-3 — ONE SEARCH BOX, AND IT IS THE SHELL'S.** *"remove the search open text
+field in the contracts page."* M-5 did this on Negotiations five days earlier
+and its note said Contracts kept its box; **that is REVERSED IN PLACE by the
+owner naming the other seat**, and the claim is simpler for it — it is no longer
+a question about seats at all, so the guard goes rather than flipping. A
+condition false on every seat is one the next reader has to rule out.
+
+- **THE FTS WIRING IS NOT DELETED** — every handler already guards on the
+  element existing, so there is no second code path to keep in step and the
+  full-text search behind the shell's own box is untouched.
+- **A STALE QUERY NARROWS NOTHING, IN THE ONE READING.** The shell bar writes
+  `regState().query` and then navigates, so a value really can be left on the
+  state, and a page narrowed by a control nobody can see has nothing on screen
+  to press to widen it. Ignored in `regFiltered` rather than cleared in a
+  renderer another path can go around.
+- **AND WHAT COUNTS AS NARROWED AGREES WITH WHAT NARROWS.** `regRowsHtml`'s own
+  "is anything filtered" reading drops the query too: two answers to one
+  question is how a Clear button comes to offer itself over a list nothing
+  filtered.
+- `reg_search` and `reg_search_ph` are STALE as visible text on both seats, left
+  INERT in both dictionaries.
+
+**AND A CHECK THAT STAGES ITS OWN GROUND CANNOT BE BROKEN BY THE SECTION ABOVE
+IT** — paid twice in one day. clause-editor-verify's new section inherited a
+draft that sections 18–22 had typed into, applied to and filed against, so its
+drag found no passage long enough; it opens its own untouched clause now, the
+same correction 18j needed that morning. **And a probe's own sentinel is not
+data**: filming an arrival starts before the layer mounts, and counting those
+frames as scroll offsets made an instrument artefact look like a third step of
+a journey.
+
+Tests: f245 (22) and (23) (**every claim fails against the parent**, three
+claims of f245 (19)/(20)/(21) REVERSED IN PLACE — the last one now says the
+paper is NEVER assigned bare, where it used to allow exactly one), f263 (3)
+(reversed onto both seats, with the old Contracts CONTROL becoming the second
+half of the claim), clause-editor-verify sections 23 and 24 (**driven with a
+real mouse, because a scripted Range fires no mousedown and passes against the
+broken build — against the parent they report `down 2 / up 1` and `28 distinct
+offsets`**), contracts-page-verify section 16 plus six claims re-pointed from
+six controls to five.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

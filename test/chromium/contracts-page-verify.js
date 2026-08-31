@@ -249,9 +249,14 @@ const check = (name, ok, detail) => {
     check('8d the band bleeds to the page edge, like the room head does',
       band.band.left === band.head.left, `${band.band.left} vs ${band.head.left}`);
 
-    /* SEARCH IS A FILTER, AND THE FIRST ONE — the design's own order. */
-    check('8e search is a labelled filter, not a strip of its own',
-      band.search && /search|sök/i.test(band.first || ''), band.first);
+    /* ---- REVERSED IN PLACE 31 Aug 2026 (N-3) ----
+       This asserted that search was the row's FIRST labelled filter rather than
+       a strip of its own, which was WO-4's correction. The owner has since
+       removed the box from this page as well as from Negotiations — the shell
+       bar carries the one search — so what is left to claim is that no strip
+       came back in its place and the row begins with a real filter. */
+    check('8e no search strip on the row — the shell bar carries the one search',
+      !band.search && !!band.first && !/search|sök/i.test(band.first || ''), band.first);
     check('8f and every filter shares one row',
       new Set(band.tops).size === 1, JSON.stringify(band.tops));
 
@@ -411,10 +416,15 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(900);
     const rest = await page.evaluate(READ_EDGES);
     const fieldLine = await page.evaluate(RESOLVE, '--field-line');
+    /* RE-POINTED 31 Aug 2026 (N-3): the search box was one of the three
+       controls this walked, and the page draws none now. The CLAIM is the one
+       it always made — every filter control on the row wears --field-line —
+       and it is asked of the controls that are still there. */
     check('12a a resting filter wears --field-line, the reference\'s own neutral',
-      rest.stage && rest.stage.bc === fieldLine
-        && rest.type.bc === fieldLine && rest.search.bc === fieldLine,
+      rest.stage && rest.stage.bc === fieldLine && rest.type.bc === fieldLine,
       `${rest.stage && rest.stage.bc} · token ${fieldLine}`);
+    check('12a2 …and the search box it used to walk is gone from the row',
+      rest.search === null, rest.search ? 'still drawn' : 'not drawn');
     /* COMPARED AGAINST THE TOKEN, NOT A LIVE BUTTON: this page draws only the
        FILLED primary, which has an edge of its own, so a live comparison here
        reads `null` and proves nothing. The tokens are what the two controls
@@ -467,11 +477,16 @@ const check = (name, ok, detail) => {
        line. It goes through selFilter now — the SAME builder as the other five,
        rather than being restyled to match, because one builder is what stops
        them drifting apart again.
-       EVERY CLAIM IS A RELATION between the six, never a number: what is being
+       EVERY CLAIM IS A RELATION between them, never a number: what is being
        asserted is that they agree with each other, which is exactly what a
-       later type or spacing pass must not be allowed to break. */
+       later type or spacing pass must not be allowed to break.
+
+       FIVE SINCE 31 Aug 2026 (N-3), not six: the search box was one of them and
+       the owner has taken it off this page too. The relations are unchanged and
+       the list is what moved, which is why this is re-pointed rather than
+       weakened — a control removed must leave the rest agreeing. */
     const six = await page.evaluate(() => {
-      const ids = ['reg-search', 'reg-stage-sel', 'reg-type-sel',
+      const ids = ['reg-stage-sel', 'reg-type-sel',
         'reg-view-sel', 'reg-category', 'reg-sort'];
       return ids.map(id => {
         const e = document.getElementById(id);
@@ -485,8 +500,12 @@ const check = (name, ok, detail) => {
           size: g ? g.fontSize : null, color: g ? g.color : null };
       });
     });
-    check('13a all six controls are present', six.every(f => !f.absent),
-      six.filter(f => f.absent).map(f => f.id).join(',') || 'all six');
+    check('13a all five controls are present', six.every(f => !f.absent),
+      six.filter(f => f.absent).map(f => f.id).join(',') || 'all five');
+    check('13a2 and the search box is not among them any more',
+      !six.some(f => f.id === 'reg-search')
+        && !(await page.evaluate(() => !!document.getElementById('reg-search'))),
+      'not drawn');
     check('13b every one of them stacks its label, Sort included',
       six.every(f => f.stacked), six.filter(f => !f.stacked).map(f => f.id).join(','));
     check('13c every one of them SAYS what it is — no filter named only by a tooltip',
@@ -750,6 +769,56 @@ const check = (name, ok, detail) => {
     check('15 and the next page gets its reserved gutter back',
       elsewhere.gutter > 0 || /stable/.test(elsewhere.rule || ''),
       `${elsewhere.gutter}px · ${elsewhere.rule}`);
+
+    /* ============================================================
+       16. ONE SEARCH BOX, AND IT IS THE SHELL'S (N-3, 31 Aug 2026)
+       ============================================================
+       *"remove the search open text field in the contracts page."* M-5 did the
+       same on Negotiations; the owner has now named the other seat, so neither
+       draws one. MEASURED AS PAINT rather than as markup, because a box that is
+       in the DOM and merely hidden is still a box the next reader has to rule
+       out — and because the shell bar's own box must be proved still there,
+       which is the whole reason this one could go. */
+    const boxes = await page.evaluate(() => {
+      const shown = el => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && el.offsetParent !== null
+          && getComputedStyle(el).visibility !== 'hidden';
+      };
+      const shell = document.querySelector('#cmd-search, #shell-search, header input[type="text"], header input:not([type])');
+      return { own: !!document.getElementById('reg-search'),
+        ownShown: shown(document.getElementById('reg-search')),
+        shell: shown(shell),
+        shellPh: shell ? (shell.placeholder || '') : '' };
+    });
+    check('16a the Contracts page draws no search box of its own',
+      boxes.own === false && boxes.ownShown === false,
+      boxes.own ? '#reg-search is still in the page' : 'not drawn');
+    check('16b …and the shell bar still carries one, which is why it could go',
+      boxes.shell === true, boxes.shell ? `"${boxes.shellPh.slice(0, 42)}"` : 'no box in the header');
+
+    await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
+      if (window.renderNegotiationsList) renderNegotiationsList(); else renderRegister(); });
+    await page.waitForTimeout(500);
+    const negBox = await page.evaluate(() => !!document.getElementById('reg-search'));
+    check('16c and neither does Negotiations — one renderer, one answer',
+      negBox === false, negBox ? 'still there' : 'not drawn');
+
+    /* A STALE QUERY MUST NARROW NOTHING. The shell bar writes regState().query
+       and navigates, so a value really can be left behind — and a page narrowed
+       by a control nobody can see has nothing on screen to press to widen it. */
+    const stale = await page.evaluate(() => {
+      if (window.regSetScope) regSetScope(null);
+      const before = regFiltered().length;
+      regState().query = 'zzzz-no-such-contract';
+      const after = regFiltered().length;
+      regState().query = '';
+      return { before, after };
+    });
+    check('16d a query nobody can see narrows nothing',
+      stale.before === stale.after && stale.before > 0,
+      `${stale.before} rows before, ${stale.after} after`);
 
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {

@@ -46,7 +46,7 @@ the part worth keeping, because it is measured rather than argued:
 
 ---
 
-## N-2 — THE CONTRACT STILL JUMPS WHILE YOU EDIT
+## N-2 — THE CONTRACT STILL JUMPS WHILE YOU EDIT ✅ BUILT 31 Aug 2026
 
 > *"The contracts still jumps around when you are trying to make edits. The
 > contracts should stay firm where it is unless you are scrolling."*
@@ -76,7 +76,7 @@ passes against a page that visibly jumps.
 
 ---
 
-## N-3 — REMOVE THE SEARCH FIELD ON THE CONTRACTS PAGE
+## N-3 — REMOVE THE SEARCH FIELD ON THE CONTRACTS PAGE ✅ BUILT 31 Aug 2026
 
 > *"remove the search open text field in the contracts page."*
 
@@ -101,7 +101,7 @@ shell bar already carries one, twelve pixels above.
 
 ---
 
-## N-4 — AFTER LETTING A PASSAGE GO, THE SAME CLAUSE STOPS ACCEPTING ONE
+## N-4 — AFTER LETTING A PASSAGE GO, THE SAME CLAUSE STOPS ACCEPTING ONE ✅ BUILT 31 Aug 2026
 
 > *"when I click the highlighted x in the card, I am unable to highlight a
 > sentence in the same clause and get a copilot to edit again."*
@@ -154,6 +154,27 @@ Range fires no mousedown and passed against every configuration above.
 
 ---
 
-## WHAT SHIPS TOGETHER
+## WHAT SHIPPED
 
-N-2, N-3 and N-4 go in one change. N-1 waits for the owner.
+N-2, N-3 and N-4 went in one change on 31 Aug 2026. **N-1 still waits for the
+owner and nothing for it has been built.**
+
+**WHAT THE BUILD FOUND THAT THIS ORDER DID NOT PREDICT, said out loud:**
+
+- **N-4's diagnosis in this order was WRONG about the mechanism** and right
+  about the shape. It guessed a divergence between the draft in memory and the
+  words on screen. The real cause is the browser's: the ✕ leaves the SELECTION
+  standing while focus moves off the box, so Chrome stops painting it — and a
+  mousedown inside an existing selection in a contenteditable starts a native
+  text DRAG, which swallows the mouseup. Measured two mousedowns, one mouseup.
+  The order's second half — that the silent refusal is the more important
+  defect — was right and is built.
+- **N-2's first candidate was wrong too.** The paper holds its position exactly
+  through typing, the writing bar, the pencil, filing and a plain repaint —
+  measured, zero frames. What moves is ARRIVING: ceScrollToClause wrote
+  scrollTop bare under a smooth rule, a 28-frame glide down the contract.
+- **FOUR MEASUREMENTS BEFORE THE CAUSE.** Both were found by instrumenting the
+  scroller and the mouse rather than by reading the code, and in N-2's case one
+  reproduction attempt was itself wrong (it pressed the first pencil in the
+  document, which belongs to another clause, so a legitimate move-to-clause
+  looked like the bug). Rule out the instrument before believing the finding.

@@ -1659,7 +1659,7 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'it must not refuse a drag because the reader is typing — that refusal IS '
       + 'the report, and with it in place the pencil is one switch pointing at '
       + 'one of two jobs');
-    assert.match(up[0], /ceAttachPassage\(sel\)/, 'and it still attaches the passage');
+    assert.match(up[0], /ceAttachPassage\(read\.sel\)/, 'and it still attaches the passage');
     /* ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
        THE LINE THAT MAKES OPTION A WORK. With the box on the paper, a press
        elsewhere that made no selection meant "the reader has moved on" and
@@ -1748,8 +1748,9 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'the press has to have landed inside the paper');
     assert.ok(!/\[data-ce-act\], #ce-inline/.test(up),
       'and the old control exclusion is gone with the strip it was written for');
-    assert.match(up, /if \(sel\) ceAttachPassage\(sel\); else ceDetachPassage\(\);/,
-      'a real selection attaches, and none lets the passage go');
+    assert.match(up, /if \(read\.sel\)\{ ceAttachPassage\(read\.sel\); return; \}/,
+      'a real selection attaches');
+    assert.match(up, /ceDetachPassage\(\);\n/, 'and none lets the passage go');
   });
 
   test('and typing in the clause lets it go, having done nothing', () => {
@@ -1867,23 +1868,27 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
       'which is published, or the read is silence');
   });
 
-  test('nothing else on this page assigns a scrollTop bare', () => {
-    /* ceScrollToClause is the one deliberate TRAVEL on this page — bringing the
-       clause into view on arrival — and is left alone. Everything else that
-       puts a position back goes through the helper. */
+  /* ---- REVERSED IN PLACE 31 Aug 2026 (N-2), AND STRONGER FOR IT ----
+     This allowed ONE bare assignment on the paper — ceScrollToClause — on the
+     reasoning that bringing the clause into view is a deliberate TRAVEL and
+     should glide. The owner reported that glide as the bug it is: a 28-frame
+     journey down the contract every time you press the pencil. So the exemption
+     is gone and the claim is the simple one — the paper is NEVER assigned
+     bare. */
+  test('nothing on this page assigns the paper a scrollTop bare', () => {
     const live = CODE.replace(/\/\*[\s\S]*?\*\//g, '');
     /* PINNED AS A RELATION, NOT A COUNT: every remaining assignment is either
-       the helper's own, a deliberate TRAVEL, or the rail's conversation — which
-       is a different scroller with no smooth rule on it. */
+       the helper's own or the rail's conversation — a different scroller, with
+       no smooth rule on it. */
     const sites = live.match(/[\w.]+\.scrollTop = /g) || [];
     for (const site of sites)
-      assert.ok(/^(el|host|lane)\.scrollTop = $/.test(site), 'unexpected scroll site: ' + site);
-    assert.equal(sites.filter(x => x === 'host.scrollTop = ').length, 1,
-      'the paper is assigned in exactly one place, and it is the deliberate travel');
-    assert.match(live, /host\.scrollTop = Math\.max\(0, host\.scrollTop \+ \(tb\.top - hb\.top\)/,
-      'ceScrollToClause is the one deliberate TRAVEL and stays smooth on purpose');
+      assert.ok(/^(el|lane)\.scrollTop = $/.test(site), 'unexpected scroll site: ' + site);
+    assert.equal(sites.filter(x => x === 'host.scrollTop = ').length, 0,
+      'the paper is never assigned directly — every move goes through the helper');
+    assert.equal(sites.filter(x => x === 'el.scrollTop = ').length, 1,
+      'and the helper itself is the one place that writes one');
     assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 2,
-      'and the rail keeps its own two — the scan tab\'s top and the last turn');
+      'the rail keeps its own two — the scan tab\'s top and the last turn');
   });
 });
 
@@ -1913,7 +1918,10 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
 describe('f245 (21) — the sentence the rail is holding', () => {
 
   test('the mark is drawn where the reader dragged, not where the words repeat', () => {
-    const sel = CODE.match(/function ceSelection\([\s\S]*?\n\}/)[0];
+    /* RE-POINTED 31 Aug 2026: ceSelection is a one-line wrapper now and the
+       reading lives in ceSelectionRead, so a refusal can name itself. The claim
+       is unchanged — the live range travels with the selection. */
+    const sel = CODE.match(/function ceSelectionRead\([\s\S]*?\n\}/)[0];
     assert.match(sel, /range: r/,
       'the live range travels with the selection, so the mark lands on exactly '
       + 'the passage that was dragged');
@@ -1969,5 +1977,159 @@ describe('f245 (21) — the sentence the rail is holding', () => {
       'INSET, so the underline occupies no space');
     assert.ok(!/\.ce-paperwrap \.ce-held\{[^}]*(?:padding|margin|border(?!-)|font-size)/.test(CODE),
       'and nothing in it can move a word when it appears or goes');
+  });
+});
+
+/* ============================================================
+   f245 (22) — LETTING A PASSAGE GO REALLY LETS IT GO
+   ------------------------------------------------------------
+   OWNER-REPORTED 31 Aug 2026, off a screenshot with the card's ✕ ringed:
+   *"when I click the highlighted x in the card, I am unable to highlight a
+   sentence in the same clause and get a copilot to edit again."*
+
+   REPRODUCED IN A BROWSER, AND THE ✕ IS THE TRIGGER RATHER THAN THE CAUSE.
+   Letting the passage go took away the card and the mark and left the BROWSER'S
+   OWN SELECTION standing — and pressing the ✕ moves focus out of the box, at
+   which point the browser stops painting that selection. From the reader's
+   chair nothing is selected; the document says otherwise.
+
+   WHAT THAT COSTS IS THE WHOLE REPORT: a mousedown inside an existing selection
+   in a contenteditable box starts a native DRAG OF THE TEXT rather than a new
+   selection, so the browser swallows the mouseup and this page's handler never
+   runs. MEASURED: two mousedowns, one mouseup. That clause only, because that
+   is where the stale selection is — which is exactly the qualifier in the
+   report — and it clears itself after one press elsewhere, which is what made
+   it read as intermittent.
+
+   THE SECOND HALF IS THE ONE THAT MATTERS MORE. A highlight this page refuses
+   used to draw nothing and say nothing, so a gesture the product had decided
+   against was indistinguishable from a page that had stopped working. That is
+   this codebase's own most repeated defect, and had the refusal been speaking
+   the first half would have been findable in seconds.
+
+   The PIXELS — that the second drag really does raise the card again — are
+   clause-editor-verify's, driven with a real mouse. A scripted Range fires no
+   mousedown at all and passes against the broken build.
+   ============================================================ */
+describe('f245 (22) — the selection goes with the passage', () => {
+
+  test('THE REPORTED FIX: letting a passage go releases the selection too', () => {
+    const off = CODE.match(/function ceDetachPassage\([\s\S]*?\n\}/)[0];
+    assert.match(off, /removeAllRanges\(\)/,
+      'the browser\'s own selection is dropped, or the next mousedown inside it '
+      + 'is read as a drag of the text and the mouseup never arrives');
+    assert.match(off, /const had = _ceSel;/,
+      'what was being held is taken before it is cleared, so the comparison '
+      + 'below has something to compare against');
+  });
+
+  test('ONLY WHERE THE SELECTION IS STILL OURS', () => {
+    /* This runs on every path that lets a passage go — a rebuild and a refusal
+       included — so collapsing a selection the reader has just made themselves
+       would be the same rudeness pointing the other way. */
+    const off = CODE.match(/function ceDetachPassage\([\s\S]*?\n\}/)[0];
+    assert.match(off, /!s\.isCollapsed && had && had\.text/,
+      'a collapsed selection and a detach with nothing held are both left alone');
+    assert.match(off, /=== had\.text\)\n?\s*s\.removeAllRanges\(\)/,
+      'and it is cleared only when it is still the passage that was held');
+    assert.ok(off.includes("replace(/[^\\S\\n]+/g, ' ')"),
+      'compared on the normalised text, because ceSelection normalises and a '
+      + 'live selection does not');
+    assert.match(off, /try\{[\s\S]*removeAllRanges[\s\S]*\}catch/,
+      'and it can never take an act down with it');
+  });
+
+  test('ONE READING, TWO READERS — a refusal can name itself', () => {
+    assert.match(CODE, /function ceSelectionRead\(\)\{/,
+      'the whole question is answered once');
+    assert.match(CODE, /function ceSelection\(\)\{ return ceSelectionRead\(\)\.sel \|\| null; \}/,
+      'and ceSelection is a thin wrapper, so every existing caller is unchanged');
+    /* NEVER TWO COPIES OF THE READING: a second function working out "why not"
+       beside one working out "what" is how the two come to disagree about which
+       passages are allowed. */
+    const reads = (CODE.match(/const lines = ceLines\(\);\n\s+let li = -1/g) || []).length;
+    assert.equal(reads, 1, 'there is exactly one place that decides');
+  });
+
+  test('and the three refusals are real, distinct reasons', () => {
+    const read = CODE.match(/function ceSelectionRead\([\s\S]*?\n\}/)[0];
+    for (const k of ['ce_sel_two_paras', 'ce_sel_twice', 'ce_sel_not_in_draft'])
+      assert.ok(read.includes(k), k + ' is answered by the reading itself');
+    assert.match(read, /if \(text\.length < 3\) return \{ why: null \};/,
+      'A CLICK IS NOT A REFUSAL — below this there is nothing a reader could '
+      + 'have meant, so it names no reason and the page stays silent');
+    assert.match(read, /if \(!sel \|\| sel\.isCollapsed \|\| !sel\.rangeCount\) return \{ why: null \};/,
+      'and neither is a collapsed selection');
+  });
+
+  test('the handler speaks it, through the page\'s one refusal line', () => {
+    const up = CODE.match(/addEventListener\('mouseup'[\s\S]*?\n  \}\);/)[0];
+    assert.match(up, /const read = ceSelectionRead\(\);/, 'it asks the one reading');
+    assert.match(up, /if \(read\.sel\)\{ ceAttachPassage\(read\.sel\); return; \}/,
+      'a placeable passage attaches exactly as it did');
+    assert.match(up, /if \(read\.why\) ceSay\(_cet\(read\.why\)\);/,
+      'and a refusal names itself — ceSay is the line the writing bar, Apply '
+      + 'and Discard already speak through');
+  });
+
+  test('both languages carry the three sentences', () => {
+    for (const k of ['ce_sel_two_paras', 'ce_sel_twice', 'ce_sel_not_in_draft']){
+      assert.ok(new RegExp('\\b' + k + ':').test(I18N), k + ' is in the dictionary');
+      assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+});
+
+/* ============================================================
+   f245 (23) — LANDING ON A CLAUSE IS NOT A JOURNEY TO IT
+   ------------------------------------------------------------
+   OWNER-REPORTED 31 Aug 2026: *"The contracts still jumps around when you are
+   trying to make edits. The contracts should stay firm where it is unless you
+   are scrolling."*
+
+   THE 31 Aug FIX WAS REAL AND WAS NOT THE ONLY CAUSE. That one was the RESTORE
+   — putting the reader back where they were, drawn as a glide. This is the
+   other half and it is one function along: ceScrollToClause wrote scrollTop
+   BARE, and #ce-doc is a `.nego-scroll` carrying scroll-behavior:smooth, so
+   opening a clause was a 28-FRAME ANIMATED GLIDE from the top of the contract
+   down to it — measured 0 → 728 on an ordinary agreement. The reader presses
+   the pencil to edit one clause and watches half the contract fly past first.
+
+   MEASURED BEFORE AND AFTER, as frames rather than as a final position: 28
+   distinct offsets before, 2 after. A probe that reads the offset once the dust
+   settles passes against a page that visibly travels, which is why the pixels
+   for this live in clause-editor-verify.
+   ============================================================ */
+describe('f245 (23) — the paper lands rather than travels', () => {
+
+  test('THE REPORTED CAUSE: no bare assignment is left in the travel', () => {
+    const go = CODE.match(/function ceScrollToClause\([\s\S]*?\n\}/)[0];
+    assert.ok(!/host\.scrollTop = Math\.max/.test(go),
+      'a bare assignment under a smooth rule is a request to animate');
+    assert.match(go, /ceRestoreScroll\(host, Math\.max\(0, host\.scrollTop \+ \(tb\.top - hb\.top\) - 24\)\)/,
+      'the same arithmetic, through the one thing on this page that moves the '
+      + 'paper — so there is a single answer to "does the contract animate"');
+  });
+
+  test('and both callers land: arriving, and moving to another clause', () => {
+    /* Neither is a journey. Arriving opens a full-window layer that did not
+       exist a frame ago, so there is no position to travel FROM; ceGoClause
+       re-seeds the draft and re-renders the paper first, so a glide would
+       animate between two unrelated documents. */
+    const callers = (CODE.match(/ceScrollToClause\(\)/g) || []).length;
+    assert.ok(callers >= 2, 'both call sites are still there: ' + callers);
+    assert.ok(!/scrollIntoView/.test(CODE),
+      'and nothing on this page reaches for scrollIntoView, which animates '
+      + 'under the same rule and cannot be suspended');
+  });
+
+  test('the stylesheet rule is NOT removed', () => {
+    /* It is what makes the reader's own scrolling behave, and what makes the
+       negotiation page's rlLinkFocus read as a journey to its clause across a
+       document that has not moved. */
+    const neg = read('js/views/negotiation.js');
+    assert.match(neg, /scroll-behavior:\s*smooth/,
+      'the smooth rule stands; what changed is which writes are exempt from it');
   });
 });

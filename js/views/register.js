@@ -878,19 +878,23 @@ function regFiltered(){
   else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
-  /* ---- NO TEXT FILTER ON A SEAT THAT DRAWS NO BOX (M-5) ----
-     (owner-reported 31 Aug 2026: *"remove the search bar on the left under
-     negotiations because we already have one on top of the screen."*)
+  /* ---- NO TEXT FILTER, BECAUSE NEITHER SEAT DRAWS A BOX ----
+     M-5 (Negotiations) and then N-3 (Contracts), 31 Aug 2026, both reported in
+     the same words: *"we already have one on top of the screen."* M-5's own
+     note said this was the Negotiations seat's rule and that Contracts kept its
+     box; that is REVERSED IN PLACE by the owner naming the other seat, and the
+     claim is simpler for it — it is no longer a question about seats at all.
 
-     The Negotiations seat draws no search control, and a page narrowed by a
-     control nobody can see is the fault this whole file's filter rules exist to
-     prevent — worse than the duplicate box, because there would be nothing to
-     press to widen it again. The shell bar's own search writes regState().query
-     and then navigates to Contracts, so a stale value really can be left on
-     this seat's state; ignored HERE, in the one reading, rather than cleared in
-     a renderer that another path could go around. */
-  const q=(regScope()==='negotiations'?'':R.query).trim().toLowerCase();
-  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+     The shell bar's own search writes regState().query and then navigates, so a
+     stale value really can be left on this state, and a page narrowed by a
+     control nobody can see is the fault this file's whole filter section exists
+     to prevent — worse than the duplicate box ever was, because there would be
+     nothing on screen to press to widen it again.
+
+     IGNORED HERE, IN THE ONE READING, rather than cleared in a renderer another
+     path could go around. regRowsHtml's own "is anything filtered" reading
+     leaves it out for the same reason: two answers to one question is how a
+     Clear button comes to offer itself over a list nothing narrowed. */
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
@@ -1052,7 +1056,13 @@ function regRowsHtml(cs){
   const R=regState();
   const neg=regScope()==='negotiations';
   if(!cs.length){
-    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
+    /* ---- WHAT COUNTS AS NARROWED MUST BE WHAT ACTUALLY NARROWS (N-3) ----
+       R.query is deliberately absent: with no search box on either seat it
+       narrows nothing in regFiltered, so counting it here would offer "Clear
+       all filters" over a list nothing had filtered — the empty state saying
+       one thing and the reading behind it another. Two answers to one question
+       is how a control comes to lie about its own list. */
+    const filtered = R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
@@ -1510,36 +1520,30 @@ function renderRegister(opts){
      which is where the design puts it. The dropdown it opens (#reg-fts) is
      absolutely positioned against this wrapper, so the wrapper keeps
      position:relative and the whole suggestion list follows it unchanged. */
-  /* ---- ONE SEARCH BOX, AND IT IS THE SHELL'S (M-5) ----
-     Owner-reported off a screenshot with both ringed. The shell bar's box says
-     "Search contracts, clauses, counterparties…" and this one said "Full-text:
-     names, parties & clauses…" — two controls answering almost the same
-     question, one directly above the other, on the page whose filter row is
-     already the crowded one.
+  /* ---- ONE SEARCH BOX, AND IT IS THE SHELL'S ----
+     Owner-reported off a screenshot with both ringed (M-5, Negotiations), and
+     then of the Contracts page in the same words (N-3, 31 Aug 2026): *"remove
+     the search open text field in the contracts page."* The shell bar's box
+     says "Search contracts, clauses, counterparties…" and this one said
+     "Full-text: names, parties & clauses…" — two controls answering almost the
+     same question, one directly above the other.
 
-     CONTRACTS KEEPS ITS BOX: the ask names Negotiations and only Negotiations,
-     and that page has room for it. THE FTS WIRING IS NOT DELETED — every
-     handler already guards on the element existing (`if(si)`, `if(!box)
-     return`, `if(rs&&…)`), so the Contracts seat is byte-identical and there is
-     no second code path to keep in step. */
-  const ftsBlock=(API_MODE()&&regScope()!=='negotiations')?`
-    <label class="reg-f" style="position:relative;flex:1 1 220px;min-width:180px;max-width:300px"><span class="reg-f-l">${esc(i18t('reg_search'))}</span>
-      <span style="position:absolute;left:9px;bottom:8px;color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-      ${''/* WHITE, LIKE EVERY CONTROL BESIDE IT (owner-reported 22 Aug 2026).
-             It was --color-bg, the PAGE's grey, while all six dropdowns on the
-             same row are --color-surface — so the one box a reader types into
-             was the only sunk thing in a row of raised ones. The stream page's
-             own search box took the same correction in the same breath: two
-             search boxes in one product disagreeing about their own colour is
-             how the next screen picks the wrong one. */}
-      ${''/* THE SAME HEIGHT AS THE SELECTS BESIDE IT. It padded 6px against
-             their 5px, which is 2px taller — invisible on its own line and
-             plainly wrong once it joined the row, which is the head-row lesson
-             of 22 Aug in a smaller costume. Matched to selStyle's own padding
-             rather than given a height of its own, so the two cannot drift. */}
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:5px 9px 5px 30px;font:inherit;font-size:var(--t-meta);outline:none;color:inherit">
-      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:var(--s-1);width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:var(--radius);max-height:320px;overflow-y:auto"></div>
-    </label>`:'';
+     THIS REVERSES M-5's OWN "CONTRACTS KEEPS ITS BOX" IN PLACE. That line was
+     right about the ASK — the owner named Negotiations and only Negotiations —
+     and it is the owner who has now named the other seat. Neither draws one.
+
+     SO IT IS NOT A SCOPE QUESTION ANY MORE and the guard goes rather than
+     flipping: one renderer draws both pages, neither wants the box, and a
+     condition that is false on every seat is a condition the next reader has to
+     rule out. THE FTS WIRING IS NOT DELETED — every handler already guards on
+     the element existing (`if(si)`, `if(!box) return`, `if(rs&&…)`), so there
+     is no second code path to keep in step and the full-text search behind the
+     shell's own box is untouched.
+
+     `reg_search` and `reg_search_ph` are STALE as visible text on both seats.
+     Left INERT in BOTH dictionaries, because a key removed from one and not the
+     other is how a screen ends up half-English. */
+  const ftsBlock='';
 
   const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
   if(!hostEl) return;

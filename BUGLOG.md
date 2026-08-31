@@ -8152,3 +8152,28 @@ Noticed, not fixed:
   somebody else's change under this run's commit. The third failure,
   templates--light, is this branch's own and is deliberately left red (see
   CLAUDE.md).
+
+## 31 Aug 2026 (evening) — N-2, N-3, N-4
+
+Three fixes, all reproduced before they were touched.
+
+- N-4: the ✕ left the browser's own selection standing, so the next mousedown
+  inside it was read as a native text drag and the mouseup never arrived.
+  Measured: two mousedowns, one mouseup. Fixed by releasing the selection when
+  it is still ours, and by making the silent refusal speak.
+- N-2: ceScrollToClause wrote scrollTop bare under a smooth rule, so opening a
+  clause was a 28-frame glide from the top of the contract. Both callers land
+  through ceRestoreScroll now.
+- N-3: the search box is off both seats; a stale query narrows nothing and no
+  longer counts as a filter.
+
+Noticed, not fixed:
+- Dragging a passage while one is already held has its mouseup swallowed too —
+  the same browser behaviour, but there the reader can SEE the selection
+  because the box has focus, and drag-to-move is a legitimate editing gesture
+  in a contenteditable box. Left alone deliberately; overriding it would break
+  moving text by dragging.
+- The rail's conversation lane shrinks when a passage card attaches, because
+  #ce-lane is flex:1 and the card sits above it. Not the contract, and not
+  reported; noting it because it is the one thing on this page that does move
+  when a passage is taken.

@@ -1716,6 +1716,13 @@ const STRINGS = {
     ce_inline_plain: 'Plain English',
     ce_inline_say_what: 'Type the wording that should stand in its place.',
     ce_inline_moved: 'That passage has moved. Highlight it again and try once more.',
+    /* ---- WHY A HIGHLIGHT WAS NOT TAKEN (31 Aug 2026) ----
+       This branch used to be silent, so a passage the product had decided
+       against read as a page that had stopped working. Each says what to do
+       next, because a refusal with no way forward is worse than no refusal. */
+    ce_sel_two_paras: 'That runs across two sub\u2011paragraphs. Highlight inside one of them and Copilot can work on it.',
+    ce_sel_twice: 'Those words appear more than once in this clause. Highlight a longer passage so there is no doubt which one you mean.',
+    ce_sel_not_in_draft: 'Some of those words are not in the wording you are editing \u2014 struck\u2011out text is on the page but not in your draft. Highlight the words that are staying.',
     /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'The other side sees this beside the redline.',
     ce_nothing_to_file: 'Nothing has changed yet, so there is nothing to file.',
@@ -7028,6 +7035,9 @@ const STRINGS = {
     ce_inline_plain: 'Enkel svenska',
     ce_inline_say_what: 'Skriv formuleringen som ska stå i stället.',
     ce_inline_moved: 'Stycket har flyttat sig. Markera det igen och försök en gång till.',
+    ce_sel_two_paras: 'Markeringen sträcker sig över två delstycken. Markera inom ett av dem så kan Copilot arbeta med det.',
+    ce_sel_twice: 'De orden förekommer mer än en gång i den här klausulen. Markera ett längre stycke så att det inte råder tvivel om vilket du menar.',
+    ce_sel_not_in_draft: 'Några av orden finns inte i lydelsen du redigerar \u2014 överstruken text syns på sidan men ingår inte i ditt utkast. Markera de ord som blir kvar.',
     /* STALE 28 Aug 2026 — see ng_why_this_change. Left inert. */
     ce_reason_hint: 'Motparten ser det här bredvid ändringen.',
     ce_nothing_to_file: 'Inget har ändrats ännu, så det finns inget att registrera.',

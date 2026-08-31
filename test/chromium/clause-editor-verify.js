@@ -2323,6 +2323,205 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      bareLeft === false, bareLeft ? 'host.scrollTop = keep is back' : 'it goes through the helper');
 
   /* ---- 10. NO PAGE ERRORS THROUGHOUT ---- */
+  /* ============================================================
+     23. LETTING A PASSAGE GO REALLY LETS IT GO (N-4, 31 Aug 2026)
+     ============================================================
+     OWNER-REPORTED off a screenshot with the card's ✕ ringed: *"when I click
+     the highlighted x in the card, I am unable to highlight a sentence in the
+     same clause and get a copilot to edit again."*
+
+     DRIVEN WITH A REAL MOUSE, and that is the whole reason this lives here. The
+     cause is that a mousedown inside an existing selection in a contenteditable
+     box starts a native DRAG OF THE TEXT, so the browser swallows the mouseup
+     and the page's handler never runs. A scripted Range fires neither event and
+     passes against the broken build — measured, it did.
+
+     THE COUNTS ARE THE EVIDENCE: mousedowns and mouseups are tallied on the
+     paper itself, so "the handler never ran" and "the handler ran and refused"
+     can be told apart. Against the code of an hour before this reports
+     down 2 / up 1.
+     ============================================================ */
+  /* ---- ON A CLAUSE OF ITS OWN, and that is the point rather than tidiness ----
+     Sections 18 to 22 above type into, apply to and file against the staged
+     clause, so by the time this runs its draft is whatever they left. A check
+     that stages its own ground cannot be broken by what a section above it
+     happened to do — the same correction 18j needed earlier in this file. */
+  await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
+  const cl23 = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    const cl = list.find(x => (x.text || '').length > 120
+      && !(window.CONTRACT.changes || []).some(ch => ch.clauseId === x.clauseId))
+      || list.reduce((a, b) => (b.text || '').length > (a.text || '').length ? b : a, list[0]);
+    return cl ? cl.clauseId : null; });
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, { typing: true }), cl23);
+  await pause(900);
+  await p.evaluate(() => { window.__up = 0; window.__down = 0;
+    const d = document.getElementById('ce-doc');
+    d.addEventListener('mouseup', () => window.__up++, true);
+    d.addEventListener('mousedown', () => window.__down++, true); });
+
+  const dragPassage = async () => {
+    /* ---- THE TARGET HAS TO BE ON SCREEN BEFORE THE MOUSE GOES TO IT ----
+       This section runs after ones that scroll the paper, so the first long
+       line can be above the window — and a mouse sent to a negative y never
+       touches the document at all, which reads exactly like the bug. The paper
+       is put at the clause first, with the smooth rule suspended so the rect is
+       read where it will actually be rather than where it is passing through. */
+    const r = await p.evaluate(() => {
+      const host = document.getElementById('ce-doc');
+      const box = document.getElementById('ce-clausebody');
+      const prev = host.style.scrollBehavior;
+      host.style.scrollBehavior = 'auto';
+      host.scrollTop = Math.max(0, host.scrollTop
+        + (box.getBoundingClientRect().top - host.getBoundingClientRect().top) - 20);
+      host.style.scrollBehavior = prev;
+      const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      const ns = []; let n; while ((n = w.nextNode())) if (n.data.trim().length >= 24) ns.push(n);
+      const hb = host.getBoundingClientRect();
+      const node = ns.find(nd => {
+        const rg = document.createRange(); rg.selectNodeContents(nd);
+        const b = rg.getBoundingClientRect();
+        return b.height && b.top >= hb.top && b.bottom <= hb.bottom;
+      }) || ns[0];
+      if (!node) return null;
+      const from = 4, to = Math.min(node.data.length, from + 40);
+      const rg = document.createRange(); rg.setStart(node, from); rg.setEnd(node, to);
+      const b = rg.getBoundingClientRect();
+      if (!b.height || b.top < hb.top || b.bottom > hb.bottom) return null;
+      return { x1: b.left + 1, y1: b.top + b.height / 2, x2: b.right - 1, y2: b.bottom - 3 };
+    });
+    if (!r) return false;
+    await p.mouse.move(r.x1, r.y1); await p.mouse.down();
+    await p.mouse.move((r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2, { steps: 6 });
+    await p.mouse.move(r.x2, r.y2, { steps: 6 }); await p.mouse.up();
+    await pause(400); return true;
+  };
+  const railState = () => p.evaluate(() => ({
+    card: !!document.querySelector('#ce-scope .ce-scope'),
+    held: document.querySelectorAll('#ce-clausebody .ce-held').length,
+    selLive: !((window.getSelection() || { isCollapsed: true }).isCollapsed),
+    up: window.__up, down: window.__down }));
+
+  const gotOne = await dragPassage();
+  const s23a = await railState();
+  const diag23 = await p.evaluate(() => {
+    const box = document.getElementById('ce-clausebody');
+    const host = document.getElementById('ce-doc');
+    const hb = host ? host.getBoundingClientRect() : null;
+    const bb = box ? box.getBoundingClientRect() : null;
+    const mid = bb ? document.elementFromPoint(bb.left + 20, bb.top + 8) : null;
+    return { hasBox: !!box, typing: box && box.getAttribute('contenteditable'),
+      host: hb && [Math.round(hb.left), Math.round(hb.top), Math.round(hb.width), Math.round(hb.height)],
+      boxRect: bb && [Math.round(bb.left), Math.round(bb.top), Math.round(bb.width), Math.round(bb.height)],
+      onTop: mid ? (mid.id || mid.className || mid.tagName) : 'none' };
+  });
+  ck('23a a passage was found and attached', gotOne && s23a.card === true,
+     `card ${s23a.card} · drag ${gotOne} · ${JSON.stringify(diag23)}`);
+
+  await p.evaluate(() => { const x = document.querySelector('#ce-scope [data-ce-act="scope-off"]');
+    if (x) x.click(); });
+  await pause(400);
+  const s23b = await railState();
+  ck('23b pressing ✕ drops the card AND the mark',
+     s23b.card === false && s23b.held === 0, `card ${s23b.card}, marks ${s23b.held}`);
+  /* THE FIX ITSELF. The card and the mark going was never in doubt; the
+     selection standing is what broke the next gesture. */
+  ck('23c …AND releases the browser\'s own selection, which is the reported bug',
+     s23b.selLive === false,
+     s23b.selLive ? 'the selection is still live and invisible' : 'released');
+
+  await dragPassage();
+  const s23d = await railState();
+  ck('23d THE REPORTED GESTURE: highlighting again in the SAME clause works',
+     s23d.card === true && s23d.held === 1, `card ${s23d.card}, marks ${s23d.held}`);
+  ck('23e …and the mouseup really arrived — the browser did not read it as a drag',
+     s23d.up === 2 && s23d.down === 2, `down ${s23d.down} / up ${s23d.up}`);
+
+  /* ---- AND A REFUSAL SAYS WHY, where it used to say nothing ---- */
+  const refused23 = await p.evaluate(async () => {
+    const box = document.getElementById('ce-clausebody');
+    const ps = box.querySelectorAll('p');
+    if (ps.length < 2) return { skip: true };
+    const first = ps[0], last = ps[ps.length - 1];
+    const a = first.firstChild, b = last.firstChild;
+    if (!a || !b || a.nodeType !== 3 || b.nodeType !== 3) return { skip: true };
+    const rg = document.createRange();
+    rg.setStart(a, 0); rg.setEnd(b, Math.min(20, b.data.length));
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(rg);
+    document.getElementById('ce-doc').dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 350));
+    return { say: String((document.getElementById('ce-say') || {}).textContent || '').trim(),
+      card: !!document.querySelector('#ce-scope .ce-scope') };
+  });
+  if (refused23.skip) ck('23f (skipped — the fixture clause is one paragraph)', true, 'n/a');
+  else {
+    ck('23f A REFUSED HIGHLIGHT NAMES ITS REASON, where it used to be silent',
+       !!refused23.say && refused23.say.length > 10, `"${(refused23.say || '').slice(0, 60)}"`);
+    ck('23g …and no card is drawn over a passage it cannot place',
+       refused23.card === false, `card ${refused23.card}`);
+  }
+
+  /* ============================================================
+     24. LANDING ON A CLAUSE IS NOT A JOURNEY TO IT (N-2, 31 Aug 2026)
+     ============================================================
+     *"The contracts still jumps around when you are trying to make edits. The
+     contracts should stay firm where it is unless you are scrolling."*
+
+     ceScrollToClause wrote scrollTop BARE and #ce-doc carries
+     scroll-behavior:smooth, so opening a clause was an ANIMATED GLIDE down the
+     contract. MEASURED AS FRAMES, because a probe that reads the offset once
+     the dust settles passes against a page that visibly travels: 28 distinct
+     offsets before, 2 after.
+     ============================================================ */
+  const film = async act => {
+    const rec = p.evaluate(() => new Promise(res => {
+      const f = []; let n = 0;
+      const tick = () => { const h = document.getElementById('ce-doc');
+        f.push(h ? Math.round(h.scrollTop) : -1);
+        if (++n < 60) requestAnimationFrame(tick); else res(f); };
+      requestAnimationFrame(tick); }));
+    await act();
+    /* -1 IS "THE PAGE DID NOT EXIST YET", NOT A SCROLL POSITION. Arriving is
+       filmed from before the layer mounts, so the first frames have no element
+       to read — counting them as offsets makes an instrument artefact look like
+       a third step of a journey. */
+    const f = (await rec).filter(v => v >= 0);
+    const u = [...new Set(f)];
+    return { distinct: u.length, from: f[0], to: f[f.length - 1] };
+  };
+
+  /* A contract long enough that arriving at the clause is a real distance. */
+  const far = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    return list.length > 3 ? list[list.length - 1].clauseId : null; });
+  await p.evaluate(() => rlCloseClauseEditor()); await pause(500);
+  const arrive = far ? await film(async () => {
+    await p.evaluate(id => rlOpenClauseEditor(window.CONTRACT, id, {}), far);
+  }) : null;
+  await pause(700);
+  if (!arrive || arrive.to === arrive.from)
+    ck('24a (skipped — the fixture contract does not scroll)', true,
+       arrive ? `stayed at ${arrive.from}` : 'no clause');
+  else {
+    ck('24a ARRIVING AT A CLAUSE LANDS — the contract does not travel to it',
+       arrive.distinct <= 2, `${arrive.distinct} distinct offsets, ${arrive.from} → ${arrive.to}`);
+    ck('24b …and it lands ON the clause rather than at the top',
+       arrive.to > 0, `landed at ${arrive.to}`);
+  }
+
+  /* MOVING to another clause is the same act, and neither is a journey:
+     ceGoClause re-seeds the draft and re-renders the paper first, so a glide
+     would animate between two unrelated documents. */
+  const other24 = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT), cur = clauseEditorClauseId();
+    const o = list.find(x => x.clauseId !== cur && (x.text || '').length > 60);
+    return o ? o.clauseId : null; });
+  if (other24){
+    const moved = await film(async () => { await p.evaluate(id => ceGoClause(id), other24); });
+    ck('24c MOVING to another clause lands too',
+       moved.distinct <= 2, `${moved.distinct} distinct offsets, ${moved.from} → ${moved.to}`);
+  }
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

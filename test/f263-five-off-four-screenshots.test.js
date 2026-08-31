@@ -144,14 +144,25 @@ describe('f263 (2) — a duplicate obligation is refused at the form too', () =>
 });
 
 /* ============================================================
-   M-5 — ONE SEARCH BOX ON NEGOTIATIONS
-   ============================================================ */
-describe('f263 (3) — the Negotiations seat draws one search control', () => {
+   M-5, THEN N-3 — ONE SEARCH BOX, AND IT IS THE SHELL'S
+   ------------------------------------------------------------
+   REVERSED IN PLACE 31 Aug 2026. M-5 removed the box from Negotiations and this
+   block asserted that Contracts kept its own — which was right about the ASK
+   (the owner named Negotiations and only Negotiations) and is now overtaken by
+   the owner naming the other seat in the same words: *"remove the search open
+   text field in the contracts page."*
 
-  test('the page\'s own box is not drawn there, and Contracts keeps its', () => {
-    assert.match(REG, /const ftsBlock=\(API_MODE\(\)&&regScope\(\)!=='negotiations'\)\?/,
-      'gated on the seat, so Contracts is byte-identical');
-    assert.match(REG, /id="reg-search"/, 'the box itself is not deleted');
+   THE CLAIM IS SIMPLER FOR IT: it is no longer a question about seats at all.
+   Neither draws one, so the guard goes rather than flipping — a condition that
+   is false on every seat is one the next reader has to rule out.
+   ============================================================ */
+describe('f263 (3) — neither seat draws a search control', () => {
+
+  test('the page\'s own box is drawn on neither seat', () => {
+    assert.match(REG, /const ftsBlock='';/,
+      'no seat gate is left behind — the box is simply not drawn');
+    assert.ok(!/id="reg-search"/.test(REG),
+      'and the markup is gone rather than left dead behind a false condition');
   });
 
   test('THE FTS WIRING IS NOT DELETED — every handler guards on the element', () => {
@@ -166,13 +177,14 @@ describe('f263 (3) — the Negotiations seat draws one search control', () => {
       'and the shell bar\'s own write');
   });
 
-  test('A STALE QUERY ON THAT SEAT NARROWS NOTHING', () => {
-    /* The shell bar writes regState().query and then navigates to Contracts, so
-       a value really can be left on this seat's state. A page narrowed by a
-       control nobody can see is worse than the duplicate box was, because there
-       would be nothing to press to widen it again. */
-    assert.match(REG, /const q=\(regScope\(\)==='negotiations'\?'':R\.query\)\.trim\(\)\.toLowerCase\(\);/,
-      'ignored in the ONE reading, not cleared in a renderer another path goes around');
+  test('A STALE QUERY NARROWS NOTHING, ON EITHER SEAT', () => {
+    /* The shell bar writes regState().query and then navigates, so a value
+       really can be left on the state. A page narrowed by a control nobody can
+       see is worse than the duplicate box ever was, because there is nothing on
+       screen to press to widen it again. */
+    assert.ok(!/R\.query\)\.trim\(\)\.toLowerCase\(\)/.test(REG),
+      'the text filter is gone from the ONE reading, not cleared in a renderer '
+      + 'another path goes around');
 
     const w = buildWorld({ negotiationView: true, contractView: true, registerView: true });
     const { win } = w;
@@ -187,15 +199,28 @@ describe('f263 (3) — the Negotiations seat draws one search control', () => {
     win.getContract = id => [a, b].find(c => c.id === id) || null;
 
     win.regSetScope('negotiations');
-    const before = win.regFiltered().length;
+    const beforeNeg = win.regFiltered().length;
     win.regState().query = 'Warehousing';
-    assert.equal(win.regFiltered().length, before,
-      'a query nobody can see must not narrow the page');
+    assert.equal(win.regFiltered().length, beforeNeg,
+      'a query nobody can see must not narrow Negotiations');
 
-    /* THE CONTROL: on Contracts, where the box IS drawn, the same query narrows. */
+    /* AND THE SAME ON CONTRACTS, which is what N-3 changed: this used to be the
+       CONTROL — the seat where the box was drawn and the query still bit. */
     win.regSetScope(null);
+    const beforeReg = win.regFiltered().length;
     win.regState().query = 'Warehousing';
-    assert.ok(win.regFiltered().length < 2, 'and Contracts still filters on it');
+    assert.equal(win.regFiltered().length, beforeReg,
+      'nor Contracts, now that it draws no box either');
+  });
+
+  test('AND WHAT COUNTS AS NARROWED AGREES WITH WHAT NARROWS', () => {
+    /* Two answers to one question is how a Clear button comes to offer itself
+       over a list nothing filtered — the empty state saying one thing and the
+       reading behind it another. */
+    const empty = REG.match(/const filtered = [^;]+;/)[0];
+    assert.ok(!/R\.query/.test(empty),
+      'the empty state does not count a query that narrows nothing');
+    assert.match(empty, /R\.stage!=='all'/, 'and still counts the filters that do');
   });
 
   test('THE SORT NOTE IS GONE, and its key is left inert in both languages', () => {
