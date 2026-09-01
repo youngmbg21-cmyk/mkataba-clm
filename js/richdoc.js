@@ -254,6 +254,38 @@ function _normaliseStructure(root){
     if(!host){ host=parent.ownerDocument.createElement('li'); parent.insertBefore(host, inner); }
     host.appendChild(inner);
   });
+  /* ---- A LIST ITEM'S WORDING SITS ON THE ITEM'S OWN LINE ----
+     (found 2 Sep 2026 while sweeping the writing tools, beside the sub-bullet
+     the owner reported.) A paragraph INSIDE a list item is what a paste from
+     Word, Google Docs or a model's answer routinely produces — the browser's
+     own list editing does not write one — and the text projection walks a
+     block by flushing the line before it, so "<li><p>a</p></li>" came out as a
+     line holding nothing but the bullet and then a second line holding the
+     wording. In the redline that reads as an empty bullet above an unmarked
+     sentence, which is worse than the nesting fault it was found next to,
+     because there is no glyph anywhere saying the two belong together.
+
+     FIXED IN THE MARKUP, NOT IN THE WALKS. richToText and _lineUnits both read
+     this shape and must agree character for character; teaching each of them
+     to suppress that flush is two copies of one rule, and this codebase's own
+     record is that the two then drift. Unwrapping puts the item into the shape
+     the browser's own list editing produces, which both walks already read
+     correctly.
+
+     A SECOND PARAGRAPH BECOMES A LINE BREAK rather than being run on: two
+     paragraphs in one item are two lines of that item, and <br> is what both
+     walks already read as exactly that. Anything that is not a bare paragraph
+     — a nested list, a table, a quote — is left alone. */
+  root.querySelectorAll('li').forEach(li=>{
+    const ps = Array.from(li.children).filter(el => el.tagName === 'P');
+    if(!ps.length) return;
+    ps.forEach((par, i) => {
+      const parent = par.parentNode; if(!parent) return;
+      if(i) parent.insertBefore(parent.ownerDocument.createElement('br'), par);
+      while(par.firstChild) parent.insertBefore(par.firstChild, par);
+      par.remove();
+    });
+  });
   // an <li> whose parent is no longer a list becomes a paragraph
   root.querySelectorAll('li').forEach(li=>{
     const p=li.parentElement;
@@ -327,23 +359,57 @@ function renderDocHtml(content, format, opts={}){
    attribute and the nesting depth. A legal document is its clause numbers, and
    an <li> carries none; the browser draws them. Dropping them here would hide
    "1.1", "4.4" and "8.3" from the diff, from the model and from search. */
+/* ---- WHAT A LIST ITEM'S MARKER IS, SAID ONCE (owner-reported 2 Sep 2026) ----
+   *"the dented bullet point ... does not stick"* — a sub-bullet typed under its
+   parent read as a sub-bullet in the box and came back as a sibling the moment
+   the clause showed its marks.
+
+   THE DEPTH WAS THROWN AWAY HERE, at the text projection, and nothing
+   downstream could put it back: the redline is drawn from OPS, the ops carry
+   text, and every bullet at every level projected as the same "• ". A nested
+   DECIMAL list has always carried its depth (2 → 2.1 → 2.1.3, three lines
+   below) because that is how a legal document numbers its clauses; a nested
+   BULLET list carried none. So this is the asymmetry closed rather than a new
+   idea: the marker says which level it is, exactly as the number does.
+
+   • ◦ ▪ IS WORD'S OWN LADDER and this product already reads all three —
+   RL_MARKER in js/redline.js lists them among the true marks, so the redline
+   splits a sub-bullet into its gutter with nothing added there. Past the third
+   level the glyph repeats rather than inventing a fourth: a marker a reader
+   cannot name is worse than one that is merely reused.
+
+   ONE READING, TWO WALKS. richToText and _lineUnits each carried their own copy
+   of this, character for character, and they MUST agree — richFromTextEdit
+   verifies its merge by projecting the result and comparing it against the text
+   that was agreed, so a marker that differed by one glyph would abandon the
+   merge on every list in the document. */
+const RICH_BULLETS = ['\u2022', '\u25e6', '\u25aa'];
+function _listMark(list, index, path, ulDepth){
+  if(list.tagName !== 'OL')
+    return { prefix: RICH_BULLETS[Math.min(ulDepth, RICH_BULLETS.length - 1)] + ' ', next: [] };
+  const start = parseInt(list.getAttribute('start') || '1', 10) || 1;
+  const n = start + index;
+  const type = list.getAttribute('type');
+  const mark = type === 'a' ? _alpha(n).toLowerCase()
+    : type === 'A' ? _alpha(n)
+    : type === 'i' ? _roman(n).toLowerCase()
+    : type === 'I' ? _roman(n)
+    : String(n);
+  /* A DECIMAL sub-list continues its parent's numbering — 2 → 2.1 → 2.1.3 —
+     because that is how a legal document numbers its clauses. A sub-list the
+     author set as (a)/(i) does NOT: the document shows "a.", so the projection
+     must say "a." too, or the diff and the model would be reading numbers
+     nobody can find in the paper. */
+  const dotted = !['a','A','i','I'].includes(type || '');
+  const next = dotted ? path.concat([mark]) : [];
+  return { prefix: dotted ? next.join('.') + '. ' : mark + '. ', next };
+}
 function richToText(html){
   const root=_parseInert(sanitizeRich(html));
   const lines=[];
   let buf='';
   const flush=()=>{ const t=buf.replace(/[ \t]+/g,' ').trim(); if(t) lines.push(t); buf=''; };
-  const marker=(ol, index)=>{
-    const start=parseInt(ol.getAttribute('start')||'1',10)||1;
-    const n=start+index;
-    switch(ol.getAttribute('type')){
-      case 'a': return _alpha(n).toLowerCase();
-      case 'A': return _alpha(n);
-      case 'i': return _roman(n).toLowerCase();
-      case 'I': return _roman(n);
-      default:  return String(n);
-    }
-  };
-  (function walk(node, path){
+  (function walk(node, path, ulDepth){
     for(const ch of Array.from(node.childNodes)){
       if(ch.nodeType===3){ buf+=ch.nodeValue.replace(/\s+/g,' '); continue; }
       if(ch.nodeType!==1) continue;
@@ -351,31 +417,24 @@ function richToText(html){
       if(tag==='BR'){ flush(); continue; }
       if(tag==='OL'||tag==='UL'){
         flush();
-        // A DECIMAL sub-list continues its parent's numbering — 2 → 2.1 → 2.1.3
-        // — because that is how a legal document numbers its clauses. A sub-list
-        // the author set as (a)/(i) does NOT: the document shows "a.", so the
-        // projection must say "a." too, or the diff and the model would be
-        // reading numbers nobody can find in the paper.
-        const dotted = tag==='OL' && !['a','A','i','I'].includes(ch.getAttribute('type')||'');
         let i=0;
         for(const li of Array.from(ch.children)){
           if(li.tagName!=='LI') continue;
-          const mark = tag==='OL' ? marker(ch, i) : '•';
-          const next = (tag==='OL' && dotted) ? path.concat([mark]) : [];
-          buf += (tag==='OL' ? (dotted ? next.join('.')+'. ' : mark+'. ') : '• ');
-          walk(li, next);
+          const { prefix, next } = _listMark(ch, i, path, ulDepth);
+          buf += prefix;
+          walk(li, next, tag==='UL' ? ulDepth+1 : ulDepth);
           flush();
           i++;
         }
         continue;
       }
       if(tag==='PRE'){ flush(); (ch.textContent||'').split('\n').forEach(l=>lines.push(l.replace(/[ \t]+$/,''))); continue; }
-      if(tag==='TR'){ walk(ch, path); flush(); continue; }
-      if(tag==='TD'||tag==='TH'){ walk(ch, path); buf+='\t'; continue; }
-      if(RICH_BLOCKS.has(tag)){ flush(); walk(ch, path); flush(); continue; }
-      walk(ch, path);
+      if(tag==='TR'){ walk(ch, path, ulDepth); flush(); continue; }
+      if(tag==='TD'||tag==='TH'){ walk(ch, path, ulDepth); buf+='\t'; continue; }
+      if(RICH_BLOCKS.has(tag)){ flush(); walk(ch, path, ulDepth); flush(); continue; }
+      walk(ch, path, ulDepth);
     }
-  })(root, []);
+  })(root, [], 0);
   flush();
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').trim();
 }
@@ -418,18 +477,10 @@ function _lineUnits(root){
     if(t) units.push({ node:cur.node, prefix:cur.prefix, text:t, line:cur.prefix+t });
     cur=null;
   };
-  const marker=(ol,index)=>{
-    const start=parseInt(ol.getAttribute('start')||'1',10)||1;
-    const n=start+index;
-    switch(ol.getAttribute('type')){
-      case 'a': return _alpha(n).toLowerCase();
-      case 'A': return _alpha(n);
-      case 'i': return _roman(n).toLowerCase();
-      case 'I': return _roman(n);
-      default:  return String(n);
-    }
-  };
-  (function walk(node, path, owner){
+  /* The marker comes from _listMark, the ONE reading richToText asks too: this
+     walk's projection is compared against that one, so a glyph that differed
+     here would abandon every merge that touches a list. */
+  (function walk(node, path, owner, ulDepth){
     for(const ch of Array.from(node.childNodes)){
       if(ch.nodeType===3){ if(cur) cur.text+=ch.nodeValue.replace(/\s+/g,' '); continue; }
       if(ch.nodeType!==1) continue;
@@ -437,14 +488,12 @@ function _lineUnits(root){
       if(tag==='BR'){ flush(); open(owner,''); continue; }
       if(tag==='OL'||tag==='UL'){
         flush();
-        const dotted = tag==='OL' && !['a','A','i','I'].includes(ch.getAttribute('type')||'');
         let i=0;
         for(const li of Array.from(ch.children)){
           if(li.tagName!=='LI') continue;
-          const mark = tag==='OL' ? marker(ch,i) : '•';
-          const next = (tag==='OL' && dotted) ? path.concat([mark]) : [];
-          open(li, tag==='OL' ? (dotted ? next.join('.')+'. ' : mark+'. ') : '• ');
-          walk(li, next, li);
+          const { prefix, next } = _listMark(ch, i, path, ulDepth);
+          open(li, prefix);
+          walk(li, next, li, tag==='UL' ? ulDepth+1 : ulDepth);
           flush();
           i++;
         }
@@ -453,10 +502,10 @@ function _lineUnits(root){
       // a PRE or a TABLE is left alone entirely: its text projection is not a
       // simple line-per-block, so a line edit cannot be placed inside it safely
       if(tag==='PRE'||tag==='TABLE'){ flush(); units.push({ node:ch, prefix:'', text:null, line:null, opaque:true }); continue; }
-      if(RICH_BLOCKS.has(tag)){ flush(); open(ch,''); walk(ch, path, ch); flush(); continue; }
-      walk(ch, path, owner);
+      if(RICH_BLOCKS.has(tag)){ flush(); open(ch,''); walk(ch, path, ch, ulDepth); flush(); continue; }
+      walk(ch, path, owner, ulDepth);
     }
-  })(root, [], root);
+  })(root, [], root, 0);
   flush();
   return units;
 }

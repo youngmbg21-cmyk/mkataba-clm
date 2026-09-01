@@ -450,6 +450,17 @@ function redlineLineKind(line){
    Split so the marker can sit in the hanging indent's gutter and the wording
    can wrap under itself, which is how a contract is set on paper. */
 const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+/* ---- HOW DEEP A BULLET IS, READ OFF ITS OWN GLYPH ----
+   richToText projects a nested bullet list as • then ◦ then ▪ (see _listMark in
+   js/richdoc.js, which is the one place that ladder is decided). Everything
+   else — a number, a letter, a dash — is depth 0: a decimal sub-list carries
+   its depth in the number itself ("2.1"), so indenting it as well would say the
+   same thing twice. Past the third level the glyph repeats, and so does the
+   indent; a marker a reader cannot name is worse than one that is reused. */
+const RL_BULLET_DEPTH = { '\u2022': 0, '\u25e6': 1, '\u25aa': 2 };
+function redlineMarkerDepth(marker){
+  return RL_BULLET_DEPTH[String(marker || '').trim()] || 0;
+}
 function redlineSplitMarker(line){
   const s = String(line == null ? '' : line);
   const m = s.match(RL_MARKER);
@@ -640,8 +651,17 @@ function redlineOpsBlocksHtml(ops, opts = {}){
     const allDel = group.every(o => o.op === 'del');
     const allIns = group.every(o => o.op === 'ins');
     const tag = kind === 'heading' ? 'h4' : 'p';
-    const hang = redlineSplitMarker(shown).marker ? `${pre}-hang` : '';
+    const shownMark = redlineSplitMarker(shown).marker;
+    const hang = shownMark ? `${pre}-hang` : '';
+    /* ---- A SUB-BULLET IS DRAWN AS A SUB-BULLET (owner-reported 2 Sep 2026) ----
+       The depth reaches this renderer as the MARKER ITSELF — • ◦ ▪, the ladder
+       richToText projects and RL_MARKER already reads — so it is read off the
+       glyph rather than carried in a second field nobody would keep in step.
+       Presentation only: nothing here changes what the line SAYS, which is why
+       it is safe to do at the draw and would not be safe in the ops. */
+    const depth = hang ? redlineMarkerDepth(shownMark) : 0;
     const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
+      depth ? `${pre}-hang-${depth + 1}` : '',
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
     /* Attribution rides INSIDE the block renderer rather than replacing it.
@@ -986,7 +1006,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
-  redlineLineKind, redlineSplitMarker,
+  redlineLineKind, redlineSplitMarker, redlineMarkerDepth,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
@@ -995,7 +1015,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
-  redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
+  redlineLineKind, redlineSplitMarker, redlineMarkerDepth, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   Redline, redlineRemoveChange, redlineClearMarkup, redlineChangesOf,
   redlineRebaseOffset, REDLINE_DRAFT_STAGE,
 };

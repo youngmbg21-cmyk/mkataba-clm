@@ -1349,7 +1349,10 @@ describe('f246 (11) — the picker is the sign, the writer is the wall', () => {
     const marked = p.win.rlNpMarkMentions(
       p.win.esc ? p.win.esc('ask @Simon Jordan <b>now</b>') : 'ask @Simon Jordan &lt;b&gt;now&lt;/b&gt;',
       { mentions: [{ id: 'u_sal', name: 'Simon Jordan' }] });
-    assert.match(marked, /<span class="rl-np-at">@Simon Jordan<\/span>/);
+    /* RE-POINTED 2 Sep 2026: the span gained the person's own ink class beside
+       the marker one, so the claim reads the RELATION it was always about —
+       the name is wrapped in the tag class and nothing else changed. */
+    assert.match(marked, /<span class="rl-np-at[^"]*">@Simon Jordan<\/span>/);
     assert.ok(!/<b>/.test(marked), 'the note\'s own markup never reaches the page');
     /* NOTHING IS DRESSED AS A MENTION BY BEING TYPED. */
     assert.equal(p.win.rlNpMarkMentions('ask @Simon Jordan', {}), 'ask @Simon Jordan');

@@ -2770,6 +2770,86 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     ck('25 a clean clause to stage the note dialog on', false, 'none left');
   }
 
+  /* ============================================================
+     26 — THE BAR IS A FIFTH BIGGER, AND A SUB-BULLET STICKS
+     ============================================================
+     Owner-asked 2 Sep 2026. Both claims are PAINT: a size is a computed value
+     and a rule that loses a cascade fight looks perfectly correct in the
+     source, and an indent is a geometry no node test can read. */
+  await p.evaluate(() => {
+    const cl = negoClauseList(window.CONTRACT)[0];
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+  });
+  await pause(700);
+  const bar = await p.evaluate(() => {
+    const g = sel => document.querySelector('#clause-editor ' + sel);
+    const box = el => { const r = el.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    const btn = g('.rb-btn'), size = g('.rb-size'), sep = g('.rb-sep');
+    const svg = g('.rb-btn svg');
+    return {
+      btn: btn ? box(btn) : null,
+      size: size ? box(size) : null,
+      sep: sep ? box(sep) : null,
+      icon: svg ? box(svg) : null,
+      face: btn ? getComputedStyle(btn).fontSize : '',
+      docScale: btn ? getComputedStyle(btn).getPropertyValue('--doc-scale') : 'x',
+      n: document.querySelectorAll('#clause-editor .rb-btn').length,
+    };
+  });
+  ck('26a the bar is on the page with every tool on it', bar.n >= 12, bar.n + ' buttons');
+  ck('26b A BUTTON IS 34px — 28 × 1.2, measured rather than read off the source',
+     bar.btn && bar.btn.w === 34 && bar.btn.h === 34, JSON.stringify(bar.btn));
+  ck('26c the size box matches it, so the row reads as one control strip',
+     bar.size && bar.size.h === 34, JSON.stringify(bar.size));
+  ck('26d the separator grew with them', bar.sep && bar.sep.h === 22, JSON.stringify(bar.sep));
+  ck('26e THE ICON IS 18px WIDE — 15 × 1.2, from one declaration',
+     bar.icon && bar.icon.w === 18, JSON.stringify(bar.icon));
+  ck('26f and it kept its ratio rather than being stretched to a square',
+     bar.icon && bar.icon.h > 0 && bar.icon.h <= 18, JSON.stringify(bar.icon));
+  ck('26g the face is 15px — the ladder rung nearest 13 × 1.2, never a fraction',
+     bar.face === '15px', bar.face);
+
+  /* A NESTED BULLET, FILED, AND THEN READ BACK OFF THE PAPER. Typed into the
+     box as the markup a browser's own indent produces, so what is measured is
+     the journey the owner walked and not a hand-built fixture. */
+  const bul = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c)[0];
+    await negoEditClause(c, cl.clauseId,
+      '<p>The passage does not touch:</p>'
+      + '<ul><li>Governing law (which is separate, in Clause 9)'
+      + '<ul><li>No worries</li></ul></li><li>Data protection</li></ul>',
+      { side: 'owner', author: 'Young Mbagaya' });
+    rlCloseClauseEditor({});
+    window.rlOpenClauseEditor(c, cl.clauseId, {});
+    return new Promise(r => setTimeout(() => {
+      /* the marks, not the draft */
+      const pen = document.querySelector('#clause-editor [data-ce-pencil]');
+      if (pen && pen.getAttribute('aria-expanded') === 'true') pen.click();
+      setTimeout(() => {
+        const lines = [...document.querySelectorAll('#ce-doc .rl-line')];
+        const find = t => lines.find(l => l.textContent.includes(t));
+        const sub = find('No worries'), top = find('Data protection');
+        const rect = el => el ? Math.round(el.getBoundingClientRect().left) : null;
+        r({ drew: lines.length,
+          subGlyph: sub ? (sub.querySelector('.rl-marker') || {}).textContent : null,
+          topGlyph: top ? (top.querySelector('.rl-marker') || {}).textContent : null,
+          subLeft: rect(sub), topLeft: rect(top),
+          subCls: sub ? sub.className : '' });
+      }, 500);
+    }, 900));
+  });
+  ck('26h the clause redrew with its lines', bul.drew > 0, bul.drew + ' lines');
+  ck('26i THE SUB-BULLET CARRIES ITS OWN GLYPH — • for the parent, ◦ for the child',
+     /\u25e6/.test(bul.subGlyph || '') && /\u2022/.test(bul.topGlyph || ''),
+     JSON.stringify([bul.topGlyph, bul.subGlyph]));
+  ck('26j AND IT IS INDENTED PAST ITS SIBLING — the reported fault, as pixels',
+     bul.subLeft != null && bul.topLeft != null && bul.subLeft > bul.topLeft + 20,
+     `sub ${bul.subLeft} vs sibling ${bul.topLeft}`);
+  ck('26k drawn by the depth class, so the rule is reachable', /rl-hang-2/.test(bul.subCls), bul.subCls);
+  await p.evaluate(() => rlCloseClauseEditor({}));
+  await pause(300);
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

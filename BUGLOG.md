@@ -8601,3 +8601,60 @@ Noticed, not fixed:
 - Do not stash the source while a background `npm test` is running. Four
   failures in this run's first suite pass were my own stash, not the code; the
   re-run was 5464/0.
+
+## 2 Sep 2026 — the bar, the sub-bullet, the tag and the mark
+
+Owner-asked, four things off four screenshots.
+
+1. **The writing bar is a fifth bigger.** Every measurement times 1.2 to a whole
+   pixel; every type size to the nearest rung of the ladder rather than the
+   exact multiple. The nine icons scale from ONE declaration — all are authored
+   15px wide, so 18px is exactly 1.2 on each, and height:auto stops the pen
+   being stretched to a square.
+
+2. **A sub-bullet sticks.** The depth was thrown away at the text projection,
+   and nothing downstream could put it back: the redline draws from ops, the
+   ops carry text, and every bullet at every level projected as "• ". A nested
+   DECIMAL list has always carried its depth (2 → 2.1 → 2.1.3); a nested BULLET
+   list carried none, so this is an asymmetry closed rather than a new idea.
+   • ◦ ▪ is Word's own ladder and RL_MARKER already read all three. ONE reading
+   decides the marker and both walks ask it — richToText and _lineUnits each
+   carried their own copy, and they must agree or richFromTextEdit abandons the
+   merge on every list in the document. The indent is read off the glyph at the
+   draw; nothing about what a line SAYS changed.
+
+3. **And the editing sweep found one more.** A paragraph inside a list item —
+   what a paste from Word, Docs or a model routinely produces — projected as a
+   line holding nothing but the bullet and then a second line holding the
+   wording. Fixed in the markup, not in the two walks, for the same reason.
+   Everything else came back clean: bold, italic, underline, strike, both
+   lists, headings, tables, quote, ink, highlight and size all survive storage;
+   a style attribute and an unknown class are refused.
+
+4. **A tagged name is bold and carries the person's own ink.** It was neither,
+   and the cause was the rule being scoped to the negotiation page while the
+   Chat drawer is the shell's own panel — one builder, two homes, one dressed.
+   Measured against the parent: weight 400, in the body's own ink, which is the
+   screenshot. Four inks, borrowed from the drafter's palette because that one
+   already excludes green and red for the reason that matters here.
+
+5. **The person tagged is told.** One route, keys in and addresses never — a
+   body carrying one is refused outright. Colleagues resolve against the users
+   table, the other side against the STORED contract. A colleague who could not
+   open the contract is named rather than written to, and nobody is told about
+   their own note. The mark on the Chat symbol is the bell's own shape and
+   amber, counts notes that NAME you, reads the record raw, and clears when you
+   open Chat.
+
+Noticed, not fixed:
+- A note stamped ahead of the reader's clock can never be marked read, so its
+  mark would stand for ever. The per-change unread dot has had exactly the same
+  property since it was built, and special-casing one of them would make the
+  two disagree about what reading means. Found by a browser check that staged
+  its own note in the future — the staging was the fault, not the product.
+- The Chat mark counts THIS contract only, because that is the contract the
+  door opens. Somebody who names you on an agreement you are not looking at is
+  not marked anywhere.
+- An external tag now mails the other side. That was not separately confirmed;
+  it follows from the note itself already crossing, which the reader agrees to
+  in the confirm the panel already draws.

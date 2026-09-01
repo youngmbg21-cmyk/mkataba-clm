@@ -714,8 +714,31 @@ describe('f264 (9) — the door, and where it is dead', () => {
     assert.match(fn, /const dead=covered\|\|!id;/);
     assert.match(fn, /btn\.disabled=dead;/,
       'disabled, so the browser itself declines and a keyboard reader is told');
-    assert.match(fn, /covered\?i18t\('ng_chat_not_here'\):id\?i18t\('ng_chat_title'\):i18t\('ng_chat_none'\)/,
-      'THREE different facts, three different sentences');
+    /* RE-POINTED 2 Sep 2026: this pinned the whole ternary as a literal, and a
+       FOURTH fact joined it (somebody has named you). What the claim was always
+       about is that each fact gets its own sentence rather than one shrug, so
+       that is what it asks — the relation, not the expression. */
+    ['ng_chat_not_here', 'ng_chat_none', 'ng_chat_title', 'ng_chat_at_n'].forEach(k => {
+      assert.ok(fn.includes("'" + k + "'"), k + ' has a sentence of its own');
+    });
+  });
+
+  /* ---- AND THE MARK (owner-asked 2 Sep 2026) ---- */
+  test('the door carries a mark when somebody has named you', () => {
+    const fn = APP.match(/function paintChatDoor\(\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /window\.negoMentionsWaiting/,
+      'the count is the notes module\u2019s own reading, asked through window');
+    assert.match(fn, /dot\.hidden=!n;/,
+      'hidden at zero and nowhere else \u2014 a shut door is not an empty inbox');
+    const NEG = read('js/views/negotiation.js');
+    const wait = NEG.match(/function negoMentionsWaiting\(c, opts = \{\}\)\{[\s\S]*?\n\}/)[0];
+    assert.ok(!/negoChanges\(/.test(wait),
+      'it reads c.changes RAW \u2014 negoChanges runs negoInit, and a badge that '
+      + 'started a negotiation merely by counting is the recorded trap');
+    assert.match(wait, /negoThreadSeenAt/,
+      'and it is the panel\u2019s own per-browser seen store, not a second one');
+    assert.match(NEG, /negoMarkChatSeen\(c, opts\);/,
+      'opening Chat clears it');
   });
 
   /* RE-POINTED 1 Sep 2026, claim intact. The editor paints this door on both

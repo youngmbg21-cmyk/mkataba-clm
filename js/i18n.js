@@ -1964,6 +1964,8 @@ const STRINGS = {
     ng_chat_empty: 'Nothing has been written on this contract yet.',
     ng_chat_on: 'On {id}',
     ng_chat_not_here: 'The clause you are editing covers this panel. Leave the clause and Chat opens as usual.',
+    ng_chat_at_n_one: 'Chat \u2014 somebody named you in a note',
+    ng_chat_at_n_other: 'Chat \u2014 {n} notes name you',
     ng_card_note_empty: 'Nothing typed yet.',
     ng_discussion: 'Discussion',
     ng_threads_attach: 'Threads attach to a change. Propose an edit on the left and the conversation about it lands here.',
@@ -2352,6 +2354,20 @@ const STRINGS = {
        of this message has no account here. This one is only ever written
        beside the share link they already hold. */
     mail_ob_chase_open: "You can open the agreement here — no account needed:",
+    /* ---- SOMEBODY NAMED YOU IN A NOTE (owner-asked 2 Sep 2026) ----
+       The note's own words are quoted in the body; this frames them. {where} is
+       the change and the agreement where there is a change, and the agreement
+       alone where the note belongs to no redline. */
+    mail_at_subject: "{who} tagged you on {name}",
+    mail_at_line: "{who} named you in a note on {where}.",
+    mail_at_open: "Open the agreement here:",
+    /* What the note's own toast adds about the people it named — a clause on
+       the one confirmation, never a second box. */
+    ng_at_told_one: " {who} was emailed.",
+    ng_at_told_other: " {n} people were emailed.",
+    ng_at_some: " {n} emailed, {missed} could not be.",
+    ng_at_none_one: " {who} could not be emailed.",
+    ng_at_none_other: " {n} people could not be emailed.",
     // ---- the Contract Brief (WO-2) ----
     br_title: "Contract brief",
     br_written: "Written {date} by {name}",
@@ -7296,6 +7312,8 @@ const STRINGS = {
     ng_chat_empty: 'Inget har skrivits p\u00e5 det h\u00e4r avtalet \u00e4nnu.',
     ng_chat_on: 'P\u00e5 {id}',
     ng_chat_not_here: 'Klausulen du redigerar t\u00e4cker den h\u00e4r panelen. L\u00e4mna klausulen s\u00e5 \u00f6ppnas Chatt som vanligt.',
+    ng_chat_at_n_one: 'Chatt \u2014 n\u00e5gon har n\u00e4mnt dig i en anteckning',
+    ng_chat_at_n_other: 'Chatt \u2014 {n} anteckningar n\u00e4mner dig',
     ng_card_note_empty: 'Inget skrivet ännu.',
     ng_discussion: 'Diskussion',
     ng_threads_attach: 'Trådar kopplas till en ändring. Föreslå en redigering till vänster så hamnar samtalet om den här.',
@@ -7631,6 +7649,14 @@ const STRINGS = {
     mail_ob_chase_line_nodate: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}). Kan ni återkomma med hur det ligger till?",
     mail_ob_chase_open: "Ni kan öppna avtalet här — inget konto behövs:",
     br_title: "Avtalssammanfattning",
+    mail_at_subject: "{who} taggade dig i {name}",
+    mail_at_line: "{who} nämnde dig i en anteckning om {where}.",
+    mail_at_open: "Öppna avtalet här:",
+    ng_at_told_one: " {who} fick ett mejl.",
+    ng_at_told_other: " {n} personer fick ett mejl.",
+    ng_at_some: " {n} fick mejl, {missed} kunde inte nås.",
+    ng_at_none_one: " {who} kunde inte nås med mejl.",
+    ng_at_none_other: " {n} personer kunde inte nås med mejl.",
     br_written: "Skriven {date} av {name}",
     br_rewrite: "Skriv om sammanfattningen",
     br_term: "Löptid",

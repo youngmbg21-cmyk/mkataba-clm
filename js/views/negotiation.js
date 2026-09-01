@@ -12093,6 +12093,54 @@ function notesMayWrite(c, opts = {}){
    general topic where there is not. `ch` is optional here for that reason and
    for no other; every guard, every refusal and the whole ordering are the
    change path's own. */
+/* ---- AND THE PERSON NAMED IS TOLD (owner-asked 2 Sep 2026) ----
+   *"The person tagged should also be informed via email."*
+
+   ONE DOOR, TWO CALLERS — the notes panel's send and the note dialog's — so a
+   third way of filing a note joins here rather than growing its own copy of
+   who gets told.
+
+   IT SENDS KEYS, NEVER ADDRESSES. The route resolves each person against the
+   users table and the STORED contract; a body carrying an address is refused
+   outright there. The NAME travels beside the id because the counterparty
+   contact on a contract has no id at all — the tag picker itself falls back to
+   it — so a call keyed on ids alone would quietly never reach the commonest
+   person on the other side.
+
+   THE NOTE IS ALREADY ON THE RECORD by the time this runs, and the mail is
+   best-effort by construction: a provider that is down loses a notification and
+   never a note. In local mode there is no route and this answers null, which
+   the caller reads as "nothing to say" rather than as a failure. */
+async function negoNotifyMentions(c, ch, msg){
+  const list = Array.isArray(msg && msg.mentions) ? msg.mentions : [];
+  if (!c || !list.length) return null;
+  if (!window.API_MODE || !API_MODE() || typeof window.api !== 'function') return null;
+  const people = list.map(p => ({ id: (p && p.id) || '', name: (p && p.name) || '' }))
+    .filter(p => p.id || p.name);
+  if (!people.length) return null;
+  try {
+    return await api('contracts/' + c.id + '/mention', 'POST',
+      { people, changeId: ch ? ch.id : '', note: String((msg && msg.text) || '').slice(0, 600) });
+  } catch (e){ return { ok: false, told: [], skipped: [], why: (e && e.message) || '' }; }
+}
+/* What the one toast says about it — a clause, never a second box. Silent where
+   nobody was named or where there is no mail on this server at all, because a
+   line about email on every note is the furniture this rulebook warns about. */
+function negoMentionLine(out){
+  if (!out) return '';
+  const told = (out.told || []).filter(t => t && (t.emailSent || t.outbox));
+  const failed = (out.told || []).filter(t => t && !t.emailSent && !t.outbox)
+    .concat(out.skipped || []);
+  if (told.length && !failed.length)
+    return ' ' + i18tn('ng_at_told', told.length,
+      { n: told.length, who: told[0].name || '' });
+  if (told.length)
+    return ' ' + i18t('ng_at_some', { n: told.length, missed: failed.length });
+  if (failed.length)
+    return ' ' + i18tn('ng_at_none', failed.length,
+      { n: failed.length, who: failed[0].name || '' });
+  return '';
+}
 async function negoPostToChannel(c, ch, msg){
   if (!window.API_MODE || !API_MODE() || !c || !msg) return { ok: false, skipped: true };
   const res = await api('contracts/' + c.id + '/messages', 'POST', {
@@ -12128,18 +12176,38 @@ const RL_NP_GLOBE = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke
    email address, a price of @45, or a person nobody in this room can be tagged
    by is left exactly as it was typed. Nothing can be dressed as a mention by
    typing it. */
+/* ---- AND EVERY NAME CARRIES ITS OWN INK (owner-asked 2 Sep 2026) ----
+   *"every name having a different color code."* Deterministic and stable across
+   sessions, machines and readers, because a colour that moved between two
+   sittings would be worse than no colour at all: a small hash of the name, into
+   the four inks the panel's sheet defines.
+
+   KEYED ON THE VISIBLE NAME, lowercased, and not on the id. The id is the
+   sturdier identity and is right for a RECORD; this is a scanning aid, and what
+   a reader needs is that the same name they can see always looks the same. A
+   counterparty contact carries no id at all, so keying on one would split some
+   people into two colours and leave others uncoloured. */
+const RL_TAG_INKS = 4;
+function rlTagInk(name){
+  const s = String(name || '').trim().toLowerCase();
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % RL_TAG_INKS;
+}
 function rlNpMarkMentions(escaped, m){
   const list = Array.isArray(m && m.mentions) ? m.mentions : [];
   if (!list.length) return escaped;
   let out = String(escaped);
   for (const p of list.slice().sort((a, b) =>
       String(b && b.name).length - String(a && a.name).length)){
-    const nm = _ne(String((p && p.name) || '').trim());
+    const raw = String((p && p.name) || '').trim();
+    const nm = _ne(raw);
     if (!nm) continue;
     const needle = '@' + nm;
+    const cls = 'rl-np-at rl-np-at-' + rlTagInk(raw);
     let at = out.indexOf(needle);
     while (at >= 0){
-      out = out.slice(0, at) + `<span class="rl-np-at">${needle}</span>`
+      out = out.slice(0, at) + `<span class="${cls}">${needle}</span>`
         + out.slice(at + needle.length);
       at = out.indexOf(needle, at + needle.length + 30);
     }
@@ -12281,6 +12349,69 @@ function rlNotesPanelHtml(c, ch, opts = {}){
 
    NO BOX. There is one note box per change in this product and it is on the
    change; a composer here would be a second one with no change to attach to. */
+/* ---- AND THE DOOR CARRIES A MARK WHEN SOMEBODY HAS NAMED YOU ----
+   (owner-asked 2 Sep 2026, off a screenshot of the shell bar with the space
+   above the Chat symbol ringed: the person tagged is told "with a mark on the
+   symbol".)
+
+   IT COUNTS NOTES, NOT THREADS, and only the ones that name THIS reader: a
+   thread being busy is not the same fact as somebody asking you something, and
+   the bell beside it already answers the first. Read by id first and by name
+   second — the reading obligationRecipient uses, for the same reason: an id
+   survives a rename and a name survives an account with none.
+
+   IT READS c.changes AND c.thread RAW, never negoChanges — that runs negoInit,
+   which CREATES a negotiation on any contract it is asked about, and a badge
+   that starts a negotiation merely by counting would be the trap this file
+   records against the sidebar counts.
+
+   NOBODY IS PINGED BY THEIR OWN NOTE, and "seen" is the panel's own per-browser
+   store keyed by thread — the same one the change cards' unread dot has always
+   used, so opening Chat clears this exactly as reading a thread clears that.
+   The contract's own thread has no change id, so it is keyed by a reserved name
+   that no change can take: ids are CHG-000. */
+const NEGO_CONTRACT_THREAD = '__contract';
+function negoMentionsMe(m, me){
+  const list = Array.isArray(m && m.mentions) ? m.mentions : [];
+  if (!list.length || !me) return false;
+  const myId = String(me.id || ''), myName = String(me.name || '').trim().toLowerCase();
+  return list.some(p => p && ((myId && String(p.id || '') === myId)
+    || (myName && String(p.name || '').trim().toLowerCase() === myName)));
+}
+function negoMentionsWaiting(c, opts = {}){
+  if (!c) return 0;
+  const me = (typeof window.currentUser === 'function') ? currentUser() : null;
+  if (!me) return 0;
+  const scope = negoSeenScope(c, opts);
+  const myId = String(me.id || ''), myName = String(me.name || '').trim().toLowerCase();
+  let n = 0;
+  const count = (thread, key) => {
+    const list = Array.isArray(thread) ? thread : [];
+    if (!list.length) return;
+    const seen = negoThreadSeenAt(scope, key);
+    for (const m of list){
+      if (!m || !negoMentionsMe(m, me)) continue;
+      if (myId && String(m.byId || '') === myId) continue;      /* your own note */
+      if (!m.byId && myName && String(m.who || '').trim().toLowerCase() === myName) continue;
+      if (seen && String(m.at || '') <= String(seen)) continue;
+      n++;
+    }
+  };
+  count(c.thread, NEGO_CONTRACT_THREAD);
+  for (const ch of (Array.isArray(c.changes) ? c.changes : []))
+    if (ch && ch.id) count(ch.thread, ch.id);
+  return n;
+}
+/* Reading Chat is reading every conversation it drew — the panel's own rule for
+   a single thread, applied to the list it stands for. Called AFTER the paint,
+   so the rows are built from the state the reader is about to see. */
+function negoMarkChatSeen(c, opts = {}){
+  if (!c) return;
+  const scope = negoSeenScope(c, opts);
+  negoMarkThreadSeen(scope, NEGO_CONTRACT_THREAD);
+  for (const ch of (Array.isArray(c.changes) ? c.changes : []))
+    if (ch && ch.id) negoMarkThreadSeen(scope, ch.id);
+}
 function rlChatRows(c, opts = {}, room = null){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const live = (c && Array.isArray(c.changes)) ? c.changes : [];
@@ -12450,6 +12581,13 @@ function rlChatPanelPaint(host, c, opts = {}){
     rlNpSetRoom(b.getAttribute('data-rl-np-room'));
     rlChatPanelPaint(host, c, opts);
   }));
+  /* ---- READING CHAT IS READING IT, AND THE MARK GOES ---- (2 Sep 2026)
+     AFTER the rows are on screen, never before: the panel is built from the
+     state the reader is about to see, and marking first would clear the very
+     thing they were told to come and look at. The door is then repainted, or
+     the symbol keeps a mark over a conversation already read. */
+  negoMarkChatSeen(c, opts);
+  try { if (window.paintChatDoor) paintChatDoor(); } catch (_){}
 }
 /* Paint and re-wire in one. The panel is rebuilt on every act — a room switch,
    a note posted — so the handlers below are bound to fresh markup each time and
@@ -12586,21 +12724,27 @@ async function rlNotesSend(host, c, ch, opts, room){
   if (ch) negoMarkThreadSeen(negoSeenScope(c, opts), ch.id);
   if (opts.persist !== false && window.persist) persist(c);
   if (box) box.value = '';
+  /* WHOEVER WAS NAMED IS TOLD, and the answer rides the ONE confirmation this
+     act already draws rather than a second box beside it. Awaited, because
+     "sent means sent" — a cheerful toast over a mail that never left is the
+     fault this rulebook records four times — and it can only ever ADD a clause:
+     with nobody named, or on a stage with no route, negoMentionLine is ''. */
+  const atLine = negoMentionLine(await negoNotifyMentions(c, ch, msg));
   /* THE CHANNEL IS THE ONLY WAY OUT, so an internal note simply does not take
      it: there is no filter downstream that could later be got wrong. */
   if (ext){
     try {
       const sent = await negoPostToChannel(c, ch, msg);
       if (window.toast && sent && sent.ok)
-        toast(ch ? i18t('ng_np_sent', { who: other, id: ch.id })
-          : i18t('ng_chat_sent', { who: other }), 'ok');
+        toast((ch ? i18t('ng_np_sent', { who: other, id: ch.id })
+          : i18t('ng_chat_sent', { who: other })) + atLine, 'ok');
     } catch (e){
       if (window.toast) toast(i18t('ng_np_send_failed',
         { who: other, why: (e && e.message) || '' }), 'err');
     }
   } else if (window.toast){
-    toast(ch ? i18t('ng_np_filed', { org: us, id: ch.id })
-      : i18t('ng_chat_filed', { org: us }), 'ok');
+    toast((ch ? i18t('ng_np_filed', { org: us, id: ch.id })
+      : i18t('ng_chat_filed', { org: us })) + atLine, 'ok');
   }
   /* EACH SURFACE REPAINTS ITSELF. One send, two panels: the per-change panel
      redraws that change's thread and Chat redraws the whole contract's, and
@@ -12876,9 +13020,13 @@ function openChangeNoteDialog(c, ch, opts = {}){
           msg.sentAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
           if (opts.persist !== false && window.persist) persist(c);
         }
-        if (window.toast) toast(gone
+        /* WHOEVER WAS NAMED IS TOLD, through the same one door the panel's
+           send uses — a second copy of who gets an email is how the two would
+           come to disagree. It rides this window's own confirmation. */
+        const atLine = negoMentionLine(await negoNotifyMentions(c, ch, msg));
+        if (window.toast) toast((gone
           ? i18t('ng_np_sent', { who: them, id: ch.id })
-          : i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added', { id: ch.id }), 'ok');
+          : i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added', { id: ch.id })) + atLine, 'ok');
         if (typeof opts.onDone === 'function') opts.onDone(out);
         done(out);
       });
@@ -15400,8 +15548,9 @@ if (typeof window !== 'undefined') Object.assign(window, {
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
-  negoPostToChannel, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
-  rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions,
+  negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
+  rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,
+  negoMentionsMe, negoMentionsWaiting, negoMarkChatSeen, NEGO_CONTRACT_THREAD,
   rlCardNotesCountHtml,
   rlNpRoom, rlNpSetRoom,
   negoEnsureStyle, negoDocHtml, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,

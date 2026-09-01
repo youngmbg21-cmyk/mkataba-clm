@@ -325,6 +325,9 @@ function negoStyleHtml(){
      block container and would otherwise inherit the -2.6em and shove its own
      glyph out of its box. */
   .nego-redline .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
+  /* The same ladder in the room's own sheet — one reading, both canvases. */
+  .nego-redline .rl-hang-2{margin-left:2.6em}
+  .nego-redline .rl-hang-3{margin-left:5.2em}
   .nego-redline .rl-clause{margin-top:9px}
   /* A line that arrived or went whole is marked in the margin as well as in
      its colour, so the two are still distinguishable in print and to anyone
@@ -2027,6 +2030,16 @@ function redlineLayoutCss(){
      first line. Same rule in the panel's copy — one geometry, both homes. */
   .redline-page .rl-doc .rl-hang .rl-marker,
   .redline-page .rl-cp-src .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
+  /* ---- AND A SUB-BULLET SITS UNDER ITS PARENT (owner-reported 2 Sep 2026) ----
+     "the dented bullet point ... does not stick". The depth arrives as the
+     marker glyph itself — the ladder richToText projects, read back by
+     redlineMarkerDepth — so this is the whole of the drawing: one gutter of
+     margin per level, on TOP of the hang the line already has, so the marker
+     stays in its own gutter and the wording keeps its tab stop. margin, never
+     padding, because padding-left is what the hang itself uses and adding to it
+     would pull the marker out of the gutter with the wording. */
+  .redline-page .rl-doc .rl-hang-2,.redline-page .rl-cp-src .rl-hang-2{margin-left:2.6em}
+  .redline-page .rl-doc .rl-hang-3,.redline-page .rl-cp-src .rl-hang-3{margin-left:5.2em}
   /* A real list gets the same shape from the browser, but only if it is allowed
      its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
      some surfaces and at zero on others, and at zero the marker sits ON the
@@ -2814,7 +2827,9 @@ function redlineLayoutCss(){
     color:var(--color-neutral-600)}
   ${''/* A TAGGED NAME IN A FILED NOTE. The accent ink — the one with a night
          answer — and no fill: it is a name that was said, not a control. */}
-  .redline-page .rl-np-at{color:var(--accent-ink);font-weight:var(--w-title)}
+  /* .rl-np-at MOVED TO index.html, UNSCOPED, on 2 Sep 2026: this panel draws in
+     the shell's own drawer as well as on this page, and a rule scoped here left
+     a tagged name plain in the drawer. See the note beside it there. */
   .redline-page .rl-cb-acts{margin-top:var(--s-3);padding-top:10px;
     border-top:1px solid var(--color-divider)}
   .redline-page .rl-cb-notes{margin-top:var(--s-3);padding-top:10px;

@@ -1514,7 +1514,32 @@ function paintChatDoor(){
   const dead=covered||!id;
   btn.disabled=dead;
   btn.setAttribute('aria-disabled',dead?'true':'false');
-  btn.title=covered?i18t('ng_chat_not_here'):id?i18t('ng_chat_title'):i18t('ng_chat_none');
+  /* ---- AND THE MARK SAYS SOMEBODY HAS NAMED YOU ---- (owner-asked 2 Sep 2026)
+     The count is the negotiation module's own reading, asked through window
+     because that is where notes live; a stage without it answers 0 rather than
+     throwing, which is the safe direction for a decoration.
+
+     THE COUNT SURVIVES A SHUT DOOR, for the reason the bell's own does: a
+     number that vanishes says "nobody has asked you anything", which is false,
+     where a dimmed one says "you cannot get to it from here" — and that is what
+     the tooltip explains. The dot is inside the button, so the disabled
+     treatment dims it with the icon.
+
+     IT COUNTS THIS CONTRACT ONLY, said out loud, because this door opens this
+     contract's conversation: a number that included other agreements would
+     press through to the wrong one. Somebody who names you on a contract you
+     are not looking at is not marked here. */
+  let n=0;
+  try{
+    const c=id&&window.state&&(state.contracts||[]).find(x=>x&&String(x.id)===String(id));
+    if(c&&window.negoMentionsWaiting) n=negoMentionsWaiting(c)||0;
+  }catch(_){ n=0; }
+  const dot=document.getElementById('hdr-chat-dot');
+  if(dot){ dot.textContent=n>9?'9+':String(n); dot.hidden=!n; }
+  btn.title=covered?i18t('ng_chat_not_here')
+    :!id?i18t('ng_chat_none')
+    :n?i18tn('ng_chat_at_n',n,{n})
+    :i18t('ng_chat_title');
 }
 function updateAlertBadge(){
   /* Painted on the same beat, and for the same reason: this runs on every view

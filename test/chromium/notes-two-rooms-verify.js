@@ -433,6 +433,90 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);
 
+    /* ============================================================
+       7 — A TAGGED NAME, AND THE MARK ON THE SYMBOL
+       ============================================================
+       Owner-asked 2 Sep 2026. THE COLOUR CLAIM BELONGS HERE AND NOWHERE ELSE:
+       the rule was scoped to `.redline-page` and this drawer is the SHELL's
+       panel, so on the negotiation page the tag drew coloured and in the drawer
+       it drew as ordinary text — one builder, two homes, one of them dressed.
+       Only a real cascade can tell those apart. */
+    const tagged = await page.evaluate(async () => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const who = (window.reviewCandidates ? reviewCandidates(c) : []) || [];
+      if (who.length < 2) return { ok: false, why: 'need two colleagues to tag' };
+      const ch = (c.changes || [])[0];
+      negoPostComment(c, ch.id, '@' + who[0].name + ' can you look at this?',
+        { side: 'owner', author: currentUser().name, visibility: 'internal' });
+      negoPostComment(c, ch.id, '@' + who[1].name + ' and you too please.',
+        { side: 'owner', author: currentUser().name, visibility: 'internal' });
+      openNotesPanel(c.id);
+      return new Promise(r => setTimeout(() => {
+        const ats = [...document.querySelectorAll('#context-panel .rl-np-at')];
+        r({ ok: true, n: ats.length,
+          names: ats.map(a => a.textContent),
+          weights: ats.map(a => getComputedStyle(a).fontWeight),
+          colours: ats.map(a => getComputedStyle(a).color),
+          bodyInk: getComputedStyle(document.querySelector('#context-panel .rl-np-note p')).color });
+      }, 700));
+    });
+    check('two colleagues were tagged in the drawer', tagged.ok && tagged.n >= 2,
+      tagged.why || (tagged.n + ' tags: ' + JSON.stringify(tagged.names)));
+    if (tagged.ok){
+      check('A TAGGED NAME IS BOLD — in the drawer, where the rule did not reach',
+        tagged.weights.every(w => Number(w) >= 600), JSON.stringify(tagged.weights));
+      /* THE RELATION, NOT A LITERAL: a tag is not the colour of the words
+         around it, and two different people are not the colour of each other.
+         Written this way so a palette pass costs no edit here. */
+      check('and it is COLOURED — not the ink of the sentence it sits in',
+        tagged.colours.every(c2 => c2 !== tagged.bodyInk),
+        JSON.stringify(tagged.colours) + ' vs body ' + tagged.bodyInk);
+      check('EVERY NAME ITS OWN CODE — two people, two colours',
+        new Set(tagged.colours).size >= 2, JSON.stringify(tagged.colours));
+    }
+
+    /* THE MARK. The record is staged by hand on purpose: negoMentionsIn
+       resolves a name against reviewCandidates, which EXCLUDES you, so no note
+       filed through the product can name its own reader — which is right, and
+       means a colleague's note is the only thing that produces this shape. The
+       claim here is about how the DOOR reads it. */
+    const mark = await page.evaluate(() => {
+      if (window.closeContextPanel) closeContextPanel();
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const me = currentUser();
+      (c.thread = c.thread || []).push({
+        who: 'Amina Wanjiru', byId: 'someone-else', side: 'owner', visibility: 'internal',
+        /* NOW, not the future. "Seen" is a stamp of when this reader last
+           looked, so a note dated ahead of the clock can never be marked read
+           — the same property the per-change unread dot has always had, and
+           deliberately not special-cased here: the two must agree about what
+           reading means. Staging it in the future tested the staging. */
+        at: new Date().toISOString(),
+        text: '@' + me.name + ' what do you think of change 009?',
+        mentions: [{ id: me.id, name: me.name }] });
+      paintChatDoor();
+      const dot = document.getElementById('hdr-chat-dot');
+      return { n: negoMentionsWaiting(c), text: dot.textContent, shown: !dot.hidden,
+        title: document.getElementById('hdr-chat').title };
+    });
+    check('THE CHAT SYMBOL CARRIES A MARK when somebody has named you',
+      mark.shown === true && mark.text === '1', JSON.stringify(mark));
+    check('and the hover says what it is', /named you|name you/i.test(mark.title || ''),
+      (mark.title || '').slice(0, 60));
+
+    const cleared = await page.evaluate(() => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      openNotesPanel(c.id);
+      return new Promise(r => setTimeout(() => {
+        const dot = document.getElementById('hdr-chat-dot');
+        r({ shown: !dot.hidden, n: negoMentionsWaiting(c) });
+      }, 700));
+    });
+    check('READING CHAT CLEARS IT — both halves, or the mark never goes',
+      cleared.shown === false && cleared.n === 0, JSON.stringify(cleared));
+    await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
+    await page.waitForTimeout(200);
+
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {
     check('the run completed', false, e && e.message);

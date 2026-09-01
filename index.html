@@ -3603,6 +3603,19 @@
     color:#2A1B04;border:0;font:inherit;font-size:var(--t-figure);font-weight:var(--w-title);line-height:14px;
     text-align:center;font-variant-numeric:tabular-nums;}
   #top-header #hdr-notify-dot[hidden]{display:none;}
+  /* ---- AND THE CHAT SYMBOL CARRIES ONE TOO (owner-asked 2 Sep 2026) ----
+     "The person tagged should also be informed ... with a mark on the symbol."
+     THE SAME SHAPE AS THE BELL'S, deliberately: both mean work waiting on this
+     reader, and amber is what this product uses to say so — a second colour
+     here would be a second vocabulary for one fact. It counts NOTES THAT NAME
+     YOU, not a busy thread; the bell beside it already answers what is waiting
+     across the workspace, and this answers who has asked you something on the
+     contract in front of you. */
+  #top-header #hdr-chat-dot{position:absolute;top:2px;right:1px;min-width:14px;height:14px;
+    padding:0 2px;box-sizing:border-box;border-radius:var(--radius);background:var(--st-amber-dot);
+    color:#2A1B04;border:0;font:inherit;font-size:var(--t-figure);font-weight:var(--w-title);line-height:14px;
+    text-align:center;font-variant-numeric:tabular-nums;}
+  #top-header #hdr-chat-dot[hidden]{display:none;}
 
   /* THE LANGUAGE TOGGLE. It took the top-bar space the jurisdiction flags used
      to hold — the market is a workspace setting an admin picks once and it
@@ -4776,6 +4789,38 @@
   .rl-np-top span{font-size:var(--t-micro);color:var(--color-neutral-400);margin-left:auto;flex:none;}
   .rl-np-org{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);}
   .rl-np-note p{font-size:var(--t-meta);line-height:1.55;color:var(--color-text);margin:5px 0 0;}
+  /* ---- A TAGGED NAME IS BOLD AND CARRIES THE PERSON'S OWN INK ----
+     (owner-asked 2 Sep 2026: "when you tag someone ... the should be in bold
+     and in color as well with every name having a different color code.")
+
+     IT WAS NEITHER, AND THE REASON IS THE CLOTHES-FOLLOWING-THE-BUILDER FAULT
+     THIS FILE RECORDS THREE TIMES OVER. The rule was written scoped to
+     `.redline-page`, which is the negotiation page; the Chat drawer is the
+     SHELL's panel and a body-level sibling of it, so a tag drew as ordinary
+     text there and in colour on the page — one builder, two homes, one dressed.
+     Every other .rl-np-* rule is unscoped and sits here; this one joins them.
+
+     THE PALETTE IS THE DRAFTER'S OWN INKS, borrowed rather than invented,
+     because the reason those four were chosen is the reason that matters here:
+     RICH_MARK_INKS carries NO GREEN AND NO RED on purpose — on the paper green
+     already means somebody inserted this and struck red means somebody deleted
+     it — and a name coloured either would read as a mark on the contract. They
+     have night answers already (--mk-ink-*, redefined under html.dark), so no
+     override is owed here.
+
+     GREY IS DELIBERATELY NOT ONE OF THEM, though it is the fifth ink: at night
+     it is #94a3b8, which is this panel's own secondary shade, so a tag wearing
+     it would read as ordinary meta text rather than as a name.
+
+     COLOUR IS NEVER THE ONLY CARRIER — the weight and the @ say it is a tag,
+     and the colour only helps a reader tell two names apart at a glance. With
+     four inks two colleagues in a long thread can share one; the NAME is what
+     identifies them and always was. */
+  .rl-np-at{font-weight:var(--w-title);color:var(--accent-ink);}
+  .rl-np-at-0{color:var(--mk-ink-blue,   #1d4ed8);}
+  .rl-np-at-1{color:var(--mk-ink-violet, #6d28d9);}
+  .rl-np-at-2{color:var(--mk-ink-plum,   #86198f);}
+  .rl-np-at-3{color:var(--mk-ink-ochre,  #a16207);}
   .rl-np-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
   .rl-np-clamp.rl-np-open{-webkit-line-clamp:unset;overflow:visible;}
   .rl-np-more{margin-top:4px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
@@ -5241,10 +5286,29 @@
 
      IT DOES NOT SCALE WITH THE READER'S TEXT SIZE. The paper scales, the
      furniture does not — the rule this page has learned four times — so nothing
-     here reads --doc-scale. */
-  .rb-btn{width:28px;height:28px;flex:none;display:inline-grid;place-items:center;
+     here reads --doc-scale.
+
+     ---- AND IT IS A FIFTH BIGGER SINCE 2 Sep 2026 ---- (owner-asked: "increase
+     the size of the top bar features by 20%. They are currently too small to
+     read or understand some of them.") Every measurement here is its old value
+     times 1.2, rounded to a whole pixel — this product does not draw a
+     fractional size — and every TYPE size moves to the nearest rung of the
+     ladder rather than to the exact multiple, because a size off the ladder is
+     the thing the 22 Aug sweep spent 865 replacements removing: 13 → 15 on the
+     buttons, 12 → 14 in the size box, 9 → 11 on the carets.
+
+     THE ICONS SCALE FROM ONE DECLARATION rather than nine attribute edits. All
+     nine are authored 15px wide with a viewBox, so a CSS width of 18px is
+     exactly 1.2 on every one of them, and `height:auto` keeps the pen — the one
+     that is not square — from being stretched to fit.
+
+     IT COSTS THE CONTRACT NOTHING: this bar sits in the LEFT column's own head
+     and wraps on content, so a taller row pushes the paper down within that
+     column and takes no width from the Copilot rail. */
+  .rb-btn{width:34px;height:34px;flex:none;display:inline-grid;place-items:center;
     background:transparent;border:0;padding:0;color:var(--color-text);
-    font:inherit;font-size:var(--t-meta);line-height:1;cursor:pointer;border-radius:var(--radius);}
+    font:inherit;font-size:var(--t-card);line-height:1;cursor:pointer;border-radius:var(--radius);}
+  .rb-btn svg{width:18px;height:auto;}
   .rb-btn:hover{background:var(--color-neutral-100);}
   .rb-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
   .rb-btn.on{background:var(--color-accent-100);color:var(--accent-ink);}
@@ -5252,37 +5316,37 @@
   .rb-btn[disabled]:hover{background:transparent;}
   .rb-btn b,.rb-btn u,.rb-btn s{font-weight:var(--w-title);}
   .rb-btn i{font-family:Georgia,'Times New Roman',serif;}
-  .rb-wide{width:auto;padding:0 5px;gap:4px;grid-auto-flow:column;align-items:center;}
-  .rb-a{font-weight:var(--w-strong);font-size:var(--t-meta);}
-  .rb-sw{display:block;width:14px;height:3px;margin-top:2px;}
+  .rb-wide{width:auto;padding:0 6px;gap:5px;grid-auto-flow:column;align-items:center;}
+  .rb-a{font-weight:var(--w-strong);font-size:var(--t-card);}
+  .rb-sw{display:block;width:17px;height:4px;margin-top:2px;}
   /* An ink class sets `color`, so the swatch borrows it; a highlight class sets
      `background` and already paints itself. Two selectors, no !important. */
   .rb-sw[class*="hati-ink-"]{background:currentColor;}
-  .rb-car{font-size:9px;color:var(--color-neutral-600);}
-  .rb-sep{width:1px;height:18px;background:var(--color-divider);margin:0 5px;flex:none;}
+  .rb-car{font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .rb-sep{width:1px;height:22px;background:var(--color-divider);margin:0 6px;flex:none;}
   /* the size box takes Word's own shape, because that is where a writer looks */
-  .rb-size{flex:none;display:flex;align-items:center;height:28px;gap:5px;
-    padding:0 5px 0 8px;background:var(--color-surface);border:1px solid var(--color-divider);
+  .rb-size{flex:none;display:flex;align-items:center;height:34px;gap:6px;
+    padding:0 6px 0 10px;background:var(--color-surface);border:1px solid var(--color-divider);
     font:inherit;color:var(--color-text);cursor:pointer;border-radius:var(--radius);}
   .rb-size:hover{border-color:var(--color-neutral-400);}
   .rb-size:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
-  .rb-size-v{font-size:var(--t-label);min-width:17px;text-align:center;
+  .rb-size-v{font-size:var(--t-body);min-width:20px;text-align:center;
     font-variant-numeric:tabular-nums;}
 
   /* the two pickers the bar opens — one shape, two contents */
   .rb-pop{position:fixed;z-index:64;background:var(--surface-3,var(--color-surface));
-    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:8px;}
+    border:1px solid var(--color-divider);box-shadow:var(--shadow-md);padding:10px;}
   .rb-pop[hidden]{display:none;}
-  .rb-pop-row{display:flex;gap:6px;}
-  .rb-pop-sw{width:26px;height:26px;padding:0;cursor:pointer;
+  .rb-pop-row{display:flex;gap:7px;}
+  .rb-pop-sw{width:31px;height:31px;padding:0;cursor:pointer;
     border:1px solid var(--color-divider);}
   .rb-pop-sw[class*="hati-ink-"]{background:currentColor;}
-  .rb-pop-none{margin-top:7px;width:100%;height:24px;font:inherit;font-size:var(--t-label);
+  .rb-pop-none{margin-top:7px;width:100%;height:29px;font:inherit;font-size:var(--t-body);
     background:var(--color-surface);border:1px solid var(--color-divider);
     color:var(--color-text);cursor:pointer;}
-  .rb-pop-sizes{padding:4px;min-width:76px;}
-  .rb-pop-sizes button{display:block;width:100%;text-align:left;padding:5px 10px;
-    background:none;border:0;font:inherit;font-size:var(--t-meta);color:var(--color-text);
+  .rb-pop-sizes{padding:5px;min-width:91px;}
+  .rb-pop-sizes button{display:block;width:100%;text-align:left;padding:6px 12px;
+    background:none;border:0;font:inherit;font-size:var(--t-card);color:var(--color-text);
     cursor:pointer;}
   .rb-pop-sizes button:hover{background:var(--color-accent-100);color:var(--accent-ink);}
   .rb-pop-sizes button.on{background:var(--color-accent-100);color:var(--accent-ink);
@@ -5584,6 +5648,11 @@
          for it on every view change. -->
     <button id="hdr-chat" class="hdr-icon-btn" title="Chat — every note on this contract" data-i18n-title="ng_chat_title">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
+      <!-- Somebody named you in a note on this contract and you have not read
+           it. Starts hidden and counts nothing: an always-on mark is one people
+           learn to ignore, which is exactly what happened to the bell's own
+           hard-coded dot. -->
+      <span id="hdr-chat-dot" hidden></span>
     </button>
 
     <!-- THE BELL OPENS ALERTS: the things actually waiting on this person. The

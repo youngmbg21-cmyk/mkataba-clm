@@ -6818,6 +6818,107 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
   res.json({ ok: true, to, ...mailReport(r) });
 });
 
+/* ---------- "SOMEBODY NAMED YOU IN A NOTE" (owner-asked 2 Sep 2026) ----------
+   *"The person tagged should also be informed via email."*
+
+   THE NOTE IS ALREADY FILED BEFORE THIS IS CALLED, and that ordering is the
+   whole design: the record is the browser's and goes through the ordinary
+   contract save, so a mail provider that is down, misconfigured or absent loses
+   a notification and never a note. Everything here is best-effort by
+   construction and reports what happened rather than failing.
+
+   THE ADDRESSES ARE OURS TO DECIDE. A route that mailed whatever the client
+   sent would be an open relay wearing this workspace's name — the rule the two
+   routes above state for themselves. The client names PEOPLE BY ID; the server
+   decides where each of them lives. A body carrying an address at all is
+   refused outright rather than ignored, so a caller cannot come to believe it
+   works.
+
+   TWO POPULATIONS, TWO PLACES TO LOOK, and neither is the body. A colleague is
+   a row in `users`. Somebody on the other side is not a member at all, so they
+   are looked up in the STORED contract — its signing route first, then the
+   counterparty contact on the record — which is exactly where the chase route
+   above reads its one address from.
+
+   AND A COLLEAGUE WHO COULD NOT OPEN IT IS NOT WRITTEN TO. The review-request
+   route states the reasoning: a member restricted to other value streams never
+   sees this contract, so a mail about it asks them to go and find a document
+   that does not exist for them. Reported by name rather than dropped.
+
+   THE LINK IS ONE THE READER CAN OPEN. A colleague gets the in-app link, which
+   openFromHash resolves on the far side of the sign-in wall; the counterparty
+   has no account, so they get the standing share link they already hold, and
+   nothing at all where there is none — a button that leads nowhere is worse
+   than no button. */
+app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address || b.emails)
+    return res.status(400).json({ error: 'This route resolves each person’s address from the workspace’s own records. Send ids, not email addresses.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  /* PEOPLE, NOT ADDRESSES. Each entry is an id and/or the name the note
+     visibly carries — both are KEYS this server resolves against its own
+     records, exactly as the chase route resolves an obligationId. The name is
+     needed because the counterparty contact on a contract has no id of any
+     kind: the picker itself falls back to it, so a route keyed on ids alone
+     would silently never tell the commonest person on the other side. */
+  const people = (Array.isArray(b.people) ? b.people : []).slice(0, 20)
+    .map(x => ({ id: String((x && x.id) || ''), name: String((x && x.name) || '').trim() }))
+    .filter(x => x.id || x.name);
+  if (!people.length) return res.json({ ok: true, told: [], skipped: [] });
+  const cName = c.name || req.params.id;
+  const note = clean(b.note).slice(0, 600);
+  const chId = clean(b.changeId).slice(0, 40);
+  const appUrl = contractUrl(req, req.params.id, 'redline');
+  const st = db.prepare(
+    `SELECT token FROM shares WHERE contract_id=? AND revoked_at IS NULL AND durable=1
+       AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
+  ).get(req.params.id, new Date().toISOString());
+  const shareLink = st && st.token ? shareUrl(req, st.token) : '';
+  /* The other side, off the STORED record: the signing route names them with
+     their own row ids, and the contact on the contract is the fallback the
+     picker itself falls back to. */
+  const rows = (c.signerPlan || []).filter(r2 => r2 && r2.party === 'counterparty');
+  const byId = new Map(rows.filter(r2 => r2.id).map(r2 => [String(r2.id), r2]));
+  const byName = new Map(rows.filter(r2 => r2.name)
+    .map(r2 => [String(r2.name).trim().toLowerCase(), r2]));
+  const cpName = String(c.counterpartyName || '').trim().toLowerCase();
+  const told = [], skipped = [];
+  for (const p of people){
+    if (p.id && String(p.id) === String(req.user.id)) continue;   /* nobody is told about their own note */
+    const u = p.id ? db.prepare('SELECT * FROM users WHERE id=?').get(p.id) : null;
+    let to = '', name = p.name, link = appUrl, inside = true;
+    if (u){
+      if (!inScope(folderScopeFor(u), row.folder)){
+        skipped.push({ id: p.id, name: u.name, why: 'no-access' }); continue;
+      }
+      to = String(u.email || '').trim(); name = u.name || p.name;
+    } else {
+      const key = p.name.toLowerCase();
+      const r2 = (p.id && byId.get(String(p.id))) || byName.get(key) || null;
+      to = String((r2 && r2.email) || '').trim();
+      if (!to && key && key === cpName) to = String(c.counterpartyEmail || '').trim();
+      name = (r2 && r2.name) || p.name;
+      link = shareLink; inside = false;
+      if (!r2 && key !== cpName){ skipped.push({ id: p.id, name: p.name, why: 'unknown' }); continue; }
+    }
+    if (!/.+@.+\..+/.test(to)){ skipped.push({ id: p.id, name, why: 'no-address' }); continue; }
+    const L = langForEmail(to);
+    const where = chId ? `${chId} — ${cName}` : cName;
+    const r3 = await sendEmail(to,
+      tFor(L, 'mail_at_subject', { who: req.user.name, name: cName }),
+      `${tFor(L, 'mail_hello')} ${name},\n\n`
+        + tFor(L, 'mail_at_line', { who: req.user.name, where })
+        + (note ? `\n\n"${note}"\n` : '\n')
+        + (link ? `\n${tFor(L, inside ? 'mail_at_open' : 'mail_ob_chase_open')}\n${link}\n` : '')
+        + `\n${tFor(L, 'mail_automated_notice')}`,
+      `mention: ${req.params.id} -> ${to}`);
+    told.push({ id: p.id, name, to, ...mailReport(r3) });
+  }
+  res.json({ ok: true, told, skipped, emailConfigured: EMAIL_ON() });
+});
+
 /* "Please look at this before it goes out" — the internal review request.
 
    THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. The request

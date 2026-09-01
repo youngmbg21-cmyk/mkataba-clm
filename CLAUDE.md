@@ -8583,6 +8583,122 @@ place, the rooms re-staged through `openNotesPanel`, and the Chat door driven
 with its symbol proved to resolve and its dead state measured against a real
 clause editor).
 
+## A SUB-BULLET STICKS, AND A TAGGED NAME IS A PERSON (owner-asked 2 Sep 2026)
+
+Four things in one message off four screenshots.
+
+**THE BAR IS A FIFTH BIGGER.** *"increase the size of the top bar features by
+20%. They are currently too small to read or understand some of them."* Every
+measurement is its old value times 1.2 rounded to a whole pixel — this product
+draws no fractional size — and every TYPE size moves to the nearest rung of the
+ladder rather than the exact multiple (13 → 15, 12 → 14, 9 → 11), because a size
+off the ladder is what the 22 Aug sweep spent 865 replacements removing.
+**THE NINE ICONS SCALE FROM ONE DECLARATION**: all are authored 15px wide with a
+viewBox, so `width:18px` is exactly 1.2 on each, and `height:auto` stops the pen
+— the one that is not square — being stretched to fit. It costs the contract
+nothing: the bar sits in the LEFT column's own head and wraps on content.
+
+**A SUB-BULLET STICKS.** *"the dented bullet point ... does not stick"* — typed
+under its parent it read as a sub-bullet in the box and came back as a sibling
+the moment the clause showed its marks.
+
+- **THE DEPTH WAS THROWN AWAY AT THE TEXT PROJECTION**, and nothing downstream
+  could put it back: the redline is drawn from OPS, the ops carry text, and
+  every bullet at every level projected as `• `. **A nested DECIMAL list has
+  always carried its depth** (2 → 2.1 → 2.1.3, because that is how a legal
+  document numbers its clauses); a nested BULLET list carried none. So this is
+  an asymmetry closed, not a new idea.
+- **• ◦ ▪ IS WORD'S OWN LADDER and this product already read all three** —
+  `RL_MARKER` lists them among the true marks — so the redline splits a
+  sub-bullet into its gutter with nothing added there. Past the third level the
+  glyph repeats: a marker a reader cannot name is worse than one that is reused.
+- **ONE READING, `_listMark`, AND BOTH WALKS ASK IT.** `richToText` and
+  `_lineUnits` each carried their own copy character for character, and they
+  MUST agree — `richFromTextEdit` verifies its merge by projecting the result
+  against the text that was agreed, so a marker differing by one glyph would
+  abandon the merge on **every list in the document**.
+- **THE INDENT IS READ OFF THE GLYPH** (`redlineMarkerDepth`), not carried in a
+  second field nobody would keep in step, and it is presentation only —
+  `margin-left`, never padding, because padding-left is what the hang itself
+  uses and adding to it would pull the marker out of its gutter. Both sheets.
+- **WHAT IT COSTS, said out loud:** a clause containing a NESTED bullet list
+  projects differently from today, so a change filed before this whose
+  `oldText` was the old projection no longer matches a fresh one — which
+  `negoMeasuredAlike` reads as *measured differently*, the looser direction.
+  **Fingerprints are untouched**: they are over the stored bodyHtml, never a
+  fresh projection.
+
+**AND THE SWEEP FOUND ONE MORE.** *"review this bug and any other bug related to
+editing like bullets, fonts etc."* Every tool was walked through storage: bold,
+italic, underline, strike, both lists, headings, tables, quote, the drafter's
+ink, highlight and size all survive; a style attribute, an unknown class and two
+classes on one span are refused (the last deliberately — applying a colour and
+then a size makes two NESTED spans, which is what the browser side produces).
+**The one real defect is `<li><p>a</p></li>`** — what a paste from Word, Docs or
+a model's answer routinely produces — which projected as a line holding nothing
+but the bullet and then a second line holding the wording. **Fixed in the
+MARKUP, not in the walks**, for the same reason as above; a second paragraph in
+an item becomes a `<br>`, which both walks already read as a second line.
+
+**A TAGGED NAME IS BOLD AND CARRIES THE PERSON'S OWN INK.** *"every name having
+a different color code."*
+
+- **IT WAS NEITHER, AND THE CAUSE IS THE CLOTHES-FOLLOWING-THE-BUILDER FAULT
+  THIS FILE RECORDS THREE TIMES.** `.rl-np-at` was scoped to `.redline-page`;
+  the Chat drawer is the SHELL's panel and a body-level sibling, so the tag drew
+  coloured on the page and plain in the drawer. Unscoped now, beside every other
+  `.rl-np-*` rule. Measured against the parent: weight 400, in the body's ink.
+- **THE PALETTE IS THE DRAFTER'S OWN INKS, borrowed rather than invented**,
+  because the reason those were chosen is the reason that matters here:
+  `RICH_MARK_INKS` carries **no green and no red** on purpose — on the paper
+  green already means inserted and struck red means deleted. They have night
+  answers already, so no override is owed. **Grey is left out**: at night it is
+  this panel's own secondary shade.
+- **DETERMINISTIC AND KEYED ON THE VISIBLE NAME**, folded — not the id. The id
+  is the sturdier identity and is right for a RECORD; this is a scanning aid,
+  and a counterparty contact carries no id at all, so keying on one would split
+  some people into two colours and leave others uncoloured. **Colour is never
+  the only carrier**: the weight and the @ say it is a tag, and with four inks
+  two colleagues can share one — the NAME identifies them and always did.
+
+**AND THE PERSON TAGGED IS TOLD.** *"informed via email and also with a mark on
+the symbol."* This REVERSES *"tagging still notifies nobody"*.
+
+- **`POST /api/contracts/:id/mention` — KEYS IN, ADDRESSES NEVER.** A body
+  carrying one is refused outright rather than ignored, so a caller cannot come
+  to believe it works. **TWO POPULATIONS, TWO PLACES TO LOOK, and neither is the
+  body**: a colleague is a row in `users`; somebody on the other side is not a
+  member at all and is looked up in the STORED contract — its signing route,
+  then the counterparty contact — which is where the chase route reads its one
+  address. **The NAME travels beside the id as a KEY**, because the counterparty
+  contact has no id of any kind and a route keyed on ids alone would quietly
+  never reach the commonest person on the other side.
+- **A COLLEAGUE WHO COULD NOT OPEN IT IS NAMED RATHER THAN WRITTEN TO** — the
+  review-request route's own reasoning — and nobody is told about their own note.
+- **THE LINK IS ONE THE READER CAN OPEN**: the in-app link for a colleague, the
+  standing share link for the other side, and nothing at all where there is
+  none.
+- **ONE DOOR, `negoNotifyMentions`, TWO CALLERS** — the panel's send and the
+  note dialog's — and the answer rides the ONE confirmation the act already
+  draws rather than a second box. Awaited, because "sent means sent"; silent
+  where nobody was named or there is no route.
+- **THE MARK IS `#hdr-chat-dot`**, the bell's own shape and the bell's own
+  amber, because both mean work waiting on this reader and a second colour would
+  be a second vocabulary. It counts NOTES THAT NAME YOU, not a busy thread, and
+  **reads without writing** — `c.changes` raw, never `negoChanges`, which runs
+  `negoInit` and would start a negotiation on any contract merely counted. Seen
+  is the panel's own per-browser store, so opening Chat clears it exactly as
+  reading a thread clears the card dot. **It counts THIS contract only**, said
+  out loud: the door opens this contract's conversation, and a number including
+  others would press through to the wrong one.
+
+Tests: f266 (37 — **23 of its 29 checks fail against the parent**),
+clause-editor-verify section 26 (the bar measured as computed pixels and the
+sub-bullet's indent measured as geometry after a real filing),
+notes-two-rooms-verify section 7 (**the tag's weight and colour read in the
+DRAWER — the parent reports 400 and the body's own ink, which is the screenshot
+— plus the mark driven on and off**).
+
 ## A NOTE THAT BELONGS TO NO REDLINE (owner-asked 2 Sep 2026)
 
 *"you should also be able to tag people and add any notes internally or
@@ -8636,9 +8752,12 @@ every record already on file, so no existing reading answers differently.
   `negoPostComment` resolves mentions from the text against that room, which is
   the wall rather than the sign.
 
-**SAID OUT LOUD: tagging still notifies nobody.** That was the other session's
-decision and this does not change it; the ask was the ability to tag and the
-rule about who may be tagged.
+**TAGGING NOTIFIED NOBODY — REVERSED IN PLACE 2 Sep 2026** (owner-asked: the
+person tagged is told by email and by a mark on the Chat symbol). That was the
+other session's decision and this section's own ask was only the ability to tag
+and the rule about who may be tagged; see A SUB-BULLET STICKS, AND A TAGGED NAME
+IS A PERSON. The population and the wall are untouched — what changed is that
+`msg.mentions`, which this built, now has a reader.
 
 Tests: f264 (three claims REVERSED IN PLACE — the composer, and the model behind
 it — plus the topic and the one writer), notes-two-rooms-verify section 6b (**a

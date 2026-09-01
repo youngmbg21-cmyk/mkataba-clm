@@ -1140,7 +1140,12 @@ describe('f210 (16) — a contract limb keeps its label and hangs its wraps', ()
     /* The other half of the claim: a rule for a class nothing emits is a rule
        nobody can see is broken. */
     const rl = read('js/redline.js');
-    assert.match(rl, /const hang = redlineSplitMarker\(shown\)\.marker \? `\$\{pre\}-hang` : '';/);
+    /* RE-POINTED 2 Sep 2026: this pinned the whole expression, and a second
+       reading joined it on the same line (a sub-bullet's depth, read off its
+       own glyph). The claim was always that a line CARRYING a marker is
+       stamped, so that is what it asks. */
+    assert.match(rl, /const shownMark = redlineSplitMarker\(shown\)\.marker;/);
+    assert.match(rl, /const hang = shownMark \? `\$\{pre\}-hang` : '';/);
     const marker = rl.slice(rl.indexOf('const RL_MARKER'), rl.indexOf('const RL_MARKER') + 200);
     assert.ok(marker.includes('[a-zA-Z]'),
       'and the marker pattern knows a lettered label');
