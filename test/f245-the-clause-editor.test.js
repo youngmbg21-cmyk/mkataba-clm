@@ -1377,6 +1377,13 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
   const CE = SRC;
   const TYPING = CE.match(/\.ce-paperwrap \.ce-typing\{[\s\S]*?\}/)[0];
   const FOCUS = CE.match(/\.ce-paperwrap \.ce-typing:focus\{[\s\S]*?\}/)[0];
+  /* ---- RE-POINTED 1 Sep 2026 ---- The frame moved OFF the two editable boxes
+     and onto the clause that contains them, on the owner's report that the name
+     and the wording each drew one and the clause read as two stacked fields.
+     Every claim below is the claim it always was — dashed, hairline, clear of
+     the words, mixed off the document's own ink, not brought back by focus —
+     asked of the rule that now draws it. */
+  const FRAME = CE.match(/\.ce-paperwrap \.rl-clause-live:has\(\.ce-typing\)\{[\s\S]*?\}/)[0];
 
   test('THE REPORTED CASE: no fill and no ring — the paper shows through', () => {
     assert.match(TYPING, /background:transparent/,
@@ -1390,13 +1397,35 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
   });
 
   test('what is left is a DASHED HAIRLINE set clear of the words', () => {
-    assert.match(TYPING, /outline:1px dashed/,
+    assert.match(FRAME, /outline:1px dashed/,
       '"a very light almost dotted line", in the owner\'s own words');
-    assert.match(TYPING, /outline-offset:4px/,
+    /* PINNED AS THE RELATION: a POSITIVE offset is what puts the line clear of
+       the words. The number is a look and has already moved once. */
+    const off = FRAME.match(/outline-offset:(\d+)px/);
+    assert.ok(off && Number(off[1]) > 0,
       'set clear of the wording so it frames it rather than touching it');
-    assert.ok(!/border:/.test(TYPING),
+    assert.ok(!/border:/.test(FRAME),
       'an OUTLINE takes no space, so nothing on the page moves when it appears — '
       + 'a border would reflow the clause under the reader');
+  });
+
+  test('ONE FRAME, ROUND THE CLAUSE — not one per editable box', () => {
+    /* Owner-reported 1 Sep 2026, off a screenshot with both ringed: "when you
+       click on a pencil you can an outline for the clause header and an outline
+       for the clause. I want the outline to be one outline that encompasses
+       both." The clause is the one element that already contains the name and
+       the wording, so the frame goes there and the boxes draw none. */
+    assert.ok(!/outline:1px dashed/.test(TYPING),
+      'the wording box may not draw a frame of its own — that is the second box');
+    assert.match(TYPING, /outline:none/, 'and says so, rather than leaving it to a default');
+    const HEAD = CE.match(/\.ce-paperwrap \.ce-headbox\{[\s\S]*?\}/)[0];
+    assert.ok(!/outline:/.test(HEAD),
+      'and the name box adds no frame either — it carries geometry only');
+    /* THE STATE IS EXACT, and it is what keeps the frame off a clause being
+       merely READ: rl-clause-live marks this page's clause whether or not
+       typing is on, and ce-typing exists only while it is typeable. */
+    assert.match(FRAME, /\.rl-clause-live:has\(\.ce-typing\)/,
+      'the live clause that CONTAINS an editable box — never the live clause alone');
   });
 
   test('the colour is MIXED off the document ink, never a typed grey', () => {
@@ -1404,9 +1433,9 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
        sheet is cream by day and near-black at night, so a fixed light grey
        that reads as a whisper on the cream is invisible on the other. Pinned
        as the relation — which token it is mixed from — and not as a value. */
-    assert.match(TYPING, /color-mix\(in srgb, var\(--color-doc-text\)[^)]*, transparent\)/,
+    assert.match(FRAME, /color-mix\(in srgb, var\(--color-doc-text\)[^)]*, transparent\)/,
       'the line follows the ink the paper is already printed in');
-    assert.ok(!/#[0-9a-fA-F]{3,8}/.test(TYPING),
+    assert.ok(!/#[0-9a-fA-F]{3,8}/.test(FRAME),
       'no hex here: a literal would need a dark override, and the override is '
       + 'the half that gets forgotten');
     /* And the token really does answer differently at night, or the mix is
@@ -1420,10 +1449,12 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
   test('focus does not bring the old ring back', () => {
     /* A rule that holds until the reader clicks into the box is no rule: the
        one moment this state is ever seen is while somebody is typing in it. */
-    assert.match(FOCUS, /outline:1px dashed/, 'the same line, still dashed');
-    assert.match(FOCUS, /box-shadow:none/, 'and still no ring');
+    assert.match(FOCUS, /box-shadow:none/, 'still no ring');
+    assert.match(FOCUS, /outline:none/,
+      'and no frame of the box\'s own — the clause carries the one frame now, '
+      + 'and it does not depend on which of the two boxes has the caret');
     assert.ok(!/var\(--accent-solid\)/.test(FOCUS),
-      'the accent belongs to the margin bar on this page, not to the text box');
+      'the accent belongs to the workspace, not to a text box on the paper');
   });
 
   test('THE MARGIN BAR IS GONE — and the red changed-clause bar is not', () => {
@@ -1622,11 +1653,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
   });
 
   test('moving to another clause asks before it throws a draft away', () => {
-    /* The draft lives in memory until it is filed, and there are three doors
-       onto this act — the crumb, another clause's pencil, and a press in
-       another clause's words. The third made the gesture cheap, and a cheap
-       gesture that silently destroys typing is a worse bug than the one it was
-       built to fix. It is the PRODUCT'S OWN guard, not a second one: the same
+    /* The draft lives in memory until it is filed, and there are TWO doors onto
+       this act — the clause list and another clause's pencil. (There were three
+       until 1 Sep 2026; the press in another clause's words is retired, see
+       below.) It is the PRODUCT'S OWN guard, not a second one: the same
        predicate and the same words the page uses when the reader leaves it. */
     assert.match(CODE, /const dirty = \(typeof clauseEditorDirty === 'function'\) && clauseEditorDirty\(\)/,
       'asked in ceGoClause, so all three doors inherit it');
@@ -1636,23 +1666,90 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'and it borrows the leave dialog\'s own words rather than minting a key');
   });
 
-  test('clicking in the words is the same two acts, never a second path', () => {
-    /* (owner-asked 29 Aug 2026: "Let me just edit like I am in Google Docs but
-       the platform should track which clause I am editing.")
+  test('THE WARNING NAMES ITS CLAUSE AND THE WORDING AT RISK', () => {
+    /* ---- OWNER-REPORTED 1 Sep 2026 ----
+       "The attached alert does not give you an indication of which clause or
+       which wordings are in question and I therefore cannot track back to where
+       i left off."
 
-       The pencil is not retired and this is not a new act: a press in the
-       wording runs the two lines the pencil handler already had — move to the
-       clause, or turn typing on where the reader is. What it must never do is
-       grow its own way of getting there. */
-    assert.match(CODE, /const inDoc = hit\('#ce-doc'\)/,
-      'the branch is scoped to the paper');
-    assert.match(CODE, /ceGoClause\(id, \{ typing: true \}\)/,
-      'another clause is the crumb\'s own act, with the ask to type on it');
-    assert.match(CODE, /if \(inDoc && ceEditableReading\(\)/,
-      'and it asks the ONE predicate the pencil and Apply ask');
-    /* A press on a control is not a press in the words. */
-    assert.match(CODE, /!hit\('button, a, input, textarea, select/,
-      'controls inside the paper are excluded by selector');
+       It named neither. "Leave this clause?" over "the wording you have written
+       here has not been filed" is true of every clause in the contract, and it
+       is raised from a full-window page that carries no header — so at the
+       moment the reader most needs to know where they are, nothing said. */
+    assert.match(CODE, /function clauseEditorLeaveAsk\(\)\{/,
+      'ONE READING, because two surfaces raise this one guard');
+    assert.match(CODE, /_cet\('ce_leave_on', \{ clause: name \}\)/,
+      'it names the clause');
+    assert.match(CODE, /clauseLabel\(cl\)/,
+      'through clauseLabel — the product\'s own answer to "which clause is '
+      + 'this", which the cards and the Chat rows already print, and which '
+      + 'falls back to the clause\'s own wording where there is no heading');
+    assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut \}\)/,
+      'and quotes back what is not filed');
+    assert.match(CODE, /window\.richToText \? richToText\(_ceText \|\| ''\) : ''/,
+      'read through the ONE text projection this codebase has');
+    /* BOUNDED, because a confirm dialog is one paragraph and a clause is not.
+       Pinned as the relation — a named ceiling, not its value. */
+    assert.match(CODE, /const CE_LEAVE_SNIP = \d+;/, 'the bound is named');
+    assert.match(CODE, /raw\.length > CE_LEAVE_SNIP/, 'and it is what bounds the quote');
+    /* THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing: a guard that says
+       less because a lookup failed is worse than the guard that prompted the
+       report. */
+    assert.match(CODE, /const tail = _cet\('ce_leave_body'\);/);
+    assert.match(CODE, /bits\.push\(tail\);/, 'the warning itself is always last');
+  });
+
+  test('and the shell asks for that sentence rather than writing its own', () => {
+    /* Two surfaces raise one guard — this page on the way to another clause,
+       the shell on the way off the page — and a copy of the words in the shell
+       would be a second answer to one question. */
+    const app = read('js/app.js');
+    assert.match(app, /window\.clauseEditorLeaveAsk && clauseEditorLeaveAsk\(\)/,
+      'asked through window, the ES-module rule');
+    assert.match(app, /\|\| \{ title:i18t\('ce_leave_title'\), message:i18t\('ce_leave_body'\) \}/,
+      'and the fallback is the old sentence, never nothing');
+    assert.match(app, /confirmDialog\(\{ title:ask\.title, message:ask\.message,/,
+      'and it uses what it was given');
+    assert.match(read('js/views/clauseeditor.js'), /\n  clauseEditorLeaveAsk,/,
+      'PUBLISHED — an unexported name read through window is silence');
+  });
+
+  test('and both of its sentences are in both languages', () => {
+    for (const k of ['ce_leave_on', 'ce_leave_lost']){
+      assert.ok(new RegExp('\\b' + k + ':').test(I18N), k + ' is in the dictionary');
+      assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+
+  test('THE PENCIL IS THE ONLY WAY IN — a press in the words does nothing', () => {
+    /* ---- REVERSED IN PLACE 1 Sep 2026 ----
+       It pinned click-in-the-words-and-type (owner-asked 29 Aug: "Let me just
+       edit like I am in Google Docs"). The owner reversed it in those terms:
+       "only after clicking on the pencil can you have the ability to edit."
+       WHAT THAT GESTURE COST is why: you cannot type into a redline, so a press
+       that felt like putting a cursor down was quietly the press that took a
+       clause's marks off the screen.
+
+       IT DOES NOT EVEN MOVE THE PAGE, ruled on by name — a click that silently
+       re-points this page at another clause changes what the crumb says, what
+       File would file and what Copilot is answering about, with nothing on
+       screen inviting it. */
+    assert.ok(!/const inDoc = hit\('#ce-doc'\)/.test(CODE),
+      'the branch that read a press in the paper as an ask to type is gone');
+    assert.ok(!/ceStartTyping/.test(CODE.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'and its helper with it — one definition, one caller, never published');
+    /* THE TWO DOORS THAT DO MOVE YOU, both still there and both deliberate. */
+    assert.match(CODE, /if \(id && id !== _ceClauseId\)\{ ceGoClause\(id, \{ typing: true \}\); return; \}/,
+      'the pencil on another clause: ONE press, goes there AND starts editing, '
+      + 'because a pencil means edit wherever it is');
+    assert.match(CODE, /const goCl = hit\('\[data-ce-goclause\]'\)/,
+      'and the clause list moves you WITHOUT editing — the reading door');
+    /* Once typing is on, the browser's own caret is the right answer and this
+       page must not fight it. Nothing here places one from a press. */
+    assert.ok(!/caretRangeFromPoint|caretPositionFromPoint/.test(CODE),
+      'no caret is placed from a press: that was the click-to-type route\'s own '
+      + 'machinery and it went with the gesture');
   });
 });
 
@@ -1701,17 +1798,22 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'a press outside the paper is not this handler\'s business at all');
   });
 
-  test('the fix is scoped to the strip — click-to-type is untouched', () => {
-    /* A guard against a drag being read as a click was written here and TAKEN
-       OUT AGAIN, said out loud because the reasoning is the useful part: while
-       typing — which is where the whole report lives — the click branch is
-       already excluded by its own contenteditable selector, so it cannot bite
-       there. Refusing the drag would have narrowed the click-to-type feature of
-       29 Aug for a case nobody reported. The finding is recorded in the source
-       instead. */
-    assert.match(CODE, /if \(inDoc && ceEditableReading\(\)\n\s+&& !hit\('button, a, input/,
-      'click-to-type asks exactly what it asked before');
-    assert.ok(!/ceDragSelected/.test(CODE), 'and no guard of ours sits in front of it');
+  /* ---- REVERSED IN PLACE 1 Sep 2026 ----
+     It said the strip's fix was scoped so that click-to-type was untouched, and
+     recorded a drag guard written for it and taken out again. Click-to-type is
+     RETIRED (owner-ruled: "only after clicking on the pencil can you have the
+     ability to edit"), so there is nothing left for either half to be scoped
+     around — and the drag-versus-click question it was weighing cannot arise at
+     all now that a press in the wording is not read as anything.
+
+     WHAT THE CLAIM WAS REALLY PROTECTING SURVIVES AND IS STRONGER: no guard of
+     ours may sit in front of a drag on the paper. That is what makes the strip
+     reachable, and it is the half the 29 Aug report was actually about. */
+  test('no guard of ours sits in front of a drag on the paper', () => {
+    assert.ok(!/ceDragSelected/.test(CODE),
+      'the browser\'s own selection is what the strip reads');
+    assert.ok(!/const inDoc = hit\('#ce-doc'\)/.test(CODE),
+      'and there is no click branch on the paper left to race it');
   });
 
   /* REVERSED IN PLACE 31 Aug 2026 (M-1) AND STRONGER FOR IT. The claim was that
@@ -2137,9 +2239,41 @@ describe('f245 (23) — the paper lands rather than travels', () => {
     const go = CODE.match(/function ceScrollToClause\([\s\S]*?\n\}/)[0];
     assert.ok(!/host\.scrollTop = Math\.max/.test(go),
       'a bare assignment under a smooth rule is a request to animate');
-    assert.match(go, /ceRestoreScroll\(host, Math\.max\(0, host\.scrollTop \+ \(tb\.top - hb\.top\) - 24\)\)/,
+    assert.match(go, /ceRestoreScroll\(host, Math\.max\(0, host\.scrollTop \+ \(tb\.top - hb\.top\) - want\)\)/,
       'the same arithmetic, through the one thing on this page that moves the '
       + 'paper — so there is a single answer to "does the contract animate"');
+  });
+
+  test('AND A MOVE KEEPS THE READER\'S PLACE — only an arrival places a clause', () => {
+    /* ---- OWNER-REPORTED 1 Sep 2026 ----
+       "when I click on the pencil the clause being edited should stay where it
+       is as opposed to being pushed all the way to the top of the page ... I
+       should always make the decision to scroll and not be moved without my
+       choosing to do so."
+
+       Moving between clauses closes and reopens this page, so the ARRIVAL
+       placement ran on every move. It is right for a page that did not exist a
+       frame ago and wrong every time it runs on a move inside one. */
+    const go = CODE.match(/function ceScrollToClause\([\s\S]*?\n\}/)[0];
+    assert.match(go, /function ceScrollToClause\(placeAt\)/,
+      'the placement takes the reader\'s own offset where there is one');
+    assert.match(go, /const want = \(placeAt == null\) \? 24 : placeAt;/,
+      'and 24 is reached only on an arrival, or on a move to a clause that was '
+      + 'not on screen to keep a place on');
+    /* THE ANCHOR IS THE TARGET CLAUSE'S OWN TOP, not the scroller's number: the
+       clause being left grows (its marks come back) and the clause being
+       entered shrinks (its marks go), so everything below the first one moves
+       and a remembered number would land somewhere else. */
+    assert.match(CODE, /_cePlaceAt = ceClauseTopNow\(clauseId\);/,
+      'measured on the clause being moved TO, before the page is torn down');
+    const now = CODE.match(/function ceClauseTopNow\([\s\S]*?\n\}/)[0];
+    assert.match(now, /return \(top >= 0 && top <= hb\.height\) \? top : null;/,
+      'and null where it is off screen — a jump from the clause list has no '
+      + 'place to keep, so it falls through to the arrival placement');
+    /* CONSUMED ON ARRIVAL, never stored: an ask that outlived its press is the
+       fault the typing ask records in its own note. */
+    assert.match(CODE, /const placeAt = _cePlaceAt; _cePlaceAt = null;/,
+      'read once into a local and cleared, beside the typing ask it copies');
   });
 
   test('and both callers land: arriving, and moving to another clause', () => {
@@ -2147,7 +2281,7 @@ describe('f245 (23) — the paper lands rather than travels', () => {
        exist a frame ago, so there is no position to travel FROM; ceGoClause
        re-seeds the draft and re-renders the paper first, so a glide would
        animate between two unrelated documents. */
-    const callers = (CODE.match(/ceScrollToClause\(\)/g) || []).length;
+    const callers = (CODE.match(/ceScrollToClause\([a-zA-Z]*\)/g) || []).length;
     assert.ok(callers >= 2, 'both call sites are still there: ' + callers);
     assert.ok(!/scrollIntoView/.test(CODE),
       'and nothing on this page reaches for scrollIntoView, which animates '

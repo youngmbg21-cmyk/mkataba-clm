@@ -817,10 +817,51 @@ function openObligationsReview(c, found){
         <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
         ${''/* THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED, so a press on a
                second scan that finds nothing new says so before it is pressed
-               rather than afterwards. */}
-        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${_obEsc(fresh ? i18tn('ob_add_n', fresh, { n: fresh }) : i18t('ob_add_none'))}</button>
+               rather than afterwards. Its LABEL is written by obPaintAdd and
+               never here — see the note on that painter. */}
+        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700 disabled:opacity-50"></button>
       </div>
     </div>`);
+  /* ---- THE COUNT FOLLOWS THE TICKS, LIVE (owner-reported 1 Sep 2026) ----
+     *"as I exclude or include any obligations, the count in the highlighted
+     button should in live reflect the number of obligations checked only."*
+
+     IT WAS WRITTEN ONCE, AT THE DRAW. The count was right the moment the window
+     opened — it already left duplicates out, which is what J-5.3 built it for —
+     and then never moved again, so untick fifteen of twenty and the button
+     still offered to add twenty.
+
+     ONE PAINTER AND NO SECOND COPY. The label is not written into the markup
+     above at all: this function is the only thing that writes it, so the first
+     paint and every repaint go through one reading and cannot come to disagree
+     about what the number means.
+
+     AND ZERO IS TWO DIFFERENT SENTENCES, which is why the state is read rather
+     than the number alone. Nothing ticked because the scan found nothing new is
+     a fact about the scan; nothing ticked because the reader untied everything
+     is their own choice, and telling them "nothing new to add" over a list full
+     of new proposals would be the window arguing with itself. Either way the
+     button is DISABLED — this product's own rule: grey where it can be known
+     before the press, rather than a refusal after it. */
+  const obPicks = () => Array.prototype.slice.call(
+    document.querySelectorAll('#modal-root [data-ob-pick]'));
+  function obPaintAdd(){
+    const btn = document.getElementById('or-add');
+    if (!btn) return;
+    const n = obPicks().filter(cb => cb.checked).length;
+    btn.textContent = n
+      ? i18tn('ob_add_n', n, { n })
+      : i18t(fresh ? 'ob_add_pick' : 'ob_add_none');
+    btn.disabled = !n;
+  }
+  obPaintAdd();
+  /* ONE DELEGATED LISTENER on the window rather than one per row: the list runs
+     to twenty on a real agreement, and a listener per box is twenty things to
+     keep in step with a row that is redrawn. */
+  const modal = document.getElementById('modal-root');
+  if (modal) modal.addEventListener('change', ev => {
+    if (ev.target && ev.target.closest && ev.target.closest('[data-ob-pick]')) obPaintAdd();
+  });
   document.getElementById('or-cancel').addEventListener('click',closeModal);
   document.getElementById('or-add').addEventListener('click',()=>{
     c.obligations=c.obligations||[];

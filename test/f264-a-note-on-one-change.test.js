@@ -574,10 +574,80 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
       'and each row is a door onto that change’s own note');
   });
 
-  test('no composer — there is one note box per change and it is on the change', () => {
+  test('THE REFERENCE IS THE REFERENCE, and nothing round it', () => {
+    /* Owner-reported 1 Sep 2026, off a screenshot with two of them ringed:
+       "should simply say CHG-00X and they should never wrap text." "On CHG-001"
+       spent two of the row's scarcest characters on a word saying nothing the
+       row's own shape does not — the reference sits above the note it belongs
+       to, so what it is ON is already on screen. */
+    const fn = VIEW.match(/function rlChatPanelHtml\([\s\S]*?\n\}/)[0]
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/ng_chat_on/.test(fn),
+      'the wrapper word is gone; ng_chat_on is STALE and inert in both dictionaries');
+    assert.match(fn, /<span class="id">\$\{_ne\(ch\.id\)\}<\/span>/,
+      'the id and nothing else');
+    /* AND IT MAY NOT WRAP. flex:none is what makes that a GUARANTEE rather than
+       a measurement: no panel width can break it across two lines. The clause
+       name beside it is the one that gives, and it already elides. */
+    const css = read('index.html');
+    const rule = css.match(/\.rl-chat-on \.id\{[\s\S]*?\}/)[0];
+    assert.match(rule, /flex:none/, 'it is never squeezed');
+    assert.match(rule, /white-space:nowrap/, 'and never broken');
+  });
+
+  /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked) ----
+     It pinned that Chat drew NO composer, on the reasoning that a box here
+     would be a second one with no change to attach to. THE REASONING WAS RIGHT
+     ABOUT THE STORE AND WRONG ABOUT THE NEED: the owner asked for notes
+     "unrelated to a redline", so what was missing was not a second box but a
+     second HOME. The contract has its own thread now — negoNoteHome answers it
+     — and the composer is the per-change panel's own foot, character for
+     character, because two composers dressed two ways for one conversation is
+     what reverting this panel to the panel's clothes was for.
+
+     "THIS PRODUCT'S OWN BOX, NOT A SECOND ONE" IS THE CLAIM NOW, and it is the
+     stronger form: it fails if Chat ever grows a composer of its own design. */
+  test('THE BOX IS BACK, and it is the panel\'s own', () => {
     const fn = VIEW.match(/function rlChatPanelHtml\([\s\S]*?\n\}/)[0];
-    assert.equal(/data-rl-np-send|rl-np-in|textarea/.test(fn), false,
-      'a composer here would be a second one with no change to attach to');
+    assert.match(fn, /class="chat-field rl-np-in"/,
+      'the same textarea class the per-change panel writes');
+    assert.match(fn, /rlNpTagMenuHtml\(c, room, opts\)/,
+      'and the same tag picker — one function, both composers');
+    assert.match(fn, /data-rl-chat-send/,
+      'its own send attribute, because it carries no change id');
+    assert.match(fn, /notesMayWrite\(c, opts\)/,
+      'and a viewer is refused by the product\'s own reading, in the panel\'s '
+      + 'own words');
+  });
+
+  test('and it writes on the CONTRACT, through the one writer', () => {
+    /* negoPostComment is still the only thing that files a note. What is new is
+       that an absent change id names the contract rather than failing to
+       resolve — see negoNoteHome. */
+    const send = VIEW.match(/async function rlNotesSend\([\s\S]*?\n\}/)[0];
+    assert.match(send, /negoPostComment\(c, ch \? ch\.id : null, text, \{/,
+      'one send, two scopes, and no second filing path');
+    const model = read('js/negotiation.js');
+    assert.match(model, /function negoNoteHome\(c, ch\)\{/,
+      'the one reading of where a note lives');
+    assert.match(model, /const onContract = \(id == null \|\| id === ''\);/,
+      'an absent id means the contract; an id we cannot resolve is still refused');
+    /* AND IT IS A NEW STORE ON THE RECORD, absent everywhere until something is
+       written — so nothing already on file reads differently. */
+    assert.match(model, /if \(!Array\.isArray\(host\.thread\)\) host\.thread = \[\];/,
+      'minted on first use, never on read');
+  });
+
+  test('an external note on the contract joins the general topic, not a new one', () => {
+    /* The Document tab's discussion has posted a general comment under
+       DISCUSS_GENERAL since long before this panel. ONE conversation about the
+       contract, read from two screens, is the reason to reuse it. */
+    const model = read('js/negotiation.js');
+    assert.match(model, /const negoTopicFor = ch => ch \? \('change:' \+ ch\.id\) : \(window\.DISCUSS_GENERAL \|\| 'general'\);/,
+      'the contract\'s topic is the product\'s own general topic');
+    const ch = VIEW.match(/async function negoPostToChannel\([\s\S]*?\n\}/)[0];
+    assert.ok(!/\|\| !ch \|\|/.test(ch),
+      'and the channel no longer refuses a post that names no change');
   });
 
   test('an empty contract says so, and no contract says something else', async () => {

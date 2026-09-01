@@ -4896,7 +4896,16 @@
   .rl-chat-on{display:flex;align-items:baseline;gap:6px;width:100%;margin-top:10px;
     padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);
     text-align:left;cursor:pointer;color:var(--color-neutral-600);}
-  .rl-chat-on .id{font-weight:var(--w-strong);color:var(--accent-ink);}
+  /* ---- THE REFERENCE IS ONE LINE, ALWAYS (owner-reported 1 Sep 2026, off a
+     screenshot with two of them ringed: "should simply say CHG-00X and they
+     should never wrap text") ----
+     The row is a flex line and the id was an ordinary flex item, so at the
+     panel's width it wrapped to two — and a reference broken across lines stops
+     reading as a reference. flex:none is what makes it a GUARANTEE rather than
+     a measurement: no panel width can wrap it. The clause name beside it is the
+     one that gives, and it already elides. */
+  .rl-chat-on .id{font-weight:var(--w-strong);color:var(--accent-ink);
+    flex:none;white-space:nowrap;}
   .rl-chat-on em{font-style:normal;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
   .rl-chat-on:hover .id{text-decoration:underline;}

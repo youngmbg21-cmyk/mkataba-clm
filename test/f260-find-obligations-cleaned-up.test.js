@@ -95,7 +95,63 @@ describe('f260 (2) — a duplicate is SHOWN, not hidden', () => {
 
   test('the button counts what will actually be added', () => {
     assert.match(body, /const fresh = dupe\.filter\(d => !d\)\.length;/);
-    assert.match(body, /fresh \? i18tn\('ob_add_n', fresh, \{ n: fresh \}\) : i18t\('ob_add_none'\)/);
+  });
+});
+
+/* ============================================================
+   f260 (2b) — AND THE COUNT FOLLOWS THE TICKS (owner-reported 1 Sep 2026)
+   ------------------------------------------------------------
+   *"as I exclude or include any obligations, the count in the highlighted
+   button should in live reflect the number of obligations checked only."*
+
+   IT WAS WRITTEN ONCE, AT THE DRAW. The number was right the moment the window
+   opened — it already left duplicates out, which is what (2) above built it for
+   — and then never moved, so untick fifteen of twenty and the button still
+   offered to add twenty.
+   ============================================================ */
+describe('f260 (2b) — the count follows the ticks', () => {
+  const dlg = OB.slice(OB.indexOf('function openObligationsReview'));
+  const body = dlg.slice(0, dlg.indexOf('\n}\n\n'));
+
+  test('ONE PAINTER, and the markup carries no label of its own', () => {
+    /* The first paint and every repaint go through one reading, so they cannot
+       come to disagree about what the number means. */
+    assert.match(body, /function obPaintAdd\(\)\{/, 'the one painter');
+    assert.match(body, /<button id="or-add"[^>]*><\/button>/,
+      'the button is drawn EMPTY — a label written into the markup would be a '
+      + 'second copy that stops moving');
+    assert.match(body, /obPaintAdd\(\);/, 'and it is painted on arrival');
+  });
+
+  test('it counts the TICKED boxes, live', () => {
+    assert.match(body, /const n = obPicks\(\)\.filter\(cb => cb\.checked\)\.length;/,
+      'the checked ones and nothing else');
+    assert.match(body, /i18tn\('ob_add_n', n, \{ n \}\)/, 'and that is the number it prints');
+    /* ONE DELEGATED LISTENER rather than one per row: the list runs to twenty
+       on a real agreement. */
+    assert.match(body, /modal\.addEventListener\('change'/, 'wired once, on the window');
+    assert.match(body, /closest\('\[data-ob-pick\]'\)\) obPaintAdd\(\)/,
+      'and only a tick repaints it');
+  });
+
+  test('ZERO IS TWO DIFFERENT SENTENCES, and both are refused', () => {
+    /* Nothing ticked because the scan found nothing new is a fact about the
+       scan; nothing ticked because the reader untied everything is their own
+       choice. Telling them "nothing new to add" over a list full of new
+       proposals would be the window arguing with itself. */
+    assert.match(body, /i18t\(fresh \? 'ob_add_pick' : 'ob_add_none'\)/,
+      'the state is read, not the number alone');
+    assert.match(body, /btn\.disabled = !n;/,
+      'and either way the press is refused BEFORE it happens — this product\'s '
+      + 'own rule: grey where it can be known, never a refusal afterwards');
+  });
+
+  test('the new sentence is in both languages', () => {
+    for (const lang of ['en', 'sv'])
+      assert.ok(i18n.STRINGS[lang].ob_add_pick
+        && String(i18n.STRINGS[lang].ob_add_pick).trim(), lang + '.ob_add_pick');
+    assert.notEqual(i18n.STRINGS.en.ob_add_pick, i18n.STRINGS.sv.ob_add_pick,
+      'and it is really translated');
   });
 });
 

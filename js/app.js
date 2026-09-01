@@ -602,7 +602,16 @@ function viewLayersClosed(view){
     return true;
   }
   if(!window.confirmDialog){ if(window.rlCloseClauseEditor) rlCloseClauseEditor(); return true; }
-  confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
+  /* THE SENTENCE IS THE EDITOR'S, NOT WRITTEN OUT AGAIN HERE (owner-reported
+     1 Sep 2026: the warning named neither the clause nor the wording). Two
+     surfaces raise this one guard — this one on the way off the page, the
+     editor's own on the way to another clause — and a copy of the words here
+     would be a second answer to one question. THE FALLBACK IS THE OLD
+     SENTENCE, never nothing: a guard that says less because a name is
+     unreachable is worse than the guard that prompted the report. */
+  const ask = (window.clauseEditorLeaveAsk && clauseEditorLeaveAsk())
+    || { title:i18t('ce_leave_title'), message:i18t('ce_leave_body') };
+  confirmDialog({ title:ask.title, message:ask.message,
     confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
     .then(ok=>{
       if(!ok) return;

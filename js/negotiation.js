@@ -2703,16 +2703,45 @@ function negoMentionsIn(text, people){
   }
   return out;
 }
+/* ---- WHERE A NOTE LIVES, AND THERE ARE TWO ANSWERS (owner-asked 2 Sep 2026)
+   ----
+   *"you should also be able to ... add any notes internally or externally
+   unrelated to a redline."*
+
+   A note about a redline lives on that change's own thread. A note about the
+   CONTRACT has no change to hang on, so it lives on the contract's — the same
+   message shape, the same rooms, the same acts, one field along. `c.thread` is
+   minted on first use and absent on every record already on file, so nothing
+   needs migrating and no existing reading answers differently.
+
+   ONE READING, so nothing anywhere has to remember which store it is in.
+   Called with a change it answers that change's thread; called without one it
+   answers the contract's.
+
+   NOT `negoThreadOf`, which is a different question two hundred lines down —
+   that one MERGES the local thread with the discussion channel for READING.
+   This is where a note is WRITTEN, and it mints the list. */
+function negoNoteHome(c, ch){
+  const host = ch || c;
+  if (!host) return [];
+  if (!Array.isArray(host.thread)) host.thread = [];
+  return host.thread;
+}
+/* THE ID IS OPTIONAL AND ITS ABSENCE MEANS THE CONTRACT — never "not found".
+   A caller that passes an id we cannot resolve is still refused, because that
+   is a caller naming something that is not there; a caller that passes nothing
+   is naming the contract, which always is. */
 function negoPostComment(c, id, text, opts = {}){
-  const ch = negoChangeById(c, id);
-  if (!ch) return null;
+  const onContract = (id == null || id === '');
+  const ch = onContract ? null : negoChangeById(c, id);
+  if (!c || (!onContract && !ch)) return null;
   const body = String(text == null ? '' : text).trim();
   if (!body) return null;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const who = String(opts.author || (side === 'counterparty'
     ? (c.counterparty || 'The counterparty')
     : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
-  ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
+  const thread = negoNoteHome(c, ch);
   /* WHO THIS IS FOR, and the default is the safe one.
 
      'shared' means it also goes out on the discussion channel and the other
@@ -2753,11 +2782,12 @@ function negoPostComment(c, id, text, opts = {}){
     ? negoMentionsIn(body, people) : [];
   const msg = { who, byId, side, visibility,
     at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
-    text: body.slice(0, 2000), atHash: ch.hash || null };
+    text: body.slice(0, 2000), atHash: (ch && ch.hash) || null };
   if (mentions.length) msg.mentions = mentions;
-  ch.thread.push(msg);
+  thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on #${ch.id} by ${who}`
+    `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on `
+    + `${ch ? '#' + ch.id : 'the contract'} by ${who}`
     + ` — the contract is unchanged and no round was opened`
     + (visibility === 'shared' ? '' : '; it stays inside this organisation'));
   return msg;
@@ -2904,7 +2934,13 @@ function negoDeleteNote(c, ch, msg){
    stored flag, so it cannot disagree with the change it describes. */
 const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash && msg.atHash !== ch.hash);
 /* The topic key a change's thread shares with js/discuss.js. */
-const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
+/* ---- WHICH CONVERSATION A NOTE BELONGS TO ----
+   A note on a change has that change's own topic. A note on the CONTRACT joins
+   the topic this product has always had for exactly that — DISCUSS_GENERAL,
+   which is what the Document tab's discussion posts a general comment under.
+   NOT A NEW CHANNEL: one conversation about the contract generally, read from
+   two screens, is the whole reason to reuse it rather than mint 'contract:'. */
+const negoTopicFor = ch => ch ? ('change:' + ch.id) : (window.DISCUSS_GENERAL || 'general');
 
 /* ---------- ONE THREAD PER CHANGE, OUT OF TWO STORES ----------
 
@@ -2940,10 +2976,15 @@ const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
    rebuilt from the share payload on every repaint, so the list lives on the
    page (PORTAL_OPTS.messages) and is handed in. */
 function negoMergedThread(c, ch, extra){
-  const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
+  /* WITH NO CHANGE NAMED THIS IS THE CONTRACT'S OWN THREAD — the notes that
+     belong to no redline (owner-asked 2 Sep 2026). Everything below is
+     unchanged: same shape, same rooms, same merge with the channel, one store
+     along. */
+  const host = ch || c;
+  const own = (host && Array.isArray(host.thread)) ? host.thread : [];
   const all = Array.isArray(extra) ? extra
     : ((c && Array.isArray(c._messages)) ? c._messages : []);
-  if (!ch || !all.length) return own;
+  if (!host || !all.length) return own;
   const topic = negoTopicFor(ch);
   /* THE TIMESTAMP IS DELIBERATELY NOT IN THE KEY, and leaving it in would put
      every one of the owner's own comments on the screen twice. A comment they
@@ -4174,7 +4215,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
-  negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
+  negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

@@ -281,13 +281,20 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       chat.rows >= 2 && /fallback is thirty/.test(chat.text)
         && /thirty-five/.test(chat.text) && !/rebate stands/.test(chat.text),
       `${chat.rows} rows`);
-    check('and each row says which change it is about',
-      chat.onLines.every(t => /CHG-/.test(t)), chat.onLines[0]);
+    check('and each row about a redline says which change it is',
+      chat.onLines.filter(Boolean).every(t => /CHG-/.test(t)), chat.onLines[0]);
     check('it is dressed as the per-change panel, not as a list of its own',
       chat.panel && chat.tabs === 2 && chat.who && chat.scope,
       `panel ${chat.panel} · tabs ${chat.tabs} · lock ${chat.who} · oldest-first ${chat.scope}`);
-    check('no composer — there is one note box per change and it is on the change',
-      chat.box === false);
+    /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked) ----
+       It pinned that Chat drew NO composer, on the reasoning that there is one
+       note box per change and it lives on the change. The owner reversed it in
+       their own words: "This means a need to open an open text field to enter
+       notes which was the case previously but has changed without my ask."
+       A note that belongs to no redline had nowhere to be written; it has the
+       contract's own thread now, and the box is the panel's own foot. */
+    check('THE BOX IS BACK — a note that belongs to no redline can be written here',
+      chat.box === true);
     /* THE OTHER ROOM IS ONE PRESS, and it holds what the internal one does not. */
     await page.click('#context-panel [data-rl-np-room="external"]');
     await page.waitForTimeout(300);
@@ -299,6 +306,53 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       (ext.live || '').trim());
     await page.click('#context-panel [data-rl-np-room="internal"]');
     await page.waitForTimeout(250);
+
+    /* ============================================================
+       6b. A NOTE THAT BELONGS TO NO REDLINE (owner-asked 2 Sep 2026)
+       ============================================================
+       *"you should also be able to ... add any notes internally or externally
+       unrelated to a redline."* Driven for real, because the whole point is
+       that the box exists and the press reaches the record. */
+    await page.fill('#context-panel .rl-np-in', 'Renewal talks start in March.');
+    await page.click('#context-panel [data-rl-chat-send]');
+    await page.waitForTimeout(900);
+    const free = await page.evaluate(() => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const own = (c.thread || []);
+      const last = own[own.length - 1] || {};
+      const rows = [...document.querySelectorAll('.rl-chat-row')];
+      const mine = rows.find(r => /March/.test(r.textContent || ''));
+      return { onContract: last.text, vis: last.visibility,
+        /* AND IT IS NOT ON ANY CHANGE — the two stores are separate, which is
+           what stops a general note appearing under a redline it is not about. */
+        onAnyChange: (c.changes || []).some(ch =>
+          (ch.thread || []).some(m => /March/.test(m.text || ''))),
+        onScreen: !!mine,
+        /* A ROW WITH NO CHANGE DRAWS NO REFERENCE LINE: a door reading "the
+           contract" on a panel about that contract is a press going nowhere. */
+        ref: !!(mine && mine.querySelector('.rl-chat-on')),
+        boxCleared: (document.querySelector('#context-panel .rl-np-in') || {}).value };
+    });
+    check('a note with no redline files onto the CONTRACT, not onto a change',
+      /March/.test(free.onContract || '') && free.onAnyChange === false,
+      `"${(free.onContract || '').slice(0, 30)}" · on a change: ${free.onAnyChange}`);
+    check('AS INTERNAL, because that is the room it was written in',
+      free.vis === 'internal', free.vis);
+    check('and it is on screen without a reload', free.onScreen === true);
+    check('drawn with NO reference line — there is no change to go to',
+      free.ref === false);
+    check('the box empties after the send', free.boxCleared === '');
+    /* IT SITS WITH THE REDLINE NOTES rather than in a list of its own — the
+       owner's own words, "should be able to sit in the panel". */
+    const together = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.rl-chat-row')];
+      return { total: rows.length,
+        withRef: rows.filter(r => r.querySelector('.rl-chat-on')).length };
+    });
+    check('and it sits in ONE list with the redline notes',
+      together.total >= 3 && together.withRef >= 2
+        && together.withRef < together.total,
+      `${together.total} rows, ${together.withRef} of them about a redline`);
 
     /* ---- IT IS DEAD WHILE THE CLAUSE EDITOR COVERS THE WINDOW ----
        The drawer sits at z-index 46 and that page mounts at 54, so a press

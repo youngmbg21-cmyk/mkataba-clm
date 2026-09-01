@@ -12042,7 +12042,11 @@ const negoNoteRoom = m => (m && m.visibility === 'shared') ? 'external' : 'inter
    see is not in either room, and filtering by room before by seat would count
    it in a tab. */
 function negoRoomNotes(c, ch, room, opts = {}, side = 'owner'){
-  const all = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch && ch.thread) || []) || [])
+  /* WITH NO CHANGE NAMED THIS IS THE CONTRACT'S OWN NOTES — the ones that
+     belong to no redline. The fallback names the same host, so a stage without
+     the model reads the right store rather than an empty one. */
+  const host = ch || c;
+  const all = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (host && host.thread) || []) || [])
     .filter(m => rlMsgVisible(m, side));
   return room ? all.filter(m => negoNoteRoom(m) === room) : all;
 }
@@ -12083,11 +12087,19 @@ function notesMayWrite(c, opts = {}){
    store the counterparty's page reads live. This was written inline in the
    negotiation page's own onComment hook; the panel needs the same act, and two
    copies of "how a note reaches them" is how they come to disagree. */
+/* ---- AND A NOTE ON THE CONTRACT TRAVELS THE SAME WAY (owner-asked 2 Sep
+   2026) ---- The only thing that differs is which conversation it joins:
+   negoTopicFor answers the change's topic where there is one and the contract's
+   general topic where there is not. `ch` is optional here for that reason and
+   for no other; every guard, every refusal and the whole ordering are the
+   change path's own. */
 async function negoPostToChannel(c, ch, msg){
-  if (!window.API_MODE || !API_MODE() || !ch || !msg) return { ok: false, skipped: true };
+  if (!window.API_MODE || !API_MODE() || !c || !msg) return { ok: false, skipped: true };
   const res = await api('contracts/' + c.id + '/messages', 'POST', {
-    topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
-    topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`,
+    topic: (window.negoTopicFor ? negoTopicFor(ch) : (ch ? 'change:' + ch.id : 'general')),
+    topicLabel: ch
+      ? `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`
+      : (window.i18t ? i18t('di_contract_generally') : 'The contract generally'),
     body: msg.text });
   c._messages = (res && res.messages) || c._messages || [];
   return { ok: true, res };
@@ -12273,6 +12285,14 @@ function rlChatRows(c, opts = {}, room = null){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const live = (c && Array.isArray(c.changes)) ? c.changes : [];
   const out = [];
+  /* THE CONTRACT'S OWN NOTES SIT IN THE SAME LIST (owner-asked 2 Sep 2026:
+     "The redline notes and notes unrelated to the redlines should be able to
+     sit in the panel"). They come first only in the sense that they are added
+     first — the sort below is by TIME, so the two kinds interleave exactly as
+     they were written, which is what makes this one conversation rather than
+     two lists stacked. A row with no change draws no reference line; see the
+     builder. */
+  for (const m of negoRoomNotes(c, null, room, opts, side)) out.push({ ch: null, m });
   for (const ch of live){
     if (!ch || !ch.id) continue;
     for (const m of negoRoomNotes(c, ch, room, opts, side)) out.push({ ch, m });
@@ -12323,12 +12343,59 @@ function rlChatPanelHtml(c, opts = {}){
   const who = ext
     ? i18t('ng_np_who_ext', { who: _ne(other) })
     : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
+  /* ---- THE BOX IS BACK, AND IT WRITES A NOTE THAT BELONGS TO NO REDLINE
+     (owner-asked 2 Sep 2026) ----
+     *"you should also be able to tag people and add any notes internally or
+     externally unrelated to a redline ... This means a need to open an open
+     text field to enter notes which was the case previously but has changed
+     without my ask."*
+
+     THE BOX GOING WAS MINE. Chat shipped on 31 Aug with a note saying there is
+     one note box per change and it lives on the change; the owner did not ask
+     for that and it is reversed here.
+
+     IT IS THE PER-CHANGE PANEL'S OWN FOOT, character for character — the same
+     textarea class, the same tag menu, the same send button, the same viewer
+     refusal — because two composers dressed two ways for one conversation is
+     the drift this panel was reverted to the panel's clothes to avoid. What
+     differs is only what it writes ON: no change, so the send carries no id and
+     negoPostComment files it against the contract.
+
+     THE ROOM STILL DECIDES WHO READS IT, unchanged: an internal note stays on
+     this record, and an external one goes down the discussion channel exactly
+     as a redline note does — and is then no longer its writer's to edit, which
+     is negoNoteDelivered's rule and needs no exception here. */
+  const mayWrite = notesMayWrite(c, opts);
+  const foot = mayWrite
+    ? `<div class="rl-np-foot${ext ? ' out' : ''}">
+        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-contract"
+          placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_chat_ph'))}"
+          aria-label="${_nea(i18t('ng_chat_write_aria'))}"></textarea>
+        ${rlNpTagMenuHtml(c, room, opts)}
+        <div class="rl-np-act">
+          <button type="button" class="rl-np-send" data-rl-chat-send="1"
+            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+        </div>
+      </div>`
+    : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   const body = rows.length
     ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
-        <button type="button" class="rl-chat-on" data-rl-notes="${_nea(ch.id)}">
-          <span class="id">${i18t('ng_chat_on', { id: _ne(ch.id) })}</span>
+        ${''/* A NOTE THAT BELONGS TO NO REDLINE CARRIES NO REFERENCE LINE
+               (owner-asked 2 Sep 2026). A door reading "the contract" on a
+               panel about that contract is a press that goes nowhere, and this
+               product's own rule is that a verb which cannot work is not
+               drawn. What tells the two apart is the absence of the line. */}
+        ${ch ? `<button type="button" class="rl-chat-on" data-rl-notes="${_nea(ch.id)}">
+          ${''/* THE REFERENCE, AND NOTHING ROUND IT (owner-reported 1 Sep
+                 2026: "should simply say CHG-00X"). "On CHG-001" spent two of
+                 the row's scarcest characters on a word that says nothing the
+                 row's own shape does not — the reference sits above the note it
+                 belongs to, so what it is ON is already on screen. It is also
+                 what let the label wrap; see the rule in index.html.
+                 ng_chat_on is STALE and left inert in both dictionaries. */}
+          <span class="id">${_ne(ch.id)}</span>
           ${ch.clauseLabel ? `<em>${_ne(ch.clauseLabel)}</em>` : ''}
-        </button>
+        </button>` : ''}
         ${rlNpNoteHtml(m, room, side, other)}
       </div>`).join('')
     : `<div class="rl-np-empty">
@@ -12353,11 +12420,27 @@ function rlChatPanelHtml(c, opts = {}){
       <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${body}
     </div>
+    ${foot}
   </div>`;
 }
 function rlChatPanelPaint(host, c, opts = {}){
   if (!host) return;
   host.innerHTML = rlChatPanelHtml(c, opts);
+  /* ---- THE COMPOSER IS THE PANEL'S OWN, ARMED THE PANEL'S OWN WAY ----
+     The send, the Enter key and the @ picker are the same three bindings
+     rlWireNotesPanel makes, on the same markup, through the same one send —
+     rlNotesSend with no change named. Bound to fresh markup on every paint, so
+     they cannot stack. */
+  const send = host.querySelector('[data-rl-chat-send]');
+  if (send) send.addEventListener('click', () => {
+    rlNotesSend(host, c, null, opts, send.getAttribute('data-room'));
+  });
+  const box = host.querySelector('.rl-np-in');
+  if (box) box.addEventListener('keydown', e => {
+    if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && (e.preventDefault(), true)))
+      rlNotesSend(host, c, null, opts, send && send.getAttribute('data-room'));
+  });
+  if (box && typeof rlNpTagWire === 'function') rlNpTagWire(host, box);
   /* THE TABS ARE WIRED HERE, exactly as the per-change panel wires its own:
      the rows are [data-rl-notes] and the delegated door armed at module load
      carries those, but a room switch has to repaint THIS host and nothing else
@@ -12490,15 +12573,17 @@ async function rlNotesSend(host, c, ch, opts, room){
   if (ext && window.confirmDialog){
     const ok = await confirmDialog({
       title: i18t('ng_np_confirm_title', { who: other }),
-      message: i18t('ng_np_confirm_msg', { id: ch.id }),
+      message: ch ? i18t('ng_np_confirm_msg', { id: ch.id }) : i18t('ng_chat_confirm_msg'),
       confirmLabel: i18t('ng_np_confirm_go', { who: other }),
     });
     if (!ok) return false;
   }
-  const msg = negoPostComment(c, ch.id, text, {
+  const msg = negoPostComment(c, ch ? ch.id : null, text, {
     side, author: opts.author, visibility: ext ? 'shared' : 'internal' });
   if (!msg) return false;
-  negoMarkThreadSeen(negoSeenScope(c, opts), ch.id);
+  /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
+     — there is no thread of its own for anybody to be behind on. */
+  if (ch) negoMarkThreadSeen(negoSeenScope(c, opts), ch.id);
   if (opts.persist !== false && window.persist) persist(c);
   if (box) box.value = '';
   /* THE CHANNEL IS THE ONLY WAY OUT, so an internal note simply does not take
@@ -12507,15 +12592,21 @@ async function rlNotesSend(host, c, ch, opts, room){
     try {
       const sent = await negoPostToChannel(c, ch, msg);
       if (window.toast && sent && sent.ok)
-        toast(i18t('ng_np_sent', { who: other, id: ch.id }), 'ok');
+        toast(ch ? i18t('ng_np_sent', { who: other, id: ch.id })
+          : i18t('ng_chat_sent', { who: other }), 'ok');
     } catch (e){
       if (window.toast) toast(i18t('ng_np_send_failed',
         { who: other, why: (e && e.message) || '' }), 'err');
     }
   } else if (window.toast){
-    toast(i18t('ng_np_filed', { org: us, id: ch.id }), 'ok');
+    toast(ch ? i18t('ng_np_filed', { org: us, id: ch.id })
+      : i18t('ng_chat_filed', { org: us }), 'ok');
   }
-  rlNotesPanelPaint(host, c, ch, opts);
+  /* EACH SURFACE REPAINTS ITSELF. One send, two panels: the per-change panel
+     redraws that change's thread and Chat redraws the whole contract's, and
+     which one this is is exactly whether a change was named. */
+  if (ch) rlNotesPanelPaint(host, c, ch, opts);
+  else rlChatPanelPaint(host, c, opts);
   return true;
 }
 function rlWireNotesPanel(host, c, ch, opts = {}){

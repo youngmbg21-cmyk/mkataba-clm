@@ -2842,7 +2842,10 @@ press that SAID *edit this clause* — the paper's pencil, the ✦ on a change, 
 panel's Copilot button — now arrives typeable whatever marks the clause carries,
 because the owner asked for it in those words ("click the pencil symbol once …
 the redlines disappear to clean view"). See ONE PRESS REACHES TYPING AND THE
-STRIP above. **Everything below still governs every move INSIDE the page**,
+STRIP above. **AND ON 1 Sep 2026 THAT NARROWING AND THIS RULE CAME BACK INTO
+AGREEMENT**: click-to-type is retired, so the only presses that say *edit this
+clause* are pencils — see THE PENCIL IS THE ONLY WAY IN.
+**Everything below still governs every move INSIDE the page**,
 which is what consuming the ask on arrival buys: a reader who lands on Redlined
 without asking to edit still sees the marks that exist, which is the whole of
 what was reported here.
@@ -3078,58 +3081,172 @@ page error.
   clause-door-verify 16a-16d (**16b and 16c fail against the parent, reporting
   `page:false, panel:false`**).
 
-## CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026)
+## THE PENCIL IS THE ONLY WAY IN (owner-ruled 1 Sep 2026)
 
-*"I hate that I have to click on a pencil for me to edit in the edit with
-copilot page \u2026 Let me just edit like I am in Google Docs but the platform
-should track which clause I am editing."*
+*"I am reversing this ... and essentially saying only after clicking on the
+pencil can you have the ability to edit."*
 
-- **THE PENCIL IS NOT RETIRED AND THIS IS NOT A SECOND ACT.** Both ends run the
-  two lines that handler already had \u2014 turn typing on where the reader is, or
-  move the page to the clause they pointed at \u2014 and `ceStartTyping` names the
-  first of them ONCE so the press in the words and the press on the pencil
-  cannot drift. What changed is that a press in the WORDING now counts as that
-  ask, so the pencil is the visible affordance rather than the toll gate.
-- **WHICH CLAUSE IS TRACKED BY THE PRESS.** `data-clause` is on the section the
-  press landed in, so the page follows the reader rather than the reader having
-  to tell it twice; another clause is `ceGoClause`, the crumb's own act, never a
-  second route.
-- **THE 28 Aug RULE IS REVERSED IN PLACE AND IS STRONGER FOR IT.** *The page
-  never opens in a state that hides marks that exist* governs ARRIVAL, which is
-  where it was reported, and it now sits behind one override: an explicit ask to
-  type. Nothing is being HIDDEN from somebody who has just put their cursor in a
-  clause. **THE ASK IS CONSUMED, NEVER STORED** \u2014 `_ceOpts` is what every later
-  `ceGoClause` inherits, so left on it one click into the words would silently
-  make every later move open typing too.
-- **A REFUSING READING DOES NOTHING, AND NEITHER DOES A CONTROL.** `As agreed`
-  and `With changes` draw the paper without its marks, so typing there would be
-  measured against a document the reader is not being shown \u2014 one predicate,
-  `ceEditableReading`, exactly as the pencil and Apply ask it. The branch runs
-  LAST, after every named control, and excludes buttons, links and fields by
-  selector, so a press on the paper's own pencil or an ask tag is never read as
-  a press in the wording. **Already typing does nothing at all**: the box is
-  contenteditable and the browser's own caret is the right answer.
-- **AND MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY.** The
-  draft lives in memory until it is filed, so moving off the clause loses it —
-  and this change made that gesture CHEAP, which is what turned a rare silent
-  loss into an easy one. `ceGoClause` asks, so all three doors onto the act
-  (the crumb, another clause's pencil, a press in another clause's words)
-  inherit it; it is **the product's own guard rather than a second one** —
-  `clauseEditorDirty` is the predicate `viewLayersClosed` already asks, and the
-  words are that dialog's own *"Leave this clause?"*, which is what this act
-  does whether or not the page goes with it. **A reader who has typed nothing
-  is never asked**, which is every ordinary move.
-- **THE CARET GOES WHERE THEY PUT IT, WHERE THAT CAN BE KNOWN.** Turning typing
-  on repaints the paper, so the node under the press is gone \u2014 the POINT is
-  re-asked of the new layout rather than remembered as an offset into the old
-  one, which is what makes it survive a clause that draws marks when it is not
-  being typed in and plain wording when it is. It degrades to the start of the
-  box and never to nothing.
+**THIS REVERSES CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026), whose
+reasoning is kept below because it is the useful part.** A press anywhere in the
+wording turned typing on, so that a contract would behave like any document.
+**WHAT IT COST is that the same press ALSO took that clause's redlines off the
+screen** — you cannot type into a redline — so the gesture that felt like
+putting a cursor down was quietly the gesture that hid the marks, on a clause
+the reader had only pointed at.
 
-Tests: f245 (the opening rule reversed in place, the consumed ask, and the
-branch as the same two acts), clause-door-verify 16e-16h (driven with a real
-mouse at a real point \u2014 the only place "can I just click and type" can be
-asked).
+**THE RULE HAS ONE SHAPE NOW.** The pencil is the only thing that clears a
+clause's marks and lets it be typed in.
+
+- **A PRESS IN THE WORDING DOES NOTHING AT ALL — not even move the page**, and
+  the owner ruled on that half by name. A click that silently re-points this
+  page at another clause changes what the crumb says, what File would file and
+  what Copilot is answering about, with nothing on screen inviting it.
+- **THE PENCIL ON ANOTHER CLAUSE IS ONE PRESS: it goes there AND starts
+  editing.** A pencil means "edit this" wherever it is, so making it mean merely
+  "go there" on a clause you are not standing on would be two rules for one
+  button — and with the press in the wording retired it would also cost two
+  presses for what one press does on the clause you are already on.
+- **THE CLAUSE LIST at the top still moves you WITHOUT editing** — the reading
+  door, unchanged.
+- **ONCE TYPING IS ON, a press inside the box places the caret.** That is the
+  browser's own behaviour on a text box rather than a way in, and nothing here
+  touches it.
+- **`ceStartTyping` WENT WITH THE BRANCH** — one definition, one caller, never
+  published, so there is no door a third caller could bring it back through. So
+  did `ceFocusTyping`'s `point` argument and the caret-from-a-point machinery
+  behind it: written for that gesture, dead without it.
+- **AND THE 28 Aug RULE GOES BACK TO FULL STRENGTH.** *The page never opens in
+  a state that hides marks that exist* was narrowed on 29 Aug by "an explicit
+  ask to type"; the only presses that now say that are pencils, so the narrowing
+  and the rule agree.
+- **MOVING TO ANOTHER CLAUSE STILL ASKS BEFORE IT THROWS A DRAFT AWAY**, and it
+  is the product's own guard rather than a second one: `clauseEditorDirty` is
+  what `viewLayersClosed` asks, and the words are that dialog's own. TWO doors
+  onto that act now rather than three.
+
+**WHAT THE 29 Aug VERSION SAID, kept because a future reader will otherwise
+trip over it:** the pencil was not retired and the press in the words was not a
+second act — both ends ran the two lines that handler already had, and
+`ceStartTyping` named the first of them once so they could not drift. That was
+true and well built. What it could not do was stay out of the way of the marks.
+
+Tests: f245 (three claims REVERSED IN PLACE — the branch is gone, its helper is
+gone, and the two doors that survive are pinned), clause-door-verify 16e-16h
+(**driven with a real mouse**, which is the only thing that can tell "the branch
+is gone" from "the branch is there and refused"; 16h drives the one-press pencil
+so the reversal cannot read as a lost capability).
+
+## THE CLAUSE YOU ASKED FOR STAYS WHERE IT IS (owner-reported 1 Sep 2026)
+
+*"when I click on the pencil the clause being edited should stay where it is as
+opposed to being pushed all the way to the top of the page ... I should always
+make the decision to scroll and not be moved without my choosing to do so."*
+
+**MEASURED, AND IT IS ONE LINE.** Moving between clauses CLOSES AND REOPENS the
+clause editor, and arrival ends by placing the clause 24px below the top of the
+pane. That placement is right for a page that did not exist a frame ago — there
+is no position of the reader's to keep — and wrong every time it runs on a move
+INSIDE the page, where there very much is one.
+
+- **THE ANCHOR IS THE TARGET CLAUSE'S OWN TOP, not the scroller's number**, and
+  that is not a refinement: the clause being LEFT stops being typed in, so its
+  marks come back and it grows; the clause being ENTERED starts being typed in,
+  so its marks go and it shrinks. Everything below the first one therefore moves
+  and a remembered offset would land the reader somewhere else. Re-measuring the
+  target after the render is the only reading that survives both.
+- **AND ONLY WHERE IT IS ON SCREEN TO BEGIN WITH.** A jump from the clause list
+  to something twenty clauses away has no place to keep — the reader is asking
+  to be taken somewhere — so `ceClauseTopNow` answers **null** there and the
+  arrival placement stands. Null is the honest answer rather than a number:
+  pretending a place exists would scroll the reader somewhere they had never
+  been.
+- **CONSUMED ON ARRIVAL, NEVER STORED**, beside the typing ask it copies: read
+  once into a local and cleared, so an open that returns early cannot leave it
+  standing for the next arrival to obey.
+- **AND EVERY OTHER MOVE OF THE PAPER IS UNTOUCHED.** `ceRestoreScroll` is still
+  the one thing on that page that moves the contract, so there is a single
+  answer to *does it animate*; the same-clause pencil press already kept the
+  offset and still does; and the stylesheet's smooth rule is what makes the
+  reader's own scrolling behave.
+
+Tests: f245 (a new claim beside the 31 Aug landing rule, pinning the anchor, the
+null, and the consumption), clause-editor-verify 24d/24e (**the clause's own top
+measured before and after a real move — it reports the owner's report verbatim
+against the parent source, `clause top 193px → 24px`** — with 24e proving it was
+not at the top to begin with, so "it stayed" is a claim rather than an accident).
+
+## THE LEAVE WARNING NAMES ITS CLAUSE (owner-reported 1 Sep 2026)
+
+*"The attached alert does not give you an indication of which clause or which
+wordings are in question and I therefore cannot track back to where i left
+off."*
+
+**IT NAMED NEITHER.** "Leave this clause?" over *the wording you have written
+here has not been filed* is true of every clause in the contract — and it is
+raised from a full-window page that carries no header, so at the moment the
+reader most needs to know where they are, nothing on screen said.
+
+- **ONE READING, TWO RAISERS.** `clauseEditorLeaveAsk` is where the sentence is
+  built, because that is where the clause and the draft are. The clause editor
+  raises this guard when you move between clauses; the SHELL raises the same
+  guard when you leave the page altogether (`viewLayersClosed`). A sentence
+  written out at each would be two answers to one question, so the shell asks
+  for it through `window` — the ES-module rule — and it is PUBLISHED, because an
+  unexported name read that way is silence.
+- **THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing.** A guard that says
+  less because a lookup failed is worse than the guard that prompted the report.
+- **THE CLAUSE IS NAMED BY `clauseLabel`** — the product's own answer to *which
+  clause is this*, which the change cards and the Chat rows already print, and
+  which falls back to a snippet of the clause's own wording where there is no
+  number and no heading. So it always says something.
+- **AND THE QUOTE IS THE DRAFT, through `richToText`** — the one text projection
+  this codebase has — **bounded by a NAMED ceiling** (`CE_LEAVE_SNIP`), because a
+  confirm dialog is one paragraph and a clause is not. It is there to be
+  RECOGNISED rather than read: what the reader needs is to know which piece of
+  work they are about to lose.
+- **ONE PARAGRAPH, said out loud.** `confirmDialog` draws its message in a `<p>`
+  and escapes it, so the sentence is built as one flowing line rather than three
+  — changing that builder for one caller would reach every dialog in the
+  product.
+- **THE CLAUSE'S NAME KEEPS ENGLISH inside the label**, because `clauseLabel` is
+  the product's stamped naming and is already printed on screen elsewhere; the
+  sentences round it turn over. Said out loud rather than discovered.
+
+Tests: f245 (the one reading, both raisers, the publish, the bound as a named
+ceiling, and both sentences in both languages).
+
+## ONE FRAME ROUND THE CLAUSE, NOT ONE PER BOX (owner-reported 1 Sep 2026)
+
+Off a screenshot with the clause heading and the clause body each ringed:
+*"when you click on a pencil you can an outline for the clause header and an
+outline for the clause. I want the outline to be one outline that encompasses
+both."*
+
+The name and the wording are two editable boxes, so each drew the 26 Aug dashed
+frame and the clause read as two fields stacked rather than as the one region
+you are working in.
+
+- **THE FRAME IS ON THE CLAUSE** — the one element that already contains both —
+  and the boxes draw none. Everything about the LINE is unchanged: hairline,
+  dashed, an outline rather than a border so nothing moves when it appears, and
+  the colour mixed off the document's own ink so one declaration is right in
+  both themes.
+- **THE has() SELECTOR IS THE READING AND IT IS EXACT.** `.rl-clause-live` marks
+  the clause the page is about whether or not typing is on, so a frame keyed to
+  it alone would draw on a clause showing its marks; `.ce-typing` exists only
+  while the clause is typeable. *The live clause that CONTAINS an editable box*
+  is the state, said once, with nothing new stamped on the markup to keep in
+  step.
+- **THE PENCIL IS INSIDE IT, unavoidably and on purpose**: the name shares a row
+  with the pencil, so ANY single rectangle round the name and the wording
+  contains it. It is the control that closes the region, which is a fair thing
+  to find inside the region's own frame.
+
+Tests: f245 (three claims RE-POINTED at the rule that draws it now, plus a new
+one that neither box draws a frame; the offset is pinned as a POSITIVE number
+rather than as its value, because that number is a look and has moved once
+already), clause-editor-verify 17d2/17d3 (**measured as paint** — the two boxes
+proved to draw nothing, and the frame proved by GEOMETRY to contain both).
 
 ## THE OTHER SIDE MAY NOT RENAME OUR CLAUSES (owner-ruled 29 Aug 2026)
 
@@ -7830,7 +7947,30 @@ had set aside. Zero is its own sentence, not a plural form — `tn` knows only
 **NOT TOUCHED:** the scan, its prompt, its 20-item ceiling, the retry it offers
 on an empty result, and the read-stamp it writes.
 
-Tests: f260, amount-and-window-verify.
+**AND THE COUNT FOLLOWS THE TICKS (owner-reported 1 Sep 2026).** *"as I exclude
+or include any obligations, the count in the highlighted button should in live
+reflect the number of obligations checked only."* **IT WAS WRITTEN ONCE, AT THE
+DRAW** — right the moment the window opened, because it already left duplicates
+out, and then it never moved, so untick fifteen of twenty and the button still
+offered to add twenty.
+
+- **ONE PAINTER AND NO SECOND COPY.** The label is not written into the markup
+  at all: `obPaintAdd` is the only thing that writes it, so the first paint and
+  every repaint go through one reading and cannot come to disagree about what
+  the number means.
+- **ONE DELEGATED LISTENER** on the window rather than one per row — the list
+  runs to twenty on a real agreement.
+- **ZERO IS TWO DIFFERENT SENTENCES, which is why the STATE is read and not the
+  number alone.** Nothing ticked because the scan found nothing new is a fact
+  about the scan (`ob_add_none`); nothing ticked because the reader untied
+  everything is their own choice (`ob_add_pick`, the one new key). Telling them
+  "nothing new to add" over a list full of new proposals would be the window
+  arguing with itself.
+- **AND EITHER WAY THE BUTTON IS DISABLED** — this product's own rule: grey
+  where it can be known before the press, rather than a refusal after it.
+
+Tests: f260 (a new block, plus the button's literal label claim replaced by the
+painter it now goes through), amount-and-window-verify.
 
 ## THE CALENDAR'S AGENDA WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4)
 
@@ -8310,6 +8450,18 @@ A door in the shell bar is pressed with no change in hand, so `openNotesPanel`
 takes an optional change: named, it draws that change's thread as it always
 did; unnamed, `rlChatPanelHtml` draws every note on every live change, oldest
 last, each row naming its change and pressing through to that change's own note.
+**A ROW WITH NO CHANGE DRAWS NO REFERENCE LINE** — a door reading "the contract"
+on a panel about that contract is a press going nowhere, and a verb that cannot
+work is not drawn.
+**AND THE REFERENCE IS THE REFERENCE (owner-reported 1 Sep 2026, off a
+screenshot with two of them ringed: "should simply say CHG-00X and they should
+never wrap text").** "On CHG-001" spent two of the row's scarcest characters on
+a word saying nothing the row's own shape does not — the reference sits above
+the note it belongs to, so what it is ON is already on screen — and it was also
+what let the label wrap. `flex:none` is what makes one line a GUARANTEE rather
+than a measurement: no panel width can break it. The clause name beside it is
+the one that gives, and it already elides. `ng_chat_on` is STALE and left inert
+in both dictionaries.
 **IT WEARS THE PER-CHANGE PANEL'S OWN CLOTHES — REVERSED IN PLACE 1 Sep 2026**
 (owner-asked, off a screenshot of each: *"revert back to the previous style of
 the panel shown in image 3"*). It shipped as a flat list of every note in both
@@ -8366,6 +8518,69 @@ the fixture's wording), notes-two-rooms-verify (42 — its door claim reversed i
 place, the rooms re-staged through `openNotesPanel`, and the Chat door driven
 with its symbol proved to resolve and its dead state measured against a real
 clause editor).
+
+## A NOTE THAT BELONGS TO NO REDLINE (owner-asked 2 Sep 2026)
+
+*"you should also be able to tag people and add any notes internally or
+externally unrelated to a redline. It could be an opportunity to add any type of
+notes expanding on the redline activity ... The redline notes and notes
+unrelated to the redlines should be able to sit in the panel."*
+
+**EVERY NOTE IN THE PRODUCT BELONGED TO A REDLINE.** A note about the CONTRACT
+had nowhere to live, so the Chat panel could show a conversation and not join
+it — and its box had been removed on 31 Aug on my own reasoning, which the owner
+had not asked for.
+
+**IT ADDS ONE STORE AND NO ROUTE, NO FIELD ON A CHANGE, AND NO MIGRATION.**
+`c.thread` is the contract's own note list — the same message shape, the same
+two rooms, the same tagging, one field along — minted on first use and absent on
+every record already on file, so no existing reading answers differently.
+
+- **ONE WRITER, AND AN ABSENT ID NAMES THE CONTRACT.** `negoPostComment` is
+  still the only thing that files a note. What is new is that a null id means
+  the contract rather than a change we failed to resolve; **an id that is
+  PASSED and cannot be resolved is still refused**, because that is a caller
+  naming something that is not there. `negoNoteHome` is the one reading of where
+  a note lives — **not `negoThreadOf`**, which is a different question two
+  hundred lines along and MERGES the local thread with the channel for READING.
+- **ONE SEND, TWO SCOPES.** `rlNotesSend` takes the change as optional and every
+  guard, refusal and ordering is the change path's own: the confirm before
+  anything crosses, the room deciding visibility, the box cleared, the toast.
+  Only the sentences and the repaint differ, and each is chosen by whether a
+  change was named.
+- **ONE COMPOSER, DRESSED ONCE.** Chat's foot is the per-change panel's foot
+  character for character — the same textarea class, the same tag menu, the same
+  viewer refusal — because two composers dressed two ways for one conversation
+  is exactly what reverting this panel to the panel's clothes was for. Its only
+  difference is `data-rl-chat-send`, because it carries no change id.
+- **AN EXTERNAL NOTE ON THE CONTRACT JOINS THE GENERAL TOPIC, not a new one.**
+  `DISCUSS_GENERAL` is what the Document tab's discussion has posted a general
+  comment under since long before this panel. ONE conversation about the
+  contract, read from two screens, is the whole reason to reuse it rather than
+  mint a `contract:` topic nothing else knows.
+- **AND IT IS THEN NO LONGER ITS WRITER'S TO EDIT**, with no exception written
+  here: `negoNoteDelivered` reads `sentAt`, which the dialog stamps only where
+  the channel came back ok, so the rule that governs a redline note governs this
+  one by construction.
+- **THE TWO KINDS SIT IN ONE LIST**, interleaved by time rather than stacked in
+  two — which is what makes it one conversation. `rlChatRows` adds the
+  contract's notes first and the sort is by time.
+- **THE ROOMS STILL PARTITION.** An internal note stays on this record; an
+  external one travels. Nothing about who reads what moved.
+- **TAGGING WAS ALREADY BUILT** (2 Sep, the other session) and needs no
+  exception here: the picker offers the room's own people and
+  `negoPostComment` resolves mentions from the text against that room, which is
+  the wall rather than the sign.
+
+**SAID OUT LOUD: tagging still notifies nobody.** That was the other session's
+decision and this does not change it; the ask was the ability to tag and the
+rule about who may be tagged.
+
+Tests: f264 (three claims REVERSED IN PLACE — the composer, and the model behind
+it — plus the topic and the one writer), notes-two-rooms-verify section 6b (**a
+free note DRIVEN through the real box: filed onto the contract and NOT onto any
+change, in the room it was written in, on screen without a reload, drawn with no
+reference line, and sitting in one list with the redline notes**).
 
 ## THE CHG PILLS ARE GONE, AND ONE READING TOOK THE ⋯ WITH IT (owner-reported 1 Sep 2026)
 

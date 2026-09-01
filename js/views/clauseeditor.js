@@ -123,6 +123,10 @@ let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
 let _ceRendering = false;   /* the paper is being written over — see ceRenderPaper */
+let _cePlaceAt = null;      /* where the clause moved TO was on screen — see ceGoClause */
+/* How much of the draft the leave warning quotes back. A confirm dialog is ONE
+   paragraph — see clauseEditorLeaveAsk. */
+const CE_LEAVE_SNIP = 120;
 let _ceZoom = 100;          /* how big the page looks — never a font size */
 let _ceLead = null;         /* the change this editor opened on, if any */
 
@@ -421,9 +425,11 @@ function clauseEditorCss(){
      of them was the one that did not belong.
 
      THE FILL IS GONE AND THE PAPER SHOWS THROUGH. What is left is a hairline
-     dashed line, set 4px clear of the words so it frames them rather than
-     touching them, and an OUTLINE rather than a border so it takes no space and
-     nothing on the page moves when it appears.
+     dashed line, set clear of the words so it frames them rather than touching
+     them, and an OUTLINE rather than a border so it takes no space and nothing
+     on the page moves when it appears. (WHERE it is drawn moved on 1 Sep 2026 —
+     one frame round the whole clause rather than one per box; see the note
+     below. That owner ruling changed the shape, not any of this.)
 
      THE COLOUR IS THE DOCUMENT'S OWN INK AT A FIFTH STRENGTH, never a typed
      grey, and that is what makes one declaration right in both themes: the
@@ -433,22 +439,42 @@ function clauseEditorCss(){
 
      WHAT CARRIES FOCUS IS THE CARET, which is the strongest indicator a text
      field has and is why this line does not need to shout: it says WHERE the
-     editable region is, and the caret says you are in it. The teal bar in the
-     margin is untouched and still says WHICH clause is live — it is the one
-     signal here at full strength, and taking it down with the fill would have
-     left the page saying nothing at all. */
-  .ce-paperwrap .ce-typing{background:transparent; box-shadow:none;
+     editable region is, and the caret says you are in it. THE TEAL MARGIN BAR
+     THIS NOTE USED TO LEAN ON IS GONE (29 Aug 2026, ringed by the owner — see
+     the note above), so the frame and the caret are now the whole of what says
+     which clause is live, together with the page naming it at the top. That is
+     why the frame may be quiet and may not be absent. */
+  /* ---- ONE FRAME ROUND THE WHOLE CLAUSE, NOT ONE PER BOX (owner-reported
+     1 Sep 2026, off a screenshot with both ringed: "when you click on a pencil
+     you can an outline for the clause header and an outline for the clause. I
+     want the outline to be one outline that encompasses both") ----
+     The name and the wording are two editable boxes, so each drew the frame
+     above and the clause read as two fields stacked rather than as the one
+     region you are working in. The frame is on the CLAUSE now — the one element
+     that already contains both — and the boxes draw none.
+
+     THE has() SELECTOR IS THE READING AND IT IS EXACT. rl-clause-live marks the
+     clause this page is about whether or not typing is on, so a frame keyed to
+     it alone would draw on a clause showing its marks; ce-typing exists only
+     while the clause is typeable. "The live clause that CONTAINS an editable
+     box" is the state, said once, with nothing new stamped on the markup for
+     anybody to keep in step.
+
+     THE PENCIL IS INSIDE IT, unavoidably and on purpose: the name shares a row
+     with the pencil, so ANY single rectangle round the name and the wording
+     contains it. It is the control that closes the region, which is a fair
+     thing to find inside the region's own frame. */
+  .ce-paperwrap .rl-clause-live:has(.ce-typing){
     outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
-    outline-offset:4px; padding:8px 10px; margin:-8px -10px}
-  .ce-paperwrap .ce-typing:focus{outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
-    outline-offset:4px; box-shadow:none}
-  /* ---- AND THE CLAUSE'S NAME WEARS THE SAME LINE ----
-     It IS the same rule: .ce-headbox adds no colour, no fill and no size of its
-     own, so the heading keeps the paper's own heading type and merely gains the
-     dashed frame that says where the editable region is. The negative margins
-     the wording's box uses would pull the name off the row it shares with the
-     pencil, so this one insets instead — the outline sits clear of the words
-     either way and nothing on the row moves when it appears. */
+    outline-offset:6px}
+  .ce-paperwrap .ce-typing{background:transparent; box-shadow:none;
+    outline:none; padding:8px 10px; margin:-8px -10px}
+  .ce-paperwrap .ce-typing:focus{outline:none; box-shadow:none}
+  /* ---- AND THE CLAUSE'S NAME KEEPS ITS OWN GEOMETRY ----
+     .ce-headbox adds no colour, no fill and no size of its own, so the heading
+     keeps the paper's own heading type. The negative margins the wording's box
+     uses would pull the name off the row it shares with the pencil, so this one
+     insets instead, and the min-width is what keeps an empty name pressable. */
   .ce-paperwrap .ce-headbox{padding:2px 4px; margin:0; min-width:60px}
   .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
@@ -1522,6 +1548,10 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      inherits, so left on it one click into the words would silently make every
      later move to another clause open typing too. */
   const wantTyping = !!(opts && opts.typing === true);
+  /* CONSUMED HERE, exactly as the typing ask beside it is: read once into a
+     local and cleared, so an open that returns early below cannot leave it
+     standing for the next arrival to obey. */
+  const placeAt = _cePlaceAt; _cePlaceAt = null;
   _ceC = probeC; _ceClauseId = probeId; _ceOpts = opts || {};
   if (wantTyping){ _ceOpts = { ..._ceOpts }; delete _ceOpts.typing; }
   try{ _ceRead0 = window.rlReadMode ? rlReadMode() : null; }catch(_){ _ceRead0 = null; }
@@ -1604,7 +1634,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
-  ceScrollToClause();
+  ceScrollToClause(placeAt);
   /* WHERE A KEYBOARD READER LANDS. It used to be the way out — the first
      control on a page that had a header. With the header gone the way out is
      the LAST thing on the strip, and landing on it means tabbing backwards
@@ -1741,18 +1771,93 @@ function ceRenderHead(){
 
    NOT DIRTY, NO QUESTION: a reader who has typed nothing is not asked
    anything, which is every ordinary move. */
+/* ---- THE CLAUSE YOU ASKED FOR STAYS WHERE IT IS (owner-reported 1 Sep 2026)
+   ----
+   *"when I click on the pencil the clause being edited should stay where it is
+   as opposed to being pushed all the way to the top of the page ... I should
+   always make the decision to scroll and not be moved without my choosing to do
+   so."*
+
+   MEASURED, and it is one line: moving between clauses CLOSES AND REOPENS this
+   page, and arrival ends by placing the clause 24px below the top of the pane.
+   That placement is right for a page that did not exist a frame ago — there is
+   no position of the reader's to keep — and wrong every time it runs on a move
+   INSIDE the page, where there very much is one.
+
+   THE ANCHOR IS THE TARGET CLAUSE'S OWN TOP, not the scroller's number, and
+   that is not a refinement: the clause being LEFT stops being typed in, so its
+   marks come back and it grows; the clause being ENTERED starts being typed in,
+   so its marks go and it shrinks. Everything below the first one therefore
+   moves, and a remembered offset would land the reader somewhere else.
+   Re-measuring the target after the render is the only reading that survives
+   both.
+
+   AND ONLY WHERE IT IS ON SCREEN TO BEGIN WITH. A jump from the clause list to
+   something twenty clauses away has no place to keep — the reader is asking to
+   be taken somewhere — so that falls through to the arrival placement, which is
+   what it has always done. */
 function ceGoClause(clauseId, extra){
   if (!clauseEditorOpen() || !clauseId || clauseId === _ceClauseId) return;
   const go = () => {
     const c = _ceC, opts = _ceOpts;
+    _cePlaceAt = ceClauseTopNow(clauseId);
     rlCloseClauseEditor();
     rlOpenClauseEditor(c, clauseId, extra ? { ...opts, ...extra } : opts);
   };
   const dirty = (typeof clauseEditorDirty === 'function') && clauseEditorDirty();
   if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
-  confirmDialog({ title: _cet('ce_leave_title'), message: _cet('ce_leave_body'),
+  const ask = clauseEditorLeaveAsk();
+  confirmDialog({ title: ask.title, message: ask.message,
     confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
     .then(ok => { if (ok) go(); }).catch(() => {});
+}
+/* ---- THE WARNING SAYS WHICH CLAUSE AND WHAT IS AT RISK (owner-reported
+   1 Sep 2026) ----
+   *"The attached alert does not give you an indication of which clause or which
+   wordings are in question and I therefore cannot track back to where i left
+   off."*
+
+   IT NAMED NEITHER. "Leave this clause?" over "the wording you have written
+   here has not been filed" is true of every clause in the contract, and it is
+   raised from a full-window page that carries no header — so at the moment the
+   reader most needs to know where they are, nothing on screen says.
+
+   ONE READING, TWO RAISERS. This page raises the guard when you move between
+   clauses; the shell raises the same guard when you leave the page altogether
+   (viewLayersClosed). A sentence written out at each would be two answers to
+   one question, so it is written here — where the clause and the draft are —
+   and the shell asks for it.
+
+   THE CLAUSE IS NAMED BY clauseLabel, the product's own answer to "which clause
+   is this", which the change cards and the Chat rows already print. It falls
+   back to a snippet of the clause's own wording where there is no number and no
+   heading, so it always says something.
+
+   AND THE SNIPPET IS THE DRAFT ITSELF, read through richToText — the one text
+   projection this codebase has — bounded, because a confirm dialog is one
+   paragraph and a clause is not. It is there to be RECOGNISED rather than read:
+   what the reader needs is to know which piece of work they are about to lose.
+
+   THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing: a guard that says
+   less because a lookup failed is worse than the guard that prompted this. */
+function clauseEditorLeaveAsk(){
+  const tail = _cet('ce_leave_body');
+  const bits = [];
+  try{
+    const cl = ceClause();
+    const name = (cl && window.clauseLabel) ? String(clauseLabel(cl) || '').trim() : '';
+    if (name) bits.push(_cet('ce_leave_on', { clause: name }));
+  }catch(_){}
+  try{
+    const raw = (window.richToText ? richToText(_ceText || '') : '')
+      .replace(/\s+/g, ' ').trim();
+    if (raw.length > 3){
+      const cut = raw.length > CE_LEAVE_SNIP ? raw.slice(0, CE_LEAVE_SNIP - 1).trim() + '\u2026' : raw;
+      bits.push(_cet('ce_leave_lost', { words: cut }));
+    }
+  }catch(_){}
+  bits.push(tail);
+  return { title: _cet('ce_leave_title'), message: bits.join(' ') };
 }
 /* Bring the clause this page is about into the reader's view. Deferred a frame
    for the same reason the caret is: the paper it scrolls inside is written by
@@ -1783,7 +1888,7 @@ function ceGoClause(clauseId, extra){
    the reader's own scrolling, and the negotiation page's rlLinkFocus, where
    pressing a change card really is a trip to its clause across a document that
    has not moved. */
-function ceScrollToClause(){
+function ceScrollToClause(placeAt){
   const go = () => {
     const host = _ceQ('#ce-doc');
     const box = _ceQ('#ce-clausebody');
@@ -1792,13 +1897,33 @@ function ceScrollToClause(){
       const sec = box.closest ? box.closest('.rl-clause') : null;
       const target = sec || box;
       const hb = host.getBoundingClientRect(), tb = target.getBoundingClientRect();
+      /* THE READER'S OWN PLACE WINS WHERE THERE IS ONE — see ceGoClause. The
+         24px is the ARRIVAL placement and is reached only on a first opening,
+         or on a move to a clause that was not on screen to keep a place on. */
+      const want = (placeAt == null) ? 24 : placeAt;
       /* Through the ONE thing on this page that moves the paper, so there is a
          single answer to "does the contract animate" rather than one per
          caller. */
-      ceRestoreScroll(host, Math.max(0, host.scrollTop + (tb.top - hb.top) - 24));
+      ceRestoreScroll(host, Math.max(0, host.scrollTop + (tb.top - hb.top) - want));
     }catch(_){}
   };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
+}
+/* Where this clause's top sits inside the pane RIGHT NOW, or null where it is
+   not drawn or not on screen. NULL IS THE HONEST ANSWER rather than a number: a
+   clause above the fold or below it has no place to keep, and pretending it
+   does would scroll the reader somewhere they had never been. */
+function ceClauseTopNow(clauseId){
+  try{
+    const host = _ceQ('#ce-doc');
+    if (!host || !clauseId) return null;
+    const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(clauseId) : clauseId;
+    const sec = host.querySelector('[data-clause="' + q + '"]');
+    if (!sec) return null;
+    const hb = host.getBoundingClientRect(), tb = sec.getBoundingClientRect();
+    const top = tb.top - hb.top;
+    return (top >= 0 && top <= hb.height) ? top : null;
+  }catch(_){ return null; }
 }
 /* The caret goes where the reader just asked to type. Deferred a frame because
    the box it belongs to is written by the paint that is still running.
@@ -1816,53 +1941,16 @@ function ceScrollToClause(){
    with neither reader, a point that lands outside the box because the wording
    reflowed, or a throw of any kind, all end with the box focused. A caret in
    roughly the right place is the ask; a caret nowhere is a dead press. */
-function ceFocusTyping(point){
+function ceFocusTyping(){
   if (typeof requestAnimationFrame !== 'function') return;
   requestAnimationFrame(() => {
     const box = _ceQ('#ce-clausebody');
     if (!box || !ceIsTyping()) return;
+    /* preventScroll, ALWAYS: focusing an element inside a scroller is one of
+       the ways a browser moves a page on its own, and the reader's place is the
+       one thing they are holding on to. */
     try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(__){} }
-    if (!point || typeof document === 'undefined') return;
-    try{
-      let range = null;
-      if (typeof document.caretRangeFromPoint === 'function'){
-        range = document.caretRangeFromPoint(point.x, point.y);
-      } else if (typeof document.caretPositionFromPoint === 'function'){
-        const pos = document.caretPositionFromPoint(point.x, point.y);
-        if (pos && pos.offsetNode){
-          range = document.createRange();
-          range.setStart(pos.offsetNode, pos.offset);
-        }
-      }
-      if (!range || !range.startContainer) return;
-      const node = range.startContainer;
-      const el = node.nodeType === 1 ? node : node.parentNode;
-      if (!el || !box.contains(el)) return;   /* the wording moved under them */
-      range.collapse(true);
-      const sel = window.getSelection && window.getSelection();
-      if (!sel) return;
-      sel.removeAllRanges(); sel.addRange(range);
-    }catch(_){}
   });
-}
-
-/* ---- START TYPING WHERE THE READER IS ----
-   The pencil's own on-direction, named once so the press in the words is the
-   same act rather than a second one. It REFUSES rather than toggles: this is
-   reached from a click inside the wording, where turning typing OFF would be
-   the opposite of what the press asked for, and the pencil beside it is still
-   what turns it off. Returns whether it did anything, so a caller can fall
-   through to the browser's own caret when typing is already on. */
-function ceStartTyping(point){
-  if (_ceEditing) return false;
-  cePullText();
-  _ceEditing = !_ceEditing;
-  /* THE BAR FOLLOWS, for the reason the pencil's own note gives: its tools
-     grey when nothing is typeable, so a start that did not repaint it would
-     leave the whole shelf dressed for the state before the press. */
-  ceDetachPassage(); ceRenderPaper(); ceRenderBar();
-  if (ceIsTyping()) ceFocusTyping(point);
-  return true;
 }
 
 /* ---- A READING THAT REFUSES EDITING (Phase 4) ----
@@ -3503,7 +3591,16 @@ function ceWirePage(page){
     const pencil = hit('[data-ce-pencil]');
     if (pencil){ ev.preventDefault();
       const id = pencil.getAttribute('data-ce-pencil');
-      if (id && id !== _ceClauseId){ ceGoClause(id); return; }
+      /* ---- ON ANOTHER CLAUSE IT MOVES YOU AND STARTS EDITING, IN ONE PRESS
+         (owner-ruled 1 Sep 2026) ----
+         A pencil means "edit this" wherever it is, so making it mean merely "go
+         there" on a clause you are not standing on would be two rules for one
+         button. And with the press in the wording retired (see the note further
+         down) this is the gesture that reaches another clause, so two presses
+         here would be two presses for what one press does on the clause you are
+         already on. The clause LIST at the top is the door that moves without
+         editing. */
+      if (id && id !== _ceClauseId){ ceGoClause(id, { typing: true }); return; }
       cePullText();
       /* ---- THE PENCIL FILES WHEN THERE IS SOMETHING TO FILE ----
          (owner-ruled 31 Aug 2026, decision B: "click the pencil indicating you
@@ -3630,52 +3727,35 @@ function ceWirePage(page){
         ? CE_ZOOM_STEP : -CE_ZOOM_STEP));
       return; }
 
-    /* ---- CLICK IN THE WORDS AND TYPE, LIKE ANY DOCUMENT ----
-       (owner-asked 29 Aug 2026: *"I hate that I have to click on a pencil for
-       me to edit in the edit with copilot page … Let me just edit like I am in
-       Google Docs but the platform should track which clause I am editing."*)
+    /* ---- THE PENCIL IS THE ONLY WAY IN (owner-ruled 1 Sep 2026) ----
+       *"I am reversing this ... and essentially saying only after clicking on
+       the pencil can you have the ability to edit."*
 
-       THE PENCIL IS NOT RETIRED and this is not a second act: both ends run the
-       same two lines this handler already had — turn typing on where the reader
-       is, or move the page to the clause they pointed at. What changes is that
-       the press in the WORDS now counts as that ask, so the pencil is the
-       visible affordance rather than the toll gate.
+       THIS REVERSES CLICK-IN-THE-WORDS-AND-TYPE, asked for on 29 Aug, and its
+       reasoning is kept here because it is the useful part. A press anywhere in
+       the wording turned typing on, so that a contract would behave like any
+       document. WHAT IT COST is that the same press ALSO took that clause's
+       redlines off the screen — you cannot type into a redline — so the gesture
+       that felt like putting a cursor down was quietly the gesture that hid the
+       marks, on a clause the reader had only pointed at.
 
-       WHICH CLAUSE IS TRACKED BY THE PRESS: `data-clause` is on the section the
-       press landed in, so the page follows the reader rather than the reader
-       having to tell it twice.
+       THE RULE NOW HAS ONE SHAPE: the pencil is the only thing that clears a
+       clause's marks and lets it be typed in. A press in the wording does
+       NOTHING AT ALL — not even move the page to that clause, which the owner
+       ruled on by name: a click that silently re-points this page at another
+       clause changes what the crumb says, what File would file and what Copilot
+       is answering about, with nothing on screen inviting it.
 
-       IT RUNS LAST, after every named control above, so a press on a button, a
-       tag or a field is never read as a press in the wording — and it asks for
-       a real control anyway, because the paper carries its own (the pencil, the
-       ask tags) and a hit on one of those is not a hit on the words.
+       NOTHING IS LOST. Two doors still move you — the pencil on another clause
+       (ONE press: it goes there AND starts editing, because a pencil means edit
+       wherever it is) and the clause list at the top, which moves you without
+       editing. And once typing IS on, a press inside the box places the caret:
+       that is the browser's own behaviour on a text box rather than a way in,
+       and it is untouched.
 
-       ALREADY TYPING IN THIS CLAUSE: it does nothing at all, and must. The box
-       is contenteditable, so the browser's own caret is the right answer and
-       anything here would fight it.
-
-       A REFUSING READING DOES NOTHING EITHER. 'As agreed' and 'With changes'
-       draw the paper without its marks, so typing there would be measured
-       against a document the reader is not being shown; the band already says
-       so and carries the way back. One predicate, ceEditableReading, exactly as
-       the pencil and Apply ask it. */
-    const inDoc = hit('#ce-doc');
-    if (inDoc && ceEditableReading()
-        && !hit('button, a, input, textarea, select, [role="button"], [contenteditable="true"]')){
-      const sec = hit('[data-clause]');
-      const id = sec && sec.getAttribute('data-clause');
-      if (id){
-        const point = { x: ev.clientX, y: ev.clientY };
-        if (id !== _ceClauseId){
-          ev.preventDefault();
-          cePullText();
-          ceGoClause(id, { typing: true });
-          ceFocusTyping(point);
-          return;
-        }
-        if (ceStartTyping(point)){ ev.preventDefault(); return; }
-      }
-    }
+       `ceStartTyping` went with this branch — one definition, one caller, never
+       published, so there is no door a third caller could bring it back
+       through. */
 
     const act = hit('[data-ce-act]');
     if (!act) return;
@@ -3849,6 +3929,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 
 Object.assign(window, {
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
+  clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,

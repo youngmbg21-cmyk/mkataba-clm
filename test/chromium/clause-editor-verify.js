@@ -1443,11 +1443,32 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const cs = getComputedStyle(body), ps = getComputedStyle(sheet);
     const live = page.querySelector('.rl-clause-live');
     const bar = live ? getComputedStyle(live, '::before') : null;
+    /* ---- RE-POINTED 1 Sep 2026: THE FRAME IS ON THE CLAUSE ----
+       Owner-reported, off a screenshot with both ringed: the name and the
+       wording each drew one and the clause read as two stacked fields. Every
+       claim below is the claim it always was, asked of the element that draws
+       it now — and 17d2 is the new one, that the two boxes draw NONE. */
+    const fs = live ? getComputedStyle(live) : cs;
+    const head = page.querySelector('#ce-clausehead');
+    const hs = head ? getComputedStyle(head) : null;
     return {
       typing: body.className,
       bg: cs.backgroundColor, shadow: cs.boxShadow,
-      style: cs.outlineStyle, width: cs.outlineWidth,
-      colour: cs.outlineColor, offset: cs.outlineOffset,
+      style: fs.outlineStyle, width: fs.outlineWidth,
+      colour: fs.outlineColor, offset: fs.outlineOffset,
+      /* THE TWO BOXES, measured as paint rather than read off a class. */
+      bodyOutline: cs.outlineStyle, bodyWidth: cs.outlineWidth,
+      headOutline: hs ? hs.outlineStyle : 'none', headWidth: hs ? hs.outlineWidth : '0px',
+      /* AND THE FRAME REALLY DOES CONTAIN BOTH — the whole of what was asked
+         for, so it is measured as geometry and not as a selector. */
+      framesBoth: (() => {
+        if (!live) return null;
+        const L = live.getBoundingClientRect(), B = body.getBoundingClientRect();
+        const H = head ? head.getBoundingClientRect() : B;
+        return L.top <= H.top + 1 && L.bottom >= B.bottom - 1
+          && L.left <= Math.min(H.left, B.left) + 1
+          && L.right >= Math.max(H.right, B.right) - 1;
+      })(),
       paperBg: ps.backgroundColor,
       accent: getComputedStyle(document.documentElement)
         .getPropertyValue('--accent-solid').trim(),
@@ -1477,6 +1498,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('17d what is left is a DASHED HAIRLINE',
      quiet.style === 'dashed' && parseFloat(quiet.width) > 0 && parseFloat(quiet.width) <= 1.5,
      `${quiet.style} ${quiet.width}`);
+  ck('17d2 ONE FRAME, ROUND THE CLAUSE — the two boxes draw none',
+     parseFloat(quiet.bodyWidth) === 0 && parseFloat(quiet.headWidth) === 0,
+     `wording ${quiet.bodyOutline} ${quiet.bodyWidth} · name ${quiet.headOutline} ${quiet.headWidth}`);
+  ck('17d3 and it really encompasses the name AND the wording',
+     quiet.framesBoth === true, `frame contains both: ${quiet.framesBoth}`);
   ck('17e set clear of the words, so it frames them rather than touching them',
      parseFloat(quiet.offset) > 0, quiet.offset);
   ck('17f it is FAINT — not the accent, and not opaque',
@@ -1506,11 +1532,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     document.documentElement.classList.add('dark');
     const page = document.getElementById('clause-editor');
     const body = page.querySelector('#ce-clausebody');
+    const live = page.querySelector('.rl-clause-live') || body;
     const sheet = page.querySelector('.ce-paperwrap .rl-paper')
       || page.querySelector('.ce-paperwrap .rl-doc');
-    const cs = getComputedStyle(body);
+    const cs = getComputedStyle(live);
     return { colour: cs.outlineColor, style: cs.outlineStyle,
-      bg: cs.backgroundColor, paperBg: getComputedStyle(sheet).backgroundColor };
+      bg: getComputedStyle(body).backgroundColor,
+      paperBg: getComputedStyle(sheet).backgroundColor };
   });
   await p.evaluate(() => document.documentElement.classList.remove('dark'));
   ck('17h the line FOLLOWS THE PAPER into the dark theme, from one declaration',
@@ -2576,9 +2604,46 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const o = list.find(x => x.clauseId !== cur && (x.text || '').length > 60);
     return o ? o.clauseId : null; });
   if (other24){
+    /* ---- AND IT KEEPS THE READER'S PLACE (owner-reported 1 Sep 2026) ----
+       *"when I click on the pencil the clause being edited should stay where it
+       is as opposed to being pushed all the way to the top of the page."*
+
+       MEASURED AS THE CLAUSE'S OWN TOP, before and after, because that is what
+       the reader is looking at — the scroller's NUMBER is expected to move (the
+       clause left grows as its marks come back, the clause entered shrinks as
+       its go), and requiring it to hold still would be pinning the wrong thing.
+       The clause is scrolled to a KNOWN place first, so "it stayed" is a real
+       claim rather than an accident of where it happened to be. */
+    const topOf = id => p.evaluate(cid => {
+      const host = document.getElementById('ce-doc');
+      const q = (window.CSS && CSS.escape) ? CSS.escape(cid) : cid;
+      const sec = host && host.querySelector('[data-clause="' + q + '"]');
+      if (!host || !sec) return null;
+      return Math.round(sec.getBoundingClientRect().top
+        - host.getBoundingClientRect().top);
+    }, id);
+    await p.evaluate(cid => {
+      const host = document.getElementById('ce-doc');
+      const q = (window.CSS && CSS.escape) ? CSS.escape(cid) : cid;
+      const sec = host.querySelector('[data-clause="' + q + '"]');
+      const prev = host.style.scrollBehavior;
+      host.style.scrollBehavior = 'auto';
+      host.scrollTop = Math.max(0, host.scrollTop
+        + (sec.getBoundingClientRect().top - host.getBoundingClientRect().top) - 220);
+      host.style.scrollBehavior = prev;
+    }, other24);
+    await pause(400);
+    const before24 = await topOf(other24);
     const moved = await film(async () => { await p.evaluate(id => ceGoClause(id), other24); });
+    await pause(600);
+    const after24 = await topOf(other24);
     ck('24c MOVING to another clause lands too',
        moved.distinct <= 2, `${moved.distinct} distinct offsets, ${moved.from} → ${moved.to}`);
+    ck('24d AND THE CLAUSE STAYS WHERE IT WAS — it is not pushed to the top',
+       before24 != null && after24 != null && Math.abs(after24 - before24) <= 8,
+       `clause top ${before24}px → ${after24}px`);
+    ck('24e which is a real claim, because it was not at the top to begin with',
+       before24 != null && before24 > 60, `started at ${before24}px`);
   }
 
   /* ============================================================

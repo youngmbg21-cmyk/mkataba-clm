@@ -1496,15 +1496,24 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await pause(700);
     const after = await p.evaluate(() => {
       const box = document.querySelector('#ce-clausebody');
-      const sel = window.getSelection && window.getSelection();
+      const sec = box && box.closest('[data-clause]');
       return { typing: !!(box && box.isContentEditable),
-        caretInBox: !!(sel && sel.rangeCount && box
-          && box.contains(sel.getRangeAt(0).startContainer)) };
+        marks: sec ? sec.querySelectorAll('ins, del, .nego-ins, .nego-del').length : 0 };
     });
-    ck('16e a click in the wording starts typing \u2014 no pencil press',
-       typed.before === false && after.typing === true, JSON.stringify({ ...typed, ...after }));
-    ck('16f \u2026with the caret in the box the reader clicked in',
-       after.caretInBox === true, String(after.caretInBox));
+    /* ---- REVERSED IN PLACE 1 Sep 2026 ----
+       These two pinned click-in-the-words-and-type (owner-asked 29 Aug: "Let me
+       just edit like I am in Google Docs"). The owner reversed it in their own
+       words — "only after clicking on the pencil can you have the ability to
+       edit" — and WHAT THAT GESTURE COST is why: you cannot type into a
+       redline, so a press that felt like putting a cursor down was quietly the
+       press that took a clause's marks off the screen.
+       DRIVEN WITH A REAL MOUSE either way, because that is the only thing that
+       can tell "the branch is gone" from "the branch is there and refused". */
+    ck('16e A CLICK IN THE WORDING DOES NOTHING \u2014 the pencil is the only way in',
+       typed.before === false && after.typing === false,
+       JSON.stringify({ ...typed, ...after }));
+    ck('16f \u2026and the clause keeps its marks, which is what the press used to take',
+       after.marks > 0, `${after.marks} marks still drawn`);
   }
   const ceMoved = await p.evaluate(async () => {
     const cur = (document.querySelector('#ce-clausebody') || {}).closest
@@ -1532,10 +1541,35 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       return { on: sec ? sec.getAttribute('data-clause') : null,
         typing: !!(box && box.isContentEditable) };
     });
-    ck('16g a click in ANOTHER clause moves the page to it \u2014 the platform tracks it',
-       now.on === ceMoved.want, `${ceMoved.from} \u2192 ${now.on} (wanted ${ceMoved.want})`);
-    ck('16h \u2026and opens typing there, so the reader carries on writing',
-       now.typing === true, String(now.typing));
+    /* ---- REVERSED IN PLACE 1 Sep 2026, and the owner ruled on this half by
+       name ---- A click in ANOTHER clause's words does not move the page
+       either: a press that silently re-points this page at a different clause
+       changes what the crumb says, what File would file and what Copilot is
+       answering about, with nothing on screen inviting it. */
+    ck('16g A CLICK IN ANOTHER CLAUSE DOES NOT MOVE THE PAGE EITHER',
+       now.on === ceMoved.from, `${ceMoved.from} \u2192 ${now.on}`);
+    /* AND THE PENCIL ON THAT CLAUSE DOES BOTH IN ONE PRESS — the door that
+       survives, driven so the reversal above cannot read as a lost capability. */
+    const pen = await p.evaluate(want => {
+      const b = document.querySelector(
+        `#ce-doc .rl-clause[data-clause="${want}"] [data-ce-pencil]`);
+      if (!b) return null;
+      const r = b.getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+    }, ceMoved.want);
+    if (pen){
+      await p.mouse.click(pen.x, pen.y);
+      await pause(900);
+      const gone = await p.evaluate(() => {
+        const box = document.querySelector('#ce-clausebody');
+        const sec = box && box.closest('[data-clause]');
+        return { on: sec ? sec.getAttribute('data-clause') : null,
+          typing: !!(box && box.isContentEditable) };
+      });
+      ck('16h THE PENCIL ON THAT CLAUSE MOVES YOU AND STARTS EDITING, IN ONE PRESS',
+         gone.on === ceMoved.want && gone.typing === true,
+         `${gone.on} (wanted ${ceMoved.want}) \u00b7 typing ${gone.typing}`);
+    }
   }
   await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
   await pause(400);
