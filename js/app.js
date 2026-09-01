@@ -1450,9 +1450,34 @@ function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } 
    waiting on them, with nothing on screen to say why the number had gone.
 
    Kept as a predicate rather than deleted: it is asked in three places, and a
-   page that genuinely cannot host a layer may exist one day. Nothing answers
-   true today. */
-function panelSuppressed(){ return false; }
+   page that genuinely cannot host a layer may exist one day.
+
+   ---- AND ONE DOES (owner-asked 1 Sep 2026: "fix the bell and activity panel
+   collision with the editing page") ----
+   THE CLAUSE EDITOR IS THAT PAGE, and the shape was built for it before it
+   existed: openPanel's own note says a refusing page is where the press stops,
+   "with both buttons disabled and a tooltip saying which page took the space",
+   and updateAlertBadge has always drawn exactly that. What was missing was
+   anything answering true. It mounts at z-index 54 and this drawer sits at 46,
+   so the press put a panel up BEHIND the page — a live control that appears to
+   do nothing, which is the fault the greying rule exists to prevent. Raising
+   the drawer was weighed and refused: it sits below the Copilot panel
+   deliberately, and lifting it over the editor lifts it over Copilot too.
+
+   THE PREDICATE, NOT THREE COPIES. It is asked by openPanel (the press stops),
+   applyPanelLayout (a panel already open goes away rather than sitting behind
+   the page, and comes back afterwards because state.panelOpen is never
+   written here) and updateAlertBadge (both buttons dead, each with its reason).
+   The Chat door beside them asks clauseEditorOpen directly, because its OTHER
+   dead state — no contract open — is nothing to do with layers.
+
+   A SECOND SUPPRESSOR WOULD WANT ITS OWN WORDS: ap_alerts_not_here and
+   ap_activity_not_here name the page that took the space, and today there is
+   one. Read through window, the ES-module rule, so a stage without that module
+   answers false rather than throwing. */
+function panelSuppressed(){
+  try{ return !!(window.clauseEditorOpen && clauseEditorOpen()); }catch(_){ return false; }
+}
 /* ---- THE CHAT DOOR (owner-ruled 31 Aug 2026) ----
    *"means to access the notes in the side panel should have its own door called
    Chat which should be accessed via a symbol ... between copilot and alerts."*
@@ -1506,8 +1531,19 @@ function updateAlertBadge(){
     dot.textContent=n>9?'9+':String(n);
     /* NOTHING WAITING, NOTHING DRAWN. The dot it replaces was hard-coded markup
        — always on, counting nothing — and an always-on badge is one people
-       learn to ignore, which is exactly what had happened to it. */
-    dot.hidden=!n||off;
+       learn to ignore, which is exactly what had happened to it.
+
+       BUT A SUPPRESSED DOOR IS NOT AN EMPTY QUEUE, and this used to hide the
+       count for that too (`!n||off`). The note above panelSuppressed lists that
+       as one of the COSTS of the Insights suppression, in its own words: a
+       reader could not see that nine things were waiting on them, with nothing
+       on screen to say why the number had gone. The clause editor leaves the
+       shell bar on screen, so the bell is in front of the reader the whole
+       time — and a number that vanishes says "nothing is waiting", which is
+       false, where a dimmed one says "you cannot get to this from here", which
+       is true and is what the tooltip explains. The dot is INSIDE the button,
+       so the opacity below dims it along with the icon: one object, greyed. */
+    dot.hidden=!n;
     if(btn) btn.title=off?i18t('ap_alerts_not_here')
       :(n?i18tn('sh_alerts_n',n,{n}):i18t('sh_alerts_none'));
   }
@@ -1531,6 +1567,26 @@ function updateAlertBadge(){
   if(btn){ btn.disabled=off; btn.style.opacity=off?'.45':''; }
   if(pan){ pan.disabled=off; pan.style.opacity=off?'.45':'';
     pan.title=off?i18t('ap_activity_not_here'):i18t('sh_toggle_panel'); }
+}
+/* ---- THE SHELL'S THREE DOORS, RE-ASKED ---- (owner-asked 1 Sep 2026)
+   The clause editor opens and closes without a view change, so nothing on the
+   ordinary beat re-asks panelSuppressed for it. This is what it calls on the
+   way in and on the way out, and it is ONE call rather than three so a fourth
+   thing that reads the predicate joins here rather than at two call sites.
+
+   updateAlertBadge paints the bell, the activity button and (on its first line)
+   the Chat door. applyPanelLayout is the other half and is not optional: a
+   panel that was ALREADY OPEN when the page mounted would otherwise sit behind
+   it, visible to nobody and holding the keyboard. It writes no state of its
+   own — state.panelOpen is the reader's choice and is untouched — so the panel
+   simply comes back when the page closes.
+
+   ORDER: on the way in this runs before the editor takes focus, so releasing
+   the panel's focus trap cannot steal the caret from the page that is
+   arriving. */
+function paintShellDoors(){
+  try{ updateAlertBadge(); }catch(_){}
+  try{ applyPanelLayout(); }catch(_){}
 }
 /* ---------- THE SIDEBAR, COLLAPSED TO ITS ICONS ----------
    256px of doors down to a 64px rail, giving 192px back to whatever is on the
@@ -2635,5 +2691,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

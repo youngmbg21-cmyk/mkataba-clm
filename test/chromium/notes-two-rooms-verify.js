@@ -354,35 +354,84 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         && together.withRef < together.total,
       `${together.total} rows, ${together.withRef} of them about a redline`);
 
-    /* ---- IT IS DEAD WHILE THE CLAUSE EDITOR COVERS THE WINDOW ----
-       The drawer sits at z-index 46 and that page mounts at 54, so a press
-       would open a panel behind it: a live control that appears to do nothing,
-       which is the fault this rule exists to prevent. */
-    await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
-    await page.waitForTimeout(250);
+    /* ---- ALL THREE PANEL DOORS ARE DEAD WHILE THE CLAUSE EDITOR COVERS THE
+       WINDOW ---- (Chat since 31 Aug; the bell and Activity since 1 Sep, on
+       the owner's ask.)
+       The drawer sits at z-index 46 and that page mounts at 54, so any of
+       those presses would open a panel BEHIND it: a live control that appears
+       to do nothing, which is the fault this rule exists to prevent. Only a
+       browser can answer this — buildWorld never loads the shell, so neither
+       the doors nor the drawer exist in node.
+
+       AND A DRAWER THAT WAS ALREADY OPEN IS THE HARDER HALF, so it is staged
+       that way deliberately: three dead buttons over a panel still showing
+       behind the page would be the same fault by another route. */
+    await page.evaluate(() => { openPanel('alerts'); });
+    await page.waitForTimeout(350);
+    const wasOpen = await page.evaluate(() => {
+      const p = document.getElementById('context-panel');
+      return { open: p.classList.contains('open'), n: alertCount() };
+    });
+    check('a drawer is open before the page mounts — the harder half',
+      wasOpen.open === true, `${wasOpen.n} alert(s)`);
+
     const covered = await page.evaluate(() => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       const cl = negoClauseList(c)[0];
       rlOpenClauseEditor(c, cl.clauseId, {});
       return new Promise(r => setTimeout(() => {
-        const b = document.getElementById('hdr-chat');
-        r({ page: !!document.getElementById('clause-editor'),
-          dead: b.disabled, title: b.title });
-      }, 800));
+        const g = id => document.getElementById(id);
+        const p = g('context-panel'), dot = g('hdr-notify-dot');
+        r({ page: !!g('clause-editor'),
+          chat: { dead: g('hdr-chat').disabled, title: g('hdr-chat').title },
+          bell: { dead: g('hdr-notify').disabled, title: g('hdr-notify').title },
+          act:  { dead: g('cmd-panel').disabled, title: g('cmd-panel').title },
+          panelOpen: p.classList.contains('open'),
+          n: alertCount(), dotHidden: dot.hidden });
+      }, 900));
     });
     check('the clause editor really opened over the page', covered.page === true);
     check('CHAT IS DEAD WHILE IT COVERS THE WINDOW, with the reason on its hover',
-      covered.dead === true && /clause|klausul/i.test(covered.title || ''),
-      (covered.title || '').slice(0, 60));
+      covered.chat.dead === true && /clause|klausul/i.test(covered.chat.title || ''),
+      (covered.chat.title || '').slice(0, 60));
+    check('THE BELL IS DEAD TOO, with its own reason',
+      covered.bell.dead === true && /clause|klausul/i.test(covered.bell.title || ''),
+      (covered.bell.title || '').slice(0, 60));
+    check('AND ACTIVITY, with its own',
+      covered.act.dead === true && /clause|klausul/i.test(covered.act.title || ''),
+      (covered.act.title || '').slice(0, 60));
+    /* NEITHER SENTENCE MAY STILL NAME INSIGHTS: those two keys were written for
+       a page that stopped suppressing on 13 Aug 2026, and a tooltip naming the
+       wrong page is the same fault as a dead button with no reason at all. */
+    check('and neither sentence still names the page that stopped suppressing',
+      !/Insights|Insikter/i.test((covered.bell.title || '') + (covered.act.title || '')));
+    check('the drawer that was open is NOT left showing behind the page',
+      covered.panelOpen === false);
+    /* THE COUNT IS NOT THE DOOR. A shut door and an empty queue are two
+       different facts: a number that vanishes says "nothing is waiting", which
+       is false. Written as a RELATION so it bites whichever way the seeded book
+       falls — the dot is hidden exactly when there is nothing to count. */
+    check('and the count survives the shut door — hidden only at zero',
+      covered.dotHidden === (covered.n === 0),
+      `${covered.n} alert(s), dot ${covered.dotHidden ? 'hidden' : 'drawn'}`);
+
     const back = await page.evaluate(() => {
       rlCloseClauseEditor({});
       return new Promise(r => setTimeout(() => {
-        const b = document.getElementById('hdr-chat');
-        r({ dead: b.disabled, title: b.title });
-      }, 500));
+        const g = id => document.getElementById(id);
+        r({ chat: g('hdr-chat').disabled, bell: g('hdr-notify').disabled,
+          act: g('cmd-panel').disabled,
+          panelOpen: g('context-panel').classList.contains('open') });
+      }, 600));
     });
-    check('and it comes back on the way out — both halves, or it stays dead',
-      back.dead === false, back.title);
+    check('and all three come back on the way out — both halves, or they stay dead',
+      back.chat === false && back.bell === false && back.act === false,
+      `chat ${back.chat} · bell ${back.bell} · activity ${back.act}`);
+    /* The reader's own choice is never written here, so the drawer they left
+       open is the drawer they get back. */
+    check('with the drawer the reader had open', back.panelOpen === true);
+    await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
+    await page.waitForTimeout(200);
 
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {

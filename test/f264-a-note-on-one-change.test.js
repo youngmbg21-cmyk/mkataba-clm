@@ -718,19 +718,33 @@ describe('f264 (9) — the door, and where it is dead', () => {
       'THREE different facts, three different sentences');
   });
 
+  /* RE-POINTED 1 Sep 2026, claim intact. The editor paints this door on both
+     sides and always did; what changed is that it paints all THREE through one
+     call, because the bell and Activity gained the same dead state. */
   test('the editor paints it on the way in AND on the way out', () => {
-    assert.equal((CE.match(/if \(window\.paintChatDoor\) paintChatDoor\(\)/g) || []).length, 2,
-      'both halves together, or the door stays dead for the rest of the sitting');
+    assert.equal((CE.match(/if \(window\.paintShellDoors\) paintShellDoors\(\)/g) || []).length, 2,
+      'both halves together, or the doors stay dead for the rest of the sitting');
     assert.match(APP, /try\{ paintChatDoor\(\); \}catch\(_\)\{\}\s*\n  const dot=/,
       'and on the same beat the bell is painted — every view change and '
       + 'every save');
   });
 
-  test('panelSuppressed is untouched, and the bell’s own collision is not swept', () => {
-    assert.match(APP, /function panelSuppressed\(\)\{ return false; \}/,
-      'the bell and Activity have the same collision with the editor; it '
-      + 'predates this door by a fortnight and belongs to whoever takes that '
-      + 'on — one line in BUGLOG rather than a fix made on the way past');
+  /* ---- REVERSED IN PLACE, 1 Sep 2026 (owner-asked: "fix the bell and
+     activity panel collision with the editing page") ----
+     This asserted the collision was NOT swept and named it as one line in
+     BUGLOG. It is swept now, and through the predicate that was kept for
+     exactly this: panelSuppressed answers for the clause editor, so all three
+     doors and the layer itself read one question. The Chat door keeps its own
+     reading because its OTHER dead state — no contract open — has nothing to
+     do with layers. */
+  test('the bell and Activity share the door’s dead state, through one predicate', () => {
+    const fn = APP.slice(APP.indexOf('function panelSuppressed()'),
+      APP.indexOf('function chatContractId'));
+    assert.match(fn, /clauseEditorOpen/,
+      'the page that covers the window is the page that refuses the layer');
+    const chat = APP.slice(APP.indexOf('function paintChatDoor'));
+    assert.match(chat.slice(0, chat.indexOf('\n}')), /clauseEditorOpen/,
+      'and the Chat door still asks it directly — it has a second dead state of its own');
   });
 });
 

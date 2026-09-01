@@ -767,9 +767,70 @@ They were one: the bell's handler pressed #cmd-panel and its tooltip said so, an
 - EVERY ALERT IS A DOOR (data-alert-i → its own `go`), and the panel closes behind it. "Nothing needs you right now" is a real empty state.
 - THE DOT COUNTS AND HIDES AT ZERO (#hdr-notify-dot, updateAlertBadge, refreshed by updateSidebarCounts). NOTHING marks an alert as seen — clearing on "you opened it" is how the old dot became invisible; it clears when the work does.
 - THE SCRIM STARTS BELOW THE HEADER (--shell-head-h): inset:0 it swallowed clicks on the two icons that own the panel, so the swap was unreachable. Raising the buttons cannot work — #app-shell is position:fixed and therefore a stacking context.
-- INSIGHTS NO LONGER REFUSES THE LAYER (owner-reported 13 Aug 2026: "the alerts and the activity buttons stop working when I am in the insights tab"). panelSuppressed() answered `state.view==='intel'`, which DISABLED both header buttons there and hid the badge with them — so a reader on Insights could not see that nine things were waiting on them, with nothing on screen to say why the number had gone. The reason was real when written and is not any more: the panel was a COLUMN then and would have fought the Intelligence dock for the width; it is a slide-over now and takes no width at all. THE PRODUCT HAD ALREADY ACCEPTED THAT ON THIS VERY PAGE — the Copilot panel overlays the same space on Insights and was never suppressed; one layer allowed and its twin refused was the inconsistency. THE SHAPE IS KEPT, NOT DELETED: panelSuppressed() returns false, and where it is true both buttons are DISABLED with a tooltip saying why (ap_alerts_not_here / ap_activity_not_here, both languages) — a toast is not the channel (js/core.js's toast draws errors only). THE TRAP: applyPanelLayout carried its OWN copy of `view!=='intel'`, so relaxing the predicate alone left the buttons live and the panel still refusing — it asks the predicate now. Tests: f187 (3) reversed in place, alerts-and-activity-verify section 7 reversed.
+- INSIGHTS NO LONGER REFUSES THE LAYER (owner-reported 13 Aug 2026: "the alerts and the activity buttons stop working when I am in the insights tab"). panelSuppressed() answered `state.view==='intel'`, which DISABLED both header buttons there and hid the badge with them — so a reader on Insights could not see that nine things were waiting on them, with nothing on screen to say why the number had gone. The reason was real when written and is not any more: the panel was a COLUMN then and would have fought the Intelligence dock for the width; it is a slide-over now and takes no width at all. THE PRODUCT HAD ALREADY ACCEPTED THAT ON THIS VERY PAGE — the Copilot panel overlays the same space on Insights and was never suppressed; one layer allowed and its twin refused was the inconsistency. THE SHAPE IS KEPT, NOT DELETED: panelSuppressed() returned false for a fortnight and **answers for the CLAUSE EDITOR since 1 Sep 2026 — see ONE PREDICATE, ONE PAGE THAT REFUSES THE LAYER, where the two sentences also stopped naming Insights**; where it is true both buttons are DISABLED with a tooltip saying why (ap_alerts_not_here / ap_activity_not_here, both languages) — a toast is not the channel (js/core.js's toast draws errors only). THE TRAP: applyPanelLayout carried its OWN copy of `view!=='intel'`, so relaxing the predicate alone left the buttons live and the panel still refusing — it asks the predicate now. Tests: f187 (3) reversed in place, alerts-and-activity-verify section 7 reversed.
 - THE PHONE draws neither button and has mNeedsYou on Home instead, so it cannot inherit the fault.
 Tests: f187 (23), alerts-and-activity-verify (21, browser — the dot's absence at zero, one shell two contents, the swap, and Insights).
+
+## ONE PREDICATE, ONE PAGE THAT REFUSES THE LAYER (owner-asked 1 Sep 2026)
+
+*"fix the bell and activity panel collision with the editing page."* The clause
+editor mounts at z-index 54 and this drawer sits at 46, so pressing the bell or
+Activity while a clause was open put a panel up **behind** the page — a live
+control that appears to do nothing, which is the fault the greying rule exists
+to prevent. The Chat door had been given its own dead state for exactly this on
+31 Aug and the other two were logged rather than swept.
+
+**THE SHAPE WAS ALREADY BUILT AND NOTHING ANSWERED TRUE.** `openPanel`'s own
+note describes the fix in advance — a refusing page is where the press stops,
+*"with both buttons disabled and a tooltip saying which page took the space"* —
+and `updateAlertBadge` has always drawn exactly that. `panelSuppressed()` was
+kept as a predicate for the day a page genuinely could not host the layer. This
+is that page, so it answers for it and for nothing else.
+
+- **ONE PREDICATE, THREE READERS, BY CONSTRUCTION.** `openPanel` stops the
+  press, `applyPanelLayout` takes a drawer that was already open off the screen,
+  `updateAlertBadge` disables both buttons with their own sentences. Written as
+  three copies they would drift, and this file already records that exact drift
+  once: `applyPanelLayout` carried its own `view!=='intel'` and relaxing the
+  predicate alone left the buttons live and the panel still refusing.
+- **THE CHAT DOOR KEEPS ITS OWN READING**, deliberately: its second dead state —
+  no contract open — is nothing to do with layers, so it asks `clauseEditorOpen`
+  directly rather than borrowing a predicate about pages.
+- **A SHUT DOOR IS NOT AN EMPTY QUEUE.** `dot.hidden` was `!n||off`, so the
+  count vanished with the door. The note above `panelSuppressed` lists that as
+  one of the COSTS of the Insights suppression in its own words — a reader could
+  not see that nine things were waiting on them, with nothing on screen to say
+  why the number had gone — and the editor leaves the shell bar on screen, so
+  the bell is in front of the reader the whole time. It is `!n` now. **The dot is
+  INSIDE the button**, so the same opacity dims both: one object greyed, which
+  reads as *unavailable*, where a vanished number reads as *nothing is waiting*.
+- **THE READER'S OWN DRAWER COMES BACK.** `state.panelOpen` is never written
+  here — only the ANSWER moves — so a panel open when the page mounts goes away
+  and returns when it closes.
+- **ONE CALL, `paintShellDoors`**, because the editor opens and closes without a
+  view change and nothing on the ordinary beat re-asks the predicate for it. It
+  runs **before the page takes focus** on the way in (releasing an open drawer's
+  focus trap hands the caret back to whatever opened it, and the landing has to
+  be the last word) and **after the state is cleared** on the way out
+  (`clauseEditorOpen` reads `_ceClauseId`, so a paint beside `page.remove()`
+  still answers "open" and leaves all three dead for the sitting).
+- **THE TWO SENTENCES NAMED THE WRONG PAGE.** `ap_alerts_not_here` /
+  `ap_activity_not_here` said *Insights uses this side of the window* — a page
+  that stopped suppressing on 13 Aug 2026 — so the tooltip would have been
+  stale on arrival. They say what the Chat door's own sentence says, in the same
+  words, in both languages. **A second suppressor would want its own words**:
+  these name the page that took the space, and today there is one.
+
+Tests: f187 (3) REVERSED IN PLACE and stronger for having a wearer — it pinned
+*"nothing answers true"* and now pins WHO, that the predicate is not keyed on
+which view is showing, that the count survives, and that the editor re-asks
+through one painter; f187 (1)'s dot claim RE-POINTED (it is about the badge
+being hidden at zero, and it still is); f264's *"not swept"* claim REVERSED IN
+PLACE. **The behaviour is browser-only — `buildWorld` never loads the shell, so
+neither the doors nor the drawer exist in node** — and lives in
+notes-two-rooms-verify, which drives the real app: **3 of its new checks fail
+against the parent, the headline one reporting the bell's tooltip as "4 things
+are waiting on you" over a page that cannot show them.**
 
 ## BELOW 1440 THE SIDEBAR FLOATS INSTEAD OF PUSHING (owner-asked 13 Aug 2026; the line has been 1500, 1280, 1536 and is now 1440 — see the entry under SEVENTEEN THINGS)
 
@@ -8488,10 +8549,13 @@ state is cleared**: `clauseEditorOpen` reads `_ceClauseId`, so a paint taken
 beside `page.remove()` still answers "open" and leaves the door dead for the
 rest of the sitting.
 
-**THE BELL AND ACTIVITY HAVE THE SAME COLLISION WITH THE EDITOR AND ARE
-DELIBERATELY NOT SWEPT.** It predates this door by a fortnight; `panelSuppressed`
-still answers false and is asserted doing so, so nobody reads this as covering
-it. One line in BUGLOG rather than a fix made on the way past.
+**THE BELL AND ACTIVITY HAD THE SAME COLLISION — REVERSED IN PLACE 1 Sep 2026
+(owner-asked: "fix the bell and activity panel collision with the editing
+page"), and see ONE PREDICATE, ONE PAGE THAT REFUSES THE LAYER.** This
+recorded it as not swept, one line in BUGLOG rather than a fix made on the way
+past, which was right at the time. All three doors read one predicate now; the
+Chat door keeps its own reading of `clauseEditorOpen` because its OTHER dead
+state — no contract open — has nothing to do with layers.
 
 **THE COUNTERPARTY'S SEAT IS UNCHANGED, in the owner's own words**: *"The
 counterparty will also access the notes through the same processes but fixing

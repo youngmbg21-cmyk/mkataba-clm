@@ -8556,3 +8556,48 @@ Noticed, not fixed:
 - Twelve browser files are red and three colour-census checks fail. Every one
   reproduces identically on this branch's parent — measured by stashing the
   source and running the whole sweep there, not asserted.
+
+## 1 Sep 2026 — the bell and Activity stop opening a panel behind the page
+
+Owner-asked, two items. The second was withdrawn by the owner before anything
+was built ("never mind as I was wrong"), so only the first shipped.
+
+1. **The bell and Activity are dead while the clause editor covers the page,
+   with the reason on each one's hover.** The editor mounts at z-index 54 and
+   the drawer sits at 46, so both presses put a panel up BEHIND it — a live
+   control that appears to do nothing. The Chat door got its own dead state for
+   this on 31 Aug and these two were logged rather than swept; that BUGLOG line
+   is closed by this.
+
+   The shape was already built and nothing wore it: `openPanel`'s own note
+   describes the fix in advance — a refusing page is where the press stops,
+   "with both buttons disabled and a tooltip saying which page took the space" —
+   and `updateAlertBadge` has drawn exactly that all along. `panelSuppressed`
+   answers for the clause editor now, so all three doors AND the layer itself
+   read one question rather than three copies. Measured against the parent: the
+   bell's tooltip read "4 things are waiting on you" over a page that could not
+   show them.
+
+   Two things fell out of it. **A shut door is not an empty queue** — the badge
+   was hidden whenever the panel was suppressed (`!n||off`), which the note above
+   `panelSuppressed` already lists as one of the COSTS of the Insights
+   suppression, and the editor leaves the shell bar on screen, so the count
+   would have vanished for every reader who opened a clause. It is hidden at
+   zero and nowhere else; the dot sits inside the button, so the same opacity
+   dims both. And **the two tooltips still named Insights**, a page that stopped
+   suppressing on 13 Aug 2026, so they would have been stale the moment they
+   were first shown.
+
+Noticed, not fixed:
+- On the counterparty's copy, a clause we added from the standards library or
+  the playbook carries no pencil and no clause panel — they can accept or refuse
+  it whole, where every ordinary clause can be counter-proposed. Measured while
+  chasing the withdrawn second item. It may be the mirror rule working as
+  designed ("their proposal is answered, not edited"); it is written down here
+  rather than acted on because the owner withdrew the report.
+- `panel-alerts-and-head-verify` and `flat-rows-and-alerts-verify` are red.
+  Both reproduce identically on this branch's parent — measured by stashing the
+  source and running them there, not asserted.
+- Do not stash the source while a background `npm test` is running. Four
+  failures in this run's first suite pass were my own stash, not the code; the
+  re-run was 5464/0.

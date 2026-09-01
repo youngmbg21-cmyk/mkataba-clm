@@ -1617,11 +1617,21 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const page = holder.firstElementChild;
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
-  /* THE SHELL BAR'S CHAT DOOR IS DEAD WHILE THIS PAGE COVERS THE WINDOW — the
-     drawer it opens sits at z-index 46 and this page at 54, so the press would
-     put a panel up behind it. It is painted here rather than on a view change,
-     because opening this page is not one. */
-  try{ if (window.paintChatDoor) paintChatDoor(); }catch(_){}
+  /* THE SHELL BAR'S THREE PANEL DOORS ARE DEAD WHILE THIS PAGE COVERS THE
+     WINDOW — Chat, the bell and Activity all open the same drawer, which sits
+     at z-index 46 against this page's 54, so every one of those presses would
+     put a panel up behind it. Painted here rather than on a view change,
+     because opening this page is not one.
+
+     WIDENED 1 Sep 2026 (owner-asked) from the Chat door alone to all three:
+     panelSuppressed answers for this page now, and paintShellDoors is the one
+     call that re-asks it — including applyPanelLayout, so a drawer that was
+     already open goes away rather than sitting behind the page.
+
+     BEFORE THE PAGE TAKES FOCUS, deliberately: releasing an open drawer's
+     focus trap hands the caret back to whatever opened it, and the landing
+     below has to be the last word on where the reader ends up. */
+  try{ if (window.paintShellDoors) paintShellDoors(); }catch(_){}
   ceWirePage(page);
   ceFitToShell(); ceObserveShell();
   /* AFTER ceFitToShell, so the first split is measured against the box this
@@ -1665,12 +1675,13 @@ function rlCloseClauseEditor(opts = {}){
   /* A repaint only where something actually moved. Closing without filing must
      leave the page underneath exactly as it was, scroll position included. */
   if ((opts.repaint || readMoved) && typeof again === 'function'){ try{ again(); }catch(_){} }
-  /* And the shell bar's Chat door comes back. AFTER the state is cleared, not
-     before: clauseEditorOpen reads _ceClauseId, so a paint taken beside
-     page.remove() still answers "the editor is open" and leaves the door dead
-     for the rest of the sitting. Both halves together, and both in the right
-     order. */
-  try{ if (window.paintChatDoor) paintChatDoor(); }catch(_){}
+  /* And the shell bar's three panel doors come back, with the drawer the reader
+     had open. AFTER the state is cleared, not before: clauseEditorOpen reads
+     _ceClauseId, and panelSuppressed reads clauseEditorOpen, so a paint taken
+     beside page.remove() still answers "the editor is open" and leaves all
+     three dead for the rest of the sitting. Both halves together, and both in
+     the right order. */
+  try{ if (window.paintShellDoors) paintShellDoors(); }catch(_){}
 }
 function ceNowHm(){
   const d = new Date();

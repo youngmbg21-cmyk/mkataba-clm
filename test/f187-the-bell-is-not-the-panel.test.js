@@ -100,7 +100,10 @@ describe('f187 (1) — two buttons, two jobs', () => {
       'the always-on dot is not still there');
     const app = read('js/app.js');
     const fn = app.slice(app.indexOf('function updateAlertBadge'));
-    assert.match(fn.slice(0, fn.indexOf('\n}')), /dot\.hidden=!n\|\|off;/);
+    /* RE-POINTED 1 Sep 2026 with the claim intact — this test is about the
+       badge being hidden AT ZERO, and it is; what left the expression is the
+       second reason it used to hide, which is f187 (3)'s subject now. */
+    assert.match(fn.slice(0, fn.indexOf('\n}')), /dot\.hidden=!n;/);
   });
 
   test('the badge is refreshed on the same beat as the sidebar counts', () => {
@@ -224,13 +227,27 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
    anything, and the product had already accepted that on this very page: the
    Copilot panel slides over the same space on Insights and was never
    suppressed. The machinery stays, because a disabled control with a reason is
-   still the right shape if a page ever genuinely cannot host a layer; what
-   changes is that nothing answers true. */
-describe('f187 (3) — the suppression is a shape, and nothing wears it', () => {
-  test('ONE PREDICATE, asked by the layout and by both buttons — and it says no', () => {
+   still the right shape if a page ever genuinely cannot host a layer.
+
+   ---- AND ONE DOES NOW: REVERSED IN PLACE, 1 Sep 2026 ----
+   *"fix the bell and activity panel collision with the editing page."* The
+   clause editor covers the page at z-index 54 against this drawer's 46, so
+   both presses put a panel up BEHIND it. That is the page this shape was kept
+   for, and the claim is stronger for having a wearer: what is pinned is no
+   longer "nothing answers true" but that the predicate answers for THAT page
+   and for nothing else, and that all three readers still ask it rather than
+   carrying a copy. */
+describe('f187 (3) — the suppression is a shape, and the clause editor wears it', () => {
+  test('ONE PREDICATE, asked by the layout and by both buttons — and it says WHO', () => {
     const app = read('js/app.js');
-    assert.match(app, /function panelSuppressed\(\)\{ return false; \}/,
-      'Insights no longer refuses the layer');
+    const fn = app.slice(app.indexOf('function panelSuppressed()'),
+      app.indexOf('function chatContractId'));
+    assert.match(fn, /clauseEditorOpen/,
+      'the clause editor is the page that refuses the layer');
+    assert.match(fn, /window\.clauseEditorOpen/,
+      'read through window — a stage without that module answers false rather than throwing');
+    assert.ok(!/state\.view/.test(fn),
+      'and it is not keyed on which VIEW is showing: this page opens without a view change');
     /* THE DUPLICATE IS GONE TOO. applyPanelLayout carried its own copy of the
        same view test, so relaxing the predicate alone would have left the
        buttons live and the panel still refusing to open. */
@@ -247,18 +264,48 @@ describe('f187 (3) — the suppression is a shape, and nothing wears it', () => 
     assert.match(body, /ap_alerts_not_here/, 'and it says which page took the space');
   });
 
-  test('so on Insights the badge is drawn and both buttons are live', () => {
+  /* ---- REVERSED IN PLACE, 1 Sep 2026, AND THE CLAIM IS THE OPPOSITE ----
+     This asserted `dot.hidden=!n||off` — the badge hidden while suppressed —
+     and the comment under it named that as the COST of the Insights
+     suppression in its own words: a reader could not see that nine things were
+     waiting on them, with nothing on screen to say why the number had gone.
+     The clause editor leaves the shell bar on screen, so that cost would land
+     on every reader who opens a clause. A shut door and an empty queue are two
+     different facts and only one of them is about this page. */
+  test('a shut door is not an empty queue — the count survives the suppression', () => {
     const app = read('js/app.js');
-    /* The cost was never only a dead button: the badge is hidden while
-       suppressed, so a reader on Insights could not see that nine things were
-       waiting on them, with nothing on screen to say why the number had gone. */
     const badge = app.slice(app.indexOf('function updateAlertBadge'));
-    assert.match(badge.slice(0, badge.indexOf('\n}')), /dot\.hidden=!n\|\|off/);
+    const body = badge.slice(0, badge.indexOf('\n}'));
+    assert.match(body, /dot\.hidden=!n;/, 'the count says what is waiting, whatever the door says');
+    assert.ok(!/dot\.hidden=!n\|\|off/.test(body),
+      'never hidden because the panel cannot open — that is what the tooltip is for');
     const { STRINGS } = require('../js/i18n.js');
-    /* The words stay in both languages — the shape is kept, not deleted. */
+    /* The words stay in both languages, and they name the page that took the
+       space rather than the one that used to. */
     ['ap_alerts_not_here', 'ap_activity_not_here'].forEach(k => {
       assert.ok(STRINGS.en[k] && STRINGS.sv[k], k);
+      assert.ok(!/Insights|Insikter/.test(STRINGS.en[k] + STRINGS.sv[k]),
+        k + ' names the page that actually refuses the layer');
     });
+  });
+
+  /* ONE CALL, NOT THREE. The clause editor opens and closes without a view
+     change, so nothing on the ordinary beat re-asks the predicate for it. */
+  test('the editor re-asks through one painter, and the layer follows', () => {
+    const app = read('js/app.js');
+    const fn = app.slice(app.indexOf('function paintShellDoors()'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    assert.match(body, /updateAlertBadge\(\)/, 'the bell, Activity and the Chat door');
+    assert.match(body, /applyPanelLayout\(\)/,
+      'and a drawer already open goes away rather than sitting behind the page');
+    assert.ok(!/state\.panelOpen\s*=/.test(body),
+      'it writes no state of its own — the reader keeps their own choice');
+    assert.match(app, /paintShellDoors,/, 'and it is published, or the editor reads silence');
+    const ce = read('js/views/clauseeditor.js');
+    assert.equal((ce.match(/paintShellDoors\(\)/g) || []).length, 2,
+      'called on the way in and on the way out, and nowhere else');
+    assert.ok(!/window\.paintChatDoor/.test(ce),
+      'and the one-door paint it replaces is gone, or two beats disagree');
   });
 
   test('a toast is still not the channel for THIS — but it is a channel now', () => {
