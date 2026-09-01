@@ -1874,7 +1874,11 @@ function openDerivedLinkDialog(d, org){
     </div>`;
   document.body.appendChild(ov);
   const box=ov.querySelector('#pt-derived-link');
-  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey); };
+  /* AND IT MOVES OUT OF THE WAY, like every other pop-up window here — one
+     helper, one set of rules. See dragDialog in js/core.js. */
+  const undrag = window.dragDialog ? window.dragDialog(ov.querySelector('[role="dialog"]')) : null;
+  const close=()=>{ if(undrag){ try{ undrag(); }catch(e){} }
+    ov.remove(); document.removeEventListener('keydown',onKey); };
   function onKey(e){ if(e.key==='Escape') close(); }
   document.addEventListener('keydown',onKey);
   ov.querySelector('#pt-derive-done').addEventListener('click',close);
@@ -4074,7 +4078,11 @@ function portalOfferResponseCode(p, response, label){
       </div>
     </div>`;
   document.body.appendChild(ov);
-  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey); };
+  /* AND IT MOVES OUT OF THE WAY, like every other pop-up window here — one
+     helper, one set of rules. See dragDialog in js/core.js. */
+  const undrag = window.dragDialog ? window.dragDialog(ov.querySelector('[role="dialog"]')) : null;
+  const close=()=>{ if(undrag){ try{ undrag(); }catch(e){} }
+    ov.remove(); document.removeEventListener('keydown',onKey); };
   function onKey(e){ if(e.key==='Escape') close(); }
   document.addEventListener('keydown',onKey);
   ov.querySelector('#pt-code-done').addEventListener('click',close);

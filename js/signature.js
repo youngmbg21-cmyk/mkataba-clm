@@ -111,9 +111,13 @@ function openSignaturePad(opts={}){
       </div>`;
     document.body.appendChild(ov);
 
+    /* AND IT MOVES OUT OF THE WAY, like every other pop-up window here —
+       one helper, one set of rules. See dragDialog in js/core.js. */
+    const undrag = window.dragDialog ? window.dragDialog(ov.querySelector('.modal-in')) : null;
     let tab='draw', fontId=SIG_FONTS[0].id;
     const q=s=>ov.querySelector(s);
-    const done=val=>{ document.removeEventListener('keydown',onKey,true); ov.remove(); resolve(val); };
+    const done=val=>{ if(undrag){ try{ undrag(); }catch(e){} }
+      document.removeEventListener('keydown',onKey,true); ov.remove(); resolve(val); };
     function onKey(e){ if(e.key==='Escape'){ e.preventDefault(); done(null); } }
     document.addEventListener('keydown',onKey,true);
     ov.addEventListener('mousedown',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(null); });

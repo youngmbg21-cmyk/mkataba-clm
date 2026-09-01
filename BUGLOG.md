@@ -8322,3 +8322,50 @@ Noticed, not fixed:
   building") and the refusal it shows a second earlier both say this should not
   be reachable; what makes it reachable is that "unsent" is derived from a
   timestamp the revision moves. Nobody has reported it.
+
+## 1 Sep 2026 — a pop-up window you can move out of the way
+
+Owner-asked: *"Make it so that the pop-up window with the notes regarding the
+redline can be dragged around the screen if needed. In fact, make all pop-up
+windows have the ability to be moved around."* Advised first, as asked; the
+owner took the recommendation (grab it by the top) and said build.
+
+1. **ONE HELPER, EVERY WINDOW, BECAUSE THEY ARE ALL ONE SHAPE.** Measured before
+   a line was written: the eight families of pop-up here — openModal's ~69
+   dialogs, confirmDialog, promptDialog, the redline note window, the signature
+   pad, the new-stream box and the counterparty's two — are each a fixed
+   full-screen frame with place-items:center, a scrim and a panel. So this is
+   `dragDialog` in js/core.js beside `trapFocus`, whose shape it borrows (it
+   returns its own undo), and a ninth dialog written later is one line rather
+   than a copy. f265 sweeps all eight and fails on a ninth that does not arm it.
+
+2. **THE GRAB ZONE IS THE TOP STRIP, MINUS ANYTHING YOU COULD PRESS OR TYPE
+   INTO.** The standard answer — Word, Windows, SAP — and the reason it is not
+   the whole panel is that these windows hold text somebody means to select and
+   copy. The pointer says `move` over the zone and nowhere else; a grab bar was
+   drawn and refused as a new strip on sixty-nine windows saying what a cursor
+   already says.
+
+3. **IT CANNOT BE PUT WHERE YOU CANNOT REACH IT.** Top clamped at 0 so the strip
+   you grab it by is always there; DLG_KEEP on screen at every other edge, per
+   AXIS rather than one number for both — f265 caught a wide-short window being
+   allowed to hang off the side by the difference before it shipped. A resize
+   under a moved window clamps it back on. Double-click puts it home and gives
+   back all six inline declarations exactly: these dialogs write position, width
+   and max-width inline, so clearing ours would DELETE theirs.
+
+4. **IT COMES BACK TO THE MIDDLE, and moving one writes nothing** — no record,
+   no persist, no audit line, nothing per browser. Escape, the scrim, the ✕ and
+   every onBeforeClose guard are untouched, asserted rather than assumed.
+
+Noticed, not fixed:
+- A first writing of the note-window comment said that window "redraws itself
+  when a note is saved". It does not — `paint()` is called once and saving
+  closes the window. Corrected in all four places it had been written (the
+  helper, the note dialog, THE MAP and the test) rather than left as a note that
+  misdescribes the code. The offset still lives on the frame rather than in a
+  closure, which is the cheap half of being ready for an in-place repaint; f265
+  is the only thing that exercises it today, and both say so.
+- js/i18n.js has four duplicate-key lint errors (`co_password_updated`,
+  `act_next`, twice each — English and Swedish). Pre-existing; that file was not
+  touched by this run.

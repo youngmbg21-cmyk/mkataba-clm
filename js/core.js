@@ -2173,6 +2173,220 @@ function trapFocus(panel, opts={}){
   };
 }
 
+/* ---------- A POP-UP WINDOW YOU CAN MOVE OUT OF THE WAY ----------
+   (owner-asked 1 Sep 2026: "make it so that the pop-up window with the notes
+   regarding the redline can be dragged around the screen if needed. In fact,
+   make all pop-up windows have the ability to be moved around.")
+
+   ONE HELPER, EVERY WINDOW, BECAUSE THEY ARE ALL ONE SHAPE. Measured before it
+   was written: the eight families of pop-up in this product — openModal's ~69
+   dialogs, confirmDialog, promptDialog, the redline note window, the signature
+   pad, the new-stream box and the counterparty's two — are each a fixed
+   full-screen frame with `place-items:center`, a scrim child and a panel child.
+   That is what makes this one function rather than eight, and it is why a ninth
+   dialog written later needs one line rather than a copy of this.
+
+   YOU GRAB IT BY THE TOP, which is the standard answer — Word, Excel, Windows
+   and SAP's own dialogs all drag by the title bar, and a reader already knows
+   it. The zone is the top DLG_GRAB_H of the panel, minus anything you could
+   press or type into: so the heading is a handle, the ✕ in the corner is still
+   a close button, and a text box at the top of a dialog is still a text box.
+   The pointer says so on hover, which is how every desktop teaches this.
+
+   WHY NOT "DRAG FROM ANYWHERE": a dialog regularly holds text somebody means to
+   select and copy — the response code, a shared link, a colleague's note — and
+   a window that walks off when you try to select a line is worse than one that
+   does not move. WHY NOT A GRAB BAR: it would put a new strip on sixty-nine
+   windows to say something a cursor already says.
+
+   IT MOVES A WINDOW AND DOES NOTHING ELSE. No record is touched, nothing is
+   persisted, no dialog's own wiring changes, and Escape, the scrim, the ✕ and
+   any "discard your changes?" guard are all exactly as they were.
+
+   THREE RULES IT KEEPS:
+   - IT CANNOT BE PUT WHERE YOU CANNOT REACH IT. The top edge never goes above
+     the window's own top — so the strip you grabbed it by is always there to
+     grab again — and DLG_KEEP px always stay on screen in every direction.
+   - IT COMES BACK TO THE MIDDLE. The position is per SITTING of that window and
+     is dropped when it closes. A remembered corner is wrong the moment the
+     browser window is resized, and a dialog that opens off to one side with
+     nothing on screen saying why is the fault this file warns about. What it
+     DOES survive is a repaint of the window's own contents (the note window
+     redraws itself when a note is saved), which is why the offset is kept on
+     the frame rather than in a variable that dies with the panel.
+   - DOUBLE-CLICK THE TOP PUTS IT BACK, the dividers' own reset.
+
+   NOT ON A NARROW WINDOW. Below DLG_MIN_W a dialog is nearly the whole screen,
+   so there is nowhere to move it to and every drag can only make it worse. The
+   phone is untouched by construction — that shell opens none of these; it has
+   sheets of its own — but the counterparty's page is NOT the phone and is drawn
+   at any width, which is what this line is really for.
+
+   NO KEYBOARD EQUIVALENT, AND THAT IS DELIBERATE. Every act in this product has
+   a key beside its click; moving a window is not an act. Nothing is recorded,
+   nothing is decided, and every control in the dialog is reachable without it —
+   a reader who never moves one loses nothing at all. */
+const DLG_GRAB_H = 52;      /* the top strip you can take hold of */
+const DLG_KEEP   = 120;     /* how much of the window must stay on screen */
+const DLG_MIN_W  = 768;     /* narrower than this, there is nowhere to move it */
+/* Anything a press means something else on. `label` is here because a press on
+   one goes to its own control; `canvas` because the signature pad is drawn on
+   with the pointer, and a drag that started on it would be a signature. */
+const DLG_NO_DRAG = 'input,textarea,select,button,a,label,canvas,[contenteditable],'
+  + '[role="button"],[role="textbox"],[data-no-drag]';
+
+function dialogMayDrag(){ return (window.innerWidth || 0) >= DLG_MIN_W; }
+/* Kept on screen in every direction. The top is clamped at 0 rather than at
+   -keep: a window whose title strip is above the ceiling is one you cannot pick
+   up again, which is the one state this must never allow. */
+function dialogClampXY(x, y, w, h){
+  const vw = window.innerWidth || 0, vh = window.innerHeight || 0;
+  /* PER AXIS, NOT ONE NUMBER FOR BOTH: a window wider than it is tall would
+     otherwise be allowed to hang off the side by the difference, because the
+     margin it had to keep on screen was being set by its own height. */
+  const keepX = Math.max(0, Math.min(DLG_KEEP, w));
+  const keepY = Math.max(0, Math.min(DLG_KEEP, h));
+  return {
+    x: Math.max(keepX - w, Math.min(x, Math.max(0, vw - keepX))),
+    y: Math.max(0, Math.min(y, Math.max(0, vh - keepY)))
+  };
+}
+function dragDialog(panel, opts = {}){
+  if (!panel || typeof panel.getBoundingClientRect !== 'function') return () => {};
+  const frame = opts.frame || panel.parentElement || null;
+  /* WHAT THE PANEL SAID ABOUT ITSELF BEFORE WE TOUCHED IT. Every one of these
+     dialogs writes its own position, width and max-width as an INLINE style, so
+     clearing ours would not fall back to them — it would delete them, and the
+     window would come back the wrong width. Reset restores these six exactly. */
+  const was = { position: panel.style.position, left: panel.style.left, top: panel.style.top,
+    width: panel.style.width, maxWidth: panel.style.maxWidth, margin: panel.style.margin };
+  let base = null;                      /* where the window sits when centred */
+  let sx = 0, sy = 0, ox = 0, oy = 0, w = 0, h = 0, pid = null, on = false;
+
+  const pin = (x, y, width) => {
+    panel.style.position = 'fixed';
+    panel.style.margin = '0';
+    panel.style.width = width + 'px';
+    panel.style.maxWidth = 'none';
+    panel.style.left = x + 'px';
+    panel.style.top = y + 'px';
+    panel.dataset.dlgMoved = '1';
+  };
+  const remember = () => {
+    if (!frame || !base) return;
+    frame.dataset.dlgDx = String(parseFloat(panel.style.left || 0) - base.x);
+    frame.dataset.dlgDy = String(parseFloat(panel.style.top || 0) - base.y);
+  };
+  /* THE OFFSET LIVES ON THE FRAME, NOT IN A VARIABLE HERE, because a panel is
+     not guaranteed to outlive its window: several of these dialogs are built by
+     a paint() written to be re-runnable and re-arm everything in a wire(), and
+     redrawing one replaces the very element this helper is armed on. Kept in a
+     closure the position would die with it and the window would jump back to
+     the middle under the reader's hand. NOTHING SHIPPED REPAINTS ITSELF IN
+     PLACE TODAY — said out loud rather than claimed — so this costs a dataset
+     write nobody is yet spending, and f265 is what exercises it. */
+  const restore = () => {
+    const dx = frame ? Number(frame.dataset.dlgDx || 0) : 0;
+    const dy = frame ? Number(frame.dataset.dlgDy || 0) : 0;
+    if ((!dx && !dy) || panel.dataset.dlgMoved || !dialogMayDrag()) return;
+    const r = panel.getBoundingClientRect();
+    if (!r.width) return;
+    base = { x: r.left, y: r.top };
+    const p = dialogClampXY(r.left + dx, r.top + dy, r.width, r.height);
+    pin(p.x, p.y, r.width);
+  };
+  const grabbable = e => {
+    if (!dialogMayDrag()) return false;
+    const r = panel.getBoundingClientRect();
+    if (!r.height) return false;
+    if ((e.clientY - r.top) > DLG_GRAB_H || e.clientY < r.top) return false;
+    if (e.clientX < r.left || e.clientX > r.left + r.width) return false;
+    const t = e.target;
+    return !(t && typeof t.closest === 'function' && t.closest(DLG_NO_DRAG));
+  };
+  const down = e => {
+    if (on || (e.button != null && e.button !== 0)) return;
+    if (!grabbable(e)) return;
+    const r = panel.getBoundingClientRect();
+    if (!base) base = { x: r.left, y: r.top };
+    ox = r.left; oy = r.top; w = r.width; h = r.height;
+    sx = e.clientX; sy = e.clientY; pid = e.pointerId; on = true;
+    pin(r.left, r.top, r.width);
+    /* A drag inside a panel is otherwise the browser's own text selection. */
+    panel.style.touchAction = 'none';
+    panel.style.userSelect = 'none';
+    e.preventDefault();
+    try { panel.setPointerCapture(e.pointerId); } catch (_){}
+    /* ON DOCUMENT, NOT ON THE PANEL: the pointer routinely leaves a small window
+       during a fast drag, and where capture is unavailable the panel would stop
+       hearing about it half way across the screen. */
+    document.addEventListener('pointermove', move, true);
+    document.addEventListener('pointerup', up, true);
+    document.addEventListener('pointercancel', up, true);
+  };
+  const move = e => {
+    if (!on || (pid != null && e.pointerId != null && e.pointerId !== pid)) return;
+    const p = dialogClampXY(ox + (e.clientX - sx), oy + (e.clientY - sy), w, h);
+    panel.style.left = p.x + 'px';
+    panel.style.top = p.y + 'px';
+    if (e.cancelable) e.preventDefault();
+  };
+  const up = () => {
+    if (!on) return;
+    on = false;
+    try { if (pid != null) panel.releasePointerCapture(pid); } catch (_){}
+    pid = null;
+    panel.style.touchAction = '';
+    panel.style.userSelect = '';
+    document.removeEventListener('pointermove', move, true);
+    document.removeEventListener('pointerup', up, true);
+    document.removeEventListener('pointercancel', up, true);
+    remember();
+  };
+  /* THE POINTER IS THE ONLY SIGN, so it has to be right: `move` where a press
+     would take hold of the window and nothing at all anywhere else. */
+  const hover = e => { if (!on) panel.style.cursor = grabbable(e) ? 'move' : ''; };
+  const leave = () => { if (!on) panel.style.cursor = ''; };
+  const reset = e => {
+    if (!dialogMayDrag() || !grabbable(e)) return;
+    panel.style.position = was.position; panel.style.left = was.left; panel.style.top = was.top;
+    panel.style.width = was.width; panel.style.maxWidth = was.maxWidth; panel.style.margin = was.margin;
+    delete panel.dataset.dlgMoved;
+    if (frame){ delete frame.dataset.dlgDx; delete frame.dataset.dlgDy; }
+    base = null;
+  };
+  /* AND THE SCREEN CAN CHANGE SIZE UNDER A WINDOW SOMEBODY HAS MOVED. A pinned
+     panel is at a fixed pixel, so a browser dragged narrower — or a laptop
+     undocked from a second monitor — leaves a window that was against the right
+     edge off the side of the screen entirely, reachable only by Escape. It is
+     clamped back on, which is the same promise the drag itself makes. */
+  const refit = () => {
+    if (on || !panel.dataset.dlgMoved) return;
+    const r = panel.getBoundingClientRect();
+    if (!r.width) return;
+    const p = dialogClampXY(r.left, r.top, r.width, r.height);
+    panel.style.left = p.x + 'px';
+    panel.style.top = p.y + 'px';
+    remember();
+  };
+  panel.addEventListener('pointerdown', down);
+  panel.addEventListener('pointermove', hover);
+  panel.addEventListener('pointerleave', leave);
+  panel.addEventListener('dblclick', reset);
+  window.addEventListener('resize', refit);
+  restore();
+  let released = false;
+  return function release(){
+    if (released) return; released = true;
+    up();
+    panel.removeEventListener('pointerdown', down);
+    panel.removeEventListener('pointermove', hover);
+    panel.removeEventListener('pointerleave', leave);
+    panel.removeEventListener('dblclick', reset);
+    window.removeEventListener('resize', refit);
+  };
+}
+
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   const maxw=opts.maxWidth||'32rem';
@@ -2207,7 +2421,13 @@ function openModal(html, opts={}){
   /* EXTRACTED 25 Aug 2026 — this was written here and was the only overlay in
      the product that had it. The reasoning above stayed with the function. */
   const panel=root.querySelector('[role="dialog"]');
-  if(panel){ _modalOpener = document.activeElement; _modalRelease = trapFocus(panel); }
+  /* AND IT CAN BE MOVED OUT OF THE WAY (owner-asked 1 Sep 2026). Released
+     before arming, because the share dialog replaces this root wholesale on
+     its second paint and would otherwise leave the first panel's listeners
+     behind. See dragDialog above for the rules it keeps. */
+  if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
+  if(panel){ _modalOpener = document.activeElement; _modalRelease = trapFocus(panel);
+    _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null; }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   document.addEventListener('keydown',function esc(e){
@@ -2235,7 +2455,7 @@ async function closeModalGuarded(){
     if(ok===false) return; }
   closeModal();
 }
-let _modalOpener=null, _modalRelease=null;
+let _modalOpener=null, _modalRelease=null, _modalDrag=null;
 /* TWO THINGS ON THE WAY OUT, and both were added on the same day by different
    hands: the guard is cleared so it cannot outlive its dialog, and focus goes
    back where it came from — without which a keyboard user is dropped at the
@@ -2247,6 +2467,7 @@ function closeModal(){
      it — which is why this runs first and _modalOpener stays as the fallback
      for a modal that never got a trap (one with no [role=dialog] panel). */
   if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
+  if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   document.getElementById('modal-root').innerHTML='';
   try{ if(_modalOpener && _modalOpener.isConnected) _modalOpener.focus({preventScroll:true}); }catch(e){}
   _modalOpener=null;
@@ -2340,8 +2561,13 @@ function confirmDialog(opts={}){
        that decision here would change which button a reader lands on. */
     const release = (typeof trapFocus==='function')
       ? trapFocus(ov.querySelector('[role="alertdialog"]'), { focus:false }) : null;
+    /* AND IT MOVES, like every other pop-up window here. Same helper, same
+       rules; it is released with the trap so nothing outlives the overlay. */
+    const undrag = (typeof dragDialog==='function')
+      ? dragDialog(ov.querySelector('[role="alertdialog"]')) : null;
     const done=val=>{
       if(release){ try{ release(); }catch(_){} }
+      if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
     /* ENTER DOES NOT CONFIRM FROM HERE (fixed 25 Aug 2026, by the UI audit).
        This handler sits on DOCUMENT and used to answer Enter with done(true),
@@ -2418,8 +2644,12 @@ function promptDialog(opts={}){
        focuses its own text box, which is the whole point of a prompt. */
     const release = (typeof trapFocus==='function')
       ? trapFocus(ov.querySelector('[role="dialog"]'), { focus:false }) : null;
+    /* AND IT MOVES — see confirmDialog above, same helper and same rules. */
+    const undrag = (typeof dragDialog==='function')
+      ? dragDialog(ov.querySelector('[role="dialog"]')) : null;
     const done=val=>{
       if(release){ try{ release(); }catch(_){} }
+      if(undrag){ try{ undrag(); }catch(_){} }
       ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
     function onKey(e){
       if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
@@ -6203,4 +6433,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

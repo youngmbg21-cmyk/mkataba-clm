@@ -12431,9 +12431,10 @@ function openChangeNoteDialog(c, ch, opts = {}){
        press answers this dialog AND closes whatever is behind it, which is a
        fault this product has already paid for once. */
     ov.setAttribute('data-top-overlay', '1');
-    let release = null;
+    let release = null, undrag = null;
     const done = out => {
       if (release){ try { release(); } catch (_){} release = null; }
+      if (undrag){ try { undrag(); } catch (_){} undrag = null; }
       ov.remove();
       document.removeEventListener('keydown', onKey, true);
       resolve(out);
@@ -12447,8 +12448,18 @@ function openChangeNoteDialog(c, ch, opts = {}){
     }
     function wire(mine){
       if (release){ try { release(); } catch (_){} release = null; }
+      if (undrag){ try { undrag(); } catch (_){} undrag = null; }
       const panel = ov.querySelector('[role="dialog"]');
       if (panel && typeof trapFocus === 'function') release = trapFocus(panel, { focus: false });
+      /* ---- AND IT CAN BE MOVED OUT OF THE WAY (owner-asked 1 Sep 2026) ----
+         The window the owner named. Armed HERE beside the focus trap rather
+         than at the mount, because this is the function paint() re-runs and a
+         redraw replaces the panel both of them are armed on. Nothing calls
+         paint() a second time today — saving a note closes the window — so
+         this is the cheap half of being ready for one rather than a fix for
+         something happening now. The helper keeps the position on the OVERLAY
+         for the same reason; see dragDialog in js/core.js. */
+      if (panel && window.dragDialog) undrag = window.dragDialog(panel, { frame: ov });
       const scrim = ov.querySelector('.rl-note-scrim');
       if (scrim) scrim.addEventListener('click', () => done(null));
       const skip = ov.querySelector('#rl-note-skip');

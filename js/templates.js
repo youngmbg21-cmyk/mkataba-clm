@@ -115,8 +115,11 @@ function promptNewFolder(){
         </div>
       </div>`;
     document.body.appendChild(ov);
+    /* AND IT MOVES OUT OF THE WAY, like every other pop-up window here —
+       one helper, one set of rules. See dragDialog in js/core.js. */
+    const undrag = window.dragDialog ? window.dragDialog(ov.querySelector('[role="dialog"]')) : null;
     const input=ov.querySelector('#nf-name'); setTimeout(()=>input.focus(),30);
-    const done=v=>{ ov.remove(); resolve(v); };
+    const done=v=>{ if(undrag){ try{ undrag(); }catch(e){} } ov.remove(); resolve(v); };
     const save=()=>{ const name=input.value.trim(); if(!name){ ov.querySelector('#nf-err').style.display='block'; return; } done(addCustomFolder(name)); };
     ov.querySelector('#nf-save').addEventListener('click',save);
     ov.querySelector('#nf-cancel').addEventListener('click',()=>done(null));

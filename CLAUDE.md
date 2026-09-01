@@ -1592,6 +1592,104 @@ RE-POINTED: it anchored on a literal opening tag that gained an attribute, so
 `indexOf` came back -1 and `slice(-1)` handed two checks a one-character string
 they both passed against — a false pass is the expensive half).
 
+## A POP-UP WINDOW CAN BE MOVED OUT OF THE WAY (owner-asked 1 Sep 2026)
+
+*"Make it so that the pop-up window with the notes regarding the redline can be
+dragged around the screen if needed. In fact, make all pop-up windows have the
+ability to be moved around."* Recommendation put to the owner and taken: you
+grab a window by its TOP.
+
+**ONE HELPER, EVERY WINDOW, BECAUSE THEY ARE ALL ONE SHAPE.** Measured before a
+line was written: the eight families of pop-up in this product — `openModal`'s
+~69 dialogs, `confirmDialog`, `promptDialog`, the redline note window, the
+signature pad, the new-stream box and the counterparty's two — are each a fixed
+full-screen frame with `place-items:center`, a scrim child and a panel child.
+That is what makes `dragDialog` (js/core.js, beside `trapFocus`, whose shape it
+borrows — it returns its own undo) one function rather than eight, and it is why
+a ninth dialog written later is one line rather than a copy. **f265 sweeps all
+eight and fails on a ninth family that does not arm it.**
+
+- **YOU GRAB IT BY THE TOP — the standard answer**, and the reason a departure
+  would need one: Word, Windows and SAP's own dialogs all drag by the title bar
+  and a reader already knows it. The zone is the top `DLG_GRAB_H` of the panel
+  MINUS anything you could press or type into, so the heading is a handle, the ✕
+  in the corner is still a close button, and a text box at the top of a window is
+  still a text box.
+- **NOT FROM ANYWHERE, and that is the whole reason for a zone.** A dialog
+  regularly holds text somebody means to select and copy — the response code, a
+  shared link, a colleague's note — and a window that walks off when you try to
+  select a line is worse than one that does not move. Measured as a real
+  selection in the browser file, not merely as a window that stayed put.
+- **AND NOT BY A GRAB BAR**, which was drawn and refused: it would put a new
+  strip on sixty-nine windows to say something the cursor already says. The
+  pointer turns to `move` over the zone and nowhere else — the cheapest channel
+  that carries the fact, which is this rulebook's own second question.
+- **IT CAN NEVER BE PUT WHERE YOU CANNOT REACH IT.** The top is clamped at 0
+  rather than at `-keep`: a window whose title strip is above the ceiling is one
+  you cannot pick up again, and that is the one state this must never allow.
+  `DLG_KEEP` stays on screen at every other edge, **per AXIS rather than one
+  number for both** — a window wider than it is tall was allowed to hang off the
+  side by the difference, because the margin it had to keep was being set by its
+  own height (caught by f265 before it shipped).
+- **IT COMES BACK TO THE MIDDLE.** The position is per SITTING of that window and
+  dies with it — a window that opened in a corner a week later with nothing on
+  screen saying why is the fault the saved-filter rule already warns about, and a
+  remembered corner is wrong the moment the browser is resized. **What it DOES
+  survive is a repaint of the window's own contents**, because the offset is kept
+  on the FRAME rather than in a variable here: several of these windows are built
+  by a `paint()` written to be re-runnable that replaces the very panel the
+  helper is armed on, and left in a closure the position would die with it and
+  the window would jump back to the middle under the reader's hand. **NOTHING
+  SHIPPED REPAINTS ITSELF IN PLACE TODAY** — a first writing of this section said
+  the note window did when a note is saved, and it does not; it closes — so this
+  is the cheap half of being ready for one, exercised by f265 and by nothing in
+  the product.
+- **DOUBLE-CLICK THE TOP PUTS IT BACK, and gives every declaration back exactly.**
+  THE TRAP: each of these dialogs writes its position, width and max-width as an
+  INLINE style, so clearing ours would not fall back to theirs — it would DELETE
+  them, and the window would come back the wrong width for the rest of the
+  sitting. The six are saved at arm time and restored on reset.
+- **AND THE SCREEN CAN CHANGE SIZE UNDER A WINDOW SOMEBODY HAS MOVED.** A pinned
+  panel is at a fixed pixel, so a browser dragged narrower — or a laptop undocked
+  from a second monitor — would leave one that was against the right edge off the
+  side of the screen entirely, reachable only by Escape. It is clamped back on,
+  which is the same promise the drag itself makes.
+- **NOT ON A NARROW WINDOW.** Below `DLG_MIN_W` (768) a dialog is nearly the whole
+  screen, so there is nowhere to move it to and every drag can only make it
+  worse. The phone is untouched BY CONSTRUCTION — that shell opens none of these
+  and has sheets of its own — but the counterparty's page is NOT the phone and is
+  drawn at any width, which is what this line is really for.
+- **IT MOVES A WINDOW AND DOES NOTHING ELSE.** No record, no persist, no audit
+  line, nothing in localStorage; Escape, the scrim, the ✕ and any
+  `onBeforeClose` guard are exactly as they were. f265 greps the helper for all
+  seven and fails on any of them appearing.
+- **NO KEYBOARD EQUIVALENT, AND THAT IS DELIBERATE.** Every ACT in this product
+  has a key beside its click; moving a window is not an act — nothing is
+  recorded, nothing is decided, and every control in the dialog is reachable
+  without it, so a reader who never moves one loses nothing. Said out loud rather
+  than left to be discovered.
+
+**WHAT IS DELIBERATELY NOT IN IT**, each for its own reason and each named to the
+owner before it was built: the panels DOCKED to an edge (Copilot, Alerts,
+Activity, Notes, the clause panel, the round queue, `openSidePanel`) — they are
+attached to a side rather than floating, and there is nowhere for them to move
+to; the ⋯ menus and the selection strip, which are menus; the toasts; the
+command palette and the full-screen document reader, which are not windows; and
+the phone's bottom sheets.
+
+**AND THE HELPER IS PUBLISHED, or six of the eight sites are silence** — they
+call it as `window.dragDialog && …`, which is this codebase's most repeated
+defect (a name defined in one module, never put on window, read through a guard
+that is therefore always false). f265 asserts it leaves js/core.js by name.
+
+Tests: f265 (25 — the rules, in a window of its own with the helper lifted out of
+core.js between named landmarks, so it is the shipped code and the first claim
+fails if either landmark moves), **window-drag-verify (19, browser — every press
+a REAL MOUSE, because a scripted event exercises neither the pointer capture nor
+the browser's own click-after-drag and would pass against a window nobody can
+take hold of; 5 of the 19 fail against the parent commit, the headline one
+reporting the owner's window moving `0,0`).**
+
 ## THE ACCENT HAD NO NIGHT ANSWER (25 Aug 2026 — the pre-launch UI/UX audit, Phase A)
 
 **ONE STRUCTURAL FACT UNDER ALMOST EVERY DARK-THEME COMPLAINT, and this file had
