@@ -123,8 +123,17 @@ describe('f248 — the two rooms never share a note', () => {
     const src = read('js/views/negotiation.js');
     assert.match(src, /function rlCardNotesCountHtml[\s\S]{0,400}negoNoteCounts\(/,
       'the count on the row asks the one arithmetic');
-    assert.match(src, /function rlCardNotesHtml[\s\S]{0,900}negoNoteCounts\(/,
+    assert.match(src, /function rlCardBodyNotesHtml[\s\S]{0,900}negoNoteCounts\(/,
       'and so do the tabs inside the card the owner opens');
+    /* AND THE TWO BUILDERS DO NOT SHARE A NAME. They did for one commit — a
+       function declaration is hoisted over the whole file, so the later one
+       (the counterparty's, which opens `if (side !== 'counterparty') return`)
+       silently won and the notes never drew inside an open card on our seat.
+       Nothing failed and nothing logged. f48 catches this between MODULES; in
+       one file nothing does, so it is pinned here. */
+    const names = (src.match(/^function (rlCard\w*NotesHtml)\(/gm) || []);
+    assert.equal(new Set(names).size, names.length,
+      'no two builders in this file answer to one name: ' + names.join(', '));
     /* THE SWEEP: every read of a thread's length in this file goes through
        that one function, so a surface added later cannot start counting on its
        own. */

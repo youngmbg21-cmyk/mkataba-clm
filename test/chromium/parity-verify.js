@@ -156,10 +156,34 @@ const CARD_EDIT = async () => {
      the owner reported that day. So the probe reaches for the VERB, and records
      which door this seat's Edit is. */
   const cardOf = b => b && b.closest('[data-nego-card]');
+  /* ---- AND ON OUR SEAT THE CARD HAS TO BE OPENED FIRST (2 Sep 2026) ----
+     The owner's ruling put every verb behind the card's own Open. THE
+     COUNTERPARTY'S CARD IS UNTOUCHED and still carries its verbs on the face,
+     which is why this is guarded rather than unconditional — and why the probe
+     stays ONE function: what it compares is the ROUTE, and each seat is walked
+     the way a reader walks it. */
+  if (!document.querySelector('#rl-changes .rl-edit')){
+    const ob = (want && want.querySelector('[data-rl-card-open]'))
+      || document.querySelector('#rl-changes [data-rl-card-open]');
+    if (ob){
+      ob.click();
+      await new Promise(r => setTimeout(r, 350));
+    }
+  }
+  const want2 = net45 && document.querySelector(
+    `#rl-changes [data-nego-card="${CSS.escape(net45.id)}"]`);
   const btns = [...document.querySelectorAll(
     '#rl-changes [data-rl-edit], #rl-changes [data-rl-cp-editor-row]')]
     .filter(b => b.classList.contains('rl-edit'));
-  const btn = (want && want.querySelector('.rl-edit'))
+  /* THE NAMED CARD'S EDIT, BUT ONLY IF IT REALLY IS THE ROUTE. `.rl-edit`
+     alone is not enough: a card can carry a button in Edit's clothes that goes
+     somewhere else — Reopen wears exactly that class by the owner's own ruling
+     ("do not add it as a pill but same as edit") — and picking it gives this
+     probe a button with no destination and an error about a clause that is not
+     missing at all. So the named card is asked for a button that carries one
+     of the two doors, which is what `btns` already means. */
+  const btn = (want2 && [...want2.querySelectorAll('.rl-edit')]
+      .find(b => b.hasAttribute('data-rl-edit') || b.hasAttribute('data-rl-cp-editor-row')))
     || btns.find(b => { const card = cardOf(b);
         const ch = card && negoChangeById(CONTRACT, card.getAttribute('data-nego-card'));
         return ch && ch.status === 'pending'; })

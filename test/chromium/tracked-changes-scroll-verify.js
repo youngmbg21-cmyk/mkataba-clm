@@ -80,6 +80,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(900);
 
     const m = await page.evaluate(async () => {
+      /* ---- THE COLUMN IS MADE TO OVERFLOW FIRST, THE WAY A READER MAKES IT ----
+         Owner-ruled 2 Sep 2026: a card's face carries one control and every
+         verb, strip and comment is behind its Open. So four SHUT cards no
+         longer fill the column, and a check that needs something to scroll has
+         to open one — which is not a contrivance, it is the state this whole
+         section is about: a reader reads a change and scrolls the column while
+         it is open.
+         IT IS DONE BEFORE ANY ELEMENT IS CAPTURED, and that is the whole of
+         why it is here rather than further down: opening repaints the column,
+         so a node held from before the press is detached and every measurement
+         taken through it reads zero. */
+      {
+        const first = document.querySelector('#nego-cards [data-rl-card-open]');
+        const box = document.getElementById('nego-cards');
+        if (first && box && box.scrollHeight <= box.clientHeight + 1){
+          first.click();
+          await new Promise(r => setTimeout(r, 450));
+          /* AND THE PAPER IS PUT BACK TO THE TOP. Opening a card also lights
+             its clause and scrolls the contract to it (rlLinkFocus), which
+             folds the head — so without this the section starts from a folded
+             head and "scrolling the cards leaves it where it was" would be
+             asked of a state the reader never arrives in. */
+          const d = document.querySelector('.rl-doc .nego-scroll') || document.querySelector('.rl-doc');
+          if (d){
+            d.scrollTop = 0;
+            d.dispatchEvent(new window.Event('scroll', { bubbles: true }));
+            await new Promise(r => setTimeout(r, 450));
+          }
+        }
+      }
       const cards = document.getElementById('nego-cards');
       const head = document.getElementById('ws-head');
       const facts = document.getElementById('ws-facts');

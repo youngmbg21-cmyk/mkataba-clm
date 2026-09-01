@@ -350,7 +350,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('4 the change column opens at 460px', / 460px$/.test(sheet.grid), sheet.grid);
 
     /* ---- 5. THE CHANGE COLUMN GREW A SIZE AND KEPT NO BOX ---- */
-    const col = await page.evaluate(() => {
+    const col = await page.evaluate(async () => {
+      /* THE CARD IS OPENED FIRST (owner-ruled 2 Sep 2026): its face carries one
+         control, Open, and every verb is behind it — so there is nothing
+         painted to measure a verb's box against until a card is open. Pressed
+         for real, because this whole section is a computed-style read and a
+         verb read out of markup answers none of its questions. */
+      const ob = document.querySelector('#rl-changes [data-rl-card-open]');
+      if (ob && !document.querySelector('#rl-changes .rl-cb-wrap')){
+        ob.click();
+        await new Promise(r => setTimeout(r, 300));
+      }
       const cs = sel => { const el = document.querySelector('#view-redline ' + sel);
         return el ? getComputedStyle(el) : null; };
       const pane = cs('.nego-pane.index');

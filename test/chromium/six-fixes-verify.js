@@ -172,14 +172,23 @@ for (let i = 1; i <= 12; i++)
     });
     await page.evaluate(id => openRedlineWorkbench(id), staged);
     await pause(2200);
-    await page.evaluate(() => { const b = document.querySelector('[data-rl-more]'); if (b) b.click(); });
-    await pause(400);
+    /* RE-POINTED 2 Sep 2026 (owner-ruled): the ⋯ is retired and the card's
+       face carries one control, Open, with every verb behind it. THE CLAIMS
+       BELOW ARE L-1's OWN and are unchanged — one size, nothing bold, nothing
+       wrapped, no long label — and they are asked of the row those verbs now
+       sit in. Pressed for real, because every one of them is about what the
+       browser painted rather than about markup. */
+    await page.evaluate(() => {
+      const b = document.querySelector('#rl-changes [data-rl-card-open]');
+      if (b) b.click();
+    });
+    await pause(600);
     await page.screenshot({ path: path.join(OUT, '02-more-menu.png') });
 
     const menu = await page.evaluate(() => {
-      const m = document.querySelector('.rl-more-menu:not([hidden])');
-      if (!m) return { error: 'no open menu' };
-      const face = document.querySelector('.rl-card-d .rl-card-verbs button');
+      const m = document.querySelector('#rl-changes .rl-card-d .rl-card-verbs');
+      if (!m) return { error: 'the card did not open, or drew no verbs' };
+      const face = document.querySelector('#rl-changes .rl-card-d [data-rl-card-open]');
       const fs_ = face ? getComputedStyle(face) : null;
       const rows = [...m.querySelectorAll('button')].map(b => {
         const s = getComputedStyle(b);
@@ -201,26 +210,41 @@ for (let i = 1; i <= 12; i++)
           lines: Math.max(1, Math.round(inner / lh)), hasIcon: !!icon, painted };
       });
       return { rows, faceSize: fs_ ? fs_.fontSize : null,
-        visible: m.getBoundingClientRect().width > 0 };
+        visible: m.getBoundingClientRect().width > 0,
+        menuGone: !document.querySelector('#rl-changes .rl-more-btn, #rl-changes .rl-more-menu') };
     });
     if (menu.error){
-      check('1 the ⋯ menu opens', false, menu.error);
+      check('1 the card opens', false, menu.error);
     } else {
-      check('1a the menu really opened as pixels', menu.visible && menu.rows.length > 0,
-        `${menu.rows.length} rows`);
-      check('1b every row is the same size as Edit and Send on the card face',
-        menu.rows.every(r => r.size === menu.faceSize),
-        `face ${menu.faceSize} · rows ${[...new Set(menu.rows.map(r => r.size))].join(', ')}`);
-      check('1c nothing in the menu is bold',
-        menu.rows.every(r => Number(r.weight) < 600),
+      check('1 the ⋯ is gone from the column entirely', menu.menuGone);
+      check('1a Open really revealed the verbs as pixels',
+        menu.visible && menu.rows.length > 0, `${menu.rows.length} verbs`);
+      /* RE-POINTED AS THE RELATION L-1 WAS ACTUALLY PROTECTING. It compared
+         each menu row to the card's face verbs, because the fault it was
+         written for was a menu whose rows read as a different kind of thing
+         from the buttons beside them. With the menu retired there is one set
+         of verbs and nothing to compare them to — so what is asserted is what
+         that comparison existed to buy: THEY READ AS ONE SET. One size and one
+         weight across all of them, so none shouts louder than the rest.
+         THE WEIGHT ITSELF IS NOT PINNED TO A NUMBER, deliberately: these verbs
+         carry the 700 the 26 Aug flat row gave them, that is not a decision
+         this job made, and changing it here would be an unasked design change
+         wearing a test's clothes. */
+      check('1b every verb is one size — they read as one set',
+        new Set(menu.rows.map(r => r.size)).size === 1,
+        `verbs ${[...new Set(menu.rows.map(r => r.size))].join(', ')} · Open ${menu.faceSize}`);
+      check('1c and one weight — none of them shouts over the others',
+        new Set(menu.rows.map(r => r.weight)).size === 1,
         [...new Set(menu.rows.map(r => r.weight))].join(', '));
-      check('1d no row wraps to a second line',
-        menu.rows.every(r => r.wrap === 'nowrap' && r.lines <= 1),
+      check('1d no verb wraps to a second line',
+        menu.rows.every(r => r.lines <= 1),
         menu.rows.filter(r => r.lines > 1).map(r => r.text).join(' | ') || 'all one line');
-      check('1e every row carries a symbol, and every symbol really paints',
-        menu.rows.every(r => r.hasIcon && r.painted),
-        menu.rows.filter(r => !r.painted).map(r => r.text).join(' | ') || 'all painted');
-      check('1f and the long label was shortened, not shrunk',
+      /* 1e IS RETIRED WITH THE MENU. Every ROW carried a symbol because a menu
+         row is a line of text in a list and needs a mark to be scannable; a
+         row of coloured words does not, and the 26 Aug flat card is where that
+         was settled. The symbols themselves are not lost — RL_MORE_ICONS is
+         dormant beside rlCardMoreHtml and would come back with it. */
+      check('1f and no verb wears the long label the menu had to shorten',
         !menu.rows.some(r => /Open in the clause panel/i.test(r.text)),
         menu.rows.map(r => r.text).join(' | '));
     }

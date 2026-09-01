@@ -8403,3 +8403,44 @@ Noticed, not fixed:
 - The bell and Activity are dead behind the clause editor for the same reason
   Chat is (z-index 54 over 46), and panelSuppressed still answers false. It
   predates the Chat door by a fortnight.
+
+## 2 Sep 2026 — the browser set, after the card opened
+
+Full node suite 5432/5432. Browser 17 of 90 red; each re-run in a worktree at
+unmodified main to split them. FIVE WERE MINE (green on main) and all five are
+green again: clause-editor, nego-redesign, parity, tracked-changes-scroll,
+six-fixes.
+
+Two product defects the browser found and node could not:
+
+- TWO FUNCTIONS IN ONE FILE ANSWERED TO rlCardNotesHtml, so the notes never
+  drew inside an open card. Hoisting meant the counterparty's version won and
+  it returns '' for our seat. Renamed rlCardBodyNotesHtml; f248 now pins that
+  no two builders in that file share a name.
+- OPENING A CARD LIT ITS CLAUSE AND THE REPAINT THREW THE LIGHT AWAY.
+  rlLinkFocus writes is-linked onto elements the repaint then replaces. The
+  light goes on after the repaint now.
+
+And one gap: Open carried no accessible name. The retired ⋯ did.
+
+Noticed, not fixed — RED BEFORE THIS WORK, proved on main:
+
+- calendar-redesign-verify 44/46
+- flat-rows-and-alerts-verify 34/37
+- negotiations-door-verify 63/67
+- portal-header-verbs-verify 29/30
+- pages-read-alike-verify 47/50
+- room-order-and-notices-verify 27/29
+- settled-ask-reopen-verify 11/12
+- standard-paper-verify 6/14
+- paper-grows-verify 49/51
+- obligations-tab-verify 49/50
+- reopen-a-refusal-verify crashes on main too
+- theme-tokens-verify 37/40 — SEE BELOW, this one is wider now
+
+MADE WIDER BY THIS WORK AND DELIBERATELY NOT RE-RECORDED: theme-tokens-verify
+already lost the Copilot violet on the negotiate screen in both themes on main.
+This work adds Reject's ink to that loss (rgb(185,28,28) light,
+rgb(253,164,175) dark), because a verb behind a disclosure is not painted on a
+page at rest and the census only sees a page at rest. Re-recording would bake
+in main's own loss as well, which is not this job's to own.

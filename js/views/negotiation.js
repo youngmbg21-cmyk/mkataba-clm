@@ -8973,11 +8973,19 @@ function rlWireClauseTools(c, host, opts){
     const id = btn.getAttribute('data-rl-card-open');
     const opening = rlCardOpenId() !== String(id);
     rlCardSetOpen(opening ? id : null);
+    /* ---- THE LIGHT GOES ON AFTER THE REPAINT, NOT BEFORE ----
+       rlLinkFocus marks the card and its clause by writing is-linked onto the
+       elements it finds, and the repaint below REPLACES the column's markup —
+       so lighting first threw the mark away in the same frame and the reader
+       pressed Open, watched the paper move, and saw nothing marked. Nothing
+       failed and nothing logged; it was found by measuring the painted page.
+       The paper is not rebuilt by this repaint, so only the CARD's mark was
+       ever at risk, which is exactly what made it easy to miss. */
+    rlRepaintFrom(btn);
     if (opening){
       const ch = (negoChanges(c) || []).find(x => x && String(x.id) === String(id));
       if (ch && ch.clauseId) rlLinkFocus(c, id, 'card');
     }
-    rlRepaintFrom(btn);
   }));
   /* ---- THE COMMENTS INSIDE THE CARD ----
      The drawer's own two acts, on the card's copy of its markup: rlNpSetRoom
@@ -10584,8 +10592,8 @@ function rlCardBodyHtml(c, ch, opts, side, st){
   /* THE COMMENTS, IN THE TWO ROOMS THEY ALREADY LIVE IN. The drawer's own
      builder, so a note reads the same here as it does in Chat and the wall
      between internal and external is the one negoRoomNotes keeps. */
-  if (typeof rlCardNotesHtml === 'function'){
-    const notes = rlCardNotesHtml(c, ch, opts, side);
+  if (typeof rlCardBodyNotesHtml === 'function'){
+    const notes = rlCardBodyNotesHtml(c, ch, opts, side);
     if (notes) bits.push(notes);
   }
   return bits.length ? `<div class="rl-cb">${bits.join('')}</div>` : '';
@@ -10596,8 +10604,19 @@ function rlCardBodyHtml(c, ch, opts, side, st){
    own reply box and the drawer's, and a third element answering to it is the
    duplicate-composer fault this file records ("a copy is a reply box that
    posts nothing"). rlNotesSend resolves its box from the HOST it is given, so
-   the send needs no id at all. */
-function rlCardNotesHtml(c, ch, opts = {}, side = 'owner'){
+   the send needs no id at all.
+
+   IT IS `rlCardBodyNotesHtml` AND NOT `rlCardNotesHtml`, AND THAT NAME WAS
+   PAID FOR. It shipped as the second, and `rlCardNotesHtml` — the
+   COUNTERPARTY's card notes, 1,900 lines below — already owned it. A function
+   declaration is hoisted over the whole file, so the later one silently won:
+   this builder was never called, its own caller reached the counterparty's
+   version, which opens `if (side !== 'counterparty') return ''`, and the notes
+   simply did not draw inside an open card on our seat. NOTHING FAILED AND
+   NOTHING LOGGED — an empty string is a legitimate answer here — and it was
+   found by measuring the painted card, not by any test. f48 catches this
+   between MODULES, on window; within one file nothing does. */
+function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
   if (!c || !ch) return '';
   const tabbed = side === 'owner';
   const room = tabbed ? rlNpRoom() : 'external';
@@ -13685,6 +13704,14 @@ function redlineChangeCardsHtml(c, opts = {}){
         <div class="rl-card-side"><button type="button" class="rl-open-btn rl-card-open"
           data-rl-card-open="${_ne(ch.id)}" aria-expanded="${cardOpen}"
           aria-controls="rl-cb-${_nea(ch.id)}"
+          ${''/* THE NAME IS OWED TO A READER WHO CANNOT SEE THE CARD. The id
+                 is printed two centimetres to the left and a sighted reader
+                 needs no more, but a screen reader working down a column of
+                 buttons hears "Open" nine times unless the button says which
+                 change it opens. The ⋯ carried this before it was retired and
+                 the fact must not go with the control. */}
+          aria-label="${_nea(i18t(cardOpen ? 'ng_card_close_title' : 'ng_card_open_title')
+            + ' — ' + ch.id)}"
           title="${_nea(i18t(cardOpen ? 'ng_card_close_title' : 'ng_card_open_title'))}"
           >${i18t(cardOpen ? 'act_close' : 'ng_row_open')}<svg class="rl-open-cv" viewBox="0 0 16 16"
             fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"

@@ -8507,6 +8507,52 @@ source claims are stronger for it: both were literals naming the ⋯, and each i
 now the sweep it always meant — no surface counts notes for itself, and every
 door onto them carries the one attribute.
 
+**AND THE BROWSER FOUND THREE THINGS NO NODE TEST COULD, which is the argument
+for running it rather than reasoning about it:**
+
+- **TWO FUNCTIONS IN ONE FILE ANSWERED TO `rlCardNotesHtml`, AND THE NOTES
+  NEVER DREW.** The counterparty's card notes have owned that name since
+  27 Aug; a function declaration is hoisted over the whole file, so the later
+  one silently won, this builder's own caller reached it, and it opens
+  `if (side !== 'counterparty') return ''`. **Nothing failed and nothing
+  logged** — an empty string is a legitimate answer there. It is
+  `rlCardBodyNotesHtml` now. **f48 catches this between MODULES, on window;
+  within one file nothing did, so f248 pins it: no two builders in that file
+  share a name.**
+- **OPENING A CARD LIT ITS CLAUSE AND THEN THREW THE LIGHT AWAY.**
+  `rlLinkFocus` marks the card and its clause by writing `is-linked` onto the
+  elements it finds, and the repaint that draws the open card REPLACES that
+  markup — so the mark died in the same frame. The reader pressed Open, watched
+  the paper move, and saw nothing marked. The light goes on AFTER the repaint.
+  Only the CARD's mark was ever at risk, because the paper is not rebuilt by
+  it, which is exactly what made it easy to miss.
+- **AND OPEN HAD NO ACCESSIBLE NAME.** The ⋯ carried one — a screen reader
+  working down this column would otherwise hear "Open" nine times — and the
+  fact must not go with the control. It names its change now.
+
+**WHAT THE BROWSER SET COST, AND THE SPLIT WAS PROVED RATHER THAN ASSERTED.**
+17 of 90 files failed; each was re-run in a worktree at unmodified `main`.
+**FIVE WERE MINE** — clause-editor, nego-redesign, parity,
+tracked-changes-scroll and six-fixes, all green on main — and all five are
+green again. **TWELVE WERE ALREADY RED** and are listed in BUGLOG under this
+run rather than chased here.
+
+**ONE PRE-EXISTING RED IS WIDER BECAUSE OF THIS WORK, AND IT IS NOT
+RE-RECORDED.** `theme-tokens-verify` already failed on `negotiate` in both
+themes on main, losing the Copilot violet; this adds Reject's ink to that loss,
+because a verb behind a disclosure is not painted on a page at rest and the
+colour census only ever sees a page at rest. **Re-recording would bake in
+main's own loss as well, which is not this job's to own** — so it is reported
+here and in BUGLOG, with the two values named, and the baseline is left alone.
+
+**AND FOUR CHECKS WERE RETIRED RATHER THAN LEFT PASSING VACUOUSLY**, each with
+its reason written where it stood: redline-verify's 18e (the menu's placement,
+which `rlMorePlace` exists for and which an in-place disclosure cannot have),
+and six-fixes' 1e (every menu row carried a symbol, because a line of text in a
+list needs a mark to be scannable and a row of coloured words does not). Both
+would come back with the menu; `rlMorePlace` and `RL_MORE_ICONS` are dormant
+beside `rlCardMoreHtml` for exactly that.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

@@ -72,35 +72,42 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(400);
   ck('the fixture has an ask on a clause', !!staged.id, staged.id);
 
-  /* ---- 1. THE DOOR ON THE CHANGE ROW, AND IT LEADS ----
-     REVERSED IN PLACE, 25 Aug 2026 (the owner's own drawing of this column).
-     The door was a ✦ button sitting on the card's face beside Open; both moved
-     into the card's ⋯ MENU, which is what the drawing puts there and where the
-     approved clause journey has always put Edit with Copilot. Every half of
-     the claim survives and each is asserted below: the door exists, it is
-     VISIBLE PIXELS once the ⋯ is pressed (f180's rule — for a menu, the ⋯ is
-     what has to be on the face), it LEADS the menu, it wears its words, and it
-     is dressed rather than left as an unstyled mark. */
-  const rowDoor = await p.evaluate(id => {
+  /* ---- 1. THE DOOR ON THE CHANGE ROW ----
+     REVERSED IN PLACE TWICE. It was a ✦ button on the card's face; on 25 Aug
+     2026 the owner's drawing of this column moved it into the card's ⋯ MENU;
+     and on 2 Sep 2026 the owner ruled that the FACE carries one control, Open,
+     with every verb behind it — so the ⋯ is retired and the door is a verb in
+     the card's own body.
+     EVERY HALF OF THE CLAIM SURVIVES EACH MOVE and each is asserted below: the
+     door exists, it is VISIBLE PIXELS once the control on the face is pressed
+     (f180's rule — whatever that control is, IT is what has to be on the
+     face), it wears its words, and it is dressed rather than left as an
+     unstyled mark. */
+  const rowDoor = await p.evaluate(async id => {
     const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
     if (!card) return null;
-    const more = card.querySelector('.rl-more-btn');
+    const more = card.querySelector('[data-rl-card-open]');
     const mr = more && more.getBoundingClientRect();
     const ms = more && getComputedStyle(more);
     if (more) more.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    const ce = card.querySelector('[data-rl-cp-editor-row]');
-    const rows = [...card.querySelectorAll('.rl-more-row')];
-    if (!ce) return { more: !!more, ce: false };
+    /* Opening REPAINTS the column, so the card is looked up again — a node
+       held from before the press is detached and measures zero. */
+    await new Promise(r => setTimeout(r, 350));
+    const live = document.querySelector(`.redline-page [data-nego-card="${id}"]`)
+      || document.querySelector('.redline-page .rl-card');
+    const ce = live && live.querySelector('[data-rl-cp-editor-row]');
+    if (!ce) return { more: !!more, ce: false,
+      moreVisible: !!(mr && mr.width > 10 && mr.height > 10 && ms.display !== 'none') };
     const a = ce.getBoundingClientRect();
     const s = getComputedStyle(ce);
     return { more: !!more,
       moreVisible: !!(mr && mr.width > 10 && mr.height > 10 && ms.display !== 'none'),
-      ce: true, leads: rows[0] === ce,
+      ce: true,
       w: Math.round(a.width), h: Math.round(a.height), colour: s.color,
       label: (ce.textContent || '').trim(), vis: s.visibility, disp: s.display };
   }, staged.id);
-  ck('1a the ⋯ is on the card face, as visible pixels',
+  ck('1a the one control on the card face is Open, as visible pixels',
      !!rowDoor && rowDoor.more && rowDoor.moreVisible, rowDoor && rowDoor.moreVisible);
   ck('1a the Copilot door is real pixels once it is pressed',
      !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
@@ -113,20 +120,25 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      THE CLAIM IS NOW THE STRONGER ONE: the door is drawn exactly once. Twice is
      the fault; not at all is the other fault. */
   const doorCount = await p.evaluate(id => {
-    const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
+    const card = document.querySelector(`.redline-page [data-nego-card="${id}"]`)
+      || document.querySelector(`.redline-page [data-rl-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
     if (!card) return null;
     const all = [...card.querySelectorAll('[data-rl-cp-editor-row]')];
     return { n: all.length,
       label: all[0] ? (all[0].textContent || '').trim() : '',
-      onFace: !!all[0] && !all[0].closest('.rl-more-menu') };
+      onFace: !!all[0] && !all[0].closest('.rl-cb-wrap') };
   }, staged.id);
   ck('1b the editor door is drawn exactly once — never twice, never nowhere',
      !!doorCount && doorCount.n === 1, doorCount && `${doorCount.n} drawn`);
   ck('1c and it wears its words, not a bare mark',
      !!doorCount && doorCount.label.length > 1, doorCount && doorCount.label);
-  ck('1d it is dressed, not left as an unstyled row',
-     !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h >= 24,
+  /* RE-POINTED 2 Sep 2026: the height came off the menu ROW, which was a
+     padded line in a list; the door is a bare coloured word in a verb row now
+     (owner-asked), so what says it is dressed is its INK and that it paints at
+     all. The claim — it is not an unstyled mark — is unchanged. */
+  ck('1d it is dressed, not left as an unstyled mark',
+     !!rowDoor && rowDoor.colour !== 'rgb(0, 0, 0)' && rowDoor.h > 10,
      rowDoor && `ink ${rowDoor.colour}, ${rowDoor.h}px tall`);
 
   /* ---- 2. A REAL PRESS OPENS THE PAGE ---- */
