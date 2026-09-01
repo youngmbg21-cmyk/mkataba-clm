@@ -8303,3 +8303,22 @@ Noticed, not fixed:
   negotiate--dark) and thirteen browser files are red. Every one reproduces
   identically on this branch's parent — measured by stashing and running the
   whole sweep there, not asserted.
+
+## 1 Sep 2026 — question: can a sent redline be retracted or re-edited?
+
+Read-only. No product change. Answered from js/negotiation.js (negoRetractDraft,
+negoWithdraw, negoFileChange's revision fold) and the card's verb branch in
+js/views/negotiation.js, and every claim was reproduced through the real funnel
+in a throwaway node script rather than read off the source.
+
+Noticed, not fixed:
+- **Retract comes back after you revise an ask you have already sent.** The
+  revision fold sets `live.createdAt` to now, so `negoUnsentAsks` — which
+  measures against the turn stamp — reads the change as unsent again, the card
+  redraws Retract, and pressing it splices the change out of `c.changes`
+  entirely, writing the audit line "was never sent, so nothing was withdrawn
+  from anyone" over an ask the other side has seen and holds a copy of.
+  Reproduced end to end. The verb's own rule ("a draft that has never left the
+  building") and the refusal it shows a second earlier both say this should not
+  be reachable; what makes it reachable is that "unsent" is derived from a
+  timestamp the revision moves. Nobody has reported it.
