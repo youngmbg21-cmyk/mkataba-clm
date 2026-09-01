@@ -150,6 +150,48 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('1 the title is a second door to the same place',
       !!head.title && head.title.on, head.title && head.title.text);
 
+    /* ---- 1c. IT SAYS IT IS A DOOR (owner-asked 1 Sep 2026) ----
+       "make the MK-363 UNDERLINED BUT ALSO ADD A BACK arrow before it so people
+       know that is where to click and go back."
+
+       BOTH HALVES ARE COMPUTED FACTS and neither is visible to a node test: an
+       underline is a resolved text-decoration, and a <use> pointing at a symbol
+       that does not exist paints an EMPTY BOX in silence — no error, no
+       warning, an arrow-shaped hole in the one control that leaves this page.
+       So the arrow is measured by its own painted getBBox. */
+    const door = await page.evaluate(() => {
+      const b = document.querySelector('#view-redline #ws-back');
+      if (!b) return { none: true };
+      const id = b.querySelector('.rn-id'), arrow = b.querySelector('.rn-arrow');
+      let box = null;
+      try { box = arrow && arrow.getBBox ? arrow.getBBox() : null; } catch (_){}
+      const ir = id && id.getBoundingClientRect();
+      const ar = arrow && arrow.getBoundingClientRect();
+      const dot = b.querySelector('i');
+      const cs = id && getComputedStyle(id);
+      return { none: false, text: (id || {}).textContent,
+        line: cs && cs.textDecorationLine,
+        painted: !!(box && box.width > 0 && box.height > 0),
+        before: !!(ar && ir && ar.right <= ir.left + 1),
+        onLine: !!(ar && ir && Math.abs((ar.top + ar.height / 2) - (ir.top + ir.height / 2)) <= 2),
+        dotLine: dot ? getComputedStyle(dot).textDecorationLine : null,
+        btnLine: getComputedStyle(b).textDecorationLine };
+    });
+    check('1c the reference is UNDERLINED', !door.none && /underline/.test(door.line || ''),
+      `${(door.text || '').trim()} — ${door.line}`);
+    check('1c an ARROW is drawn before it, and its symbol really resolves',
+      !door.none && door.painted && door.before,
+      door.none ? 'no door' : `painted ${door.painted}, before ${door.before}`);
+    check('1c the arrow sits on the reference\'s own line, not on its baseline',
+      !door.none && door.onLine === true);
+    /* THE UNDERLINE IS ON THE REFERENCE ALONE. The middot is punctuation
+       between the reference and the title, and a line running under it would
+       say the separator is part of the link. */
+    check('1c and the line stops at the reference — not under the arrow or the dot',
+      !door.none && !/underline/.test(door.dotLine || 'none')
+        && !/underline/.test(door.btnLine || 'none'),
+      `dot ${door.dotLine}, button ${door.btnLine}`);
+
     /* ---- 1b. FOUR ACTS, ONE FILLED, PLAYBOOK IN THE MENU ---- */
     const acts = await page.evaluate(() => {
       const btns = [...document.querySelectorAll('#view-redline #ws-head .room-acts button')]

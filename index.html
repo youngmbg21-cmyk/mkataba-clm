@@ -1781,8 +1781,26 @@
      follows the status. Both quiet — they are facts, and the title and the
      status are what the row is for. */
   .room-name-id{ font-size:var(--t-card); color:var(--color-neutral-600);
-    font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .room-name-id i{ font-style:normal; margin-left:7px; color:var(--color-neutral-400); }
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+    /* A ROW, so the arrow sits on the reference's own line rather than on its
+       baseline — a 13px glyph aligned by the text baseline hangs low against a
+       15px cap height. */
+    display:inline-flex; align-items:center; gap:5px; }
+  .room-name-id i{ font-style:normal; margin-left:2px; color:var(--color-neutral-400); }
+  /* ---- IT SAYS IT IS A DOOR (owner-asked 1 Sep 2026) ----
+     "make the MK-363 UNDERLINED BUT ALSO ADD A BACK arrow before it so people
+     know that is where to click and go back."
+     THE UNDERLINE IS ON THE REFERENCE ALONE: the arrow is a mark and the middot
+     is punctuation between the reference and the title, so a rule on the button
+     would run a line under both and say the separator is part of the link.
+     UNDERLINE-OFFSET rather than a border, because a border would take a pixel
+     of the row's height and this head's whole design is about not taking any. */
+  .room-name-id .rn-id{ text-decoration:underline; text-underline-offset:2px;
+    text-decoration-thickness:1px; }
+  .room-name-id .rn-arrow{ flex:none; }
+  /* IT DARKENS ON HOVER RATHER THAN CHANGING COLOUR: this row carries exactly
+     one coloured thing (the status word) and a second would compete with it. */
+  .room-name-id:hover{ color:var(--color-text); }
   .room-round{ font-size:var(--t-body); color:var(--color-neutral-600); white-space:nowrap; }
   /* ---- THE TWO HEADS SAY THE NAME AT ONE SIZE (owner-reported 22 Aug 2026,
      off two screenshots side by side: "the font size in the documents page

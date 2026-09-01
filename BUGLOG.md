@@ -8224,3 +8224,21 @@ Noticed, not fixed:
   notice.
 - redline-verify's crash at line 677 (`press` on a null element) reproduces
   identically in a clean worktree at this branch's parent. Not this run's.
+
+## 1 Sep 2026 — the way back says it is a door
+
+Owner-asked, off a screenshot with MK-363 ringed: underline it and put a back
+arrow before it. It has behaved as the only way off the negotiation page since
+22 Aug and looked like a quiet grey reference, which is the fault the head's own
+source comment had already named about the TITLE and never asked of the id.
+
+One control, not two — the arrow is inside the same button, so nothing new is
+wired and #ws-back's id, title, data-back and handler are untouched. The
+underline is scoped to the reference: a rule on the button would run a line
+under the middot as well and say the separator is part of the link.
+
+Noticed, not fixed:
+- The harness pages (parity.html, redline.html) carry no sprite, so a <use>
+  there paints nothing. It costs nothing today because both stub renderWorkspace
+  out and never draw this head — checked rather than assumed — but the next
+  symbol used by a view file may not be so lucky.

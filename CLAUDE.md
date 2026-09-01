@@ -3760,7 +3760,23 @@ was asking for.
   it**: on this page it is the only way back to the agreement, so it MOVED into
   the name row as the reference itself — same id, same title, same data-back,
   same handler. The crumb's own trick of restyling the control rather than
-  replacing it, played once more. Four acts, one of them filled (the platform
+  replacing it, played once more. **AND SINCE 1 Sep 2026 IT SAYS IT IS A DOOR**
+  (owner-asked: *"make the MK-363 UNDERLINED BUT ALSO ADD A BACK arrow before it
+  so people know that is where to click and go back"*) — which is the fault the
+  paragraph two lines down had already named about the TITLE and never asked of
+  the reference: a control that reads as the page's identity and happens to be
+  pressable is one people press twice and then give up on. **ONE CONTROL, NOT
+  TWO**: the arrow is inside the same button, so there is nothing new to press,
+  nothing new to wire and no second door onto an act that already has one.
+  **THE UNDERLINE IS ON THE REFERENCE ALONE** — the arrow is a mark and the
+  middot is punctuation between the reference and the title, so a rule on the
+  button would run a line under both and say the separator is part of the link;
+  the id carries its own span (`.rn-id`) and the rule is scoped to it. The arrow
+  is the SHELL'S OWN `#i-left`, which was one of the nine symbols staged for
+  exactly this page-by-page work — measured by its painted `getBBox`, because a
+  `<use>` pointing at a missing symbol paints an arrow-shaped hole in silence.
+  **THE CONTRACT PAGE'S CRUMB IS UNTOUCHED**: it reads "Contracts / MK-363" and
+  already says it is navigation. Four acts, one of them filled (the platform
   button rule, which this head was breaking: the review door wore a fill and
   read as a second primary) — **and that last fill came off on 23 Aug 2026,
   owner-asked, so the row carries none; see FOUR OFF FOUR MORE SCREENSHOTS**. **THE PLAYBOOK PASS MOVED INTO THE MORE MENU** — it

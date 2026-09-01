@@ -5577,8 +5577,28 @@ function roomHeadHtml(c,opts={}){
                the quiet grey reference the render draws; it behaves as the
                crumb it replaced. A button, so the keyboard and a screen reader
                reach it too. */}
+        ${''/* ---- IT SAYS IT IS A DOOR (owner-asked 1 Sep 2026: "make the
+               MK-363 UNDERLINED BUT ALSO ADD A BACK arrow before it so people
+               know that is where to click and go back") ----
+               It has behaved as the way back since 22 Aug and looked like the
+               quiet grey reference the render draws, which is exactly the fault
+               the note above warns about one paragraph later: a control that
+               reads as the page's identity and happens to be pressable is one
+               people press twice and then give up on.
+
+               ONE CONTROL, NOT TWO. The arrow is INSIDE the same button, so
+               there is nothing new to press, nothing new to wire and no second
+               door onto an act that already has one — every route and every
+               test that reaches #ws-back is untouched.
+
+               THE UNDERLINE IS ON THE REFERENCE ALONE. The arrow is a mark and
+               the middot is punctuation between the reference and the title;
+               underlining either would say the separator is part of the link.
+               So the id carries its own span and the rule is scoped to it. */}
         ${backC ? `<button type="button" id="ws-back" class="room-name-id" data-back="contract"
-          title="${esc(backTitle)}">${esc(c.id)}<i aria-hidden="true">&middot;</i></button>` : ''}
+          title="${esc(backTitle)}"><svg class="rn-arrow" width="13" height="13" viewBox="0 0 16 16"
+          fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg
+          ><span class="rn-id">${esc(c.id)}</span><i aria-hidden="true">&middot;</i></button>` : ''}
         ${''/* ---- THE NAME SPLITS: TYPE ON TOP, COMPANY BENEATH (owner-asked
                24 Aug 2026, off the design's own object head) ----
                A real contract name is "Mutual Non-Disclosure and
