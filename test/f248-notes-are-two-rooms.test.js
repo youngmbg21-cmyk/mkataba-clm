@@ -121,7 +121,10 @@ describe('f248 — the two rooms never share a note', () => {
        as the relation it always meant: nothing in this file works a note count
        out for itself, wherever one is printed. */
     const src = read('js/views/negotiation.js');
-    assert.match(src, /function rlCardNotesCountHtml[\s\S]{0,400}negoNoteCounts\(/,
+    /* WINDOWED GENEROUSLY: what is pinned is that this builder asks the one
+       arithmetic and works none of its own out, and the comment above the call
+       is free to grow. */
+    assert.match(src, /function rlCardNotesCountHtml[\s\S]{0,1400}negoNoteCounts\(/,
       'the count on the row asks the one arithmetic');
     assert.match(src, /function rlCardBodyNotesHtml[\s\S]{0,900}negoNoteCounts\(/,
       'and so do the tabs inside the card the owner opens');

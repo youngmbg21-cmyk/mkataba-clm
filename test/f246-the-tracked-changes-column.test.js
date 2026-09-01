@@ -1176,3 +1176,213 @@ describe('f246 (10) — the card shows the parts this change touches', () => {
     }
   });
 });
+
+/* ============================================================
+   11 — TAGGING, AND THE TWO THINGS OFF THE SAME SCREENSHOTS
+   ============================================================
+   Owner-asked 2 Sep 2026, three things in one message:
+
+     "Remove the top highlighted comments sign because there is already a
+      comments section at the bottom highlighted area."
+     "in the internal and external, have the ability to tag parties in the
+      comments using the @ feature. Only those allowed to edit or review the
+      contract can be tagged internally and only the parties allowed to edit
+      the contract at the counterparty can be tagged in the external part."
+     "when the highlighted button says close, make it green until it is closed
+      and it says open."
+
+   THE THIRD IS A COLOUR and is measured in the browser, on the real app —
+   --accent-ink is declared in index.html's :root and the redline harness page
+   carries no token block at all, so a computed-style read there answers ''
+   whatever the rule says. See six-fixes-verify. */
+describe('f246 (11) — the count stands down once the card is open', () => {
+  test('a shut card carries it; the open one does not', async () => {
+    const p = await bench();
+    const ch = p.c.changes[0];
+    p.win.negoPostComment(p.c, ch.id, 'worth a word', { side: 'owner', author: 'Young Mbagaya' });
+    p.again();
+    const shut = p.$(`[data-nego-card="${ch.id}"] .rl-card-notes`);
+    assert.ok(shut, 'a shut row is the ONLY place this fact is carried, so it stays');
+    assert.match(shut.textContent, /1/, 'and says how many');
+    const open = p.open(ch.id);
+    assert.equal(open.querySelector('.rl-card-notes'), null,
+      'and stands down once the rooms are twelve pixels below with their own counts');
+    assert.ok(open.querySelector('[data-rl-np-room]'),
+      'which is what makes the marker a second printing rather than the only one');
+  });
+});
+
+describe('f246 (11) — who may be tagged, per room', () => {
+  const TEAM = [
+    { id: 'u_me',  name: 'Wanjiru Kamau', role: 'legal',  email: 'wanjiru@w.co.ke' },
+    { id: 'u_sal', name: 'Simon Jordan',  role: 'legal',  email: 'simon@w.co.ke' },
+    { id: 'u_v',   name: 'Viewer Vee',    role: 'viewer', email: 'vee@w.co.ke' },
+  ];
+  async function tagBench(){
+    const p = await bench();
+    p.win.getUsers = () => TEAM;
+    p.win.userById = id => TEAM.find(u => u.id === id) || null;
+    /* js/review.js is not on this stage; the app loads it, and negoTagPeople
+       asks for it BY NAME rather than keeping a list of its own. */
+    p.win.reviewCandidates = () => TEAM.filter(u => u.role !== 'viewer' && u.id !== 'u_me');
+    p.c.counterpartyName = 'Erik Lindqvist';
+    p.c.counterpartyEmail = 'erik@nordfrakt.se';
+    p.c.signerPlan = [
+      { id: 's1', party: 'counterparty', name: 'Anna Berg', email: 'anna@nordfrakt.se', order: 1 },
+      { id: 's2', party: 'owner', name: 'Wanjiru Kamau', email: 'wanjiru@w.co.ke', order: 2 },
+    ];
+    return p;
+  }
+
+  test('internal offers colleagues who may act, and nobody else', async () => {
+    const p = await tagBench();
+    /* JOINED, NOT DEEP-COMPARED: the page realm's Array prototype is not this
+        realm's — the f60 trap this file already documents. */
+    const names = p.win.negoTagPeople(p.c, 'internal').map(x => x.name);
+    assert.equal(names.join(' | '), 'Simon Jordan',
+      'a viewer can neither edit nor review, and you do not tag yourself');
+  });
+
+  test('external offers the other side, and nobody from here', async () => {
+    const p = await tagBench();
+    const names = p.win.negoTagPeople(p.c, 'external').map(x => x.name);
+    assert.equal(names.join(' | '), 'Anna Berg | Erik Lindqvist',
+      'the counterparty signer and the recorded contact');
+    /* THE WALL IS THAT THE TWO ARE DISJOINT. A colleague's name cannot reach
+       a note that travels, because the room that travels never offers one. */
+    const inside = p.win.negoTagPeople(p.c, 'internal').map(x => x.name.toLowerCase());
+    assert.ok(!names.some(n => inside.includes(n.toLowerCase())),
+      'no name is in both rooms');
+    assert.ok(!names.includes('Wanjiru Kamau'),
+      'and an owner-side signer is not one of the other side\'s people');
+  });
+
+  test('with no reviewCandidates it offers NOTHING, never a list of its own', async () => {
+    /* The safe direction, said out loud: a tag list that quietly includes
+       people who may not be tagged is worse than no tag list, and a second
+       reading of "who may act here" is how the two come to disagree. */
+    const p = await tagBench();
+    p.win.reviewCandidates = undefined;
+    assert.equal(p.win.negoTagPeople(p.c, 'internal').length, 0);
+    assert.ok(p.win.negoTagPeople(p.c, 'external').length,
+      'the external room reads the contract and is unaffected');
+  });
+});
+
+describe('f246 (11) — the picker is the sign, the writer is the wall', () => {
+  const TEAM = [
+    { id: 'u_me',  name: 'Wanjiru Kamau', role: 'legal', email: 'wanjiru@w.co.ke' },
+    { id: 'u_sal', name: 'Simon Jordan',  role: 'legal', email: 'simon@w.co.ke' },
+  ];
+  async function tagBench(){
+    const p = await bench();
+    p.win.getUsers = () => TEAM;
+    p.win.reviewCandidates = () => TEAM.filter(u => u.id !== 'u_me');
+    p.c.counterpartyName = 'Erik Lindqvist';
+    p.c.counterpartyEmail = 'erik@nordfrakt.se';
+    p.c.signerPlan = [];
+    return p;
+  }
+
+  test('a mention is resolved from the text against the room\'s own people', async () => {
+    const p = await tagBench();
+    const people = p.win.negoTagPeople(p.c, 'internal');
+    assert.equal(p.win.negoMentionsIn('ask @Simon Jordan about this', people)
+      .map(m => m.id + ':' + m.name).join(' | '), 'u_sal:Simon Jordan');
+    /* A NAME THE ROOM DOES NOT OFFER IS ORDINARY TEXT — there is no way to
+       type a mention of somebody who cannot be tagged. */
+    assert.equal(p.win.negoMentionsIn('ask @Nobody At All', people).length, 0);
+    assert.equal(p.win.negoMentionsIn('the price is @45 per unit', people).length, 0);
+  });
+
+  test('THE WALL: an external note cannot carry a colleague', async () => {
+    const p = await tagBench();
+    const ch = p.c.changes[0];
+    /* Written as the funnel writes it, with a colleague named in the text. */
+    const msg = p.win.negoPostComment(p.c, ch.id, 'over to @Simon Jordan please',
+      { side: 'owner', author: 'Wanjiru Kamau', visibility: 'shared' });
+    assert.ok(msg, 'the note itself is filed — the wording is the writer\'s');
+    assert.equal(msg.visibility, 'shared');
+    assert.ok(!msg.mentions,
+      'but nothing is tagged, because the external room offers no colleague');
+    /* And the same text in the internal room does carry it. */
+    const inside = p.win.negoPostComment(p.c, ch.id, 'over to @Simon Jordan please',
+      { side: 'owner', author: 'Wanjiru Kamau', visibility: 'internal' });
+    assert.equal(inside.mentions.map(m => m.id + ':' + m.name).join(' | '),
+      'u_sal:Simon Jordan');
+  });
+
+  test('a caller cannot smuggle one in — the record is resolved, not accepted', async () => {
+    const p = await tagBench();
+    const ch = p.c.changes[0];
+    const msg = p.win.negoPostComment(p.c, ch.id, 'nothing is named here',
+      { side: 'owner', author: 'Wanjiru Kamau', visibility: 'shared',
+        mentions: [{ id: 'u_sal', name: 'Simon Jordan' }] });
+    assert.ok(!msg.mentions,
+      'what is filed is what the note visibly says, never what a caller passed');
+  });
+
+  test('a note that names nobody carries no field at all', async () => {
+    const p = await tagBench();
+    const msg = p.win.negoPostComment(p.c, p.c.changes[0].id, 'plain words',
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    assert.ok(!('mentions' in msg),
+      'so every note already on file reads identically and nothing is migrated');
+  });
+
+  test('the picker draws the room\'s people, and nothing where there are none', async () => {
+    const p = await tagBench();
+    const inHtml = p.win.rlNpTagMenuHtml(p.c, 'internal', { side: 'owner' });
+    assert.match(inHtml, /data-rl-np-tag="Simon Jordan"/);
+    assert.ok(!/Erik Lindqvist/.test(inHtml), 'and never the other room\'s');
+    const exHtml = p.win.rlNpTagMenuHtml(p.c, 'external', { side: 'owner' });
+    assert.match(exHtml, /data-rl-np-tag="Erik Lindqvist"/);
+    assert.ok(!/Simon Jordan/.test(exHtml));
+    assert.match(inHtml, /hidden/, 'it arrives shut');
+    p.win.reviewCandidates = undefined;
+    assert.equal(p.win.rlNpTagMenuHtml(p.c, 'internal', { side: 'owner' }), '',
+      'a control whose one outcome is an empty list is furniture');
+  });
+
+  test('a tagged name is drawn from the RECORD, and escaped first', async () => {
+    const p = await tagBench();
+    const marked = p.win.rlNpMarkMentions(
+      p.win.esc ? p.win.esc('ask @Simon Jordan <b>now</b>') : 'ask @Simon Jordan &lt;b&gt;now&lt;/b&gt;',
+      { mentions: [{ id: 'u_sal', name: 'Simon Jordan' }] });
+    assert.match(marked, /<span class="rl-np-at">@Simon Jordan<\/span>/);
+    assert.ok(!/<b>/.test(marked), 'the note\'s own markup never reaches the page');
+    /* NOTHING IS DRESSED AS A MENTION BY BEING TYPED. */
+    assert.equal(p.win.rlNpMarkMentions('ask @Simon Jordan', {}), 'ask @Simon Jordan');
+    assert.equal(p.win.rlNpMarkMentions('mail me @ 9', { mentions: [] }), 'mail me @ 9');
+  });
+
+  test('OUR ROSTER NEVER REACHES THEIR SEAT — the question this feature raises', async () => {
+    /* The picker prints names into the markup of an open card, and their page
+       mounts the same renderer. THE SEAT DOES NOT DECIDE THIS AND MUST NOT: the
+       ROOM does. Their page has one room and it is the external one, which
+       offers people at their own side and never a colleague — so the wall is
+       the same wall the writer enforces, rather than a second rule about seats
+       that could be got wrong. Asserted on their seat's own rendering. */
+    const p = await tagBench();
+    const theirs = p.win.rlNotesPanelHtml(p.c, p.c.changes[0],
+      { side: 'counterparty', canComment: true, org: 'Nordfrakt' });
+    assert.ok(!/Simon Jordan/.test(theirs) && !/simon@w\.co\.ke/.test(theirs),
+      'no colleague of ours is offered, or even named, on their page');
+    assert.match(theirs, /Erik Lindqvist/, 'their own people are');
+    /* AND THE ROOM IS WHAT DID IT, not the seat: asked for the external room
+       from OUR chair, the answer is the same list. */
+    assert.equal(p.win.negoTagPeople(p.c, 'external', { side: 'owner' })
+      .map(x => x.name).join(' | '),
+      p.win.negoTagPeople(p.c, 'external', { side: 'counterparty' })
+        .map(x => x.name).join(' | '));
+  });
+
+  test('and the words are in both languages', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8');
+    for (const k of ['ng_np_tag_aria', 'ng_np_tag_none', 'ng_np_tag_hint']){
+      assert.ok(new RegExp('\\b' + k + ':').test(src), k + ' is in the dictionary');
+      assert.equal(src.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+});

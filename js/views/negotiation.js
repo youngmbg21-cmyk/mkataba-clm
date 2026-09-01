@@ -9029,6 +9029,11 @@ function rlWireClauseTools(c, host, opts){
         if (window.chatFieldSubmits
           ? chatFieldSubmits(ev) : (ev.key === 'Enter' && (ev.preventDefault(), true))) post();
       });
+      /* THE @ PICKER, ARMED AFTER the send's own keydown and answering BEFORE
+         it — it binds in the capture phase, so while a name is being chosen
+         Enter picks rather than posts, and when the menu is shut it does not
+         run at all. */
+      if (typeof rlNpTagWire === 'function') rlNpTagWire(box, field);
     }
   });
   host.querySelectorAll('[data-rl-edit]').forEach(btn => btn.addEventListener('click', ev => {
@@ -10557,6 +10562,17 @@ function rlMoreWithIcon(html){
    zero. */
 function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
   if (typeof negoNoteCounts !== 'function') return '';
+  /* ---- AND IT STANDS DOWN WHILE THE CARD IS OPEN (owner-asked 2 Sep 2026:
+     "Remove the top highlighted comments sign because there is already a
+     comments section at the bottom highlighted area") ----
+     The count exists to say a change has been discussed WITHOUT opening it.
+     Once the card is open the two rooms are twelve pixels below with their own
+     counts on their own tabs, so the marker is the same fact printed twice —
+     and the second printing is the one that reads as something to press.
+     ON A SHUT CARD IT IS THE ONLY CARRIER and stays: nothing else on a closed
+     row says a change has a conversation on it. */
+  if (typeof rlCardOpenId === 'function' && ch
+      && String(rlCardOpenId() || '') === String(ch.id)) return '';
   const n = negoNoteCounts(c, ch, opts, side);
   if (!n.total) return '';
   return `<button type="button" class="rl-card-notes" data-rl-notes="${_nea(ch.id)}"
@@ -10677,6 +10693,7 @@ function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
         <textarea class="chat-field rl-np-in" rows="2"
           placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'))}"
           aria-label="${_nea(i18t('ng_start_thread_aria', { id: ch.id }))}"></textarea>
+        ${rlNpTagMenuHtml(c, room, opts)}
         <div class="rl-np-act">
           <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
             data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
@@ -12089,6 +12106,61 @@ const RL_NP_GLOBE = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke
    says it once, at the top. What a note still carries is who wrote it, when,
    and — in the external room only — the other side's company where the note
    came FROM them, because that is the one thing the room cannot say. */
+/* ---- A TAGGED NAME IS DRAWN AS ONE, FROM THE RECORD (owner-asked 2 Sep
+   2026) ----
+   MARKED AFTER ESCAPING, never before: the input is somebody's typed note, so
+   the escape has to happen first or a note containing markup would be marked
+   into the page. That is briefMark's own rule, one screen along.
+   AND ONLY THE NAMES THE RECORD HOLDS. It reads msg.mentions rather than
+   hunting the text for anything after an @, so a note that merely mentions an
+   email address, a price of @45, or a person nobody in this room can be tagged
+   by is left exactly as it was typed. Nothing can be dressed as a mention by
+   typing it. */
+function rlNpMarkMentions(escaped, m){
+  const list = Array.isArray(m && m.mentions) ? m.mentions : [];
+  if (!list.length) return escaped;
+  let out = String(escaped);
+  for (const p of list.slice().sort((a, b) =>
+      String(b && b.name).length - String(a && a.name).length)){
+    const nm = _ne(String((p && p.name) || '').trim());
+    if (!nm) continue;
+    const needle = '@' + nm;
+    let at = out.indexOf(needle);
+    while (at >= 0){
+      out = out.slice(0, at) + `<span class="rl-np-at">${needle}</span>`
+        + out.slice(at + needle.length);
+      at = out.indexOf(needle, at + needle.length + 30);
+    }
+  }
+  return out;
+}
+/* ---- THE @ PICKER (owner-asked 2 Sep 2026) ----
+   *"have the ability to tag parties in the comments using the @ feature."*
+
+   THE LIST IS THE ROOM'S OWN POPULATION and nothing else — negoTagPeople, the
+   one reading, which the writer enforces as a wall. So the internal room can
+   only ever offer colleagues and the external room only ever people at the
+   other side, and a name cannot be tagged into a note that travels merely by
+   being typed.
+
+   IT IS RENDERED SHUT AND CARRIES ITS PEOPLE AS DATA, so the typing handler
+   filters what is already on the page rather than asking the model on every
+   keystroke — and there is nothing to keep in step, because it is the same
+   list the send resolves against.
+
+   DRAWN NOWHERE WHEN THE ROOM OFFERS NOBODY: a control whose one outcome is an
+   empty list is furniture, and on a stage without js/review.js the internal
+   room deliberately offers nobody at all. */
+function rlNpTagMenuHtml(c, room, opts = {}){
+  const people = (typeof negoTagPeople === 'function') ? negoTagPeople(c, room, opts) : [];
+  if (!people.length) return '';
+  return `<div class="rl-np-tags" data-rl-np-tags hidden role="listbox"
+    aria-label="${_nea(i18t('ng_np_tag_aria'))}">${
+    people.map(p => `<button type="button" role="option" aria-selected="false"
+      class="rl-np-tag" data-rl-np-tag="${_nea(p.name)}"
+      ><b>${_ne(p.name)}</b>${p.email ? `<span>${_ne(p.email)}</span>` : ''}</button>`).join('')
+  }<p class="rl-np-tag-none" hidden>${i18t('ng_np_tag_none')}</p></div>`;
+}
 function rlNpNoteHtml(m, room, side, org){
   const t = String(m.text || '');
   const long = t.length > 220 || (t.match(/\n/g) || []).length >= 3;
@@ -12096,7 +12168,7 @@ function rlNpNoteHtml(m, room, side, org){
   return `<div class="rl-np-note${theirs ? ' is-them' : ''}">
     <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span></div>
     ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
-    <p${long ? ' class="rl-np-clamp"' : ''}>${_ne(t)}</p>
+    <p${long ? ' class="rl-np-clamp"' : ''}>${rlNpMarkMentions(_ne(t), m)}</p>
     ${long ? `<button type="button" class="rl-np-more" data-rl-note-more
       data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
   </div>`;
@@ -12143,6 +12215,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
         <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-${_ne(ch.id)}"
           placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'))}"
           aria-label="${_nea(i18t('ng_start_thread_aria', { id: ch.id }))}"></textarea>
+        ${rlNpTagMenuHtml(c, room, opts)}
         <div class="rl-np-act">
           <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
             data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
@@ -12308,6 +12381,103 @@ function rlNotesPanelPaint(host, c, ch, opts = {}){
    writer — with the visibility the ROOM dictates rather than a switch's state.
    The external path additionally asks, every time: it is the only act on this
    panel that cannot be undone, because nothing in HaTi deletes or edits a note. */
+/* ---- TYPING @ OPENS THE PICKER, AND PICKING WRITES THE NAME ----
+   ONE FUNCTION, BOTH COMPOSERS: the card's notes and the drawer's are the same
+   markup by construction, so this is armed on whichever host it is given and
+   there is no second implementation to drift.
+
+   THE MATCH IS ANCHORED AT THE CARET and requires the @ to start a word, so an
+   email address in the middle of a sentence never opens it — that is the one
+   false positive this control would otherwise have, and it is the commonest
+   thing anybody types into a note about a counterparty. */
+const RL_AT = /(^|[\s(\[])@([^\s@]{0,40})$/;
+function rlNpTagWire(host, box){
+  const menu = host.querySelector('[data-rl-np-tags]');
+  if (!menu || !box) return;
+  const rows = () => [...menu.querySelectorAll('.rl-np-tag')];
+  const none = menu.querySelector('.rl-np-tag-none');
+  let live = -1;
+  const shut = () => { menu.hidden = true; live = -1;
+    rows().forEach(r => { r.classList.remove('on'); r.setAttribute('aria-selected', 'false'); }); };
+  const mark = () => rows().forEach((r, i) => {
+    const on = i === live && !r.hidden;
+    r.classList.toggle('on', on); r.setAttribute('aria-selected', String(on));
+    if (on && r.scrollIntoView) r.scrollIntoView({ block: 'nearest' });
+  });
+  const shown = () => rows().filter(r => !r.hidden);
+  const open = q => {
+    const needle = String(q || '').toLowerCase();
+    let any = 0;
+    for (const r of rows()){
+      const hit = !needle
+        || r.textContent.toLowerCase().includes(needle);
+      r.hidden = !hit;
+      if (hit) any++;
+    }
+    if (none) none.hidden = !!any;
+    menu.hidden = false;
+    live = any ? rows().findIndex(r => !r.hidden) : -1;
+    mark();
+  };
+  /* WHAT THE READER IS TYPING RIGHT NOW, read off the caret rather than off
+     the whole value: a note can name two people, and the one being written is
+     the one the picker is about. */
+  const query = () => {
+    const at = box.selectionStart == null ? box.value.length : box.selectionStart;
+    const m = RL_AT.exec(String(box.value).slice(0, at));
+    return m ? m[2] : null;
+  };
+  const put = name => {
+    const at = box.selectionStart == null ? box.value.length : box.selectionStart;
+    const head = String(box.value).slice(0, at);
+    const m = RL_AT.exec(head);
+    if (!m) return;
+    const start = head.length - m[0].length + m[1].length;
+    box.value = head.slice(0, start) + '@' + name + ' ' + String(box.value).slice(at);
+    const caret = start + name.length + 2;
+    if (box.setSelectionRange) box.setSelectionRange(caret, caret);
+    shut();
+    if (box.focus) box.focus();
+  };
+  box.addEventListener('input', () => {
+    const q = query();
+    if (q == null) shut(); else open(q);
+  });
+  box.addEventListener('blur', () => setTimeout(shut, 160));
+  /* IN THE CAPTURE PHASE, AND ONLY WHILE THE MENU IS UP. The composer's own
+     keydown sends the note on Enter, and it is armed on this same element —
+     so while a name is being chosen, Enter has to mean "pick this one" and
+     must not also post. Capture is what lets this answer first; when the menu
+     is shut every key falls straight through and the send is untouched. */
+  box.addEventListener('keydown', ev => {
+    if (menu.hidden) return;
+    const list = shown();
+    if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); shut(); return; }
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
+      ev.preventDefault(); ev.stopPropagation();
+      if (!list.length) return;
+      const all = rows();
+      const cur = list.indexOf(all[live]) ;
+      const nxt = ev.key === 'ArrowDown'
+        ? (cur + 1) % list.length : (cur - 1 + list.length) % list.length;
+      live = all.indexOf(list[nxt < 0 ? 0 : nxt]);
+      mark();
+      return;
+    }
+    if (ev.key === 'Enter' || ev.key === 'Tab'){
+      const r = rows()[live];
+      if (r && !r.hidden){
+        ev.preventDefault(); ev.stopPropagation();
+        put(r.getAttribute('data-rl-np-tag'));
+      }
+    }
+  }, true);
+  menu.querySelectorAll('.rl-np-tag').forEach(r => r.addEventListener('mousedown', ev => {
+    /* mousedown, not click: the blur above would shut the menu first. */
+    ev.preventDefault();
+    put(r.getAttribute('data-rl-np-tag'));
+  }));
+}
 async function rlNotesSend(host, c, ch, opts, room){
   const box = host.querySelector('.rl-np-in');
   const text = String((box && box.value) || '').trim();
@@ -12363,6 +12533,8 @@ function rlWireNotesPanel(host, c, ch, opts = {}){
     if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && (e.preventDefault(), true)))
       rlNotesSend(host, c, ch, opts, send && send.getAttribute('data-room'));
   });
+  /* THE SAME PICKER THE CARD ARMS — one function, both composers. */
+  if (box && typeof rlNpTagWire === 'function') rlNpTagWire(host, box);
   /* THE FOLD IS NOT WIRED HERE. One delegated listener on document has owned
      [data-rl-note-more] since the card carried notes, and it owns this one too —
      the markup is the same three attributes. A copy here fired BESIDE it and
@@ -15138,6 +15310,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
+  rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions,
   rlCardNotesCountHtml,
   rlNpRoom, rlNpSetRoom,
   negoEnsureStyle, negoDocHtml, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,

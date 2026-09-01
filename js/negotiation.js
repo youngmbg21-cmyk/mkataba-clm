@@ -2622,6 +2622,87 @@ function negoPassageIsWhole(clauseText, passage){
    objection may be about text that no longer exists. Stamping lets the thread
    say so ("written against an earlier revision") instead of silently
    presenting an old argument as if it were about today's words. */
+/* ---------- WHO MAY BE TAGGED, PER ROOM (owner-asked 2 Sep 2026) ----------
+
+   *"have the ability to tag parties in the comments using the @ feature. Only
+   those allowed to edit or review the contract can be tagged internally and
+   only the parties allowed to edit the contract at the counterparty can be
+   tagged in the external part."*
+
+   THE TWO POPULATIONS ARE DISJOINT BY CONSTRUCTION, and that is the whole
+   safety argument rather than a filter anybody has to remember: the internal
+   room offers COLLEAGUES and the external room offers people at the OTHER
+   side, so a colleague's name cannot reach a note that travels. The picker is
+   the sign; negoPostComment below is the wall, and it asks this same function.
+
+   IT IS A READING AND ADDS NO STORE. Both halves are worked out from records
+   the contract already carries, so there is no roster to maintain and nothing
+   to migrate.
+
+   INTERNAL — reviewCandidates, which is ALREADY this product's answer to
+   "which colleagues may act on this contract": non-viewers, inside the
+   contract's own folder scope, and not yourself. A viewer can neither edit nor
+   review, and somebody who cannot see the stream cannot be sent to it. WHERE
+   THAT FUNCTION IS NOT LOADED THIS ANSWERS NOTHING rather than falling back to
+   a list of its own — a tag list that quietly includes people who may not be
+   tagged is worse than no tag list, and a second reading of "who may act here"
+   is how the two come to disagree.
+
+   EXTERNAL — the people at the other side THIS RECORD KNOWS BY NAME: the
+   counterparty rows on the signing route, and the contact recorded on the
+   contract. We cannot know more than that, and inventing more would be the
+   product asserting something about their organisation that nobody here has
+   been told. */
+function negoTagPeople(c, room, opts = {}){
+  if (!c) return [];
+  const ext = room === 'external';
+  const seen = new Set();
+  const out = [];
+  const push = (id, name, email) => {
+    const nm = String(name || '').trim();
+    if (!nm) return;
+    const key = nm.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ id: id || null, name: nm, email: String(email || '').trim() });
+  };
+  if (!ext){
+    /* THE ONE READING, ASKED THROUGH window BECAUSE IT LIVES IN js/review.js —
+       and answering NOTHING where it is absent, which is the safe direction. */
+    const fn = (typeof window !== 'undefined') && window.reviewCandidates;
+    if (typeof fn !== 'function') return [];
+    let list = [];
+    try { list = fn(c) || []; } catch (e){ return []; }
+    for (const u of list) push(u && u.id, u && u.name, u && u.email);
+    return out;
+  }
+  const plan = (typeof window !== 'undefined' && typeof window.signerPlan === 'function')
+    ? (window.signerPlan(c) || []) : (c.signerPlan || []);
+  for (const row of plan)
+    if (row && row.party === 'counterparty') push(row.id, row.name, row.email);
+  push(null, c.counterpartyName, c.counterpartyEmail);
+  return out;
+}
+/* WHICH OF THOSE PEOPLE A PIECE OF TEXT ACTUALLY NAMES. Matched against the
+   room's own population rather than against a pattern, so a bare "@someone"
+   nobody here can tag is ordinary text and stays ordinary text — there is no
+   way to type a mention of a person the room does not offer. Longest name
+   first, or "@Amina" would claim the mention meant for "@Amina Wanjiru". */
+function negoMentionsIn(text, people){
+  const t = String(text || '');
+  const out = [];
+  const seen = new Set();
+  for (const p of (people || []).slice().sort((a, b) =>
+      String(b.name).length - String(a.name).length)){
+    const nm = String(p.name || '').trim();
+    if (!nm || seen.has(nm.toLowerCase())) continue;
+    const at = t.toLowerCase().indexOf('@' + nm.toLowerCase());
+    if (at < 0) continue;
+    seen.add(nm.toLowerCase());
+    out.push({ id: p.id || null, name: nm });
+  }
+  return out;
+}
 function negoPostComment(c, id, text, opts = {}){
   const ch = negoChangeById(c, id);
   if (!ch) return null;
@@ -2655,9 +2736,25 @@ function negoPostComment(c, id, text, opts = {}){
   const byId = (me && me.id
     && String(who).trim().toLowerCase() === String(me.name || '').trim().toLowerCase())
     ? me.id : null;
+  /* ---- WHO WAS TAGGED, AND THE ROOM DECIDES WHO MAY BE ----
+     THE WALL, not the sign. The picker only ever offers the room's own people;
+     this is what makes that true of the RECORD as well, so a mention that
+     reached here any other way — a caller passing its own list, an older path,
+     a hand-built object — is dropped rather than stored. Resolved from the
+     TEXT against negoTagPeople, so what is filed is exactly what the note
+     visibly says, and a name nobody in this room can be tagged by stays
+     ordinary text.
+     ABSENT WHERE NOBODY WAS TAGGED: every note already on file carries no
+     `mentions` key, and none is written for a note that names nobody, so there
+     is nothing to migrate and no reading anywhere answers differently. */
+  const people = (typeof negoTagPeople === 'function')
+    ? negoTagPeople(c, visibility === 'shared' ? 'external' : 'internal', opts) : [];
+  const mentions = (typeof negoMentionsIn === 'function')
+    ? negoMentionsIn(body, people) : [];
   const msg = { who, byId, side, visibility,
     at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: ch.hash || null };
+  if (mentions.length) msg.mentions = mentions;
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
     `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on #${ch.id} by ${who}`
@@ -4077,7 +4174,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
-  negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
+  negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

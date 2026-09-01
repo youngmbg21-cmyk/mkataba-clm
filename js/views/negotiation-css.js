@@ -2749,6 +2749,22 @@ function redlineLayoutCss(){
   .redline-page .rl-open-cv{width:11px;height:11px;flex:none;
     transition:transform var(--dur-2) var(--ease)}
   .redline-page .rl-card-open[aria-expanded="true"] .rl-open-cv{transform:rotate(180deg)}
+  ${''/* ---- AN OPEN CARD'S CONTROL IS GREEN (owner-asked 2 Sep 2026: "when
+         the highlighted button says close, make it green until it is closed
+         and it says open") ----
+         One card is open at a time, so this is the column saying WHICH — and
+         it is the workspace ACCENT rather than a typed green, so it follows a
+         navy workspace and the dark theme with no second rule.
+         --accent-ink IS THE ONE ACCENT INK WITH A NIGHT ANSWER (2.35:1 against
+         9.59:1 — the fault this file records against the raw ramp), which is
+         why the ink and the edge both read it rather than accent-700.
+         NOT FILLED: it sits inside a card whose every other verb is a bare
+         coloured word, and a solid button there would be the loudest object on
+         the column — the 26 Aug flat-row reasoning, and the reason the two
+         decision verbs stopped being pills. */}
+  .redline-page .rl-card-open[aria-expanded="true"]{color:var(--accent-ink);
+    border-color:var(--accent-ink);
+    background:color-mix(in srgb, var(--accent-solid) 8%, transparent)}
   @media (prefers-reduced-motion:reduce){
     .redline-page .rl-open-cv{transition:none}
   }
@@ -2769,6 +2785,36 @@ function redlineLayoutCss(){
          beside it. */}
   .redline-page .rl-cb-omit{margin:5px 0 0;font-size:var(--t-label);
     color:var(--color-neutral-600)}
+  ${''/* ---- THE @ PICKER (owner-asked 2 Sep 2026) ----
+         It hangs OVER the composer rather than pushing it down: a list that
+         reflows the box while somebody is typing into it moves the thing under
+         their hand. The foot is the positioned ancestor, so it follows the
+         composer wherever the composer is drawn — the card and the drawer are
+         the same markup and this dresses both.
+         SCROLLS INSIDE ITSELF past a handful of people, because a workspace
+         has as many colleagues as it has, and a list that grows without bound
+         is one that runs off the end of a card. */}
+  .redline-page .rl-np-foot{position:relative}
+  .redline-page .rl-np-tags{position:absolute;left:0;right:0;bottom:100%;
+    margin-bottom:4px;z-index:3;max-height:184px;overflow:auto;
+    background:var(--surface-3);border:1px solid var(--color-divider);
+    border-radius:var(--radius);box-shadow:var(--sh2, 0 4px 14px rgba(15,23,42,.14));
+    padding:4px}
+  .redline-page .rl-np-tag{display:flex;gap:8px;align-items:baseline;width:100%;
+    text-align:left;border:0;background:none;padding:6px 8px;cursor:pointer;
+    font-size:var(--t-meta);color:var(--color-text)}
+  .redline-page .rl-np-tag b{font-weight:var(--w-title)}
+  .redline-page .rl-np-tag span{font-size:var(--t-label);color:var(--color-neutral-600);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ${''/* THE LIVE ROW IS THE KEYBOARD'S, so hover and arrow keys say the same
+         thing rather than two different ones. */}
+  .redline-page .rl-np-tag:hover,
+  .redline-page .rl-np-tag.on{background:color-mix(in srgb, var(--accent-solid) 10%, transparent)}
+  .redline-page .rl-np-tag-none{margin:0;padding:6px 8px;font-size:var(--t-label);
+    color:var(--color-neutral-600)}
+  ${''/* A TAGGED NAME IN A FILED NOTE. The accent ink — the one with a night
+         answer — and no fill: it is a name that was said, not a control. */}
+  .redline-page .rl-np-at{color:var(--accent-ink);font-weight:var(--w-title)}
   .redline-page .rl-cb-acts{margin-top:var(--s-3);padding-top:10px;
     border-top:1px solid var(--color-divider)}
   .redline-page .rl-cb-notes{margin-top:var(--s-3);padding-top:10px;

@@ -8464,3 +8464,32 @@ Worth recording:
   the clause editor really hands back. Cost an hour; named in redline-verify 21.
 - The omission line says PARTS, not lines: a paragraph wraps to several visual
   lines and "3 more lines" reads as three of those.
+
+## 2 Sep 2026 — tagging in a note, and two things off the same screenshots
+
+Owner-asked, three things: the comments marker off the OPEN card (it stays on a
+shut one, where it is the only carrier); the open card's control green, in the
+workspace accent through --accent-ink; and @-tagging in both note rooms, with
+the internal room offering colleagues who may edit or review and the external
+room offering only people at the other side. Full write-up in CLAUDE.md under
+"TAGGING SOMEBODY IN A NOTE".
+
+Worth recording:
+
+- A COLOUR CANNOT BE MEASURED ON THE REDLINE HARNESS. That page carries no
+  :root token block, so --accent-ink resolves to nothing and a computed read
+  answers '' whatever the rule says — which looks exactly like a rule that lost
+  a cascade fight. Cost twenty minutes. The claim lives in six-fixes-verify,
+  which drives the real app.
+- THE @ PICKER PUT THE ROSTER INTO EVERY OPEN CARD, and f161 caught it: two of
+  its sweeps for a reviewer's name went red. The roster is not the secret (every
+  member receives it at sign-in); the CONNECTION is. f161's sweep stays blunt
+  and removes that one control first, with the reasoning written in. The
+  question the feature really raises — does our roster reach their seat — is
+  pinned in f246 and it does not.
+- Cross-realm deepEqual on page arrays fails; join and compare strings. The f60
+  trap, met again.
+
+Said out loud, not built: tagging notifies nobody. The ask was the ability to
+tag and the rule about who may be tagged. Sending anything is the owner's call
+and is one reading (msg.mentions) away.

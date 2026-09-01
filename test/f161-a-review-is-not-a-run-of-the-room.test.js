@@ -109,6 +109,24 @@ function seat(u, c){
   return w;
 }
 
+/* ---- SWEPT WITHOUT THE @ PICKER, AND HERE IS WHY (2 Sep 2026) ----
+   The composer inside an open card now offers a list of colleagues who can be
+   tagged (owner-asked), and that list is the WORKSPACE ROSTER — which every
+   signed-in member already receives at sign-in, because the reviewer picker,
+   the desk contributor picker and the approval rules all have to name
+   colleagues. A name in it says nothing about this contract.
+
+   WHAT THIS FILE WALLS OFF IS THE CONNECTION, not the name: an outsider must
+   not learn that Simon is the one holding this change. So the sweep stays
+   BLUNT — the whole card, every strip, every word — with the one control whose
+   content is the public roster taken out of it first. Loosening the match
+   instead would have been the move that hides a real leak. */
+function withoutTagList(win, html){
+  const box = win.document.createElement('div');
+  box.innerHTML = String(html || '');
+  box.querySelectorAll('[data-rl-np-tags]').forEach(n => n.remove());
+  return box.innerHTML;
+}
 /* ============================================================
    1 — WHO SEES WHICH REVIEW
    ============================================================ */
@@ -199,7 +217,9 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const { c, six } = await twoOut(w);
     const sales = seat(SALES, c);
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
-    const asOther = openedCards(seat(OTHER, c).win, c, { side: 'owner' });
+    const other = seat(OTHER, c);
+    const asOther = withoutTagList(other.win,
+      openedCards(other.win, c, { side: 'owner' }));
     /* CLAIM UPDATED, 13 Aug 2026: the anonymous form was "Held by review" and
        is now just "Held". RE-POINTED 25 Aug 2026 for a dot before the word, and
        AGAIN 26 Aug 2026, when the status slot came off our seat's row entirely
@@ -640,7 +660,9 @@ describe('f161 · a held change says it once, and says what to do', () => {
   test('and the tag names who, only where the reader may know', async () => {
     const w = world();
     const { c, six } = await held(w);
-    const asOther = card(cardOpened(seat(OTHER, c).win, c, six.id, { side: 'owner' }), six.id);
+    const oth = seat(OTHER, c);
+    const asOther = card(withoutTagList(oth.win,
+      cardOpened(oth.win, c, six.id, { side: 'owner' })), six.id);
     /* CLAIM UPDATED, 13 Aug 2026, and RE-POINTED 26 Aug 2026 at the heading
        that says the status now. What is under test — that no name reaches an
        outsider — is unchanged, and the whole card is swept for it. */

@@ -250,6 +250,172 @@ for (let i = 1; i <= 12; i++)
     }
 
     /* ============================================================
+       1g · THE OPEN CARD'S CONTROL IS GREEN, AND THE COUNT STANDS DOWN
+       ============================================================
+       Owner-asked 2 Sep 2026: "when the highlighted button says close, make it
+       green until it is closed and it says open", and "remove the top
+       highlighted comments sign because there is already a comments section at
+       the bottom".
+
+       MEASURED HERE AND NOT ON THE REDLINE HARNESS, and that is the point of
+       putting it in this file: the ink is --accent-ink, declared in
+       index.html's :root, and the harness page carries no token block at all —
+       a computed-style read there answers '' whatever the rule says, so the
+       claim would pass or fail for a reason that has nothing to do with the
+       product. This file drives the REAL app.
+
+       ASKED AS A RELATION: the open control's ink is the accent the workspace
+       resolves, and it is not the ink a shut one wears. A typed green would
+       break the day somebody opens a navy workspace. */
+    const openState = await page.evaluate(async () => {
+      const shutBtn = () => document.querySelector(
+        '#rl-changes .rl-card-d [data-rl-card-open][aria-expanded="false"]');
+      const openBtn = () => document.querySelector(
+        '#rl-changes .rl-card-d [data-rl-card-open][aria-expanded="true"]');
+      if (!openBtn() && shutBtn()){
+        shutBtn().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 450));
+      }
+      const o = openBtn(), sh = shutBtn();
+      if (!o) return { error: 'no open card to measure' };
+      const os = getComputedStyle(o), ss = sh ? getComputedStyle(sh) : null;
+      const accent = getComputedStyle(document.documentElement)
+        .getPropertyValue('--accent-ink').trim();
+      /* --accent-ink is a hex in :root and a computed colour here, so they are
+         compared through a paint rather than as strings. */
+      const probe = document.createElement('span');
+      probe.style.color = accent || 'transparent';
+      document.body.appendChild(probe);
+      const accentRgb = getComputedStyle(probe).color;
+      probe.remove();
+      const card = o.closest('[data-nego-card]');
+      return { label: o.textContent.trim(), shutLabel: sh ? sh.textContent.trim() : null,
+        ink: os.color, edge: os.borderTopColor, fill: os.backgroundColor,
+        shutInk: ss ? ss.color : null, accent: accentRgb,
+        countOnOpen: !!card.querySelector('.rl-card-notes'),
+        roomsBelow: !!card.querySelector('[data-rl-np-room]'),
+        countOnShut: sh ? !!sh.closest('[data-nego-card]').querySelector('.rl-card-notes') : null };
+    });
+    if (openState.error){
+      check('1g there is an open card to measure', false, openState.error);
+    } else {
+      check('1g the open card\'s control says Close and the shut one says Open',
+        /close/i.test(openState.label)
+          && (!openState.shutLabel || /open/i.test(openState.shutLabel)),
+        `${openState.label} / ${openState.shutLabel}`);
+      check('1g and it is GREEN — the workspace accent, not a typed colour',
+        openState.ink === openState.accent && openState.edge === openState.accent,
+        `ink ${openState.ink}, edge ${openState.edge}, --accent-ink ${openState.accent}`);
+      check('1g which a shut one is not',
+        !openState.shutLabel || openState.shutInk !== openState.ink,
+        `open ${openState.ink} vs shut ${openState.shutInk}`);
+      /* NOT FILLED: every other verb on this card is a bare coloured word, and
+         a solid button here would be the loudest object on the column. */
+      check('1g and it is not filled — the card\'s own rule',
+        !/^rgb\(\d+, \d+, \d+\)$/.test(openState.fill)
+          || openState.fill === 'rgb(255, 255, 255)',
+        openState.fill);
+      check('1g the comments marker is gone from the OPEN card',
+        openState.countOnOpen === false && openState.roomsBelow === true,
+        `marker ${openState.countOnOpen}, rooms below ${openState.roomsBelow}`);
+    }
+
+    /* ============================================================
+       1h · TAGGING A PERSON IN A NOTE (owner-asked 2 Sep 2026)
+       ============================================================
+       "have the ability to tag parties in the comments using the @ feature.
+       Only those allowed to edit or review the contract can be tagged
+       internally and only the parties allowed to edit the contract at the
+       counterparty can be tagged in the external part."
+
+       DRIVEN, not read: what is under test is a control that appears while
+       somebody types, filters as they type, writes a name into the box and
+       leaves an exact record behind. Every one of those is behaviour, and the
+       markup looks identical whether or not the wiring reached it. */
+    const tag = await page.evaluate(async () => {
+      const card = document.querySelector('#rl-changes .rl-card-d:has(.rl-cb-wrap)')
+        || document.querySelector('#rl-changes .rl-card-d');
+      if (!card) return { error: 'no card' };
+      const id = card.getAttribute('data-nego-card');
+      const box = card.querySelector('.rl-np-in');
+      const menu = card.querySelector('[data-rl-np-tags]');
+      if (!box) return { error: 'no composer — this seat may not write' };
+      if (!menu) return { error: 'no picker: nobody in this room can be tagged' };
+      const offered = () => [...menu.querySelectorAll('.rl-np-tag')]
+        .filter(r => !r.hidden).map(r => r.getAttribute('data-rl-np-tag'));
+      const all = offered();
+      /* SHUT UNTIL AN @ IS TYPED. */
+      const shutAtRest = menu.hidden;
+      box.focus();
+      box.value = 'this is just a note';
+      box.setSelectionRange(box.value.length, box.value.length);
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 120));
+      const shutOnPlainText = menu.hidden;
+      /* AND AN EMAIL ADDRESS MID-WORD IS NOT AN @ — the commonest thing
+         anybody types into a note about a counterparty. */
+      box.value = 'write to erik@nordfrakt';
+      box.setSelectionRange(box.value.length, box.value.length);
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 120));
+      const shutOnEmail = menu.hidden;
+      /* NOW THE @, AND THE QUERY IS ONE WORD ON PURPOSE. A space ends it, so
+         the menu can never stay open across a whole sentence — and it costs
+         nothing, because the rows are matched on the WHOLE row, name and
+         address alike, so a surname or a domain finds the person just as a
+         first name does. */
+      const first = all[0] || '';
+      const word = String(first).split(/\s+/)[0] || first;
+      box.value = 'over to @' + word.slice(0, 3);
+      box.setSelectionRange(box.value.length, box.value.length);
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 140));
+      const opened = !menu.hidden;
+      const narrowed = offered();
+      const row = [...menu.querySelectorAll('.rl-np-tag')].find(r => !r.hidden);
+      const painted = row ? row.getBoundingClientRect() : null;
+      if (row) row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 140));
+      const typed = box.value;
+      const shutAfter = menu.hidden;
+      /* SEND IT, and read the record back. */
+      card.querySelector('[data-rl-np-send]').dispatchEvent(
+        new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 700));
+      const c = getContract(state.activeId);
+      const ch = (c.changes || []).find(x => String(x.id) === String(id));
+      const last = ((ch && ch.thread) || []).slice(-1)[0];
+      const live = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+      return { all, shutAtRest, shutOnPlainText, shutOnEmail, opened, narrowed, typed,
+        shutAfter, first, word,
+        rowPainted: !!(painted && painted.width > 20 && painted.height > 10),
+        stored: last ? { text: last.text,
+          mentions: (last.mentions || []).map(m => m.name).join(' | ') } : null,
+        chips: live ? live.querySelectorAll('.rl-np-at').length : -1 };
+    });
+    if (tag.error){
+      check('1h the picker is on the composer', false, tag.error);
+    } else {
+      check('1h it arrives shut, and plain typing leaves it shut',
+        tag.shutAtRest && tag.shutOnPlainText, `rest ${tag.shutAtRest}, plain ${tag.shutOnPlainText}`);
+      check('1h an email address mid-word is not an @ — the one false positive that matters',
+        tag.shutOnEmail, String(tag.shutOnEmail));
+      check('1h typing @ opens it, as visible pixels', tag.opened && tag.rowPainted,
+        `open ${tag.opened}, row painted ${tag.rowPainted}`);
+      check('1h and it narrows to what was typed',
+        tag.narrowed.length >= 1 && tag.narrowed.length <= tag.all.length
+          && tag.narrowed.every(n => n.toLowerCase().includes(tag.word.slice(0, 3).toLowerCase())),
+        `${tag.all.length} → ${tag.narrowed.join(' | ')}`);
+      check('1h picking writes the whole name into the box and shuts it',
+        tag.typed.includes('@' + tag.first) && tag.shutAfter,
+        `${JSON.stringify(tag.typed)} · shut ${tag.shutAfter}`);
+      check('1h and the filed note carries the tag as a record, not a guess',
+        tag.stored && tag.stored.mentions === tag.first,
+        tag.stored ? `${JSON.stringify(tag.stored.text)} → ${tag.stored.mentions}` : 'nothing filed');
+      check('1h drawn as a tagged name in the thread', tag.chips >= 1, `${tag.chips} chips`);
+    }
+
+    /* ============================================================
        2 · THE NARROWED BAND IS GONE, AND THE CONTROL SAYS IT
        ============================================================ */
     const filt = await page.evaluate(() => {

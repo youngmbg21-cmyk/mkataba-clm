@@ -8614,6 +8614,108 @@ one paragraph of four and TWO BULLETS OF SIX, with the paper and the clause
 panel proved to still draw every part; **it reports the fault verbatim against
 the code of an hour before**).
 
+## TAGGING SOMEBODY IN A NOTE, AND TWO THINGS OFF THE SAME SCREENSHOTS (owner-asked 2 Sep 2026)
+
+Three things in one message, all about the open card.
+
+**THE COMMENTS MARKER STANDS DOWN ONCE THE CARD IS OPEN.** *"Remove the top
+highlighted comments sign because there is already a comments section at the
+bottom highlighted area."* The count exists to say a change has been discussed
+WITHOUT opening it; once the card is open the two rooms are twelve pixels below
+with their own counts on their own tabs, so the marker is the same fact printed
+twice and the second printing is the one that reads as something to press.
+**ON A SHUT ROW IT IS THE ONLY CARRIER AND STAYS** — nothing else on a closed
+row says a change has a conversation on it, and removing it there would take a
+fact away rather than a duplicate.
+
+**AN OPEN CARD'S CONTROL IS GREEN.** *"when the highlighted button says close,
+make it green until it is closed and it says open."* One card is open at a
+time, so this is the column saying WHICH. It is the workspace ACCENT rather
+than a typed green, so a navy workspace and the dark theme follow with no
+second rule, and it reads `--accent-ink` — **the one accent token with a night
+answer** (2.35:1 against 9.59:1, the fault this file records against the raw
+ramp). **NOT FILLED**: every other verb inside that card is a bare coloured
+word and a solid button there would be the loudest object on the column.
+
+**AND THE COLOUR CANNOT BE MEASURED ON THE REDLINE HARNESS.** That page carries
+no `:root` token block at all, so `--accent-ink` resolves to nothing and a
+computed-style read answers `''` whatever the rule says — which looks exactly
+like a rule that lost a cascade fight. The claim lives in six-fixes-verify,
+which drives the REAL app. **Rule out the stage before believing a colour
+finding.**
+
+**TAGGING — THE @ FEATURE.** *"have the ability to tag parties in the comments
+using the @ feature. Only those allowed to edit or review the contract can be
+tagged internally and only the parties allowed to edit the contract at the
+counterparty can be tagged in the external part."*
+
+- **THE TWO POPULATIONS ARE DISJOINT BY CONSTRUCTION, and that is the whole
+  safety argument** rather than a filter anybody has to remember: the internal
+  room offers COLLEAGUES and the external room offers people at the OTHER side,
+  so a colleague's name cannot reach a note that travels. **`negoTagPeople` is
+  the one reading**, in the model beside the writer that enforces it.
+- **THE PICKER IS THE SIGN; `negoPostComment` IS THE WALL.** The mentions filed
+  on a note are RESOLVED FROM THE TEXT against that room's own people, never
+  accepted from the caller — so a mention that reached the writer any other way
+  is dropped, and what is filed is exactly what the note visibly says. A name
+  the room does not offer stays ordinary text.
+- **INTERNAL IS `reviewCandidates`**, which is ALREADY this product's answer to
+  "which colleagues may act on this contract": non-viewers, inside the folder
+  scope, not yourself. **Where that function is not loaded it answers NOTHING
+  rather than a list of its own** — a tag list that quietly includes people who
+  may not be tagged is worse than no tag list, and a second reading of "who may
+  act here" is how the two come to disagree.
+- **EXTERNAL is the people at the other side THIS RECORD KNOWS BY NAME**: the
+  counterparty rows on the signing route, and the contact recorded on the
+  contract. We cannot know more than that, and inventing more would be the
+  product asserting something about their organisation nobody here was told.
+- **NO STORE, NO ROUTE, ONE OPTIONAL FIELD.** `mentions` is absent on every
+  note already on file and is not written for a note that names nobody, so
+  there is nothing to migrate.
+- **THE QUERY IS ONE WORD, ON PURPOSE.** A space ends it, so the menu can never
+  stay open across a whole sentence — and it costs nothing, because the rows
+  are matched on the WHOLE row, name and address alike, so a surname or a
+  domain finds the person just as a first name does. **An email address
+  mid-word never opens it**, which is the one false positive this control would
+  otherwise have and the commonest thing anybody types into a note about a
+  counterparty.
+- **THE KEYBOARD BINDS IN THE CAPTURE PHASE, and only while the menu is up.**
+  The composer's own keydown sends the note on Enter and is armed on the same
+  element, so while a name is being chosen Enter has to mean "pick this one"
+  and must not also post. When the menu is shut every key falls straight
+  through and the send is untouched.
+- **A TAGGED NAME IS DRAWN FROM THE RECORD AND MARKED AFTER ESCAPING** —
+  briefMark's own rule. It reads `msg.mentions` rather than hunting the text
+  for anything after an @, so a price of @45 or a person nobody can be tagged
+  by is left as typed. **Nothing can be dressed as a mention by typing it.**
+- **IT NOTIFIES NOBODY, and that is said out loud rather than assumed.** The
+  ask was for the ability to tag and for the rule about who may be tagged; what
+  is built records and displays the mention. Sending anything — a colleague's
+  inbox, an alert row, the counterparty — is the owner's call and is one reading
+  (`msg.mentions`) away.
+
+**AND THE FEATURE RAISED A REAL QUESTION THAT A TEST ASKED FIRST.** f161 sweeps
+a held change's card for the reviewer's NAME, and the picker prints the roster
+into every open card's composer — so two of its claims went red. **The roster is
+not the secret**: every signed-in member already receives it at sign-in, because
+the reviewer picker, the desk contributor picker and the approval rules all have
+to name colleagues. What this product walls off is the CONNECTION — that Simon
+is the one holding this change. So f161's sweep stays BLUNT and takes the one
+control whose content is the public roster out of the html first, with the
+reasoning written where it stands. **Loosening the match instead would have been
+the move that hides a real leak.** And the question the feature really raises —
+does our roster reach THEIR seat — is pinned in f246: their page has one room,
+the external one, so the wall is the same wall the writer enforces rather than a
+second rule about seats.
+
+Tests: f246 (11) (16 — the two populations, the wall both ways, a caller's own
+list refused, the picker's markup, the mention drawn from the record, our roster
+proved absent from their page, and both languages), f161's two sweeps NARROWED
+IN PLACE with their reason, f248's source window widened, six-fixes-verify 1g
+and 1h (12, browser, on the REAL app — the green measured against the resolved
+accent, and the whole @ journey driven: shut at rest, shut on an email address,
+open on an @, narrowed, picked, filed, and the tag read back off the record).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.
