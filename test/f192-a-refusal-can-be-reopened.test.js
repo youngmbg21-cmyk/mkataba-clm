@@ -26,6 +26,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld, supplyContract } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -59,7 +67,7 @@ async function bench(verdict){
 /* The column, rendered from a named seat. */
 function column(p, opts = {}){
   const box = p.doc.createElement('div');
-  box.innerHTML = p.win.redlineChangeCardsHtml(p.c, { side: 'owner', hiddenIds: [], ...opts });
+  box.innerHTML = openedCards(p.win, p.c, { side: 'owner', hiddenIds: [], ...opts });
   return box;
 }
 const cardOf = box => box.querySelector('.rl-card');
@@ -70,7 +78,12 @@ describe('f192 (1) — the verb is on the refused card, in Edit\'s clothes', () 
     const p = await bench('rejected');
     const card = cardOf(column(p));
     assert.ok(card, 'a refused ask keeps its card — that is what contestedAny is for');
-    assert.deepEqual(verbsOf(card), ['Reopen', 'Edit'],
+    /* RE-POINTED 2 Sep 2026: with the ⋯ retired the verb has room for its full
+       name and says which of the two editors it opens — "✦ Edit with Copilot",
+       in Copilot's own violet, which is what the ⋯ called it. The CLAIM is
+       unchanged and is the reported fault: this list with Reopen missing. */
+    assert.deepEqual(verbsOf(card),
+      ['Reopen', '\u2726 ' + p.win.i18t('ng_cp_copilot')],
       'the fault as reported was this list with Reopen missing from it');
   });
 
@@ -92,7 +105,19 @@ describe('f192 (1) — the verb is on the refused card, in Edit\'s clothes', () 
     const edit = cardOf(column(p))
       .querySelector('.rl-card-verbs [data-rl-edit], .rl-card-verbs [data-rl-cp-editor-row]');
     assert.ok(edit, 'Edit is on the card\'s own verb row');
-    assert.equal(btn.className, edit.className, 'the same class as the button beside it');
+    /* RE-POINTED 2 Sep 2026: the two share the QUIET BASE and Edit now carries
+       one marker of its own — rl-verb-ai, Copilot's violet, which says which
+       of the two editors it opens. Comparing the whole className read that
+       marker as a difference in LOUDNESS, which it is not: the claim was never
+       "identical markup", it was "Reopen does not shout". So it is asserted as
+       the relation it always meant — the same base as the button beside it,
+       and neither of the two coloured pills. */
+    assert.ok(edit.classList.contains('rl-edit'),
+      'Edit is the quiet outlined button');
+    assert.ok(btn.classList.contains('rl-edit'),
+      'and Reopen wears that same base');
+    assert.ok(!btn.classList.contains('rl-acc') && !btn.classList.contains('rl-rej'),
+      'never one of the two coloured decision pills');
   });
 });
 
@@ -126,7 +151,7 @@ describe('f192 (3) — the seats it must not appear on', () => {
     win.negoResolve(c, c.changes[0].id, 'rejected', { side: 'counterparty', by: 'Amina Wanjiru' });
     win.rlSetCardFilter('all');
     const box = win.document.createElement('div');
-    box.innerHTML = win.redlineChangeCardsHtml(c, { side: 'owner', hiddenIds: [] });
+    box.innerHTML = openedCards(win, c, { side: 'owner', hiddenIds: [] });
     const card = box.querySelector('.rl-card');
     assert.equal(card.querySelector('[data-rl-reopen]'), null, 'no Reopen on our own refused ask');
     assert.ok(card.querySelector('[data-nego-withdraw]'), 'Withdraw is the verb there, unchanged');
@@ -164,7 +189,14 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
        anywhere: the face now holds the two highest-ranked verbs and the rest
        ride in the card's own overflow menu, so this asserts BOTH halves rather
        than a literal list that a cap could quietly empty. */
-    assert.deepEqual(verbsOf(cardOf(column(p))), ['Accept', 'Reject'],
+    /* RE-POINTED 2 Sep 2026: the owner's ruling opened the card, so the ⋯ is
+       retired and every verb the change offers is on the open card at once —
+       Edit rides beside the two rather than behind a menu. THE CLAIM IS
+       UNCHANGED and is what this test is named for: reopening puts the
+       DECISION back. So the two decision verbs are asserted, in order and at
+       the head of the row, rather than as a list a third verb can lengthen. */
+    const backVerbs = verbsOf(cardOf(column(p)));
+    assert.deepEqual(backVerbs.slice(0, 2), ['Accept', 'Reject'],
       'and the card is a decision again');
     /* RE-POINTED 1 Sep 2026 — and it was PASSING ON A BUG: `data-rl-edit=` was
        the card's Edit until 30 Aug and on our seat the string survived only

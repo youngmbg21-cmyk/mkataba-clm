@@ -88,7 +88,19 @@ async function table(){
     /* the view toggle, pressed like a person presses it */
     view(side){ t.$(`[data-redline-side="${side}"]`).click(); },
     clauseByHead(re){ return t.$$('#rl-doc .rl-clause').find(x => re.test(x.textContent)); },
-    card(id){ return t.$(`#rl-changes [data-nego-card="${id}"]`); },
+    /* THE CARD OPENS (owner-ruled 2 Sep 2026): its face carries one control,
+       Open, and every verb is behind it, one card open at a time. So this
+       hands back the card OPEN — which is what every claim below reads it for
+       — by walking the journey a reader walks. */
+    card(id){
+      const sel = `#rl-changes [data-nego-card="${id}"]`;
+      const n = t.$(sel);
+      if (n && !n.querySelector('.rl-cb-wrap')){
+        const o = n.querySelector('[data-rl-card-open]');
+        if (o) o.dispatchEvent(new win.Event('click', { bubbles: true }));
+      }
+      return t.$(sel);
+    },
     /* An edit through the DOM: the Edit pill opens the clause's panel, the ＋
        opens the editor there, swap the body, save. The same path a person's
        click takes — RE-STAGED 16 Aug 2026 when the clause's own Direct Edit
@@ -321,7 +333,7 @@ describe('F92 — the six-round negotiation, end to end', () => {
     notesHost.remove();
     win.rlNpSetRoom('internal');
     // Send the new ask.
-    t.$('#rl-changes [data-rl-send]').click();
+    t.card(storage.id).querySelector('[data-rl-send]').click();
     await t.pause();
     win.renderRedline();
     assert.equal(win.negoTurn(c), 'counterparty');

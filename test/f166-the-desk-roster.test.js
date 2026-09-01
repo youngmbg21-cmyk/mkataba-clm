@@ -29,6 +29,14 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
@@ -336,7 +344,7 @@ describe('f166 · a shared draft says whose hand wrote it', () => {
 
   test('the workbench card names the colleague who drafted it', async () => {
     const { w, c } = await shared(ME);
-    const html = w.win.redlineChangeCardsHtml(c, {});
+    const html = openedCards(w.win, c, {});
     /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
        the surname's initial (cardName) — the whole name stays in the
        line's hover text, and in the record, the emails and the pickers.
@@ -349,15 +357,15 @@ describe('f166 · a shared draft says whose hand wrote it', () => {
 
   test('it does not caption your own wording back at you', async () => {
     const { w, c } = await shared(GRACE);
-    const html = w.win.redlineChangeCardsHtml(c, {});
+    const html = openedCards(w.win, c, {});
     assert.equal(/drafted by Grace M\./.test(html), false,
       'a caption on every card whatever it says is chrome again');
   });
 
   test('and it never appears on the counterparty\'s seat', async () => {
     const { w, c } = await shared(ME);
-    assert.equal(/dk-card-by/.test(w.win.redlineChangeCardsHtml(c, { side: 'counterparty' })), false);
-    assert.equal(/dk-card-by/.test(w.win.redlineChangeCardsHtml(c, { previewing: true })), false);
+    assert.equal(/dk-card-by/.test(openedCards(w.win, c, { side: 'counterparty' })), false);
+    assert.equal(/dk-card-by/.test(openedCards(w.win, c, { previewing: true })), false);
   });
 
   test('a contributor is told whose decision the counterparty\'s ask is — on BOTH renderers', async () => {
@@ -367,7 +375,7 @@ describe('f166 · a shared draft says whose hand wrote it', () => {
       { side: 'counterparty', author: 'Erik Lindqvist', summary: 'their ask' });
 
     const asGrace = viewWorld(GRACE);
-    const bench = asGrace.win.redlineChangeCardsHtml(c, {});
+    const bench = openedCards(asGrace.win, c, {});
     assert.match(bench, /dk-card-instead/, 'the workbench');
     assert.match(bench, /Answering Nordfrakt Logistik AB is Wanjiru Kamau/);
 
@@ -377,12 +385,12 @@ describe('f166 · a shared draft says whose hand wrote it', () => {
 
   test('the lead is missing nothing, so is told nothing', async () => {
     const { w, c } = await shared(ME);
-    assert.equal(/dk-card-instead/.test(w.win.redlineChangeCardsHtml(c, {})), false);
+    assert.equal(/dk-card-instead/.test(openedCards(w.win, c, {})), false);
   });
 
   test('with the rule off there is no gap to explain', async () => {
     const { c } = await shared(ME, false);
     const asGrace = viewWorld(GRACE, false);
-    assert.equal(/dk-card-instead/.test(asGrace.win.redlineChangeCardsHtml(c, {})), false);
+    assert.equal(/dk-card-instead/.test(openedCards(asGrace.win, c, {})), false);
   });
 });

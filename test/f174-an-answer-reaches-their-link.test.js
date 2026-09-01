@@ -75,14 +75,19 @@ async function bench(){
   win.wireNegotiationTab = real;
 
   return { w, win, c, theirs, pushed, opts: () => handed,
-    /* A card arrives SHUT and its head both jumps and toggles, so the verb has
-       to be re-queried after the press — a node held from before is detached
-       and its click goes nowhere. */
+    /* A card arrives SHUT — its face carries one control, Open, and every verb
+       is behind it (owner-ruled 2 Sep 2026). The verb has to be re-queried
+       after the press: opening repaints the column, so a node held from before
+       is detached and its click goes nowhere. */
     verb(sel){
-      const head = win.document.querySelector(`#rl-changes [data-nego-card="${theirs.id}"] .rl-card-head`);
-      assert.ok(head, 'their card is in the column');
-      head.dispatchEvent(new win.Event('click', { bubbles: true, cancelable: true }));
-      const b = win.document.querySelector(`#rl-changes [data-nego-card="${theirs.id}"] ${sel}`);
+      const sc = `#rl-changes [data-nego-card="${theirs.id}"]`;
+      assert.ok(win.document.querySelector(sc), 'their card is in the column');
+      if (!win.document.querySelector(`${sc} ${sel}`)){
+        const o = win.document.querySelector(`${sc} [data-rl-card-open]`);
+        assert.ok(o, 'and it carries its own Open');
+        o.dispatchEvent(new win.Event('click', { bubbles: true, cancelable: true }));
+      }
+      const b = win.document.querySelector(`${sc} ${sel}`);
       assert.ok(b, sel + ' is drawn on the open card');
       return b;
     } };

@@ -24,6 +24,32 @@ const { buildPortal, sharePayloadFor, supplyContract } = require('./portalworld'
    loop is all any of them needs. */
 const tick = () => new Promise(r => setTimeout(r, 0));
 
+/* ---- PRESSING A VERB ON OUR OWN COLUMN, SINCE THE CARD OPENS (2 Sep 2026) ----
+   The owner's ruling put every verb behind the card's own Open, and the column
+   draws ONE card open at a time. These two walk the journey a reader walks —
+   open the card, then press — so every claim below asks exactly what it always
+   asked. THE COUNTERPARTY'S CARD IS UNTOUCHED and is read directly, which is
+   why only the owner's presses go through here. */
+function ownerVerb(win, id, sel){
+  let btn = win.document.querySelector(`[data-nego-card="${id}"] ${sel}`);
+  if (!btn){
+    const o = win.document.querySelector(`[data-nego-card="${id}"] [data-rl-card-open]`);
+    if (o) o.dispatchEvent(new win.Event('click', { bubbles: true }));
+    btn = win.document.querySelector(`[data-nego-card="${id}"] ${sel}`);
+  }
+  return btn;
+}
+/* The next Accept anywhere in the column. One card is open at a time, so this
+   opens each in turn until it finds one — which is what a reader does when
+   working down a round. */
+function ownerNextVerb(win, sel){
+  for (const card of [...win.document.querySelectorAll('[data-nego-card]')]){
+    const btn = ownerVerb(win, card.getAttribute('data-nego-card'), sel);
+    if (btn) return btn;
+  }
+  return null;
+}
+
 const BASE = [
   'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT',
   '1. SCOPE',
@@ -283,7 +309,7 @@ describe('an action by one side shows up on the other', () => {
     assert.match(liveNego(v.p.win).textContent, /days from the date of issue/);
 
     // Wanjiru presses Accept on her own page — the real control, not the model
-    o.win.document.querySelector(`[data-nego-accept="${ch.id}"]`).click();
+    ownerVerb(o.win, ch.id, '[data-nego-accept]').click();
     await tick();
     assert.equal(o.win.negoChangeById(o.c, ch.id).status, 'accepted');
 
@@ -380,7 +406,7 @@ describe('an action by one side shows up on the other', () => {
        reader does: press each card's Accept, re-reading the column between
        presses because answering one repaints the rest. */
     for (let guard = 0; guard < 40; guard++){
-      const btn = o.win.document.querySelector('[data-nego-accept]');
+      const btn = ownerNextVerb(o.win, '[data-nego-accept]');
       if (!btn) break;
       btn.click();
       await tick();
@@ -778,7 +804,7 @@ describe('the durable link keeps showing current state', () => {
        reader does: press each card's Accept, re-reading the column between
        presses because answering one repaints the rest. */
     for (let guard = 0; guard < 40; guard++){
-      const btn = o.win.document.querySelector('[data-nego-accept]');
+      const btn = ownerNextVerb(o.win, '[data-nego-accept]');
       if (!btn) break;
       btn.click();
       await tick();
@@ -839,7 +865,7 @@ describe('a rich contract survives the trip to the counterparty and back', () =>
     assert.match(doc.textContent, /3\.\s*Payment shall be made/,
       'the ol start="3" numbering reaches his screen too');
 
-    win.document.querySelector(`[data-nego-accept="${filed[0].id}"]`).click();
+    ownerVerb(win, filed[0].id, '[data-nego-accept]').click();
     await tick();
     assert.equal(win.docFormat(c.format), 'rich', 'and the document is still formatted');
     assert.match(c.redlineText, /<ol start="3">/);

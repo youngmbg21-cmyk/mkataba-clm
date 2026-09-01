@@ -8424,6 +8424,89 @@ row's handler opened the retired panel.**
   "the two seats agree" list narrowed to what the owner ruled should agree.
   **A green tally is not a net; find out what each check is actually pressing.**
 
+## THE CARD OPENS, AND OPEN IS THE ONE THING ON ITS FACE (owner-ruled 2 Sep 2026)
+
+*"What if the cards only had Open instead of edit, accepted etc on them. You
+then click open and the cards only expands and gives you all the options that
+are hidden in the dropdown including the comments for the card."* Then, off the
+rendered artifact: *"Accept and reject should not be enclosed buttons but open
+like the others. Also remove 'go to clause' because simply clicking on the card
+already takes you to the Clause."*
+
+**THIS RETIRES THE ⋯ AND IT IS THE SAME ARGUMENT THAT CREATED IT, ANSWERED THE
+OTHER WAY.** The menu exists because a 460px row cannot hold five verbs, so
+25 Aug put two on the face and folded the rest away — and the fold then had to
+carry rules about which two survive (`RL_FACE_RANK`), a guard against drawing a
+verb twice, a promotion for a held change's remedy, and a placement pass that
+measures the scroller. **A card that opens has none of those problems**: the
+row is one line whatever the change offers, and the verbs are read in a column
+that has room for them.
+
+- **ONE CARD OPEN AT A TIME**, in memory, per sitting — `_rlCardOpen` /
+  `rlCardOpenId` / `rlCardSetOpen`, cleared by `rlCardForgetPins` (a contract
+  switch) and by `negoResetView`. The clause panel's own rule, and the ask
+  reveal's before it.
+- **THE PRESS DOES BOTH JOBS.** Opening a card also lights its clause and
+  scrolls the paper to it, through `rlLinkFocus` — the card's own head has done
+  that since it was built, and it is why the ⋯'s "Jump to the clause" row could
+  be dropped outright rather than moved.
+- **NOTHING IS REBUILT.** The body composes what already existed:
+  `rlChangeWordingHtml` for the wording, the branch-built `st.info` strips, the
+  branch-built `st.actions` verbs, and `rlCardNotesHtml` — which is
+  `rlNotesPanelHtml`'s own list, tabs and composer. **No second writer, no
+  second reading**: `negoRoomNotes`, `negoNoteCounts`, `rlNpNoteHtml` and
+  `rlNotesSend` are borrowed whole, so a note cannot read one way in the card
+  and another in the drawer.
+- **THE COMPOSER CARRIES NO `nego-ti-` ID.** That id belongs to the room's own
+  reply box and the drawer's; a third element answering to it is the
+  duplicate-composer fault this file records. `rlNotesSend` resolves its box
+  from the HOST it is handed, so the send needs no id at all.
+- **EVERY VERB IS A BARE COLOURED WORD**, Accept and Reject included
+  (owner-asked). The ink is doing all the work — teal to agree, ruby to refuse,
+  Copilot's violet on the one door into the wording — which is the treatment
+  the 26 Aug flat row already gave the other verbs and the reason the two
+  decision verbs stopped being pills.
+- **THE PANEL DOOR SURVIVES THE MENU, and that was caught by a test rather than
+  foreseen.** On a stage without the edit page — the counterparty's seat, or a
+  window under 1024px — the ⋯ was the ONLY way to the clause panel, so
+  retiring it would have taken a capability away on exactly the seats that have
+  no other route. It is a verb in the body now, on the same condition
+  (`!ceTakesIt && opts.cpPanel`).
+- **`rlCardMoreHtml` IS A `return ''` STUB**, this file's own convention: it is
+  exported and a third caller must not be able to bring the menu back through a
+  door nobody remembered. `RL_FACE_RANK`, `rlFaceSplit`, `rlMorePlace` and
+  `RL_MORE_ICONS` are left dormant beside it.
+- **THE COUNTERPARTY'S CARD IS UNTOUCHED.** Their page is rebuilt from a share
+  payload on every paint, so an open state there is a posture nothing keeps;
+  their boxed card, its badge and its receipt shape are exactly what they were.
+  Asserted rather than assumed.
+
+**WHAT IT COST THE TESTS, AND THE LESSON IS THE USEFUL PART.** 21 claims across
+15 files failed, every one of them reading a verb off a card's FACE — which is
+where verbs were, and is not a fact any of those tests was written to assert.
+Two shapes of repair:
+- **`test/cards.js`** — `openedCards` renders the column once per change with
+  that change open and joins the results, for a claim that greps or parses the
+  whole column. **It is a SUPERSET and must never be used for COUNTING**: every
+  face appears in every render, so a claim about how many cards or bands the
+  column holds has to read a single render. `cardOpened(win, c, id)` is its
+  twin for a claim that SLICES from a card's marker — joining several renders
+  puts the first occurrence of a marker in whichever pass had a different card
+  open, so a slice reads a closed face.
+- **A press helper per mounted stage** (`openCard`, `ownerVerb`, `cardEl`),
+  which opens the card and then presses, walking the journey a reader walks.
+  **ORDER MATTERS AND IT BIT ONCE**: opening repaints the column, so a listener
+  armed on `#nego-send` BEFORE the press is armed on a node that is no longer in
+  the document — the count comes back zero and reads as a send that never
+  reached the engine. Open first, fetch the postbox after.
+
+Tests: f246 (sections 4, 5 and 9 REVERSED IN PLACE, plus `p.open(id)`), and
+claims re-pointed — never deleted — in f37, f84, f89, f92, f93, f100, f152,
+f154, f157, f158, f159, f161, f166, f174, f190, f192, f208 and f248. f248's two
+source claims are stronger for it: both were literals naming the ⋯, and each is
+now the sweep it always meant — no surface counts notes for itself, and every
+door onto them carries the one attribute.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

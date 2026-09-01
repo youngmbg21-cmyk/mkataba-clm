@@ -45,6 +45,21 @@ const columnSays = p => {
   return n ? n.textContent.trim() : '';
 };
 
+/* ---- READING A CARD'S VERBS, SINCE THE CARD OPENS (2 Sep 2026) ----
+   The owner's ruling put every verb behind the card's own Open, and the column
+   draws ONE card open at a time. This presses that Open where it is needed and
+   hands back the card, so each claim below asks exactly what it always asked,
+   in the one place the answer now lives, by walking the journey a reader walks.
+   The element it hands back is stale after any later press that repaints. */
+const openCard = (p, sel = '#rl-changes .rl-card') => {
+  const n = p.$(sel);
+  if (n && !n.querySelector('.rl-cb-wrap')){
+    const o = n.querySelector('[data-rl-card-open]');
+    if (o) o.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+  }
+  return p.$(sel);
+};
+
 
 /* A RICH contract, because structure is the point of half this file. It
    carries the two things a re-typeset document loses: a heading whose number
@@ -1055,7 +1070,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
   test('the buttons on a live card carry those classes', async () => {
     const p = await page();
-    const card = p.$('#rl-changes .rl-card');
+    const card = openCard(p);
     assert.ok(card.querySelector('button.rl-acc[data-nego-accept]'));
     assert.ok(card.querySelector('button.rl-rej[data-nego-reject]'));
     /* RE-POINTED 30 Aug 2026: Edit carries data-rl-cp-editor-row on our seat
@@ -1067,7 +1082,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
   test('an unsent draft of ours gets a green Send', async () => {
     const p = await page({ theirChange: false, myChange: true });
-    const card = p.$('#rl-changes .rl-card');
+    const card = openCard(p);
     const send = card.querySelector('button.rl-send[data-rl-send]');
     assert.ok(send, 'the one state that looks finished and is not must carry its own send');
     assert.match(columnSays(p), /draft/i, 'and the column says it has not gone');
@@ -1095,7 +1110,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
        fixture that happens to draw the other door proves nothing about this
        one. */
     const p = await page({ noEditor: true });
-    const btn = p.$('#rl-changes [data-rl-edit]');
+    const btn = openCard(p).querySelector('[data-rl-edit]');
     const clauseId = btn.getAttribute('data-rl-edit');
     btn.click();
     const clause = p.$(`#rl-doc [data-clause="${clauseId}"]`);
@@ -1274,7 +1289,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
 
   test('with an address on file, Send opens no dialog', async () => {
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
-    p.$('#rl-changes [data-rl-send]').click();
+    openCard(p).querySelector('[data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     assert.equal(p.post.modals, 0, 'a secondary confirmation is exactly what this removes');
     assert.equal(p.post.reshared, 1, 'and the send really goes, on the one click');
@@ -1287,8 +1302,9 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        the amber Sent back, which the next test pins. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     assert.match(columnSays(p), /draft/i);
-    assert.ok(p.$('#rl-changes .rl-card-verbs'), 'a draft is open — it has verbs to press');
-    p.$('#rl-changes [data-rl-send]').click();
+    assert.ok(openCard(p).querySelector('.rl-card-verbs'),
+      'a draft is open — it has verbs to press');
+    openCard(p).querySelector('[data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     /* ---- REVERSED IN PLACE, 26 Aug 2026 ----
@@ -1321,7 +1337,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        answer, so it fails on a card with no way in at all. */
     assert.ok(card.querySelector('[data-rl-cp-open], [data-rl-cp-editor-row]'),
       'and the card carries its door into the clause');
-    assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
+    assert.ok(!openCard(p).querySelector('[data-rl-send]'), 'it cannot be sent twice');
   });
 
   test('and where the Send was there is now NOTHING at all', async () => {
@@ -1343,7 +1359,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        the heading over the row. SAID ONCE is what all three versions were
        really protecting, and it is still what is measured. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
-    p.$('#rl-changes [data-rl-send]').click();
+    openCard(p).querySelector('[data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     p.$('#rl-changes .rl-card .rl-card-head').click();
@@ -1355,7 +1371,8 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
       'the heading carries the fact');
     assert.equal((p.$('#rl-changes .rl-card').textContent.match(/Sent/g) || []).length, 0,
       'said once, and not on the card — the heading above it is the once');
-    assert.equal(p.$('#rl-changes [data-rl-send]'), null, 'and it cannot be sent twice');
+    assert.equal(openCard(p).querySelector('[data-rl-send]'), null,
+      'and it cannot be sent twice');
   });
 
   test('and the marker\'s styling went with it, leaving no dead rules', async () => {
@@ -1386,14 +1403,14 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
        send fails, the turn does not move and nothing claims to have gone. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     p.win.reshareToLastRecipient = async () => { throw new Error('the network is down'); };
-    p.$('#rl-changes [data-rl-send]').click();
+    openCard(p).querySelector('[data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 1, 'nothing left the building');
     assert.match(columnSays(p), /draft/i, 'so nothing may say it did');
     assert.equal(p.$('#rl-changes .rl-card .rl-badge'), null,
       'and the row certainly does not claim to have gone');
-    assert.ok(p.$('#rl-changes [data-rl-send]'), 'and the send is still offered');
+    assert.ok(openCard(p).querySelector('[data-rl-send]'), 'and the send is still offered');
     assert.match(p.w.toastText(), /Could not send/);
   });
 });
@@ -1438,10 +1455,16 @@ describe('F89 (13) — the flashing batch send', () => {
 
   test('the card\'s Send is the same act, not a second one', async () => {
     const p = await page({ theirChange: false, myChange: true });
+    /* THE CARD IS OPENED FIRST AND THE POSTBOX IS FETCHED AFTER. Opening
+       repaints the column, and #nego-send is rebuilt with it — a listener
+       armed on the element from before the press is armed on a node that is
+       no longer in the document, so the count comes back zero and reads as a
+       send that never reached the engine. */
+    const card = openCard(p);
     const engine = p.doc.getElementById('nego-send');
     let fired = 0;
     engine.addEventListener('click', () => { fired++; });
-    p.$('#rl-changes [data-rl-send]').click();
+    card.querySelector('[data-rl-send]').click();
     assert.equal(fired, 1,
       'a per-change send would let a reader believe they published one ask while others stayed home');
   });

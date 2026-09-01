@@ -1816,6 +1816,18 @@ const STRINGS = {
     ng_pop_wording: 'The wording',
     ng_pop_aria: 'Change {id} — reason and notes',
     ng_row_open: 'Open',
+    /* ---- THE ONE CONTROL ON A CARD, AND WHAT IT REVEALS (2 Sep 2026) ----
+       The card's face carries Open and nothing else; these name the block
+       headings inside it. Four of them because whose ask it is and whether it
+       is still one both change what the block honestly is: a settled change is
+       a record, and "what they are asking for" over something nobody is asking
+       for any more is the card saying something untrue about the round. */
+    ng_card_open_title: 'Open this change — the wording, why it was asked for, what you can do about it, and the comments',
+    ng_card_close_title: 'Close this change',
+    ng_card_they_ask: 'What they are asking for',
+    ng_card_you_propose: 'What you are proposing',
+    ng_card_was_agreed: 'What was agreed',
+    ng_card_was_asked: 'What was asked for',
     ng_row_open_title: 'Open this clause’s panel — the full wording, the history and the replies',
     ng_needs_you_one: '1 needs you',
     ng_needs_you_other: '{n} need you',
@@ -7161,6 +7173,13 @@ const STRINGS = {
     ng_pop_wording: 'Formuleringen',
     ng_pop_aria: 'Ändring {id} — skäl och noteringar',
     ng_row_open: 'Öppna',
+    /* Se den engelska sidan för varför dessa är fyra och inte en. */
+    ng_card_open_title: 'Öppna ändringen — ordalydelsen, skälet, vad du kan göra och kommentarerna',
+    ng_card_close_title: 'Stäng ändringen',
+    ng_card_they_ask: 'Vad de begär',
+    ng_card_you_propose: 'Vad du föreslår',
+    ng_card_was_agreed: 'Vad som avtalades',
+    ng_card_was_asked: 'Vad som begärdes',
     ng_row_open_title: 'Öppna klausulens panel — hela formuleringen, historiken och svaren',
     ng_needs_you_one: '1 väntar på dig',
     ng_needs_you_other: '{n} väntar på dig',

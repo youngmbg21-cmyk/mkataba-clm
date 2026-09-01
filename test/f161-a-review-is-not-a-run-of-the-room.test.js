@@ -43,6 +43,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards, cardOpened } = require('./cards');
+
 
 const ROOT = path.join(__dirname, '..');
 
@@ -148,7 +156,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
   test('a reviewer’s column holds only what was forwarded to them', async () => {
     const w = world();
     const { c, four, six, ten } = await twoOut(w);
-    const html = seat(SALES, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(seat(SALES, c).win, c, { side: 'owner' });
     assert.match(html, new RegExp('data-nego-card="' + six.id + '"'), 'their own clause');
     assert.ok(!new RegExp('data-nego-card="' + ten.id + '"').test(html),
       'procurement’s clause is not theirs to read about');
@@ -161,7 +169,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
   test('and the requester still sees the whole round', async () => {
     const w = world();
     const { c, four, six, ten } = await twoOut(w);
-    const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(w.win, c, { side: 'owner' });
     [four, six, ten].forEach(x =>
       assert.match(html, new RegExp('data-nego-card="' + x.id + '"')));
   });
@@ -169,7 +177,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
   test('an uninvolved colleague sees the round, and no reviewer’s name', async () => {
     const w = world();
     const { c, ten } = await twoOut(w);
-    const html = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(seat(OTHER, c).win, c, { side: 'owner' });
     /* "It cannot be sent yet" is everybody's business; "Young has it" is not.
        The state lives in the card's ONE status badge now — the review's own
        chip stood down beside it rather than saying the same thing twice. */
@@ -191,7 +199,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const { c, six } = await twoOut(w);
     const sales = seat(SALES, c);
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
-    const asOther = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const asOther = openedCards(seat(OTHER, c).win, c, { side: 'owner' });
     /* CLAIM UPDATED, 13 Aug 2026: the anonymous form was "Held by review" and
        is now just "Held". RE-POINTED 25 Aug 2026 for a dot before the word, and
        AGAIN 26 Aug 2026, when the status slot came off our seat's row entirely
@@ -201,7 +209,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
        heading, which is where the status is said. */
     assert.match(asOther, /data-rl-band="held"/, 'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not who held it, nor why');
-    const asMe = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const asMe = openedCards(w.win, c, { side: 'owner' });
     assert.match(asMe, /Simon Jordan/, 'the requester is told, because they asked');
   });
 
@@ -209,7 +217,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const w = world();
     const { c, six, ten } = await twoOut(w);
     const sales = seat(SALES, c);
-    const html = sales.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(sales.win, c, { side: 'owner' });
     assert.match(html, new RegExp('data-rv-mark="' + six.id + '"'), 'their clause');
     assert.ok(!new RegExp('data-rv-mark="' + ten.id + '"').test(html),
       'a button that reviewMark would refuse is a card that lies');
@@ -288,9 +296,9 @@ describe('f161 · a reviewer does not run the round', () => {
     const { c, four } = await twoOut(w);
     /* Clause 4 is in nobody's review, so it is sendable on its merits. The
        requester is offered the verb; the reviewer is not. */
-    assert.match(w.win.redlineChangeCardsHtml(c, { side: 'owner' }),
+    assert.match(openedCards(w.win, c, { side: 'owner' }),
       new RegExp('data-rl-send="' + four.id + '"'), 'the requester may send it');
-    const html = seat(SALES, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(seat(SALES, c).win, c, { side: 'owner' });
     assert.ok(!new RegExp('data-rl-send="' + four.id + '"').test(html),
       'a reviewer sending the round while holding somebody’s clause is the report');
   });
@@ -308,7 +316,7 @@ describe('f161 · a reviewer does not run the round', () => {
   test('a reviewer may still correct the wording — that is the job', async () => {
     const w = world();
     const { c } = await twoOut(w);
-    const html = seat(SALES, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(seat(SALES, c).win, c, { side: 'owner' });
     /* RE-POINTED 1 Sep 2026, and it was PASSING ON A BUG. It matched
        `data-rl-edit=`, which was the card's Edit until 30 Aug and is now the
        COUNTERPARTY's; on our seat the string survived only because the ⋯ menu
@@ -326,7 +334,7 @@ describe('f161 · a reviewer does not run the round', () => {
     sales.win.reviewMark(c, six.id, 'cleared');
     sales.win.reviewReturn(c, {});
     assert.equal(sales.win.reviewActorIsHeld(c), false, 'it is a posture, not a demotion');
-    assert.match(sales.win.redlineChangeCardsHtml(c, { side: 'owner' }),
+    assert.match(openedCards(sales.win, c, { side: 'owner' }),
       new RegExp('data-rl-send="' + four.id + '"'));
   });
 
@@ -342,7 +350,7 @@ describe('f161 · a reviewer does not run the round', () => {
     const sales = seat(SALES, c);
     const theirs = sales.win.negoPending(c).find(x => x.authorSide === 'counterparty');
     assert.ok(theirs, 'there is one of theirs on the table');
-    const cards = sales.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const cards = openedCards(sales.win, c, { side: 'owner' });
     assert.ok(!new RegExp('data-nego-accept="' + theirs.id + '"').test(cards),
       'accepting their ask settles it and travels on the next round');
   });
@@ -616,7 +624,7 @@ describe('f161 · a held change says it once, and says what to do', () => {
   test('one tag, not two', async () => {
     const w = world();
     const { c, six } = await held(w);
-    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const one = card(cardOpened(w.win, c, six.id, { side: 'owner' }), six.id);
     /* CLAIM UPDATED TWICE, 13 Aug 2026, AND REVERSED 26 Aug 2026. It read the
        card's own status slot for "Held · Simon J."; our seat's row has no
        status slot any more, because every state it could carry now has a pile
@@ -632,22 +640,22 @@ describe('f161 · a held change says it once, and says what to do', () => {
   test('and the tag names who, only where the reader may know', async () => {
     const w = world();
     const { c, six } = await held(w);
-    const asOther = card(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const asOther = card(cardOpened(seat(OTHER, c).win, c, six.id, { side: 'owner' }), six.id);
     /* CLAIM UPDATED, 13 Aug 2026, and RE-POINTED 26 Aug 2026 at the heading
        that says the status now. What is under test — that no name reaches an
        outsider — is unchanged, and the whole card is swept for it. */
-    const mine = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const mine = card(cardOpened(w.win, c, six.id, { side: 'owner' }), six.id);
     assert.match(mine, /Simon Jordan/,
       'the requester is still told who is holding it, in words on the card');
     assert.ok(!/Simon Jordan/.test(asOther), 'and an outsider is not');
-    assert.match(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }),
+    assert.match(openedCards(seat(OTHER, c).win, c, { side: 'owner' }),
       /data-rl-band="held"/, 'though they can still see it is held');
   });
 
   test('the card offers a way forward, and says what it is', async () => {
     const w = world();
     const { c, six } = await held(w);
-    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const one = card(cardOpened(w.win, c, six.id, { side: 'owner' }), six.id);
     assert.match(one, new RegExp('data-rl-ask-review="' + six.id + '"'),
       'only the person who held it can lift it, so the way out is to ask them again');
     assert.match(one, new RegExp('data-rl-retract="' + six.id + '"'),
@@ -664,7 +672,7 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const sales = seat(SALES, c);
     assert.ok(sales.win.reviewMark(c, six.id, 'cleared'), 'the reviewer can now lift it');
     sales.win.reviewReturn(c, {});
-    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const one = card(cardOpened(w.win, c, six.id, { side: 'owner' }), six.id);
     assert.match(one, new RegExp('data-rl-send="' + six.id + '"'), 'and the round can go');
   });
 
@@ -672,7 +680,7 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     w.win.reviewAsk(c, { reviewer: SALES, ids: [six.id] });
-    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    const one = card(cardOpened(w.win, c, six.id, { side: 'owner' }), six.id);
     assert.ok(!new RegExp('data-rl-ask-review="' + six.id + '"').test(one),
       'a change sitting with somebody does not need asking again');
   });

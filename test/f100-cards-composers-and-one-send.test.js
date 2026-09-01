@@ -29,21 +29,33 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { buildWorld, supplyContract } = require('./world');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-/* ---------- THE DOOR ONTO THE CLAUSE PANEL, 25 Aug 2026 ----------
-   It used to be a button on the card's face; the owner's own drawing of this
-   column puts it in the card's ⋯ menu, because the face carries the verbs and
-   a fourth control competing with them on a 460px row is what the menu exists
-   to stop. This presses the ⋯ FIRST and then the row, so every check that
-   reaches for the door walks the journey a reader walks rather than reaching
-   into markup a person cannot see. */
+/* ---------- THE DOOR ONTO THE CLAUSE PANEL ----------
+   It has moved twice and this helper has followed it both times, because what
+   every claim below is really about is that the door EXISTS and is reachable
+   by pressing, never where its markup happens to sit. It was a button on the
+   card's face; then a row in the card's ⋯ (25 Aug 2026); and since the owner's
+   ruling of 2 Sep 2026 the face carries one control — Open — and every verb
+   including this one lives in the card's own body. So this presses Open FIRST
+   and then reads the door, which is the journey a reader walks. */
 const cpDoor = p => {
-  const more = p.$('#rl-changes .rl-card .rl-more-btn');
-  if (more) more.dispatchEvent(new p.win.Event('click', { bubbles: true }));
-  return p.$('#rl-changes .rl-card .rl-more-menu [data-rl-cp-open]');
+  const card = p.$('#rl-changes .rl-card');
+  if (card && !card.querySelector('[data-rl-cp-open]')){
+    const open = card.querySelector('[data-rl-card-open]');
+    if (open) open.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+  }
+  return p.$('#rl-changes .rl-card [data-rl-cp-open]');
 };
 
 /* js/components.js on a bare stage: the chat-field helpers are pure enough to
@@ -207,17 +219,19 @@ describe('F100b — the card is a handle, not a copy', () => {
     const card = p.$('#rl-changes .rl-card');
     assert.equal(p.win.rlCpOpenId(), null,
       'a panel is open only because somebody opened it');
-    /* REVERSED IN PLACE, 25 Aug 2026: the door is a row in the card's ⋯ menu
-       now (the owner's drawing), not a button on the face — the face carries
-       the verbs, and a fourth control competing with them on a 460px row is
-       what the menu exists to stop. The claim is unchanged: this card carries
-       a real, worded door onto the clause panel, and it names the clause. */
-    const open = card.querySelector('.rl-more-menu [data-rl-cp-open]');
+    /* REVERSED IN PLACE, 25 Aug 2026 and again 2 Sep 2026: the door was a row
+       in the card's ⋯ menu (the owner's drawing of that column); the owner's
+       later ruling opened the CARD instead, so the ⋯ is retired and the door
+       is a verb in the card's own body, one press of Open away. THE CLAIM IS
+       UNCHANGED: this card carries a real, worded door onto the clause panel,
+       and it names the clause. */
+    const open = cpDoor(p);
     assert.ok(open, 'a real row, wearing a word, opens the clause panel');
     assert.ok(open.textContent.trim(), 'in words, not a glyph');
     assert.equal(open.getAttribute('data-rl-cp-open'), p.c.changes[0].clauseId,
       'and it names the clause the change sits in');
-    assert.ok(card.querySelector('.rl-more-btn'), 'behind a ⋯ that is on the face');
+    assert.ok(p.$('#rl-changes .rl-card [data-rl-card-open]'),
+      'behind the card\'s own Open, which is the one control on its face');
     assert.equal(card.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
     assert.equal(card.querySelector('.rl-card-body'), null,
       'and so is the hidden body it existed to show');
@@ -720,7 +734,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     unsentIds: [], ...over });
   const seat = (p, over = {}) => {
     const box = p.doc.createElement('div');
-    box.innerHTML = p.win.redlineChangeCardsHtml(p.c, seatOpts(over));
+    box.innerHTML = openedCards(p.win, p.c, seatOpts(over));
     return box;
   };
   const verbsOf = card => [...card.querySelectorAll('.rl-card-verbs button')]
@@ -1021,11 +1035,28 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     return n ? n.getAttribute('data-rl-band') : '';
   };
 
+  /* ---- READING A CARD'S VERBS, SINCE THE CARD OPENS (2 Sep 2026) ----
+     The owner's ruling put every verb behind the card's own Open, and the
+     column draws ONE card open at a time. This presses that Open where it is
+     needed and hands back the card, so each claim below asks exactly what it
+     always asked in the one place the answer now lives. One at a time is the
+     product's rule, so a claim that reads two cards opens each in turn — and
+     the element it was handed first is stale after the second, which is why
+     they are read in order. */
+  const cardEl = (p, id) => {
+    const n = p.$(`[data-nego-card="${id}"]`);
+    if (n && !n.querySelector('.rl-cb-wrap')){
+      const o = n.querySelector('[data-rl-card-open]');
+      if (o) o.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    }
+    return p.$(`[data-nego-card="${id}"]`);
+  };
+
   test('THE FIX: one card\'s Send publishes that change and holds the other back', async () => {
     const p = await page();
     const [a, b] = p.c.changes.map(x => x.id);
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 2, 'both start unsent');
-    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    cardEl(p, a).querySelector('[data-rl-send]').click();
     await p.settle();
     p.again();
     assert.equal(p.post.reshared, 1, 'one round went');
@@ -1038,7 +1069,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
       'the arithmetic agrees: one unsent draft remains');
     assert.equal([...p.win.negoHeldBackIds(p.c)].join(','), b,
       'held by its own record, not by the turn stamp');
-    assert.ok(p.$(`[data-nego-card="${b}"] [data-rl-send]`),
+    assert.ok(cardEl(p, b).querySelector('[data-rl-send]'),
       'and its own Send is still on its card');
     /* CLAIM REVERSED IN PLACE, 26 Aug 2026: the strip went, the act moved into
        the column's head, and the count went with the act. */
@@ -1067,10 +1098,10 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
        revising one is what the funnel's revision fold is for. */
     const p = await page();
     const [a, b] = p.c.changes.map(x => x.id);
-    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    cardEl(p, a).querySelector('[data-rl-send]').click();
     await p.settle();
     p.again();
-    const sent = p.$(`[data-nego-card="${a}"]`);
+    const sent = cardEl(p, a);
     assert.equal(sent.querySelector('[data-rl-send]'), null, 'the sent ask cannot be sent twice');
     assert.equal(sent.querySelector('[data-nego-accept],[data-nego-reject]'), null,
       'and there is nothing to decide on our own ask');
@@ -1087,7 +1118,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     assert.ok(sent.querySelector('.rl-card-head'), 'and the body still presses through');
     assert.equal(sent.querySelector('.rl-badge'), null,
       'and says nothing itself — the heading two lines up is where it stands');
-    const draft = p.$(`[data-nego-card="${b}"]`);
+    const draft = cardEl(p, b);
     assert.ok(draft.querySelector('.rl-card-sum'), 'work says what it is about');
     assert.ok(draft.querySelector('[data-rl-send]'), 'and carries its Send');
     /* THE BANDS ARE WHAT TELL THE TWO PILES APART NOW. */
@@ -1112,7 +1143,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
   test('the batch door releases the hold, and the held draft finally travels', async () => {
     const p = await page();
     const [a, b] = p.c.changes.map(x => x.id);
-    p.$(`[data-nego-card="${a}"] [data-rl-send]`).click();
+    cardEl(p, a).querySelector('[data-rl-send]').click();
     await p.settle();
     p.again();
     /* The band's "Send all N" is a [data-redline-proxy] door — a batch door —
@@ -1146,7 +1177,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
        and verbs branch on status !== 'pending'. */
     p.c.changes[0].status = 'accepted';
     const box = p.win.document.createElement('div');
-    box.innerHTML = p.win.redlineChangeCardsHtml(p.c, { side: 'counterparty',
+    box.innerHTML = openedCards(p.win, p.c, { side: 'counterparty',
       org: 'Wanjiru Catering Ltd', hiddenIds: [], holdsDecisions: true,
       heldDecisionIds: [p.c.changes[0].id], unsentIds: [] });
     const send = box.querySelector('[data-rl-send]');

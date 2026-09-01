@@ -2728,6 +2728,50 @@ function redlineLayoutCss(){
          owner's preview of it, where the rows carry no headings and the edge
          is the only thing answering the question. */}
   .redline-page .rl-card-d:first-child,
+  ${''/* ================================================================
+         ONE CONTROL ON THE FACE, AND THE CARD OPENS DOWNWARDS
+         (owner-ruled 2 Sep 2026)
+         ----------------------------------------------------------------
+         The face is the reference, the wording and Open. THE BODY SPANS BOTH
+         COLUMNS — grid-column:1/-1 — because the card is a two-track grid and
+         a body left in the first track would be squeezed into two thirds of a
+         column that is already the narrow half of the page.
+
+         THE OPEN BUTTON KEEPS ITS BOX, and that is the one thing on this card
+         that does. Everything inside is a bare word; the face has TWO press
+         targets — the row, which goes to the clause, and this — so the one
+         that is not the whole row has to look like a control. It borrows
+         .rl-open-btn, which is the counterparty seat's own Open, so the two
+         seats cannot come to dress the same word differently. */}
+  .redline-page .rl-card-d > .rl-card-side{justify-content:flex-end}
+  .redline-page .rl-card-open{display:inline-flex;align-items:center;gap:6px;
+    min-width:78px;justify-content:center}
+  .redline-page .rl-open-cv{width:11px;height:11px;flex:none;
+    transition:transform var(--dur-2) var(--ease)}
+  .redline-page .rl-card-open[aria-expanded="true"] .rl-open-cv{transform:rotate(180deg)}
+  @media (prefers-reduced-motion:reduce){
+    .redline-page .rl-open-cv{transition:none}
+  }
+  .redline-page .rl-cb-wrap{grid-column:1 / -1;min-width:0}
+  .redline-page .rl-cb{padding:2px 0 4px}
+  .redline-page .rl-cb-blk{margin-top:var(--s-3)}
+  .redline-page .rl-cb-k{margin:0 0 5px;font-size:var(--t-micro);font-weight:var(--w-title);
+    letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
+  ${''/* The wording sits on the raised strip this product uses for a quotation
+         of the document, so it reads as the paper rather than as more card. */}
+  .redline-page .rl-cb-q{font-size:var(--t-meta);line-height:1.6;
+    background:var(--surface-2);border:1px solid var(--color-divider);
+    border-radius:var(--radius);padding:9px 11px}
+  .redline-page .rl-cb-acts{margin-top:var(--s-3);padding-top:10px;
+    border-top:1px solid var(--color-divider)}
+  .redline-page .rl-cb-notes{margin-top:var(--s-3);padding-top:10px;
+    border-top:1px solid var(--color-divider)}
+  ${''/* The drawer's own note list, at the card's measure. The panel gives it
+         a scroller and a height; in a card the column is already the scroller,
+         so it simply flows. */}
+  .redline-page .rl-cb-list{display:flex;flex-direction:column}
+  .redline-page .rl-cb-none{margin:6px 0;font-size:var(--t-meta);
+    color:var(--color-neutral-600)}
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}
   .redline-page .rl-card-d .rl-card-txt{flex:1 1 0;min-width:0;margin:0;padding:0}
@@ -2801,11 +2845,22 @@ function redlineLayoutCss(){
          row of three bordered buttons is what crushed the text this card
          exists to show. The INK is untouched and is what still tells them
          apart: teal to agree, red to refuse, teal for the alternative. */}
-  .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:var(--s-3);flex-wrap:nowrap}
+  ${''/* ---- THE VERBS ARE INSIDE THE CARD NOW (owner-ruled 2 Sep 2026) ----
+         They WRAP here, which the row could not afford and the body can: this
+         is every verb the change carries rather than the two that fitted, so a
+         change with four of them takes a second line instead of hiding two
+         behind a menu. The INK is untouched and is what tells them apart. */}
+  .redline-page .rl-card-d .rl-card-verbs{margin-top:0;gap:var(--s-3);flex-wrap:wrap}
   .redline-page .rl-card-d .rl-card-verbs button{border:0;background:none;padding:0;
     height:auto;min-height:0;font-size:var(--t-label);font-weight:var(--w-title);line-height:18px}
   .redline-page .rl-card-d .rl-card-verbs button:hover{background:none;
     text-decoration:underline}
+  ${''/* COPILOT KEEPS ITS OWN COLOUR, inherited from the ⋯ menu's lead row —
+         the same violet .rl-btn-alt has carried since the playbook pass. It is
+         the one verb in this bar that is not a decision about the change, and
+         a night answer because the ramp it comes from has none. */}
+  .redline-page .rl-card-d .rl-card-verbs button.rl-verb-ai{color:#6d28d9}
+  html.dark .redline-page .rl-card-d .rl-card-verbs button.rl-verb-ai{color:#c4b5fd}
 
   ${''/* THE OVERFLOW. The button is the glyph alone; the menu names the change
          it belongs to, because one floating over a column of six cards has to

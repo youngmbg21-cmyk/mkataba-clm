@@ -113,11 +113,24 @@ describe('f248 — the two rooms never share a note', () => {
     const tabs = [...host.querySelectorAll('[data-rl-np-room]')].map(t => t.textContent.trim());
     assert.match(tabs[0], /\(2\)/, 'the internal tab prints its own count');
     assert.match(tabs[1], /\(1\)/, 'and the external tab its own');
-    /* THE ROW AND THE MENU BORROW THE SAME READING rather than counting again:
-       a number worked out twice is a number that comes to disagree. */
+    /* EVERY SURFACE BORROWS THE SAME READING rather than counting again: a
+       number worked out twice is a number that comes to disagree.
+       RE-POINTED 2 Sep 2026 — the ⋯ is retired with the owner's ruling that
+       opens the card, so the second surface is the card's OWN notes drawer
+       rather than a menu row. THE CLAIM IS UNCHANGED and is stronger written
+       as the relation it always meant: nothing in this file works a note count
+       out for itself, wherever one is printed. */
     const src = read('js/views/negotiation.js');
-    assert.match(src, /function rlCardNotesCountHtml[\s\S]{0,400}negoNoteCounts\(/);
-    assert.match(src, /_npN = \(typeof negoNoteCounts === 'function'\)/);
+    assert.match(src, /function rlCardNotesCountHtml[\s\S]{0,400}negoNoteCounts\(/,
+      'the count on the row asks the one arithmetic');
+    assert.match(src, /function rlCardNotesHtml[\s\S]{0,900}negoNoteCounts\(/,
+      'and so do the tabs inside the card the owner opens');
+    /* THE SWEEP: every read of a thread's length in this file goes through
+       that one function, so a surface added later cannot start counting on its
+       own. */
+    for (const m of src.split('\n').filter(l => /\.(thread|messages)\b[\s\S]{0,40}\.length/.test(l)))
+      assert.ok(/negoNoteCounts|negoRoomNotes|negoThread/.test(m),
+        'a note count is borrowed, never derived: ' + m.trim());
   });
 });
 
@@ -237,8 +250,17 @@ describe('f248 — the seats, the doors and the words', () => {
     assert.ok($(`#rl-changes [data-rl-notes="${p.ch.id}"]`),
       'the count on the row is a door');
     const src = read('js/views/negotiation.js');
-    assert.match(src, /data-rl-notes="\$\{_nea\(ch\.id\)\}">\$\{i18t\('ng_card_notes'\)\}/,
-      'and so is the row in the ⋯ menu');
+    /* RE-POINTED 2 Sep 2026: the ⋯ is retired with the owner's ruling that
+       opens the card, so the row in it has gone with the menu. THE CLAIM IS
+       UNCHANGED and is what this test is named for — EVERY door onto the notes
+       carries the one attribute, so the one delegated listener below finds all
+       of them — and it is written as that sweep rather than as a literal for
+       one door, which is what let a retired menu keep this claim alive. */
+    const doors = [...src.matchAll(/data-rl-notes="/g)].length;
+    assert.ok(doors >= 3, 'the row, the clause panel\'s line and Chat, at least');
+    assert.ok($(`#rl-cp-body [data-rl-notes="${p.ch.id}"], .rl-cp-notes-go[data-rl-notes]`)
+      || /class="rl-cp-notes-go" data-rl-notes=/.test(src),
+      'and so is the clause panel\'s own line');
     /* REVERSED IN PLACE 31 Aug 2026 (owner-ruled C). The CLAIM is unchanged and
        is the whole point — one delegated listener, armed at module load, finds
        every door — and only the DESTINATION moved: on our seat the press now

@@ -742,6 +742,14 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     assert.ok(card, 'a change on the table');
+    /* RE-POINTED 2 Sep 2026: the owner's ruling put every verb behind the
+       card's own Open — one card open at a time. THE CLAIM IS UNCHANGED and is
+       still the one this test is named for: the act is on the card the clause
+       carries, and is reached by pressing that card rather than a bulk verb
+       somewhere else on the page. */
+    const open = card.querySelector('[data-rl-card-open]');
+    assert.ok(open, 'and the one control on its face opens it');
+    open.dispatchEvent(new p.win.Event('click', { bubbles: true }));
     assert.ok(p.$('#rl-changes [data-nego-accept], #rl-changes [data-nego-reject], #rl-changes [data-rl-send]'),
       'and its own verbs on it');
   });

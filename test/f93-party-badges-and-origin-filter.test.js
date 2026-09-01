@@ -18,6 +18,14 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 /* Two clauses, one change each: the clause↔card pairing anchors a clause
    section to a change id, so a fixture that piles both changes onto one
@@ -69,6 +77,15 @@ async function page(opts = {}){
   return { w, win, c, doc,
     $: sel => doc.querySelector(sel),
     $$: sel => [...doc.querySelectorAll(sel)],
+    /* ---- OPEN A CARD (2 Sep 2026) ----
+       Since the owner's ruling a card's face carries one control and every
+       verb and door lives behind it, so a claim about what a change OFFERS has
+       to open it first. Reading the closed face would pass on a build that had
+       lost the lot. */
+    open: sel => { const el = doc.querySelector(sel);
+      win.rlCardSetOpen(el && el.getAttribute('data-nego-card'));
+      win.renderRedline();
+      return doc.querySelector(sel); },
     /* Drive the REAL control: set the select and fire its change event, which
        runs the page's own handler and repaint. Re-query after — the render
        replaces the DOM. */
@@ -172,7 +189,7 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
        .rl-card-top, .rl-card-lead and .rl-card-id are the COUNTERPARTY's
        shape and are asserted there instead, one test down. */
     const p = await page();
-    const card = p.$('#rl-changes [data-nego-card]');
+    const card = p.open('#rl-changes [data-nego-card]');
     const txt = card.querySelector('.rl-card-txt');
     const side = card.querySelector('.rl-card-side');
     assert.ok(txt && side, 'the owner\'s row draws its text and its acts side by side');
@@ -297,7 +314,7 @@ describe('F93 (2) — the origin filter is gone, and nothing hides a card', () =
 describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', () => {
   test('their pending ask offers Accept and Reject, never Send', async () => {
     const p = await page();
-    const card = p.$('#rl-changes [data-rl-origin="them"]');
+    const card = p.open('#rl-changes [data-rl-origin="them"]');
     assert.ok(card.querySelector('.rl-acc[data-nego-accept]'), 'Accept, green');
     assert.ok(card.querySelector('.rl-rej[data-nego-reject]'), 'Reject, red');
     assert.ok(!card.querySelector('[data-rl-send]'), 'their ask is not yours to send');
@@ -305,7 +322,7 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
 
   test('your unsent ask offers Edit and Send, never Accept or Reject', async () => {
     const p = await page({ theirChange: false, myChange: true });
-    const card = p.$('#rl-changes [data-rl-origin="us"]');
+    const card = p.open('#rl-changes [data-rl-origin="us"]');
     /* RE-POINTED 30 Aug 2026: Edit carries data-rl-cp-editor-row on our seat
        since the owner shut the doors onto the clause panel, and data-rl-edit
        everywhere else. Same verb, same class, same place — only where it
@@ -354,7 +371,7 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
      is the reader's own company. */
   const theirSeat = (p, over = {}) => {
     const box = p.doc.createElement('div');
-    box.innerHTML = p.win.redlineChangeCardsHtml(p.c,
+    box.innerHTML = openedCards(p.win, p.c,
       { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [], ...over });
     return box;
   };

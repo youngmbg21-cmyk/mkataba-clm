@@ -43,6 +43,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const { buildWorld } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Contract Manufacturing</h1><p>Between Wanjiru Catering Ltd and Juno Limited</p>'
@@ -459,7 +467,7 @@ describe('f208 · the press clears the store the card is drawn from', () => {
     const doc = w.win.document;
     const host = doc.createElement('div');
     doc.body.appendChild(host);
-    host.innerHTML = '<div id="rl-changes">' + w.win.redlineChangeCardsHtml(c, {
+    host.innerHTML = '<div id="rl-changes">' + openedCards(w.win, c, {
       side: 'counterparty', canAct: true, holdsDecisions: true,
       unsentIds: [ch.id], heldDecisionIds: [], by: 'Juno Limited' }) + '</div>';
     const btn = host.querySelector('[data-rl-retract]');
@@ -490,7 +498,7 @@ describe('f208 · the press clears the store the card is drawn from', () => {
     const doc = w.win.document;
     const host = doc.createElement('div');
     doc.body.appendChild(host);
-    host.innerHTML = '<div id="rl-changes">' + w.win.redlineChangeCardsHtml(c,
+    host.innerHTML = '<div id="rl-changes">' + openedCards(w.win, c,
       { side: 'owner', canAct: true, by: ME.name }) + '</div>';
     const btn = host.querySelector('[data-rl-retract]');
     assert.ok(btn, 'our own unsent draft carries it too');

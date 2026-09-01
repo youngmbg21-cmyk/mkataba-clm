@@ -75,7 +75,13 @@ async function bench(o = {}){
   win.renderRedline();
   const $ = s => win.document.querySelector(s);
   const $$ = s => [...win.document.querySelectorAll(s)];
-  return { w, win, c, $, $$, again: () => win.renderRedline() };
+  return { w, win, c, $, $$, again: () => win.renderRedline(),
+    /* OPEN ONE CARD. Since 2 Sep the row carries a single control and every
+       verb, strip and note lives behind it, so a claim about what a change
+       OFFERS has to open it first — reading the face alone would pass on a
+       build that had lost the lot. */
+    open: id => { win.rlCardSetOpen(id); win.renderRedline();
+      return win.document.querySelector(`.rl-card-d[data-nego-card="${id}"]`); } };
 }
 
 /* ============================================================ 1 — THE HEAD */
@@ -513,17 +519,52 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
       'which still says who a sent ask is waiting on');
   });
 
-  test('the verbs are untouched — the same engine attributes, on one row', async () => {
+  /* ---- REVERSED IN PLACE, 2 Sep 2026 (owner-ruled: "the cards only had Open
+     instead of edit, accepted etc ... you click open and the card expands and
+     gives you all the options") ----
+     This asserted the verbs sat BESIDE the text on the row. They are inside the
+     card now, one press away, and the claim that mattered is untouched and is
+     the one kept here: they are the SAME engine attributes, so the funnel, the
+     desk rule and the review gate all still apply to a press. Where they are
+     drawn moved; what they are did not. */
+  test('the verbs are untouched — the same engine attributes, inside the card', async () => {
     const p = await bench();
-    const theirs = p.$$('#rl-changes .rl-card-d')
-      .find(el => el.querySelector('[data-nego-accept]'));
-    assert.ok(theirs, 'their ask still offers a decision');
+    const theirId = p.c.changes.find(x => x.authorSide === 'counterparty').id;
+    const theirs = p.open(theirId);
+    assert.ok(theirs, 'their ask has a card');
+    assert.ok(theirs.querySelector('[data-nego-accept]'), 'their ask still offers a decision');
     assert.ok(theirs.querySelector('[data-nego-reject]'), 'both ways');
-    assert.ok(theirs.querySelector('.rl-card-side .rl-card-verbs'),
-      'and the verbs are beside the text');
-    const mine = p.$$('#rl-changes .rl-card-d')
-      .find(el => el.querySelector('[data-rl-send]'));
-    assert.ok(mine, 'our draft still carries its own Send');
+    assert.ok(theirs.querySelector('.rl-cb .rl-card-verbs'),
+      'and the verbs are in the body the card opens into');
+    const mineId = p.c.changes.find(x => x.authorSide === 'owner').id;
+    assert.ok(p.open(mineId).querySelector('[data-rl-send]'),
+      'our draft still carries its own Send');
+  });
+
+  /* ---- AND THE FACE CARRIES ONE CONTROL AND NOTHING ELSE ----
+     The whole of the owner's ruling, asserted as an ABSENCE: a closed card may
+     offer no verb at all, because the reader is meant to open it first. */
+  test('a closed card offers exactly one control, and it is Open', async () => {
+    const p = await bench();
+    p.win.rlCardSetOpen(null); p.again();
+    for (const card of p.$$('#rl-changes .rl-card-d')){
+      const btns = [...card.querySelectorAll('button')];
+      assert.equal(btns.length, 1,
+        'one control on the face — found ' + btns.map(b => b.textContent.trim()).join(', '));
+      assert.ok(btns[0].hasAttribute('data-rl-card-open'), 'and it is Open');
+      assert.equal(btns[0].textContent.trim(), p.win.i18t('ng_row_open'));
+      assert.equal(btns[0].getAttribute('aria-expanded'), 'false');
+    }
+  });
+
+  test('opening one closes the last — a column of open cards is the wall the piles answered', async () => {
+    const p = await bench();
+    const ids = p.c.changes.map(x => x.id);
+    p.open(ids[0]);
+    const second = p.open(ids[1]);
+    assert.ok(second.querySelector('.rl-cb'), 'the one just opened has a body');
+    assert.equal(p.$(`.rl-card-d[data-nego-card="${ids[0]}"] .rl-cb`), null,
+      'and the one before it does not');
   });
 
   test('the conditional strips are still drawn, between the text and the acts', async () => {
@@ -546,188 +587,140 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
 });
 
 /* ================================================================ 5 — THE ⋯ */
-describe('f246 (5) — the overflow menu', () => {
-  /* ---- REVERSED IN PLACE, 30 Aug 2026 (owner-ruled: shut the doors that put
-     the clause panel in front of me) ----
-     This asserted that Edit with Copilot LEADS this menu on every card. It
-     still does wherever it is drawn — and on our seat the card's own Edit now
-     carries that same door, so on those cards the menu correctly draws no
-     second copy of it. That is not a loss: it is this menu's own rule, stated
-     two paragraphs down in its source, doing exactly what it is for.
+describe('f246 (5) — the card opens instead of a menu', () => {
+  /* ================================================================
+     REVERSED IN PLACE, 2 Sep 2026 — the owner's ruling:
 
-     BOTH HALVES ARE ASSERTED, because either alone would pass on a build that
-     had lost the door altogether. */
-  /* ---- REVERSED IN PLACE, 30 Aug 2026 ----
-     This asserted that Edit with Copilot LEADS this menu on every card. It
-     still leads WHERE IT IS DRAWN — and since the owner shut the two doors onto
-     the clause panel, the card's own Edit carries that same door on our seat,
-     so the menu correctly draws no second copy of it. Not a loss: it is this
-     menu's own "never repeat a verb the face carries" rule doing its job.
+       "What if the cards only had Open instead of edit, accepted etc. You then
+        click open and the cards only expands and gives you all the options
+        that are hidden in the dropdown including the comments for the card."
+        ... "remove go to clause because simply clicking on the card already
+        takes you to the Clause."
 
-     THE CLAIM IS NOW THAT THE DOOR IS DRAWN EXACTLY ONCE, which is a stronger
-     thing to say than where it sits — a card offering the same page twice is
-     the fault, and so is a card offering it not at all. Both worlds are read,
-     because either alone would pass on a build that had lost it. */
-  test('the editor door is drawn exactly once per card, never twice', async () => {
+     THE ⋯ IS RETIRED AND `rlCardMoreHtml` IS A STUB. What was really being
+     protected by the claims that stood here was never the menu's shape — it was
+     that the card offers every door exactly once, that the two doors onto a
+     clause's wording are decided by ONE reading, that nothing here decides
+     anything of its own, and that a stage which cannot open the edit page still
+     has a way into the panel. Every one of those is kept below and now reads
+     off the card's body. Only the claims about the menu's own furniture — its
+     header, its shut state, its rule between the groups, its listener — go with
+     the menu.
+     ================================================================ */
+  test('the menu is retired, and stubbed rather than deleted', () => {
+    /* This file's own convention for a builder whose feature has gone: it is
+       published and it had a caller, so a third caller must not be able to
+       bring the menu back through a door nobody remembered. */
+    assert.match(NEG_CODE, /function rlCardMoreHtml\([^)]*\)\{[\s\S]{0,2200}?return '';\n\}/,
+      'rlCardMoreHtml answers with nothing');
+    assert.equal(NEG_CODE.indexOf('rlFaceSplit(rvCancel'), -1,
+      'and the two-on-the-face split has no caller left');
+  });
+
+  test('no card draws a ⋯ any more, open or shut', async () => {
     const p = await bench();
-    const cards = p.$$('#rl-changes .rl-card-d');
-    assert.ok(cards.length, 'there are cards to read');
+    assert.equal(p.$('#rl-changes .rl-more-menu'), null, 'shut');
+    p.open(p.c.changes[0].id);
+    assert.equal(p.$('#rl-changes .rl-more-menu'), null, 'and open');
+  });
+
+  test('the editor door is drawn exactly once per open card, never twice', async () => {
+    /* THE CLAIM IS UNCHANGED and is still the stronger one: a card offering the
+       same page twice is the fault, and so is a card offering it not at all.
+       Both halves are read, because either alone would pass on a build that had
+       lost the door. */
+    const p = await bench();
     let seen = 0;
-    cards.forEach(card => {
+    for (const ch of p.c.changes){
+      const card = p.open(ch.id);
       const doors = card.querySelectorAll('[data-rl-cp-editor-row]');
       assert.ok(doors.length <= 1,
         'one clause, one way into the edit page — ' + doors.length + ' drawn');
-      if (doors.length) seen += 1;
-      if (doors.length) assert.equal(doors[0].getAttribute('data-rl-cp-editor-change'),
-        card.getAttribute('data-nego-card'), 'named for this change');
-    });
-    assert.ok(seen, 'and the door really is drawn — without this the check '
-      + 'above would pass on a build that had lost it altogether');
+      if (doors.length){
+        seen += 1;
+        assert.equal(doors[0].getAttribute('data-rl-cp-editor-change'), ch.id,
+          'named for this change');
+      }
+    }
+    assert.ok(seen, 'and the door really is drawn');
+  });
+
+  test('and it names Copilot, in Copilot\'s own colour', async () => {
+    /* On the row this verb had to be one short word; in the body there is room,
+       so the name and the violet come back rather than going with the menu. */
+    const p = await bench();
+    const card = p.open(p.c.changes.find(x => x.authorSide === 'counterparty').id);
+    const b = card.querySelector('[data-rl-cp-editor-row]');
+    assert.ok(b, 'the door is there');
+    assert.ok(b.textContent.includes(p.win.i18t('ng_cp_copilot')), 'and it says so');
+    assert.ok(b.classList.contains('rl-verb-ai'), 'wearing the Copilot class');
+    const i = NCSS.indexOf('.rl-card-verbs button.rl-verb-ai{');
+    assert.ok(i > -1, 'which the sheet dresses');
+    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /color:#6d28d9/, 'the Copilot violet');
+    assert.ok(NCSS.includes('html.dark .redline-page .rl-card-d .rl-card-verbs button.rl-verb-ai'),
+      'with a night answer');
   });
 
   test('our seat has no door onto the clause panel', async () => {
+    /* The second of the two doors the owner shut on 30 Aug. Unchanged. */
     const p = await bench();
-    assert.ok(!p.$('#rl-changes [data-rl-cp-open]'),
-      'the panel row is shut on our seat — the second of the two doors the '
-      + 'owner asked to be closed');
+    for (const ch of p.c.changes)
+      assert.ok(!p.open(ch.id).querySelector('[data-rl-cp-open]'),
+        'the panel is not offered where the edit page takes the clause');
   });
 
-  test('a stage without the edit page keeps the jump AND the panel', async () => {
-    /* THE THIRD QUESTION ceTakesIt ASKS, and the reason it asks for the module
-       by name rather than only about the width: the counterparty's seat and a
-       window too narrow for two columns land here too, and on both the panel is
-       the only way a clause is edited at all. Taking it away from them would
-       take the capability, which is precisely what the owner was told would not
-       happen. */
+  test('A STAGE WITHOUT THE EDIT PAGE KEEPS THE JUMP AND THE PANEL', async () => {
+    /* THE CAPABILITY THIS SECTION EXISTS FOR, and the one thing retiring the ⋯
+       could have taken away silently: on a window too narrow for the editor's
+       two columns, and on a stage that does not load the module, the clause
+       panel is the ONLY way a clause is edited. The row that carried it was the
+       menu's; it is a verb in the body now, on exactly the same condition. */
     const p = await bench({ noEditor: true });
-    const card = p.$$('#rl-changes .rl-card-d').find(el => el.querySelector('.rl-more-menu'));
-    assert.ok(card, 'the card carries a ⋯');
+    const card = p.open(p.c.changes.find(x => x.authorSide === 'counterparty').id);
     assert.ok(!card.querySelector('[data-rl-cp-editor-row]'),
       'no door onto a page this stage cannot open');
-    assert.ok(card.querySelector('[data-rl-edit]'),
-      'Edit is the jump again');
+    assert.ok(card.querySelector('[data-rl-edit]'), 'Edit is the jump again');
     assert.ok(card.querySelector('[data-rl-cp-open]'),
       'and the clause panel is back, because here it is the only way in');
   });
 
-  test('and our seat has no door onto the clause panel at all', () => {
-    /* The second of the two doors the owner shut. Their seat keeps it — the
-       editor refuses a counterparty outright, so the panel is the only way
-       their page has to propose wording. */
-    /* RE-POINTED 1 Sep 2026: this pinned the reading written out at its own
-       call site, and it was one of THREE hand-rolled copies — with the
-       [data-rl-edit] handler carrying none, which is how the panel came back.
-       The reading is named now; the claim is unchanged and section 9 owns the
-       naming. Pin the relation, not the expression. */
-    assert.match(NEG_CODE, /const ceDoor = rlEditorTakesIt\(side, \{ preview: st\.preview \}\);/,
-      'the row asks whether the editor can take this clause');
-    assert.match(NEG_CODE, /if \(panel && !ceDoor\)/,
-      'and draws only where it cannot');
+  test('the reading is named once, and the body asks it', () => {
+    /* Pin the relation, not the expression — the 1 Sep lesson, unchanged. */
+    assert.match(NEG_CODE, /if \(!ceTakesIt && opts\.cpPanel/,
+      'the body draws the panel door only where the editor cannot take the clause');
+    assert.match(NEG_CODE, /const ceTakesIt = rlEditorTakesIt\(side, \{ preview: previewSeat \}\);/,
+      'and the reading is the named one');
   });
 
-  test('Copilot is violet, and a rule groups the two doors from the two acts', () => {
-    /* The reference draws this row in the Copilot colour rather than the
-       workspace accent — the same violet .rl-btn-alt has carried since the
-       playbook pass — and groups the menu: the two ways INTO this change's
-       wording, then the two things you do about it. */
-    const i = NCSS.indexOf('.redline-page .rl-more-row.rl-more-lead{');
+  test('EVERY VERB IS AN EXISTING CONTROL, so the body decides nothing', async () => {
+    /* The menu's own rule, kept: this is a place things are DRAWN, never a
+       second path into the record. Every button in an open card carries an
+       attribute some existing handler already owns. */
+    const KNOWN = ['data-nego-accept', 'data-nego-reject', 'data-nego-undo',
+      'data-nego-redecide', 'data-nego-withdraw', 'data-rl-send', 'data-rl-sendcopy',
+      'data-rl-retract', 'data-rl-edit', 'data-rl-cp-editor-row', 'data-rl-cp-open',
+      'data-rl-ask-review', 'data-rv-cancel', 'data-rv-verdict', 'data-rl-reopen',
+      'data-rl-card-open', 'data-rl-np-room', 'data-rl-np-send', 'data-rl-note-more'];
+    const p = await bench();
+    for (const ch of p.c.changes)
+      for (const b of p.open(ch.id).querySelectorAll('button')){
+        const names = [...b.attributes].map(a => a.name);
+        assert.ok(names.some(n => KNOWN.includes(n)),
+          'every control is one the engine already owns — ' + names.join(','));
+      }
+  });
+
+  test('and the body files nothing of its own', () => {
+    /* The builder may compose what the card renderer handed it and read the
+       notes; it may not reach the record. */
+    const i = NEG_CODE.indexOf('function rlCardBodyHtml');
     assert.ok(i > -1);
-    const rule = NCSS.slice(i, NCSS.indexOf('}', i));
-    assert.ok(!/--accent/.test(rule), 'not the workspace accent');
-    assert.match(rule, /color:#6d28d9/, 'the Copilot violet');
-    assert.ok(NCSS.includes('html.dark .redline-page .rl-more-row.rl-more-lead'),
-      'with a night answer');
-    assert.ok(NCSS.includes('.redline-page .rl-more-row.rl-more-cut{'),
-      'and the group rule exists');
-  });
-
-  test('the rule is drawn on the row that OPENS the second group, never stray', async () => {
-    const p = await bench();
-    for (const menu of p.$$('#rl-changes .rl-more-menu')){
-      const rows = [...menu.querySelectorAll('.rl-more-row')];
-      const cuts = rows.filter(r => r.classList.contains('rl-more-cut'));
-      assert.ok(cuts.length <= 1, 'at most one rule per menu');
-      if (cuts.length) assert.notEqual(rows[0], cuts[0], 'never on the first row');
-    }
-  });
-
-  test('the menu names no change — the card under it does', async () => {
-    /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026: "remove the header from
-       the dropdown") ----
-       This asserted the opposite: a .rl-more-head naming the change, on the
-       reasoning that "one menu floating over a column of six cards has to say
-       which". TWO THINGS RETIRED THAT ARGUMENT. The menu opens hard against
-       the ⋯ it was pressed on, ON the card, whose id and clause name are a few
-       centimetres to the left and still on screen — so the head repeated two
-       facts already under the reader's eye, in shouting micro-caps. And the
-       same press now lights that card and scrolls the paper to its clause, so
-       which row the menu belongs to is the most conspicuous thing on the page.
-       WHAT IS STILL GUARDED: the change is still NAMED to somebody who cannot
-       see any of that. A screen reader gets it from the button's own
-       accessible name, and this is the assertion that stops that being lost
-       along with the visible head. */
-    const p = await bench();
-    const card = p.$('#rl-changes .rl-card-d');
-    assert.equal(card.querySelector('.rl-more-head'), null,
-      'the head is gone — a selector nothing emits is a mention, so its rule went too');
-    const btn = card.querySelector('.rl-more-btn');
-    assert.ok(btn, 'the ⋯ is still there');
-    assert.ok((btn.getAttribute('aria-label') || '').includes(card.getAttribute('data-nego-card')),
-      'and it still names its change to a reader who cannot see the card');
-  });
-
-  test('it opens SHUT, and the button says so', async () => {
-    const p = await bench();
-    const card = p.$('#rl-changes .rl-card-d');
-    assert.ok(card.querySelector('.rl-more-menu').hasAttribute('hidden'));
-    assert.equal(card.querySelector('.rl-more-btn').getAttribute('aria-expanded'), 'false');
-    assert.equal(card.querySelector('.rl-more-btn').getAttribute('aria-haspopup'), 'true');
-  });
-
-  test('every row is an EXISTING control, so the menu decides nothing', () => {
-    /* The Copilot band's own rule: a second decision path is how two doors
-       come to disagree about what a press costs. Each row carries an attribute
-       the page already handles — the clause editor's, the clause panel's, the
-       review ask's, the jump's — and the menu's own wiring binds ONLY its
-       fold. */
-    const i = NEG_CODE.indexOf('function rlCardMoreHtml');
-    assert.ok(i > -1);
-    const body = NEG_CODE.slice(i, NEG_CODE.indexOf('\n}', i));
-    for (const attr of ['data-rl-cp-editor-row', 'data-rl-cp-open',
-                        'data-rl-ask-review', 'data-rl-edit'])
-      assert.ok(body.includes(attr), `the menu offers ${attr}`);
-    for (const bad of ['negoResolve', 'negoFileChange', 'persist(', 'logAudit'])
-      assert.ok(!body.includes(bad), `the menu never calls ${bad} itself`);
-  });
-
-  test('and it never repeats a verb the face already carries', async () => {
-    /* Edit is data-rl-edit and it is on the face of almost every card that has
-       verbs at all. A "Jump to the clause" row beside it is the same
-       attribute, the same handler and the same act, twelve pixels apart. */
-    const p = await bench();
-    for (const card of p.$$('#rl-changes .rl-card-d')){
-      const onFace = !!card.querySelector('.rl-card-verbs [data-rl-edit]');
-      const inMenu = !!card.querySelector('.rl-more-menu [data-rl-edit]');
-      assert.ok(!(onFace && inMenu), 'the jump is offered once per card');
-    }
-  });
-
-  test('the menu is wired ONCE, at module load, in the capture phase', () => {
-    /* The 15 Aug lesson: a listener armed inside a renderer belongs to
-       whichever page rendered first, and the counterparty's mount never calls
-       renderRedline at all. Column 0 in the source, never indented inside a
-       function. */
-    assert.match(NEG, /^if \(typeof document !== 'undefined' && !document\._rlMoreWired\)\{$/m,
-      'armed at module scope — column 0, not indented inside a renderer');
-    const i = NEG.indexOf('document._rlMoreWired');
-    const block = NEG.slice(i, NEG.indexOf("document.addEventListener('keydown'", i));
-    assert.match(block, /addEventListener\('click'/, 'it listens for a press');
-    assert.match(block, /\}, true\);/,
-      'and in the capture phase, like the clause panel\'s own door');
+    const fn = NEG_CODE.slice(i, NEG_CODE.indexOf('\nfunction ', i + 10));
+    for (const bad of ['negoFileChange', 'negoResolve', 'persist(', 'logAudit', 'changes.push'])
+      assert.ok(!fn.includes(bad), 'the body builder must not reach ' + bad);
   });
 });
 
-/* ====================================================== 6 — THE OTHER SEAT */
 describe('f246 (6) — the counterparty\'s column is untouched', () => {
   test('their embed draws no bands and keeps the shapes it had', async () => {
     const p = await bench();
@@ -965,15 +958,30 @@ describe('f246 (9) — one reading, four askers', () => {
        disagree, and that disagreement is exactly what the owner photographed. */
     assert.equal((NEG_CODE.match(/typeof window\.rlOpenClauseEditor === 'function'/g) || []).length, 0,
       'no hand-rolled copy of the reading survives');
-    assert.ok((NEG_CODE.match(/rlEditorTakesIt\(/g) || []).length >= 5,
-      'the definition plus its four askers');
+    /* RE-POINTED 2 Sep 2026: the ⋯ was one of the askers and has gone, so the
+       count is the definition plus the three that remain — the paper's pencil,
+       the card, and the [data-rl-edit] handler. The CLAIM is unchanged: every
+       one of them ASKS rather than working it out again. */
+    assert.ok((NEG_CODE.match(/rlEditorTakesIt\(/g) || []).length >= 4,
+      'the definition plus its askers');
   });
 
-  test('the jump row is for a card with NO way into its clause on its face', () => {
-    const menu = NEG_CODE.match(/function rlCardMoreHtml[\s\S]*?\n\}\n/)[0];
-    assert.match(menu, /!\/data-rl-edit=\|data-rl-cp-editor-row=\/\.test\(carried\)/,
-      'BOTH doors — the counterparty\'s Edit and ours — or it draws the same '
-      + 'act twice, twelve pixels apart');
+  /* ---- REVERSED IN PLACE, 2 Sep 2026 ----
+     This pinned the ⋯ menu's guard against drawing a jump row beside a face
+     that already had one. The menu has gone and the card carries every door
+     exactly once by construction — there is no second list to keep in step —
+     so what the guard was protecting is now asserted directly: one door per
+     card, on the open card, in section 5. This keeps the OTHER half of the
+     claim, which is still a live rule: the two doors are mutually exclusive. */
+  test('a card offers ONE way into its clause, never both', async () => {
+    const p = await bench();
+    for (const ch of p.c.changes){
+      const card = p.open(ch.id);
+      const editor = card.querySelectorAll('[data-rl-cp-editor-row]').length;
+      const jump = card.querySelectorAll('[data-rl-edit]').length;
+      assert.ok(!(editor && jump),
+        'the same act drawn twice is the fault the menu\'s guard existed for');
+    }
   });
 
   test('on our seat the press is a jump and nothing more', () => {
@@ -996,24 +1004,31 @@ describe('f246 (9) — one reading, four askers', () => {
   });
 
   test('DRIVEN: our seat draws no door onto the clause panel at all', async () => {
+    /* RE-POINTED 2 Sep 2026: a card's doors are inside it now, so this opens
+       each one rather than reading closed faces — which would pass on a build
+       that had lost every door. */
     const p = await bench();
-    const panels = p.$$('[data-rl-cp-open]');
-    assert.equal(panels.length, 0,
-      `our seat offers ${panels.length} doors onto the retired panel`);
-    /* AND THE ⋯ ROW THAT CARRIED IT IS NOT DRAWN EITHER, on a card whose face
-       has an Edit — which is the shape the owner met. */
-    const withEdit = p.$$('.rl-card').filter(el => el.querySelector('[data-rl-cp-editor-row]'));
-    assert.ok(withEdit.length, 'the fixture really does draw an Edit on a face');
-    for (const card of withEdit)
-      assert.equal(card.querySelectorAll('[data-rl-edit]').length, 0,
-        'a card with the edit page on its face draws no jump row beside it');
+    let seen = 0;
+    for (const ch of p.c.changes){
+      const card = p.open(ch.id);
+      assert.equal(card.querySelectorAll('[data-rl-cp-open]').length, 0,
+        'our seat offers no door onto the retired panel');
+      seen += card.querySelectorAll('[data-rl-cp-editor-row]').length;
+    }
+    assert.ok(seen, 'the fixture really does draw the edit page\'s door');
   });
 
   test('DRIVEN: a stage without the editor keeps the panel, and its jump', async () => {
     const p = await bench({ noEditor: true });
-    assert.ok(p.$$('[data-rl-edit]').length,
-      'the jump is back where the edit page cannot take the clause');
-    assert.equal(p.$$('[data-rl-cp-editor-row]').length, 0,
-      'and nothing claims a page nothing can open');
+    let jump = 0, editor = 0, panel = 0;
+    for (const ch of p.c.changes){
+      const card = p.open(ch.id);
+      jump += card.querySelectorAll('[data-rl-edit]').length;
+      editor += card.querySelectorAll('[data-rl-cp-editor-row]').length;
+      panel += card.querySelectorAll('[data-rl-cp-open]').length;
+    }
+    assert.ok(jump, 'the jump is back where the edit page cannot take the clause');
+    assert.ok(panel, 'and so is the panel — here it is the only way in');
+    assert.equal(editor, 0, 'nothing claims a page nothing can open');
   });
 });

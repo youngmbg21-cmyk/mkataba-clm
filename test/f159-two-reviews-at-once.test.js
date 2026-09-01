@@ -34,6 +34,14 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
@@ -259,7 +267,7 @@ describe('f159 · escalating while reading', () => {
   test('each of our unsent cards carries its own ask', async () => {
     const w = world({ negotiationView: true, contractView: true });
     const { c, five, ten } = await reading(w.win);
-    const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(w.win, c, { side: 'owner' });
     assert.match(html, new RegExp('data-rl-ask-review="' + five.id + '"'));
     assert.match(html, new RegExp('data-rl-ask-review="' + ten.id + '"'));
   });
@@ -268,7 +276,7 @@ describe('f159 · escalating while reading', () => {
     const w = world({ negotiationView: true, contractView: true });
     const { c, five, ten } = await reading(w.win);
     w.win.reviewAsk(c, { reviewer: SALES, ids: [five.id] });
-    const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(w.win, c, { side: 'owner' });
     assert.ok(!new RegExp('data-rl-ask-review="' + five.id + '"').test(html),
       'sales already has it');
     assert.match(html, new RegExp('data-rl-ask-review="' + ten.id + '"'),
@@ -278,7 +286,7 @@ describe('f159 · escalating while reading', () => {
   test('the counterparty is never offered one', async () => {
     const w = world({ negotiationView: true, contractView: true });
     const { c } = await reading(w.win);
-    const asThem = w.win.redlineChangeCardsHtml(c, { side: 'counterparty', readonly: true, hiddenIds: [] });
+    const asThem = openedCards(w.win, c, { side: 'counterparty', readonly: true, hiddenIds: [] });
     assert.ok(!/data-rl-ask-review/.test(asThem),
       'a review is internal — they have no colleagues here');
   });

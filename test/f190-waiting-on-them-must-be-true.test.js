@@ -27,6 +27,14 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
@@ -172,7 +180,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', LIVE);
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     const one = card(html, ch.id);
     assert.equal(stands(html), 'refused', 'one heading, and it says refused');
     assert.equal(stateOf(one), null, 'and the row does not repeat it');
@@ -184,7 +192,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', DEAD);
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     const one = card(html, ch.id);
     /* THE STATE IS NOT DOUBLED. Refused is still where this change stands;
        what changes is the sentence beside it and the hover on it. */
@@ -201,7 +209,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', DEAD);
-    const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
+    const one = card(openedCards(win, c, { side: 'owner' }), ch.id);
     assert.match(one, /data-rl-sendcopy/, 'the verb is on the card');
     assert.match(one, /Send a copy/);
     /* In the ACTS GROUP, which is a sibling of the text block — a verb is
@@ -217,7 +225,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'unknown', []);
-    const one = card(win.redlineChangeCardsHtml(c, { side: 'owner' }), ch.id);
+    const one = card(openedCards(win, c, { side: 'owner' }), ch.id);
     assert.match(one, /waiting on them/i, 'the old wording stands where we do not know');
     assert.ok(!/data-rl-sendcopy/.test(one), 'and nothing is offered');
   });
@@ -229,7 +237,7 @@ describe('f190 (3) — the card stops claiming a wait it cannot verify', () => {
     const { win } = world();
     const { c, ch } = await refusedAskOfTheirs(win);
     reach(win, 'known', DEAD);
-    const one = card(win.redlineChangeCardsHtml(c,
+    const one = card(openedCards(win, c,
       { side: 'counterparty', hiddenIds: [], org: 'Wanjiru Catering Ltd' }), ch.id);
     assert.match(one, /withdraw the ask or revise the wording/i, 'their move, unchanged');
     assert.ok(!/holds no live copy/.test(one), 'and none of our reading of our own links');

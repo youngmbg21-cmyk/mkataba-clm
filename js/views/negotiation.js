@@ -5012,7 +5012,7 @@ async function negoConfirmCloseRound(c){
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
 const negoIsRedeciding = id => !!_negoRedeciding[id];
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlRead = 'marks'; _rlCardFilter = 'all'; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlRead = 'marks'; _rlCardFilter = 'all'; _rlCardOpen = null; negoSetComparePair('baseline', 'working'); }
 
 /* ---------- WHOSE ASKS AM I LOOKING AT ----------
    Asked for by name (Young, 10 Aug 2026): the column's strip "should also
@@ -5563,7 +5563,6 @@ function rlPlanBandHtml(){
      attributes and pressed the ordinary funnel. */
   return '';
 }
-
 /* Per sitting, in memory — a working posture, not a setting, and shut on
    arrival so the column opens on the cards themselves. */
 let _rlPlanOpen = false;
@@ -8730,10 +8729,26 @@ let _rlPinnedFor = null;
    it required a change to exist on the clause first, so the commonest moment
    to want one was the moment it refused. Reasons live on the change now. The
    Discussion panel still writes notes, internal ones included. */
+/* ---------- WHICH CARD IS OPEN (owner-ruled 2 Sep 2026) ----------
+   *"What if the cards only had Open instead of edit, accepted etc. You then
+   click open and the cards only expands and gives you all the options that are
+   hidden in the dropdown including the comments for the card."*
+
+   ONE AT A TIME, which is this page's own rule for every other thing that
+   opens in place — the ask reveal and the clause panel both keep a single id —
+   and for the same reason: a column of expanded cards is the wall of cards the
+   piles were built to answer. Per SITTING and in memory, like both of those:
+   a remembered open card would arrive expanded a week later with nothing on
+   screen saying why. */
+let _rlCardOpen = null;
+const rlCardOpenId = () => _rlCardOpen;
+function rlCardSetOpen(id){ _rlCardOpen = id ? String(id) : null; }
 function rlCardForgetPins(contractId){
   const id = String(contractId == null ? '' : contractId);
   if (_rlPinnedFor === id) return;
   _rlPinnedFor = id;
+  /* A card cannot arrive open on a change belonging to another contract. */
+  rlCardSetOpen(null);
   /* The clause panel cannot arrive open on a clause this reader has never
      seen. (It would shut itself anyway — a fresh contract's clause ids match
      no body — but "shut on arrival" is this feature's own stated rule and is
@@ -8943,6 +8958,62 @@ function rlWireClauseTools(c, host, opts){
      press remains the old jump — a door must not open onto nothing.
      Stopped from bubbling because the card itself links on click, and that
      would scroll the column back over the jump. */
+  /* ---- OPEN, AND WHAT IS INSIDE IT (owner-ruled 2 Sep 2026) ----
+     The row's one control. It toggles which card is open and repaints from the
+     press — `rlRepaintFrom` BARE, because it is this module's own name and a
+     `window.` guard on it is always false (the fault this file records twice).
+
+     STOPPED FROM BUBBLING, like every other button on a card: the row itself
+     navigates to the clause, and a press meant to open the card must not also
+     scroll the column out from under the hand that pressed it. It DOES light
+     the clause first, so opening a card still shows you what it is about —
+     rlLinkFocus, the row's own act, never a second implementation. */
+  host.querySelectorAll('[data-rl-card-open]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const id = btn.getAttribute('data-rl-card-open');
+    const opening = rlCardOpenId() !== String(id);
+    rlCardSetOpen(opening ? id : null);
+    if (opening){
+      const ch = (negoChanges(c) || []).find(x => x && String(x.id) === String(id));
+      if (ch && ch.clauseId) rlLinkFocus(c, id, 'card');
+    }
+    rlRepaintFrom(btn);
+  }));
+  /* ---- THE COMMENTS INSIDE THE CARD ----
+     The drawer's own two acts, on the card's copy of its markup: rlNpSetRoom
+     for the room and rlNotesSend for the writing. Both are the SAME functions
+     the Notes drawer presses, so a note written here is written the way every
+     other note in this product is written — one reading of which room it is
+     in, one writer, one confirm before anything crosses to the other side.
+     rlNotesSend resolves its box from the host it is given, which is why the
+     card's composer needs no id and cannot collide with the drawer's. */
+  host.querySelectorAll('.rl-cb-notes [data-rl-np-room]').forEach(b =>
+    b.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      rlNpSetRoom(b.getAttribute('data-rl-np-room'));
+      rlRepaintFrom(b);
+    }));
+  host.querySelectorAll('.rl-cb-notes').forEach(box => {
+    const id = box.getAttribute('data-rl-np');
+    const ch = (negoChanges(c) || []).find(x => x && String(x.id) === String(id));
+    if (!ch) return;
+    const send = box.querySelector('[data-rl-np-send]');
+    const post = async () => {
+      const ok = await rlNotesSend(box, c, ch, opts, send && send.getAttribute('data-room'));
+      if (ok !== false) rlRepaintFrom(box);
+    };
+    if (send) send.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation(); post();
+    });
+    const field = box.querySelector('.rl-np-in');
+    if (field){
+      field.addEventListener('click', ev => ev.stopPropagation());
+      field.addEventListener('keydown', ev => {
+        if (window.chatFieldSubmits
+          ? chatFieldSubmits(ev) : (ev.key === 'Enter' && (ev.preventDefault(), true))) post();
+      });
+    }
+  });
   host.querySelectorAll('[data-rl-edit]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const clauseId = btn.getAttribute('data-rl-edit');
@@ -10462,9 +10533,11 @@ function rlMoreWithIcon(html){
   if (!hit) return s;
   return s.replace(/(<button\b[^>]*>)/, `$1${rlMoreIcon(hit[1])}`);
 }
-/* The count on a row's face. Its own builder because two surfaces draw it —
-   this row and the ⋯ menu — and a number written twice is a number that comes
-   to disagree. Silent at zero. */
+/* The count on a row's face. Its own builder because more than one surface
+   draws this number — the row, the card's own notes drawer once Open is
+   pressed, and the drawer in the shell — and a number written twice is a
+   number that comes to disagree; all of them ask negoNoteCounts. Silent at
+   zero. */
 function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
   if (typeof negoNoteCounts !== 'function') return '';
   const n = negoNoteCounts(c, ch, opts, side);
@@ -10473,6 +10546,95 @@ function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
     title="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
     aria-label="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
     ><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chat"/></svg><b>${n.total}</b></button>`;
+}
+/* ---------- WHAT OPEN REVEALS (owner-ruled 2 Sep 2026) ----------
+
+   The card's face carries ONE control and this is everything behind it: the
+   wording being proposed, why it was asked for, every verb — including the
+   four that lived in the ⋯ — and the change's own comments.
+
+   IT BUILDS NOTHING OF ITS OWN. The wording is rlChangeWordingHtml, the one
+   builder the ask reveal and the clause panel already share; the verbs arrive
+   finished from the caller, which is where every seat, desk and review rule
+   that decides them lives; the notes are the drawer's own reading. A second
+   copy of any of the three is how two surfaces come to disagree about one
+   change, which is the fault this file opens by warning about.
+
+   THE EXPLANATORY STRIPS COME WITH THE VERBS rather than staying on the face,
+   and that keeps a standing rule rather than breaking one: an action bar with
+   a hole in it and the explanation elsewhere is worse than either, so the two
+   sentences that account for a MISSING verb — the desk's "instead" and the
+   review hold's "what now" — sit with the bar they explain. */
+function rlCardBodyHtml(c, ch, opts, side, st){
+  const wording = (typeof rlChangeWordingHtml === 'function') ? rlChangeWordingHtml(ch) : '';
+  const mine = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner') ? false : true;
+  const settled = st.settled;
+  /* WHAT THE BLOCK IS CALLED depends on whose ask it is and whether it is
+     still one. A settled change is a record, and "what they are asking for"
+     over something nobody is asking for any more is the card stating
+     something untrue about the round. */
+  const lead = settled
+    ? i18t(ch.status === 'accepted' ? 'ng_card_was_agreed' : 'ng_card_was_asked')
+    : i18t(mine ? 'ng_card_you_propose' : 'ng_card_they_ask');
+  const bits = [];
+  if (wording) bits.push(`<div class="rl-cb-blk"><p class="rl-cb-k">${lead}</p>
+    <div class="rl-cb-q">${wording}</div></div>`);
+  if (st.info) bits.push(`<div class="rl-cb-blk rl-card-info">${st.info}</div>`);
+  if (st.actions) bits.push(`<div class="rl-cb-acts">${st.actions}</div>`);
+  /* THE COMMENTS, IN THE TWO ROOMS THEY ALREADY LIVE IN. The drawer's own
+     builder, so a note reads the same here as it does in Chat and the wall
+     between internal and external is the one negoRoomNotes keeps. */
+  if (typeof rlCardNotesHtml === 'function'){
+    const notes = rlCardNotesHtml(c, ch, opts, side);
+    if (notes) bits.push(notes);
+  }
+  return bits.length ? `<div class="rl-cb">${bits.join('')}</div>` : '';
+}
+/* THE NOTES INSIDE A CARD. rlNotesPanelHtml's own list, tabs and composer,
+   minus the header naming the change — the card above it is that header — and
+   with a composer that carries no `nego-ti-` id: that id belongs to the room's
+   own reply box and the drawer's, and a third element answering to it is the
+   duplicate-composer fault this file records ("a copy is a reply box that
+   posts nothing"). rlNotesSend resolves its box from the HOST it is given, so
+   the send needs no id at all. */
+function rlCardNotesHtml(c, ch, opts = {}, side = 'owner'){
+  if (!c || !ch) return '';
+  const tabbed = side === 'owner';
+  const room = tabbed ? rlNpRoom() : 'external';
+  const them = c.counterparty || i18t('ng_the_counterparty');
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
+  const other = side === 'counterparty' ? us : them;
+  const notes = negoRoomNotes(c, ch, room, opts, side);
+  const n = negoNoteCounts(c, ch, opts, side);
+  const ext = room === 'external';
+  const tabs = tabbed ? `<div class="rl-np-tabs" role="tablist">
+      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
+        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
+        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
+        r === 'external' ? n.external : n.internal})</i></button>`).join('')}
+    </div>` : '';
+  const who = ext ? i18t('ng_np_who_ext', { who: _ne(other) })
+    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
+  const list = notes.length
+    ? notes.map(m => rlNpNoteHtml(m, room, side, other)).join('')
+    : `<p class="rl-cb-none">${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</p>`;
+  const foot = notesMayWrite(c, opts)
+    ? `<div class="rl-np-foot${ext ? ' out' : ''}">
+        <textarea class="chat-field rl-np-in" rows="2"
+          placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'))}"
+          aria-label="${_nea(i18t('ng_start_thread_aria', { id: ch.id }))}"></textarea>
+        <div class="rl-np-act">
+          <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
+            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+        </div>
+      </div>`
+    : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
+  return `<div class="rl-cb-notes rl-np" data-rl-np="${_nea(ch.id)}">
+    ${tabs}
+    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    <div class="rl-cb-list">${list}</div>
+    ${foot}
+  </div>`;
 }
 /* ---- WHERE A CLAUSE IS EDITED, DECIDED ONCE (owner-reported 1 Sep 2026) ----
 
@@ -10502,158 +10664,27 @@ function rlEditorTakesIt(side, opts = {}){
   return typeof window.clauseEditorFits !== 'function' || clauseEditorFits();
 }
 function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
-  const rows = [];
-  /* EVERY FLAG IS THE CARD'S OWN, handed in rather than worked out again here:
-     `editable`, `mineUnsent`, `rvOut` and `rvHeld` are read once per card in
-     redlineChangeCardsHtml and are what its buttons are drawn from, so a menu
-     that re-derived them would be a second reading waiting to disagree with
-     the row it belongs to. */
-  const editable = !!st.editable;
-  const own = side === 'owner' && !st.preview;
-  const panel = !!(opts.cpPanel && ch.clauseId && ch.changeType !== 'insertClause');
-  /* THE EDITOR'S OWN ROW, and it never repeats the face. Since 30 Aug the
-     card's Edit IS this act on our seat, so on any card carrying one this row
-     would be the same door drawn twice twelve pixels apart — the rule this menu
-     states in its own words below. It survives for the cards whose face is bare
-     (a decided ask, a withdrawn one), which is exactly what that rule keeps it
-     for. `carried` is read further down, so the test is made here against the
-     same string. */
-  const _carriedNow = String(st.faceVerbs || '') + (st.overflow || []).join('');
-  if (own && editable && panel && typeof window !== 'undefined' && window.rlOpenClauseEditor
-      && !/data-rl-cp-editor-row=/.test(_carriedNow))
-    rows.push(`<button type="button" class="rl-more-row rl-more-lead"
-      data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
-      >${i18t('ng_cp_copilot')}</button>`);
-  /* ---- OUR SEAT HAS NO DOOR ONTO THE CLAUSE PANEL (owner-ruled 30 Aug 2026) ----
-     "shut the two doors that put it in front of me." This was the second of
-     them. On our seat, at a usable width, the panel is not where a clause is
-     edited any more — the edit page is, and the pencil, the card's Edit and the
-     row above all go there. A row offering the panel besides is the second door
-     onto one act that this codebase's own rule refuses.
+  /* ---- RETIRED 2 Sep 2026, WITH THE FACE THAT NEEDED IT ----
+     The owner's ruling: *"the cards only had Open instead of edit, accepted
+     etc. You then click open and the cards only expands and gives you all the
+     options that are hidden in the dropdown."* Everything this menu held is in
+     the expanded card now, and the row it hung off carries one control.
 
-     THEIR SEAT KEEPS IT, AND THAT IS A CAPABILITY RATHER THAN AN OVERSIGHT:
-     rlOpenClauseEditor refuses a counterparty outright, so the panel is the
-     ONLY way their page has to propose wording. The same is true of a window
-     too narrow for the editor's two columns, and of a stage that does not load
-     the module at all — `ceTakesIt` in the card renderer asks exactly those
-     three questions, and this asks the same one from the other side.
+     A STUB RATHER THAN A DELETION, this file's own convention for a builder
+     whose feature has gone: it is published and it had a caller, so a third
+     caller must not be able to bring the menu back through a door nobody
+     remembered. `RL_MORE_ICONS`, `rlMoreIcon`, `rlMoreWithIcon`, `rlMorePlace`,
+     `RL_FACE_RANK`, `RL_FACE_MAX`, `rlFaceRank` and `rlFaceSplit` are STALE
+     with it — flag any mention.
 
-     NOTHING IS LOST ON OUR SEAT. What the panel held that nothing else did was
-     the way back from a decision already accepted, and that moved onto the
-     accepted change's own card BEFORE this row was shut — see the branch in
-     redlineChangeCardsHtml, which says why it could only move once the piles of
-     26 Aug gave a settled change a card to carry it. */
-  const ceDoor = rlEditorTakesIt(side, { preview: st.preview });
-  if (panel && !ceDoor)
-    rows.push(`<button type="button" class="rl-more-row"
-      data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
-  /* ---- THE DOOR ONTO THE NOTES PANEL (owner-asked 27 Aug 2026) ----
-     Every change carries it, whether or not anything has been said: the count
-     rides the row's own face where there is one, and this is the way in where
-     there is not. A door, not a verb — it decides nothing and files nothing —
-     so it sits with the other doors, above the rule. The count is
-     negoNoteCounts, the same arithmetic the panel's tabs print. */
-  const _npN = (typeof negoNoteCounts === 'function')
-    ? negoNoteCounts(c, ch, opts, side) : { total: 0 };
-  rows.push(`<button type="button" class="rl-more-row"
-    data-rl-notes="${_nea(ch.id)}">${i18t('ng_card_notes')}${
-    _npN.total ? `<span class="ct">${_npN.total}</span>` : ''}</button>`);
-  /* The card's own ask condition, character for character: our seat, our unsent
-     draft, no review already out or held on it, and a seat that shows reviews
-     at all. */
-  const cut = rows.length ? ' rl-more-cut' : '';
-  /* ---- AND IT NEVER REPEATS A VERB THE OVERFLOW CARRIES EITHER ----
-     This row and the card's own Review button were drawn on the SAME condition,
-     so before the face was capped they appeared TOGETHER on every unsent draft:
-     the same act, twelve pixels apart, in a menu whose own rule two paragraphs
-     down forbids exactly that. It was invisible because the guard below tests
-     only for Edit. Now that the capped verbs arrive here as `overflow`, the one
-     test covers both — the face and the overflow are the same pool. */
-  const carried = String(st.faceVerbs || '') + (st.overflow || []).join('');
-  if (own && editable && st.mineUnsent && !st.rvOut && !st.rvHeld
-      && !/data-rl-ask-review/.test(carried)
-      && window.openReviewAskModal && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
-    rows.push(`<button type="button" class="rl-more-row${cut}"
-      data-rl-ask-review="${_nea(ch.id)}">${i18t('rv_card_ask')}</button>`);
-  /* THE MENU NEVER REPEATS A VERB THE FACE ALREADY CARRIES. Edit is
-     data-rl-edit — it lights the clause on the paper and opens the panel on it
-     — and it is on the face of almost every card that has any verbs at all. A
-     "Jump to the clause" row beside it is the same attribute, the same
-     handler and the same act, drawn twice twelve pixels apart. So the row is
-     for the cards that have NO Edit: a decided ask, a withdrawn one, anything
-     whose face is bare. `faceVerbs` is the card's own finished verb markup,
-     handed in — the same string the receipt rule reads — so the two cannot
-     come to disagree about what is on the face. */
-  /* ---- AND IT READS BOTH DOORS (owner-reported 1 Sep 2026) ----
-     It tested for `data-rl-edit=` alone, which was the card's Edit until 30
-     Aug and is now only the COUNTERPARTY's. On our seat the face carries
-     `data-rl-cp-editor-row`, so this saw a bare face where there was an Edit
-     and drew the row on almost every card — and its handler opens the clause
-     panel, which is how the retired panel came back in front of the owner.
-     The claim was never about an attribute: it is that this row is for a card
-     with NO way into its clause on its face. */
-  if (ch.clauseId && !/data-rl-edit=|data-rl-cp-editor-row=/.test(carried))
-    rows.push(`<button type="button" class="rl-more-row${
-      rows.some(r => r.includes('data-rl-ask-review')) ? '' : cut}"
-      data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
-      >${i18t('ng_row_jump')}</button>`);
-  /* ---- THE CARD'S OWN VERBS COME FIRST (owner-asked 25 Aug 2026) ----
-     What the face could not hold arrives here as finished buttons — the SAME
-     markup, the same attributes, the same per-paint handlers. Nothing is
-     rebuilt, so a verb cannot mean one thing on the face and another in the
-     menu; they are laid out as menu rows by .rl-more-verbs and keep their own
-     ink, because Reject red and Send green are how this column has always said
-     which way a press goes. */
-  const over = (st.overflow || []).filter(Boolean);
-  /* ---- EVERY ROW CARRIES A ⋯, INCLUDING THE ONES WITH NOTHING SPARE
-         (owner-asked 26 Aug 2026) ----
-     This returned nothing at all when the menu had no rows to draw, and the
-     shape that hits it is real and was photographed: a clause we PROPOSED and
-     have SENT. It is an insertClause, so `panel` is false and neither Copilot
-     nor the clause panel offers a row; it has gone, so there is no review to
-     ask for; and its two verbs fit on the face, so nothing overflows. The
-     reader gets a column where one row in six has no menu — and a control that
-     is present on every row but one reads as a rendering fault, not as a rule.
-
-     THE FALLBACK IS THE JUMP, and it is the one row that is always available
-     because it needs nothing but a clause id. It duplicates the face's Edit,
-     which the guard above exists to prevent — and that guard is kept for every
-     menu that has anything else in it. This is the narrow case where the
-     alternative is no menu at all, and a duplicated act is the cheaper fault
-     of the two. A change with no clause id at all still draws none: there is
-     genuinely nothing to put in it. */
-  if (!rows.length && !over.length && ch.clauseId)
-    rows.push(`<button type="button" class="rl-more-row"
-      data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
-      >${i18t('ng_row_jump')}</button>`);
-  if (!rows.length && !over.length) return '';
-  /* ---- THE HEAD IS GONE (owner-asked 26 Aug 2026) ----
-     It named the change — "CHG-001 · PAYMENT TERMS" — on the reasoning that a
-     menu floating over a column of six cards has to say which one it belongs
-     to. TWO THINGS KILLED THAT ARGUMENT. The menu opens hard against the ⋯ it
-     was pressed on, ON the card, whose own id and clause name are three
-     centimetres to the left and still on screen — so the head repeated, in
-     shouting micro-caps, the two facts already under the reader's eye. And
-     since the same press now lights that card and scrolls the paper to its
-     clause (see the ⋯ handler), which card this menu belongs to is the most
-     conspicuous thing on the page.
-     THE NAME IS NOT LOST: the ⋯ button's own aria-label still carries the
-     change id, so a screen reader is told which row it has opened. */
-  return `<div class="rl-more">
-    <button type="button" class="rl-more-btn" data-rl-more="${_nea(ch.id)}"
-      aria-haspopup="true" aria-expanded="false"
-      title="${_nea(i18t('ng_row_more_title'))}"
-      aria-label="${_nea(i18t('ng_row_more_title'))} ${_nea(ch.id)}">&#8943;</button>
-    <div class="rl-more-menu" id="rl-more-${_nea(ch.id)}" role="menu" hidden>
-      ${''/* MAIN'S HEAD REMOVAL AND THIS BRANCH'S SYMBOLS ARE THE SAME DAY'S
-             WORK ON ONE MENU, and they do not argue: the head went because it
-             repeated the card three centimetres away, and every row carries a
-             mark because the menu read as two kinds of row. Both kept. */}
-      ${over.length ? `<div class="rl-more-verbs">${over.map(rlMoreWithIcon).join('')}</div>` : ''}
-      ${rows.map(rlMoreWithIcon).join('')}
-    </div>
-  </div>`;
+     "GO TO CLAUSE" IS NOT LOST AND IS NOT MOVED: it went because pressing the
+     ROW already does it (rlLinkFocus, on the head, since the row was built),
+     which is the owner's own reason — *"simply clicking on the card already
+     takes you to the Clause."* A menu row for an act the whole card performs
+     is the second door this rulebook refuses. */
+  return '';
 }
+
 /* ---------- WHICH BAND A CHANGE SITS IN (owner-asked 25 Aug 2026) ----------
    The design groups the column under headings, each with its own count,
    instead of one run of cards in rank order. The bands are the QUESTIONS a
@@ -13177,9 +13208,29 @@ function redlineChangeCardsHtml(c, opts = {}){
        their page has to propose wording. Same button, same class, same place —
        only where it lands differs, and only on our seat. */
     if (editable && !heldHere){
+      /* ---- AND WHERE THE EDIT PAGE CANNOT TAKE THE CLAUSE, THE PANEL IS THE
+             WAY IN (2 Sep 2026) ----
+         This row used to be the ⋯ menu's, drawn on exactly this condition, and
+         the menu has gone. It could not go with it: on a window too narrow for
+         the editor's two columns, and on a stage that does not load the module
+         at all, the clause panel is the ONLY way a clause is edited — the same
+         capability the counterparty's seat keeps for the same reason. A door
+         removed with the drawer it happened to live in would take that away
+         silently, which is the one thing this rebuild must not do.
+         `rlEditorTakesIt` is the one reading and both branches ask it. */
+      if (!ceTakesIt && opts.cpPanel && ch.clauseId && ch.changeType !== 'insertClause')
+        verbs.push(`<button type="button" class="rl-edit" data-rl-cp-open="${_nea(ch.clauseId)}"
+          title="${_nea(i18t('ng_row_open_title'))}">${i18t('ng_row_open_panel')}</button>`);
+      /* ---- AND IT NAMES COPILOT, IN COPILOT'S OWN COLOUR (2 Sep 2026) ----
+         On the row this verb had to be one short word — a card's face has room
+         for two — and the ⋯ named it in full in the violet this product uses
+         for Copilot. In the body there is room, so the name and the colour come
+         back rather than being lost with the menu: "Edit" alone said nothing
+         about which of the two editors it opened, and the violet is how every
+         other Copilot control in this product marks itself. */
       verbs.push(ceTakesIt
-        ? `<button class="rl-edit" data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
-        title="${_nea(i18t('ng_cp_edit_title'))}">${i18t('act_edit')}</button>`
+        ? `<button class="rl-edit rl-verb-ai" data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
+        title="${_nea(i18t('ng_cp_edit_title'))}">&#10022; ${i18t('ng_cp_copilot')}</button>`
         : `<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
         title="${i18t('ng_jump_to_clause')}">${i18t('act_edit')}</button>`);
     }
@@ -13399,7 +13450,6 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button type="button" class="rl-send" data-rl-sendcopy="1"
         title="${_nea(i18t('ng_send_copy_title', { who: whoThem }))}">${i18t('ng_send_copy')}</button>`);
     const rvVerbs = window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '';
-    const _rlFace = rlFaceSplit(rvCancel ? verbs.concat([rvCancel]) : verbs);
     const actions = [
       noCopyBlock,
       rvStuckBlock,
@@ -13564,7 +13614,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          THE COUNTERPARTY'S SEAT IS NOT TOUCHED: this branch is our own seat
          only, and their page and the owner's preview of it fall through to the
          receipt and full shapes below, unchanged. */
-      const state = '';
+      /* (The `state` constant this note is about is gone with the acts column
+         it was drawn into: the row's right-hand end is one Open button now.) */
+      const cardOpen = rlCardOpenId() === String(ch.id);
       const meta = [ch.id, who].filter(Boolean).join(' &middot; ');
       /* ---- AND THE SENTENCE THE BADGE CARRIED RIDES ON THE ROW ----
          Every entry in that table is [tone, word, hover], and the third slot
@@ -13609,29 +13661,41 @@ function redlineChangeCardsHtml(c, opts = {}){
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
           ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
         </div>
-        ${''/* THE ACTS SIT BESIDE THE TEXT, level with it: where this change
-               stands, then the verbs, then the ⋯. They fit on one row because
-               they are bare coloured words rather than bordered buttons — see
-               the note in the sheet, and the fault a first pass fixed the
-               wrong way round. */}
-        ${''/* TWO ON THE FACE, THE REST IN THE MENU — see rlFaceSplit. The
-               cancel rides in the pool rather than beside it: it is the one way
-               out of a review the reader started, and letting it sit outside
-               the cap is how a card ends up with three controls again. */}
-        <div class="rl-card-side">${state}${
-          (_rlFace.face.length) ? `<div class="rl-card-verbs">${_rlFace.face.join('')}</div>` : ''}${
-          rlCardMoreHtml(c, ch, opts, side, { editable, preview: previewSeat,
-            mineUnsent, rvOut, rvHeld, faceVerbs: _rlFace.face.join(''),
-            overflow: _rlFace.overflow })}</div>
-        ${''/* The rare, load-bearing strips — on-behalf, revised-by, the
-               reviewer's note, the desk's "drafted by", the author's reason —
-               and the two sentences that explain a MISSING verb. Each is
-               conditional and usually absent, which is what keeps the row a
-               row; none may be dropped, because a row with a hole in it and
-               the explanation elsewhere is worse than either. They take the
-               full width and drop UNDER the row. */}
-        ${info ? `<div class="rl-card-info">${info}</div>` : ''}
-        ${[noCopyBlock, rvStuckBlock, dkInstead, rvVerbs].filter(Boolean).join('')}
+        ${''/* ---- ONE CONTROL ON THE FACE (owner-ruled 2 Sep 2026) ----
+               *"What if the cards only had Open instead of edit, accepted etc.
+               You then click open and the cards only expands and gives you all
+               the options that are hidden in the dropdown including the
+               comments for the card."*
+
+               THIS RETIRES THE ⋯ AND THE TWO-ON-THE-FACE SPLIT. rlFaceSplit
+               existed because a row had room for two verbs and a menu held the
+               rest; with everything in the body there is nothing to rank and
+               nothing to hide, so `rlCardMoreHtml` is a stub and RL_FACE_RANK
+               / RL_FACE_MAX / rlFaceSplit are STALE on this seat.
+
+               WHAT IT COSTS, SAID OUT LOUD AND ACCEPTED BY THE OWNER: accepting
+               a change was one press and is now two. Everything else in the
+               column gets cheaper — Copilot, the notes and a review ask were
+               all two presses behind the menu and are two here, with the
+               wording in front of you while you choose.
+
+               THE COUNTERPARTY'S SEAT IS UNTOUCHED, as it was for the piles:
+               this branch is our own seat only and their page falls through to
+               the receipt and full shapes below. */}
+        <div class="rl-card-side"><button type="button" class="rl-open-btn rl-card-open"
+          data-rl-card-open="${_ne(ch.id)}" aria-expanded="${cardOpen}"
+          aria-controls="rl-cb-${_nea(ch.id)}"
+          title="${_nea(i18t(cardOpen ? 'ng_card_close_title' : 'ng_card_open_title'))}"
+          >${i18t(cardOpen ? 'act_close' : 'ng_row_open')}<svg class="rl-open-cv" viewBox="0 0 16 16"
+            fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            aria-hidden="true"><path d="M3 6l5 5 5-5"/></svg></button></div>
+        ${cardOpen ? `<div class="rl-cb-wrap" id="rl-cb-${_nea(ch.id)}">${
+          rlCardBodyHtml(c, ch, opts, side, {
+            info, settled: RL_SETTLED_BANDS.includes(band),
+            actions: [noCopyBlock, rvStuckBlock,
+              (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
+              dkInstead, rvVerbs].filter(Boolean).join(''),
+          })}</div>` : ''}
       </article>`;
     }
     const receipt = !noCopyBlock && !rvStuckBlock && !dkInstead && !rvVerbs && !rvCancel && !infoHold

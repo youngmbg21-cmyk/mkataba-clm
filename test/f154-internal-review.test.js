@@ -30,6 +30,14 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
@@ -394,7 +402,7 @@ describe('f154 · a held change does not travel, and neither does the review', (
     /* The counterparty's seat is read-only and mounts with side:'counterparty'.
        Neither the verdict verbs nor the reviewer's note may be reachable from
        it. */
-    const asThem = win.redlineChangeCardsHtml(c, { side: 'counterparty', readonly: true, hiddenIds: [] });
+    const asThem = openedCards(win, c, { side: 'counterparty', readonly: true, hiddenIds: [] });
     assert.ok(!/INTERNAL-we-can-go-to-sixty/.test(asThem), 'the note stays home');
     assert.ok(!/data-rv-mark/.test(asThem), 'and there is nothing to press');
     assert.ok(!/Achieng Otieno/.test(asThem), 'and the reviewer is not named');
@@ -429,7 +437,7 @@ describe('f154 · the verdict shows on both change cards', () => {
     win.reviewAsk(c, { reviewer: BOSS, by: ME.name });
     win.reviewMark(c, a.id, 'held');
 
-    const bench = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const bench = openedCards(win, c, { side: 'owner' });
     const tab = win.negoLiveCardsHtml(c, { side: 'owner' });
     /* ONE TAG PER CARD, and which element carries it differs by renderer: the
        workbench card has a single status badge and that badge says it, while
@@ -468,7 +476,7 @@ describe('f154 · the verdict shows on both change cards', () => {
     win.reviewMark(c, good.id, 'cleared');
     win.reviewReturn(c, {});
 
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     assert.ok(html.includes(`data-rl-send="${good.id}"`), 'the cleared one may still be sent');
     assert.ok(!html.includes(`data-rl-send="${bad.id}"`), 'the held one may not');
   });
@@ -479,11 +487,11 @@ describe('f154 · the verdict shows on both change cards', () => {
     asBoss.win.negoInit(c);
     const a = await mine(asBoss.win, c, '4', '<p>Payable within forty-five (45) days.</p>');
     asBoss.win.reviewAsk(c, { reviewer: BOSS, by: ME.name });
-    assert.match(asBoss.win.redlineChangeCardsHtml(c, { side: 'owner' }), /data-rv-mark/,
+    assert.match(openedCards(asBoss.win, c, { side: 'owner' }), /data-rv-mark/,
       'the reviewer is offered the verdict');
 
     const asMe = world({ user: ME, negotiationView: true });
-    assert.ok(!/data-rv-mark/.test(asMe.win.redlineChangeCardsHtml(c, { side: 'owner' })),
+    assert.ok(!/data-rv-mark/.test(openedCards(asMe.win, c, { side: 'owner' })),
       'the person who asked is not — the model would refuse them anyway');
     assert.ok(!/data-rv-mark/.test(asMe.win.negoLiveCardsHtml(c, { side: 'owner' })),
       'and the same on the other card');

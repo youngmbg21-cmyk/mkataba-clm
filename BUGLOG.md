@@ -8369,3 +8369,37 @@ Noticed, not fixed:
 - js/i18n.js has four duplicate-key lint errors (`co_password_updated`,
   `act_next`, twice each — English and Swedish). Pre-existing; that file was not
   touched by this run.
+
+## 2 Sep 2026 — the card opens, and Open is the one thing on its face
+
+Owner-ruled, off a rendered artifact: the redline card's face carries one
+control and every verb, strip and comment lives behind it. Built in
+js/views/negotiation.js (rlCardBodyHtml, rlCardNotesHtml, _rlCardOpen), its
+stylesheet and six dictionary keys in both languages. The ⋯ menu is retired —
+rlCardMoreHtml is a `return ''` stub, not a deletion, because it is exported.
+Full write-up in CLAUDE.md under "THE CARD OPENS".
+
+Found and fixed on the way:
+
+- THE PANEL DOOR WOULD HAVE GONE WITH THE MENU. On a stage without the edit
+  page — the counterparty's seat, or a window under 1024px — the ⋯ was the ONLY
+  route to the clause panel. Caught by a test, not foreseen. It is a verb in
+  the card's body now, on the same condition.
+- A LISTENER ARMED BEFORE THE PRESS IS ARMED ON A DETACHED NODE. Opening a card
+  repaints the column and #nego-send is rebuilt with it, so a test that armed a
+  click counter first read zero and reported a send that never reached the
+  engine. Open the card, then fetch the postbox.
+- A SLICE FROM A CARD'S MARKER READS A CLOSED FACE when the column has been
+  rendered several times over. test/cards.js grew cardOpened() beside
+  openedCards() for exactly that.
+- rlCardNotesCountHtml's comment named the ⋯ as its second surface and no
+  longer could. Corrected.
+
+Noticed, not fixed:
+
+- Retract reappears on a sent ask after it is revised — negoUnsentAsks measures
+  createdAt against turnAt and a revision refreshes neither, so the card offers
+  a verb the model refuses in words. Reported 1 Sep, still open.
+- The bell and Activity are dead behind the clause editor for the same reason
+  Chat is (z-index 54 over 46), and panelSuppressed still answers false. It
+  predates the Chat door by a fortnight.

@@ -30,6 +30,14 @@ const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 const { JSDOM } = require('jsdom');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY =
   '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'
@@ -142,7 +150,7 @@ describe('f157 · waiting is amber, held is ruby', () => {
     const { win } = world({ negotiationView: true });
     const { c, b } = await three(win);
     win.reviewAsk(c, { reviewer: BOSS, ids: [b.id] });
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     /* The workbench card's ONE status badge carries it — the review's own chip
        stood down beside it rather than saying the same thing twice. */
     /* CLAIM UPDATED, 13 Aug 2026: the badge read "⌛ With Achieng Otieno" and
@@ -171,7 +179,7 @@ describe('f157 · waiting is amber, held is ruby', () => {
     win.reviewAsk(c, { reviewer: BOSS, by: ME.name, ids: [a.id, b.id] });
     win.reviewMark(c, b.id, 'held');           // refused
     // a is still unanswered                    // in flight
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     assert.match(html, /data-rv-held="1"/, 'the refusal is marked');
     assert.match(html, /data-rv-waiting="1"/, 'and the wait is marked separately');
     assert.ok(html.indexOf('data-rv-held="1"') !== html.indexOf('data-rv-waiting="1"'),
@@ -192,7 +200,7 @@ describe('f157 · waiting is amber, held is ruby', () => {
     const { win } = world({ negotiationView: true });
     const { c, a, b } = await three(win);
     win.reviewAsk(c, { reviewer: BOSS, ids: [b.id] });
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     assert.ok(html.includes(`data-rl-send="${a.id}"`), 'the one nobody is reading may go');
     assert.ok(!html.includes(`data-rl-send="${b.id}"`), 'the one being read may not');
   });
@@ -201,7 +209,7 @@ describe('f157 · waiting is amber, held is ruby', () => {
     const { win } = world({ negotiationView: true });
     const { c, b } = await three(win);
     win.reviewAsk(c, { reviewer: BOSS, ids: [b.id] });
-    const asThem = win.redlineChangeCardsHtml(c, { side: 'counterparty', readonly: true, hiddenIds: [] });
+    const asThem = openedCards(win, c, { side: 'counterparty', readonly: true, hiddenIds: [] });
     assert.ok(!/With Achieng/.test(asThem));
     assert.ok(!/data-rv-waiting/.test(asThem), 'not even that something is being looked at');
   });

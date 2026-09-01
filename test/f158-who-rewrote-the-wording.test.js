@@ -25,6 +25,14 @@ const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 const { JSDOM } = require('jsdom');
+/* ---- READING A CARD SINCE IT OPENS (2 Sep 2026) ----
+   The owner's ruling moved every verb off the card's face and behind its own
+   Open, and the column draws one card open at a time. `openedCards` renders
+   the column once per change with that change open and joins the results, so
+   each claim below asks exactly what it always asked — does this change offer
+   this verb — in the one place the answer now lives. See test/cards.js. */
+const { openedCards } = require('./cards');
+
 
 const BODY = '<h1>Cane Supply Agreement</h1>'
   + '<h2>Clause 4 · Payment Terms</h2><p>Payable within thirty (30) days.</p>'
@@ -119,7 +127,7 @@ describe('f158 · both change cards name the reviser', () => {
     const win = world({ negotiationView: true });
     const { c } = await revised(win);
     for (const [name, html] of [
-      ['workbench', win.redlineChangeCardsHtml(c, { side: 'owner' })],
+      ['workbench', openedCards(win, c, { side: 'owner' })],
       ['contract tab', win.negoLiveCardsHtml(c, { side: 'owner' })],
     ]){
     /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
@@ -136,14 +144,14 @@ describe('f158 · both change cards name the reviser', () => {
     const win = world({ negotiationView: true });
     const c = contract(); win.negoInit(c);
     await edit(win, c, '6', '<p>Liability is uncapped.</p>', ME.name);
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     assert.ok(!/rewrote this wording/.test(html), 'no line where there is nothing to say');
   });
 
   test('the "last updated by" tooltip stops naming the wrong person', async () => {
     const win = world({ negotiationView: true });
     const { c } = await revised(win);
-    const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = openedCards(win, c, { side: 'owner' });
     assert.match(html, /Last updated by Achieng Otieno/);
     assert.ok(!/Last updated by Wanjiru Kamau/.test(html),
       'it used to claim the author had made a change somebody else made');
@@ -159,7 +167,7 @@ describe('f158 · the counterparty is not told who rewrote it', () => {
     const c = contract(); win.negoInit(c);
     await edit(win, c, '6', '<p>Liability is uncapped.</p>', ME.name);
     await edit(win, c, '6', '<p>Capped at twenty-four months.</p>', BOSS.name);
-    const asThem = win.redlineChangeCardsHtml(c, { side: 'counterparty', readonly: true, hiddenIds: [] });
+    const asThem = openedCards(win, c, { side: 'counterparty', readonly: true, hiddenIds: [] });
     assert.ok(!/rewrote this wording/.test(asThem));
     assert.ok(!/Achieng Otieno/.test(asThem), 'internal names do not cross the table');
   });
