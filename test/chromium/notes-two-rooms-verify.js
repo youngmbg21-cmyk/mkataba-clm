@@ -82,7 +82,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const before = await page.evaluate(() => !!document.querySelector('#context-panel.open'));
     await page.click(`#rl-changes [data-rl-notes="${set.ch}"]`);
     await page.waitForTimeout(500);
-    const dlg = await page.evaluate(() => {
+    const dlg = await page.evaluate(chId => {
       const ov = document.getElementById('rl-note-overlay');
       if (!ov) return { up: false };
       const panel = ov.querySelector('[role="dialog"]');
@@ -92,25 +92,51 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         value: (ov.querySelector('#rl-note-in') || {}).value,
         go: (ov.querySelector('#rl-note-ok') || {}).textContent,
         del: !!ov.querySelector('#rl-note-del'),
-        others: (ov.querySelector('#rl-note-chat') || {}).textContent,
+        past: (ov.querySelector('.rl-note-past') || {}).textContent,
+        chat: !!ov.querySelector('#rl-note-chat'),
+        mine: (() => { const c = (state.contracts || [])
+            .find(x => String(x.id) === String(state.activeId));
+          const ch = negoChangeById(c, chId);
+          const m = negoMyNote(c, ch, currentUser());
+          return m && m.text; })(),
         drawer: !!document.querySelector('#context-panel.open'),
         lead: (ov.querySelector('.rl-note-lead') || {}).textContent };
-    });
+    }, set.ch);
     check('THE PRESS RAISES THE NOTE — not a dead press', dlg.up && dlg.painted);
     check('and it names the change it belongs to', /CHG-/.test(dlg.head || ''), (dlg.head || '').trim());
+    /* PINNED AS THE RELATION, NOT THE SENTENCE: the box holds the last note of
+       this reader's own that has not reached anybody yet, which is exactly what
+       negoMyNote answers. A literal here would be a fact about the fixture's
+       staging rather than about the window. */
     check('prefilled with what you wrote, and offering Save and Delete',
-      /fallback is thirty/.test(dlg.value || '') && /save|spara/i.test(dlg.go || '') && dlg.del === true,
+      !!dlg.mine && (dlg.value || '').trim() === String(dlg.mine).trim()
+        && /save|spara/i.test(dlg.go || '') && dlg.del === true,
       `"${(dlg.value || '').slice(0, 34)}" · ${(dlg.go || '').trim()} · delete ${dlg.del}`);
     check('it does not claim to have just filed — the reader opened it',
       !/^Filed\./.test((dlg.lead || '').trim()), (dlg.lead || '').trim().slice(0, 40));
     check('THE DRAWER DOES NOT OPEN — it is Chat now, with a door of its own',
       dlg.drawer === false);
-    check('and notes that are not yours are counted, with a way to read them',
-      /other note/i.test(dlg.others || ''), (dlg.others || '').replace(/\s+/g, ' ').trim());
+    /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: Option A) ----
+       It pinned a COUNT of the other notes on the change plus a line pressing
+       through to the drawer to read them. Option A prints them instead, quietly
+       above the box — so a reader coming back to a change does not write the
+       same sentence twice, and so an explanation that has already gone is
+       visible as a record rather than as something to correct. The claim is the
+       stronger of the two: the words are on screen rather than counted. */
+    check('the other notes on this change are PRINTED above the box, not counted',
+      /fallback is thirty/.test(dlg.past || '') && dlg.chat === false,
+      (dlg.past || '').replace(/\s+/g, ' ').trim().slice(0, 60));
 
-    /* THAT LINE IS A REAL DOOR, and it names this change — so it is also how
-       the rooms below are staged, through a press rather than by hand. */
-    await page.click('#rl-note-chat');
+    /* ---- THE PER-CHANGE PANEL IS STAGED BY ITS ONE DOOR ----
+       On OUR seat that panel no longer has a press of its own: the Notes row
+       raises the window above, which is the whole of decision C. It is still
+       what the COUNTERPARTY's page draws and what the shell's own openNotesPanel
+       opens with a change named, so the rooms below are staged through that one
+       function rather than through a control this seat does not carry. Section
+       6 drives the door this seat DOES carry, with a real press. */
+    await page.click('#rl-note-skip');
+    await page.waitForTimeout(300);
+    await page.evaluate(id => openNotesPanel(state.activeId, id), set.ch);
     await page.waitForTimeout(500);
     const opened = await page.evaluate(() => {
       const p = document.querySelector('#context-panel');
@@ -125,10 +151,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         dlgGone: !document.getElementById('rl-note-overlay'),
       };
     });
-    check('OPEN CHAT REALLY OPENS THE DRAWER — not a dead press', !before && opened.open);
+    check('the per-change panel opens in the drawer', !before && opened.open);
     check('and the panel is actually on screen', opened.onScreen);
-    check('the dialog goes with it, rather than standing over the panel it opened',
-      opened.dlgGone === true);
+    check('and the window is gone rather than standing over it', opened.dlgGone === true);
     check('the drawer says which of its three faces it is showing', /note/i.test(opened.title || ''), opened.title);
     check('two rooms, and it opens on Internal', opened.rooms.length === 2 && /internal/i.test(opened.live || ''),
       opened.rooms.join(' | ') + '  live=' + (opened.live || '').trim());
@@ -236,19 +261,44 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
           .replace(/\s+/g, ' ').trim()),
         text: (document.querySelector('.rl-chat') || {}).textContent
           ? document.querySelector('.rl-chat').textContent.replace(/\s+/g, ' ') : '',
+        panel: !!document.querySelector('#context-panel .rl-np.rl-chat .rl-np-which'),
+        tabs: document.querySelectorAll('#context-panel [data-rl-np-room]').length,
+        who: !!document.querySelector('#context-panel .rl-chat .rl-np-who'),
+        scope: !!document.querySelector('#context-panel .rl-chat .rl-np-scope'),
         box: !!document.querySelector('#context-panel .rl-np-in') };
     });
     check('THE PRESS OPENS CHAT — not a dead press', chat.open === true);
     check('and the heading says Chat, not Notes — two scopes, one shell',
       /chat|chatt/i.test(chat.title || ''), chat.title);
-    check('it holds every note on the contract, in both rooms',
-      chat.rows >= 3 && /fallback is thirty/.test(chat.text)
-        && /rebate stands/.test(chat.text) && /thirty-five/.test(chat.text),
+    /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: "revert back to the
+       previous style of the panel shown in image 3") ----
+       It pinned "both rooms in one list", which was the first build's own flat
+       treatment. Chat wears the per-change panel's clothes now, so the rooms
+       are TABS here exactly as they are there — which is the stronger claim of
+       the two, because it is the same reading drawn the same way on both
+       surfaces rather than a second arrangement of one conversation. */
+    check('it holds this contract\'s internal notes, in the panel\'s own rooms',
+      chat.rows >= 2 && /fallback is thirty/.test(chat.text)
+        && /thirty-five/.test(chat.text) && !/rebate stands/.test(chat.text),
       `${chat.rows} rows`);
     check('and each row says which change it is about',
       chat.onLines.every(t => /CHG-/.test(t)), chat.onLines[0]);
+    check('it is dressed as the per-change panel, not as a list of its own',
+      chat.panel && chat.tabs === 2 && chat.who && chat.scope,
+      `panel ${chat.panel} · tabs ${chat.tabs} · lock ${chat.who} · oldest-first ${chat.scope}`);
     check('no composer — there is one note box per change and it is on the change',
       chat.box === false);
+    /* THE OTHER ROOM IS ONE PRESS, and it holds what the internal one does not. */
+    await page.click('#context-panel [data-rl-np-room="external"]');
+    await page.waitForTimeout(300);
+    const ext = await page.evaluate(() => ({
+      text: (document.querySelector('.rl-chat') || {}).textContent || '',
+      live: (document.querySelector('.rl-np-tab.on') || {}).textContent }));
+    check('the external room holds the note that crossed, and not the internal ones',
+      /rebate stands/.test(ext.text) && !/fallback is thirty/.test(ext.text),
+      (ext.live || '').trim());
+    await page.click('#context-panel [data-rl-np-room="internal"]');
+    await page.waitForTimeout(250);
 
     /* ---- IT IS DEAD WHILE THE CLAUSE EDITOR COVERS THE WINDOW ----
        The drawer sits at z-index 46 and that page mounts at 54, so a press

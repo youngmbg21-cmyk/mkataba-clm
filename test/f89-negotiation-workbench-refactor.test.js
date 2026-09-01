@@ -83,6 +83,10 @@ function contractFixture(over = {}){
 async function page(opts = {}){
   const w = buildWorld({ negotiationView: true, contractView: true });
   const { win } = w;
+  /* rlEditorTakesIt asks for the edit page BY NAME, so this is what stands in
+     for the stages that do not have one — the counterparty's seat, and a window
+     too narrow for two columns. There, the card's Edit is the jump. */
+  if (opts.noEditor){ win.rlOpenClauseEditor = undefined; win.clauseEditorFits = undefined; }
   win.promptDialog = async () => '';
   const c = opts.contract || contractFixture(
     opts.email ? { counterpartyEmail: opts.email, counterpartyName: 'Erik Lindqvist' } : {});
@@ -1078,7 +1082,19 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
        handle on a passage — and the editor half moved behind the clause's
        Edit pill, into the panel's ＋. An editor opening ON the paper now would
        be the fault, not the feature. */
-    const p = await page();
+    /* RE-POINTED 1 Sep 2026, AND IT WAS PASSING ON A BUG. It reached for
+       `[data-rl-edit]`, which was the card's Edit until 30 Aug and is now the
+       COUNTERPARTY's; on our seat that attribute survived only because the ⋯
+       menu was drawing a duplicate "Jump to the clause" row whose handler
+       opened the retired clause panel. So this pressed the very thing the owner
+       reported. THE CLAIM IS UNCHANGED and is the important half: a press on
+       the card lights the clause on the paper and opens NO editor there. It
+       presses the seat where Edit IS the jump, which is what the claim is
+       about: a stage without the edit page — the counterparty's, or a window
+       too narrow for two columns. Staged rather than inferred, because a
+       fixture that happens to draw the other door proves nothing about this
+       one. */
+    const p = await page({ noEditor: true });
     const btn = p.$('#rl-changes [data-rl-edit]');
     const clauseId = btn.getAttribute('data-rl-edit');
     btn.click();

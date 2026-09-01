@@ -25,10 +25,23 @@
          the life of the contract — and it means no press in that dialog can be
          the difference between a redline existing and not.
      B — THE PENCIL FILES, and only where there is something to file.
-     C — THE NOTE IS KEPT ON THE CHANGE, as an ordinary INTERNAL message on its
-         own thread: no new store, no new field, no migration. The change's
-         Notes row raises the same dialog; the side panel becomes Chat.
+     C — THE NOTE IS KEPT ON THE CHANGE, as an ordinary message on its own
+         thread: no new store, no new field on the change, no migration. The
+         change's Notes row raises the same window; the side panel becomes Chat.
      D — ASKED ONCE, on the filing that created the change.
+
+   AND ON 1 Sep 2026 THE OWNER RULED WHERE THE NOTE GOES, which is the biggest
+   thing in this file and the reason several claims below are reversed in place:
+
+     "Make them external so that when you suggest an edit, you give an
+      explanation as to why you want to change the contract. That is the idea."
+
+   So it is not a private aside — it is the sentence the other side reads beside
+   the redline, which closes the loop the 28 Aug ruling opened when it removed
+   the mandatory "why this change?" step. WHICH ROOM A NOTE IS IN AND WHETHER IT
+   HAS REACHED ANYBODY ARE TWO DIFFERENT FACTS, and only the second decides
+   whether its writer may still change it. The window itself was rebuilt to
+   Option A of four drawn on the same day.
 
    WHAT IS DELIBERATELY OUT OF SCOPE, in the owner's own words: "The
    counterparty will also access the notes through the same processes but fixing
@@ -134,17 +147,48 @@ describe('f264 (1) — a note is an ordinary internal message', () => {
    2 — WHOSE NOTE IT IS, AND THE THREE THINGS THAT REFUSE
    ============================================================ */
 describe('f264 (2) — the acts are narrow, and each narrowing is a promise', () => {
-  test('a SHARED note cannot be changed or removed here', async () => {
+  /* ---- REVERSED IN PLACE 1 Sep 2026, AND IT IS THE STRONGER CLAIM ----
+     (owner-ruled: "Make them external so that when you suggest an edit, you
+     give an explanation as to why you want to change the contract.")
+
+     It refused any note marked SHARED. Every note the window writes is shared
+     now, so that rule would have made the window's own note unchangeable the
+     instant it was typed — including in a workspace where nothing was ever
+     sent. WHICH ROOM A NOTE IS IN AND WHETHER IT HAS REACHED ANYBODY ARE TWO
+     FACTS, and this product has learned three times over that they must not be
+     one. `sentAt` is stamped by whatever succeeded in delivering it, and only a
+     DELIVERED note is beyond its writer. */
+  test('a note that has REACHED them cannot be changed or removed', async () => {
     const p = await bench();
     const sent = noteOf(p.w, p.c, p.ch, 'We can hold at thirty.', { visibility: 'shared' });
+    sent.sentAt = '2026-09-01T08:00:00.000Z';
+    assert.equal(p.w.win.negoNoteDelivered(sent), true);
     assert.equal(p.w.win.negoNoteIsMine(sent), false,
-      'it travelled on the discussion channel and the other side holds a copy: '
-      + 'rewriting our half would leave two records of one sentence '
-      + 'disagreeing, and deleting it would take it off our screen while it '
-      + 'stayed on theirs');
+      'the other side holds a copy: rewriting our half would leave two records '
+      + 'of one sentence disagreeing, and deleting it would take it off our '
+      + 'screen while it stayed on theirs');
     assert.equal(p.w.win.negoEditNote(p.c, p.ch, sent, 'Changed.'), null);
     assert.equal(p.w.win.negoDeleteNote(p.c, p.ch, sent), false);
     assert.equal(sent.text, 'We can hold at thirty.', 'and nothing moved');
+  });
+
+  test('one that has NOT gone is still its writer’s, whichever room it is in', async () => {
+    const p = await bench();
+    const held = noteOf(p.w, p.c, p.ch, 'Draft explanation.', { visibility: 'shared' });
+    assert.equal(p.w.win.negoNoteDelivered(held), false,
+      'no stamp — outside API mode the channel carries nothing, and a note '
+      + 'nobody has read is not one its writer may not correct');
+    assert.ok(p.w.win.negoEditNote(p.c, p.ch, held, 'Corrected explanation.'));
+    assert.equal(p.ch.thread[0].text, 'Corrected explanation.');
+  });
+
+  test('an older message carries no stamp, and that reads as NOT delivered', async () => {
+    const p = await bench();
+    /* THE SAFE DIRECTION: absent means editable, never "it reached somebody". */
+    p.ch.thread = [{ who: ME.name, byId: ME.id, side: 'owner', visibility: 'shared',
+      at: '2026-08-01T09:00:00.000Z', text: 'Filed before sentAt existed.' }];
+    assert.equal(p.w.win.negoNoteDelivered(p.ch.thread[0]), false);
+    assert.equal(p.w.win.negoNoteIsMine(p.ch.thread[0]), true);
   });
 
   test('a colleague’s note is a colleague’s — no admin exception', async () => {
@@ -319,13 +363,18 @@ describe('f264 (5) — the dialog reads the record for its shape', () => {
   const dlg = (p, mine, opts = {}) =>
     p.w.win.rlNoteDialogHtml(p.c, p.ch, mine, Object.assign({ side: 'owner' }, opts));
 
-  test('no note yet: Add, and the way out says Skip when it arrived by itself', async () => {
+  /* REVERSED IN PLACE 1 Sep 2026 — Option A, chosen off four drawn windows.
+     The FILING is the headline now ("CHG-004 filed", with the tick this product
+     uses for something that has just gone right) and the lead is the ask. */
+  test('no note yet: the filing leads, and the way out says Skip', async () => {
     const p = await bench();
     const h = dlg(p, null, { filed: true });
     assert.match(h, /ng_note_add|Add note/);
     assert.equal(/ng_note_delete|>Delete</.test(h), false,
       'Delete draws only where there is something of yours to delete');
-    assert.match(h, /Filed\./, 'and the lead carries the fact the toast stood down for');
+    assert.match(h, new RegExp(`${p.ch.id} filed`),
+      'the act is the headline and the note is the small thing under it');
+    assert.match(h, /class="tick"/, 'in the tone for something that went right');
     assert.match(h, /Skip/);
   });
 
@@ -346,32 +395,42 @@ describe('f264 (5) — the dialog reads the record for its shape', () => {
       'the owner’s own example was "Note on CHG-004"');
   });
 
-  test('it says the note stays inside, in the panel’s own words', async () => {
+  /* REVERSED IN PLACE 1 Sep 2026. It pinned "stays inside", which was true
+     while the note was private; the owner has ruled it is the explanation the
+     other side reads, so the window has to say THAT — and a lock over a note
+     that travels would be the worst kind of wrong. */
+  test('it names who reads it, on the face, before anything is typed', async () => {
     const p = await bench();
     const h = dlg(p, null, { filed: true });
-    assert.match(h, /rl-note-keep/);
-    assert.match(h, /Saw Sawa Ltd/,
-      'ng_np_who_int names the counterparty who never sees it — ONE wording '
-      + 'for one fact, wherever a note is written');
+    assert.match(h, /rl-note-who/);
+    assert.match(h, /Saw Sawa Ltd/, 'the counterparty by name');
+    assert.equal(/rl-note-keep|never sees/.test(h), false,
+      'and no promise of privacy over something that goes to them');
   });
 
-  test('notes that are not yours are counted, with a door to Chat', async () => {
+  /* REVERSED IN PLACE 1 Sep 2026. It pinned a COUNT of the other notes and a
+     door to Chat. The window prints them now, above the box — the fact on
+     screen rather than counted and pointed at — which is what that claim was
+     really about: a reader whose colleagues have written three must not open an
+     empty box and be told nothing. */
+  test('what has already been said is printed above the box', async () => {
     const p = await bench();
     noteOf(p.w, p.c, p.ch, 'Wanjiru’s aside.', { author: MATE.name });
     noteOf(p.w, p.c, p.ch, 'And another.', { author: MATE.name });
     const h = dlg(p, null);
-    assert.match(h, /rl-note-chat/,
-      'without this a reader whose colleagues have written three notes opens '
-      + 'their own empty box and is told nothing');
-    assert.match(h, /2 other notes/);
+    assert.match(h, /rl-note-past/);
+    assert.match(h, /Wanjiru/);
+    assert.match(h, /And another/);
     const mine = noteOf(p.w, p.c, p.ch, 'Mine.');
-    assert.match(dlg(p, mine), /2 other notes/,
-      'and the one in the box is not counted among the others');
+    const h2 = dlg(p, mine);
+    assert.match(h2, /Wanjiru/, 'the others are still there');
+    assert.equal((h2.match(/Mine\./g) || []).length, 1,
+      'and the one IN the box is not printed above it as well');
   });
 
-  test('with nothing else on the change there is no line and no door', async () => {
+  test('with nothing else on the change there is no record block at all', async () => {
     const p = await bench();
-    assert.equal(/rl-note-chat/.test(dlg(p, null, { filed: true })), false);
+    assert.equal(/rl-note-past/.test(dlg(p, null, { filed: true })), false);
   });
 
   test('a viewer reads it and writes nothing', async () => {

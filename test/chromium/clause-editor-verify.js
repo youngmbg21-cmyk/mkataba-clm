@@ -1611,30 +1611,27 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('17l3 and it sits inside .ce-head — in the LEFT column, so the Copilot '
      + 'rail still runs floor to ceiling',
      room.writeInHead === true, `inside .ce-head: ${room.writeInHead}`);
-  ck('17m the chip moved ONTO the readings row, named by its change',
-     room.chips === 1 && /CHG-/.test(room.chipText[0] || ''), room.chipText.join(','));
-  ck('17n it sits at the RIGHT of that row, in the space the row already had',
-     room.chipLeft > room.segRight && room.chipLeft < room.barRight,
-     `seg ends ${Math.round(room.segRight)}, chip at ${Math.round(room.chipLeft)}, row ends ${Math.round(room.barRight)}`);
-  ck('17o and the row is still ONE line — the space was there, not taken',
-     room.offCentre === 0 && room.barH <= room.tallest + 12,
-     `${room.offCentre} off centre, row ${Math.round(room.barH)}px against a tallest child of ${Math.round(room.tallest)}px`);
-
-  /* ---- PRESSING IT STILL WORKS, AND STILL LIGHTS ----
-     The one cost of moving the chips: the row that draws them has to be
-     repainted too. Pressed and read back, because a chip that acts and never
-     lights is the fault this move could have shipped. */
-  const chipPress = await p.evaluate(() => {
-    const b = document.querySelector('#ce-readbar .ce-chip');
-    if (!b) return { none: true };
-    b.click();
-    const after = document.querySelector('#ce-readbar .ce-chip');
-    return { on: after ? after.classList.contains('is-on') : null,
-      still: !!after, where: after ? !!after.closest('#ce-readbar') : null };
+  /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: "delete ever having the
+     CHG pills on the screen as show in the highlighted area") ----
+     These three pinned where the chips sat, that the row had the room for them,
+     and that pressing one lit it. The chips are gone; what is pinned now is the
+     removal, measured as PAINT — a class check would pass on a page that draws
+     one and hides it. */
+  const noChips = await p.evaluate(() => {
+    const bar = document.querySelector('#clause-editor #ce-readbar');
+    const seen = [...(bar ? bar.querySelectorAll('*') : [])]
+      .filter(el => /^CHG-\d/.test((el.textContent || '').trim()))
+      .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+    return { chips: document.querySelectorAll('.ce-chip').length,
+      focus: document.querySelectorAll('[data-ce-focus]').length,
+      painted: seen.length,
+      row: [...(bar ? bar.children : [])].map(e => e.className || e.tagName).join(' | ') };
   });
-  await pause(300);
-  ck('17p pressing the chip lights it, on the row it now lives on',
-     chipPress.on === true && chipPress.where === true, JSON.stringify(chipPress));
+  ck('17m the CHG pills are gone — nothing on the row names a change',
+     noChips.chips === 0 && noChips.focus === 0 && noChips.painted === 0,
+     `${noChips.chips} chips, ${noChips.focus} handles, ${noChips.painted} painted`);
+  ck('17n and the readings row is the readings, the counts and the zoom',
+     !/ce-chip/.test(noChips.row), noChips.row);
 
   /* ============================================================
      18. HIGHLIGHT A PASSAGE, TYPE THE REPLACEMENT, PRESS ENTER
@@ -2628,20 +2625,24 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         skip: (ov.querySelector('#rl-note-skip') || {}).textContent,
         go: (ov.querySelector('#rl-note-ok') || {}).textContent,
         del: !!ov.querySelector('#rl-note-del'),
-        keep: (ov.querySelector('.rl-note-keep') || {}).textContent };
+        who: (ov.querySelector('.rl-note-who') || {}).textContent,
+        keep: !!ov.querySelector('.rl-note-keep') };
     });
     ck('25a filing raises the note dialog, as real pixels', dlg.up && dlg.painted,
        dlg.up ? 'drawn' : 'no dialog');
     ck('25b it sits OVER the clause editor, which covers the window',
        dlg.overPage === true && dlg.onTop === true, `dialog z ${dlg.oz}, page z ${dlg.pz}`);
-    ck('25c it names the change, and its lead carries the fact the toast stood down for',
-       /CHG-/.test(dlg.head || '') && /Filed/i.test(dlg.lead || ''),
-       `"${(dlg.head || '').trim()}" / "${(dlg.lead || '').trim().slice(0, 50)}"`);
+    ck('25c the HEADLINE carries the fact the toast stood down for, naming the change',
+       /CHG-/.test(dlg.head || '') && /filed|sparad/i.test(dlg.head || ''),
+       `"${(dlg.head || '').trim()}"`);
     ck('25d two ways on — Skip, and Add note — and no Delete on a change with no note',
        /skip/i.test(dlg.skip || '') && /add/i.test(dlg.go || '') && dlg.del === false,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
-    ck('25e it says the note stays inside, before you type rather than after',
-       /never sees|ser aldrig/i.test(dlg.keep || ''), (dlg.keep || '').trim().slice(0, 60));
+    ck('25e it names WHO reads it, before you type rather than after — and never claims the other side is kept out',
+       /reads this|l\u00e4ser detta/i.test(dlg.who || '') && dlg.keep === false,
+       `"${(dlg.who || '').trim().slice(0, 60)}"${dlg.keep ? ' + a stays-inside line' : ''}`);
+    ck('25e2 and the lead asks for the explanation, naming the side that will read it',
+       /why|varf\u00f6r/i.test(dlg.lead || ''), (dlg.lead || '').trim().slice(0, 60));
 
     /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
     await p.evaluate(() => {
@@ -2658,8 +2659,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       return { gone: !document.getElementById('rl-note-overlay'),
         text: t.text, vis: t.visibility, who: t.who };
     });
-    ck('25f Add note files it, INTERNAL, onto the change it named',
-       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',
+    ck('25f Add note files it as the EXPLANATION the other side reads, onto the change it named',
+       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'shared',
        `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
     ck('25g and the dialog goes', wrote.gone === true);
 

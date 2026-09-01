@@ -614,7 +614,12 @@ describe('f246 (5) — the overflow menu', () => {
     /* The second of the two doors the owner shut. Their seat keeps it — the
        editor refuses a counterparty outright, so the panel is the only way
        their page has to propose wording. */
-    assert.match(NEG_CODE, /const ceDoor = own && typeof window !== .undefined./,
+    /* RE-POINTED 1 Sep 2026: this pinned the reading written out at its own
+       call site, and it was one of THREE hand-rolled copies — with the
+       [data-rl-edit] handler carrying none, which is how the panel came back.
+       The reading is named now; the claim is unchanged and section 9 owns the
+       naming. Pin the relation, not the expression. */
+    assert.match(NEG_CODE, /const ceDoor = rlEditorTakesIt\(side, \{ preview: st\.preview \}\);/,
       'the row asks whether the editor can take this clause');
     assert.match(NEG_CODE, /if \(panel && !ceDoor\)/,
       'and draws only where it cannot');
@@ -917,5 +922,98 @@ describe('f246 (8) — one ruled list, and the act at the head', () => {
     assert.ok(kids.indexOf(top.querySelector('.rl-idx-sp')) < kids.indexOf(go),
       'after the spacer, so it is pushed to the right wall');
     assert.equal(p.$('.rl-unsent'), null, 'and the strip it came from is gone');
+  });
+});
+
+/* ============================================================
+   f246 (9) — WHERE A CLAUSE IS EDITED, DECIDED ONCE
+   ------------------------------------------------------------
+   Owner-reported 1 Sep 2026, off a screenshot of the retired clause panel:
+   "I do not recall what I clicked on but the feature in image 5 appeared again
+   when it is supposed to be completely eliminated from the internal side of the
+   platform. Review what caused the bug and clean it up."
+
+   THE CAUSE WAS THREE COPIES OF ONE READING AND NONE WHERE IT MATTERED. The
+   paper's pencil, the card's Edit and the ⋯ menu's Copilot row each worked out
+   for themselves whether the edit page takes the clause; the [data-rl-edit]
+   HANDLER — the thing that actually opens the panel — asked nothing at all.
+
+   SO THE PANEL CAME BACK THROUGH THE MENU'S OWN "Jump to the clause" ROW. That
+   row exists for a card with no Edit on its face, and its guard tested for
+   `data-rl-edit=` — which was the card's Edit until 30 Aug and is now only the
+   COUNTERPARTY's. On our seat the face carries `data-rl-cp-editor-row`, so the
+   guard saw a bare face where there was an Edit, drew the row on almost every
+   card, and pressing it opened the panel.
+
+   BOTH HALVES ARE NEEDED and each is asserted below: the guard reads both
+   doors, AND the handler asks the reading — because a card with no other rows
+   at all still draws that row deliberately, so the guard alone cannot close it.
+   ============================================================ */
+describe('f246 (9) — one reading, four askers', () => {
+  test('the reading is named once, and nobody keeps a copy', () => {
+    assert.match(NEG_CODE, /function rlEditorTakesIt\(side, opts = \{\}\)\{/,
+      'named where the doors that ask it can reach it');
+    /* THE THREE QUESTIONS ARE UNCHANGED — their seat, a window too narrow for
+       two columns, and a stage that does not load the module at all. */
+    const fn = NEG_CODE.match(/function rlEditorTakesIt[\s\S]*?\n\}/)[0];
+    assert.match(fn, /side === 'counterparty' \|\| opts\.preview/);
+    assert.match(fn, /typeof window\.rlOpenClauseEditor !== 'function'/,
+      'the MODULE by name, not merely the width');
+    assert.match(fn, /clauseEditorFits\(\)/);
+    /* AND NOBODY WORKS IT OUT AGAIN. Four askers, four calls, zero copies —
+       a destination decided in four places is four places for them to
+       disagree, and that disagreement is exactly what the owner photographed. */
+    assert.equal((NEG_CODE.match(/typeof window\.rlOpenClauseEditor === 'function'/g) || []).length, 0,
+      'no hand-rolled copy of the reading survives');
+    assert.ok((NEG_CODE.match(/rlEditorTakesIt\(/g) || []).length >= 5,
+      'the definition plus its four askers');
+  });
+
+  test('the jump row is for a card with NO way into its clause on its face', () => {
+    const menu = NEG_CODE.match(/function rlCardMoreHtml[\s\S]*?\n\}\n/)[0];
+    assert.match(menu, /!\/data-rl-edit=\|data-rl-cp-editor-row=\/\.test\(carried\)/,
+      'BOTH doors — the counterparty\'s Edit and ours — or it draws the same '
+      + 'act twice, twelve pixels apart');
+  });
+
+  test('on our seat the press is a jump and nothing more', () => {
+    const h = NEG_CODE.match(/\[data-rl-edit\]'\)\.forEach[\s\S]*?\n  \}\)\);/)[0];
+    assert.match(h, /rlJumpToClause\(clauseId\)/, 'it still lights the clause');
+    assert.match(h, /if \(rlEditorTakesIt\(\(opts && opts\.side\) \|\| 'owner'\)\) return;/,
+      'and stops there where the edit page is the door — the row promises a '
+      + 'jump and must not also open a retired panel');
+    const stop = h.indexOf('rlEditorTakesIt(');
+    assert.ok(stop > -1 && stop < h.indexOf('rlCpSetShown'),
+      'the reading is asked BEFORE the panel is opened, not after');
+  });
+
+  test('and their seat keeps both halves, because the panel is their only door', () => {
+    const h = NEG_CODE.match(/\[data-rl-edit\]'\)\.forEach[\s\S]*?\n  \}\)\);/)[0];
+    assert.match(h, /rlCpSetShown\(btn\.closest\('\.redline-page'\) \|\| document, clauseId\)/,
+      'rlOpenClauseEditor refuses a counterparty outright, so taking this from '
+      + 'them would take away the only way their page proposes wording');
+    assert.match(h, /ng_cp_cannot_open/, 'and L-3\'s refusal is still theirs');
+  });
+
+  test('DRIVEN: our seat draws no door onto the clause panel at all', async () => {
+    const p = await bench();
+    const panels = p.$$('[data-rl-cp-open]');
+    assert.equal(panels.length, 0,
+      `our seat offers ${panels.length} doors onto the retired panel`);
+    /* AND THE ⋯ ROW THAT CARRIED IT IS NOT DRAWN EITHER, on a card whose face
+       has an Edit — which is the shape the owner met. */
+    const withEdit = p.$$('.rl-card').filter(el => el.querySelector('[data-rl-cp-editor-row]'));
+    assert.ok(withEdit.length, 'the fixture really does draw an Edit on a face');
+    for (const card of withEdit)
+      assert.equal(card.querySelectorAll('[data-rl-edit]').length, 0,
+        'a card with the edit page on its face draws no jump row beside it');
+  });
+
+  test('DRIVEN: a stage without the editor keeps the panel, and its jump', async () => {
+    const p = await bench({ noEditor: true });
+    assert.ok(p.$$('[data-rl-edit]').length,
+      'the jump is back where the edit page cannot take the clause');
+    assert.equal(p.$$('[data-rl-cp-editor-row]').length, 0,
+      'and nothing claims a page nothing can open');
   });
 });

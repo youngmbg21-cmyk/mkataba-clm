@@ -280,16 +280,6 @@ function clauseEditorCss(){
   .ce-say.is-on{opacity:1}
 
   /* ---- what is on the table for this clause, as chips ---- */
-  .ce-chip{display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px;
-    font:inherit; font-size:var(--t-label); font-weight:var(--w-strong); background:var(--color-surface);
-    color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-chip.is-on{border-color:var(--accent-solid); box-shadow:inset 0 -2px 0 var(--accent-solid)}
-  .ce-chip i{width:7px; height:7px; flex:none; border-radius:50%;
-    background:var(--color-neutral-500)}
-  .ce-chip i.wait{background:var(--st-amber-dot)}
-  .ce-chip i.ok{background:var(--st-green-dot)}
-  .ce-chip i.no{background:var(--st-ruby-dot)}
-  .ce-readbar .ce-chip{flex:none}
 
   /* ---- two columns from the very top of the working area ----
      The rail is exactly one third: 2fr beside 1fr. The 340px floor only bites
@@ -1714,14 +1704,21 @@ function ceRenderHead(){
 
    DRAWN NOWHERE when nothing is on the clause, which is what keeps the row the
    height it has always been on the commonest screen of all. */
-function ceCtxChipsHtml(){
-  return ceOnTable().map(x => {
-    const tone = x.authorSide === 'counterparty' ? 'wait' : 'ok';
-    return `<button type="button" class="ce-chip${
-      _ceLead && _ceLead.id === x.id ? ' is-on' : ''}" data-ce-focus="${_ceea(x.id)}"><i class="${
-      tone}"></i>${_cee(x.id)}</button>`;
-  }).join('');
-}
+/* ---- AND THEY ARE GONE (owner-asked 1 Sep 2026: "delete ever having the CHG
+   pills on the screen") ----
+   Everything above is the record of where they lived and why, kept because the
+   reasoning is the useful part. DELETED RATHER THAN STUBBED, following Quarter,
+   List and Obligations on the calendar: this was never exported, so there is no
+   door a third caller could bring it back through.
+
+   WHAT GOES WITH THEM, said out loud rather than absorbed: on a clause carrying
+   several asks you can no longer switch, from inside this page, which one the
+   editor is speaking for. Nothing is unreachable — the page is OPENED from a
+   change (the card's Edit, the ✦ on a tracked change, the paper's pencil), so
+   the reader arrives on the one they meant, and answering a different ask is
+   the same journey they already took to get here. `_ceLead` is untouched: it is
+   still set at the door and is still what the foot's "Save to CHG-006" names.
+   `.ce-chip` and `data-ce-focus` are STALE — flag any mention. */
 
 /* ---- MOVING TO ANOTHER CLAUSE IS ONE ACT, NOT TWO ----
    The crumb's dropdown and the pencil on another clause both mean "work on
@@ -2158,7 +2155,6 @@ function ceRenderReadBar(){
        readout is where the reader's eye already goes for what their typing is
        doing, and moving it would cost more than the row gains. */
     bar.innerHTML = rlReadSegsHtml() + `<span class="g"></span>`
-      + ceCtxChipsHtml()
       + `<span class="ce-stat" id="ce-stat">${stat}</span>`
       + ceZoomHtml();
   }
@@ -3571,15 +3567,6 @@ function ceWirePage(page){
       _ceTab = want === 'scan' ? 'scan' : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
-    const focus = hit('[data-ce-focus]');
-    if (focus){ ev.preventDefault();
-      const id = focus.getAttribute('data-ce-focus');
-      _ceLead = ceOnTable().find(x => x.id === id) || null;
-      ceApply(ceWordingOf(_ceLead), id || _cet('ce_step_stands'), { quiet: true });
-      /* The chips live on the READINGS row now, so the row that draws them has
-         to be told as well — repainting the head alone left the pressed chip
-         unlit. */
-      ceRenderHead(); ceRenderReadBar(); return; }
 
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); ceAsk(chip.getAttribute('data-ce-chip')); return; }

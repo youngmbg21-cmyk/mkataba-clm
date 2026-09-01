@@ -4807,67 +4807,98 @@
     border-top:1px solid var(--color-divider);
     font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
   .rl-np-no .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
-  /* ---- THE NOTE ON ONE CHANGE (owner-ruled 31 Aug 2026) ----
+  /* ---- THE NOTE ON ONE CHANGE — OPTION A, "THE RECEIPT" ----
+     (owner-chose it off four drawn windows, 1 Sep 2026.)
+
+     WHAT WAS WRONG WITH THE ONE IT REPLACES, measured off the owner's own
+     screenshot: every part of it was a full-width block stacked on the last, so
+     nothing led; the BOX was the loudest object on the window — a grey slab
+     with a heavy accent ring — when it is the quietest thing being asked for;
+     Skip and Add note were drawn at the same weight, so the window never said
+     which answer is ordinary; and it was 30rem wide for eight words.
+
+     SO THE FILING IS THE HEADLINE AND THE NOTE IS THE SMALL THING UNDER IT,
+     which is what they are. One row carries the promise and both verbs, so the
+     whole window is five short lines — small enough to dismiss without reading,
+     which is the honest bar for something met after every redline.
+
      Its own overlay, appended to <body>, between the modal root (70) and
      confirmDialog (90): above the clause editor, which covers the page at 54,
-     and below the confirm this dialog itself raises for a delete. */
+     and below the confirm this window itself raises for a delete. */
   #rl-note-overlay{position:fixed;inset:0;z-index:88;
     display:grid;place-items:center;padding:var(--s-4);}
   .rl-note-scrim{position:absolute;inset:0;
     background:color-mix(in srgb,#2b2b2d 50%,transparent);}
-  .rl-note-dlg{position:relative;width:100%;max-width:30rem;
+  .rl-note-dlg{position:relative;width:100%;max-width:25rem;
     background:var(--color-surface);border:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);border-radius:var(--radius);
-    padding:20px var(--s-5) var(--s-5);}
-  .rl-note-h{font-family:var(--font-heading);font-weight:var(--w-strong);
-    font-size:var(--t-section);color:var(--color-text);margin:0 0 5px;line-height:1.3;}
-  .rl-note-lead{font-size:var(--t-meta);line-height:1.55;
-    color:var(--color-neutral-600);margin:0 0 var(--s-3);}
-  /* The promise, said before they type rather than after they press. Same
-     words and same lock as the panel's internal room, so one fact is stated
-     one way wherever a note is written. */
-  .rl-note-keep{display:flex;align-items:flex-start;gap:6px;margin-top:var(--s-2);
-    font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
-  .rl-note-keep .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
-  /* Notes on this change that are not the one in the box — a fact, and a door
-     to where they are read. */
-  .rl-note-other{display:flex;align-items:center;gap:8px;width:100%;
-    margin-top:10px;padding:8px 10px;background:var(--surface-2);
-    border:1px solid var(--color-divider);border-radius:var(--radius);
-    font:inherit;font-size:var(--t-label);color:var(--color-neutral-600);
-    text-align:left;cursor:pointer;}
-  .rl-note-other em{margin-left:auto;font-style:normal;font-weight:var(--w-strong);
-    color:var(--accent-ink);}
-  .rl-note-other:hover{border-color:color-mix(in srgb,var(--color-accent) 45%,transparent);}
-  .rl-note-acts{display:flex;align-items:center;gap:var(--s-2);margin-top:16px;}
-  .rl-note-acts .sp{flex:1;}
-  /* NO !important: .ui-btn is a bare class rule 3,500 lines above this one, so
-     an equal-specificity rule later in the sheet already wins. Shouting here
-     would win this fight and hide the next. */
-  .rl-note-del{color:var(--danger);
-    border-color:color-mix(in srgb,var(--danger) 45%,transparent);}
+    padding:16px 18px 15px;}
+  .rl-note-h{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  /* THE TONE THIS PRODUCT USES FOR SOMETHING THAT HAS JUST GONE RIGHT, and the
+     same slot carries amber or ruby elsewhere — so a reader reads the window's
+     temperature before they read a word of it. */
+  .rl-note-h .tick{width:16px;height:16px;flex:none;border-radius:50%;
+    background:var(--st-green-dot);color:#fff;display:grid;place-items:center;}
+  .rl-note-h .tick svg{width:9px;height:9px;}
+  .rl-note-h h3{font-family:var(--font-heading);font-weight:var(--w-strong);
+    font-size:var(--t-card);color:var(--color-text);margin:0;line-height:1.3;}
+  /* INDENTED UNDER THE TICK, so the lead reads as belonging to the headline
+     rather than as a second block beginning again at the wall. */
+  .rl-note-lead{font-size:var(--t-meta);line-height:1.5;
+    color:var(--color-neutral-600);margin:0 0 12px 24px;}
+  .rl-note-dlg:not(:has(.tick)) .rl-note-lead{margin-left:0;}
+  /* What has already been said on this change — a record above the box, so the
+     same sentence is not written twice and one that has GONE is visible as
+     history rather than as something to correct. The panel's own note rule. */
+  .rl-note-past{max-height:150px;overflow-y:auto;margin:0 0 10px;
+    padding:0 10px;background:var(--surface-2);
+    border:1px solid var(--color-divider);border-radius:var(--radius);}
+  /* TWO ROWS AND A 64px FLOOR — the drawing's own box. The reader is asked for
+     a sentence, and a field three lines deep asks for a paragraph. */
+  .rl-note-dlg textarea{box-sizing:border-box;width:100%;max-width:100%;
+    min-height:64px;resize:vertical;border:1px solid var(--field-line);
+    background:var(--color-bg);border-radius:var(--radius);
+    padding:9px 11px;font:inherit;font-size:var(--t-body);line-height:1.6;
+    color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere;}
+  /* ONE ROW FOR THE PROMISE AND BOTH VERBS. It is what keeps the window five
+     lines tall, and it is why the promise is a globe rather than a lock: this
+     note is the explanation the other side reads. */
+  .rl-note-acts{display:flex;align-items:center;gap:8px;margin-top:11px;}
+  .rl-note-who{flex:1;min-width:0;display:flex;align-items:flex-start;gap:5px;
+    font-size:var(--t-label);line-height:1.4;color:var(--color-neutral-600);}
+  .rl-note-who .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
+  /* SKIP IS A BARE WORD AND THE ACT IS FILLED, so the window says which answer
+     is the ordinary one. .ui-btn is a bare class rule 3,500 lines above this,
+     so an equal-specificity rule later in the sheet already wins — no
+     !important, which would win this fight and hide the next. */
+  .rl-note-acts .ui-btn{flex:none;border-color:transparent;
+    color:var(--color-neutral-600);}
+  .rl-note-acts .ui-btn.ui-btn-primary{border-color:var(--accent-fill);
+    color:#fff;}
+  .rl-note-del{flex:none;font:inherit;font-size:var(--t-label);
+    background:none;border:0;padding:0 4px;cursor:pointer;color:var(--danger);}
+  .rl-note-del:hover{text-decoration:underline;}
   .rl-note-dlg .rl-np-no{padding:12px 10px;border-top:0;border-radius:var(--radius);}
-  /* ---- CHAT: THE WHOLE CONTRACT'S CONVERSATION ----
-     The drawer's notes face with no change named. It borrows the per-change
-     panel's own note rule (.rl-np-note) so a note cannot read one way here and
-     another way there; what it adds is the line above each one saying which
-     change it came from, which is the only thing a whole-contract list needs
-     that a one-change list does not. */
-  .rl-chat{display:flex;flex-direction:column;min-height:0;flex:1;}
-  .rl-chat-lead{flex:none;margin:0;padding:10px var(--s-4) 0;
-    font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
+  .rl-note-dlg .rl-np-note{border-bottom:1px solid var(--rule-faint);}
+  /* ---- CHAT WEARS THE PER-CHANGE PANEL'S OWN CLOTHES (owner-asked 1 Sep
+     2026: "revert back to the previous style of the panel shown in image 3") ----
+     So there is almost nothing here: the header, the tabs, the lock line, the
+     scope line and the note rule are all .rl-np's, unchanged, and what Chat
+     adds is the one line above each note saying which change it came from.
+     Two surfaces reading one conversation must not dress it two ways. */
   .rl-chat-none{padding:26px var(--s-4);font-size:var(--t-meta);
     line-height:1.55;color:var(--color-neutral-600);}
-  .rl-chat-row{padding-top:2px;}
-  .rl-chat-on{display:flex;align-items:baseline;gap:6px;width:100%;margin-top:8px;
+  /* The header names the CONTRACT and does not press — you are already on it —
+     so it takes the button's own look and none of its affordances. */
+  /* A <div> rather than a <button>, so it takes the base rule's pointer and
+     has to give it back. There is no hover rule to undo — the base has none. */
+  .rl-np-which.is-static{cursor:default;}
+  .rl-chat-on{display:flex;align-items:baseline;gap:6px;width:100%;margin-top:10px;
     padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);
     text-align:left;cursor:pointer;color:var(--color-neutral-600);}
   .rl-chat-on .id{font-weight:var(--w-strong);color:var(--accent-ink);}
   .rl-chat-on em{font-style:normal;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
-  .rl-chat-on .rm{margin-left:auto;flex:none;font-size:var(--t-figure);
-    letter-spacing:.09em;text-transform:uppercase;}
-  .rl-chat-on .rm.out{color:var(--st-amber-fg);}
   .rl-chat-on:hover .id{text-decoration:underline;}
   #panel-body .al-row.al-good{padding-left:9px!important;
     box-shadow:inset 3px 0 0 var(--st-green-dot);}

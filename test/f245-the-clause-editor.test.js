@@ -1479,21 +1479,35 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
       'the file step never asked which chip was lit');
   });
 
-  test('the chips are drawn by the READINGS row, and by that row alone', () => {
+  /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: "delete ever having the CHG
+     pills on the screen as show in the highlighted area") ----
+     These two pinned WHERE the chips were drawn and that pressing one repainted
+     the row they sat on. The chips are gone, so what is pinned now is the
+     removal — including that nothing stands in for them, which is the half a
+     "no chips" check alone would miss. DELETED RATHER THAN STUBBED, following
+     Quarter, List and Obligations on the calendar: the builder was never
+     exported, so there is no door a third caller could bring it back through. */
+  test('the CHG pills are gone from the readings row, and from the page', () => {
     const bar = CE.match(/function ceRenderReadBar[\s\S]*?\n}\n/)[0];
-    assert.match(bar, /ceCtxChipsHtml\(\)/, 'the row that had the room draws them');
-    assert.equal((CODE.match(/(?<!function )ceCtxChipsHtml\(\)/g) || []).length, 1,
-      'exactly one caller — two would be the same chips in two places, '
-      + 'disagreeing about which is lit');
-    assert.match(CE, /\.ce-readbar \.ce-chip\{flex:none\}/,
-      'and they are dressed where they now sit');
+    assert.ok(!/ceCtxChipsHtml/.test(bar), 'the row that drew them draws them no more');
+    assert.equal((CODE.match(/(?<!STALE — flag any mention\. \*\/\n)function ceCtxChipsHtml/g) || []).length, 0,
+      'and the builder is deleted, not left for a third caller to find');
+    assert.ok(!/data-ce-focus/.test(CE.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'nor is the handler that made one lit — a listener for markup nothing '
+      + 'emits is a mention of a retired thing');
+    assert.ok(!/\.ce-chip\{/.test(CE), 'and no rule dresses one');
   });
 
-  test('pressing a chip repaints that row, or the pressed one never lights', () => {
-    const h = CODE.match(/data-ce-focus'\)[\s\S]{0,400}/)[0];
-    assert.match(h, /ceRenderHead\(\)/, 'the head still follows');
-    assert.match(h, /ceRenderReadBar\(\)/,
-      'and so must the row the chips are on — this is the whole cost of moving them');
+  test('_ceLead is untouched — the door still says which ask this speaks for', () => {
+    /* WHAT WENT WITH THE CHIPS, said out loud: on a clause carrying several
+       asks you can no longer switch, from inside this page, which one the
+       editor speaks for. Nothing is unreachable — the page is OPENED from a
+       change — and the fact it named is still on the record and still on the
+       foot's own button. */
+    assert.match(CE, /_ceLead = ceLeadChange\(changeId\);/,
+      'still set at the door');
+    assert.match(CE, /_ceLead \? _cet\('ce_save_to', \{ id: _ceLead\.id \}\)/,
+      'and still what the foot names');
   });
 
   test('a clause with nothing on it draws no chips at all', async () => {
@@ -1503,7 +1517,7 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
     wide(p.win);
     p.win.rlOpenClauseEditor(p.c, firstClauseId(p), {});
     assert.equal(p.doc.querySelectorAll('#ce-readbar .ce-chip').length, 0,
-      'no chips on the row');
+      'no chips on the row — and since 1 Sep 2026 there are none on any row');
     /* And nothing stands in for them either. The strip used to fill its own
        40px with "Nothing has been proposed on this clause yet" — the fourth
        printing of a fact the crumb and two fact-row cells already carry. */
@@ -1514,17 +1528,20 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
     p.win.rlCloseClauseEditor();
   });
 
-  test('and a clause that HAS an ask carries its chip on that row', async () => {
+  /* REVERSED IN PLACE 1 Sep 2026: it pinned that a clause WITH an ask carries a
+     chip. None does now, and the claim is the stronger half of what it was
+     always guarding — nothing above the paper draws a second copy of the
+     change's id. */
+  test('and a clause that HAS an ask carries no chip either', async () => {
     const p = await bench();
     wide(p.win);
     const ch = p.c.changes.find(x => x.status === 'pending' && !x.withdrawn);
     assert.ok(ch, 'the fixture really did put an ask on the table');
     p.win.rlOpenClauseEditor(p.c, ch.clauseId, {});
-    const chips = [...p.doc.querySelectorAll('#ce-readbar .ce-chip')];
-    assert.equal(chips.length, 1, `expected one chip, got ${chips.length}`);
-    assert.match(chips[0].textContent, /CHG-/, 'named by the change it speaks for');
+    assert.equal(p.doc.querySelectorAll('#ce-readbar .ce-chip').length, 0,
+      'the readings row is the readings, the counts and the zoom');
     assert.equal(p.doc.querySelectorAll('#ce-ctx').length, 0,
-      'and the strip above the paper is not there to draw it twice');
+      'and the retired strip above the paper is not back either');
     p.win.rlCloseClauseEditor();
   });
 

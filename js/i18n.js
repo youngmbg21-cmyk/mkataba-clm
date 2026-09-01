@@ -1902,9 +1902,11 @@ const STRINGS = {
        the change's own Notes row. One note — yours — never the conversation:
        the conversation has its own door in the shell bar. */
     ng_note_head: 'Note on {id}',
-    ng_note_filed_lead: 'Filed. Add a note for your colleagues, or skip — you can add one later from the change\u2019s Notes row.',
-    ng_note_keep_lead: 'Only your colleagues see this. It stays with {id} for the life of the contract.',
-    ng_note_ph: 'Why this change, what to watch for\u2026',
+    ng_note_head_filed: '{id} filed',
+    ng_note_filed_lead: 'Tell {who} why, or skip.',
+    ng_note_keep_lead: 'Tell {who} why you are asking for this change.',
+    ng_note_who: '{who} reads this beside the change',
+    ng_note_ph: 'Why you are asking for this change\u2026',
     ng_note_skip: 'Skip',
     ng_note_add: 'Add note',
     ng_note_save: 'Save',
@@ -1912,8 +1914,13 @@ const STRINGS = {
     ng_note_added: 'Note added to {id}',
     ng_note_updated: 'Note on {id} updated',
     ng_note_removed: 'Note removed from {id}',
-    ng_note_sent: 'This note has already gone to the other side, so it cannot be changed here.',
+    ng_note_sent: 'This note has already reached the other side, so it cannot be changed or taken back.',
     ng_note_not_yours: 'Only the colleague who wrote a note can change it.',
+    /* STALE SINCE 1 Sep 2026 — the window prints what has already been said
+       on the change above the box, so the fact is on screen rather than
+       counted and pointed at. Left inert in BOTH dictionaries: a key
+       removed from one and not the other is how a screen ends up
+       half-English. */
     ng_note_others_one: '1 other note on this change',
     ng_note_others_other: '{n} other notes on this change',
     ng_note_open_chat: 'Open Chat',
@@ -1922,7 +1929,13 @@ const STRINGS = {
     ng_chat: 'Chat',
     ng_chat_title: 'Chat \u2014 every note on this contract',
     ng_chat_none: 'Open a contract to read its notes.',
+    /* STALE SINCE 1 Sep 2026 — the panel's own header names the contract and
+       each row names its change, so the sentence described the rows it sat
+       above. Left inert rather than deleted: a key removed from one
+       dictionary and not the other is how a screen ends up half-English. */
     ng_chat_lead: 'Every note on {name}, newest last. Each row says which change it is about.',
+    ng_chat_n_one: '1 note',
+    ng_chat_n_other: '{n} notes',
     ng_chat_empty: 'Nothing has been written on this contract yet.',
     ng_chat_on: 'On {id}',
     ng_chat_not_here: 'The clause you are editing covers this panel. Leave the clause and Chat opens as usual.',
@@ -7209,9 +7222,11 @@ const STRINGS = {
     ng_np_filed: 'Intern anteckning sparad på {id} — den stannar inom {org}',
     ng_np_gone: 'Den här ändringen ligger inte längre på bordet, så anteckningarna finns i rundans historik i stället för här.',
     ng_note_head: 'Anteckning p\u00e5 {id}',
-    ng_note_filed_lead: 'Sparad. L\u00e4gg till en anteckning f\u00f6r ditt team, eller hoppa \u00f6ver \u2014 du kan l\u00e4gga till en senare fr\u00e5n \u00e4ndringens Anteckningar-rad.',
-    ng_note_keep_lead: 'Bara ditt team ser detta. Den stannar med {id} under avtalets livstid.',
-    ng_note_ph: 'Varf\u00f6r den h\u00e4r \u00e4ndringen, vad man ska h\u00e5lla \u00f6gonen p\u00e5\u2026',
+    ng_note_head_filed: '{id} sparad',
+    ng_note_filed_lead: 'Ber\u00e4tta f\u00f6r {who} varf\u00f6r, eller hoppa \u00f6ver.',
+    ng_note_keep_lead: 'Ber\u00e4tta f\u00f6r {who} varf\u00f6r du beg\u00e4r den h\u00e4r \u00e4ndringen.',
+    ng_note_who: '{who} l\u00e4ser detta bredvid \u00e4ndringen',
+    ng_note_ph: 'Varf\u00f6r du beg\u00e4r den h\u00e4r \u00e4ndringen\u2026',
     ng_note_skip: 'Hoppa \u00f6ver',
     ng_note_add: 'L\u00e4gg till anteckning',
     ng_note_save: 'Spara',
@@ -7219,7 +7234,7 @@ const STRINGS = {
     ng_note_added: 'Anteckning tillagd p\u00e5 {id}',
     ng_note_updated: 'Anteckningen p\u00e5 {id} uppdaterad',
     ng_note_removed: 'Anteckningen borttagen fr\u00e5n {id}',
-    ng_note_sent: 'Den h\u00e4r anteckningen har redan g\u00e5tt till motparten och kan d\u00e4rf\u00f6r inte \u00e4ndras h\u00e4r.',
+    ng_note_sent: 'Den h\u00e4r anteckningen har redan n\u00e5tt motparten och kan d\u00e4rf\u00f6r inte \u00e4ndras eller tas tillbaka.',
     ng_note_not_yours: 'Bara den kollega som skrev anteckningen kan \u00e4ndra den.',
     ng_note_others_one: '1 annan anteckning p\u00e5 den h\u00e4r \u00e4ndringen',
     ng_note_others_other: '{n} andra anteckningar p\u00e5 den h\u00e4r \u00e4ndringen',
@@ -7230,6 +7245,8 @@ const STRINGS = {
     ng_chat_title: 'Chatt \u2014 alla anteckningar p\u00e5 det h\u00e4r avtalet',
     ng_chat_none: '\u00d6ppna ett avtal f\u00f6r att l\u00e4sa dess anteckningar.',
     ng_chat_lead: 'Alla anteckningar p\u00e5 {name}, nyast sist. Varje rad s\u00e4ger vilken \u00e4ndring den g\u00e4ller.',
+    ng_chat_n_one: '1 anteckning',
+    ng_chat_n_other: '{n} anteckningar',
     ng_chat_empty: 'Inget har skrivits p\u00e5 det h\u00e4r avtalet \u00e4nnu.',
     ng_chat_on: 'P\u00e5 {id}',
     ng_chat_not_here: 'Klausulen du redigerar t\u00e4cker den h\u00e4r panelen. L\u00e4mna klausulen s\u00e5 \u00f6ppnas Chatt som vanligt.',

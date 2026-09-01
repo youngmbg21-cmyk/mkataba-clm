@@ -8964,6 +8964,25 @@ function rlWireClauseTools(c, host, opts){
        here: where the panel can show the clause it opens exactly as before,
        and where it cannot the reader is told rather than left guessing whether
        they pressed it properly. */
+    /* ---- ON OUR SEAT IT IS A JUMP AND NOTHING MORE (owner-reported 1 Sep
+       2026: "the feature in image 5 appeared again when it is supposed to be
+       completely eliminated from the internal side of the platform") ----
+
+       This handler opened the clause panel unconditionally, and it is what the
+       ⋯ menu's "Jump to the clause" row presses. So the panel the owner shut
+       on 30 Aug came back through a row whose own label promises only a jump —
+       two acts under one name, and the second of them retired.
+
+       IT ASKS THE ONE READING the pencil, the card's Edit and the menu's
+       Copilot row all ask, so where the editor is the door this row does
+       exactly what it says and nothing else. THE FALLBACK ROW IS WHY THE
+       HANDLER HAS TO ASK AS WELL AS THE GUARD: a card with no other rows at
+       all still draws one, deliberately, so the guard alone cannot close this.
+
+       THEIR SEAT IS UNTOUCHED. Their Edit carries this attribute, the panel is
+       the only way their page proposes wording, and the refusal below is the
+       one L-3 was built for. */
+    if (rlEditorTakesIt((opts && opts.side) || 'owner')) return;
     if (!rlCpSetShown(btn.closest('.redline-page') || document, clauseId)
         && window.toast) toast(i18t('ng_cp_cannot_open'), 'warn');
   }));
@@ -9728,10 +9747,7 @@ function redlineDocHtml(c, opts = {}){
         check falling through as true on a page with no editor on it is a
         pencil claiming a page nothing can open, which is the dead press this
         whole draw-time decision exists to prevent. */
-  const editorTakesIt = side === 'owner'
-    && typeof window !== 'undefined'
-    && typeof window.rlOpenClauseEditor === 'function'
-    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
+  const editorTakesIt = rlEditorTakesIt(side);
   const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
@@ -10458,6 +10474,33 @@ function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
     aria-label="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
     ><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chat"/></svg><b>${n.total}</b></button>`;
 }
+/* ---- WHERE A CLAUSE IS EDITED, DECIDED ONCE (owner-reported 1 Sep 2026) ----
+
+   THREE COPIES OF THIS READING EXISTED AND THE ONE PLACE THAT NEEDED IT MOST
+   HAD NONE. The paper's pencil, the card's Edit and the ⋯ menu's Copilot row
+   each worked it out for themselves, and the [data-rl-edit] HANDLER — the
+   thing that actually opens the clause panel — asked nothing at all. So the
+   panel the owner had shut on 30 Aug came back through the menu's own "Jump
+   to the clause" row, which carries data-rl-edit and whose handler opens it.
+
+   ONE FUNCTION, ASKED BY ALL FOUR. A destination worked out in four places is
+   four places for them to disagree, and this is what that disagreement looked
+   like from the reader's chair: a row labelled "Jump to the clause" that
+   opened a panel the product no longer uses.
+
+   THE THREE QUESTIONS ARE UNCHANGED, and each keeps the panel for a reason
+   that is a capability rather than a taste: THEIR SEAT (rlOpenClauseEditor
+   refuses a counterparty outright, and the panel is the only way their page
+   proposes wording), A WINDOW UNDER 1024px (two columns need room to be two
+   columns), and A STAGE THAT DOES NOT LOAD THE EDITOR AT ALL — the module is
+   asked for BY NAME rather than only whether the width suits it, because a
+   fits-check falling through as true on a page with no editor is a door
+   claiming a page nothing can open. */
+function rlEditorTakesIt(side, opts = {}){
+  if (side === 'counterparty' || opts.preview) return false;
+  if (typeof window === 'undefined' || typeof window.rlOpenClauseEditor !== 'function') return false;
+  return typeof window.clauseEditorFits !== 'function' || clauseEditorFits();
+}
 function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
   const rows = [];
   /* EVERY FLAG IS THE CARD'S OWN, handed in rather than worked out again here:
@@ -10500,9 +10543,7 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      accepted change's own card BEFORE this row was shut — see the branch in
      redlineChangeCardsHtml, which says why it could only move once the piles of
      26 Aug gave a settled change a card to carry it. */
-  const ceDoor = own && typeof window !== 'undefined'
-    && typeof window.rlOpenClauseEditor === 'function'
-    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
+  const ceDoor = rlEditorTakesIt(side, { preview: st.preview });
   if (panel && !ceDoor)
     rows.push(`<button type="button" class="rl-more-row"
       data-rl-cp-open="${_nea(ch.clauseId)}">${i18t('ng_row_open_panel')}</button>`);
@@ -10543,7 +10584,15 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
      whose face is bare. `faceVerbs` is the card's own finished verb markup,
      handed in — the same string the receipt rule reads — so the two cannot
      come to disagree about what is on the face. */
-  if (ch.clauseId && !/data-rl-edit=/.test(carried))
+  /* ---- AND IT READS BOTH DOORS (owner-reported 1 Sep 2026) ----
+     It tested for `data-rl-edit=` alone, which was the card's Edit until 30
+     Aug and is now only the COUNTERPARTY's. On our seat the face carries
+     `data-rl-cp-editor-row`, so this saw a bare face where there was an Edit
+     and drew the row on almost every card — and its handler opens the clause
+     panel, which is how the retired panel came back in front of the owner.
+     The claim was never about an attribute: it is that this row is for a card
+     with NO way into its clause on its face. */
+  if (ch.clauseId && !/data-rl-edit=|data-rl-cp-editor-row=/.test(carried))
     rows.push(`<button type="button" class="rl-more-row${
       rows.some(r => r.includes('data-rl-ask-review')) ? '' : cut}"
       data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
@@ -12062,50 +12111,104 @@ function rlNotesPanelHtml(c, ch, opts = {}){
 
    NO BOX. There is one note box per change in this product and it is on the
    change; a composer here would be a second one with no change to attach to. */
-function rlChatRows(c, opts = {}){
+function rlChatRows(c, opts = {}, room = null){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const live = (c && Array.isArray(c.changes)) ? c.changes : [];
   const out = [];
   for (const ch of live){
     if (!ch || !ch.id) continue;
-    for (const m of negoRoomNotes(c, ch, null, opts, side)) out.push({ ch, m });
+    for (const m of negoRoomNotes(c, ch, room, opts, side)) out.push({ ch, m });
   }
   return out.sort((a, b) => String(a.m.at || '').localeCompare(String(b.m.at || '')));
 }
+/* ---- IT WEARS THE PER-CHANGE PANEL'S OWN CLOTHES (owner-asked 1 Sep 2026:
+   "revert back to the previous style of the panel shown in image 3") ----
+
+   The first build drew a flat list of its own — a lead sentence and a run of
+   rows — and the owner looked at it beside the panel it replaced and wanted the
+   panel back. THAT IS THE RIGHT ANSWER FOR THE SAME REASON THE ROWS ALREADY
+   BORROWED rlNpNoteHtml: two surfaces reading one conversation must not dress
+   it two ways, or a reader moving between them is reading two products.
+
+   SO IT IS `rlNotesPanelHtml`'s STRUCTURE AT CONTRACT SCOPE — the same header
+   button, the same tabs with their counts, the same lock line, the same
+   OLDEST FIRST scope line, the same note rule — and every one of those rules is
+   the panel's own, unchanged. What Chat adds is the line above each note saying
+   which change it came from, which is the one thing a whole-contract list needs
+   that a one-change list does not.
+
+   THE ROOM IS THE PANEL'S OWN STATE, deliberately shared. "Which room am I
+   reading" is one question, and two stored answers is two things to keep in
+   step; switching here switches there, which is what a reader expects of one
+   setting drawn twice.
+
+   NO COMPOSER. There is one note box per change and it is on the change; a box
+   here would have nothing to attach to. The header names the CONTRACT and does
+   not press — you are already on it — so it draws no chevron.
+
+   THE LEAD SENTENCE IS GONE and nothing is lost: it said "each row says which
+   change it is about", which is a description of the rows, and the rows say it
+   themselves. `ng_chat_lead` is STALE — flag any mention; the key is left
+   inert in both dictionaries. */
 function rlChatPanelHtml(c, opts = {}){
   if (!c) return `<div class="rl-chat-none">${i18t('ng_chat_none')}</div>`;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const room = rlNpRoom();
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
-  const rows = rlChatRows(c, opts);
+  const ext = room === 'external';
+  const all = rlChatRows(c, opts);
+  const rows = all.filter(({ m }) => negoNoteRoom(m) === room);
+  const nInt = all.length - all.filter(({ m }) => negoNoteRoom(m) === 'external').length;
+  const nExt = all.length - nInt;
+  const who = ext
+    ? i18t('ng_np_who_ext', { who: _ne(other) })
+    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
   const body = rows.length
-    ? rows.map(({ ch, m }) => {
-        const room = negoNoteRoom(m);
-        return `<div class="rl-chat-row">
-          <button type="button" class="rl-chat-on" data-rl-notes="${_nea(ch.id)}">
-            <span class="id">${i18t('ng_chat_on', { id: _ne(ch.id) })}</span>
-            ${ch.clauseLabel ? `<em>${_ne(ch.clauseLabel)}</em>` : ''}
-            <span class="rm ${room === 'external' ? 'out' : ''}">${
-              i18t(room === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</span>
-          </button>
-          ${rlNpNoteHtml(m, room, side, other)}
-        </div>`;
-      }).join('')
-    : `<div class="rl-np-empty"><b>${i18t('ng_chat_empty')}</b>
-        <span>${i18t('ng_np_none_sub', { id: _ne(c.id) })}</span></div>`;
-  return `<div class="rl-chat">
-    <p class="rl-chat-lead">${i18t('ng_chat_lead', { name: _ne(c.name || c.id) })}</p>
-    <div class="rl-np-list"><div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>${body}</div>
+    ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
+        <button type="button" class="rl-chat-on" data-rl-notes="${_nea(ch.id)}">
+          <span class="id">${i18t('ng_chat_on', { id: _ne(ch.id) })}</span>
+          ${ch.clauseLabel ? `<em>${_ne(ch.clauseLabel)}</em>` : ''}
+        </button>
+        ${rlNpNoteHtml(m, room, side, other)}
+      </div>`).join('')
+    : `<div class="rl-np-empty">
+        <b>${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</b>
+        <span>${i18t('ng_chat_empty')}</span>
+      </div>`;
+  return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
+    <div class="rl-np-which is-static">
+      <span class="t">
+        <span class="id">${_ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
+        <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
+      </span>
+    </div>
+    <div class="rl-np-tabs" role="tablist">
+      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
+        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
+        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
+        r === 'external' ? nExt : nInt})</i></button>`).join('')}
+    </div>
+    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    <div class="rl-np-list">
+      <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
+      ${body}
+    </div>
   </div>`;
 }
-/* Paint and re-wire in one, exactly as the per-change panel does. The rows are
-   [data-rl-notes], so the delegated door armed at module load carries the press
-   and there is nothing to bind here — a second handler for that act is what
-   this file records as always undoing the first. */
 function rlChatPanelPaint(host, c, opts = {}){
   if (!host) return;
   host.innerHTML = rlChatPanelHtml(c, opts);
+  /* THE TABS ARE WIRED HERE, exactly as the per-change panel wires its own:
+     the rows are [data-rl-notes] and the delegated door armed at module load
+     carries those, but a room switch has to repaint THIS host and nothing else
+     knows which one it is. Bound to fresh markup on every paint, so they
+     cannot stack. */
+  host.querySelectorAll('[data-rl-np-room]').forEach(b => b.addEventListener('click', () => {
+    rlNpSetRoom(b.getAttribute('data-rl-np-room'));
+    rlChatPanelPaint(host, c, opts);
+  }));
 }
 /* Paint and re-wire in one. The panel is rebuilt on every act — a room switch,
    a note posted — so the handlers below are bound to fresh markup each time and
@@ -12221,35 +12324,29 @@ function rlWireNotesPanel(host, c, ch, opts = {}){
 function rlNoteDialogHtml(c, ch, mine, opts){
   const filed = !!opts.filed;
   const mayWrite = notesMayWrite(c, opts);
-  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
-  /* HOW MANY NOTES ON THIS CHANGE ARE NOT THE ONE IN THE BOX. Without this line
-     a reader whose colleagues have written three notes opens their own empty
-     box and is told nothing — the dialog saying there is nothing where there is
-     plenty. It counts through negoNoteCounts, the same arithmetic the row's own
-     number prints, so the two cannot disagree. */
-  const total = negoNoteCounts(c, ch, opts, 'owner').total;
-  const others = Math.max(0, total - (mine ? 1 : 0));
+  const them = c.counterparty || i18t('ng_the_counterparty');
+  /* WHAT HAS ALREADY BEEN SAID ON THIS CHANGE, quietly, above the box — so a
+     reader coming back to a change does not write the same sentence twice, and
+     so an explanation that has GONE is visible as a record rather than as
+     something to correct. It is the panel's own note rule, unchanged. */
+  const said = negoRoomNotes(c, ch, null, opts, 'owner');
+  const past = said.filter(m => m !== mine);
   const lead = filed
-    ? i18t('ng_note_filed_lead')
-    : i18t('ng_note_keep_lead', { id: _ne(ch.id) });
+    ? i18t('ng_note_filed_lead', { who: _ne(them) })
+    : i18t('ng_note_keep_lead', { who: _ne(them) });
   const box = mayWrite
-    ? `<textarea id="rl-note-in" rows="4" wrap="soft"
+    ? `<textarea id="rl-note-in" rows="2" wrap="soft"
         placeholder="${_nea(i18t('ng_note_ph'))}"
         aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}"
-        style="box-sizing:border-box;width:100%;max-width:100%;min-height:96px;resize:vertical;border:1px solid var(--field-line);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--color-text)"
         >${_ne(mine ? (mine.text || '') : '')}</textarea>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
-  const otherLine = others
-    ? `<button type="button" id="rl-note-chat" class="rl-note-other">
-        <span>${i18tn('ng_note_others', others, { n: others })}</span>
-        <em>${i18t('ng_note_open_chat')}</em>
-      </button>`
-    : '';
-  /* THE VERBS. Delete draws only where there is something of yours to delete;
-     the quiet way out says Skip where the dialog arrived by itself and Close
-     where the reader opened it. */
+  /* THE VERBS. Delete draws only where there is something of yours still to
+     delete — a note the other side is already holding is not one. The quiet way
+     out says Skip where the window arrived by itself and Close where the reader
+     opened it. */
   const del = (mine && mayWrite)
-    ? `<button type="button" id="rl-note-del" class="ui-btn rl-note-del">${i18t('ng_note_delete')}</button>`
+    ? `<button type="button" id="rl-note-del" class="rl-note-del"
+        title="${_nea(i18t('ng_note_delete'))}">${i18t('ng_note_delete')}</button>`
     : '';
   const go = mayWrite
     ? `<button type="button" id="rl-note-ok" class="ui-btn ui-btn-primary">${
@@ -12257,21 +12354,31 @@ function rlNoteDialogHtml(c, ch, mine, opts){
     : '';
   return `<div class="rl-note-dlg" role="dialog" aria-modal="true"
       aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}">
-    <h3 class="rl-note-h">${i18t('ng_note_head', { id: _ne(ch.id) })}</h3>
+    ${''/* THE FILING IS THE HEADLINE AND THE NOTE IS THE SMALL THING UNDER IT,
+           which is what they are. Drawn in the tone this product uses for
+           something that has just gone right. Opened from the change's own
+           Notes row there is nothing to confirm, so the tick stands down and
+           the heading names the change instead. */}
+    <div class="rl-note-h">
+      ${filed ? `<span class="tick" aria-hidden="true">${RL_NOTE_TICK}</span>` : ''}
+      <h3>${filed ? i18t('ng_note_head_filed', { id: _ne(ch.id) })
+        : i18t('ng_note_head', { id: _ne(ch.id) })}</h3>
+    </div>
     <p class="rl-note-lead">${lead}</p>
+    ${past.length ? `<div class="rl-note-past">${
+      past.map(m => rlNpNoteHtml(m, negoNoteRoom(m), 'owner', them)).join('')}</div>` : ''}
     ${box}
-    <div class="rl-note-keep">${RL_NP_LOCK}<span>${
-      i18t('ng_np_who_int', { org: _ne(us), who: _ne(c.counterparty || i18t('ng_the_counterparty')) })}</span></div>
-    ${otherLine}
     <div class="rl-note-acts">
+      <span class="rl-note-who">${RL_NP_GLOBE}<span>${
+        i18t('ng_note_who', { who: _ne(them) })}</span></span>
       ${del}
-      <span class="sp"></span>
       <button type="button" id="rl-note-skip" class="ui-btn">${
         i18t(filed ? 'ng_note_skip' : 'act_close')}</button>
       ${go}
     </div>
   </div>`;
 }
+const RL_NOTE_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.4 12 13 4.6"/></svg>';
 /* ---- ONE ASK PER CHANGE, ON THE FILING THAT CREATED IT ----
    (owner-ruled 31 Aug 2026, decision D: asked once, on the first filing;
    revisions file silently.)
@@ -12346,32 +12453,73 @@ function openChangeNoteDialog(c, ch, opts = {}){
       if (scrim) scrim.addEventListener('click', () => done(null));
       const skip = ov.querySelector('#rl-note-skip');
       if (skip) skip.addEventListener('click', () => done(null));
-      const chat = ov.querySelector('#rl-note-chat');
-      /* THE CONVERSATION HAS ITS OWN DOOR AND THIS IS NOT A SECOND ONE — it
-         presses openNotesPanel, the shell's own act, and closes behind itself
-         so the drawer is not opened underneath a dialog. */
-      if (chat) chat.addEventListener('click', () => {
-        done(null);
-        if (window.openNotesPanel) openNotesPanel(c.id, ch.id);
-      });
+      /* ---- THE "N OTHER NOTES · OPEN CHAT" LINE IS GONE (1 Sep 2026) ----
+         It existed because the window showed only YOUR note, so a reader whose
+         colleagues had written three opened an empty box and was told nothing.
+         The window now prints what has already been said on the change, above
+         the box, so the fact is on screen rather than counted and pointed at.
+         `ng_note_others_one/_other` and `ng_note_open_chat` are STALE — flag
+         any mention; both keys are left inert in both dictionaries. */
       const box = ov.querySelector('#rl-note-in');
       const ok = ov.querySelector('#rl-note-ok');
       if (ok) ok.addEventListener('click', async () => {
         const text = String((box && box.value) || '').trim();
         if (!text){ if (box && box.focus) box.focus(); return; }
-        let out = null;
+        let out = null, msg = mine;
+        /* ---- IT IS THE EXPLANATION, AND IT GOES TO THEM (owner-ruled 1 Sep
+           2026: "Make them external so that when you suggest an edit, you give
+           an explanation as to why you want to change the contract. That is the
+           idea.") ----
+
+           THIS CLOSES THE LOOP THE 28 Aug RULING OPENED. That day removed the
+           mandatory "why this change?" step, and this file recorded the cost in
+           its own words: `why` TRAVELLED and a note did not, so the sentence
+           that explained a redline to the other side had to be typed on purpose
+           in a box with a switch thrown. The window is that sentence now, asked
+           once, at the moment the redline is made.
+
+           EXTERNAL IS WHICH ROOM IT IS IN AND WHO IT IS FOR; the channel is
+           what DELIVERS it. Both, in that order, so a refusal leaves the note
+           on the record rather than losing what the reader typed.
+
+           NO SECOND CONFIRMATION. Every crossing note in the panel asks first,
+           because there the room is a setting and a forgotten setting must not
+           publish a colleague's aside. Here there is nothing to set: the window
+           names the counterparty on its own face and exists for no other
+           purpose, so a dialog on top of a dialog is exactly the furniture that
+           rule warns about. */
         if (mine && window.negoEditNote){
           if (!negoEditNote(c, ch, mine, text)) return;
           out = 'updated';
         } else {
-          const msg = negoPostComment(c, ch.id, text,
-            { side: 'owner', author: opts.author, visibility: 'internal' });
+          msg = negoPostComment(c, ch.id, text,
+            { side: 'owner', author: opts.author, visibility: 'shared' });
           if (!msg) return;
           out = 'added';
         }
         if (opts.persist !== false && window.persist) persist(c);
-        if (window.toast) toast(i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added',
-          { id: ch.id }), 'ok');
+        /* ---- AND "SENT" MEANS SENT ----
+           negoPostToChannel is the ONE act that reaches them, and it answers
+           honestly: outside API mode it skips, and a provider can refuse. The
+           stamp goes on only where it actually went, which is what makes
+           negoNoteDelivered — and therefore whether this note is still the
+           writer's to change — true rather than assumed. */
+        const them = c.counterparty || i18t('ng_the_counterparty');
+        let gone = false;
+        try {
+          const res = await negoPostToChannel(c, ch, msg);
+          gone = !!(res && res.ok);
+        } catch (e){
+          if (window.toast) toast(i18t('ng_np_send_failed',
+            { who: them, why: (e && e.message) || '' }), 'err');
+        }
+        if (gone){
+          msg.sentAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
+          if (opts.persist !== false && window.persist) persist(c);
+        }
+        if (window.toast) toast(gone
+          ? i18t('ng_np_sent', { who: them, id: ch.id })
+          : i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added', { id: ch.id }), 'ok');
         if (typeof opts.onDone === 'function') opts.onDone(out);
         done(out);
       });
@@ -12641,10 +12789,7 @@ function redlineChangeCardsHtml(c, opts = {}){
      claiming a page nothing can open.
      The MODULE is asked for by name, not merely the width: a stage that does
      not load the editor at all must keep the jump. */
-  const ceTakesIt = side === 'owner' && !previewSeat
-    && typeof window !== 'undefined'
-    && typeof window.rlOpenClauseEditor === 'function'
-    && (typeof window.clauseEditorFits !== 'function' || clauseEditorFits());
+  const ceTakesIt = rlEditorTakesIt(side, { preview: previewSeat });
   let lastBand = null;
   const bandHead = ch => {
     if (!banded) return '';
@@ -14802,6 +14947,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
+  rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,

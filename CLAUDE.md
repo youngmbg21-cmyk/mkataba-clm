@@ -8091,10 +8091,21 @@ tying a note to a redline were put up on 31 Aug and all three were declined
 what the owner came back with, and it is smaller than any of them.
 
 **IT ADDS NO STORE, NO ROUTE AND NO FIELD ON THE CHANGE.** A note tied to a
-redline is an ORDINARY INTERNAL MESSAGE on the change's own thread — the same
+redline is an ORDINARY MESSAGE on the change's own thread — the same
 `ch.thread` the notes panel has written since 27 Aug — so every screen that
 already reads a thread reads this one for free and there is nothing to migrate.
-The one new field is `byId` on a MESSAGE, absent on everything already on file.
+The new fields are `byId` and `sentAt` on a MESSAGE, both absent on everything
+already on file.
+
+**AND THE NOTE IS THE EXPLANATION THE OTHER SIDE READS — REVERSED IN PLACE 1
+Sep 2026** (owner-asked, in these words: *"Make them external so that when you
+suggest an edit, you give an explanation as to why you want to change the
+contract. That is the idea."*). This section shipped a day earlier writing an
+INTERNAL note, on the reasoning below about what a delivered message costs; the
+owner has now said what the feature is FOR, and it is the sentence that travels
+with the redline. **THE COST WAS NAMED BEFORE IT WAS BUILT AND IS PAID
+STRUCTURALLY RATHER THAN REMEMBERED** — see THE THREE ACTS below, whose rule is
+no longer "internal only" but "not yet delivered".
 
 - **A — FILED FIRST, THEN ASKED, and that is a departure from the owner's own
   words taken deliberately.** They wrote "Add Note & File"; on that reading a
@@ -8102,9 +8113,13 @@ The one new field is `byId` on a MESSAGE, absent on everything already on file.
   somebody had finished writing. Filing first costs nothing — the note is
   additive and the door back to it stands for the life of the contract — and it
   means **no press in that dialog can ever be the difference between a redline
-  existing and not**. The dialog's lead begins "Filed." and its heading names the
-  change, so **the toast stands down where it opens**: two boxes twelve pixels
+  existing and not**. **THE HEADLINE CARRIES IT** — a tick and "CHG-011 filed",
+  in the tone this product uses for something that has just gone right — so
+  **the toast stands down where the window opens**: two boxes twelve pixels
   apart saying one thing is the furniture this rulebook keeps warning about.
+  (It was a lead sentence beginning "Filed." until Option A on 1 Sep; the
+  filing is the headline and the note is the small thing under it, which is
+  what they are.)
 - **B — THE PENCIL FILES, AND `ceCanFile` IS THE ONE READING.** Pressing it to
   stop typing says *I have finished this clause*, and until now that put the
   reader back on a read-only page still carrying wording the record had never
@@ -8130,15 +8145,56 @@ The one new field is `byId` on a MESSAGE, absent on everything already on file.
   "is this new" flag would be the same fact remembered in two places, and the
   fourth filing door added later would have to remember it too.
 
+**THE WINDOW IS THE RECEIPT — OPTION A, OWNER-CHOSEN OFF FOUR DRAWN ON 1 Sep
+2026** (*"this pop up is very ugly and does not look like a professional
+design. Please provide better options for me to choose from."*). The first
+build was a heading, a lead, a box and three buttons on one row with an
+explanatory line beside them, and what was wrong with it was that four things
+competed for the top of a window whose whole content is one sentence. The
+receipt puts the confirmation FIRST and everything else under it:
+
+- **A TICK AND "CHG-011 filed" ARE THE HEADLINE**, and the ask is the small
+  line under it — the shape of a receipt, which is what this window is.
+  Opened from the change's own Notes row there is nothing to confirm, so the
+  tick stands down and the heading names the change instead: **one builder,
+  two shapes, and the shape is READ rather than passed.**
+- **WHAT HAS ALREADY BEEN SAID IS PRINTED, NOT COUNTED.** The first build put
+  a count of the other notes on the change plus a line pressing through to the
+  drawer to read them; Option A prints them quietly above the box. A reader
+  coming back does not write the same sentence twice, and an explanation that
+  has already GONE is visible as a record rather than as something to correct
+  — which is exactly what the delivered rule needs a reader to be able to see.
+  `#rl-note-chat` is STALE, and `ng_note_others_one/_other` and `ng_chat_lead`
+  are left inert in BOTH dictionaries.
+- **ONE ROW OF ACTS, AND THE SENTENCE IN IT.** A globe, then who reads this,
+  then Delete where there is something of yours still to delete, then the
+  quiet way out, then the one act. The line names WHO reads it rather than
+  claiming the other side is kept out — the old wording was true of an
+  internal note and would be a lie about this one.
+- **THE OTHER THREE ARE NAMED RATHER THAN LOST**, because the drawings are the
+  useful part of the argument: *the sheet* (one column, a rule under the
+  heading, verbs at the foot), *the aside* (the note pinned beside the change
+  rather than over it) and *the strip* (a single line the width of the column).
+  Each is in the scratchpad artifact the owner chose from; none is half-built.
+
 **THE THREE ACTS ARE NARROW AND EACH NARROWING IS A DIFFERENT PROMISE.**
 `negoMyNote` / `negoEditNote` / `negoDeleteNote` sit beside `negoPostComment`,
 which is still the one writer.
-- **INTERNAL ONLY, and this is the load-bearing one.** A 'shared' message has
-  GONE: it travelled on the discussion channel and the other side holds a copy
-  nothing here can reach. Rewriting our half would leave two records of one
-  sentence disagreeing, and deleting it would take it off our screen while it
-  stayed on theirs — **worse than not offering the verb at all, because from
-  this chair it looks as though it worked**.
+- **NOT YET DELIVERED, and this is the load-bearing one. REVERSED IN PLACE 1
+  Sep 2026, and the reasoning is unchanged — only the fact it reads.** It said
+  INTERNAL ONLY, because a shared message had by definition GONE down the
+  discussion channel and the other side holds a copy nothing here can reach:
+  rewriting our half would leave two records of one sentence disagreeing, and
+  deleting it would take it off our screen while it stayed on theirs — **worse
+  than not offering the verb at all, because from this chair it looks as though
+  it worked**. Every word of that still holds. What the owner's ruling exposed
+  is that **"which room a note is in" and "whether it has reached anybody" are
+  two different facts**, and the old rule read the first as a proxy for the
+  second. `negoNoteDelivered` is the second one, and it is a RECORD rather than
+  an inference: `msg.sentAt` is stamped by the dialog only where
+  `negoPostToChannel` came back ok. So an external note that never left the
+  building is still its writer's to correct, and one that landed is nobody's —
+  which is "sent means sent" applied to a sentence instead of to an email.
 - **OUR SIDE ONLY, AND YOUR OWN WORDS ONLY.** No supervisory edit, no admin
   exception. Matched on the **id first and the name second** — the reading
   `obligationRecipient` already uses, for the same reason: an id survives a
@@ -8156,9 +8212,17 @@ A door in the shell bar is pressed with no change in hand, so `openNotesPanel`
 takes an optional change: named, it draws that change's thread as it always
 did; unnamed, `rlChatPanelHtml` draws every note on every live change, oldest
 last, each row naming its change and pressing through to that change's own note.
-**BOTH ROOMS IN ONE LIST** — the per-change panel splits them into tabs because
-that is where you WRITE and the room decides who reads it; this is where you
-READ. **NO COMPOSER**: there is one note box per change and it is on the change.
+**IT WEARS THE PER-CHANGE PANEL'S OWN CLOTHES — REVERSED IN PLACE 1 Sep 2026**
+(owner-asked, off a screenshot of each: *"revert back to the previous style of
+the panel shown in image 3"*). It shipped as a flat list of every note in both
+rooms, on the reasoning that this is where you READ and the per-change panel is
+where you WRITE. The owner has seen both and taken the panel's treatment, and
+it is the stronger of the two anyway: the rooms are TABS here exactly as they
+are there, so it is **the same reading drawn the same way on both surfaces**
+rather than a second arrangement of one conversation. `.rl-np-which`,
+`.rl-np-tabs`, `.rl-np-who`, `.rl-np-list` and `rlNpNoteHtml` are borrowed
+whole; what this surface adds is one line per row naming the change.
+**NO COMPOSER**: there is one note box per change and it is on the change.
 **IT COUNTS AND READS NOTHING OF ITS OWN** — `negoRoomNotes`, `negoWhen` and
 `rlNpNoteHtml` are borrowed whole, so a note cannot read one way here and
 another there.
@@ -8184,9 +8248,9 @@ counterparty will also access the notes through the same processes but fixing
 this will come at a later stage when we begin working on how the counterparty
 page will look like."* Their press on a Notes row falls through to exactly what
 it did before, told apart by `PORTAL_MODE` rather than by whether a lookup
-happened to fail — the dialog writes an INTERNAL note onto `ch.thread`, which is
-on the contract record, and their page is rebuilt from a share payload and
-thrown away on the next repaint, so a note written there would be typed and lost.
+happened to fail — the dialog writes onto `ch.thread`, which is on the contract
+record, and their page is rebuilt from a share payload and thrown away on the
+next repaint, so a note written there would be typed and lost.
 
 **AND THE DIALOG IS ITS OWN OVERLAY AT z-index 88** — above the modal root (70)
 because the clause editor covers the page at 54, and below `confirmDialog` (90)
@@ -8200,10 +8264,67 @@ its one call site; it now pins the NAMED reading and its two halves — pin the
 relation, not the expression), clause-editor-verify sections 12c and 25 (**12c
 reversed in place: the gesture it used to see an unfiled draft is the gesture
 that now files**, and 13d re-pointed onto the relation after the journey moved
-the fixture's wording), notes-two-rooms-verify (40 — its door claim reversed in
-place, the rooms re-staged through the dialog's own Open Chat, and the Chat door
-driven with its symbol proved to resolve and its dead state measured against a
-real clause editor).
+the fixture's wording), notes-two-rooms-verify (42 — its door claim reversed in
+place, the rooms re-staged through `openNotesPanel`, and the Chat door driven
+with its symbol proved to resolve and its dead state measured against a real
+clause editor).
+
+## THE CHG PILLS ARE GONE, AND ONE READING TOOK THE ⋯ WITH IT (owner-reported 1 Sep 2026)
+
+Two of five reports in one message, and they are unrelated to each other except
+that both are a control naming a change where nothing needed naming.
+
+**THE PILLS: *"delete ever having the CHG pills on the screen as show in the
+highlighted area."*** The clause editor's readings row carried a chip per ask on
+the clause plus a "+ Something of my own", and this file's own entry of 27 Aug
+records them arriving there from a full-width strip above the paper — moved to
+give the contract its pixels back. The owner has now looked at them in place and
+taken them. **NOTHING IS LOST, which is the condition on removing a control**:
+the page is about ONE clause and its name is two rows above in the crumb; which
+ask the box is measured against is the pencil's own business and is what the
+marks on the paper say; and "+ Something of my own" was already recorded as one
+press of **Discard**, which is why it went on 27 Aug's own reasoning rather than
+this one's. `ceCtxChipsHtml`, `data-ce-focus` and the whole `.ce-chip` block are
+DELETED — not stubbed — because none of them was exported and there is no door a
+third caller could bring one back through. `ce_something_of_my_own` and
+`ce_on_this_clause` are left INERT in BOTH dictionaries — a key removed from one
+and not the other is how a screen ends up half-English. Tests: clause-editor-verify 17m/17n REVERSED IN PLACE and
+measured as PAINT — nothing on that row names a change — because a class check
+would pass on a row that still drew one under another name.
+
+**THE ⋯ MENU: *"I do not recall what I clicked on but the feature in image 5
+appeared again when it is supposed to be completely eliminated from the internal
+side of the platform."*** The feature was the CLAUSE PANEL, shut on our seat on
+30 Aug. It came back through the ⋯ menu's **"Jump to the clause"** row, whose
+guard tested for `data-rl-edit=` alone — the attribute the card's Edit carried
+*until* 30 Aug, when our seat's Edit became `data-rl-cp-editor-row`. So on every
+card with an Edit the guard saw a bare face, drew the duplicate row, **and that
+row's handler opened the retired panel.**
+
+- **ONE READING, `rlEditorTakesIt(side, opts)`, AND FOUR ASKERS.** *Does the
+  clause editor page take this clause* was written out four times — in the card
+  renderer, in the paper's pill, in the ⋯ — and **not at all in the
+  `[data-rl-edit]` handler**, which is the one place it decides where a press
+  lands. That is the shape this rulebook warns about in its own words: the
+  drawing may differ between surfaces, the READING never may.
+- **THE GUARD READS BOTH DOORS.** `data-rl-edit=|data-rl-cp-editor-row=` — the
+  same verb, either destination — so the row draws only where the face really
+  is bare, which is what its own comment always claimed.
+- **BOTH HALVES, OR NEITHER IS A FIX.** The fallback row still draws
+  deliberately on a card with no verbs at all, so a guard alone would have left
+  that press opening the panel; the handler stands down first where the editor
+  takes the clause.
+- **FOUR NETS WERE PASSING ON THE BUG**, and all four for one reason: they
+  reached for `data-rl-edit=` and found the duplicate row. f161 and f192 are
+  re-pointed at either door; f89 is re-staged on `page({ noEditor: true })`, the
+  seat where Edit really is the jump; and **parity-verify's whole check 9 had
+  been measuring the clause-panel route on our seat through the very control
+  the owner reported** — its four panel claims are REVERSED IN PLACE onto the
+  seat that still has that route, its landing claims re-pointed at `is-linked`
+  (which both seats set through `rlLinkFocus`) rather than at `rl-arrived`
+  (which is `rlJumpToClause`'s own flash and only one seat sets), and the
+  "the two seats agree" list narrowed to what the owner ruled should agree.
+  **A green tally is not a net; find out what each check is actually pressing.**
 
 ## Line numbers drift
 

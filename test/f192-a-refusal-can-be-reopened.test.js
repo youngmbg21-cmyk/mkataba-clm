@@ -166,7 +166,11 @@ describe('f192 (4) — pressing it puts the ask back on the table', () => {
        than a literal list that a cap could quietly empty. */
     assert.deepEqual(verbsOf(cardOf(column(p))), ['Accept', 'Reject'],
       'and the card is a decision again');
-    assert.ok(/data-rl-edit=/.test(cardOf(column(p)).innerHTML),
+    /* RE-POINTED 1 Sep 2026 — and it was PASSING ON A BUG: `data-rl-edit=` was
+       the card's Edit until 30 Aug and on our seat the string survived only
+       because the ⋯ was drawing a duplicate jump row that opened the retired
+       clause panel. The claim is unchanged — Edit did not go anywhere. */
+    assert.ok(/data-rl-edit=|data-rl-cp-editor-row=/.test(cardOf(column(p)).innerHTML),
       'and Edit is still on the card — in the menu, one press away, not gone');
   });
 

@@ -309,7 +309,14 @@ describe('f161 · a reviewer does not run the round', () => {
     const w = world();
     const { c } = await twoOut(w);
     const html = seat(SALES, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(html, /data-rl-edit=/, 'a reviewer who cannot fix a clause has to write a memo instead');
+    /* RE-POINTED 1 Sep 2026, and it was PASSING ON A BUG. It matched
+       `data-rl-edit=`, which was the card's Edit until 30 Aug and is now the
+       COUNTERPARTY's; on our seat the string survived only because the ⋯ menu
+       was drawing a duplicate "Jump to the clause" row, whose handler opened
+       the retired clause panel. The claim was never about an attribute: it is
+       that a reviewer is offered a way INTO the clause's wording. */
+    assert.match(html, /data-rl-edit=|data-rl-cp-editor-row=/,
+      'a reviewer who cannot fix a clause has to write a memo instead');
   });
 
   test('and everything comes back the moment they hand it back', async () => {

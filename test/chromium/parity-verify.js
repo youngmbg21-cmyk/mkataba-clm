@@ -146,13 +146,28 @@ const CARD_EDIT = async () => {
     .find(x => /forty-five|Net-45/.test(String(x.newText || x.proposedText || '')));
   const want = net45 && document.querySelector(
     `#rl-changes [data-nego-card="${CSS.escape(net45.id)}"]`);
-  const btns = [...document.querySelectorAll('#rl-changes [data-rl-edit]')];
-  const btn = (want && want.querySelector('[data-rl-edit]'))
-    || btns.find(b => { const card = b.closest('[data-nego-card]');
-        const ch = negoChangeById(CONTRACT, card.getAttribute('data-nego-card'));
+  /* ---- RE-POINTED 1 Sep 2026: THE VERB IS `.rl-edit`, AND WHERE IT LANDS IS
+     THE THING THAT DIFFERS ----
+     Since 30 Aug the card's Edit carries data-rl-cp-editor-row on OUR seat (it
+     opens the clause editor page) and data-rl-edit on theirs (the editor
+     refuses them, so the jump is the only route their page has). Reaching for
+     data-rl-edit alone therefore found nothing on our seat — and until 1 Sep it
+     silently found the ⋯ menu's DUPLICATE jump row, which was itself the bug
+     the owner reported that day. So the probe reaches for the VERB, and records
+     which door this seat's Edit is. */
+  const cardOf = b => b && b.closest('[data-nego-card]');
+  const btns = [...document.querySelectorAll(
+    '#rl-changes [data-rl-edit], #rl-changes [data-rl-cp-editor-row]')]
+    .filter(b => b.classList.contains('rl-edit'));
+  const btn = (want && want.querySelector('.rl-edit'))
+    || btns.find(b => { const card = cardOf(b);
+        const ch = card && negoChangeById(CONTRACT, card.getAttribute('data-nego-card'));
         return ch && ch.status === 'pending'; })
     || btns[0];
   if (!btn) return { error: 'no card Edit button on this seat' };
+  /* THE SEAT'S OWN DOOR, read off the button rather than off the seat name, so
+     the day the two converge again this probe follows without an edit. */
+  const toEditor = btn.hasAttribute('data-rl-cp-editor-row');
   const probeCh = negoChangeById(CONTRACT,
     btn.closest('[data-nego-card]').getAttribute('data-nego-card'));
   const words = t => String(t || '').split(/\W+/).filter(x => x.length > 3);
@@ -160,12 +175,22 @@ const CARD_EDIT = async () => {
     .find(x => !words(probeCh && probeCh.oldText).includes(x)) || null;
   const goneWord = words(probeCh && probeCh.oldText)
     .find(x => !words(probeCh && probeCh.newText).includes(x)) || null;
-  const id = btn.getAttribute('data-rl-edit');
+  const id = btn.getAttribute('data-rl-edit') || btn.getAttribute('data-rl-cp-editor-row');
   const clause = document.querySelector(`#rl-doc [data-clause="${CSS.escape(id)}"]`);
   if (!clause) return { error: 'the card names a clause the document does not draw' };
   const w = el => Math.round(el.getBoundingClientRect().width);
   const before = w(clause);
-  btn.click();
+  /* THE LANDING IS PRESSED, ON BOTH SEATS, BY THE ROUTE THAT SEAT CARRIES.
+     Where Edit is the jump it IS the landing. Where Edit opens the editor page
+     it would cover the window, so the landing is the card's own head press —
+     rlLinkFocus, the same one function, which is what makes the geometry below
+     a comparison rather than two different measurements. */
+  if (toEditor){
+    const head = cardOf(btn) && cardOf(btn).querySelector('.rl-card-head');
+    if (head) head.click(); else btn.click();
+  } else {
+    btn.click();
+  }
   await new Promise(r => setTimeout(r, 800));
   const s = getComputedStyle(clause);
   const head = clause.querySelector('.rl-clause-h');
@@ -195,10 +220,10 @@ const CARD_EDIT = async () => {
      because the measurements after it are about the editor and the clause and
      want the panel open however it got there — but it can no longer stand in
      for the claim it was hiding. */
-  const openedFromEdit = !!document.querySelector('.rl-cp-src.is-on');
+  const openedFromEdit = !toEditor && !!document.querySelector('.rl-cp-src.is-on');
   const openedOnThisClause = openedFromEdit
     && document.querySelector('.rl-cp-src.is-on').getAttribute('data-rl-cp-for') === id;
-  if (!openedFromEdit){
+  if (!openedFromEdit && !toEditor){
     const pill = clause.querySelector('[data-rl-cp-open]');
     if (pill) pill.click();
     await new Promise(r => setTimeout(r, 250));
@@ -213,6 +238,10 @@ const CARD_EDIT = async () => {
     maxWidth: s.maxWidth, overflowX: s.overflowX,
     headWrap: head ? getComputedStyle(head).whiteSpace : null,
     arrived: clause.classList.contains('rl-arrived'),
+    /* THE LINK IS THE SYMMETRIC HALF and the flash is not: rlLinkFocus ties the
+       card to its clause on both seats, and rl-arrived is rlJumpToClause's own
+       mark, which only the seat whose Edit still jumps ever sets. */
+    linked: clause.classList.contains('is-linked'),
     wearsPickerClass: clause.classList.contains('rl-jump'),
     editorOpen: !!ed, editing: !!(body && body.classList.contains('is-editing')),
     clauseCarriesNothing: !clause.querySelector('[data-nego-editor]')
@@ -222,7 +251,7 @@ const CARD_EDIT = async () => {
        after markers: the editor must show the NEW wording (continuing the
        redline) and not only the old (restarting from underneath it). */
     opensOn: ed ? ed.textContent.replace(/\s+/g, ' ').trim() : null,
-    openedFromEdit, openedOnThisClause,
+    openedFromEdit, openedOnThisClause, toEditor,
     marker, goneWord };
 };
 
@@ -365,41 +394,68 @@ const CARD_EDIT = async () => {
         `max-width:${r.maxWidth}, overflow-x:${r.overflowX}`);
       check(`9 ${who}: the clause heading wraps rather than being cut off`,
         r.headWrap === 'normal', r.headWrap);
-      check(`9 ${who}: the clause says it has arrived, without the picker's name`,
-        r.arrived && !r.wearsPickerClass,
-        `arrived:${r.arrived} wearsPickerClass:${r.wearsPickerClass}`);
+      check(`9 ${who}: the clause is tied to the card, without the picker's name`,
+        r.linked && !r.wearsPickerClass,
+        `linked:${r.linked} wearsPickerClass:${r.wearsPickerClass}`);
+      if (!r.toEditor)
+        check(`9 ${who}: and it flashes on arrival`, r.arrived, `arrived:${r.arrived}`);
       /* THE CLAIM THE FALLBACK WAS ABSORBING (owner-reported 26 Aug 2026).
          Not "the panel is open by the time we measure" — one press of Edit,
          and the panel open ON THE CLAUSE THAT CARD NAMES. A press that lands
          the reader on the contract and stops is exactly what was reported. */
-      check(`9 ${who}: ONE press of Edit opens the clause panel`,
-        r.openedFromEdit, `panel open after Edit alone: ${r.openedFromEdit}`);
-      check(`9 ${who}: and it opens on the clause the card names`,
-        r.openedOnThisClause, `right clause: ${r.openedOnThisClause}`);
-      check(`9 ${who}: the editor opened in the panel, and the panel knows it`,
-        r.editorOpen && r.editing, `editor:${r.editorOpen} is-editing:${r.editing}`);
-      /* The editor arrives dressed as wording: the body rules have to reach
-         it, or the wording changes shape the moment it is edited. */
-      check(`9 ${who}: the wording wraps in the editor as it does in the document`,
-        r.paraWrap === 'normal', r.paraWrap);
+      /* ---- REVERSED IN PLACE 1 Sep 2026 ----
+         These four pinned the CLAUSE PANEL route on both seats, and since 30
+         Aug 2026 only one seat has it: the owner's Edit opens the clause editor
+         page, theirs opens the panel, because the editor refuses a counterparty
+         outright and the panel is the only way their page can propose wording.
+         That is an owner ruling, so the parity claim is not that the two land
+         in the same place — it is that each seat's Edit really carries the door
+         it says it does, and that the LANDING on the clause, which both seats
+         still reach through rlLinkFocus, is measured identically above.
+
+         IT WENT RED ON THE DAY THE ⋯ MENU'S DUPLICATE JUMP ROW WAS REMOVED, and
+         that is the useful half: this probe had been reaching for data-rl-edit,
+         finding that hidden row on our seat, and measuring the panel route
+         through the very control the owner reported as a bug. It was passing on
+         the bug. */
+      if (r.toEditor){
+        check(`9 ${who}: Edit carries the clause editor's door, not the panel's`,
+          r.toEditor === true && r.openedFromEdit === false,
+          'the edit page, by the owner\'s ruling of 30 Aug');
+      } else {
+        check(`9 ${who}: ONE press of Edit opens the clause panel`,
+          r.openedFromEdit, `panel open after Edit alone: ${r.openedFromEdit}`);
+        check(`9 ${who}: and it opens on the clause the card names`,
+          r.openedOnThisClause, `right clause: ${r.openedOnThisClause}`);
+        check(`9 ${who}: the editor opened in the panel, and the panel knows it`,
+          r.editorOpen && r.editing, `editor:${r.editorOpen} is-editing:${r.editing}`);
+        /* The editor arrives dressed as wording: the body rules have to reach
+           it, or the wording changes shape the moment it is edited. */
+        check(`9 ${who}: the wording wraps in the editor as it does in the document`,
+          r.paraWrap === 'normal', r.paraWrap);
+        /* Judged against the probe change's own record — see CARD_EDIT. */
+        check(`9 ${who}: the editor continues the redline, it does not restart it`,
+          !!r.marker && (r.opensOn || '').includes(r.marker)
+            && (!r.goneWord || !(r.opensOn || '').includes(r.goneWord)),
+          `wants "${r.marker}", not "${r.goneWord}" — ` + (r.opensOn || '').slice(0, 60));
+      }
       /* REVERSED IN PLACE, 16 Aug 2026: this kept the hover verbs down while
          the clause was typed in. The verbs are retired with their row and the
          clause is not typed in at all any more — what must now be true is
          that the paper stayed clean while the panel carried the writing. */
       check(`9 ${who}: the clause itself carries no editor and no tool row`,
         r.clauseCarriesNothing, `clean: ${r.clauseCarriesNothing}`);
-      /* Judged against the probe change's own record — see CARD_EDIT. */
-      check(`9 ${who}: the editor continues the redline, it does not restart it`,
-        !!r.marker && (r.opensOn || '').includes(r.marker)
-          && (!r.goneWord || !(r.opensOn || '').includes(r.goneWord)),
-        `wants "${r.marker}", not "${r.goneWord}" — ` + (r.opensOn || '').slice(0, 60));
     }
     /* AND THE TWO AGREE. Each assertion above could pass on one seat and fail
        on the other; this is the one that says they are the same product. */
-    const same = ['maxWidth', 'overflowX', 'headWrap', 'arrived', 'wearsPickerClass',
-      'editorOpen', 'editing', 'paraWrap', 'clauseCarriesNothing']
+    /* NARROWED IN PLACE with the four claims above: what the two seats share is
+       the LANDING on the clause and the paper staying clean while the writing
+       happens elsewhere. Where the writing happens is the one thing the owner
+       ruled should differ. */
+    const same = ['maxWidth', 'overflowX', 'headWrap', 'linked', 'wearsPickerClass',
+      'clauseCarriesNothing']
       .filter(k => String(ownerEdit[k]) !== String(cpEdit[k]));
-    check('9 the two seats edit a clause identically', same.length === 0,
+    check('9 the two seats land on a clause identically', same.length === 0,
       same.length ? same.map(k => `${k}: ${ownerEdit[k]} vs ${cpEdit[k]}`).join(' · ')
         : 'every measured property matches');
   }

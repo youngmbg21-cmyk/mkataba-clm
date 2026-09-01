@@ -2703,11 +2703,31 @@ function negoPostComment(c, id, text, opts = {}){
    Reading the local half means an unwritable message is not on the list rather
    than on the list and refused. */
 
+/* ---- HAS IT ACTUALLY GONE? (owner-ruled 1 Sep 2026) ----
+   A note is EXTERNAL the moment it is written — that is which room it belongs
+   to and who it is for. Whether it has REACHED them is a different fact, and
+   this product has learned three times over that the two must not be one:
+   with no mail provider, outside API mode, or on a refusal, an external note
+   sits on our record having travelled nowhere.
+
+   `sentAt` is stamped by whatever succeeded in delivering it, and this is the
+   one reading of it. AN OLDER MESSAGE CARRIES NONE, so it answers "not
+   delivered" — which is the safe direction: it makes the note editable rather
+   than claiming it reached somebody. */
+const negoNoteDelivered = m => !!(m && m.sentAt);
 /* Is this message one this reader may change? The id first, the name second —
    the reading obligationRecipient already uses, for the same reason: an id
-   survives a rename, a name survives the account being deleted. */
+   survives a rename, a name survives the account being deleted.
+
+   A NOTE THAT HAS GONE IS NOT YOURS ANY MORE, and that is the load-bearing
+   half: the other side is holding a copy nothing here can reach, so rewriting
+   our half would leave two records of one sentence disagreeing and deleting it
+   would take it off our screen while it stayed on theirs. ONE THAT HAS NOT GONE
+   STILL IS — an external note the channel never carried is a sentence nobody
+   else has read, and refusing to let its writer correct it would be a rule
+   protecting nothing. */
 function negoNoteIsMine(msg, user){
-  if (!msg || msg.visibility === 'shared') return false;
+  if (!msg || negoNoteDelivered(msg)) return false;
   if ((msg.side || 'owner') !== 'owner') return false;
   const u = user || (window.currentUser && window.currentUser()) || null;
   if (!u) return false;
@@ -2743,7 +2763,7 @@ function negoEditNote(c, ch, msg, text){
   const i = _negoNoteAt(ch, msg);
   if (i < 0) return null;
   const m = ch.thread[i];
-  if (m.visibility === 'shared'){
+  if (negoNoteDelivered(m)){
     if (window.toast) toast(i18t('ng_note_sent'), 'err');
     return null;
   }
@@ -2761,7 +2781,7 @@ function negoEditNote(c, ch, msg, text){
   m.atHash = ch.hash || null;
   m.editedAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Internal note on #${ch.id} edited by ${m.who}`
+    `${m.visibility === 'shared' ? 'Note' : 'Internal note'} on #${ch.id} edited by ${m.who}`
     + ` — the contract is unchanged and nothing was sent`);
   return m;
 }
@@ -2769,7 +2789,7 @@ function negoDeleteNote(c, ch, msg){
   const i = _negoNoteAt(ch, msg);
   if (i < 0) return false;
   const m = ch.thread[i];
-  if (m.visibility === 'shared'){
+  if (negoNoteDelivered(m)){
     if (window.toast) toast(i18t('ng_note_sent'), 'err');
     return false;
   }
@@ -2779,7 +2799,7 @@ function negoDeleteNote(c, ch, msg){
   }
   ch.thread.splice(i, 1);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Internal note on #${ch.id} removed by ${m.who}`
+    `${m.visibility === 'shared' ? 'Note' : 'Internal note'} on #${ch.id} removed by ${m.who}`
     + ` — the contract is unchanged and nothing was sent`);
   return true;
 }
@@ -4058,7 +4078,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
-  negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote,
+  negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,

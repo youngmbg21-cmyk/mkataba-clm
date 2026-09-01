@@ -8242,3 +8242,64 @@ Noticed, not fixed:
   there paints nothing. It costs nothing today because both stub renderWorkspace
   out and never draw this head — checked rather than assumed — but the next
   symbol used by a view file may not be so lucky.
+
+## 1 Sep 2026 — five off five screenshots
+
+Owner-reported in one message, plus two rulings put back and answered.
+
+1. **The note window was ugly.** Four designs drawn and published for the owner
+   to choose from; they chose the receipt. The filing is now the headline — a
+   tick and "CHG-011 filed" — and the ask is the small line under it, so the
+   confirmation toast stands down where the window opens. What has already been
+   said on the change is PRINTED above the box rather than counted with a line
+   pressing through to the drawer, which is what makes the delivered rule below
+   readable. The other three drawings are named in the rulebook; none is
+   half-built.
+
+2. **A redline note is EXTERNAL.** Owner-ruled: "when you suggest an edit, you
+   give an explanation as to why you want to change the contract. That is the
+   idea." It shipped internal a day earlier, on the reasoning that a message
+   which has gone down the channel cannot be edited or deleted from this chair.
+   That reasoning is untouched and is now paid for structurally rather than by
+   the room a note is in: `negoNoteDelivered` reads `msg.sentAt`, stamped only
+   where the channel came back ok, so an external note that never left the
+   building is still its writer's to correct and one that landed is nobody's.
+   Two facts, two fields; the old rule read the first as a proxy for the second.
+
+3. **Chat wears the per-change panel's clothes.** Owner-asked, off a screenshot
+   of each. It shipped as a flat list of both rooms; the rooms are tabs now,
+   exactly as they are on the change's own panel, so one conversation is drawn
+   one way on both surfaces. No composer — there is one note box per change and
+   it is on the change.
+
+4. **The CHG pills are gone from the clause editor's readings row.** Deleted
+   rather than stubbed: nothing exported them, so there is no door a third
+   caller could bring one back through. The page is about one clause and names
+   it two rows above; "+ Something of my own" was already one press of Discard.
+   Both dictionary keys left inert.
+
+5. **THE ⋯ MENU BROUGHT BACK THE CLAUSE PANEL, WHICH WAS SHUT ON 30 AUG.** Its
+   "Jump to the clause" row was guarded on `data-rl-edit=` alone — the attribute
+   our seat's Edit carried UNTIL 30 Aug, when it became `data-rl-cp-editor-row`
+   — so on every card with an Edit the guard saw a bare face, drew a duplicate
+   row, and that row's handler opened the retired panel. The cause is one
+   reading written out four times and absent from the fifth place that needed
+   it: `rlEditorTakesIt` is that reading now, and the `[data-rl-edit]` handler
+   asks it too. Both halves fixed — the guard and the handler — because the
+   fallback row still draws deliberately on a card with no verbs at all.
+
+Noticed, not fixed:
+- Four nets were passing on defect 5 and all four for one reason: they reached
+  for `data-rl-edit=` and found the duplicate row. f161, f192 and f89 are
+  re-pointed or re-staged; parity-verify's check 9 had been measuring the whole
+  clause-panel route on our seat through the reported control, and its panel
+  claims are reversed onto the seat that still has that route. A green tally is
+  not a net.
+- `rl-arrived` is `rlJumpToClause`'s flash and `is-linked` is `rlLinkFocus`'s
+  tie. Our seat's card Edit sets neither now (it opens the edit page), so the
+  card's head press is the landing route here. Nothing on screen says the two
+  seats land differently; nobody has reported it.
+- Three colour-census checks fail (templates--light, negotiate--light,
+  negotiate--dark) and thirteen browser files are red. Every one reproduces
+  identically on this branch's parent — measured by stashing and running the
+  whole sweep there, not asserted.
