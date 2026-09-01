@@ -594,14 +594,48 @@ function redlineOpsBlocks(ops){
    what was rendered before. The split only happens when the whole marker
    sits inside the line's FIRST op — a marker torn across two ops is left
    alone rather than half-boxed. */
+/* ---- WHAT A BLOCK SHOWS, AND WHICH BLOCKS ARE REALLY DRAWN ----
+   The renderer below has always worked both out inline and dropped a block
+   that comes back empty. They are named here because a SECOND reader needs the
+   same answers — "how many blocks does this change touch, and how many does it
+   leave alone" — and two functions deciding for themselves what counts as a
+   drawn block is how they come to disagree about a count printed beside the
+   thing it counts. */
+function redlineBlockShown(group){
+  const newText = group.filter(o => o.op !== 'del').map(o => o.text).join('');
+  const oldText = group.filter(o => o.op !== 'ins').map(o => o.text).join('');
+  return newText.trim() ? newText : oldText;
+}
+const redlineBlockTouched = group => group.some(o => o.op !== 'keep');
+function redlineDrawnBlocks(ops){
+  return redlineOpsBlocks(ops).filter(g => g.length && redlineBlockShown(g).trim());
+}
+/* HOW MUCH OF A CLAUSE THIS CHANGE ACTUALLY TOUCHES. Counted off the blocks
+   that would really be drawn, so a caller printing "N not shown" is printing
+   the same arithmetic the renderer is about to perform. */
+function redlineBlockStats(ops){
+  const g = redlineDrawnBlocks(ops);
+  const changed = g.filter(redlineBlockTouched).length;
+  return { total: g.length, changed, unchanged: g.length - changed };
+}
 function redlineOpsBlocksHtml(ops, opts = {}){
   const pre = opts.classPrefix || 'rl';
-  return redlineOpsBlocks(ops).map(group => {
-    if (!group.length) return '';
-    const newText = group.filter(o => o.op !== 'del').map(o => o.text).join('');
-    const oldText = group.filter(o => o.op !== 'ins').map(o => o.text).join('');
-    const shown = newText.trim() ? newText : oldText;
-    if (!shown.trim()) return '';
+  /* ---- ONLY WHAT CHANGED, WHERE THE CALLER ASKS FOR IT (owner-asked 2 Sep
+     2026, of the open card: "lets only have the sentences or bullet points
+     that have been redlined show up") ----
+     OFF BY DEFAULT, so the paper, the clause panel and every export are
+     byte-identical: this is a decision about ONE surface, and a clause read on
+     the contract must still read as the clause.
+     A CHANGE THAT TOUCHES NOTHING FALLS BACK TO THE WHOLE THING rather than
+     drawing an empty box — a formatting-only change files all-keep ops, and
+     showing nothing at all would be worse than showing everything. */
+  let blocks = redlineDrawnBlocks(ops);
+  if (opts.changedOnly){
+    const only = blocks.filter(redlineBlockTouched);
+    if (only.length) blocks = only;
+  }
+  return blocks.map(group => {
+    const shown = redlineBlockShown(group);
     const kind = redlineLineKind(shown);
     const allDel = group.every(o => o.op === 'del');
     const allIns = group.every(o => o.op === 'ins');
@@ -949,6 +983,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker,
@@ -957,6 +992,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,

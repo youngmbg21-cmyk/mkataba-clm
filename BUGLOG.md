@@ -8444,3 +8444,23 @@ This work adds Reject's ink to that loss (rgb(185,28,28) light,
 rgb(253,164,175) dark), because a verb behind a disclosure is not painted on a
 page at rest and the census only sees a page at rest. Re-recording would bake
 in main's own loss as well, which is not this job's to own.
+
+## 2 Sep 2026 — the open card shows only the parts a change touches
+
+Owner-asked. redlineOpsBlocksHtml gained `changedOnly`, off by default, and the
+open card is the one surface that asks for it; the paper, the clause panel, the
+ask reveal and every export are byte-identical. What is left out is said in one
+quiet line under the quotation, counted off the same ops the wording is drawn
+from. A change that touches nothing falls back to the whole clause and then
+announces no omission. Full write-up in CLAUDE.md under "THE CARD SHOWS ONLY
+WHAT CHANGED".
+
+Worth recording:
+
+- A STAGING FAULT THAT WOULD HAVE MADE THE CHECK MEANINGLESS. A clause edit
+  filed as plain text with newlines is flattened into one paragraph on the way
+  to the record and diffs as a single block, so every line reads as touched and
+  nothing is ever filtered. The edit has to be filed as rich HTML, which is what
+  the clause editor really hands back. Cost an hour; named in redline-verify 21.
+- The omission line says PARTS, not lines: a paragraph wraps to several visual
+  lines and "3 more lines" reads as three of those.

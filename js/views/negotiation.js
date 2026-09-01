@@ -5736,12 +5736,21 @@ function rlAskResetOpen(){ _rlAskOpen = null; }
    about the same ask. NO RE-DIFFING — the stored ops are inside the
    fingerprint, so a mark drawn from a fresh diff would not be the mark the
    other side verified. */
-function rlChangeWordingHtml(ch){
+function rlChangeWordingHtml(ch, opts = {}){
   if (!ch) return '';
-  const ops = Array.isArray(ch.ops) && ch.ops.length ? ch.ops
-    : [{ op: ch.changeType === 'deleteClause' ? 'del' : 'ins', text: ch.newText || ch.oldText || '' }];
-  return window.redlineOpsBlocksHtml ? redlineOpsBlocksHtml(ops)
+  const ops = rlChangeOps(ch);
+  return window.redlineOpsBlocksHtml
+    ? redlineOpsBlocksHtml(ops, { changedOnly: !!opts.changedOnly })
     : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
+}
+/* THE OPS THIS CHANGE IS DRAWN FROM, including the stand-in for a change that
+   carries none. Named because the card counts blocks off the same ops it is
+   about to draw, and a second construction of that fallback is a second
+   answer to "what does this change propose". */
+function rlChangeOps(ch){
+  return (Array.isArray(ch && ch.ops) && ch.ops.length) ? ch.ops
+    : [{ op: (ch && ch.changeType) === 'deleteClause' ? 'del' : 'ins',
+         text: (ch && (ch.newText || ch.oldText)) || '' }];
 }
 function rlAskRevealHtml(c, ch, side, opts = {}){
   if (!ch || rlAskOpenId() !== ch.id) return '';
@@ -10574,7 +10583,33 @@ function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
    sentences that account for a MISSING verb — the desk's "instead" and the
    review hold's "what now" — sit with the bar they explain. */
 function rlCardBodyHtml(c, ch, opts, side, st){
-  const wording = (typeof rlChangeWordingHtml === 'function') ? rlChangeWordingHtml(ch) : '';
+  /* ---- ONLY THE LINES THIS CHANGE TOUCHES (owner-asked 2 Sep 2026) ----
+     "lets only have the sentences or bullet points that have been redlined
+     show up ... if it is two bullet points out of 6 bullet points from a
+     clause, only the 2 should appear."
+
+     THE CARD IS A HANDLE ON A PASSAGE, and a clause of twelve paragraphs
+     printed whole to show a change in one of them is the card's own subject
+     pushed off the screen. The whole clause is never further away than the
+     paper twelve pixels to the left, and the card's head names the clause.
+
+     THIS SURFACE ONLY. rlChangeWordingHtml is shared with the ask reveal and
+     the clause panel, whose job is the full reading, and the flag is off by
+     default so both are byte-identical. */
+  const wording = (typeof rlChangeWordingHtml === 'function')
+    ? rlChangeWordingHtml(ch, { changedOnly: true }) : '';
+  /* AND WHAT IS NOT SHOWN IS SAID, which is this product's standing rule: a
+     cap or an omission is a FACT, never a silent trim. Counted off the SAME
+     ops the wording is drawn from, so the number and the picture cannot
+     disagree; silent when nothing was left out, because a note that is always
+     there is one nobody reads. */
+  const stats = (typeof redlineBlockStats === 'function' && typeof rlChangeOps === 'function')
+    ? redlineBlockStats(rlChangeOps(ch)) : null;
+  const hidden = (stats && stats.changed) ? stats.unchanged : 0;
+  const omitted = hidden
+    ? `<p class="rl-cb-omit" title="${_nea(i18t('ng_cb_only_changed_title'))}"
+        >${_ne(i18tn('ng_cb_unchanged', hidden, { n: hidden }))}</p>`
+    : '';
   const mine = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner') ? false : true;
   const settled = st.settled;
   /* WHAT THE BLOCK IS CALLED depends on whose ask it is and whether it is
@@ -10586,7 +10621,7 @@ function rlCardBodyHtml(c, ch, opts, side, st){
     : i18t(mine ? 'ng_card_you_propose' : 'ng_card_they_ask');
   const bits = [];
   if (wording) bits.push(`<div class="rl-cb-blk"><p class="rl-cb-k">${lead}</p>
-    <div class="rl-cb-q">${wording}</div></div>`);
+    <div class="rl-cb-q">${wording}</div>${omitted}</div>`);
   if (st.info) bits.push(`<div class="rl-cb-blk rl-card-info">${st.info}</div>`);
   if (st.actions) bits.push(`<div class="rl-cb-acts">${st.actions}</div>`);
   /* THE COMMENTS, IN THE TWO ROOMS THEY ALREADY LIVE IN. The drawer's own

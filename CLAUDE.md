@@ -8553,6 +8553,67 @@ list needs a mark to be scannable and a row of coloured words does not). Both
 would come back with the menu; `rlMorePlace` and `RL_MORE_ICONS` are dormant
 beside `rlCardMoreHtml` for exactly that.
 
+## THE CARD SHOWS ONLY WHAT CHANGED (owner-asked 2 Sep 2026)
+
+*"lets only have the sentences or bullet points that have been redlined show up
+in the WHAT YOU ARE PROPOSING card. This efficiently uses the card so that if a
+very long clause is being edited, the very long clause does not appear in the
+card. If it is two bullet points out of 6 bullet points from a clause, only the
+2 should appear in the card."*
+
+**THE CARD IS A HANDLE ON A PASSAGE**, and a clause of twelve paragraphs
+printed whole to show a change in one of them pushes the card's own subject off
+the screen — the verbs, the strips and the comments that Open exists to reveal.
+The whole clause is never further away than the paper twelve pixels to the
+left, and the card's head names it.
+
+- **THE READING LIVES BESIDE THE BLOCK BUILDER IT COUNTS.** `redlineOpsBlocks`
+  has always split a change's ops into one group per LINE, and
+  `redlineOpsBlocksHtml` has always worked out which of those are really drawn
+  and dropped the rest. Both facts are named now — `redlineBlockShown`,
+  `redlineBlockTouched`, `redlineDrawnBlocks`, `redlineBlockStats` — because a
+  SECOND reader needs the same answers, and two functions deciding for
+  themselves what counts as a drawn block is how they come to disagree about a
+  count printed beside the thing it counts.
+- **`changedOnly` IS OFF BY DEFAULT AND EXACTLY ONE SURFACE ASKS FOR IT.** The
+  paper, the clause panel, the ask reveal and every export are byte-identical:
+  a clause read on the contract must still read as the clause, and the panel's
+  whole job is the full reading. f246 (10) greps that there is one caller.
+- **A CHANGE THAT TOUCHES NOTHING FALLS BACK TO THE WHOLE THING.** A
+  formatting-only change files all-keep ops, and drawing an empty box would be
+  worse than drawing everything. Having stood down, it then claims nothing was
+  hidden — the two halves are one rule.
+- **WHAT IS NOT SHOWN IS SAID, and only when something is not shown.** The
+  standing rule: a cap or an omission is a FACT, never a silent trim. Counted
+  off the SAME ops the wording is drawn from, so the sentence and the picture
+  cannot disagree; silent when nothing was left out, because a note that is
+  always there is one nobody reads.
+- **QUIETLY — a line, not a band.** The label shade at the smallest reading
+  size, directly under the quotation it is about. Never amber: nothing is owed
+  and nothing is wrong. **It says PARTS rather than lines**, because a
+  paragraph wraps to several visual lines and "3 more lines" would be read as
+  three of those; "parts" is true of a paragraph and a bullet alike.
+- **THE BLOCK IS DRAWN EXACTLY AS IT WOULD HAVE BEEN** — its marks, its marker
+  and its hanging indent. Filtering is a choice about WHICH blocks, never about
+  how one is rendered, and nothing is re-diffed: the stored ops are inside the
+  fingerprint.
+
+**AND THE STAGING IS THE TRAP WORTH RECORDING.** A clause edit must be filed as
+RICH HTML, which is what the clause editor hands back. Plain text with newlines
+is flattened into ONE paragraph on the way to the record and then diffs as a
+single block — so every line reads as touched, nothing is ever filtered, and a
+check written that way passes identically on a build with no filter at all. It
+cost an hour and it is what redline-verify 21 says in its own comment.
+
+Tests: f246 (10) (7 — the reading, the filter, the default proved unmoved, both
+fallbacks and both languages), f210's wording claim RE-POINTED IN PLACE and made
+stronger (the signature moved; what is pinned is that it is built from the
+change's own ops, never a diff, and that both full-reading surfaces call it with
+no trim), redline-verify 21 (8, browser — the owner's own two examples staged,
+one paragraph of four and TWO BULLETS OF SIX, with the paper and the clause
+panel proved to still draw every part; **it reports the fault verbatim against
+the code of an hour before**).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

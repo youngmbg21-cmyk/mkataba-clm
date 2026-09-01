@@ -1032,3 +1032,147 @@ describe('f246 (9) — one reading, four askers', () => {
     assert.equal(editor, 0, 'nothing claims a page nothing can open');
   });
 });
+
+/* ============================================================
+   10 — ONLY WHAT CHANGED IS IN THE CARD (owner-asked 2 Sep 2026)
+   ============================================================
+   "lets only have the sentences or bullet points that have been redlined show
+   up in the WHAT YOU ARE PROPOSING card. This efficiently uses the card so
+   that if a very long clause is being edited, the very long clause does not
+   appear in the card. If it is two bullet points out of 6 bullet points from a
+   clause, only the 2 should appear in the card."
+
+   THE READING LIVES IN js/redline.js, beside the block builder it counts, and
+   the CARD is the one surface that asks for it. Both halves are pinned: the
+   filter itself, and that it is OFF everywhere else — the paper, the clause
+   panel, the ask reveal and every export draw the clause as the clause. */
+describe('f246 (10) — the card shows the parts this change touches', () => {
+  /* Hand-built ops rather than a filed change, and deliberately so: what is
+     under test is the BLOCK reading, and ops written out here say exactly
+     which blocks are touched with nothing between the claim and the answer. */
+  const OPS = [
+    { op: 'keep', text: '1.1 Master Agreement Structure. Buyer may purchase Materials.\n' },
+    { op: 'keep', text: '1.2 Issuance of Purchase Orders. Buyer shall issue written POs.\n' },
+    { op: 'keep', text: '1.3 Precedence. In the event of ' },
+    { op: 'del',  text: 'any' },
+    { op: 'ins',  text: 'a' },
+    { op: 'keep', text: ' conflict the terms of this Agreement prevail.\n' },
+    { op: 'red',  text: '' },
+    { op: 'keep', text: '1.4 Term. This Agreement runs for three years.' }
+  ].filter(o => o.op !== 'red');
+
+  test('the reading counts blocks, and counts only the ones really drawn', async () => {
+    const w = buildWorld({ negotiationView: true });
+    const s = w.win.redlineBlockStats(OPS);
+    assert.deepEqual([s.total, s.changed, s.unchanged], [4, 1, 3],
+      'four paragraphs, one of them touched');
+    /* An empty block is not a block. The renderer has always dropped one, and
+       a count that included it would print a number the picture disagrees
+       with. */
+    const withGap = w.win.redlineBlockStats(
+      [{ op: 'keep', text: 'a\n\n' }, { op: 'ins', text: 'b' }]);
+    assert.deepEqual([withGap.total, withGap.changed], [2, 1]);
+  });
+
+  test('changedOnly draws that one block and nothing else', async () => {
+    const w = buildWorld({ negotiationView: true });
+    const whole = w.win.redlineOpsBlocksHtml(OPS);
+    const only  = w.win.redlineOpsBlocksHtml(OPS, { changedOnly: true });
+    assert.equal((whole.match(/<p /g) || []).length, 4, 'the whole clause is four blocks');
+    assert.equal((only.match(/<p /g) || []).length, 1, 'and the card wants one of them');
+    assert.match(only, /Precedence/, 'the one that carries the change');
+    assert.ok(!/Master Agreement/.test(only) && !/three years/.test(only),
+      'and not the three it leaves alone');
+    /* THE BLOCK IS DRAWN EXACTLY AS IT WOULD HAVE BEEN — its marks, its
+       marker and its hanging indent. Filtering is a choice about WHICH blocks,
+       never about how one is rendered. */
+    assert.match(only, /<del/, 'with its deletion');
+    assert.match(only, /<ins/, 'and its insertion');
+  });
+
+  test('OFF BY DEFAULT, so nothing else in the product moves', async () => {
+    const w = buildWorld({ negotiationView: true });
+    /* Written as the RELATION rather than as two strings: the default output
+       and an explicit `changedOnly:false` must be the same string, and both
+       must be the whole clause. */
+    assert.equal(w.win.redlineOpsBlocksHtml(OPS),
+      w.win.redlineOpsBlocksHtml(OPS, { changedOnly: false }));
+    assert.match(w.win.redlineOpsBlocksHtml(OPS), /Master Agreement/,
+      'the paper still draws the clause as the clause');
+    const src = read('js/views/negotiation.js');
+    assert.equal((src.match(/changedOnly: true/g) || []).length, 1,
+      'exactly one surface asks for it');
+    assert.match(src, /rlChangeWordingHtml\(ch, \{ changedOnly: true \}\)/,
+      'and it is the open card');
+  });
+
+  test('a change that touches nothing falls back to the whole thing', async () => {
+    /* A formatting-only change files all-keep ops. Drawing nothing at all
+       would be worse than drawing everything, so the filter stands down —
+       and having stood down it must not then claim anything was hidden. */
+    const w = buildWorld({ negotiationView: true });
+    const keep = [{ op: 'keep', text: 'one\ntwo\nthree' }];
+    assert.equal((w.win.redlineOpsBlocksHtml(keep, { changedOnly: true }).match(/<p /g) || []).length, 3);
+    const s = w.win.redlineBlockStats(keep);
+    assert.equal(s.changed, 0, 'and nothing reads as touched, so nothing is announced');
+  });
+
+  test('an insertion and a deletion hide nothing, because they touch it all', async () => {
+    const w = buildWorld({ negotiationView: true });
+    for (const op of ['ins', 'del']){
+      const ops = [{ op, text: 'a\nb\nc' }];
+      assert.equal(w.win.redlineBlockStats(ops).unchanged, 0, op + ': nothing is left alone');
+      assert.equal((w.win.redlineOpsBlocksHtml(ops, { changedOnly: true })
+        .match(/<p /g) || []).length, 3, op + ': so all of it is drawn');
+    }
+  });
+
+  test('WHAT IS NOT SHOWN IS SAID, and only when something is not shown', async () => {
+    const p = await bench();
+    /* ASKED AS THE RELATION, never against a fixture's happens-to-be: the line
+       is drawn exactly when the arithmetic says something was left out, and
+       the number it prints is the number that reading returned. That is the
+       whole safety property — the note and the picture cannot disagree,
+       because both come off the same ops — and it holds whatever the fixture
+       turns out to contain. */
+    let saidNothing = 0, saidSomething = 0;
+    for (const ch of p.c.changes){
+      const card = p.open(ch.id);
+      const st = p.win.redlineBlockStats(p.win.rlChangeOps(ch));
+      const owed = st.changed > 0 && st.unchanged > 0;
+      const note = card.querySelector('.rl-cb-omit');
+      assert.equal(!!note, owed,
+        `${ch.id}: ${st.changed} of ${st.total} touched — note drawn ${!!note}`);
+      if (note){
+        assert.match(note.textContent, new RegExp(`\\b${st.unchanged}\\b`),
+          'and it prints what the reading actually left out');
+        saidSomething++;
+      } else saidNothing++;
+      /* AND THE DRAWN BLOCKS ARE THE TOUCHED ONES — the picture, not only the
+         sentence about it. */
+      const q = card.querySelector('.rl-cb-q');
+      if (q && st.changed) assert.equal(q.querySelectorAll('.rl-line').length,
+        st.changed, `${ch.id}: one block drawn per touched block`);
+    }
+    assert.ok(saidSomething || saidNothing, 'the fixture drew cards at all');
+    /* And the sentence resolves, through the one plural reading the rest of
+       this product uses. */
+    const one = p.win.i18tn('ng_cb_unchanged', 1, { n: 1 });
+    const many = p.win.i18tn('ng_cb_unchanged', 4, { n: 4 });
+    assert.ok(one && !/\{n\}/.test(one), 'the singular resolves');
+    assert.match(many, /4/, 'and the plural carries its count');
+    assert.notEqual(one, many, 'and they are not the same sentence');
+    assert.ok(p.win.i18t('ng_cb_only_changed_title').length > 20,
+      'the hover says where the whole clause is');
+  });
+
+  test('and both languages carry its words', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8');
+    for (const k of ['ng_cb_unchanged_one', 'ng_cb_unchanged_other',
+      'ng_cb_only_changed_title']){
+      assert.ok(new RegExp('\\b' + k + ':').test(src), k + ' is in the dictionary');
+      assert.equal(src.split(new RegExp('\\b' + k + ':')).length - 1, 2,
+        k + ' is in BOTH languages');
+    }
+  });
+});

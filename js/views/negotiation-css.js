@@ -2762,6 +2762,13 @@ function redlineLayoutCss(){
   .redline-page .rl-cb-q{font-size:var(--t-meta);line-height:1.6;
     background:var(--surface-2);border:1px solid var(--color-divider);
     border-radius:var(--radius);padding:9px 11px}
+  ${''/* WHAT IS NOT SHOWN, SAID QUIETLY. It is a fact about the quotation
+         above it, so it sits directly under that strip in the label shade and
+         at the smallest reading size — never amber, and never a band: nothing
+         is owed and nothing is wrong, the whole clause is simply on the paper
+         beside it. */}
+  .redline-page .rl-cb-omit{margin:5px 0 0;font-size:var(--t-label);
+    color:var(--color-neutral-600)}
   .redline-page .rl-cb-acts{margin-top:var(--s-3);padding-top:10px;
     border-top:1px solid var(--color-divider)}
   .redline-page .rl-cb-notes{margin-top:var(--s-3);padding-top:10px;

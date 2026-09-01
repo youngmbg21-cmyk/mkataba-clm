@@ -1929,6 +1929,123 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     edge.chained === false, `page moved: ${edge.chained} · overscroll ${edge.contained}`);
   check('20 the wording still has room beside the edge', edge.sum > 100, `${edge.sum}px`);
 
+  /* ---- 21. ONLY WHAT CHANGED IS IN THE CARD (owner-asked 2 Sep 2026) ----
+     "lets only have the sentences or bullet points that have been redlined
+     show up ... if it is two bullet points out of 6 bullet points from a
+     clause, only the 2 should appear in the card."
+
+     STAGED, because the fixture's clauses are one paragraph each and a clause
+     with nothing to leave out cannot show this at all — a check run against it
+     would pass identically on a build with no filter. The stage is the owner's
+     own two examples: a four-paragraph clause with one paragraph touched, and
+     a six-bullet list with two bullets touched.
+
+     THE EDIT IS FILED AS RICH HTML, which is what the clause editor hands
+     back. Plain text with newlines is flattened into ONE paragraph on the way
+     to the record and then diffs as one block — a staging fault that makes the
+     whole clause read as touched and the check pass while proving nothing. */
+  const trim = await page.evaluate(async () => {
+    const c = window.CONTRACT;
+    c.redlineText = '<h1>SUPPLY AGREEMENT</h1><p>Between the parties.</p>'
+      + '<h2>1. SCOPE OF SUPPLY &amp; PURCHASE ORDERS</h2>'
+      + '<p>1.1 Master Agreement Structure. This Agreement establishes the framework '
+      + 'under which Buyer may purchase raw materials from Supplier.</p>'
+      + '<p>1.2 Issuance of Purchase Orders. Buyer shall issue written POs specifying '
+      + 'the description of Materials and quantities.</p>'
+      + '<p>1.3 Precedence. In the event of any conflict between the terms of this '
+      + 'Agreement and any PO, the terms of this Agreement shall strictly prevail.</p>'
+      + '<p>1.4 Term. This Agreement runs for three years.</p>'
+      + '<h2>2. SUPPLIER DUTIES</h2><ul>'
+      + '<li>(a) deliver the Materials to the destination facility;</li>'
+      + '<li>(b) provide a certificate of analysis with each shipment;</li>'
+      + '<li>(c) maintain insurance of not less than KES 50,000,000;</li>'
+      + '<li>(d) permit audit on thirty (30) days notice;</li>'
+      + '<li>(e) notify Buyer of any recall within 24 hours;</li>'
+      + '<li>(f) comply with all applicable law.</li></ul>';
+    c.format = 'rich';
+    c.changes = []; delete c.negotiation;
+    negoInit(c);
+    const strip = t => String(t).replace(/^\s*[\u2022\u2013•-]\s*/, '');
+    const file = async (cl, tag, touch) => {
+      const lines = String(cl.text).split('\n');
+      const body = lines.map(l0 => { const l = strip(l0);
+        return `<${tag}>${touch(l)}</${tag}>`; }).join('');
+      return negoEditClause(c, cl.clauseId, tag === 'li' ? `<ul>${body}</ul>` : body,
+        { side: 'owner', author: 'Young Mbagaya', summary: 'staged' });
+    };
+    const list = negoClauseList(c);
+    const para = list.find(x => /Precedence/.test(x.text || ''));
+    const bul = list.find(x => /certificate of analysis/.test(x.text || ''));
+    if (!para || !bul) return { error: 'the stage did not build both clauses' };
+    const chP = await file(para, 'p', l => /Precedence/.test(l)
+      ? l.replace('any conflict', 'a conflict').replace(' strictly', '') : l);
+    const chB = await file(bul, 'li', l => /insurance|recall/.test(l)
+      ? l.replace('50,000,000', '75,000,000').replace('24 hours', 'forty-eight (48) hours') : l);
+    if (!chP || !chB) return { error: 'the stage filed no change' };
+    renderRedline();
+    await new Promise(r => setTimeout(r, 300));
+    const readCard = async (ch, total) => {
+      const btn = document.querySelector(
+        `#rl-changes [data-nego-card="${CSS.escape(ch.id)}"] [data-rl-card-open]`);
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ch.id)}"]`);
+      const q = card.querySelector('.rl-cb-q');
+      const omit = card.querySelector('.rl-cb-omit');
+      const os = omit ? getComputedStyle(omit) : null;
+      /* the clause as the PAPER draws it, which must not have moved */
+      const paper = document.querySelector(
+        `#rl-doc [data-clause="${CSS.escape(ch.clauseId)}"]`);
+      return { total,
+        shown: [...q.querySelectorAll('.rl-line')].map(n => n.textContent.trim().slice(0, 44)),
+        marks: q.querySelectorAll('ins,del').length,
+        omit: omit ? omit.textContent.trim() : '',
+        omitAmber: os ? os.color : null,
+        omitIsBand: os ? (os.borderTopWidth !== '0px'
+          || !/rgba\(0, 0, 0, 0\)|transparent/.test(os.backgroundColor)) : null,
+        paperBlocks: paper ? paper.querySelectorAll('p,li').length : -1,
+        h: Math.round(card.getBoundingClientRect().height) };
+    };
+    const p1 = await readCard(chP, 4);
+    const p2 = await readCard(chB, 6);
+    /* AND THE FULL READING IS UNTOUCHED: the clause panel is the surface whose
+       job is the whole clause, and the flag is off there. */
+    rlCpSetShown(document, chP.clauseId);
+    await new Promise(r => setTimeout(r, 350));
+    const panel = document.querySelectorAll('#rl-cp-body .rl-cp-wd .rl-line').length;
+    return { p1, p2, panel };
+  });
+  if (trim.error){
+    check('21 the stage builds the owner\'s two examples', false, trim.error);
+  } else {
+    check('21 one paragraph of four is redlined, and one is drawn',
+      trim.p1.shown.length === 1 && /Precedence/.test(trim.p1.shown[0]),
+      `${trim.p1.shown.length} of ${trim.p1.total}: ${trim.p1.shown.join(' | ')}`);
+    check('21 with its marks on it — the block is drawn as it always was',
+      trim.p1.marks > 0, `${trim.p1.marks} marks`);
+    check('21 TWO BULLETS OF SIX, which is the owner\'s own example',
+      trim.p2.shown.length === 2
+        && trim.p2.shown.every(t => /insurance|recall/.test(t)),
+      `${trim.p2.shown.length} of ${trim.p2.total}: ${trim.p2.shown.join(' | ')}`);
+    check('21 and what is left out is SAID, with the right number',
+      /\b3\b/.test(trim.p1.omit) && /\b4\b/.test(trim.p2.omit),
+      `${trim.p1.omit} || ${trim.p2.omit}`);
+    /* QUIETLY. Nothing is owed and nothing is wrong — the whole clause is on
+       the paper beside it — so this is a line in the label shade, never amber
+       and never a band. */
+    check('21 quietly — a line, not a band',
+      trim.p1.omitIsBand === false, `band-like: ${trim.p1.omitIsBand}`);
+    check('21 and not in the amber this page keeps for work owed',
+      trim.p1.omitAmber !== 'rgb(180, 83, 9)', trim.p1.omitAmber);
+    /* THE PAPER IS THE WHOLE CLAUSE, WHICH IS WHY THE CARD MAY BE SHORT. */
+    check('21 the contract still draws every part of the clause',
+      trim.p1.paperBlocks >= 4 && trim.p2.paperBlocks >= 6,
+      `paper ${trim.p1.paperBlocks} / ${trim.p2.paperBlocks}`);
+    check('21 and so does the clause panel, whose job is the full reading',
+      trim.panel >= 4, `${trim.panel} blocks in the panel`);
+  }
+  await page.screenshot({ path: path.join(OUT, '21-card-shows-changed.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

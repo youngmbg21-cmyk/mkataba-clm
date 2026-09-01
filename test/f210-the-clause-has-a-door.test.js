@@ -386,10 +386,23 @@ describe('f210 (3) — what is in the panel', () => {
     /* The stored ops are inside the fingerprint. A mark drawn from a fresh
        diff would not be the mark the other side verified. One builder, shared
        with the ask reveal, so the two cannot drift. */
-    assert.match(SRC, /function rlChangeWordingHtml\(ch\)\{/);
+    /* RE-POINTED 2 Sep 2026: the builder gained an optional second argument —
+       the open card asks it for only the parts a change touches (owner-asked)
+       — so its signature moved. THE CLAIM IS UNCHANGED and both halves are
+       still asserted: it is built from the change's own ops and never from a
+       fresh diff, and the two surfaces whose job is the FULL reading call the
+       one builder with no trim, so none of the three can drift. */
+    assert.match(SRC, /function rlChangeWordingHtml\(ch, opts = \{\}\)\{/);
+    assert.match(SRC, /const ops = rlChangeOps\(ch\);/,
+      'from the change\'s own ops');
+    assert.ok(!/redlineOps\(|redlineOpsStructured\(/.test(
+      SRC.slice(SRC.indexOf('function rlChangeWordingHtml'),
+                SRC.indexOf('function rlChangeWordingHtml') + 600)),
+      'and never from a fresh diff');
     assert.match(SRC, /const wording = rlChangeWordingHtml\(ch\);/,
-      'the ask reveal asks the same builder');
-    assert.match(SRC, /<div class="rl-cp-wd">\$\{rlChangeWordingHtml\(ch\)\}<\/div>/);
+      'the ask reveal asks the same builder, whole');
+    assert.match(SRC, /<div class="rl-cp-wd">\$\{rlChangeWordingHtml\(ch\)\}<\/div>/,
+      'and so does the panel, whose job is the full reading');
   });
 });
 
