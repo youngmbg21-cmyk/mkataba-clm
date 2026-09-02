@@ -10818,13 +10818,12 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    counterparty's seat); an answer held there has settled nowhere yet, so it
    stays where it was rather than moving to decided under the reader's hand. */
 const RL_CARD_BANDS = ['refused', 'awaiting', 'drafts', 'review', 'held',
-  'with', 'accepted', 'withdrawn', 'decided'];
+  'with', 'accepted', 'withdrawn'];
 /* WHICH OF THEM ARE FINISHED BUSINESS. It decides which pile a change lands in
    and what the open card calls its wording ("was agreed" rather than "they
-   ask"). This was one band and is four; naming the set here is what stops the
-   renderer testing for 'decided' and quietly missing the three that replaced
-   it. */
-const RL_SETTLED_BANDS = ['refused', 'accepted', 'withdrawn', 'decided'];
+   ask"). Naming the set here is what stops the renderer testing for one band
+   and quietly missing the others beside it. */
+const RL_SETTLED_BANDS = ['refused', 'accepted', 'withdrawn'];
 /* ---- AND WHICH OF THEM STEP BACK ON THE ROW (owner-asked 2 Sep 2026, off a
        render: "I want to have the accepted and withdrawn clause where they are
        currently in black font to be grey") ----
@@ -10850,7 +10849,9 @@ const RL_QUIET_BANDS = ['accepted', 'withdrawn'];
    YOUR DRAFTS — which is exactly where it sat before this split. So a caller
    that has no contract to hand gets the old answer rather than a wrong one. */
 function rlCardBand(ch, side, unsent, held, c){
-  if (!ch) return 'decided';
+  /* A CHANGE THAT IS NOT THERE IS SHOWN AS WORK, never filed as finished —
+     the same direction the fallthrough below takes, and for the same reason. */
+  if (!ch) return 'awaiting';
   const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
   const live = !ch.withdrawn && ch.status === 'pending';
   if (held && held.has && held.has(ch.id)) return theirs ? 'awaiting' : 'drafts';
@@ -10861,7 +10862,19 @@ function rlCardBand(ch, side, unsent, held, c){
     if (ch.withdrawn) return 'withdrawn';
     if (ch.status === 'accepted') return 'accepted';
     if (ch.status === 'rejected') return 'refused';
-    return 'decided';
+    /* AND THERE IS NO FIFTH PILE (owner-asked 2 Sep 2026: "Remove decided so
+       there are four piles ... isn't accepted the same as decided?").
+       The owner is right and it was never a real category. A change carries
+       exactly one of four states — pending, accepted, rejected, superseded —
+       and each of the first three has a pile of its own here, while a
+       superseded ask is filtered off this column before the band is ever
+       asked. So 'Decided' was a heading nothing could land in, drawn never,
+       and one more word for the reader to tell apart from Accepted.
+
+       WHAT IS LEFT FALLS THROUGH TO THE LIVE READING rather than into a
+       record, and that direction is the safe one: an ask this reading cannot
+       place is shown as WORK, where somebody sees it, instead of being quietly
+       filed as finished. */
   }
   if (theirs) return 'awaiting';
   if (!(unsent && unsent.has && unsent.has(ch.id))) return 'with';

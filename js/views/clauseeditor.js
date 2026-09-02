@@ -175,9 +175,10 @@ const ceCanFile = () => (_ceText !== _ceBase || _ceHead !== _ceHeadBase) && clau
    THE PAGE COVERS THE SHELL, it does not dismantle it. The prototype moved the
    shell's own brand and controls into this page's two bars; that is a live DOM
    move of elements other renderers repaint, for a result a reader cannot tell
-   from an opaque cover. So this is a fixed layer at z-index 55: above the
-   Copilot drawer and the activity panel, BELOW the toast root and modal-root,
-   so a confirm dialog and every refusal still land on top of it.
+   from an opaque cover. So this is a fixed layer, BELOW the toast root and
+   modal-root so a confirm dialog and every refusal still land on top of it —
+   and, since 2 Sep 2026, below the two slide-over panels as well, so the
+   shell's own doors are live here. See the rule's own note for the ladder.
 
    Note for whoever edits this next: this function returns CSS from a template
    literal, so a backtick anywhere in it — including in a comment — ends the
@@ -207,7 +208,27 @@ function clauseEditorCss(){
          float line and this page is later in the document, so at equal weight
          it would have won. Still above the Copilot drawer (50) and the activity
          panel (46), and still below modal-root and the toasts. */}
-  #clause-editor{position:fixed; inset:0; z-index:54; display:flex; flex-direction:column;
+  ${''/* ---- AND NOW 38, BELOW BOTH SLIDE-OVERS (owner-asked 2 Sep 2026, off a
+         screenshot with the shell bar's four doors ringed: "the sliding panels
+         should not be hidden or muted when in the editor page") ----
+
+         THIS REVERSES ONE HALF OF THE NOTE ABOVE — "still above the Copilot
+         drawer and the activity panel" — and only that half. Below the nav
+         (55), below modal-root (70) and the toasts: all unchanged.
+
+         IT IS THE HONEST FIX RATHER THAN UN-GREYING THE DOORS. Those doors
+         were greyed on 1 Sep precisely because a panel opening at 46 behind a
+         page at 54 is a live control that does nothing — and the Copilot door,
+         which was never greyed, was doing exactly that in silence. Un-greying
+         them alone would have put the dead press back; moving the page under
+         the panels is what makes the press WORK.
+
+         38 IS BELOW THE WHOLE PANEL STACK and above everything in the content
+         area: #ai-scrim 40, #panel-scrim 45, #context-panel 46, #ai-panel 50.
+         So a panel dims and covers this page exactly as it does every other
+         page in the product, which is what a slide-over is for. Nothing in the
+         content area sits between 6 and 40 — measured, not assumed. */}
+  #clause-editor{position:fixed; inset:0; z-index:38; display:flex; flex-direction:column;
     background:var(--color-bg); color:var(--color-text);
     font-family:var(--font-body, inherit)}
   #clause-editor[hidden]{display:none}

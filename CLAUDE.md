@@ -771,7 +771,7 @@ They were one: the bell's handler pressed #cmd-panel and its tooltip said so, an
 - THE PHONE draws neither button and has mNeedsYou on Home instead, so it cannot inherit the fault.
 Tests: f187 (23), alerts-and-activity-verify (21, browser — the dot's absence at zero, one shell two contents, the swap, and Insights).
 
-## ONE PREDICATE, ONE PAGE THAT REFUSES THE LAYER (owner-asked 1 Sep 2026)
+## ONE PREDICATE, AND NO PAGE REFUSES THE LAYER (owner-asked 1 Sep, REVERSED 2 Sep 2026)
 
 *"fix the bell and activity panel collision with the editing page."* The clause
 editor mounts at z-index 54 and this drawer sits at 46, so pressing the bell or
@@ -780,12 +780,54 @@ control that appears to do nothing, which is the fault the greying rule exists
 to prevent. The Chat door had been given its own dead state for exactly this on
 31 Aug and the other two were logged rather than swept.
 
+**AND IT LASTED A DAY — REVERSED IN PLACE 2 Sep 2026** (owner-asked, off a
+screenshot with the shell bar's four doors ringed: *"the sliding panels should
+not be hidden or muted when in the editor page"*). **THE DIAGNOSIS BELOW IS
+KEPT BECAUSE IT IS RIGHT, and the remedy has moved to the other side of the
+same collision: the PAGE went under both slide-overs** (`#clause-editor`
+z-index 54 → **38**, below `#ai-scrim` 40, `#panel-scrim` 45, `#context-panel`
+46 and `#ai-panel` 50). So a panel dims and covers this page exactly as it
+covers every other page in the product, the doors are live because the press
+WORKS, and `panelSuppressed()` answers false again with its shape kept.
+
+- **UN-GREYING THE DOORS ALONE WOULD HAVE PUT THE DEAD PRESS BACK**, which is
+  why this is a z-index change rather than a predicate change. The half that
+  settles it: **the Copilot door was never greyed at all**, so it was doing
+  exactly that in silence on the same page — a live button opening `#ai-panel`
+  at 50 behind a page at 54. One ladder, one fix, four doors.
+- **RAISING THE DRAWER WAS WEIGHED AND REFUSED ON 1 Sep and is still refused**:
+  it sits below the Copilot panel deliberately and the Escape ladder reads that
+  order, so lifting it over the editor lifts it over Copilot too. Lowering the
+  page keeps the whole stack's own order intact.
+- **38 IS MEASURED, NOT PICKED.** Nothing in the content area sits between 6 and
+  40. Below the nav (55), below modal-root (70) and the toasts: all unchanged,
+  so a confirm and every refusal still land on top of the editor.
+- **`ap_alerts_not_here` AND `ap_activity_not_here` ARE NOT STALE** and stay
+  wired: they are what the machinery would print, and they sat exactly there,
+  unreachable, between 13 Aug and 1 Sep. **`ng_chat_not_here` IS stale** — that
+  door's branch is gone rather than merely unreachable — and is inert in both
+  dictionaries.
+- **`body.ce-open #ai-launch{display:none}` WENT WITH IT**, and said out loud:
+  `#ai-launch` is drawn by NOTHING in this codebase, so that rule was already
+  reaching nothing and its removal changes no pixel. clause-editor-verify 2g had
+  to PLANT one to measure it, which is what proves it. **`body.ce-open` is still
+  stamped and now styles nothing** — a truthful marker and the hook the day a
+  rule needs one, the way `rl-card-done` is kept on the change rows.
+
+Tests: f187 (3), f264 (9) and clause-editor-verify 2g REVERSED IN PLACE;
+notes-two-rooms-verify's three-door section reversed and made STRONGER — it no
+longer asks whether a button is disabled but whether the panel is **on top**,
+read with `elementFromPoint` at the drawer's own centre, because a live control
+that opens something behind the page passes every disabled check. **Five of its
+checks fail against the parent, reporting the owner's own tooltip verbatim.**
+
+**WHAT THE 1 Sep BUILD SAID, kept because the reasoning is the useful part:**
+
 **THE SHAPE WAS ALREADY BUILT AND NOTHING ANSWERED TRUE.** `openPanel`'s own
 note describes the fix in advance — a refusing page is where the press stops,
 *"with both buttons disabled and a tooltip saying which page took the space"* —
 and `updateAlertBadge` has always drawn exactly that. `panelSuppressed()` was
-kept as a predicate for the day a page genuinely could not host the layer. This
-is that page, so it answers for it and for nothing else.
+kept as a predicate for the day a page genuinely could not host the layer.
 
 - **ONE PREDICATE, THREE READERS, BY CONSTRUCTION.** `openPanel` stops the
   press, `applyPanelLayout` takes a drawer that was already open off the screen,
@@ -9534,10 +9576,10 @@ rule"* — and this is that rule, on the hook (`rl-card-done`) it left behind.
 - **REFUSED IS FINISHED AND IS NOT QUIET.** It leads this column on purpose — a
   refusal is the thing that can still stop the deal — so greying it would make
   the loudest item the quietest, which is the opposite of why it sits at the
-  top. **DECIDED** is the catch-all and was not named either; it is left black
-  with refused rather than swept in, and adding it is one word. **Both were put
-  to the owner on the render and neither was picked**, so the narrow reading
-  stands and is said out loud rather than assumed.
+  top. **Both were put to the owner on the render and neither was picked**, so
+  the narrow reading stands. **DECIDED WAS THE OTHER ONE AND IT NO LONGER
+  EXISTS** — the owner asked the next day why it differed from Accepted, and it
+  did not; see THERE ARE FOUR PILES below.
 - **TWO MARKERS, AND THE NAMES CANNOT BE CONFUSED BECAUSE THE COMMENT SAYS SO.**
   `rl-card-done` still means FINISHED and is still what f89 reads;
   `rl-card-quiet` is the smaller question. A single class would have had to mean
@@ -9563,6 +9605,38 @@ rule"* — and this is that rule, on the hook (`rl-card-done`) it left behind.
 Tests: f246 (7) (the narrower set, the subset relation, both markers, and the
 rule carrying a colour and nothing else), redline-verify 19c, the two rulebook
 predictions above REVERSED IN PLACE.
+
+## THERE ARE FOUR PILES (owner-asked 2 Sep 2026)
+
+*"Remove decided so there are four piles. Also, what the difference between
+decided and accepted? Isn't accepted the same as decided?"*
+
+**THE OWNER IS RIGHT AND IT WAS NEVER A REAL CATEGORY.** A change carries
+exactly one of four states — `pending`, `accepted`, `rejected`, `superseded`
+(`negoResolve` accepts only the first three and the funnel writes the fourth).
+The first three have piles of their own, and a superseded ask is filtered off
+this column before the band is ever asked. So **Decided was a heading nothing
+could land in**, and because an empty pile draws nothing, it had never once
+been on screen.
+
+- **`RL_CARD_BANDS` IS EIGHT AND `RL_SETTLED_BANDS` IS THREE**: refused,
+  accepted, withdrawn. Four outcomes on the column — awaiting/drafts/review/
+  held/with for live work, and those three for finished.
+- **THE FALLBACK IS WORK, NOT A RECORD.** What used to return 'decided' now
+  falls through to the live reading, and a null change answers `awaiting`. That
+  direction is the safe one: an ask this reading cannot place is shown where
+  somebody sees it rather than quietly filed as finished. **Unreachable in
+  practice** — it is the superseded case, which never reaches this column.
+- **'decided' IS STILL A WORD ELSEWHERE AND WAS NOT SWEPT.** It is a HISTORY
+  event kind (a decision was made, in `js/views/contract.js` and the timeline),
+  a refusal reason in `js/redline.js`, and the ROUND QUEUE's roll-up for a
+  clause row whose several changes disagree. Three different questions that
+  happen to share a word; only the BAND went. Checked rather than assumed.
+- **`ng_band_decided` is STALE** and left INERT in both dictionaries.
+
+Tests: f246 (3)'s four claims REVERSED IN PLACE — the catch-all is gone, the
+fallback is asserted as a band that exists rather than as a literal, and the
+last pile is `withdrawn` with nothing after it.
 
 ## Line numbers drift
 

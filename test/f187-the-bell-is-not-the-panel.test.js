@@ -229,25 +229,28 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
    suppressed. The machinery stays, because a disabled control with a reason is
    still the right shape if a page ever genuinely cannot host a layer.
 
-   ---- AND ONE DOES NOW: REVERSED IN PLACE, 1 Sep 2026 ----
-   *"fix the bell and activity panel collision with the editing page."* The
-   clause editor covers the page at z-index 54 against this drawer's 46, so
-   both presses put a panel up BEHIND it. That is the page this shape was kept
-   for, and the claim is stronger for having a wearer: what is pinned is no
-   longer "nothing answers true" but that the predicate answers for THAT page
-   and for nothing else, and that all three readers still ask it rather than
-   carrying a copy. */
-describe('f187 (3) — the suppression is a shape, and the clause editor wears it', () => {
-  test('ONE PREDICATE, asked by the layout and by both buttons — and it says WHO', () => {
+   ---- ONE DID, FOR A DAY: REVERSED IN PLACE AGAIN, 2 Sep 2026 ----
+   *"the sliding panels should not be hidden or muted when in the editor page."*
+   The clause editor wore this on 1 Sep, because it covered the page at z-index
+   54 against this drawer's 46 and both presses put a panel up BEHIND it. The
+   diagnosis was right; the remedy has moved to the other side of the same
+   collision — the PAGE went under both slide-overs (z-index 38), so the press
+   works there and there is nothing to grey.
+
+   SO NOTHING ANSWERS TRUE AGAIN, and the claim returns to what it was: the
+   shape is kept for the day a page genuinely cannot host the layer, and all
+   three readers still ask the ONE predicate rather than carrying a copy. */
+describe('f187 (3) — the suppression is a shape, and nothing wears it', () => {
+  test('ONE PREDICATE, asked by the layout and by both buttons — and nothing answers true', () => {
     const app = read('js/app.js');
     const fn = app.slice(app.indexOf('function panelSuppressed()'),
       app.indexOf('function chatContractId'));
-    assert.match(fn, /clauseEditorOpen/,
-      'the clause editor is the page that refuses the layer');
-    assert.match(fn, /window\.clauseEditorOpen/,
-      'read through window — a stage without that module answers false rather than throwing');
+    assert.match(fn, /return false;/,
+      'no page refuses the layer today — the editor sits UNDER the panels');
+    assert.ok(!/clauseEditorOpen/.test(fn),
+      'and the clause editor is not it any more');
     assert.ok(!/state\.view/.test(fn),
-      'and it is not keyed on which VIEW is showing: this page opens without a view change');
+      'nor is it keyed on which VIEW is showing');
     /* THE DUPLICATE IS GONE TOO. applyPanelLayout carried its own copy of the
        same view test, so relaxing the predicate alone would have left the
        buttons live and the panel still refusing to open. */

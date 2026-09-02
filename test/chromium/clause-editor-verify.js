@@ -207,9 +207,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      !!opened && opened.chromeAbovePaper < 130,
      opened && `${opened.chromeAbovePaper}px of chrome, strip ${opened.stripH}px`);
 
-  /* The one control that floats OVER the page rather than sitting inside the
-     shell's grid, and therefore the one z-index alone does not settle: two
-     Copilots on one screen, offering different things. */
+  /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked: "the sliding panels should
+     not be hidden or muted when in the editor page") ----
+     What stood here pinned that the floating Copilot launcher was HIDDEN on
+     this page — the one control z-index alone did not settle, on the reasoning
+     that two Copilots on one screen offer different things. The owner has
+     ruled the other way and the rule is gone, so a launcher would draw here
+     like anywhere else.
+
+     AND THE CHECK'S OWN STAGING IS WHAT SAYS THE RULE REACHED NOTHING: it has
+     to PLANT an #ai-launch because the product draws none — no markup builds
+     one and no other rule styles it. So the removal changes no pixel; it goes
+     because a dead rule contradicting a standing ruling is worse than either. */
   const launcher = await p.evaluate(() => {
     /* Standing one in, so the claim is measured rather than skipped: this
        harness builds its own page and has no #ai-launch of its own, and a
@@ -226,9 +235,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   });
   ck('2f the page marks the body, so the shell knows it is covered',
      launcher.cls, 'body.ce-open');
-  ck('2g and the floating Copilot launcher stands down — two Copilots on one '
-     + 'screen offer different things',
-     launcher.display === 'none', `display ${launcher.display}`);
+  ck('2g and NOTHING is hidden on this page — the launcher rule is gone',
+     launcher.display !== 'none' && launcher.planted === true,
+     `display ${launcher.display} · the product draws no launcher of its own `
+     + `(planted ${launcher.planted})`);
 
   /* ---- 2h. THE STRIP IS THE PROTOTYPE'S, AND THERE IS NO HEADER ----
      REVERSED IN PLACE 28 Aug 2026. What stood here compared this page's header

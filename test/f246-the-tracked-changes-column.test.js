@@ -285,10 +285,18 @@ describe('f246 (3) — the bands', () => {
     for (const ch of p.c.changes)
       assert.ok(bands.has(rlCardBand(ch, 'owner', new Set(), null, p.c)),
         'a change nobody thought of is still filed somewhere');
-    assert.equal(rlCardBand(null, 'owner', new Set(), null, p.c), 'decided',
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked: "Remove decided so there are
+       four piles ... isn't accepted the same as decided?"). There is no
+       catch-all any more, and the owner was right that it was never a real
+       category. WHAT THE CLAIM IS REALLY ABOUT IS UNCHANGED and is stronger
+       for it: nothing falls off the bottom of the column — but the fallback is
+       now WORK rather than a record, which is the safe direction. A change the
+       reading cannot place is put where somebody sees it. */
+    assert.ok(bands.has(rlCardBand(null, 'owner', new Set(), null, p.c)),
       'and nothing falls off the bottom of the column');
-    assert.equal(RL_CARD_BANDS[RL_CARD_BANDS.length - 1], 'decided',
-      'the catch-all sorts last, so an unknown state cannot lead the column');
+    assert.ok(!RL_CARD_BANDS.includes('decided'),
+      'there is no fifth pile — a change is pending, accepted, refused or withdrawn');
+    assert.equal(RL_CARD_BANDS.length, 8, 'eight readings, four of them outcomes');
   });
 
   test('the readings are questions, not statuses', async () => {
@@ -324,8 +332,13 @@ describe('f246 (3) — the bands', () => {
        fact about the ask rather than about the answer. */
     assert.equal(as({ status: 'rejected', withdrawn: true }), 'withdrawn',
       'a withdrawn ask reads as withdrawn even when it was refused first');
-    assert.equal(as({ status: 'superseded' }), 'decided',
-      'and only a state nobody thought of reaches the catch-all');
+    /* REVERSED IN PLACE 2 Sep 2026: there is no catch-all. A superseded ask is
+       filtered off this column long before the band is asked (redlineChangeCardsHtml
+       drops it), so the only thing this proves is that it is not quietly filed
+       as finished if it ever got here. */
+    assert.ok(!['accepted', 'refused', 'withdrawn'].includes(as({ status: 'superseded' })),
+      'a state nobody thought of is never filed as finished — the three piles'
+      + ' named one at a time above are the only outcomes there are');
   });
 
   /* REFUSED SITS ABOVE ACCEPTED — a refusal is still a sticking point and an
@@ -336,7 +349,7 @@ describe('f246 (3) — the bands', () => {
     const p = await bench();
     const at = k => p.win.RL_CARD_BANDS.indexOf(k);
     for (const k of ['awaiting', 'drafts', 'review', 'held', 'with',
-      'refused', 'accepted', 'withdrawn', 'decided'])
+      'refused', 'accepted', 'withdrawn'])
       assert.ok(at(k) > -1, `${k} is a band`);
     /* REVERSED IN PLACE 27 Aug 2026 (owner-asked: "move refusals to the top of
        the pile"). Refused was sixth, under five bands of work simply taking its
@@ -348,8 +361,10 @@ describe('f246 (3) — the bands', () => {
     assert.ok(at('drafts') < at('with'), 'then what you are still writing');
     assert.ok(at('with') < at('accepted'), 'then what has gone');
     assert.ok(at('accepted') < at('withdrawn'), 'and taken back is the quietest');
-    assert.equal(at('decided'), p.win.RL_CARD_BANDS.length - 1,
-      'and the catch-all is still last');
+    /* REVERSED IN PLACE 2 Sep 2026 — the catch-all is gone, so the quietest
+       pile is the last one and there is nothing after it. */
+    assert.equal(at('withdrawn'), p.win.RL_CARD_BANDS.length - 1,
+      'and taken back is the last pile — nothing sorts after it');
   });
 
   /* ---- AND THE DRAFTS PILE IS THREE (owner-asked 26 Aug 2026, off a
@@ -872,9 +887,8 @@ describe('f246 (7) — the rules that draw it', () => {
 
     assert.match(NJS, /const RL_QUIET_BANDS = \['accepted', 'withdrawn'\];/,
       'the bands that step back are a NAMED SET, like the settled one above it');
-    for (const b of ['refused', 'decided'])
-      assert.ok(!/const RL_QUIET_BANDS = \[[^\]]*\]/.exec(NJS)[0].includes(`'${b}'`),
-        `${b} is NOT in it — it stays black`);
+    assert.ok(!/const RL_QUIET_BANDS = \[[^\]]*\]/.exec(NJS)[0].includes(`'refused'`),
+      'refused is NOT in it — it stays black');
 
     /* PIN THE RELATION: the quiet set is a strict subset of the settled one, so
        a band can never step back without also being finished. */

@@ -1453,31 +1453,36 @@ function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } 
    Kept as a predicate rather than deleted: it is asked in three places, and a
    page that genuinely cannot host a layer may exist one day.
 
-   ---- AND ONE DOES (owner-asked 1 Sep 2026: "fix the bell and activity panel
-   collision with the editing page") ----
-   THE CLAUSE EDITOR IS THAT PAGE, and the shape was built for it before it
-   existed: openPanel's own note says a refusing page is where the press stops,
-   "with both buttons disabled and a tooltip saying which page took the space",
-   and updateAlertBadge has always drawn exactly that. What was missing was
-   anything answering true. It mounts at z-index 54 and this drawer sits at 46,
-   so the press put a panel up BEHIND the page — a live control that appears to
-   do nothing, which is the fault the greying rule exists to prevent. Raising
-   the drawer was weighed and refused: it sits below the Copilot panel
-   deliberately, and lifting it over the editor lifts it over Copilot too.
+   ---- AND ONE DID, FOR A DAY — REVERSED IN PLACE 2 Sep 2026 ----
+   (owner-asked, off a screenshot with the shell bar's four doors ringed: "the
+   sliding panels should not be hidden or muted when in the editor page".)
 
-   THE PREDICATE, NOT THREE COPIES. It is asked by openPanel (the press stops),
-   applyPanelLayout (a panel already open goes away rather than sitting behind
-   the page, and comes back afterwards because state.panelOpen is never
-   written here) and updateAlertBadge (both buttons dead, each with its reason).
-   The Chat door beside them asks clauseEditorOpen directly, because its OTHER
-   dead state — no contract open — is nothing to do with layers.
+   THE CLAUSE EDITOR WAS THAT PAGE ON 1 Sep, and the diagnosis was right: it
+   mounted at z-index 54 while this drawer sits at 46, so a press put a panel
+   up BEHIND the page — a live control that appears to do nothing. What was
+   ALSO true, and is the half that settles it: the Copilot door was never
+   greyed at all, so it was doing exactly that in silence on the same page.
 
-   A SECOND SUPPRESSOR WOULD WANT ITS OWN WORDS: ap_alerts_not_here and
-   ap_activity_not_here name the page that took the space, and today there is
-   one. Read through window, the ES-module rule, so a stage without that module
-   answers false rather than throwing. */
+   RAISING THE DRAWER WAS WEIGHED AND REFUSED THEN, for a good reason — it sits
+   below the Copilot panel deliberately, and lifting it over the editor lifts
+   it over Copilot too. THE ANSWER IS THE OTHER DIRECTION: the PAGE went under
+   both panels (z-index 38, see clauseEditorCss), so the whole stack keeps its
+   own order and a slide-over covers this page exactly as it covers every other
+   page in the product. The doors are live because the press now WORKS, which
+   is the only honest way to un-grey a control.
+
+   SO NOTHING ANSWERS TRUE AGAIN, and the predicate is kept rather than deleted
+   for the reason it was kept the first time: it is asked in three places —
+   openPanel (the press stops), applyPanelLayout (an open panel goes away
+   rather than sitting behind the page) and updateAlertBadge (both buttons
+   dead, each with its reason) — and a page that genuinely cannot host a layer
+   may exist one day. ap_alerts_not_here and ap_activity_not_here are NOT stale
+   and are deliberately left wired: they are what that machinery would print,
+   and they sat exactly here, unreachable, between 13 Aug and 1 Sep. A second
+   suppressor would want its own words anyway — these name the page that took
+   the space, and today there is none. */
 function panelSuppressed(){
-  try{ return !!(window.clauseEditorOpen && clauseEditorOpen()); }catch(_){ return false; }
+  return false;
 }
 /* ---- THE CHAT DOOR (owner-ruled 31 Aug 2026) ----
    *"means to access the notes in the side panel should have its own door called
@@ -1495,24 +1500,28 @@ function chatContractId(){
 /* IT IS DEAD WHERE PRESSING IT WOULD DO NOTHING, with the reason on its hover —
    the product's own rule, grey where it can be known before the press.
 
-   TWO WAYS IT CAN BE DEAD, and they are different facts with different
-   sentences. No contract is open, so there is no conversation to read. Or the
-   CLAUSE EDITOR is covering the page: it mounts at z-index 54 and this drawer
-   sits at 46, so a press would open a panel behind it — a live control that
-   appears to do nothing, which is the fault this rule exists to prevent.
-   Raising the drawer instead was weighed and refused: it sits BELOW the Copilot
-   panel deliberately (the Escape ladder reads that order), and lifting it over
-   the editor would lift it over Copilot too.
+   ONE WAY IT CAN BE DEAD: no contract is open, so there is no conversation to
+   read.
 
-   THE BELL AND ACTIVITY HAVE THE SAME COLLISION AND ARE DELIBERATELY NOT
-   SWEPT — it predates this door by a fortnight and belongs to whoever takes
-   that on; one line in BUGLOG rather than a fix made on the way past. */
+   ---- IT HAD A SECOND, AND IT IS REVERSED IN PLACE 2 Sep 2026 ----
+   (owner-asked: "the sliding panels should not be hidden or muted when in the
+   editor page".) The clause editor covering the page used to kill this door,
+   because a press would have opened a panel behind it — a live control that
+   appears to do nothing. The diagnosis was right and the remedy has moved: the
+   PAGE now sits under both slide-overs (z-index 38, see clauseEditorCss), so
+   the press works there like anywhere else and there is nothing to grey.
+   ng_chat_not_here IS stale — this door's branch is gone rather than merely
+   unreachable, so the key is left inert in both dictionaries. That differs
+   from the bell's and Activity's two sentences, which stay wired to the
+   suppression machinery panelSuppressed keeps armed.
+
+   IT KEEPS ITS OWN READING rather than borrowing panelSuppressed, deliberately:
+   the state that survives is about whether there is a conversation at all,
+   which is nothing to do with layers. */
 function paintChatDoor(){
   const btn=document.getElementById('hdr-chat'); if(!btn) return;
-  let covered=false;
-  try{ covered=!!(window.clauseEditorOpen&&clauseEditorOpen()); }catch(_){}
   const id=chatContractId();
-  const dead=covered||!id;
+  const dead=!id;
   btn.disabled=dead;
   btn.setAttribute('aria-disabled',dead?'true':'false');
   /* ---- AND THE MARK SAYS SOMEBODY HAS NAMED YOU ---- (owner-asked 2 Sep 2026)
@@ -1537,8 +1546,7 @@ function paintChatDoor(){
   }catch(_){ n=0; }
   const dot=document.getElementById('hdr-chat-dot');
   if(dot){ dot.textContent=n>9?'9+':String(n); dot.hidden=!n; }
-  btn.title=covered?i18t('ng_chat_not_here')
-    :!id?i18t('ng_chat_none')
+  btn.title=!id?i18t('ng_chat_none')
     :n?i18tn('ng_chat_at_n',n,{n})
     :i18t('ng_chat_title');
 }

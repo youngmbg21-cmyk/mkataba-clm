@@ -1039,16 +1039,23 @@
   body.pre-auth #ai-launch,
   body.pre-auth #cmd-scrim{display:none!important;}
 
-  /* ---- AND WHILE THE CLAUSE EDITOR IS UP (25 Aug 2026) ----
-     That page is a fixed layer at z-index 55 and covers the shell, which puts
-     it above the Copilot drawer and the activity panel by ordering alone. The
-     LAUNCHER is the exception worth naming: it floats over the page rather
-     than sitting inside the shell's grid, so it is the one control that would
-     otherwise hang over a page that has a Copilot of its own — two Copilots on
-     one screen, offering different things. The toast root and modal-root are
-     deliberately NOT in this list: a refusal and a confirm must still land on
-     top of the editor. */
-  body.ce-open #ai-launch{display:none!important;}
+  /* ---- NOTHING IS HIDDEN WHILE THE CLAUSE EDITOR IS UP — REVERSED IN PLACE
+     2 Sep 2026 (owner-asked: "the sliding panels should not be hidden or muted
+     when in the editor page") ----
+     What stood here hid the floating Copilot LAUNCHER on that page, on the
+     reasoning that it would otherwise hang over a page which has a Copilot of
+     its own — two Copilots on one screen, offering different things. Sound
+     reasoning, and the owner has ruled the other way.
+
+     SAID OUT LOUD: `#ai-launch` is drawn by NOTHING in this codebase — no
+     markup builds it and no other rule styles it — so this rule was already
+     reaching nothing and its removal changes no pixel. It goes because it is
+     the only thing in the product that HID anything on that page, and leaving
+     a dead rule that contradicts a standing ruling is worse than either.
+
+     `body.ce-open` IS STILL STAMPED and now styles nothing: a truthful marker
+     of a real state, and the hook the day a rule needs one — the same way
+     `rl-card-done` is kept on the change rows. */
 
   /* ---- TARGET SIZE (WCAG 2.5.8, AA) ----
      MEASURED: "Forgot password?" — the only route back into an account —

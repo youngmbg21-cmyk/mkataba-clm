@@ -406,26 +406,37 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
           bell: { dead: g('hdr-notify').disabled, title: g('hdr-notify').title },
           act:  { dead: g('cmd-panel').disabled, title: g('cmd-panel').title },
           panelOpen: p.classList.contains('open'),
+          /* THE PRESS HAS TO WORK, NOT MERELY BE ALLOWED. A live button that
+             opens a panel BEHIND the page passes every disabled check and is
+             the exact fault the greying was written for, so this reads the
+             PAINT: what is actually on top at the middle of the drawer. */
+          onTop: (() => { const r = p.getBoundingClientRect();
+            const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return !!(el && el.closest && el.closest('#context-panel')); })(),
           n: alertCount(), dotHidden: dot.hidden });
       }, 900));
     });
     check('the clause editor really opened over the page', covered.page === true);
-    check('CHAT IS DEAD WHILE IT COVERS THE WINDOW, with the reason on its hover',
-      covered.chat.dead === true && /clause|klausul/i.test(covered.chat.title || ''),
+    /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked: "the sliding panels should
+       not be hidden or muted when in the editor page") ----
+       These three asserted the doors were DEAD here, and the diagnosis behind
+       that was right: a panel at 46 behind a page at 54 is a dead press. The
+       remedy moved to the other side of the same collision — the page sits at
+       38, under both slide-overs — so the doors are live because the press
+       WORKS, which is the only honest way to un-grey a control. */
+    check('CHAT IS LIVE WHILE THE EDITOR IS UP, with its ordinary hover',
+      covered.chat.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.chat.title || ''),
       (covered.chat.title || '').slice(0, 60));
-    check('THE BELL IS DEAD TOO, with its own reason',
-      covered.bell.dead === true && /clause|klausul/i.test(covered.bell.title || ''),
+    check('THE BELL IS LIVE TOO',
+      covered.bell.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.bell.title || ''),
       (covered.bell.title || '').slice(0, 60));
-    check('AND ACTIVITY, with its own',
-      covered.act.dead === true && /clause|klausul/i.test(covered.act.title || ''),
+    check('AND ACTIVITY',
+      covered.act.dead === false && !/covers this panel|t\u00e4cker/i.test(covered.act.title || ''),
       (covered.act.title || '').slice(0, 60));
-    /* NEITHER SENTENCE MAY STILL NAME INSIGHTS: those two keys were written for
-       a page that stopped suppressing on 13 Aug 2026, and a tooltip naming the
-       wrong page is the same fault as a dead button with no reason at all. */
-    check('and neither sentence still names the page that stopped suppressing',
-      !/Insights|Insikter/i.test((covered.bell.title || '') + (covered.act.title || '')));
-    check('the drawer that was open is NOT left showing behind the page',
-      covered.panelOpen === false);
+    check('the drawer that was open STAYS open — nothing is hidden here',
+      covered.panelOpen === true);
+    check('AND IT IS ON TOP OF THE PAGE, measured as paint — not a live press that does nothing',
+      covered.onTop === true);
     /* THE COUNT IS NOT THE DOOR. A shut door and an empty queue are two
        different facts: a number that vanishes says "nothing is waiting", which
        is false. Written as a RELATION so it bites whichever way the seeded book
@@ -443,11 +454,11 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
           panelOpen: g('context-panel').classList.contains('open') });
       }, 600));
     });
-    check('and all three come back on the way out — both halves, or they stay dead',
+    check('and all three are still live on the way out',
       back.chat === false && back.bell === false && back.act === false,
       `chat ${back.chat} · bell ${back.bell} · activity ${back.act}`);
     /* The reader's own choice is never written here, so the drawer they left
-       open is the drawer they get back. */
+       open is the drawer they get back — on the way in AND on the way out. */
     check('with the drawer the reader had open', back.panelOpen === true);
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);

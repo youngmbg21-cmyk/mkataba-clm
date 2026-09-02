@@ -9016,3 +9016,66 @@ Noticed, not fixed:
   left red. The register did not move, which is what this run had to check.
 - `npm run lint` still reports the same 4 pre-existing duplicate-key errors in
   js/i18n.js (co_password_updated, act_next), unchanged and not mine.
+
+---
+
+## 2 Sep 2026 — four piles, and the panels work on the editor page
+
+Started from the latest main, which had moved one commit under this branch.
+
+### 1. Decided is gone
+
+*"Remove decided so there are four piles. Isn't accepted the same as decided?"*
+The owner is right and it was never a real category. A change carries exactly
+one of four states — pending, accepted, rejected, superseded — the first three
+have piles of their own, and a superseded ask is filtered off the column before
+the band is asked. So Decided was a heading nothing could land in, and because
+an empty pile draws nothing it had never once been on screen.
+
+What used to return it now falls through to the LIVE reading, and a null change
+answers "awaiting". That direction is the safe one: an ask the reading cannot
+place is shown where somebody sees it rather than quietly filed as finished.
+
+'decided' is still a word elsewhere and was NOT swept — a history event kind, a
+refusal reason, and the round queue's roll-up for a clause whose changes
+disagree. Three different questions sharing a word; only the band went. Checked
+rather than assumed.
+
+### 2. The panels are live in the clause editor
+
+*"the sliding panels should not be hidden or muted when in the editor page."*
+Three of the four shell-bar doors were greyed there since 1 Sep, and the fourth
+— Copilot — was never greyed and was therefore opening a panel BEHIND the page
+in silence, which is the same fault louder.
+
+Un-greying them alone would have put the dead press back, so this is a z-index
+change rather than a predicate change: the PAGE went under both slide-overs (54
+→ 38, below the Copilot scrim 40, the panel scrim 45, the drawer 46 and the
+Copilot panel 50). A panel now dims and covers this page exactly as it covers
+every other page, and the doors are live because the press WORKS. Raising the
+drawer was refused again for its 1 Sep reason: it sits below Copilot
+deliberately and the Escape ladder reads that order.
+
+38 is measured, not picked — nothing in the content area sits between 6 and 40.
+Below the nav, below modal-root and the toasts: unchanged, so a confirm and
+every refusal still land on top of the editor.
+
+The rule that hid the floating Copilot launcher went with it, and said out
+loud: `#ai-launch` is drawn by NOTHING in this codebase, so that rule was
+already reaching nothing. The browser check had to PLANT one to measure it,
+which is what proves it. `body.ce-open` is still stamped and now styles
+nothing — a truthful marker and the hook the day a rule needs one.
+
+The reversed browser checks no longer ask whether a button is disabled but
+whether the panel is ON TOP, read as paint at the drawer's own centre — a live
+control that opens something behind the page passes every disabled check. Five
+of them fail against the parent, reporting the owner's own tooltip verbatim.
+
+Node 5599/5599. Browser: notes-two-rooms 63/63, clause-editor 221/221,
+clause-door 117/117, redline 181/181, nego-redesign 57/57.
+
+Noticed, not fixed:
+- The owner's screenshot ringed something at the bottom-left as well as the
+  four doors. Nothing in the desktop app draws a control there — the only
+  candidate, #ai-launch, has no markup anywhere — so it was most likely the
+  browser's own scrollbar and the OS taskbar. Reported rather than guessed at.

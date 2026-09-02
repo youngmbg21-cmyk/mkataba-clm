@@ -708,17 +708,22 @@ describe('f264 (9) — the door, and where it is dead', () => {
 
   test('it is dead where pressing it would do nothing, with the reason on its hover', () => {
     const fn = APP.match(/function paintChatDoor\(\)\{[\s\S]*?\n\}/)[0];
-    assert.match(fn, /clauseEditorOpen&&clauseEditorOpen\(\)/,
-      'the editor mounts at z-index 54 and the drawer sits at 46, so a press '
-      + 'would open a panel behind it');
-    assert.match(fn, /const dead=covered\|\|!id;/);
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked: "the sliding panels should not
+       be hidden or muted when in the editor page"). This pinned the SECOND dead
+       state — the clause editor covering the page — and that state is gone
+       rather than merely unreachable: the page sits under both slide-overs now,
+       so the press works there. ng_chat_not_here went with it. */
+    assert.ok(!/clauseEditorOpen/.test(fn),
+      'no layer can make this door dead any more');
+    assert.match(fn, /const dead=!id;/,
+      'ONE dead state, and it is about whether there is a conversation at all');
     assert.match(fn, /btn\.disabled=dead;/,
       'disabled, so the browser itself declines and a keyboard reader is told');
     /* RE-POINTED 2 Sep 2026: this pinned the whole ternary as a literal, and a
        FOURTH fact joined it (somebody has named you). What the claim was always
        about is that each fact gets its own sentence rather than one shrug, so
        that is what it asks — the relation, not the expression. */
-    ['ng_chat_not_here', 'ng_chat_none', 'ng_chat_title', 'ng_chat_at_n'].forEach(k => {
+    ['ng_chat_none', 'ng_chat_title', 'ng_chat_at_n'].forEach(k => {
       assert.ok(fn.includes("'" + k + "'"), k + ' has a sentence of its own');
     });
   });
@@ -752,22 +757,30 @@ describe('f264 (9) — the door, and where it is dead', () => {
       + 'every save');
   });
 
-  /* ---- REVERSED IN PLACE, 1 Sep 2026 (owner-asked: "fix the bell and
-     activity panel collision with the editing page") ----
-     This asserted the collision was NOT swept and named it as one line in
-     BUGLOG. It is swept now, and through the predicate that was kept for
-     exactly this: panelSuppressed answers for the clause editor, so all three
-     doors and the layer itself read one question. The Chat door keeps its own
-     reading because its OTHER dead state — no contract open — has nothing to
-     do with layers. */
-  test('the bell and Activity share the door’s dead state, through one predicate', () => {
+  /* ---- REVERSED IN PLACE AGAIN, 2 Sep 2026 (owner-asked: "the sliding panels
+     should not be hidden or muted when in the editor page") ----
+     THE COLLISION IS GONE RATHER THAN SHARED. On 1 Sep all three doors were
+     greyed on the clause editor, through one predicate, because a panel opened
+     at 46 behind a page at 54. The remedy has moved to the other side of that
+     same collision: the PAGE sits under both slide-overs now, so every door is
+     live there and there is nothing to grey.
+
+     WHAT THE CLAIM IS REALLY ABOUT SURVIVES and is what is pinned — no door
+     carries a private copy of a layer rule, and the Chat door's own dead state
+     is the one that has nothing to do with layers. */
+  test('no door is dead for a layer reason — the editor sits under the panels', () => {
     const fn = APP.slice(APP.indexOf('function panelSuppressed()'),
       APP.indexOf('function chatContractId'));
-    assert.match(fn, /clauseEditorOpen/,
-      'the page that covers the window is the page that refuses the layer');
+    assert.match(fn, /return false;/, 'nothing refuses the layer');
     const chat = APP.slice(APP.indexOf('function paintChatDoor'));
-    assert.match(chat.slice(0, chat.indexOf('\n}')), /clauseEditorOpen/,
-      'and the Chat door still asks it directly — it has a second dead state of its own');
+    const body = chat.slice(0, chat.indexOf('\n}'));
+    assert.ok(!/clauseEditorOpen/.test(body),
+      'and the Chat door no longer greys itself for one');
+    assert.match(body, /const dead=!id;/,
+      'its one dead state is the one about a conversation, not about a layer');
+    const CE = read('js/views/clauseeditor.js');
+    assert.match(CE, /#clause-editor\{position:fixed; inset:0; z-index:38;/,
+      'the page is UNDER #panel-scrim 45, #context-panel 46 and #ai-panel 50');
   });
 });
 

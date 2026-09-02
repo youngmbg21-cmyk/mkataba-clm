@@ -1883,6 +1883,12 @@ const STRINGS = {
     ng_band_refused: 'Refused',
     ng_band_accepted: 'Accepted',
     ng_band_withdrawn: 'Withdrawn',
+    /* STALE 2 Sep 2026 — the Decided pile is retired (owner-asked: "Remove
+       decided so there are four piles"). Nothing could ever land in it: a
+       change is pending, accepted, rejected or superseded, the first three
+       have piles of their own and a superseded ask never reaches the column.
+       Left INERT in BOTH dictionaries — a key removed from one and not the
+       other is how a screen ends up half-English. */
     ng_band_decided: 'Decided',
     /* SHORT, BECAUSE THIS MENU IS ONE LINE PER ROW (owner-asked 26 Aug 2026:
        "Always limit the description like 'Open in the clause panel' should be
@@ -1977,6 +1983,10 @@ const STRINGS = {
     ng_chat_n_other: '{n} notes',
     ng_chat_empty: 'Nothing has been written on this contract yet.',
     ng_chat_on: 'On {id}',
+    /* STALE 2 Sep 2026 (owner-asked: "the sliding panels should not be hidden
+       or muted when in the editor page"). The clause editor sits UNDER both
+       slide-overs now, so this door is never dead for that reason and the
+       branch that printed this is gone. Left INERT in BOTH dictionaries. */
     ng_chat_not_here: 'The clause you are editing covers this panel. Leave the clause and Chat opens as usual.',
     ng_chat_at_n_one: 'Chat \u2014 somebody named you in a note',
     ng_chat_at_n_other: 'Chat \u2014 {n} notes name you',
@@ -7336,6 +7346,7 @@ const STRINGS = {
     ng_band_refused: 'Avvisade',
     ng_band_accepted: 'Godkända',
     ng_band_withdrawn: 'Tillbakadragna',
+    /* STALE 2 Sep 2026 — see the note beside the English key. */
     ng_band_decided: 'Avgjorda',
     ng_row_open_panel: 'Öppna klausulpanelen',
     ng_row_jump: 'Gå till klausulen',
@@ -7410,6 +7421,7 @@ const STRINGS = {
     ng_chat_n_other: '{n} anteckningar',
     ng_chat_empty: 'Inget har skrivits p\u00e5 det h\u00e4r avtalet \u00e4nnu.',
     ng_chat_on: 'P\u00e5 {id}',
+    /* STALE 2 Sep 2026 — see the note beside the English key. */
     ng_chat_not_here: 'Klausulen du redigerar t\u00e4cker den h\u00e4r panelen. L\u00e4mna klausulen s\u00e5 \u00f6ppnas Chatt som vanligt.',
     ng_chat_at_n_one: 'Chatt \u2014 n\u00e5gon har n\u00e4mnt dig i en anteckning',
     ng_chat_at_n_other: 'Chatt \u2014 {n} anteckningar n\u00e4mner dig',
