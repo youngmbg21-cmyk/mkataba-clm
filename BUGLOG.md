@@ -8900,3 +8900,51 @@ Noticed, not fixed:
   that does not land on one is approximate by up to one bucket where the counts
   beside it are exact. Same deliberate trade as before, now doubled because
   there can be two lines.
+
+---
+
+## 2 Sep 2026 — finished business steps back
+
+*"I want to have the accepted and withdrawn clause where they are currently in
+black font to be grey"*, off a render, then *"implement the greying"*. Started
+from the latest main, which had moved two commits under this branch.
+
+**It is the mark this morning's type change spent, coming back.** Moving the
+primary ink onto the reference line made every summary grey, which took away
+the one thing telling a settled row from a live one; that entry's own note
+named the way back as "the reference in the label shade on a settled row, and
+it is one rule", and this is that rule on the hook it left behind.
+
+1. **The colour and nothing else.** The reference keeps its size and its bold
+   weight, so a settled row still reads as a reference over a summary and
+   recedes as a whole. The grey is the summary's own ink rather than a second
+   shade — the row lands on one colour, which already has a night answer and
+   measures 6.3:1 on the white column.
+
+2. **A narrower set than the settled one, and that is the design.** Being
+   finished and being quiet are two different questions. RL_SETTLED_BANDS
+   (refused, accepted, withdrawn, decided) decides which pile a change lands in
+   and what the open card calls its wording; RL_QUIET_BANDS (accepted,
+   withdrawn) decides which of them recede. Two markers, because one class
+   would have had to mean both.
+
+3. **Refused is finished and is not quiet.** It leads the column because it can
+   still stop the deal, so greying it would make the loudest item the quietest.
+   Decided, the catch-all, was not named either and is left black with it. Both
+   were put to the owner on the render and neither was picked, so the narrow
+   reading stands.
+
+Measured as paint, not read off the source: redline-verify 19c reads the
+computed ink on an accepted, a refused and a withdrawn row staged on screen at
+once — the one place in the suite all three exist together. Against the parent
+it reports `accepted rgb(14,26,24) vs live rgb(14,26,24)`, the screenshot;
+three of its six checks are controls that pass either way, which is what proves
+the change is narrow rather than a sweep.
+
+Node 5575/5575. Browser: redline 181/181, nego-redesign 57/57, parity 41/41.
+
+Noticed, not fixed:
+- nego-redesign-verify 5 read the FIRST `.rl-card-meta` on the page. With a
+  settled row now reading the label shade that probe could pick one up and
+  report a correct page as broken. Narrowed to a live row in the same change —
+  a net that can lie about the thing being changed is part of the change.

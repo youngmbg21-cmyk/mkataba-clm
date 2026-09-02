@@ -387,13 +387,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         sendInHead: !!document.querySelector('.rl-idx-top .rl-unsent-go'),
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
-        cardWording: cs('.rl-card-sum') && cs('.rl-card-sum').fontSize,
-        cardWordingW: cs('.rl-card-sum') && cs('.rl-card-sum').fontWeight,
-        cardWordingC: cs('.rl-card-sum') && cs('.rl-card-sum').color,
+        /* A LIVE ROW, NAMED. Since 2 Sep a settled row's reference reads the
+           label shade, so a bare '.rl-card-meta' could pick one up and report
+           this claim as broken on a page that is perfectly correct. The claim
+           is about the type on a row that still needs you. */
+        cardWording: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum').fontSize,
+        cardWordingW: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum').fontWeight,
+        cardWordingC: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum').color,
         oldPreview: !!document.querySelector('#view-redline .rl-card-diff'),
-        cardMeta: cs('.rl-card-meta') && cs('.rl-card-meta').fontSize,
-        cardMetaW: cs('.rl-card-meta') && cs('.rl-card-meta').fontWeight,
-        cardMetaC: cs('.rl-card-meta') && cs('.rl-card-meta').color,
+        cardMeta: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta').fontSize,
+        cardMetaW: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta').fontWeight,
+        cardMetaC: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta').color,
         badge: cs('.rl-badge') && cs('.rl-badge').fontSize,
         verb: cs('.rl-card-verbs button') && cs('.rl-card-verbs button').height,
         copilot: !!document.querySelector('#view-redline .rl-plan'),

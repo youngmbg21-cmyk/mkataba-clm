@@ -2889,6 +2889,20 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-meta);font-weight:var(--w-body);
     color:var(--color-neutral-600);line-height:18px;margin-top:1px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  ${''/* ---- FINISHED BUSINESS STEPS BACK (owner-asked 2 Sep 2026, off a
+         render: "I want to have the accepted and withdrawn clause where they
+         are currently in black font to be grey") ----
+         The reference keeps its SIZE and its BOLD WEIGHT — only the ink drops
+         — so a settled row still reads as a reference over a summary and
+         simply recedes as a whole. THE GREY IS THE SUMMARY'S OWN, never a
+         second shade: the whole row lands on one ink, which already has a
+         night answer and measures 6.3:1 on the white column.
+
+         RL_QUIET_BANDS IS THE NARROWER SET AND ITS NOTE SAYS WHY refused is
+         not in it. SCOPED TO THIS ROW: the counterparty's boxed card and their
+         receipt read the base rule further up the sheet and draw no bands at
+         all, so neither can pick this up. */}
+  .redline-page .rl-card-d.rl-card-quiet .rl-card-meta{color:var(--color-neutral-600)}
   .redline-page .rl-card-d .rl-card-side{display:flex;align-items:center;
     justify-content:flex-end;flex-wrap:nowrap;gap:var(--s-3);min-width:0}
   ${''/* The provenance and reviewer strips take the whole row's width and drop

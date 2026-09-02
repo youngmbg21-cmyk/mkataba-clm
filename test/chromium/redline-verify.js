@@ -1819,8 +1819,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         /* RE-POINTED 2 Sep 2026: the one control on a row's face is Open. */
         dots: !!el.querySelector('[data-rl-card-open]'),
         rows: [...el.querySelectorAll('.rl-more-menu button')].map(b => b.textContent.trim()) } : null; };
+    /* ---- THE INK ON THE REFERENCE (owner-asked 2 Sep 2026) ----
+       The whole of this is a COLOUR, so it is measured as paint: a rule that
+       lost a cascade fight would look perfectly correct in the stylesheet.
+       This staging is the one place in the suite that has an accepted, a
+       refused and a withdrawn row on screen at once, which is what makes
+       "these two step back and that one does not" one reading rather than
+       three. */
+    const inkOf = sel => { const el = document.querySelector(sel);
+      return el ? getComputedStyle(el).color : null; };
+    const metaInk = id => inkOf(`[data-nego-card="${id}"] .rl-card-meta`);
+    const isQuiet = id => !!document.querySelector(`[data-nego-card="${id}"].rl-card-quiet`);
     const out = { heads, words,
       accepted: under[live[0].id], refused: under[live[1].id], withdrawn: under[live[2].id],
+      inks: { acc: metaInk(live[0].id), ref: metaInk(live[1].id), wdr: metaInk(live[2].id),
+        live: inkOf('#rl-changes .rl-card-d:not(.rl-card-done) .rl-card-meta'),
+        accSum: inkOf(`[data-nego-card="${live[0].id}"] .rl-card-sum`) },
+      quiet: { acc: isQuiet(live[0].id), ref: isQuiet(live[1].id), wdr: isQuiet(live[2].id) },
       shapes: { acc: shape(live[0].id), ref: shape(live[1].id), wdr: shape(live[2].id) } };
     window.__restorePiles = () => {
       save.was.forEach(o => { o.ch.status = o.status; o.ch.withdrawn = o.withdrawn; });
@@ -1843,6 +1858,26 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       piles.heads.map(h => `${h.word}:${h.n}`).join(' / '));
     check('19b refused is read before accepted — a refusal is still a sticking point',
       keys.indexOf('refused') < keys.indexOf('accepted'), keys.join(' / '));
+
+    /* ---- 19c. FINISHED BUSINESS STEPS BACK, AND REFUSED DOES NOT ----
+       owner-asked 2 Sep 2026, off a render: "I want to have the accepted and
+       withdrawn clause where they are currently in black font to be grey".
+       MEASURED AS PAINT, and stated as RELATIONS rather than literal colours,
+       so a later palette pass costs no edit here. */
+    const ik = piles.inks;
+    check('19c a live row keeps the dark reference',
+      !!ik.live, ik.live);
+    check('19c an accepted row\'s reference steps back to the grey',
+      !!ik.acc && !!ik.live && ik.acc !== ik.live, `accepted ${ik.acc} vs live ${ik.live}`);
+    check('19c and a withdrawn one with it',
+      !!ik.wdr && ik.wdr === ik.acc, `withdrawn ${ik.wdr}`);
+    check('19c A REFUSAL DOES NOT — it leads this column because it can still stop the deal',
+      !!ik.ref && ik.ref === ik.live, `refused ${ik.ref} vs live ${ik.live}`);
+    check('19c a settled row lands on ONE ink, reference and wording alike',
+      !!ik.accSum && ik.acc === ik.accSum, `${ik.acc} / ${ik.accSum}`);
+    check('19c and the marker is stamped from the narrower set, not the settled one',
+      piles.quiet.acc && piles.quiet.wdr && !piles.quiet.ref,
+      `accepted ${piles.quiet.acc} · withdrawn ${piles.quiet.wdr} · refused ${piles.quiet.ref}`);
     check('19b every heading is drawn once, and none over an empty pile',
       new Set(keys).size === keys.length && piles.heads.every(h => h.n > 0),
       keys.join(' / '));

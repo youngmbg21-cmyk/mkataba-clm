@@ -10819,12 +10819,31 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    stays where it was rather than moving to decided under the reader's hand. */
 const RL_CARD_BANDS = ['refused', 'awaiting', 'drafts', 'review', 'held',
   'with', 'accepted', 'withdrawn', 'decided'];
-/* WHICH OF THEM ARE FINISHED BUSINESS. A settled row reads quietly — regular
-   weight, the label ink — because it is a record rather than something to act
-   on, and the ink is what says so once the row has no box to dim. This was one
-   band and is four; naming the set here is what stops the renderer testing for
-   'decided' and quietly missing the three that replaced it. */
+/* WHICH OF THEM ARE FINISHED BUSINESS. It decides which pile a change lands in
+   and what the open card calls its wording ("was agreed" rather than "they
+   ask"). This was one band and is four; naming the set here is what stops the
+   renderer testing for 'decided' and quietly missing the three that replaced
+   it. */
 const RL_SETTLED_BANDS = ['refused', 'accepted', 'withdrawn', 'decided'];
+/* ---- AND WHICH OF THEM STEP BACK ON THE ROW (owner-asked 2 Sep 2026, off a
+       render: "I want to have the accepted and withdrawn clause where they are
+       currently in black font to be grey") ----
+   A NARROWER SET THAN THE ONE ABOVE, and deliberately so. Being finished and
+   being quiet are two different questions:
+
+   REFUSED IS FINISHED AND IS NOT QUIET. It leads this column on purpose — a
+   refusal is the thing that can still stop the deal — so greying it would make
+   the loudest item the quietest, which is the opposite of why it sits at the
+   top. DECIDED is the catch-all and was not named either; it is left black
+   with refused rather than swept in, and adding it is one word here.
+
+   THIS IS THE MARK THE 2 Sep TYPE CHANGE SPENT, COMING BACK. A settled row used
+   to be told apart by its summary going grey and regular — which became what
+   every row does — and the rulebook's own note said the way back was "the
+   reference in the label shade on a settled row, and it is one rule". This is
+   that rule. `rl-card-done` is still stamped on all four and still means
+   FINISHED; this is the smaller question of which of them recede. */
+const RL_QUIET_BANDS = ['accepted', 'withdrawn'];
 /* `c` is the contract, and it is OPTIONAL on purpose: only the two review
    bands need it (reviewOutFor asks the contract's own open reviews), and
    without it they simply never fire and an ask with a colleague stays under
@@ -14121,7 +14140,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          be findable in another one before the slot goes. */
       const dTip = [tip, badge[2]].filter(Boolean).join(' \u00b7 ');
       const sum = String(ch.summary || '').trim();
-      return `<article class="rl-card rl-card-d${RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+      return `<article class="rl-card rl-card-d${
+        RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
+        RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
         (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
         heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
         rvOut ? ' data-rv-waiting="1"' : ''}${

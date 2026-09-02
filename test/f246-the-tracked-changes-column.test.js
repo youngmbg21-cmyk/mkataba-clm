@@ -856,6 +856,51 @@ describe('f246 (7) — the rules that draw it', () => {
     assert.equal(NCSS.indexOf('.redline-page .rl-card-d.rl-card-done .rl-card-sum{'), -1,
       'and the settled rule is DELETED rather than left restating the base');
   });
+
+  test('finished business steps back, and refused is not finished business', () => {
+    /* owner-asked 2 Sep 2026, off a render: "I want to have the accepted and
+       withdrawn clause where they are currently in black font to be grey".
+
+       This is the mark the type change above SPENT, coming back — its own note
+       said the way back was "the reference in the label shade on a settled
+       row, and it is one rule", and this is that rule.
+
+       THE SET IS NARROWER THAN THE SETTLED ONE, which is the whole claim:
+       being finished and being quiet are two different questions, and REFUSED
+       leads this column precisely because it can still stop the deal. */
+    const NJS = read('js/views/negotiation.js');
+
+    assert.match(NJS, /const RL_QUIET_BANDS = \['accepted', 'withdrawn'\];/,
+      'the bands that step back are a NAMED SET, like the settled one above it');
+    for (const b of ['refused', 'decided'])
+      assert.ok(!/const RL_QUIET_BANDS = \[[^\]]*\]/.exec(NJS)[0].includes(`'${b}'`),
+        `${b} is NOT in it — it stays black`);
+
+    /* PIN THE RELATION: the quiet set is a strict subset of the settled one, so
+       a band can never step back without also being finished. */
+    const setOf = k => JSON.parse(new RegExp(`const ${k} = (\\[[^\\]]*\\])`)
+      .exec(NJS)[1].replace(/'/g, '"'));
+    const settled = setOf('RL_SETTLED_BANDS'), quiet = setOf('RL_QUIET_BANDS');
+    assert.ok(quiet.length && quiet.every(b => settled.includes(b)),
+      'and every quiet band is a settled one — the smaller question of which recede');
+    assert.ok(quiet.length < settled.length,
+      'strictly smaller, or the two questions have collapsed into one');
+
+    /* THE MARKER IS ITS OWN, so `rl-card-done` keeps meaning FINISHED — it is
+       what the open card's lead wording and f89 both read. */
+    assert.match(NJS, /RL_QUIET_BANDS\.includes\(band\) \? ' rl-card-quiet' : ''/,
+      'stamped from the set, on the row');
+    assert.match(NJS, /RL_SETTLED_BANDS\.includes\(band\) \? ' rl-card-done' : ''/,
+      'and the settled marker is untouched beside it');
+
+    const i = NCSS.indexOf('.redline-page .rl-card-d.rl-card-quiet .rl-card-meta{');
+    assert.ok(i > -1, 'and one rule greys the reference on those rows');
+    const rule = NCSS.slice(i, NCSS.indexOf('}', i));
+    assert.match(rule, /color:var\(--color-neutral-600\)/,
+      'to the SUMMARY\'S OWN ink, so the whole row lands on one shade');
+    assert.ok(!/font-size|font-weight/.test(rule),
+      'the colour and nothing else — it keeps its size and its bold weight');
+  });
 });
 
 /* =========================================================== 8 — THE WORDS */

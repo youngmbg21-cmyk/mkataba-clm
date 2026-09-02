@@ -7306,9 +7306,10 @@ one, a status word on every row where it has one only where it adds something.
     what EVERY summary does since the owner turned the row's type round, so the
     rule is deleted rather than left restating the base and the piles are told
     apart by their BAND HEADINGS alone. **`RL_SETTLED_BANDS` IS UNTOUCHED AND
-    STILL THE SET** — it decides which pile a change lands in and stamps
-    `rl-card-done`, which is now a marker with no rule on it: the hook is there
-    the day a settled row wants its own mark again, and it is one rule.
+    STILL THE SET** — it decides which pile a change lands in and what the open
+    card calls its wording. **THE MARK CAME BACK THE SAME DAY, ON A NARROWER
+    SET** — `RL_QUIET_BANDS`, accepted and withdrawn only; see FINISHED
+    BUSINESS STEPS BACK below.
   - **THE CAUTION STRIPS STOP SHOUTING.** The provenance and reviewer strips
     were filled amber blocks with a 3px edge, written for a card that had a box
     of its own; on a column of flat rows they became the loudest object on the
@@ -9341,6 +9342,9 @@ and the wording takes the label shade.
   stronger statement than a shade was. `rl-card-done` is still stamped and now
   styles nothing: the hook is there the day a settled row wants its own mark
   again, and the obvious one — the reference in the label shade — is one rule.
+  **THAT DAY WAS THE SAME DAY**, and the prediction is what it turned out to be:
+  see FINISHED BUSINESS STEPS BACK below, where the rule is exactly that one and
+  the set it reads is narrower than this one.
 - **SCOPED TO THE FLAT ROW ON OUR SEAT, checked rather than assumed.** Three
   other places draw these two classes and all three read the base rule further
   up the sheet: the counterparty's **receipt**, their **boxed card**, and the
@@ -9432,6 +9436,64 @@ as paint — **both fail against the parent, reporting `who-line true`** — plu
 new one that reads the counterparty off the RECORD and proves the placeholder
 still names them (a control: true before and after, which is what makes the
 removal a duplicate going rather than a fact).
+
+## FINISHED BUSINESS STEPS BACK (owner-asked 2 Sep 2026)
+
+*"I want to have the accepted and withdrawn clause where they are currently in
+black font to be grey."* Drawn, looked at, and then: *"implement the greying."*
+
+**IT IS THE MARK THE MORNING'S TYPE CHANGE SPENT, COMING BACK.** THE REFERENCE
+LEADS AND THE REDLINE READS QUIETLY moved the primary ink onto the reference
+line, which made every summary grey and so took away the one thing that told a
+settled row from a live one. That entry's own note named the way back — *"the
+reference in the label shade on a settled row is the obvious one, and it is one
+rule"* — and this is that rule, on the hook (`rl-card-done`) it left behind.
+
+- **THE COLOUR AND NOTHING ELSE.** The reference keeps its size and its bold
+  weight, so a settled row still reads as a reference over a summary and simply
+  recedes as a whole. **THE GREY IS THE SUMMARY'S OWN INK**, never a second
+  shade: the whole row lands on one colour, which already has a night answer and
+  measures **6.3:1** on the white column — well past AA, which matters because
+  "make it grey" is the one instruction that can quietly cost legibility.
+- **`RL_QUIET_BANDS` IS A NARROWER SET THAN `RL_SETTLED_BANDS`, and that is the
+  whole design.** Being FINISHED and being QUIET are two different questions.
+  `RL_SETTLED_BANDS` (refused · accepted · withdrawn · decided) decides which
+  pile a change lands in and what the open card calls its wording;
+  `RL_QUIET_BANDS` (accepted · withdrawn) decides which of them recede. **A
+  NAMED SET, like its neighbour, for its neighbour's own recorded reason** — a
+  renderer testing for a band name quietly misses the ones added later.
+- **REFUSED IS FINISHED AND IS NOT QUIET.** It leads this column on purpose — a
+  refusal is the thing that can still stop the deal — so greying it would make
+  the loudest item the quietest, which is the opposite of why it sits at the
+  top. **DECIDED** is the catch-all and was not named either; it is left black
+  with refused rather than swept in, and adding it is one word. **Both were put
+  to the owner on the render and neither was picked**, so the narrow reading
+  stands and is said out loud rather than assumed.
+- **TWO MARKERS, AND THE NAMES CANNOT BE CONFUSED BECAUSE THE COMMENT SAYS SO.**
+  `rl-card-done` still means FINISHED and is still what f89 reads;
+  `rl-card-quiet` is the smaller question. A single class would have had to mean
+  both.
+- **SCOPED TO THE FLAT ROW ON OUR SEAT.** The counterparty's boxed card and
+  their receipt read the base rule further up the sheet and draw no bands at
+  all, so neither can pick this up.
+- **MEASURED AS PAINT, NOT READ OFF THE SOURCE.** The whole of this is a colour,
+  and a rule that lost a cascade fight would look perfectly correct in the
+  stylesheet. redline-verify 19c reads the computed ink on an accepted, a
+  refused and a withdrawn row **staged on screen at once** — the one place in
+  the suite where all three exist together, which is what makes *these two step
+  back and that one does not* ONE reading rather than three. Against the parent
+  it reports `accepted rgb(14,26,24) vs live rgb(14,26,24)`, which is the
+  owner's screenshot; three of its six checks are CONTROLS that pass either way
+  (a live row keeps the dark ink, refused matches it), and that is what proves
+  the change is narrow rather than a sweep.
+- **AND ONE NET WAS NARROWED BEFORE IT COULD LIE.** nego-redesign-verify 5 read
+  the first `.rl-card-meta` on the page; with a settled row now reading the
+  label shade, that probe could pick one up and report a correct page as broken.
+  It names a live row.
+
+Tests: f246 (7) (the narrower set, the subset relation, both markers, and the
+rule carrying a colour and nothing else), redline-verify 19c, the two rulebook
+predictions above REVERSED IN PLACE.
 
 ## Line numbers drift
 
