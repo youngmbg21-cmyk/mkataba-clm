@@ -1347,6 +1347,75 @@ headline one reporting `1 filled box(es) behind the bars`**; the two targets
 typed into the real panel and the chart's two lines measured as paint, the gap
 list pressed through to its contract, and the graph regrouped for real).
 
+## ONE TABLE, AND THE GRAPH FILTERS IT (owner-asked 2 Sep 2026)
+
+*"make this one scrollable table with only 'What is driving the gap'. It should
+have columns for contract number, value stream, and value as well. Also make
+the page interactive so that when you click on the graphs they filter the table
+accordingly."* Then, ruled by picker: **add payment terms as a filter on
+Contracts, and KEEP the tab.**
+
+- **TWO CARDS BECAME ONE POPULATION WITH THE FACTS AS COLUMNS.** *Driving the
+  gap* and *past your standard* are different questions and a contract can
+  answer one, both or neither — stacked as two lists, the same contract appeared
+  twice and had to be read twice. `payTermsData().rows` is every counted
+  contract with BOTH answers on it, ranked by the gap, so the drivers lead by
+  construction and the rest of the book sits behind them. **NOTHING IS COUNTED
+  TWICE**: `drivers` and `exceptions` are untouched and a row's `gapDays` IS its
+  drivers figure, so the head's two counts and the rows cannot disagree.
+- **EVERY COLUMN IS A FRACTION, NEVER `auto`, and this was MEASURED rather than
+  reasoned.** The head row and the data rows share ONE template string — and
+  still drew columns 65px and 37px wide, because `auto` sizes to CONTENT and two
+  grids size independently. **A shared template string is not a shared layout;
+  only fractions resolve alike.**
+- **AND THE HEAD IS STICKY INSIDE THE SCROLLER, not a sibling above it.** A
+  sibling stops being the same width the moment the scroller grows a scrollbar,
+  and then the head and the rows come apart again. Inside and sticky is both
+  "stays put" and "exactly as wide as the rows".
+- **THE STREAM TRAVELS AS AN ID AND IS NAMED AT DRAW TIME.** `FOLDERS` belongs
+  to the screens, and a name resolved in the reading would freeze whatever
+  language was current when it ran — the getter trap this file records four
+  times over. The lookup is guarded, so a stage without FOLDERS draws the table
+  rather than taking the page down.
+- **A BAR IS A CONTROL.** A real `<button>`, so it is reachable without a mouse;
+  an EMPTY bar is `disabled`, because a press that could only narrow the table
+  to nothing is a dead press and greying is what this product does where it can
+  know that before the press. Pressing the live cut again clears it, so the way
+  back is on the thing the reader pressed as well as on the table's own line.
+  The legend chips narrow to a side the same way.
+- **A PRESS REPAINTS THE BODY, NEVER THE VIEW.** `ptRepaint` replaces
+  `#ig-pt-body` and re-arms the listeners on the markup it has just replaced;
+  `renderIntel` would rebuild the tab strip and the header and lose the reader's
+  place in a scrolling table. The scroll offset is kept across the repaint.
+- **THE CUT IS PER SITTING AND IN MEMORY** (`intel.ptCut`), like every other cut
+  on this page: a stored one would land a reader on a narrowed table a week
+  later with nothing saying why. **It cannot be quietly on** — the table names
+  the cut in words, prints *showing N of M*, and carries **Show all**.
+- **PAYMENT TERMS IS A FILTER ON CONTRACTS**, in the `REG_BAR_FILTERS`
+  catalogue, **NOT one of the default four** (the bar fits one line and keeping
+  it there is the owner's own ruling, WO-15) — so it lives behind *Adapt
+  filters* and **draws on its own the moment it is narrowing**, which is that
+  catalogue's own safety property. It **borrows `PAY_BUCKETS` and
+  `payBucketOf`**, so the register and the tab can never sort one contract into
+  two bands, and `none` — *not recorded* — is the worklist that gets the rest of
+  the book read, which is the actionable cut on this subject rather than an
+  absence folded away. Read through a `typeof` guard so a shell without
+  js/payterms.js narrows nothing rather than emptying the register.
+- **`pt_exc_title` AND ITS CARD ARE GONE, NOT HIDDEN**, and f267 asserts the
+  key is unreachable — but the FACT is not lost: `over` is a ruby tag on the
+  row's own terms cell and the count is a second flag on the table's head.
+
+**AND A PROBE THAT THROWS PROVES NOTHING**, paid twice in this file now: the
+parent run aborted first on `x.rows` being absent and then on a click waiting
+for `[data-pt-bar=""]`. Every reading is defensive and every driven half is
+guarded, so a build without the feature REPORTS its 20 failures instead of
+timing out.
+
+Tests: f267 (121 — sections 15-17 new, **24 failing against the parent**),
+payment-terms-verify (73, browser — **20 failing against the parent**; every
+press DRIVEN, the two grids' resolved column widths compared as paint, and the
+register's filter turned on from the model to prove it draws itself).
+
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 
 ## A NEW DRAFT OPENS ON KEY TERMS

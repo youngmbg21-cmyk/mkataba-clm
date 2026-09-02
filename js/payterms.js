@@ -209,6 +209,12 @@ function payTermsData(){
     const std = payStandardFor(c);
     const w = payWeight(c);
     const row = { id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || ''),
+                  /* THE STREAM IS CARRIED AS ITS ID, never as a name. The label
+                     is a view's job (FOLDERS lives with the screens), and a
+                     name resolved here would freeze whatever language was
+                     current when the reading ran — the getter trap this file
+                     records four times over. */
+                  folder:(c.folder || ''),
                   side:s, days:d, standard:std, over:d > std, value:w, bucket:payBucketOf(d) };
     const S = side[s];
     S.rows.push(row); S.n++; S.value += w;
@@ -313,6 +319,25 @@ function payTermsData(){
   });
   drivers.sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
 
+  /* ---- ONE TABLE, EVERY COUNTED CONTRACT (owner-asked 2 Sep 2026) ----
+     *"make this one scrollable table with only 'What is driving the gap'"* —
+     so the two lists that stood here become one population with the facts as
+     COLUMNS: how many days of the gap this contract accounts for, and whether
+     it is past its own standard. A contract can be one, the other, both or
+     neither, and a reader sorting by the gap sees the drivers lead by
+     construction rather than by being put in a separate box.
+
+     NOTHING IS LOST AND NOTHING IS COUNTED TWICE: `drivers` and `exceptions`
+     are still the two readings, still exactly as they were, and every row here
+     carries its own answer to both — so the head's counts and the rows can
+     never disagree. Ranked by the gap, then by value, then by id, which is the
+     drivers' own order with the rest of the book behind them. */
+  const gapOf = {};
+  drivers.forEach(r => { gapOf[r.id] = { gapDays:r.gapDays, gapAway:r.gapAway }; });
+  const rows = [].concat(side.customer.rows, side.supplier.rows)
+    .map(r => Object.assign({}, r, gapOf[r.id] || { gapDays:0, gapAway:0 }))
+    .sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
+
   const named = cs => cs.map(c => ({ id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || '') }));
 
   return {
@@ -329,6 +354,7 @@ function payTermsData(){
     targets: payTargets(),
     exceptions,
     drivers,
+    rows,
     overN: side.customer.overN + side.supplier.overN,
     /* A CAP OR AN OMISSION IS A FACT, NEVER A SILENT TRIM — the standing rule
        every money figure in this product already follows. Both are NAMED, so

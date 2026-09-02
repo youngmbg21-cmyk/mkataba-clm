@@ -8948,3 +8948,71 @@ Noticed, not fixed:
   settled row now reading the label shade that probe could pick one up and
   report a correct page as broken. Narrowed to a live row in the same change —
   a net that can lie about the thing being changed is part of the change.
+
+═══════════════════════════════════════════════════════════════════════════
+2 Sep 2026 (evening) — ONE TABLE, AN INTERACTIVE GRAPH, AND A FILTER
+═══════════════════════════════════════════════════════════════════════════
+
+Owner, off a screenshot of the two stacked cards: *"make this one scrollable
+table with only 'What is driving the gap'. It should have columns for contract
+number, value stream, and value as well. Also make the page interactive so
+that when you click on the graphs they filter the table accordingly."* And,
+ruled by picker after asking whether the tab should go at all: **add payment
+terms as a filter on Contracts, and KEEP the tab.**
+
+WHAT CHANGED
+
+1  ONE TABLE. Two cards became one population with the facts as COLUMNS.
+   "Driving the gap" and "past your standard" are different questions and a
+   contract can answer one, both or neither, so stacked as two lists the same
+   contract appeared twice. Ranked by the gap, the drivers lead by
+   construction. Nothing is counted twice: a row's gapDays IS its drivers
+   figure, so the head's counts and the rows cannot disagree.
+
+2  THE GRAPH IS A CONTROL. Every bar is a real <button> (reachable without a
+   mouse), an EMPTY bar is disabled (a press that could only empty the table
+   is a dead press), pressing the live cut again clears it, and the legend
+   chips narrow to a side. A press repaints the BODY and keeps the reader's
+   scroll — renderIntel would rebuild the tab strip and lose their place. The
+   cut is per sitting, in memory, and cannot be quietly on: the table names it
+   in words, prints "showing N of M", and carries Show all.
+
+3  PAYMENT TERMS IS A FILTER ON CONTRACTS, behind Adapt filters (the bar fits
+   one line and keeping it there is the owner's own ruling), drawing on its own
+   the moment it narrows. It borrows PAY_BUCKETS and payBucketOf, so the
+   register and the tab can never sort one contract into two bands, and "not
+   recorded" is the worklist that gets the rest of the book read.
+
+TWO REAL FAULTS FOUND BY MEASURING RATHER THAN READING
+
+- THE HEAD ROW AND THE DATA ROWS DID NOT LINE UP. They share ONE template
+  string and still drew columns 65px and 37px wide, because `auto` sizes to
+  CONTENT and two grids size independently. A shared template string is not a
+  shared layout; only fractions resolve alike. The browser file reported it.
+- AND A SIBLING HEAD COMES APART AGAIN the moment the scroller grows a
+  scrollbar, so the head is STICKY INSIDE the scroller rather than a sibling
+  above it — which is both "stays put" and "exactly as wide as the rows".
+
+A PROBE THAT THROWS PROVES NOTHING, paid twice more. The parent run aborted
+first on x.rows being absent and then on a click waiting for [data-pt-bar=""].
+Every reading is defensive and every driven half is guarded, so a build without
+the feature REPORTS its failures instead of timing out.
+
+Node 5599/5599 (one f148 catch fixed: 'Gap' is a loanword Swedish uses
+unchanged, so pt_col_gap joins SAME_IN_BOTH with its reason). Browser:
+payment-terms 73/73 (20 failing against the parent), contracts-page 78/78,
+insights-panels 40/40, home-page 34/34, obligations-report 27/27,
+keeps-your-place 11/11. f267 is 121, with 24 of the new claims failing against
+the parent.
+
+Noticed, not fixed:
+- negotiations-door-verify is 63/67. PROVED pre-existing by running the same
+  file in a worktree at the parent commit: identical 63/67, identical four
+  checks. Two pin the room as having FOUR tabs where it has had five since the
+  Obligations tab landed; two pin a Contracts search box that the 1 Sep ruling
+  removed. Both are stale assertions, not product faults.
+- theme-tokens-verify is 37/40 — templates--light, negotiate--light and
+  negotiate--dark, the same three CLAUDE.md already records as deliberately
+  left red. The register did not move, which is what this run had to check.
+- `npm run lint` still reports the same 4 pre-existing duplicate-key errors in
+  js/i18n.js (co_password_updated, act_next), unchanged and not mine.

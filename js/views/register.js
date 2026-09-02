@@ -405,6 +405,13 @@ const REG_BAR_FILTERS = [
      draws on its own the moment it is narrowing, which is the safety property
      this catalogue already carries. */
   { k:'signed',   fixed:false, get label(){ return i18t('reg_signed'); } },
+  /* PAYMENT TERMS (owner-ruled 2 Sep 2026). The Insights tab answers "what is
+     this costing us"; a filter answers "which contracts", which is the other
+     half and the one that fixes the data gap — "not recorded" is the worklist
+     that gets the rest of the book read. NOT one of the default four, for the
+     same reason as Signed: the bar fits on one line today and keeping it there
+     was the owner's own ruling. */
+  { k:'payterms', fixed:false, get label(){ return i18t('reg_payterms'); } },
 ];
 /* Stage and stream are `fixed` — they are the two questions this register is
    always asked, and a bar with neither is not a filter bar. */
@@ -433,6 +440,7 @@ function regFilterActive(k, R){
   if(k==='category') return !!R.category && R.category!=='all';
   if(k==='renewal')  return !!R.renewal && R.renewal!=='all';
   if(k==='signed')   return !!R.signed && R.signed!=='all';
+  if(k==='payterms') return !!R.payterms && R.payterms!=='all';
   return false;
 }
 /* Chosen, PLUS anything currently narrowing the list. */
@@ -662,7 +670,7 @@ function regDensityVars(k){
 
 function regScope(){ return REG_SCOPE; }
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
 function regState(){
   if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
   if(!state.reg) state.reg=REG_STATE_DEF(); return state.reg;
@@ -864,6 +872,20 @@ function regFiltered(){
   if(R.signed&&R.signed!=='all'){
     const y=regSignedYear(R.signed);
     cs=cs.filter(c=>{ const d=regSignedOn(c); return !!d && d.slice(0,4)===y; });
+  }
+  /* HOW LONG THE PAYMENT TERMS RUN (owner-ruled 2 Sep 2026). Asked of the ONE
+     reading, so this list and the payment terms tab can never sort a contract
+     into two different bands; `none` is the contracts nobody has read the
+     terms off, which is the actionable cut on this subject rather than an
+     absence to be folded away. Read through a typeof guard, the ES-module
+     rule: on a stage that does not carry js/payterms.js the filter narrows
+     nothing rather than emptying the register. */
+  if(R.payterms&&R.payterms!=='all'&&typeof payDays==='function'){
+    cs=cs.filter(c=>{
+      const dd=payDays(c);
+      if(R.payterms==='none') return dd==null;
+      return dd!=null && typeof payBucketOf==='function' && payBucketOf(dd)===R.payterms;
+    });
   }
   // E3-T5 saved views (presets over metadata/obligations)
   // family-aware: expiry views work on AGREEMENTS and on the term the latest
@@ -1407,10 +1429,23 @@ function renderRegister(opts){
   const renewalOpts=[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],
                      ['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]
     .map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('');
+  /* THE BANDS ARE THE PAYMENT TERMS TAB'S OWN (PAY_BUCKETS), never a second
+     ladder typed out here — the graph lens already borrows them for the same
+     reason. A fixed ladder, so unlike the Signed years there is nothing to
+     strand: every option this control can hold is always on its list. */
+  const ptActive=!!R.payterms&&R.payterms!=='all';
+  const ptOpts=(()=>{
+    const bands=(typeof PAY_BUCKETS!=='undefined'&&Array.isArray(PAY_BUCKETS))?PAY_BUCKETS.map(b=>b.k):[];
+    const cur=R.payterms||'all';
+    return [['all',i18t('reg_any')]]
+      .concat(bands.map(k=>[k,`${k} ${i18t('pt_days')}`]))
+      .concat([['none',i18t('reg_payterms_none')]])
+      .map(([k,l])=>`<option value="${k}" ${cur===k?'selected':''}>${esc(String(l))}</option>`).join('');
+  })();
   const BAR=regBarShown(R);
   const densityOpts=['comfortable','compact','condensed']
     .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
-  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||(R.signed&&R.signed!=='all')||!!R.only;
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||(R.signed&&R.signed!=='all')||(R.payterms&&R.payterms!=='all')||!!R.only;
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
@@ -1873,6 +1908,7 @@ function renderRegister(opts){
                and narrowing them by the year they were signed would be a
                control whose only outcome is an empty page. */}
         ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
+        ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
@@ -2081,11 +2117,12 @@ function renderRegister(opts){
   document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-signed')?.addEventListener('change',e=>{ R.signed=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-payterms')?.addEventListener('change',e=>{ R.payterms=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.only=null; R.page=1; regRepaint(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1; regRepaint(); });
 
   regWireColResize();
   regFitBandOffset();

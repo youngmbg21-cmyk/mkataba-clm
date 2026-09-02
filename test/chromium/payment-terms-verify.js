@@ -104,6 +104,12 @@ const EXTRA = [
                custN:x.customer.n, suppN:x.supplier.n, overN:x.overN,
                noTerms:x.noTerms.n, noSide:x.noSide.n, standard:x.standard,
                buckets:{ c:x.customer.buckets.map(b => b.n), s:x.supplier.buckets.map(b => b.n) },
+               /* DEFENSIVE ON PURPOSE: run against a build without these
+                  readings this must REPORT rather than throw — a probe that
+                  crashes aborts the whole file and says nothing about the
+                  claims it was written for. */
+               drivers:(x.drivers || []).map(r => r.id),
+               rows:(x.rows || []).map(r => ({ id:r.id, gapDays:r.gapDays, side:r.side, bucket:r.bucket })),
                exceptions:x.exceptions.map(r => ({ id:r.id, days:r.days, side:r.side })) };
     });
     const seeded = await seedBook();
@@ -195,7 +201,7 @@ const EXTRA = [
           return el.children.length === 0 && bg && bg !== 'rgba(0, 0, 0, 0)' &&
                  el.getBoundingClientRect().width > 40;
         }).length,
-        marks: Array.from(plot.querySelectorAll('span > span')).map(el => ({
+        marks: Array.from(plot.querySelectorAll('[data-pt-n]')).map(el => ({
           text: el.textContent.trim(), ink: getComputedStyle(el).color })),
         plotBox: { x: Math.round(plot.getBoundingClientRect().left), w: Math.round(plot.getBoundingClientRect().width) },
       };
@@ -243,33 +249,70 @@ const EXTRA = [
       rubyMarks.length > 0 && rubyMarks.every(m => Number(m.text) > 0),
       chart && chart.marks.map(m => `${m.text}:${m.ink}`).join(' '));
 
-    /* ─── 5 · the exception list is a door ─── */
-    /* SCOPED TO THIS CARD. Two cards on this tab carry data-pt-open rows since
-       the gap list landed, so a bare document query counts both and this check
-       would report a list twice its own length. */
-    const exc = await page.evaluate(() => {
+    /* ─── 5 · ONE TABLE, AND IT IS A DOOR ───
+       REVERSED IN PLACE 2 Sep 2026 (owner-asked: "make this one scrollable
+       table with only 'What is driving the gap'. It should have columns for
+       contract number, value stream, and value as well"). The two cards became
+       one table; what this section was always about — a row per contract, as
+       visible pixels, in the reading's own order, and pressing one opens that
+       contract — is unchanged and is asked of the table. */
+    const tbl = await page.evaluate(() => {
       const card = Array.from(document.querySelectorAll('#ig-pt > section')).find(sec =>
-        /outside your standard|utanf/i.test(sec.textContent || ''));
-      return Array.from((card || document).querySelectorAll('[data-pt-open]'))
-        .map(b => { const r = b.getBoundingClientRect();
-          return { id:b.getAttribute('data-pt-open'), text:b.textContent.replace(/\s+/g, ' ').trim(),
-                   w:Math.round(r.width), h:Math.round(r.height) }; });
+        /driving the gap|driver gapet/i.test(sec.textContent || ''));
+      if (!card) return { card:false, rows:[], heads:[] };
+      const scroller = card.querySelector('[style*="max-height"]');
+      const rows = Array.from(card.querySelectorAll('[data-pt-open]')).map(b => {
+        const r = b.getBoundingClientRect();
+        return { id:b.getAttribute('data-pt-open'), text:(b.textContent || '').replace(/\s+/g, ' ').trim(),
+                 cells:Array.from(b.children).map(c => (c.textContent || '').trim()),
+                 w:Math.round(r.width), h:Math.round(r.height) };
+      });
+      const headRow = card.querySelector('div[style*="grid-template-columns"]');
+      return { card:true, rows,
+        heads: headRow ? Array.from(headRow.children).map(c => (c.textContent || '').trim()) : [],
+        headCols: headRow ? getComputedStyle(headRow).gridTemplateColumns : '',
+        rowCols: rows.length ? getComputedStyle(card.querySelector('[data-pt-open]')).gridTemplateColumns : '',
+        scrolls: !!scroller && getComputedStyle(scroller).overflowY === 'auto',
+        maxH: scroller ? Math.round(parseFloat(getComputedStyle(scroller).maxHeight)) : 0,
+        /* STICKY INSIDE THE SCROLLER, not a sibling above it: a sibling is not
+           the same width the moment the scroller grows a scrollbar, and then
+           the head and the rows stop lining up. */
+        headSticky: !!(scroller && headRow && scroller.contains(headRow) &&
+                       getComputedStyle(headRow).position === 'sticky'),
+      };
     });
-    check('5a a row per contract over the standard', exc.length === d.overN,
-      `${exc.length} rows · reading says ${d.overN}`);
-    check('5b every row is visible pixels', exc.length > 0 && exc.every(r => r.w > 100 && r.h > 10),
-      exc.map(r => `${r.id} ${r.w}x${r.h}`).join(' · '));
-    check('5c the biggest is first', exc.length > 1 && exc[0].id === d.exceptions[0].id,
-      exc.map(r => r.id).join(' > '));
-    check('5d each row names its side in words',
-      exc.every(r => /customer|supplier|kund|leverant/i.test(r.text)),
-      exc[0] && exc[0].text);
+    check('5a one table, one row per counted contract', tbl.card && tbl.rows.length === d.custN + d.suppN,
+      `${tbl.rows.length} rows · reading counts ${d.custN + d.suppN}`);
+    check('5b the second card is gone, not stacked below it',
+      tbl.card && !(await page.evaluate(() => /outside your standard/i.test(
+        (document.getElementById('ig-pt') || {}).textContent || ''))),
+      'one list');
+    check('5c every row is visible pixels', tbl.rows.length > 0 && tbl.rows.every(r => r.w > 100 && r.h > 10),
+      tbl.rows.map(r => `${r.w}x${r.h}`).join(' '));
+    check('5d the drivers lead, in the reading\'s own order',
+      JSON.stringify(tbl.rows.map(r => r.id).slice(0, d.drivers.length)) === JSON.stringify(d.drivers),
+      `${tbl.rows.map(r => r.id).join(',')} · drivers ${d.drivers.join(',')}`);
+    check('5e it has the three columns the owner asked for, and they are labelled',
+      tbl.heads.length === 7 && /contract/i.test(tbl.heads[0]) &&
+        /value stream/i.test(tbl.heads[2]) && /value/i.test(tbl.heads[6]),
+      tbl.heads.join(' | '));
+    check('5f the head row and the data rows share ONE column template',
+      tbl.headCols && tbl.headCols === tbl.rowCols, `${tbl.headCols} vs ${tbl.rowCols}`);
+    check('5g every row carries its reference, its stream and its value',
+      tbl.rows.length > 0 && tbl.rows.every(r => /^MK-|^PT-/.test(r.cells[0]) && r.cells[2] && r.cells[6]),
+      tbl.rows[0] && tbl.rows[0].cells.join(' | '));
+    check('5h each row names its side in words',
+      tbl.rows.every(r => /customer|supplier|kund|leverant/i.test(r.text)),
+      tbl.rows[0] && tbl.rows[0].text.slice(0, 70));
+    check('5i it scrolls inside its own card, and the head row stays put',
+      tbl.scrolls && tbl.maxH > 100 && tbl.headSticky,
+      `scrolls ${tbl.scrolls} · maxHeight ${tbl.maxH} · head sticky ${tbl.headSticky}`);
 
-    const target = exc[0] && exc[0].id;
+    const target = tbl.rows[0] && tbl.rows[0].id;
     await page.click(`#ig-pt [data-pt-open="${target}"]`);
     await page.waitForTimeout(1400);
     const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    check('5e pressing a row opens that contract',
+    check('5j pressing a row opens that contract',
       landed.view === 'workspace' && landed.id === target,
       `${landed.view} · ${landed.id} (wanted ${target})`);
 
@@ -351,53 +394,79 @@ const EXTRA = [
 
     await page.evaluate(() => { window.langSet('en'); });
 
-    /* ─── 10 · WHAT IS DRIVING THE GAP (owner-asked 2 Sep 2026) ───
-       "How will i then identify the contracts that are driving the gap if I
-       want to address them?" The list has to exist, rank by the days it says,
-       and open the contract it names. */
+    /* ─── 10 · THE GRAPH FILTERS THE TABLE (owner-asked 2 Sep 2026) ───
+       *"make the page interactive so that when you click on the graphs they
+       filter the table accordingly."* A bar that draws and filters nothing
+       looks identical in the markup, so every press here is DRIVEN and the
+       table is counted off the page afterwards. */
     await seedBook();
-    await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
+    await page.evaluate(() => { intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; setView('intel'); });
     await page.waitForTimeout(900);
-    const drv = await page.evaluate(() => {
-      /* DEFENSIVE ON PURPOSE: run against a build with no gap list at all this
-         must REPORT rather than throw — a probe that crashes aborts the run and
-         says nothing about the claim it was written for. */
-      const x = payTermsData();
-      const want = (x.drivers || []).map(r => r.id);
-      const card = Array.from(document.querySelectorAll('#ig-pt > section')).find(sec =>
-        /driving the gap/i.test(sec.textContent || ''));
-      if (!card) return { card:false, want, rows:[], days:[], exc:x.exceptions.map(r => r.id) };
-      const rows = Array.from(card.querySelectorAll('[data-pt-open]')).map(b => {
-        const r = b.getBoundingClientRect();
-        return { id:b.getAttribute('data-pt-open'), text:(b.textContent || '').replace(/\s+/g, ' ').trim(),
-                 w:Math.round(r.width), h:Math.round(r.height) };
-      });
-      return { card:true, rows, want, gap:x.gap,
-               days:(x.drivers || []).map(r => r.gapDays), exc:x.exceptions.map(r => r.id) };
-    });
-    check('10a the gap has a list of what is driving it', drv.card, drv.card ? `${drv.rows.length} rows` : 'no card');
-    check('10b it is NOT the exceptions list under another name',
-      drv.card && JSON.stringify(drv.rows.map(r => r.id)) !== JSON.stringify(drv.exc),
-      drv.card ? `driving ${drv.rows.map(r => r.id).join(',')} vs over-standard ${drv.exc.join(',')}` : '');
-    check('10c every row is visible pixels',
-      drv.card && drv.rows.length > 0 && drv.rows.every(r => r.w > 100 && r.h > 10),
-      drv.card && drv.rows.map(r => `${r.w}x${r.h}`).join(' '));
-    check('10d the order is the reading\'s own, largest first',
-      drv.card && JSON.stringify(drv.rows.map(r => r.id)) === JSON.stringify(drv.want.slice(0, drv.rows.length)),
-      drv.card && `${drv.rows.map(r => r.id).join(',')} vs ${drv.want.join(',')}`);
-    check('10e each row prints the days it would close',
-      drv.card && drv.rows.length > 0 && drv.rows.every((r, i) => r.text.includes(String(drv.days[i]))),
-      drv.card && drv.rows.map((r, i) => `${drv.days[i]} in "${r.text.slice(0, 60)}"`).join(' | '));
-    if (drv.card && drv.rows.length) {
-      const want = drv.rows[0].id;
-      await page.click(`#ig-pt [data-pt-open="${want}"]`);
-      await page.waitForTimeout(1600);
-      const got = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-      check('10f pressing the top row opens that contract',
-        got.view === 'workspace' && got.id === want, `${got.view} · ${got.id} (wanted ${want})`);
+    const rowsNow = () => page.evaluate(() =>
+      Array.from(document.querySelectorAll('#ig-pt [data-pt-open]')).map(b => b.getAttribute('data-pt-open')));
+    const bars = await page.evaluate(() => Array.from(document.querySelectorAll('[data-pt-bar]')).map(b => ({
+      k:b.getAttribute('data-pt-bar'), off:b.disabled, tag:b.tagName })));
+    const d3 = await reading();
+    check('10a every bar is a real button, so it is reachable without a mouse',
+      bars.length === 10 && bars.every(b => b.tag === 'BUTTON'), `${bars.length} bars`);
+    check('10b an empty bar is disabled — a press that could only empty the table is dead',
+      bars.filter(b => b.off).length > 0 &&
+        bars.every(b => b.off === !d3.rows.some(r => r.side + '|' + r.bucket === b.k)),
+      bars.map(b => `${b.k}${b.off ? '·off' : ''}`).join(' '));
+
+    const live = bars.find(b => !b.off);
+    /* GUARDED, not optimistic: on a build whose bars are not controls there is
+       nothing to press, and a click on a selector that cannot match times the
+       whole file out instead of failing the four claims it was written for. */
+    if (!live) {
+      ['10c pressing a bar really narrows the table',
+       '10d the narrowing SAYS so and carries the way back',
+       '10e pressing the same bar again clears it — the way back is on what was pressed',
+       '10f the legend narrows to one side',
+       '10g Show all puts the whole table back'].forEach(k => check(k, false, 'no pressable bar'));
     } else {
-      check('10f pressing the top row opens that contract', false, 'no rows to press');
+      const want = d3.rows.filter(r => r.side + '|' + r.bucket === live.k).map(r => r.id);
+      await page.click(`[data-pt-bar="${live.k}"]`);
+      await page.waitForTimeout(700);
+      const after = await rowsNow();
+      check('10c pressing a bar really narrows the table',
+        JSON.stringify(after) === JSON.stringify(want) && after.length < d3.rows.length,
+        `${after.join(',')} · wanted ${want.join(',')} (of ${d3.rows.length})`);
+      const said = await page.evaluate(() => {
+        const el = Array.from(document.querySelectorAll('#ig-pt *')).find(x =>
+          /showing \d+ of \d+/i.test(x.textContent || '') && x.children.length === 0);
+        return { text: el ? el.textContent.trim() : '', back: !!document.querySelector('[data-pt-clear]') };
+      });
+      check('10d the narrowing SAYS so and carries the way back', !!said.text && said.back,
+        `"${said.text}" · clear ${said.back}`);
+
+      await page.click(`[data-pt-bar="${live.k}"]`);
+      await page.waitForTimeout(700);
+      check('10e pressing the same bar again clears it — the way back is on what was pressed',
+        (await rowsNow()).length === d3.rows.length, `${(await rowsNow()).length} of ${d3.rows.length}`);
+
+      const sideBtn = await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled);
+        return b ? b.getAttribute('data-pt-side') : null;
+      });
+      if (sideBtn) {
+        await page.click(`[data-pt-side="${sideBtn}"]`);
+        await page.waitForTimeout(700);
+        const bySide = await rowsNow();
+        check('10f the legend narrows to one side',
+          JSON.stringify(bySide) === JSON.stringify(d3.rows.filter(r => r.side === sideBtn).map(r => r.id)),
+          `${sideBtn}: ${bySide.join(',')}`);
+        await page.click('[data-pt-clear]');
+        await page.waitForTimeout(700);
+        check('10g Show all puts the whole table back',
+          (await rowsNow()).length === d3.rows.length, `${(await rowsNow()).length} of ${d3.rows.length}`);
+      } else {
+        check('10f the legend narrows to one side', false, 'no live legend chip');
+        check('10g Show all puts the whole table back', false, 'no live legend chip');
+      }
     }
+
+    check('10h no page errors through the presses', errors.length === 0, errors.join(' | ') || 'clean');
 
     /* ─── 11 · TWO TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ───
        Typed into the real panel, saved through the real route, and the tab has
@@ -506,6 +575,74 @@ const EXTRA = [
     } else {
       ['12b','12c','12d'].forEach(k => check(k + ' (skipped)', false, 'option absent'));
     }
+
+    /* ─── 13 · PAYMENT TERMS IS A FILTER ON CONTRACTS (owner-ruled 2 Sep 2026) ───
+       The tab answers "what is it costing us"; the filter answers "which
+       contracts", and "not recorded" is the worklist that gets the rest of the
+       book read. It lives behind Adapt filters, so it has to be turned on
+       before it draws — and it must draw on its own the moment it is
+       narrowing, which is this catalogue's own safety property. */
+    await seedBook();
+    await page.evaluate(() => { window.langSet('en'); setView('register'); });
+    await page.waitForTimeout(1200);
+    const offBar = await page.evaluate(() => !document.getElementById('reg-payterms'));
+    check('13a it is NOT on the bar by default — the row still fits one line', offBar,
+      offBar ? 'behind Adapt filters' : 'drawn unasked');
+    const inCat = await page.evaluate(() => {
+      const b = document.getElementById('reg-adapt');
+      if (!b) return null;
+      b.click();
+      const box = Array.from(document.querySelectorAll('#modal-root input[type="checkbox"]'))
+        .map(i => ({ v:i.value || (i.getAttribute('data-f') || ''), t:(i.closest('label') || {}).textContent || '' }));
+      return box;
+    });
+    check('13b it is offered in Adapt filters',
+      Array.isArray(inCat) && inCat.some(x => /payment terms/i.test(x.t)),
+      Array.isArray(inCat) ? inCat.map(x => x.t.trim()).join(' | ').slice(0, 120) : 'no dialog');
+    await page.evaluate(() => { const m = document.getElementById('modal-root'); if (m) m.innerHTML = ''; });
+
+    /* THE SAFETY PROPERTY: turned on from the model, it must appear on the bar
+       by itself rather than narrowing the book from behind a closed dialog. */
+    await page.evaluate(() => { regState().payterms = 'none'; regRepaint(); });
+    await page.waitForTimeout(900);
+    const narrowed = await page.evaluate(() => ({
+      drawn: !!document.getElementById('reg-payterms'),
+      value: (document.getElementById('reg-payterms') || {}).value,
+      shown: document.querySelectorAll('tr[data-row]').length,
+      want: regFiltered().length,
+      noTerms: state.contracts.filter(c => c.status !== 'Declined' && !c.archived &&
+        (typeof payDays === 'function') && payDays(c) == null).length,
+    }));
+    check('13c a filter that is narrowing draws itself — it can never be quietly on',
+      narrowed.drawn && narrowed.value === 'none', `drawn ${narrowed.drawn} · ${narrowed.value}`);
+    check('13d "not recorded" really narrows the register',
+      narrowed.want > 0 && narrowed.want < narrowed.noTerms + 1 && narrowed.shown === narrowed.want,
+      `${narrowed.shown} rows on screen · reading says ${narrowed.want} · unread ${narrowed.noTerms}`);
+
+    const band = await page.evaluate(() => {
+      const first = state.contracts.map(c => (typeof payDays === 'function') ? payDays(c) : null).find(d => d != null);
+      if (first == null) return null;
+      const k = payBucketOf(first);
+      regState().payterms = k; regRepaint();
+      return { k, want: regFiltered().length };
+    });
+    await page.waitForTimeout(800);
+    if (band) {
+      const got = await page.evaluate(() => ({
+        rows: document.querySelectorAll('tr[data-row]').length,
+        every: regFiltered().every(c => payBucketOf(payDays(c)) === regState().payterms),
+      }));
+      check('13e a band narrows to exactly that band', got.rows === band.want && got.every,
+        `${band.k}: ${got.rows} rows, all in band ${got.every}`);
+    } else {
+      check('13e a band narrows to exactly that band', false, 'no contract carries terms');
+    }
+    await page.evaluate(() => { const b = document.getElementById('reg-clear-filters'); if (b) b.click(); });
+    await page.waitForTimeout(800);
+    const cleared = await page.evaluate(() => ({ v: regState().payterms, gone: !document.getElementById('reg-payterms') }));
+    check('13f Clear puts it back and the control stands down again',
+      cleared.v === 'all' && cleared.gone, `${cleared.v} · off the bar ${cleared.gone}`);
+    await page.screenshot({ path: path.join(OUT, '06-contracts-filter.png'), fullPage: true });
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

@@ -124,6 +124,13 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
   frictionAI:null /*Copilot's read on the friction brief: {busy,key,html,at,err}*/,
+  /* WHICH SLICE OF THE PAYMENT TERMS TABLE IS SHOWING (owner-asked 2 Sep 2026:
+     "make the page interactive so that when you click on the graphs they filter
+     the table accordingly"). Per SITTING and in memory, like every other cut on
+     this page: a stored one would land a reader on a narrowed table a week
+     later with nothing on screen saying why. It cannot be quietly on — the
+     table says what it is showing and carries the way back. */
+  ptCut:{ side:null, bucket:null },
   busy:false, dockOpen:true,
   // Horizon-style leftward expand; the preference sticks per device.
   dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
@@ -936,9 +943,7 @@ function renderIntel(){
       <div id="ig-pt-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelPayTermsHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
-    /* An exception row opens its contract — the friction tab's own verb, and
-       the reason the list is worth more than the percentage above it. */
-    document.querySelectorAll('[data-pt-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-pt-open'))));
+    ptWire();
     setActiveNav('intel');
     return;
   }
@@ -1917,6 +1922,46 @@ function intelObligationsHtml(){
    the navy workspace, so the two stay tellable apart whichever brand is on.
    Every bar carries its figure, every legend spells its count, and the side is
    written in words on every exception row, so no reading rests on the hue. */
+/* ---- THE TAB'S OWN PRESSES (owner-asked 2 Sep 2026) ----
+   Re-armed on every paint of the body, because a filter press REPLACES the
+   markup every one of these listeners is bound to. It repaints the BODY and
+   not the view: renderIntel would rebuild the tab strip and the header too,
+   and the reader's place in a scrolling table is the one thing they are
+   holding on to.
+
+   THE PRESS TOGGLES. Pressing the live cut again clears it, so the way back is
+   on the thing the reader pressed as well as on the table's own line. */
+function ptRepaint(){
+  const host = document.getElementById('ig-pt-body');
+  if(!host) return;
+  const keep = host.scrollTop;
+  host.innerHTML = intelPayTermsHtml();
+  host.scrollTop = keep;
+  ptWire();
+}
+function ptWire(){
+  /* A row opens its contract — the friction tab's own verb, and the reason the
+     table is worth more than the figures above it. */
+  document.querySelectorAll('[data-pt-open]').forEach(b =>
+    b.addEventListener('click', () => openWorkspace(b.getAttribute('data-pt-open'))));
+  document.querySelectorAll('[data-pt-bar]').forEach(b =>
+    b.addEventListener('click', () => {
+      const [side, bucket] = String(b.getAttribute('data-pt-bar') || '').split('|');
+      const c = intel.ptCut || {};
+      intel.ptCut = (c.side === side && c.bucket === bucket) ? { side:null, bucket:null } : { side, bucket };
+      ptRepaint();
+    }));
+  document.querySelectorAll('[data-pt-side]').forEach(b =>
+    b.addEventListener('click', () => {
+      const side = b.getAttribute('data-pt-side');
+      const c = intel.ptCut || {};
+      intel.ptCut = (c.side === side && !c.bucket) ? { side:null, bucket:null } : { side, bucket:null };
+      ptRepaint();
+    }));
+  document.querySelectorAll('[data-pt-clear]').forEach(b =>
+    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; ptRepaint(); }));
+}
+
 function intelPayTermsHtml(){
   const d = (typeof payTermsData === 'function') ? payTermsData() : null;
   const E = igEsc;
@@ -1974,6 +2019,7 @@ function intelPayTermsHtml(){
      small correction for the gaps the columns give up. Derived rather than
      typed, so it stays right if a bucket is ever added. The COUNTS never come
      from this line — payOver asks each contract its own standard. */
+  const cutOf = (intel.ptCut && typeof intel.ptCut === 'object') ? intel.ptCut : {};
   const lineAt = si => si < 0 ? '0px'
     : `calc(${Math.round((si + 1) / cols * 1000) / 10}% - ${Math.round(((cols - 1) * (si + 1) / cols - si - 0.5) * GAP_PX * 10) / 10}px)`;
   /* THE CAPTION SITS ON THE LINE, UNDER THE AXIS — the owner's second fix.
@@ -2015,12 +2061,26 @@ function intelPayTermsHtml(){
      amber is already the money-going-out side on this chart, so an amber
      figure over an amber bar would say nothing. */
   const pastFor = S => (S.splitAfter == null ? -Infinity : S.splitAfter);
+  /* ---- A BAR IS A CONTROL (owner-asked 2 Sep 2026) ----
+     *"make the page interactive so that when you click on the graphs they
+     filter the table accordingly."* It is a real <button>, so it is reachable
+     without a mouse — this product's own rule that every act has a key beside
+     its click — and an EMPTY bar is disabled rather than drawn live: a press
+     that could only narrow the table to nothing is a dead press, and greying
+     is what this product does where it can know that before the press.
+     Pressing the live cut again clears it, so the way back is on the thing the
+     reader pressed. */
+  const barLive = (S, i) => cutOf.side === S.key && cutOf.bucket === d.bucketKeys[i];
   const barFor = (S, tone, i) => {
     const b = S.buckets[i];
     const h = Math.max(2, Math.round(b.n / maxV * 100));
     const past = b.n > 0 && S.standard != null && i > pastFor(S);
-    return `<span style="position:relative;width:24px;min-height:2px;height:${b.n ? h + '%' : '2px'};background:${tone};border-radius:1px 1px 0 0;display:block">
-      <span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;font-weight:${past ? 'var(--w-title)' : 'var(--w-body)'};color:${past ? 'var(--st-ruby-fg)' : 'var(--color-neutral-600)'}">${n(b.n)}</span></span>`;
+    const on = barLive(S, i);
+    return `<button type="button" ${b.n ? '' : 'disabled '}data-pt-bar="${E(S.key)}|${E(d.bucketKeys[i])}"
+      aria-pressed="${on ? 'true' : 'false'}"
+      title="${E(i18t(S.key === 'customer' ? 'pt_side_cust' : 'pt_side_supp') + ' · ' + d.bucketKeys[i] + ' ' + i18t('pt_days') + ' · ' + b.n)}"
+      style="position:relative;width:24px;min-height:2px;height:${b.n ? h + '%' : '2px'};background:${tone};border:0;padding:0;font:inherit;border-radius:1px 1px 0 0;display:block;cursor:${b.n ? 'pointer' : 'default'}${on ? ';outline:2px solid var(--color-text);outline-offset:2px' : ''}">
+      <span data-pt-n="1" style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;font-weight:${past ? 'var(--w-title)' : 'var(--w-body)'};color:${past ? 'var(--st-ruby-fg)' : 'var(--color-neutral-600)'}">${n(b.n)}</span></button>`;
   };
   const ariaSpread = d.bucketKeys.map((k, i) =>
     `${k}: ${i18t('pt_are_paid')} ${d.customer.buckets[i].n}, ${i18t('pt_we_pay')} ${d.supplier.buckets[i].n}`).join('; ')
@@ -2036,8 +2096,10 @@ function intelPayTermsHtml(){
   const spread = obCard(i18t('pt_spread_title'), '',
     `<p style="${OB_LEAD}">${i18t('pt_spread_q')}</p>
      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px">
-       <span style="display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--color-neutral-700)"><span style="width:11px;height:11px;border-radius:1px;background:${OB_OURS}"></span>${i18t('pt_are_paid')} <b style="font-variant-numeric:tabular-nums">${n(d.customer.n)}</b></span>
-       <span style="display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--color-neutral-700)"><span style="width:11px;height:11px;border-radius:1px;background:${OB_THEIRS}"></span>${i18t('pt_we_pay')} <b style="font-variant-numeric:tabular-nums">${n(d.supplier.n)}</b></span>
+       ${[[d.customer, OB_OURS, 'pt_are_paid'], [d.supplier, OB_THEIRS, 'pt_we_pay']].map(([S, tone, k]) =>
+         `<button type="button" ${S.n ? '' : 'disabled '}data-pt-side="${E(S.key)}" aria-pressed="${cutOf.side === S.key && !cutOf.bucket ? 'true' : 'false'}"
+            style="display:flex;align-items:center;gap:8px;font:inherit;font-size:var(--t-meta);color:var(--color-neutral-700);border:0;background:none;padding:2px 4px;margin:-2px -4px;border-radius:var(--radius);cursor:${S.n ? 'pointer' : 'default'}${cutOf.side === S.key && !cutOf.bucket ? ';outline:2px solid var(--color-text);outline-offset:1px' : ''}">
+            <span style="width:11px;height:11px;border-radius:1px;background:${tone}"></span>${i18t(k)} <b style="font-variant-numeric:tabular-nums">${n(S.n)}</b></button>`).join('')}
      </div>
      <div role="img" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:24px">
        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;height:168px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
@@ -2054,52 +2116,86 @@ function intelPayTermsHtml(){
      d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
      d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
 
-  /* ---- 3 · the exceptions, both sides, worst first (B, folded in) ---- */
-  const PT_EXC_CAP = 10;
-  const shown = d.exceptions.slice(0, PT_EXC_CAP);
-  const excBody = d.exceptions.length
-    ? `<p style="${OB_LEAD}">${i18t('pt_exc_q')}</p>
-       <div>${shown.map(r => `<button data-pt-open="${E(r.id)}" style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:9px 0;${RULE};font:inherit;cursor:pointer">
-          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-text)">${E(r.counterparty || r.name)}
-            <span style="color:var(--color-neutral-600)"> · ${i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp')}</span></span>
-          <span style="${OB_NUM};font-size:var(--t-meta);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS};white-space:nowrap">${i18t('reg_in_days', { n:n(r.days) })}</span>
-          <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${money(r.value)}</span>
-        </button>`).join('')}</div>`
-    : `<p style="${OB_LEAD};margin:0">${i18t('pt_exc_none')}</p>`;
-  const exceptions = obCard(i18t('pt_exc_title'),
-    d.overN ? obFlag(i18t('pt_exc_flag', { n:n(d.overN) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
-    excBody,
-    d.exceptions.length > PT_EXC_CAP ? i18t('pt_exc_showing', { n:n(shown.length), total:n(d.exceptions.length) }) : '');
+  /* ---- 3 · ONE SCROLLABLE TABLE (owner-asked 2 Sep 2026) ----
+     *"make this one scrollable table with only 'What is driving the gap'. It
+     should have columns for contract number, value stream, and value as well."*
 
-  /* ---- 3b · WHAT IS DRIVING THE GAP (owner-asked 2 Sep 2026) ----
-     "How will i then identify the contracts that are driving the gap if I want
-     to address them?" The card above is every contract PAST its standard, and
-     that is a different list: on the book that prompted this, the gap read 15
-     days and the exceptions card read "every contract sits inside your
-     standard". The page reported a problem and then reported nothing wrong.
+     TWO CARDS BECAME ONE POPULATION WITH THE FACTS AS COLUMNS. "Driving the
+     gap" and "past your standard" are different questions and a contract can
+     answer one, both or neither — stacked as two lists that had to be read
+     twice, and the same contract appeared in both. Ranked by the gap, the
+     drivers lead by construction and the rest of the book is behind them.
 
-     IT COUNTS NOTHING OF ITS OWN — payGapDrivers' arithmetic is inside
-     payTermsData, so the days printed here and the two averages above are
-     worked out on one basis and cannot disagree.
+     NOTHING IS COUNTED HERE. payTermsData already answered both questions per
+     contract; this draws the answers. The head's two counts are `drivers` and
+     `exceptions` — the same readings the cards printed — so a count and the
+     rows under it can never disagree.
 
-     DRAWN ONLY WHERE THERE IS A GAP AGAINST US. With the gap level or in our
-     favour the heroes already say so, and a list headed "what is driving the
-     gap" over no gap is furniture. */
-  const PT_DRV_CAP = 10;
-  const drv = d.drivers.slice(0, PT_DRV_CAP);
-  const drivers = (d.gap != null && d.gap > 0) ? obCard(i18t('pt_drive_title'),
-    d.drivers.length ? obFlag(i18t('pt_drive_flag', { n:n(d.drivers.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
-    d.drivers.length
-      ? `<p style="${OB_LEAD}">${i18t('pt_drive_q')}</p>
-         <div>${drv.map(r => `<button data-pt-open="${E(r.id)}" style="display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:9px 0;${RULE};font:inherit;cursor:pointer">
-            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-text)">${E(r.counterparty || r.name)}
-              <span style="color:var(--color-neutral-600)"> · ${i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp')}</span></span>
-            <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}</span>
-            <span style="${OB_NUM};font-size:var(--t-meta);color:var(--st-ruby-fg);white-space:nowrap">${n(r.gapDays)} ${i18t('pt_days')}</span>
-            <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${money(r.value)}</span>
-          </button>`).join('')}</div>`
-      : `<p style="${OB_LEAD};margin:0">${i18t('pt_drive_none')}</p>`,
-    d.drivers.length > PT_DRV_CAP ? i18t('pt_exc_showing', { n:n(drv.length), total:n(d.drivers.length) }) : '') : '';
+     ONE COLUMN TEMPLATE, DECLARED ONCE, read by the head row and by every data
+     row: written twice they line up today and drift the first time a column is
+     added. */
+  /* EVERY COLUMN IS A FRACTION, NEVER `auto`. Two grids only line up if their
+     columns resolve to the same widths, and `auto` sizes to CONTENT — so a
+     head row and a body row sharing one template string still drew columns
+     65px and 37px wide. Measured; the browser file reports it. */
+  const PT_COLS = 'minmax(0,.7fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1.3fr) minmax(0,.8fr) minmax(0,.9fr)';
+  const cut = cutOf;
+  const inCut = r => (!cut.side || r.side === cut.side) && (!cut.bucket || r.bucket === cut.bucket);
+  const rows = d.rows.filter(inCut);
+  /* The stream's NAME is resolved here, at draw time, off the id the reading
+     carries — and guarded, because FOLDERS belongs to the screens and a stage
+     that does not load them must draw the table rather than take the page
+     down. */
+  const streamOf = r => {
+    try{ return (FOLDERS[r.folder] && FOLDERS[r.folder].name) || i18t('pt_no_stream'); }
+    catch(e){ return i18t('pt_no_stream'); }
+  };
+  const cell = (v, extra) => `<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${extra || ''}">${v}</span>`;
+  const NUMCELL = 'font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap';
+  const head = [
+    ['pt_col_ref', ''], ['pt_col_party', ''], ['pt_col_stream', ''],
+    ['pt_col_side', ''], ['pt_col_terms', 'text-align:right'],
+    ['pt_col_gap', 'text-align:right'], ['pt_col_value', 'text-align:right'],
+  ].map(([k, x]) => `<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-title);color:var(--color-neutral-600);${x}">${i18t(k)}</span>`).join('');
+
+  /* THE NARROWING SAYS SO AND CARRIES THE WAY BACK ON THE SAME LINE — the
+     standing rule for every control on this product that can hide a row. */
+  const cutWords = [cut.side ? i18t(cut.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp') : '',
+                    cut.bucket ? cut.bucket + ' ' + i18t('pt_days') : ''].filter(Boolean).join(' · ');
+  const cutLine = cutWords
+    ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:var(--t-meta);color:var(--color-neutral-600)">
+         <span>${i18t('pt_showing', { n:n(rows.length), total:n(d.rows.length), cut:E(cutWords) })}</span>
+         <button data-pt-clear="1" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;text-decoration:underline">${i18t('pt_show_all')}</button>
+       </div>` : '';
+
+  const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.id)}"
+      style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
+    ${cell(E(r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
+    ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
+    ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
+    ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
+    <span style="${NUMCELL};color:var(--color-neutral-600)">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}${r.over ? ` <b style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--st-ruby-fg)">${i18t('pt_over_tag')}</b>` : ''}</span>
+    <span style="${NUMCELL};font-weight:var(--w-title);color:${r.gapDays > 0 ? 'var(--st-ruby-fg)' : 'var(--color-neutral-500)'}">${r.gapDays > 0 ? n(r.gapDays) + ' ' + i18t('pt_days') : '—'}</span>
+    <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
+  </button>`;
+
+  /* THE HEAD ROW IS STICKY INSIDE THE SCROLLER, not a sibling above it. It has
+     to stay put — a head that scrolls away leaves seven unlabelled columns —
+     and it has to be exactly as wide as the rows, which a sibling is not the
+     moment the scroller grows a scrollbar. Inside and sticky is both. The cap
+     is a max-height rather than a row count, so a short book draws a short
+     table and a long one scrolls inside its own card rather than down the
+     page. */
+  const drivers = obCard(i18t('pt_drive_title'),
+    [d.drivers.length ? obFlag(i18t('pt_drive_flag', { n:n(d.drivers.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
+     d.overN ? obFlag(i18t('pt_exc_flag', { n:n(d.overN) }), 'var(--st-ruby-bg)', 'var(--st-ruby-fg)') : ''].join(''),
+    `<p style="${OB_LEAD}">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</p>
+     ${cutLine}
+     <div class="scroll-thin" style="max-height:340px;overflow-y:auto">
+       <div style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE};position:sticky;top:0;background:var(--color-surface);z-index:1">${head}</div>
+       ${rows.length ? rows.map(rowHtml).join('')
+         : `<p style="${OB_LEAD};margin:14px 0 4px">${i18t('pt_tbl_none')}</p>`}
+     </div>`, '');
 
   /* ---- 4 · what this page cannot see ----
      The honest limit, and it is the most important thing on the tab: HaTi
@@ -2115,7 +2211,7 @@ function intelPayTermsHtml(){
   </section>`;
 
   return `<div id="ig-pt" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${heroes}${spread}${drivers}${exceptions}${blind}
+    ${heroes}${spread}${drivers}${blind}
   </div>`;
 }
 
@@ -2374,4 +2470,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

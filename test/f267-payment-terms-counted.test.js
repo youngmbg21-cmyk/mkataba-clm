@@ -664,12 +664,18 @@ describe('f267 (13) what is driving the gap', () => {
       'the file says out loud that the rows are not a decomposition');
   });
 
-  test('the card counts nothing of its own and draws only where there is a gap', () => {
-    const card = INTEL.slice(INTEL.indexOf('3b · WHAT IS DRIVING THE GAP'), INTEL.indexOf('4 · what this page cannot see'));
-    assert.match(card, /d\.gap != null && d\.gap > 0/, 'no gap, no card');
-    assert.match(card, /d\.drivers/, 'it reads the one reading');
-    assert.ok(!/\.filter\(|\.reduce\(/.test(card), 'counting is not drawing');
+  /* REVERSED IN PLACE 2 Sep 2026, owner-asked: "make this one scrollable table
+     with only 'What is driving the gap'". The two cards became one table, so it
+     draws whether or not there is a gap — what the claim was really about is
+     that the drawing counts nothing of its own and every row is a door. */
+  test('the ONE table reads the one reading, counts nothing, and every row is a door', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /d\.rows/, 'it reads the one population');
+    assert.match(card, /d\.drivers\.length/, 'and the two counts are the two readings');
+    assert.match(card, /d\.overN/);
+    assert.ok(!/\.reduce\(/.test(card), 'counting is not drawing');
     assert.match(card, /data-pt-open="\$\{E\(r\.id\)\}"/, 'every row opens its contract');
+    assert.ok(!INTEL.includes('pt_exc_title'), 'the second card is gone, not hidden');
   });
 });
 
@@ -723,5 +729,202 @@ describe('f267 (14) the chart names its boundary, and the graph can group by ter
   test('the group is a reading, not a second parser', () => {
     const cs = INTEL.slice(INTEL.indexOf("case 'payterms': {"), INTEL.indexOf("case 'source':"));
     assert.ok(!/match\(|replace\(|parseInt|Number\(/.test(cs), 'it asks payDays and nothing else');
+  });
+});
+
+/* ============================================================
+   Owner-asked 2 Sep 2026, off a screenshot of the two stacked cards:
+   *"make this one scrollable table with only 'What is driving the gap'. It
+   should have columns for contract number, value stream, and value as well.
+   Also make the page interactive so that when you click on the graphs they
+   filter the table accordingly."* Then, ruled by picker: add payment terms as
+   a filter on Contracts, and KEEP the tab.
+   ============================================================
+    15  one table, one population, the facts as columns
+    16  the graph filters the table
+    17  payment terms is a filter on Contracts
+   ============================================================ */
+
+describe('f267 (15) one table, and the facts are columns', () => {
+  test('every counted contract is a row -- both lists, one population', () => {
+    const d = tw([cust('OVER', 90), cust('OK', 10), supp('SOON', 10)],
+      { payTargets:{ customer:45, supplier:60 } }).payTermsData();
+    assert.equal(d.rows.length, d.customer.n + d.supplier.n);
+    assert.deepEqual(Array.from(d.rows.map(r => r.id)).sort(), ['OK', 'OVER', 'SOON']);
+  });
+
+  test('a row answers BOTH questions, so neither list is lost', () => {
+    /* A supplier paid later than the limit is past the standard AND narrows
+       the gap -- the two facts the stacked cards used to carry separately. */
+    const d = tw([supp('LATE', 95)], { payTargets:{ supplier:60 } }).payTermsData();
+    const r = d.rows.find(x => x.id === 'LATE');
+    assert.equal(r.over, true, 'past its standard');
+    assert.equal(r.gapDays, 0, 'and driving nothing');
+    assert.equal(d.exceptions.length, 1);
+    assert.equal(d.drivers.length, 0);
+  });
+
+  test('the drivers lead by construction, not by being put in a separate box', () => {
+    const d = tw([cust('QUIET', 20), cust('LOUD', 90)], { payTargets:{ customer:30 } }).payTermsData();
+    assert.equal(d.rows[0].id, 'LOUD');
+    assert.ok(d.rows[0].gapDays > 0);
+    assert.equal(d.rows[d.rows.length - 1].gapDays, 0, 'and the rest of the book sits behind them');
+  });
+
+  test('nothing is counted twice: a row\'s gap IS its driver figure', () => {
+    const d = tw([cust('C', 90), supp('S', 10)], { payTargets:{ customer:30, supplier:60 } }).payTermsData();
+    d.drivers.forEach(dr => {
+      const row = d.rows.find(r => r.id === dr.id);
+      assert.equal(row.gapDays, dr.gapDays, dr.id + ' agrees with the drivers reading');
+    });
+    d.rows.filter(r => !d.drivers.some(dr => dr.id === r.id))
+      .forEach(r => assert.equal(r.gapDays, 0, r.id + ' drives nothing and says zero'));
+  });
+
+  test('the stream travels as an ID, never as a resolved name', () => {
+    const w = tw([Object.assign(cust('C', 30), { folder:'sales' })]);
+    assert.equal(w.payTermsData().rows[0].folder, 'sales');
+    assert.ok(!/FOLDERS\s*\[/.test(PT), 'the reading never looks a folder name up -- that is a view\'s job');
+  });
+
+  test('the table draws all seven columns from ONE template', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /const PT_COLS =/, 'one column template');
+    const uses = [...card.matchAll(/grid-template-columns:\$\{PT_COLS\}/g)];
+    assert.equal(uses.length, 2, 'read by the head row and by the data row, and written out nowhere');
+    ['pt_col_ref', 'pt_col_party', 'pt_col_stream', 'pt_col_side', 'pt_col_terms', 'pt_col_gap', 'pt_col_value']
+      .forEach(k => assert.ok(card.includes(k), k + ' is a column head'));
+  });
+
+  test('it scrolls inside its own card rather than down the page', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /max-height:340px;overflow-y:auto/);
+    assert.match(card, /position:sticky;top:0/, 'the head row stays put while the rows move');
+    assert.ok(card.indexOf('max-height:340px') < card.indexOf('${head}'),
+      'and it is INSIDE the scroller, so it is exactly as wide as the rows');
+    assert.ok(!/auto/.test(card.slice(card.indexOf('const PT_COLS'), card.indexOf('const cut'))),
+      'every column is a fraction: `auto` sizes to content, so two grids sharing '
+      + 'one template string would still draw different widths');
+  });
+});
+
+describe('f267 (16) the graph filters the table', () => {
+  const chart = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3 · ONE SCROLLABLE TABLE'));
+
+  test('a bar is a real button, so it is reachable without a mouse', () => {
+    assert.match(chart, /<button type="button" \$\{b\.n \? '' : 'disabled '\}data-pt-bar=/);
+    assert.match(chart, /aria-pressed=/);
+  });
+
+  test('an empty bar is disabled -- a press that could only empty the table is a dead press', () => {
+    assert.match(chart, /\$\{b\.n \? '' : 'disabled '\}/);
+    assert.match(chart, /cursor:\$\{b\.n \? 'pointer' : 'default'\}/);
+  });
+
+  test('the legend narrows to a side', () => {
+    assert.match(chart, /data-pt-side="\$\{E\(S\.key\)\}"/);
+  });
+
+  test('the press toggles, so the way back is on the thing that was pressed', () => {
+    const wire = INTEL.slice(INTEL.indexOf('function ptWire()'), INTEL.indexOf('function intelPayTermsHtml()'));
+    assert.match(wire, /c\.side === side && c\.bucket === bucket\) \? \{ side:null, bucket:null \}/);
+    assert.match(wire, /c\.side === side && !c\.bucket\) \? \{ side:null, bucket:null \}/);
+  });
+
+  test('a press repaints the BODY, never the view', () => {
+    const rp = INTEL.slice(INTEL.indexOf('function ptRepaint()'), INTEL.indexOf('function ptWire()'));
+    assert.match(rp, /getElementById\('ig-pt-body'\)/);
+    assert.ok(!/renderIntel\(\)/.test(rp), 'renderIntel would rebuild the tab strip and lose the reader\'s place');
+    assert.match(rp, /host\.scrollTop = keep/, 'and it keeps the place in the table');
+    assert.match(rp, /ptWire\(\)/, 'the listeners are re-armed on markup that has just been replaced');
+  });
+
+  test('the cut is per sitting and in memory, with no store behind it', () => {
+    assert.match(INTEL, /ptCut:\{ side:null, bucket:null \}/);
+    assert.ok(!/localStorage[^\n]*ptCut/.test(INTEL), 'nothing is stored');
+  });
+
+  test('a narrowed table SAYS so and carries the way back', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /pt_showing/);
+    assert.match(card, /data-pt-clear/);
+    assert.match(card, /pt_show_all/);
+    assert.ok(card.indexOf('cutWords') < card.indexOf('cutLine'), 'and it names the cut in words');
+  });
+
+  test('a cut that matches nothing says so rather than drawing an empty box', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /pt_tbl_none/);
+  });
+});
+
+describe('f267 (17) payment terms is a filter on Contracts', () => {
+  const REG = read('js/views/register.js');
+  const regw = (contracts, R) => {
+    const w = buildWorld({ registerView:true }).win;
+    w.state = Object.assign({}, w.state, { contracts, settings:{} });
+    Object.assign(w.regState(), { stage:'all', type:'all', view:null, category:'all',
+      renewal:'all', signed:'all', payterms:'all', query:'', only:null }, R || {});
+    return w;
+  };
+  const book = () => [cust('A', 20), cust('B', 60), supp('C', 20),
+    meta(con('D'), { paymentTerms:'payment as agreed' })];
+
+  test('it is in the catalogue and NOT one of the default four', () => {
+    assert.match(REG, /\{ k:'payterms', fixed:false/);
+    assert.ok(!/REG_BAR_DEFAULT = \[[^\]]*payterms/.test(REG), 'the bar still fits on one line');
+  });
+
+  test('it draws on its own the moment it is narrowing -- it can never be quietly on', () => {
+    assert.match(REG, /if\(k==='payterms'\) return !!R\.payterms && R\.payterms!=='all';/);
+  });
+
+  test('the bands are the payment terms tab\'s own, never a second ladder', () => {
+    assert.match(REG, /PAY_BUCKETS/);
+    assert.match(REG, /payBucketOf\(dd\)===R\.payterms/);
+    assert.ok(!/reg_payterms_0_30|'0–30'/.test(REG), 'no band is typed out here');
+  });
+
+  test('it narrows to a band', () => {
+    const w = regw(book(), { payterms:'0–30' });
+    assert.deepEqual(Array.from(w.regFiltered().map(c => c.id)).sort(), ['A', 'C']);
+  });
+
+  test('"not recorded" is the worklist that fixes the data gap', () => {
+    const w = regw(book(), { payterms:'none' });
+    assert.deepEqual(Array.from(w.regFiltered().map(c => c.id)), ['D']);
+  });
+
+  test('"any" narrows nothing', () => {
+    assert.equal(regw(book()).regFiltered().length, 4);
+  });
+
+  test('Clear puts it back, and the page counts as filtered while it is on', () => {
+    assert.match(REG, /R\.payterms='all';/, 'clear-all clears it');
+    assert.match(REG, /\(R\.payterms&&R\.payterms!=='all'\)\|\|!!R\.only/,
+      'and an on filter makes the page read as narrowed, so Clear offers itself');
+  });
+
+  /* PINNED AS SOURCE, and the reason is worth writing down: these modules are
+     evaluated into one script scope, so payterms.js's `const payDays` is a
+     LEXICAL binding the register reads directly — deleting window.payDays does
+     not hide it, and a test that tried would be asserting against a stage the
+     product never has. What can be pinned is that the guard is there, which is
+     what a shell without the module (the phone, a harness page) relies on. */
+  test('a stage without the reading narrows nothing rather than emptying the register', () => {
+    assert.match(REG, /R\.payterms!=='all'&&typeof payDays==='function'/,
+      'the filter stands down where the reading is absent');
+    assert.match(REG, /typeof payBucketOf==='function'/);
+    assert.ok(!/window\.payDays/.test(REG), 'read bare, never through a window guard that is always false');
+  });
+
+  test('both languages', () => {
+    ['reg_payterms', 'reg_payterms_title', 'reg_payterms_none',
+     'pt_col_ref', 'pt_col_party', 'pt_col_stream', 'pt_col_side', 'pt_col_terms',
+     'pt_col_gap', 'pt_col_value', 'pt_no_stream', 'pt_over_tag', 'pt_tbl_q',
+     'pt_tbl_none', 'pt_showing', 'pt_show_all'].forEach(k => {
+      const hits = [...I18N.matchAll(new RegExp('^\\s*' + k + ": '", 'gm'))];
+      assert.equal(hits.length, 2, k + ' is in both dictionaries exactly once each');
+    });
   });
 });

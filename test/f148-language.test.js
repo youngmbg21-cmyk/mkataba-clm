@@ -46,6 +46,10 @@ const SAME_IN_BOTH = new Set([
                           // no translating in either language
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
+  'pt_col_gap',           // 'Gap' is a loanword Swedish uses unchanged, and a
+                          // COLUMN HEAD wants the indefinite form -- the hero
+                          // above it is 'Gapet', which is the definite one and
+                          // is translated
   'reg_in_days',          // '{n} d' — a number and a unit, no words (the
                           // mockup's countdown shape, 20 Aug 2026; 'd' is
                           // the ordinary Swedish day abbreviation too)

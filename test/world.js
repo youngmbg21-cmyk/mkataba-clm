@@ -349,11 +349,12 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
-  /* Home and Insights both ask payTermsData, so a stage drawing either
-     without it would exercise this module's own absent-function fallbacks
-     rather than the product -- the same reason intelView pulls obligations
-     in below. */
-  if (opts.payterms || opts.homeView || opts.intelView) files.push(PAYTERMS);
+  /* Home, Insights and the register all ask this reading -- Home for the tile,
+     Insights for the tab, the register for its payment terms filter -- so a
+     stage drawing any of them without it would exercise this module's own
+     absent-function fallbacks rather than the product. Same reason intelView
+     pulls obligations in below. */
+  if (opts.payterms || opts.homeView || opts.intelView || opts.registerView) files.push(PAYTERMS);
   /* Insights sits on the obligations model, so asking for the view brings it
      even where the caller did not ask for it by name — a stage that drew the
      report without it would exercise this module's own absent-function
