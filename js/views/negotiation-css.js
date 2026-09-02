@@ -2843,28 +2843,52 @@ function redlineLayoutCss(){
   .redline-page .rl-band + .rl-card-d{border-top:0}
   .redline-page .rl-card-d:hover{background:none}
   .redline-page .rl-card-d .rl-card-txt{flex:1 1 0;min-width:0;margin:0;padding:0}
-  ${''/* ---- THE CARD READS ONE RUNG SMALLER (owner-asked 25 Aug 2026: "the
-         font in those clause cards should be reduced by a size") ----
-         Each of the three moved one step down this product's own ladder
-         (10, 11, 12, 13, 14, 15, 17, 19, 22): the reference line 12 to 11, the
-         summary 14 to 13, the verbs 13 to 12. The line boxes come with them, so
-         the row keeps its proportions rather than gaining air where type left.
-         THE SUMMARY KEEPS THE PRIMARY INK, and that is a deliberate exception
-         to "primary is 14px and up". It is the wording of the change — the one
-         thing a reader is here to read — and dropping it to the label shade to
-         satisfy a rule about captions would make the column quieter at exactly
-         the point it should not be. Scoped to this card and said out loud, the
-         way the Tracked Changes head's own exception was. */}
-  .redline-page .rl-card-d .rl-card-meta{font-size:var(--t-micro);color:var(--color-neutral-600);
-    line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
-  .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-meta);font-weight:var(--w-title);
-    color:var(--color-text);line-height:18px;margin-top:1px;
+  ${''/* ---- THE REFERENCE LEADS AND THE REDLINE READS QUIETLY
+         (owner-asked 2 Sep 2026, off a render: "the change number and clause
+         to be in bold and black font while the redline is not in bold and in
+         grey but with both keeping the same font size") ----
+
+         THIS REVERSES IN PLACE THE 25 Aug EXCEPTION THAT STOOD HERE, and the
+         reasoning is kept because it is the useful part: the summary held the
+         PRIMARY ink as a deliberate departure from "primary is 14px and up",
+         on the ground that it is the wording of the change and the one thing a
+         reader is here to read. The owner has looked at the column in place and
+         ruled the other way — what a reader scans this column FOR is which
+         change, on which clause — so bold black moves from the wording to the
+         reference above it and the wording takes the label shade.
+
+         BOTH LINES AT ONE SIZE, AND THAT IS THE OWNER'S OWN WORDS. The
+         reference goes 11 to 13 rather than the summary coming down to 11:
+         nothing shrinks, so the wording stays exactly as legible as it was and
+         only the quieter line grows. It costs about 3px a row, which the column
+         has — it is beside the paper rather than above it, so the contract's
+         own pixels are untouched.
+
+         WITH ONE SIZE ON BOTH LINES, WEIGHT AND INK ARE WHAT SEPARATE THEM,
+         which is why the line boxes are one number: two 13px lines set 15 and
+         18 would read as a mistake rather than as a pair.
+
+         AND IT SPENDS ONE SIGNAL, said out loud rather than discovered. A
+         settled change was told apart from a live one by its summary dropping
+         to the regular weight and the label shade — which is now what EVERY
+         summary does, so the rule that did it is deleted rather than left
+         restating the base (a declaration that changes nothing is noise the
+         next reader has to rule out, and f246 asserts its absence). What still
+         separates a settled row from a live one is the BAND HEADING over its
+         pile, which is a stronger statement than a shade was. If the
+         difference is ever wanted back inside the row it wants its own mark —
+         the reference in the label shade on a settled row is the obvious one,
+         and it is one rule.
+
+         SCOPED TO THIS ROW, deliberately: the counterparty's boxed card and
+         their receipt draw the same two classes off the base rule further up
+         and are untouched. */}
+  .redline-page .rl-card-d .rl-card-meta{font-size:var(--t-meta);font-weight:var(--w-title);
+    color:var(--color-text);line-height:18px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+  .redline-page .rl-card-d .rl-card-sum{font-size:var(--t-meta);font-weight:var(--w-body);
+    color:var(--color-neutral-600);line-height:18px;margin-top:1px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  ${''/* A SETTLED CHANGE READS QUIETLY. The reference greys the summary under
-         Decided: it is a record rather than something to act on, and the ink
-         is what says so once the row has no box to dim. */}
-  .redline-page .rl-card-d.rl-card-done .rl-card-sum{font-weight:var(--w-body);
-    color:var(--color-neutral-600)}
   .redline-page .rl-card-d .rl-card-side{display:flex;align-items:center;
     justify-content:flex-end;flex-wrap:nowrap;gap:var(--s-3);min-width:0}
   ${''/* The provenance and reviewer strips take the whole row's width and drop

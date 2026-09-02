@@ -8658,3 +8658,57 @@ Noticed, not fixed:
 - An external tag now mails the other side. That was not separately confirmed;
   it follows from the note itself already crossing, which the reader agrees to
   in the confirm the panel already draws.
+
+---
+
+## 2 Sep 2026 — the reference leads, and the external room adds a note
+
+Two asks in one message. The render came first, was looked at, and then:
+*"implement the design you have rendered."*
+
+1. **The change reference and clause go bold and black; the redline goes
+   regular and grey; both at one size.** This reverses in place the 25 Aug
+   exception that kept the summary in the primary ink. The reference moves
+   11 → 13 rather than the summary coming down, so nothing shrinks and only
+   the quieter line grows — about 3px a row, which the column has because it
+   sits beside the paper rather than above it, so the contract's own pixels
+   are untouched. Both lines take one line box: two 13px lines set 15 and 18
+   would read as a mistake rather than as a pair.
+
+   Scoped to the flat row on our seat, checked rather than assumed — three
+   other places draw those two classes (the counterparty's receipt, their
+   boxed card, and the base rule) and none carries the row's class, so none
+   moved. Measured as computed style, not read off the source: against the
+   parent the browser reports `11px 400 rgb(84,99,95) / 13px 700
+   rgb(14,26,24)`, which is the screenshot, and afterwards the two swap.
+
+2. **It spends one signal, and that was named on the render before it was
+   built.** A settled change was told apart from a live one by its summary
+   dropping to the regular weight and the label shade — which is now what
+   every summary does. The rule that did it is deleted rather than left
+   restating the base, and its absence is asserted. The band heading over
+   each pile still separates them, which is a stronger statement than a shade
+   was; `rl-card-done` is still stamped and now styles nothing, so the hook
+   is there the day a settled row wants its own mark.
+
+3. **The external room adds a note; it does not send a reply.** One act was
+   named two ways — *Send this reply* in the external room, *Add note* in the
+   internal one — so the ternary is removed rather than flipped, at all three
+   of our-seat composers, and the placeholder lost the word too. Nothing
+   about the crossing is quieter: the room's line, the box's mark and the
+   confirm all still say it before the button is pressed.
+   `ng_send_this_reply` stays live on the counterparty's own card, where
+   replying is exactly what they are doing.
+
+Node 5494/5494. Browser: nego-redesign 57/57, redline 175/175,
+notes-two-rooms 62/62, parity 41/41.
+
+Noticed, not fixed:
+- negotiations-door-verify is 63/67 and every one of the four is
+  pre-existing — proved by running the same file against the parent's product
+  code, same count, same four. Two claim the contract room shows FOUR tabs
+  (it has shown five since the Obligations tab landed) and two claim the
+  Contracts page keeps its search box (removed on 31 Aug). Stale assertions a
+  later correct change moved, not product faults.
+- `ng_send_this_reply` now has one reader. It is the counterparty's and it is
+  right there, so it is not stale — recorded so nobody sweeps it.

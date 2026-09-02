@@ -820,14 +820,41 @@ describe('f246 (7) — the rules that draw it', () => {
       'and the base rule is untouched, so the other seat keeps its own');
   });
 
-  test('a settled change reads quietly', () => {
-    const i = NCSS.indexOf('.redline-page .rl-card-d.rl-card-done .rl-card-sum{');
-    assert.ok(i > -1, 'the Decided band greys its summaries');
-    /* RE-POINTED on the merge, 25 Aug 2026 — PIN THE RELATION, NOT THE NUMBER.
-       The weight sweep gave 1,065 declarations the ladder, so a settled
-       summary now reads var(--w-body), which IS 400. The claim is that it
-       drops back to the regular weight, and that is what is asserted. */
-    assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /font-weight:var\(--w-body\)/);
+  test('the reference leads and the redline reads quietly', () => {
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked, off a render: "the change
+       number and clause to be in bold and black font while the redline is not
+       in bold and in grey but with both keeping the same font size").
+
+       WHAT STOOD HERE was 'a settled change reads quietly' — a settled summary
+       dropping to the regular weight and the label shade, which was the ONE
+       thing telling it apart from a live one once the row lost its box. That
+       is now what EVERY summary does, so the rule that did it is gone and its
+       ABSENCE is the claim: a declaration restating the base is noise the next
+       reader has to rule out. What still separates the piles is the band
+       heading over each, which f246 (4) asserts in its own right. */
+    const meta = NCSS.indexOf('.redline-page .rl-card-d .rl-card-meta{');
+    const sum  = NCSS.indexOf('.redline-page .rl-card-d .rl-card-sum{');
+    assert.ok(meta > -1 && sum > -1, 'both lines have a rule on this row');
+    const mr = NCSS.slice(meta, NCSS.indexOf('}', meta));
+    const sr = NCSS.slice(sum,  NCSS.indexOf('}', sum));
+
+    /* PIN THE RELATION, NOT THE NUMBER: one size on both lines, and weight and
+       ink are what separate them. The size token may move in a later type pass
+       and this costs no edit — what may not move is that they read alike. */
+    const size = /font-size:(var\(--[a-z-]+\))/;
+    assert.ok(size.test(mr) && size.test(sr), 'each names a size');
+    assert.equal(mr.match(size)[1], sr.match(size)[1],
+      'the reference and the summary read at ONE size');
+    assert.match(mr, /line-height:18px/, 'and share one line box, or the pair reads as a mistake');
+    assert.match(sr, /line-height:18px/);
+
+    assert.match(mr, /font-weight:var\(--w-title\)/, 'the reference is the bold one');
+    assert.match(mr, /color:var\(--color-text\)/,    'and carries the primary ink');
+    assert.match(sr, /font-weight:var\(--w-body\)/,  'the redline is the regular one');
+    assert.match(sr, /color:var\(--color-neutral-600\)/, 'and the label shade');
+
+    assert.equal(NCSS.indexOf('.redline-page .rl-card-d.rl-card-done .rl-card-sum{'), -1,
+      'and the settled rule is DELETED rather than left restating the base');
   });
 });
 

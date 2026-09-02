@@ -10696,7 +10696,7 @@ function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
         ${rlNpTagMenuHtml(c, room, opts)}
         <div class="rl-np-act">
           <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
-            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+            data-room="${room}">${i18t('ng_card_note_add')}</button>
         </div>
       </div>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
@@ -12298,7 +12298,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
         ${rlNpTagMenuHtml(c, room, opts)}
         <div class="rl-np-act">
           <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
-            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+            data-room="${room}">${i18t('ng_card_note_add')}</button>
         </div>
       </div>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
@@ -12505,7 +12505,7 @@ function rlChatPanelHtml(c, opts = {}){
         ${rlNpTagMenuHtml(c, room, opts)}
         <div class="rl-np-act">
           <button type="button" class="rl-np-send" data-rl-chat-send="1"
-            data-room="${room}">${i18t(ext ? 'ng_send_this_reply' : 'ng_card_note_add')}</button>
+            data-room="${room}">${i18t('ng_card_note_add')}</button>
         </div>
       </div>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;

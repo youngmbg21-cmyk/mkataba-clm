@@ -388,22 +388,33 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         filter: cs('#rl-cardfilter') && cs('#rl-cardfilter').fontSize,
         restCount: cs('.rl-fseg:not(.on) .rl-fseg-n') && cs('.rl-fseg:not(.on) .rl-fseg-n').borderTopWidth,
         cardWording: cs('.rl-card-sum') && cs('.rl-card-sum').fontSize,
+        cardWordingW: cs('.rl-card-sum') && cs('.rl-card-sum').fontWeight,
+        cardWordingC: cs('.rl-card-sum') && cs('.rl-card-sum').color,
         oldPreview: !!document.querySelector('#view-redline .rl-card-diff'),
         cardMeta: cs('.rl-card-meta') && cs('.rl-card-meta').fontSize,
+        cardMetaW: cs('.rl-card-meta') && cs('.rl-card-meta').fontWeight,
+        cardMetaC: cs('.rl-card-meta') && cs('.rl-card-meta').color,
         badge: cs('.rl-badge') && cs('.rl-badge').fontSize,
         verb: cs('.rl-card-verbs button') && cs('.rl-card-verbs button').height,
         copilot: !!document.querySelector('#view-redline .rl-plan'),
         band: !!document.querySelector('#view-redline .rl-unsent') };
     });
-    /* RE-POINTED 25 Aug 2026 (the owner's own drawing of this column): what
-       says WHAT IS BEING DECIDED is the change's own summary in bold, where it
-       was a two-line greyed preview of the marked wording. The claim is the
-       relation this always made — the sentence a reader scans is set larger
-       than the reference line above it — so a later type pass costs no edit
-       here. .rl-card-diff is stale and its absence is asserted. */
-    check('5 the summary reads larger than the meta line it sits under',
-      parseFloat(col.cardWording) > parseFloat(col.cardMeta) && !col.oldPreview,
-      `${col.cardWording} / ${col.cardMeta}`);
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked, off a render): the reference
+       and the clause lead in bold black and the redline reads quietly under
+       them, BOTH AT ONE SIZE. What stood here was the opposite relation — the
+       summary set larger than the reference — and the owner has looked at the
+       column in place and ruled the other way.
+
+       MEASURED, NOT READ OFF THE SOURCE: with one size on both lines the whole
+       distinction is weight and ink, and a rule that lost a cascade fight
+       looks perfectly correct in the stylesheet. .rl-card-diff is stale and
+       its absence is still asserted. */
+    check('5 both lines read at one size, and weight and ink separate them',
+      col.cardWording === col.cardMeta
+      && parseFloat(col.cardMetaW) > parseFloat(col.cardWordingW)
+      && col.cardMetaC !== col.cardWordingC
+      && !col.oldPreview,
+      `${col.cardMeta} ${col.cardMetaW} ${col.cardMetaC} / ${col.cardWording} ${col.cardWordingW} ${col.cardWordingC}`);
     /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
        filter is a select on its own line. RE-POINTED AGAIN 25 Aug 2026 against
        the design reference: the title is the column's one TAB and was set well

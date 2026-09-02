@@ -7115,13 +7115,17 @@ one, a status word on every row where it has one only where it adds something.
     STALE; what it was for ("a row asking for a decision must say what is being
     decided") is what the bold line carries, and the marks are on the paper
     twelve pixels away.
-  - **A SETTLED CHANGE READS QUIETLY**: under Refused, Accepted, Withdrawn or
-    the catch-all the summary drops to regular weight and the label ink. It is
-    a record rather than something to act on, and the ink is what says so once
-    the row has no box to dim. **`RL_SETTLED_BANDS` IS THAT SET AND THE
-    RENDERER ASKS IT** — it tested for `'decided'` when that was the only
-    settled pile, and naming the set is what stopped the split of 26 Aug
-    quietly missing the three that replaced it.
+  - **A SETTLED CHANGE READ QUIETLY, AND EVERY ROW DOES NOW — REVERSED IN PLACE
+    2 Sep 2026; see THE REFERENCE LEADS AND THE REDLINE READS QUIETLY below.**
+    Under Refused, Accepted, Withdrawn or the catch-all the summary dropped to
+    regular weight and the label ink — a record rather than something to act
+    on, and the ink was what said so once the row had no box to dim. That is
+    what EVERY summary does since the owner turned the row's type round, so the
+    rule is deleted rather than left restating the base and the piles are told
+    apart by their BAND HEADINGS alone. **`RL_SETTLED_BANDS` IS UNTOUCHED AND
+    STILL THE SET** — it decides which pile a change lands in and stamps
+    `rl-card-done`, which is now a marker with no rule on it: the hook is there
+    the day a settled row wants its own mark again, and it is one rule.
   - **THE CAUTION STRIPS STOP SHOUTING.** The provenance and reviewer strips
     were filled amber blocks with a 3px edge, written for a card that had a box
     of its own; on a column of flat rows they became the loudest object on the
@@ -7623,8 +7627,11 @@ stands:
 - **The ⋯ guard reads the face and the overflow as one pool**, so a verb cannot
   appear twice; it tested only for Edit and shipped a duplicate.
 - **The card reads one rung smaller and the heading two**, and nothing below the
-  heading ends up larger. The summary keeps the PRIMARY ink as a deliberate,
-  scoped exception — it is the wording of the change.
+  heading ends up larger. The summary kept the PRIMARY ink as a deliberate,
+  scoped exception — it is the wording of the change — and **that half is
+  REVERSED IN PLACE 2 Sep 2026**: the primary ink moved to the reference line
+  above it and the wording took the label shade, on the owner's own ruling. See
+  THE REFERENCE LEADS AND THE REDLINE READS QUIETLY.
 - **No backtick in a CSS comment inside a CSS-emitting literal.** `clauseEditorCss`
   returns a template literal; one pair ends the string and evaluates what is
   between them. Say "terminator" instead.
@@ -9113,6 +9120,84 @@ IN PLACE with their reason, f248's source window widened, six-fixes-verify 1g
 and 1h (12, browser, on the REAL app — the green measured against the resolved
 accent, and the whole @ journey driven: shut at rest, shut on an email address,
 open on an @, narrowed, picked, filed, and the tag read back off the record).
+
+## THE REFERENCE LEADS AND THE REDLINE READS QUIETLY (owner-ruled 2 Sep 2026)
+
+*"a render of image 2 that shows the change number and clause to be in bold and
+black font while the redline is not in bold and in grey but with both keeping
+the same font size."* Drawn, looked at, and then: *"implement the design you
+have rendered."*
+
+**IT IS ONE RULE PAIR ON ONE ROW, AND IT REVERSES THIS FILE'S OWN 25 Aug
+EXCEPTION IN PLACE.** The summary held the PRIMARY ink as a deliberate departure
+from *primary is 14px and up*, on the ground that it is the wording of the
+change and the one thing a reader is here to read. The owner has now looked at
+the column in place and ruled the other way: what a reader scans this column FOR
+is **which change, on which clause**, so bold black moves to the reference line
+and the wording takes the label shade.
+
+- **BOTH LINES AT ONE SIZE, AND THE REFERENCE IS THE ONE THAT MOVES.** 11 → 13,
+  rather than the summary coming down to 11: nothing shrinks, so the wording
+  stays exactly as legible as it was and only the quieter line grows. It costs
+  about **3px a row**, which this column has — it sits BESIDE the paper rather
+  than above it, so **the contract's own pixels are untouched** and the third of
+  the six questions passes at zero.
+- **WITH ONE SIZE, WEIGHT AND INK ARE THE WHOLE DISTINCTION**, which is why both
+  lines take one line box: two 13px lines set 15 and 18 read as a mistake rather
+  than as a pair.
+- **IT SPENDS ONE SIGNAL, and that was named on the render before it was
+  built.** A settled change was told apart from a live one by its summary
+  dropping to the regular weight and the label shade — which is now what every
+  summary does. The rule that did it is **DELETED rather than left restating the
+  base** (a declaration that changes nothing is noise the next reader has to
+  rule out — the `.rl-idx-head` precedent, where asserting the ABSENCE is the
+  stronger claim), and **f246 asserts it is gone**. What still separates a
+  settled row from a live one is the **BAND HEADING** over its pile, which is a
+  stronger statement than a shade was. `rl-card-done` is still stamped and now
+  styles nothing: the hook is there the day a settled row wants its own mark
+  again, and the obvious one — the reference in the label shade — is one rule.
+- **SCOPED TO THE FLAT ROW ON OUR SEAT, checked rather than assumed.** Three
+  other places draw these two classes and all three read the base rule further
+  up the sheet: the counterparty's **receipt**, their **boxed card**, and the
+  base itself. None carries `.rl-card-d`, so none moved. The contract tab's own
+  cards are a different shape entirely and name neither class.
+- **MEASURED, NOT READ OFF THE SOURCE.** With the whole distinction in weight
+  and ink, a rule that lost a cascade fight would look perfectly correct in the
+  stylesheet — this file's most repeated visual defect. nego-redesign-verify 5
+  reads the COMPUTED values and **reports the owner's screenshot verbatim
+  against the parent** (`11px 400 rgb(84,99,95) / 13px 700 rgb(14,26,24)`
+  before, `13px 700 rgb(14,26,24) / 13px 400 rgb(84,99,95)` after).
+
+**AND THE EXTERNAL ROOM ADDS A NOTE, IT DOES NOT SEND A REPLY** (owner-asked in
+the same message, off the composer: *"this should not say reply rather Add note
+just like in the Internal tab"*).
+
+- **ONE WORD FOR ONE ACT.** The button read *Send this reply* in the external
+  room and *Add note* in the internal one — one act named two ways, so a reader
+  had to learn both. The ternary is **removed rather than flipped**, at all
+  three of our-seat composers (the open card's notes, the drawer's per-change
+  panel, the drawer's Chat face), which is three identical branches collapsing
+  to one call.
+- **THE PLACEHOLDER LOST THE WORD TOO** — `ng_np_ph_ext` is *"Add a note for
+  {who}…"*, the internal placeholder's own shape with the right audience in it.
+  Same key, same substitution, no new key, and it reaches all three composers
+  because they already read one key.
+- **NOTHING ABOUT THE CROSSING IS QUIETER.** The room's own line above the box
+  still says who reads it, the box still wears the crossing's mark, and the
+  confirm still names the counterparty before anything leaves the building — so
+  the act is stated twice before the button is pressed, and the button naming
+  the act rather than the delivery hides nothing.
+- **`ng_send_this_reply` IS STILL LIVE AND IS STILL RIGHT** — on the
+  **counterparty's** own card notes, their only channel, where replying is
+  exactly what they are doing. A different builder, a different reader, and not
+  in the ask. Said out loud rather than swept.
+
+Tests: f246 (7) REVERSED IN PLACE and made stronger (it pinned a rule that is
+now gone; it pins the ABSENCE, the one size as a RELATION between two tokens,
+and which of the two carries the weight and which the ink), f173's composer
+claim REVERSED IN PLACE (the two rooms are told apart by the LINE and the MARK,
+which is where the distinction belongs), nego-redesign-verify 5 REVERSED IN
+PLACE and measured as computed style.
 
 ## Line numbers drift
 

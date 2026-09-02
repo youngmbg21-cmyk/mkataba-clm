@@ -128,8 +128,22 @@ describe('f173 · the room is the destination, and it opens on Internal', () => 
     assert.ok(who.classList.contains('out'), 'and wears the crossing\'s own mark');
     assert.ok(ext.querySelector('.rl-np-foot').classList.contains('out'),
       'the box it belongs to wears it too, so it cannot be mistaken for the other one');
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked, off a screenshot of this box:
+       "this should not say reply rather Add note just like in the Internal
+       tab"). Both rooms name the act the same way now, and the claim is
+       STRONGER for it: what tells the two apart is the LINE above the box and
+       the mark the box wears — both asserted three lines up — rather than a
+       word on a button, which is where the distinction should live anyway.
+       ng_send_this_reply is still live and is still the counterparty's own,
+       on their card, where replying is exactly what they are doing. */
     assert.match(ext.querySelector('[data-rl-np-send]').textContent,
-      new RegExp(p.w.win.i18t('ng_send_this_reply'), 'i'), 'and its button sends a reply');
+      new RegExp(p.w.win.i18t('ng_card_note_add'), 'i'),
+      'and its button adds a note, in the internal room\'s own words');
+    assert.equal(ext.querySelector('[data-rl-np-send]').textContent.trim(),
+      int.querySelector('[data-rl-np-send]').textContent.trim(),
+      'one word for one act, so no reader has to learn two');
+    assert.ok(!/repl|svar/i.test(ext.querySelector('.rl-np-in').placeholder),
+      'and the box it sits under does not ask for a reply either');
   });
 });
 
