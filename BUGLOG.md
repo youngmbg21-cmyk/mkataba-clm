@@ -8753,3 +8753,74 @@ Noticed, not fixed:
   room tabs, so on that seat it would offer an Internal room it cannot keep.
   Unreachable — their page hides the shell whole and has no drawer — and it
   predates this run, so it is recorded rather than fixed.
+
+════════════════════════════════════════════════════════════════════════════
+2 Sep 2026 — PAYMENT TERMS, TURNED INTO A NUMBER AND COUNTED
+════════════════════════════════════════════════════════════════════════════
+
+Owner-asked: *"An important part of Hati should be how to track payment terms.
+i do not see this in hati at the moment. How could we incorporate ensuring we
+have KPIs of the portfolio payment terms?"*
+
+**The premise was half right and the half that was wrong is the whole feature.**
+Payment terms were already captured in five places — Copilot extracts them, the
+upload screen prints the phrase back for a person to confirm, Key terms lets
+them be overtyped, the phone card carries them, and the playbook already holds
+the standard (45 days, an admin setting since it was built). What was missing is
+that the record holds a SENTENCE — "30 days from invoice", "Net 45", "within
+sixty (60) days of delivery" — and nothing can average a sentence.
+
+**Three drawn options went to the owner and A-with-B's-list-folded-in was
+chosen**, along with two rulings: the Home tile counts BOTH sides, and the tab
+sits after Obligations.
+
+**js/payterms.js is the reading and it is its own file, which is load-bearing.**
+Two surfaces ask it. Written inside either view, the other would read it through
+`window` on a stage that does not carry that view, get `undefined`, and count
+zero — silently. That is this codebase's most repeated defect and its own file
+cannot fail that way. Same shelf as js/precedent.js.
+
+**It reads the RECORD, not the wording.** `metadata.paymentTerms` is already the
+product's reading of the document; re-parsing the agreement on every dashboard
+paint would be slow AND could disagree with what the reader confirmed. So "not
+recorded" means something actionable — nobody has read this contract yet — and
+it is printed rather than folded away.
+
+**THE THREE OTHER PARSERS ARE DELIBERATELY UNTOUCHED, and the proposal I put to
+the owner overstated this.** js/playbook.js reads days out of the full CONTRACT
+TEXT for its standards check; js/precedent.js reads them out of a CHANGE's
+wording. Those are different questions on different inputs, so they are not
+copies of this one — and re-pointing them would change what two other features
+report, which is outside this request.
+
+**The tile's "both sides" needed an interpretation and it is stated on screen
+rather than assumed.** Over standard is read in each side's own direction, and
+the sub-line names the halves — *17 where you wait · 10 where you make them
+wait* — because a customer on ninety days costs cash and a supplier on ninety is
+cash you keep and a governance fact besides. One number with no split reads as
+all bad news.
+
+**Every honest limit is on the page.** What cannot be read is counted OUT of
+every figure and named; a contract on neither side says so; and the tab carries
+a card saying what it cannot see — whether people pay to the terms they agreed,
+and how late they run. Both need the accounting system, not the contracts.
+
+Node 5543/5543. Browser: payment-terms 39/39 (new), obligations-report 27/27,
+insights-panels 40/40, kpi-four 19/19, home-page 34/34.
+
+**Two claims REVERSED IN PLACE, both the same fault:** f247 and
+obligations-report-verify each pinned the Insights tab row as a LITERAL where
+what they were about is the obligations tab's own PLACE. Pinned as relations
+now, so the next tab is a decision rather than a test edit.
+
+Noticed, not fixed:
+- `npm run lint` reports 4 errors on clean main, all duplicate dictionary keys:
+  `co_password_updated` and `act_next`, each defined twice in EACH language
+  block of js/i18n.js. Proved pre-existing by stashing and re-running. The
+  second definition silently wins, so both words are decided by whichever comes
+  last in the file rather than by anybody.
+- The standard's dashed rule on the new chart is drawn at a BUCKET boundary, so
+  a standard that does not land on one (50, say) shades the 46–60 bucket whole.
+  Deliberate and the safe direction — that bucket really does hold contracts
+  over it — but it means the line is approximate by up to one bucket where the
+  counts beside it are exact.

@@ -105,11 +105,22 @@ function stage(){
 }
 
 describe('f247 · the tab is one list, read by the row AND the guard', () => {
-  test('IG_TABS carries the four surfaces, obligations between friction and map', () => {
+  test('obligations sits after friction, and every tab is labelled', () => {
+    /* REVERSED IN PLACE 2 Sep 2026, when payment terms became the fifth tab.
+       This pinned the whole list as a LITERAL, and what it was ever about is
+       this tab's own PLACE and the fact that one list feeds the row and the
+       guard -- so a literal made every later tab a test edit rather than a
+       decision. Pin the relation, not the membership; f267 owns where payment
+       terms sits, because that is its own ruling. */
     const w = buildWorld({ intelView: true });
-    assert.deepEqual([...w.win.IG_TABS], ['frame', 'friction', 'obligations', 'map']);
-    assert.equal(w.win.IG_TABS.indexOf('obligations'), w.win.IG_TABS.indexOf('friction') + 1);
-    assert.equal(w.win.IG_TABS.indexOf('map'), w.win.IG_TABS.indexOf('obligations') + 1);
+    const tabs = [...w.win.IG_TABS];
+    assert.ok(tabs.includes('obligations'), 'the tab is still on the row');
+    assert.equal(tabs.indexOf('obligations'), tabs.indexOf('friction') + 1,
+      'it reads after negotiation friction');
+    assert.ok(tabs.indexOf('map') > tabs.indexOf('obligations'),
+      'and the contract graph still reads last of all');
+    tabs.forEach(k => assert.ok(w.win.IG_TAB_LABEL[k],
+      k + ' carries a label key, or the row draws a blank tab'));
   });
 
   test('the guard reads the list rather than writing its own out', () => {

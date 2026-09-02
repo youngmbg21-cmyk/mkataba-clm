@@ -94,9 +94,16 @@ window.intelUI = { scanning:false, scannedAt:null };
    LABELS ARE KEYS, NEVER RESOLVED STRINGS: an object literal holding i18t(...)
    freezes whatever language was current at load, which is the getter trap this
    codebase has recorded four separate times. */
-const IG_TABS = ['frame','friction','obligations','map'];
+/* PAYMENT TERMS SITS AFTER OBLIGATIONS (owner-ruled 2 Sep 2026) and before the
+   contract graph. ONE LIST, read by the tab row AND by renderIntel's own
+   guard — the guard was once written out separately as a bare array, and the
+   fourth tab then drew, registered its press, and redrew the OVERVIEW with
+   nothing anywhere saying why. A fifth surface is a name added here and
+   nowhere else. LABELS ARE KEYS, never resolved strings: an object literal of
+   translated text freezes whatever language was current at load. */
+const IG_TABS = ['frame','friction','obligations','payterms','map'];
 const IG_TAB_LABEL = { frame:'pf_tab', friction:'int_negotiation_friction',
-  obligations:'int_obligations', map:'int_contract_graph' };
+  obligations:'int_obligations', payterms:'pt_tab', map:'int_contract_graph' };
 
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
@@ -903,6 +910,23 @@ function renderIntel(){
       <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    setActiveNav('intel');
+    return;
+  }
+  if(intel.tab==='payterms'){
+    /* THE SAME SHELL AS THE OBLIGATIONS TAB — header strip, then one scrolling
+       body, and no header levers of its own for the same reason: every figure
+       on it counts the whole live book, and a filter would put a narrowed
+       number under a heading that claims to be about the portfolio. */
+    document.getElementById('content').innerHTML=`
+    <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+      ${headerHtml}
+      <div id="ig-pt-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelPayTermsHtml()}</div>
+    </div>`;
+    document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    /* An exception row opens its contract — the friction tab's own verb, and
+       the reason the list is worth more than the percentage above it. */
+    document.querySelectorAll('[data-pt-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-pt-open'))));
     setActiveNav('intel');
     return;
   }
@@ -1861,6 +1885,158 @@ function intelObligationsHtml(){
     ${blind}
   </div>`;
 }
+/* ════════════════════════════════════════════════════════════════════════
+   THE PAYMENT TERMS TAB (owner-ruled 2 Sep 2026)
+   Option A with B's exception list folded into it, off three drawn options:
+   lead with the gap between how long we wait and how long we get to pay,
+   then the spread, then every contract outside the standard.
+
+   COUNTING IS NOT DRAWING: every figure comes from payTermsData() in
+   js/payterms.js. Nothing here counts anything of its own, so this page and
+   the Home tile cannot come to disagree about what a contract's terms are.
+
+   IT BORROWS THE OBLIGATIONS TAB'S OWN CARD VOCABULARY — obCard, OB_CARD,
+   OB_NUM, OB_OURS, OB_THEIRS — rather than declaring a second set that agrees
+   today and drifts later. Same shelf, same shell, same page.
+
+   COLOUR DOES ONE JOB HERE AND NEVER ON ITS OWN. OURS is the workspace accent
+   (money coming in) and THEIRS is amber (money going out) — the obligations
+   report's own pair, for its own reason: amber is fixed in both the teal and
+   the navy workspace, so the two stay tellable apart whichever brand is on.
+   Every bar carries its figure, every legend spells its count, and the side is
+   written in words on every exception row, so no reading rests on the hue. */
+function intelPayTermsHtml(){
+  const d = (typeof payTermsData === 'function') ? payTermsData() : null;
+  const E = igEsc;
+  const n = v => Number(v || 0).toLocaleString(jxLocale());
+  const RULE = 'border-bottom:1px solid var(--color-divider)';
+  const money = v => (d && d.money.visible && typeof fmtMoneyShort === 'function') ? fmtMoneyShort(v) : '';
+
+  if(!d || !d.counted) return `<div style="max-width:960px;margin:0 auto">
+    <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
+    <b style="color:var(--color-text)">${i18t('pt_empty')}</b><br/>${i18t('pt_empty_why')}</div></div>`;
+
+  /* ---- 1 · the two sides and the hole between them ---- */
+  const hero = (S, cls, kKey, subValue, subCount, tone) => `<div style="min-width:0">
+    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);display:flex;align-items:center;gap:7px">
+      <span style="width:9px;height:9px;border-radius:1px;flex:none;background:${tone}"></span>${i18t(kKey)}</div>
+    ${S.avgDays == null
+      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>
+         <p style="${OB_NOTE};margin:0">${i18t('pt_side_empty')}</p>`
+      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${tone}">${n(S.avgDays)}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>
+         <p style="${OB_NOTE};margin:0">${i18t(S.basis === 'value' ? subValue : subCount, { n:n(S.n) })}</p>`}
+  </div>`;
+
+  /* THE GAP ONLY MEANS SOMETHING WHEN BOTH SIDES CAN ANSWER, so with one of
+     them empty it says so rather than printing a number worked out against
+     nothing. Amber only when the gap is against us — a figure that is always
+     coloured is one nobody reads. */
+  const gapTone = (d.gap != null && d.gap > 0) ? 'var(--st-amber-fg,#b45309)' : 'var(--color-text)';
+  const gapSay = d.gap == null ? i18t('pt_gap_none')
+    : d.gap > 0 ? i18t('pt_gap_fund')
+    : d.gap < 0 ? i18t('pt_gap_ahead')
+    : i18t('pt_gap_level');
+  const gapBlock = `<div style="min-width:0;padding-left:var(--s-4);border-left:1px solid var(--color-divider)">
+    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${d.gap != null && d.gap > 0 ? 'var(--st-amber-fg,#b45309)' : 'var(--color-neutral-600)'}">${i18t('pt_the_gap')}</div>
+    ${d.gap == null
+      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>`
+      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${gapTone}">${n(Math.abs(d.gap))}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>`}
+    <p style="${OB_NOTE};margin:0">${gapSay}</p>
+  </div>`;
+
+  const heroes = `<section style="${OB_CARD};padding:15px 17px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--s-3) 22px">
+      ${hero(d.customer, 'c', 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS)}
+      ${hero(d.supplier, 's', 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS)}
+      ${gapBlock}
+    </div>
+  </section>`;
+
+  /* ---- 2 · where the terms sit ---- */
+  const GAP_PX = 14;
+  const cols = d.bucketKeys.length;
+  const maxV = Math.max(1, ...d.bucketKeys.map((k, i) =>
+    Math.max(d.customer.buckets[i].n, d.supplier.buckets[i].n)));
+  /* WHERE THE STANDARD'S RULE IS DRAWN. Five equal columns with a gap between
+     each: the boundary after column i sits at ((i+1)/5) of the width, less a
+     small correction for the gaps the columns give up. Derived rather than
+     typed, so it stays right if a bucket is ever added. The COUNTS never come
+     from this line — payOver asks each contract its own standard. */
+  const si = d.standardSplitAfter;
+  const stdLeft = si < 0 ? '0px'
+    : `calc(${Math.round((si + 1) / cols * 1000) / 10}% - ${Math.round(((cols - 1) * (si + 1) / cols - si - 0.5) * GAP_PX * 10) / 10}px)`;
+  const barFor = (S, tone, i) => {
+    const b = S.buckets[i];
+    const h = Math.max(2, Math.round(b.n / maxV * 100));
+    return `<span style="position:relative;width:24px;min-height:2px;height:${b.n ? h + '%' : '2px'};background:${tone};border-radius:1px 1px 0 0;display:block">
+      <span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${n(b.n)}</span></span>`;
+  };
+  const ariaSpread = d.bucketKeys.map((k, i) =>
+    `${k}: ${i18t('pt_are_paid')} ${d.customer.buckets[i].n}, ${i18t('pt_we_pay')} ${d.supplier.buckets[i].n}`).join('; ');
+  const spread = obCard(i18t('pt_spread_title'), '',
+    `<p style="${OB_LEAD}">${i18t('pt_spread_q')}</p>
+     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+       <span style="display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--color-neutral-700)"><span style="width:11px;height:11px;border-radius:1px;background:${OB_OURS}"></span>${i18t('pt_are_paid')} <b style="font-variant-numeric:tabular-nums">${n(d.customer.n)}</b></span>
+       <span style="display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--color-neutral-700)"><span style="width:11px;height:11px;border-radius:1px;background:${OB_THEIRS}"></span>${i18t('pt_we_pay')} <b style="font-variant-numeric:tabular-nums">${n(d.supplier.n)}</b></span>
+     </div>
+     <div role="img" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:24px">
+       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;height:168px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
+         <span style="position:absolute;top:-4px;bottom:0;left:${stdLeft};right:0;background:var(--st-amber-bg);opacity:.5;pointer-events:none"></span>
+         ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
+         <span style="position:absolute;top:-4px;bottom:0;left:${stdLeft};width:0;border-left:1px dashed var(--st-amber-line,rgba(180,83,9,.42))">
+           <span style="position:absolute;top:-9px;left:8px;white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--st-amber-fg,#b45309);background:var(--color-surface);padding:0 5px">${i18t('pt_standard', { n:n(d.standard) })}</span></span>
+       </div>
+       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:9px">
+         ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
+       </div>
+     </div>`,
+    [d.standardVaries ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
+     d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
+     d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
+
+  /* ---- 3 · the exceptions, both sides, worst first (B, folded in) ---- */
+  const PT_EXC_CAP = 10;
+  const shown = d.exceptions.slice(0, PT_EXC_CAP);
+  const excBody = d.exceptions.length
+    ? `<p style="${OB_LEAD}">${i18t('pt_exc_q')}</p>
+       <div>${shown.map(r => `<button data-pt-open="${E(r.id)}" style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:9px 0;${RULE};font:inherit;cursor:pointer">
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-text)">${E(r.counterparty || r.name)}
+            <span style="color:var(--color-neutral-600)"> · ${i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp')}</span></span>
+          <span style="${OB_NUM};font-size:var(--t-meta);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS};white-space:nowrap">${i18t('reg_in_days', { n:n(r.days) })}</span>
+          <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${money(r.value)}</span>
+        </button>`).join('')}</div>`
+    : `<p style="${OB_LEAD};margin:0">${i18t('pt_exc_none')}</p>`;
+  const exceptions = obCard(i18t('pt_exc_title'),
+    d.overN ? obFlag(i18t('pt_exc_flag', { n:n(d.overN) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
+    excBody,
+    d.exceptions.length > PT_EXC_CAP ? i18t('pt_exc_showing', { n:n(shown.length), total:n(d.exceptions.length) }) : '');
+
+  /* ---- 4 · what this page cannot see ----
+     The honest limit, and it is the most important thing on the tab: HaTi
+     reads agreements, not your bank. Named so the page never looks as though
+     it is answering a question it cannot. */
+  const blind = `<section style="${OB_CARD};padding:15px 17px">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('pt_blind_title')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
+      ${[[i18t('pt_blind_1'), i18t('pt_blind_1_why')], [i18t('pt_blind_2'), i18t('pt_blind_2_why')]]
+        .map(([t, w]) => `<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
+    </div>
+    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('pt_method')}</p>
+  </section>`;
+
+  return `<div id="ig-pt" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
+    ${heroes}${spread}${exceptions}${blind}
+  </div>`;
+}
+
+/* THE ONE NAMED DOOR ONTO A TAB. The Home tile presses it, so the tile cannot
+   land on Insights and leave the reader on whichever tab they were last on —
+   and a second door added later joins this function rather than repeating the
+   two lines. An unknown key falls through to the page's own guard. */
+function intelGoTab(k){
+  if(IG_TABS.indexOf(k) >= 0) intel.tab = k;
+  setView('intel');
+}
 
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
@@ -2108,4 +2284,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

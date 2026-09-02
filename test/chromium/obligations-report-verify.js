@@ -115,8 +115,13 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
         k: b.getAttribute('data-ig-tab'), t: (b.textContent || '').trim(),
         x: Math.round(b.getBoundingClientRect().left), w: Math.round(b.getBoundingClientRect().width) })));
     const keys = tabs.map(t => t.k);
-    check('1a · four tabs, obligations between friction and map',
-      keys.join(',') === 'frame,friction,obligations,map', keys.join(','));
+    /* REVERSED IN PLACE 2 Sep 2026, when payment terms became the fifth tab.
+       This pinned the whole row as a LITERAL where its claim is this tab's own
+       PLACE -- which 1c already measures as pixels. Pin the relation, or every
+       later tab is a test edit rather than a decision. */
+    check('1a · obligations sits directly after friction on the row',
+      keys.indexOf('obligations') === keys.indexOf('friction') + 1
+        && keys.indexOf('map') > keys.indexOf('obligations'), keys.join(','));
     const ob = tabs.find(t => t.k === 'obligations');
     check('1b · the tab is painted, with its own word', ob && ob.w > 20 && /\w/.test(ob.t),
       ob ? `${ob.t} @${ob.x} w${ob.w}` : 'absent');

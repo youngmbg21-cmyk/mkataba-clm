@@ -109,6 +109,13 @@ const REGISTER_VIEW = 'js/views/register.js';
 const FAMILY = 'js/family.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
+/* Payment terms turned into a number of days (buildWorld({payterms:true})).
+   A reading with no view, like js/precedent.js: it annotates a contract and
+   touches nothing, so a stage without it behaves exactly as every test
+   written before it asserts. It asks js/playbook.js for the standard through
+   `typeof` and answers with its own documented default where that file is
+   absent, so it loads cleanly on its own. */
+const PAYTERMS = 'js/payterms.js';
 /* The Insights page (buildWorld({intelView:true})). Loaded on request like the
    other views. It needs js/obligations.js under it — the obligations report is
    a READING of that model and borrows every one of its predicates rather than
@@ -342,6 +349,11 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
+  /* Home and Insights both ask payTermsData, so a stage drawing either
+     without it would exercise this module's own absent-function fallbacks
+     rather than the product -- the same reason intelView pulls obligations
+     in below. */
+  if (opts.payterms || opts.homeView || opts.intelView) files.push(PAYTERMS);
   /* Insights sits on the obligations model, so asking for the view brings it
      even where the caller did not ask for it by name — a stage that drew the
      report without it would exercise this module's own absent-function

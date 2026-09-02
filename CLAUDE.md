@@ -1167,6 +1167,100 @@ dark and the navy workspace, three laptop widths with no sideways scroll, and
 the empty book). `buildWorld({intelView:true})` is new and pulls js/obligations.js
 under it.
 
+## PAYMENT TERMS, TURNED INTO A NUMBER — the fifth Insights tab (owner-ruled 2 Sep 2026)
+
+*"How could we incorporate ensuring we have KPIs of the portfolio payment
+terms?"* — then, off three drawn options: build the **cash-gap page (A) with
+the exception list (B) folded into it**, the Home tile counts **BOTH sides**,
+and the tab sits **after Obligations**.
+
+**THE PREMISE WAS HALF RIGHT, AND THE HALF THAT WAS WRONG IS THE FEATURE.**
+Payment terms were already captured in five places — Copilot's extraction, the
+upload confirm screen, Key terms, the phone card, and the playbook, which has
+held the standard (45 days, an admin setting) since it was built. What was
+missing is that the record holds a SENTENCE — *"30 days from invoice"*,
+*"Net 45"*, *"within sixty (60) days of delivery"* — and nothing can average a
+sentence.
+
+- **`js/payterms.js` IS THE READING, AND ITS OWN FILE IS LOAD-BEARING.** Two
+  surfaces ask it. Written inside either view, the other would read it through
+  `window` on a stage that does not carry that view, get `undefined`, and count
+  **zero, silently** — the rlPaperFootHtml family. Its own file, loaded before
+  both, cannot fail that way. Same shelf as js/precedent.js: a deterministic
+  reading with no view, no store, no route and no field.
+- **IT READS THE RECORD, NOT THE WORDING.** `metadata.paymentTerms` is already
+  the product's reading of the document — extracted, printed back with its own
+  verbatim phrase for a person to confirm, overtypeable on Key terms.
+  Re-parsing the agreement on every dashboard paint would be slow AND could
+  disagree with what the reader confirmed. **So "not recorded" MEANS
+  something**: nobody has read this contract yet, which is the actionable fact
+  and why the count is printed rather than folded away.
+- **THREE OTHER PARSERS EXIST AND ARE DELIBERATELY UNTOUCHED, said out loud
+  because the proposal put to the owner overstated it.** js/playbook.js reads
+  days out of the full CONTRACT TEXT for its standards check; js/precedent.js
+  reads them out of a CHANGE's wording. Different questions on different
+  inputs, so not copies of this one — and re-pointing them would change what
+  two other features report.
+- **THE STANDARD IS THE PLAYBOOK'S, PER CONTRACT KIND.** No new setting, and
+  because the playbook is per contract type, supply paper can carry a different
+  limit from services with nothing more to configure. `PAY_STD_FALLBACK` is the
+  answer for a stage without js/playbook.js and **f267 pins it to
+  DEFAULT_PLAYBOOK's own number**, so moving the playbook's value fails there
+  rather than leaving this one stale.
+- **OVER STANDARD IS ASKED OF EACH CONTRACT'S OWN STANDARD, never of a bucket.**
+  The buckets are a picture; the count has to be exact. The dashed rule is drawn
+  after the last bucket wholly inside the standard, which is the safe direction
+  — a standard of 50 shades the 46–60 bucket whole, because that bucket really
+  does hold contracts over it.
+- **THE AVERAGE IS WEIGHTED BY VALUE AND SAYS SO.** A plain mean lets twelve
+  small agreements outvote the one that carries the book. Where money is hidden
+  from this reader, or nothing carries a value, it falls to a straight mean and
+  `basis` changes with it, so the figure never claims a weighting it did not use.
+- **WHERE NO MONEY PASSES THERE ARE NO PAYMENT TERMS.** `isMonetary` is the
+  product's one answer, so an NDA is never counted and never reported as "not
+  recorded".
+- **NOTHING IS FOLDED AWAY.** What cannot be read is counted OUT of every figure
+  and NAMED; a contract with no category sits on neither side and says so; and
+  every contract in the book lands in exactly one pile (f267 asserts the four
+  add up to it).
+- **THE TILE COUNTS BOTH SIDES AND NAMES THE HALVES APART** (owner-ruled). One
+  number carries both only because "outside standard" is read in each side's own
+  direction and the sub-line says which half is which — *17 where you wait · 10
+  where you make them wait*. A customer on ninety days costs cash; a supplier on
+  ninety is cash you keep and a governance fact besides. **It borrows
+  `payOverStandard`** rather than counting again, so the tile and the tab cannot
+  disagree. Amber only when something is actually over; **not in the default
+  four**, so it forces itself onto nobody's Home. **Its destination is the TAB**,
+  through `intelGoTab` — the one named door — because the two halves can only be
+  told apart there and a mixed list of contracts in a table would not explain
+  itself.
+- **THE TAB IS ONE LIST.** `IG_TABS` gained 'payterms' between 'obligations' and
+  'map', read by the row AND by renderIntel's own guard. A fifth surface is a
+  name added there and nowhere else — the fault the obligations tab paid for.
+- **COUNTING IS NOT DRAWING.** `payTermsData()` returns plain data;
+  `intelPayTermsHtml` draws it and counts nothing. The drawing BORROWS the
+  obligations tab's own card vocabulary (obCard, OB_CARD, OB_NUM, OB_OURS,
+  OB_THEIRS) rather than declaring a second set that agrees today.
+- **COLOUR DOES ONE JOB**: OURS is the workspace accent (money coming in),
+  THEIRS is amber (money going out) — the obligations report's own pair, for its
+  own reason. Every bar carries its figure, every legend spells its count, and
+  every exception row names its side in words.
+- **THE HONEST LIMIT IS A CARD ON THE PAGE**, and it is the most important thing
+  on the tab: HaTi reads agreements, not your bank. Whether people pay to the
+  terms they agreed, and how late they run, both need the accounting system.
+  Named so the page never looks as though it is answering them.
+
+Tests: f267 (59 — the parser, the reading, the standard as a RELATION, the
+aggregate, the four piles adding up, the exceptions, the tile borrowing the
+tab's count, the tab as one list, no store/route/writes, and both languages),
+**payment-terms-verify (39, browser — the press DRIVEN and what arrives read off
+the page, every printed bar figure checked against the number the reading
+counted, bar heights following their own counts, the standard rule inside the
+plot, an exception row pressed through to its contract, the tile pressed through
+to THIS tab, four laptop widths with no sideways scroll, and both languages)**.
+Two claims REVERSED IN PLACE — f247 and obligations-report-verify each pinned
+the tab row as a LITERAL where the claim was that tab's own PLACE.
+
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 
 ## A NEW DRAFT OPENS ON KEY TERMS

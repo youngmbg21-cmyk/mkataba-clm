@@ -19,14 +19,15 @@ const KPI_EN={
   approvals:'Pending approvals', compliance:'Compliance rating', expiring30:'Expiring < 30 days',
   expiring60:'Expiring < 60 days', expiring90:'Expiring < 90 days', expired:'Term already ended',
   highrisk:'High-risk findings', avgcycle:'Avg turnaround time',
-  obligations:'Obligations due' };
+  obligations:'Obligations due',
+  payterms:'Payment terms over standard' };
 /* Falls back to the English WORD, never the dictionary key — a tile reading
    `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
    on a Swedish screen looks only untranslated. */
 const KPI_META=Object.keys(KPI_EN)
   .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
     get(){ return typeof t==='function' ? i18t('kpi_'+k) : KPI_EN[k]; }}),o),{});
-const KPI_ALL_ORDER=['approvals','negotiations','obligations','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
+const KPI_ALL_ORDER=['approvals','negotiations','obligations','payterms','expiring90','avgcycle','under_mgmt','active_value','compliance','awaiting','expiring30','expiring60','expired','highrisk'];
 /* ---- THE DEFAULT FOUR ARE "WHAT NEEDS ME TODAY" (owner-ruled 24 Aug 2026) ----
    They were Active contracts · Avg turnaround · Pending approvals · Compliance
    rating, and two of those were saying what the row beneath them already says:
@@ -613,6 +614,27 @@ function hmDashSlices(){
                      destination counts differently from its own figure is the
                      fault Home's own rule exists to prevent. */
                   go:{obligations:{state:'open', due:'30'}}},
+    /* PAYMENT TERMS, BOTH SIDES (owner-ruled 2 Sep 2026: "home tile should
+       count both sides"). One number carries both only because "outside
+       standard" is read in each side's own direction and the SUB-LINE NAMES
+       WHICH HALF IS WHICH — a customer on ninety days costs you cash, a
+       supplier on ninety is cash you keep and a governance fact besides.
+       Written as one sentence with no split it reads as all bad news.
+
+       IT COUNTS NOTHING OF ITS OWN. payOverStandard is the tab's own reading,
+       borrowed, so the tile and the tab cannot disagree about what is over —
+       one reading, many surfaces, the standing rule.
+
+       AMBER ONLY WHEN SOMETHING IS ACTUALLY OVER, like the promises card
+       above it. THE DESTINATION IS THE TAB, not the register: the two halves
+       can only be told apart there, and a mixed list of contracts in a table
+       would not explain itself. */
+    payterms:   (()=>{ const p=(typeof payOverStandard==='function')?payOverStandard():{n:0,customer:0,supplier:0,counted:0};
+                  return {label:KPI_META.payterms, val:Number(p.n).toLocaleString(jxLocale()),
+                  delta:i18t('home_pt_of',{n:Number(p.counted).toLocaleString(jxLocale())}),
+                  get sub(){ return p.n?i18t('home_pt_split',{c:p.customer,s:p.supplier}):i18t('home_pt_clear'); },
+                  grad:p.n?G.amber:G.steel, ic:'coins',
+                  go:{intelTab:'payterms'}}; })(),
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -1151,6 +1173,11 @@ function renderDashboard(){
       if(g.obligations){
         if(typeof window.obwGoFiltered === 'function') obwGoFiltered(g.obligations);
         else setView('obligations');
+        return;
+      }
+      if(g.intelTab){
+        if(typeof window.intelGoTab === 'function') intelGoTab(g.intelTab);
+        else setView('intel');
         return;
       }
       if(g.nav){ setView(g.nav); return; }
