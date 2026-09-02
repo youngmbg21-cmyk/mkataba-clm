@@ -113,21 +113,38 @@ describe('f173 · the room is the destination, and it opens on Internal', () => 
       'THE SWITCH IS GONE: there is nothing to set, so nothing to set wrongly');
   });
 
-  test('each room names its own destination, above its own box', async () => {
+  test('each room names its own destination, without a sentence about it', async () => {
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked, off a screenshot of each
+       line: "remove the highlighted areas. People are smart enough to know
+       without being given explicit writing").
+
+       WHAT STOOD HERE asserted the sentence over each room. It has gone from
+       OUR seat, and the claim this test was written to make is unchanged and
+       is now asserted where it belongs: the reader is told which room they are
+       in by the TAB they pressed, by the box's own PLACEHOLDER — which is
+       where the counterparty is NAMED, at the moment of typing — and by the
+       tint the external composer wears. The line survives on the seat with no
+       tabs, which f248 pins. */
     const p = await mounted();
     const int = p.notes(p.theirs, 'internal');
-    assert.match(int.querySelector('.rl-np-who').textContent, /never sees this tab/i,
-      'the internal room promises the note stays here');
-    assert.ok(!int.querySelector('.rl-np-who').classList.contains('out'));
+    assert.equal(int.querySelector('.rl-np-who'), null,
+      'no sentence explaining the tab you just pressed');
+    assert.ok(int.querySelector('[data-rl-np-room="internal"].on'),
+      'the live tab is what says which room this is');
+    assert.match(int.querySelector('.rl-np-in').placeholder, /your team/i,
+      'and the box names its own audience');
+    assert.ok(!int.querySelector('.rl-np-foot').classList.contains('out'),
+      'the internal box wears no crossing mark');
     assert.match(int.querySelector('[data-rl-np-send]').textContent,
       new RegExp(p.w.win.i18t('ng_card_note_add'), 'i'), 'and its button adds a note');
     const ext = p.notes(p.theirs, 'external');
-    const who = ext.querySelector('.rl-np-who');
-    assert.match(who.textContent, /reads everything on this tab/i,
-      'the external room names who reads it');
-    assert.ok(who.classList.contains('out'), 'and wears the crossing\'s own mark');
+    assert.equal(ext.querySelector('.rl-np-who'), null,
+      'nor over the external one');
+    assert.ok(ext.querySelector('[data-rl-np-room="external"].on'));
+    assert.match(ext.querySelector('.rl-np-in').placeholder, new RegExp(p.c.counterparty, 'i'),
+      'THE COUNTERPARTY IS STILL NAMED BEFORE YOU TYPE — in the box itself');
     assert.ok(ext.querySelector('.rl-np-foot').classList.contains('out'),
-      'the box it belongs to wears it too, so it cannot be mistaken for the other one');
+      'and the box wears the crossing\'s own mark, so it cannot be mistaken for the other one');
     /* REVERSED IN PLACE 2 Sep 2026 (owner-asked, off a screenshot of this box:
        "this should not say reply rather Add note just like in the Internal
        tab"). Both rooms name the act the same way now, and the claim is

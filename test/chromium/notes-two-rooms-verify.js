@@ -174,16 +174,30 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.waitForTimeout(250);
     const roomB = await page.evaluate(() => ({
       text: document.querySelector('.rl-np-list').textContent.replace(/\s+/g, ' '),
-      tinted: !!document.querySelector('.rl-np-who.out'),
+      whoLine: !!document.querySelector('.rl-np-who'),
       foot: !!document.querySelector('.rl-np-foot.out'),
+      ph: (document.querySelector('.rl-np-in') || {}).placeholder || '',
+      /* READ OFF THE RECORD, never typed: the fixture takes whichever contract
+         the seeded workspace offers, so its counterparty is not ours to know. */
+      cp: ((state.contracts || []).find(x => String(x.id) === String(state.activeId)) || {}).counterparty || '',
       live: (document.querySelector('.rl-np-tab.on') || {}).textContent,
     }));
     check('the internal room holds the internal note', /fallback is thirty/.test(roomA));
     check('and NOT the shared one', !/rebate stands/.test(roomA));
     check('the external room holds the shared note', /rebate stands/.test(roomB.text));
     check('and NOT the internal one — the two never share a note', !/fallback is thirty/.test(roomB.text));
-    check('the external room looks different from the internal one', roomB.tinted && roomB.foot,
-      'who-line and box both wear the crossing mark');
+    /* REVERSED IN PLACE 2 Sep 2026 (owner-asked: "remove the highlighted areas.
+       People are smart enough to know without being given explicit writing").
+       The sentence over each room has gone from our seat, so what tells the
+       two apart is measured where it now lives — the box's own mark, its
+       placeholder, and the live tab. MEASURED AS PAINT: the placeholder is
+       what names the counterparty at the moment of typing, so its absence
+       would be a real loss rather than a tidy-up. */
+    check('the external room looks different from the internal one', roomB.foot && !roomB.whoLine,
+      `box wears the crossing mark, and no sentence explains it — who-line ${roomB.whoLine}`);
+    check('and the counterparty is still named where you type',
+      !!roomB.cp && roomB.ph.toLowerCase().includes(roomB.cp.toLowerCase()),
+      `${JSON.stringify(roomB.ph)} names ${JSON.stringify(roomB.cp)}`);
     check('and the tab row says which room you are in', /external/i.test(roomB.live || ''), (roomB.live || '').trim());
 
     /* ---- 4. A NOTE REALLY FILES, FROM THE ROOM YOU ARE STANDING IN ---- */
@@ -283,9 +297,14 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       `${chat.rows} rows`);
     check('and each row about a redline says which change it is',
       chat.onLines.filter(Boolean).every(t => /CHG-/.test(t)), chat.onLines[0]);
+    /* RE-POINTED 2 Sep 2026: the room's own sentence has gone from our seat
+       (owner-asked), so it can no longer stand for "dressed like the panel" —
+       what does is the panel's own shape, its two tabs and its running order,
+       and the ABSENCE of the line is asserted beside them, because Chat always
+       draws tabs and a sentence under them would be that fact twice. */
     check('it is dressed as the per-change panel, not as a list of its own',
-      chat.panel && chat.tabs === 2 && chat.who && chat.scope,
-      `panel ${chat.panel} · tabs ${chat.tabs} · lock ${chat.who} · oldest-first ${chat.scope}`);
+      chat.panel && chat.tabs === 2 && !chat.who && chat.scope,
+      `panel ${chat.panel} · tabs ${chat.tabs} · who-line ${chat.who} · oldest-first ${chat.scope}`);
     /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked) ----
        It pinned that Chat drew NO composer, on the reasoning that there is one
        note box per change and it lives on the change. The owner reversed it in

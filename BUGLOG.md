@@ -8712,3 +8712,44 @@ Noticed, not fixed:
   later correct change moved, not product faults.
 - `ng_send_this_reply` now has one reader. It is the counterparty's and it is
   right there, so it is not stale — recorded so nobody sweeps it.
+
+---
+
+## 2 Sep 2026 — the tab says which room you are in
+
+*"remove the highlighted areas. People are smart enough to know without being
+given explicit writing"* — the line under the tab row, ringed in both rooms.
+
+It read "Stays inside X — Y never sees this tab" over Internal and "Y reads
+everything on this tab" over External, directly under a tab row already
+labelled Internal and External and already marking the live one. The standing
+band test failed on its first half: the screen says it already.
+
+**Three things still say it and none is a sentence** — the tab you pressed, the
+box's own placeholder, and the tint and teal edge the external composer wears.
+The confirm before anything crosses names the counterparty again.
+
+**The placeholder is why this is safe, and it was only made so hours earlier.**
+The one thing the line said that a tab cannot is who reads it, by name — and
+the external box now reads "Add a note for {who}…" against the internal "Add a
+note for your team…", so the counterparty is named at the moment of typing.
+Had the placeholder still said "Reply to {who}…", removing the line would have
+been a fact moving rather than a duplicate going. The browser check reads the
+counterparty off the record and proves the placeholder still names them; it
+passes before and after on purpose — it is the control, not a regression test.
+
+**Drawn where there are no tabs, which makes it a reading rather than a
+deletion.** One function, asked by all three of our-seat composers. The
+counterparty's seat has one room and no tab row, so there the line is the only
+thing naming it and it stays — f248's "one room, and it says who reads it" is
+unmoved and is the proof. The Chat face passes true explicitly, because it
+draws its tabs unconditionally. No CSS changed.
+
+Node 5494/5494. Browser: notes-two-rooms 63/63 (two of the reversed claims fail
+against the parent, reporting `who-line true`), redline 175/175, parity 41/41.
+
+Noticed, not fixed:
+- rlChatPanelHtml reads an `opts.side` of 'counterparty' and still draws BOTH
+  room tabs, so on that seat it would offer an Internal room it cannot keep.
+  Unreachable — their page hides the shell whole and has no drawer — and it
+  predates this run, so it is recorded rather than fixed.

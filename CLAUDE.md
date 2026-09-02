@@ -5812,11 +5812,14 @@ than by reading markup.
   comes to disagree.
 - **THE PER-NOTE VISIBILITY BADGE IS RETIRED, and that is the split paying for
   itself.** Every note in a room has the same answer, so marking each one was the
-  same fact printed five times. The room says it once, at the top
-  (`.rl-np-who`), and the external one is tinted and teal-edged so the room you
-  are typing in does not look like the room you are not. In the external room a
-  note FROM them keeps an edge and its company — the one thing the room's own
-  line cannot say.
+  same fact printed five times. **THE SENTENCE THAT SAID IT ONCE IS RETIRED TOO
+  — REVERSED IN PLACE 2 Sep 2026; see THE TAB SAYS WHICH ROOM YOU ARE IN.** The
+  room said it at the top (`.rl-np-who`) and the owner has taken that as well;
+  it survives only on the seat with no tabs. What is left is the tab you
+  pressed, the box's own placeholder, and the tint and teal edge the external
+  composer wears, so the room you are typing in still does not look like the
+  room you are not. In the external room a note FROM them keeps an edge and its
+  company.
 - **THE CONFIRM IS ON THE CROSSING ONLY.** Every note that would leave the
   building asks first, naming the counterparty and quoting nothing back it did
   not send; an internal note is one press, exactly as before. A dialog on both
@@ -8538,8 +8541,10 @@ where you WRITE. The owner has seen both and taken the panel's treatment, and
 it is the stronger of the two anyway: the rooms are TABS here exactly as they
 are there, so it is **the same reading drawn the same way on both surfaces**
 rather than a second arrangement of one conversation. `.rl-np-which`,
-`.rl-np-tabs`, `.rl-np-who`, `.rl-np-list` and `rlNpNoteHtml` are borrowed
+`.rl-np-tabs`, `.rl-np-list` and `rlNpNoteHtml` are borrowed
 whole; what this surface adds is one line per row naming the change.
+**`.rl-np-who` IS NO LONGER AMONG THEM (2 Sep 2026)** — this face always draws
+its tab row, so a sentence under it would be that fact twice.
 **NO COMPOSER**: there is one note box per change and it is on the change.
 **IT COUNTS AND READS NOTHING OF ITS OWN** — `negoRoomNotes`, `negoWhen` and
 `rlNpNoteHtml` are borrowed whole, so a note cannot read one way here and
@@ -9182,11 +9187,14 @@ just like in the Internal tab"*).
   {who}…"*, the internal placeholder's own shape with the right audience in it.
   Same key, same substitution, no new key, and it reaches all three composers
   because they already read one key.
-- **NOTHING ABOUT THE CROSSING IS QUIETER.** The room's own line above the box
-  still says who reads it, the box still wears the crossing's mark, and the
-  confirm still names the counterparty before anything leaves the building — so
-  the act is stated twice before the button is pressed, and the button naming
-  the act rather than the delivery hides nothing.
+- **NOTHING ABOUT THE CROSSING IS QUIETER.** The box still wears the crossing's
+  mark, its placeholder names the counterparty, and the confirm names them again
+  before anything leaves the building — so the act is stated twice before the
+  button is pressed, and the button naming the act rather than the delivery
+  hides nothing. (The room's own LINE said it a third time and was retired
+  hours later, on the owner's ask — see the section below; the placeholder,
+  which this same change had just given the counterparty's name to, is what
+  makes that safe.)
 - **`ng_send_this_reply` IS STILL LIVE AND IS STILL RIGHT** — on the
   **counterparty's** own card notes, their only channel, where replying is
   exactly what they are doing. A different builder, a different reader, and not
@@ -9198,6 +9206,52 @@ and which of the two carries the weight and which the ink), f173's composer
 claim REVERSED IN PLACE (the two rooms are told apart by the LINE and the MARK,
 which is where the distinction belongs), nego-redesign-verify 5 REVERSED IN
 PLACE and measured as computed style.
+
+## THE TAB SAYS WHICH ROOM YOU ARE IN (owner-asked 2 Sep 2026)
+
+*"remove the highlighted areas. People are smart enough to know without being
+given explicit writing"* — off a screenshot of each room, with the line under
+the tab row ringed in both.
+
+It read *"Stays inside X — Y never sees this tab"* over the Internal room and
+*"Y reads everything on this tab — the contract wording is unchanged"* over the
+External one, **directly under a tab row already labelled Internal and External
+and already marking the live one.** That is the standing band test failed on its
+first half: the screen says it already, and the second printing is the one that
+reads as an instruction.
+
+- **THREE THINGS STILL SAY IT AND NONE OF THEM IS A SENTENCE** — the TAB you
+  pressed, the box's own PLACEHOLDER, and the tint and teal edge the external
+  composer wears. The **confirm** before anything crosses names the counterparty
+  again.
+- **THE PLACEHOLDER IS WHY THIS IS SAFE, AND IT WAS ONLY MADE SO HOURS
+  EARLIER.** The one thing the line said that a tab cannot is WHO reads it, by
+  name — and the external box now reads *"Add a note for {who}…"* against the
+  internal *"Add a note for your team…"*, so the counterparty is named at the
+  moment of typing rather than in a sentence above it. Had the placeholder still
+  said *"Reply to {who}…"*, removing the line would have been the same fact
+  moving rather than a duplicate going.
+- **IT IS DRAWN WHERE THERE ARE NO TABS, WHICH MAKES IT A READING RATHER THAN A
+  DELETION.** `rlNpWhoHtml(tabbed, ext, who)` is that one reading and all three
+  of our-seat composers ask it. The **counterparty's seat has one room and no
+  tab row** (their page is thrown away on every paint, so there is nowhere to
+  keep a private note), and there the line is the ONLY thing naming it, so it
+  stays. One question — what tells this reader which room they are in — with the
+  tabs and this line as its two halves; **f248's "one room, and it says who
+  reads it" is unmoved and is the proof.**
+- **THE CHAT FACE PASSES `true` EXPLICITLY**, because it draws its tab row
+  unconditionally and has no `tabbed` of its own. Said at the call site rather
+  than inferred.
+- **NO CSS CHANGED**: `.rl-np-who` and its `.out` state still dress the
+  counterparty's line.
+
+Tests: f173's room-line claims REVERSED IN PLACE and re-pointed at the three
+carriers that survive (the live tab, the placeholder, the box's mark), f248
+UNMOVED on their seat, notes-two-rooms-verify's two claims reversed and measured
+as paint — **both fail against the parent, reporting `who-line true`** — plus a
+new one that reads the counterparty off the RECORD and proves the placeholder
+still names them (a control: true before and after, which is what makes the
+removal a duplicate going rather than a fact).
 
 ## Line numbers drift
 

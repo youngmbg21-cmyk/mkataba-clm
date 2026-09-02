@@ -10702,7 +10702,7 @@ function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   return `<div class="rl-cb-notes rl-np" data-rl-np="${_nea(ch.id)}">
     ${tabs}
-    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    ${rlNpWhoHtml(tabbed, ext, who)}
     <div class="rl-cb-list">${list}</div>
     ${foot}
   </div>`;
@@ -12160,6 +12160,31 @@ const rlNpRoom = () => _rlNpRoom === 'external' ? 'external' : 'internal';
 function rlNpSetRoom(r){ _rlNpRoom = r === 'external' ? 'external' : 'internal'; }
 const RL_NP_LOCK = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6"/><path d="M5.5 7V5.2a2.5 2.5 0 015 0V7"/></svg>';
 const RL_NP_GLOBE = '<svg class="rl-np-i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.7 1.6 9.3 0 11M8 2.5c-1.6 1.7-1.6 9.3 0 11"/></svg>';
+/* ---- THE TAB SAYS WHICH ROOM YOU ARE IN, SO A SENTENCE UNDER IT DOES NOT
+       (owner-asked 2 Sep 2026, off a screenshot of each: "remove the
+       highlighted areas. People are smart enough to know without being given
+       explicit writing") ----
+   It read "Stays inside X — Y never sees this tab" over the Internal room and
+   "Y reads everything on this tab" over the External one, directly under a tab
+   row already labelled Internal and External and already marking the live one.
+   That is the standing band test failed on its first half: the screen says it
+   already. THREE THINGS STILL SAY IT and none of them is a sentence — the TAB
+   you pressed, the box's own PLACEHOLDER ("Add a note for {who}…" against "Add
+   a note for your team…", which is where the counterparty is NAMED at the
+   moment you type), and the tint and teal edge the external composer wears.
+   The confirm before anything crosses names them again.
+
+   IT IS DRAWN WHERE THERE ARE NO TABS, WHICH IS WHY THIS IS A READING RATHER
+   THAN A DELETION. The counterparty's seat has one room and no tab row (see
+   rlNotesPanelHtml's own note on why), so there the line is the ONLY thing
+   naming it and it stays. One question — what tells this reader which room
+   they are in — answered in one place, with the tabs and this line as its two
+   halves; f248's "one room, and it says who reads it" is unmoved. */
+function rlNpWhoHtml(tabbed, ext, who){
+  if (tabbed) return '';
+  return `<div class="rl-np-who${ext ? ' out' : ''}">${
+    ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>`;
+}
 /* One note. The per-note visibility badge the card used to carry is GONE and
    that is the split paying for itself: every note in a room has the same
    answer, so marking each one is the same fact printed five times. The room
@@ -12315,7 +12340,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
       ${ch.clauseId ? '<span class="ch" aria-hidden="true">&rsaquo;</span>' : ''}
     </button>
     ${tabs}
-    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    ${rlNpWhoHtml(tabbed, ext, who)}
     <div class="rl-np-list">
       <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${list}
@@ -12546,7 +12571,10 @@ function rlChatPanelHtml(c, opts = {}){
         >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
         r === 'external' ? nExt : nInt})</i></button>`).join('')}
     </div>
-    <div class="rl-np-who${ext ? ' out' : ''}">${ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>
+    ${''/* ALWAYS TABBED: this face draws its tab row unconditionally, so the
+           room is named on screen whoever is reading and the line under it
+           would be that fact twice. */}
+    ${rlNpWhoHtml(true, ext, who)}
     <div class="rl-np-list">
       <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${body}
