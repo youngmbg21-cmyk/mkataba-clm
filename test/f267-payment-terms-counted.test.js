@@ -668,11 +668,13 @@ describe('f267 (13) what is driving the gap', () => {
      with only 'What is driving the gap'". The two cards became one table, so it
      draws whether or not there is a gap — what the claim was really about is
      that the drawing counts nothing of its own and every row is a door. */
+  /* REVERSED IN PLACE 2 Sep 2026: the card's population is `against` since the
+     owner ruled it should hold "contracts that put you at a disadvantage". The
+     claim itself is unchanged — one reading, no counting, every row a door. */
   test('the ONE table reads the one reading, counts nothing, and every row is a door', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
-    assert.match(card, /d\.rows/, 'it reads the one population');
-    assert.match(card, /d\.drivers\.length/, 'and the two counts are the two readings');
-    assert.match(card, /d\.overN/);
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /const against = d\.against \|\| \[\]/, 'it reads the one population');
+    assert.match(card, /against\.length/, 'and the head count is that reading\'s own length');
     assert.ok(!/\.reduce\(/.test(card), 'counting is not drawing');
     assert.match(card, /data-pt-open="\$\{E\(r\.id\)\}"/, 'every row opens its contract');
     assert.ok(!INTEL.includes('pt_exc_title'), 'the second card is gone, not hidden');
@@ -788,7 +790,7 @@ describe('f267 (15) one table, and the facts are columns', () => {
   });
 
   test('the table draws all seven columns from ONE template', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /const PT_COLS =/, 'one column template');
     const uses = [...card.matchAll(/grid-template-columns:\$\{PT_COLS\}/g)];
     assert.equal(uses.length, 2, 'read by the head row and by the data row, and written out nowhere');
@@ -796,12 +798,17 @@ describe('f267 (15) one table, and the facts are columns', () => {
       .forEach(k => assert.ok(card.includes(k), k + ' is a column head'));
   });
 
-  test('it scrolls inside its own card rather than down the page', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
-    assert.match(card, /max-height:340px;overflow-y:auto/);
-    assert.match(card, /position:sticky;top:0/, 'the head row stays put while the rows move');
-    assert.ok(card.indexOf('max-height:340px') < card.indexOf('${head}'),
-      'and it is INSIDE the scroller, so it is exactly as wide as the rows');
+  /* REVERSED IN PLACE 2 Sep 2026, owner-asked: "This table should be the same
+     height as the chart above it. If the list is long then it will have pages
+     to click to." A paged region never grows a scrollbar, which is what lets
+     the head row be a plain sibling again rather than sticky inside a
+     scroller. */
+  test('it PAGES inside a box the chart hands it, and never scrolls', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.ok(!/overflow-y:auto|max-height:340px|position:sticky/.test(card),
+      'no scroller, no sticky head — the box is bounded by the card above it');
+    assert.match(card, /id="ig-pt-rows"[^>]*overflow:hidden/, 'the rows region clips rather than scrolls');
+    assert.match(card, /ptPagerHtml\(page, pages\)/);
     assert.ok(!/auto/.test(card.slice(card.indexOf('const PT_COLS'), card.indexOf('const cut'))),
       'every column is a fraction: `auto` sizes to content, so two grids sharing '
       + 'one template string would still draw different widths');
@@ -809,7 +816,7 @@ describe('f267 (15) one table, and the facts are columns', () => {
 });
 
 describe('f267 (16) the graph filters the table', () => {
-  const chart = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3 · ONE SCROLLABLE TABLE'));
+  const chart = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3 · ONE TABLE, PAGED'));
 
   test('a bar is a real button, so it is reachable without a mouse', () => {
     assert.match(chart, /<button type="button" \$\{b\.n \? '' : 'disabled '\}data-pt-bar=/);
@@ -845,7 +852,7 @@ describe('f267 (16) the graph filters the table', () => {
   });
 
   test('a narrowed table SAYS so and carries the way back', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /pt_showing/);
     assert.match(card, /data-pt-clear/);
     assert.match(card, /pt_show_all/);
@@ -853,7 +860,7 @@ describe('f267 (16) the graph filters the table', () => {
   });
 
   test('a cut that matches nothing says so rather than drawing an empty box', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE SCROLLABLE TABLE'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /pt_tbl_none/);
   });
 });
@@ -926,5 +933,147 @@ describe('f267 (17) payment terms is a filter on Contracts', () => {
       const hits = [...I18N.matchAll(new RegExp('^\\s*' + k + ": '", 'gm'))];
       assert.equal(hits.length, 2, k + ' is in both dictionaries exactly once each');
     });
+  });
+});
+
+/* ============================================================
+   Owner-asked 2 Sep 2026: *"This table should be the same height as the chart
+   above it. If the list is long then it will have pages to click to. This
+   table should also only contain contracts that are greater than the company
+   standard / preferred payment terms."* Then, on the two readings of that last
+   sentence: *"the card should have contracts that put you at a disadvantage
+   when it comes to payment terms."*
+   ============================================================
+    18  at a disadvantage -- and it is not the over-standard list
+    19  one box the chart hands down, and pages inside it
+   ============================================================ */
+
+describe('f267 (18) at a disadvantage, read in each side\'s own direction', () => {
+  const w = () => tw([
+    cust('CUST-LATE', 90),   // paid later than target -- money arrives late
+    cust('CUST-OK', 20),
+    supp('SUPP-SOON', 10),   // we pay sooner than target -- money leaves early
+    supp('SUPP-LATE', 95),   // we pay later than our own policy -- money we keep
+  ], { payTargets:{ customer:30, supplier:60 } }).payTermsData();
+
+  test('a customer paid later than target is against you', () => {
+    assert.equal(w().rows.find(r => r.id === 'CUST-LATE').disadvantage, true);
+  });
+
+  test('a supplier paid SOONER than target is against you too', () => {
+    const r = w().rows.find(r => r.id === 'SUPP-SOON');
+    assert.equal(r.disadvantage, true);
+    assert.equal(r.gapAway, 50, 'fifty days earlier than you need to pay');
+  });
+
+  test('a supplier paid LATER than your own policy is NOT — that is money you keep', () => {
+    const r = w().rows.find(r => r.id === 'SUPP-LATE');
+    assert.equal(r.disadvantage, false);
+    assert.equal(r.over, true, 'it is still past the standard, which is a different question');
+  });
+
+  test('a contract on its target is on neither list', () => {
+    const r = tw([cust('ON', 30)], { payTargets:{ customer:30 } }).payTermsData().rows[0];
+    assert.equal(r.disadvantage, false);
+    assert.equal(r.over, false);
+  });
+
+  test('THE CARD AND THE OVER-STANDARD LIST ARE DIFFERENT LISTS', () => {
+    const d = w();
+    assert.deepEqual(Array.from(d.against.map(r => r.id)), ['CUST-LATE', 'SUPP-SOON']);
+    assert.deepEqual(Array.from(d.exceptions.map(r => r.id)).sort(), ['CUST-LATE', 'SUPP-LATE']);
+  });
+
+  test('the reported row goes: 30 against a 30-day target is not a disadvantage', () => {
+    /* The owner's own screenshot — MK-363, a supplier at "30 → 30 days" with an
+       em-dash in the Gap column — is exactly the row this rule removes. */
+    const d = tw([cust('KEEP', 45), supp('DROP', 30)], { payTargets:{ customer:30, supplier:30 } }).payTermsData();
+    assert.deepEqual(Array.from(d.against.map(r => r.id)), ['KEEP']);
+  });
+
+  test('a contract with no value on file is still listed — its SHARE is nil, its terms are not', () => {
+    /* gapDays is a share of the side and goes to zero on a valueless contract
+       in a value-weighted book. Being at a disadvantage is about the TERMS. */
+    const d = tw([cust('BIG', 20, { value:9000000 }), cust('POOR', 90, { value:0 })],
+      { payTargets:{ customer:30 } }).payTermsData();
+    assert.equal(d.basis, 'value');
+    const poor = d.against.find(r => r.id === 'POOR');
+    assert.ok(poor, 'it is on the card');
+    assert.equal(poor.gapAway, 60, 'and it says how far out it is');
+    assert.equal(poor.gapDays, 0, 'even though it moves the average by nothing');
+  });
+
+  test('the card names its population and the count is that reading\'s own length', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /pt_drive_flag', \{ n:n\(against\.length\) \}/);
+    assert.ok(!/pt_exc_flag/.test(card), 'no flag counting something the table does not hold');
+  });
+
+  test('an empty card says which kind of empty it is', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /against\.length \? 'pt_tbl_none' : 'pt_tbl_clear'/,
+      'a cut that matched nothing is a different fact from a book with nothing against you');
+  });
+
+  test('one arithmetic: the drivers read the row\'s own distance', () => {
+    assert.match(PT, /const days = Math\.round\(share \* r\.gapAway \* 10\) \/ 10;/,
+      'never a second copy of "how far out is this"');
+  });
+});
+
+describe('f267 (19) one box the chart hands down, and pages inside it', () => {
+  test('the height is MEASURED off the chart card, never typed', () => {
+    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
+    assert.match(fit, /querySelector\('\[role="img"\]'\)/, 'the chart is found by its plot, not by a name');
+    assert.match(fit, /card\.style\.height = h \+ 'px'/);
+    assert.ok(!/height\s*=\s*['"]?\d{3}/.test(fit), 'no number is typed for it');
+  });
+
+  test('a zero is not an answer — a pane still laying out keeps the size it had', () => {
+    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
+    assert.match(fit, /if\(!\(rowH > 0\) \|\| !\(room > 0\)\) return;/);
+    assert.match(fit, /if\(h > 0\)/);
+  });
+
+  test('the page size falls out of the room that is left, above a floor', () => {
+    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
+    assert.match(fit, /Math\.max\(PT_PAGE_MIN, Math\.floor\(room \/ rowH\)\)/);
+    assert.match(INTEL, /const PT_PAGE_MIN = \d/);
+  });
+
+  test('it re-fits only when the answer changes, so it cannot loop', () => {
+    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
+    assert.match(fit, /if\(fit !== _ptPageSize\)\{ _ptPageSize = fit; ptRepaint\(\); return; \}/);
+  });
+
+  test('and it follows the chart when the window moves', () => {
+    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
+    assert.match(fit, /ResizeObserver/);
+    assert.match(fit, /chart\.dataset\.ptObs/, 'armed once per paint, because the element it watches is replaced');
+  });
+
+  test('the pager is the register\'s own shape, and draws nothing on one page', () => {
+    const pg = INTEL.slice(INTEL.indexOf('function ptPagerHtml'), INTEL.indexOf('function ptFitTable()'));
+    assert.match(pg, /if\(pages <= 1\) return '';/);
+    assert.match(pg, /data-pt-page=/);
+    assert.match(pg, /reg_page_of/, 'one wording for "page N of M", not a second');
+    assert.match(pg, /…/, 'numbers with an ellipsis, like the register');
+  });
+
+  test('the page is clamped, so a cut cannot strand a reader on page 3', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /const page = Math\.min\(Math\.max\(1, intel\.ptPage \|\| 1\), pages\)/);
+  });
+
+  test('changing the cut starts at page one', () => {
+    const wire = INTEL.slice(INTEL.indexOf('function ptWire()'), INTEL.indexOf('function intelPayTermsHtml()'));
+    assert.equal([...wire.matchAll(/intel\.ptPage = 1;/g)].length, 3,
+      'both graph cuts and Show all');
+    assert.match(wire, /data-pt-page/, 'and the pager presses are wired');
+  });
+
+  test('the page is per sitting and in memory', () => {
+    assert.match(INTEL, /ptCut:\{ side:null, bucket:null \}, ptPage:1,/);
+    assert.ok(!/localStorage[^\n]*ptPage/.test(INTEL), 'nothing is stored');
   });
 });

@@ -9079,3 +9079,52 @@ Noticed, not fixed:
   four doors. Nothing in the desktop app draws a control there — the only
   candidate, #ai-launch, has no markup anywhere — so it was most likely the
   browser's own scrollbar and the OS taskbar. Reported rather than guessed at.
+
+## 2 Sep 2026 — the card holds what is against you, and it pages
+
+Three asks in one message, off a screenshot of the payment-terms tab: the table
+should be the same height as the chart above it, a long list should page, and
+it should hold only the contracts that are past the standard. Then a
+clarification that settled the third: *"the card should have contracts that put
+you at a disadvantage when it comes to payment terms."*
+
+### 1. Past the standard and against you are two different lists
+
+Raised before anything was built, because the clarification changed the answer.
+A supplier paid SOONER than the target costs you cash and is not over any
+standard; a supplier paid LATER than the standard is over it and is helping the
+gap. Proved on the fixture book rather than argued: SUPP-SOON drives the gap
+and is not over standard, SUPP-LATE is over standard and drives nothing. The
+owner ruled for *against you*, so the card reads `d.against`.
+
+### 2. A real gap fell out of building it
+
+`gapAway` — how far a contract sits from its target in the direction that costs
+you — was computed only inside the drivers loop, so on a value-weighted book a
+contract carrying no value silently fell off the list even though its terms are
+just as bad. It is computed on every row now and the drivers read the row's own
+distance, which is one arithmetic rather than two.
+
+### 3. The box the chart hands down
+
+`ptFitTable` measures the chart card and gives the table card the same height,
+then measures one row and works out how many fit. It PAGES rather than scrolls,
+so the head row is a plain sibling again — a sibling head comes apart from its
+rows the moment a scroller grows a scrollbar, which is why it had to be sticky
+while it scrolled. The pager borrows the register's own shape and shares
+`reg_page_of`; every narrowing starts again at page one rather than stranding
+the reader on a page that no longer exists.
+
+Node 5618/5618. Browser: payment-terms 81/81, insights-panels 40/40,
+obligations-report 27/27, home-page 34/34, contracts-page 78/78. Against the
+parent commit f267 reports 24 failures and payment-terms 14 (67/81), the
+headline one reading `against 0 of 4 counted`.
+
+Noticed, not fixed:
+- theme-tokens-verify is 37/40 on the parent commit — templates--light,
+  negotiate--light and negotiate--dark — and is unchanged by this run. Proved
+  in a worktree at the parent rather than assumed.
+- negotiations-door-verify is 63/67 on the parent commit: four stale
+  assertions about the tab count and a search box that was removed on 31 Aug.
+- `npm run lint` reports 4 duplicate-key errors in js/i18n.js
+  (`co_password_updated`, `act_next`), all pre-existing and untouched here.

@@ -109,6 +109,7 @@ const EXTRA = [
                   crashes aborts the whole file and says nothing about the
                   claims it was written for. */
                drivers:(x.drivers || []).map(r => r.id),
+               against:(x.against || []).map(r => ({ id:r.id, gapDays:r.gapDays, side:r.side, bucket:r.bucket })),
                rows:(x.rows || []).map(r => ({ id:r.id, gapDays:r.gapDays, side:r.side, bucket:r.bucket })),
                exceptions:x.exceptions.map(r => ({ id:r.id, days:r.days, side:r.side })) };
     });
@@ -281,17 +282,24 @@ const EXTRA = [
                        getComputedStyle(headRow).position === 'sticky'),
       };
     });
-    check('5a one table, one row per counted contract', tbl.card && tbl.rows.length === d.custN + d.suppN,
-      `${tbl.rows.length} rows · reading counts ${d.custN + d.suppN}`);
+    /* REVERSED IN PLACE 2 Sep 2026, owner-ruled: "the card should have
+       contracts that put you at a disadvantage when it comes to payment
+       terms." The population is `against`, not every counted contract. */
+    check('5a one table, holding exactly the contracts that are against you',
+      tbl.card && tbl.rows.length === Math.min(d.against.length, tbl.rows.length) &&
+        tbl.rows.every(r => d.against.some(a => a.id === r.id)) &&
+        d.against.length > 0 && d.against.length < d.custN + d.suppN,
+      `${tbl.rows.length} rows · against ${d.against.length} of ${d.custN + d.suppN} counted`);
     check('5b the second card is gone, not stacked below it',
       tbl.card && !(await page.evaluate(() => /outside your standard/i.test(
         (document.getElementById('ig-pt') || {}).textContent || ''))),
       'one list');
     check('5c every row is visible pixels', tbl.rows.length > 0 && tbl.rows.every(r => r.w > 100 && r.h > 10),
       tbl.rows.map(r => `${r.w}x${r.h}`).join(' '));
-    check('5d the drivers lead, in the reading\'s own order',
-      JSON.stringify(tbl.rows.map(r => r.id).slice(0, d.drivers.length)) === JSON.stringify(d.drivers),
-      `${tbl.rows.map(r => r.id).join(',')} · drivers ${d.drivers.join(',')}`);
+    check('5d it is in the reading\'s own order, largest first',
+      JSON.stringify(tbl.rows.map(r => r.id)) ===
+        JSON.stringify(d.against.map(a => a.id).slice(0, tbl.rows.length)),
+      `${tbl.rows.map(r => r.id).join(',')} · reading ${d.against.map(a => a.id).join(',')}`);
     check('5e it has the three columns the owner asked for, and they are labelled',
       tbl.heads.length === 7 && /contract/i.test(tbl.heads[0]) &&
         /value stream/i.test(tbl.heads[2]) && /value/i.test(tbl.heads[6]),
@@ -304,15 +312,37 @@ const EXTRA = [
     check('5h each row names its side in words',
       tbl.rows.every(r => /customer|supplier|kund|leverant/i.test(r.text)),
       tbl.rows[0] && tbl.rows[0].text.slice(0, 70));
-    check('5i it scrolls inside its own card, and the head row stays put',
-      tbl.scrolls && tbl.maxH > 100 && tbl.headSticky,
-      `scrolls ${tbl.scrolls} · maxHeight ${tbl.maxH} · head sticky ${tbl.headSticky}`);
+    /* REVERSED IN PLACE 2 Sep 2026: "This table should be the same height as
+       the chart above it. If the list is long then it will have pages to click
+       to." A paged box never grows a scrollbar, which is what lets the head row
+       be a plain sibling again. */
+    const box = await page.evaluate(() => {
+      const host = document.getElementById('ig-pt');
+      const card = document.getElementById('ig-pt-table');
+      const rows = document.getElementById('ig-pt-rows');
+      const chart = host && Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
+      const head = card && card.querySelector('div[style*="grid-template-columns"]');
+      return {
+        cardH: card ? Math.round(card.getBoundingClientRect().height) : 0,
+        chartH: chart ? Math.round(chart.getBoundingClientRect().height) : 0,
+        rowsOverflow: rows ? getComputedStyle(rows).overflowY : '',
+        headInRows: !!(rows && head && rows.contains(head)),
+        headSticky: head ? getComputedStyle(head).position : '',
+        spill: rows ? rows.scrollHeight - rows.clientHeight : 0,
+      };
+    });
+    check('5i the card is exactly as tall as the chart above it',
+      box.cardH > 0 && Math.abs(box.cardH - box.chartH) <= 1,
+      `table ${box.cardH} · chart ${box.chartH}`);
+    check('5j it pages rather than scrolls, so the head row is a plain sibling',
+      box.rowsOverflow === 'hidden' && !box.headInRows && box.headSticky !== 'sticky' && box.spill <= 0,
+      `overflow ${box.rowsOverflow} · head in scroller ${box.headInRows} · spill ${box.spill}`);
 
     const target = tbl.rows[0] && tbl.rows[0].id;
     await page.click(`#ig-pt [data-pt-open="${target}"]`);
     await page.waitForTimeout(1400);
     const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    check('5j pressing a row opens that contract',
+    check('5k pressing a row opens that contract',
       landed.view === 'workspace' && landed.id === target,
       `${landed.view} · ${landed.id} (wanted ${target})`);
 
@@ -412,6 +442,9 @@ const EXTRA = [
     check('10b an empty bar is disabled — a press that could only empty the table is dead',
       bars.filter(b => b.off).length > 0 &&
         bars.every(b => b.off === !d3.rows.some(r => r.side + '|' + r.bucket === b.k)),
+      /* the chart counts the whole book, so a bar is live wherever the CHART
+         has a contract — the table then explains that none of them is against
+         you, which beats a press that does nothing */
       bars.map(b => `${b.k}${b.off ? '·off' : ''}`).join(' '));
 
     const live = bars.find(b => !b.off);
@@ -425,13 +458,13 @@ const EXTRA = [
        '10f the legend narrows to one side',
        '10g Show all puts the whole table back'].forEach(k => check(k, false, 'no pressable bar'));
     } else {
-      const want = d3.rows.filter(r => r.side + '|' + r.bucket === live.k).map(r => r.id);
+      const want = d3.against.filter(r => r.side + '|' + r.bucket === live.k).map(r => r.id);
       await page.click(`[data-pt-bar="${live.k}"]`);
       await page.waitForTimeout(700);
       const after = await rowsNow();
       check('10c pressing a bar really narrows the table',
-        JSON.stringify(after) === JSON.stringify(want) && after.length < d3.rows.length,
-        `${after.join(',')} · wanted ${want.join(',')} (of ${d3.rows.length})`);
+        JSON.stringify(after) === JSON.stringify(want) && after.length < d3.against.length,
+        `${after.join(',')} · wanted ${want.join(',')} (of ${d3.against.length})`);
       const said = await page.evaluate(() => {
         const el = Array.from(document.querySelectorAll('#ig-pt *')).find(x =>
           /showing \d+ of \d+/i.test(x.textContent || '') && x.children.length === 0);
@@ -443,7 +476,7 @@ const EXTRA = [
       await page.click(`[data-pt-bar="${live.k}"]`);
       await page.waitForTimeout(700);
       check('10e pressing the same bar again clears it — the way back is on what was pressed',
-        (await rowsNow()).length === d3.rows.length, `${(await rowsNow()).length} of ${d3.rows.length}`);
+        (await rowsNow()).length === d3.against.length, `${(await rowsNow()).length} of ${d3.against.length}`);
 
       const sideBtn = await page.evaluate(() => {
         const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled);
@@ -454,12 +487,12 @@ const EXTRA = [
         await page.waitForTimeout(700);
         const bySide = await rowsNow();
         check('10f the legend narrows to one side',
-          JSON.stringify(bySide) === JSON.stringify(d3.rows.filter(r => r.side === sideBtn).map(r => r.id)),
+          JSON.stringify(bySide) === JSON.stringify(d3.against.filter(r => r.side === sideBtn).map(r => r.id)),
           `${sideBtn}: ${bySide.join(',')}`);
         await page.click('[data-pt-clear]');
         await page.waitForTimeout(700);
         check('10g Show all puts the whole table back',
-          (await rowsNow()).length === d3.rows.length, `${(await rowsNow()).length} of ${d3.rows.length}`);
+          (await rowsNow()).length === d3.against.length, `${(await rowsNow()).length} of ${d3.against.length}`);
       } else {
         check('10f the legend narrows to one side', false, 'no live legend chip');
         check('10g Show all puts the whole table back', false, 'no live legend chip');
@@ -643,6 +676,87 @@ const EXTRA = [
     check('13f Clear puts it back and the control stands down again',
       cleared.v === 'all' && cleared.gone, `${cleared.v} · off the bar ${cleared.gone}`);
     await page.screenshot({ path: path.join(OUT, '06-contracts-filter.png'), fullPage: true });
+
+    /* ─── 14 · A LONG LIST HAS PAGES (owner-asked 2 Sep 2026) ───
+       *"If the list is long then it will have pages to click to."* Seeded with
+       more contracts against you than one page can hold, then the pager is
+       DRIVEN — a pager that draws and pages nothing looks identical in the
+       markup. */
+    await page.evaluate(() => {
+      state.contracts = state.contracts.filter(c => !/^PG-/.test(c.id));
+      for(let i = 1; i <= 14; i++) state.contracts.push({
+        id:'PG-' + String(i).padStart(2, '0'), name:'PG ' + i, counterparty:'Pager Co ' + i,
+        status:'Signed', value:1000000 + i, valueType:'fixed', folder:'sales',
+        metadata:{ paymentTerms:(100 + i) + ' days', category:'customer', currency:'KES' } });
+      intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; intel.ptPage = 1;
+      setView('intel');
+    });
+    await page.waitForTimeout(1200);
+    const pg1 = await page.evaluate(() => {
+      const card = document.getElementById('ig-pt-table');
+      const host = document.getElementById('ig-pt');
+      const chart = host && Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
+      const rows = Array.from(document.querySelectorAll('#ig-pt-rows [data-pt-open]')).map(b => b.getAttribute('data-pt-open'));
+      const btns = Array.from(document.querySelectorAll('[data-pt-page]')).map(b => b.getAttribute('data-pt-page'));
+      /* DEFENSIVE, like every other reading here: run against a build with no
+         `against` list this must REPORT rather than throw. */
+      const x = payTermsData();
+      const ag = x.against || [];
+      return { rows, btns, total:ag.length, order:ag.map(r => r.id),
+               cardH: card ? Math.round(card.getBoundingClientRect().height) : 0,
+               chartH: chart ? Math.round(chart.getBoundingClientRect().height) : 0,
+               spill: (() => { const el = document.getElementById('ig-pt-rows');
+                 return el ? el.scrollHeight - el.clientHeight : -1; })() };
+    });
+    const size = pg1.rows.length;
+    const pages = Math.ceil(pg1.total / Math.max(1, size));
+    check('14a a long list is cut into pages', pg1.total > size && size >= 3 && pages > 1,
+      `${pg1.total} against you · ${size} a page · ${pages} pages`);
+    check('14b page one holds the first slice, in the reading\'s order',
+      JSON.stringify(pg1.rows) === JSON.stringify(pg1.order.slice(0, size)),
+      pg1.rows.join(','));
+    check('14c and the rows still fit the box the chart handed down',
+      pg1.spill <= 0 && Math.abs(pg1.cardH - pg1.chartH) <= 1,
+      `spill ${pg1.spill} · card ${pg1.cardH} vs chart ${pg1.chartH}`);
+    check('14d there is a button per page, and one for each end',
+      pg1.btns.includes('2') && pg1.btns.length >= pages + 2,
+      pg1.btns.join(' '));
+
+    if (!pg1.btns.includes('2')) {
+      ['14e pressing a page number really turns the page',
+       '14f and the page says where you are',
+       '14g narrowing starts again at page one rather than stranding the reader']
+        .forEach(k => check(k, false, 'no pager to press'));
+    } else {
+    await page.click('[data-pt-page="2"]');
+    await page.waitForTimeout(700);
+    const pg2 = await page.evaluate(() => ({
+      rows: Array.from(document.querySelectorAll('#ig-pt-rows [data-pt-open]')).map(b => b.getAttribute('data-pt-open')),
+      note: (document.body.textContent.match(/page \d+ of \d+/i) || [''])[0],
+    }));
+    check('14e pressing a page number really turns the page',
+      JSON.stringify(pg2.rows) === JSON.stringify(pg1.order.slice(size, size * 2)) && pg2.rows.length > 0,
+      `${pg2.rows.join(',')} · wanted ${pg1.order.slice(size, size * 2).join(',')}`);
+    check('14f and the page says where you are', /page 2 of/i.test(pg2.note), pg2.note);
+
+    /* A CUT MUST NOT STRAND A READER ON A PAGE THAT NO LONGER EXISTS. */
+    await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled && x.getAttribute('data-pt-side') === 'supplier');
+      if (b) b.click();
+    });
+    await page.waitForTimeout(700);
+    const afterCut = await page.evaluate(() => ({
+      page: intel.ptPage,
+      rows: document.querySelectorAll('#ig-pt-rows [data-pt-open]').length,
+      empty: /no contract/i.test((document.getElementById('ig-pt-table') || {}).textContent || ''),
+    }));
+    check('14g narrowing starts again at page one rather than stranding the reader',
+      afterCut.page === 1 && (afterCut.rows > 0 || afterCut.empty),
+      `page ${afterCut.page} · ${afterCut.rows} rows`);
+    await page.evaluate(() => { const b = document.querySelector('[data-pt-clear]'); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    }
+    await page.screenshot({ path: path.join(OUT, '07-paged.png'), fullPage: true });
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

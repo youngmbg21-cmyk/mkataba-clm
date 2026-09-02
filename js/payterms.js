@@ -208,7 +208,17 @@ function payTermsData(){
     if(!s){ noSide.push(c); return; }
     const std = payStandardFor(c);
     const w = payWeight(c);
+    /* HOW FAR THIS CONTRACT SITS FROM ITS TARGET IN THE DIRECTION THAT COSTS
+       YOU (owner-ruled 2 Sep 2026: "the card should have contracts that put
+       you at a disadvantage"). Later than target on the money coming in,
+       SOONER than target on the money going out. Computed on the ROW rather
+       than only for the drivers below, so a contract carrying no value on a
+       value-weighted book still reports the distance it is out by — its SHARE
+       of the gap is nil, which is a fact about its size, not about whether it
+       is on bad terms. */
+    const away = Math.max(0, s === 'customer' ? d - std : std - d);
     const row = { id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || ''),
+                  gapAway:away, disadvantage:away > 0,
                   /* THE STREAM IS CARRIED AS ITS ID, never as a name. The label
                      is a view's job (FOLDERS lives with the screens), and a
                      name resolved here would freeze whatever language was
@@ -312,9 +322,8 @@ function payTermsData(){
     const W = weightOf(S);
     S.rows.forEach(r => {
       const share = basis === 'value' ? (W > 0 ? r.value / W : 0) : (1 / S.rows.length);
-      const away = Math.max(0, k === 'customer' ? r.days - r.standard : r.standard - r.days);
-      const days = Math.round(share * away * 10) / 10;
-      if(days > 0) drivers.push(Object.assign({}, r, { gapDays:days, gapAway:away }));
+      const days = Math.round(share * r.gapAway * 10) / 10;
+      if(days > 0) drivers.push(Object.assign({}, r, { gapDays:days }));
     });
   });
   drivers.sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
@@ -333,9 +342,9 @@ function payTermsData(){
      never disagree. Ranked by the gap, then by value, then by id, which is the
      drivers' own order with the rest of the book behind them. */
   const gapOf = {};
-  drivers.forEach(r => { gapOf[r.id] = { gapDays:r.gapDays, gapAway:r.gapAway }; });
+  drivers.forEach(r => { gapOf[r.id] = { gapDays:r.gapDays }; });
   const rows = [].concat(side.customer.rows, side.supplier.rows)
-    .map(r => Object.assign({}, r, gapOf[r.id] || { gapDays:0, gapAway:0 }))
+    .map(r => Object.assign({}, r, gapOf[r.id] || { gapDays:0 }))
     .sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
 
   const named = cs => cs.map(c => ({ id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || '') }));
@@ -355,6 +364,13 @@ function payTermsData(){
     exceptions,
     drivers,
     rows,
+    /* THE CARD'S OWN POPULATION (owner-ruled 2 Sep 2026). Every contract on
+       terms that cost you, whatever its size — a different question from
+       `exceptions`, which is every contract past the standard in the LITERAL
+       direction and therefore includes a supplier you pay later than your own
+       policy. That is money you keep, so it is a governance fact rather than a
+       disadvantage, and it is what the Contracts filter is for. */
+    against: rows.filter(r => r.disadvantage),
     overN: side.customer.overN + side.supplier.overN,
     /* A CAP OR AN OMISSION IS A FACT, NEVER A SILENT TRIM — the standing rule
        every money figure in this product already follows. Both are NAMED, so

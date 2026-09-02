@@ -1458,6 +1458,64 @@ payment-terms-verify (73, browser — **20 failing against the parent**; every
 press DRIVEN, the two grids' resolved column widths compared as paint, and the
 register's filter turned on from the model to prove it draws itself).
 
+## THE CARD HOLDS WHAT IS AGAINST YOU, AND IT PAGES (owner-ruled 2 Sep 2026)
+
+*"This table should be the same height as the chart above it. If the list is
+long then it will have pages to click to. This table should also only contain
+contracts that are greater than the company standard / preferred payment
+terms."* Then, on the two readings of that last sentence: *"the card should
+have contracts that put you at a disadvantage when it comes to payment
+terms."*
+
+- **THE TWO READINGS ARE NOT THE SAME LIST, AND THE OWNER RULED ON WHICH.**
+  "Greater than the standard" read literally is `payOver` — days > standard on
+  both sides — and on the SUPPLIER side that is a contract you pay LATER than
+  your own policy, which is money you KEEP. Read as *at a disadvantage* it is
+  the opposite contract: one you pay SOONER than you need to. **On the customer
+  side the two coincide; on the supplier side they are mutually exclusive.**
+  `disadvantage` is the ruling, `over` is still stamped on every row, and the
+  literal reading lives on the Contracts filter.
+- **`gapAway` MOVED ONTO THE ROW AND IS COMPUTED FOR EVERY CONTRACT.** It was
+  worked out inside the drivers loop, where a contract carrying no value on a
+  value-weighted book gets a SHARE of nil and so fell out entirely — its terms
+  are just as bad, and its size is a different fact. The drivers now read the
+  row's own distance rather than recomputing it, so there is one arithmetic.
+- **`against` IS THE CARD'S POPULATION** and the head's count is that reading's
+  own length. The over-standard flag came off the head: a count of something
+  the table does not hold is a number that argues with the rows under it. The
+  **OVER** tag stays on the rows where it applies.
+- **AN EMPTY CARD SAYS WHICH KIND OF EMPTY IT IS** — a cut that matched nothing
+  is a different fact from a book with nothing against you, and the second is
+  good news rather than an absence.
+- **THE HEIGHT IS THE CHART'S, MEASURED AND NEVER TYPED.** `ptFitTable` reads
+  the chart card's own rect — the chart is found by the plot inside it, so
+  `obCard` keeps its signature — sets the table card to it, and the page size
+  falls out of the room that is left. **`rowsThatFit` is deliberately not used**:
+  it measures from an element's top to the SCROLLER's bottom, which is "fill the
+  rest of the screen", and this box is bounded by the card above it instead.
+  A zero is not an answer, and it re-fits only when the answer changes, so it
+  cannot loop; a ResizeObserver on the chart follows a window resize.
+- **PAGING IS WHAT LETS THE HEAD ROW BE A PLAIN SIBLING AGAIN.** A scroller
+  grows a scrollbar and the head stops being the same width as the rows, which
+  is why it had to be sticky INSIDE it; a paged region is `overflow:hidden` and
+  never has one. **The columns are still fractions** — that half is unchanged
+  and is what makes two grids resolve alike at all.
+- **THE PAGER IS THE REGISTER'S OWN SHAPE**, prev / numbers with an ellipsis /
+  next, sharing `reg_page_of` so there is one wording for "page N of M". It is
+  written out rather than borrowed because `regPager` is bound to the
+  register's own state and attribute; **a THIRD pager is the point at which the
+  builder should be lifted out**, and that is said where it stands.
+- **THE PAGE IS CLAMPED AND A NEW CUT STARTS AT ONE.** A narrowing can shorten
+  the list under a reader who is on page 3, and stranding them on a page that
+  no longer exists is the fault the clamp exists for. Per sitting, in memory,
+  like the cut beside it.
+
+Tests: f267 (142 — sections 18-19 new, **24 failing against the parent**),
+payment-terms-verify (81, browser — **14 failing against the parent**; the card
+and the chart measured as paint at the same height, the rows proved not to
+spill, and the pager DRIVEN through to page two with the slice read back off
+the page).
+
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 
 ## A NEW DRAFT OPENS ON KEY TERMS

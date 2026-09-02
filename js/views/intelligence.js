@@ -130,7 +130,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
      this page: a stored one would land a reader on a narrowed table a week
      later with nothing on screen saying why. It cannot be quietly on — the
      table says what it is showing and carries the way back. */
-  ptCut:{ side:null, bucket:null },
+  ptCut:{ side:null, bucket:null }, ptPage:1,
   busy:false, dockOpen:true,
   // Horizon-style leftward expand; the preference sticks per device.
   dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
@@ -944,6 +944,7 @@ function renderIntel(){
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     ptWire();
+    ptFitTable();
     setActiveNav('intel');
     return;
   }
@@ -1922,6 +1923,62 @@ function intelObligationsHtml(){
    the navy workspace, so the two stay tellable apart whichever brand is on.
    Every bar carries its figure, every legend spells its count, and the side is
    written in words on every exception row, so no reading rests on the hue. */
+/* ---- HOW MANY ROWS A PAGE HOLDS (owner-asked 2 Sep 2026) ----
+   *"This table should be the same height as the chart above it. If the list is
+   long then it will have pages to click to."*
+
+   MEASURED, NEVER TYPED. The height comes from the chart card itself, so the
+   two stay level whatever either of them grows, and the page size falls out of
+   the room that is left. rowsThatFit is deliberately NOT used: it measures from
+   an element's top to the SCROLLER's bottom — "fill the rest of the screen" —
+   and this box is bounded by the card above it instead.
+
+   A ZERO IS NOT AN ANSWER: a pane still laying out, or a page with no rows to
+   measure a row against, keeps the size it had. The standing rule. */
+const PT_PAGE_MIN = 3;
+let _ptPageSize = 6;
+function ptPagerHtml(page, pages){
+  if(pages <= 1) return '';
+  /* THE REGISTER'S OWN PAGER IS THE REFERENCE for the shape and the dress —
+     prev, the numbers with an ellipsis, next — so this product has one pager
+     vocabulary. It is written out rather than borrowed because regPager is
+     bound to the register's own state and attribute; a THIRD pager is the
+     point at which the builder should be lifted out. */
+  const btn = (label, to, off, on) => `<button ${off ? 'disabled' : ''} data-pt-page="${to}" style="min-width:30px;padding:4px 9px;font:inherit;font-size:var(--t-label);font-weight:${on ? 'var(--w-title)' : 'var(--w-body)'};border:1px solid ${on ? 'var(--accent-fill)' : 'var(--color-divider)'};background:${on ? 'var(--accent-fill)' : 'var(--color-surface)'};color:${on ? '#fff' : (off ? 'var(--color-neutral-400)' : 'var(--accent-ink-700)')};border-radius:var(--radius);cursor:${off ? 'default' : 'pointer'}">${label}</button>`;
+  const nums = []; const lo = Math.max(1, page - 2), hi = Math.min(pages, page + 2);
+  const gap = '<span style="padding:0 2px;color:var(--color-neutral-500)">…</span>';
+  if(lo > 1){ nums.push(btn('1', 1, false, page === 1)); if(lo > 2) nums.push(gap); }
+  for(let i = lo; i <= hi; i++) nums.push(btn(String(i), i, false, i === page));
+  if(hi < pages){ if(hi < pages - 1) nums.push(gap); nums.push(btn(String(pages), pages, false, page === pages)); }
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;padding-top:9px;margin-top:auto">
+    ${btn('‹', page - 1, page <= 1, false)}${nums.join('')}${btn('›', page + 1, page >= pages, false)}
+    <span style="margin-left:6px;font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('reg_page_of', { p:page, n:pages })}</span></div>`;
+}
+function ptFitTable(){
+  const host = document.getElementById('ig-pt');
+  const card = document.getElementById('ig-pt-table');
+  const rows = document.getElementById('ig-pt-rows');
+  if(!host || !card || !rows) return;
+  /* The chart card is the one holding the plot — found rather than named, so
+     obCard keeps its own signature and the other tab's cards are untouched. */
+  const chart = Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
+  const h = chart ? Math.round(chart.getBoundingClientRect().height) : 0;
+  if(h > 0) card.style.height = h + 'px';
+  const r0 = rows.querySelector('[data-pt-open]');
+  const rowH = r0 ? Math.round(r0.getBoundingClientRect().height) : 0;
+  const room = rows.clientHeight;
+  if(!(rowH > 0) || !(room > 0)) return;
+  const fit = Math.max(PT_PAGE_MIN, Math.floor(room / rowH));
+  if(fit !== _ptPageSize){ _ptPageSize = fit; ptRepaint(); return; }
+  /* Re-fit when the chart's own height moves — a window resize, the nav rail,
+     the reader's zoom. Armed per paint, because the element it watches is
+     replaced by every repaint. */
+  if(chart && !chart.dataset.ptObs && typeof ResizeObserver === 'function'){
+    chart.dataset.ptObs = '1';
+    try{ new ResizeObserver(() => ptFitTable()).observe(chart); }catch(e){}
+  }
+}
+
 /* ---- THE TAB'S OWN PRESSES (owner-asked 2 Sep 2026) ----
    Re-armed on every paint of the body, because a filter press REPLACES the
    markup every one of these listeners is bound to. It repaints the BODY and
@@ -1938,6 +1995,7 @@ function ptRepaint(){
   host.innerHTML = intelPayTermsHtml();
   host.scrollTop = keep;
   ptWire();
+  ptFitTable();
 }
 function ptWire(){
   /* A row opens its contract — the friction tab's own verb, and the reason the
@@ -1949,6 +2007,7 @@ function ptWire(){
       const [side, bucket] = String(b.getAttribute('data-pt-bar') || '').split('|');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && c.bucket === bucket) ? { side:null, bucket:null } : { side, bucket };
+      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-side]').forEach(b =>
@@ -1956,10 +2015,13 @@ function ptWire(){
       const side = b.getAttribute('data-pt-side');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && !c.bucket) ? { side:null, bucket:null } : { side, bucket:null };
+      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-clear]').forEach(b =>
-    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; ptRepaint(); }));
+    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; intel.ptPage = 1; ptRepaint(); }));
+  document.querySelectorAll('[data-pt-page]').forEach(b =>
+    b.addEventListener('click', () => { intel.ptPage = Number(b.getAttribute('data-pt-page')) || 1; ptRepaint(); }));
 }
 
 function intelPayTermsHtml(){
@@ -2116,32 +2178,40 @@ function intelPayTermsHtml(){
      d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
      d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
 
-  /* ---- 3 · ONE SCROLLABLE TABLE (owner-asked 2 Sep 2026) ----
-     *"make this one scrollable table with only 'What is driving the gap'. It
-     should have columns for contract number, value stream, and value as well."*
+  /* ---- 3 · ONE TABLE, PAGED, OF WHAT IS AGAINST YOU ----
+     *"make this one scrollable table with only 'What is driving the gap'"* (2
+     Sep), then *"This table should be the same height as the chart above it.
+     If the list is long then it will have pages to click to. This table should
+     also only contain contracts that put you at a disadvantage when it comes
+     to payment terms."*
 
-     TWO CARDS BECAME ONE POPULATION WITH THE FACTS AS COLUMNS. "Driving the
-     gap" and "past your standard" are different questions and a contract can
-     answer one, both or neither — stacked as two lists that had to be read
-     twice, and the same contract appeared in both. Ranked by the gap, the
-     drivers lead by construction and the rest of the book is behind them.
+     THE POPULATION IS `against`, NOT `rows` — every contract on terms that
+     cost you: paid LATER than target on the money coming in, paying SOONER
+     than target on the money going out. That is a different list from
+     `exceptions`, which reads "past the standard" literally on both sides and
+     therefore holds a supplier you pay LATER than your own policy. That is
+     money you keep — a governance fact rather than a disadvantage — and the
+     Contracts filter is where it lives now.
 
-     NOTHING IS COUNTED HERE. payTermsData already answered both questions per
-     contract; this draws the answers. The head's two counts are `drivers` and
-     `exceptions` — the same readings the cards printed — so a count and the
-     rows under it can never disagree.
+     NOTHING IS COUNTED HERE. payTermsData answered both questions per
+     contract; this draws the answers, and the head's count is that same
+     reading's own length.
 
      ONE COLUMN TEMPLATE, DECLARED ONCE, read by the head row and by every data
-     row: written twice they line up today and drift the first time a column is
-     added. */
-  /* EVERY COLUMN IS A FRACTION, NEVER `auto`. Two grids only line up if their
-     columns resolve to the same widths, and `auto` sizes to CONTENT — so a
-     head row and a body row sharing one template string still drew columns
-     65px and 37px wide. Measured; the browser file reports it. */
+     row. EVERY COLUMN IS A FRACTION, never `auto`: two grids only line up if
+     their columns resolve alike, and `auto` sizes to CONTENT — measured, a
+     head and a body sharing one template string still drew columns 65px and
+     37px wide.
+
+     AND PAGING IS WHAT LETS THE HEAD ROW BE A PLAIN SIBLING AGAIN. A scroller
+     grows a scrollbar and the head stops being the same width as the rows,
+     which is why it had to be sticky INSIDE it; a paged region is
+     `overflow:hidden` and never has one. */
   const PT_COLS = 'minmax(0,.7fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1.3fr) minmax(0,.8fr) minmax(0,.9fr)';
   const cut = cutOf;
   const inCut = r => (!cut.side || r.side === cut.side) && (!cut.bucket || r.bucket === cut.bucket);
-  const rows = d.rows.filter(inCut);
+  const against = d.against || [];
+  const rows = against.filter(inCut);
   /* The stream's NAME is resolved here, at draw time, off the id the reading
      carries — and guarded, because FOLDERS belongs to the screens and a stage
      that does not load them must draw the table rather than take the page
@@ -2163,10 +2233,18 @@ function intelPayTermsHtml(){
   const cutWords = [cut.side ? i18t(cut.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp') : '',
                     cut.bucket ? cut.bucket + ' ' + i18t('pt_days') : ''].filter(Boolean).join(' · ');
   const cutLine = cutWords
-    ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:var(--t-meta);color:var(--color-neutral-600)">
-         <span>${i18t('pt_showing', { n:n(rows.length), total:n(d.rows.length), cut:E(cutWords) })}</span>
+    ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:var(--t-meta);color:var(--color-neutral-600)">
+         <span>${i18t('pt_showing', { n:n(rows.length), total:n(against.length), cut:E(cutWords) })}</span>
          <button data-pt-clear="1" style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;text-decoration:underline">${i18t('pt_show_all')}</button>
        </div>` : '';
+
+  /* PAGES, NOT A SCROLLBAR. The page size is MEASURED after the paint against
+     the height the chart above hands down (ptFitTable) rather than typed, so
+     the two cards stay level whatever either of them grows. The page is
+     clamped here: a cut can shorten the list under a reader who is on page 3. */
+  const pages = Math.max(1, Math.ceil(rows.length / _ptPageSize));
+  const page = Math.min(Math.max(1, intel.ptPage || 1), pages);
+  const shown = rows.slice((page - 1) * _ptPageSize, page * _ptPageSize);
 
   const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
@@ -2179,23 +2257,17 @@ function intelPayTermsHtml(){
     <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
   </button>`;
 
-  /* THE HEAD ROW IS STICKY INSIDE THE SCROLLER, not a sibling above it. It has
-     to stay put — a head that scrolls away leaves seven unlabelled columns —
-     and it has to be exactly as wide as the rows, which a sibling is not the
-     moment the scroller grows a scrollbar. Inside and sticky is both. The cap
-     is a max-height rather than a row count, so a short book draws a short
-     table and a long one scrolls inside its own card rather than down the
-     page. */
-  const drivers = obCard(i18t('pt_drive_title'),
-    [d.drivers.length ? obFlag(i18t('pt_drive_flag', { n:n(d.drivers.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
-     d.overN ? obFlag(i18t('pt_exc_flag', { n:n(d.overN) }), 'var(--st-ruby-bg)', 'var(--st-ruby-fg)') : ''].join(''),
-    `<p style="${OB_LEAD}">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</p>
-     ${cutLine}
-     <div class="scroll-thin" style="max-height:340px;overflow-y:auto">
-       <div style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE};position:sticky;top:0;background:var(--color-surface);z-index:1">${head}</div>
-       ${rows.length ? rows.map(rowHtml).join('')
-         : `<p style="${OB_LEAD};margin:14px 0 4px">${i18t('pt_tbl_none')}</p>`}
-     </div>`, '');
+  const body = shown.length ? shown.map(rowHtml).join('')
+    : `<p style="${OB_LEAD};margin:14px 0 4px">${i18t(against.length ? 'pt_tbl_none' : 'pt_tbl_clear')}</p>`;
+  const drivers = `<section id="ig-pt-table" style="${OB_CARD}">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_drive_title')}</span>${
+      against.length ? obFlag(i18t('pt_drive_flag', { n:n(against.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : ''}</div>
+    <p style="${OB_LEAD}">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</p>
+    ${cutLine}
+    <div style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE}">${head}</div>
+    <div id="ig-pt-rows" style="flex:1 1 auto;min-height:0;overflow:hidden">${body}</div>
+    ${ptPagerHtml(page, pages)}
+  </section>`;
 
   /* ---- 4 · what this page cannot see ----
      The honest limit, and it is the most important thing on the tab: HaTi
@@ -2470,4 +2542,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
