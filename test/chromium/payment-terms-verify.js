@@ -169,12 +169,34 @@ const EXTRA = [
           return { h: Math.round(r.height), w: Math.round(r.width),
                    label: (b.textContent || '').trim(), bg: getComputedStyle(b).backgroundColor };
         })),
-        axis: Array.from(root.querySelectorAll('[role="img"] > div + div > span')).map(s => s.textContent.trim()),
-        std: (() => {
-          const s = Array.from(root.querySelectorAll('span')).find(el =>
-            getComputedStyle(el).borderLeftStyle === 'dashed');
-          return s ? { x: Math.round(s.getBoundingClientRect().left), text: s.textContent.trim() } : null;
-        })(),
+        axis: Array.from(root.querySelectorAll('[role="img"] > div:nth-child(2) > span')).map(s => s.textContent.trim()),
+        /* THE BOUNDARY IS A LINE PER SIDE NOW, and its caption is a sibling row
+           under the axis rather than text hanging off the line. Read as PAINT:
+           x, colour and the caption's own centre, because "is the caption on
+           the line" is a geometry question and cannot be asked of markup. */
+        lines: Array.from(plot.querySelectorAll('span')).filter(el =>
+          getComputedStyle(el).borderLeftStyle === 'dashed').map(el => {
+            const r = el.getBoundingClientRect();
+            return { x: Math.round(r.left), ink: getComputedStyle(el).borderLeftColor };
+          }),
+        caps: Array.from(root.querySelectorAll('[role="img"] > div:nth-child(n+3) > span')).map(el => {
+          const r = el.getBoundingClientRect();
+          return { text: el.textContent.trim(), mid: Math.round(r.left + r.width / 2),
+                   top: Math.round(r.top), ink: getComputedStyle(el).color };
+        }),
+        axisTop: Math.round(root.querySelector('[role="img"] > div:nth-child(2)').getBoundingClientRect().top),
+        /* THE THING THE OWNER RINGED: a filled block running from the standard
+           to the right edge. Measured as a painted box inside the plot rather
+           than as a class, because a rule that lost a cascade fight would look
+           perfectly correct in the source. */
+        shaded: Array.from(plot.children).filter(el => {
+          const st = getComputedStyle(el);
+          const bg = st.backgroundColor;
+          return el.children.length === 0 && bg && bg !== 'rgba(0, 0, 0, 0)' &&
+                 el.getBoundingClientRect().width > 40;
+        }).length,
+        marks: Array.from(plot.querySelectorAll('span > span')).map(el => ({
+          text: el.textContent.trim(), ink: getComputedStyle(el).color })),
         plotBox: { x: Math.round(plot.getBoundingClientRect().left), w: Math.round(plot.getBoundingClientRect().width) },
       };
     });
@@ -194,19 +216,45 @@ const EXTRA = [
       chart && chart.bars[0] && chart.bars[0][0].bg !== chart.bars[0][1].bg,
       chart && chart.bars[0] && `${chart.bars[0][0].bg} vs ${chart.bars[0][1].bg}`);
     check('4e the axis names every bucket', chart && chart.axis.length === 5, chart && chart.axis.join(' '));
-    check('4f the standard rule is drawn and names its number',
-      chart && chart.std && chart.std.text.includes(String(d.standard)),
-      chart && chart.std && chart.std.text);
-    /* The rule sits on a bucket boundary inside the plot, never off the end. */
-    check('4g and it sits inside the plot',
-      chart && chart.std && chart.std.x > chart.plotBox.x && chart.std.x < chart.plotBox.x + chart.plotBox.w,
-      chart && chart.std && `rule at ${chart.std.x}, plot ${chart.plotBox.x}..${chart.plotBox.x + chart.plotBox.w}`);
+    /* 4f-4j REVERSED IN PLACE (owner-reported 2 Sep 2026: "i do not understand
+       this chart", off a screenshot with the shaded right-hand side ringed).
+       The claim was never "a rule is drawn" -- it was that a reader can see
+       where the boundary is. It is a line per side now, captioned under the
+       axis, and nothing at all is shaded. */
+    check('4f nothing is shaded — the block the owner ringed is gone',
+      chart && chart.shaded === 0, chart && `${chart.shaded} filled box(es) behind the bars`);
+    check('4g a boundary line is drawn and sits inside the plot',
+      chart && chart.lines.length >= 1 &&
+        chart.lines.every(L => L.x >= chart.plotBox.x - 1 && L.x <= chart.plotBox.x + chart.plotBox.w + 1),
+      chart && `${chart.lines.length} line(s) at ${chart.lines.map(L => L.x).join(', ')} in ${chart.plotBox.x}..${chart.plotBox.x + chart.plotBox.w}`);
+    check('4h the caption names the number and sits UNDER the axis',
+      chart && chart.caps.length === chart.lines.length && chart.caps.length > 0 &&
+        chart.caps.some(c => c.text.includes(String(d.standard))) &&
+        chart.caps.every(c => c.top > chart.axisTop),
+      chart && chart.caps.map(c => `"${c.text}" @${c.top} (axis ${chart.axisTop})`).join(' · '));
+    check('4i and it is centred ON its own line, not hanging beside it',
+      chart && chart.caps.length > 0 &&
+        chart.caps.every((c, i) => Math.abs(c.mid - chart.lines[i].x) <= 6),
+      chart && chart.caps.map((c, i) => `cap ${c.mid} vs line ${chart.lines[i] && chart.lines[i].x}`).join(' · '));
+    /* A BAND PAST THE LINE IS MARKED, AND NEVER IN A SIDE'S OWN COLOUR — amber
+       is already the money-going-out side on this chart. */
+    const rubyMarks = chart ? chart.marks.filter(m => /rgb\(190, 18, 60\)|rgb\(251, 113, 133\)/.test(m.ink)) : [];
+    check('4j a band past its side\'s line is marked, in neither side colour',
+      rubyMarks.length > 0 && rubyMarks.every(m => Number(m.text) > 0),
+      chart && chart.marks.map(m => `${m.text}:${m.ink}`).join(' '));
 
     /* ─── 5 · the exception list is a door ─── */
-    const exc = await page.evaluate(() => Array.from(document.querySelectorAll('[data-pt-open]'))
-      .map(b => { const r = b.getBoundingClientRect();
-        return { id:b.getAttribute('data-pt-open'), text:b.textContent.replace(/\s+/g, ' ').trim(),
-                 w:Math.round(r.width), h:Math.round(r.height) }; }));
+    /* SCOPED TO THIS CARD. Two cards on this tab carry data-pt-open rows since
+       the gap list landed, so a bare document query counts both and this check
+       would report a list twice its own length. */
+    const exc = await page.evaluate(() => {
+      const card = Array.from(document.querySelectorAll('#ig-pt > section')).find(sec =>
+        /outside your standard|utanf/i.test(sec.textContent || ''));
+      return Array.from((card || document).querySelectorAll('[data-pt-open]'))
+        .map(b => { const r = b.getBoundingClientRect();
+          return { id:b.getAttribute('data-pt-open'), text:b.textContent.replace(/\s+/g, ' ').trim(),
+                   w:Math.round(r.width), h:Math.round(r.height) }; });
+    });
     check('5a a row per contract over the standard', exc.length === d.overN,
       `${exc.length} rows · reading says ${d.overN}`);
     check('5b every row is visible pixels', exc.length > 0 && exc.every(r => r.w > 100 && r.h > 10),
@@ -218,7 +266,7 @@ const EXTRA = [
       exc[0] && exc[0].text);
 
     const target = exc[0] && exc[0].id;
-    await page.click(`[data-pt-open="${target}"]`);
+    await page.click(`#ig-pt [data-pt-open="${target}"]`);
     await page.waitForTimeout(1400);
     const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
     check('5e pressing a row opens that contract',
@@ -300,6 +348,164 @@ const EXTRA = [
     check('9c no key leaked through untranslated', !/\bpt_[a-z_]+/.test(sv.body),
       (sv.body.match(/\bpt_[a-z_]+/g) || []).slice(0, 3).join(' ') || 'clean');
     await page.screenshot({ path: path.join(OUT, '03-swedish.png'), fullPage: true });
+
+    await page.evaluate(() => { window.langSet('en'); });
+
+    /* ─── 10 · WHAT IS DRIVING THE GAP (owner-asked 2 Sep 2026) ───
+       "How will i then identify the contracts that are driving the gap if I
+       want to address them?" The list has to exist, rank by the days it says,
+       and open the contract it names. */
+    await seedBook();
+    await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
+    await page.waitForTimeout(900);
+    const drv = await page.evaluate(() => {
+      /* DEFENSIVE ON PURPOSE: run against a build with no gap list at all this
+         must REPORT rather than throw — a probe that crashes aborts the run and
+         says nothing about the claim it was written for. */
+      const x = payTermsData();
+      const want = (x.drivers || []).map(r => r.id);
+      const card = Array.from(document.querySelectorAll('#ig-pt > section')).find(sec =>
+        /driving the gap/i.test(sec.textContent || ''));
+      if (!card) return { card:false, want, rows:[], days:[], exc:x.exceptions.map(r => r.id) };
+      const rows = Array.from(card.querySelectorAll('[data-pt-open]')).map(b => {
+        const r = b.getBoundingClientRect();
+        return { id:b.getAttribute('data-pt-open'), text:(b.textContent || '').replace(/\s+/g, ' ').trim(),
+                 w:Math.round(r.width), h:Math.round(r.height) };
+      });
+      return { card:true, rows, want, gap:x.gap,
+               days:(x.drivers || []).map(r => r.gapDays), exc:x.exceptions.map(r => r.id) };
+    });
+    check('10a the gap has a list of what is driving it', drv.card, drv.card ? `${drv.rows.length} rows` : 'no card');
+    check('10b it is NOT the exceptions list under another name',
+      drv.card && JSON.stringify(drv.rows.map(r => r.id)) !== JSON.stringify(drv.exc),
+      drv.card ? `driving ${drv.rows.map(r => r.id).join(',')} vs over-standard ${drv.exc.join(',')}` : '');
+    check('10c every row is visible pixels',
+      drv.card && drv.rows.length > 0 && drv.rows.every(r => r.w > 100 && r.h > 10),
+      drv.card && drv.rows.map(r => `${r.w}x${r.h}`).join(' '));
+    check('10d the order is the reading\'s own, largest first',
+      drv.card && JSON.stringify(drv.rows.map(r => r.id)) === JSON.stringify(drv.want.slice(0, drv.rows.length)),
+      drv.card && `${drv.rows.map(r => r.id).join(',')} vs ${drv.want.join(',')}`);
+    check('10e each row prints the days it would close',
+      drv.card && drv.rows.length > 0 && drv.rows.every((r, i) => r.text.includes(String(drv.days[i]))),
+      drv.card && drv.rows.map((r, i) => `${drv.days[i]} in "${r.text.slice(0, 60)}"`).join(' | '));
+    if (drv.card && drv.rows.length) {
+      const want = drv.rows[0].id;
+      await page.click(`#ig-pt [data-pt-open="${want}"]`);
+      await page.waitForTimeout(1600);
+      const got = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
+      check('10f pressing the top row opens that contract',
+        got.view === 'workspace' && got.id === want, `${got.view} · ${got.id} (wanted ${want})`);
+    } else {
+      check('10f pressing the top row opens that contract', false, 'no rows to press');
+    }
+
+    /* ─── 11 · TWO TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ───
+       Typed into the real panel, saved through the real route, and the tab has
+       to follow — the setting and the page reading the same number is the
+       whole of what was asked for. */
+    await seedBook();
+    await page.evaluate(() => { setView('team'); });
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); });
+    await page.waitForTimeout(700);
+    const rowThere = await page.evaluate(() => !!document.querySelector('.st-row[data-st-panel="paydays"]'));
+    check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');
+    if (rowThere) {
+      await page.click('.st-row[data-st-panel="paydays"]');
+      await page.waitForTimeout(700);
+      const boxes = await page.evaluate(() => {
+        const a = document.getElementById('st-pay-in'), b = document.getElementById('st-pay-out');
+        const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 20 && r.height > 10; };
+        return { in: vis(a), out: vis(b), save: vis(document.getElementById('st-pay-save')) };
+      });
+      check('11b the drawer holds a box per side and a save', boxes.in && boxes.out && boxes.save,
+        JSON.stringify(boxes));
+      /* A REFUSAL FIRST: a number the reading would hand back as null must not
+         be stored looking answered. */
+      await page.fill('#st-pay-in', '900');
+      await page.click('#st-pay-save');
+      await page.waitForTimeout(500);
+      const refused = await page.evaluate(() => ({
+        said: !!Array.from(document.querySelectorAll('#st-drawer *')).find(el =>
+          /1 to 365|1 till 365/.test(el.textContent || '')),
+        stored: ((state.settings || {}).payTargets || {}).customer,
+      }));
+      check('11c an impossible target is refused in the drawer and not stored',
+        refused.said && refused.stored == null, `said=${refused.said} stored=${refused.stored}`);
+      await page.fill('#st-pay-in', '30');
+      await page.fill('#st-pay-out', '75');
+      await page.click('#st-pay-save');
+      await page.waitForTimeout(1400);
+      const saved = await page.evaluate(() => ({
+        t: Object.assign({}, payTargets()),
+        row: (document.querySelector('.st-row[data-st-panel="paydays"] .st-row-state') || {}).textContent || '',
+      }));
+      check('11d the pair is stored and each side reads its own',
+        saved.t.customer === 30 && saved.t.supplier === 75, JSON.stringify(saved.t));
+      check('11e the row behind the drawer states it without being opened',
+        /30/.test(saved.row) && /75/.test(saved.row), saved.row.trim());
+
+      await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
+      await page.waitForTimeout(1100);
+      const two = await page.evaluate(() => {
+        const x = payTermsData();
+        const root = document.getElementById('ig-pt');
+        const plot = root && root.querySelector('[role="img"] > div');
+        const lines = plot ? Array.from(plot.querySelectorAll('span')).filter(el =>
+          getComputedStyle(el).borderLeftStyle === 'dashed').map(el => ({
+            x: Math.round(el.getBoundingClientRect().left), ink: getComputedStyle(el).borderLeftColor })) : [];
+        const caps = root ? Array.from(root.querySelectorAll('[role="img"] > div:nth-child(n+3) > span'))
+          .map(el => el.textContent.trim()) : [];
+        return { lines, caps, cs: x.customer.standard, ss: x.supplier.standard, drivers: x.drivers.length };
+      });
+      check('11f the tab measures each side against its own target',
+        two.cs === 30 && two.ss === 75, `coming in ${two.cs}, going out ${two.ss}`);
+      check('11g so the chart draws TWO boundaries, in the two side colours',
+        two.lines.length === 2 && two.lines[0].ink !== two.lines[1].ink && two.lines[0].x !== two.lines[1].x,
+        two.lines.map(L => `${L.x}:${L.ink}`).join(' · '));
+      check('11h and each caption names its own side and number',
+        two.caps.length === 2 && two.caps.join(' ').includes('30') && two.caps.join(' ').includes('75'),
+        two.caps.join(' · '));
+      /* SHUT THE DRAWER FIRST. A screenshot of the tab with the settings panel
+         still over half of it documents nothing. */
+      await page.evaluate(() => { if (window.stDrawerClose) stDrawerClose(); });
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(OUT, '04-two-targets.png'), fullPage: true });
+    } else {
+      ['11b','11c','11d','11e','11f','11g','11h'].forEach(k => check(k + ' (skipped)', false, 'no panel row'));
+    }
+
+    /* ─── 12 · PAYMENT TERMS AS A GRAPH LENS (owner-asked 2 Sep 2026) ───
+       "add the payment terms to the Group by in the contract graph." The option
+       has to be on the control AND the graph has to regroup when it is chosen —
+       an option that draws and regroups nothing looks identical in the markup. */
+    await page.evaluate(() => { intel.tab = 'map'; setView('intel'); });
+    await page.waitForTimeout(1600);
+    const opt = await page.evaluate(() => {
+      const sel = document.getElementById('ig-group');
+      return sel ? Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim() })) : null;
+    });
+    check('12a payment terms is on the Group by control',
+      opt && opt.some(o => o.v === 'payterms' && /payment/i.test(o.t)),
+      opt ? opt.map(o => o.v).join(',') : 'no control');
+    if (opt && opt.some(o => o.v === 'payterms')) {
+      await page.selectOption('#ig-group', 'payterms');
+      await page.waitForTimeout(1400);
+      const grouped = await page.evaluate(() => {
+        const labels = state.contracts.map(c => groupLabelOf(c, intel.groupBy, intel.groups));
+        return { by: intel.groupBy, uniq: Array.from(new Set(labels)),
+                 note: (document.getElementById('ig-note') || document.body).textContent || '' };
+      });
+      check('12b choosing it really regroups the graph', grouped.by === 'payterms', grouped.by);
+      check('12c the groups are the payment terms bands, and an unread contract is its own',
+        grouped.uniq.some(l => /days$/.test(l)) && grouped.uniq.includes('No payment terms'),
+        grouped.uniq.join(' | '));
+      check('12d the page says what it is grouped by', /payment terms/i.test(grouped.note),
+        grouped.note.replace(/\s+/g, ' ').slice(0, 80));
+      await page.screenshot({ path: path.join(OUT, '05-group-by-terms.png'), fullPage: true });
+    } else {
+      ['12b','12c','12d'].forEach(k => check(k + ' (skipped)', false, 'option absent'));
+    }
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

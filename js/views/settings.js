@@ -1887,6 +1887,81 @@ const SET_PANELS={
     wire(){},
   },
 
+  /* ---- TWO PAYMENT TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
+     "What if we want to pay under one payment term while we get paid under a
+     different payment term?" The playbook's paymentDays is per contract TYPE
+     and cannot answer that; this pair can, and it is the only new setting the
+     payment terms page needed.
+
+     BLANK IS AN ANSWER AND IT IS THE DEFAULT — the playbook standard for that
+     contract type carries on answering, so nothing in a workspace already
+     running moves until an admin types a number here. The reading lives in
+     js/payterms.js (payTargets); this panel writes and nothing else, so the
+     screen and the page cannot come to disagree about what a target is.
+
+     IT RIDES THE ORDINARY SETTINGS BLOB, like the review gate's own switch: a
+     pair of numbers is not an access map, so the H-3 reasoning that gives
+     folderAccess and signFolders.by their own atomic routes does not apply. */
+  paydays:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_paydays'),
+    sub:()=>i18t('set_paydays_sub'),
+    state(){
+      const t=(typeof payTargets==='function')?payTargets():{customer:null,supplier:null};
+      const dot=(t.customer!=null||t.supplier!=null)?'ok':'off';
+      const text = t.customer!=null&&t.supplier!=null ? i18t('set_pay_row_both',{i:t.customer,o:t.supplier})
+        : t.customer!=null ? i18t('set_pay_row_in',{n:t.customer})
+        : t.supplier!=null ? i18t('set_pay_row_out',{n:t.supplier})
+        : i18t('set_pay_row_none');
+      return { dot, text };
+    },
+    body(){
+      const t=(typeof payTargets==='function')?payTargets():{customer:null,supplier:null};
+      const box=(id,label,val)=>`<label style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:var(--t-meta);font-weight:var(--w-strong)">
+        <span style="min-width:170px">${esc(label)}</span>
+        <input id="${id}" type="number" min="1" max="365" step="1" inputmode="numeric" value="${val==null?'':val}" placeholder="—"
+          style="${window.RV_FLD||ST_INPUT}width:92px;font-family:var(--font-mono);text-align:right"/>
+        <span style="font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)">${esc(i18t('set_pay_days'))}</span></label>`;
+      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_paydays_sub')}</p>
+      <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+        ${box('st-pay-in',i18t('set_pay_in'),t.customer)}
+        ${box('st-pay-out',i18t('set_pay_out'),t.supplier)}
+      </div>
+      <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_pay_note')}</p>
+      <div style="margin-top:var(--s-3)"><button id="st-pay-save" style="${ST_BTN_SM}">${i18t('act_save')}</button></div>`;
+    },
+    wire(){
+      document.getElementById('st-pay-save')?.addEventListener('click',async()=>{
+        const btn=document.getElementById('st-pay-save');
+        /* A BLANK BOX IS "FALL BACK TO THE PLAYBOOK" AND ANYTHING ELSE IS A
+           REFUSAL. Storing a number outside 1-365 would read back as null on
+           the page while sitting in the record looking answered — two readings
+           of one setting, which is worse than refusing the save. */
+        const read=id=>{
+          const el=document.getElementById(id); const raw=String((el&&el.value)||'').trim();
+          if(!raw) return { ok:true, v:null };
+          const v=(typeof payTargetDays==='function')?payTargetDays(raw):null;
+          return v==null?{ok:false}:{ok:true,v};
+        };
+        const a=read('st-pay-in'), b=read('st-pay-out');
+        if(!a.ok||!b.ok){ stDrawerRefuse(i18t('set_pay_bad')); return; }
+        stDrawerClearRefusal();
+        if(btn) btn.disabled=true;
+        try{
+          state.settings=state.settings||{};
+          state.settings.payTargets={ customer:a.v, supplier:b.v };
+          await saveSettings();
+          toast(i18t('set_pay_saved'),'ok');
+          /* THE ROW STATES THE PAIR WITHOUT BEING OPENED, so it is repainted
+             where it stands — never renderTeam(), which rebuilds the whole
+             screen and empties every server-filled panel. */
+          stRepaintRow('paydays');
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+        finally{ if(btn) btn.disabled=false; }
+      });
+    },
+  },
+
   workshape:{
     tab:'platform', mandatory:false,
     title:()=>i18t('st_p_workshape'),

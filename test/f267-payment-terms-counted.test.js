@@ -440,7 +440,13 @@ describe('f267 (10) both languages', () => {
     'pt_exc_title', 'pt_exc_q', 'pt_exc_none', 'pt_exc_flag', 'pt_exc_showing',
     'pt_side_cust', 'pt_side_supp', 'pt_blind_title', 'pt_blind_1', 'pt_blind_1_why',
     'pt_blind_2', 'pt_blind_2_why', 'pt_method', 'pt_empty', 'pt_empty_why',
-    'kpi_payterms', 'home_pt_of', 'home_pt_split', 'home_pt_clear'];
+    'kpi_payterms', 'home_pt_of', 'home_pt_split', 'home_pt_clear',
+    /* the two targets and the gap list (owner-ruled 2 Sep 2026) */
+    'pt_target_in', 'pt_target_out', 'pt_drive_title', 'pt_drive_q', 'pt_drive_none',
+    'pt_drive_terms', 'pt_drive_flag', 'pt_targets_set', 'pt_targets_in_only',
+    'pt_targets_out_only', 'st_p_paydays', 'set_paydays_sub', 'set_pay_in', 'set_pay_out',
+    'set_pay_days', 'set_pay_note', 'set_pay_bad', 'set_pay_saved',
+    'set_pay_row_both', 'set_pay_row_in', 'set_pay_row_out', 'set_pay_row_none'];
 
   test('every key is written twice, and the two are different words', () => {
     KEYS.forEach(k => {
@@ -466,5 +472,256 @@ describe('f267 (10) both languages', () => {
   test('the plural sentences go through i18tn', () => {
     assert.match(INTEL, /i18tn\('pt_no_terms'/);
     assert.match(INTEL, /i18tn\('pt_no_side'/);
+  });
+});
+
+/* ============================================================
+   Owner-ruled 2 Sep 2026, off "What if we want to pay under one payment term
+   while we get paid under a different payment term?" and "How will i then
+   identify the contracts that are driving the gap if I want to address them?"
+   ============================================================
+    11  two targets, one per side -- and absent moves nothing
+    12  ONE basis for the page, never one per side
+    13  what is driving the gap
+    14  the chart's boundary, and payment terms as a graph lens
+   ============================================================ */
+
+/* A world that can carry a settings blob as well as a book. */
+function tw(contracts, settings, opts) {
+  const w = mk(opts);
+  w.state = { contracts, settings: settings || {} };
+  return w;
+}
+const cust = (id, days, over) => meta(con(id, over), { paymentTerms: days + ' days', category:'customer' });
+const supp = (id, days, over) => meta(con(id, over), { paymentTerms: days + ' days', category:'supplier' });
+
+describe('f267 (11) two targets, one per side', () => {
+  test('absent means nobody has set one, and the playbook answers exactly as before', () => {
+    const w = tw([cust('C', 30)]);
+    assert.deepEqual(Object.assign({}, w.payTargets()), { customer:null, supplier:null });
+    assert.equal(w.payStandardFor(w.state.contracts[0]), w.PAY_STD_FALLBACK,
+      'with nothing set the standard is the playbook fallback, so no book moves');
+  });
+
+  test('a target answers for its own side and leaves the other alone', () => {
+    const w = tw([cust('C', 30), supp('S', 30)], { payTargets:{ customer:20 } });
+    const [c, s] = w.state.contracts;
+    assert.equal(w.payStandardFor(c), 20, 'the side with a target reads it');
+    assert.equal(w.payStandardFor(s), w.PAY_STD_FALLBACK, 'the side without one falls back');
+  });
+
+  test('the pair really can differ -- the whole point of the ruling', () => {
+    const w = tw([cust('C', 45), supp('S', 45)], { payTargets:{ customer:30, supplier:60 } });
+    const [c, s] = w.state.contracts;
+    assert.equal(w.payStandardFor(c), 30);
+    assert.equal(w.payStandardFor(s), 60);
+    assert.equal(w.payOver(c), true, '45 days to be paid is past a 30-day target');
+    assert.equal(w.payOver(s), false, '45 days to pay is inside a 60-day target');
+  });
+
+  test('a contract with no side cannot read a target', () => {
+    const w = tw([meta(con('X', 30), { paymentTerms:'30 days', category:'lease' })],
+      { payTargets:{ customer:5, supplier:5 } });
+    assert.equal(w.payStandardFor(w.state.contracts[0]), w.PAY_STD_FALLBACK);
+  });
+
+  test('a target is a whole number of days from 1 to 365, and nothing else is one', () => {
+    const w = mk();
+    assert.equal(w.payTargetDays(30), 30);
+    assert.equal(w.payTargetDays('45'), 45);
+    assert.equal(w.payTargetDays(30.6), 31, 'rounded, never stored fractional');
+    [0, -5, 366, '', null, undefined, 'soon', NaN, Infinity].forEach(v =>
+      assert.equal(w.payTargetDays(v), null, String(v) + ' is not a target'));
+  });
+
+  test('the page reports the pair, so a reader can tell a target from a default', () => {
+    const w = tw([cust('C', 30)], { payTargets:{ customer:20, supplier:60 } });
+    assert.deepEqual(Object.assign({}, w.payTermsData().targets), { customer:20, supplier:60 });
+  });
+
+  test('each side reports its own standard, and none where its contracts disagree', () => {
+    const w = tw([cust('A', 10), cust('B', 20), supp('S', 10)],
+      { payTargets:{ customer:30, supplier:60 } });
+    const d = w.payTermsData();
+    assert.equal(d.customer.standard, 30);
+    assert.equal(d.supplier.standard, 60);
+    assert.equal(typeof d.customer.splitAfter, 'number');
+    assert.equal(typeof d.supplier.splitAfter, 'number');
+  });
+
+  test('a side with no rows carries no standard, so the chart draws it no line', () => {
+    const d = tw([cust('C', 30)], { payTargets:{ customer:30, supplier:60 } }).payTermsData();
+    assert.equal(d.supplier.standard, null);
+    assert.equal(d.supplier.splitAfter, null);
+  });
+
+  test('the setting is written by exactly one panel, and it rides the ordinary blob', () => {
+    const SET = read('js/views/settings.js');
+    const writes = [...SET.matchAll(/state\.settings\.payTargets\s*=/g)];
+    assert.equal(writes.length, 1, 'one writer');
+    assert.match(SET, /saveSettings\(\)/, 'through the ordinary save, no route of its own');
+    assert.ok(!/api\(['"]settings\/pay/.test(SET), 'no atomic route was invented for a pair of numbers');
+  });
+
+  test('the panel refuses a number the reading would hand back as null', () => {
+    const SET = read('js/views/settings.js');
+    const body = SET.slice(SET.indexOf('paydays:{'), SET.indexOf('workshape:{'));
+    assert.match(body, /payTargetDays/, 'the panel asks the one reading rather than its own');
+    assert.match(body, /stDrawerRefuse\(i18t\('set_pay_bad'\)\)/, 'and refuses in the drawer, in words');
+    assert.match(body, /stRepaintRow\('paydays'\)/, 'the row behind the drawer is repainted, never the screen');
+  });
+});
+
+describe('f267 (12) one basis for the page, never one per side', () => {
+  test('both sides read the same way when both can be weighted', () => {
+    const d = tw([cust('C', 30, { value:1000 }), supp('S', 60, { value:2000 })]).payTermsData();
+    assert.equal(d.basis, 'value');
+    assert.equal(d.customer.basis, 'value');
+    assert.equal(d.supplier.basis, 'value');
+  });
+
+  test('one side with no value on file drops BOTH to a straight mean', () => {
+    /* This is the reported fault: "Averaged across 1 customer contracts" beside
+       "Weighted by value across 1 supplier contracts", and a GAP that was the
+       difference between two numbers worked out different ways. */
+    const d = tw([cust('C', 30, { value:0 }), supp('S', 60, { value:2000 })]).payTermsData();
+    assert.equal(d.basis, 'count');
+    assert.equal(d.customer.basis, d.supplier.basis, 'one basis, so the two sub-lines read alike');
+  });
+
+  test('a side with no rows at all reports no basis rather than the page\'s', () => {
+    const d = tw([cust('C', 30)]).payTermsData();
+    assert.equal(d.supplier.basis, null);
+    assert.equal(d.customer.basis, d.basis);
+  });
+
+  test('the gap is a like-for-like subtraction', () => {
+    const d = tw([cust('C', 45, { value:0 }), supp('S', 30, { value:9999 })]).payTermsData();
+    assert.equal(d.basis, 'count');
+    assert.equal(d.gap, 15);
+  });
+});
+
+describe('f267 (13) what is driving the gap', () => {
+  test('a contract inside its target drives nothing', () => {
+    const d = tw([cust('C', 20), supp('S', 60)],
+      { payTargets:{ customer:30, supplier:60 } }).payTermsData();
+    assert.equal(d.drivers.length, 0);
+  });
+
+  test('the reported shape: a gap with an EMPTY exceptions list still names its drivers', () => {
+    /* Paid in 45 against a 45-day limit, paying in 30: nothing is past the
+       standard, and the gap is 15 days. This is the book the owner reported. */
+    const d = tw([cust('C', 45), supp('S', 30)]).payTermsData();
+    assert.equal(d.gap, 15);
+    assert.equal(d.exceptions.length, 0, 'nothing is past the standard');
+    assert.ok(d.drivers.length > 0, 'and the page can still say what is driving it');
+    assert.equal(d.drivers[0].id, 'S', 'paying 15 days sooner than the limit is what drives it');
+    assert.equal(d.drivers[0].gapDays, 15);
+  });
+
+  test('a customer contract drives it by running LATER than its target', () => {
+    const d = tw([cust('C', 60)], { payTargets:{ customer:30 } }).payTermsData();
+    assert.equal(d.drivers[0].id, 'C');
+    assert.equal(d.drivers[0].gapDays, 30, 'the whole side, so its whole distance');
+  });
+
+  test('a supplier contract drives it by running SOONER than its target', () => {
+    const d = tw([supp('S', 10)], { payTargets:{ supplier:60 } }).payTermsData();
+    assert.equal(d.drivers[0].id, 'S');
+    assert.equal(d.drivers[0].gapDays, 50);
+  });
+
+  test('it is a share of its own side, so a small contract moves the gap less', () => {
+    const d = tw([cust('BIG', 30, { value:9000 }), cust('SMALL', 130, { value:1000 })],
+      { payTargets:{ customer:30 } }).payTermsData();
+    const small = d.drivers.find(r => r.id === 'SMALL');
+    assert.equal(d.drivers.length, 1, 'BIG is on target and drives nothing');
+    assert.equal(small.gapDays, 10, 'a tenth of the side, a hundred days out');
+  });
+
+  test('largest first, and the value breaks a tie', () => {
+    const d = tw([cust('A', 60, { value:1000 }), cust('B', 90, { value:1000 })],
+      { payTargets:{ customer:30 } }).payTermsData();
+    assert.deepEqual(Array.from(d.drivers.map(r => r.id)), ['B', 'A']);
+  });
+
+  test('each row carries what a reader has to act on', () => {
+    const d = tw([cust('C', 60, { counterparty:'Acme Ltd' })], { payTargets:{ customer:30 } }).payTermsData();
+    const r = d.drivers[0];
+    assert.equal(r.side, 'customer');
+    assert.equal(r.days, 60);
+    assert.equal(r.standard, 30);
+    assert.equal(r.gapAway, 30);
+    assert.equal(r.counterparty, 'Acme Ltd');
+    assert.equal(r.id, 'C');
+  });
+
+  test('driving the gap and being past the standard are DIFFERENT lists', () => {
+    const src = PT.slice(PT.indexOf('const drivers = []'));
+    assert.ok(!/exceptions/.test(src.slice(0, 400)), 'the drivers are not the exceptions filtered');
+    assert.match(PT, /does not add up to the gap and never claims to/i,
+      'the file says out loud that the rows are not a decomposition');
+  });
+
+  test('the card counts nothing of its own and draws only where there is a gap', () => {
+    const card = INTEL.slice(INTEL.indexOf('3b · WHAT IS DRIVING THE GAP'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /d\.gap != null && d\.gap > 0/, 'no gap, no card');
+    assert.match(card, /d\.drivers/, 'it reads the one reading');
+    assert.ok(!/\.filter\(|\.reduce\(/.test(card), 'counting is not drawing');
+    assert.match(card, /data-pt-open="\$\{E\(r\.id\)\}"/, 'every row opens its contract');
+  });
+});
+
+describe('f267 (14) the chart names its boundary, and the graph can group by terms', () => {
+  const spread = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3b · WHAT IS DRIVING'));
+
+  test('the shaded region the owner ringed is gone', () => {
+    assert.ok(!/right:0;background:var\(--st-amber-bg\)/.test(spread),
+      'nothing runs from the standard to the right edge any more');
+    assert.ok(!/st-amber-bg/.test(spread.slice(0, spread.indexOf('bucketKeys.map'))),
+      'no region fill is drawn behind the bars');
+  });
+
+  test('the boundary is a line per side, drawn only where that side can answer', () => {
+    assert.match(spread, /const lineFor = \(S, ink, key\) => \(S\.rows\.length && S\.standard != null/);
+    assert.match(spread, /lc && ls && lc\.std === ls\.std/, 'one line where the two coincide');
+    assert.match(spread, /border-left:1px dashed \$\{L\.ink\}/);
+  });
+
+  test('the caption sits on the line, under the axis', () => {
+    assert.match(spread, /const capAt = si =>/);
+    assert.match(spread, /translateX\(-50%\)/, 'centred on its own line');
+    assert.match(spread, /si >= cols - 1 \?/, 'and clamped at both ends');
+    assert.ok(spread.indexOf('capAt(L.si)') > spread.indexOf('bucketKeys.map(k =>'),
+      'the caption row is drawn after the bucket labels, so it is under the axis');
+  });
+
+  test('a band past its side\'s line is marked, and never in the side colour', () => {
+    assert.match(spread, /const past = b\.n > 0 && S\.standard != null && i > pastFor\(S\)/);
+    assert.match(spread, /past \? 'var\(--st-ruby-fg\)'/, 'ruby, because amber is already a side');
+  });
+
+  test('the card says whether the lines are your targets or the playbook default', () => {
+    assert.match(spread, /pt_targets_set/);
+    assert.match(spread, /pt_targets_in_only/);
+    assert.match(spread, /pt_targets_out_only/);
+  });
+
+  test('payment terms is a group in the graph, and it borrows the tab\'s own bands', () => {
+    assert.match(INTEL, /\['payterms','Payment terms'\]/, 'it is on the dropdown');
+    assert.match(INTEL, /case 'payterms': \{/, 'and the label reader answers for it');
+    assert.match(INTEL, /payBucketOf\(dd\)/, 'the bands are the payment terms tab\'s own');
+    assert.match(INTEL, /return 'No payment terms'/, 'and an unread contract is its own group');
+  });
+
+  test('both doors onto the grouping learned it, so the dropdown and Copilot agree', () => {
+    assert.match(INTEL, /has\('by payment terms'/, 'the phrase router');
+    assert.match(INTEL, /payterms:'payment terms'/, 'and the "grouped by" line names it');
+  });
+
+  test('the group is a reading, not a second parser', () => {
+    const cs = INTEL.slice(INTEL.indexOf("case 'payterms': {"), INTEL.indexOf("case 'source':"));
+    assert.ok(!/match\(|replace\(|parseInt|Number\(/.test(cs), 'it asks payDays and nothing else');
   });
 });

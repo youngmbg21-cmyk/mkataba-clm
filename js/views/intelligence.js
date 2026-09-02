@@ -162,6 +162,17 @@ function groupLabelOf(c, groupBy, override){
       const r=riskScore(c);
       return r>=8?'High risk':r>=3?'Medium risk':r>=1?'Low risk':'No open findings';
     }
+    /* PAYMENT TERMS AS A LENS (owner-asked 2 Sep 2026). It borrows the bands
+       the payment terms tab draws, so the graph and that page can never sort
+       one contract two ways. Labels here are English literals like every other
+       group in this graph. A contract nobody has read the terms off is its own
+       group rather than being pushed in with the shortest — that absence is
+       the actionable fact on this subject. */
+    case 'payterms': {
+      const dd=(typeof payDays==='function')?payDays(c):null;
+      if(dd==null) return 'No payment terms';
+      return (typeof payBucketOf==='function'?payBucketOf(dd):String(dd))+' days';
+    }
     case 'source': return c.source==='upload'?'Uploaded paper'
       :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
@@ -209,6 +220,7 @@ function graphInterpret(qRaw){
   else if(has('by status','by stage','by lifecycle')) groupBy='status';
   else if(has('by value','by size','by amount','by exposure')) groupBy='valueBand';
   else if(has('by type','by kind','by contract type')) groupBy='kind';
+  else if(has('by payment terms','by payment term','by terms of payment','by credit terms')) groupBy='payterms';
   // filter intent
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
   if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
@@ -714,7 +726,7 @@ function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
-  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
+  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',payterms:'payment terms',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
   el.innerHTML = intel.busy ? `<span class="text-brand-700">${i18t('int_thinking')}</span>`
     : `<span class="text-ink/60">${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
       + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18t('int_clear_all_x')}</button>`:'');
@@ -764,7 +776,7 @@ function renderIntel(){
      nothing anywhere said why. f247 asserts the row and the guard hold the
      same names in the same order. */
   if(IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
-  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
+  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['payterms','Payment terms'],['risk','Risk'],['source','Origin']];
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
      margin drops that rule onto the header's own hairline so the two share a
@@ -1962,17 +1974,65 @@ function intelPayTermsHtml(){
      small correction for the gaps the columns give up. Derived rather than
      typed, so it stays right if a bucket is ever added. The COUNTS never come
      from this line — payOver asks each contract its own standard. */
-  const si = d.standardSplitAfter;
-  const stdLeft = si < 0 ? '0px'
+  const lineAt = si => si < 0 ? '0px'
     : `calc(${Math.round((si + 1) / cols * 1000) / 10}% - ${Math.round(((cols - 1) * (si + 1) / cols - si - 0.5) * GAP_PX * 10) / 10}px)`;
+  /* THE CAPTION SITS ON THE LINE, UNDER THE AXIS — the owner's second fix.
+     Hung to the right of the line at the TOP, as it was, it read as a label
+     for the shaded block rather than as a boundary; under the axis there is
+     guaranteed room and a mark there reads as an axis annotation, which is
+     what it is. One row per line, so two captions can never collide however
+     close the two targets are. Clamped at both ends: a caption centred on a
+     line at 0% or 100% would hang off the plot. */
+  const capAt = si => si < 0 ? 'left:0'
+    : si >= cols - 1 ? `left:${lineAt(si)};transform:translateX(-100%)`
+    : `left:${lineAt(si)};transform:translateX(-50%)`;
+
+  /* ---- THE BOUNDARY IS A LINE PER SIDE, AND NOTHING IS SHADED (owner-asked
+     2 Sep 2026: "i do not understand this chart", off a screenshot with the
+     shaded right-hand side ringed) ----
+     The region ran from the standard to the right EDGE, so on an ordinary book
+     three of the five bands were a large amber block holding nothing at all —
+     the biggest object on the chart, saying that nothing is there. It is gone.
+     A boundary is a LINE, and with a target per side there are two of them, in
+     their own colours, so a reader can tell which bars each one governs. Where
+     the two coincide there is one line, captioned as the shared standard.
+     A side with no rows, or one whose contracts carry two different playbook
+     limits, gets NO line rather than one that implies it governs the rest. */
+  const lineFor = (S, ink, key) => (S.rows.length && S.standard != null && S.splitAfter != null)
+    ? { si:S.splitAfter, std:S.standard, ink, key } : null;
+  const lc = lineFor(d.customer, OB_OURS, 'pt_target_in');
+  const ls = lineFor(d.supplier, OB_THEIRS, 'pt_target_out');
+  const AMBER_INK = 'var(--st-amber-fg,#b45309)';
+  const lines = (lc && ls && lc.std === ls.std)
+    ? [{ si:lc.si, std:lc.std, ink:AMBER_INK, key:'pt_standard' }]
+    : [lc, ls].filter(Boolean);
+
+  /* WHICH BANDS ARE PAST THAT SIDE'S OWN LINE — the owner's "shade only the
+     bars that are actually past the standard". A band is only called past when
+     the WHOLE band is (payStandardSplit's own rule), so the mark can never
+     over-claim; the exact count is the flag on this card and the list below,
+     which ask each contract its own standard. THE MARK IS RUBY, NOT AMBER:
+     amber is already the money-going-out side on this chart, so an amber
+     figure over an amber bar would say nothing. */
+  const pastFor = S => (S.splitAfter == null ? -Infinity : S.splitAfter);
   const barFor = (S, tone, i) => {
     const b = S.buckets[i];
     const h = Math.max(2, Math.round(b.n / maxV * 100));
+    const past = b.n > 0 && S.standard != null && i > pastFor(S);
     return `<span style="position:relative;width:24px;min-height:2px;height:${b.n ? h + '%' : '2px'};background:${tone};border-radius:1px 1px 0 0;display:block">
-      <span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${n(b.n)}</span></span>`;
+      <span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;font-weight:${past ? 'var(--w-title)' : 'var(--w-body)'};color:${past ? 'var(--st-ruby-fg)' : 'var(--color-neutral-600)'}">${n(b.n)}</span></span>`;
   };
   const ariaSpread = d.bucketKeys.map((k, i) =>
-    `${k}: ${i18t('pt_are_paid')} ${d.customer.buckets[i].n}, ${i18t('pt_we_pay')} ${d.supplier.buckets[i].n}`).join('; ');
+    `${k}: ${i18t('pt_are_paid')} ${d.customer.buckets[i].n}, ${i18t('pt_we_pay')} ${d.supplier.buckets[i].n}`).join('; ')
+    + (lines.length ? '. ' + lines.map(L => i18t(L.key, { n:n(L.std) })).join('; ') : '');
+  /* WHERE THE LINES COME FROM, said on the card. A reader has to be able to
+     tell a target somebody here typed from the playbook default that answers
+     when nobody has. */
+  const targetNote = (d.targets.customer != null && d.targets.supplier != null)
+      ? i18t('pt_targets_set', { i:n(d.targets.customer), o:n(d.targets.supplier) })
+    : d.targets.customer != null ? i18t('pt_targets_in_only', { n:n(d.targets.customer) })
+    : d.targets.supplier != null ? i18t('pt_targets_out_only', { n:n(d.targets.supplier) })
+    : '';
   const spread = obCard(i18t('pt_spread_title'), '',
     `<p style="${OB_LEAD}">${i18t('pt_spread_q')}</p>
      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px">
@@ -1981,16 +2041,16 @@ function intelPayTermsHtml(){
      </div>
      <div role="img" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:24px">
        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;height:168px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
-         <span style="position:absolute;top:-4px;bottom:0;left:${stdLeft};right:0;background:var(--st-amber-bg);opacity:.5;pointer-events:none"></span>
          ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
-         <span style="position:absolute;top:-4px;bottom:0;left:${stdLeft};width:0;border-left:1px dashed var(--st-amber-line,rgba(180,83,9,.42))">
-           <span style="position:absolute;top:-9px;left:8px;white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--st-amber-fg,#b45309);background:var(--color-surface);padding:0 5px">${i18t('pt_standard', { n:n(d.standard) })}</span></span>
+         ${lines.map(L => `<span aria-hidden="true" style="position:absolute;top:-4px;bottom:0;left:${lineAt(L.si)};width:0;border-left:1px dashed ${L.ink};pointer-events:none"></span>`).join('')}
        </div>
        <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:9px">
          ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
        </div>
+       ${lines.map(L => `<div style="position:relative;height:17px;margin-top:2px"><span style="position:absolute;top:0;${capAt(L.si)};white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:${L.ink}">${i18t(L.key, { n:n(L.std) })}</span></div>`).join('')}
      </div>`,
-    [d.standardVaries ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
+    [targetNote,
+     (d.standardVaries && !targetNote) ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
      d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
      d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
 
@@ -2011,6 +2071,36 @@ function intelPayTermsHtml(){
     excBody,
     d.exceptions.length > PT_EXC_CAP ? i18t('pt_exc_showing', { n:n(shown.length), total:n(d.exceptions.length) }) : '');
 
+  /* ---- 3b · WHAT IS DRIVING THE GAP (owner-asked 2 Sep 2026) ----
+     "How will i then identify the contracts that are driving the gap if I want
+     to address them?" The card above is every contract PAST its standard, and
+     that is a different list: on the book that prompted this, the gap read 15
+     days and the exceptions card read "every contract sits inside your
+     standard". The page reported a problem and then reported nothing wrong.
+
+     IT COUNTS NOTHING OF ITS OWN — payGapDrivers' arithmetic is inside
+     payTermsData, so the days printed here and the two averages above are
+     worked out on one basis and cannot disagree.
+
+     DRAWN ONLY WHERE THERE IS A GAP AGAINST US. With the gap level or in our
+     favour the heroes already say so, and a list headed "what is driving the
+     gap" over no gap is furniture. */
+  const PT_DRV_CAP = 10;
+  const drv = d.drivers.slice(0, PT_DRV_CAP);
+  const drivers = (d.gap != null && d.gap > 0) ? obCard(i18t('pt_drive_title'),
+    d.drivers.length ? obFlag(i18t('pt_drive_flag', { n:n(d.drivers.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : '',
+    d.drivers.length
+      ? `<p style="${OB_LEAD}">${i18t('pt_drive_q')}</p>
+         <div>${drv.map(r => `<button data-pt-open="${E(r.id)}" style="display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:9px 0;${RULE};font:inherit;cursor:pointer">
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-text)">${E(r.counterparty || r.name)}
+              <span style="color:var(--color-neutral-600)"> · ${i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp')}</span></span>
+            <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}</span>
+            <span style="${OB_NUM};font-size:var(--t-meta);color:var(--st-ruby-fg);white-space:nowrap">${n(r.gapDays)} ${i18t('pt_days')}</span>
+            <span style="font-family:var(--font-mono);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600);white-space:nowrap">${money(r.value)}</span>
+          </button>`).join('')}</div>`
+      : `<p style="${OB_LEAD};margin:0">${i18t('pt_drive_none')}</p>`,
+    d.drivers.length > PT_DRV_CAP ? i18t('pt_exc_showing', { n:n(drv.length), total:n(d.drivers.length) }) : '') : '';
+
   /* ---- 4 · what this page cannot see ----
      The honest limit, and it is the most important thing on the tab: HaTi
      reads agreements, not your bank. Named so the page never looks as though
@@ -2025,7 +2115,7 @@ function intelPayTermsHtml(){
   </section>`;
 
   return `<div id="ig-pt" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${heroes}${spread}${exceptions}${blind}
+    ${heroes}${spread}${drivers}${exceptions}${blind}
   </div>`;
 }
 

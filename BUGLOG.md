@@ -8824,3 +8824,79 @@ Noticed, not fixed:
   Deliberate and the safe direction — that bucket really does hold contracts
   over it — but it means the line is approximate by up to one bucket where the
   counts beside it are exact.
+
+═══════════════════════════════════════════════════════════════════════════
+2 Sep 2026 (later) — TWO TARGETS, AND WHAT IS DRIVING THE GAP
+═══════════════════════════════════════════════════════════════════════════
+
+Owner, off a screenshot of the new chart with the shaded right-hand side
+ringed: *"i do not understand this chart. What if we want to pay under one
+payment term while we get paid under a different payment term?"* Then, on the
+answer: *"How will i then identify the contracts that are driving the gap if I
+want to address them?"* Then, ruling: two targets one per side; fix all three
+chart faults; and *"add the payment terms to the Group by in the contract
+graph."*
+
+**THE PAGE REPORTED A PROBLEM AND THEN REPORTED THAT NOTHING WAS WRONG.** On
+the owner's own book the gap card read 15 days and the exceptions card read
+"Every contract with terms on file sits inside your standard" — both true, and
+together useless: paid in 45 against a 45-day limit and paying in 30 is two
+compliant contracts and a 15-day gap. Being past the standard and driving the
+gap are not the same list, and only the first was built.
+
+**FIVE THINGS, and the middle one is a correctness fault rather than a look.**
+
+1  TWO TARGETS, ONE PER SIDE. `settings.payTargets`, admin-set, blank by
+   default — and blank means the playbook answers exactly as it did, so no
+   workspace already running moves and there is nothing to migrate. A target
+   set wins for its own side, because the default playbook carries paymentDays
+   for every kind and a playbook that won would leave the pair unable to reach
+   a single contract anywhere.
+
+2  ONE BASIS FOR THE PAGE, NEVER ONE PER SIDE. The average was decided per
+   side, so a book where one side carries values and the other does not printed
+   "weighted by value" under one figure and "averaged across" under the other —
+   and made THE GAP the difference between two numbers worked out different
+   ways. That is the reported "I do not understand it" half nobody had named.
+
+3  WHAT IS DRIVING THE GAP. One contract at a time, exactly true: bring this
+   one onto its side's target and the gap closes by this many days. It does not
+   add up to the gap and never claims to, so there is a figure per row and no
+   total. A supplier paid in 95 against a 60-day limit is an exception AND
+   narrows the gap — both lists are drawn, and that is the feature working.
+
+4  NOTHING IS SHADED. The block the owner ringed ran from the standard to the
+   right EDGE, so three of five bands were a large amber area holding nothing.
+   A boundary is a LINE — one per side, in the side's own colour — and the
+   caption sits on it, under the axis, where it reads as an axis annotation
+   rather than a label for the shading. A band wholly past its side's line is
+   marked in RUBY, never amber, because amber is already a side on this chart.
+
+5  PAYMENT TERMS AS A GRAPH LENS, all four doors: the dropdown, groupLabelOf,
+   the "grouped by" line, and Copilot's own phrase router. It borrows
+   payBucketOf, so the graph and the tab cannot sort one contract two ways.
+
+Node 5574/5574. Browser: payment-terms 60/60 (22 of them fail against the
+parent, the headline one reporting "1 filled box(es) behind the bars"),
+settings-tabs 65/65, insights-panels 40/40, obligations-report 27/27,
+home-page 34/34, kpi-four 19/19. f267 is 94, with 30 of the new claims failing
+against the parent.
+
+**Two probe selectors had to be narrowed, and both were green sentences over
+the wrong elements.** A second card carrying `data-pt-open` rows made the
+exceptions check count a list twice its own length, and
+`[role="img"] > div + div > span` matched the new caption row as well as the
+axis. When a card or a row is added beside one a probe already reads, re-check
+what the probe is holding.
+
+Noticed, not fixed:
+- theme-tokens-verify is 37/40 — `templates--light`, `negotiate--light` and
+  `negotiate--dark`. PROVED pre-existing by running the same file in a worktree
+  at the parent commit: identical 37/40, identical three screens. CLAUDE.md
+  already records both as deliberately left red rather than re-recorded.
+- `npm run lint` still reports the same 4 pre-existing duplicate-key errors in
+  js/i18n.js (`co_password_updated`, `act_next`), unchanged and not mine.
+- The per-side boundary line is still drawn at a BUCKET boundary, so a target
+  that does not land on one is approximate by up to one bucket where the counts
+  beside it are exact. Same deliberate trade as before, now doubled because
+  there can be two lines.

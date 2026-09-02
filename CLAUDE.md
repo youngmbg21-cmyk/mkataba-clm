@@ -1261,6 +1261,92 @@ to THIS tab, four laptop widths with no sideways scroll, and both languages)**.
 Two claims REVERSED IN PLACE — f247 and obligations-report-verify each pinned
 the tab row as a LITERAL where the claim was that tab's own PLACE.
 
+## TWO TARGETS, AND WHAT IS DRIVING THE GAP (owner-ruled 2 Sep 2026)
+
+*"i do not understand this chart. What if we want to pay under one payment term
+while we get paid under a different payment term?"* — then, on the answer:
+*"How will i then identify the contracts that are driving the gap if I want to
+address them?"* Both were holes in the tab above rather than misreadings of it,
+and the second is the one that mattered.
+
+**THE PAGE TOLD THEM THERE WAS A PROBLEM AND THEN TOLD THEM NOTHING WAS
+WRONG.** On the owner's own book the gap card read **15 days** and the
+exceptions card read *"Every contract with terms on file sits inside your
+standard"* — both true, because being paid in 45 against a 45-day limit and
+paying in 30 is two perfectly compliant contracts and a 15-day gap. **Being
+past the standard and driving the gap are simply not the same list**, and only
+the first was built.
+
+- **TWO TARGETS, ONE PER SIDE, AND ABSENT MOVES NOTHING.** `payTargets()` reads
+  `settings.payTargets`; **null means nobody has set one and the playbook
+  answers exactly as it did**, so every workspace already running is
+  byte-identical and there is nothing to migrate. **A target that IS set wins
+  over the playbook for its own side**, deliberately: the default playbook
+  carries `paymentDays` for every kind, so a playbook that won would leave the
+  pair unable to reach a single contract anywhere. **ONE PAIR, WORKSPACE-WIDE**
+  — per type AND per side is four numbers an SME would have to keep true, and
+  the two questions a treasury policy asks are how fast money should come in and
+  how slowly it may go out. It rides the ordinary settings blob like the review
+  gate's switch: a pair of numbers is not an access map, so the H-3 reasoning
+  that gives `folderAccess` and `signFolders.by` atomic routes does not apply.
+- **ONE BASIS FOR THE PAGE, NEVER ONE PER SIDE — a correctness fix, not a
+  cosmetic one.** `avg` decided per side, so a book where one side's contracts
+  carry a value and the other's do not printed *"weighted by value"* under one
+  figure and *"averaged across"* under the other twelve pixels away — and made
+  **THE GAP the difference between two numbers worked out different ways**.
+  Value only where money is visible AND every side that has rows can actually
+  be weighted; otherwise both are a straight mean.
+- **THE DRIVERS ARE ONE CONTRACT AT A TIME AND EXACTLY TRUE:** bring this one
+  onto its side's target and the gap closes by this many days, holding
+  everything else where it is. Its share of its own side times its distance from
+  the target in the gap-widening direction — later than target on the money
+  coming in, **sooner** than target on the money going out. **IT DOES NOT ADD UP
+  TO THE GAP AND NEVER CLAIMS TO** (the contracts pulling the other way are
+  floored out), so a figure is printed per row and no total. **The share follows
+  the BASIS above**, so the list and the two headline averages cannot disagree.
+- **A CONTRACT CAN BE AN EXCEPTION AND NOT A DRIVER, and that is the feature
+  working.** Paying a supplier in 95 days against a 60-day limit is past the
+  standard AND narrows the gap. Both lists are drawn, and the drivers card is
+  drawn only where there is a gap against us — over no gap it would be
+  furniture.
+- **NOTHING IS SHADED ANY MORE.** The region ran from the standard to the right
+  EDGE, so on an ordinary book three of five bands were a large amber block
+  holding nothing — the biggest object on the chart, saying that nothing is
+  there. **A boundary is a LINE**, and with a target per side there are two, in
+  their own colours, so a reader can tell which bars each governs; where the two
+  coincide there is one, captioned as the shared standard. A side with no rows,
+  or one whose contracts carry two different playbook limits, gets **no line**
+  rather than one implying it governs the rest.
+- **THE CAPTION SITS ON ITS LINE, UNDER THE AXIS.** Hung to the right at the top
+  it read as a label for the shaded block; under the axis there is guaranteed
+  room and a mark there reads as an axis annotation. One row per line, so two
+  captions can never collide however close the targets are, and clamped at both
+  ends.
+- **A BAND PAST ITS SIDE'S LINE IS MARKED IN RUBY, NEVER AMBER** — amber is
+  already the money-going-out side on this chart, so an amber figure over an
+  amber bar would say nothing. Only where the WHOLE band is past
+  (`payStandardSplit`'s own rule), so the mark can never over-claim; the exact
+  counts are still `payOver`, per contract.
+- **PAYMENT TERMS IS A GRAPH LENS, AND ALL FOUR DOORS LEARNED IT** — the Group
+  by dropdown, `groupLabelOf`, the *"grouped by"* line, and Copilot's own phrase
+  router. A dropdown offering what the sentence cannot is the drift this file
+  opens by warning about. It **borrows `payBucketOf`**, so the graph and the tab
+  can never sort one contract two ways, and a contract nobody has read the terms
+  off is its own group rather than being pushed in with the shortest.
+
+**AND TWO SELECTORS IN THE BROWSER FILE HAD TO BE NARROWED, which is the lesson
+worth carrying.** A second card carrying `data-pt-open` rows made the exceptions
+check count a list twice its own length, and `[role="img"] > div + div > span`
+matched the new caption row as well as the axis. **Both were still green
+sentences over the wrong elements** — when a card or a row is added beside one a
+probe already reads, re-check what the probe is actually holding.
+
+Tests: f267 (94 — sections 11-14 new, **30 of them failing against the parent**),
+payment-terms-verify (60, browser — **22 failing against the parent, the
+headline one reporting `1 filled box(es) behind the bars`**; the two targets
+typed into the real panel and the chart's two lines measured as paint, the gap
+list pressed through to its contract, and the graph regrouped for real).
+
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 
 ## A NEW DRAFT OPENS ON KEY TERMS

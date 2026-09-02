@@ -119,11 +119,41 @@ function payLiveBook(){
     .filter(c => c && c.status !== 'Declined' && !c.archived && payInScope(c));
 }
 
-/* THE STANDARD IS THE PLAYBOOK'S, PER CONTRACT KIND. No new setting: the
-   number an admin already sets in Settings is the number this measures
-   against, and because the playbook is per contract type, supply paper can
-   carry a different limit from services with nothing more to configure. */
+/* ---- TWO TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
+   "What if we want to pay under one payment term while we get paid under a
+   different payment term?" The playbook's paymentDays is per contract TYPE, so
+   two different types could already carry two numbers; what it cannot say is
+   that the SAME type is answered differently depending on which side of the
+   deal we are on. This pair is that answer, and it is the only new setting.
+
+   ABSENT MEANS NOBODY HAS SET ONE, and then the playbook answers exactly as it
+   did before, so every workspace already running reads identically and there
+   is nothing to migrate. A target that IS set wins over the playbook for its
+   own side, deliberately: the default playbook carries paymentDays for every
+   kind, so a playbook that won would leave the pair unable to reach a single
+   contract anywhere. The panel says which is answering.
+
+   ONE PAIR, WORKSPACE-WIDE. Per type AND per side is four numbers a small
+   business would have to keep true; the two questions a treasury policy
+   actually asks are how fast money should come in and how slowly it may go
+   out. It rides the ordinary settings blob like reviewGate does — a pair of
+   numbers is not an access map, so it needs no atomic route of its own. */
+function payTargetDays(v){
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 && n <= 365 ? Math.round(n) : null;
+}
+function payTargets(){
+  const s = (typeof state === 'object' && state && state.settings) || {};
+  const t = (s.payTargets && typeof s.payTargets === 'object') ? s.payTargets : {};
+  return { customer: payTargetDays(t.customer), supplier: payTargetDays(t.supplier) };
+}
+
+/* WITHOUT A TARGET THE STANDARD IS THE PLAYBOOK'S, PER CONTRACT KIND — the
+   number an admin already sets in Settings, so supply paper can carry a
+   different limit from services with nothing more to configure. */
 function payStandardFor(c){
+  const s = paySide(c);
+  if(s){ const t = payTargets()[s]; if(t != null) return t; }
   try{
     if(typeof resolvePlaybook !== 'function' || typeof playbookKeyFor !== 'function') return PAY_STD_FALLBACK;
     const pb = resolvePlaybook(playbookKeyFor(c));
@@ -189,14 +219,23 @@ function payTermsData(){
      contracts lets twelve small agreements outvote the one that carries the
      book. Where money is hidden from this reader, or where nothing carries a
      value, it falls back to a straight mean and the basis changes with it, so
-     the figure never claims a weighting it did not use. */
+     the figure never claims a weighting it did not use.
+
+     ONE BASIS FOR THE PAGE, NEVER ONE PER SIDE (owner-reported 2 Sep 2026).
+     Decided per side, a book where one side's contracts carry a value and the
+     other's do not printed "weighted by value" under one figure and "averaged
+     across" under the other twelve pixels away, which reads as a mistake — and
+     it made THE GAP a subtraction of two numbers worked out different ways,
+     which is a correctness fault rather than a cosmetic one. Value only where
+     money is visible AND every side that has rows can actually be weighted;
+     otherwise both are a straight mean. */
+  const weightOf = S => S.rows.reduce((a, r) => a + r.value, 0);
+  const withRows = ['customer','supplier'].map(k => side[k]).filter(S => S.rows.length);
+  const basis = (moneyOk && withRows.length && withRows.every(S => weightOf(S) > 0)) ? 'value' : 'count';
   const avg = S => {
-    if(!S.rows.length) return { days:null, basis:null };
-    const tw = S.rows.reduce((a, r) => a + r.value, 0);
-    if(moneyOk && tw > 0){
-      return { days: Math.round(S.rows.reduce((a, r) => a + r.days * r.value, 0) / tw), basis:'value' };
-    }
-    return { days: Math.round(S.rows.reduce((a, r) => a + r.days, 0) / S.rows.length), basis:'count' };
+    if(!S.rows.length) return null;
+    if(basis === 'value') return Math.round(S.rows.reduce((a, r) => a + r.days * r.value, 0) / weightOf(S));
+    return Math.round(S.rows.reduce((a, r) => a + r.days, 0) / S.rows.length);
   };
 
   const buckets = S => PAY_BUCKETS.map(b => {
@@ -206,10 +245,18 @@ function payTermsData(){
 
   ['customer','supplier'].forEach(k => {
     const S = side[k];
-    const a = avg(S);
-    S.avgDays = a.days; S.basis = a.basis;
+    S.avgDays = avg(S);
+    S.basis = S.rows.length ? basis : null;
     S.buckets = buckets(S);
     S.overN = S.over.length;
+    /* THIS SIDE'S OWN STANDARD, where its contracts all share one. With a
+       target set that is the target; without one it is the playbook's, which
+       can differ by contract type — so a side holding two types with two
+       limits has NO single standard and the chart draws it no boundary line
+       rather than picking one and implying it governs the rest. */
+    const ss = [...new Set(S.rows.map(r => r.standard))];
+    S.standard = ss.length === 1 ? ss[0] : null;
+    S.splitAfter = S.standard != null ? payStandardSplit(S.standard) : null;
   });
 
   /* THE GAP is the whole point of this page, and it only means anything when
@@ -231,6 +278,41 @@ function payTermsData(){
   const exceptions = [].concat(side.customer.over, side.supplier.over)
     .sort((a, b) => (b.value - a.value) || (b.days - a.days) || String(a.id).localeCompare(String(b.id)));
 
+  /* ---- WHAT IS DRIVING THE GAP (owner-asked 2 Sep 2026) ----
+     "How will i then identify the contracts that are driving the gap if I want
+     to address them?" Nothing answered it. The exceptions list above is every
+     contract PAST its standard, and being past the standard and driving the
+     gap are simply not the same list: on the book that prompted this the gap
+     read 15 days — paid in 45 against a 45-day limit, paying in 30 — and the
+     exceptions list was EMPTY. The page reported a problem and then reported
+     that nothing was wrong.
+
+     THE MEASURE IS ONE CONTRACT AT A TIME AND IT IS EXACTLY TRUE: bring this
+     one contract onto its side's target and the gap closes by this many days,
+     holding every other contract where it is. Its share of its own side times
+     its distance from the target in the gap-widening direction — later than
+     target on the money coming in, sooner than target on the money going out.
+     The share follows the BASIS above, so the arithmetic is the same
+     arithmetic the two headline averages were worked out with.
+
+     FLOORED AT ZERO, because a contract already inside its target is not
+     driving anything, and IT DOES NOT ADD UP TO THE GAP AND NEVER CLAIMS TO:
+     moving several at once is not the sum of moving each alone, since the
+     contracts pulling the other way are floored out. So a figure is printed
+     per row and no total. */
+  const drivers = [];
+  ['customer','supplier'].forEach(k => {
+    const S = side[k];
+    const W = weightOf(S);
+    S.rows.forEach(r => {
+      const share = basis === 'value' ? (W > 0 ? r.value / W : 0) : (1 / S.rows.length);
+      const away = Math.max(0, k === 'customer' ? r.days - r.standard : r.standard - r.days);
+      const days = Math.round(share * away * 10) / 10;
+      if(days > 0) drivers.push(Object.assign({}, r, { gapDays:days, gapAway:away }));
+    });
+  });
+  drivers.sort((a, b) => (b.gapDays - a.gapDays) || (b.value - a.value) || String(a.id).localeCompare(String(b.id)));
+
   const named = cs => cs.map(c => ({ id:c.id, name:(c.name || c.id || ''), counterparty:(c.counterparty || '') }));
 
   return {
@@ -243,7 +325,10 @@ function payTermsData(){
     customer: side.customer,
     supplier: side.supplier,
     gap,
+    basis,
+    targets: payTargets(),
     exceptions,
+    drivers,
     overN: side.customer.overN + side.supplier.overN,
     /* A CAP OR AN OMISSION IS A FACT, NEVER A SILENT TRIM — the standing rule
        every money figure in this product already follows. Both are NAMED, so
@@ -272,6 +357,7 @@ function payOverStandard(){
 Object.assign(window, {
   PAY_STD_FALLBACK, PAY_BUCKETS, PAY_SIDES,
   payParseDays, payClampDays, payDays, paySide, payInScope, payLiveBook,
+  payTargetDays, payTargets,
   payStandardFor, payOver, payWeight, payBucketOf, payStandardSplit,
   payTermsData, payOverStandard,
 });
