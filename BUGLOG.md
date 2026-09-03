@@ -9128,3 +9128,45 @@ Noticed, not fixed:
   assertions about the tab count and a search box that was removed on 31 Aug.
 - `npm run lint` reports 4 duplicate-key errors in js/i18n.js
   (`co_password_updated`, `act_next`), all pre-existing and untouched here.
+
+## 3 Sep 2026 — every door out of a draft asks
+
+The owner asked me to confirm the redlining workflow. Answering it from the
+code turned up a gap they then ruled on: "Close them".
+
+Every way out of the clause editor warned before throwing away unfiled wording
+EXCEPT two — the "Leave work mode" button and Escape — which called the close
+directly. One draft, doors answering differently, and the two silent ones are
+the two a reader reaches for when they mean to stop.
+
+ceLeaveGuard is the ask, LIFTED out of ceGoClause rather than copied into the
+other two, so the claim is now made of the guard and a fourth door inherits it.
+It sits at the DOORS and never inside rlCloseClauseEditor — that function is
+also reached by ceGoClause's own go and by the shell's viewLayersClosed, both of
+which have already asked, so a guard one level down would ask twice on the two
+paths that were already right. f245 pins that as a wall: it passes before and
+after, and its job is to fail the day somebody "covers every caller".
+
+AND IT READS THE BOX BEFORE ASKING. The draft only follows the box on blur.
+Pressing a button blurs it on the way and would have got away with it; Escape
+blurs nothing, so without the pull the door I had just closed would have opened
+again in silence on exactly the gesture it was closed for. The pencil on another
+clause reaches ceGoClause without pulling either, so that is a third door of the
+same kind closed. The pull may NOT move into clauseEditorDirty — that is a
+reading, and reading must not write.
+
+Escape also defers to a top overlay now, and it had to go in with the guard:
+this listener is armed at module load and a confirm's when it opens, so Escape
+over the leave dialog would have raised a second leave dialog on top of the one
+being answered.
+
+Node 5621/5621, lint unchanged. Browser: clause-editor 229/229, clause-door
+117/117, notes-two-rooms 63/63. Against the parent, f245 reports 3 failures and
+clause-editor 5, the headline one reading "page false, dialog false".
+
+Noticed, not fixed:
+- Seven places in clause-editor-verify press a door with a draft in the box, and
+  a confirm left standing covers the page and blocks every mouse press after it
+  — five checks in unrelated sections went red, none of them near the change.
+  Fixed in the test with an answerLeave helper, skipNote's own shape; recorded
+  because the next feature that adds a dialog will pay it again.

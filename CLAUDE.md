@@ -3596,13 +3596,14 @@ here has not been filed* is true of every clause in the contract — and it is
 raised from a full-window page that carries no header, so at the moment the
 reader most needs to know where they are, nothing on screen said.
 
-- **ONE READING, TWO RAISERS.** `clauseEditorLeaveAsk` is where the sentence is
-  built, because that is where the clause and the draft are. The clause editor
-  raises this guard when you move between clauses; the SHELL raises the same
-  guard when you leave the page altogether (`viewLayersClosed`). A sentence
-  written out at each would be two answers to one question, so the shell asks
-  for it through `window` — the ES-module rule — and it is PUBLISHED, because an
-  unexported name read that way is silence.
+- **ONE READING, AND EVERY RAISER ASKS FOR IT.** `clauseEditorLeaveAsk` is where
+  the sentence is built, because that is where the clause and the draft are. The
+  clause editor raises this guard on all three of its own doors (see EVERY DOOR
+  OUT OF A DRAFT ASKS below, which REVERSES "two raisers" in place); the SHELL
+  raises the same guard when you leave the page altogether (`viewLayersClosed`).
+  A sentence written out at each would be two answers to one question, so the
+  shell asks for it through `window` — the ES-module rule — and it is PUBLISHED,
+  because an unexported name read that way is silence.
 - **THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing.** A guard that says
   less because a lookup failed is worse than the guard that prompted the report.
 - **THE CLAUSE IS NAMED BY `clauseLabel`** — the product's own answer to *which
@@ -3624,6 +3625,72 @@ reader most needs to know where they are, nothing on screen said.
 
 Tests: f245 (the one reading, both raisers, the publish, the bound as a named
 ceiling, and both sentences in both languages).
+
+## EVERY DOOR OUT OF A DRAFT ASKS (owner-asked 3 Sep 2026)
+
+*"Close them"* — the two doors that did not. Asked to confirm the redlining
+workflow, the owner had it right except for one step; checking the code to
+answer turned up the gap, and they ruled on it.
+
+**EVERY WAY OUT OF THE CLAUSE EDITOR WARNED BEFORE THROWING AWAY UNFILED
+WORDING EXCEPT TWO** — the **Leave work mode** button and **Escape** — which
+called `rlCloseClauseEditor` directly. So one draft had doors answering
+differently, which is the drift this file opens by warning about, and the two
+that stayed silent are the two a reader reaches for when they mean to stop.
+
+- **`ceLeaveGuard(go)` IS THE ASK, LIFTED RATHER THAN COPIED.** The dirty
+  reading, the words and the two buttons were written out inside `ceGoClause`;
+  a third and fourth copy is how they come to disagree about what an unfiled
+  draft costs. It is said once and the doors hand it what to do next — so the
+  claim is now made OF the guard, and a fourth door inherits it rather than
+  having to remember it. f245 pins that there are exactly three callers.
+- **AND IT SITS AT THE DOORS, NEVER INSIDE `rlCloseClauseEditor`.** That
+  function is also reached by `ceGoClause`'s own `go` and by the shell's
+  `viewLayersClosed`, and **both have already asked** by the time they call it —
+  a guard written inside the close would ask twice on exactly the two paths that
+  were already right. f245 asserts that as a WALL: it passes before and after,
+  and its job is to fail the day somebody moves the guard one level down to
+  "cover every caller".
+- **IT READS THE BOX BEFORE ASKING WHETHER THERE IS ANYTHING IN IT, and without
+  that the closed door opens again in silence.** `_ceText` only follows the box
+  on BLUR. Pressing a BUTTON blurs it on the way and would have got away with
+  it; **Escape blurs nothing at all**, so the guard would have asked about a
+  draft it could not see — on exactly the gesture it was closed for. The pencil
+  on ANOTHER clause reaches `ceGoClause` without pulling either, so this closes
+  a third door of the same kind. **ONE PULL, IN THE GUARD**, which is what every
+  other door on this page already does before it acts (the pencil, the foot's
+  File, the writing bar), and free where nothing is typeable.
+- **THE PULL MAY NOT MOVE INTO `clauseEditorDirty`**, tempting as it looks: that
+  is a READING, `cePullText` pushes a step and repaints, and READING MUST NOT
+  WRITE. The pull belongs at the doors.
+- **ESCAPE NOW DEFERS TO THE LAYER ABOVE THIS PAGE, and it had to go in with the
+  guard or the guard would fight itself.** `openModal` draws INTO `#modal-root`;
+  `confirmDialog`, `promptDialog` and the note window each append an overlay of
+  their own and mark it `data-top-overlay` — the product's ONE reading of *a
+  layer above me owns this key*, and what `openModal`'s own Escape asks. This
+  listener is armed at module load and a confirm's when it opens, so **this one
+  runs first**: Escape over the leave dialog would have raised a second leave
+  dialog on top of the one being answered. The note dialog defers to a confirm
+  it raises for exactly this reason.
+- **NOT DIRTY, NO QUESTION** — a reader who has typed nothing, or who has filed
+  what they typed, is asked nothing at all, which is every ordinary close. The
+  browser file drives that CONTROL first, or "it asks" is satisfied by a page
+  that always nags.
+
+**AND IT COST THE BROWSER FILE A HELPER, which is the lesson worth carrying.**
+Seven places in `clause-editor-verify` press a door with a draft in the box, and
+a confirm left standing **covers the page and blocks every mouse press after
+it** — five checks in unrelated sections went red, none of them near the change.
+`answerLeave(p)` is `skipNote`'s own shape for the same reason: where the
+journey is not about the guard, answer it and move on. **19j is REVERSED IN
+PLACE and is stronger for it** — the way out is now driven THROUGH the guard.
+
+Tests: f245 (four claims — one REVERSED IN PLACE, three new, and **three of the
+four fail against the parent**), clause-editor-verify section 27 (8, browser —
+**5 fail against the parent, the headline one reporting the page gone and no
+dialog after Escape**; it has to be DRIVEN, because a source check sees the
+pull and cannot see whether the dialog comes up, and the deferral is a race
+between two document listeners that only a real key press resolves).
 
 ## ONE FRAME ROUND THE CLAUSE, NOT ONE PER BOX (owner-reported 1 Sep 2026)
 

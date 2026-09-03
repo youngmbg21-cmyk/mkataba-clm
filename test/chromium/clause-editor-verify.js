@@ -41,6 +41,22 @@ async function skipNote(p){
     return true;
   }catch(_){ return false; }
 }
+/* ---- AND THE WAY OUT ASKS BEFORE IT THROWS A DRAFT AWAY (3 Sep 2026) ----
+   Every door out of this page now raises "Leave this clause?" where the box
+   holds wording the record has never seen — which is section 27's whole
+   subject. Everywhere ELSE in this file the journey is not about the guard,
+   and a confirm left standing covers the page and blocks every mouse press
+   after it, so these sections answer it and move on. Same shape, and the same
+   reason, as skipNote above. */
+async function answerLeave(p){
+  try{
+    const up = await p.evaluate(() => !!document.getElementById('confirm-overlay'));
+    if (!up) return false;
+    await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); });
+    await pause(300);
+    return true;
+  }catch(_){ return false; }
+}
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
 function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
@@ -561,6 +577,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
 
   /* ---- 9. THE WAYS OUT ---- */
   await p.keyboard.press('Escape');
+  await answerLeave(p);
   await pause(400);
   const gone = await p.evaluate(() => ({
     page: !!document.getElementById('clause-editor'),
@@ -903,6 +920,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(500);
   const theirOpen = await p.evaluate(() => !!(window.rlCpOpenId && rlCpOpenId()));
   await p.keyboard.press('Escape');
+  await answerLeave(p);
   await pause(400);
   const theirShut = await p.evaluate(() => !(window.rlCpOpenId && rlCpOpenId()));
   ck('11f their clause panel still opens from the pill',
@@ -1204,6 +1222,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      drafted.cardPainted, drafted.cardPainted ? 'card drawn' : 'no card — the stub is broken, 14a proves nothing');
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await answerLeave(p);
   await pause(300);
 
   /* ---- 15. ORDINARY DRAFTING IS NOT BROKEN INTO SUB-PARAGRAPHS ----
@@ -1260,6 +1279,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        + JSON.stringify(gloss.lines.filter(l => l === '(' || /^\d\)/.test(l))));
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await answerLeave(p);
   await pause(300);
 
   /* ==========================================================================
@@ -1399,6 +1419,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     `focused=${focused}, rail ${reset.railW} -> ${keyed.railW}`);
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await answerLeave(p);
   await pause(300);
 
   /* ==========================================================================
@@ -1971,18 +1992,27 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      with the header gone it is the only one. So the claim moves to what that
      button really has to do, and 2n/2o already pin where it sits and how it is
      drawn. */
-  const leave = await p.evaluate(async () => {
+  /* WIDENED 3 Sep 2026: sections above leave a draft in the box, so this door
+     now asks first — which is section 27's subject and not this claim's. The
+     claim is unchanged and is now stronger for going THROUGH the guard: press
+     the way out, say yes, and work mode is left. */
+  const asked19 = await p.evaluate(async () => {
     const b = document.querySelector('#clause-editor .ce-exit');
-    if (!b) return { there: false };
+    if (!b) return null;
     b.click();
-    await new Promise(r => setTimeout(r, 500));
-    return { there: true, gone: !document.getElementById('clause-editor'),
-      backOnNegotiation: !!document.querySelector('.redline-page') };
+    await new Promise(r => setTimeout(r, 400));
+    return !!document.getElementById('confirm-overlay');
   });
+  await answerLeave(p);
+  await pause(400);
+  const leave = { there: asked19 !== null, asked: asked19,
+    gone: !(await p.evaluate(() => !!document.getElementById('clause-editor'))),
+    backOnNegotiation: await p.evaluate(() => !!document.querySelector('.redline-page')) };
   ck('19i THE WAY OUT IS ON THE STRIP, as the prototype draws it',
      leave.there === true, leave.there ? 'drawn' : 'missing');
   ck('19j pressing it LEAVES work mode',
-     leave.there && leave.gone === true, leave.there ? `page gone: ${leave.gone}` : '');
+     leave.there && leave.gone === true,
+     leave.there ? `page gone: ${leave.gone} · asked first: ${leave.asked}` : '');
   ck('19k …and lands back on the negotiation it came from',
      leave.there && leave.backOnNegotiation === true,
      leave.there ? `negotiation drawn: ${leave.backOnNegotiation}` : '');
@@ -2209,6 +2239,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `typing ${afterPencil.typing}`);
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await answerLeave(p);
   await pause(300);
 
   /* ==========================================================================
@@ -2228,6 +2259,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      broken build on both counts.
      ========================================================================== */
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
+  await answerLeave(p);
   await pause(250);
   await p.evaluate(() => { if (window.rlSetReadMode) rlSetReadMode('marks'); });
   await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, {}), staged.clauseId);
@@ -2859,6 +2891,92 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('26k drawn by the depth class, so the rule is reachable', /rl-hang-2/.test(bul.subCls), bul.subCls);
   await p.evaluate(() => rlCloseClauseEditor({}));
   await pause(300);
+
+  /* ---- 27. EVERY DOOR OUT OF A DRAFT ASKS (owner-asked 3 Sep 2026) ----
+     *"Close them"* — of the two that did not. Every way out of this page warned
+     before throwing away unfiled wording EXCEPT the "Leave work mode" button
+     and Escape, which called the close directly.
+
+     THIS HAS TO BE DRIVEN AND CANNOT BE READ. Escape blurs nothing, so the
+     draft only reaches the guard because the guard pulls the box itself — a
+     source check sees the call and cannot see whether the dialog comes up. And
+     the deferral below is a race between two document listeners, which only a
+     real key press resolves. FOUR OF THESE FAIL AGAINST THE PARENT, the
+     headline one reporting the page gone and no dialog after Escape. */
+  const cl27 = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    const cl = list.find(x => (x.text || '').length > 60
+      && !(window.CONTRACT.changes || []).some(ch => ch.clauseId === x.clauseId)) || list[0];
+    return cl ? cl.clauseId : null; });
+  const st27 = () => p.evaluate(() => ({
+    page: !!document.getElementById('clause-editor'),
+    dialog: !!document.getElementById('confirm-overlay'),
+    title: (document.querySelector('#confirm-overlay h3') || {}).textContent || '',
+    words: (document.getElementById('ce-clausebody') || {}).textContent || '' }));
+
+  /* THE CONTROL FIRST. A reader who has typed nothing is asked nothing — every
+     ordinary close — or "it asks" is satisfied by a page that always nags. */
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, { typing: true }), cl27);
+  await pause(700);
+  await p.evaluate(() => { const b = document.querySelector('[data-ce-act="close"]'); if (b) b.click(); });
+  await pause(400);
+  const s27a = await st27();
+  ck('27a CONTROL — nothing typed, so the way out asks nothing and just goes',
+     s27a.page === false && s27a.dialog === false,
+     `page ${s27a.page} · dialog ${s27a.dialog}`);
+
+  /* Now with a draft in the box, and NOT blurred — which is the state Escape
+     is pressed in and the one _ceText does not follow on its own. */
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, { typing: true }), cl27);
+  await pause(700);
+  await p.evaluate(() => {
+    const b = document.getElementById('ce-clausebody');
+    b.focus();
+    const r = document.createRange(); r.selectNodeContents(b); r.collapse(true);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); });
+  await p.keyboard.type('Notwithstanding the above, ');
+  await pause(300);
+  const typed27 = await p.evaluate(() =>
+    (document.getElementById('ce-clausebody') || {}).textContent || '');
+  ck('27b a draft is in the box and the box still has the caret',
+     /Notwithstanding the above/.test(typed27), typed27.slice(0, 40));
+
+  await p.keyboard.press('Escape');
+  await pause(400);
+  const s27c = await st27();
+  ck('27c ESCAPE ASKS INSTEAD OF THROWING IT AWAY — the reported door',
+     s27c.page === true && s27c.dialog === true,
+     `page ${s27c.page} · dialog ${s27c.dialog} · "${s27c.title}"`);
+  ck('27d and the warning is the product\'s own, naming the clause',
+     /Leave this clause|Lämna klausulen/.test(s27c.title), s27c.title);
+
+  /* ESCAPE OVER THE GUARD ANSWERS THE GUARD. This editor's listener is armed at
+     module load and the confirm's when it opens, so this one runs FIRST — the
+     press would have raised a second leave dialog on top of the one being
+     answered. */
+  await p.keyboard.press('Escape');
+  await pause(400);
+  const s27e = await st27();
+  ck('27e a second Escape answers the DIALOG, and the page is still here',
+     s27e.dialog === false && s27e.page === true,
+     `dialog ${s27e.dialog} · page ${s27e.page}`);
+  ck('27f and cancelling kept the draft',
+     /Notwithstanding the above/.test(s27e.words), s27e.words.slice(0, 40));
+
+  /* THE OTHER DOOR. It blurs the box on the way, so it would have got away
+     with a guard that did not pull — which is why both are driven. */
+  await p.evaluate(() => { const b = document.querySelector('[data-ce-act="close"]'); if (b) b.click(); });
+  await pause(400);
+  const s27g = await st27();
+  ck('27g LEAVE WORK MODE ASKS TOO — the other reported door',
+     s27g.page === true && s27g.dialog === true,
+     `page ${s27g.page} · dialog ${s27g.dialog}`);
+
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); });
+  await pause(500);
+  const s27h = await st27();
+  ck('27h and saying yes really leaves', s27h.page === false && s27h.dialog === false,
+     `page ${s27h.page} · dialog ${s27h.dialog}`);
 
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 

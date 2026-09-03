@@ -1788,6 +1788,48 @@ function ceRenderHead(){
    come to disagree about what an unfinished draft costs. Reopening is what
    resets the whole page: the wording, the step stack, the Copilot thread and
    the change this editor is speaking for. */
+/* ---- ONE GUARD, EVERY DOOR OUT OF ONE DRAFT (owner-asked 3 Sep 2026) ----
+   *"Close them"*, of the two doors that did not ask. Every way out of this page
+   warned before throwing away wording the record had never seen EXCEPT two —
+   the "Leave work mode" button and Escape — which called the close directly. So
+   one draft had doors answering differently, which is the drift this file opens
+   by warning about, and the two that stayed silent are the two a reader reaches
+   for when they mean to stop.
+
+   IT IS THE PRODUCT'S OWN GUARD, LIFTED RATHER THAN COPIED. The dirty reading,
+   the words and the two buttons were written out inside ceGoClause; a third and
+   fourth copy is how they come to disagree about what an unfiled draft costs.
+   ceLeaveGuard is that ask, said once, and the doors hand it what to do next.
+
+   AND IT SITS AT THE DOORS, NEVER INSIDE rlCloseClauseEditor. That function is
+   also called by this page's own move-to-another-clause and by the shell's
+   viewLayersClosed, and BOTH have already asked by the time they reach it — a
+   guard written inside the close would ask twice on exactly the two paths that
+   were already right.
+
+   NOT DIRTY, NO QUESTION: a reader who has typed nothing, or who has filed what
+   they typed, is asked nothing at all, which is every ordinary close. */
+function ceLeaveGuard(go){
+  /* ---- READ THE BOX BEFORE ASKING WHETHER THERE IS ANYTHING IN IT ----
+     _ceText only follows the box on BLUR, so a reader who is still typing when
+     they reach for a door has a draft the guard cannot see. Pressing a BUTTON
+     blurs the box on the way and would have got away with it; Escape does not
+     blur anything at all, so without this the door I have just closed would
+     open again silently on exactly the gesture it was closed for. And the
+     pencil on ANOTHER clause reaches ceGoClause without pulling either.
+
+     ONE PULL, IN THE GUARD, so a fourth door cannot forget it — and it is what
+     every other door on this page already does before it acts (the pencil, the
+     foot's File, the writing bar). Free where nothing is typeable: cePullText
+     returns on its own first line. */
+  cePullText();
+  const dirty = (typeof clauseEditorDirty === 'function') && clauseEditorDirty();
+  if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
+  const ask = clauseEditorLeaveAsk();
+  confirmDialog({ title: ask.title, message: ask.message,
+    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
+    .then(ok => { if (ok) go(); }).catch(() => {});
+}
 /* ---- MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY ----
    The draft lives in memory until it is filed, so moving off the clause loses
    it — and there are three doors onto this act (the crumb's dropdown, another
@@ -1830,18 +1872,12 @@ function ceRenderHead(){
    what it has always done. */
 function ceGoClause(clauseId, extra){
   if (!clauseEditorOpen() || !clauseId || clauseId === _ceClauseId) return;
-  const go = () => {
+  ceLeaveGuard(() => {
     const c = _ceC, opts = _ceOpts;
     _cePlaceAt = ceClauseTopNow(clauseId);
     rlCloseClauseEditor();
     rlOpenClauseEditor(c, clauseId, extra ? { ...opts, ...extra } : opts);
-  };
-  const dirty = (typeof clauseEditorDirty === 'function') && clauseEditorDirty();
-  if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
-  const ask = clauseEditorLeaveAsk();
-  confirmDialog({ title: ask.title, message: ask.message,
-    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
-    .then(ok => { if (ok) go(); }).catch(() => {});
+  });
 }
 /* ---- THE WARNING SAYS WHICH CLAUSE AND WHAT IS AT RISK (owner-reported
    1 Sep 2026) ----
@@ -3793,7 +3829,10 @@ function ceWirePage(page){
     if (!act) return;
     ev.preventDefault();
     switch (act.getAttribute('data-ce-act')){
-      case 'close': rlCloseClauseEditor(); break;
+      /* THE WAY OUT ASKS FIRST. It is the last thing on the strip and the
+         one control here whose whole job is stopping, so it is the door a
+         reader most often reaches for with a draft still in the box. */
+      case 'close': ceLeaveGuard(() => rlCloseClauseEditor()); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
       /* ONE PRESS FILES. The act keeps its name — every check and both
@@ -3943,11 +3982,22 @@ if (typeof document !== 'undefined' && !document._ceWired){
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape' || !clauseEditorOpen()) return;
     /* A dialog over this page owns Escape first, exactly as the clause panel
-       and the round queue defer. */
+       and the round queue defer. TWO KINDS OF LAYER, and the second was missing
+       until 3 Sep 2026: openModal draws INTO #modal-root, and confirmDialog,
+       promptDialog and the note window each append an overlay of their own and
+       mark it data-top-overlay — which is the product's ONE reading of "a layer
+       above me owns this key" and is what openModal's own Escape asks.
+
+       IT HAD TO GO IN WITH THE GUARD BELOW, or the guard would fight itself:
+       this listener is registered at module load and a confirm's is registered
+       when it opens, so THIS one runs first — Escape over the leave dialog
+       would have raised a second leave dialog on top of the one being answered.
+       The note dialog defers to a confirm it raises for exactly this reason. */
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
+    if (document.querySelector('[data-top-overlay]')) return;
     if (_ceSel){ ceDetachPassage(); return; }
-    rlCloseClauseEditor();
+    ceLeaveGuard(() => rlCloseClauseEditor());
   });
   /* A window dragged below the width where two columns stop making sense: the
      stylesheet stacks them, and this says so once rather than leaving a reader

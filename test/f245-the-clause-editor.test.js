@@ -1652,18 +1652,78 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'the control that turns typing on is unchanged and is on the clause');
   });
 
-  test('moving to another clause asks before it throws a draft away', () => {
-    /* The draft lives in memory until it is filed, and there are TWO doors onto
-       this act — the clause list and another clause's pencil. (There were three
-       until 1 Sep 2026; the press in another clause's words is retired, see
-       below.) It is the PRODUCT'S OWN guard, not a second one: the same
-       predicate and the same words the page uses when the reader leaves it. */
+  test('ONE GUARD, AND EVERY DOOR OUT OF A DRAFT GOES THROUGH IT', () => {
+    /* ---- REVERSED IN PLACE 3 Sep 2026 (owner-asked: "Close them") ----
+       It pinned the ask as written out INSIDE ceGoClause, which was true and
+       was only half the doors: the "Leave work mode" button and Escape called
+       the close directly and threw an unfiled draft away in silence. The claim
+       it was really making — the product's own guard, its own predicate, its
+       own words, and no question for a reader who has typed nothing — is
+       unchanged and is now made of the guard itself, so a fourth door inherits
+       it rather than having to remember it. */
+    assert.match(CODE, /function ceLeaveGuard\(go\)\{/,
+      'the ask is ONE named function');
     assert.match(CODE, /const dirty = \(typeof clauseEditorDirty === 'function'\) && clauseEditorDirty\(\)/,
-      'asked in ceGoClause, so all three doors inherit it');
+      'the product\'s own predicate, not a second one');
     assert.match(CODE, /if \(!dirty \|\| typeof window === 'undefined' \|\| !window\.confirmDialog\)\{ go\(\); return; \}/,
-      'a reader who has typed nothing is never asked \u2014 every ordinary move');
+      'a reader who has typed nothing is never asked \u2014 every ordinary close');
     assert.match(CODE, /_cet\('ce_leave_title'\)/,
       'and it borrows the leave dialog\'s own words rather than minting a key');
+    /* THE THREE DOORS. Written out at each they would drift, which is what had
+       already happened to two of them. */
+    assert.match(CODE, /function ceGoClause\(clauseId, extra\)\{[\s\S]{0,200}?ceLeaveGuard\(\(\) => \{/,
+      'moving to another clause asks');
+    assert.match(CODE, /case 'close': ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\); break;/,
+      'and so does the way out of the page');
+    assert.match(CODE, /if \(_ceSel\)\{ ceDetachPassage\(\); return; \}\s*\n\s*ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\);/,
+      'and so does Escape \u2014 after it has released a held passage, which is '
+      + 'what that key answers first');
+    /* Exactly three, so a fourth door is a decision rather than a discovery. */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 4,
+      'three callers and the declaration \u2014 no fourth door written past it');
+  });
+
+  test('and the guard is at the DOORS, never inside the close', () => {
+    /* THIS PASSES BEFORE AND AFTER ON PURPOSE — it is the WALL rather than a
+       regression test, and its job is to fail the day somebody moves the guard
+       one level down to "cover every caller".
+       rlCloseClauseEditor is also reached by ceGoClause's own `go` and by the
+       shell's viewLayersClosed, and BOTH have already asked by the time they
+       call it. A guard written inside the close would ask twice on exactly the
+       two paths that were already right. */
+    const fn = CODE.slice(CODE.indexOf('function rlCloseClauseEditor('),
+      CODE.indexOf('function ceNowHm('));
+    assert.ok(fn.length > 200, 'the close was found');
+    assert.ok(!/clauseEditorDirty|confirmDialog|ceLeaveGuard/.test(fn),
+      'the close itself asks nothing \u2014 it is the act, not the question');
+  });
+
+  test('and it reads the box before asking whether there is anything in it', () => {
+    /* _ceText only follows the box on BLUR. Pressing a button blurs it on the
+       way and would have got away with it; Escape blurs nothing at all, so
+       without this the closed door opens again silently on exactly the gesture
+       it was closed for — and the pencil on ANOTHER clause reaches ceGoClause
+       without pulling either. ONE PULL, IN THE GUARD, so a fourth door cannot
+       forget it. */
+    const g = CODE.slice(CODE.indexOf('function ceLeaveGuard(go){'));
+    const body = g.slice(0, g.indexOf('\n}'));
+    assert.match(body, /cePullText\(\);/, 'the guard pulls the box first');
+    assert.ok(body.indexOf('cePullText()') < body.indexOf('clauseEditorDirty'),
+      'BEFORE it asks, or it asks about wording it cannot see');
+  });
+
+  test('and Escape defers to a layer above this page, not only to modal-root', () => {
+    /* openModal draws INTO #modal-root; confirmDialog, promptDialog and the
+       note window each append an overlay of their own and mark it
+       data-top-overlay — the product's ONE reading of "a layer above me owns
+       this key", and what openModal's own Escape asks. Without it the guard
+       fights itself: this listener is registered at module load and a confirm's
+       when it opens, so THIS one runs first and Escape over the leave dialog
+       would raise a second leave dialog on top of the one being answered. */
+    assert.match(CODE, /if \(document\.querySelector\('\[data-top-overlay\]'\)\) return;/,
+      'the editor stands its Escape down for the layer above it');
+    assert.match(read('js/core.js'), /if\(document\.querySelector\('\[data-top-overlay\]'\)\) return;/,
+      'the same reading openModal makes \u2014 one convention, not a second');
   });
 
   test('THE WARNING NAMES ITS CLAUSE AND THE WORDING AT RISK', () => {
