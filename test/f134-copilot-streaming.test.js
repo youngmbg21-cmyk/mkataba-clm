@@ -268,7 +268,20 @@ describe('the client half', () => {
       'the plain call is still the contract');
     assert.match(AI_SRC, /return await aiLocalClaude\(messages, context\);/,
       'local mode keeps the non-streaming path, untouched');
-    assert.match(API_SRC, /async function api\(path, method='GET', body\)\{/,
+    /* THE RELATION, NOT THE SIGNATURE. This pinned api()'s exact parameter list
+       as a proxy for "it is still JSON-only", and went red the day that
+       function gained an options argument for something else entirely. The
+       claim is about what api() DOES: it parses JSON and knows nothing about
+       event-streams, which is why apiStream exists beside it. */
+    /* Ended at api()'s OWN last line, not at apiStream: the comment between the
+       two explains why api() is JSON-only and therefore says "event-streams"
+       itself — a probe reaching it reports the prose as the code. */
+    const apiStart = API_SRC.indexOf('async function api(path');
+    const apiBody = API_SRC.slice(apiStart,
+      API_SRC.indexOf('return data;', apiStart) + 12);
+    assert.ok(apiBody.length > 0, 'api() comes before apiStream in the file');
+    assert.match(apiBody, /await res\.json\(\)/, 'api() reads JSON');
+    assert.ok(!/event-stream|getReader|TextDecoder/.test(apiBody),
       'api() itself was not bent to speak event-streams');
   });
 });

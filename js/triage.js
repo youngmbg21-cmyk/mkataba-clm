@@ -72,8 +72,16 @@ function triageTiles(c){
   const t = triageOf(c); if (!t) return [];
   const s = t.steps || {};
   const out = [];
-  const add = (key, ok, headKey, detail, count) =>
-    out.push({ key, ok, headKey, detail: detail || '', count: count == null ? null : count });
+  /* A CAP IS SAID ON THE TILE IT HAPPENED TO. It used to be a red box over the
+     whole page reading "Try again, or narrow what you asked for" — written for
+     somebody who ASKED, and nobody asked for this. Appended rather than
+     replacing the detail, because what WAS read is still worth reading. */
+  const add = (key, ok, headKey, detail, count) => {
+    const cut = ok && (s[key] || {}).cut
+      ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '';
+    const d = [detail || '', cut].filter(Boolean).join(' — ');
+    out.push({ key, ok, headKey, detail: d, count: count == null ? null : count });
+  };
 
   const b = s.brief || {};
   add('brief', !!b.ok, b.ok ? 'tri_t_brief' : 'tri_t_brief_no', b.ok ? (b.line || '') : (b.why || ''));
@@ -206,10 +214,17 @@ async function triageRun(c, opts = {}){
 
     /* 2 — THE BRIEF. Quiet: its refusal is printed on the card, not toasted. */
     try{
+      /* `o` IS THE OUT-PARAM, and that is this product's own shape for these
+         three readings rather than a new one: each already writes its refusal
+         onto the options bag it was handed, and a cap it had to make now rides
+         back the same way. api() no longer toasts one for a quiet caller — see
+         its own note — so carrying it here is what stops a suppressed box
+         becoming a silent trim. */
+      const o = { quiet: true };
       const r = (typeof runContractBrief === 'function')
-        ? await runContractBrief(c, { quiet: true }) : { error: triageAbsent() };
+        ? await runContractBrief(c, o) : { error: triageAbsent() };
       if (r && r.error) t.steps.brief = { ok: false, why: r.error };
-      else if (r) t.steps.brief = { ok: true, line: triageBriefLine(r) };
+      else if (r) t.steps.brief = { ok: true, line: triageBriefLine(r), cut: o.notice || '' };
       else t.steps.brief = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
     }catch(e){ t.steps.brief = { ok: false, why: String(e && e.message || e) }; }
     paint();
@@ -218,15 +233,17 @@ async function triageRun(c, opts = {}){
        press stores it, with the same audit line, so the two paths leave the
        record in one shape. */
     try{
+      const o = { quiet: true };
       const r = (typeof runPlaybookReview === 'function')
-        ? await runPlaybookReview(c, { quiet: true }) : { error: triageAbsent() };
+        ? await runPlaybookReview(c, o) : { error: triageAbsent() };
       if (r && r.error) t.steps.playbook = { ok: false, why: r.error };
       else if (r && r.verdicts){
         c.playbook = r;
         const sum = (typeof deviationSummary === 'function') ? deviationSummary(c) : { dev: 0, miss: 0 };
         const cats = (r.verdicts || []).filter(v => v.status === 'deviation' || v.status === 'missing')
           .map(v => v.category).filter(Boolean);
-        t.steps.playbook = { ok: true, dev: sum.dev || 0, miss: sum.miss || 0, cats: cats.slice(0, 4) };
+        t.steps.playbook = { ok: true, dev: sum.dev || 0, miss: sum.miss || 0,
+          cats: cats.slice(0, 4), cut: o.notice || '' };
         if (typeof logAudit === 'function')
           logAudit(c, 'Playbook', `Reviewed against ${r.label} — ${sum.dev} deviation(s), ${sum.miss} missing`);
       } else t.steps.playbook = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
@@ -243,7 +260,7 @@ async function triageRun(c, opts = {}){
       const found = o.error ? [] : (await extractObligations(c, o) || []);
       if (o.error) t.steps.oblig = { ok: false, why: o.error };
       else{
-        t.steps.oblig = { ok: true, found };
+        t.steps.oblig = { ok: true, found, cut: o.notice || '' };
         /* THE CONTRACT REMEMBERS IT WAS READ, by the same stamp the manual
            scan writes and on the same NAMED floor it asks — OBLIG_TEXT_MIN,
            never a number typed again here. Where that name cannot be reached
@@ -281,9 +298,30 @@ const triageAbsent = () => (typeof i18t === 'function') ? i18t('tri_not_availabl
 /* One short sentence off the brief, for the tile. The brief's own summary
    where it has one; never composed here, because prose about a legal document
    is not this file's to write. */
+/* THE BRIEF'S OWN SHAPE, AND IT IS ONE LEVEL DOWN (owner-reported 9 Sep 2026:
+   the tile drew its tick with nothing under it). The route answers
+   { v, at, by, inputHash, truncated, data } and every field a reader ever sees
+   lives under `data` — renderBriefSection reads exactly that. Written against a
+   `summary` and a `headline` that no brief has ever carried, this returned ''
+   on every contract in the product.
+
+   THE SAME CLASS AS THE OBLIGATIONS TILE READING `text` WHERE THE FIELD IS
+   `desc`, which was caught before it shipped and this was not: a tile reading a
+   field that does not exist fails as an EMPTY LINE rather than as an error, so
+   nothing anywhere says so. Both were found by dumping what a real run actually
+   renders. Read the answer, not the schema you remember.
+
+   THE FIRST SENTENCE OF `overview`, because that field is two to four of them
+   and a tile holds one line — and because it is the brief's OWN answer to what
+   this contract is, so the tile can never say something the panel behind it
+   does not. A very short opener ("This is a supply agreement.") tells nobody
+   anything, so there the whole overview is clamped instead. */
 function triageBriefLine(b){
-  const s = (b && (b.summary || b.headline || '')) || '';
-  const flat = String(s).replace(/\s+/g, ' ').trim();
+  const d = (b && b.data) || {};
+  const s = String(d.overview || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  const first = (s.match(/^[^.!?]+[.!?]/) || [s])[0].trim();
+  const flat = first.length < 40 ? s : first;
   return flat.length > 120 ? flat.slice(0, 119).replace(/\s+\S*$/, '') + '…' : flat;
 }
 

@@ -96,7 +96,11 @@ describe('F230 — the whole contract is read', () => {
   });
 
   test('all four AI document reads post the whole wording', () => {
-    assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text \}\)/);
+    /* THE BODY IS THE CLAIM, NOT THE WHOLE CALL. These matched to the closing
+       bracket, so adding a fourth argument for something unrelated read as the
+       wording no longer being posted. What has to hold is that the WHOLE text
+       goes in the body — the check one test up already fails on any slice. */
+    assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text \}/);
     assert.match(AI, /api\('ai\/brief','POST',\{ id:c\.id, text:String\(text\|\|''\), force/);
     assert.match(PLAYBOOK, /api\('ai\/playbook','POST',\{ text, playbook:pb/);
     /* renewal is server-built and never had a browser half. */

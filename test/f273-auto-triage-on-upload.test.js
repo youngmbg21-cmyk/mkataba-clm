@@ -31,6 +31,10 @@ const HOME = read('js/views/home.js');
 const CONTRACT = read('js/views/contract.js');
 const I18N = read('js/i18n.js');
 const NEGO = read('js/negotiation.js');
+const API = read('js/api.js');
+const AI_SRC = read('js/ai.js');
+const OB_SRC = read('js/obligations.js');
+const PB_SRC = read('js/playbook.js');
 
 const TEXT = 'The Buyer shall pay each undisputed invoice within sixty (60) days of receipt. '
   + 'The Supplier shall submit a quarterly volume forecast within 10 days of each quarter end. '
@@ -151,6 +155,28 @@ describe('F273 — auto-triage on upload', () => {
       await win.triageRun(c);
       assert.equal(log.toasts.length, before,
         'four red boxes for one upload is the fault this product was rung about');
+    });
+    /* AND THE ONE TOAST IT COULD NOT REACH (owner-reported 9 Sep 2026, off an
+       upload: a red box saying the Copilot answer was cut short, "Try again, or
+       narrow what you asked for"). Each reading suppresses its OWN toast, and
+       none of them could suppress api()'s — which surfaces the server's
+       `notice` centrally for all ~200 callers. So the promise held for every
+       refusal and broke on the one the server volunteers.
+       THE SWEEP IS THE CLAIM: all three readings hand `quiet` down, so a fourth
+       one added later fails here rather than shouting over somebody's upload. */
+    test('a quiet reading also silences the central notice toast', () => {
+      assert.match(API, /if\(data&&data\.notice&&!\(opts&&opts\.quiet\)/,
+        'api() honours it');
+      for (const [name, src] of [['brief', AI_SRC], ['obligations', OB_SRC], ['playbook', PB_SRC]])
+        assert.match(src, /quiet:!!opts\.quiet/, name + ' passes it down');
+    });
+    test('but the cap itself is handed back, never swallowed', () => {
+      /* Suppressing the box without carrying the fact turns a badly-worded
+         warning into a silent trim, which is worse. `opts` is already each
+         reading's out-param for a refusal, so the cap rides the same way. */
+      for (const [name, src] of [['brief', AI_SRC], ['obligations', OB_SRC], ['playbook', PB_SRC]])
+        assert.match(src, /if\(r&&r\.notice\) opts\.notice=r\.notice;/, name + ' hands it back');
+      assert.match(TRI, /cut: o\.notice \|\| ''/, 'and triage records it on the step');
     });
     test('and every failure is recorded with its reason', async () => {
       const { win, c } = stage({ upload: { name: 's.pdf', extractedText: '' } });
@@ -345,6 +371,56 @@ describe('F273 — auto-triage on upload', () => {
       const found = win.triageOf(c).steps.oblig.found;
       assert.ok(ob.detail.includes(found[0].desc.slice(0, 12)),
         'and the words are the obligation\'s own');
+    });
+    /* THE BRIEF TILE READS THE BRIEF'S OWN SHAPE (owner-reported 9 Sep 2026 —
+       it drew its tick with nothing under it). The route answers
+       { v, at, by, inputHash, truncated, data } and everything a reader sees is
+       under `data`; this was written against a `summary` and a `headline` that
+       no brief has ever carried, so it returned '' on every contract.
+       THE SIBLING OF THE `text`/`desc` FAULT ONE TEST UP, and it failed the
+       same silent way: an empty line, never an error. */
+    test('the brief tile reads data.overview, not a field no brief carries', () => {
+      const { win } = stage();
+      const b = { v: 1, at: '2026-09-09T00:00:00.000Z', truncated: false,
+        data: { overview: 'This is a supply agreement between Acme Trading Ltd and '
+          + 'Nordkust Industri AB for packaging materials. It runs for 24 months.',
+          watchouts: [] } };
+      const line = win.triageBriefLine(b);
+      assert.ok(line && line.length > 20, 'the tile has something to say');
+      assert.match(line, /supply agreement/, 'and the words are the brief\'s own');
+      assert.ok(!/24 months/.test(line), 'one sentence, because a tile holds one line');
+    });
+    test('and the shape it used to read yields nothing, which is what shipped', () => {
+      const { win } = stage();
+      assert.equal(win.triageBriefLine({ summary: 'x', headline: 'y' }), '',
+        'neither field exists on a real brief — reading them was the defect');
+      assert.equal(win.triageBriefLine(null), '');
+      assert.equal(win.triageBriefLine({ data: {} }), '');
+    });
+    test('a very short opener falls back to the whole overview', () => {
+      const { win } = stage();
+      const line = win.triageBriefLine({ data: { overview:
+        'A supply deal. It runs 24 months and renews unless stopped.' } });
+      assert.match(line, /24 months/, 'one clause tells nobody anything');
+    });
+
+    /* A CAP IS SAID ON THE TILE IT HAPPENED TO (owner-reported the same day: a
+       red box over the whole page reading "Try again, or narrow what you asked
+       for" — nobody asked, so there was nothing to narrow). api() no longer
+       toasts it for a quiet caller, so the fact has to arrive here instead: the
+       suppression and the saying are ONE change, or a badly-worded warning
+       becomes a silent trim. */
+    test('a reading that was cut short says so on its own tile', () => {
+      const { win, c } = stage();
+      c.triage = { at: '2026-09-09T00:00:00.000Z', steps: {
+        brief: { ok: true, line: 'A supply agreement.', cut: 'the answer was cut short' },
+        playbook: { ok: true, dev: 0, miss: 0, cats: [] },
+        oblig: { ok: true, found: [] } }, seenAt: null };
+      const t = win.triageTiles(c).find(x => x.key === 'brief');
+      assert.match(t.detail, /A supply agreement/, 'what WAS read is still worth reading');
+      assert.match(t.detail, /cut short/i, 'and the cap is not swallowed');
+      const p = win.triageTiles(c).find(x => x.key === 'playbook');
+      assert.ok(!/cut short/i.test(p.detail), 'said only where it happened');
     });
     test('the filed tile reports the stream and the owner', async () => {
       const { win, c } = stage();

@@ -154,7 +154,9 @@ async function runPlaybookReview(c,opts={}){
       // The whole wording goes. A standards check reading only the front of an
       // agreement reports "aligned" on a contract whose deviation is at the
       // back, which is worse than not checking at all. Ceiling: aiDocChars.
-      const r=await api('ai/playbook','POST',{ text, playbook:pb, kind:cKind(c) });
+      const r=await api('ai/playbook','POST',{ text, playbook:pb, kind:cKind(c) },
+        { quiet:!!opts.quiet });
+      if(r&&r.notice) opts.notice=r.notice;
       return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
     }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'err'); }
   }

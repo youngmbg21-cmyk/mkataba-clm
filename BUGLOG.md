@@ -10096,3 +10096,46 @@ auto-triage-verify 32/32 (31/32 against the parent).
   the screens behind them are translated.
 - `cal_next_30` still names 30 days while the calendar's agenda window is a
   control the reader sets.
+
+## 2026-09-09 (2) — the empty brief tile, and a reading that shouted
+
+Owner-reported off the same upload, with two screenshots: a red box over the
+page, and the card's tiles carrying less than the approved drawing showed.
+
+1  THE BRIEF TILE WAS ALWAYS EMPTY. triageBriefLine read `b.summary ||
+   b.headline`; the brief route answers { v, at, by, inputHash, truncated,
+   data } and every field a reader sees is under `data`. Neither name has ever
+   existed on a brief, so it returned '' on every contract and the tile drew a
+   tick with nothing under it. Exactly the obligations tile's `text`/`desc`
+   fault, which was caught before shipping and this was not. Found by dumping
+   what a real run renders. Now the first sentence of data.overview.
+
+2  A READING NOBODY ASKED FOR SHOUTED. "The Copilot answer ... was cut short.
+   Try again, or narrow what you asked for" — written for somebody who asked.
+   Each reading suppresses its own toast and none could reach api()'s, which
+   surfaces the server's `notice` centrally for ~200 callers. api() now takes
+   opts.quiet and the three readings hand theirs down.
+
+3  AND THE FACT IS NOT LOST WITH THE BOX. Suppressing without carrying turns a
+   badly-worded warning into a silent trim. Each reading writes opts.notice
+   back on its out-param, triage records it on the step, and the tile it
+   happened to says so after what WAS read.
+
+WHAT THE HARNESS CANNOT ANSWER, said out loud: its server has no Copilot, so a
+brief returns data:{} and the tile is empty there whatever the code does. The
+reading is pinned in node against the real shape and against the shape it used
+to read; those are what fail on the parent.
+
+TWO EXISTING CLAIMS PINNED A LITERAL WHERE THE CLAIM WAS A RELATION — f134
+pinned api()'s parameter list as a proxy for "still JSON-only", f230 matched an
+api call to its closing bracket. Both re-pointed. And a probe reading api()'s
+neighbourhood read the COMMENT explaining why it is JSON-only and reported the
+prose as the code; end a slice at the function's own last line.
+
+Verified: lint 179/4 (unchanged), node 5904/5904, auto-triage-verify 32/32,
+f273 52 checks with 4 proved failing against the parent.
+
+### Noticed, not fixed
+- Where an uploaded contract LANDS is put to the owner rather than changed: it
+  opens on Key terms by their own 20 Aug ruling, and the triage card is on
+  Home, so the answer is on a different page from the landing.

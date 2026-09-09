@@ -3368,7 +3368,9 @@ async function runContractBrief(c,opts={}){
     // The whole wording goes — the server's aiDocChars is the one ceiling, and
   // a brief written off the first 20,000 characters is a memo about the front
   // of the contract wearing the whole contract's name.
-  const r=await api('ai/brief','POST',{ id:c.id, text:String(text||''), force:!!opts.force });
+  const r=await api('ai/brief','POST',{ id:c.id, text:String(text||''), force:!!opts.force },
+    { quiet:!!opts.quiet });
+    if(r&&r.notice) opts.notice=r.notice;
     if(r&&r.brief){
       c._brief=r.brief;
       // a cache hit changed nothing — only a real (re)write earns an audit line

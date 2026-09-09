@@ -3,7 +3,18 @@
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
 const API_MODE=()=>!!REMOTE;
-async function api(path, method='GET', body){
+/* `opts.quiet` — A READING NOBODY ASKED FOR MAY NOT SHOUT (owner-reported
+   9 Sep 2026, off an upload: a red box saying the Copilot answer "was cut
+   short … Try again, or narrow what you asked for" over a reading that ran
+   because a file landed. Nobody had asked for anything, so there was nothing
+   to narrow, and auto-triage's own promise is that its refusals go on the card
+   rather than into a toast.) The three readings pass their `quiet` down here,
+   because THIS is where the notice is surfaced — each of them already
+   suppresses its OWN toast and none of them could reach this one.
+   IT SUPPRESSES THE TOAST AND NOTHING ELSE: `notice` still rides back on the
+   answer, and the caller is expected to say so where the reader is looking. A
+   cap is a FACT, never a silent trim. */
+async function api(path, method='GET', body, opts){
   const res=await fetch('api/'+path,{ method,
     headers:body?{'Content-Type':'application/json'}:undefined,
     body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
@@ -32,7 +43,7 @@ async function api(path, method='GET', body){
   }
   // The server folds a `notice` into an Copilot response when the input was
   // shortened or the configured model was rejected — surface it to the user.
-  if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');
+  if(data&&data.notice&&!(opts&&opts.quiet)&&typeof toast==='function') toast(data.notice,'err');
   return data;
 }
 /* SSE POST for the streaming Copilot chat. Deliberately its OWN helper: api()

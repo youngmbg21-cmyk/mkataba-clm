@@ -252,7 +252,9 @@ async function extractObligations(c,opts={}){
        the reader returned NOTHING at all on every truncated one. The ceiling
        is aiDocChars on the server now: one number, set above any real
        contract, and it tells the reader when it bites. */
-    try{ const r=await api('ai/obligations','POST',{ text }); return r.obligations||[]; }
+    try{ const r=await api('ai/obligations','POST',{ text }, { quiet:!!opts.quiet });
+      if(r&&r.notice) opts.notice=r.notice;
+      return r.obligations||[]; }
     /* THE TOAST IS WHAT IS SUPPRESSED, never the fallback: the loud path
        falls through to the heuristic below and so does this one, or a quiet
        caller would be handed "unavailable" where a person gets a real list. */

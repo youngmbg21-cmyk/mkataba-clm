@@ -10726,6 +10726,46 @@ it answered **404 "Contract not found"**, every time, on every real upload.
   found" stays true on a workspace with no Copilot key, where the brief refuses
   for its own honest reason — a different answer from the record not being there.
 
+**AND TWO MORE OFF THE SAME UPLOAD (owner-reported 9 Sep 2026), both of which
+failed as SILENCE or as the wrong sentence rather than as an error.**
+
+- **THE BRIEF TILE WAS ALWAYS EMPTY.** `triageBriefLine` read `b.summary ||
+  b.headline`; the route answers `{v, at, by, inputHash, truncated, data}` and
+  **every field a reader sees is one level down under `data`** —
+  `renderBriefSection` reads exactly that. Neither name has ever existed on a
+  brief, so it returned `''` on every contract in the product and the tile drew
+  its tick with nothing under it. **THE SIBLING OF THE OBLIGATIONS TILE READING
+  `text` WHERE THE FIELD IS `desc`**, which was caught before it shipped and
+  this was not — both found by DUMPING WHAT A REAL RUN RENDERS rather than by
+  reading the schema. It takes the first sentence of `data.overview`: the
+  brief's own answer to what this contract is, so the tile can never say
+  something the panel behind it does not.
+- **AND A READING NOBODY ASKED FOR SHOUTED.** A red box over the page: *"The
+  Copilot answer was longer than the space allowed and was cut short … Try
+  again, or narrow what you asked for."* Written for somebody who ASKED — nobody
+  asked, so there was nothing to narrow. **Each reading suppresses its OWN toast
+  and none of them could reach this one**: `api()` surfaces the server's
+  `notice` centrally for all ~200 callers, so auto-triage's promise held for
+  every refusal and broke on the one the server volunteers. `api(path, method,
+  body, opts)` takes `opts.quiet` and the three readings hand theirs down.
+- **THE SUPPRESSION AND THE SAYING ARE ONE CHANGE.** Silencing the box without
+  carrying the fact turns a badly-worded warning into a **silent trim**, which
+  is worse — the standing rule is that a cap is a FACT. Each reading writes
+  `opts.notice` back on the options bag it was handed (already its out-param for
+  a refusal), triage records it on the step, and the tile it happened to says so
+  after what WAS read. Said once, where it happened.
+- **THE HARNESS CANNOT ANSWER THIS ONE, said out loud.** Its server has no
+  Copilot, so a brief comes back with `data:{}` — the tile is empty there
+  whatever the code does. The reading is pinned in node against the real shape
+  instead (and against the shape it used to read, which yields nothing), and
+  that is what fails on the parent.
+- **AND TWO EXISTING CLAIMS PINNED A LITERAL WHERE THE CLAIM WAS A RELATION** —
+  f134 pinned `api()`'s exact parameter list as a proxy for "still JSON-only",
+  and f230 matched an api call to its closing bracket. Both re-pointed. **A
+  probe reading api()'s neighbourhood also read the COMMENT explaining why it is
+  JSON-only and reported the prose as the code**: end a slice at the function's
+  own last line.
+
 **NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
 (above); nothing runs on a contract drafted from a template — this is for paper
 somebody sent you; the card is not on the phone; and nothing about it reaches
