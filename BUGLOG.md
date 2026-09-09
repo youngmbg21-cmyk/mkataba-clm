@@ -10261,3 +10261,74 @@ home-page 34/34.
 - obligations-tab-verify is 49/50 on its band heading check. PROVED
   pre-existing by running the same file in a worktree at the parent commit:
   identical count, identical check.
+
+## 2026-09-09 — The overnight desk (idea 19), three kinds
+
+Owner-ruled off their own ideas artifact, then off two questions that changed
+what got built.
+
+FIVE KINDS BECAME THREE, and the two that went were already somewhere: briefs
+for unread contracts are the Copilot coverage tile on that same page, and an
+obligation nobody owns is what the Insights obligations tab reports. What
+survives is the three where something outside the building is affected and a
+clock is running.
+
+THREE KINDS, NOT THREE ROWS. Ranked as one flat list of the best three, a quiet
+kind loses every morning and never draws at all — a renewal 43 days out and a
+supplier four days late always outrank the third thing. deskShown takes at most
+one of each. Where more qualify the sub-line says how many of how many.
+
+THE OWNER'S SECOND QUESTION FOUND A REAL OVERLAP: "what is the difference
+between the 3 or 5 things compared to the 'needs your decision' on home page?"
+A renewal inside 90 days is ALREADY a row in that list, at exactly this window,
+so drawn naively Home would say the same thing about the same contract twice.
+A contract the desk prepared a renewal for now leaves that list — and only the
+renewal source is filtered, because a colleague waiting on your review is a
+different subject that happens to share a contract. deskCids reads the WHOLE
+list rather than the three on screen, or a renewal the cap held back would be
+dropped from both places.
+
+IT IS A READING. No route, no sweep, no spend, and one field on the record —
+c.desk, the day a row was put away, absent on everything already on file. Every
+qualifying test is one of the product's own predicates.
+
+WHAT IS NOT BUILT, and it is the half the owner has not ruled on: HaTi does not
+WRITE the renewal memo while nobody is watching. That is the one preparation
+here costing a Copilot call with no person behind it, and a metered call naming
+nobody is spending that counts against nobody. So the row carries the facts HaTi
+is certain of, plus the memo where one is already on the record, and Review
+opens the card where it is written on a real press.
+
+AND THE HEADER CLAIMS NO CLOCK TIME. The drawing says "finished 05:40"; HaTi
+does not yet work unattended, so that would be the page inventing a night shift.
+It says "Prepared for you" and, under it, the half that is true and that the
+whole desk rests on: nothing was sent or filed.
+
+TWO THINGS FOUND BY READING WHAT IT DREW RATHER THAN THE SOURCE. The tag
+repeated the meta line — "Quarterly volume report · 4 days late" beside a tag
+saying "4 days" — so the tag carries the urgency and the meta the facts, never
+both. And the renewal date went through fmtDocDate, which is the DOCUMENT's
+formatter and writes English months whatever language the reader chose; fmtDDay
+was lifted to one definition in home.js the day the desk became its second
+reader.
+
+A STAGE'S STUB MUST USE THE PRODUCT'S OWN ARITHMETIC. The real daysUntil CEILS,
+so a date due today answers 0 and is not yet overdue; stubbed with Math.round it
+answers -1 from midday on, and the claim about that boundary would have been
+describing the stub. Caught because the claim failed.
+
+Verified: lint 180/4 (identical to the clean tree, proved by stashing), node
+6004/6004, home-page-verify 46/46 (37/46 against the parent, 11h reporting the
+owner's overlap verbatim as "desk false · decisions true"), kpi-four 19/19,
+laptops 21/21. f274 cannot even load against the parent — the reading does not
+exist there.
+
+### Noticed, not fixed
+- test/world.js's REGISTER option stubs daysUntil with Math.round where the
+  product's own (js/views/intelligence.js) uses Math.ceil. They disagree at
+  every partial day, so any register test about a date boundary is describing
+  the stub. The desk option's own stub was written with Math.ceil.
+- daysUntil is declared in js/views/intelligence.js — a VIEW file — and
+  js/obligations.js calls it BARE inside obState and renewalWindow. Any stage
+  without that view throws rather than falling back. Latent in the shipped app,
+  where js/app.js loads both.

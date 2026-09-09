@@ -131,6 +131,13 @@ const STANDARDS = 'js/standards.js';
    module's `typeof` fallbacks and prove nothing about the product. The
    obligations model goes under the playbook, which is js/app.js's order. */
 const TRIAGE = 'js/triage.js';
+/* The overnight desk (buildWorld({desk:true})). A READING with no view, on the
+   shelf js/precedent.js and js/payterms.js sit on — but it reads three of the
+   product's own predicates through `typeof` (renewalWindow, obligationIsTheirs,
+   triageOf), so a stage without those files would exercise its fallbacks and
+   prove nothing about the product. The option brings all three, in js/app.js's
+   own order: the obligations model, then triage, then the desk. */
+const DESKNIGHT = 'js/desknight.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 /* Payment terms turned into a number of days (buildWorld({payterms:true})).
@@ -425,6 +432,32 @@ function buildWorld(opts = {}) {
     if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
     if (!opts.obligations) files.push(OBLIGATIONS);
     files.push(TRIAGE);
+  }
+  if (opts.desk) {
+    /* The three readings the desk asks for, then the desk. deskItems() called
+       with no list reads state.contracts — the caller's own already-scoped
+       bootstrap — so the stage carries one, the same stand-in the triage
+       option provides and for the same reason. */
+    /* AND THE ONE THING js/obligations.js READS BARE. `obState` and
+       `renewalWindow` both call daysUntil, which is declared in
+       js/views/intelligence.js — a VIEW file — so on any stage without that
+       view they throw rather than falling back. The register option stubs it
+       for the same reason; loading a whole view to reach one date helper would
+       be the heavier answer.
+
+       IT IS THE PRODUCT'S OWN ARITHMETIC, Math.ceil, and that is not a detail:
+       the real daysUntil CEILS, so a date due TODAY answers 0 and is not yet
+       overdue. Stubbed with Math.round it answers -1 from midday onward, an
+       obligation due this morning reads as a day late, and a test about that
+       boundary would be describing the stub rather than the product. (The
+       register option's own stub still rounds — noticed, not fixed.) */
+    Object.assign(win, {
+      state: win.state || { contracts: [], settings: {} },
+      daysUntil: win.daysUntil || (d => { const t = Date.parse(d + 'T00:00:00'); return isNaN(t) ? 0 : Math.ceil((t - Date.now()) / 86400000); }),
+    });
+    if (!opts.obligations && !opts.triage) files.push(OBLIGATIONS);
+    if (!opts.triage) files.push(TRIAGE);
+    files.push(DESKNIGHT);
   }
   if (opts.copilotRead) {
     /* ---- AND THE STAGE MUST ANSWER cKind, OR THE FILE PROVES NOTHING ----

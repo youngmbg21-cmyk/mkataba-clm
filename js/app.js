@@ -41,6 +41,7 @@ import './precedent.js';     // what this workspace's own settled rounds say (W3
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
+import './desknight.js';    // the overnight desk: three kinds of prepared work, read off the record (idea 19)
 import './assurance.js';     // which rung a signature was taken at (W3-3)
 import './views/negotiation-css.js'; // that page's stylesheets, lifted out of the file below (21 Aug 2026)
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking

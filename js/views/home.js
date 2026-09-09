@@ -414,7 +414,6 @@ function hmDashSlices(){
   /* Paper that has sat in review, longest first — the other half of what a
      person has to decide about, alongside the renewals. */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
-  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
   // yet signed — a live share in 'sent' or 'opened', so the ball is in their
@@ -721,6 +720,91 @@ function triageRowHtml(it){
 }
 /* The line under the title while the card is open: the file itself, who filed
    it and when — the provenance a reader wants before they act on any of it. */
+/* A DAY, IN THE READER'S OWN WORDS. Lifted to module scope the day the desk
+   became its SECOND reader: it was declared inside hmDashSlices and returned,
+   which is fine for one caller and is how two would come to print the same
+   date two ways on one page. NEVER fmtDocDate — that is the DOCUMENT's
+   formatter and writes English months from a fixed list whatever language the
+   reader has chosen, which is right on a contract and wrong on a screen. */
+const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
+
+/* ---- THE OVERNIGHT DESK'S ROW (idea 19, owner-ruled 9 Sep 2026) ----
+   Three kinds of prepared work, above the reader's own list. COUNTING IS NOT
+   DRAWING: every figure, day and name comes from deskItems in js/desknight.js,
+   which returns plain data; this composes the sentence and works nothing out,
+   so the row and the screen it leads to cannot disagree about what was found.
+
+   IT IS A <div>, NOT A <button>, and that is forced rather than chosen — the
+   ordinary rows on this page are buttons, and a button may not contain the two
+   or three this row carries. It keeps .hm-row, so the left rule, the tone and
+   the type follow the list below it and a desk row is plainly one of the same
+   family.
+
+   IT BORROWS THE ACT ROW triage's card already had rather than declaring a
+   second one that agrees today: one rule, two wearers, named in index.html. */
+function deskRowHtml(it){
+  const NOCP=i18t('home_no_counterparty');
+  const who=esc(it.who||NOCP);
+  /* THE KIND AND THE OBLIGATION TRAVEL ON THE BUTTON. The key is the desk's
+     own dismissal token and its shape belongs to deskKeyOf; a handler that
+     split it back apart would be a second reading of that shape. */
+  const B=(act,label,cls)=>`<button type="button" class="hm-tri-b${cls?' '+cls:''}"
+      data-desk-act="${esc(act)}" data-desk-cid="${esc(it.cid)}" data-desk-key="${esc(it.key)}"
+      data-desk-kind="${esc(it.kind)}"${it.ob?` data-desk-ob="${esc(it.ob.id)}"`:''}
+      >${esc(label)}</button>`;
+  let tone='is-crit', txt='', meta='', tag='', acts='';
+
+  if(it.kind==='chase'){
+    /* RUBY: somebody outside the building is late and waiting on an answer,
+       which is the only thing on this desk with a person on the far side. */
+    tone='is-neg';
+    txt=i18t('desk_chase_t',{who});
+    /* THE META IS WHAT IT IS, THE TAG IS HOW LATE — never both. */
+    meta=esc(it.what)+(it.noAddress?' &middot; '+esc(i18t('desk_chase_noaddr')):'');
+    tag=i18tn('desk_late',it.days,{n:it.days});
+    /* A VERB THAT CANNOT WORK IS NOT DRAWN. With no address on file no message
+       can go, so the row offers the contract instead — where the address is
+       typed — and the meta line says why rather than leaving it to be
+       discovered after the press. */
+    acts=(it.noAddress?'':B('send',i18t('desk_chase_send'),'is-p'))
+      +B('open',i18t('desk_chase_open'),it.noAddress?'is-p':'')
+      +B('discard',i18t('desk_discard'),'is-plain');
+  }else if(it.kind==='deviations'){
+    txt=i18tn('desk_dev_t',it.n,{n:it.n,who});
+    meta=esc(it.cats&&it.cats.length?i18t('desk_dev_m',{cats:it.cats.join(', ')}):i18t('desk_dev_m_plain'));
+    tag=i18t('desk_dev_tag');
+    acts=B('open',i18t('desk_dev_open'),'is-p')+B('discard',i18t('desk_discard'),'is-plain');
+  }else{
+    if(it.urgent) tone='is-neg';
+    txt=i18t('desk_ren_t',{who});
+    /* WHAT IS ALREADY READY, and only where it really is. The memo and the
+       findings are facts on the record; absent, the line simply does not
+       mention them, because a row claiming a reading nobody has made is the
+       one thing this desk must never do. */
+    const when=(it.w&&it.w.decideBy)||'';
+    const bits=[i18t('desk_ren_by',{date:when?fmtDDay(when):''})];
+    if(it.w&&it.w.notice) bits.push(i18t('desk_ren_notice',{n:it.w.notice}));
+    if(it.memo) bits.push(i18t('desk_ren_memo'));
+    if(it.flags) bits.push(i18tn('desk_ren_flags',it.flags,{n:it.flags}));
+    meta=esc(bits.filter(Boolean).join(' · '));
+    /* THE DATE IS IN THE META AND THE COUNTDOWN IS THE TAG — the decisions list
+       below reads the same way round, so the two sections scan alike. */
+    tag=it.days<0?i18t('desk_ren_late'):i18tn('desk_days',it.days,{n:it.days});
+    acts=B('open',i18t('desk_ren_review'),'is-p')+B('discard',i18t('desk_discard'),'is-plain');
+  }
+
+  /* NO MARKER ON THE ROW ITSELF. It carried a data-desk-row nothing read, and
+     a dead selector is a mention the next reader has to rule out; which
+     contract a row is about is on its own buttons, and the row is not pressable
+     — every door it has is one of the verbs. */
+  return `<div class="hm-row is-desk ${tone}">
+      <div class="hm-desk-head">
+        <span class="hm-rb"><span class="hm-rt">${txt}</span><span class="hm-rm">${meta}</span></span>
+        <span class="hm-rtag">${esc(tag)}</span>
+      </div>
+      <div class="hm-desk-acts">${acts}</div>
+    </div>`;
+}
 function triageSubHead(c){
   const t=(typeof triageOf==='function')?triageOf(c):null;
   const f=(c&&c.upload&&c.upload.name)||'';
@@ -864,6 +948,18 @@ function renderDashboard(){
      person: a renewal decision whose date is closing, and paper that has sat in
      review. Drawn in the design's feed row — a round tone tile, two lines — and
      capped to the pipeline's height, scrolling inside its own box. */
+  /* ---- THE OVERNIGHT DESK (idea 19) ----
+     Read before the list below it, because the list below it depends on the
+     answer: a contract the desk has prepared a renewal for LEAVES "Needs your
+     decision", or Home says the same thing about the same contract twice. */
+  const deskAll=(typeof deskItems==='function')?deskItems(cs):[];
+  const deskRows=(typeof deskShown==='function')?deskShown(deskAll):[];
+  /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
+     one-door rule: a colleague waiting on your review is a different subject
+     that happens to share a contract, and dropping that row because a renewal
+     is also due would lose it. */
+  const deskIds=(typeof deskCids==='function')?deskCids(deskAll):new Set();
+
   const decisionItems=[
     /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----
        *"delete the 4 cards from the home page and simply land in the key terms
@@ -912,7 +1008,7 @@ function renderDashboard(){
       meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('dk_ask_tag')),
     })),
-    ...decisions.map(x=>({
+    ...decisions.filter(x=>!deskIds.has(x.c.id)).map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
       txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
       meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
@@ -1202,6 +1298,30 @@ function renderDashboard(){
     (()=>{ try{ return new Date().toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'}); }
            catch(e){ return ''; } })()].filter(Boolean).join(' · ');
 
+  /* ---- WHAT THE SECTION SAYS ABOUT ITSELF ----
+     "Prepared for you", never a clock time, and that is the truthfulness rule
+     this codebase applies to "sent means sent" applied to a claim about work:
+     HaTi does not yet do anything while nobody is watching, so a header reading
+     "finished 05:40" would be the page inventing a night shift. What IS true is
+     the half that matters — the reader asked for none of this and it was ready
+     when they arrived — and the promise the whole desk rests on, that NOTHING
+     WAS SENT OR FILED.
+
+     A CAP IS A FACT, NEVER A SILENT TRIM: at most one row per kind is on
+     screen, so where more qualify the sub-line says how many of how many. */
+  const deskSub=deskRows.length
+    ? esc(i18tn('desk_sub',deskAll.length,{n:deskAll.length}))
+      +(deskAll.length>deskRows.length
+        ? ' &middot; '+esc(i18t('desk_showing',{n:deskRows.length,total:deskAll.length})):'')
+    : '';
+  /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
+     empty section that says so every morning is the furniture this rulebook
+     keeps warning about, and the list below already has its own empty state. */
+  const deskSection=deskRows.length?`
+    ${hmSec(i18t('desk_sec'),`<span class="hm-desk-sub">${deskSub}</span>
+      <button type="button" class="hm-cz" data-desk-act="discard-all">${esc(i18t('desk_discard_all'))}</button>`)}
+    <div class="hm-rows" id="hm-desk-rows">${deskRows.map(deskRowHtml).join('')}</div>`:'';
+
   document.getElementById('content').innerHTML=`
   <div class="view-enter hm-page">
     ${firstRunBanner}
@@ -1229,6 +1349,8 @@ function renderDashboard(){
 
     ${hmSec(i18t('home_portfolio_sec'))}
     <div class="hm-tiles is-port">${portTiles}</div>
+
+    ${deskSection}
 
     ${hmSec(i18t('home_needs_decision'),ddLink)}
     ${ddRows}
@@ -1389,6 +1511,50 @@ function renderDashboard(){
      render — a card that cleared itself the moment Home drew it would be a
      reading that writes. So the card stays until somebody does something with
      it, and one press is enough. */
+  /* ---- THE DESK'S ACTS (idea 19) ----
+     NOT ONE OF THEM IS A NEW WAY OF DOING ANYTHING. Send presses
+     obligationChase, which is the product's one chase — its own confirm, its
+     own record-before-the-message ordering, its own three honest answers.
+     Open presses openWorkspace and roomGoTab, the worklist's own two lines.
+     Discard writes the desk's own stamp and touches nothing else. */
+  const deskGo=(cid,tab)=>{ if(!window.openWorkspace) return;
+    openWorkspace(cid);
+    const c=window.getContract?getContract(cid):null;
+    if(c&&window.roomGoTab) try{ roomGoTab(c,tab); }catch(_){} };
+  document.querySelectorAll('[data-desk-act]').forEach(el=>el.addEventListener('click',async ev=>{
+    ev.stopPropagation();
+    const act=el.getAttribute('data-desk-act');
+    if(act==='discard-all'){
+      /* IT ASKS, AND IT SAYS WHAT IT COSTS — which is nothing: every row here
+         is a reading of something that stays exactly where it was. The count
+         is deskAll's, not the three on screen, because "all" means all. */
+      const ok=await confirmDialog({ title:i18t('desk_discard_q'),
+        message:i18t('desk_discard_msg',{n:deskAll.length}),
+        confirm:i18t('desk_discard_go') });
+      if(!ok) return;
+      let n=0;
+      for(const it of deskAll){ if(window.deskDismiss&&deskDismiss(it.c,it.key)) n++; }
+      if(n) renderDashboard();
+      return;
+    }
+    const cid=el.getAttribute('data-desk-cid'), key=el.getAttribute('data-desk-key');
+    const kind=el.getAttribute('data-desk-kind');
+    const c=(state.contracts||[]).find(x=>x&&x.id===cid); if(!c) return;
+    if(act==='discard'){ if(window.deskDismiss&&deskDismiss(c,key)) renderDashboard(); return; }
+    /* WHERE THE READER ENDS UP: the contract, on the tab this row is about —
+       the worklist's own rule. A late promise lands on Obligations; the other
+       two land on Key terms, where the renewal card and what HaTi read both
+       live. A row that opened the Document tab would make them hunt for what
+       they pressed. */
+    if(act==='open'){ deskGo(cid, kind==='chase'?'oblig':'terms'); return; }
+    if(act==='send'){
+      const ob=el.getAttribute('data-desk-ob');
+      if(!window.obligationChase||!ob) return;
+      await obligationChase(cid,ob);
+      renderDashboard();
+      return;
+    }
+  }));
   document.querySelectorAll('[data-tri-fold]').forEach(el=>el.addEventListener('click',ev=>{
     ev.stopPropagation();
     const id=el.getAttribute('data-tri-fold');

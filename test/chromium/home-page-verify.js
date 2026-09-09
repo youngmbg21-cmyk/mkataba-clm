@@ -319,6 +319,158 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
+    /* ============ 11. THE OVERNIGHT DESK (idea 19, three kinds) =========
+       WHY THIS IS A BROWSER FILE. Four of the claims below cannot be asked
+       anywhere else: whether the section is VISIBLE PIXELS rather than markup
+       behind something, whether it sits ABOVE the reader's own list, whether a
+       real press really puts a row away, and — the one the owner's own question
+       found — whether a contract on the desk is listed ONCE on this page. A
+       source check sees the filter and cannot see the page.
+
+       THE CONTROL COMES FIRST: the seeded book prepares nothing, so an empty
+       desk must draw no heading at all. Without that, "the section appears"
+       would be satisfied by a section that is always there. */
+    const deskBefore = await page.evaluate(() =>
+      ({ rows: document.querySelectorAll('#hm-desk-rows .hm-row').length,
+         heads: [...document.querySelectorAll('.hm-sec h2')].map(h => h.textContent.trim()) }));
+    check('11a nothing prepared draws no desk at all',
+      deskBefore.rows === 0 && !deskBefore.heads.some(t => /Prepared for you/i.test(t)),
+      `${deskBefore.rows} rows · ${deskBefore.heads.join(' / ')}`);
+
+    /* THE THREE STATES, STAGED ON REAL RECORDS in the reader's own book — a
+       counterparty obligation past its date, an upload whose standards pass
+       found something and that nobody has opened, and an agreement in force
+       inside its renewal window. Nothing here invents a flag the product does
+       not store. */
+    const staged = await page.evaluate(() => {
+      const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+      const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined');
+      const [a, b, cc] = live;
+      if (!a || !b || !cc) return null;
+      a.status = 'Signed'; a.counterparty = a.counterparty || 'Nordkust';
+      a.counterpartyEmail = 'ops@nordkust.example';
+      a.obligations = [{ id: 'ob-desk', desc: 'Quarterly volume report', due: day(-4),
+        party: 'theirs', status: 'open' }];
+      b.source = 'upload'; b.counterparty = b.counterparty || 'Kibo Traders';
+      b.triage = { at: day(-1), seenAt: null,
+        steps: { playbook: { ok: true, dev: 2, miss: 1, cats: ['Payment terms', 'Liability'] } } };
+      cc.status = 'Signed'; cc.parentId = null; cc.expiry = day(40);
+      cc.metadata = Object.assign({}, cc.metadata, { expiryDate: day(40), noticePeriodDays: 30 });
+      renderDashboard();
+      return { chase: a.id, dev: b.id, ren: cc.id };
+    });
+    check('11b the three states could be staged on real records', !!staged,
+      staged ? `${staged.chase} / ${staged.dev} / ${staged.ren}` : 'fewer than three live contracts');
+
+    await page.screenshot({ path: path.join(OUT, '11-desk.png') });
+
+    /* VISIBLE PIXELS, not markup: a row inside a collapsed or hidden container
+       measures zero and would pass every attribute check ever written. */
+    const desk = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hm-desk-rows .hm-row')];
+      const r0 = rows[0] ? rows[0].getBoundingClientRect() : null;
+      const dd = document.querySelector('#hm-dd-rows .hm-row');
+      const sec = [...document.querySelectorAll('.hm-sec')]
+        .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
+      return {
+        n: rows.length,
+        painted: rows.filter(el => { const r = el.getBoundingClientRect();
+          return r.width > 40 && r.height > 20 && getComputedStyle(el).display !== 'none'; }).length,
+        top: r0 ? Math.round(r0.top) : null,
+        /* THE HEADINGS, NOT THE ROWS. "Needs your decision" draws its own empty
+           state when nothing is waiting, so a row there is not something this
+           claim may depend on — and the claim is about where the SECTION sits. */
+        secTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
+          .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
+          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
+        ddSecTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
+          .find(x => /Needs your decision|Beslut/i.test((x.querySelector('h2') || {}).textContent || ''));
+          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
+        ddTop: dd ? Math.round(dd.getBoundingClientRect().top) : null,
+        sub: sec ? ((sec.querySelector('.hm-desk-sub') || {}).textContent || '').trim() : '',
+        acts: rows.map(el => [...el.querySelectorAll('[data-desk-act]')]
+          .map(b => b.getAttribute('data-desk-act')).join('+')),
+        kinds: rows.map(el => (el.querySelector('[data-desk-kind]') || {}).getAttribute
+          ? el.querySelector('[data-desk-kind]').getAttribute('data-desk-kind') : ''),
+      };
+    });
+    check('11c three rows draw, one of each kind', desk.n === 3
+      && desk.kinds.join(',') === 'chase,deviations,renewal', `${desk.n} · ${desk.kinds.join(', ')}`);
+    check('11d and every one of them is visible pixels',
+      desk.painted === desk.n && desk.n > 0, `${desk.painted} of ${desk.n} painted`);
+    check('11e the desk sits ABOVE the reader’s own list',
+      desk.secTop != null && desk.ddSecTop != null && desk.secTop < desk.ddSecTop,
+      `desk ${desk.secTop}px · decisions ${desk.ddSecTop}px`);
+    /* THE PROMISE THE WHOLE DESK RESTS ON, and no clock time — HaTi does not
+       yet work while nobody is watching, so "finished 05:40" would be the page
+       inventing a night shift. */
+    check('11f the sub-line promises what is true and claims no night shift',
+      /nothing was sent or filed/i.test(desk.sub) && !/\d\d:\d\d/.test(desk.sub), desk.sub);
+    /* `every` ON AN EMPTY LIST IS TRUE, so the count is asserted with it — the
+       claim is that THREE rows each carry one, not that none of nought does. */
+    check('11g every row carries a way to put it away',
+      desk.acts.length === 3 && desk.acts.every(a => a.includes('discard')),
+      `${desk.acts.length} rows · ${desk.acts.join(' | ')}`);
+
+    /* ---- ONE DOOR: the owner's own question, end to end ---- */
+    const once = await page.evaluate(id => {
+      const inDesk = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
+        .some(b => b.getAttribute('data-desk-cid') === id);
+      const inDd = [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+        .some(b => b.getAttribute('data-sel') === id);
+      return { inDesk, inDd };
+    }, staged ? staged.ren : '');
+    check('11h a renewal the desk prepared is NOT also in Needs your decision',
+      once.inDesk && !once.inDd,
+      `desk ${once.inDesk} · decisions ${once.inDd}`);
+    /* AND THE CONTROL THAT MAKES THAT CLAIM MEAN SOMETHING. On a quiet book
+       "Needs your decision" can be empty, and then "not in the list" is true of
+       every contract there is. 11l below dismisses the desk's renewal and
+       proves the SAME contract then appears in that list — so the filter was
+       really doing something, rather than the list being empty. */
+
+    /* ---- A VERB THAT CANNOT WORK IS NOT DRAWN ---- */
+    const noAddr = await page.evaluate(id => {
+      const c = state.contracts.find(x => x.id === id);
+      c.counterpartyEmail = '';
+      renderDashboard();
+      const row = [...document.querySelectorAll('#hm-desk-rows .hm-row')]
+        .find(el => (el.querySelector('[data-desk-cid]') || {}).getAttribute
+          && el.querySelector('[data-desk-cid]').getAttribute('data-desk-cid') === id);
+      if (!row) return null;
+      return { send: !!row.querySelector('[data-desk-act="send"]'),
+        says: /no address/i.test(row.textContent) };
+    }, staged ? staged.chase : '');
+    check('11i with no address on file, Send is not drawn and the row says why',
+      noAddr && !noAddr.send && noAddr.says,
+      noAddr ? `send drawn ${noAddr.send} · says ${noAddr.says}` : 'row not found');
+
+    /* ---- A REAL PRESS PUTS A ROW AWAY, AND IT STAYS AWAY ---- */
+    const away = await page.evaluate(async id => {
+      const btn = [...document.querySelectorAll('#hm-desk-rows [data-desk-act="discard"]')]
+        .find(b => b.getAttribute('data-desk-cid') === id);
+      if (!btn) return null;
+      const before = document.querySelectorAll('#hm-desk-rows .hm-row').length;
+      btn.click();
+      await new Promise(r => setTimeout(r, 400));
+      const c = state.contracts.find(x => x.id === id);
+      return { before, after: document.querySelectorAll('#hm-desk-rows .hm-row').length,
+        stamped: !!(c && c.desk && c.desk.renewal),
+        stillThere: [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
+          .some(b => b.getAttribute('data-desk-cid') === id) };
+    }, staged ? staged.ren : '');
+    check('11j pressing Discard really takes the row off the page',
+      away && away.after === away.before - 1 && !away.stillThere,
+      away ? `${away.before} → ${away.after}` : 'button not found');
+    check('11k and the record carries the stamp, so it does not come back',
+      away && away.stamped, away ? String(away.stamped) : '—');
+
+    const moved = await page.evaluate(id =>
+      [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+        .some(b => b.getAttribute('data-sel') === id), staged ? staged.ren : '');
+    check('11l …and it is in Needs your decision instead — so 11h was a filter, not an empty list',
+      moved === true, `in the decisions list: ${moved}`);
+
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);

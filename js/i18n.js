@@ -4887,6 +4887,51 @@ const STRINGS = {
     tri_decline_q: 'Decline this contract?',
     tri_decline_msg: '“{name}” is marked Declined and comes off every live list, count and reminder. The document stays on file and the record keeps its history.',
     tri_declined: 'Declined',
+
+    /* ---- THE OVERNIGHT DESK (idea 19) ----
+       "Prepared for you" rather than "Prepared overnight", and the difference is
+       the truth: nothing here claims a clock time, because HaTi does not yet do
+       unattended work — what is true, and what the section is for, is that the
+       reader asked for none of it and it was ready when they arrived. */
+    desk_sec: 'Prepared for you',
+    desk_sub_one: '1 thing · nothing was sent or filed',
+    desk_sub_other: '{n} things · nothing was sent or filed',
+    desk_showing: 'showing {n} of {total}',
+    desk_discard: 'Discard',
+    desk_discard_all: 'Discard all',
+    desk_discard_q: 'Discard everything prepared?',
+    desk_discard_msg: 'All {n} prepared items come off this list. Nothing is deleted — the renewal stays on Needs your decision and the Calendar, the late promise stays on the Obligations list, and what HaTi read stays on the contract.',
+    desk_discard_go: 'Discard all',
+    /* A late promise, with the message ready to go. */
+    desk_chase_t: 'Chase ready — {who}',
+    /* THE TAG CARRIES THE URGENCY AND THE META CARRIES THE FACTS, so neither
+       prints the other's number. Drawn the first way round the row read
+       "Quarterly volume report · 4 days late" beside a tag saying "4 days" —
+       one fact, twelve pixels apart, which is what this rulebook keeps
+       warning about. */
+    desk_late_one: '1 day late',
+    desk_late_other: '{n} days late',
+    desk_days_one: '1 day',
+    desk_days_other: '{n} days',
+    desk_chase_send: 'Send the chase',
+    desk_chase_open: 'Open it',
+    desk_chase_noaddr: 'no address on file for them',
+    /* Paper they sent, read on arrival, that nobody has opened since. */
+    desk_dev_t_one: '1 thing to look at on the contract {who} sent',
+    desk_dev_t_other: '{n} things to look at on the contract {who} sent',
+    desk_dev_m: 'Read when it arrived · {cats}',
+    desk_dev_m_plain: 'Read when it arrived',
+    desk_dev_tag: 'Not opened',
+    desk_dev_open: 'Open it',
+    /* A renewal decision closing, with what HaTi already has ready. */
+    desk_ren_t: 'Renewal decision — {who}',
+    desk_ren_by: 'Decide by {date}',
+    desk_ren_late: 'the date has passed',
+    desk_ren_notice: "{n} days' notice",
+    desk_ren_memo: 'memo ready',
+    desk_ren_flags_one: '1 thing to look at',
+    desk_ren_flags_other: '{n} things to look at',
+    desk_ren_review: 'Review',
     std_no_usual: 'No usual value',
     std_none_carry: 'None of your signed contracts records one.',
     std_seen_naming: '{seen} of {have} name it',
@@ -10295,6 +10340,39 @@ const STRINGS = {
     tri_decline_q: 'Avböja avtalet?',
     tri_decline_msg: '”{name}” markeras som Avböjt och försvinner från alla aktiva listor, räkningar och påminnelser. Dokumentet ligger kvar och historiken behålls.',
     tri_declined: 'Avböjt',
+
+    /* ---- KVÄLLENS SKRIVBORD (idé 19) ---- */
+    desk_sec: 'Förberett åt dig',
+    desk_sub_one: '1 sak · inget har skickats eller sparats',
+    desk_sub_other: '{n} saker · inget har skickats eller sparats',
+    desk_showing: 'visar {n} av {total}',
+    desk_discard: 'Lägg undan',
+    desk_discard_all: 'Lägg undan alla',
+    desk_discard_q: 'Lägga undan allt som förberetts?',
+    desk_discard_msg: 'Alla {n} förberedda punkter försvinner från den här listan. Ingenting raderas — förnyelsen ligger kvar under Beslut att fatta och i kalendern, det försenade åtagandet ligger kvar i åtagandelistan, och det HaTi läst ligger kvar på avtalet.',
+    desk_discard_go: 'Lägg undan alla',
+    desk_chase_t: 'Påminnelse redo — {who}',
+    desk_late_one: '1 dag försenat',
+    desk_late_other: '{n} dagar försenat',
+    desk_days_one: '1 dag',
+    desk_days_other: '{n} dagar',
+    desk_chase_send: 'Skicka påminnelsen',
+    desk_chase_open: 'Öppna',
+    desk_chase_noaddr: 'ingen adress registrerad för dem',
+    desk_dev_t_one: '1 sak att se över i avtalet som {who} skickade',
+    desk_dev_t_other: '{n} saker att se över i avtalet som {who} skickade',
+    desk_dev_m: 'Läst vid ankomsten · {cats}',
+    desk_dev_m_plain: 'Läst vid ankomsten',
+    desk_dev_tag: 'Inte öppnat',
+    desk_dev_open: 'Öppna',
+    desk_ren_t: 'Förnyelsebeslut — {who}',
+    desk_ren_by: 'Beslut senast {date}',
+    desk_ren_late: 'datumet har passerat',
+    desk_ren_notice: '{n} dagars uppsägningstid',
+    desk_ren_memo: 'promemoria klar',
+    desk_ren_flags_one: '1 sak att se över',
+    desk_ren_flags_other: '{n} saker att se över',
+    desk_ren_review: 'Granska',
     std_no_usual: 'Inget vanligt värde',
     std_none_carry: 'Inget av era undertecknade avtal anger någon.',
     std_seen_naming: '{seen} av {have} anger den',
