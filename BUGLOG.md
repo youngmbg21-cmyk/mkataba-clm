@@ -9857,3 +9857,23 @@ Noticed, not fixed
 - Termination says "Already matches" at 3 of 7 — below the share floor, so there
   is no pattern to match. why() asks agrees BEFORE pattern, so a standard equal
   to a minority value is reported as agreement.
+
+## 2026-09-09 (second look) — the same row drops a finding it could make
+
+Owner came back pointing at the clause library below the card: the governing
+law standard is right there and says Sweden, so "Nothing to compare" is false
+from the reader's chair. It is worse than a wording fault.
+
+Noticed, not fixed
+- The card can only compare NUMBERS (current is read only where kind is
+  'days'), so Governing law and Liability cap can never propose anything however
+  many contracts are signed. For governing law that is a self-imposed limit
+  rather than a real one: the standard is the workspace's own market, the
+  contracts carry metadata.governingLaw as a plain string, and the product
+  already publishes jxNamesHome — "does this name our own market?" — which the
+  playbook check and the risk scan both ask. The card does not ask it.
+- So the card is SILENTLY DROPPING the finding it exists to make. On the
+  owner's own book, seen=1 of have=10 proves every value is a singleton, so at
+  most one of the ten signed contracts that record a governing law names Sweden
+  — against a standard marked Required. That is the strongest thing the card
+  could have said and it said nothing.
