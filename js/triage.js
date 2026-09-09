@@ -68,6 +68,26 @@ function triageCards(list){
    COUNTING IS NOT DRAWING (the Insights panels' rule): this returns plain data
    and no markup, and js/views/home.js draws it. A step that did not run says
    so with its own reason; a step that ran says what it found. */
+/* THE THREE STATES A TILE CAN BE IN, and the third is the one that was
+   missing (owner-reported 9 Sep 2026, off a strip caught mid-run: "No brief ·
+   Standards not checked · Obligations not read" on a contract whose brief
+   arrived a minute later). A step that has not been ATTEMPTED yet is simply
+   absent from `t.steps` — and read as `!ok` that is indistinguishable from one
+   that was attempted and failed, so every tile accused the reading of failing
+   while it was still working, with no reason under it because there was none.
+   ONE TABLE, THREE HEADS PER READING, so a caller cannot forget the third. */
+const TRIAGE_HEADS = {
+  brief:    { ok: 'tri_t_brief',  no: 'tri_t_brief_no',  ing: 'tri_t_brief_ing' },
+  playbook: { ok: 'tri_t_std',    no: 'tri_t_std_no',    ing: 'tri_t_std_ing' },
+  oblig:    { ok: 'tri_t_oblig',  no: 'tri_t_oblig_no',  ing: 'tri_t_oblig_ing' },
+  filed:    { ok: 'tri_t_filed',  no: 'tri_t_filed',     ing: 'tri_t_filed' },
+};
+/* IS IT STILL READING? `_triaging` is set for the life of the run and deleted
+   in its `finally`, so this is true exactly while a reading could still land.
+   It is in memory and dies with the sitting, which is right: a run cannot
+   survive a reload, so a step still absent afterwards really has not run. */
+const triageBusy = c => !!(c && c._triaging);
+
 function triageTiles(c){
   const t = triageOf(c); if (!t) return [];
   const s = t.steps || {};
@@ -76,24 +96,28 @@ function triageTiles(c){
      whole page reading "Try again, or narrow what you asked for" — written for
      somebody who ASKED, and nobody asked for this. Appended rather than
      replacing the detail, because what WAS read is still worth reading. */
-  const add = (key, ok, headKey, detail, count) => {
-    const cut = ok && (s[key] || {}).cut
+  const add = (key, detail, count) => {
+    const st = s[key];
+    const working = key !== 'filed' && !st && triageBusy(c);
+    const ok = key === 'filed' ? true : !!(st && st.ok);
+    const cut = ok && (st || {}).cut
       ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '';
-    const d = [detail || '', cut].filter(Boolean).join(' — ');
-    out.push({ key, ok, headKey, detail: d, count: count == null ? null : count });
+    const d = working ? '' : [detail || '', cut].filter(Boolean).join(' — ');
+    out.push({ key, ok, working,
+      headKey: TRIAGE_HEADS[key][working ? 'ing' : (ok ? 'ok' : 'no')],
+      detail: d, count: (working || count == null) ? null : count });
   };
 
   const b = s.brief || {};
-  add('brief', !!b.ok, b.ok ? 'tri_t_brief' : 'tri_t_brief_no', b.ok ? (b.line || '') : (b.why || ''));
+  add('brief', b.ok ? (b.line || '') : (b.why || ''));
 
   const p = s.playbook || {};
-  add('playbook', !!p.ok, p.ok ? 'tri_t_std' : 'tri_t_std_no',
-    p.ok ? (p.cats && p.cats.length ? p.cats.join(', ') : '') : (p.why || ''),
+  add('playbook', p.ok ? (p.cats && p.cats.length ? p.cats.join(', ') : '') : (p.why || ''),
     p.ok ? (p.dev || 0) + (p.miss || 0) : null);
 
   const o = s.oblig || {};
   const found = Array.isArray(o.found) ? o.found : [];
-  add('oblig', !!o.ok, o.ok ? 'tri_t_oblig' : 'tri_t_oblig_no',
+  add('oblig',
     /* `desc` IS THE FIELD, and it is the product's own: the server's schema
        requires it, the heuristic writes it, and the review dialog and every
        obligation surface read it. Written as `text` this tile printed a count
@@ -104,7 +128,7 @@ function triageTiles(c){
   /* FILED reports facts already on the record — the stream somebody picked on
      the upload screen and the owner HaTi stamps at creation. It proposes
      nothing, which is why it costs nothing and why it is here at all. */
-  add('filed', true, 'tri_t_filed', triageFiledLine(c));
+  add('filed', triageFiledLine(c));
   return out;
 }
 
@@ -334,6 +358,6 @@ function triageAck(c){
   return true;
 }
 
-Object.assign(window, { TRIAGE_STEPS, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageAck });

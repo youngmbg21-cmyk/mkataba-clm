@@ -1589,8 +1589,32 @@ async function submitUpload(){
     const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
     Promise.resolve(onServer).catch(()=>{}).then(()=>{
       try{ triageRun(c,{ onStep:x=>{
-        if(window.renderChecksCard && document.getElementById('checks-card')) renderChecksCard(x);
-        if(window.renderKeyTerms && document.getElementById('kt-side')) renderKeyTerms(x);
+        /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
+           that was missing (owner-reported 9 Sep 2026: the Contract brief card
+           still read "Not written yet" with the brief already on the record).
+           A reading lands on `c._brief`, `c.playbook` and `c.scan` — the same
+           places the manual buttons write — so nothing has to be run twice;
+           what was wrong is that the card SAYING so was painted before the
+           reading finished and nothing repainted it. Each is guarded on its own
+           host, so a tab the reader is not on costs nothing. */
+        /* THE SIDE COLUMN WAS THE ONE THAT WAS MISSING (owner-reported 9 Sep
+           2026: the Contract brief card still read "Not written yet" with the
+           brief already on the record, so it offered to run what had just
+           run). A reading lands on `c._brief`, `c.playbook` and `c.scan` — the
+           same places the manual buttons write — so nothing ever had to be run
+           twice; what was wrong is that the card SAYING so was painted before
+           the reading finished and nothing repainted it.
+
+           AND CALLED BARE, because `renderKeyTermsSide` is NOT on this file's
+           export list while its two neighbours are — so `window.` would have
+           been false for exactly the one being added, silently, which is this
+           codebase's most repeated defect. All three live in THIS file, so a
+           bare call cannot be wrong and there is no window question to get
+           right. The host check is the real guard: a tab nobody is on costs
+           nothing. */
+        if(document.getElementById('checks-card')) renderChecksCard(x);
+        if(document.getElementById('kt-rows')) renderKeyTerms(x);
+        if(document.getElementById('kt-side')) renderKeyTermsSide(x);
       }}); }catch(e){ /* the card says what happened */ }
     });
   }
@@ -3941,17 +3965,23 @@ function ktTriageStripHtml(c){
   if(!c||typeof triageTiles!=='function'||typeof triageOf!=='function') return '';
   const t=triageOf(c); if(!t) return '';
   if(typeof triageSeen==='function'&&triageSeen(c)) return '';
+  /* A READING STILL IN FLIGHT IS NEITHER DONE NOR FAILED, and drawing it as
+     either is what was reported: the tiles said "No brief · Standards not
+     checked · Obligations not read" for the minute the readings take, with
+     nothing under them because a step that has not run has no reason to give.
+     Its own quiet mark, no count, no tone — nothing to act on yet. */
   const tiles=triageTiles(c).map(x=>{
-    const tone=x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no';
-    const mark=x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;';
-    return `<div class="kt-tri-tile">
+    const tone=x.working?'is-busy':(x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no');
+    const mark=x.working?'&hellip;':(x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;');
+    return `<div class="kt-tri-tile${x.working?' is-busy':''}">
       <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(x.headKey))}</div>
       ${x.detail?`<div class="kt-tri-td">${esc(x.detail)}</div>`:''}
     </div>`; }).join('');
+  const busy=(typeof triageBusy==='function')&&triageBusy(c);
   const read=(typeof triageReadAnything==='function')?triageReadAnything(c):true;
-  return `<section id="kt-triage" class="kt-tri${read?'':' is-no'}">
+  return `<section id="kt-triage" class="kt-tri${busy?' is-busy':(read?'':' is-no')}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(read?'tri_kt_head':'tri_kt_head_no'))}</span>
+      <span class="kt-tri-t">${esc(i18t(busy?'tri_kt_head_busy':(read?'tri_kt_head':'tri_kt_head_no')))}</span>
       <button type="button" id="kt-tri-done" class="kt-tri-x"
         title="${esc(i18t('tri_kt_done_title'))}">${esc(i18t('tri_kt_done'))}</button>
     </div>

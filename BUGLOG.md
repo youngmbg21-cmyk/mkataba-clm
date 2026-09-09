@@ -10170,3 +10170,55 @@ tab button.
 Verified: lint 179/4 (unchanged), node 5911/5911, auto-triage-verify 37/37
 (33/37 with the strip stashed — 8d passes either way as the control),
 amendment-journey-verify 49/49, home-page-verify 34/34.
+
+## 2026-09-09 (4) — still loading, off Home, and the card that asked twice
+
+Owner-reported off one upload, three things.
+
+1  A READING STILL IN FLIGHT WAS DRAWN AS A FAILURE. A step not yet attempted
+   is absent from t.steps, and read as !ok that is indistinguishable from one
+   that failed — so for the minute the readings take, every tile said "No brief
+   / Standards not checked / Obligations not read" with no reason under it.
+   Three states now; TRIAGE_HEADS is one table naming three heads per reading
+   so the third cannot be forgotten. triageBusy reads _triaging, so the same
+   absence after the run is still a real gap.
+
+2  THE CARD IS OFF HOME, owner-ruled: the four tiles live on the contract's own
+   Key terms tab and the same four in two places is duplication. The builder
+   survives with no caller, so it is one line to put back. What it costs, said
+   out loud: nothing on Home now says a contract arrived and was read.
+
+3  THE SIDE COLUMN WAS NEVER REPAINTED, so the Contract brief card went on
+   offering to write a brief already on the record. Nothing ever had to be run
+   twice — the readings land where the manual buttons write; what was wrong is
+   that the card saying so was painted before they finished.
+
+AND TWO LESSONS WORTH MORE THAN THE FIXES:
+- renderKeyTermsSide is NOT on contract.js's export list while its two
+  neighbours ARE, so a window guard would have been false for exactly the one
+  being added. All three are called bare. A FIRST WRITING claimed all three
+  were unpublished and the callback had never run — read off the export
+  statement's first line, and that list spans several. A test caught it and the
+  comment was corrected rather than left misdescribing the code.
+- A PROBE CANNOT HAND-BUILD A CONTRACT AND THEN OPEN ITS ROOM: a record pushed
+  onto state.contracts alone does not exist on the server, so the room draws no
+  panes at all. Reported three times as the strip being missing when what was
+  missing was the room. Staged through the real upload now, and the probe's
+  absence reports WHY.
+
+Test claims REVERSED IN PLACE, never deleted: f273's "it joins decisionItems"
+and its headline claim; auto-triage-verify sections 3-6, whose subject moved to
+the contract and which are re-pointed there rather than dropped.
+
+Verified: lint 179/4 (unchanged), node 5918/5918, auto-triage-verify 28/28
+(26/28 against today's parent, 3c the control), home-page-verify 34/34,
+amendment-journey-verify 49/49.
+
+### Noticed, not fixed
+- flat-rows-and-alerts-verify is 34/37 on its 2d/2e/2f — the retired WHOSE ASKS
+  filter. PROVED pre-existing by running the same file in a worktree at the
+  parent commit: identical count, identical three checks.
+- window.renderChecksCard is read by js/obligations.js, js/views/templatelib.js
+  and js/ai.js; it IS published, so those are fine — but renderKeyTermsSide is
+  not published at all, so any future cross-module reader of it would be
+  silence.

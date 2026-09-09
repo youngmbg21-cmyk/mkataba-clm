@@ -4252,6 +4252,12 @@
   .kt-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .kt-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .kt-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
+  /* STILL READING: neutral, because nothing has been found and nothing has
+     failed — a tone here would be the strip claiming an outcome it does not
+     have. The tile's own words carry it ("Writing the brief…"), so no
+     animation is owed and none is drawn. */
+  .kt-tri-chip.is-busy{background:var(--color-neutral-100);color:var(--color-neutral-600);}
+  .kt-tri-tile.is-busy .kt-tri-th{color:var(--color-neutral-600);}
   .hm-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:10px;}
   .hm-tri-tile{border:1px solid var(--color-divider);padding:8px 10px;min-width:0;}

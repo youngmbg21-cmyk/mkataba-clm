@@ -865,30 +865,23 @@ function renderDashboard(){
      review. Drawn in the design's feed row — a round tone tile, two lines — and
      capped to the pipeline's height, scrolling inside its own box. */
   const decisionItems=[
-    /* ---- AUTO-TRIAGE'S CARD LEADS THIS LIST (owner-approved design, 9 Sep
-       2026) ----
-       A ROW IN A LIST THAT ALREADY EXISTS, not a new section on Home: this one
-       already takes rows from approvals, signing turns, join asks, renewal
-       dates and stalled reviews, and this is a sixth source.
-       FIRST, because it is the only row here carrying something the reader has
-       not seen at all — everything below it is work they already know about —
-       and because one press clears it.
-       IT CARRIES WHAT WAS FOUND ON THE CARD. A one-line row saying "3
-       deviations, 2 obligations" would still make somebody open the contract to
-       learn anything, which is most of what triage exists to save. */
-    ...((typeof triageCards==='function'?triageCards():[]).map(c=>({
-      cid:c.id, urgent:false, ic:'inbox', kind:'triage', c,
-      expand:typeof triageReadAnything==='function'?triageReadAnything(c):false,
-      /* THE HEADLINE FOLLOWS WHAT WAS ACTUALLY READ, exactly as the tag and
-         the card's own edge already do. Left on one wording it read "read and
-         ready for you" over a scan whose words never came out of the file —
-         the card contradicting its own sub-line, in the one line set biggest. */
-      txt:i18t((typeof triageReadAnything==='function'&&triageReadAnything(c))?'tri_row':'tri_row_unread',
-        {who:esc(c.counterparty||i18t('home_no_counterparty'))}),
-      meta:(typeof triageLine==='function'?esc(triageLine(c)):'')+' · '+esc(c.id),
-      tag:(typeof triageReadAnything==='function'&&triageReadAnything(c))
-        ?i18t('tri_tag_arrived'):i18t('tri_tag_unread'),
-    }))),
+    /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----
+       *"delete the 4 cards from the home page and simply land in the key terms
+       page when you upload with the boxes attached."* The four tiles are on the
+       contract's own Key terms tab now — where the upload lands — and having
+       the same four in two places is the duplication this rulebook opens by
+       warning about.
+
+       THIS REVERSES THE DAY'S OWN DESIGN, and the reasoning it was built on
+       ("first, because it is the only row here carrying something the reader
+       has not seen at all") was answered instead by moving the reader to the
+       thing rather than the thing to the reader.
+
+       WHAT IT COSTS, SAID OUT LOUD: nothing on Home now says a contract
+       arrived and was read. It is one press from the Contracts page, and one
+       line to put back — triageCards() is untouched and still answers, and
+       triageRowHtml still draws. What went is the SOURCE this list read them
+       from. */
     /* REVIEWS LEAD, because they are the only item on this card that somebody
        is personally waiting on. A renewal date does not know your name; a
        colleague who sent you three redlines on Tuesday does. */

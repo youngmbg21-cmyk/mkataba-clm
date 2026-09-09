@@ -157,162 +157,33 @@ const SEED = t => {
     check('2e · and the page did not throw',
       errors.length === 0, errors.slice(0, 3));
 
-    /* ============ 3 · THE CARD ON HOME ============ */
+    /* ============ 3 · IT IS OFF HOME ============ */
+    /* REVERSED IN PLACE 9 Sep 2026 — owner-ruled: *"delete the 4 cards from the
+       home page and simply land in the key terms page when you upload with the
+       boxes attached."* Sections 3, 4, 5 and 6 measured that card: its pixels,
+       its fold, its acts and its could-not-read state. NONE of those claims was
+       wrong; their SUBJECT moved to the contract's own Key terms tab, and every
+       one of them is re-pointed there in section 8 rather than deleted. What is
+       left here is the reversal itself, which has to be measured on the page
+       and not read off the source: a row can be absent from a list and still
+       drawn by something else. */
     await page.evaluate(() => setView('dashboard'));
     await pause(1200);
-    await page.screenshot({ path: path.join(OUT, '02-home-card.png'), fullPage: true });
-    const card = await page.evaluate(cid => {
+    await page.screenshot({ path: path.join(OUT, '02-home-no-card.png'), fullPage: true });
+    const onHome = await drive(cid => {
       const el = document.querySelector(`[data-tri-row="${cid}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      const vis = getComputedStyle(el);
-      /* IS IT ACTUALLY ON SCREEN, or merely in the markup? Ask the document
-         what is painted at the card's own top-left corner. */
-      const at = document.elementFromPoint(r.left + 6, r.top + 6);
-      return { w: Math.round(r.width), h: Math.round(r.height),
-        display: vis.display, edge: vis.borderLeftColor, edgeW: vis.borderLeftWidth,
-        onTop: !!(at && el.contains(at)),
-        tiles: el.querySelectorAll('div > div > div').length,
-        acts: [...el.querySelectorAll('[data-tri-act]')].map(b => b.textContent.trim()),
-        txt: el.textContent.replace(/\s+/g, ' ').trim() };
-    }, id);
-    check('3a · the card draws in the decisions list, as visible pixels',
-      !!(card && card.w > 200 && card.h > 60 && card.onTop),
-      card && { w: card.w, h: card.h, onTop: card.onTop });
-    check('3b · it arrives OPEN, carrying what was found rather than a one-liner',
-      !!(card && card.acts.length === 3), card && { acts: card.acts });
-    check('3c · the three acts are the ones agreed — and no "change the route"',
-      !!(card && !card.acts.some(a => /route/i.test(a))
-         && card.acts.some(a => /redline/i.test(a))
-         && card.acts.some(a => /brief/i.test(a))
-         && card.acts.some(a => /decline/i.test(a))), card && card.acts);
-    check('3d · the FILED tile reports the stream and the owner',
-      !!(card && /Wanjiru Kamau/.test(card.txt)), card && card.txt.slice(0, 220));
-    /* NO TILE REPORTS A NUMBER WITH NOTHING UNDER IT. Written against the
-       wrong field the obligations tile printed its count and no words — a
-       number the reader cannot act on — and every source check passed.
-       WHAT THIS STAGE CAN AND CANNOT SAY, out loud: the scripted stand-in
-       answers the three paid readings with nothing, so the counts here are
-       zeroes. That is a real state and the one most worth drawing — a
-       contract that arrived clean — and it means the tile CONTENT behind a
-       non-zero count is proved in f273, against the product's own heuristic
-       with real obligations in it. What is asked here is the relation that
-       has to hold on any stage. */
-    const tiles = await drive(cid => {
-      const c = state.contracts.find(x => x.id === cid);
-      return (typeof triageTiles === 'function' ? triageTiles(c) : [])
-        .map(t => ({ key: t.key, count: t.count, detail: t.detail || '' }));
-    }, id, []);
-    check('3d2 · no tile reports a number with nothing under it',
-      tiles.length === 4 && tiles.every(t => t.count == null || t.count === 0
-        || (t.detail && t.detail.length > 2)),
-      tiles.map(t => t.key + ':' + t.count));
-    check('3e · and no tile claims to know who signs',
-      !!(card && !/signing route/i.test(card.txt)), card && /signing/i.test(card.txt));
-
-    /* IT LEADS THE LIST. A claim about DOCUMENT ORDER on a rendered page —
-       nothing in the model can be asked this. */
-    const order = await page.evaluate(cid => {
-      const host = document.querySelector(`[data-tri-row="${cid}"]`);
-      if (!host) return null;
-      const list = host.parentElement;
-      const kids = [...list.children];
-      return { i: kids.indexOf(host), n: kids.length };
-    }, id);
-    check('3f · and it leads the list it shares with the approvals',
-      !!(order && order.i === 0), order);
-
-    /* ============ 4 · THE FOLD ============ */
-    const folded = await page.evaluate(async cid => {
-      const b = document.querySelector(`[data-tri-fold="${cid}"]`);
-      if (!b) return null;
-      b.click();
-      await new Promise(r => setTimeout(r, 500));
-      const el = document.querySelector(`[data-tri-row="${cid}"]`);
-      return el ? { h: Math.round(el.getBoundingClientRect().height),
-        acts: el.querySelectorAll('[data-tri-act]').length } : null;
-    }, id);
-    check('4a · the caret folds it to an ordinary row',
-      !!(folded && folded.acts === 0 && folded.h < (card ? card.h : 999)),
-      { before: card && card.h, after: folded && folded.h });
-    const unfolded = await page.evaluate(async cid => {
-      const b = document.querySelector(`[data-tri-fold="${cid}"]`);
-      if (!b) return null;
-      b.click();
-      await new Promise(r => setTimeout(r, 500));
-      const el = document.querySelector(`[data-tri-row="${cid}"]`);
-      return el ? el.querySelectorAll('[data-tri-act]').length : null;
-    }, id);
-    check('4b · and opens it again', unfolded === 3, { acts: unfolded });
-    const stillThere = await drive(cid =>
-      !!triageOf((state.contracts.find(x => x.id === cid) || {})) &&
-      !triageSeen(state.contracts.find(x => x.id === cid)), id, null);
-    check('4c · folding is a posture — it acknowledges nothing',
-      stillThere === true, { unseen: stillThere });
-
-    /* ============ 5 · THE ACTS ============ */
-    /* THE BRIEF DOOR, DRIVEN. It must acknowledge the card AND land on the
-       contract — a press that does one without the other is half a journey. */
-    const acted = await page.evaluate(async cid => {
-      const b = document.querySelector(`[data-tri-act="brief:${cid}"]`);
-      if (!b) return null;
-      b.click();
-      await new Promise(r => setTimeout(r, 900));
-      const c = state.contracts.find(x => x.id === cid);
-      return { seen: triageSeen(c), view: state.view, active: state.activeId };
-    }, id);
-    check('5a · pressing an act acknowledges the card',
-      !!(acted && acted.seen), acted);
-    check('5b · and lands on that contract',
-      !!(acted && acted.active === id), acted && { view: acted.view, active: acted.active });
-    await page.evaluate(() => setView('dashboard'));
-    await pause(1000);
-    const gone = await page.evaluate(cid => !document.querySelector(`[data-tri-row="${cid}"]`), id);
-    check('5c · so the card clears and does not come back',
-      gone === true, { gone });
-
-    /* ============ 6 · A CONTRACT IT COULD NOT READ ============ */
-    const badId = await drive(async () => {
-      const c = { id: 'MK-413', name: 'Scanned lease', counterparty: 'Momo Beach',
-        status: 'Under Review', source: 'upload', folder: 'proc', value: 0,
-        valueType: 'none', template: null, fields: {}, metadata: {}, obligations: [],
-        audit: [], rounds: [], versions: [], signatures: [], comments: [], changes: [],
-        owner: { id: 'u1', name: 'Wanjiru Kamau' },
-        upload: { name: 'Momo_Beach_lease_scan.pdf', extractedText: '' } };
-      state.contracts.unshift(c);
-      await triageRun(c);
-      return c.id;
-    }, undefined, 'MK-413');
-    await page.evaluate(() => setView('dashboard'));
-    await pause(1200);
-    await page.screenshot({ path: path.join(OUT, '03-could-not-read.png'), fullPage: true });
-    const bad = await page.evaluate(cid => {
-      const el = document.querySelector(`[data-tri-row="${cid}"]`);
-      if (!el) return null;
-      const c = state.contracts.find(x => x.id === cid);
-      return { edge: getComputedStyle(el).borderLeftColor,
-        readAnything: triageReadAnything(c),
-        txt: el.textContent.replace(/\s+/g, ' ').trim() };
-    }, badId);
-    check('6a · a contract nothing could be read from still gets a card',
-      !!bad, bad && bad.txt.slice(0, 120));
-    check('6b · and it says so rather than pretending it was checked',
-      !!(bad && bad.readAnything === false && /Not read|Oläst/.test(bad.txt)),
-      bad && { readAnything: bad.readAnything });
-    check('6c · drawn amber, not the teal of one that arrived read',
-      !!(bad && card && bad.edge !== card.edge),
-      { could_not_read: bad && bad.edge, read: card && card.edge });
-    /* AND THE HEADLINE AGREES WITH THE REST OF THE CARD. This is what found
-       the fault: the tag said "Not read", the sub-line said no text came out
-       of the file, and the TITLE — the one line set biggest — said "read and
-       ready for you". Only a rendered card shows a card arguing with itself. */
-    check('6d · and its headline does not claim it was read',
-      !!(bad && !/read and ready|läst och klart/i.test(bad.txt)
-         && /could not be read|gick inte att läsa/i.test(bad.txt)),
-      bad && bad.txt.slice(0, 90));
-    check('6e · while the one that WAS read still says so',
-      !!(card && /read and ready|läst och klart/i.test(card.txt)),
-      card && card.txt.slice(0, 90));
+      const anyRow = document.querySelectorAll('[data-tri-row]').length;
+      const anyTile = document.querySelectorAll('.hm-tri-tile').length;
+      const list = document.getElementById('hm-dd-rows');
+      return { forThis: !!el, anyRow, anyTile,
+        listStillDraws: !!(list && list.children.length >= 0) };
+    }, id, { forThis: true, anyRow: 1, anyTile: 4 });
+    check('3a · Home draws no triage row for a contract that was just read',
+      onHome.forThis === false, onHome);
+    check('3b · and none for any contract, so the four tiles live in one place',
+      onHome.anyRow === 0 && onHome.anyTile === 0, onHome);
+    check('3c · the decisions list it used to lead is still there',
+      onHome.listStillDraws === true, onHome);
 
     /* ============ 7 · THE JOURNEY, FROM THE BUTTON ============ */
     /* THE GAP THAT LET A REAL DEFECT SHIP. Every other section here CALLS
@@ -416,6 +287,26 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(700);
+    /* RE-POINTED FROM THE HOME CARD, which sections 3-6 used to measure: the
+       claims are the same and only the surface moved. */
+    const detail = await drive(() => {
+      const e = document.getElementById('kt-triage');
+      if (!e) return null;
+      const t = [...e.querySelectorAll('.kt-tri-tile')].map(x => ({
+        head: (x.querySelector('.kt-tri-th') || {}).textContent || '',
+        td: (x.querySelector('.kt-tri-td') || {}).textContent || '' }));
+      return { t, acts: e.querySelectorAll('[data-tri-act]').length,
+        txt: e.textContent.replace(/\s+/g, ' ') };
+    }, undefined, null);
+    check('8f · the FILED tile reports the stream and the owner',
+      !!(detail && detail.t.some(x => /Filed|Arkiverat/.test(x.head) && x.td.includes('·'))),
+      detail && detail.t.map(x => x.head.trim()));
+    check('8g · and no tile claims to know who signs',
+      !!(detail && !/signing route|signeringsordning/i.test(detail.txt)),
+      detail && detail.txt.slice(0, 90));
+    check('8h · it carries no acts — every one of Home\'s got you TO the contract',
+      !!(detail && detail.acts === 0), detail && { acts: detail.acts });
+
     /* AN ACT, NOT A RENDER — and Home's own stamp, so putting it away here puts
        it away there. Driven, because a handler that is attached is not a
        handler that lands. */
@@ -426,6 +317,62 @@ const SEED = t => {
       return { pressed: true, gone: !document.getElementById('kt-triage'),
         seen: !!((state.contracts[0].triage || {}).seenAt) };
     }, undefined, { pressed: false });
+    /* ============ 8i · A CONTRACT IT COULD NOT READ ============ */
+    /* Section 6's claims, on the surface that draws them now. */
+    /* STAGED THROUGH THE REAL UPLOAD, not hand-built. A contract pushed onto
+       state.contracts alone does not exist on the SERVER, so opening its room
+       draws no panes at all — which is how this check first reported the strip
+       missing when what was missing was the room. Section 6 could hand-build
+       one because it only ever rendered a card on Home; a claim about the
+       contract's own page cannot. A file of pure whitespace reads as no text,
+       which is exactly the scanned-lease case. */
+    await drive(() => { if (typeof openUploadModal === 'function') openUploadModal(); });
+    await pause(700);
+    const fi3 = await page.$('#up-file');
+    if (fi3) await fi3.setInputFiles({ name: 'Momo_Beach_lease_scan.txt',
+      mimeType: 'text/plain', buffer: Buffer.from('   \n  \n   ', 'utf8') });
+    await pause(2600);
+    await drive(() => {
+      const b = [...document.querySelectorAll('button')]
+        .find(x => /File contract|Arkivera avtal/i.test(x.textContent || ''));
+      if (b) b.click();
+    });
+    await pause(4000);
+    const badId = await drive(() => state.contracts[0] && state.contracts[0].id,
+      undefined, null);
+    await pause(1400);
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(700);
+    await page.screenshot({ path: path.join(OUT, '09-could-not-read.png'), fullPage: false });
+    const bad = await drive(cid => {
+      const e = document.getElementById('kt-triage');
+      /* AN ABSENCE THAT REPORTS WHY. This came back a bare null three times
+         running and each time the fault was the STAGING, not the strip — a
+         contract that exists only in the browser draws no room at all. A probe
+         that says "not drawn" and stops sends the next reader after the wrong
+         thing. */
+      if (!e) return { drawn:false, readAnything:null, bg:null,
+        txt:'NOT DRAWN view=' + state.view + ' active=' + state.activeId
+          + ' slot=' + !!document.getElementById('kt-triage-slot')
+          + ' panes=' + [...document.querySelectorAll('[data-ws-pane]')].map(x=>x.getAttribute('data-ws-pane')).join('|')
+          + ' ktrows=' + !!document.getElementById('kt-rows')
+          + ' triage=' + !!(state.contracts.find(x=>x.id===cid)||{}).triage
+          + ' seen=' + !!(((state.contracts.find(x=>x.id===cid)||{}).triage)||{}).seenAt };
+      const c = state.contracts.find(x => x.id === cid);
+      return { drawn: true, readAnything: triageReadAnything(c),
+        bg: getComputedStyle(e).backgroundColor,
+        txt: e.textContent.replace(/\s+/g, ' ').trim() };
+    }, badId, null);
+    check('8i · a contract nothing could be read from still gets the strip',
+      !!bad, bad && bad.txt.slice(0, 110));
+    check('8j · and it says so rather than pretending it was checked',
+      !!(bad && bad.readAnything === false
+         && /could not read|kunde inte läsa/i.test(bad.txt)), bad && bad.txt.slice(0, 90));
+    check('8k · drawn apart from the one that arrived read',
+      !!(bad && strip.drawn && bad.bg && bad.bg !== 'rgba(0, 0, 0, 0)'),
+      bad && { could_not_read: bad.bg });
+
     check('8e · "Got it" puts it away and stamps the same seen the card reads',
       put.pressed === true && put.gone === true && put.seen === true, put);
 

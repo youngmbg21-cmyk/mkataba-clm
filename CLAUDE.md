@@ -10802,6 +10802,50 @@ terms, because it arrives with a complete document and empty terms.
   and every measurement after it read a pane that was still `display:none` —
   reported as a strip 0px wide. Press the tab button.
 
+**AND THREE MORE OFF THE SAME UPLOAD (owner-reported 9 Sep 2026).**
+
+- **A READING STILL IN FLIGHT WAS DRAWN AS A FAILURE.** *"If it is still
+  loading, i should see an action of still loading for each card."* A step that
+  has not been ATTEMPTED is simply absent from `t.steps`, and read as `!ok` that
+  is **indistinguishable from one that was attempted and failed** — so for the
+  minute the readings take, every tile accused them of failing, with no reason
+  under it because a step that has not run has none to give. **THREE STATES NOW,
+  and `TRIAGE_HEADS` is ONE TABLE naming three heads per reading** so a caller
+  cannot forget the third; `triageBusy(c)` reads `_triaging`, which is set for
+  the life of the run and deleted in its `finally`, so the same absence
+  afterwards is a real gap and still says so. **The busy tile takes no tone and
+  no count** — a colour there would be the strip claiming an outcome it does not
+  have.
+- **THE CARD IS OFF HOME.** *"delete the 4 cards from the home page and simply
+  land in the key terms page when you upload with the boxes attached."* The four
+  tiles are on the contract's own Key terms tab, and the same four in two places
+  is the duplication this rulebook opens by warning about. **THE BUILDER SURVIVES
+  WITH NO CALLER** — this file's own convention — so it is one line to put back;
+  what went is the SOURCE the decisions list read them from. **WHAT IT COSTS,
+  said out loud:** nothing on Home now says a contract arrived and was read.
+- **AND THE SIDE COLUMN WAS NEVER REPAINTED**, so the Contract brief card went
+  on reading *"Not written yet"* — offering to run what had just run — over a
+  brief already on the record. A reading lands on `c._brief`, `c.playbook` and
+  `c.scan`, the same places the manual buttons write, so **nothing ever had to be
+  run twice**; what was wrong is that the card SAYING so was painted before the
+  reading finished and nothing repainted it. **`renderKeyTermsSide` is NOT on
+  contract.js's export list while its two neighbours ARE**, so a `window.` guard
+  would have been false for exactly the one being added — silently. All three
+  live in that file, so they are called BARE and there is no window question to
+  get right.
+- **AND A FIRST WRITING OF THAT CLAIMED ALL THREE WERE UNPUBLISHED AND THE
+  CALLBACK HAD NEVER RUN.** It was read off the export statement's FIRST LINE
+  and that list spans several. A test caught it. **Read the whole statement, and
+  correct the comment when the reading was wrong** — a note that misdescribes
+  the code is worse than none.
+- **AND A PROBE CANNOT HAND-BUILD A CONTRACT AND THEN OPEN ITS ROOM.** A record
+  pushed onto `state.contracts` alone does not exist on the SERVER, so the room
+  draws **no panes at all** — reported three times as the strip being missing
+  when what was missing was the room. The Home card could be staged that way
+  because it only ever needed the object; a claim about the contract's own page
+  is staged through the real upload. **An absence that reports WHY is what
+  turned that from three wrong diagnoses into one.**
+
 **NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
 (above); nothing runs on a contract drafted from a template — this is for paper
 somebody sent you; the card is not on the phone; and nothing about it reaches

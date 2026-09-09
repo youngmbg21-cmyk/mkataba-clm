@@ -327,12 +327,18 @@ describe('F273 — auto-triage on upload', () => {
 
   /* --------------------------------------------------------------- */
   describe('7 · the card is a row in a list that already exists', () => {
-    test('it joins decisionItems rather than adding a section to Home', () => {
-      assert.match(HOME, /kind:'triage'/, 'a sixth source for the same list');
-      assert.ok(HOME.indexOf("kind:'triage'") < HOME.indexOf('...myJoinAsks'),
-        'and it leads, because it is the only row carrying something unseen');
+    /* REVERSED IN PLACE 9 Sep 2026 — owner-ruled: *"delete the 4 cards from the
+       home page and simply land in the key terms page when you upload with the
+       boxes attached."* The tiles are on the contract's own Key terms tab, and
+       the same four in two places is the duplication this rulebook opens by
+       warning about. THE HALF THAT WAS ALWAYS LOAD-BEARING SURVIVES and is
+       still asserted: no section was ever added to Home for this, and none may
+       be added now on the way to putting the row back. */
+    test('it is off Home entirely, and never grew a section of its own', () => {
+      assert.ok(!/kind:'triage'/.test(HOME_CODE),
+        'the decisions list no longer sources a triage row');
       assert.ok(!/home_triage_section|<section[^>]*triage/i.test(HOME_CODE),
-        'no new section');
+        'and no section, which was true before and stays true');
     });
     test('the three acts are the product\'s own doors', () => {
       assert.match(HOME, /openRedlineWorkbench/, 'the negotiation');
@@ -437,9 +443,16 @@ describe('F273 — auto-triage on upload', () => {
        reading "read and ready for you". The card contradicting itself, and
        the wrong half was the one set biggest. */
     const HOME = strip(fs.readFileSync('js/views/home.js', 'utf8'));
+    /* RE-POINTED 9 Sep 2026: the row is no longer sourced onto Home, but its
+       BUILDER survives with no caller — this file's convention — so the claim
+       moves to where the reading now lives. The strip on the contract makes the
+       identical choice from the identical function, which is the whole point of
+       there being one reading. */
     test('the title is chosen by the same reading the tag and the edge use', () => {
-      assert.match(HOME, /triageReadAnything\(c\)\)\?'tri_row':'tri_row_unread'/,
-        'one reading decides the headline, the tag and the colour — never three');
+      assert.match(CONTRACT, /triageReadAnything\(c\):true/,
+        'the strip asks it');
+      assert.match(CONTRACT, /busy\?'tri_kt_head_busy':\(read\?'tri_kt_head':'tri_kt_head_no'\)/,
+        'one reading decides the headline — never three');
     });
     test('and the two headlines cannot both be true', () => {
       const en = I18N.slice(I18N.indexOf('tri_row:'));
@@ -528,6 +541,102 @@ describe('F273 — auto-triage on upload', () => {
          other, the way a screen ends up half-English. */
       for (const k of ['tri_kt_head', 'tri_kt_head_no', 'tri_kt_done', 'tri_kt_done_title'])
         assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    });
+  });
+
+  /* --------------------------------------------------------------- */
+  /* Owner-reported 9 Sep 2026, off a strip caught mid-run: "No brief ·
+     Standards not checked · Obligations not read" on a contract whose brief
+     arrived a minute later — *"If it is still loading, i should see an action
+     of still loading for each card."* */
+  describe('7d · a reading still in flight is neither done nor failed', () => {
+    const world = () => {
+      const { win } = buildWorld({ triage: true });
+      win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
+      const c = { id: 'MK-407', counterparty: 'N', status: 'Under Review', source: 'upload',
+        folder: 'proc', owner: { id: 'u1', name: 'Wanjiru Kamau' }, audit: [], obligations: [],
+        upload: { name: 's.docx', extractedText: TEXT },
+        triage: { at: '2026-09-09T00:00:00.000Z', seenAt: null, steps: { risk: { ok: true, open: 0 } } } };
+      win.state.contracts = [c];
+      return { win, c };
+    };
+    test('a step that has not been attempted reads as WORKING, not as failed', () => {
+      const { win, c } = world();
+      c._triaging = true;
+      const t = win.triageTiles(c);
+      for (const k of ['brief', 'playbook', 'oblig']){
+        const tile = t.find(x => x.key === k);
+        assert.equal(tile.working, true, k + ' is still being read');
+        assert.match(tile.headKey, /_ing$/, k + ' says so in its own words');
+        assert.equal(tile.detail, '', 'a step that has not run has no reason to give');
+        assert.equal(tile.count, null, 'and nothing to count yet');
+      }
+    });
+    test('and the SAME absence once the run is over is a real gap', () => {
+      const { win, c } = world();
+      const t = win.triageTiles(c);
+      for (const k of ['brief', 'playbook', 'oblig']){
+        const tile = t.find(x => x.key === k);
+        assert.equal(tile.working, false, k + ' is not still being read');
+        assert.equal(tile.ok, false);
+      }
+    });
+    test('a step that HAS landed keeps its answer while the others work', () => {
+      const { win, c } = world();
+      c._triaging = true;
+      c.triage.steps.oblig = { ok: true, found: [{ desc: 'Quarterly volume forecast' }] };
+      const t = win.triageTiles(c);
+      const ob = t.find(x => x.key === 'oblig');
+      assert.equal(ob.working, false, 'done is done');
+      assert.equal(ob.count, 1);
+      assert.equal(t.find(x => x.key === 'brief').working, true, 'the others are not');
+      assert.equal(t.find(x => x.key === 'filed').working, false, 'and filed never works');
+    });
+    test('three heads per reading, named in ONE table', () => {
+      const { win } = world();
+      for (const k of ['brief', 'playbook', 'oblig', 'filed'])
+        for (const st of ['ok', 'no', 'ing'])
+          assert.ok(win.TRIAGE_HEADS[k] && win.TRIAGE_HEADS[k][st], k + '.' + st);
+      assert.equal((TRI_CODE.match(/headKey:/g) || []).length, 1,
+        'one place decides the head, so the third state cannot be forgotten');
+    });
+    test('and the words are in both books', () => {
+      for (const k of ['tri_kt_head_busy', 'tri_t_brief_ing', 'tri_t_std_ing', 'tri_t_oblig_ing'])
+        assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    });
+  });
+
+  /* --------------------------------------------------------------- */
+  describe('7e · the card is off Home, and the repaints actually land', () => {
+    test('Home no longer sources a triage row', () => {
+      /* Owner-ruled: *"delete the 4 cards from the home page and simply land in
+         the key terms page when you upload with the boxes attached."* The
+         BUILDER survives with no caller — this file's own convention, so it is
+         one line to put back — but the decisions list must not read from it. */
+      assert.ok(!/\.\.\.\(\(typeof triageCards==='function'\?triageCards\(\):\[\]\)/.test(HOME_CODE),
+        'the decisions list no longer spreads triage cards into itself');
+      assert.match(HOME, /function triageRowHtml/, 'the builder is kept, not deleted');
+    });
+    test('every repaint the reading needs is called BARE, never through window', () => {
+      /* ONE OF THE THREE IS UNPUBLISHED AND TWO ARE, which is the whole reason
+         to stop asking. `renderKeyTermsSide` is not on this file's export list,
+         so a `window.` guard would have been false for exactly the one being
+         added — silently, this codebase's most repeated defect. All three live
+         in js/views/contract.js, so a bare call cannot be wrong.
+         A FIRST WRITING OF THIS CLAIMED ALL THREE WERE UNPUBLISHED AND THE
+         CALLBACK HAD NEVER RUN. It was read off the export's FIRST LINE, and
+         that list spans several — the check below reads the whole statement. */
+      const i = CONTRACT.indexOf('if(wantTriage && window.triageRun)');
+      const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
+      for (const f of ['renderChecksCard', 'renderKeyTerms', 'renderKeyTermsSide'])
+        assert.ok(!new RegExp('window\\.' + f).test(w),
+          f + ' is not reached through window — it is not published');
+      assert.match(w, /if\(document\.getElementById\('kt-side'\)\) renderKeyTermsSide\(x\);/,
+        'the side column, which holds the brief card, is repainted too');
+      const exp = CONTRACT.slice(CONTRACT.indexOf('Object.assign(window,{'));
+      const names = exp.slice(0, exp.indexOf('});')).split(',').map(x => x.trim());
+      assert.ok(!names.includes('renderKeyTermsSide'),
+        'the one being added is unpublished — reaching it through window is silence');
     });
   });
 
