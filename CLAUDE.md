@@ -6413,6 +6413,30 @@ because none of that was what the owner was looking at.
 
 **AND NO BRANCH OF THE CONTRACT HEAD DRAWS A SECOND DOOR ONTO THE NEGOTIATION** (owner-reported, same day, off a screenshot with both ringed: "you have duplicated the door to negotiations page. Remove the top one"). The Document tab already carries `#ws-to-nego` at the right of its tab row — the ONE door from that tab, kept bordered there because a bare verb at the far right of a tab row is the one place a control genuinely gets missed — and `wsNextAction` put another in the head's lead slot forty pixels above. **ALL THREE `kind:'review-changes'` BRANCHES TAKE `noButton`, not the one in the screenshot**: this file's first rule is that the same thing is drawn in several places and a fix in one is not a fix in all, and the branch that actually fires most often is the open-round one, which was NOT the one photographed. Left half done, the duplicate would have vanished on one contract and stayed on the next. **`noButton`, NEVER null**, and the reasoning is f176's own, written for exactly this shape: the head draws nothing and the GUIDE stays, so the phone's own reading still answers what the next step is; returning null would fall through and say something true, useless and silent about the round that is open. **NOTHING URGENT IS LOST ON THE DESKTOP**: the sub-line already prints "N needs you" in amber and the tab-row door already carries its own count ("Open Negotiate · 1 waiting").
 
+**AND NOR DOES IT DRAW A DOOR ONTO KEY TERMS (owner-asked 9 Sep 2026: "delete
+the complete key terms button").** The FOURTH control of one family off this
+head, and the argument is the one the three above it already make: the lead
+slot pointed at a page the reader was standing on. **"Key terms" is the FIRST
+tab in the row forty pixels below and is drawn from every tab**, so the head's
+copy was the second door onto it; the fields themselves sit an inch under it
+saying "Not set" beside their own pencils, which makes the button a press spent
+arriving somewhere you can already see. **THE FACT SURVIVES ON THE OTHER FOUR
+TABS WITHOUT IT** — the head's own fact row prints Value and Term as em-dashes
+wherever the reader is standing, which is what says the terms are incomplete.
+**`noButton`, NEVER null**, for the reason its three siblings give: null falls
+through to the rung below and the phone's bar then reads "All key terms are
+set" over a contract whose key terms are not set. **THE GUIDE STAYS AND SO DOES
+THE LABEL** — `ct_complete_key_terms` is NOT stale, it is what the machinery
+would print, exactly like `ap_alerts_not_here` and the other three branches'
+own words. **AND THE ACT IS KEPT, PUBLISHED AND WIRED**: `focusKeyTerms` and
+its dispatch branch stay beside the three other noButton kinds, because
+deleting an act the day one door closes is how a capability goes missing the
+day another opens. Tests: f176 (three new claims, **one of them failing against
+the parent**), newcontract-verify (**4 of its 24 fail against the parent** — it
+stands on a draft created with the fields skipped, which is the reported state,
+and reads the head as PAINT on all four tabs with the head's other acts as the
+CONTROL).
+
 **AND THE COUNTERPARTY'S SEAT WAS PROVED UNTOUCHED, NOT ASSERTED (owner-asked, the same day).** Their page was rendered from a REAL share payload in a worktree at the commit BEFORE this work and again at HEAD, and the two dumps — the whole of `#share-root`, every button with every attribute, normalised only for generated ids and clock times — are **byte for byte identical, on BOTH of their screens**: the negotiation workbench and the signing page, 81 buttons each. **IDENTICAL MARKUP IS NOT IDENTICAL BEHAVIOUR**, so it was pressed as well: the one thing this work changed in a file their page loads is the clause panel's Escape handler, which now defers while the editor is open — it is never open there, and their panel still opens from the pill and still closes on Escape. Forced open from their seat, `rlOpenClauseEditor` refuses in words and mounts nothing. Their own Accept still turns a card's verbs into Send and Undo and still raises the unsent band. Pinned permanently as clause-editor-verify section 11 (the before/after diff cannot be a standing test — it needs the old tree — but every claim it made can be, and is). **ONE INSTRUMENT FAULT ON THE WAY, worth recording**: the first probe read `PORTAL_NEGO_DECISIONS` through `window` and reported zero however well the press worked — that store is module-local and is not published. Rule out the instrument before believing the finding; measure what a person sees.
 
 **THE CLAUSE YOU ARE TYPING IN IS STILL THE PAPER (owner-asked 27 Aug 2026, Option A off a drawn render: *"you click on the edit symbol and then a window of the clause opens up to be like a search field. I want when you click on edit the field to not change color and just have a very light almost dotted line around the clause you want to edit. It should not look out of place."*)** It read as a search field because it WAS dressed as one: a pure white fill with a solid 2px accent ring is exactly how this product draws a form input, so the reader was shown one, dropped onto a cream contract. Two marks for one fact, and the louder of them was the one that did not belong.

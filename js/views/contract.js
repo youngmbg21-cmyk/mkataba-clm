@@ -2699,7 +2699,28 @@ function wsNextAction(c){
       guide:`${who} has signed. Your signature is the only thing left.` };
   }
   if(c.status==='Draft'){
-    if(!hasTerms) return { get label(){ return i18t('ct_complete_key_terms'); }, ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
+    /* ---- AND THIS RUNG DRAWS NO BUTTON EITHER (owner-asked 9 Sep 2026:
+       "delete the complete key terms button") ----
+       THE FOURTH CONTROL OF ONE FAMILY OFF THIS HEAD, and the argument is the
+       one the three above it already make: the lead slot pointed at a door the
+       reader was already looking at. "Key terms" is the FIRST tab in the row
+       forty pixels below and is on screen from every tab; the fields
+       themselves sit an inch under it saying "Not set" beside their own
+       pencils. A button whose whole job is to put the cursor in a box that is
+       already on the page is a press spent arriving somewhere you can see.
+
+       THE FACT SURVIVES ON THE OTHER FOUR TABS WITHOUT IT: the head's own fact
+       row prints Value and Term as em-dashes wherever the reader is standing,
+       which is what says the terms are incomplete.
+
+       noButton, NOT null, for the reason its siblings give: null falls through
+       to the rung below and the phone's bar then reads "All key terms are set"
+       over a contract whose key terms are not set. THE GUIDE STAYS, and so
+       does the label — this is a rung that speaks, not a deleted rung, and
+       ct_complete_key_terms is what the machinery would print. */
+    if(!hasTerms) return { get label(){ return i18t('ct_complete_key_terms'); }, ic:'pencil',
+      noButton:true,
+      guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     /* ---- READ IT BEFORE YOU SEND IT ----
        The rung between "the facts are in" and "send it out" was missing, so a
        draft went straight from Key terms to the counterparty with nothing
@@ -2971,9 +2992,15 @@ function wireActionBar(c){
     });
   }
 }
-/* "Complete key terms" — put the cursor where the terms can actually be typed.
-   That is the Key terms TAB now, not a panel behind a sub-tab on the right:
-   the Document tab is a clean read and carries no fields of its own. */
+/* Put the cursor where the terms can actually be typed — the Key terms TAB,
+   not a panel behind a sub-tab on the right: the Document tab is a clean read
+   and carries no fields of its own.
+
+   THE HEAD NO LONGER PRESSES THIS (9 Sep 2026 — the rung carries noButton), so
+   the dispatch branch above is the only caller and nothing on screen reaches
+   it. Kept, published and wired exactly as the three other noButton kinds are:
+   it is what the machinery would run, and deleting the act because one door
+   closed is how a capability goes missing when the next door opens. */
 function focusKeyTerms(c){
   roomGoTab(c,'terms');
   setTimeout(()=>{

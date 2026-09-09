@@ -130,6 +130,56 @@ const FORM = () => {
   check('a new draft lands on Key terms, not on the document',
     landed.tab === 'terms', `tab=${landed.tab} "${landed.label}" view=${landed.view}`);
 
+  /* ---------- 2c. THE HEAD DOES NOT OFFER A DOOR TO THE PAGE YOU ARE ON ----
+     Owner-asked 9 Sep 2026: "delete the complete key terms button." This is
+     exactly the state it drew in — a draft created with the fields skipped,
+     standing on Key terms — so the claim is made where the reader met it.
+
+     MEASURED AS PAINT, not as markup: a button removed from one branch and
+     left drawing from another looks identical in the source. And read on EVERY
+     tab, because the head is the same head on all five and the screenshot was
+     only ever of one of them. The CONTROL comes first — the head still draws
+     its other acts — or "no button says Complete key terms" would be satisfied
+     by a head that failed to render at all. */
+  const headOn = async tab => {
+    if (tab) { await page.evaluate(t => window.roomGoTab(window.getContract(window.state.activeId), t), tab);
+               await page.waitForTimeout(500); }
+    return page.evaluate(() => {
+      const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
+        return !!(el.offsetParent || r.width) && r.width > 0 && r.height > 0; };
+      const head = document.getElementById('ws-head');
+      const btns = head ? [...head.querySelectorAll('button')].filter(seen) : [];
+      const want = (window.i18t ? window.i18t('ct_complete_key_terms') : 'Complete key terms').toLowerCase();
+      const tabEl = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      return {
+        acts: btns.map(b => b.textContent.trim()).filter(Boolean),
+        says: btns.filter(b => b.textContent.trim().toLowerCase().includes(want)).length,
+        na: seen(document.getElementById('ws-next-action')),
+        termsTab: seen(tabEl),
+        hasTerms: !!(window.getContract(window.state.activeId) || {}).counterparty
+      };
+    });
+  };
+
+  const onTerms = await headOn(null);
+  check('the contract really is missing its key terms — the state under test',
+    onTerms.hasTerms === false, `counterparty set: ${onTerms.hasTerms}`);
+  check('CONTROL: the head still draws its own acts',
+    onTerms.acts.length >= 2, onTerms.acts.join(' | '));
+  check('the head offers no "Complete key terms" button on Key terms',
+    onTerms.says === 0 && !onTerms.na, `matches=${onTerms.says} next-action=${onTerms.na}`);
+  check('and the Key terms tab is still the door that carries it',
+    onTerms.termsTab === true, `tab visible: ${onTerms.termsTab}`);
+
+  for (const t of ['docs', 'sign', 'history']) {
+    const h = await headOn(t);
+    check(`nor on the ${t} tab — the head is the same head on all five`,
+      h.says === 0 && !h.na && h.acts.length >= 2,
+      `matches=${h.says} next-action=${h.na} acts=[${h.acts.join(', ')}]`);
+  }
+  await page.evaluate(() => window.roomGoTab(window.getContract(window.state.activeId), 'terms'));
+  await page.waitForTimeout(400);
+
   /* …and it is a welcome, not a permanent change to where the room opens.
      Opening ANOTHER contract in between is what clears the room's memory of the
      tab — staying on the same one deliberately keeps you where you were, which

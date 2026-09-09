@@ -9658,3 +9658,47 @@ Noticed, not fixed:
   so intake's suggestion silently degrades to "no suggestion" for exactly the
   people it was built to help. Pre-existing; the new route deliberately does not
   use that middleware.
+
+## 9 Sep 2026 — the head stops offering a door to Key terms
+
+Owner-asked, off a screenshot of the Key terms tab with the head's "Complete
+key terms" ringed alongside the three rows it points at: "delete the complete
+key terms button."
+
+FIXED
+- The incomplete-key-terms rung of `wsNextAction` now carries `noButton:true`,
+  so the contract room's head draws no button for it on any of the five tabs.
+  It is the FOURTH control of one family off this head and the argument is the
+  three above it: the lead slot pointed at a page the reader was standing on.
+  "Key terms" is the first tab in the row forty pixels below and is drawn from
+  every tab, so the head's copy was the second door onto it.
+- `noButton`, never null — null falls through to the rung below and the phone's
+  bar then reads "All key terms are set" over a contract whose key terms are
+  not set. The guide sentence stays and so does the label; the fact survives on
+  the other four tabs on the head's own fact row, which prints Value and Term
+  as em-dashes wherever the reader is standing.
+- `focusKeyTerms` and its dispatch branch are kept, published and wired, beside
+  the three other noButton kinds. Its comment named the button and now says the
+  head no longer presses it.
+- Nothing else moved: the tab, the rows, the pencils, the guide, the label, the
+  phone's own handler and every other head act are untouched.
+
+TESTS
+- f176 (+3 claims — the branch declines the primary slot, the tab survives, the
+  act is kept). One fails against the parent, reporting the missing noButton;
+  the other two are CONTROLS that pass either way, which is what shows the
+  change is narrow.
+- newcontract-verify (+7 checks, 24/24). It stands on a draft created with the
+  fields skipped — the reported state — and reads the head as PAINT on all four
+  tabs, with the head's other acts as the control. 4 of its 24 fail against the
+  parent, reporting the button on every tab.
+- Full node suite 5789/5789. Lint unchanged (4 pre-existing duplicate-key
+  errors, 179 problems). Browser: newcontract 24/24, phone 61/61,
+  signers-on-a-phone 23/23.
+
+Noticed, not fixed
+- room-order-and-notices-verify has 2 failures — "nothing still awaiting an
+  answer sits under a decided change" and "the All / Mine / Theirs cuts are
+  untouched". Both are about the change column's sort and the retired WHOSE
+  ASKS filter, not this head. PROVED pre-existing: the same two fail with this
+  change reverted.

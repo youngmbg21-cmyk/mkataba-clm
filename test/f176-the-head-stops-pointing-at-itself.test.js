@@ -85,6 +85,39 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
       'and every one of them declines the head\'s primary slot');
   });
 
+  /* ---- AND THE FOURTH, ON THE SAME HEAD, FOR THE KEY TERMS ----
+     Owner-asked 9 Sep 2026, off a screenshot of the Key terms tab with the
+     head's "Complete key terms" ringed alongside the three rows it points at:
+     "delete the complete key terms button." The same fault a fourth time — the
+     lead slot offering a door to a page the reader is standing on. "Key terms"
+     is the FIRST tab in the row forty pixels below and is drawn from every
+     tab, so the head's copy was the second door onto it. */
+  test('nor does the key-terms branch — the tab row already carries that door', () => {
+    const branch = /if\(!hasTerms\) return \{[\s\S]{0,400}?\};/.exec(SRC);
+    assert.ok(branch, 'the incomplete-terms branch is still there to be found');
+    assert.match(branch[0], /kind:'terms'/, 'it is the state under test');
+    assert.match(branch[0], /noButton:\s*true/, 'and it asks for no button of its own');
+    assert.match(branch[0], /guide:'Add the counterparty and value/,
+      'while still saying what the next step actually is');
+    assert.match(branch[0], /i18t\('ct_complete_key_terms'\)/,
+      'and it keeps its label — what the machinery would print, like its three siblings');
+  });
+
+  test('the Key terms tab is the door that survives', () => {
+    assert.match(SRC, /\['terms','tab_key_terms'\]/,
+      'removing the head\'s copy must not remove the tab itself');
+  });
+
+  test('and the act behind it is kept, published and wired', () => {
+    /* The three other noButton kinds all keep their dispatch branch. Deleting
+       this one because the head stopped pressing it is how a capability goes
+       missing the day another door opens onto it. */
+    assert.match(SRC, /kind==='terms'\)\{ focusKeyTerms\(c\); return; \}/,
+      'the dispatch still answers for the kind wsNextAction still emits');
+    assert.match(SRC, /function focusKeyTerms\(c\)\{/, 'and the act is still there');
+    assert.match(SRC, /focusKeyTerms,/, 'and still published');
+  });
+
   test('the tab row keeps the one door it always had', () => {
     assert.match(SRC, /id="ws-to-nego"/,
       'removing the head\'s copy must not remove the door itself');
