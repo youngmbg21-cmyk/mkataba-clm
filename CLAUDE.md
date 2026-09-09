@@ -10933,9 +10933,17 @@ pushed at the reader in the morning.
   renewal for LEAVES that list — and **only the renewal source is filtered**,
   because a colleague waiting on your review is a different subject that
   happens to share a contract and dropping that row would lose it.
-  **`deskCids` READS THE WHOLE LIST, NOT THE THREE ON SCREEN**: a renewal the
-  cap held back is still one the desk is going to offer, and dropping it from
-  both places would lose it altogether.
+  **`deskCids` READS THE ROWS ON SCREEN — REVERSED IN PLACE 9 Sep 2026**, off
+  the owner's own reading of the sub-line: *"it says 2 of 9 but does it mean
+  copilot prepared 9 in total and if so, where is the rest of the 9?"* It was
+  handed the WHOLE list, on the reasoning that a renewal held back by the cap
+  "is still one the desk is going to offer". **THE CONCLUSION DID NOT FOLLOW
+  FROM THE PREMISE**: the desk draws at most ONE renewal, so on a book with
+  five due, one was on the desk and the other four were struck out of *Needs
+  your decision* and appeared **nowhere** — Home showing LESS than before the
+  feature existed, which is this rule's own fault running backwards. Only what
+  is DRAWN may evict anything; the cost is that a renewal leaves the list below
+  on the morning it is promoted, which is the point of promoting it.
   **THE TWO SECTIONS NOW MEAN DIFFERENT THINGS** — *Prepared for you* is what
   HaTi did, *Needs your decision* is what only the reader can do — and as HaTi
   learns to prepare more kinds, a row migrates UPWARD out of the second list.

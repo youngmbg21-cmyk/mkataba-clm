@@ -345,8 +345,16 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const staged = await page.evaluate(() => {
       const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
       const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined');
-      const [a, b, cc] = live;
-      if (!a || !b || !cc) return null;
+      const [a, b, cc, dd2] = live;
+      if (!a || !b || !cc || !dd2) return null;
+      /* A SECOND RENEWAL, further out, so the cap holds it back. Young reported
+         the fault it proves: the desk draws one renewal and used to strike
+         EVERY qualifying renewal out of the list below, so the rest were on
+         neither list. Its decision date is inside the 90-day window, so it
+         belongs in "Needs your decision" and must still be there. */
+      dd2.status = 'Signed'; dd2.parentId = null; dd2.archived = null;
+      dd2.expiry = day(85);
+      dd2.metadata = Object.assign({}, dd2.metadata, { expiryDate: day(85), noticePeriodDays: 30 });
       a.status = 'Signed'; a.counterparty = a.counterparty || 'Nordkust';
       a.counterpartyEmail = 'ops@nordkust.example';
       a.obligations = [{ id: 'ob-desk', desc: 'Quarterly volume report', due: day(-4),
@@ -357,7 +365,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       cc.status = 'Signed'; cc.parentId = null; cc.expiry = day(40);
       cc.metadata = Object.assign({}, cc.metadata, { expiryDate: day(40), noticePeriodDays: 30 });
       renderDashboard();
-      return { chase: a.id, dev: b.id, ren: cc.id };
+      return { chase: a.id, dev: b.id, ren: cc.id, ren2: dd2.id };
     });
     check('11b the three states could be staged on real records', !!staged,
       staged ? `${staged.chase} / ${staged.dev} / ${staged.ren}` : 'fewer than three live contracts');
@@ -423,6 +431,24 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('11h a renewal the desk prepared is NOT also in Needs your decision',
       once.inDesk && !once.inDd,
       `desk ${once.inDesk} · decisions ${once.inDd}`);
+    /* ---- AND ONE THE CAP HELD BACK IS STILL SOMEWHERE (Young, 9 Sep 2026) ----
+       "it says 2 of 9 but does it mean copilot prepared 9 in total and if so,
+       where is the rest of the 9?" — and the answer was that the renewals among
+       them were nowhere at all. Only the row being DRAWN may evict anything. */
+    const held = await page.evaluate(id => {
+      const inDesk = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
+        .some(b => b.getAttribute('data-desk-cid') === id);
+      const inDd = [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
+        .some(b => b.getAttribute('data-sel') === id);
+      const qualifies = (window.deskItems ? deskItems(state.contracts) : [])
+        .some(x => x.kind === 'renewal' && x.cid === id);
+      return { inDesk, inDd, qualifies };
+    }, staged ? staged.ren2 : '');
+    check('11h2 a second renewal really does qualify for the desk', held.qualifies);
+    check('11h3 …the cap keeps it off the desk',
+      !held.inDesk, `on the desk: ${held.inDesk}`);
+    check('11h4 …and it is still in Needs your decision, not lost between the two',
+      held.inDd, `in the decisions list: ${held.inDd}`);
     /* AND THE CONTROL THAT MAKES THAT CLAIM MEAN SOMETHING. On a quiet book
        "Needs your decision" can be empty, and then "not in the list" is true of
        every contract there is. 11l below dismisses the desk's renewal and
@@ -454,14 +480,23 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       btn.click();
       await new Promise(r => setTimeout(r, 400));
       const c = state.contracts.find(x => x.id === id);
+      const cids = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
+        .map(b => b.getAttribute('data-desk-cid'));
       return { before, after: document.querySelectorAll('#hm-desk-rows .hm-row').length,
         stamped: !!(c && c.desk && c.desk.renewal),
-        stillThere: [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
-          .some(b => b.getAttribute('data-desk-cid') === id) };
+        stillThere: cids.includes(id), cids };
     }, staged ? staged.ren : '');
-    check('11j pressing Discard really takes the row off the page',
-      away && away.after === away.before - 1 && !away.stillThere,
-      away ? `${away.before} → ${away.after}` : 'button not found');
+    /* THE CLAIM IS THAT THIS ROW GOES, NOT THAT THE COUNT DROPS. With a second
+       renewal held back by the cap, discarding the one on screen PROMOTES it
+       into the free slot — which is the cap working — so the count stays at
+       three and only the contract changes. Pinned as the count this went red
+       the moment the fixture grew a second renewal, which is the same
+       pin-the-relation lesson this suite keeps paying for. */
+    check('11j pressing Discard really takes that row off the page',
+      away && !away.stillThere, away ? away.cids.join(' | ') : 'button not found');
+    check('11j2 …and the renewal the cap was holding back steps into its place',
+      away && staged && away.cids.includes(staged.ren2),
+      away ? away.cids.join(' | ') : 'no rows');
     check('11k and the record carries the stamp, so it does not come back',
       away && away.stamped, away ? String(away.stamped) : '—');
 

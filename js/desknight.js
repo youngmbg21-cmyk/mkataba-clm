@@ -226,11 +226,24 @@ function deskShown(items){
   return out;
 }
 
-/* THE CONTRACTS THE DESK HAS PREPARED SOMETHING FOR — the one-door reading,
-   asked by Home so a contract cannot be listed twice on one page. It reads the
-   WHOLE list rather than the shown three: a renewal held back by the cap is
-   still one the desk is going to offer, and dropping it from both places would
-   lose it altogether. */
+/* THE CONTRACTS THE DESK IS SHOWING — the one-door reading, asked by Home so a
+   contract cannot be listed twice on one page.
+
+   IT READS WHAT IS ON SCREEN, AND THAT REVERSES THIS FUNCTION'S FIRST RULE
+   (Young reported it 9 Sep 2026, off the sub-line: "it says 2 of 9 but does it
+   mean copilot prepared 9 in total and if so, where is the rest of the 9?").
+   It was handed the WHOLE list, on the reasoning that a renewal held back by
+   the cap "is still one the desk is going to offer". THE CONCLUSION DID NOT
+   FOLLOW FROM THE PREMISE: the desk shows at most ONE renewal, so on a book
+   with five due, one was on the desk and the other four were struck out of
+   "Needs your decision" and appeared NOWHERE — Home showing LESS than before
+   this feature existed, which is the fault the one-door rule exists to
+   prevent, pointing the other way.
+
+   So the CALLER decides what it names, and Home passes the rows it is actually
+   drawing. The only cost is that a renewal moves out of the list below on the
+   morning it is promoted to the desk, which is the whole point of promoting
+   it. */
 function deskCids(items){
   const s = new Set();
   for(const it of (items || [])) if(it.kind === 'renewal') s.add(it.cid);

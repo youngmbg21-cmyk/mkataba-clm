@@ -962,8 +962,13 @@ function renderDashboard(){
   /* ONLY THE RENEWAL SOURCE IS FILTERED, and that is the whole precision of the
      one-door rule: a colleague waiting on your review is a different subject
      that happens to share a contract, and dropping that row because a renewal
-     is also due would lose it. */
-  const deskIds=(typeof deskCids==='function')?deskCids(deskAll):new Set();
+     is also due would lose it.
+
+     AND ONLY THE ROWS ON SCREEN, never deskAll — see deskCids, whose own first
+     rule this reverses. The desk shows at most one renewal, so passing the
+     whole list struck every OTHER renewal out of the list below and left it
+     nowhere on the page. */
+  const deskIds=(typeof deskCids==='function')?deskCids(deskRows):new Set();
 
   const decisionItems=[
     /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----

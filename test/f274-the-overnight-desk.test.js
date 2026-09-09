@@ -253,23 +253,36 @@ describe('F274 — the overnight desk', () => {
         'the chase and the deviations rows are different subjects and do not evict anything');
     });
 
-    /* IT READS THE WHOLE LIST, NOT THE THREE ON SCREEN. A renewal held back by
-       the cap is still one the desk is going to offer, and dropping it from
-       both places would lose it altogether. */
-    test('a renewal the cap held back still leaves the decisions list', () => {
+    /* REVERSED IN PLACE (Young reported it 9 Sep 2026, off the sub-line: "it
+       says 2 of 9 … where is the rest of the 9?"). This asserted the OPPOSITE —
+       that a renewal held back by the cap still left the decisions list,
+       because "the desk is going to offer it". IT IS NOT: the desk shows at
+       most one renewal, so on a book with several due, one was on the desk and
+       the rest were struck out of the list below and appeared NOWHERE. Home
+       showed LESS than before the feature existed. Only what is ON SCREEN may
+       evict anything. */
+    test('a renewal the cap held back stays in the decisions list', () => {
       const { win, cs } = stage();
       cs.push({ id: 'MK-9', name: 'Second', status: 'Signed', counterparty: 'Y',
         audit: [], expiry: day(20), metadata: { expiryDate: day(20) } });
       const all = win.deskItems();
-      assert.equal(win.deskShown(all).filter(x => x.kind === 'renewal').length, 1,
+      const shown = win.deskShown(all);
+      assert.equal(shown.filter(x => x.kind === 'renewal').length, 1,
         'only one renewal is on screen');
-      assert.deepEqual([...win.deskCids(all)].sort(), ['MK-3', 'MK-9'],
-        'but both are the desk’s, so neither is listed twice');
+      assert.equal(all.filter(x => x.kind === 'renewal').length, 2, 'though two qualify');
+      assert.deepEqual([...win.deskCids(shown)].sort(), ['MK-3'],
+        'and only the one being drawn evicts anything — the other is still owed a row below');
     });
 
     test('Home filters the renewal source by the desk, and only that source', () => {
       assert.match(HOME_CODE, /\.\.\.decisions\.filter\(x=>!deskIds\.has\(x\.c\.id\)\)\.map\(/,
         'the renewal rows are the ones that move');
+      /* AND IT IS BUILT FROM THE ROWS ON SCREEN. Handed deskAll it evicted
+         every qualifying renewal while drawing one, so the rest were on
+         neither list — the fault this whole section exists to prevent, running
+         the other way. */
+      assert.match(HOME_CODE, /deskCids\(deskRows\)/, 'only what is drawn may evict anything');
+      assert.ok(!/deskCids\(deskAll\)/.test(HOME_CODE), 'never the whole list');
       for (const other of ['myReviews', 'myStaleDesks', 'myJoinAsks', 'waitingLongest'])
         assert.ok(!new RegExp(other + '\\.filter\\(x=>!deskIds').test(HOME_CODE),
           other + ' is a different subject and is never evicted by the desk');

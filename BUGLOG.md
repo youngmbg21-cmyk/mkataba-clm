@@ -10416,3 +10416,40 @@ settings-tabs-verify 68/68 (65 before), full suite green.
   function" fails every time a comment is written above the thing it measures.
   It reads the function's own body now, and the list gained _hasBrief,
   _renewalPrep and _renewalAdvice, so the next transport field costs no edit.
+
+## 2026-09-09 — the desk was hiding renewals it never showed
+
+Young, reading the desk's own sub-line on their book: "it says 2 of 9 but does
+it mean copilot prepared 9 in total and if so, where is the rest of the 9?"
+
+TWO ANSWERS, AND THE SECOND IS A DEFECT I SHIPPED THIS MORNING. The 9 is how
+many things QUALIFY for the desk across its three kinds, not how many Copilot
+prepared — two of the three kinds are instant readings that spend nothing. But
+the other 7 were not merely unshown: the renewals among them were NOWHERE.
+
+deskCids was handed deskAll, so every qualifying renewal was struck out of
+"Needs your decision" while the desk drew only ONE. On a book with five
+renewals due, one was on the desk and four were on neither list. Home showed
+LESS than it did before the desk existed — the one-door rule running backwards,
+which is the fault it exists to prevent.
+
+THE REASONING IN THE COMMENT WAS THE GIVEAWAY and I wrote it myself: "a renewal
+held back by the cap is still one the desk is going to offer". It is not. The
+desk offers one per kind per sitting; the rest are offered only after the first
+is discarded. The premise was true and the conclusion did not follow from it.
+
+FIXED AT THE CALLER, not in the reading: deskCids names whatever it is handed,
+and Home hands it the rows it is actually DRAWING. The cost is that a renewal
+leaves the list below on the morning it is promoted to the desk, which is the
+whole point of promoting it.
+
+AND ADDING A SECOND RENEWAL TO THE FIXTURE CAUGHT A SECOND STALE CLAIM. 11j
+asserted the desk's row COUNT drops by one on Discard — true while there was
+nothing waiting, false the moment the cap has something held back, because
+discarding the shown renewal PROMOTES the next one into the free slot. That is
+the cap working. Pinned as the count it went red on a correct page; it is
+pinned as the row now, with a new 11j2 asserting the promotion.
+
+Verified: f274 78/78 (its whole-list claim reversed in place), home-page-verify
+50/50, with 11h4 failing against the parent and reporting the fault verbatim —
+"in the decisions list: false".
