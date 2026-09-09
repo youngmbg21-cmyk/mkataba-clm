@@ -10049,3 +10049,50 @@ Noticed, not fixed
 - The learned-standards card is still hosted on #precedent-panel, a name from
   the feature it grew out of.
 - cal_next_30 still names 30 while the calendar's agenda window is a control.
+
+## 2026-09-09 — the brief never arrived on an uploaded contract (owner-reported)
+
+Owner uploaded a real contract with the "Read this contract now" box ticked and
+landed on Key terms with the Contract brief card still reading "Not written
+yet". Reported with two screenshots — the ticked box, and the card.
+
+REPRODUCED BY DRIVING THE REAL JOURNEY before anything was touched: open the
+upload dialog, set a real file, press "File contract". The reading DID start —
+risk, Our standards and the obligations all landed — and the brief came back
+`The brief could not be written. Contract not found`.
+
+CAUSE. `persist()` in API mode is debounced by 400ms and returns nothing to
+wait on, so triage started the readings before the contract had been created on
+the server. `POST /api/ai/brief` looks the row up BEFORE it reads a word — it
+has to, because out of scope must read exactly like does not exist — so it
+answered 404. The other three readings survive it: the risk scan is
+browser-side and the standards and obligation routes read the client's text out
+of the request body. Only the brief needs the stored row, and the brief is the
+one card on the screen the upload lands you on.
+
+FIX. `flushSaves()` before the readings start — this product's own move for
+that moment (the template library makes it after creating a contract, the
+migration importer awaits it). The READINGS are still not awaited, which is
+what keeps the contract on screen at once; what is waited for is the save they
+read. A save that fails still lets them start, so the card reports rather than
+falling silent.
+
+WHY THE NET DID NOT CATCH IT. Every section of auto-triage-verify called
+`triageRun` on a contract it seeded itself — proving the reader works from a
+state nobody arrives in, and nothing about whether pressing the button reaches
+it. Section 7 now starts where the reader starts and fails against the parent
+reporting the owner's own sentence verbatim; 7a/7b pass either way as the
+controls that prove the journey is really driven.
+
+AND ONE TEST PINNED A WINDOW SIZE RATHER THAN THE RELATION. f273's "not
+awaited" claim sliced 700 characters from its marker and went red the moment
+the block gained a comment. Re-pointed at the block itself.
+
+Verified: lint 179/4 (unchanged baseline), node 5898/5898,
+auto-triage-verify 32/32 (31/32 against the parent).
+
+### Noticed, not fixed
+- The four rows in the "+ Draft new agreement" menu are hardcoded English while
+  the screens behind them are translated.
+- `cal_next_30` still names 30 days while the calendar's agenda window is a
+  control the reader sets.

@@ -1571,10 +1571,28 @@ async function submitUpload(){
      ITS OWN CATCH, because a reading that fails must not take the upload — the
      act that actually mattered — down with it. What went wrong is on the card. */
   if(wantTriage && window.triageRun){
-    try{ triageRun(c,{ onStep:x=>{
-      if(window.renderChecksCard && document.getElementById('checks-card')) renderChecksCard(x);
-      if(window.renderKeyTerms && document.getElementById('kt-side')) renderKeyTerms(x);
-    }}); }catch(e){ /* the card says what happened */ }
+    /* ---- BUT THE RECORD HAS TO EXIST ON THE SERVER BEFORE IT CAN BE READ ----
+       persist() in API mode is DEBOUNCED by 400ms and returns nothing to wait
+       on, so a reading started here fires before the contract has been created
+       — and POST /api/ai/brief looks the row up BEFORE it reads a word (it has
+       to: out of scope must read exactly like does not exist), so it answers
+       404 "Contract not found". MEASURED by driving a real upload: risk, Our
+       standards and the obligations all landed and the BRIEF failed every
+       time, which is the one card the reader was looking at.
+
+       flushSaves() is this product's own move for exactly this moment — the
+       template library makes it after creating a contract, and the migration
+       importer awaits it before going on. THE READINGS ARE STILL NOT AWAITED,
+       which is what keeps the contract on screen at once; what is waited for
+       is the save they read. A save that FAILS still lets them start: the
+       reading then answers honestly on the card, which beats silence. */
+    const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
+    Promise.resolve(onServer).catch(()=>{}).then(()=>{
+      try{ triageRun(c,{ onStep:x=>{
+        if(window.renderChecksCard && document.getElementById('checks-card')) renderChecksCard(x);
+        if(window.renderKeyTerms && document.getElementById('kt-side')) renderKeyTerms(x);
+      }}); }catch(e){ /* the card says what happened */ }
+    });
   }
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */

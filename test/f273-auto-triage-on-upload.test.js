@@ -395,12 +395,36 @@ describe('F273 — auto-triage on upload', () => {
       const j = CONTRACT.indexOf('closeModal();', i);
       assert.ok(i > 0 && j > i, 'the element is gone by the time closeModal has run');
     });
+    /* THE BLOCK, NOT A NUMBER OF CHARACTERS. This read 700 characters from the
+       marker and went red the day the block gained a comment — the claim is
+       about what the block DOES, so it is sliced to the end of the function
+       that holds it and costs nothing the next time somebody writes there. */
     test('the run is started after the contract is on screen, and not awaited', () => {
-      const w = CONTRACT.slice(CONTRACT.indexOf('if(wantTriage && window.triageRun)'),
-        CONTRACT.indexOf('if(wantTriage && window.triageRun)') + 700);
+      const i = CONTRACT.indexOf('if(wantTriage && window.triageRun)');
+      const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
+      assert.ok(i > 0 && w.length > 0, 'the block is where it says it is');
       assert.ok(!/await\s+triageRun/.test(w),
         'nobody waits a minute to see their own contract');
       assert.match(w, /catch\(e\)/, 'and a failed reading cannot take the upload down with it');
+    });
+    /* THE RECORD IS ON THE SERVER BEFORE IT IS READ (owner-reported 9 Sep 2026,
+       on their own upload: the box was ticked and the Contract brief card still
+       read "Not written yet"). persist() in API mode is DEBOUNCED by 400ms and
+       returns nothing to wait on, so the readings fired before the contract had
+       been created and POST /api/ai/brief — which looks the row up before it
+       reads a word — answered 404 "Contract not found", every time, on every
+       real upload. flushSaves() is this product's own move for that moment.
+       THE PAIR IS THE CLAIM: the save is waited for and the READINGS still are
+       not, because awaiting them would make somebody watch a spinner before
+       their own contract appeared. */
+    test('the save is waited for, and the readings still are not', () => {
+      const w = CONTRACT.slice(CONTRACT.indexOf('if(wantTriage && window.triageRun)'),
+        CONTRACT.indexOf('if(wantTriage && window.triageRun)') + 1600);
+      assert.match(w, /API_MODE\(\) && window\.flushSaves\) \? flushSaves\(\)/,
+        'the pending save is flushed rather than left on its 400ms timer');
+      assert.match(w, /\.then\(\(\) *=> *\{[\s\S]*triageRun\(c/,
+        'and the reading starts after it');
+      assert.ok(!/await\s+triageRun/.test(w), 'the reading itself is still not awaited');
     });
     test('the sentence names what it costs, and names THREE', () => {
       assert.match(I18N, /ct_triage_optin_sub: 'Writes the brief[^']*three Copilot calls/,

@@ -10694,6 +10694,38 @@ sentence exists so a stamp can never claim a reading that did not happen, and
 auto-triage runs the SAME reader through the SAME named floor before it stamps.
 Two callers now, each asserted; a third that stamps without reading fails f254.
 
+**AND THE RECORD HAS TO BE ON THE SERVER BEFORE IT CAN BE READ (owner-reported
+9 Sep 2026, on their own upload: the box was ticked and the Contract brief card
+still read "Not written yet").** `persist()` in API mode is **debounced by
+400ms** and returns nothing to wait on, so the readings fired before the
+contract had been created — and `POST /api/ai/brief` looks the row up BEFORE it
+reads a word (it has to: out of scope must read exactly like does not exist), so
+it answered **404 "Contract not found"**, every time, on every real upload.
+
+- **THE OTHER THREE LANDED, WHICH IS WHAT MADE IT LOOK LIKE NOTHING RAN.** The
+  risk scan is browser-side, and the standards and obligation routes read the
+  CLIENT's text out of the body. Only the brief needs the stored row — and the
+  brief is the one card on the screen the reader lands on.
+- **`flushSaves()` IS THIS PRODUCT'S OWN MOVE FOR THAT MOMENT**, made after
+  creating a contract by the template library and awaited by the migration
+  importer. **THE PAIR IS THE CLAIM**: the save is waited for and the READINGS
+  still are not, because awaiting those would make somebody watch a spinner
+  before their own contract appeared. A save that FAILS still lets them start —
+  the reading then answers honestly on the card, which beats silence.
+- **AND THE NET COULD NOT SEE IT, WHICH IS THE LESSON WORTH MORE THAN THE FIX.**
+  Every section of auto-triage-verify CALLED `triageRun` on a contract it seeded
+  itself. That proves the reader works **from a state nobody arrives in**, and
+  proves nothing about whether pressing **File contract** reaches it — the same
+  fault this file already records against a pill that opens nothing and a door
+  whose handler was never wired. Section 7 starts where the reader starts:
+  it opens the dialog, sets a real file, presses the real button, and asserts no
+  reading was refused because the record was not there. It reports the owner's
+  own sentence verbatim against the parent, and **7a/7b pass either way** — the
+  controls that prove the journey is really being driven.
+- **THE REFUSAL IS PINNED, NOT THE SUCCESS.** "no reading says Contract not
+  found" stays true on a workspace with no Copilot key, where the brief refuses
+  for its own honest reason — a different answer from the record not being there.
+
 **NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
 (above); nothing runs on a contract drafted from a template — this is for paper
 somebody sent you; the card is not on the phone; and nothing about it reaches

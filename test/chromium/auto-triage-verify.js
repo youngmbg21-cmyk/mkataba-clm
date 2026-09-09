@@ -314,6 +314,54 @@ const SEED = t => {
       !!(card && /read and ready|läst och klart/i.test(card.txt)),
       card && card.txt.slice(0, 90));
 
+    /* ============ 7 · THE JOURNEY, FROM THE BUTTON ============ */
+    /* THE GAP THAT LET A REAL DEFECT SHIP. Every other section here CALLS
+       triageRun on a contract it seeded itself — which proves the reader
+       works from a state nobody arrives in, and proves nothing about whether
+       pressing "File contract" reaches it. Owner-reported: the box was ticked,
+       the reading ran, and the brief came back "Contract not found" on every
+       real upload, because persist() is debounced 400ms and the brief route
+       looks the row up before it reads a word. Nothing in this file could see
+       it. So this section starts where the reader starts. */
+    await page.evaluate(() => { if (typeof openUploadModal === 'function') openUploadModal(); });
+    await pause(700);
+    const fi2 = await page.$('#up-file');
+    if (fi2) await fi2.setInputFiles({ name: 'Received_From_Them.txt',
+      mimeType: 'text/plain', buffer: Buffer.from(TEXT, 'utf8') });
+    await pause(2600);
+    const nBefore = await page.evaluate(() => state.contracts.length);
+    const filed = await drive(() => {
+      const b = [...document.querySelectorAll('button')]
+        .find(x => /File contract|Arkivera avtal/i.test(x.textContent || ''));
+      if (!b) return { pressed: false };
+      b.click(); return { pressed: true };
+    }, undefined, { pressed: false });
+    check('7a · "File contract" is a real button on the confirm screen',
+      filed.pressed === true, filed);
+    await pause(1500);
+    const madeIt = await drive(n => {
+      const c = state.contracts[0];
+      return { made: state.contracts.length > n, source: c && c.source,
+        started: !!(c && (c.triage || c._triaging)) };
+    }, nBefore, { made: false, started: false });
+    check('7b · pressing it files the contract AND starts the reading',
+      madeIt.made === true && madeIt.source === 'upload' && madeIt.started === true, madeIt);
+    /* THE REPORTED FAULT ITSELF. Asserted as the exact refusal rather than as
+       "the brief succeeded", so it stays true on a workspace with no Copilot
+       key — there the brief refuses for its own honest reason, and THAT is a
+       different answer from the record not being there at all. */
+    await pause(13000);
+    const readOk = await drive(() => {
+      const t = state.contracts[0] && state.contracts[0].triage;
+      if (!t) return { ran: false };
+      const why = k => (t.steps[k] && t.steps[k].why) || '';
+      return { ran: true, brief: t.steps.brief && t.steps.brief.ok,
+        notFound: Object.keys(t.steps).filter(k => /not found|finns inte/i.test(why(k))),
+        whyBrief: why('brief').slice(0, 60) };
+    }, undefined, { ran: false, notFound: ['(never ran)'] });
+    check('7c · and no reading is refused because the record is not on the server yet',
+      readOk.ran === true && readOk.notFound.length === 0, readOk);
+
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
 
