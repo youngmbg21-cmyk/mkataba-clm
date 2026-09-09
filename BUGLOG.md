@@ -9837,3 +9837,23 @@ Noticed, not fixed
 - The learned card's heading key is std_learn_title but the panel's host element
   is still #precedent-panel, named for the reading it replaced.
 - cal_next_30 still names 30 while the calendar panel's window is a control.
+
+## 2026-09-09 — owner question about the first-playbook card's Governing law row
+
+Asked what the row MEANS, off a screenshot reading "Governing law | California |
+Nothing to compare | 1 of 10 | 10 of your signed contracts carry one and they do
+not agree." Answered rather than fixed (Scope rules). The reading is correct —
+the row proposes nothing — but the ROW READS WRONG, three ways.
+
+Noticed, not fixed
+- "What you usually sign" is a claim the cell cannot support at 1 of 10. All ten
+  values are singletons, so the winner is decided by the ALPHABETICAL tie-break
+  in the ranked sort, not by frequency. California is there because C sorts
+  early. The header should stand down (or the cell say "no usual value") where
+  pattern is false.
+- The liability row says "0 of your signed contracts carry one and they do not
+  agree." With nothing on file there is nothing to disagree; std_disagree has no
+  zero case and i18tn sends 0 to the _other form. Wants its own sentence.
+- Termination says "Already matches" at 3 of 7 — below the share floor, so there
+  is no pattern to match. why() asks agrees BEFORE pattern, so a standard equal
+  to a minority value is reported as agreement.
