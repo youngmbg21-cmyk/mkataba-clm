@@ -128,6 +128,7 @@ const visible = (page, sel) => page.evaluate(s => {
     if (!p) return null;
     const caps = Array.from(p.querySelectorAll('div')).map(d => d.textContent.trim());
     return { open: true, text: p.innerText, copy: !!document.getElementById('ng-memo-copy'),
+      send: !!document.getElementById('ng-memo-send'),
       role: p.getAttribute('role'), n: caps.length };
   });
   check(!!memo, '2a the press opens the side panel');
@@ -139,7 +140,11 @@ const visible = (page, sel) => page.evaluate(s => {
       check(memo.text.toLowerCase().includes(word.toLowerCase()),
         `2b the memo carries the "${word}" section`);
     check(/Whose move/i.test(memo.text), '2c and says whose move it is');
-    check(memo.copy, '2d the one act under it is Copy');
+    /* REVERSED IN PLACE 9 Sep 2026 — the memo shipped with Copy alone and the
+       owner asked for the send beside it. The claim was never "one act": it
+       was that the acts under the memo are there and are these. */
+    check(memo.copy, '2d Copy is under it');
+    check(memo.send, '2d2 and so is Send to a colleague — the owner asked for it back');
     check(memo.role === 'dialog', '2e it announces itself as a dialog', memo.role);
   }
   await page.screenshot({ path: path.join(OUT, '02-memo.png') });
@@ -229,6 +234,133 @@ const visible = (page, sel) => page.evaluate(s => {
   check(reopened && await page.locator('#side-panel').count() === 0,
     '6d Escape closes it too', reopened ? '' : 'it never opened');
   await page.screenshot({ path: path.join(OUT, '03-closed.png') });
+
+  /* ============ 7. SEND IT TO A COLLEAGUE ============ */
+  /* (owner-asked 9 Sep 2026: "We need to bring back the send to a colleague
+     button.") THIS IS WHY THE FILE EXISTS: f269 can read the dialog's source
+     and the route's refusals, and it cannot ask whether the button is
+     reachable, whether the press opens anything, or whether what leaves the
+     building is the memo that is on screen. This server has NO mail provider,
+     so the honest answer is the outbox — which is one of the three the route
+     promises, and the one that lets the whole journey be driven end to end and
+     the message read back. */
+  if (hasRow){
+    await page.click('#ws-more'); await page.waitForTimeout(300);
+    await page.click('[data-rl-memo]'); await page.waitForTimeout(700);
+  }
+  const panelText = await page.evaluate(() => {
+    const p = document.getElementById('side-panel'); return p ? p.innerText : ''; });
+  const canSend = await page.locator('#ng-memo-send').count() === 1;
+  check(canSend && await visible(page, '#ng-memo-send'),
+    '7a Send to a colleague is VISIBLE PIXELS under the memo');
+
+  if (canSend){ await page.click('#ng-memo-send'); await page.waitForTimeout(600); }
+  const dlg = await page.evaluate(() => {
+    const sel = document.getElementById('ng-memo-who');
+    if (!sel) return null;
+    return { people: Array.from(sel.options).map(o => o.textContent.trim()),
+      note: !!document.getElementById('ng-memo-note'),
+      go: !!document.getElementById('ng-memo-go'),
+      text: (document.getElementById('modal-root') || document.body).innerText };
+  });
+  check(!!dlg, '7b the press opens the picker');
+  if (dlg){
+    check(dlg.people.length >= 1, '7c it names colleagues off the roster', dlg.people.join(' / '));
+    /* NEVER YOURSELF. The reading excludes the signed-in reader, and this is
+       the admin who seeded the workspace. */
+    check(!dlg.people.some(t => /admin@example\.co\.ke/.test(t)),
+      '7d and never yourself', dlg.people.join(' / '));
+    check(dlg.note && dlg.go, '7e with somewhere to say why, and one act');
+    check(/address on file/i.test(dlg.text),
+      '7f and it says where the message goes before it goes');
+  }
+  await page.screenshot({ path: path.join(OUT, '04-send.png') });
+
+  /* ---- FIRST, THE COLLEAGUE WHO COULD NOT OPEN IT ----
+     THE PICKER OFFERS EVERY COLLEAGUE AND THE ROUTE DECIDES, which is right:
+     who may see which value stream is the server's answer and a browser that
+     pre-filtered the list would be a second copy of it. So the refusal has to
+     land somewhere the reader is looking — and this is the only place that can
+     be checked. The seeded workspace has exactly the person for it: Restricted
+     Legal sees one stream and this contract is in the other. */
+  const walled = await page.evaluate(async () => {
+    const sel = document.getElementById('ng-memo-who');
+    if (!sel) return false;                       /* no dialog: report, never throw */
+    const opt = Array.from(sel.options).find(o => /restricted@/.test(o.textContent));
+    if (!opt) return false;
+    sel.value = opt.value; return true;
+  });
+  if (walled){
+    await page.click('#ng-memo-go');
+    await page.waitForTimeout(1500);
+  }
+  const refused = await page.evaluate(() => {
+    const err = document.getElementById('ng-memo-err');
+    return { open: !!document.getElementById('ng-memo-go'),
+      shown: !!(err && !err.hidden && err.textContent.trim()),
+      say: err ? err.textContent.trim() : '' };
+  });
+  check(walled && refused.open, '7g a colleague who cannot see the contract does not close the dialog');
+  check(refused.shown && /Restricted Legal/.test(refused.say),
+    '7h the refusal is shown IN the dialog and names who', refused.say.slice(0, 90));
+  const noneYet = await page.evaluate(async () =>
+    ((await (await fetch('/api/outbox')).json()).items || [])
+      .filter(r => /negotiation memo|f\u00f6rhandlingsnotatet/i.test(String(r.subject || ''))).length);
+  check(noneYet === 0, '7i and nothing left the building', String(noneYet));
+
+  /* ---- NOW THE COLLEAGUE WHO CAN ---- */
+  const picked = await page.evaluate(async () => {
+    const sel = document.getElementById('ng-memo-who');
+    if (!sel) return false;                       /* no dialog: report, never throw */
+    const opt = Array.from(sel.options).find(o => /everything@/.test(o.textContent));
+    if (!opt) return false;
+    sel.value = opt.value; return true;
+  });
+  if (picked){
+    await page.fill('#ng-memo-note', 'Before Friday please');
+    await page.click('#ng-memo-go');
+    await page.waitForTimeout(1800);
+  }
+  const closed = await page.locator('#ng-memo-go').count() === 0;
+  check(picked && closed, '7j the dialog closes when it has answered');
+  const toast = await page.evaluate(() => {
+    const r = document.getElementById('toast-root'); return r ? r.innerText.trim() : ''; });
+  /* "SENT" HAS TO MEAN SENT. There is no provider on this server, so the only
+     honest answer is the outbox — and the reader is told exactly that rather
+     than being told it went. */
+  check(/outbox|utkorg/i.test(toast), '7k and says honestly that it is in the outbox, not that it went',
+    toast.replace(/\n/g, ' | ').slice(0, 90));
+
+  /* READ THE MESSAGE ITSELF BACK, never the newest row: the seeded workspace
+     already put three welcome emails in this outbox, and a probe that trusts
+     position passes on somebody else's mail. */
+  const sentMsg = await page.evaluate(async () => {
+    const j = await (await fetch('/api/outbox')).json();
+    const rows = (j.items || []).filter(r => /negotiation memo|f\u00f6rhandlingsnotatet/i.test(String(r.subject || '')));
+    return { n: rows.length, top: rows[0] || null };
+  });
+  check(sentMsg.n === 1, '7l exactly one memo was queued', String(sentMsg.n));
+  if (sentMsg.top){
+    check(String(sentMsg.top.to_addr) === 'everything@example.co.ke',
+      '7m to the colleague’s own address on file', String(sentMsg.top.to_addr));
+    const body = String(sentMsg.top.body || '');
+    check(/Before Friday please/.test(body), '7n the sender’s own note travelled');
+    /* THE MEMO THAT WENT IS THE MEMO ON SCREEN. One text builder, and this is
+       the only place that claim can be checked from both ends at once. */
+    const sections = ['Agreed', 'Still open', 'We gave up', 'Blocking the deal'];
+    const inBoth = sections.filter(w =>
+      body.toLowerCase().includes(w.toLowerCase()) && panelText.toLowerCase().includes(w.toLowerCase()));
+    check(inBoth.length === sections.length,
+      '7o and it carries the same four sections the panel shows', inBoth.join(', '));
+    check(/#contract=/.test(body), '7p with a way back into the agreement');
+  }
+
+  /* ============ 8. THE SEND CHANGED NOTHING EITHER ============ */
+  const afterSend = await page.evaluate(id => {
+    const c = state.contracts.find(x => x.id === id);
+    return JSON.stringify((c.changes || []).map(x => [x.id, x.status, !!x.withdrawn]));
+  }, built.id);
+  check(afterSend === before.json, '8a sending the memo moved nothing on the record');
 
   console.log(failures ? `\n${failures} FAILED` : '\nall checks passed');
   await browser.close();

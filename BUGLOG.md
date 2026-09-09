@@ -9308,3 +9308,64 @@ Noticed, not fixed:
   (io.open(p,'w').write(io.open(p).read()...) — the write handle opens and
   empties the file before the read is evaluated). Recorded because it destroys
   work silently and the file then passes as one empty test.
+
+================================================================================
+9 Sep 2026 — SEND THE MEMO TO A COLLEAGUE (owner-asked)
+================================================================================
+"We need to bring back the send to a colleague button."
+
+It was named as deliberately not built when the memo shipped the day before.
+Built now, following POST /api/calendar/share's split exactly: the browser
+composes the lines with negoMemoText — the SAME builder Copy uses, so the email
+cannot say something the panel did not — and POST /api/contracts/:id/memo owns
+the half that must never be the browser's, which is WHO is written to. A
+body-supplied email/to/address is refused outright (the open-relay rule the
+review-request route already states).
+
+A colleague who could not open the contract is REFUSED rather than mailed, and
+the refusal is shown in the dialog and names them: the memo carries clause
+wording off a stream they may be walled out of, and the link would land them on
+a page they cannot see. It is a refusal rather than the mention route's silent
+skip because there is exactly one recipient here, and silence reads as a
+message that went. The picker still offers every colleague and the SERVER
+decides: who may see which stream is the server's answer and a browser that
+pre-filtered would be a second copy of it.
+
+It writes NOTHING to the record. That is the property that lets a memo be
+opened on an executed contract at all, and a courtesy audit line would be
+refused outright there (aiNoteRead's own lesson). The outbox is the record that
+a message went.
+
+The button is decided at DRAW time off negoMemoRecipients() — the calendar
+share's own reading — so a workspace of one draws no dead button; the dialog
+asks the same reading again, because the button is the sign and the dialog is
+the wall.
+
+One test anchor was widened rather than the code bent to fit it: f269's
+"the drawing decides no population of its own" pinned the exact signature of
+the renderer and stopped matching the moment it took an options argument. Pin
+the relation, not the literal.
+
+Browser: negotiation-memo 40/40. Against the parent, f269 reports 10 route
+claims failing plus the whole (12) block and both language claims, and
+negotiation-memo 8 of its 40 — the headline one being that the send button is
+not visible pixels.
+
+Noticed, not fixed:
+- THE MEMO QUOTES THE CARD'S SHORTHAND, NOT THE FULL WORDING (owner-reported in
+  the same message, with a screenshot). ch.summary is negoSummariseOps' own
+  line: at most TWO changed regions, each side clipped to 34 characters, 70 for
+  an inserted or deleted clause. So a long clause reads as a pair of clipped
+  fragments. The full wording is on the record and rlChangeWordingHtml already
+  renders it — the open card and the ask reveal both draw it. Which of
+  full-changed-parts, whole-clause or a fold is right is a decision about what
+  the memo IS, so it was put to the owner rather than picked.
+- On the owner's own contract the memo shows three rows reading "Governing law
+  — New clause added —" with NOTHING after the dash. An insertClause stores
+  newText as richToText of its body, so that is three proposed clauses whose
+  stored text came back empty — a filing question, not a memo one, and one the
+  memo currently hides rather than shows.
+- And two byte-identical "Clause 2 SPECIFICATIONS ... Clause deleted" rows in
+  the same section: either two genuine deletions filed in different rounds, or
+  one change reachable through both the live list and a closed round. Worth
+  looking at with the record in hand.

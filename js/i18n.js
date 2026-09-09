@@ -1539,6 +1539,22 @@ const STRINGS = {
     ng_memo_copy_failed: 'Could not copy — select the text and copy it yourself',
     ng_memo_capped_one: 'Only the first {n} in each section is listed; the counts above are the full number.',
     ng_memo_capped_other: 'Only the first {n} in each section are listed; the counts above are the full numbers.',
+    /* SEND IT TO A COLLEAGUE. The words deliberately mirror the calendar's own
+       share dialog — one act, one vocabulary — but each screen keeps its own
+       keys rather than reaching into another feature's namespace, so neither
+       can change the other's wording by accident. */
+    ng_memo_send: 'Send to a colleague',
+    ng_memo_send_h: 'Send this memo to a colleague',
+    ng_memo_send_sub: 'Where the negotiation on {name} stands',
+    ng_memo_send_who: 'Who should get it',
+    ng_memo_send_note: 'Anything to say with it (optional)',
+    ng_memo_send_privacy: 'It goes to their address on file here, carries this memo as it reads on screen, and is not written to the contract.',
+    ng_memo_send_go: 'Send it',
+    ng_memo_sending: 'Sending…',
+    ng_memo_sent: 'Sent to {who}',
+    ng_memo_send_outbox: 'No email is set up on this server — it is waiting in the outbox for an admin',
+    ng_memo_send_failed: 'It did not go. {why}',
+    ng_memo_send_nobody: 'There is nobody else in this workspace to send it to',
     /* WHERE THE PENCIL ACTUALLY GOES. It carried ng_cp_open_title — "what it
        says now, what is on the table, and everything that has been asked about
        it" — which describes the CLAUSE PANEL, and the pencil has opened the
@@ -2414,6 +2430,11 @@ const STRINGS = {
     mail_at_subject: "{who} tagged you on {name}",
     mail_at_line: "{who} named you in a note on {where}.",
     mail_at_open: "Open the agreement here:",
+    /* THE MEMO, MAILED TO A COLLEAGUE. The memo's own body is composed in the
+       BROWSER, in the sender's language; the frame around it is written in the
+       READER's, which is what every other mail here does. */
+    mail_memo_subject: "{who} sent you the negotiation memo for {name}",
+    mail_memo_line: "{who} sent you where the negotiation on {name} stands.",
     /* What the note's own toast adds about the people it named — a clause on
        the one confirmation, never a second box. */
     ng_at_told_one: " {who} was emailed.",
@@ -7097,6 +7118,18 @@ const STRINGS = {
     ng_memo_copy_failed: 'Kunde inte kopiera — markera texten och kopiera den själv',
     ng_memo_capped_one: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är det fullständiga antalet.',
     ng_memo_capped_other: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är de fullständiga antalen.',
+    ng_memo_send: 'Skicka till en kollega',
+    ng_memo_send_h: 'Skicka detta notat till en kollega',
+    ng_memo_send_sub: 'Hur förhandlingen om {name} står',
+    ng_memo_send_who: 'Vem ska få det',
+    ng_memo_send_note: 'Något att säga med det (frivilligt)',
+    ng_memo_send_privacy: 'Det går till adressen som finns här, innehåller notatet precis som det står på skärmen och skrivs inte in i avtalet.',
+    ng_memo_send_go: 'Skicka det',
+    ng_memo_sending: 'Skickar…',
+    ng_memo_sent: 'Skickat till {who}',
+    ng_memo_send_outbox: 'Ingen e-post är uppsatt på den här servern — det väntar i utkorgen på en administratör',
+    ng_memo_send_failed: 'Det gick inte iväg. {why}',
+    ng_memo_send_nobody: 'Det finns ingen annan i arbetsytan att skicka det till',
     ng_cp_edit_title: 'Redigera klausulen — texten, med Copilot bredvid',
     ng_cp_notes_group: 'Visa klausulens historik med eller utan noteringar',
     ng_cp_hist: 'Historik',
@@ -7815,6 +7848,8 @@ const STRINGS = {
     mail_at_subject: "{who} taggade dig i {name}",
     mail_at_line: "{who} nämnde dig i en anteckning om {where}.",
     mail_at_open: "Öppna avtalet här:",
+    mail_memo_subject: "{who} skickade förhandlingsnotatet för {name} till dig",
+    mail_memo_line: "{who} skickade dig hur förhandlingen om {name} står.",
     ng_at_told_one: " {who} fick ett mejl.",
     ng_at_told_other: " {n} personer fick ett mejl.",
     ng_at_some: " {n} fick mejl, {missed} kunde inte nås.",

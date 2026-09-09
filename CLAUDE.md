@@ -4439,11 +4439,60 @@ a boss the deal is going better than it is.
   and `logAudit`, and the browser file proves the record is character-identical
   before and after opening it.
 
-**COPY ONLY, owner-ruled.** The drawing carries three buttons; "Send to a
-colleague" (a server route, following `POST /api/calendar/share`'s shape — the
-browser composes the lines, the route owns only WHO is written to) and "Add to
-Chat" were both put to the owner and are both **NOT built**. Neither is
-half-built: there is nothing dormant to switch on.
+**AND IT IS SENT TO A COLLEAGUE — REVERSED IN PLACE 9 Sep 2026** (owner-asked:
+*"We need to bring back the send to a colleague button."*). It shipped Copy
+only; the drawing carried a send beside it and it was named as deliberately not
+built. **"Add to Chat" is still NOT built** and is not half-built — there is
+nothing dormant to switch on.
+
+- **ONE TEXT BUILDER, AND IT IS THE ONE COPY USES.** `negoMemoText(m)` is what
+  the browser posts, so the thing in a colleague's inbox cannot say something
+  the panel did not — and a second composition on the server is the recorded
+  defect class here.
+- **THE BROWSER COMPOSES THE LINES AND `POST /api/contracts/:id/memo` OWNS WHO
+  IS WRITTEN TO** — the split `POST /api/calendar/share` already states in its
+  own words. It takes a member id and looks the address up itself; a
+  body-supplied `email`, `to` or `address` is refused outright, which is the
+  open-relay rule the review-request route beside it states.
+- **A COLLEAGUE WHO COULD NOT OPEN IT IS REFUSED, NOT WRITTEN TO.** The memo
+  carries clause wording off a contract that may sit in a value stream this
+  person is walled out of, and the link would land them on a page they cannot
+  see, so `folderScopeFor` is asked of THEM as well as of the sender. **A
+  REFUSAL, NOT A SILENT SKIP** — the mention route skips because it has many
+  recipients; this has exactly one, and silence would read as a message that
+  went. It is shown IN the dialog, which stays open, and it names who.
+- **THE PICKER OFFERS EVERY COLLEAGUE AND THE SERVER DECIDES.** Who may see
+  which stream is the server's answer, and a browser that pre-filtered the list
+  would be a second copy of it.
+- **IT WRITES NOTHING TO THE RECORD**, and that is a decision rather than an
+  omission: the memo decides nothing and files nothing — the property f269
+  greps for — and an advisory read that writes a courtesy audit line is refused
+  outright on an executed contract (`aiNoteRead`'s own lesson), which is exactly
+  the contract a memo is most often opened on. The outbox is the record that a
+  message went.
+- **A VERB THAT CANNOT WORK IS NOT DRAWN.** `negoMemoRecipients()` — the
+  calendar share's own reading, every member with an address except yourself —
+  decides the button at DRAW time, and the dialog asks it again: the button is
+  the sign, the dialog is the wall.
+- **"SENT" MEANS SENT** — the honest three-way answer every other mail here
+  gives, and each is a different thing to do next.
+- **THE CAPS ARE A SAFETY WALL ON A BODY THIS SERVER DID NOT COMPOSE**, never a
+  content decision: the memo already caps itself at `NEGO_MEMO_MAX` rows a
+  section and says so on the page. A blank line is the memo's own structure, so
+  nothing filters one out and nothing trims a line's leading spaces.
+
+**WHAT THE MEMO QUOTES IS STILL THE CARD'S SHORTHAND, and it is reported rather
+than absorbed** (owner-reported 9 Sep 2026, off a screenshot: *"the memo is not
+taking the full quotes of what has changed rather only the short hands that are
+in the redline screen"*). `ch.summary` is `negoSummariseOps`' own line — at most
+TWO changed regions, each side clipped to **34 characters**, and 70 for an
+inserted or deleted clause — so a long clause reads as `"3.1 Delivery Terms.
+Unless otherw…" → "The passage you provided (3.1–3.4…"`. The full wording is on
+the record and the product already has ONE builder for it
+(`rlChangeWordingHtml(ch, {changedOnly})`, which the open card and the ask
+reveal both draw). Which of full-changed-parts / whole-clause / a fold is right
+is a decision about what the memo IS, and it was put to the owner rather than
+picked.
 
 Tests: f269 (49 — **29 fail against the parent**), **negotiation-memo-verify
 (24, browser — the only place four of the claims can be asked at all: the row

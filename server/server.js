@@ -6919,6 +6919,79 @@ app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
   res.json({ ok: true, told, skipped, emailConfigured: EMAIL_ON() });
 });
 
+/* ---------- THE NEGOTIATION MEMO, MAILED TO A COLLEAGUE ----------
+   (owner-asked 9 Sep 2026: "We need to bring back the send to a colleague
+   button.")
+
+   THE BROWSER COMPOSES THE LINES AND THIS ROUTE OWNS WHO IS WRITTEN TO — the
+   split POST /api/calendar/share already states in its own words, and for its
+   own reason: negoMemo is a reading of the contract's own record, and a second
+   copy of that reading here is the recorded defect class in this codebase.
+   What the route owns is the half that must never be the browser's — the
+   ADDRESS. It takes a member id and looks the address up itself; a
+   body-supplied one is refused outright, which is the open-relay rule the
+   review-request route beside it already states.
+
+   IT WRITES NOTHING TO THE RECORD, and that is a decision rather than an
+   omission. The memo decides nothing and files nothing — the property f269
+   greps for — and an advisory read that writes a courtesy audit line is
+   refused outright on an executed contract (aiNoteRead's own lesson), which is
+   exactly the contract a memo is most often opened on. The outbox is the
+   record that a message went.
+
+   A COLLEAGUE WHO COULD NOT OPEN IT IS REFUSED, NOT WRITTEN TO. The memo
+   carries clause wording off a contract that may sit in a value stream this
+   person is walled out of, and the link would land them on a page they cannot
+   see. So folderScopeFor is asked of THEM as well as of the sender — the same
+   question the mention route asks one line before it decides to skip somebody,
+   answered here as a refusal because there is exactly one recipient and
+   silence would read as a message that went. */
+const MEMO_SHARE_MAX_LINES = 400;
+const MEMO_SHARE_LINE_MAX = 2000;
+app.post('/api/contracts/:id/memo', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address)
+    return res.status(400).json({ error: 'This route resolves the colleague’s address from the workspace’s own records. Send toId, not an email address.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const u = b.toId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(b.toId)) : null;
+  if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
+  if (!inScope(folderScopeFor(u), row.folder))
+    return res.status(403).json({ reason: 'no-access',
+      error: `${u.name} cannot see this contract’s value stream, so nothing was sent.` });
+  if (!u.email) return res.status(409).json({ reason: 'no-address',
+    error: `${u.name} has no email address on file, so nothing was sent.` });
+  /* A BLANK LINE IS THE MEMO'S OWN STRUCTURE, so nothing here filters one out
+     and nothing trims a line's leading spaces — negoMemoText indents its rows
+     under their heading. The two bounds are a safety wall on a body this
+     server did not compose, never a content decision: the memo already caps
+     itself at NEGO_MEMO_MAX rows a section and says so on the page. A clause
+     quoted in full is a long line, which is why the per-line bound is generous
+     where the calendar's is 200. */
+  const lines = (Array.isArray(b.lines) ? b.lines : [])
+    .slice(0, MEMO_SHARE_MAX_LINES)
+    .map(l => String(l == null ? '' : l).replace(/[\r\n]+/g, ' ').slice(0, MEMO_SHARE_LINE_MAX));
+  if (!lines.join('').trim()) return res.status(400).json({ error: 'There is nothing to send' });
+  const note = clean(b.note).slice(0, 1000);
+  const cName = c.name || req.params.id;
+  const link = contractUrl(req, req.params.id, 'redline');
+  const L = langForEmail(u.email);
+  const r = await sendEmail(u.email,
+    tFor(L, 'mail_memo_subject', { who: req.user.name, name: cName }),
+    `${tFor(L, 'mail_hello')} ${u.name},\n\n`
+      + tFor(L, 'mail_memo_line', { who: req.user.name, name: cName })
+      + (note ? `\n\n"${note}"\n` : '\n')
+      + `\n${lines.join('\n')}\n`
+      + (link ? `\n${tFor(L, 'mail_at_open')}\n${link}\n` : '')
+      + `\n${tFor(L, 'mail_automated_notice')}`,
+    `memo: ${req.params.id} -> ${u.email}`);
+  /* THE SAME HONEST THREE-WAY ANSWER EVERY OTHER MAIL HERE GIVES — it went, it
+     queued in the outbox because no provider is configured, or the provider
+     refused and said why. "Sent" has to mean sent. */
+  res.json({ ok: true, to: u.email, n: lines.length, ...mailReport(r) });
+});
+
 /* "Please look at this before it goes out" — the internal review request.
 
    THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. The request

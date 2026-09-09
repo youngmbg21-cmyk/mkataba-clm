@@ -252,7 +252,10 @@ describe('f269 (8) counting is not drawing', () => {
      `.filter(Boolean)` on a label join. A crude proxy for a real rule reports
      a fault that is not there. */
   test('the drawing decides no population of its own', () => {
-    const body = /function negoMemoHtml\(m\)\{[\s\S]*?\n\}/.exec(NEG)[0];
+    /* ANCHORED ON THE NAME, NOT THE ARGUMENT LIST — this pinned the exact
+       signature and stopped matching the day the renderer took an options
+       argument. Pin the relation, not the literal. */
+    const body = /function negoMemoHtml\(m[^)]*\)\{[\s\S]*?\n\}/.exec(NEG)[0];
     for (const f of ['c.changes', 'negoAlignment', 'negotiation.rounds', 'authorSide',
                      '.withdrawn', 'status ===', 'precedentForChange'])
       assert.equal(body.includes(f), false, `negoMemoHtml works something out for itself: ${f}`);
@@ -354,7 +357,14 @@ describe('f269 (11) the words, in both languages', () => {
   const KEYS = ['ng_memo', 'ng_memo_title', 'ng_memo_agreed', 'ng_memo_open', 'ng_memo_gave',
     'ng_memo_blocking', 'ng_memo_nil', 'ng_memo_none', 'ng_memo_round', 'ng_memo_from_record',
     'ng_memo_move', 'ng_memo_copy', 'ng_memo_copied', 'ng_memo_copy_failed',
-    'ng_memo_capped_one', 'ng_memo_capped_other'];
+    'ng_memo_capped_one', 'ng_memo_capped_other',
+    /* The send, and the frame the route writes around the memo in the
+       RECIPIENT's own language — the memo's body is composed in the browser in
+       the sender's, which is what every other mail in this product does. */
+    'ng_memo_send', 'ng_memo_send_h', 'ng_memo_send_sub', 'ng_memo_send_who',
+    'ng_memo_send_note', 'ng_memo_send_privacy', 'ng_memo_send_go', 'ng_memo_sending',
+    'ng_memo_sent', 'ng_memo_send_outbox', 'ng_memo_send_failed', 'ng_memo_send_nobody',
+    'mail_memo_subject', 'mail_memo_line'];
 
   test('every key answers in English and in Swedish', () => {
     for (const lang of ['en', 'sv'])
@@ -371,5 +381,257 @@ describe('f269 (11) the words, in both languages', () => {
     for (const lang of ['en', 'sv'])
       for (const k of KEYS)
         assert.equal(/copilot/i.test(STRINGS[lang][k]), false, `${k} says Copilot in ${lang}`);
+  });
+});
+
+/* ================================================================
+   f269 (12) — SEND IT TO A COLLEAGUE (owner-asked 9 Sep 2026)
+   ================================================================
+   *"We need to bring back the send to a colleague button."*
+
+   The memo shipped with Copy alone; the drawing it was built from carried a
+   send beside it, and it was named as deliberately not built. This is that
+   button, and every claim below is a way it could quietly stop being the same
+   memo the panel shows:
+
+   · ONE TEXT BUILDER. What reaches a colleague's inbox is negoMemoText — the
+     very thing Copy copies — so the email cannot say something the panel did
+     not. A second composition here is the recorded defect class.
+   · THE ADDRESS IS NEVER THE BROWSER'S. The dialog sends a member id; the
+     route resolves the address off the workspace's own records and refuses a
+     body-supplied one outright.
+   · IT STILL DECIDES NOTHING AND FILES NOTHING. That property is what lets the
+     memo be opened on an executed contract at all, and a send that wrote a
+     courtesy audit line would take it away (aiNoteRead's own lesson).
+   · A VERB THAT CANNOT WORK IS NOT DRAWN. With nobody to send to, no button. */
+describe('f269 (12) send it to a colleague', () => {
+  const SHARE = /function openNegoMemoShare\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(NEG)[0];
+  const DOOR  = /function openNegoMemo\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(NEG)[0];
+
+  test('what is sent is the text the Copy button copies — one builder', () => {
+    assert.match(SHARE, /negoMemoText\(m\)/,
+      'the email must be composed by the memo’s own text builder, never a second one');
+  });
+
+  test('the browser sends a member id and never an address', () => {
+    assert.match(SHARE, /toId/);
+    assert.equal(/\b(email|address|to)\s*:/.test(SHARE), false,
+      'an address in the body would make this route an open relay wearing the workspace’s name');
+  });
+
+  test('it posts to the contract’s own memo route', () => {
+    assert.match(SHARE, /'contracts\/'/);
+    assert.match(SHARE, /'\/memo'/);
+  });
+
+  test('it decides nothing and files nothing', () => {
+    for (const f of ['negoFileChange', 'negoResolve', 'negoWithdraw', 'changes.push',
+                     'persist(', 'logAudit'])
+      assert.equal(SHARE.includes(f), false, `the send writes to the record: ${f}`);
+  });
+
+  test('“sent” means sent — all three answers are read', () => {
+    for (const k of ['emailSent', 'outbox', 'emailError'])
+      assert.match(SHARE, new RegExp(k), `the send does not read ${k}`);
+  });
+
+  test('a refusal is shown in the dialog, not behind it', () => {
+    assert.match(SHARE, /ng-memo-err/,
+      'the route’s own sentence names the colleague and why nothing went');
+  });
+
+  /* THE BUTTON IS THE SIGN AND THE DIALOG IS THE WALL — both ask the same
+     reading, so a roster that emptied between the paint and the press cannot
+     produce a press that does nothing. */
+  test('the door decides whether the button can work before drawing it', () => {
+    assert.match(DOOR, /negoMemoRecipients\(\)/);
+    assert.match(DOOR, /canSend/);
+    assert.match(SHARE, /negoMemoRecipients\(\)/, 'the dialog re-asks: the button is the sign, this is the wall');
+  });
+
+  test('no colleague, no button', () => {
+    const w = W();
+    const m = w.negoMemo(deal([ch('CHG-1')]));
+    assert.equal(w.negoMemoHtml(m).includes('ng-memo-send'), false, 'a dead button was drawn');
+    assert.equal(w.negoMemoHtml(m, { canSend: true }).includes('ng-memo-send'), true);
+    /* Copy is unconditional — a memo can always be selected and copied. */
+    assert.equal(w.negoMemoHtml(m).includes('ng-memo-copy'), true);
+  });
+
+  test('an empty memo offers neither act', () => {
+    const w = W();
+    const m = w.negoMemo(deal([]));
+    assert.equal(m.empty, true);
+    const html = w.negoMemoHtml(m, { canSend: true });
+    assert.equal(html.includes('ng-memo-send'), false);
+    assert.equal(html.includes('ng-memo-copy'), false);
+  });
+
+  test('the recipients are colleagues with an address, never yourself', () => {
+    const w = W();
+    w.currentUser = () => ({ id: 'u_me', name: 'Me' });
+    w.getUsers = () => ([
+      { id: 'u_me', name: 'Me', email: 'me@example.co.ke' },
+      { id: 'u_two', name: 'Two', email: 'two@example.co.ke' },
+      { id: 'u_none', name: 'No Address', email: '' },
+    ]);
+    assert.deepEqual(list(w.negoMemoRecipients()).map(u => u.id), ['u_two'],
+      'yourself and anybody with nowhere to write to are both out');
+  });
+});
+
+/* ================================================================
+   f269 (13) — THE ROUTE, AGAINST A RUNNING SERVER
+   ================================================================
+   The browser half above is a source reading; this drives the real route with
+   a real mail provider behind it, because every rule that matters here is one
+   the server enforces and the screen only signs:
+
+   · the address is resolved off the workspace's own records, never the body;
+   · a colleague who could not open the contract is REFUSED rather than mailed
+     a memo full of wording from a value stream they are walled out of;
+   · nothing is written to the record, so the memo stays safe to open on a
+     sealed contract;
+   · and "sent" means sent — the same three-way answer every other mail here
+     gives, proved by flipping the provider mid-run rather than by reading the
+     route's own source. */
+describe('f269 (13) the route', () => {
+  const { startHatiWithMail, seedWorkspace } = require('./helpers.js');
+  const LINES = ['Retail Supply — Coast — Naivas Supermarkets', 'MK-B1 · Round 1', '',
+    'AGREED (1)', '  Clause 2 · SPECIFICATIONS — added “thirty (30) days”', '',
+    'BLOCKING THE DEAL (0)', '  None'];
+
+  test('it mails the colleague, carrying the memo’s own lines and a way in', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const r = await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, note: 'Have a look before Friday', lines: LINES } });
+    assert.equal(r.emailSent, true, 'a delivered memo must report sent');
+    assert.equal(r.to, 'everything@example.co.ke', 'and to the address on FILE, not one we were handed');
+    assert.equal(h.mail.sent.length, 1);
+    const msg = h.mail.sent[0];
+    assert.match(msg.subject, /Modern Trade Listing/, 'the subject names the agreement');
+    assert.match(msg.text, /Have a look before Friday/, 'the sender’s own note travels');
+    assert.match(msg.text, /Clause 2 · SPECIFICATIONS/, 'the memo’s own lines travel verbatim');
+    assert.match(msg.text, /BLOCKING THE DEAL \(0\)/, 'including the section that says “none”');
+    assert.match(msg.text, /#contract=MK-B1/, 'and a link the reader can actually open');
+  });
+
+  test('a body-supplied address is refused outright', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    for (const body of [{ email: 'stranger@example.com', lines: LINES },
+                        { to: 'stranger@example.com', lines: LINES },
+                        { address: 'stranger@example.com', lines: LINES }]){
+      const r = await W.admin.raw('/api/contracts/MK-B1/memo', { method: 'POST', body });
+      assert.equal(r.status, 400, `an address in the body was accepted: ${JSON.stringify(body)}`);
+    }
+    assert.equal(h.mail.sent.length, 0, 'and nothing left the building');
+  });
+
+  /* THE MEMO CARRIES CLAUSE WORDING. A colleague walled out of this value
+     stream must not receive it, and the link would land them on a page they
+     cannot see — so this is a refusal in words rather than a silent skip:
+     there is exactly one recipient, and silence would read as a message that
+     went. */
+  test('a colleague who cannot see the contract is refused, and nothing is sent', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const r = await W.admin.raw('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.restricted.id, lines: LINES } });
+    assert.equal(r.status, 403);
+    assert.equal(r.json.reason, 'no-access');
+    assert.match(String(r.json.error), /Restricted Legal/, 'the refusal names who, so it can be acted on');
+    assert.equal(h.mail.sent.length, 0);
+
+    /* THE CONTROL: the same send, the same contract, a colleague who CAN see
+       it. Without this, "nothing was sent" proves nothing about the guard. */
+    const ok = await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: LINES } });
+    assert.equal(ok.emailSent, true);
+    assert.equal(h.mail.sent.length, 1);
+  });
+
+  test('a sender who cannot see the contract gets nothing back but a 404', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const r = await W.restricted.raw('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: LINES } });
+    assert.equal(r.status, 404, 'invisible therefore unsendable — folderScopeFor’s own answer');
+    assert.equal(h.mail.sent.length, 0);
+
+    /* THE CONTROL, and it is the one that makes this a claim about SCOPE
+       rather than about a route that happens not to exist: the same sender,
+       the same act, a contract in the one stream they CAN see. */
+    const own = await W.restricted.json('/api/contracts/MK-A2/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: LINES } });
+    assert.equal(own.emailSent, true, 'a restricted member may still send about their own stream');
+    assert.equal(h.mail.sent.length, 1);
+  });
+
+  test('an unknown colleague, and an empty memo, are both refused', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    const gone = await W.admin.raw('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: 'u_nobody', lines: LINES } });
+    assert.equal(gone.status, 404);
+    const nothing = await W.admin.raw('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: ['', '   ', ''] } });
+    assert.equal(nothing.status, 400, 'a memo of blank lines is nothing to send');
+  });
+
+  test('“sent” means sent — a refused memo says so, and says why', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.setMode('refuse', { status: 403, message: 'The example.co.ke domain is not verified.' });
+    const r = await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: LINES } });
+    assert.equal(r.emailSent, false, 'a REFUSED memo must not report sent');
+    assert.match(String(r.emailError || ''), /not verified/i, 'and the reader is told what went wrong');
+  });
+
+  /* THE PROPERTY THAT LETS THE MEMO BE OPENED AT ALL. An advisory read that
+     wrote a courtesy audit line would be refused outright on an executed
+     contract — which is exactly the contract a memo is most often opened on. */
+  test('it writes nothing to the record', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    const before = await W.admin.json('/api/contracts/MK-B1');
+    const auditBefore = JSON.stringify(before.audit || []);
+    await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, note: 'a note', lines: LINES } });
+    const after = await W.admin.json('/api/contracts/MK-B1');
+    assert.equal(JSON.stringify(after.audit || []), auditBefore, 'the trail moved');
+    assert.equal(after.updatedAt, before.updatedAt, 'the record was touched');
+    assert.equal(JSON.stringify(after.changes || []), JSON.stringify(before.changes || []),
+      'a reading filed something');
+  });
+
+  /* A CAP IS A SAFETY WALL ON A BODY THIS SERVER DID NOT COMPOSE, and the memo
+     already caps itself and says so on the page — so this only has to hold,
+     not to be reported. */
+  test('a runaway body is bounded rather than passed through', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const many = Array.from({ length: 900 }, (_, i) => 'row ' + i);
+    many[0] = 'x'.repeat(9000);
+    const r = await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
+      toId: W.users.unrestricted.id, lines: many } });
+    assert.ok(r.n <= 400, `the line count was not bounded: ${r.n}`);
+    const first = h.mail.sent[0].text.split('\n').find(l => l.startsWith('xxx'));
+    assert.ok(first.length <= 2000, `a single line was not bounded: ${first.length}`);
   });
 });

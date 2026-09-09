@@ -7075,7 +7075,7 @@ const NEGO_MEMO_SECTIONS = [
   { k: 'gave',     get label(){ return i18t('ng_memo_gave'); } },
   { k: 'blocking', get label(){ return i18t('ng_memo_blocking'); } },
 ];
-function negoMemoHtml(m){
+function negoMemoHtml(m, opts = {}){
   if (!m || m.empty) return `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${_ne(i18t('ng_memo_none'))}</div>`;
   const when = (() => { const t = Date.parse(m.at); return isNaN(t) ? '' :
     new Date(t).toLocaleDateString(langLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
@@ -7106,6 +7106,7 @@ function negoMemoHtml(m){
     ${capped}${move}
     <div style="display:flex;gap:8px;margin-top:12px">
       <button type="button" id="ng-memo-copy" class="ui-btn">${_ne(i18t('ng_memo_copy'))}</button>
+      ${opts.canSend ? `<button type="button" id="ng-memo-send" class="ui-btn">${_ne(i18t('ng_memo_send'))}</button>` : ''}
     </div>`;
 }
 /* THE SAME MEMO AS PLAIN TEXT, for the one act under it. Built from the same
@@ -7138,7 +7139,12 @@ function negoMemoText(m){
 function openNegoMemo(c){
   if (!c || typeof window.openSidePanel !== 'function') return null;
   const m = negoMemo(c);
-  openSidePanel(negoMemoHtml(m), { title: i18t('ng_memo'), label: i18t('ng_memo'), width: '520px' });
+  /* A VERB THAT CANNOT WORK IS NOT DRAWN — the product's own rule, and the
+     reason the button is decided HERE rather than refused after the press: the
+     roster is already in this browser, so whether there is anybody to send to
+     is a question that can be answered before the button is painted. */
+  openSidePanel(negoMemoHtml(m, { canSend: !m.empty && !!negoMemoRecipients().length }),
+    { title: i18t('ng_memo'), label: i18t('ng_memo'), width: '520px' });
   const btn = document.getElementById('ng-memo-copy');
   if (btn) btn.addEventListener('click', () => {
     const text = negoMemoText(m);
@@ -7152,7 +7158,97 @@ function openNegoMemo(c){
       else failed();
     } catch (_) { failed(); }
   });
+  const send = document.getElementById('ng-memo-send');
+  if (send) send.addEventListener('click', () => openNegoMemoShare(c, m));
   return m;
+}
+
+/* WHO THERE IS TO SEND IT TO — the calendar share's own reading, and the same
+   one: every member with an address on file except yourself. It is computed
+   here and NOT inside negoMemo, because that function's job is the memo's
+   CONTENT and counting is not drawing; and it is asked again inside the dialog
+   below, because the button is the SIGN and the dialog is the wall. */
+function negoMemoRecipients(){
+  const me = (typeof window.currentUser === 'function') ? currentUser() : null;
+  return ((typeof window.getUsers === 'function') ? getUsers() : [])
+    .filter(u => u && u.email && (!me || String(u.id) !== String(me.id)));
+}
+
+/* ---- SEND THE MEMO TO A COLLEAGUE (owner-asked 9 Sep 2026) ----
+   *"We need to bring back the send to a colleague button."*
+
+   THE LINES ARE BUILT HERE AND THE ADDRESS IS THE ROUTE'S — the split
+   POST /api/calendar/share states in its own words and this follows it
+   exactly: negoMemoText is the same builder the Copy button uses, so what
+   reaches a colleague's inbox cannot say something the panel did not, and a
+   second copy of that reading on the server is the recorded defect class here.
+   What the route owns is WHO is written to: it takes a member id and looks the
+   address up itself, and refuses a body-supplied one outright.
+
+   IT IS A COLLEAGUE, NEVER THE OTHER SIDE. The picker is this workspace's own
+   roster; the memo carries our own reading of the round — what we gave up, what
+   is blocking, what this workspace settled before — and none of that is
+   anybody's business outside the building.
+
+   NOTHING IS WRITTEN TO THE RECORD, on purpose. The memo decides nothing and
+   files nothing, and that property is exactly what lets it be opened on an
+   executed contract. */
+function openNegoMemoShare(c, m){
+  if (!c || !m || m.empty || typeof window.openModal !== 'function') return null;
+  const people = negoMemoRecipients();
+  if (!people.length){ if (typeof toast === 'function') toast(i18t('ng_memo_send_nobody'), 'warn'); return null; }
+  const name = [m.name, m.counterparty].filter(Boolean).join(' — ') || m.id;
+  const fld = 'width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);'
+    + 'border-radius:var(--radius);font:inherit;font-size:var(--t-body);'
+    + 'background:var(--color-surface);color:var(--color-text)';
+  const lbl = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);'
+    + 'color:var(--color-neutral-600);margin-bottom:5px';
+  openModal(`
+    <div class="rvd-head"><div>
+      <div class="rvd-title">${_ne(i18t('ng_memo_send_h'))}</div>
+      <div class="rvd-sub">${_ne(i18t('ng_memo_send_sub', { name }))}</div></div></div>
+    <div class="rvd-body">
+      <label class="rvd-opt" style="display:block">
+        <span style="${lbl}">${_ne(i18t('ng_memo_send_who'))}</span>
+        <select id="ng-memo-who" style="${fld}">
+          ${people.map(u => `<option value="${_ne(u.id)}">${_ne(u.name)} — ${_ne(u.email)}</option>`).join('')}
+        </select>
+      </label>
+      <label style="display:block;margin-top:var(--s-3)">
+        <span style="${lbl}">${_ne(i18t('ng_memo_send_note'))}</span>
+        <textarea id="ng-memo-note" rows="3" style="${fld};resize:vertical"></textarea>
+      </label>
+      <div class="rvd-note" style="margin-top:10px">${_ne(i18t('ng_memo_send_privacy'))}</div>
+      <div id="ng-memo-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
+    </div>
+    <div class="rvd-foot">
+      <button class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
+      <button class="ui-btn ui-btn-primary" id="ng-memo-go">${_ne(i18t('ng_memo_send_go'))}</button>
+    </div>`, { maxWidth: '520px' });
+  document.querySelectorAll('#modal-root [data-close]').forEach(b => b.addEventListener('click', closeModal));
+  document.getElementById('ng-memo-go')?.addEventListener('click', async () => {
+    const btn = document.getElementById('ng-memo-go');
+    const err = document.getElementById('ng-memo-err');
+    const toId = document.getElementById('ng-memo-who')?.value || '';
+    const note = String(document.getElementById('ng-memo-note')?.value || '').slice(0, 1000);
+    const lines = negoMemoText(m).split('\n');
+    btn.disabled = true; btn.textContent = i18t('ng_memo_sending');
+    try {
+      const r = await api('contracts/' + encodeURIComponent(c.id) + '/memo', 'POST', { toId, note, lines });
+      closeModal();
+      /* "SENT" HAS TO MEAN SENT — the same honest three-way answer every other
+         mail in this product gives, and each is a different thing to do next. */
+      if (r && r.emailSent) toast(i18t('ng_memo_sent', { who: (r.to || '') }), 'ok');
+      else if (r && r.outbox) toast(i18t('ng_memo_send_outbox'), 'warn');
+      else toast(i18t('ng_memo_send_failed', { why: (r && r.emailError) || '' }), 'err');
+    } catch (e) {
+      btn.disabled = false; btn.textContent = i18t('ng_memo_send_go');
+      /* A REFUSAL IS SHOWN IN THE DIALOG, not behind it: the route's own
+         sentence names the colleague and why nothing went. */
+      if (err){ err.hidden = false; err.textContent = (e && e.message) || i18t('ng_memo_send_failed', { why: '' }); }
+    }
+  });
+  return people;
 }
 
 /* ---- THE LIST BEHIND THE DOOR — IT IS THE CONTRACTS TABLE NOW ----
@@ -15815,7 +15911,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,openNegoMemo,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls
