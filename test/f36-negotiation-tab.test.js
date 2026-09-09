@@ -766,23 +766,45 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
        lighter question. */
     const src = fs.readFileSync(
       path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
-    const read = (anchor, label) => {
-      const at = src.indexOf(anchor);
-      assert.ok(at >= 0, `${label} block is where this test expects it`);
-      const body = src.slice(src.indexOf('{', at) + 1, src.indexOf('}', at));
+    /* FOUND BY WHAT THE RULE DECLARES, NOT BY ITS SELECTOR LIST. This anchored
+       on the exact selector text and stopped matching the day a third surface
+       joined it (9 Sep 2026 — the negotiation memo draws the same marks in the
+       shell's side panel, which is outside both). The claim was never the
+       selector; it is that every rule declaring these tokens declares the same
+       values. Pin the relation, not the literal. */
+    const rules = [];
+    for (const m of src.matchAll(/([^{}]+)\{([^{}]*--n-ins-bg[^{}]*)\}/g)){
       const out = {};
-      for (const m of body.matchAll(/(--n-(?:ins|del)-(?:bg|fg))\s*:\s*([^;}]+)/g))
-        out[m[1]] = m[2].trim();
-      return out;
+      for (const d of m[2].matchAll(/(--n-(?:ins|del)-(?:bg|fg))\s*:\s*([^;}]+)/g))
+        out[d[1]] = d[2].trim();
+      rules.push({ sel: m[1].trim(), tokens: out });
+    }
+    const find = (needle, label) => {
+      const r = rules.find(x => x.sel.includes(needle));
+      assert.ok(r, `${label} declares the mark tokens somewhere`);
+      return r.tokens;
     };
-    const room = read('.nego-room, #nego-root, .nego-selmenu, .nego-aipop{', 'the room\'s');
-    const page = read('.redline-page{\n    --n-ins-bg', 'the redline page\'s');
+    const room = find('.nego-room', 'the room');
+    const page = find('.redline-page', 'the redline page');
     const KEYS = ['--n-ins-bg', '--n-ins-fg', '--n-del-bg', '--n-del-fg'];
     for (const k of KEYS){
       assert.ok(room[k], `the room declares ${k}`);
       assert.equal(page[k], room[k],
         `${k} must be the same on both sheets — one contract, one palette, `
         + 'whichever page it was opened from');
+    }
+    /* AND EVERY OTHER LIGHT RULE THAT DECLARES THEM AGREES TOO. A surface that
+       needs these tokens joins one of the existing selector lists rather than
+       writing its own values — which is how the memo's quoted wording reaches
+       them from inside the shell's side panel, outside both the room and the
+       page. THE DARK RULE IS EXCLUDED BY DESIGN: night is where these values
+       are SUPPOSED to differ, and a sweep that failed on it would be asking
+       for one palette across two themes. */
+    for (const r of rules){
+      if (/html\.dark/.test(r.sel)) continue;
+      for (const k of KEYS)
+        if (r.tokens[k]) assert.equal(r.tokens[k], room[k],
+          `${r.sel} declares a different ${k} — one contract, one palette`);
     }
   });
 

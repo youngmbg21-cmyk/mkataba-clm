@@ -629,22 +629,30 @@ function redlineBlockStats(ops){
   const changed = g.filter(redlineBlockTouched).length;
   return { total: g.length, changed, unchanged: g.length - changed };
 }
+/* ---- ONLY WHAT CHANGED, WHERE THE CALLER ASKS FOR IT (owner-asked 2 Sep
+   2026, of the open card: "lets only have the sentences or bullet points that
+   have been redlined show up") ----
+   OFF BY DEFAULT, so the paper, the clause panel and every export are
+   byte-identical: this is a decision about ONE surface, and a clause read on
+   the contract must still read as the clause.
+   A CHANGE THAT TOUCHES NOTHING FALLS BACK TO THE WHOLE THING rather than
+   drawing an empty box — a formatting-only change files all-keep ops, and
+   showing nothing at all would be worse than showing everything.
+
+   LIFTED OUT OF THE RENDERER 9 Sep 2026, when the negotiation memo became a
+   SECOND drawing of the same reading — one in marks and one in plain text for
+   the email. It was written inline here, and a second copy deciding for itself
+   which blocks a change shows is how the panel and the message about it come
+   to disagree about what changed. The drawing may differ; the reading may not. */
+function redlineShownBlocks(ops, opts = {}){
+  const blocks = redlineDrawnBlocks(ops);
+  if (!opts.changedOnly) return blocks;
+  const only = blocks.filter(redlineBlockTouched);
+  return only.length ? only : blocks;
+}
 function redlineOpsBlocksHtml(ops, opts = {}){
   const pre = opts.classPrefix || 'rl';
-  /* ---- ONLY WHAT CHANGED, WHERE THE CALLER ASKS FOR IT (owner-asked 2 Sep
-     2026, of the open card: "lets only have the sentences or bullet points
-     that have been redlined show up") ----
-     OFF BY DEFAULT, so the paper, the clause panel and every export are
-     byte-identical: this is a decision about ONE surface, and a clause read on
-     the contract must still read as the clause.
-     A CHANGE THAT TOUCHES NOTHING FALLS BACK TO THE WHOLE THING rather than
-     drawing an empty box — a formatting-only change files all-keep ops, and
-     showing nothing at all would be worse than showing everything. */
-  let blocks = redlineDrawnBlocks(ops);
-  if (opts.changedOnly){
-    const only = blocks.filter(redlineBlockTouched);
-    if (only.length) blocks = only;
-  }
+  const blocks = redlineShownBlocks(ops, opts);
   return blocks.map(group => {
     const shown = redlineBlockShown(group);
     const kind = redlineLineKind(shown);
@@ -1003,7 +1011,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
-  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, redlineMarkerDepth,
@@ -1012,7 +1020,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
-  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, redlineMarkerDepth, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,

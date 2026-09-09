@@ -6995,13 +6995,46 @@ function negoMemo(c){
      rather than filled with the clause name a second time: a row that quotes
      nothing is honest, and one that repeats its own heading reads as a quote
      that is not one. */
-  const row = ch => ({
-    id: ch.id || '',
-    clause: String(ch.clauseLabel || '').trim() || String(ch.id || ''),
-    said: String(ch.summary || '').trim(),
-    side: ch.authorSide === 'counterparty' ? 'them' : 'us',
-    round: ch.roundN || null,
-  });
+  /* ---- THE FULL WORDING, NOT THE CARD'S SHORTHAND (owner-reported 9 Sep
+     2026: "the memo is not taking the full quotes of what has changed rather
+     only the short hands that are in the redline screen") ----
+     `summary` is negoSummariseOps' own line — at most TWO changed regions,
+     each side clipped to 34 characters — which is right on a 300px card and
+     useless in a memo somebody forwards. So the row now carries the change's
+     own OPS, which is what the redline itself is drawn from.
+
+     OPS, NEVER MARKUP. This is the reading and it draws nothing: the panel
+     renders the marks and the email renders the same ops as plain text, and
+     both go through redlineShownBlocks so they cannot disagree about which
+     parts of the clause this change shows.
+
+     THE SHORT LINE STAYS. Where somebody typed a summary at filing it is a
+     human label the wording underneath cannot replace ("Net-60"), and every
+     other surface in this product calls the change by it — dropping it here
+     would make the memo name a change differently from the card beside it.
+
+     AND THE REASON THE ASKER GAVE, in their own words. `why` and not
+     `note`: note is provenance written by the tool that produced the wording
+     ("Copilot — Simplify"), which is a different fact and reads as nonsense
+     under the word "reason". */
+  const row = ch => {
+    const ops = rlChangeOps(ch);
+    const stats = (typeof redlineBlockStats === 'function') ? redlineBlockStats(ops) : null;
+    return {
+      id: ch.id || '',
+      clause: String(ch.clauseLabel || '').trim() || String(ch.id || ''),
+      said: String(ch.summary || '').trim(),
+      side: ch.authorSide === 'counterparty' ? 'them' : 'us',
+      round: ch.roundN || null,
+      ops,
+      /* HOW MUCH OF THE CLAUSE THIS LEAVES ALONE — counted off the SAME ops the
+         wording is drawn from, so the number and the picture cannot disagree.
+         Zero where the change touches nothing, because then the whole clause
+         is shown and nothing was left out. */
+      unchanged: (stats && stats.changed) ? stats.unchanged : 0,
+      why: String(ch.why || '').trim(),
+    };
+  };
   const cap = list => list.slice(0, NEGO_MEMO_MAX).map(row);
 
   /* THE FOUR SECTIONS ARE FOUR READINGS OF ONE FIELD PAIR — status, and the
@@ -7082,9 +7115,31 @@ function negoMemoHtml(m, opts = {}){
     + ' ' + new Date(t).toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); })();
   const sub = [m.id, m.round ? i18t('ng_memo_round', { n: m.round }) : '',
     i18t('ng_memo_from_record', { at: when })].filter(Boolean).join(' · ');
-  const row = r => `<div style="font-size:var(--t-meta);line-height:1.45;padding:5px 0;border-top:1px solid var(--color-divider)">
+  /* ---- THE WORDING, IN FULL, THROUGH THE PRODUCT'S OWN BUILDER ----
+     rlChangeWordingHtml is the ONE builder for "what this change proposed" —
+     the open card and the ask reveal both draw it — and the row IS a valid
+     input to it, because it carries the change's own ops. Nothing here
+     re-diffs: the stored ops are inside the fingerprint, and a mark drawn from
+     a fresh diff would not be the mark the other side verified.
+
+     `changedOnly` is the open card's own reading: the parts that moved, not
+     the whole clause. A memo of nineteen changes is a page or two this way and
+     nineteen full clauses the other, and the whole clause is never further
+     away than the paper the memo is drawn beside. */
+  const quote = r => (typeof rlChangeWordingHtml === 'function')
+    ? rlChangeWordingHtml(r, { changedOnly: true }) : '';
+  const meta = 'font-size:var(--t-label);color:var(--color-neutral-600);padding-top:3px';
+  const row = r => {
+    const wording = quote(r);
+    return `<div style="font-size:var(--t-meta);line-height:1.45;padding:7px 0;border-top:1px solid var(--color-divider)">
       <b>${_ne(r.clause)}</b>${r.said ? ` — ${_ne(r.said)}` : ''}${
-      r.precedent ? `<div style="color:var(--color-neutral-600);padding-top:2px">${_ne(r.precedent)}</div>` : ''}</div>`;
+      wording ? `<div class="ng-memo-wording" style="padding:5px 0 0">${wording}</div>` : ''}${
+      /* A CAP IS A FACT, NEVER A SILENT TRIM — the standing rule, and the same
+         sentence the open card prints, counted off the same ops. */
+      r.unchanged ? `<div style="${meta}">${_ne(i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }))}</div>` : ''}${
+      r.why ? `<div style="${meta}"><b>${_ne(i18t('ng_memo_why'))}</b> ${_ne(r.why)}</div>` : ''}${
+      r.precedent ? `<div style="${meta}">${_ne(r.precedent)}</div>` : ''}</div>`;
+  };
   const section = sec => {
     const rows = m[sec.k] || [];
     return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">
@@ -7109,7 +7164,31 @@ function negoMemoHtml(m, opts = {}){
       ${opts.canSend ? `<button type="button" id="ng-memo-send" class="ui-btn">${_ne(i18t('ng_memo_send'))}</button>` : ''}
     </div>`;
 }
-/* THE SAME MEMO AS PLAIN TEXT, for the one act under it. Built from the same
+/* ---- THE SAME WORDING, AS PLAIN TEXT ----
+   The panel draws the marks and an email cannot, so the second drawing spells
+   them: what goes out on a "-" line, what arrives on a "+".
+
+   BOTH DRAWINGS ASK redlineShownBlocks, which is why they cannot disagree
+   about WHICH parts of the clause this change shows — that reading was lifted
+   out of redlineOpsBlocksHtml the day this became its second reader, because a
+   copy of it here is how the panel and the message about it come apart. The
+   drawing may differ; the reading may not. */
+function negoMemoWording(ops){
+  if (typeof window.redlineShownBlocks !== 'function') return [];
+  const out = [];
+  for (const g of window.redlineShownBlocks(ops || [], { changedOnly: true })){
+    const before = g.filter(o => o.op !== 'ins').map(o => o.text).join('').trim();
+    const after  = g.filter(o => o.op !== 'del').map(o => o.text).join('').trim();
+    /* A block nobody touched is shown once — it is the fallback for a change
+       that moved only formatting, where "before" and "after" are one line. */
+    if (before && after && before !== after){ out.push('- ' + before); out.push('+ ' + after); }
+    else if (after) out.push('+ ' + after);
+    else if (before) out.push('- ' + before);
+  }
+  return out;
+}
+
+/* THE SAME MEMO AS PLAIN TEXT, for the two acts under it. Built from the same
    data object, so the thing that reaches a colleague's inbox cannot say
    something the panel did not. */
 function negoMemoText(m){
@@ -7122,6 +7201,9 @@ function negoMemoText(m){
     if (!rows.length) out.push('  ' + i18t('ng_memo_nil'));
     for (const r of rows){
       out.push('  ' + r.clause + (r.said ? ' — ' + r.said : ''));
+      for (const l of negoMemoWording(r.ops)) out.push('    ' + l);
+      if (r.unchanged) out.push('    ' + i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }));
+      if (r.why) out.push('    ' + i18t('ng_memo_why') + ' ' + r.why);
       if (r.precedent) out.push('    ' + r.precedent);
     }
     out.push('');
@@ -15911,7 +15993,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

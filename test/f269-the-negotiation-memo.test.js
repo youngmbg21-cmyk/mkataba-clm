@@ -626,12 +626,164 @@ describe('f269 (13) the route', () => {
     t.after(() => h.stop());
     const W = await seedWorkspace(h);
     h.mail.reset();
-    const many = Array.from({ length: 900 }, (_, i) => 'row ' + i);
-    many[0] = 'x'.repeat(9000);
+    /* WRITTEN AS THE RELATION, NOT THE NUMBER — this pinned <= 400 and failed
+       the day the wall was raised for a memo that now quotes wording. What is
+       claimed is that BOTH bounds bite on a body far past any sane one, and
+       that the wall is a wall rather than a particular figure. */
+    const SENT = 3000, WIDE = 9000;
+    const many = Array.from({ length: SENT }, (_, i) => 'row ' + i);
+    many[0] = 'x'.repeat(WIDE);
     const r = await W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body: {
       toId: W.users.unrestricted.id, lines: many } });
-    assert.ok(r.n <= 400, `the line count was not bounded: ${r.n}`);
+    assert.ok(r.n < SENT, `the line count was not bounded: ${r.n} of ${SENT}`);
     const first = h.mail.sent[0].text.split('\n').find(l => l.startsWith('xxx'));
-    assert.ok(first.length <= 2000, `a single line was not bounded: ${first.length}`);
+    assert.ok(first.length < WIDE, `a single line was not bounded: ${first.length}`);
+  });
+});
+
+/* ================================================================
+   f269 (14) — THE FULL WORDING, NOT THE CARD'S SHORTHAND
+   ================================================================
+   Owner-reported 9 Sep 2026, off a screenshot: *"the memo is not taking the
+   full quotes of what has changed rather only the short hands that are in the
+   redline screen therefore the full clauses are not visible."* — and then, off
+   three drawn options: *"build option 1 and add the reason."*
+
+   `summary` is negoSummariseOps' own line: at most TWO changed regions, each
+   side clipped to 34 characters. Right on a 300px card, useless in a memo
+   somebody forwards. The claims below are the ways this could quietly stop
+   being the same wording the redline draws:
+
+   · THE ROW CARRIES OPS, NOT MARKUP. The reading draws nothing, so the panel
+     can render the marks and the email the same ops as plain text.
+   · NOTHING RE-DIFFS. The stored ops are inside the fingerprint, and a mark
+     drawn from a fresh diff would not be the mark the other side verified.
+   · ONE READING OF WHICH BLOCKS ARE SHOWN. redlineShownBlocks was lifted out
+     of the renderer the day the memo became its second reader.
+   · AND WHAT IS LEFT OUT IS SAID, counted off the same ops the wording is
+     drawn from. */
+describe('f269 (14) the wording, in full', () => {
+  const LONG = 'The Supplier shall deliver each consignment to the Buyer’s '
+    + 'nominated warehouse within thirty (30) days of the Purchase Order, '
+    + 'carriage paid and risk passing on unloading.';
+  const opsFor = (before, after) => [
+    { op: 'keep', text: 'Delivery. ' },
+    { op: 'del', text: before },
+    { op: 'ins', text: after },
+  ];
+  const wordy = (o = {}) => ch('CHG-9', {
+    clauseLabel: 'Clause 3 · Delivery',
+    summary: '“The Supplier shall deliver eac…” → “The Supplier shall deliver eac…”',
+    ops: opsFor('within sixty (60) days of the Purchase Order', LONG),
+    ...o });
+
+  test('the row carries the change’s own ops, and no markup', () => {
+    const m = W().negoMemo(deal([wordy()]));
+    const r = list(m.open)[0];
+    assert.ok(Array.isArray(r.ops) && r.ops.length, 'the row carries no ops to draw from');
+    /* THE READING BUILDS NO TAGS. Stated as "no tag" rather than "no angle
+       bracket": the ops carry the CONTRACT'S own words now, and a contract may
+       legitimately say "<". */
+    assert.equal(/<[a-z/!]/i.test(JSON.stringify(m)), false, 'the reading emitted markup');
+  });
+
+  test('the panel quotes the wording in full, where the summary clipped it', () => {
+    const w = W();
+    const m = w.negoMemo(deal([wordy()]));
+    const html = w.negoMemoHtml(m);
+    assert.ok(!list(m.open)[0].said.includes('carriage paid'),
+      'the fixture’s summary is not clipped, so this proves nothing');
+    assert.match(html, /carriage paid and risk passing on unloading/,
+      'the memo still shows only the card’s shorthand');
+    /* AND THE MARKS ARE THERE — what goes out and what arrives, drawn by the
+       product's own builder rather than described in prose. */
+    assert.match(html, /<del|nego-del/, 'the wording that goes is not struck');
+    assert.match(html, /<ins|nego-ins/, 'the wording that arrives is not marked');
+  });
+
+  test('nothing re-diffs — the drawing goes through the one builder', () => {
+    const body = /function negoMemoHtml\(m[^)]*\)\{[\s\S]*?\n\}/.exec(NEG)[0];
+    assert.match(body, /rlChangeWordingHtml/, 'the memo draws wording some other way');
+    for (const f of ['redlineOps(', 'wordDiff(', 'redlineBlocks('])
+      assert.equal(body.includes(f), false, `the memo re-diffs: ${f}`);
+  });
+
+  test('the email carries the same wording, spelled out', () => {
+    const w = W();
+    const m = w.negoMemo(deal([wordy()]));
+    const text = w.negoMemoText(m);
+    assert.ok(text.includes('+ Delivery. ' + LONG) || text.includes('+ ' + LONG)
+      || /\+ .*carriage paid/.test(text), 'what arrives is not on a "+" line');
+    assert.match(text, /- .*sixty \(60\) days/, 'what goes out is not on a "-" line');
+    assert.equal(/[<>]/.test(text), false, 'the plain-text memo carries markup');
+  });
+
+  /* ONE READING, TWO DRAWINGS. The panel renders marks and the email renders
+     text, and both must agree about WHICH parts of the clause are shown — so
+     the selection lives in redlineShownBlocks and neither copies it. */
+  test('both drawings ask redlineShownBlocks', () => {
+    const w = W();
+    assert.equal(typeof w.redlineShownBlocks, 'function',
+      'the shared reading is not published — a window read of it would be silence');
+    const src = SRC('redline.js');
+    assert.match(src, /function redlineOpsBlocksHtml[\s\S]{0,400}?redlineShownBlocks\(ops, opts\)/,
+      'the renderer works out its own blocks again');
+    const body = /function negoMemoWording\([^)]*\)\{[\s\S]*?\n\}/.exec(NEG)[0];
+    assert.match(body, /redlineShownBlocks/, 'the text builder decides for itself which blocks show');
+  });
+
+  test('what is left out is said, and counted off the same ops', () => {
+    const w = W();
+    /* Four lines, one of them touched: three are left alone. */
+    const many = [{ op: 'keep', text: 'one\ntwo\n' }, { op: 'del', text: 'three' },
+      { op: 'ins', text: 'THREE' }, { op: 'keep', text: '\nfour' }];
+    const m = w.negoMemo(deal([wordy({ ops: many })]));
+    assert.equal(list(m.open)[0].unchanged, 3, 'the count is not the blocks left alone');
+    assert.match(w.negoMemoHtml(m), /3 more parts/);
+    assert.match(w.negoMemoText(m), /3 more parts/);
+  });
+
+  test('a change that touches nothing claims nothing was hidden', () => {
+    const w = W();
+    const keep = [{ op: 'keep', text: 'one\ntwo\nthree' }];
+    const m = w.negoMemo(deal([wordy({ ops: keep })]));
+    assert.equal(list(m.open)[0].unchanged, 0,
+      'a formatting-only change shows the whole clause and hides nothing');
+    assert.equal(/more parts/.test(w.negoMemoHtml(m)), false);
+  });
+
+  /* THE REASON THE ASKER GAVE, in their own words. */
+  test('the reason draws where there is one, in both shapes', () => {
+    const w = W();
+    const m = w.negoMemo(deal([wordy({ why: 'Our warehouse cannot take sixty-day stock.' })]));
+    assert.equal(list(m.open)[0].why, 'Our warehouse cannot take sixty-day stock.');
+    assert.match(w.negoMemoHtml(m), /Our warehouse cannot take sixty-day stock\./);
+    assert.match(w.negoMemoText(m), /Reason: Our warehouse cannot take sixty-day stock\./);
+  });
+
+  test('and nothing at all where there is none', () => {
+    const w = W();
+    const m = w.negoMemo(deal([wordy()]));
+    assert.equal(list(m.open)[0].why, '');
+    assert.equal(/Reason/.test(w.negoMemoHtml(m)), false, 'an empty reason drew its label');
+    assert.equal(/Reason/.test(w.negoMemoText(m)), false);
+  });
+
+  /* `why` AND NOT `note`. note is the tool's own provenance — "Copilot —
+     Simplify" — which is a different fact and reads as nonsense under the word
+     "reason". The two card renderers print `why || note` in a slot that means
+     "anything said about this"; this row means the reason. */
+  test('it is the asker’s reason, never the tool’s provenance', () => {
+    const w = W();
+    const m = w.negoMemo(deal([wordy({ note: 'Copilot — Simplify' })]));
+    assert.equal(list(m.open)[0].why, '', 'a provenance note was read as a reason');
+    assert.equal(/Copilot/.test(w.negoMemoHtml(m)), false);
+  });
+
+  test('the label answers in both languages and is not the same string', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    for (const lang of ['en', 'sv'])
+      assert.ok(STRINGS[lang].ng_memo_why, `ng_memo_why missing in ${lang}`);
+    assert.notEqual(STRINGS.en.ng_memo_why, STRINGS.sv.ng_memo_why);
   });
 });

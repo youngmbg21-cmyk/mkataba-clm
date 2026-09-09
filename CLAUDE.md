@@ -4481,18 +4481,61 @@ nothing dormant to switch on.
   section and says so on the page. A blank line is the memo's own structure, so
   nothing filters one out and nothing trims a line's leading spaces.
 
-**WHAT THE MEMO QUOTES IS STILL THE CARD'S SHORTHAND, and it is reported rather
-than absorbed** (owner-reported 9 Sep 2026, off a screenshot: *"the memo is not
-taking the full quotes of what has changed rather only the short hands that are
-in the redline screen"*). `ch.summary` is `negoSummariseOps`' own line — at most
-TWO changed regions, each side clipped to **34 characters**, and 70 for an
-inserted or deleted clause — so a long clause reads as `"3.1 Delivery Terms.
-Unless otherw…" → "The passage you provided (3.1–3.4…"`. The full wording is on
-the record and the product already has ONE builder for it
-(`rlChangeWordingHtml(ch, {changedOnly})`, which the open card and the ask
-reveal both draw). Which of full-changed-parts / whole-clause / a fold is right
-is a decision about what the memo IS, and it was put to the owner rather than
-picked.
+**AND IT QUOTES THE WORDING IN FULL — REVERSED IN PLACE 9 Sep 2026**
+(owner-reported off a screenshot: *"the memo is not taking the full quotes of
+what has changed rather only the short hands that are in the redline screen
+therefore the full clauses are not visible"*, then off three drawn options:
+*"build option 1 and add the reason."*). `ch.summary` is `negoSummariseOps`'
+own line — at most TWO changed regions, each side clipped to **34 characters**,
+70 for an inserted or deleted clause — which is right on a 300px card and
+useless in a memo somebody forwards.
+
+- **THE ROW CARRIES THE CHANGE'S OWN OPS, AND THE READING STILL DRAWS
+  NOTHING.** Ops are data, so the panel can render the marks and the email can
+  render the same ops as plain text. **Nothing re-diffs**: the stored ops are
+  inside the fingerprint, and a mark drawn from a fresh diff would not be the
+  mark the other side verified.
+- **THROUGH `rlChangeWordingHtml`, THE ONE BUILDER**, with the open card's own
+  `changedOnly` — the parts that moved, not the whole clause. **A memo of
+  nineteen changes is a page or two this way and nineteen full clauses the
+  other**, and the whole clause is never further away than the paper the memo
+  is drawn beside. What is left out is SAID, in the card's own sentence,
+  counted off the same ops the wording is drawn from.
+- **ONE READING OF WHICH BLOCKS ARE SHOWN.** `redlineShownBlocks` was lifted
+  out of `redlineOpsBlocksHtml` the day the memo became its SECOND reader — the
+  panel draws marks and the email spells them, and a second copy of the
+  selection is how the two come apart. The drawing may differ; the reading may
+  not. **`changedOnly` is still OFF BY DEFAULT**, so the paper, the clause
+  panel, the ask reveal and every export are byte-identical; **f246 (10)'s
+  "exactly one surface asks for it" is REVERSED IN PLACE** onto the relation it
+  was always about — the two full-reading surfaces ask for nothing, and each
+  surface that does is named.
+- **THE SHORT LINE STAYS.** Where somebody typed a summary at filing it is a
+  human label the wording cannot replace ("Net-60"), and every other surface
+  calls the change by it — dropping it would make the memo name a change
+  differently from the card beside it. Nothing distinguishes a typed summary
+  from a generated one on the record, so keeping both is the only reading that
+  cannot lose the human one.
+- **AND THE REASON THE ASKER GAVE**, in their own words. **`why`, never
+  `note`**: note is the tool's own provenance ("Copilot — Simplify"), a
+  different fact that reads as nonsense under the word *reason*. The two card
+  renderers print `why || note` in a slot meaning "anything said about this";
+  this row means the reason.
+- **THE MARKS CARRY THEIR OWN INK IN A PANEL NEITHER SHEET REACHES.**
+  `.nego-ins` / `.nego-del` are unscoped and read `--n-ins-*` / `--n-del-*`,
+  declared on the room and on the redline page — and the memo is drawn in the
+  shell's side panel, a body-level sibling of both, which is the fault this
+  codebase has already paid for once. `.ng-memo-wording` joins the page's
+  declaration rather than writing a third set; **f36's parity claim is
+  RE-POINTED at the relation** (found by what a rule DECLARES, never by its
+  selector text) and now sweeps every light rule, so a fourth surface writing
+  its own values fails there. **MEASURED AT NIGHT, COMPOSITED**: 7.34:1 and
+  5.76:1 — the panel is dark where the contract sheet stays white, so this is a
+  new ground for these marks and the ratio is measured rather than assumed.
+- **THE EMAIL'S LINE WALL WENT 400 → 2000** with it: each row was one line and
+  is now a clause line plus the parts that moved plus the reason. It is a wall
+  on a body the server did not compose, set where no real memo reaches it; the
+  memo's own `NEGO_MEMO_MAX` is the content cap and says so on the page.
 
 Tests: f269 (49 — **29 fail against the parent**), **negotiation-memo-verify
 (24, browser — the only place four of the claims can be asked at all: the row
@@ -9636,10 +9679,20 @@ left, and the card's head names it.
   SECOND reader needs the same answers, and two functions deciding for
   themselves what counts as a drawn block is how they come to disagree about a
   count printed beside the thing it counts.
-- **`changedOnly` IS OFF BY DEFAULT AND EXACTLY ONE SURFACE ASKS FOR IT.** The
-  paper, the clause panel, the ask reveal and every export are byte-identical:
-  a clause read on the contract must still read as the clause, and the panel's
-  whole job is the full reading. f246 (10) greps that there is one caller.
+- **`changedOnly` IS OFF BY DEFAULT, AND EVERY SURFACE THAT ASKS FOR IT IS ONE
+  SOMEBODY DECIDED ON — REVERSED IN PLACE 9 Sep 2026**, when the negotiation
+  memo became the second (owner-asked: quote the wording, not the card's
+  shorthand). The half that was ever load-bearing is untouched and is what the
+  default buys: the paper, the clause panel, the ask reveal and every export are
+  byte-identical, because a clause read on the contract must still read as the
+  clause and the panel's whole job is the full reading. **f246 (10) counted the
+  callers and is now written as that relation** — the two full-reading surfaces
+  call the builder bare, and each surface that narrows is named.
+- **AND THE SELECTION LIVES IN `redlineShownBlocks`**, lifted out of
+  `redlineOpsBlocksHtml` the same day: the memo draws these blocks twice, once
+  in marks and once as plain text for the email, and a second copy deciding
+  which blocks a change shows is how a panel and the message about it come
+  apart.
 - **A CHANGE THAT TOUCHES NOTHING FALLS BACK TO THE WHOLE THING.** A
   formatting-only change files all-keep ops, and drawing an empty box would be
   worse than drawing everything. Having stood down, it then claims nothing was

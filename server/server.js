@@ -6946,7 +6946,13 @@ app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
    question the mention route asks one line before it decides to skip somebody,
    answered here as a refusal because there is exactly one recipient and
    silence would read as a message that went. */
-const MEMO_SHARE_MAX_LINES = 400;
+/* RAISED FROM 400 THE DAY THE MEMO STARTED QUOTING WORDING (9 Sep 2026): each
+   row was one line and is now a clause line plus the parts of the clause that
+   moved, plus what was left out, plus the reason — so four sections of forty
+   rows is comfortably past four hundred lines. It is a wall on a body this
+   server did not compose, so it is set where no real memo reaches it; the
+   memo's own NEGO_MEMO_MAX is the content cap and it says so on the page. */
+const MEMO_SHARE_MAX_LINES = 2000;
 const MEMO_SHARE_LINE_MAX = 2000;
 app.post('/api/contracts/:id/memo', auth, editor, async (req, res) => {
   const b = req.body || {};

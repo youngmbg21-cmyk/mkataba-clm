@@ -1186,10 +1186,24 @@ describe('f246 (10) — the card shows the parts this change touches', () => {
     assert.match(w.win.redlineOpsBlocksHtml(OPS), /Master Agreement/,
       'the paper still draws the clause as the clause');
     const src = read('js/views/negotiation.js');
-    assert.equal((src.match(/changedOnly: true/g) || []).length, 1,
-      'exactly one surface asks for it');
+    /* REVERSED IN PLACE 9 Sep 2026 — this counted the callers and said
+       "exactly one surface asks for it", which was true when the open card was
+       the only one and stopped being the claim the moment the negotiation memo
+       became the second (owner-asked: show the full quotes, not the card's
+       shorthand). The claim was never the NUMBER: it is that the two surfaces
+       which must read as the clause do not ask, and that every surface which
+       does is one somebody decided on. Pin the relation, not the literal. */
     assert.match(src, /rlChangeWordingHtml\(ch, \{ changedOnly: true \}\)/,
-      'and it is the open card');
+      'the open card asks for it');
+    assert.match(src, /rlChangeWordingHtml\(r, \{ changedOnly: true \}\)/,
+      'and so does the memo, which quotes what moved rather than the clause');
+    /* THE FULL-READING SURFACES ASK FOR NOTHING. The ask reveal and the clause
+       panel both call the builder bare, so a clause read on the contract still
+       reads as the clause — which is the whole of what "off by default" buys. */
+    assert.match(src, /const wording = rlChangeWordingHtml\(ch\);/,
+      'the ask reveal draws the whole clause');
+    assert.match(src, /rl-cp-wd">\$\{rlChangeWordingHtml\(ch\)\}/,
+      'and so does the clause panel');
   });
 
   test('a change that touches nothing falls back to the whole thing', async () => {

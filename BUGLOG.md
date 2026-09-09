@@ -9369,3 +9369,84 @@ Noticed, not fixed:
   the same section: either two genuine deletions filed in different rounds, or
   one change reachable through both the live list and a closed round. Worth
   looking at with the record in hand.
+
+================================================================================
+9 Sep 2026 — THE MEMO QUOTES THE WORDING IN FULL (owner-ruled)
+================================================================================
+"build option 1 and add the reason."
+
+The memo printed ch.summary, which is negoSummariseOps' own line: at most TWO
+changed regions, each side clipped to 34 characters, 70 for a whole clause
+added or deleted. Right on a 300px card, useless in a memo somebody forwards.
+
+The row now carries the change's OWN OPS — data, so the reading still draws
+nothing — and the panel renders them through rlChangeWordingHtml, the ONE
+builder the open card and the ask reveal already draw, with the card's own
+changedOnly: the parts that moved rather than the whole clause. Nothing
+re-diffs; the stored ops are inside the fingerprint and a mark drawn from a
+fresh diff would not be the mark the other side verified. What is left out is
+said, in the card's own sentence, counted off the same ops the wording is
+drawn from.
+
+redlineShownBlocks was LIFTED OUT of redlineOpsBlocksHtml, because the memo is
+that reading's second reader: the panel draws marks and the email spells them
+out on "-" and "+" lines, and a copy of "which blocks does this change show" in
+the text builder is how the two come apart. changedOnly is still off by
+default, so the paper, the clause panel, the ask reveal and every export are
+byte-identical.
+
+The short summary line STAYS. Nothing on the record distinguishes a summary
+somebody typed at filing ("Net-60") from one the funnel generated, so keeping
+both is the only reading that cannot lose the human label — and every other
+surface in the product calls the change by that line.
+
+The reason is `why` and never `note`: note is the tool's own provenance
+("Copilot - Simplify"), a different fact that reads as nonsense under the word
+"reason". The two card renderers print why || note in a slot meaning "anything
+said about this"; this row means the reason.
+
+The marks needed their tokens. nego-ins and nego-del are unscoped and read
+n-ins-* / n-del-*, declared on the room and on the redline page — and the memo
+draws in the shell's side panel, a body-level sibling of both, which is the
+fault this codebase has already paid for once. The memo's wording block joins
+the page's declaration rather than writing a third set. MEASURED AT NIGHT and
+COMPOSITED, because the panel is dark where the contract sheet stays white:
+7.34:1 on the insertion and 5.76:1 on the deletion. The first version of that
+probe read the mark's OWN background, which at night is a 15% wash, and
+reported 1.32:1 on a chip nobody has trouble reading — the exact fault
+contrast-verify records in its own words.
+
+Three test anchors were written as relations rather than bent to fit:
+- f246 (10) counted the callers of changedOnly and said "exactly one surface
+  asks for it". The claim was never the number; it is that the two full-reading
+  surfaces ask for nothing and each surface that narrows is named.
+- f36's mark-token parity anchored on the exact selector text and stopped
+  matching the day a third surface joined the rule. It finds a rule by what it
+  DECLARES now, and sweeps every light rule, so a fourth surface writing its
+  own values fails there. The dark rule is excluded by design: night is where
+  those values are supposed to differ.
+- f269's line-count wall pinned <= 400 and failed when the wall was raised for
+  a memo that now quotes wording. It sends a body far past any sane bound and
+  asserts both bounds bite.
+
+The email's line wall went 400 -> 2000 with the change: each row was one line
+and is now a clause line plus the parts that moved plus what was left out plus
+the reason.
+
+Node 5713/5713, lint unchanged (the same 4 pre-existing duplicate-key errors).
+Browser: negotiation-memo 51/51, redline 181/181, clause-door 117/117. Against
+the parent, f269 reports 11 of the new claims failing and negotiation-memo 5 —
+the headline one being "ins false / del false", a memo with no marked wording
+on it at all.
+
+Noticed, not fixed:
+- The two oddities reported off the owner's own contract yesterday are
+  untouched and are still worth a look with that record in hand: three rows
+  reading "Governing law - New clause added -" with nothing after the dash
+  (three proposed clauses whose stored text came back empty), and two
+  byte-identical "Clause 2 SPECIFICATIONS ... Clause deleted" rows in one
+  section. Showing the full wording makes the first VISIBLE rather than hiding
+  it, which is an improvement and not a fix.
+- The funnel's revision branch updates a change's summary and leaves `why`
+  alone, so a reason can only be given at the first filing. Found while staging
+  the browser fixture; it may well be deliberate, but nothing says so.

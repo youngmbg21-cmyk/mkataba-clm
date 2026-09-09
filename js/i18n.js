@@ -1543,6 +1543,10 @@ const STRINGS = {
        share dialog — one act, one vocabulary — but each screen keeps its own
        keys rather than reaching into another feature's namespace, so neither
        can change the other's wording by accident. */
+    /* THE REASON THE ASKER GAVE, in their own words — `why`, not `note`:
+       note is the tool's own provenance ("Copilot — Simplify") and reads as
+       nonsense under this label. */
+    ng_memo_why: 'Reason:',
     ng_memo_send: 'Send to a colleague',
     ng_memo_send_h: 'Send this memo to a colleague',
     ng_memo_send_sub: 'Where the negotiation on {name} stands',
@@ -7118,6 +7122,7 @@ const STRINGS = {
     ng_memo_copy_failed: 'Kunde inte kopiera — markera texten och kopiera den själv',
     ng_memo_capped_one: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är det fullständiga antalet.',
     ng_memo_capped_other: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är de fullständiga antalen.',
+    ng_memo_why: 'Skäl:',
     ng_memo_send: 'Skicka till en kollega',
     ng_memo_send_h: 'Skicka detta notat till en kollega',
     ng_memo_send_sub: 'Hur förhandlingen om {name} står',

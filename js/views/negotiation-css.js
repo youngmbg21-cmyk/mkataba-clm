@@ -1126,9 +1126,25 @@ function redlineLayoutCss(){
      ON THE NEGOTIATION PAGE THIS MOVES NOTHING and that is what makes it safe:
      the room's own selector is nearer the marks and defines the same values, so
      it goes on winning for its own subtree. Measured before it was written. */}
-  .redline-page{
+  /* ---- THE MEMO'S QUOTED WORDING CARRIES THE MARK TOKENS TOO ----
+     (owner-asked 9 Sep 2026: show the full quotes, not the card's shorthand.)
+     The nego-ins and nego-del classes are UNSCOPED and read the n-ins-fg and
+     n-del-fg tokens, and those are declared on the room and on this page — so a
+     redline drawn ANYWHERE ELSE loses its colour declaration outright and every
+     insertion and deletion comes out in the document's own ink. The memo is
+     drawn in the shell's own side panel, a body-level sibling of both, which
+     is exactly the fault this codebase has already paid for once. Its wording
+     block joins the list; it needs these four and nothing else. */
+  .redline-page, .ng-memo-wording{
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
     --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot)}
+  /* The block renderer emits an h4 for a heading line, which at a heading's own
+     size would be the largest thing in the memo. Everything in this block reads
+     at the memo's own size; what tells the wording apart is the marks. */
+  .ng-memo-wording p, .ng-memo-wording h4{
+    margin:0 0 4px;font-size:var(--t-meta);line-height:1.5;
+    font-weight:var(--w-body);color:var(--color-text)}
+  .ng-memo-wording > :last-child{margin-bottom:0}
   .redline-page{--rl-doc-type:15px;
     ${''/* THE ACTS' OWN WIDTH, and the floor the row's second track stops at.
            Accept and Reject at 12px/700 plus the ⋯, with the row's two 12px

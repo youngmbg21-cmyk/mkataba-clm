@@ -69,11 +69,15 @@ const visible = (page, sel) => page.evaluate(s => {
     negoInit(c);
     const cl = negoClauseList(c);
     if (cl.length < 4) return { id: c.id, ids: [], clauses: cl.length };
-    const file = (i, side, text, summary) => negoEditClause(c, cl[i].clauseId, `<p>${text}</p>`,
-      { side, author: side === 'owner' ? 'Wanjiru Kamau' : 'Erik Lindqvist', summary });
+    /* `why` IS THE ASKER'S OWN REASON and it is set at FILING — the funnel's
+       revision branch updates the summary and leaves the reason alone, so a
+       second edit cannot add one. */
+    const file = (i, side, text, summary, why) => negoEditClause(c, cl[i].clauseId, `<p>${text}</p>`,
+      { side, author: side === 'owner' ? 'Wanjiru Kamau' : 'Erik Lindqvist', summary, why });
     await file(0, 'counterparty', 'Payment falls due within sixty (60) days.', 'Net-60');
     await file(1, 'counterparty', 'The cap is limited to six months of fees.', 'Cap to six months');
-    await file(2, 'counterparty', 'Either party may terminate on ninety (90) days notice.', 'Notice to 90');
+    await file(2, 'counterparty', 'Either party may terminate on ninety (90) days notice.', 'Notice to 90',
+      'Ninety days is what our board approved.');
     await file(3, 'owner', 'Certificates are furnished each quarter.', 'Certificates quarterly');
     const chs = negoChanges(c);
     negoResolve(c, chs[0].id, 'accepted', { by: 'Wanjiru Kamau' });   // agreed
@@ -171,6 +175,97 @@ const visible = (page, sel) => page.evaluate(s => {
   check(agree.counts.agreed >= 1 && agree.counts.blocking >= 1 && agree.counts.gave >= 1,
     '2g and the fixture really exercised three of the four sections',
     JSON.stringify(agree.counts));
+
+  /* ============ 2h. THE FULL WORDING, AND ITS MARKS ARE COLOURED ============ */
+  /* (owner-reported 9 Sep 2026: "the memo is not taking the full quotes ...
+     therefore the full clauses are not visible", then "build option 1 and add
+     the reason".)
+
+     WHY THIS CANNOT BE A SOURCE CHECK. nego-ins and nego-del are UNSCOPED and
+     read tokens declared on the room and on the negotiation page; the memo is
+     drawn in the shell's own side panel, a body-level sibling of both. So the
+     markup can be perfectly correct and the redline still come out in the
+     document's own ink — which is the fault this codebase has already paid for
+     once, and only a computed style can see it. */
+  const quoted = await page.evaluate(() => {
+    const p = document.getElementById('side-panel');
+    if (!p) return null;
+    const ins = p.querySelector('ins, .nego-ins');
+    const del = p.querySelector('del, .nego-del');
+    const body = getComputedStyle(p).color;
+    return { text: p.innerText,
+      ins: !!ins, del: !!del,
+      insColour: ins ? getComputedStyle(ins).color : '',
+      delColour: del ? getComputedStyle(del).color : '',
+      strike: del ? getComputedStyle(del).textDecorationLine : '',
+      body };
+  });
+  check(!!(quoted && quoted.ins && quoted.del),
+    '2h the memo quotes the wording with its marks — what goes and what arrives',
+    quoted ? `ins ${quoted.ins} / del ${quoted.del}` : 'no panel');
+  if (quoted && quoted.ins){
+    check(quoted.insColour !== quoted.body,
+      '2h2 and the insertion carries the redline’s own ink, not the panel’s',
+      `${quoted.insColour} vs body ${quoted.body}`);
+    check(quoted.delColour !== quoted.body && /line-through/.test(quoted.strike),
+      '2h3 and the deletion is struck through in its own',
+      `${quoted.delColour} · ${quoted.strike}`);
+  }
+  /* THE WORDING IS THE CONTRACT'S, IN FULL — the fixture's own sentence, which
+     the card's 34-character summary could never carry. */
+  check(!!quoted && /ninety \(90\) days notice/.test(quoted.text),
+    '2h4 the whole proposed sentence is on the page, not a clipped fragment');
+  check(!!quoted && /Ninety days is what our board approved/.test(quoted.text),
+    '2h5 and the reason the asker gave is under it');
+
+  /* AND IT STILL READS AT NIGHT. The memo draws the redline's marks on a
+     ground the redline has never used — the shell's side panel, which is dark
+     at night where the contract sheet stays white. That is a NEW combination
+     and this codebase's record on marks-in-a-new-place is not good, so the
+     ratio is measured rather than assumed. The class is flipped directly
+     rather than through setTheme, which repaints the view and would take the
+     panel with it: this is a question about CSS, not about state. */
+  const night = await page.evaluate(() => {
+    const root = document.documentElement;
+    const had = root.classList.contains('dark');
+    root.classList.add('dark');
+    const p = document.getElementById('side-panel');
+    const rgba = s => { const n = (String(s).match(/[\d.]+/g) || []).map(Number);
+      return n.length ? { r: n[0], g: n[1], b: n[2], a: n.length > 3 ? n[3] : 1 }
+                      : { r: 0, g: 0, b: 0, a: 0 }; };
+    const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a),
+      g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+    /* COMPOSITED, NEVER THE ELEMENT'S OWN BACKGROUND. At night the mark's fill
+       is a 15% wash, so reading it alone reports 1.3:1 on a chip nobody has
+       trouble reading — the fault contrast-verify records in its own words.
+       Walk up blending until the alphas reach opaque. */
+    const ground = el => { let out = { r: 255, g: 255, b: 255, a: 0 };
+      const stack = [];
+      for (let n = el; n; n = n.parentElement) stack.push(getComputedStyle(n).backgroundColor);
+      stack.push('rgb(255,255,255)');
+      for (let k = stack.length - 1; k >= 0; k--){
+        const c = rgba(stack[k]);
+        if (c.a > 0) out = over(c, out);
+      }
+      return out; };
+    const lum = c => { const f = v => { v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+      return (x + 0.05) / (y + 0.05); };
+    const one = sel => { const el = p && p.querySelector(sel); if (!el) return null;
+      const st = getComputedStyle(el);
+      const ink = over(rgba(st.color), ground(el.parentElement));
+      return { r: ratio(ink, ground(el)), ink: st.color, bg: st.backgroundColor }; };
+    const out = { ins: one('ins, .nego-ins'), del: one('del, .nego-del') };
+    if (!had) root.classList.remove('dark');
+    return out;
+  });
+  for (const k of ['ins', 'del']){
+    const m = night && night[k];
+    check(!!m && m.r >= 4.5, `2h6 the ${k === 'ins' ? 'insertion' : 'deletion'} still reads at night`,
+      m ? `${m.r.toFixed(2)}:1 — ${m.ink} on ${m.bg}` : 'not drawn');
+  }
 
   /* ============ 3. THE NEGOTIATION STAYS LIT BEHIND IT ============ */
   /* THE WHOLE REASON openSidePanel WAS CHOSEN. A scrimmed modal would put the
@@ -352,7 +447,13 @@ const visible = (page, sel) => page.evaluate(s => {
       body.toLowerCase().includes(w.toLowerCase()) && panelText.toLowerCase().includes(w.toLowerCase()));
     check(inBoth.length === sections.length,
       '7o and it carries the same four sections the panel shows', inBoth.join(', '));
-    check(/#contract=/.test(body), '7p with a way back into the agreement');
+    /* AND THE WORDING TRAVELLED, not the card's shorthand — the whole point of
+       what the owner asked for, checked at the far end. */
+    check(/ninety \(90\) days notice/.test(body),
+      '7p the full wording travelled, spelled out for an inbox');
+    check(/Ninety days is what our board approved/.test(body),
+      '7q and the reason with it');
+    check(/#contract=/.test(body), '7r with a way back into the agreement');
   }
 
   /* ============ 8. THE SEND CHANGED NOTHING EITHER ============ */
