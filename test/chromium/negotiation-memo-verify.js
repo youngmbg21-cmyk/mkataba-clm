@@ -310,6 +310,38 @@ const visible = (page, sel) => page.evaluate(s => {
     '5a Copy puts the whole memo on the clipboard', String(clip).slice(0, 60).replace(/\n/g, ' | '));
   check(!/</.test(clip), '5b and it is plain text, not the panel’s markup');
 
+  /* ---- AND THE OTHER FLAVOUR, WHICH IS WHAT WORD TAKES ----
+     (owner-reported 9 Sep 2026, of a paste into Word: keep the crossed line,
+     and keep a structure an executive can read.) THIS IS THE ONLY PLACE THE
+     CLAIM CAN BE ASKED: a source check sees the string being built and cannot
+     see whether the browser accepted it onto the clipboard under two types.
+     A destination picks its flavour; Word and Outlook pick text/html. */
+  const rich = canCopy ? await page.evaluate(async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const it of items)
+        if (it.types.includes('text/html')) return await (await it.getType('text/html')).text();
+      return '';
+    } catch (e) { return 'ERR:' + (e && e.message); }
+  }).catch(() => '') : '';
+  check(rich && !/^ERR:/.test(rich) && rich.length > 100,
+    '5c the clipboard also carries the memo as a document',
+    rich ? String(rich).slice(0, 70).replace(/\n/g, ' ') : 'nothing under text/html');
+  if (rich && !/^ERR:/.test(rich)){
+    check(/<del[^>]*style="[^"]*line-through/.test(rich),
+      '5d the deletion carries its own strike — the thing that was lost in Word');
+    check(/<ins[^>]*style="[^"]*underline/.test(rich),
+      '5e and the insertion its own mark');
+    /* NO TOKEN LEAVES THE BUILDING. A var() resolves to nothing in a document
+       with no stylesheet, which is exactly how the marks vanished. */
+    check(!/var\(/.test(rich) && !/--[a-z]/.test(rich),
+      '5f and every value is a literal, because nothing else travels');
+    check(/font-weight:bold[^>]*>AGREED/.test(rich) && /<b>/.test(rich),
+      '5g with the sections and the clause names in bold, and the wording not');
+    check(/Ninety days is what our board approved/.test(rich),
+      '5h and the reason travels with it');
+  }
+
   /* ============ 6. THE WAYS OUT ============ */
   const wasOpen = await page.locator('#side-panel').count() === 1;
   if (wasOpen){ await page.click('#side-panel-x'); await page.waitForTimeout(500); }

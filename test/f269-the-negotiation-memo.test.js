@@ -787,3 +787,124 @@ describe('f269 (14) the wording, in full', () => {
     assert.notEqual(STRINGS.en.ng_memo_why, STRINGS.sv.ng_memo_why);
   });
 });
+
+/* ================================================================
+   f269 (15) — THE MEMO AS A DOCUMENT, FOR WORD AND FOR AN EMAIL
+   ================================================================
+   Owner-reported 9 Sep 2026, off a paste into Word: *"I would like to maintain
+   the crossed line highlighting what was changed"*, and then *"I would also
+   like to maintain a clear structure including what is bold or not bold so
+   that it is a structured communication to an executive."*
+
+   The Copy button wrote PLAIN TEXT, so the marks arrived as "+" and "-" lines
+   and the structure arrived as nothing. This is the THIRD drawing of one
+   reading — the panel in marks, the inbox in plain text, this for a document —
+   and the claims below are the ways it could stop being the same memo:
+
+   · EVERY VALUE IS A LITERAL. This markup is opened OUTSIDE this app, where no
+     class and no token of the product's exists. A var() here is a bug, which
+     is the rule the two standalone documents already follow.
+   · THE MARKS CARRY THEMSELVES. Inline, on the elements, because a stylesheet
+     does not travel on a clipboard.
+   · BOLD IS WHAT A READER SCANS FOR, and nothing else.
+   · AND THE PLAIN FLAVOUR IS STILL WRITTEN, as the fallback and as the thing a
+     plain-text destination takes. */
+describe('f269 (15) the memo as a document', () => {
+  const w = W();
+  const rich = (over = {}) => {
+    const c = deal([ch('CHG-7', { clauseLabel: 'Clause 2 · Specifications',
+      summary: 'added “sixty…”', why: 'Our board approved ninety.',
+      ops: [{ op: 'keep', text: 'Delivery. ' },
+        { op: 'del', text: 'within sixty (60) days' },
+        { op: 'ins', text: 'within thirty (30) days of the Purchase Order' },
+        { op: 'keep', text: '\nTail one\nTail two' }],
+      ...over })]);
+    const m = w.negoMemo(c);
+    return { m, html: w.negoMemoRichHtml(m) };
+  };
+
+  /* THE ONE THAT MATTERS MOST. A document that leaves this app carries no
+     stylesheet, so a token resolves to NOTHING and the marks vanish — which is
+     exactly what the owner pasted into Word. */
+  test('every value is a literal — no token leaves the building', () => {
+    const { html } = rich();
+    assert.equal(/var\(/.test(html), false, 'a var() in markup that leaves this app');
+    assert.equal(/--[a-z]/.test(html), false, 'a custom property in a foreign document');
+  });
+
+  test('the marks carry themselves, inline', () => {
+    const { html } = rich();
+    assert.match(html, /<del[^>]*style="[^"]*line-through/,
+      'the deletion is not struck where a stylesheet cannot reach it');
+    assert.match(html, /<ins[^>]*style="[^"]*underline/,
+      'the insertion carries no mark of its own');
+    /* AND COLOUR IS NEVER THE ONLY CARRIER — the strike and the underline do
+       the work, so the memo survives a black-and-white printout. */
+    assert.match(html, /<del[^>]*style="[^"]*color:#/);
+    assert.match(html, /<ins[^>]*style="[^"]*color:#/);
+  });
+
+  test('the wording itself is in it, in full', () => {
+    const { html } = rich();
+    assert.match(html, /within thirty \(30\) days of the Purchase Order/);
+    assert.match(html, /within sixty \(60\) days/, 'what goes out is not shown');
+  });
+
+  /* BOLD IS WHAT A READER SCANS FOR: the agreement, each section, each clause,
+     and the two labels. Bold on everything is bold on nothing. */
+  test('the structure is bold where an executive scans, and nowhere else', () => {
+    const { html } = rich();
+    assert.match(html, /font-size:14pt;font-weight:bold[^>]*>Supply Agreement/,
+      'the agreement’s name does not lead');
+    assert.match(html, /font-weight:bold[^>]*>AGREED \(0\)/, 'the sections are not headings');
+    assert.match(html, /<b>Clause 2 · Specifications<\/b>/, 'the clause name is not bold');
+    /* The wording is REGULAR — it is the content, not a signpost. */
+    const block = /<p class="rl-line[^>]*>([\s\S]*?)<\/p>/.exec(html);
+    assert.ok(block, 'the wording is not drawn as its own block');
+    assert.equal(/font-weight:bold/.test(block[1]), false, 'the wording was set in bold');
+  });
+
+  test('it says everything the panel says', () => {
+    const { m, html } = rich();
+    for (const sec of list(w.NEGO_MEMO_SECTIONS))
+      assert.ok(html.includes(String(sec.label).toLocaleUpperCase()),
+        `the document drops the ${sec.label} section`);
+    assert.match(html, /Our board approved ninety\./, 'the reason did not travel');
+    assert.match(html, /2 more parts/, 'what is left out is not said');
+    assert.match(html, /Whose move/, 'whose move it is did not travel');
+    assert.equal(m.empty, false);
+  });
+
+  test('an empty memo is one honest sentence, not an empty document', () => {
+    const m = w.negoMemo(deal([]));
+    const html = w.negoMemoRichHtml(m);
+    assert.equal(/AGREED/.test(html), false);
+    assert.ok(html.length < 200, `an empty memo produced ${html.length} characters of document`);
+  });
+
+  /* THE STYLE OPTIONS ARE ADDITIVE. Every other caller passes none, so the
+     paper, the clause panel and the open card are byte-identical — written as
+     the RELATION rather than as a golden string. */
+  test('the options change nothing for a caller that does not pass them', () => {
+    const OPS = [{ op: 'keep', text: 'a ' }, { op: 'del', text: 'b' }, { op: 'ins', text: 'c' }];
+    assert.equal(w.redlineOpsBlocksHtml(OPS), w.redlineOpsBlocksHtml(OPS, {}));
+    assert.equal(w.redlineOpsHtml(OPS), w.redlineOpsHtml(OPS, {}));
+    assert.equal(/style=/.test(w.redlineOpsBlocksHtml(OPS)), false,
+      'the shared renderer emits an inline style nobody asked for');
+  });
+
+  /* BOTH FLAVOURS, AND THE PLAIN ONE IS THE FALLBACK. ClipboardItem is the
+     newer half of this API: it can be missing, refused, or blocked outside a
+     secure context, and a Copy that fails outright is worse than one that
+     pastes without its marks. */
+  test('the Copy button writes both, and falls back to the text', () => {
+    const body = /const btn = document\.getElementById\('ng-memo-copy'\);[\s\S]*?\n  \}\);/.exec(NEG)[0];
+    assert.match(body, /'text\/html'/, 'the rich flavour is never put on the clipboard');
+    assert.match(body, /'text\/plain'/, 'the plain flavour was dropped');
+    assert.match(body, /negoMemoRichHtml\(m\)/, 'the document is composed some other way');
+    assert.match(body, /negoMemoText\(m\)/);
+    assert.match(body, /typeof ClipboardItem === 'function'/,
+      'a browser without ClipboardItem gets a dead press');
+    assert.match(body, /\.then\(done, plain\)/, 'a refused rich write does not fall back');
+  });
+});

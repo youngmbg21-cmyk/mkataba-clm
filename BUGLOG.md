@@ -9450,3 +9450,68 @@ Noticed, not fixed:
 - The funnel's revision branch updates a change's summary and leaves `why`
   alone, so a reason can only be given at the first filing. Found while staging
   the browser fixture; it may well be deliberate, but nothing says so.
+
+================================================================================
+9 Sep 2026 — THE MEMO PASTES AS A DOCUMENT (owner-reported)
+================================================================================
+"when I copy and paste the memo from the Hati into an email of microsoft word
+it looks like the attached. I would like to maintain the crossed line
+highlighting what was changed." Then: "I would also like to maintain a clear
+structure including what is bold or not bold so that it is a structured
+communication to an executive."
+
+Copy wrote PLAIN TEXT to the clipboard, so a paste into Word or Outlook arrived
+with the marks spelled as "+" and "-" lines and no structure at all. It now
+writes BOTH flavours through ClipboardItem: text/html for Word and an email
+client, text/plain for anywhere that cannot take markup. The plain write is
+kept as the fallback rather than replaced — ClipboardItem is the newer half of
+that API and can be missing, refused, or blocked outside a secure context, and
+a Copy that fails outright is worse than one that pastes without its marks.
+
+negoMemoRichHtml is the THIRD drawing of one reading (the panel in marks, the
+inbox in plain text, this for a document) and all three ask redlineShownBlocks,
+so none of them can show different parts of a clause.
+
+EVERY VALUE IN IT IS A LITERAL and that is the rule rather than an oversight:
+the markup is opened outside this app, where no class and no token of the
+product's exists, so a var() of any kind is a bug — the standing rule
+negoHistoryExportHtml and the two standalone documents already follow, and the
+exact reason the marks vanished. It is the LIGHT palette, because a pasted
+document is a light document whatever theme the reader was in.
+
+The marks follow the DOCUMENT convention rather than the panel's: insertion
+underlined, deletion struck, both in colour and neither highlighted. That is
+what Word's own tracked changes draw and it survives a black-and-white
+printout, where a coloured highlight does not.
+
+Bold is the agreement's name, each section, each clause and the two labels, and
+nothing else — bold on everything is bold on nothing.
+
+The shared renderer gained three ADDITIVE options: insStyle/delStyle on
+redlineOpsHtml and blockStyle on redlineOpsBlocksHtml, emitted only when asked
+for, so every other caller is byte-identical (asserted as a relation, not
+against a golden string). A wrapper's margin is not something a word processor
+can be relied on to honour; the paragraph's own is. rlChangeWordingHtml
+forwards the three BY NAME and nothing else — a renderer that passes everything
+through has no contract at all.
+
+The first attempt passed the styles to rlChangeWordingHtml and they went
+nowhere: that function builds its OWN opts object for the renderer and drops
+the caller's, which is correct and is why the three had to be named there.
+Caught by rendering the output and looking at it rather than by any test.
+
+Node 5721/5721, lint unchanged (the same 4 pre-existing duplicate-key errors).
+Browser: negotiation-memo 59/59, redline 181/181, clause-door 117/117. Against
+the parent, f269 reports 7 of the new claims failing and negotiation-memo 1 —
+"5c the clipboard also carries the memo as a document [nothing under
+text/html]", which is the owner's report verbatim.
+
+Noticed, not fixed:
+- THE EMAILED MEMO IS STILL PLAIN TEXT. sendEmail(to, subject, body, ...) posts
+  a text body and every caller in the product shares that shape, so an HTML
+  flavour there is a change to the mail layer rather than to this feature. Send
+  to a colleague therefore still looks like the screenshot that prompted this;
+  Copy does not. Worth doing, and it is its own piece of work.
+- The two oddities on the owner's own contract (three "Governing law - New
+  clause added -" rows with nothing after the dash, and two byte-identical
+  "Clause 2 ... Clause deleted" rows) are still open from two runs ago.

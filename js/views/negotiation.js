@@ -5739,9 +5739,17 @@ function rlAskResetOpen(){ _rlAskOpen = null; }
 function rlChangeWordingHtml(ch, opts = {}){
   if (!ch) return '';
   const ops = rlChangeOps(ch);
+  /* THE THREE STYLE OPTIONS TRAVEL, and nothing else does. This builds its own
+     opts rather than forwarding the caller's, which is right — a renderer that
+     passes everything through has no contract at all — so the options added
+     for markup that LEAVES this app (the memo's clipboard copy, where none of
+     the product's classes or tokens exist) have to be named here. Absent on
+     every other caller, and absent they change nothing. */
+  const pass = { changedOnly: !!opts.changedOnly };
+  for (const k of ['insStyle', 'delStyle', 'blockStyle']) if (opts[k]) pass[k] = opts[k];
   return window.redlineOpsBlocksHtml
-    ? redlineOpsBlocksHtml(ops, { changedOnly: !!opts.changedOnly })
-    : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
+    ? redlineOpsBlocksHtml(ops, pass)
+    : (window.redlineOpsHtml ? `<p>${redlineOpsHtml(ops, pass)}</p>` : `<p>${_ne(ch.newText || '')}</p>`);
 }
 /* THE OPS THIS CHANGE IS DRAWN FROM, including the stand-in for a change that
    carries none. Named because the card counts blocks off the same ops it is
@@ -7164,6 +7172,86 @@ function negoMemoHtml(m, opts = {}){
       ${opts.canSend ? `<button type="button" id="ng-memo-send" class="ui-btn">${_ne(i18t('ng_memo_send'))}</button>` : ''}
     </div>`;
 }
+/* ---- THE MEMO AS A DOCUMENT, FOR WORD AND FOR AN EMAIL ----
+   (owner-reported 9 Sep 2026: pasting the memo lost the marks — "I would like
+   to maintain the crossed line highlighting what was changed" — and then "I
+   would also like to maintain a clear structure including what is bold or not
+   bold so that it is a structured communication to an executive.")
+
+   THE COPY BUTTON PUT PLAIN TEXT ON THE CLIPBOARD, so a paste into Word or
+   Outlook arrived with the marks spelled as "+" and "-" lines and no structure
+   at all. This is the third DRAWING of the one reading — the panel in marks,
+   the inbox in plain text, and this for a document — and all three ask
+   redlineShownBlocks, so none of them can show different parts of a clause.
+
+   EVERY VALUE HERE IS A LITERAL AND THAT IS THE RULE, NOT AN OVERSIGHT. This
+   markup is opened OUTSIDE this app, where none of the product's classes and
+   none of its tokens exist: a var() of any kind is a bug in a document that
+   leaves the building — the standing rule the two standalone documents already
+   follow. It is the LIGHT palette, because a pasted document is a light
+   document whatever theme the reader was in.
+
+   AND THE MARKS ARE THE DOCUMENT CONVENTION RATHER THAN THE PANEL'S. On paper
+   an insertion is underlined and a deletion is struck: that is what a lawyer
+   reads, it is what Word's own tracked changes draw, and — the half that
+   matters — it survives a black-and-white printout, where the panel's coloured
+   highlight does not. Colour is never the only carrier. */
+const MEMO_DOC = {
+  ink: '#0e1a18', quiet: '#54635f', rule: '#dfe4e3',
+  ins: '#047857', del: '#be123c',
+  font: "Aptos, Calibri, 'Segoe UI', Arial, sans-serif",
+};
+function negoMemoRichHtml(m){
+  if (!m || m.empty) return `<p>${_ne(i18t('ng_memo_none'))}</p>`;
+  const D = MEMO_DOC;
+  const base = `font-family:${D.font};color:${D.ink}`;
+  /* WHAT IS BOLD IS WHAT A READER SCANS FOR and nothing else: the agreement's
+     name, each section, and each clause. The wording, the counts and the
+     qualifying lines are all regular — bold on everything is bold on nothing. */
+  const P = (style, html) => `<p style="margin:0;${style}">${html}</p>`;
+  const quiet = `font-size:9pt;color:${D.quiet}`;
+  const insStyle = `color:${D.ins};text-decoration:underline`;
+  const delStyle = `color:${D.del};text-decoration:line-through`;
+  const wording = r => (typeof rlChangeWordingHtml === 'function')
+    ? rlChangeWordingHtml(r, { changedOnly: true, insStyle, delStyle,
+        blockStyle: `margin:0 0 4px 24px;${base};font-size:10.5pt` })
+    : '';
+  const when = (() => { const t = Date.parse(m.at); return isNaN(t) ? '' :
+    new Date(t).toLocaleDateString(langLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
+    + ' ' + new Date(t).toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); })();
+  const sub = [m.id, m.round ? i18t('ng_memo_round', { n: m.round }) : '',
+    i18t('ng_memo_from_record', { at: when })].filter(Boolean).join(' &middot; ');
+  const row = r => [
+    P(`${base};font-size:10.5pt;margin-top:9px`,
+      `<b>${_ne(r.clause)}</b>${r.said ? ` &mdash; ${_ne(r.said)}` : ''}`),
+    wording(r),
+    r.unchanged ? P(`${quiet};margin-left:24px`,
+      `<i>${_ne(i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }))}</i>`) : '',
+    r.why ? P(`${quiet};margin-left:24px`,
+      `<b>${_ne(i18t('ng_memo_why'))}</b> ${_ne(r.why)}`) : '',
+    r.precedent ? P(`${quiet};margin-left:24px`, _ne(r.precedent)) : '',
+  ].filter(Boolean).join('');
+  const section = sec => {
+    const rows = m[sec.k] || [];
+    return P(`${base};font-size:11pt;font-weight:bold;margin-top:18px;letter-spacing:.5pt`,
+        `${_ne(String(sec.label).toLocaleUpperCase(langLocale()))} (${m.counts[sec.k]})`)
+      + (rows.length ? rows.map(row).join('')
+        : P(`${quiet};margin-top:4px`, _ne(i18t('ng_memo_nil'))));
+  };
+  return `<div style="${base};font-size:10.5pt;line-height:1.45">`
+    + P(`${base};font-size:14pt;font-weight:bold`,
+        _ne([m.name, m.counterparty].filter(Boolean).join(' — ') || m.id))
+    + P(`${quiet};margin-top:2px`, sub)
+    + `<hr style="border:0;border-top:1px solid ${D.rule};margin:10px 0 0">`
+    + NEGO_MEMO_SECTIONS.map(section).join('')
+    + (m.capped ? P(`${quiet};margin-top:12px`,
+        _ne(i18tn('ng_memo_capped', NEGO_MEMO_MAX, { n: NEGO_MEMO_MAX }))) : '')
+    + (m.move ? `<hr style="border:0;border-top:1px solid ${D.rule};margin:16px 0 8px">`
+        + P(`${base};font-size:10.5pt`,
+            `<b>${_ne(i18t('ng_memo_move'))}</b> ${_ne(m.move.say)}`) : '')
+    + '</div>';
+}
+
 /* ---- THE SAME WORDING, AS PLAIN TEXT ----
    The panel draws the marks and an email cannot, so the second drawing spells
    them: what goes out on a "-" line, what arrives on a "+".
@@ -7234,11 +7322,35 @@ function openNegoMemo(c){
     /* A refusal says so where the reader is looking rather than failing in
        silence — a clipboard is permission-gated and can simply say no. */
     const failed = () => { if (typeof toast === 'function') toast(i18t('ng_memo_copy_failed'), 'warn'); };
+    const plain = () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText)
+          navigator.clipboard.writeText(text).then(done, failed);
+        else failed();
+      } catch (_) { failed(); }
+    };
+    /* ---- BOTH FLAVOURS, AND THE PLAIN ONE IS THE FALLBACK ----
+       (owner-reported 9 Sep 2026, of a paste into Word.) A clipboard carries
+       several renderings of one thing and the destination picks: Word and an
+       email client take text/html and get the marks and the structure, a plain
+       box takes text/plain and gets what it always got. Writing only the text
+       is what lost the strike-through.
+
+       THE PLAIN WRITE IS NOT REMOVED, because ClipboardItem is the newer half
+       of this API and can be missing, refused by permission, or blocked in a
+       non-secure context — and a Copy that fails outright is worse than one
+       that pastes without its marks. So the rich write is TRIED and the plain
+       one catches it, which is also what a browser without ClipboardItem gets
+       with nothing to detect. */
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText)
-        navigator.clipboard.writeText(text).then(done, failed);
-      else failed();
-    } catch (_) { failed(); }
+      if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem === 'function'){
+        const rich = negoMemoRichHtml(m);
+        navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([rich], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+        })]).then(done, plain);
+      } else plain();
+    } catch (_) { plain(); }
   });
   const send = document.getElementById('ng-memo-send');
   if (send) send.addEventListener('click', () => openNegoMemoShare(c, m));
@@ -15993,7 +16105,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,negoMemoRichHtml,MEMO_DOC,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

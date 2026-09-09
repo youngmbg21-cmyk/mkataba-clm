@@ -288,6 +288,16 @@ function redlineOpsHtml(ops, opts = {}){
   const delCls = opts.delClass || REDLINE_DEL_CLASS;
   const tagIns = opts.spans ? 'span' : 'ins';
   const tagDel = opts.spans ? 'span' : 'del';
+  /* ---- INLINE STYLES, FOR A DOCUMENT THAT LEAVES THIS APP (9 Sep 2026) ----
+     Added for the negotiation memo's clipboard copy, which lands in Word or an
+     email where none of this product's classes and none of its tokens exist —
+     so a redline pasted there arrived with no marks at all. Every OTHER caller
+     passes nothing and is byte-identical: the attribute is emitted only when a
+     style is asked for. It is the same rule the standalone documents already
+     follow — self-contained has to mean self-contained, and a var() of any
+     kind is a bug in markup that will be opened outside this app. */
+  const sIns = String(opts.insStyle || '').trim();
+  const sDel = String(opts.delStyle || '').trim();
   /* ---- WHO LAST TOUCHED THIS EDIT, ON HOVER ----
      `opts.title` names the hand behind the marked wording, and the caller
      supplies it because only the caller knows whose change these ops belong to
@@ -310,8 +320,8 @@ function redlineOpsHtml(ops, opts = {}){
      standalone history export — a gap the eye gets and the text never has. */
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
-    : o.op === 'ins' ? `<${tagIns} class="${insCls}"${tip}>${e(o.text)}</${tagIns}>`
-    : `<${tagDel} class="${delCls}"${tip}>${e(o.text)}</${tagDel}>`).join('');
+    : o.op === 'ins' ? `<${tagIns} class="${insCls}"${sIns ? ` style="${attr(sIns)}"` : ''}${tip}>${e(o.text)}</${tagIns}>`
+    : `<${tagDel} class="${delCls}"${sDel ? ` style="${attr(sDel)}"` : ''}${tip}>${e(o.text)}</${tagDel}>`).join('');
 }
 
 /* ============================================================
@@ -672,6 +682,12 @@ function redlineOpsBlocksHtml(ops, opts = {}){
       depth ? `${pre}-hang-${depth + 1}` : '',
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
+    /* THE BLOCK'S OWN STYLE, for markup that leaves this app — see the note on
+       insStyle in redlineOpsHtml. A wrapper's margin is not something a word
+       processor can be relied on to honour; the paragraph's own is. Emitted
+       only when asked for, so every other caller is byte-identical. */
+    const bAttr = String(opts.blockStyle || '').trim()
+      ? ` style="${String(opts.blockStyle).trim().replace(/"/g, '&quot;')}"` : '';
     /* Attribution rides INSIDE the block renderer rather than replacing it.
        Rendering attributed ops through the flat renderer instead would answer
        "who wrote this" at the cost of the clause's numbering and indents —
@@ -690,7 +706,7 @@ function redlineOpsBlocksHtml(ops, opts = {}){
     } else {
       inner = draw(group);
     }
-    return `<${tag} class="${cls}">${inner}</${tag}>`;
+    return `<${tag} class="${cls}"${bAttr}>${inner}</${tag}>`;
   }).join('');
 }
 

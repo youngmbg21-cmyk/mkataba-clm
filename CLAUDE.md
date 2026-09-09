@@ -4537,6 +4537,52 @@ useless in a memo somebody forwards.
   on a body the server did not compose, set where no real memo reaches it; the
   memo's own `NEGO_MEMO_MAX` is the content cap and says so on the page.
 
+**AND IT PASTES AS A DOCUMENT (owner-reported 9 Sep 2026, of a paste into
+Word: *"I would like to maintain the crossed line highlighting what was
+changed"*, then *"I would also like to maintain a clear structure including
+what is bold or not bold so that it is a structured communication to an
+executive"*).** Copy wrote PLAIN TEXT, so the marks arrived as `+` and `-`
+lines and the structure arrived as nothing.
+
+- **BOTH FLAVOURS ON THE CLIPBOARD, AND THE PLAIN ONE IS THE FALLBACK.** A
+  clipboard carries several renderings and the destination picks: Word and an
+  email client take `text/html`, a plain box takes `text/plain` and gets what
+  it always got. `ClipboardItem` is the newer half of that API and can be
+  missing, refused, or blocked outside a secure context — so the rich write is
+  TRIED and the plain one catches it, which is also what a browser without
+  `ClipboardItem` gets with nothing to feature-detect. **A Copy that fails
+  outright is worse than one that pastes without its marks.**
+- **`negoMemoRichHtml` IS THE THIRD DRAWING OF ONE READING** — the panel in
+  marks, the inbox in plain text, this for a document — and all three ask
+  `redlineShownBlocks`, so none can show different parts of a clause.
+- **EVERY VALUE IS A LITERAL, AND THAT IS THE RULE RATHER THAN AN OVERSIGHT.**
+  This markup is opened OUTSIDE the app, where no class and no token of the
+  product's exists: **a `var()` of any kind is a bug in a document that leaves
+  the building** — the standing rule `negoHistoryExportHtml` and the two
+  standalone documents already follow, and the fault that made the marks vanish
+  in the first place. It is the LIGHT palette, because a pasted document is a
+  light document whatever theme the reader was in.
+- **THE MARKS ARE THE DOCUMENT CONVENTION, NOT THE PANEL'S**: an insertion
+  underlined, a deletion struck, both in colour and neither highlighted. That
+  is what a lawyer reads, it is what Word's own tracked changes draw, and — the
+  half that matters — it survives a black-and-white printout where a coloured
+  highlight does not. **Colour is never the only carrier.**
+- **BOLD IS WHAT A READER SCANS FOR AND NOTHING ELSE**: the agreement's name,
+  each section, each clause, and the two labels. The wording, the counts and
+  the qualifying lines are regular — bold on everything is bold on nothing.
+- **THE SHARED RENDERER GAINED THREE ADDITIVE OPTIONS**, `insStyle` / `delStyle`
+  on `redlineOpsHtml` and `blockStyle` on `redlineOpsBlocksHtml`, emitted ONLY
+  when asked for: every other caller is byte-identical, and f269 (15) asserts
+  that as a relation rather than against a golden string. **A wrapper's margin
+  is not something a word processor can be relied on to honour; the paragraph's
+  own is.** `rlChangeWordingHtml` forwards those three BY NAME and nothing
+  else — a renderer that passes everything through has no contract at all.
+- **NOT DONE, and said out loud: the EMAILED memo is still plain text.**
+  `sendEmail(to, subject, body, …)` posts a text body and every caller in the
+  product shares that shape, so an HTML flavour there is a change to the mail
+  layer rather than to this feature. Send to a colleague therefore looks like
+  the screenshot that prompted this; Copy does not.
+
 Tests: f269 (49 — **29 fail against the parent**), **negotiation-memo-verify
 (24, browser — the only place four of the claims can be asked at all: the row
 as VISIBLE PIXELS once the menu is open, a real press opening the drawer, the
