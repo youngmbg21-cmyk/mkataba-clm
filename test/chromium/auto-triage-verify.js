@@ -362,6 +362,73 @@ const SEED = t => {
     check('7c · and no reading is refused because the record is not on the server yet',
       readOk.ran === true && readOk.notFound.length === 0, readOk);
 
+    /* ============ 8 · WHAT HaTi READ, ON THE CONTRACT ============ */
+    /* Owner-ruled 9 Sep 2026 off three drawn options. Section 7 has just filed
+       a contract through the real button, so the reader is standing exactly
+       where an upload leaves them. TWO CLAIMS ONLY A RENDERED PAGE CAN ANSWER:
+       the strip is VISIBLE PIXELS above the Key terms card, and the Document
+       tab keeps every one of its own — which is the six questions' one
+       absolute refusal, and the reason this draws on Key terms alone. */
+    /* PRESSED, NOT CALLED. roomGoTab takes the CONTRACT first and is not a
+        global in the real app — it is a module function — so a call from here
+        does nothing at all and every measurement after it reads a hidden pane.
+        The tab button is what a reader presses and it is what this presses. */
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(900);
+    await page.screenshot({ path: path.join(OUT, '08-kt-strip.png'), fullPage: false });
+    const strip = await drive(() => {
+      const e = document.getElementById('kt-triage');
+      if (!e) return { drawn: false };
+      const r = e.getBoundingClientRect();
+      const pane = document.querySelector('[data-ws-pane="terms"]');
+      const kt = document.getElementById('kt-rows');
+      const ktTop = kt ? kt.getBoundingClientRect().top : -1;
+      return { drawn: true, w: Math.round(r.width), h: Math.round(r.height),
+        top: Math.round(r.top), ktTop: Math.round(ktTop),
+        inPane: !!(pane && pane.contains(e)),
+        tiles: e.querySelectorAll('.kt-tri-tile').length,
+        txt: e.textContent.replace(/\s+/g, ' ').trim().slice(0, 120) };
+    }, undefined, { drawn: false });
+    check('8a · the strip is visible pixels on the tab the upload lands on',
+      strip.drawn === true && strip.w > 200 && strip.h > 30 && strip.inPane === true,
+      strip);
+    check('8b · above the Key terms card, not beside or under it',
+      strip.drawn === true && strip.ktTop > strip.top,
+      { strip: strip.top, keyTerms: strip.ktTop });
+    check('8c · and it carries all four tiles, borrowed from the same reading',
+      strip.tiles === 4, { tiles: strip.tiles, txt: strip.txt });
+    /* THE REFUSAL, MEASURED. A strip above the tab content pushes what is under
+       it down; on the Document tab that is the agreement, and the contract's
+       pixels are the one thing the six questions refuse outright. */
+    const doc = await drive(() => {
+      const t = document.querySelector('#ws-tabs [data-ws-tab="docs"]');
+      if (t) t.click();
+      const pane = document.querySelector('[data-ws-pane~="docs"]');
+      const e = document.getElementById('kt-triage');
+      return { inDocPane: !!(pane && e && pane.contains(e)),
+        visibleHere: !!(e && e.offsetParent && e.getBoundingClientRect().height > 0
+          && pane && getComputedStyle(pane).display !== 'none'
+          && pane.contains(e)) };
+    }, undefined, { inDocPane: true, visibleHere: true });
+    check('8d · and it never draws on the tab that shows the agreement',
+      doc.inDocPane === false && doc.visibleHere === false, doc);
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(700);
+    /* AN ACT, NOT A RENDER — and Home's own stamp, so putting it away here puts
+       it away there. Driven, because a handler that is attached is not a
+       handler that lands. */
+    const put = await drive(() => {
+      const b = document.getElementById('kt-tri-done');
+      if (!b) return { pressed: false };
+      b.click();
+      return { pressed: true, gone: !document.getElementById('kt-triage'),
+        seen: !!((state.contracts[0].triage || {}).seenAt) };
+    }, undefined, { pressed: false });
+    check('8e · "Got it" puts it away and stamps the same seen the card reads',
+      put.pressed === true && put.gone === true && put.seen === true, put);
+
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
 

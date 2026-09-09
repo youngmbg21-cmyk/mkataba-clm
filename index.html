@@ -4222,6 +4222,36 @@
   .hm-tri-fold{flex:none;border:0;background:none;padding:2px 4px;cursor:pointer;
     color:var(--color-neutral-500);font:inherit;font-size:var(--t-label);line-height:1;}
   .hm-tri-fold:hover{color:var(--color-text);}
+  /* WHAT HaTi READ, on the contract's own Key terms tab (owner-ruled 9 Sep
+     2026). The tiles' READING is Home's — triageTiles — and only the drawing is
+     its own: this sits inside a pane rather than in a list of decisions, so it
+     is a ruled strip rather than a card and it takes no tone of its own where
+     the reading went well. AMBER ONLY WHERE IT COULD NOT BE READ, which is
+     Home's own rule: a strip that always shouts is one nobody reads. It never
+     draws on the Document tab, so it can never cost the agreement a pixel. */
+  .kt-tri{flex:none;border:1px solid var(--color-divider);border-radius:var(--radius);
+    background:var(--color-surface);padding:10px 12px;margin:0 0 var(--s-3);}
+  .kt-tri.is-no{border-color:var(--st-amber-line);background:var(--st-amber-bg);}
+  .kt-tri-head{display:flex;align-items:center;gap:var(--s-2);}
+  .kt-tri-t{flex:1;min-width:0;font-size:var(--t-body);font-weight:var(--w-title);
+    color:var(--color-text);}
+  .kt-tri-x{flex:none;border:0;background:none;padding:2px 4px;font:inherit;
+    font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;
+    text-decoration:underline;}
+  .kt-tri-x:hover{color:var(--color-text);}
+  .kt-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;margin-top:9px;}
+  .kt-tri-tile{border:1px solid var(--color-divider);border-radius:var(--radius);
+    padding:8px 10px;min-width:0;background:var(--color-surface);}
+  .kt-tri-th{display:flex;align-items:center;gap:6px;font-size:var(--t-label);
+    font-weight:var(--w-title);}
+  .kt-tri-td{margin-top:3px;line-height:1.4;font-size:var(--t-label);
+    color:var(--color-neutral-600);}
+  .kt-tri-chip{display:inline-flex;align-items:center;font-size:var(--t-figure);
+    font-weight:var(--w-title);padding:1px 5px;border-radius:var(--radius);}
+  .kt-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .kt-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .kt-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .hm-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:10px;}
   .hm-tri-tile{border:1px solid var(--color-divider);padding:8px 10px;min-width:0;}

@@ -451,6 +451,86 @@ describe('F273 — auto-triage on upload', () => {
     });
   });
 
+  /* --------------------------------------------------------------- */
+  /* Owner-ruled 9 Sep 2026, off three drawn options: *"it still lands in the
+     key terms page and I then have to go back to the home page which is not
+     ideal"* — and the answer chosen was to bring the CARD to the contract
+     rather than move where an upload lands. Their own 20 Aug ruling therefore
+     stands untouched. */
+  describe('7c · what HaTi read, on the contract itself', () => {
+    test('it borrows Home\'s reading and counts nothing of its own', () => {
+      const b = CONTRACT.slice(CONTRACT.indexOf('function ktTriageStripHtml'),
+        CONTRACT.indexOf('function renderKeyTerms'));
+      assert.match(b, /triageTiles\(c\)/, 'the one reading, so the two surfaces agree');
+      for (const w of ['runScan(', 'runContractBrief(', 'extractObligations(',
+                       'runPlaybookReview(', 'triageRun('])
+        assert.ok(!b.includes(w), 'it draws a reading, it does not make one: ' + w);
+    });
+    /* ITS OWN STAGE: js/views/contract.js is loaded only on request, and the
+       rest of this file has no need of it — pulling it into stage() would make
+       every other test here pay for a view they never touch. */
+    test('it draws only where there IS a reading, and only until it is seen', () => {
+      const { win } = buildWorld({ triage: true, contractView: true });
+      win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
+      const c = { id: 'MK-407', name: 'N', counterparty: 'Nordkust', status: 'Under Review',
+        source: 'upload', folder: 'proc', owner: { id: 'u1', name: 'Wanjiru Kamau' },
+        audit: [], obligations: [], comments: [],
+        upload: { name: 's.docx', extractedText: TEXT } };
+      win.state.contracts = [c];
+      assert.equal(win.ktTriageStripHtml(c), '', 'nothing before anything was read');
+      c.triage = { at: '2026-09-09T00:00:00.000Z', seenAt: null,
+        steps: { brief: { ok: true, line: 'A supply agreement.' },
+          playbook: { ok: true, dev: 0, miss: 0, cats: [] },
+          oblig: { ok: true, found: [] } } };
+      assert.match(win.ktTriageStripHtml(c), /kt-tri-tile/, 'drawn once there is');
+      c.triage.seenAt = '2026-09-09T01:00:00.000Z';
+      assert.equal(win.ktTriageStripHtml(c), '',
+        'and gone once acknowledged — an always-there strip is furniture');
+    });
+    /* THE SIX QUESTIONS' ONE ABSOLUTE REFUSAL: a strip above the tab content
+       pushes what is under it down, and on the Document tab that is the
+       agreement. It is mounted inside the TERMS pane, so the refusal holds by
+       construction rather than by care. Measured as pixels in
+       auto-triage-verify; here it is the structure that makes it possible. */
+    test('its slot is inside the Key terms pane and nowhere else', () => {
+      assert.equal((CONTRACT.match(/id="kt-triage-slot"/g) || []).length, 1,
+        'exactly one mount');
+      const terms = CONTRACT.indexOf('data-ws-pane="terms"');
+      const slot = CONTRACT.indexOf('id="kt-triage-slot"');
+      const grid = CONTRACT.indexOf('class="terms-grid"', terms);
+      assert.ok(terms > 0 && slot > terms && slot < grid,
+        'between the pane opening and its grid');
+    });
+    test('the strip is drawn and wired in ONE place', () => {
+      /* A second painter is how the strip and its dismiss come to disagree
+         about which contract they are about. */
+      assert.equal((CONTRACT.match(/function paintKtTriage\(/g) || []).length, 1);
+      assert.match(CONTRACT, /kt-tri-done'\);[\s\S]{0,80}addEventListener/,
+        'the press is bound where the markup was just written');
+    });
+    test('acknowledging is an ACT, and it is Home\'s own stamp', () => {
+      const b = CONTRACT.slice(CONTRACT.indexOf('function paintKtTriage'),
+        CONTRACT.indexOf('function paintKtTriage') + 900);
+      assert.match(b, /triageAck\(c\)/,
+        'one fact, one state — dismissing it in either place dismisses it in both');
+    });
+    test('no acts beyond putting it away', () => {
+      /* Home's three all exist to get you TO the contract, and you are on it;
+         a second door onto an act that already has one is the drift this
+         rulebook opens by warning about. */
+      const b = CONTRACT.slice(CONTRACT.indexOf('function ktTriageStripHtml'),
+        CONTRACT.indexOf('function renderKeyTerms'));
+      assert.ok(!/data-tri-act/.test(b), 'Home\'s act buttons are not copied here');
+    });
+    test('and its words exist in both languages', () => {
+      /* This file reads the dictionary as SOURCE and counts the key twice —
+         once per book — which is what catches a key added to one and not the
+         other, the way a screen ends up half-English. */
+      for (const k of ['tri_kt_head', 'tri_kt_head_no', 'tri_kt_done', 'tri_kt_done_title'])
+        assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    });
+  });
+
   describe('8 · the tick-box', () => {
     test('it is on the confirm screen and ticked by default', () => {
       assert.match(CONTRACT, /id="up-triage" checked/, 'ticked, so the ordinary case is one press');

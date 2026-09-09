@@ -10766,6 +10766,42 @@ failed as SILENCE or as the wrong sentence rather than as an error.**
   JSON-only and reported the prose as the code**: end a slice at the function's
   own last line.
 
+**AND WHAT WAS READ IS ON THE CONTRACT ITSELF (owner-ruled 9 Sep 2026, off
+three drawn options).** *"it still lands in the key terms page and I then have
+to go back to the home page which is not ideal"* — and the answer chosen was to
+bring the CARD to the contract rather than move where an upload lands, so
+**their own 20 Aug ruling stands untouched**: an upload still opens on Key
+terms, because it arrives with a complete document and empty terms.
+
+- **KEY TERMS ONLY, AND THAT IS THE SIX QUESTIONS' ONE ABSOLUTE REFUSAL RATHER
+  THAN A PREFERENCE.** A strip above the tab content pushes what is under it
+  down, and on the Document tab what is under it is the agreement. The slot is
+  mounted INSIDE `[data-ws-pane="terms"]`, so the refusal holds by construction
+  rather than by care — measured as pixels, not asserted. Nothing is lost: the
+  Document tab's own Checks card carries the same three readings.
+- **IT BORROWS `triageTiles`, THE ONE READING**, so Home and the contract can
+  never disagree about what was found; only the drawing differs. It makes no
+  reading of its own and f273 greps the builder for every runner.
+- **A SLOT AND A PAINTER, because the room is rendered BEFORE the readings
+  run** — submitUpload puts the contract on screen and only then starts them, so
+  interpolating the strip draws nothing and leaves no element for the paint to
+  replace. `#ws-tabrow-end`'s own pattern. `paintKtTriage` is the ONE place it
+  is drawn or wired, and `renderKeyTerms` calls it — which is what auto-triage's
+  `onStep` already calls, so the tiles fill in under the reader.
+- **NO ACTS ON IT, DELIBERATELY.** Home's three all exist to get you TO the
+  contract and you are on it; the brief's own button is an inch below and the
+  standards and risk are on the card that owns them. A second door onto an act
+  that already has one is the drift this rulebook opens by warning about. What
+  it carries is the one thing not available elsewhere: a way to put it away.
+- **AND IT GOES ON HOME'S OWN STAMP.** `triageAck`, one fact and one state, so
+  dismissing it in either place dismisses it in both — and an always-there strip
+  is furniture, while the readings live on in their own cards for good.
+- **AND A PROBE THAT CALLS WHAT A READER PRESSES MEASURES A HIDDEN PANE.**
+  `roomGoTab` takes the CONTRACT first and is a module function, not a global in
+  the real app, so `roomGoTab('terms')` from a browser file did nothing at all
+  and every measurement after it read a pane that was still `display:none` —
+  reported as a strip 0px wide. Press the tab button.
+
 **NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
 (above); nothing runs on a contract drafted from a template — this is for paper
 somebody sent you; the card is not on the phone; and nothing about it reaches

@@ -10139,3 +10139,34 @@ f273 52 checks with 4 proved failing against the parent.
 - Where an uploaded contract LANDS is put to the owner rather than changed: it
   opens on Key terms by their own 20 Aug ruling, and the triage card is on
   Home, so the answer is on a different page from the landing.
+
+## 2026-09-09 (3) — what HaTi read, on the contract itself
+
+Owner-ruled off three drawn options, after reporting that an upload lands on
+Key terms while the reading's answer sits on Home: bring the CARD to the
+contract rather than move where an upload lands. Their 20 Aug ruling that an
+upload opens on Key terms is untouched.
+
+A strip above the Key terms card carrying the same four tiles Home draws, from
+the same triageTiles reading. Key terms ONLY — a strip above the tab content
+pushes what is under it down, and on the Document tab that is the agreement,
+which the six questions refuse outright. The slot sits inside the terms pane,
+so the refusal holds by construction; measured as pixels rather than asserted.
+
+A SLOT AND A PAINTER, because the room is rendered before the readings run:
+interpolating the strip draws nothing and leaves no element for the paint to
+replace. That cost one wrong turn — the first build did exactly that and the
+strip never appeared.
+
+No acts on it beyond putting it away: Home's three all exist to get you to the
+contract and you are on it. It clears on Home's own seenAt, so dismissing it in
+either place dismisses it in both.
+
+AND A PROBE THAT CALLS WHAT A READER PRESSES MEASURES A HIDDEN PANE. roomGoTab
+takes the contract first and is a module function, not a global in the real
+app, so roomGoTab('terms') did nothing and the strip measured 0x0. Press the
+tab button.
+
+Verified: lint 179/4 (unchanged), node 5911/5911, auto-triage-verify 37/37
+(33/37 with the strip stashed — 8d passes either way as the control),
+amendment-journey-verify 49/49, home-page-verify 34/34.

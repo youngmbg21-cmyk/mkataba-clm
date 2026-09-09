@@ -3909,6 +3909,55 @@ function wireKtFolder(c){
     } finally { _ktFolderBusy=false; }
   });
 }
+/* ---- WHAT HaTi READ, ON THE CONTRACT ITSELF (owner-ruled 9 Sep 2026) ----
+   *"it still lands in the key terms page and I then have to go back to the home
+   page which is not ideal"* — and off three drawn options they chose to bring
+   the card to the contract rather than move where an upload lands. So their own
+   20 Aug ruling stands untouched: an upload still opens on Key terms, because
+   it arrives with a complete document and empty terms.
+
+   KEY TERMS ONLY, AND THAT IS THE SIX QUESTIONS' ONE ABSOLUTE REFUSAL RATHER
+   THAN A CHOICE: a strip above the tab content pushes whatever is under it
+   down, and on the Document tab what is under it is the agreement. The
+   Document tab carries the same three readings on its own Checks card, so
+   nothing there is lost — what it keeps is its pixels.
+
+   IT BORROWS triageTiles, THE ONE READING. Home draws the same four tiles from
+   the same function, so the two surfaces can never disagree about what was
+   found; only the drawing differs.
+
+   NO ACTS ON IT, DELIBERATELY. Home's card carries three, and every one of them
+   exists to get you TO the contract — you are on it. The brief's own button is
+   an inch below this strip, the standards and the risk are a tab away on the
+   card that owns them, and a second door onto an act that already has one is
+   the drift this rulebook opens by warning about. What it carries is the one
+   thing that is not available elsewhere: a way to put it away.
+
+   AND IT GOES WHEN THE READING IS ACKNOWLEDGED, on Home's own rule and off
+   Home's own stamp — one fact, one state, so dismissing it in either place
+   dismisses it in both. An always-there strip is furniture, and the readings
+   themselves live on in their own cards for good. */
+function ktTriageStripHtml(c){
+  if(!c||typeof triageTiles!=='function'||typeof triageOf!=='function') return '';
+  const t=triageOf(c); if(!t) return '';
+  if(typeof triageSeen==='function'&&triageSeen(c)) return '';
+  const tiles=triageTiles(c).map(x=>{
+    const tone=x.ok?((x.count!=null&&x.count>0)?'is-warn':'is-ok'):'is-no';
+    const mark=x.ok?((x.count!=null&&x.count>0)?String(x.count):'&#10003;'):'&mdash;';
+    return `<div class="kt-tri-tile">
+      <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(x.headKey))}</div>
+      ${x.detail?`<div class="kt-tri-td">${esc(x.detail)}</div>`:''}
+    </div>`; }).join('');
+  const read=(typeof triageReadAnything==='function')?triageReadAnything(c):true;
+  return `<section id="kt-triage" class="kt-tri${read?'':' is-no'}">
+    <div class="kt-tri-head">
+      <span class="kt-tri-t">${esc(i18t(read?'tri_kt_head':'tri_kt_head_no'))}</span>
+      <button type="button" id="kt-tri-done" class="kt-tri-x"
+        title="${esc(i18t('tri_kt_done_title'))}">${esc(i18t('tri_kt_done'))}</button>
+    </div>
+    <div class="kt-tri-tiles">${tiles}</div>
+  </section>`;
+}
 /* Repaint the panel from the record — after an edit, so the read-out beside a
    field agrees with what was just typed. */
 function renderKeyTerms(c){
@@ -3916,6 +3965,24 @@ function renderKeyTerms(c){
   const ktEditable=c.status!=='Signed'&&canEdit()&&!PORTAL_MODE;
   host.innerHTML=ktTermsRowsHtml(c,{editable:ktEditable});
   wireKtRows(c); wireKeyTerms(c);
+  /* The strip is OUTSIDE #kt-rows, so it needs its own paint — and this
+     function is what auto-triage's onStep already calls as each reading lands,
+     which is what makes the tiles fill in under the reader rather than after a
+     reload. */
+  paintKtTriage(c);
+}
+/* Fills the slot, and is the ONE place the strip is drawn or wired: called on
+   arrival and again on every reading that lands. Wiring on each paint is right
+   here — the markup it binds to is the markup this call has just written. */
+function paintKtTriage(c){
+  const slot=document.getElementById('kt-triage-slot'); if(!slot) return;
+  slot.innerHTML=ktTriageStripHtml(c);
+  const b=document.getElementById('kt-tri-done'); if(!b) return;
+  b.addEventListener('click',()=>{
+    /* AN ACT, never a render: the strip goes because somebody pressed it. */
+    if(window.triageAck) triageAck(c);
+    slot.innerHTML='';
+  });
 }
 /* ---- THE QUOTES WENT BACK WHERE THEY WERE FOUND (2026-08-11) ----
    Key terms used to reprint, under "READ FROM THE DOCUMENT", the wording the
@@ -6505,6 +6572,12 @@ function renderWorkspace(){
          the dates can be set, which is a poor reason to be hard to find.
          Editable until the seal binds them. -->
     <div data-ws-pane="terms" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      ${''/* A SLOT, NOT THE STRIP ITSELF. The room is rendered BEFORE the
+             readings run — submitUpload puts the contract on screen and only
+             then starts them — so interpolating the strip here draws nothing
+             and leaves no element for the paint to replace. The product's own
+             answer to exactly this is a slot and a painter (#ws-tabrow-end). */}
+      <div id="kt-triage-slot"></div>
       <div class="terms-grid">
       ${''/* align-self is gone from BOTH columns, which is what squares them
              off: left to itself each card was only as tall as its contents, so
@@ -6635,6 +6708,7 @@ function renderWorkspace(){
     }).catch(()=>{});
   }
   wireKeyTerms(c);
+  paintKtTriage(c);
   wireActionBar(c);
   wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
   wireDocCopilotSel(c);   // highlight → the two-action Copilot menu (reading aids, never edits)
@@ -8525,7 +8599,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
