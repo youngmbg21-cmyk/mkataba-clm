@@ -10901,6 +10901,261 @@ could-not-read card, whose own title is check 6d. Every driven half is guarded,
 so a build without the feature REPORTS its failures rather than stopping at the
 fourth)**.
 
+## THE OVERNIGHT DESK — THREE KINDS OF PREPARED WORK (owner-ruled 9 Sep 2026)
+
+Idea 19 from the owner's own artifact, the one it labels the flagship:
+*"HaTi prepares work overnight and you review it in the morning ... Every row is
+a proposal with Review and Discard. Nothing files or sends without a person — it
+is a stack of drafts, not a robot."*
+
+**FIVE KINDS IN THE DRAWING BECAME THREE, owner-ruled, and the two that went are
+the two that were already somewhere.** Briefs for unread contracts are the
+Copilot coverage tile on that same page; an obligation nobody owns is what the
+Insights obligations tab is built to report. What survives is the three where
+**something outside the building is affected and a clock is running** — a
+renewal closing, a promise they are late on, and paper they sent that nobody has
+read. Nothing was removed from the product; what changed is which three are
+pushed at the reader in the morning.
+
+- **THREE KINDS, NOT THREE ROWS, and the difference is the whole reason three is
+  safe.** Ranked as one flat list of the best three, a quiet kind loses every
+  single morning — a renewal 43 days out and a supplier four days late will
+  always outrank the third thing, so it would never draw at all. `deskShown`
+  takes **at most one of each**, so every kind that has something is on screen
+  and none can be crowded out. **The ceiling is three, never a quota**: a kind
+  with nothing in it draws nothing at all, so a morning with no late supplier is
+  a desk of two, and a quiet week one of nothing.
+
+- **AND THE SUB-LINE COUNTS THE ROWS ON SCREEN — REVERSED IN PLACE 9 Sep 2026**
+  (Young: *"keep it as it is but remove the '2 out of 9' because i have no
+  ability to see the rest of the 9"*). It said *"9 things … showing 2 of 9"* on
+  the reasoning that **a cap is a FACT, never a silent trim**. **THAT RULE IS
+  NARROWED RATHER THAN BROKEN, and the narrowing is worth having**: it exists so
+  a reader is never handed a slice dressed as the whole, and it assumes the fact
+  is ACTIONABLE — a count with a door onto the rest, or a figure that explains a
+  number beside it. Here there is no door: nothing on the page and nothing
+  anywhere opens the other seven, so the number was a promise the page could not
+  keep. **WHAT MAKES IT SAFE is that the desk is a STACK rather than a queue** —
+  every held-back item is still exactly where it always was (the renewals in
+  *Needs your decision*, the late promises on the Obligations worklist, what
+  HaTi read on the contract), and discarding a row lets the next step into the
+  slot. `desk_showing` is STALE and left inert in both books; the day the desk
+  grows a door onto the rest, it comes back with it.
+  **DISCARD ALL STILL PUTS AWAY THE WHOLE POPULATION**, which is the one place
+  it is still acted on: discard only what is drawn and the held-back ones step
+  straight into the empty slots, so the button would appear to do nothing. Its
+  confirm simply stopped naming a count — a dialog is the wrong place to
+  introduce a number the page has deliberately stopped mentioning.
+
+- **ONE DOOR, AND THE OWNER'S OWN QUESTION IS WHAT FOUND IT** — *"what is the
+  difference between the 3 or 5 things compared to the 'needs your decision' on
+  home page?"* **A renewal inside 90 days is ALREADY a row in that list, at
+  exactly this window.** Drawn naively the same contract would say the same
+  thing twice, twelve pixels apart. So a contract the desk has prepared a
+  renewal for LEAVES that list — and **only the renewal source is filtered**,
+  because a colleague waiting on your review is a different subject that
+  happens to share a contract and dropping that row would lose it.
+  **`deskCids` READS THE ROWS ON SCREEN — REVERSED IN PLACE 9 Sep 2026**, off
+  the owner's own reading of the sub-line: *"it says 2 of 9 but does it mean
+  copilot prepared 9 in total and if so, where is the rest of the 9?"* It was
+  handed the WHOLE list, on the reasoning that a renewal held back by the cap
+  "is still one the desk is going to offer". **THE CONCLUSION DID NOT FOLLOW
+  FROM THE PREMISE**: the desk draws at most ONE renewal, so on a book with
+  five due, one was on the desk and the other four were struck out of *Needs
+  your decision* and appeared **nowhere** — Home showing LESS than before the
+  feature existed, which is this rule's own fault running backwards. Only what
+  is DRAWN may evict anything; the cost is that a renewal leaves the list below
+  on the morning it is promoted, which is the point of promoting it.
+  **THE TWO SECTIONS NOW MEAN DIFFERENT THINGS** — *Prepared for you* is what
+  HaTi did, *Needs your decision* is what only the reader can do — and as HaTi
+  learns to prepare more kinds, a row migrates UPWARD out of the second list.
+
+- **IT IS A READING. NO STORE BEYOND ONE STAMP, NO ROUTE, NO SWEEP, NO SPEND.**
+  Every qualifying test is one of the product's own predicates —
+  `renewalWindow`, `obState`, `obligationIsTheirs`, `triageOf` — answered off
+  `state.contracts`, which is the caller's own folder-scoped bootstrap, so the
+  scope holds by construction. f274 greps js/desknight.js for `api(`, `fetch(`
+  and `ai/`: **there must never be a route**, because how far behind a company
+  is on its own promises is that workspace's business. It draws nothing either
+  (the Insights panels' rule) — js/views/home.js composes every sentence.
+
+- **WHAT IS DELIBERATELY NOT BUILT, and it is the half the owner has not ruled
+  on: HaTi does not WRITE the renewal memo while nobody is watching.** That is
+  the one preparation here that costs a Copilot call with no person behind it,
+  and this codebase's own rule is that a metered call naming nobody is spending
+  that counts against nobody. So the renewal row carries the facts HaTi is
+  certain of — the decision date, the notice period it read out of the wording,
+  the deviations already found — plus the memo where one is already on the
+  record, and **Review opens the card where the memo is written on a real
+  person's press.** The drafted amendment in the approved drawing is not built
+  either, and for the same reason. Both are a small addition the day the owner
+  rules on unattended spend.
+
+- **AND THE HEADER CLAIMS NO CLOCK TIME.** The drawing says *"finished 05:40"*;
+  HaTi does not yet do anything while nobody is watching, so that header would
+  be the page inventing a night shift — the "sent must mean sent" rule applied
+  to a claim about work. It says **"Prepared for you"** and, under it, the half
+  that IS true and that the whole desk rests on: **nothing was sent or filed.**
+  f274 fails on a clock time or the word *overnight* appearing in that heading.
+
+- **DISMISSED IS DISMISSED.** `c.desk` is a map from row key to the day it was
+  put away, ABSENT on every record already on file — the whole migration story.
+  A row put away does not come back tomorrow, because the desk is a stack
+  prepared once rather than a queue that nags, and **nothing is lost by putting
+  one away**: the renewal is still in Needs your decision and on the Calendar,
+  the late promise is still on the Obligations worklist, and what HaTi read is
+  still on the contract. The key names the OBLIGATION where a contract can carry
+  several, so putting one late promise away leaves the other.
+
+- **NOT ONE OF THE ACTS IS A NEW WAY OF DOING ANYTHING.** Send presses
+  `obligationChase` — the product's one chase, with its own confirm, its own
+  record-before-the-message ordering and its own three honest answers. Open
+  presses `openWorkspace` + `roomGoTab`, the worklist's own two lines, landing
+  on the tab the row is about (a late promise on Obligations, the other two on
+  Key terms). Discard writes the stamp and touches nothing else.
+
+- **A VERB THAT CANNOT WORK IS NOT DRAWN.** With no counterparty address on
+  file no message can go, so the row offers the contract instead — where the
+  address is typed — and says why on the row rather than leaving it to be
+  discovered after the press.
+
+- **THE DEVIATIONS ROW IS A POINTER, NOT AUTO-TRIAGE'S CARD COMING BACK.** That
+  card is four tiles and lives on the contract, owner-ruled 9 Sep; this is ONE
+  row saying a contract arrived with something in it, and pressing it goes
+  there. It exists because of the gap that ruling left — upload a contract, walk
+  away, and nothing ever mentions it again — and **it qualifies only where
+  nobody has looked**, so acknowledging the strip on the contract clears it too:
+  one fact, two ways to say yes.
+
+- **THE TAG CARRIES THE URGENCY AND THE META CARRIES THE FACTS**, never both.
+  Drawn the first way round the row read *"Quarterly volume report · 4 days
+  late"* beside a tag saying *"4 days"* — one fact twelve pixels apart, which is
+  what this rulebook keeps warning about. **Found by reading the rendered rows
+  rather than the source**, which is the same check that caught the triage
+  card's own self-contradiction.
+
+- **`fmtDDay` WAS LIFTED TO ONE DEFINITION the day the desk became its second
+  reader** — it was declared inside `hmDashSlices` and returned, which is fine
+  for one caller and is how two would come to print one date two ways on one
+  page. **NEVER `fmtDocDate` here**: that is the DOCUMENT's formatter and writes
+  English months from a fixed list whatever language the reader chose, which is
+  right on a contract and wrong on a screen.
+
+- **A STAGE'S STUB MUST USE THE PRODUCT'S OWN ARITHMETIC.** The real `daysUntil`
+  **ceils**, so a date due TODAY answers 0 and is not yet overdue; stubbed with
+  `Math.round` it answers -1 from midday onward, an obligation due this morning
+  reads as a day late, and the claim about that boundary would be describing the
+  stub. Caught because the claim failed. (The register option's own stub still
+  rounds — noticed, not fixed.)
+
+- **NOT ON THE PHONE, and that is deliberate rather than forgotten.** That
+  shell draws its own Home and its own `mNeedsYou`; auto-triage's card is not on
+  it either, for the same reason — the desk's acts send a message and open a
+  contract's tab, and the phone files nothing. The owner asked for Home.
+
+Tests: f274 (78 — the three kinds, every qualifying test and its refusal, the
+one-per-kind cap proved against a book full of one kind, dismissal, the one-door
+reading, no route and no writes, and both languages; **the file cannot even load
+against the parent, because the reading does not exist there**),
+home-page-verify sections 11a-11l (12, browser — **8 of them fail against the
+parent, the headline one reporting the owner's own overlap verbatim:
+`desk false · decisions true`**. It is the only place four of these can be
+asked: whether the section is VISIBLE PIXELS rather than markup behind
+something, whether it sits above the reader's own list, whether a real press
+puts a row away, and whether a contract is listed once. **11a and 11l are
+CONTROLS that pass either way** — an empty book must draw no desk at all, and
+dismissing the desk's renewal must put that same contract INTO the decisions
+list, which is what proves 11h was a filter rather than an empty list).
+
+## THE RENEWAL NOTE IS WRITTEN BEFORE ANYBODY ARRIVES (Young ruled 9 Sep 2026)
+
+*"why cant we build the overnight feature then?"* — and the answer was that ONE
+DECISION was missing rather than one night's code. Put to them: two of the
+desk's three kinds are INSTANT READINGS (counting a late promise or unread
+paper at 3am gives the same rows as counting them when Home opens, so overnight
+buys nothing but the word); the one genuinely prepared piece of work is HaTi
+writing the renewal memo; and that is the only thing on the desk that spends
+Copilot money with nobody pressing a button. **Young ruled who pays: "the
+person whose contract it is."**
+
+- **THE OWNER PAYS, AND THAT IS THE WHOLE FEATURE IN ONE LINE.** `meter.who` is
+  built from `c.owner` rather than from a request — f203's rule is that a
+  metered call naming nobody is spending that counts against nobody, and it
+  surfaces in the admin panel's `unattributed` figure.
+- **SO A CONTRACT WITH NO OWNER IS NOT PREPARED.** Imported and uploaded paper
+  has no owner and never will (`contractOwnerStamp`'s own note), and preparing
+  it would be exactly the unattributed spend the ruling exists to prevent.
+  **Nothing is lost**: the desk row still stands with the facts HaTi is certain
+  of, and Review still writes the memo on a real person's press.
+- **THE WORKING CORE IS LIFTED OUT OF ITS ROUTE** — `renewalSignalsOf` and
+  `aiRenewalAdvice`, `aiPlaybookVerdicts`' own shape for its own reason: two
+  copies of *what the renewal advice IS* is how the card a person runs and the
+  card waiting in the morning come to say different things. The route keeps its
+  own middleware, validation, errors and cache, and f219 proves it unchanged.
+  **`doc` comes IN rather than being read inside**, so the route goes on marking
+  its own request as capped while the sweep passes `aiDocText(null, …)`.
+- **ONCE PER RENEWAL CYCLE, NOT ONCE A NIGHT.** The signals carry
+  `daysToDecision`, which moves every day, so the advice CACHE cannot bound this
+  — its hash changes nightly and every contract would re-run every night. The
+  dedupe is the reminders table, the daily brief's own mechanism, keyed on the
+  DECISION DATE: prepared once when a contract enters the window, again only if
+  the term moves under it. **The row is written only on a call that succeeded
+  and was not cut short**, so a provider failure is retried tomorrow rather than
+  silently marking the cycle done.
+- **THREE BOUNDS, AND THE FIRST IS THE ONE THAT USUALLY DOES NOT EXIST HERE.**
+  `aiBudgetGuard` is MIDDLEWARE and this has no request, so the workspace's own
+  daily spend ceiling is asked BY HAND before every call and the whole run stops
+  when it bites — a night that quietly spent the next morning's budget would be
+  worse than no preparation at all. Then a nightly cap (`aiRenewalPrepMax`), so
+  a workspace that has just migrated four hundred contracts does not wake up to
+  four hundred calls. Then the switch.
+- **IT IS STOPPABLE FROM A SCREEN.** `aiRenewalPrep` on the Copilot engine
+  panel, **absent meaning ON** — the whole migration story. Money spent with
+  nobody pressing anything must be refusable by somebody, and the row says who
+  the charge is booked to.
+- **IT WRITES NOTHING TO THE CONTRACT RECORD.** The advice has its own table, so
+  the sealed record a renewal question is always about is never touched —
+  `aiNoteRead`'s own lesson, which is what made this safe to run unattended at
+  all. No audit line, no version bump.
+- **IT RIDES THE SAME TIMER AS THE OTHER TWO SWEEPS, UNDER ITS OWN CATCH** with
+  its own admin-visible outbox note — the third application of the M-6 lesson,
+  and why all three are written out rather than looped. It is the only one that
+  is ASYNC, so it is started and left to finish: a renewal memo may never delay
+  a renewal reminder.
+
+**AND THE DESK COULD NOT HAVE SEEN IT — a defect in the desk shipped that
+morning, found by building this.** Home reads `state.contracts`, which in server
+mode is the LIGHT list, and `_renewalAdvice` is transport attached only by a
+single contract's own GET. So *"renewal note ready"* was right in local mode and
+**could never draw in production** — the recorded defect class, after the
+dashboard's raised-by-me and Reports' cycle time. **`_renewalPrep` is the list's
+twin**, `_hasBrief`'s own shape: ONE query for the whole page, a WORD and not
+the memo, and the word says WHICH — `'night'` where HaTi prepared it unprompted,
+`'you'` where somebody ran it. The desk asks the list's word FIRST and falls
+back to the whole record, so it is right in both modes; stripped on save like
+its two neighbours.
+
+**THE HEADER STILL CLAIMS NO CLOCK TIME, and that is a deliberate refusal of the
+word the owner asked about.** *Prepared for you* is true of all three rows;
+*Prepared overnight* would be true of at most one, since the other two are
+instant readings that were never prepared at all. **The fact went on the ROW
+instead** — `desk_ren_ready`, "memo prepared for you", against `desk_ren_memo`
+for one somebody ran — which is the cheapest channel that carries it and the
+place it is actually true. One word changes the header if the owner rules that
+way.
+
+**NOT BUILT, said out loud:** nothing else on the desk is prepared unattended
+(the drafted amendment named in the desk's own section stays unbuilt), the two
+instant kinds are untouched, and the counterparty's page is not involved at all.
+
+Tests: f275 (23 — **21 of them fail against the parent**; the owner named by the
+spend ledger against a real server with a scripted provider, the no-owner
+refusal, the three other refusals, the once-per-cycle dedupe, all three bounds
+each proved to BITE, the record proved untouched, and the desk read end to end),
+f219 unchanged at 17 (the route's behaviour is the condition on the lift),
+settings-tabs-verify (68 — the switch measured as VISIBLE PIXELS, because a
+source check cannot see whether a row draws).
+
 ## WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (owner-asked 9 Sep 2026, ideas 22 & 23)
 
 *"implement 23 and 22 but for 23, do not delete the where I have to enter the
@@ -11030,7 +11285,7 @@ ITSELF**, paid for again here: the file press did nothing, three diagnoses chase
 the product, and an isolated probe showed the whole chain working on a fresh
 page. Section 28 reloads and stages its own ground.
 
-Tests: f274 (50 — the funnel's own settle first as the CONTROL, the five
+Tests: f276 (50 — the funnel's own settle first as the CONTROL, the five
 outcomes, the hash, the cap, no route and no drawing, both readings, the three
 recording surfaces and both languages), clause-editor-verify section 28 (6,
 browser — the only place the `window.` guards can be shown to FIRE: a card

@@ -4214,11 +4214,11 @@
      indistinguishable from its neighbours, and open it is the only one that
      carries what it found. Written HERE beside .hm-row rather than inside the
      page, because it IS one of these rows and two places would drift. */
-  .hm-row.is-tri{display:block;cursor:default;}
-  .hm-row.is-tri:hover{background:none;}
+  .hm-row.is-tri,.hm-row.is-desk{display:block;cursor:default;}
+  .hm-row.is-tri:hover,.hm-row.is-desk:hover{background:none;}
   .hm-row.is-tri-ok{border-left-color:var(--color-accent-600);}
   .hm-row.is-tri-ok .hm-rtag{color:var(--accent-ink);}
-  .hm-tri-head{display:flex;align-items:center;gap:var(--s-3);min-height:26px;}
+  .hm-tri-head,.hm-desk-head{display:flex;align-items:center;gap:var(--s-3);min-height:26px;}
   .hm-tri-fold{flex:none;border:0;background:none;padding:2px 4px;cursor:pointer;
     color:var(--color-neutral-500);font:inherit;font-size:var(--t-label);line-height:1;}
   .hm-tri-fold:hover{color:var(--color-text);}
@@ -4270,7 +4270,7 @@
   .hm-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .hm-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .hm-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
-  .hm-tri-acts{display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap;}
+  .hm-tri-acts,.hm-desk-acts{display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap;}
   .hm-tri-b{display:inline-flex;align-items:center;justify-content:center;
     min-height:var(--ctl-h);padding:0 12px;font:inherit;font-size:var(--t-body);
     font-weight:var(--w-strong);border-radius:var(--radius);cursor:pointer;
@@ -4279,6 +4279,17 @@
   .hm-tri-b.is-p{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill);}
   .hm-tri-b.is-plain{border-color:transparent;color:var(--color-neutral-500);}
   .hm-tri-b:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px;}
+  /* ---- THE OVERNIGHT DESK (idea 19, owner-ruled 9 Sep 2026) ----
+     A row of the same family as the list below it, so the two read as one
+     page: same .hm-row shell, same 3px left rule, same tone vocabulary. It
+     borrows triage's act row rather than declaring a second one that agrees
+     today — ONE RULE, TWO WEARERS, which is why both names are on the
+     selectors above rather than in two blocks that would drift.
+     THE SUB-LINE IS A FACT, NOT A WARNING: it counts what is prepared and says
+     plainly that nothing was sent or filed, so it takes the label shade and no
+     tone of its own. */
+  .hm-desk-sub{font-size:var(--t-label);color:var(--color-neutral-500);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   .hm-empty{background:var(--color-surface);border:1px solid var(--color-divider);
     padding:18px 14px;font-size:var(--t-meta);color:var(--color-neutral-500);}
 

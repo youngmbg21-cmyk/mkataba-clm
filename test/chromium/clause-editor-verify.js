@@ -2987,7 +2987,7 @@ const dismissNote = async pg => {
      `page ${s27h.page} · dialog ${s27h.dialog}`);
 
   /* ---- 28. WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (ideas 22 & 23) ----
-     The reading and the funnel are proved in f274. What only a browser can
+     The reading and the funnel are proved in f276. What only a browser can
      answer is whether the RECORDING is reached at all on a real page: a card
      carries its entry, the Apply press stamps what the draft became, and the
      funnel then settles it. Every one of those is a `window.` guard that would

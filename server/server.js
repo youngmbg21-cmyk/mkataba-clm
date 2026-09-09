@@ -2528,6 +2528,27 @@ app.get('/api/contracts', auth, (req, res) => {
     const have = new Set(db.prepare('SELECT contract_id FROM briefs').all().map(x => x.contract_id));
     rows.forEach(c => { if (have.has(c.id)) c._hasBrief = true; });
   }
+  /* ---- AND WHETHER A RENEWAL NOTE IS WAITING (9 Sep 2026) ----
+     The overnight desk on the home page says a renewal note is ready — and it
+     reads state.contracts, which in server mode is this light list. The advice
+     itself is transport off its own table and is attached only by the single
+     contract's GET, so a desk built on _renewalAdvice alone was right in local
+     mode and BLIND in server mode: the line could never draw in production.
+     Exactly the shape of _hasBrief above, and of the two defects this file
+     already records (the dashboard's raised-by-me, Reports' cycle time).
+
+     A WORD, NOT THE MEMO, and the word says WHICH: 'night' where HaTi prepared
+     it unprompted, 'you' where somebody ran it. The desk says so on the row,
+     because a note that was waiting for you and one you asked for are different
+     facts. ONE query for the whole page — only contracts carrying advice are in
+     that table at all, so it is a short read however long the register is. */
+  if (rows.length) {
+    const adv = new Map();
+    for (const r of db.prepare('SELECT contract_id, json FROM renewal_advice').all()) {
+      try { const a = JSON.parse(r.json); if (a && a.data) adv.set(r.contract_id, a.overnight ? 'night' : 'you'); } catch (_) {}
+    }
+    rows.forEach(c => { const v = adv.get(c.id); if (v) c._renewalPrep = v; });
+  }
   res.json({ total, offset, limit, rows });
 });
 
@@ -3827,6 +3848,8 @@ app.get('/api/ai/config', auth, (req, res) => {
       maxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
       ocrMaxPages: intSetting('ocrMaxPages', 'OCR_MAX_PAGES', 30),
       thoroughExtract: !!getSetting('aiThoroughExtract'),
+      renewalPrep: renewalPrepOn(),        // HaTi writes the renewal note unasked
+      renewalPrepMax: renewalPrepMax(),    // how many in one run
     },
     rates: aiRates(),
     ratesMeta: { verifiedOn: AI_RATES_VERIFIED_ON, edited: aiRatesEdited(), unit: 'USD per million tokens',
@@ -3927,7 +3950,7 @@ app.post('/api/ai/allowance/document', auth, editor, (req, res) => {
 app.put('/api/ai/config', auth, admin, (req, res) => {
   const { key, model, modelFast, modelDeep, clear,
     rateLight, rateDeep, rateOcr, dailyLimit, maxChars, docChars, maxContracts,
-    dailySpendLimit, estimateConfirmAt, ocrMaxPages, thoroughExtract, rates } = req.body || {};
+    dailySpendLimit, estimateConfirmAt, ocrMaxPages, thoroughExtract, renewalPrep, renewalPrepMax, rates } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
   // Validate every supplied model string before storing; a blank clears that
@@ -3971,6 +3994,12 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   setMoney('aiDailySpendLimit', dailySpendLimit);
   setMoney('aiEstimateConfirmAt', estimateConfirmAt);
   if (thoroughExtract !== undefined) setSetting('aiThoroughExtract', !!thoroughExtract);
+  /* Whether HaTi prepares renewal notes before anybody asks, and how many in
+     one run. This is the only thing in the product that spends Copilot money
+     with nobody pressing a button, so it has to be stoppable from a screen —
+     absent means ON, which is the whole migration story. */
+  if (renewalPrep !== undefined) setSetting('aiRenewalPrep', !!renewalPrep);
+  setNum('aiRenewalPrepMax', renewalPrepMax, 1);
   // Rate table: {model: {in, out}} in USD per million tokens. Sending {} resets
   // it to the built-in defaults so an admin can always get back to a known state.
   if (rates !== undefined) {
@@ -5013,16 +5042,23 @@ app.patch('/api/intake/:id', auth, (req, res) => {
    beside it goes through createAmendment exactly as a human-started
    renewal always has. Cached per contract like the brief, in its own table,
    keyed on the signals + wording so it regenerates when the facts move. */
-app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudgetGuard, capAiInput, async (req, res) => {
-  const { id, force } = req.body || {};
-  if (!id) return res.status(400).json({ error: 'id is required' });
-  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
-  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
-  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
-  // the family-aware term, read the same way both sweeps read it
-  const kids = db.prepare('SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE parent_id=? OR id=?').all(String(id), String(id));
-  const parsed = new Map();
-  for (const r of kids) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+/* ---------- THE RENEWAL RECOMMENDATION, LIFTED OUT OF ITS ROUTE (9 Sep 2026)
+   The working core — the signals, the prompt, the deep-tier call, the parse and
+   the cache write — is lifted out of the route below so that BOTH doors reach
+   it: a person pressing "Start the renewal", and runRenewalPrep(), the nightly
+   preparation that writes the same memo before anybody arrives. That is
+   aiPlaybookVerdicts' own shape a few hundred lines down, for its own reason:
+   two copies of "what the renewal advice IS" is how the card a person runs and
+   the card waiting for them in the morning come to say different things. The
+   route's own behaviour is unchanged — same middleware, same validation, same
+   errors, same cache, same response.
+
+   WHO PAYS RIDES IN AS meter.who AND IS NEVER GUESSED HERE. On the route it is
+   the person who pressed (aiWho); overnight it is the CONTRACT'S OWNER (Young
+   ruled it 9 Sep 2026: "the person whose contract it is"). A metered call that
+   names nobody is spending that counts against nobody — f203's rule — so a
+   caller with nobody to name must not call at all rather than pass null. */
+function renewalSignalsOf(id, full, kids, parsed) {
   const me = kids.find(r => r.id === String(id)) || { id: String(id), expiry: full.expiry, parent_id: full.parentId || null };
   const { eff } = effExpiryReader(kids, parsed);
   const expiry = dateOnly(eff(me));
@@ -5036,7 +5072,7 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
   const overdue = openObs.filter(o => { const d = dateOnly(o.due); return d && daysTo(d) < 0; });
   const pb = full.playbook && Array.isArray(full.playbook.verdicts) ? full.playbook.verdicts : [];
   const money = fxHome({ value: full.value, metadata: meta });
-  const signals = {
+  return {
     name: full.name || String(id), counterparty: full.counterparty || '', status: full.status || '',
     expiry, noticePeriodDays: notice, decideBy, daysToDecision: daysTo(decideBy),
     daysToExpiry: daysTo(expiry), renewalType: meta.renewalType || 'unknown',
@@ -5050,13 +5086,14 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
     openObligations: openObs.length, overdueObligations: overdue.length,
     amendments: kids.filter(r => r.parent_id === String(id)).map(r => ({ name: r.name, status: r.status })),
   };
-  const inputHash = sha(JSON.stringify(signals));
-  const prev = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(String(id));
-  if (prev && !force) {
-    try { const a = JSON.parse(prev.json); if (a.inputHash === inputHash) return res.json({ advice: a, cached: true }); } catch (_) {}
-  }
-  const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+}
+/* `doc` comes IN rather than being read here, so the route can go on marking
+   its own request as capped (aiDocText(req, ...) is what feeds aiNotice) while
+   the sweep, which has no request to mark, passes aiDocText(null, ...).
+   `overnight` is stamped on the stored advice — ABSENT on every advice already
+   written, which is the whole migration story — so the desk can say whether the
+   memo was waiting when the reader arrived or was run by somebody. */
+async function aiRenewalAdvice(key, { id, signals, doc, by, overnight }, meter) {
   const tool = {
     name: 'renewal_advice',
     description: 'Recommend what to do about an agreement coming up for renewal.',
@@ -5075,20 +5112,46 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
       required: ['verdict', 'headline', 'because'],
     },
   };
-  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${aiDocText(req, contractFullBody(full))}`;
+  const prompt = `You are advising a business owner on an agreement coming up for renewal, under ${orgJx().adjective} law. Recommend renew, renegotiate or lapse, using ONLY the SIGNALS below and the wording — every date and figure there is computed from the record, so use them as given and never restate a date differently. Where the signals are too thin to justify a recommendation, answer 'unclear' and say what is missing rather than guessing. Do not draft any wording. Plain, everyday sentences.\n\nSIGNALS:\n${JSON.stringify(signals)}\n\nDOCUMENT:\n${doc}`;
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: (meter && meter.who) || null });
+  if (!resp.ok) return { ok: false, resp };
+  const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+  if (!block) return { ok: false, resp, noResult: true };
+  /* Same rule as the contract brief: a cut-short recommendation is not written
+     to the cache, or every later read serves it as complete. */
+  const advice = { v: 1, at: now(), by: by || '', inputHash: sha(JSON.stringify(signals)), signals,
+    truncated: !!resp.truncated, data: block.input || {} };
+  if (overnight) advice.overnight = true;
+  if (!resp.truncated)
+    db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(advice), now());
+  return { ok: true, resp, advice };
+}
+
+app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) {}
+  // the family-aware term, read the same way both sweeps read it
+  const kids = db.prepare('SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE parent_id=? OR id=?').all(String(id), String(id));
+  const parsed = new Map();
+  for (const r of kids) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const signals = renewalSignalsOf(String(id), full, kids, parsed);
+  const inputHash = sha(JSON.stringify(signals));
+  const prev = db.prepare('SELECT json FROM renewal_advice WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try { const a = JSON.parse(prev.json); if (a.inputHash === inputHash) return res.json({ advice: a, cached: true }); } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'renewal_advice' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'renewal', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
-    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    /* Same rule as the contract brief above: a cut-short recommendation is not
-       written to the cache, or every later read serves it as complete. */
-    const advice = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash, signals,
-      truncated: !!resp.truncated, data: block.input || {} };
-    if (!resp.truncated)
-      db.prepare('INSERT INTO renewal_advice (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-        .run(String(id), JSON.stringify(advice), now());
-    res.json({ advice, ...aiNotice(req, resp) });
+    const r = await aiRenewalAdvice(key, { id: String(id), signals, doc: aiDocText(req, contractFullBody(full)),
+      by: (req.user && req.user.name) || '' }, { who: aiWho(req) });
+    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!r.ok) return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    res.json({ advice: r.advice, ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -9818,6 +9881,106 @@ function runDailyBriefs() {
   return { day, sent };
 }
 app.post('/api/daily-brief/run', auth, admin, (req, res) => res.json(runDailyBriefs()));
+
+/* ---------- HaTi PREPARES THE RENEWAL NOTE OVERNIGHT (Young ruled 9 Sep 2026)
+   ----------
+   "why cant we build the overnight feature then?" — and the answer was that ONE
+   DECISION was missing rather than one night's code. Two of the desk's three
+   kinds are instant readings: counting a late promise or unread paper at 3am
+   gives the same three rows as counting them when Home opens, so overnight
+   would buy nothing but the word. The one genuinely PREPARED piece of work is
+   HaTi writing the renewal memo — and that is the only thing on the desk that
+   spends Copilot money with nobody pressing a button. Every charge in this
+   product is booked to the person who set it off (f203: a metered call naming
+   nobody is spending that counts against nobody, and it surfaces in the admin
+   panel's `unattributed` figure). Young ruled who pays: THE PERSON WHOSE
+   CONTRACT IT IS.
+
+   SO A CONTRACT WITH NO OWNER IS NOT PREPARED. Imported and uploaded paper has
+   no owner and never will — contractOwnerStamp's own note — and preparing it
+   would be exactly the unattributed spend the ruling exists to prevent. Nothing
+   is lost: the desk row still stands with the facts HaTi is certain of, and
+   Review still writes the memo on a real person's press.
+
+   ONCE PER RENEWAL CYCLE, NOT ONCE A NIGHT. The signals carry daysToDecision,
+   which moves every day, so the advice CACHE cannot bound this — its hash
+   changes nightly and every contract would be re-run every night. The dedupe is
+   the reminders table, the daily brief's own mechanism, keyed on the DECISION
+   DATE: a contract is prepared once when it enters the window, and again only
+   if the term moves under it (a signed amendment changes decideBy). One call
+   per contract per renewal is the honest cost. The row is written only on a
+   call that SUCCEEDED and was not cut short, so a provider failure is retried
+   tomorrow rather than silently marking the cycle done.
+
+   IT RESPECTS THE WORKSPACE'S OWN CEILING. aiBudgetGuard is middleware and this
+   has no request, so the daily spend ceiling is asked HERE before every call
+   and the whole run stops when it bites — a night that quietly spent the next
+   morning's budget would be worse than no preparation at all. The nightly cap
+   bounds it besides, so a workspace that has just migrated four hundred
+   contracts does not wake up to four hundred calls.
+
+   IT WRITES NOTHING TO THE CONTRACT RECORD. The advice has its own table, so a
+   sealed record is never touched — aiNoteRead's own lesson, and it is what
+   makes this safe on the executed paper a renewal question is always about. */
+const RENEWAL_PREP_DAYS = 90;   // the desk's own window — RENEWAL_WINDOW_DAYS
+const RENEWAL_PREP_MAX = 20;    // one night's ceiling, before the money ceiling
+const renewalPrepOn = () => getSetting('aiRenewalPrep') !== false;   // absent = on
+const renewalPrepMax = () => intSetting('aiRenewalPrepMax', 'AI_RENEWAL_PREP_MAX', RENEWAL_PREP_MAX);
+async function runRenewalPrep() {
+  const out = { looked: 0, prepared: 0, skipped: {} };
+  if (!renewalPrepOn()) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const cap = renewalPrepMax();
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff } = effExpiryReader(rows, parsed);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => (iso ? Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000) : null);
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  for (const c of rows) {
+    if (out.prepared >= cap) { out.cap = true; break; }
+    const full = parsed.get(c.id) || {};
+    /* The same three refusals the desk's own reading makes, asked of the same
+       facts: the shelf stops nagging, an amendment never renews itself, and a
+       contract still being negotiated is not one anybody is renewing. */
+    if (full.archived) continue;
+    if (c.parent_id) continue;
+    if (full.status === 'Draft') continue;
+    if (!isExecutedRow(full)) { bump('notInForce'); continue; }
+    const expiry = dateOnly(eff(c));
+    if (!expiry) { bump('noTerm'); continue; }
+    const notice = Number((full.metadata || {}).noticePeriodDays) || 0;
+    let decideBy = expiry;
+    if (notice > 0) { const d = new Date(expiry + 'T00:00:00'); d.setDate(d.getDate() - notice); if (!isNaN(d.getTime())) decideBy = isoDay(d); }
+    const days = daysTo(decideBy);
+    if (days == null || isNaN(days) || days > RENEWAL_PREP_DAYS) continue;
+    out.looked++;
+    const owner = full.owner && full.owner.id ? full.owner : null;
+    if (!owner) { bump('noOwner'); continue; }
+    const rkey = `renewalprep:${c.id}:${decideBy}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('done'); continue; }
+    const ceiling = aiDailySpendLimit();
+    if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
+    const kids = rows.filter(r => r.id === c.id || r.parent_id === c.id);
+    const signals = renewalSignalsOf(c.id, full, kids, parsed);
+    try {
+      /* THE OWNER PAYS. Same shape as aiWho, built from the contract rather
+         than from a request — this is the whole of Young's ruling in one line,
+         and the reason a contract with no owner never reaches it. */
+      const r = await aiRenewalAdvice(key, { id: c.id, signals, doc: aiDocText(null, contractFullBody(full)),
+        by: owner.name || '', overnight: true },
+        { who: { id: String(owner.id), name: owner.name || String(owner.id) } });
+      if (r.ok && !r.resp.truncated) {
+        db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+        out.prepared++;
+      } else bump('failed');
+    } catch (e) { bump('failed'); }
+  }
+  return out;
+}
+app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(await runRenewalPrep()));
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -9863,6 +10026,23 @@ function reminderSweep() {
           'system', 'daily brief failure', now());
     } catch (_) {}
   }
+  /* THE RENEWAL PREPARATION RIDES THE SAME TIMER, under its OWN catch and with
+     its own admin-visible note — the third application of the M-6 lesson, and
+     the reason all three sweeps are written out rather than looped: no sweep
+     may take another down. It is the only one of the three that is ASYNC (it
+     waits on Copilot), so it is started and left to finish: a renewal memo must
+     never delay a renewal reminder. Its dedupe rows make a second run on the
+     same day a no-op, so the 12-hour beat costs nothing. */
+  Promise.resolve().then(runRenewalPrep).catch(e => {
+    const msg = (e && e.message) || String(e);
+    console.warn('[renewal-prep] sweep failed, no renewal notes were prepared this cycle:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('rp_' + rid(6), 'admin', 'Renewal notes were not prepared',
+          `HaTi could not prepare renewal notes this cycle, so any agreement coming up for renewal will have no note waiting on it.\n\nReason: ${msg}`,
+          'system', 'renewal prep failure', now());
+    } catch (_) {}
+  });
 }
 // Run once shortly after boot so the health line has a recent result, then every 12h.
 setTimeout(reminderSweep, 30 * 1000).unref?.();

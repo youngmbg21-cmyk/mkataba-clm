@@ -103,8 +103,16 @@ describe('F230 — the whole contract is read', () => {
     assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text \}/);
     assert.match(AI, /api\('ai\/brief','POST',\{ id:c\.id, text:String\(text\|\|''\), force/);
     assert.match(PLAYBOOK, /api\('ai\/playbook','POST',\{ text, playbook:pb/);
-    /* renewal is server-built and never had a browser half. */
-    assert.match(SERVER_CODE, /DOCUMENT:\\n\$\{aiDocText\(req, contractFullBody\(full\)\)\}/);
+    /* Renewal is server-built and never had a browser half — and since the
+       working core was lifted out of its route (9 Sep 2026) the wording is READ
+       at the route and HANDED to the builder, so the two halves are asserted as
+       the relation they are. Pinned as one literal interpolation this failed
+       the moment the same reading moved one function along, which is the
+       lesson the paragraph above already records. */
+    assert.match(SERVER_CODE, /doc: aiDocText\(req, contractFullBody\(full\)\)/,
+      'the route still reads the whole wording through the one capped reader');
+    assert.match(SERVER_CODE, /DOCUMENT:\\n\$\{doc\}/,
+      'and the prompt posts exactly what it was handed');
   });
 
   /* ---------- 2. the one ceiling ---------- */

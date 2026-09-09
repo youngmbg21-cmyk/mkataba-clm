@@ -10262,6 +10262,238 @@ home-page 34/34.
   pre-existing by running the same file in a worktree at the parent commit:
   identical count, identical check.
 
+## 2026-09-09 — The overnight desk (idea 19), three kinds
+
+Owner-ruled off their own ideas artifact, then off two questions that changed
+what got built.
+
+FIVE KINDS BECAME THREE, and the two that went were already somewhere: briefs
+for unread contracts are the Copilot coverage tile on that same page, and an
+obligation nobody owns is what the Insights obligations tab reports. What
+survives is the three where something outside the building is affected and a
+clock is running.
+
+THREE KINDS, NOT THREE ROWS. Ranked as one flat list of the best three, a quiet
+kind loses every morning and never draws at all — a renewal 43 days out and a
+supplier four days late always outrank the third thing. deskShown takes at most
+one of each. Where more qualify the sub-line says how many of how many.
+
+THE OWNER'S SECOND QUESTION FOUND A REAL OVERLAP: "what is the difference
+between the 3 or 5 things compared to the 'needs your decision' on home page?"
+A renewal inside 90 days is ALREADY a row in that list, at exactly this window,
+so drawn naively Home would say the same thing about the same contract twice.
+A contract the desk prepared a renewal for now leaves that list — and only the
+renewal source is filtered, because a colleague waiting on your review is a
+different subject that happens to share a contract. deskCids reads the WHOLE
+list rather than the three on screen, or a renewal the cap held back would be
+dropped from both places.
+
+IT IS A READING. No route, no sweep, no spend, and one field on the record —
+c.desk, the day a row was put away, absent on everything already on file. Every
+qualifying test is one of the product's own predicates.
+
+WHAT IS NOT BUILT, and it is the half the owner has not ruled on: HaTi does not
+WRITE the renewal memo while nobody is watching. That is the one preparation
+here costing a Copilot call with no person behind it, and a metered call naming
+nobody is spending that counts against nobody. So the row carries the facts HaTi
+is certain of, plus the memo where one is already on the record, and Review
+opens the card where it is written on a real press.
+
+AND THE HEADER CLAIMS NO CLOCK TIME. The drawing says "finished 05:40"; HaTi
+does not yet work unattended, so that would be the page inventing a night shift.
+It says "Prepared for you" and, under it, the half that is true and that the
+whole desk rests on: nothing was sent or filed.
+
+TWO THINGS FOUND BY READING WHAT IT DREW RATHER THAN THE SOURCE. The tag
+repeated the meta line — "Quarterly volume report · 4 days late" beside a tag
+saying "4 days" — so the tag carries the urgency and the meta the facts, never
+both. And the renewal date went through fmtDocDate, which is the DOCUMENT's
+formatter and writes English months whatever language the reader chose; fmtDDay
+was lifted to one definition in home.js the day the desk became its second
+reader.
+
+A STAGE'S STUB MUST USE THE PRODUCT'S OWN ARITHMETIC. The real daysUntil CEILS,
+so a date due today answers 0 and is not yet overdue; stubbed with Math.round it
+answers -1 from midday on, and the claim about that boundary would have been
+describing the stub. Caught because the claim failed.
+
+Verified: lint 180/4 (identical to the clean tree, proved by stashing), node
+6004/6004, home-page-verify 46/46 (37/46 against the parent, 11h reporting the
+owner's overlap verbatim as "desk false · decisions true"), kpi-four 19/19,
+laptops 21/21. f274 cannot even load against the parent — the reading does not
+exist there.
+
+### Noticed, not fixed
+- test/world.js's REGISTER option stubs daysUntil with Math.round where the
+  product's own (js/views/intelligence.js) uses Math.ceil. They disagree at
+  every partial day, so any register test about a date boundary is describing
+  the stub. The desk option's own stub was written with Math.ceil.
+- daysUntil is declared in js/views/intelligence.js — a VIEW file — and
+  js/obligations.js calls it BARE inside obState and renewalWindow. Any stage
+  without that view throws rather than falling back. Latent in the shipped app,
+  where js/app.js loads both.
+
+## 2026-09-09 — HaTi prepares the renewal note before anybody arrives
+
+Young: "why cant we build the overnight feature then?" The answer put to them
+was that ONE DECISION was missing rather than one night's code — two of the
+desk's three kinds are instant readings and would be identical at 3am, and the
+one genuinely prepared piece of work (writing the renewal memo) is the only
+thing on the desk that spends Copilot money with nobody pressing a button.
+Every charge here is booked to the person who set it off, and at 3am there is
+no such person. Young ruled: THE PERSON WHOSE CONTRACT IT IS.
+
+WHAT WAS BUILT. A third sweep beside the reminders and the daily brief, on the
+same timer, under its own catch with its own admin-visible outbox note. It
+walks the contracts in the renewal window, skips the ones the desk's own
+reading skips, and writes the memo — charging the call to the contract's owner.
+
+THE OWNER PAYS, AND A CONTRACT WITH NO OWNER IS NOT PREPARED. Imported and
+uploaded paper has no owner and never will, and preparing it would be exactly
+the unattributed spend the ruling exists to prevent. Nothing is lost: the desk
+row still stands and Review still writes the memo on a real press.
+
+THE WORKING CORE WAS LIFTED OUT OF ITS ROUTE (renewalSignalsOf,
+aiRenewalAdvice) — aiPlaybookVerdicts' own shape, so the card a person runs and
+the card waiting in the morning cannot come to say different things. f219
+unchanged at 17, which is the condition on the lift.
+
+ONCE PER RENEWAL CYCLE, NOT ONCE A NIGHT. The signals carry daysToDecision,
+which moves daily, so the advice cache cannot bound this. The dedupe is the
+reminders table keyed on the DECISION DATE, written only on a call that
+succeeded and was not cut short.
+
+THREE BOUNDS, AND THE FIRST IS THE ONE THAT NORMALLY IS NOT NEEDED: aiBudgetGuard
+is MIDDLEWARE and this has no request, so the workspace's daily spend ceiling is
+asked by hand before every call and the run stops when it bites. Then a nightly
+cap, then an admin switch (absent = on) on the Copilot engine panel.
+
+AND A DEFECT IN THIS MORNING'S DESK FELL OUT OF BUILDING IT. Home reads the
+LIGHT list and _renewalAdvice is attached only by a single contract's own GET,
+so "renewal note ready" was right in local mode and COULD NEVER DRAW IN
+PRODUCTION — the recorded defect class, after the dashboard's raised-by-me and
+Reports' cycle time. _renewalPrep is the list's twin (one query, a word not the
+memo, and the word says whether HaTi wrote it or somebody asked).
+
+THE HEADER STILL CLAIMS NO CLOCK TIME. "Prepared overnight" would be true of at
+most one of three rows, so the fact went on the ROW instead — where it is
+actually true. Named to Young rather than slipped in.
+
+FOUR OF MY OWN TESTS WERE WRONG IN WAYS THAT WOULD HAVE PASSED WITHOUT PROVING
+ANYTHING, and each is worth recording. A "tiny" spend ceiling of 0.000001 is
+stored to four decimal places and rounds to 0, which means DISABLED — the test
+would have passed by never being armed, so the precondition is now asserted. A
+spare answer left in the scripted provider's QUEUE is handed to the next test's
+first call, so a scripted 502 refused one contract and the next got a success it
+never asked for. startHati always sets a key, so "no Copilot key" had to be
+asked for by name. And counting the word "catch" counted my own comments — the
+claim is now three sweeps, three admin-visible notes, which is what has to be
+true.
+
+Verified: lint 180/4 (identical to the clean tree), f275 23/23 with 21 failing
+against the parent, f219 17/17, f274 unchanged, home-page-verify 46/46,
+settings-tabs-verify 68/68 (65 before), full suite green.
+
+### Noticed, not fixed
+- A provider outage makes the sweep try every candidate up to the nightly cap
+  rather than stopping at the first failure. Failed calls book no spend, so it
+  is bounded and harmless, but it is up to 20 pointless calls on a bad night.
+- reminderSweep runs every 12 hours, so the preparation can also happen in the
+  afternoon. Harmless (the dedupe makes a second run a no-op) and it is why the
+  header deliberately claims no clock time.
+
+### and two nets pinned a literal where the claim was a relation
+- f230 pinned the renewal prompt's exact DOCUMENT interpolation, naming
+  aiDocText(req, contractFullBody(full)) inside the template. Lifting the
+  working core out of the route moved that reading one function along and the
+  claim went red — while staying perfectly true. The paragraph directly above
+  it in that same test already records this lesson for its three siblings.
+  Re-pointed as the relation: the ROUTE reads the wording through the one
+  capped reader, and the PROMPT posts what it was handed.
+- f198 sliced the first 1800 characters of saveContract to prove each transport
+  field is stripped. It was 1200 until _brief pushed it past, and 1800 until
+  _renewalPrep did the same — a measured number standing in for "inside this
+  function" fails every time a comment is written above the thing it measures.
+  It reads the function's own body now, and the list gained _hasBrief,
+  _renewalPrep and _renewalAdvice, so the next transport field costs no edit.
+
+## 2026-09-09 — the desk was hiding renewals it never showed
+
+Young, reading the desk's own sub-line on their book: "it says 2 of 9 but does
+it mean copilot prepared 9 in total and if so, where is the rest of the 9?"
+
+TWO ANSWERS, AND THE SECOND IS A DEFECT I SHIPPED THIS MORNING. The 9 is how
+many things QUALIFY for the desk across its three kinds, not how many Copilot
+prepared — two of the three kinds are instant readings that spend nothing. But
+the other 7 were not merely unshown: the renewals among them were NOWHERE.
+
+deskCids was handed deskAll, so every qualifying renewal was struck out of
+"Needs your decision" while the desk drew only ONE. On a book with five
+renewals due, one was on the desk and four were on neither list. Home showed
+LESS than it did before the desk existed — the one-door rule running backwards,
+which is the fault it exists to prevent.
+
+THE REASONING IN THE COMMENT WAS THE GIVEAWAY and I wrote it myself: "a renewal
+held back by the cap is still one the desk is going to offer". It is not. The
+desk offers one per kind per sitting; the rest are offered only after the first
+is discarded. The premise was true and the conclusion did not follow from it.
+
+FIXED AT THE CALLER, not in the reading: deskCids names whatever it is handed,
+and Home hands it the rows it is actually DRAWING. The cost is that a renewal
+leaves the list below on the morning it is promoted to the desk, which is the
+whole point of promoting it.
+
+AND ADDING A SECOND RENEWAL TO THE FIXTURE CAUGHT A SECOND STALE CLAIM. 11j
+asserted the desk's row COUNT drops by one on Discard — true while there was
+nothing waiting, false the moment the cap has something held back, because
+discarding the shown renewal PROMOTES the next one into the free slot. That is
+the cap working. Pinned as the count it went red on a correct page; it is
+pinned as the row now, with a new 11j2 asserting the promotion.
+
+Verified: f274 78/78 (its whole-list claim reversed in place), home-page-verify
+50/50, with 11h4 failing against the parent and reporting the fault verbatim —
+"in the decisions list: false".
+
+## 2026-09-09 — the desk stopped counting things you cannot reach
+
+Young, having had the renewals put back: "keep it as it is but remove the '2 out
+of 9' because i have no ability to see the rest of the 9."
+
+Right, and it takes a standing rule with it. The sub-line read "9 things ·
+nothing was sent or filed · showing 2 of 9", on A CAP IS A FACT, NEVER A SILENT
+TRIM. THAT RULE IS NARROWED RATHER THAN BROKEN. It exists so a reader is never
+handed a slice dressed as the whole, and it assumes the fact is ACTIONABLE — a
+count with a door onto the rest, or a figure explaining a number beside it. The
+desk has no door: nothing on the page and nothing anywhere opens the other
+seven. A number you can neither reach nor act on is not a fact being kept
+honest, it is a promise the page cannot keep.
+
+BOTH HALVES NAMED THE UNREACHABLE POPULATION, so removing only the trailing
+"showing 2 of 9" would have left "9 things" over two rows with nothing
+explaining the gap — worse than before. The whole line counts what it draws.
+
+WHAT MAKES IT SAFE is that the desk is a STACK rather than a queue: everything
+held back is still where it always was, and discarding a row lets the next step
+into the slot. desk_showing is retired and left inert in both books; the day the
+desk grows a door onto the rest, it comes back with it.
+
+DISCARD ALL STILL PUTS AWAY THE WHOLE POPULATION and that is deliberate —
+discard only the drawn rows and the held-back ones step straight into the empty
+slots, so the button would appear to do nothing. Its confirm stopped naming a
+count instead: a dialog is the wrong place to introduce a number the page has
+just stopped mentioning.
+
+AND THE ANSWER TO "we previously said 3 things. Why is it 2 then?" is that three
+is the CEILING, not a quota — one row per kind, three kinds, and a kind with
+nothing in it draws nothing. Today nothing on the other side was overdue and
+unchased. Recorded in the map beside the cap.
+
+Verified: f274 78/78 (its sub-line claim reversed in place, plus new claims that
+the count is deskRows and that neither the line nor the confirm names a
+population), home-page-verify 52/52 with 11f2 asserting the RELATION — the
+number in the line equals the number of rows — so it holds on any book rather
+than on the fixture.
+
 ## 2026-09-09 (6) — WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (owner-asked, ideas 22 & 23)
 
 *"implement 23 and 22 but for 23, do not delete the where I have to enter the
@@ -10343,10 +10575,10 @@ page. Section 28 reloads and stages its own ground.
 **ONE FAULT FOUND BY RE-READING MY OWN DIFF BEFORE IT SHIPPED**: a ticked
 proposal that became a duplicate mid-dialog was being marked refused — the reader
 had chosen it and the contract already held it, which is neither. It is left
-proposed, and f274 pins it.
+proposed, and f276 pins it.
 
 Verified: lint 181/4 (errors unchanged and proven pre-existing by stash), node
-5967/5967, f274 50/50, settings-tabs-verify 73/73, clause-editor-verify 235/235,
+5967/5967, f276 50/50, settings-tabs-verify 73/73, clause-editor-verify 235/235,
 redline-verify 191/191, parity-verify 41/41, obligations-tab-verify green.
 
 ### Noticed, not fixed

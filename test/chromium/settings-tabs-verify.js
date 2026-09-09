@@ -455,6 +455,28 @@ const signIn = async (page, base, email, pass) => {
     check('with nothing on it that refuses or caps anybody',
       !/limit|cap|blocked/i.test(said), 'Phase 1 shows; Phase 2 is not built');
 
+    /* ---- THE ONE THING HaTi SPENDS ON UNASKED HAS A SWITCH (9 Sep 2026) ----
+       Young ruled that the renewal note HaTi prepares before anybody arrives is
+       charged to the person whose contract it is. Money spent with nobody
+       pressing anything has to be stoppable from a screen, and a source check
+       cannot see whether the row actually DRAWS — this product has shipped a
+       class nothing defined and a rule that lost a cascade fight, and both read
+       perfectly correct in the file. */
+    const prep = await page.evaluate(() => {
+      const box = document.getElementById('ai-renewal-prep');
+      const cap = document.getElementById('ai-renewal-max');
+      const r = box && box.getBoundingClientRect();
+      const c = cap && cap.getBoundingClientRect();
+      return { boxSeen: !!(r && r.width > 0 && r.height > 0), capSeen: !!(c && c.width > 0 && c.height > 0),
+        on: !!(box && box.checked),
+        says: (box && box.closest('label') ? box.closest('label').textContent : '').replace(/\s+/g, ' ').trim() };
+    });
+    check('the renewal preparation can be turned off from the panel',
+      prep.boxSeen && prep.capSeen, `switch ${prep.boxSeen} · cap ${prep.capSeen}`);
+    check('it is ON where nobody has said otherwise — nothing already running has to be migrated', prep.on);
+    check('and the row says who the Copilot charge is booked to',
+      /booked to the person whose contract it is/i.test(prep.says), prep.says.slice(0, 110));
+
     /* ---- AND WHAT BECAME OF ITS PROPOSALS (idea 23) ----
        No test world loads js/views/settings.js, so this section can only be
        DRIVEN here. Four things a source check cannot see: that it is on screen

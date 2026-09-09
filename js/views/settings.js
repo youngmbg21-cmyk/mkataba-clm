@@ -2697,11 +2697,20 @@ function stEngineBodyHtml(){
         ${stLimitField('ai-maxchars',i18t('set_lim_chars'),i18t('set_lim_chars_sub'),1000)}
         ${stLimitField('ai-docchars',i18t('set_lim_doc'),i18t('set_lim_doc_sub'),1000)}
         ${stLimitField('ai-maxcontracts',i18t('set_lim_contracts'),i18t('set_lim_contracts_sub'),1)}
+        ${stLimitField('ai-renewal-max',i18t('set_lim_renewal_max'),i18t('set_lim_renewal_max_sub'),1)}
       </div>
       <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
         <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span><b>${i18t('set_thorough_extraction')}</b> ${i18t('set_thorough_body')}
         <span style="color:var(--st-amber-fg)">${i18t('set_thorough_warn')}</span> ${i18t('set_preflight')}</span></label>
+      ${''/* THE ONE THING HaTi SPENDS ON WITHOUT BEING ASKED, so it has a
+             switch. Every other Copilot charge in this product is set off by
+             somebody pressing something; this one is booked to the contract's
+             owner and happens while nobody is watching, and money spent unasked
+             has to be stoppable from a screen. Absent means ON. */}
+      <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
+        <input id="ai-renewal-prep" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <span><b>${i18t('set_renewal_prep')}</b> ${i18t('set_renewal_prep_body')}</span></label>
       <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
     </div>
 
@@ -2838,6 +2847,9 @@ function stWireEngine(){
       fillN('ai-daily-spend',lim.dailySpendLimit); fillN('ai-estimate-confirm',lim.estimateConfirmAt);
       fillN('ai-maxchars',lim.maxChars); fillN('ai-docchars',lim.docChars); fillN('ai-maxcontracts',lim.maxContracts);
       const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
+      fillN('ai-renewal-max',lim.renewalPrepMax);
+      const rp=document.getElementById('ai-renewal-prep');
+      if(rp&&document.activeElement!==rp) rp.checked=lim.renewalPrep!==false;
       renderAllowancePanel(c.allowance||{});
       renderRateTable(c.rates||{}, c.ratesMeta||{});
     }catch(e){ el.textContent='Could not read Copilot config.'; } };
@@ -2874,11 +2886,13 @@ function stWireEngine(){
     const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
     const whole={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), rateOcr:num('ai-rate-ocr'),
       dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), docChars:num('ai-docchars'),
-      maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
+      maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages'),
+      renewalPrepMax:num('ai-renewal-max') };
     for(const [k,v] of Object.entries(whole)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ stDrawerRefuse(i18t('set_t_whole_number',{k})); return; }
     const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
     for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ stDrawerRefuse(i18t('set_t_non_negative',{k})); return; }
-    const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
+    const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked,
+      renewalPrep: !!document.getElementById('ai-renewal-prep')?.checked };
     try{ await api('ai/config','PUT',body); stDrawerClearRefusal(); toast(i18t('set_limits_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });

@@ -960,6 +960,8 @@ const STRINGS = {
     set_spend_governed: 'Copilot spend is governed by',
     set_today_dash: 'Today: —',
     set_thorough_extraction: 'Thorough extraction',
+    set_renewal_prep: 'Prepare renewal notes',
+    set_renewal_prep_body: 'HaTi writes the renewal recommendation for agreements coming up for renewal before anybody asks, so it is waiting on the home page. The Copilot charge is booked to the person whose contract it is, and a contract with no owner is left alone. Turn this off and the note is written only when somebody presses Review.',
     set_preflight: 'Pre-flight estimates reflect it.',
     set_save_limits: 'Save limits',
     set_onboarding_allowance: 'Onboarding allowance',
@@ -4916,6 +4918,56 @@ const STRINGS = {
     tri_decline_q: 'Decline this contract?',
     tri_decline_msg: '“{name}” is marked Declined and comes off every live list, count and reminder. The document stays on file and the record keeps its history.',
     tri_declined: 'Declined',
+
+    /* ---- THE OVERNIGHT DESK (idea 19) ----
+       "Prepared for you" rather than "Prepared overnight", and the difference is
+       the truth: nothing here claims a clock time, because HaTi does not yet do
+       unattended work — what is true, and what the section is for, is that the
+       reader asked for none of it and it was ready when they arrived. */
+    desk_sec: 'Prepared for you',
+    desk_sub_one: '1 thing · nothing was sent or filed',
+    desk_sub_other: '{n} things · nothing was sent or filed',
+    /* STALE since 9 Sep 2026 — the desk's sub-line counted a population the
+       reader has no door onto, so it counts the rows on screen instead. Left
+       inert in both books: the day the desk grows a way to the rest, this is
+       what it says. */
+    desk_showing: 'showing {n} of {total}',
+    desk_discard: 'Discard',
+    desk_discard_all: 'Discard all',
+    desk_discard_q: 'Discard everything prepared?',
+    desk_discard_msg: 'Everything prepared comes off this list. Nothing is deleted — the renewal stays on Needs your decision and the Calendar, the late promise stays on the Obligations list, and what HaTi read stays on the contract.',
+    desk_discard_go: 'Discard all',
+    /* A late promise, with the message ready to go. */
+    desk_chase_t: 'Chase ready — {who}',
+    /* THE TAG CARRIES THE URGENCY AND THE META CARRIES THE FACTS, so neither
+       prints the other's number. Drawn the first way round the row read
+       "Quarterly volume report · 4 days late" beside a tag saying "4 days" —
+       one fact, twelve pixels apart, which is what this rulebook keeps
+       warning about. */
+    desk_late_one: '1 day late',
+    desk_late_other: '{n} days late',
+    desk_days_one: '1 day',
+    desk_days_other: '{n} days',
+    desk_chase_send: 'Send the chase',
+    desk_chase_open: 'Open it',
+    desk_chase_noaddr: 'no address on file for them',
+    /* Paper they sent, read on arrival, that nobody has opened since. */
+    desk_dev_t_one: '1 thing to look at on the contract {who} sent',
+    desk_dev_t_other: '{n} things to look at on the contract {who} sent',
+    desk_dev_m: 'Read when it arrived · {cats}',
+    desk_dev_m_plain: 'Read when it arrived',
+    desk_dev_tag: 'Not opened',
+    desk_dev_open: 'Open it',
+    /* A renewal decision closing, with what HaTi already has ready. */
+    desk_ren_t: 'Renewal decision — {who}',
+    desk_ren_by: 'Decide by {date}',
+    desk_ren_late: 'the date has passed',
+    desk_ren_notice: "{n} days' notice",
+    desk_ren_memo: 'memo ready',
+    desk_ren_ready: 'memo prepared for you',
+    desk_ren_flags_one: '1 thing to look at',
+    desk_ren_flags_other: '{n} things to look at',
+    desk_ren_review: 'Review',
     std_no_usual: 'No usual value',
     std_none_carry: 'None of your signed contracts records one.',
     std_seen_naming: '{seen} of {have} name it',
@@ -5121,6 +5173,8 @@ const STRINGS = {
     set_lim_doc_sub: 'one agreement read whole — set above your longest',
     set_lim_contracts: 'Max contracts / request',
     set_lim_contracts_sub: 'portfolio-wide Copilot calls',
+    set_lim_renewal_max: 'Renewal notes per run',
+    set_lim_renewal_max_sub: 'prepared without being asked',
     set_thorough_body: '— read the whole contract in overlapping chunks instead of one pass.',
     set_thorough_warn: 'This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.',
     set_allowance_sub: 'A one-off budget for bringing in a customer\'s back catalogue. Bulk import and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn\'t blocked by the daily ceiling. When it runs out, the import falls back to the pattern matcher and says so — it never hard-fails mid-batch.',
@@ -6781,6 +6835,8 @@ const STRINGS = {
     set_spend_governed: 'Copilot-kostnaden styrs av',
     set_today_dash: 'Idag: —',
     set_thorough_extraction: 'Noggrann utläsning',
+    set_renewal_prep: 'Förbered förnyelsenotiser',
+    set_renewal_prep_body: 'HaTi skriver förnyelserekommendationen för avtal som närmar sig förnyelse innan någon frågar, så att den ligger klar på startsidan. Copilot-kostnaden bokförs på den som äger avtalet, och ett avtal utan ägare lämnas i fred. Stäng av detta så skrivs notisen först när någon trycker Granska.',
     set_preflight: 'Förhandsberäkningar tar hänsyn till det.',
     set_save_limits: 'Spara gränser',
     set_onboarding_allowance: 'Uppstartspott',
@@ -10348,6 +10404,41 @@ const STRINGS = {
     tri_decline_q: 'Avböja avtalet?',
     tri_decline_msg: '”{name}” markeras som Avböjt och försvinner från alla aktiva listor, räkningar och påminnelser. Dokumentet ligger kvar och historiken behålls.',
     tri_declined: 'Avböjt',
+
+    /* ---- KVÄLLENS SKRIVBORD (idé 19) ---- */
+    desk_sec: 'Förberett åt dig',
+    desk_sub_one: '1 sak · inget har skickats eller sparats',
+    desk_sub_other: '{n} saker · inget har skickats eller sparats',
+    /* STALE — see the English book. */
+    desk_showing: 'visar {n} av {total}',
+    desk_discard: 'Lägg undan',
+    desk_discard_all: 'Lägg undan alla',
+    desk_discard_q: 'Lägga undan allt som förberetts?',
+    desk_discard_msg: 'Allt som förberetts försvinner från den här listan. Ingenting raderas — förnyelsen ligger kvar under Beslut att fatta och i kalendern, det försenade åtagandet ligger kvar i åtagandelistan, och det HaTi läst ligger kvar på avtalet.',
+    desk_discard_go: 'Lägg undan alla',
+    desk_chase_t: 'Påminnelse redo — {who}',
+    desk_late_one: '1 dag försenat',
+    desk_late_other: '{n} dagar försenat',
+    desk_days_one: '1 dag',
+    desk_days_other: '{n} dagar',
+    desk_chase_send: 'Skicka påminnelsen',
+    desk_chase_open: 'Öppna',
+    desk_chase_noaddr: 'ingen adress registrerad för dem',
+    desk_dev_t_one: '1 sak att se över i avtalet som {who} skickade',
+    desk_dev_t_other: '{n} saker att se över i avtalet som {who} skickade',
+    desk_dev_m: 'Läst vid ankomsten · {cats}',
+    desk_dev_m_plain: 'Läst vid ankomsten',
+    desk_dev_tag: 'Inte öppnat',
+    desk_dev_open: 'Öppna',
+    desk_ren_t: 'Förnyelsebeslut — {who}',
+    desk_ren_by: 'Beslut senast {date}',
+    desk_ren_late: 'datumet har passerat',
+    desk_ren_notice: '{n} dagars uppsägningstid',
+    desk_ren_memo: 'promemoria klar',
+    desk_ren_ready: 'promemoria förberett åt dig',
+    desk_ren_flags_one: '1 sak att se över',
+    desk_ren_flags_other: '{n} saker att se över',
+    desk_ren_review: 'Granska',
     std_no_usual: 'Inget vanligt värde',
     std_none_carry: 'Inget av era undertecknade avtal anger någon.',
     std_seen_naming: '{seen} av {have} anger den',
@@ -10548,6 +10639,8 @@ const STRINGS = {
     set_lim_doc_sub: 'ett avtal läst i sin helhet — sätt över ditt längsta',
     set_lim_contracts: 'Högsta antal avtal / anrop',
     set_lim_contracts_sub: 'Copilot-anrop över hela beståndet',
+    set_lim_renewal_max: 'Förnyelsenotiser per körning',
+    set_lim_renewal_max_sub: 'förberedda utan att någon frågat',
     set_thorough_body: '— läs hela avtalet i överlappande delar i stället för i en enda genomgång.',
     set_thorough_warn: 'Det här kör ett Copilot-anrop på djup nivå per cirka 30 000 tecken, så ett långt avtal kan kosta flera gånger så mycket som en vanlig extrahering.',
     set_allowance_sub: 'En engångsbudget för att ta in en kunds befintliga bestånd. Massimport och OCR drar från den i stället för den dagliga budgeten, så en import av 500 avtal stoppas inte av dagstaket. När den tar slut faller importen tillbaka på mönstermatchning och säger till — den avbryts aldrig mitt i en omgång.',

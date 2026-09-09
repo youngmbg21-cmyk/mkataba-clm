@@ -20,7 +20,7 @@
    the workspace reading is counted in the browser off `state.contracts` — the
    caller's own already-scoped bootstrap. Same shelf as js/precedent.js and
    js/payterms.js: a deterministic reading with no view, no store of its own and
-   no network verb. f274 sweeps this file for every one of them.
+   no network verb. f276 sweeps this file for every one of them.
 
    ---- ITS OWN FILE, AND THAT IS LOAD-BEARING ----
    Four surfaces reach it — the clause editor, the obligations dialog, the
