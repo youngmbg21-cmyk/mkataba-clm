@@ -784,7 +784,12 @@ function deskRowHtml(it){
     const when=(it.w&&it.w.decideBy)||'';
     const bits=[i18t('desk_ren_by',{date:when?fmtDDay(when):''})];
     if(it.w&&it.w.notice) bits.push(i18t('desk_ren_notice',{n:it.w.notice}));
-    if(it.memo) bits.push(i18t('desk_ren_memo'));
+    /* A NOTE HaTi WROTE UNPROMPTED IS NOT THE SAME FACT as one somebody ran,
+       and the row says which. This is where the overnight preparation shows
+       itself — on the thing it is true of rather than in a heading over three
+       rows, two of which are instant readings and were never prepared at all
+       (the header's own no-clock-claim rule, one screen up). */
+    if(it.memo) bits.push(i18t(it.prepared?'desk_ren_ready':'desk_ren_memo'));
     if(it.flags) bits.push(i18tn('desk_ren_flags',it.flags,{n:it.flags}));
     meta=esc(bits.filter(Boolean).join(' · '));
     /* THE DATE IS IN THE META AND THE COUNTDOWN IS THE TAG — the decisions list

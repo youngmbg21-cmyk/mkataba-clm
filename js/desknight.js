@@ -169,14 +169,29 @@ function deskItems(list){
        to disagree about the same contract. */
     const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
     if(w && w.inWindow){
+      const prep = c._renewalPrep
+        || ((c._renewalAdvice && c._renewalAdvice.data) ? (c._renewalAdvice.overnight ? 'night' : 'you') : '');
       const it = { kind:'renewal', cid:c.id, c, days:w.days, w,
         urgent: w.missed || w.days <= 30, who: c.counterparty || '',
         /* WHAT IS ALREADY PREPARED, and each is a fact on the record rather
-           than a promise: the memo where somebody has already run it, and the
+           than a promise: the memo where one has been written, and the
            deviations where the paper has been checked. Absent, the row says
            nothing about them — it never claims a reading that has not
-           happened. */
-        memo: !!(c._renewalAdvice && c._renewalAdvice.data),
+           happened.
+
+           AND IT SAYS WHO WROTE THE NOTE. `prepared` is true only where HaTi
+           wrote it unprompted, which since 9 Sep 2026 it does for a contract
+           that has an owner to charge the Copilot call to. A note waiting for
+           you and a note you asked for are different facts, so the row states
+           which rather than printing one sentence over both.
+
+           THE LIGHT LIST'S WORD IS ASKED FIRST. `_renewalPrep` is that word
+           ('night' | 'you'); `_renewalAdvice` is the whole memo and rides only
+           a single contract's own GET. Home reads the light list, so built on
+           the memo alone this line was right in local mode and could never draw
+           in server mode — the recorded defect class (the dashboard's
+           raised-by-me, Reports' cycle time). */
+        memo: !!prep, prepared: prep === 'night',
         flags: (pb && pb.ok) ? ((pb.dev || 0) + (pb.miss || 0)) : null };
       it.key = deskKeyOf(it);
       if(!deskDismissed(c, it.key)) out.push(it);

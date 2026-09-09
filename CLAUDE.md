@@ -11037,6 +11037,95 @@ CONTROLS that pass either way** — an empty book must draw no desk at all, and
 dismissing the desk's renewal must put that same contract INTO the decisions
 list, which is what proves 11h was a filter rather than an empty list).
 
+## THE RENEWAL NOTE IS WRITTEN BEFORE ANYBODY ARRIVES (Young ruled 9 Sep 2026)
+
+*"why cant we build the overnight feature then?"* — and the answer was that ONE
+DECISION was missing rather than one night's code. Put to them: two of the
+desk's three kinds are INSTANT READINGS (counting a late promise or unread
+paper at 3am gives the same rows as counting them when Home opens, so overnight
+buys nothing but the word); the one genuinely prepared piece of work is HaTi
+writing the renewal memo; and that is the only thing on the desk that spends
+Copilot money with nobody pressing a button. **Young ruled who pays: "the
+person whose contract it is."**
+
+- **THE OWNER PAYS, AND THAT IS THE WHOLE FEATURE IN ONE LINE.** `meter.who` is
+  built from `c.owner` rather than from a request — f203's rule is that a
+  metered call naming nobody is spending that counts against nobody, and it
+  surfaces in the admin panel's `unattributed` figure.
+- **SO A CONTRACT WITH NO OWNER IS NOT PREPARED.** Imported and uploaded paper
+  has no owner and never will (`contractOwnerStamp`'s own note), and preparing
+  it would be exactly the unattributed spend the ruling exists to prevent.
+  **Nothing is lost**: the desk row still stands with the facts HaTi is certain
+  of, and Review still writes the memo on a real person's press.
+- **THE WORKING CORE IS LIFTED OUT OF ITS ROUTE** — `renewalSignalsOf` and
+  `aiRenewalAdvice`, `aiPlaybookVerdicts`' own shape for its own reason: two
+  copies of *what the renewal advice IS* is how the card a person runs and the
+  card waiting in the morning come to say different things. The route keeps its
+  own middleware, validation, errors and cache, and f219 proves it unchanged.
+  **`doc` comes IN rather than being read inside**, so the route goes on marking
+  its own request as capped while the sweep passes `aiDocText(null, …)`.
+- **ONCE PER RENEWAL CYCLE, NOT ONCE A NIGHT.** The signals carry
+  `daysToDecision`, which moves every day, so the advice CACHE cannot bound this
+  — its hash changes nightly and every contract would re-run every night. The
+  dedupe is the reminders table, the daily brief's own mechanism, keyed on the
+  DECISION DATE: prepared once when a contract enters the window, again only if
+  the term moves under it. **The row is written only on a call that succeeded
+  and was not cut short**, so a provider failure is retried tomorrow rather than
+  silently marking the cycle done.
+- **THREE BOUNDS, AND THE FIRST IS THE ONE THAT USUALLY DOES NOT EXIST HERE.**
+  `aiBudgetGuard` is MIDDLEWARE and this has no request, so the workspace's own
+  daily spend ceiling is asked BY HAND before every call and the whole run stops
+  when it bites — a night that quietly spent the next morning's budget would be
+  worse than no preparation at all. Then a nightly cap (`aiRenewalPrepMax`), so
+  a workspace that has just migrated four hundred contracts does not wake up to
+  four hundred calls. Then the switch.
+- **IT IS STOPPABLE FROM A SCREEN.** `aiRenewalPrep` on the Copilot engine
+  panel, **absent meaning ON** — the whole migration story. Money spent with
+  nobody pressing anything must be refusable by somebody, and the row says who
+  the charge is booked to.
+- **IT WRITES NOTHING TO THE CONTRACT RECORD.** The advice has its own table, so
+  the sealed record a renewal question is always about is never touched —
+  `aiNoteRead`'s own lesson, which is what made this safe to run unattended at
+  all. No audit line, no version bump.
+- **IT RIDES THE SAME TIMER AS THE OTHER TWO SWEEPS, UNDER ITS OWN CATCH** with
+  its own admin-visible outbox note — the third application of the M-6 lesson,
+  and why all three are written out rather than looped. It is the only one that
+  is ASYNC, so it is started and left to finish: a renewal memo may never delay
+  a renewal reminder.
+
+**AND THE DESK COULD NOT HAVE SEEN IT — a defect in the desk shipped that
+morning, found by building this.** Home reads `state.contracts`, which in server
+mode is the LIGHT list, and `_renewalAdvice` is transport attached only by a
+single contract's own GET. So *"renewal note ready"* was right in local mode and
+**could never draw in production** — the recorded defect class, after the
+dashboard's raised-by-me and Reports' cycle time. **`_renewalPrep` is the list's
+twin**, `_hasBrief`'s own shape: ONE query for the whole page, a WORD and not
+the memo, and the word says WHICH — `'night'` where HaTi prepared it unprompted,
+`'you'` where somebody ran it. The desk asks the list's word FIRST and falls
+back to the whole record, so it is right in both modes; stripped on save like
+its two neighbours.
+
+**THE HEADER STILL CLAIMS NO CLOCK TIME, and that is a deliberate refusal of the
+word the owner asked about.** *Prepared for you* is true of all three rows;
+*Prepared overnight* would be true of at most one, since the other two are
+instant readings that were never prepared at all. **The fact went on the ROW
+instead** — `desk_ren_ready`, "memo prepared for you", against `desk_ren_memo`
+for one somebody ran — which is the cheapest channel that carries it and the
+place it is actually true. One word changes the header if the owner rules that
+way.
+
+**NOT BUILT, said out loud:** nothing else on the desk is prepared unattended
+(the drafted amendment named in the desk's own section stays unbuilt), the two
+instant kinds are untouched, and the counterparty's page is not involved at all.
+
+Tests: f275 (23 — **21 of them fail against the parent**; the owner named by the
+spend ledger against a real server with a scripted provider, the no-owner
+refusal, the three other refusals, the once-per-cycle dedupe, all three bounds
+each proved to BITE, the record proved untouched, and the desk read end to end),
+f219 unchanged at 17 (the route's behaviour is the condition on the lift),
+settings-tabs-verify (68 — the switch measured as VISIBLE PIXELS, because a
+source check cannot see whether a row draws).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

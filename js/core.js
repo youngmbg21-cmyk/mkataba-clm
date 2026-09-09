@@ -1010,6 +1010,10 @@ async function saveContract(c){
      so the home page's coverage tile can count without the memo itself riding
      every row. Same rule — transport, never record. */
   delete payload._hasBrief;
+  /* _renewalPrep is the list's twin of _renewalAdvice below — one word saying a
+     renewal note exists and who wrote it, so the desk can say so without the
+     memo riding every row. Same rule: transport, never record. */
+  delete payload._renewalPrep;
   delete payload._renewalAdvice;
   delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }

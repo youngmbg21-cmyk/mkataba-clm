@@ -10332,3 +10332,87 @@ exist there.
   js/obligations.js calls it BARE inside obState and renewalWindow. Any stage
   without that view throws rather than falling back. Latent in the shipped app,
   where js/app.js loads both.
+
+## 2026-09-09 — HaTi prepares the renewal note before anybody arrives
+
+Young: "why cant we build the overnight feature then?" The answer put to them
+was that ONE DECISION was missing rather than one night's code — two of the
+desk's three kinds are instant readings and would be identical at 3am, and the
+one genuinely prepared piece of work (writing the renewal memo) is the only
+thing on the desk that spends Copilot money with nobody pressing a button.
+Every charge here is booked to the person who set it off, and at 3am there is
+no such person. Young ruled: THE PERSON WHOSE CONTRACT IT IS.
+
+WHAT WAS BUILT. A third sweep beside the reminders and the daily brief, on the
+same timer, under its own catch with its own admin-visible outbox note. It
+walks the contracts in the renewal window, skips the ones the desk's own
+reading skips, and writes the memo — charging the call to the contract's owner.
+
+THE OWNER PAYS, AND A CONTRACT WITH NO OWNER IS NOT PREPARED. Imported and
+uploaded paper has no owner and never will, and preparing it would be exactly
+the unattributed spend the ruling exists to prevent. Nothing is lost: the desk
+row still stands and Review still writes the memo on a real press.
+
+THE WORKING CORE WAS LIFTED OUT OF ITS ROUTE (renewalSignalsOf,
+aiRenewalAdvice) — aiPlaybookVerdicts' own shape, so the card a person runs and
+the card waiting in the morning cannot come to say different things. f219
+unchanged at 17, which is the condition on the lift.
+
+ONCE PER RENEWAL CYCLE, NOT ONCE A NIGHT. The signals carry daysToDecision,
+which moves daily, so the advice cache cannot bound this. The dedupe is the
+reminders table keyed on the DECISION DATE, written only on a call that
+succeeded and was not cut short.
+
+THREE BOUNDS, AND THE FIRST IS THE ONE THAT NORMALLY IS NOT NEEDED: aiBudgetGuard
+is MIDDLEWARE and this has no request, so the workspace's daily spend ceiling is
+asked by hand before every call and the run stops when it bites. Then a nightly
+cap, then an admin switch (absent = on) on the Copilot engine panel.
+
+AND A DEFECT IN THIS MORNING'S DESK FELL OUT OF BUILDING IT. Home reads the
+LIGHT list and _renewalAdvice is attached only by a single contract's own GET,
+so "renewal note ready" was right in local mode and COULD NEVER DRAW IN
+PRODUCTION — the recorded defect class, after the dashboard's raised-by-me and
+Reports' cycle time. _renewalPrep is the list's twin (one query, a word not the
+memo, and the word says whether HaTi wrote it or somebody asked).
+
+THE HEADER STILL CLAIMS NO CLOCK TIME. "Prepared overnight" would be true of at
+most one of three rows, so the fact went on the ROW instead — where it is
+actually true. Named to Young rather than slipped in.
+
+FOUR OF MY OWN TESTS WERE WRONG IN WAYS THAT WOULD HAVE PASSED WITHOUT PROVING
+ANYTHING, and each is worth recording. A "tiny" spend ceiling of 0.000001 is
+stored to four decimal places and rounds to 0, which means DISABLED — the test
+would have passed by never being armed, so the precondition is now asserted. A
+spare answer left in the scripted provider's QUEUE is handed to the next test's
+first call, so a scripted 502 refused one contract and the next got a success it
+never asked for. startHati always sets a key, so "no Copilot key" had to be
+asked for by name. And counting the word "catch" counted my own comments — the
+claim is now three sweeps, three admin-visible notes, which is what has to be
+true.
+
+Verified: lint 180/4 (identical to the clean tree), f275 23/23 with 21 failing
+against the parent, f219 17/17, f274 unchanged, home-page-verify 46/46,
+settings-tabs-verify 68/68 (65 before), full suite green.
+
+### Noticed, not fixed
+- A provider outage makes the sweep try every candidate up to the nightly cap
+  rather than stopping at the first failure. Failed calls book no spend, so it
+  is bounded and harmless, but it is up to 20 pointless calls on a bad night.
+- reminderSweep runs every 12 hours, so the preparation can also happen in the
+  afternoon. Harmless (the dedupe makes a second run a no-op) and it is why the
+  header deliberately claims no clock time.
+
+### and two nets pinned a literal where the claim was a relation
+- f230 pinned the renewal prompt's exact DOCUMENT interpolation, naming
+  aiDocText(req, contractFullBody(full)) inside the template. Lifting the
+  working core out of the route moved that reading one function along and the
+  claim went red — while staying perfectly true. The paragraph directly above
+  it in that same test already records this lesson for its three siblings.
+  Re-pointed as the relation: the ROUTE reads the wording through the one
+  capped reader, and the PROMPT posts what it was handed.
+- f198 sliced the first 1800 characters of saveContract to prove each transport
+  field is stripped. It was 1200 until _brief pushed it past, and 1800 until
+  _renewalPrep did the same — a measured number standing in for "inside this
+  function" fails every time a comment is written above the thing it measures.
+  It reads the function's own body now, and the list gained _hasBrief,
+  _renewalPrep and _renewalAdvice, so the next transport field costs no edit.

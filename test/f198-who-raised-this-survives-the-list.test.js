@@ -136,16 +136,19 @@ describe('f198 — it is transport, not a record', () => {
     assert.ok(row._raisedBy, 'it is on the row before we send it back');
     const src = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
     const save = src.slice(src.indexOf('async function saveContract'));
-    /* The window was 1200 chars; the strip block gained `_brief` and its
-       comment on 18 Aug 2026 (WO-2 — the same transport rule, a new field),
-       which pushed the date strips past the old measure. Widened in place;
-       every claim below is unchanged. */
-    assert.match(save.slice(0, 1800), /delete payload\._raisedBy/, 'stripped on the way out');
-    assert.match(save.slice(0, 1800), /delete payload\._raisedAt/);
-    assert.match(save.slice(0, 1800), /delete payload\._brief/, 'the brief is transport too (WO-2)');
-    /* The three dates go the same way, for the same reason. */
-    assert.match(save.slice(0, 1800), /delete payload\._signedAt/);
-    assert.match(save.slice(0, 1800), /delete payload\._lastAuditAt/);
+    /* THE WINDOW IS THE FUNCTION, NOT A CHARACTER COUNT. It was 1200, widened
+       to 1800 on 18 Aug 2026 when `_brief` and its comment pushed the date
+       strips past it, and widened again on 9 Sep 2026 when `_renewalPrep` did
+       the same — a measured number standing in for "inside saveContract" fails
+       every time a comment is written above the thing it is measuring. The
+       claim is that each transport field is stripped IN THIS FUNCTION, so the
+       slice is now the function's own body and the next field added costs no
+       edit here. */
+    const body = save.slice(0, save.indexOf('\n}\n') + 1);
+    for (const f of ['_raisedBy', '_raisedAt', '_brief', '_hasBrief', '_renewalPrep',
+      '_renewalAdvice', '_signedAt', '_lastAuditAt'])
+      assert.match(body, new RegExp('delete payload\\.' + f + '\\b'),
+        f + ' is transport and must never be written back into the record');
 
     /* And proved against the server rather than off the source: send the row
        back the way the product would, then read the stored record. */
