@@ -4352,6 +4352,107 @@ THE ROOM'S BACK ARROW GOES TO THE CONTRACTS PAGE, ALWAYS (owner-asked 17 Aug 202
 THE HEAD IS BUILT ONCE PER RENDER, so anything on it that changes underneath the reader needs a SLOT and a paint, called from applyWsTabs: #ws-tabrow-end → wsPaintTabRowEnd (the Document tab's door + text stepper), #ws-round-needs-slot → wsPaintRoundNeeds (the amber count on the round line). Wire where you PAINT, never also in wireRoomHead/wireWsTabs — both re-run and handlers stack.
 
 
+## THE NEGOTIATION MEMO (owner-asked 9 Sep 2026)
+
+One page on demand, in the More menu on the negotiation page, opening in the
+side drawer: what is agreed, what is still open, what we gave up, what is
+blocking, and whose move it is. Also the fastest way to bring a colleague into
+a negotiation mid-round.
+
+**NOTHING IN IT IS WRITTEN BY A MODEL, AND THAT IS THE FEATURE RATHER THAN A
+SAVING.** The owner's own note leads with *"built from the record, so it cannot
+flatter"*, and that is the whole design: it costs nothing, needs no Copilot
+key, works offline, cannot hallucinate a position nobody took, and cannot tell
+a boss the deal is going better than it is.
+
+- **EVERY LINE IS QUOTED FROM THE RECORD, NEVER COMPOSED** — `ch.summary` (the
+  proposer's own sentence, or the mechanical "what goes → what arrives" built
+  from stored ops) under `ch.clauseLabel`. `negoChangeSummary` states that
+  doctrine for the share blurb in its own words and this obeys it: machine-
+  written prose about a legal change is the one thing neither may produce,
+  because a reader would act on it.
+- **THE CLAUSE NAME IS THE STAMPED ONE, NEVER A LIVE LOOKUP** — negoTimeline's
+  own rule, for its reason: clause numbers move when a round renumbers, so a
+  memo naming today's number for a change filed against last round's would be
+  citing the wrong clause. f269 greps that `negoMemo` calls none of
+  `negoClauseById`, `negoClauseNowById`, `negoClauseList` or `clauseLabel(`.
+- **IT READS WITHOUT WRITING, AND THAT IS THE TRAP THE WHOLE FEATURE SITS ON.**
+  `negoChanges`, `negoAllChanges` and `negoRound` all call `negoInit`, which
+  creates a negotiation record **and stamps clause ids into the document**. The
+  memo reads `c.changes` and `c.negotiation.rounds` raw and takes the round the
+  way `roundStamp` does. f269 proves a bare contract gains no negotiation and
+  no stamped wording from being read.
+- **FOUR SECTIONS, FOUR READINGS OF ONE FIELD PAIR** — `status`, and the
+  `withdrawn` FLAG that sits beside whatever status a change already carried.
+  **The withdrawal is asked FIRST**, exactly as `rlCardBand` asks it first, or
+  an ask we took off the table shows up as still live between the parties.
+- **WE gave up is OURS ONLY** — them dropping an ask is good news and belongs
+  to a section nobody drew; counting it would tell a boss we conceded when we
+  did not. **BLOCKING is BOTH SIDES**, because a refusal stops the deal
+  whichever side asked and only the ASKER can settle it by withdrawing — which
+  is `negoAlignment`'s own `contested` reading widened across closed rounds.
+  **"We gave up" is therefore a two-step journey the product insists on**:
+  `negoWithdraw` refuses anything not already refused, because withdrawing IS
+  the asker accepting the other side's no.
+- **ALL FOUR SECTIONS ALWAYS DRAW, and that is a deliberate departure from the
+  change column beside it**, where a band with nothing in it draws nothing. A
+  column is a WORKLIST and an empty band there is noise; a memo is a STATEMENT,
+  and *"Blocking the deal — none"* is the single best line a boss can read. The
+  memo as a whole still stands down when there is nothing at all to report.
+- **THE ONE ADVISORY LINE IS PRECEDENT, AND IT IS NOT BADGED AS COPILOT.** The
+  owner's drawing labelled it *"Copilot: counter at 45 …"*; in this product
+  that reading is `precedentLine`, which is deterministic counting over this
+  workspace's own settled rounds — no model, no route, no spend. The owner was
+  asked and ruled it should say what it is. Read through `window` with a guard,
+  so a stage without js/precedent.js gets a memo with no precedent lines rather
+  than no memo.
+- **A CAP IS A FACT** — `NEGO_MEMO_MAX` (40) bounds the rows, the counts are of
+  the WHOLE population, and the sentence is what reconciles the two.
+- **COUNTING IS NOT DRAWING** — the Insights panels' rule. `negoMemo` returns
+  plain data and draws nothing; `negoMemoHtml` draws it and decides no
+  population of its own; `negoMemoText` builds the Copy form from the SAME
+  object, so what a colleague pastes cannot say something the panel did not.
+- **ONE READING, TWO READERS: `negoMoveSay`** (js/views/register.js, beside the
+  pill it was extracted from). The pill's five sentences were written out
+  inside the markup builder; a second copy is how the row on the Negotiations
+  page and the memo about that same contract come to disagree about whose turn
+  it is. **The pill's markup is proved byte-identical across four real
+  branches** — and the first attempt at that proof compared two CRASH LOGS and
+  reported "identical", because the probe set `state` by mutation on a world
+  that had none.
+- **THE ROW GOES IN `opts.menuRow`**, the documented door for a page's own row,
+  beside the playbook pass — `roomHeadHtml` interpolates it raw, so a page that
+  owns two rows passes two buttons. Same place for the same reason: a memo is a
+  JOB you reach for rather than one of the acts you work the round with. **The
+  same gate as its neighbour and the tight direction on purpose**: the memo
+  READS, so `canEdit()` is stricter than the act needs and a Viewer does not
+  get it — widening that is one word. What the gate is really buying is
+  `_rvPosture`, because a narrowed reviewer's document folds to their own
+  clauses and a memo spanning the whole negotiation would hand back the width
+  that narrowing took away. Dead in preview like the row above.
+- **IT OPENS `openSidePanel`, WHICH DRAWS NO SCRIM** — that is why it is the
+  right drawer and not a modal: the negotiation the memo is ABOUT stays lit,
+  readable and pressable behind it, which is the panel's own stated purpose. It
+  navigates nowhere and the reader is left exactly where they were.
+- **IT DECIDES NOTHING AND FILES NOTHING.** f269 greps the region for
+  `negoFileChange`, `negoResolve`, `negoWithdraw`, `changes.push`, `persist(`
+  and `logAudit`, and the browser file proves the record is character-identical
+  before and after opening it.
+
+**COPY ONLY, owner-ruled.** The drawing carries three buttons; "Send to a
+colleague" (a server route, following `POST /api/calendar/share`'s shape — the
+browser composes the lines, the route owns only WHO is written to) and "Add to
+Chat" were both put to the owner and are both **NOT built**. Neither is
+half-built: there is nothing dormant to switch on.
+
+Tests: f269 (49 — **29 fail against the parent**), **negotiation-memo-verify
+(24, browser — the only place four of the claims can be asked at all: the row
+as VISIBLE PIXELS once the menu is open, a real press opening the drawer, the
+contract proved UNDIMMED and still handing back its own wording behind it, and
+the record proved character-identical across the whole journey. Every driven
+half is guarded, so a build without the feature reports 10 failures rather than
+timing out. 10 fail against the parent**).
+
 ## THE ⋯ MENU SAYS WHAT A ROW WILL DO (owner-asked, 13 Aug 2026)
 
 TWO ROWS ANSWERED FOR, one deleted and one renamed, both on the room's overflow menu.

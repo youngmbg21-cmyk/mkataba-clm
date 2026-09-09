@@ -1033,29 +1033,49 @@ function regPrimaryAction(c){
    still being CUT was the one exempted from the fix. "Neither" is the honest
    one-word answer to "whose move" when nobody owes one, and the sentence it
    replaced is its hover like the other two. */
-function negoMovePillHtml(c){
+/* ---- WHOSE MOVE, IN WORDS — ONE READING, TWO READERS (9 Sep 2026) ----
+   This was the pill's own five sentences, written out inside the markup
+   builder. The negotiation memo has to say the same thing in prose, and a
+   second copy of five sentences is how the row on the Negotiations page and
+   the memo about that same contract come to disagree about whose turn it is.
+
+   So the SENTENCE is decided here and the pill merely dresses it — the
+   codebase's own rule: where two surfaces must answer alike, the question
+   becomes one function and the drawing stays each surface's own.
+
+   Returns {k, why, n, word, say}: `word` is the one word the table cell
+   prints, `say` the sentence that rides its hover and that the memo prints in
+   full. `say === word` on the clear state, which is what tells the pill it has
+   no title worth drawing. */
+function negoMoveSay(c){
   const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
-  /* One word, one class, and the sentence it replaced on the hover. A title
-     identical to its own word is noise, so the clear state carries none. */
-  const pill=(cls,word,full)=>`<span class="ngl-w ${cls}"${
-    full&&full!==word?` title="${esc(full)}"`:''}>${esc(word)}</span>`;
-  const MINE=()=>i18t('ngl_move_mine');
+  const MINE=i18t('ngl_move_mine');
+  const out=(k,word,say)=>({ k, why:m.why||null, n:m.n||0, word, say });
   /* ---- WAITING ON US, BUT NOT TO DECIDE ANYTHING (13 Aug 2026) ----
      negWhoseMove bands an agreement whose counterparty holds no live copy
      under "Waiting on you", because sending them one is the move. Counting
      decisions here would be wrong twice over — there are none to make, and
      the number would send the reader to a column with nothing in it. The
-     hover says what the move IS instead. See negWhoseMove for the whole rule. */
-  if(m.why==='nocopy') return pill('ngl-w-you',MINE(),i18t('ng_no_live_copy'));
+     sentence says what the move IS instead. See negWhoseMove for the rule. */
+  if(m.why==='nocopy') return out('you',MINE,i18t('ng_no_live_copy'));
   /* ---- AND THE SAME FOR WORK WE HAVE NOT SENT (14 Aug 2026) ----
      Same reasoning one step earlier: these are our own asks, still on our desk,
      so there is nothing for this reader to DECIDE and "N needs you" would send
      them to a column of their own drafting. See negWhoseMove. */
-  if(m.why==='unsent') return pill('ngl-w-you',MINE(),i18tn('ng_not_sent_yet',m.n,{n:m.n}));
-  if(m.k==='you') return pill('ngl-w-you',MINE(),i18tn('ng_needs_you',m.n,{n:m.n}));
-  if(m.k==='them') return pill('ngl-w-them',i18t('ngl_move_theirs'),
+  if(m.why==='unsent') return out('you',MINE,i18tn('ng_not_sent_yet',m.n,{n:m.n}));
+  if(m.k==='you') return out('you',MINE,i18tn('ng_needs_you',m.n,{n:m.n}));
+  if(m.k==='them') return out('them',i18t('ngl_move_theirs'),
     i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}));
-  return pill('ngl-w-clear',i18t('ngl_move_none'),i18t('ng_door_clear'));
+  const none=i18t('ngl_move_none');
+  return out('clear',none,i18t('ng_door_clear'));
+}
+function negoMovePillHtml(c){
+  const m=negoMoveSay(c);
+  /* One word, one class, and the sentence it replaced on the hover. A title
+     identical to its own word is noise, so the clear state carries none. */
+  const pill=(cls,word,full)=>`<span class="ngl-w ${cls}"${
+    full&&full!==word?` title="${esc(full)}"`:''}>${esc(word)}</span>`;
+  return pill('ngl-w-'+(m.k==='clear'?'clear':m.k), m.word, m.say);
 }
 /* ---- A BAND IS NOT A ROW ----
    It is a full-width heading that happens to live between rows: a coloured dot,
@@ -2182,5 +2202,5 @@ function ftsSearch(q){
 Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

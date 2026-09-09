@@ -6952,6 +6952,209 @@ function negWhoseMove(c){
   if (reach === 'none') return { k: 'you', n: open, why: 'nocopy', reach };
   return { k: 'them', n: open, reach };
 }
+/* ═══ THE NEGOTIATION MEMO (owner-asked 9 Sep 2026) ══════════════════════
+   One page on demand: what is agreed, what is still open, what we gave up,
+   what is blocking, and whose move it is. The fastest way to bring a
+   colleague into a negotiation mid-round, and the fastest way to answer "so
+   where are we" without reading forty cards.
+
+   NOTHING HERE IS WRITTEN BY A MODEL, and that is the whole feature rather
+   than a saving. This is a reading of the record, so it costs nothing, works
+   with no Copilot key, cannot hallucinate a position nobody took, and — the
+   line the owner's own note leads with — CANNOT FLATTER. A memo that told
+   the boss the deal was going better than it is would be worse than no memo.
+
+   EVERY LINE IS QUOTED FROM THE RECORD, NEVER COMPOSED. `ch.summary` is
+   either the sentence the proposer typed or the mechanical "what goes → what
+   arrives" built from the stored ops — the same text the change column shows
+   — and `ch.clauseLabel` is the label stamped at filing. negoChangeSummary
+   states that doctrine for the share blurb in its own words and this obeys
+   it: machine-written prose about a legal change is the one thing neither
+   may produce, because a reader would act on it.
+
+   THE CLAUSE NAME IS THE STAMPED ONE, NEVER A LIVE LOOKUP — negoTimeline's
+   own rule, and for its reason: clause numbers move when a round renumbers,
+   and a memo naming today's number for a change filed against last round's
+   would be citing the wrong clause.
+
+   IT READS WITHOUT WRITING. Not negoChanges, not negoAllChanges, not
+   negoRound — all three call negoInit, which creates a negotiation record and
+   stamps clause ids into the document. The memo is only ever opened on a
+   contract whose room is already in front of the reader, so the negotiation
+   certainly exists; reading it raw anyway costs nothing and means this can
+   never be the thing that starts one. */
+const NEGO_MEMO_MAX = 40;
+function negoMemo(c){
+  const keep = x => x && x.status !== 'superseded';
+  const live = (Array.isArray(c && c.changes) ? c.changes : []).filter(keep);
+  const past = ((c && c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [])
+    .reduce((o, r) => o.concat((r.changes || []).map(x => ({ ...x, roundN: x.roundN || r.n }))), [])
+    .filter(keep);
+  const all = past.concat(live);
+  /* `said` may be empty on a hand-built or very old record. It is left EMPTY
+     rather than filled with the clause name a second time: a row that quotes
+     nothing is honest, and one that repeats its own heading reads as a quote
+     that is not one. */
+  const row = ch => ({
+    id: ch.id || '',
+    clause: String(ch.clauseLabel || '').trim() || String(ch.id || ''),
+    said: String(ch.summary || '').trim(),
+    side: ch.authorSide === 'counterparty' ? 'them' : 'us',
+    round: ch.roundN || null,
+  });
+  const cap = list => list.slice(0, NEGO_MEMO_MAX).map(row);
+
+  /* THE FOUR SECTIONS ARE FOUR READINGS OF ONE FIELD PAIR — status, and the
+     withdrawn FLAG that sits beside whatever status a change already carried.
+     A withdrawal is asked FIRST wherever it appears, exactly as rlCardBand
+     asks it first, because it can ride on any status underneath. */
+  const agreed   = all.filter(x => x.status === 'accepted' && !x.withdrawn);
+  const open     = live.filter(x => x.status === 'pending' && !x.withdrawn);
+  /* WE gave up, not they. A withdrawal of ours is us taking an ask off the
+     table, which is the thing a boss wants counted; theirs is them dropping
+     one, which is good news and belongs to a section nobody drew. Said out
+     loud rather than left to be discovered. */
+  const gave     = all.filter(x => x.withdrawn && x.authorSide !== 'counterparty');
+  /* BLOCKING IS A REFUSAL NOBODY HAS WITHDRAWN, on either side — which is
+     negoAlignment's own `contested` reading widened across closed rounds,
+     and it is what negoSigningBlockers already refuses to seal over. It is
+     deliberately BOTH sides: their ask we said no to and our ask they said no
+     to stop the deal in exactly the same way, and only the side that ASKED
+     can settle it by withdrawing. */
+  const blocked  = all.filter(x => x.status === 'rejected' && !x.withdrawn);
+
+  /* WHAT THIS WORKSPACE SETTLED BEFORE, on the points that are stuck — and it
+     is NOT Copilot, whatever the drawing said. precedentForChange is
+     deterministic counting over this workspace's own settled rounds: no model,
+     no route, no spend. Badging it as advice from a model would claim
+     something wrote this that did not. Read through window with a guard: a
+     stage without js/precedent.js gets a memo with no precedent lines rather
+     than no memo. */
+  const pcLine = ch => {
+    if (typeof window.precedentForChange !== 'function' || typeof window.precedentLine !== 'function') return '';
+    try { return String(window.precedentLine(window.precedentForChange(c, ch)) || '').trim(); }
+    catch (_) { return ''; }
+  };
+  const blocking = cap(blocked).map((r, i) => ({ ...r, precedent: pcLine(blocked[i]) }));
+
+  /* Whose move is the register's own reading, borrowed whole — see
+     negoMoveSay. Two copies of five sentences is how the row on the
+     Negotiations page and the memo about that same contract come to disagree
+     about whose turn it is. */
+  const move = (typeof window.negoMoveSay === 'function') ? window.negoMoveSay(c) : null;
+
+  const round = (c && c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0)
+    ? c.negotiation.round : null;
+
+  return {
+    id: (c && c.id) || '', name: (c && c.name) || '', counterparty: (c && c.counterparty) || '',
+    round, at: new Date().toISOString(),
+    agreed: cap(agreed), open: cap(open), gave: cap(gave), blocking,
+    /* The four counts are of the WHOLE population, so a memo that had to cap a
+       long section still reports the true number — a cap is a fact, never a
+       silent trim. */
+    counts: { agreed: agreed.length, open: open.length, gave: gave.length, blocking: blocked.length },
+    capped: [agreed, open, gave, blocked].some(l => l.length > NEGO_MEMO_MAX),
+    move,
+    empty: !all.length,
+  };
+}
+
+/* COUNTING IS NOT DRAWING — the Insights panels' rule. negoMemo above returns
+   plain data and draws nothing; this draws it and counts nothing.
+
+   ALL FOUR SECTIONS ARE ALWAYS DRAWN, and that is a deliberate departure from
+   the change column beside it, where a band with nothing in it draws nothing.
+   A column is a WORKLIST and an empty band there is noise; a memo is a
+   STATEMENT, and "Blocking the deal — none" is the single best line a boss can
+   read. An absence is the news here rather than the lack of it. The memo as a
+   whole still stands down when there is nothing at all to report. */
+const NEGO_MEMO_SECTIONS = [
+  { k: 'agreed',   get label(){ return i18t('ng_memo_agreed'); } },
+  { k: 'open',     get label(){ return i18t('ng_memo_open'); } },
+  { k: 'gave',     get label(){ return i18t('ng_memo_gave'); } },
+  { k: 'blocking', get label(){ return i18t('ng_memo_blocking'); } },
+];
+function negoMemoHtml(m){
+  if (!m || m.empty) return `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${_ne(i18t('ng_memo_none'))}</div>`;
+  const when = (() => { const t = Date.parse(m.at); return isNaN(t) ? '' :
+    new Date(t).toLocaleDateString(langLocale(), { day: '2-digit', month: 'short', year: 'numeric' })
+    + ' ' + new Date(t).toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); })();
+  const sub = [m.id, m.round ? i18t('ng_memo_round', { n: m.round }) : '',
+    i18t('ng_memo_from_record', { at: when })].filter(Boolean).join(' · ');
+  const row = r => `<div style="font-size:var(--t-meta);line-height:1.45;padding:5px 0;border-top:1px solid var(--color-divider)">
+      <b>${_ne(r.clause)}</b>${r.said ? ` — ${_ne(r.said)}` : ''}${
+      r.precedent ? `<div style="color:var(--color-neutral-600);padding-top:2px">${_ne(r.precedent)}</div>` : ''}</div>`;
+  const section = sec => {
+    const rows = m[sec.k] || [];
+    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">
+        <span>${_ne(sec.label)}</span><b style="margin-left:auto;color:var(--color-text)">${m.counts[sec.k]}</b></div>`
+      + (rows.length ? rows.map(row).join('')
+        : `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:5px 0;border-top:1px solid var(--color-divider)">${_ne(i18t('ng_memo_nil'))}</div>`);
+  };
+  /* A CAP IS A FACT, NEVER A SILENT TRIM — the standing rule. The counts above
+     are of the whole population, so the sentence is what reconciles them with
+     the rows actually printed. */
+  const capped = m.capped ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:8px">${
+    _ne(i18tn('ng_memo_capped', NEGO_MEMO_MAX, { n: NEGO_MEMO_MAX }))}</div>` : '';
+  const move = m.move ? `<div style="margin-top:12px;padding:9px 11px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);font-size:var(--t-meta);line-height:1.45">
+      <b>${_ne(i18t('ng_memo_move'))}</b> ${_ne(m.move.say)}</div>` : '';
+  return `<div style="font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)">${
+      _ne([m.name, m.counterparty].filter(Boolean).join(' — ') || m.id)}</div>
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:4px">${_ne(sub)}</div>
+    ${NEGO_MEMO_SECTIONS.map(section).join('')}
+    ${capped}${move}
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" id="ng-memo-copy" class="ui-btn">${_ne(i18t('ng_memo_copy'))}</button>
+    </div>`;
+}
+/* THE SAME MEMO AS PLAIN TEXT, for the one act under it. Built from the same
+   data object, so the thing that reaches a colleague's inbox cannot say
+   something the panel did not. */
+function negoMemoText(m){
+  if (!m || m.empty) return i18t('ng_memo_none');
+  const out = [[m.name, m.counterparty].filter(Boolean).join(' — ') || m.id,
+    [m.id, m.round ? i18t('ng_memo_round', { n: m.round }) : ''].filter(Boolean).join(' · '), ''];
+  for (const sec of NEGO_MEMO_SECTIONS){
+    out.push(`${sec.label} (${m.counts[sec.k]})`);
+    const rows = m[sec.k] || [];
+    if (!rows.length) out.push('  ' + i18t('ng_memo_nil'));
+    for (const r of rows){
+      out.push('  ' + r.clause + (r.said ? ' — ' + r.said : ''));
+      if (r.precedent) out.push('    ' + r.precedent);
+    }
+    out.push('');
+  }
+  if (m.move) out.push(i18t('ng_memo_move') + ' ' + m.move.say);
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+/* THE DOOR. openSidePanel is the product's own right-hand drawer and it is
+   the right one here rather than the shell's notes panel: it draws NO SCRIM,
+   so the negotiation the memo is about stays lit and readable behind it —
+   which is the whole reason that panel was built ("a panel that does not stand
+   in front of what it is talking about"). It closes on its own ✕ and on
+   Escape, and it navigates nowhere: the reader is left exactly where they
+   were. It DECIDES NOTHING and FILES NOTHING — f269 greps for that. */
+function openNegoMemo(c){
+  if (!c || typeof window.openSidePanel !== 'function') return null;
+  const m = negoMemo(c);
+  openSidePanel(negoMemoHtml(m), { title: i18t('ng_memo'), label: i18t('ng_memo'), width: '520px' });
+  const btn = document.getElementById('ng-memo-copy');
+  if (btn) btn.addEventListener('click', () => {
+    const text = negoMemoText(m);
+    const done = () => { if (typeof toast === 'function') toast(i18t('ng_memo_copied'), 'ok'); };
+    /* A refusal says so where the reader is looking rather than failing in
+       silence — a clipboard is permission-gated and can simply say no. */
+    const failed = () => { if (typeof toast === 'function') toast(i18t('ng_memo_copy_failed'), 'warn'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(text).then(done, failed);
+      else failed();
+    } catch (_) { failed(); }
+  });
+  return m;
+}
+
 /* ---- THE LIST BEHIND THE DOOR — IT IS THE CONTRACTS TABLE NOW ----
    Owner's decision, 12 Aug 2026, and it REVERSES the position that stood here
    for two days. This page used to be a signpost of twenty lines, and the
@@ -7323,10 +7526,29 @@ function renderRedline(){
   `;
   /* The playbook pass's row, for the head's More menu — see the note where it
      used to sit on the strip. Built here because this page owns its rules. */
-  const menuRow = (!_rvPosture && (typeof canEdit !== 'function' || canEdit()))
+  const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
+  const menuRow = (mayMenu
     ? `<button type="button" data-rl-pbreview${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_review_every_clause'))}"
-      ><span aria-hidden="true">&#10022;</span>${i18t('ng_review_vs_playbook')}</button>` : '';
+      ><span aria-hidden="true">&#10022;</span>${i18t('ng_review_vs_playbook')}</button>` : '')
+  /* ---- AND THE MEMO'S ROW, BESIDE IT (owner-asked 9 Sep 2026) ----
+     menuRow is interpolated raw by roomHeadHtml, so a page that owns two rows
+     passes two buttons. Same place for the same reason the playbook pass is
+     there: a memo is a JOB you reach for — "where are we, and can I hand this
+     to somebody" — rather than one of the acts you work the round with.
+
+     THE SAME GATE AS ITS NEIGHBOUR, and the tight direction is chosen on
+     purpose. The memo READS and never writes, so canEdit() is stricter than
+     the act needs and a Viewer does not get it — widening that is one word.
+     What the gate is really buying is _rvPosture: a narrowed reviewer's
+     document folds to their own clauses, and a memo spanning the whole
+     negotiation would quietly hand back the width that narrowing took away.
+     Dead in preview like the row above, so the counterparty's seat — which
+     draws its own header and never this one — cannot reach it either way. */
+    + (mayMenu
+    ? `<button type="button" data-rl-memo${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_memo_title'))}"
+      ><span aria-hidden="true">&#9636;</span>${i18t('ng_memo')}</button>` : '');
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -7688,6 +7910,11 @@ function renderRedline(){
   });
   host.querySelector('[data-rl-pbreview]')?.addEventListener('click', () =>
     rlOpenPlaybookReview(c, () => renderRedline()));
+  /* The memo's row, wired beside the playbook pass's and in the same place —
+     the More menu itself wires nothing (wireRoomHead only opens and shuts it),
+     so every row is bound by the page that owns it. It takes no callback: the
+     memo changes nothing, so there is nothing for the page to repaint after. */
+  host.querySelector('[data-rl-memo]')?.addEventListener('click', () => openNegoMemo(c));
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -15588,7 +15815,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListHeadHtml, negWhoseMove,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,openNegoMemo,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

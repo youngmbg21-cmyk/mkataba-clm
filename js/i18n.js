@@ -1518,6 +1518,27 @@ const STRINGS = {
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
     ng_this_rounds_queue: "This round's queue",
     ng_cp_edit: 'Edit',
+    /* ---- THE NEGOTIATION MEMO (9 Sep 2026) ----
+       One page on demand, written from the record. Nothing here is produced by
+       a model, so nothing in it may be worded as advice: the blocking rows
+       carry precedentLine's own sentence, which is deterministic counting of
+       this workspace's own settled rounds. */
+    ng_memo: 'Negotiation memo',
+    ng_memo_title: 'One page on where this negotiation stands — agreed, open, given up, blocking, and whose move it is. Written from the record.',
+    ng_memo_agreed: 'Agreed',
+    ng_memo_open: 'Still open',
+    ng_memo_gave: 'We gave up',
+    ng_memo_blocking: 'Blocking the deal',
+    ng_memo_nil: 'None',
+    ng_memo_none: 'Nothing has been proposed on this contract yet, so there is nothing to report.',
+    ng_memo_round: 'Round {n}',
+    ng_memo_from_record: 'written from the record, {at}',
+    ng_memo_move: 'Whose move:',
+    ng_memo_copy: 'Copy',
+    ng_memo_copied: 'Memo copied',
+    ng_memo_copy_failed: 'Could not copy — select the text and copy it yourself',
+    ng_memo_capped_one: 'Only the first {n} in each section is listed; the counts above are the full number.',
+    ng_memo_capped_other: 'Only the first {n} in each section are listed; the counts above are the full numbers.',
     /* WHERE THE PENCIL ACTUALLY GOES. It carried ng_cp_open_title — "what it
        says now, what is on the table, and everything that has been asked about
        it" — which describes the CLAUSE PANEL, and the pencil has opened the
@@ -7060,6 +7081,22 @@ const STRINGS = {
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',
     ng_this_rounds_queue: 'Den här rundans kö',
     ng_cp_edit: 'Redigera',
+    ng_memo: 'Förhandlingsnotat',
+    ng_memo_title: 'En sida om var förhandlingen står — överenskommet, öppet, uppgivet, blockerande, och vems tur det är. Skrivet från underlaget.',
+    ng_memo_agreed: 'Överenskommet',
+    ng_memo_open: 'Fortfarande öppet',
+    ng_memo_gave: 'Vi gav upp',
+    ng_memo_blocking: 'Blockerar affären',
+    ng_memo_nil: 'Inget',
+    ng_memo_none: 'Inget har föreslagits i det här avtalet ännu, så det finns inget att rapportera.',
+    ng_memo_round: 'Runda {n}',
+    ng_memo_from_record: 'skrivet från underlaget, {at}',
+    ng_memo_move: 'Vems tur:',
+    ng_memo_copy: 'Kopiera',
+    ng_memo_copied: 'Notatet kopierat',
+    ng_memo_copy_failed: 'Kunde inte kopiera — markera texten och kopiera den själv',
+    ng_memo_capped_one: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är det fullständiga antalet.',
+    ng_memo_capped_other: 'Endast de första {n} i varje avsnitt visas; siffrorna ovan är de fullständiga antalen.',
     ng_cp_edit_title: 'Redigera klausulen — texten, med Copilot bredvid',
     ng_cp_notes_group: 'Visa klausulens historik med eller utan noteringar',
     ng_cp_hist: 'Historik',

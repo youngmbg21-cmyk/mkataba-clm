@@ -9233,3 +9233,78 @@ Noticed, not fixed:
   are short and this build trims its own), so it is latent rather than live.
 - aiCards' "Show all N" expander is an 11px sentence, and --t-micro's own note
   says that rung is for uppercase micro labels and never a sentence.
+
+## 9 Sep 2026 — the negotiation memo
+
+Idea 5 off the shortlist, built to the owner's own drawing: More menu on the
+negotiation page, memo in the side drawer. One page on demand — what is agreed,
+what is still open, what we gave up, what is blocking, and whose move it is.
+
+NOTHING IN IT IS WRITTEN BY A MODEL, and that is the feature rather than a
+saving. The note the owner wrote under the drawing leads with "built from the
+record, so it cannot flatter", and that is the whole design: it costs nothing,
+needs no Copilot key, cannot hallucinate a position nobody took, and cannot
+tell a boss the deal is going better than it is. Every line is QUOTED — the
+change's own `summary` (the proposer's sentence, or the mechanical one built
+from stored ops) under its stamped `clauseLabel`. negoChangeSummary states that
+doctrine for the share blurb in its own words and this obeys it.
+
+THE ONE ADVISORY LINE IS PRECEDENT, AND IT IS NOT BADGED AS COPILOT. The
+drawing labelled it "Copilot: counter at 45 — Nordkust settled there 3 of 3
+times"; in this product that reading is precedentLine, which is deterministic
+counting over this workspace's own settled rounds — no model, no route, no
+spend. The owner was asked and ruled it should say what it is. Measured on a
+real fixture it prints "Naivas Supermarkets pushed on Payment terms 2 times:
+you agreed 1, held 1 (settled at 60 days)."
+
+IT READS WITHOUT WRITING, which is the trap this whole feature sits on.
+negoChanges, negoAllChanges and negoRound all call negoInit, which creates a
+negotiation record AND stamps clause ids into the document. The memo reads
+c.changes and c.negotiation.rounds raw and takes the round the way roundStamp
+does, so it can be asked of anything — f269 proves a bare contract gains no
+negotiation and no stamped wording from being read.
+
+FOUR SECTIONS, FOUR READINGS OF ONE FIELD PAIR — status, and the withdrawn FLAG
+that sits beside whatever status a change already carried. The withdrawal is
+asked FIRST wherever it appears, exactly as rlCardBand asks it first, or an ask
+we took off the table shows up as still live between the parties. WE gave up is
+ours only (them dropping an ask is good news and belongs to a section nobody
+drew); BLOCKING is both sides, because a refusal stops the deal whichever side
+asked and only the asker can settle it.
+
+ALL FOUR SECTIONS ALWAYS DRAW, which is a deliberate departure from the change
+column beside it where an empty band draws nothing. A column is a worklist and
+an empty band there is noise; a memo is a STATEMENT, and "Blocking the deal —
+none" is the single best line a boss can read.
+
+ONE READING, TWO READERS: negoMoveSay is extracted out of negoMovePillHtml so
+the Negotiations row and the memo about that same contract cannot disagree
+about whose turn it is. The pill's markup is proved byte-identical across four
+real branches by a differential run against the parent — and the first attempt
+at that proof compared two CRASH LOGS and reported "identical", because the
+probe set state by mutation on a world that had none.
+
+Owner-ruled: COPY ONLY. "Send to a colleague" (a server route, following
+/api/calendar/share) and "Add to Chat" were both drawn and are both NOT built.
+
+Node 5684/5684, lint unchanged (4 errors before and after). Browser:
+negotiation-memo 24/24 (NEW), nego-redesign 57/57, contracts-page 78/78.
+Against the parent, f269 reports 29 of its 49 checks failing and
+negotiation-memo 10 of 24.
+
+Noticed, not fixed:
+- negWhoseMove answers 'clear' whenever nothing is PENDING, so a contract whose
+  only outstanding item is a refused-and-unwithdrawn ask reads "Blocking the
+  deal 1" and "Whose move: Nothing outstanding" in the same panel. The memo
+  borrows that reading on purpose rather than inventing a second one; it is
+  shared with the Negotiations row, the bands and the phone, so changing it is
+  three surfaces and a decision of its own.
+- room-order-and-notices-verify is 27/29 and negotiations-door-verify 63/67 on
+  main — proved by running both at the parent commit, same counts, same checks.
+  Neither is this run's.
+- js/i18n.js still carries four duplicate keys (co_password_updated, act_next,
+  one of each per language), which are the whole of lint's error count.
+- A nested read inside a write call on one path truncated a test file mid-run
+  (io.open(p,'w').write(io.open(p).read()...) — the write handle opens and
+  empties the file before the read is evaluated). Recorded because it destroys
+  work silently and the file then passes as one empty test.
