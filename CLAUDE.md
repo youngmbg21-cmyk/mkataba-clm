@@ -10922,8 +10922,30 @@ pushed at the reader in the morning.
   single morning — a renewal 43 days out and a supplier four days late will
   always outrank the third thing, so it would never draw at all. `deskShown`
   takes **at most one of each**, so every kind that has something is on screen
-  and none can be crowded out. Where more qualify the sub-line says how many of
-  how many: **a cap is a FACT, never a silent trim.**
+  and none can be crowded out. **The ceiling is three, never a quota**: a kind
+  with nothing in it draws nothing at all, so a morning with no late supplier is
+  a desk of two, and a quiet week one of nothing.
+
+- **AND THE SUB-LINE COUNTS THE ROWS ON SCREEN — REVERSED IN PLACE 9 Sep 2026**
+  (Young: *"keep it as it is but remove the '2 out of 9' because i have no
+  ability to see the rest of the 9"*). It said *"9 things … showing 2 of 9"* on
+  the reasoning that **a cap is a FACT, never a silent trim**. **THAT RULE IS
+  NARROWED RATHER THAN BROKEN, and the narrowing is worth having**: it exists so
+  a reader is never handed a slice dressed as the whole, and it assumes the fact
+  is ACTIONABLE — a count with a door onto the rest, or a figure that explains a
+  number beside it. Here there is no door: nothing on the page and nothing
+  anywhere opens the other seven, so the number was a promise the page could not
+  keep. **WHAT MAKES IT SAFE is that the desk is a STACK rather than a queue** —
+  every held-back item is still exactly where it always was (the renewals in
+  *Needs your decision*, the late promises on the Obligations worklist, what
+  HaTi read on the contract), and discarding a row lets the next step into the
+  slot. `desk_showing` is STALE and left inert in both books; the day the desk
+  grows a door onto the rest, it comes back with it.
+  **DISCARD ALL STILL PUTS AWAY THE WHOLE POPULATION**, which is the one place
+  it is still acted on: discard only what is drawn and the held-back ones step
+  straight into the empty slots, so the button would appear to do nothing. Its
+  confirm simply stopped naming a count — a dialog is the wrong place to
+  introduce a number the page has deliberately stopped mentioning.
 
 - **ONE DOOR, AND THE OWNER'S OWN QUESTION IS WHAT FOUND IT** — *"what is the
   difference between the 3 or 5 things compared to the 'needs your decision' on

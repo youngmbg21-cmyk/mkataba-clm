@@ -414,6 +414,22 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        inventing a night shift. */
     check('11f the sub-line promises what is true and claims no night shift',
       /nothing was sent or filed/i.test(desk.sub) && !/\d\d:\d\d/.test(desk.sub), desk.sub);
+    /* ---- AND IT NAMES NOTHING THE READER CANNOT REACH (Young, 9 Sep 2026) ----
+       "keep it as it is but remove the '2 out of 9' because i have no ability
+       to see the rest of the 9." It read "9 things … showing 2 of 9" and there
+       is no door onto the other seven, so the count is the rows being drawn.
+       Asserted as the RELATION — the number in the line equals the number of
+       rows — so the claim holds on any book rather than on this fixture. */
+    const subN = await page.evaluate(() => {
+      const sub = (document.querySelector('.hm-desk-sub') || {}).textContent || '';
+      const m = /(\d+)/.exec(sub);
+      return { n: m ? Number(m[1]) : null, rows: document.querySelectorAll('#hm-desk-rows .hm-row').length,
+        sub: sub.replace(/\s+/g, ' ').trim() };
+    });
+    check('11f2 the count is the rows on screen, not a population with no door onto it',
+      subN.n !== null && subN.n === subN.rows, `"${subN.sub}" over ${subN.rows} rows`);
+    check('11f3 …and it no longer says "showing N of M"',
+      !/showing|\bof\b\s*\d/i.test(subN.sub), subN.sub);
     /* `every` ON AN EMPTY LIST IS TRUE, so the count is asserted with it — the
        claim is that THREE rows each carry one, not that none of nought does. */
     check('11g every row carries a way to put it away',

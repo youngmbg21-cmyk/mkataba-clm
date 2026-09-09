@@ -10453,3 +10453,43 @@ pinned as the row now, with a new 11j2 asserting the promotion.
 Verified: f274 78/78 (its whole-list claim reversed in place), home-page-verify
 50/50, with 11h4 failing against the parent and reporting the fault verbatim —
 "in the decisions list: false".
+
+## 2026-09-09 — the desk stopped counting things you cannot reach
+
+Young, having had the renewals put back: "keep it as it is but remove the '2 out
+of 9' because i have no ability to see the rest of the 9."
+
+Right, and it takes a standing rule with it. The sub-line read "9 things ·
+nothing was sent or filed · showing 2 of 9", on A CAP IS A FACT, NEVER A SILENT
+TRIM. THAT RULE IS NARROWED RATHER THAN BROKEN. It exists so a reader is never
+handed a slice dressed as the whole, and it assumes the fact is ACTIONABLE — a
+count with a door onto the rest, or a figure explaining a number beside it. The
+desk has no door: nothing on the page and nothing anywhere opens the other
+seven. A number you can neither reach nor act on is not a fact being kept
+honest, it is a promise the page cannot keep.
+
+BOTH HALVES NAMED THE UNREACHABLE POPULATION, so removing only the trailing
+"showing 2 of 9" would have left "9 things" over two rows with nothing
+explaining the gap — worse than before. The whole line counts what it draws.
+
+WHAT MAKES IT SAFE is that the desk is a STACK rather than a queue: everything
+held back is still where it always was, and discarding a row lets the next step
+into the slot. desk_showing is retired and left inert in both books; the day the
+desk grows a door onto the rest, it comes back with it.
+
+DISCARD ALL STILL PUTS AWAY THE WHOLE POPULATION and that is deliberate —
+discard only the drawn rows and the held-back ones step straight into the empty
+slots, so the button would appear to do nothing. Its confirm stopped naming a
+count instead: a dialog is the wrong place to introduce a number the page has
+just stopped mentioning.
+
+AND THE ANSWER TO "we previously said 3 things. Why is it 2 then?" is that three
+is the CEILING, not a quota — one row per kind, three kinds, and a kind with
+nothing in it draws nothing. Today nothing on the other side was overdue and
+unchased. Recorded in the map beside the cap.
+
+Verified: f274 78/78 (its sub-line claim reversed in place, plus new claims that
+the count is deskRows and that neither the line nor the confirm names a
+population), home-page-verify 52/52 with 11f2 asserting the RELATION — the
+number in the line equals the number of rows — so it holds on any book rather
+than on the fixture.

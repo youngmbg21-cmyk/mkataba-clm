@@ -435,6 +435,18 @@ describe('F274 — the overnight desk', () => {
        What it DOES promise is the half the whole desk rests on. */
     test('the section promises what is true, and nothing more', () => {
       assert.match(I18N, /desk_sub_other: '\{n\} things · nothing was sent or filed'/);
+      /* ---- AND THE COUNT IS THE ROWS ON SCREEN (Young ruled 9 Sep 2026) ----
+         It was deskAll's, with "showing 2 of 9" beside it — and there is no
+         door onto the other seven, so both halves named a population the reader
+         cannot reach. The desk is a stack rather than a queue: what is held
+         back is still on Needs your decision, the Obligations worklist and the
+         contract itself, and discarding a row lets the next step into the slot.
+         `desk_showing` is retired and left inert in both books. */
+      assert.match(HOME_CODE, /i18tn\('desk_sub',deskRows\.length,\{n:deskRows\.length\}\)/,
+        'the sub-line counts what it is drawing');
+      assert.ok(!/desk_showing/.test(HOME_CODE), 'and never says "showing N of M"');
+      assert.ok(!/desk_discard_msg',\{n:/.test(HOME_CODE),
+        'nor does the confirm introduce a count the page has stopped mentioning');
       assert.ok(!/desk_sec: '[^']*05:40/.test(I18N), 'no clock time is claimed');
       assert.ok(!/desk_sec: '[^']*[Oo]vernight/.test(I18N),
         'nor a night shift the product does not yet run');

@@ -1319,10 +1319,28 @@ function renderDashboard(){
 
      A CAP IS A FACT, NEVER A SILENT TRIM: at most one row per kind is on
      screen, so where more qualify the sub-line says how many of how many. */
+  /* ---- THE COUNT IS WHAT IS ON SCREEN (Young ruled 9 Sep 2026) ----
+     *"keep it as it is but remove the '2 out of 9' because i have no ability to
+     see the rest of the 9."* It read "9 things … showing 2 of 9", and both
+     halves named a population the reader cannot reach: the desk draws one of
+     each kind and there is no door to the rest.
+
+     THIS NARROWS "A CAP IS A FACT, NEVER A SILENT TRIM" RATHER THAN BREAKING
+     IT. That rule exists so a reader is never shown a slice dressed as the
+     whole — and it assumes the fact is ACTIONABLE. Here it was not: nothing on
+     the page, and nothing anywhere, opens the other seven. A number you can
+     neither reach nor act on is not a fact being kept honest, it is a promise
+     the page cannot keep. So the sub-line counts the rows it is drawing, and
+     every word of it is now true and reachable.
+
+     WHAT IS NOT LOST, which is what makes this safe: the desk is a stack rather
+     than a queue, and everything held back is still where it always was — the
+     renewals in Needs your decision, the late promises on the Obligations
+     worklist, what HaTi read on the contract itself. Discarding a row lets the
+     next one step into the slot. `desk_showing` is STALE and left inert in both
+     books; the day the desk grows a door onto the rest, it comes back. */
   const deskSub=deskRows.length
-    ? esc(i18tn('desk_sub',deskAll.length,{n:deskAll.length}))
-      +(deskAll.length>deskRows.length
-        ? ' &middot; '+esc(i18t('desk_showing',{n:deskRows.length,total:deskAll.length})):'')
+    ? esc(i18tn('desk_sub',deskRows.length,{n:deskRows.length}))
     : '';
   /* NOTHING PREPARED DRAWS NOTHING AT ALL — no heading, no empty state. An
      empty section that says so every morning is the furniture this rulebook
@@ -1536,10 +1554,17 @@ function renderDashboard(){
     const act=el.getAttribute('data-desk-act');
     if(act==='discard-all'){
       /* IT ASKS, AND IT SAYS WHAT IT COSTS — which is nothing: every row here
-         is a reading of something that stays exactly where it was. The count
-         is deskAll's, not the three on screen, because "all" means all. */
+         is a reading of something that stays exactly where it was.
+
+         IT STILL PUTS AWAY deskAll RATHER THAN THE ROWS ON SCREEN, and that is
+         the one place the whole population is still acted on: discard only what
+         is drawn and the held-back ones step straight into the empty slots, so
+         "Discard all" would appear to do nothing. THE WORDING NO LONGER NAMES A
+         COUNT, though — the page deliberately stops mentioning a population the
+         reader cannot see (Young, 9 Sep 2026), and a confirm is the wrong place
+         to introduce one. */
       const ok=await confirmDialog({ title:i18t('desk_discard_q'),
-        message:i18t('desk_discard_msg',{n:deskAll.length}),
+        message:i18t('desk_discard_msg'),
         confirm:i18t('desk_discard_go') });
       if(!ok) return;
       let n=0;

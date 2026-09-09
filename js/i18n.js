@@ -4898,11 +4898,15 @@ const STRINGS = {
     desk_sec: 'Prepared for you',
     desk_sub_one: '1 thing · nothing was sent or filed',
     desk_sub_other: '{n} things · nothing was sent or filed',
+    /* STALE since 9 Sep 2026 — the desk's sub-line counted a population the
+       reader has no door onto, so it counts the rows on screen instead. Left
+       inert in both books: the day the desk grows a way to the rest, this is
+       what it says. */
     desk_showing: 'showing {n} of {total}',
     desk_discard: 'Discard',
     desk_discard_all: 'Discard all',
     desk_discard_q: 'Discard everything prepared?',
-    desk_discard_msg: 'All {n} prepared items come off this list. Nothing is deleted — the renewal stays on Needs your decision and the Calendar, the late promise stays on the Obligations list, and what HaTi read stays on the contract.',
+    desk_discard_msg: 'Everything prepared comes off this list. Nothing is deleted — the renewal stays on Needs your decision and the Calendar, the late promise stays on the Obligations list, and what HaTi read stays on the contract.',
     desk_discard_go: 'Discard all',
     /* A late promise, with the message ready to go. */
     desk_chase_t: 'Chase ready — {who}',
@@ -10352,11 +10356,12 @@ const STRINGS = {
     desk_sec: 'Förberett åt dig',
     desk_sub_one: '1 sak · inget har skickats eller sparats',
     desk_sub_other: '{n} saker · inget har skickats eller sparats',
+    /* STALE — see the English book. */
     desk_showing: 'visar {n} av {total}',
     desk_discard: 'Lägg undan',
     desk_discard_all: 'Lägg undan alla',
     desk_discard_q: 'Lägga undan allt som förberetts?',
-    desk_discard_msg: 'Alla {n} förberedda punkter försvinner från den här listan. Ingenting raderas — förnyelsen ligger kvar under Beslut att fatta och i kalendern, det försenade åtagandet ligger kvar i åtagandelistan, och det HaTi läst ligger kvar på avtalet.',
+    desk_discard_msg: 'Allt som förberetts försvinner från den här listan. Ingenting raderas — förnyelsen ligger kvar under Beslut att fatta och i kalendern, det försenade åtagandet ligger kvar i åtagandelistan, och det HaTi läst ligger kvar på avtalet.',
     desk_discard_go: 'Lägg undan alla',
     desk_chase_t: 'Påminnelse redo — {who}',
     desk_late_one: '1 dag försenat',
