@@ -66,6 +66,11 @@ const SEED = t => {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  /* THE ONLY PLACE "IT IS NOT RUN TWICE" CAN BE ASKED. A source check sees the
+     early return; only a real page can say whether pressing the row reaches the
+     provider again. */
+  let obligCalls = 0;
+  page.on('request', r => { if (/\/api\/ai\/obligations/.test(r.url())) obligCalls++; });
   /* A BUILD WITHOUT THE FEATURE MUST REPORT, NEVER ABORT. Three of the driven
      halves below CALL the runner rather than merely look for its markup, so on
      a page that has never heard of it they throw and take every check after
@@ -317,6 +322,60 @@ const SEED = t => {
       return { pressed: true, gone: !document.getElementById('kt-triage'),
         seen: !!((state.contracts[0].triage || {}).seenAt) };
     }, undefined, { pressed: false });
+    /* ============ 8l · THE READING IS OFFERED, NOT MADE AGAIN ============ */
+    /* Owner-reported: the strip said "20 obligations found" and the Checks row
+       beside it said "Run →", so pressing it paid for the same reading twice.
+       The harness's provider proposes none, so the held list is seeded onto the
+       step the run produced — what is measured is the OFFER, the press and the
+       spend, none of which depend on who found them. */
+    await drive(() => {
+      const c = state.contracts[0];
+      c.triage.steps.oblig = { ok: true, found: [
+        { desc: 'Quarterly volume forecast', due: '2026-12-31' },
+        { desc: 'Maintain product liability insurance' }] };
+      const t = document.querySelector('#ws-tabs [data-ws-tab="docs"]');
+      if (t) t.click();
+    });
+    await pause(900);
+    await drive(() => renderChecksCard(state.contracts[0]));
+    await pause(400);
+    const rowLabel = () => drive(() => {
+      const r = [...document.querySelectorAll('.check-row')]
+        .find(x => /Obligation|Åtagand/i.test(x.textContent || ''));
+      return r ? r.querySelector('.cg').textContent.replace(/\s+/g, ' ').trim() : '(no row)';
+    }, undefined, '(blocked)');
+    const rowBefore = await rowLabel();
+    check('8l · the row says a reading is waiting, not "Run"',
+      /proposed|föreslag/i.test(rowBefore), { row: rowBefore });
+    const callsBefore = obligCalls;
+    await drive(() => {
+      const r = [...document.querySelectorAll('.check-row')]
+        .find(x => /Obligation|Åtagand/i.test(x.textContent || ''));
+      if (r) r.querySelector('.cg').click();
+    });
+    await pause(2500);
+    const dlg = await drive(() => {
+      const m = document.querySelector('#modal-root');
+      return m ? m.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+    }, undefined, '');
+    check('8m · pressing it opens the list to tick, not the panel',
+      /Proposed obligations|Föreslagna/i.test(dlg), { dlg });
+    check('8n · and it costs NOTHING — the reading is not made a second time',
+      obligCalls - callsBefore === 0, { calls: obligCalls - callsBefore });
+    const ticked = await drive(() => {
+      document.querySelectorAll('[data-ob-pick]').forEach(cb => { cb.checked = true; });
+      const add = document.getElementById('or-add');
+      if (add) add.click();
+      return true;
+    }, undefined, false);
+    await pause(1200);
+    const settled = await drive(() => ({
+      filed: (state.contracts[0].obligations || []).length,
+      held: triageHeldObligations(state.contracts[0]).length }),
+      undefined, { filed: 0, held: 9 });
+    check('8o · ticking files them, and the offer empties itself',
+      ticked === true && settled.filed === 2 && settled.held === 0, settled);
+
     /* ============ 8i · A CONTRACT IT COULD NOT READ ============ */
     /* Section 6's claims, on the surface that draws them now. */
     /* STAGED THROUGH THE REAL UPLOAD, not hand-built. A contract pushed onto

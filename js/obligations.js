@@ -729,6 +729,23 @@ function obFindBusy(on){
   });
 }
 async function runFindObligations(c){
+  /* ---- A READING ALREADY MADE IS OFFERED, NOT PAID FOR AGAIN (owner-reported
+     9 Sep 2026) ----
+     Auto-triage reads a received contract on arrival and PROPOSES what it finds
+     — the owner's own ruling that nothing is filed on the reader's behalf — so
+     the strip said "20 obligations found" while this row still said "Run →" and
+     pressing it spent Copilot money a second time for a list already on the
+     record.
+
+     THE FUNNEL, NOT THE TWO DOORS. Both the Checks card and the Obligations
+     tab press this one function, and so will the next door; teaching each of
+     them separately is how they come to disagree about whether a scan is owed.
+     It ENDS in the same review dialog the scan ends in, so nothing about who
+     decides has moved: the reader still ticks. Read through `window`, the
+     ES-module rule — a stage without js/triage.js scans exactly as it did. */
+  const held = (typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
+    ? triageHeldObligations(c) : [];
+  if(held.length){ openObligationsReview(c, held); return; }
   obFindBusy(true);
   /* AND IT STOPS SPINNING WHATEVER HAPPENS. A refusal deep in the reader — no
      key, a provider saying no, a document too short — must not leave a button

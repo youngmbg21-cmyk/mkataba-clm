@@ -349,6 +349,30 @@ function triageBriefLine(b){
   return flat.length > 120 ? flat.slice(0, 119).replace(/\s+\S*$/, '') + '…' : flat;
 }
 
+/* ---- THE READING IS OFFERED, NEVER MADE TWICE (owner-reported 9 Sep 2026)
+   ----
+   *"although it ran the obligations in image 1, there are not there in image 2
+   meaning I have to run obligations again."* The strip said "20 obligations
+   found" and the Checks card beside it said "Run →", because the owner's own
+   fourth ruling is that auto-triage PROPOSES obligations and files none — a
+   person still ticks. Both were telling the truth and the pair read as a
+   product that had lost its own answer, and pressing Run spent Copilot money a
+   second time for a list already on the record.
+
+   THIS IS WHAT IS STILL WAITING TO BE TICKED: the proposals triage made, less
+   anything now on the contract. `obligationAlreadyOn` is the product's own
+   dedupe — the same reading the review dialog unticks a duplicate with — so
+   once they are ticked this empties by itself and the ordinary scan comes back.
+   RULING 4 IS UNTOUCHED: nothing here files anything. */
+function triageHeldObligations(c){
+  const t = triageOf(c); if (!t) return [];
+  const o = (t.steps || {}).oblig;
+  const found = (o && o.ok && Array.isArray(o.found)) ? o.found : [];
+  if (!found.length) return [];
+  if (typeof obligationAlreadyOn !== 'function') return found;
+  return found.filter(x => x && !obligationAlreadyOn(c, x));
+}
+
 /* ---- ACKNOWLEDGING IT ----
    An ACT, never a render: the card clears because somebody pressed it. */
 function triageAck(c){
@@ -360,4 +384,5 @@ function triageAck(c){
 
 Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
+  triageHeldObligations,
   triageAck });

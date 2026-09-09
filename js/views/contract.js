@@ -4854,7 +4854,23 @@ function checkVerdict(c,kind){
      obState is the one reading of an obligation's state; nothing here counts
      for itself. */
   const obs=(c.obligations)||[];
-  if(!obs.length) return null;
+  /* ---- A READING WAITING TO BE TICKED IS NOT "NOT RUN" (owner-reported 9 Sep
+     2026) ---- Auto-triage proposes obligations and files none, which is the
+     owner's own ruling, so with nothing ticked yet this returned null and the
+     row drew "Run →" — over a contract the strip twelve pixels above was
+     reporting twenty obligations on. Pressing it paid for the same reading a
+     second time. STEEL, NOT AMBER: nothing is late and nothing is wrong, there
+     is simply a list somebody has not looked at, and amber on this card means
+     work the contract owes. Only where NOTHING is tracked yet — once anything
+     is ticked the row's real verdict is the more useful answer, and the rest
+     stay on offer behind it. */
+  if(!obs.length){
+    const held=(typeof triageHeldObligations==='function')?triageHeldObligations(c):[];
+    return held.length
+      ? {tone:'steel',held:held.length,
+         get label(){ return i18tn('ob_proposed_n',held.length,{n:held.length}); }}
+      : null;
+  }
   const st=obs.map(o=>(window.obState?obState(o):(o.status==='done'?'done':'open')));
   const over=st.filter(x=>x==='overdue').length;
   const open=st.filter(x=>x==='open').length;
@@ -4877,8 +4893,13 @@ function tplFormOpenCount(c){
 function checksRowsHtml(c){
   const row=(kind,ic,name)=>{
     const v=checkVerdict(c,kind);
+    /* STEEL IS THE FOURTH TONE AND IT MEANS "NOTHING IS WRONG, SOMETHING IS
+       WAITING" — a reading already made that nobody has ticked yet. Without it
+       a held list fell through to GREEN, which is the row saying this contract
+       is clear when the work has not been looked at. */
     const tone=v&&v.tone==='bad'?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)'
       :v&&v.tone==='warn'?'background:var(--st-amber-bg);color:var(--st-amber-fg)'
+      :v&&v.tone==='steel'?'background:var(--st-steel-bg);color:var(--st-steel-fg)'
       :'background:var(--st-green-bg);color:var(--st-green-fg)';
     return `<div class="check-row"><span class="ci">${icon(ic,'w-3.5 h-3.5')}</span><span class="cn">${name}</span>
       <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
@@ -5001,14 +5022,22 @@ function wireChecksCard(c){
   const editableFor=kind=>mayEdit&&(kind==='oblig'||kind==='brief'||c.status!=='Signed');
   card.querySelectorAll('[data-check]').forEach(b=>{
     const kind=b.getAttribute('data-check');
-    const ran=!!checkVerdict(c,kind);
+    /* THE VERDICT ITSELF, not a boolean of it: the branch below has to be able
+       to ask WHICH kind of answer it is, and coerced to true/false a held
+       reading was indistinguishable from findings already on the record. */
+    const ran=checkVerdict(c,kind);
     const editable=editableFor(kind);
     /* Reading a finding is not editing. A viewer, and anyone on an executed
        contract, can still open what was found — they just cannot re-run it. */
     if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
       b.title='Read-only for your role, or this contract is executed'; return; }
     b.addEventListener('click',async()=>{
-      if(ran) return openCheckPanel(c,kind);
+      /* A HELD READING IS A LIST TO TICK, NOT FINDINGS TO READ. The panel shows
+         what is ON the contract, and nothing is yet — so a verdict saying "20
+         proposed" must press the funnel, which offers them and spends nothing.
+         BOTH presses ask this, or the same row behaves differently depending on
+         which of them the reader happened to use. */
+      if(ran && !ran.held) return openCheckPanel(c,kind);
       if(!editable) return;
       b.innerHTML=`<span style="opacity:.6">${i18t('ct_working')}</span>`; b.disabled=true;
       try{
@@ -5522,7 +5551,7 @@ function wireRoomChecks(){
     const c=(typeof getContract==='function')?getContract(state.activeId):null;
     if(!c) return;
     let ran=null; try{ ran=checkVerdict(c,kind); }catch(_){}
-    if(ran) return openCheckPanel(c,kind);
+    if(ran && !ran.held) return openCheckPanel(c,kind);
     const may=(typeof canEdit!=='function'||canEdit());
     if(!(may&&(kind==='oblig'||c.status!=='Signed'))) return;
     b.disabled=true;

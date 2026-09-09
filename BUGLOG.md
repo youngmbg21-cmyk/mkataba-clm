@@ -10222,3 +10222,42 @@ amendment-journey-verify 49/49.
   and js/ai.js; it IS published, so those are fine — but renderKeyTermsSide is
   not published at all, so any future cross-module reader of it would be
   silence.
+
+## 2026-09-09 (5) — the obligations were run twice
+
+Owner-reported: the triage strip said "20 obligations found" and the Checks row
+below it said "Run →". Both were telling the truth — triage proposes and files
+none, which is the owner's own fourth ruling — and the pair read as a product
+that had lost its own answer. Pressing Run paid Copilot for the same reading a
+second time.
+
+triageHeldObligations(c) is the one reading: what triage proposed, less
+anything now on the contract, through obligationAlreadyOn — the product's own
+dedupe — so it empties itself as they are ticked and the ordinary scan comes
+back. It files nothing; ruling 4 is untouched.
+
+THE FIX IS AT THE FUNNEL. Both doors press runFindObligations, so it offers the
+held list and returns before the scan, ending in the same review dialog the
+scan ends in. Nothing about who decides has moved.
+
+The row says "N proposed" in STEEL — nothing is late and nothing is wrong, and
+amber on that card means work the contract owes. The tone had to be drawn: with
+no branch it fell through to GREEN, the row saying the contract is clear when
+nobody had looked.
+
+AND THE VERDICT IS CARRIED AS AN OBJECT. `const ran=!!checkVerdict(...)` made a
+held reading indistinguishable from findings already on the record, so the
+press opened the panel — which shows what is ON the contract, and nothing was.
+Both presses ask ran.held now, or one row behaves two ways.
+
+ONE THING ONLY A BROWSER CAN ASK: whether the press reaches the provider again.
+Counted as requests; against the parent it reports calls: 1.
+
+Verified: lint 179/4 (unchanged), node 5926/5926, auto-triage-verify 32/32
+(28/32 against the parent, 8n reporting calls:1), amendment-journey 49/49,
+home-page 34/34.
+
+### Noticed, not fixed
+- obligations-tab-verify is 49/50 on its band heading check. PROVED
+  pre-existing by running the same file in a worktree at the parent commit:
+  identical count, identical check.

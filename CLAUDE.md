@@ -10846,6 +10846,41 @@ terms, because it arrives with a complete document and empty terms.
   is staged through the real upload. **An absence that reports WHY is what
   turned that from three wrong diagnoses into one.**
 
+**AND A READING ALREADY MADE IS OFFERED, NEVER MADE TWICE (owner-reported
+9 Sep 2026).** *"although it ran the obligations in image 1, there are not
+there in image 2 meaning I have to run obligations again."* The strip said "20
+obligations found" and the Checks row twelve pixels below said **"Run →"** —
+because triage PROPOSES obligations and files none, which is the owner's own
+fourth ruling. **BOTH WERE TELLING THE TRUTH AND THE PAIR READ AS A PRODUCT
+THAT HAD LOST ITS OWN ANSWER**, and pressing Run paid Copilot for the same
+reading a second time.
+
+- **`triageHeldObligations(c)` IS THE ONE READING**: what triage proposed, less
+  anything now on the contract, through **`obligationAlreadyOn`** — the
+  product's own dedupe, the same one the review dialog unticks a duplicate with
+  — so it empties itself as they are ticked and the ordinary scan comes back.
+  **RULING 4 IS UNTOUCHED**: it files nothing, and f273 greps it for every
+  writer.
+- **THE FIX IS AT THE FUNNEL, NOT THE TWO DOORS.** The Checks card and the
+  Obligations tab both press `runFindObligations`, and so will the next door;
+  teaching each separately is how they come to disagree about whether a scan is
+  owed. It returns BEFORE the scan and ends in **the same review dialog the scan
+  ends in**, so nothing about who decides has moved.
+- **THE ROW SAYS A READING IS WAITING, IN STEEL.** `checkVerdict` returned null
+  with nothing ticked yet, which is what drew "Run →". **Steel, not amber**:
+  nothing is late and nothing is wrong, there is simply a list nobody has looked
+  at, and amber on that card means work the contract owes. **The tone had to be
+  DRAWN** — without a branch it fell through to GREEN, the row saying this
+  contract is clear when the work has not been read.
+- **AND THE VERDICT IS CARRIED AS AN OBJECT, NOT A BOOLEAN.** `const
+  ran=!!checkVerdict(...)` made a held reading indistinguishable from findings
+  already on the record, so the press opened the panel — which shows what is ON
+  the contract, and nothing is. **BOTH presses ask `ran.held`**, or one row
+  behaves two ways depending on which the reader used.
+- **AND ONLY A BROWSER CAN ASK THE CLAIM THAT MATTERS.** A source check sees the
+  early return; whether the press reaches the provider again is a count of
+  requests on a real page. Against the parent it reports `calls: 1`.
+
 **NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
 (above); nothing runs on a contract drafted from a template — this is for paper
 somebody sent you; the card is not on the phone; and nothing about it reaches

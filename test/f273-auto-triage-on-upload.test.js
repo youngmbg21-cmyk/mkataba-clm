@@ -640,6 +640,95 @@ describe('F273 — auto-triage on upload', () => {
     });
   });
 
+  /* --------------------------------------------------------------- */
+  /* Owner-reported 9 Sep 2026: *"although it ran the obligations in image 1,
+     there are not there in image 2 meaning I have to run obligations again.
+     Fix this so that the obligations are not ran twice."* The strip said "20
+     obligations found" and the Checks row beside it said "Run →", because
+     triage PROPOSES and files none — the owner's own fourth ruling. Both were
+     telling the truth and the pair read as a product that had lost its own
+     answer, and pressing Run paid for the same reading a second time. */
+  describe('7f · a reading already made is offered, never made twice', () => {
+    const held = () => {
+      const { win, c } = stage();
+      c.triage = { at: '2026-09-09T00:00:00.000Z', seenAt: null, steps: {
+        oblig: { ok: true, found: [
+          { desc: 'Quarterly volume forecast' },
+          { desc: 'Maintain product liability insurance' }] } } };
+      return { win, c };
+    };
+    test('it is what triage proposed, less anything now on the contract', () => {
+      const { win, c } = held();
+      assert.equal(win.triageHeldObligations(c).length, 2, 'both are waiting');
+      c.obligations = [{ id: 'ob_a', desc: 'quarterly   VOLUME forecast' }];
+      assert.equal(win.triageHeldObligations(c).length, 1,
+        'and it empties itself as they are ticked — the product\'s own dedupe');
+      c.obligations.push({ id: 'ob_b', desc: 'Maintain product liability insurance' });
+      assert.equal(win.triageHeldObligations(c).length, 0);
+    });
+    test('nothing to offer where triage never ran, or found nothing', () => {
+      const { win, c } = stage();
+      /* LENGTH, not deepEqual: the array comes back from the jsdom window's own
+         realm, so its prototype is not node's and a strict deep-equal fails on
+         two empty arrays. */
+      assert.equal(win.triageHeldObligations(c).length, 0, 'no triage at all');
+      c.triage = { steps: { oblig: { ok: false, why: 'x' } } };
+      assert.equal(win.triageHeldObligations(c).length, 0,
+        'a reading that failed proposes nothing');
+    });
+    test('and it FILES nothing — ruling 4 is untouched', () => {
+      const b = TRI_CODE.slice(TRI_CODE.indexOf('function triageHeldObligations'),
+        TRI_CODE.indexOf('function triageHeldObligations') + 500);
+      for (const w of ['obligations.push', 'persist(', 'logAudit'])
+        assert.ok(!b.includes(w), 'a reading, not a write: ' + w);
+    });
+    test('the FUNNEL offers them, so both doors inherit it', () => {
+      /* The Checks card and the Obligations tab press one function, and so will
+         the next door; teaching each separately is how they come to disagree
+         about whether a scan is owed. */
+      const f = OB_SRC.slice(OB_SRC.indexOf('async function runFindObligations'),
+        OB_SRC.indexOf('async function runFindObligations') + 1600);
+      assert.match(f, /triageHeldObligations\(c\)/, 'it asks');
+      assert.match(f, /if\(held\.length\)\{ openObligationsReview\(c, held\); return; \}/,
+        'and returns BEFORE the scan, which is what stops the second spend');
+      assert.ok(f.indexOf('openObligationsReview(c, held)') < f.indexOf('extractObligations'),
+        'the offer comes first');
+      assert.match(f, /window\.triageHeldObligations==='function'/,
+        'read through window — a stage without js/triage.js scans exactly as before');
+    });
+    test('the row says a reading is waiting, rather than "Run"', () => {
+      const { win, c } = held();
+      const v = win.checkVerdict ? win.checkVerdict(c, 'oblig') : null;
+      /* checkVerdict lives in the contract view, which this stage does not
+         load; the claim is asserted on the SOURCE where it is not reachable. */
+      if (v){
+        assert.equal(v.tone, 'steel', 'nothing is late and nothing is wrong');
+        assert.equal(v.held, 2);
+      } else {
+        assert.match(CONTRACT, /tone:'steel',held:held\.length/, 'the verdict is drawn');
+        assert.match(CONTRACT, /ob_proposed_n/, 'and named');
+      }
+    });
+    test('and BOTH presses treat a held reading as a list to tick', () => {
+      /* The panel shows what is ON the contract, and nothing is yet — so a
+         verdict saying "20 proposed" must press the funnel. Written in one
+         place and not the other, one row behaves two ways. */
+      assert.equal((CONTRACT.match(/if\(ran && !ran\.held\) return openCheckPanel/g) || []).length, 2,
+        'the Checks card and the room header both ask');
+      assert.ok(!/const ran=!!checkVerdict/.test(CONTRACT),
+        'the verdict is kept as an object — coerced, a held reading is '
+        + 'indistinguishable from findings already on the record');
+    });
+    test('and the steel tone is drawn, not left to fall through to green', () => {
+      assert.match(CONTRACT, /v&&v\.tone==='steel'\?'background:var\(--st-steel-bg\)/,
+        'without it the row says this contract is clear when nobody has looked');
+    });
+    test('its words are in both books, with both plural forms', () => {
+      for (const k of ['ob_proposed_n_one', 'ob_proposed_n_other'])
+        assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    });
+  });
+
   describe('8 · the tick-box', () => {
     test('it is on the confirm screen and ticked by default', () => {
       assert.match(CONTRACT, /id="up-triage" checked/, 'ticked, so the ordinary case is one press');
