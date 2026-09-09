@@ -84,7 +84,14 @@ function forYouTemplates(tmpls){
 }
 
 /* ---- guided creation wizard ---- */
-function openWizard(preTid){
+/* `prefill` is an optional {fieldKey: value} map — what "draft from a
+   sentence" read out of the reader's own words (js/draft.js). It moves each
+   value onto that field's DEFAULT, so the answer step draws exactly the boxes
+   it always drew with some of them already filled in, and createFromWizard
+   reads them back off the form like any other answer: same validation, same
+   creation, same audit line. A key this template does not ask for is dropped
+   by draftApplyPrefill rather than carried. */
+function openWizard(preTid, prefill){
   if(!canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
   const tmpls=myCreatableTemplates();
   if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
@@ -242,7 +249,9 @@ function openWizard(preTid){
       });
       return;
     }
-    const t=TEMPLATES[tid], vars=templateVars(tid);
+    const t=TEMPLATES[tid];
+    const vars=(prefill && typeof draftApplyPrefill==='function')
+      ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
     /* THE ARROW SAYS WHERE THE ANSWER IS FILED, and says nothing when the two
        names are the same word. "Counterparty * → Counterparty" has always been
        noise; adding "Our party → Our party" beside it made a pattern of it.

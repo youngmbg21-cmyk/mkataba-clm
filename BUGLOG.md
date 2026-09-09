@@ -9581,3 +9581,80 @@ Noticed, not fixed:
   a per-reason sentence there is its own piece of work.
 - Whether the owner's two identical rows really were two changes cannot be
   settled from here — the memo now names them, so their own screen will say.
+
+## 9 Sep 2026 — draft from a sentence
+
+Owner-asked, and the condition came with the ask: "start on 1. But I need this
+to be an option and not the default when you click on draft template." So
+"Draft from a template" is untouched — same id, same handler, still the first
+row, still the ordinary picker — and this is a FOURTH row beside it.
+
+Type "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days'
+notice" and Copilot names the template this workspace already holds that fits,
+says why, and the ordinary fill screen opens with the boxes the sentence
+answered already filled in.
+
+THREE REFUSALS ARE WHAT THIS IS, and everything else is plumbing.
+
+IT PICKS FROM YOUR OWN PAPER AND WRITES NO WORDING. Every candidate is a
+template the ordinary picker already offers, read from the same three sources
+it reads, so the two doors cannot offer different paper. A model drafting
+clauses from scratch would walk around the playbook, the clause library and
+every guard this product has.
+
+IT MINTS NOTHING. The last thing it does is press a door that already exists,
+so the contract is created by the same function with the same validation and
+the same audit line as one drafted by hand. f270 greps the module for eight
+ways it could have created something itself.
+
+NOTHING ARRIVES UNSEEN, AND NOTHING ARRIVES IN A BOX THE TEMPLATE DOES NOT
+HAVE. A value lands on a field's DEFAULT, in an editable box, on a screen the
+reader presses Create on; a key the chosen template does not declare is dropped
+by the route AND again by the browser, so neither host has to trust the other.
+The browser file overtypes what Copilot read and reads the correction back off
+the record — what is filed is what the reader confirmed.
+
+ONE CALL FOR BOTH HALVES. The template and the answers come from one reading of
+one sentence, so they cannot disagree about what it said, and one press costs
+one spend. /api/ai/template was NOT widened to do it: it answers a different
+question over a different population (which existing CONTRACT to copy, scored
+on whether it was signed) and two screens read it today.
+
+THE MODEL IS SHOWN EACH TEMPLATE'S OWN FIELDS AND ANSWERS THEM BY KEY, which is
+why no vocabulary had to be invented and a customer's own saved template fills
+exactly as a built-in does. The obvious alternative — the `maps` list — is the
+weaker one: it cannot reach a template's primary field (material, product,
+services), which carries no mapping at all.
+
+AND THE PROMPT'S ONE JOB IS NOT TO GUESS. Only what they actually said; leave a
+question out rather than guess; never invent a counterparty, a value, a date or
+a term. "A two-year agreement" gives you neither date, because you do not know
+when it starts.
+
+AND ONE FAULT OF MY OWN, found by reading the route back rather than by a
+test: the de-duplication ran BEFORE the blank check, so an empty first entry
+marked its key seen and swallowed the real answer standing behind it — a silent
+loss. The two filters are the other way round now and f270 pins the order.
+
+Node 5786/5786, lint unchanged (the same 4 pre-existing duplicate-key errors).
+Browser: draft-from-a-sentence 36/36. Against the parent commit f270 reports 47
+of its 57 failing and the browser file 34 of 41 — and both were made to REPORT
+rather than abort, because a probe that throws proves nothing. The survivors are
+the controls: the owner's own condition that row one is unchanged passes on both
+sides, which is what makes the rest mean something.
+
+The browser file walks the BUILT-IN hand-off end to end; the saved-template and
+company-standard hand-offs are proved at model level (f270 (4)), which is
+honest because all three go through the one prefill reading rather than three
+copies of it.
+
+Noticed, not fixed:
+- All four rows of the + Draft new agreement menu are hardcoded English. The new
+  one matches its three siblings deliberately; translating the set is its own
+  job.
+- js/views/intake.js posts TEMPLATES as `candidates` to /api/ai/template, which
+  runs scopeAiPortfolio — a scope check against the CONTRACT register. For a
+  folder-restricted member every candidate is dropped and the route answers 400,
+  so intake's suggestion silently degrades to "no suggestion" for exactly the
+  people it was built to help. Pre-existing; the new route deliberately does not
+  use that middleware.

@@ -1618,6 +1618,10 @@ const AI_FEATURE_LABEL = {
   // spending never lands in the Other bucket the way conversion's once did.
   brief: 'Contract brief',
   renewal: 'Renewal adviser',   // W2-4
+  /* Draft from a sentence. Named on arrival, for the reason conversion's
+     omission records above: recordAiCall files an unknown feature under
+     'other', and this is one an admin will look for by name. */
+  draft: 'Draft from a sentence',
 };
 
 function aiSpendRows(day) {
@@ -4168,6 +4172,105 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
     const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
     if (!ranked.length) return res.status(502).json({ error: 'Copilot returned no usable ranking' });
     res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- Copilot: draft from a sentence (W-1) ----------------------------
+   "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days' notice"
+   in, and back comes THE TEMPLATE THIS WORKSPACE ALREADY HAS that fits it, plus
+   the answers the sentence gives to that template's own questions.
+
+   IT PICKS FROM YOUR OWN PAPER AND WRITES NO WORDING AT ALL. Every candidate is
+   a template the caller can already reach from the ordinary picker — the twelve
+   built-ins, this workspace's saved templates, its published company standards
+   — so the agreement that arrives is one somebody here approved. A model
+   drafting clauses from scratch walks around the playbook, the clause library
+   and every guard this product has.
+
+   ONE CALL FOR BOTH HALVES, DELIBERATELY. The template and the facts come from
+   ONE reading of one sentence, so they cannot disagree about what it said, and
+   one press costs one spend. /api/ai/template is NOT widened to do this: it
+   answers a different question over a different population — which existing
+   CONTRACT to copy, scored on whether it was signed, with its clause text — and
+   has no slot for the facts. Two screens read it today.
+
+   THE MODEL IS SHOWN EACH TEMPLATE'S OWN FIELDS AND ANSWERS THEM BY KEY, which
+   is why no vocabulary has to be invented here and a customer's own saved
+   template is filled exactly as a built-in is. The browser then drops any key
+   the chosen template does not declare (draftApplyPrefill) — the wall — and
+   every value lands in an editable box a person confirms before anything is
+   created. */
+const DRAFT_SENTENCE_MAX = 2000;
+const DRAFT_CANDIDATES_MAX = 40;
+const DRAFT_FIELDS_MAX = 16;
+app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const { sentence, candidates } = req.body || {};
+  if (!sentence || typeof sentence !== 'string' || !sentence.trim())
+    return res.status(400).json({ error: 'sentence is required' });
+  if (!Array.isArray(candidates) || !candidates.length)
+    return res.status(400).json({ error: 'candidates are required' });
+  const said = sentence.trim().slice(0, DRAFT_SENTENCE_MAX);
+  /* Bounded here as well as by capAiInput, because these entries carry FIELD
+     LISTS rather than clause text and are shaped by this route alone. */
+  const cands = candidates
+    .filter(c => c && c.id && c.name)
+    .slice(0, DRAFT_CANDIDATES_MAX)
+    .map(c => ({
+      id: String(c.id).slice(0, 120),
+      name: String(c.name).slice(0, 160),
+      about: String(c.blurb || '').slice(0, 300),
+      fields: (Array.isArray(c.fields) ? c.fields : []).filter(f => f && f.key).slice(0, DRAFT_FIELDS_MAX)
+        .map(f => ({ key: String(f.key).slice(0, 40), asks: String(f.label || f.key).slice(0, 80),
+          type: String(f.type || 'text').slice(0, 12), ...(Array.isArray(f.opts) && f.opts.length ? { one_of: f.opts.slice(0, 20).map(o => String(o).slice(0, 60)) } : {}) })),
+    }));
+  if (!cands.length) return res.status(400).json({ error: 'candidates are required' });
+  const today = new Date().toISOString().slice(0, 10);
+  const tool = {
+    name: 'draft_from_sentence',
+    description: 'Choose the template that fits what the user described, and answer that template\'s own questions from their sentence.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        templateId: { type: 'string', description: 'The id of the ONE template that fits best, copied exactly from the candidate list. Leave EMPTY if none of them is a reasonable fit — an honest "nothing here matches" is a better answer than a template the person then has to undo.' },
+        why: { type: 'string', description: 'One sentence, plain English, for the person who typed the request: why this template fits what they asked for. Address them directly. Empty when templateId is empty.' },
+        fields: { type: 'array', maxItems: DRAFT_FIELDS_MAX, description: 'The chosen template\'s questions that the sentence answers. Leave a question OUT entirely rather than guessing at it.', items: { type: 'object', properties: {
+          key: { type: 'string', description: 'The field key, copied exactly from the chosen template\'s own field list.' },
+          value: { type: 'string', description: 'The answer, as the person would type it into that box. A date is yyyy-mm-dd. A number is digits only, with no currency symbol, no thousands separator and no unit. Everything else is plain text.' },
+        }, required: ['key', 'value'] } },
+      },
+      required: ['templateId', 'why', 'fields'],
+    },
+  };
+  const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above. If none of them is a reasonable fit, return an empty templateId and say nothing else — do not stretch to the nearest one.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'draft_from_sentence' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = block.input || {};
+    /* THE ID MUST BE ONE WE OFFERED. A template the caller never listed is one
+       they may not be able to reach — the browser drops it too, and this is the
+       half that holds when the browser is not ours. */
+    const byId = new Map(cands.map(c => [c.id, c]));
+    const chosen = byId.get(String(out.templateId || '')) || null;
+    if (!chosen) return res.json({ templateId: '', why: '', fields: [], ...aiNotice(req, resp) });
+    /* AND A KEY MUST BE ONE THAT TEMPLATE ASKS FOR. The screen applies the same
+       rule; a route that returned a stray key would leave the two disagreeing
+       about what was read. */
+    const keys = new Set(chosen.fields.map(f => f.key));
+    const seen = new Set();
+    const fields = (Array.isArray(out.fields) ? out.fields : [])
+      .filter(f => f && typeof f.key === 'string' && keys.has(f.key))
+      /* A BLANK IS NOT AN ANSWER, and it is dropped BEFORE the de-duplication
+         rather than after: the other way round an empty first entry marks the
+         key seen and swallows the real answer behind it. */
+      .filter(f => typeof f.value === 'string' && f.value.trim())
+      .filter(f => (seen.has(f.key) ? false : (seen.add(f.key), true)))
+      .slice(0, DRAFT_FIELDS_MAX)
+      .map(f => ({ key: f.key, value: String(f.value).trim().slice(0, 300) }));
+    res.json({ templateId: chosen.id, why: typeof out.why === 'string' ? String(out.why).slice(0, 400) : '', fields, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

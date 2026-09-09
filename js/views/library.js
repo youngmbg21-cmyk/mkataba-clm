@@ -41,21 +41,24 @@ const HATI_SAMPLES=[
 /* Create a working draft whose document body IS the template's text. It flows
    through versioning / compare / share / sealing via the existing
    redlineText (working-text) mechanism — no new document pipeline. */
-function createFromCustomTemplate(tid){
+/* `prefill` is an optional {fieldKey: value} map — see openWizard. It reaches
+   BOTH branches below, because a saved template with no blanks still asks the
+   contract essentials and those are answers too. */
+function createFromCustomTemplate(tid, prefill){
   if(!canEdit()){ toast(i18t('lib_viewers_no_create'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid);
   if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
   // A template with blanks goes through the same guided fill as the built-ins,
   // so the contract arrives with structured data rather than raw text.
   const fs=templateFields(t);
-  if(fs.length){ openTemplateFillModal(t); return; }
+  if(fs.length){ openTemplateFillModal(t, prefill); return; }
   /* A template with NO blanks used to create silently — same gap the company
      standard path had. The wording needs nothing filled in, but the contract
      record underneath it still does, so the essentials are asked here too.
      Skip creates exactly what pressing Use created before. */
   if(typeof openContractEssentials==='function'){
     openContractEssentials({
-      title: t.name, blurb: 'This template needs nothing filled into its wording.',
+      title: t.name, blurb: 'This template needs nothing filled into its wording.', values: prefill,
       onCreate: v => buildFromCustomTemplate(t, {}, { counterpartyEmail: v.cpemail||'', essentials: v }),
       onSkip: () => buildFromCustomTemplate(t, {}),
     });
@@ -120,8 +123,9 @@ function buildFromCustomTemplate(t, values, opts){
   return c;
 }
 /* Guided fill for a custom template — the same shape as the built-in wizard. */
-function openTemplateFillModal(t){
-  const fs=templateFields(t);
+function openTemplateFillModal(t, prefill){
+  const fs=(prefill && typeof draftApplyPrefill==='function')
+    ? draftApplyPrefill(templateFields(t), prefill) : templateFields(t);
   const inp=f=>{ const id='tf-'+f.key;
     /* The arrow says where the answer is filed, and stands down when that is
        the same word as the label — see the note in js/wizard.js. */

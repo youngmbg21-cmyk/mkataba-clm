@@ -1518,6 +1518,104 @@ the page).
 
 THE WEEKLY REVIEW (js/views/weekly.js): deterministic document, window.open first then fill, five fixed slots (slot 5 "what we did not look at" prints every week), sizes add pages AFTER the five. Reached from Reports. No model writes a word.
 
+## DRAFT FROM A SENTENCE (owner-asked 9 Sep 2026)
+
+*"start on 1. But I need this to be an option and not the default when you
+click on draft template."* Type what you need in a sentence and the template
+this workspace already holds that fits opens PRE-FILLED.
+
+**IT IS A FOURTH ROW IN THE `+ Draft new agreement` MENU, and the owner's
+condition is the first thing this section states: "Draft from a template" is
+UNTOUCHED** — same id, same handler, still first, still the ordinary picker —
+so anybody who knows which template they want never meets this. f270 (7) and
+the browser file both assert that as a CONTROL, passing before and after.
+
+- **`js/draft.js` IS ITS OWN FILE AND MINTS NOTHING.** The last thing it does
+  is press a door that already exists — the wizard's answer step, the saved
+  template's fill, the company standard's essentials — so the contract is
+  created by the same function, with the same validation and the same audit
+  line, as one drafted by hand. **f270 (3) greps the module** for
+  `state.contracts.unshift`, `nextId(`, `persist(`, `logAudit(`,
+  `createFromWizard(`, `buildFromCustomTemplate(`, `tplLibCreate(` and
+  `applyTemplateValues(` and fails on any of them.
+- **IT PICKS FROM YOUR OWN PAPER AND WRITES NO WORDING AT ALL.** Every
+  candidate is a template the ordinary picker already offers, read from the
+  SAME three sources it reads — `myCreatableTemplates()`, `customTemplates()`,
+  `tplLibPublished()` — so the two doors can never offer different paper, and
+  the saved templates and the standards stay editor-only exactly as they are
+  there. A model drafting clauses from scratch walks around the playbook, the
+  clause library and every guard this product has.
+- **ONE CALL FOR BOTH HALVES, DELIBERATELY.** `POST /api/ai/draft` returns the
+  template AND that template's own answers from ONE reading of one sentence,
+  so the two cannot disagree about what it said and one press costs one spend.
+  **`/api/ai/template` IS NOT WIDENED TO DO THIS** and that is said out loud: it
+  answers a different question over a different population — which existing
+  CONTRACT to copy, scored on whether it was signed, with its clause text — and
+  has no slot for the facts; two screens read it today.
+- **THE MODEL IS SHOWN EACH TEMPLATE'S OWN FIELDS AND ANSWERS THEM BY KEY**,
+  which is why no vocabulary had to be invented and a customer's own saved
+  template is filled exactly as a built-in is. `maps` was the obvious
+  alternative and is the weaker one: it cannot reach a template's PRIMARY field
+  (material, product, services), which carries no mapping at all.
+- **THE WALL IS ON BOTH HOSTS, AND THAT IS WHY IT IS A WALL.** A value may only
+  reach a box the CHOSEN template declares: the route drops a stray key before
+  it travels, and `draftApplyPrefill` drops it again before it reaches a form.
+  Neither host has to trust the other about what this template asks.
+- **NOTHING ARRIVES UNSEEN.** Every value lands on a field's DEFAULT, in an
+  editable box, on a screen the reader presses Create on — so what is filed is
+  what they confirmed, never what the model first said. The browser file drives
+  exactly that: it overtypes the counterparty and reads the correction off the
+  record.
+- **THE PREFILL IS ONE READING WITH THREE READERS.** `draftApplyPrefill` moves
+  each value onto its field's `def`, and the wizard's answer step, the saved
+  template's fill and the essentials form all ask it. Written out three times
+  they would drift about what applying a value means. **Copied by DESCRIPTOR,
+  never spread** — a built-in's `label` and `def` are getters that name the
+  workspace currency and the workspace itself, and `{...f}` reads them once and
+  freezes the answer; that is the getter trap this file records four times over.
+- **WHAT WAS FILLED IS NAMED, NEVER VALUED.** The offer says *"It also filled
+  in: Counterparty, Payment terms (days)"* and prints not one of their values —
+  they are one press away in boxes that can be corrected, and the uneditable
+  copy is the one that reads as decided.
+- **AN HONEST "NOTHING FITS" IS AN ANSWER.** The tool's own schema says to leave
+  the id empty rather than stretch to the nearest template, and the screen then
+  says so and offers the ordinary picker. So does no Copilot key, and so does a
+  refusal from the route — each on the same screen, with the way forward on it.
+  **The row is drawn either way**: one that disappeared when a key is missing
+  would teach nobody why.
+- **THE PROMPT'S ONE JOB IS NOT TO GUESS.** *Only what they actually said*;
+  *leave a question out rather than guess*; *never invent a counterparty, a
+  value, a date or a term*. "A two-year agreement" gives you neither date,
+  because you do not know when it starts. f270 (9) pins all three in the prompt.
+- **THE SPEND IS NAMED ON ARRIVAL** (`draft: 'Draft from a sentence'`), for the
+  reason the document converter's omission records: an unknown feature lands in
+  the Other bucket, which is the one number an admin looks for by name.
+- **NO FOLDER SCOPE ON THE ROUTE, and that is a decision rather than an
+  omission.** `scopeAiPortfolio` checks `candidates` ids against the CONTRACT
+  register; these are TEMPLATE ids, so it would drop every one of them for a
+  restricted member. Templates are not contracts and filing one is not access
+  control — this rulebook's own words. Editor-only, because creating a contract
+  is.
+- **THE MENU ROW IS ENGLISH, LIKE ITS THREE SIBLINGS; THE SCREEN IS
+  TRANSLATED.** Every row in that menu is hardcoded English and a fourth in the
+  reader's own language would be the odd one out; the screen carries refusals
+  and every fill screen around it is translated. Translating all four rows is
+  its own job and is logged.
+
+**NOT BUILT, said out loud:** Copilot does not draft a clause, propose wording,
+or create anything; there is no "no template — write me one" path, and adding
+one is a different product decision.
+
+Tests: f270 (56 — **47 of them fail against the parent**; the survivors are the
+"mints nothing" sweeps and the owner's own control that row one is unchanged),
+**draft-from-a-sentence-verify (36, browser — the only place the feature's own
+claim can be made: a value PAINTED into an input a person can see and overtype.
+It drives the whole journey against a real server with a scripted provider —
+menu, sentence, the pick, the pre-filled fill screen, Create, and an ordinary
+draft on the record — plus the nothing-fits answer creating nothing. 34 of its
+41 checks fail against the parent, and every driven half is guarded so it
+REPORTS rather than timing out).**
+
 ## A NEW DRAFT OPENS ON KEY TERMS
 
 roomOpenOnTerms(id) registers the intent; wsTabDefaults consumes it. THREE properties (f170): ONCE (id deleted on arrival; same-contract tab memory _wsTabFor untouched), **NOT-YET-EXECUTED ONLY** — this read DRAFTS ONLY until 20 Aug 2026, when the owner reported an uploaded contract landing on the Document tab: the uploader registers the intent like every other site, and an upload naming a counterparty is filed 'Under Review', so the rule threw the request away. THE REASONING SURVIVES THE WIDENING and is stronger for an upload, not weaker (a new draft goes to Key terms because its document is a template full of blanks fed FROM the terms; an upload arrives with a complete document whose TERMS are the blanks, just read out of the file and waiting to be confirmed). What stays excluded is an EXECUTED agreement — negoExecuted, not `status==='Signed'`, so a sealed record that arrived by migration is excluded too. An explicit request (_wsTabWant) still wins. SEVEN creation sites register it — wizard, built-in template route (app.js), library template form (templatefields.js), versioned template library, clause library, "Draft new agreement" in the room, migration importer — there is no creation funnel, and f170 reads all seven sources and fails on an unregistered eighth. roomCurrentTab() exists so the rule is observable.

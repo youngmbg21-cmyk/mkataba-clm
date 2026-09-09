@@ -26,6 +26,7 @@ import './review.js';       // internal review: the step between writing a redli
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
 import './signature.js';
 import './wizard.js';
+import './draft.js';    // draft from a sentence: it picks from your own paper and mints nothing (W-1)
 import './views/calendar.js';
 import './views/reports.js';
 import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI
@@ -876,9 +877,26 @@ function renderNewMenu(){
      same change) so nothing lost its route.
 
      THE HANDLERS BELOW STAY. data-new / data-newlib / data-newtpl cost nothing
-     when no row carries them, and they are what a future menu row would need. */
+     when no row carries them, and they are what a future menu row would need.
+
+     ---- AND A FOURTH ROW: DESCRIBE WHAT YOU NEED (owner-asked, W-1) ----
+     "I need this to be an option and not the default when you click on draft
+     template." So the first row is untouched and behaves exactly as it did —
+     somebody who knows which template they want never meets this — and the new
+     row is a SHORTCUT TO THE SAME PICKER: type a sentence, Copilot names the
+     paper this workspace already holds that fits, and the ordinary fill screen
+     opens pre-filled. It mints nothing of its own (js/draft.js).
+
+     Drawn whether or not Copilot is connected, deliberately: the screen behind
+     it says which, and offers the ordinary picker. A row that disappears when a
+     key is missing teaches nobody why.
+
+     ENGLISH, LIKE ITS THREE SIBLINGS. Every row in this menu is hardcoded
+     English; a fourth in the reader's own language would be the odd one out.
+     Translating all four is its own job. */
   menu.innerHTML=`
     ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Draft from a template','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${item('msg','var(--tile-steel-bg)','var(--tile-steel-fg)','Describe what you need','Say it in a sentence — Copilot finds the template','id="menu-describe"')}
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
@@ -897,6 +915,9 @@ function renderNewMenu(){
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
+  /* Read through `window`, the ES-module rule: a stage without js/draft.js gets
+     a row that does nothing rather than a page that throws. */
+  menu.querySelector('#menu-describe')?.addEventListener('click',()=>{ menu.classList.add('hidden'); if(window.openDraftFromSentence) openDraftFromSentence(); });
 }
 /* The menu is position:fixed, so every opener must anchor it to its own
    trigger — a caller that only unhides it inherits wherever the previous

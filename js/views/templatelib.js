@@ -356,12 +356,16 @@ function tplConfirmPaint() {
    what the register filters on and the calendar runs off. Same form as every
    other creation path (openContractEssentials), and Skip creates exactly what
    pressing Use created before. */
-function tplLibNewContract(id) {
+/* `prefill` is an optional {key: value} map — see openWizard. A company
+   standard is filled server-side, so what a sentence can answer here is the
+   contract's own essentials; they arrive in the same boxes, still editable. */
+function tplLibNewContract(id, prefill) {
   if (typeof openContractEssentials !== 'function') return tplLibCreate(id, null);
   const t = (_tplLib.list || []).find(x => x.id === id) || null;
   openContractEssentials({
     title: (t && t.name) || 'New contract',
     blurb: (t && t.description) ? String(t.description) : 'From your company standard template.',
+    values: prefill,
     onCreate: values => tplLibCreate(id, values),
     onSkip: () => tplLibCreate(id, null),
   });

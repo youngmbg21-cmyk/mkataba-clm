@@ -394,13 +394,18 @@ function essentialFields(){
   return CONTRACT_ESSENTIALS.map(f => f.key==='value'
     ? { ...f, label: cur ? `Contract value (${cur})` : f.label } : f);
 }
-/* opts: { title, blurb, createLabel, onCreate(values, cpEmail), onSkip }
+/* opts: { title, blurb, createLabel, values, onCreate(values, cpEmail), onSkip }
    onCreate receives the validated values keyed as above; onSkip receives
-   nothing, because skipping means "create it with what you already had". */
+   nothing, because skipping means "create it with what you already had".
+   `values` is an optional {key: value} map — what "draft from a sentence"
+   read out of the reader's own words (js/draft.js) — moved onto each field's
+   default, so the form draws exactly as it always did with some boxes already
+   filled and every one of them still editable. */
 function openContractEssentials(opts){
   const o = opts || {};
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  const fs = essentialFields();
+  const fs = (o.values && typeof draftApplyPrefill==='function')
+    ? draftApplyPrefill(essentialFields(), o.values) : essentialFields();
   const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
     + 'background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
