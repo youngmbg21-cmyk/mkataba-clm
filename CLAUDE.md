@@ -1036,10 +1036,16 @@ record is the fault this codebase has a standing rule against.
   OVERDUE**, which is true rather than tidy: skipping to the next date in the
   future would quietly erase a missed quarter.
 - **THE CONTRACT REMEMBERS THAT IT WAS READ.** `obligationsReadStamp` is written
-  by the SCAN and by nothing else — a stamp written anywhere else would claim a
-  reading that never happened — and **whatever it found**, because a contract
-  read and genuinely clear is the case this fact exists to tell apart from one
-  nobody has opened. Never where there was nothing to read.
+  only where a reading really happened — a stamp written anywhere else would
+  claim one that did not — and **whatever it found**, because a contract read
+  and genuinely clear is the case this fact exists to tell apart from one nobody
+  has opened. Never where there was nothing to read: below `OBLIG_TEXT_MIN`, the
+  reader's own NAMED floor, it is withheld. **This read "by the SCAN and by
+  nothing else" until 9 Sep 2026, and is REVERSED IN PLACE by auto-triage on
+  upload** (see AN UPLOADED CONTRACT IS READ ON ARRIVAL): that sentence stated
+  the right rule by naming its only caller, and auto-triage runs the SAME reader
+  through the SAME floor before it stamps. Two callers, each asserted; a third
+  that stamps without reading fails f254.
 - **THE TWO BLIND SPOTS ON THE INSIGHTS PAGE CLOSE**, which is what that page's
   own claim asked for in its own words. `canSeeScan` and `canSeeCompletedOn` are
   true; the coverage card splits "nothing on file" into read-and-clear and
@@ -10568,6 +10574,145 @@ matches" and the finding could not be measured. Four fail against the parent
 and report the owner's own screenshot verbatim, "California" under the heading
 and "Nothing to compare" beside it; 6m is a CONTROL that passes either way, and
 its job is to fail the day somebody gives that row a button)**.
+
+## AN UPLOADED CONTRACT IS READ ON ARRIVAL (owner-ruled 9 Sep 2026)
+
+*"build 2 but do not code yet. Explain how it works first in plain english"* —
+then, off a drawing: *"go with your recommendations on all four"*, a correction
+(*"but originally this is what you proposed"*), and *"go"*.
+
+Upload a contract somebody sent you and HaTi reads it there and then — the risk
+scan, the brief, Our standards, and a look for obligations — and the answer is
+waiting on Home. **THE READINGS ARE NOT NEW.** Every one of them has had a
+button on the Checks card since it was built; what was missing is that nobody
+presses four buttons on a contract they have not read yet, so the readings
+mostly never ran, and the one moment they are worth most — the minute a
+counterparty's paper lands — is the moment nothing had been done.
+
+- **IT ADDS NO ROUTE AND NO FIELD ON ANYTHING BUT THE CONTRACT.** `c.triage`
+  is one object — when, by whom, one entry per reading, and a `seenAt` — and it
+  is absent on every record already on file, so nothing already uploaded reads
+  differently and there is nothing to migrate.
+- **THE TICK-BOX IS THE WHOLE OF THE OWNER'S FIRST RULING, AND IT IS TICKED.**
+  This is the first thing in the product that spends Copilot money **with
+  nobody pressing a button**, so it says so on the upload screen and can be
+  turned off before the file is filed. Ticked by default because the reading is
+  what the feature is; a box nobody notices that costs nothing to clear is the
+  honest shape of "on by default, and said out loud". **AND NO BOX MEANS NO
+  READING, never a silent yes** — the promise this feature makes is that the
+  cost is NAMED, so a box that did not draw is a question nobody was asked.
+  Unreachable today, and the direction is what matters: money spent unasked is
+  a broken promise the reader cannot see, where a reading that did not happen
+  is a card they notice is missing.
+- **THREE CALLS, NOT FOUR.** The risk scan is deterministic rule-matching with
+  no model behind it, so it costs nothing and always runs. Said out loud
+  because "four readings" reads like four bills.
+- **A DOCUMENT WITH NO TEXT IS READ BY NOTHING AND PAYS FOR NOTHING.** A
+  photographed lease whose words never came out of the file is the commonest
+  shape this meets — and the risk scan is rule-matching over a string, so on an
+  empty one it **"succeeds" by finding nothing in nothing**. Left there, the
+  card would report a contract as read and clean when not one word had been
+  seen: the wrong answer wearing a right one's clothes. The runner asks once,
+  before it spends anything, and every reading says it could not read the
+  document.
+- **AND THAT IS NOT THE READERS' OWN FLOOR.** `OBLIG_TEXT_MIN` is named ONCE in
+  js/obligations.js and read by three: the reader refuses a document under it,
+  the read-stamp is withheld for one, and auto-triage asks it BY NAME. What the
+  runner asks is strictly weaker and obviously true — *is there any text at
+  all* — so a short document still goes to the readers and still gets each
+  one's own refusal.
+- **NOTHING IS FILED ON THE READER'S BEHALF THAT A PERSON WOULD HAVE TICKED.**
+  The owner's fourth ruling: the obligations the scan proposes are **held on
+  the triage record and never written to `c.obligations`** — a person still
+  opens the list and ticks. The brief, the standards pass and the risk scan are
+  READINGS and are stored as the ordinary readings they already were.
+- **THE READERS STOP SHOUTING, AND `opts.quiet` SUPPRESSES THE TOAST AND
+  NOTHING ELSE.** Three red boxes over one upload is the fault this product has
+  already been rung about. **A QUIET CALLER MAY NEVER BE QUIETER AND WORSE**:
+  written the first way it took the FALLBACK with the toast, so where the AI
+  leg throws it returned *unavailable* while a loud caller falls through to the
+  heuristic — a real reading — and the card would have said nothing was found
+  on a contract a person pressing the same button gets answers for. Where there
+  is genuinely no answer the reason IS handed back, for the card to print where
+  the reader is looking. Every existing caller passes nothing and behaves
+  exactly as it did.
+- **ONE ORDER, ONE LIST.** `TRIAGE_STEPS` is what the runner walks, what the
+  card counts and what the tiles are built from, so the runner and the card can
+  never disagree about how many readings there are. Each runs in its own try:
+  one refusal does not take the other three down, and a reading this stage does
+  not carry says so rather than vanishing.
+- **ONE AUDIT LINE, and it says what was READ rather than what was found** —
+  the findings are on the record and have their own lines.
+
+**THE ANSWER IS A ROW IN A LIST THAT ALREADY EXISTS.** It leads *Needs your
+decision* on Home, which already takes rows from five sources, and folds to an
+ordinary row. **NO BAND, NO STRIP, NO NEW SECTION** — the standing rule, and it
+is why the card was drawn there rather than anywhere else.
+
+- **FOUR TILES: Brief · Standards · Obligations · Filed.** Each states what was
+  found and presses through to where it is acted on.
+- **THE SIGNING-ROUTE TILE IS HELD BACK, and this is a real gap rather than a
+  trim.** HaTi has no reading of *who signs this* on an uploaded contract, so a
+  tile there would be a guess, and "Change the route" waits on it. **Filed
+  stays**, because it only reports the stream and the owner already on the
+  record.
+- **THE CARD CLEARS BECAUSE SOMEBODY PRESSED IT.** `triageAck` stamps `seenAt`
+  — an ACT, never a render — so a card cannot clear itself by being drawn, and
+  the alerts rule is kept: it clears when the work does.
+- **IT COUNTS NOTHING OF ITS OWN.** The row's line, the tiles and the fold all
+  read `c.triage`; a second count is how the card and the tiles would come to
+  disagree.
+
+**AND THE HEADLINE SAYS WHAT ACTUALLY HAPPENED, which the browser found and
+no source check could.** On a scanned lease whose words never came out of the
+file, the tag read *Not read*, the sub-line read *No text came out of the
+file*, and the TITLE — the one line set biggest — read *read and ready for
+you*: the card contradicting itself, with the wrong half winning. The title is
+chosen by `triageReadAnything`, the SAME reading the tag and the coloured edge
+already use, so the three cannot come apart. **A card arguing with itself is
+only visible on a rendered card.**
+
+**AND A TILE PRINTED A COUNT WITH NOTHING UNDER IT.** The obligations tile read
+`x.text`; the field is **`desc`** — the server's schema requires it, the
+heuristic writes it, and every obligation surface in the product reads it. So
+the card would have said *2* with no words: a number the reader cannot act on.
+Found by re-reading the diff against the server's own schema, and the check that
+catches it was proved to FAIL against the defect before it was trusted.
+
+**AND I EDITED DEAD CODE FOR AN HOUR, WHICH IS THE LESSON WORTH MOST HERE.**
+js/views/home.js builds a `decisionRows` / `activitySection` pair that is
+**never interpolated** — the live renderer is `ddRows`, in the `.hm-*`
+vocabulary — so a row added to the obvious-looking builder drew nothing, in
+silence, and every source check passed. Found by probing the rendered page for
+what it actually held. **When a change draws nothing, ask the PAGE what it has
+before re-reading the source.**
+
+**REVERSED IN PLACE: "obligationsReadStamp is written by the SCAN and by
+nothing else"** (J-2.2, above). Auto-triage stamps it too — and the rule's
+REASON is untouched, which is why this is a widening rather than a hole: that
+sentence exists so a stamp can never claim a reading that did not happen, and
+auto-triage runs the SAME reader through the SAME named floor before it stamps.
+Two callers now, each asserted; a third that stamps without reading fails f254.
+
+**NOT BUILT, said out loud:** the signing-route tile and its "Change the route"
+(above); nothing runs on a contract drafted from a template — this is for paper
+somebody sent you; the card is not on the phone; and nothing about it reaches
+the counterparty, asserted rather than assumed.
+
+Tests: f273 (59 — the runner's order, the three quiet readers, the empty
+document proved to spend nothing, the obligations proved HELD and not filed,
+the named floor with its three readers, the card's reading, the headline
+following that reading, the acknowledgement as an act, and both languages; the
+file cannot even load against the parent, because the reading does not exist),
+f254's stamp claim REVERSED IN PLACE and made stronger, f260's stamp claim
+RE-POINTED at the named floor rather than the number, **auto-triage-verify (29,
+browser — 23 of the first 28 fail against the parent, the headline one reporting the
+tick-box absent from the upload screen; the box driven through the real file
+input, the run driven for real with no toast raised, the card measured as
+VISIBLE PIXELS at the top of the list, the fold, each act, and the
+could-not-read card, whose own title is check 6d. Every driven half is guarded,
+so a build without the feature REPORTS its failures rather than stopping at the
+fourth)**.
 
 ## Line numbers drift
 

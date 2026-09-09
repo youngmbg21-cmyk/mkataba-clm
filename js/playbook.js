@@ -138,9 +138,17 @@ function playbookReviewHeuristic(c, text){
   });
   return { key:playbookKeyFor(c), label:pb.label, verdicts, source:'heuristic' };
 }
-async function runPlaybookReview(c){
+/* `opts.quiet` SUPPRESSES THE TOAST AND CHANGES NOTHING ELSE — see
+   runContractBrief for why it exists. WHERE THERE IS NO ANSWER (nothing
+   readable) the reason is handed back for the caller to print; WHERE THERE IS
+   ONE — the heuristic below, which is a real check against the standards — a
+   quiet caller falls through to it exactly as a loud one does, or it would be
+   quieter AND worse. Every existing caller passes nothing. */
+async function runPlaybookReview(c,opts={}){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.docPlainText?docPlainText(c):'');
-  if(!text || text.length<120){ toast(i18t('pb_no_readable_clause'),'err'); return null; }
+  if(!text || text.length<120){
+    if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
+    toast(i18t('pb_no_readable_clause'),'err'); return null; }
   if(API_MODE() && state.aiConfigured){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       // The whole wording goes. A standards check reading only the front of an
@@ -148,7 +156,7 @@ async function runPlaybookReview(c){
       // back, which is worse than not checking at all. Ceiling: aiDocChars.
       const r=await api('ai/playbook','POST',{ text, playbook:pb, kind:cKind(c) });
       return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
-    }catch(e){ toast(i18t('pb_review_unavailable'),'err'); }
+    }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'err'); }
   }
   return playbookReviewHeuristic(c, text);
 }

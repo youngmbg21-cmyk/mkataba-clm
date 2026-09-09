@@ -664,6 +664,69 @@ function emailSetupLineHtml(){
 /* Which lifecycle stage the pipeline card is listing. Per sitting, in
    memory: a working preference, not a setting. */
 let _hmStage=null;
+/* ---- THE TRIAGE CARD ---- (owner-approved design, 9 Sep 2026)
+   A ROW IN "Needs your decision", drawn in that list's OWN vocabulary — the
+   same .hm-row shell, the same left rule, the same title/meta/tag — so a card
+   folded away is indistinguishable from its neighbours. What it adds is that
+   it OPENS, and carries what was found.
+
+   COUNTING IS NOT DRAWING: every figure and every word of detail comes from
+   triageTiles / triageLine in js/triage.js, which return plain data. This
+   draws them and works nothing out, so the card and the contract's own screens
+   cannot come to disagree about what was found.
+
+   IT IS A <div>, NOT A <button>, and that is forced rather than chosen: the
+   ordinary rows are buttons, and a button may not contain the three buttons
+   this card carries. It keeps the class, so the hover and the rule follow.
+
+   THE FOLD IS PER SITTING AND IN MEMORY — the clause panel's own rule. A card
+   folded on Monday is open again on Tuesday if nobody has dealt with it,
+   because it is a posture rather than a fact about the contract.
+
+   NO SIGNING-ROUTE TILE, and that is the one thing held back out of the drawn
+   design, said out loud rather than quietly dropped: HaTi has no reading for
+   who signs on either side, so a tile there would be a promise nothing can
+   keep. "Change the route" waits on it. */
+const _hmTriageFold=new Set();
+function triageRowHtml(it){
+  const c=it.c, open=it.expand&&!_hmTriageFold.has(it.cid);
+  /* TEAL WHERE IT WAS READ, AMBER WHERE IT COULD NOT BE. Amber on this list
+     means work owed, and a contract that arrived read and clean owes nothing
+     — a colour that always shouts is one nobody reads. */
+  const cls='hm-row is-tri'+(it.expand?' is-tri-ok':' is-crit')+(open?' is-tri-open':'');
+  const head=`<div class="hm-tri-head">
+      <span class="hm-rb"><span class="hm-rt">${it.txt}</span>
+        <span class="hm-rm">${open?esc(triageSubHead(c)):it.meta}</span></span>
+      <span class="hm-rtag">${esc(it.tag)}</span>
+      <button type="button" class="hm-tri-fold" data-tri-fold="${esc(it.cid)}"
+        title="${esc(i18t(open?'tri_fold':'tri_unfold'))}" aria-expanded="${open?'true':'false'}">${open?'&#9650;':'&#9660;'}</button>
+    </div>`;
+  if(!open) return `<div class="${cls}" data-tri-row="${esc(it.cid)}">${head}</div>`;
+  const tiles=(typeof triageTiles==='function'?triageTiles(c):[]).map(t=>{
+    const tone=t.ok?((t.count!=null&&t.count>0)?'is-warn':'is-ok'):'is-no';
+    const mark=t.ok?((t.count!=null&&t.count>0)?String(t.count):'&#10003;'):'&mdash;';
+    return `<div class="hm-tri-tile">
+      <div class="hm-tri-th"><span class="hm-tri-chip ${tone}">${mark}</span>${esc(i18t(t.headKey))}</div>
+      <div class="hm-tri-td">${esc(t.detail)}</div>
+    </div>`; }).join('');
+  return `<div class="${cls}" data-tri-row="${esc(it.cid)}">
+      ${head}
+      <div class="hm-tri-tiles">${tiles}</div>
+      <div class="hm-tri-acts">
+        <button type="button" class="hm-tri-b is-p" data-tri-act="redline:${esc(it.cid)}">${esc(i18t('tri_a_redline'))}</button>
+        <button type="button" class="hm-tri-b" data-tri-act="brief:${esc(it.cid)}">${esc(i18t('tri_a_brief'))}</button>
+        <button type="button" class="hm-tri-b is-plain" data-tri-act="decline:${esc(it.cid)}">${esc(i18t('tri_a_decline'))}</button>
+      </div>
+    </div>`;
+}
+/* The line under the title while the card is open: the file itself, who filed
+   it and when — the provenance a reader wants before they act on any of it. */
+function triageSubHead(c){
+  const t=(typeof triageOf==='function')?triageOf(c):null;
+  const f=(c&&c.upload&&c.upload.name)||'';
+  const who=(t&&t.by)||'';
+  return [f,who?i18t('tri_by',{who}):'',c.id].filter(Boolean).join(' · ');
+}
 function renderDashboard(){
   const { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -802,6 +865,30 @@ function renderDashboard(){
      review. Drawn in the design's feed row — a round tone tile, two lines — and
      capped to the pipeline's height, scrolling inside its own box. */
   const decisionItems=[
+    /* ---- AUTO-TRIAGE'S CARD LEADS THIS LIST (owner-approved design, 9 Sep
+       2026) ----
+       A ROW IN A LIST THAT ALREADY EXISTS, not a new section on Home: this one
+       already takes rows from approvals, signing turns, join asks, renewal
+       dates and stalled reviews, and this is a sixth source.
+       FIRST, because it is the only row here carrying something the reader has
+       not seen at all — everything below it is work they already know about —
+       and because one press clears it.
+       IT CARRIES WHAT WAS FOUND ON THE CARD. A one-line row saying "3
+       deviations, 2 obligations" would still make somebody open the contract to
+       learn anything, which is most of what triage exists to save. */
+    ...((typeof triageCards==='function'?triageCards():[]).map(c=>({
+      cid:c.id, urgent:false, ic:'inbox', kind:'triage', c,
+      expand:typeof triageReadAnything==='function'?triageReadAnything(c):false,
+      /* THE HEADLINE FOLLOWS WHAT WAS ACTUALLY READ, exactly as the tag and
+         the card's own edge already do. Left on one wording it read "read and
+         ready for you" over a scan whose words never came out of the file —
+         the card contradicting its own sub-line, in the one line set biggest. */
+      txt:i18t((typeof triageReadAnything==='function'&&triageReadAnything(c))?'tri_row':'tri_row_unread',
+        {who:esc(c.counterparty||i18t('home_no_counterparty'))}),
+      meta:(typeof triageLine==='function'?esc(triageLine(c)):'')+' · '+esc(c.id),
+      tag:(typeof triageReadAnything==='function'&&triageReadAnything(c))
+        ?i18t('tri_tag_arrived'):i18t('tri_tag_unread'),
+    }))),
     /* REVIEWS LEAD, because they are the only item on this card that somebody
        is personally waiting on. A renewal date does not know your name; a
        colleague who sent you three redlines on Tuesday does. */
@@ -1096,7 +1183,7 @@ function renderDashboard(){
      hmFitDecisions, which is the only time the room below this list is known. */
   const ddShown=ddAll.slice(0, Math.max(HM_DD_MIN, _hmDdFit|0));
   const ddRows=ddShown.length
-    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>`
+    ? `<div class="hm-rows" id="hm-dd-rows">${ddShown.map(it=>it.kind==='triage'?triageRowHtml(it):`
         <button type="button" class="hm-row ${it.urgent?'is-neg':'is-crit'}" data-sel="${esc(it.cid)}">
           <span class="hm-rb"><span class="hm-rt">${it.txt}</span><span class="hm-rm">${it.meta}</span></span>
           <span class="hm-rtag">${esc(it.tag)}</span>
@@ -1301,6 +1388,59 @@ function renderDashboard(){
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
   document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
+  /* ---- THE TRIAGE CARD'S OWN PRESSES ----
+     THE FOLD IS PER SITTING AND REPAINTS NOTHING BUT THIS PAGE. It is a
+     posture, so it is not stored: a card folded on Monday is open again on
+     Tuesday if nobody has dealt with the contract.
+     EVERY OTHER PRESS ACKNOWLEDGES THE CARD, and that is an ACT rather than a
+     render — a card that cleared itself the moment Home drew it would be a
+     reading that writes. So the card stays until somebody does something with
+     it, and one press is enough. */
+  document.querySelectorAll('[data-tri-fold]').forEach(el=>el.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    const id=el.getAttribute('data-tri-fold');
+    if(_hmTriageFold.has(id)) _hmTriageFold.delete(id); else _hmTriageFold.add(id);
+    renderDashboard();
+  }));
+  document.querySelectorAll('[data-tri-act]').forEach(el=>el.addEventListener('click',async ev=>{
+    ev.stopPropagation();
+    const [act,id]=String(el.getAttribute('data-tri-act')||'').split(':');
+    const c=(state.contracts||[]).find(x=>x&&x.id===id); if(!c) return;
+    if(act==='decline'){
+      /* THE ONE ACT HERE THAT CHANGES THE CONTRACT, so it asks first and says
+         what it costs. Declining is a real status this product already
+         understands — off every live list, every count and both sweeps — and
+         it is the honest answer to paper that should never have been sent. */
+      const ok=await confirmDialog({ title:i18t('tri_decline_q'),
+        /* THE NAME GOES IN RAW: confirmDialog draws its message in a <p> and
+           ESCAPES it, so escaping here too would show a contract called
+           "Smith & Co" as "Smith &amp; Co" in the one dialog that asks
+           somebody to decline it. Every other caller passes it raw. */
+        message:i18t('tri_decline_msg',{name:c.name||c.id}),
+        confirm:i18t('tri_a_decline'), danger:true });
+      if(!ok) return;
+      c.status='Declined'; c.lastAction=todayStr();
+      logAudit(c,'Declined','Declined from the triage card — not ours');
+      if(window.triageAck) triageAck(c);
+      persist(c); toast(i18t('tri_declined'),'ok'); renderDashboard();
+      if(window.updateSidebarCounts) updateSidebarCounts();
+      return;
+    }
+    if(window.triageAck) triageAck(c);
+    /* BOTH DOORS ARE THE PRODUCT'S OWN — the negotiation, and the Checks
+       panel's brief. Neither is a second way of doing anything. */
+    if(act==='redline'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c); else selectContract(c.id); return; }
+    if(act==='brief'){
+      selectContract(c.id);
+      if(window.openCheckPanel) setTimeout(()=>openCheckPanel(c,'brief'),0);
+    }
+  }));
+  document.querySelectorAll('[data-tri-row]').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.getAttribute('data-tri-row');
+    const c=(state.contracts||[]).find(x=>x&&x.id===id); if(!c) return;
+    if(window.triageAck) triageAck(c);
+    selectContract(id);
+  }));
   // contracts sitting in review are register rows, not calendar entries
   document.querySelectorAll('[data-open-review]').forEach(el=>el.addEventListener('click',()=>{
     const R=regState(); R.stage='Under Review'; R.type='all'; R.view=null; R.sel={}; setView('register');

@@ -224,9 +224,26 @@ function heuristicObligations(text, c){
   });
   return out;
 }
-async function extractObligations(c){
+/* THE FLOOR IS NAMED ONCE, and it is read by everything that has to ask the
+   same question. A document shorter than this carries no obligations anybody
+   could read out of it, so the reader refuses it, the read-stamp is withheld
+   for it, and auto-triage asks it through this same name — three readers, one
+   number, which is what stops them coming to disagree about "readable". */
+const OBLIG_TEXT_MIN = 120;
+
+/* `opts.quiet` SUPPRESSES THE TOAST AND CHANGES NOTHING ELSE — see
+   runContractBrief for why it exists. Auto-triage runs this beside two others,
+   and three red boxes for one upload is the fault this product has already been
+   rung about. WHERE THERE IS NO ANSWER the reason is written onto `opts` for
+   the caller to print where the reader is looking; WHERE THERE IS ONE — the
+   heuristic below, which is a real reading — a quiet caller gets exactly what a
+   loud one gets, because a caller that lost the fallback would be quieter AND
+   worse. Every existing caller passes nothing and behaves exactly as it did. */
+async function extractObligations(c,opts={}){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
-  if(!text || text.length<120){ toast(i18t('ob_no_readable'),'err'); return []; }
+  if(!text || text.length<OBLIG_TEXT_MIN){
+    if(opts.quiet){ opts.error=i18t('ob_no_readable'); return []; }
+    toast(i18t('ob_no_readable'),'err'); return []; }
   if(API_MODE() && state.aiConfigured){
     /* THE WHOLE CONTRACT GOES. It used to slice to 20,000 characters here AND
        again on the server, so obligations drafted at the BACK of an agreement
@@ -236,7 +253,10 @@ async function extractObligations(c){
        is aiDocChars on the server now: one number, set above any real
        contract, and it tells the reader when it bites. */
     try{ const r=await api('ai/obligations','POST',{ text }); return r.obligations||[]; }
-    catch(e){ toast(i18t('ob_scan_unavailable'),'err'); }
+    /* THE TOAST IS WHAT IS SUPPRESSED, never the fallback: the loud path
+       falls through to the heuristic below and so does this one, or a quiet
+       caller would be handed "unavailable" where a person gets a real list. */
+    catch(e){ if(!opts.quiet) toast(i18t('ob_scan_unavailable'),'err'); }
   }
   return heuristicObligations(text, c);
 }
@@ -724,12 +744,12 @@ async function runFindObligations(c){
      this fact exists to tell apart from one nobody has opened.
 
      NOT WHERE THERE WAS NOTHING TO READ. extractObligations refuses a document
-     under 120 characters in words and returns an empty list, and a stamp there
-     would record a reading of a document that could not be read. Asked the
-     same way it asks — one reading, not a second copy of the test. */
+     under OBLIG_TEXT_MIN characters in words and returns an empty list, and a
+     stamp there would record a reading of a document that could not be read.
+     Asked through the same NAMED floor it asks, never a second copy of it. */
   const _obText = isUpload(c) ? (c.upload&&c.upload.extractedText)||''
     : (window.contractPlainText?contractPlainText(c):'');
-  if(_obText && _obText.length>=120){ obligationsReadStamp(c, _obText); persist(c); }
+  if(_obText && _obText.length>=OBLIG_TEXT_MIN){ obligationsReadStamp(c, _obText); persist(c); }
   renderObligationsSection(c);
   if(window.roomPaintObligations) roomPaintObligations(c);
   /* AND IT MUST SAY SO OUT LOUD, WITH A WAY FORWARD. This was a BARE toast
@@ -2018,4 +2038,4 @@ async function obligationChase(cid, obId){
    fails in SILENCE with a plausible fallback. f232 sweeps for it. */
 Object.assign(window,{obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
-  OBLIG_RECUR,OBLIG_BANDS,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

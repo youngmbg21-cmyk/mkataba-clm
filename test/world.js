@@ -125,6 +125,12 @@ const REDLINE_PLAN = 'js/redlineplan.js';
    absent-function fallbacks. STD_MIN_ROUNDS is read AT LOAD off PRECEDENT_MIN,
    so precedent.js goes first; that is js/app.js's order too. */
 const STANDARDS = 'js/standards.js';
+/* Auto-triage (buildWorld({triage:true})). It PRESSES the product's own four
+   readings rather than carrying any of its own, so the option brings all three
+   files those readings live in — a stage without them would exercise this
+   module's `typeof` fallbacks and prove nothing about the product. The
+   obligations model goes under the playbook, which is js/app.js's order. */
+const TRIAGE = 'js/triage.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 /* Payment terms turned into a number of days (buildWorld({payterms:true})).
@@ -386,6 +392,39 @@ function buildWorld(opts = {}) {
     if (!opts.payterms && !opts.homeView && !opts.intelView && !opts.registerView)
       files.push(PAYTERMS);
     files.push(STANDARDS);
+  }
+  if (opts.triage) {
+    /* ---- TWO OF THE FOUR READINGS LIVE IN js/ai.js, WHICH THIS WORLD CANNOT
+       LOAD (it wires the page at load and throws without one), so they are
+       stood in for — and the stand-ins can FAIL THE WAY THE REAL ONES FAIL.
+       `win._ai` scripts them per test: an answer, an {error} the quiet contract
+       returns, or a throw. A stand-in kinder than the thing it replaces turns
+       its test into a description, and this file has paid that lesson twice.
+       THE OTHER TWO ARE THE REAL FUNCTIONS: runPlaybookReview and
+       extractObligations both fall back to their own heuristics off-line, so
+       the playbook and obligation steps run the product's own code here. */
+    win._ai = { scan: { findings: [] }, brief: { summary: 'A short brief.' } };
+    win.runScan = c => {
+      if (win._ai.scanThrows) throw new Error('scan failed');
+      c.scan = { at: 'now', lang: 'en', findings: (win._ai.scan && win._ai.scan.findings) || [], dismissed: [] };
+    };
+    win.openFindings = c => ((c.scan && c.scan.findings) || [])
+      .filter(f => !((c.scan && c.scan.dismissed) || []).includes(f.id));
+    win.runContractBrief = async () => {
+      if (win._ai.briefThrows) throw new Error('brief failed');
+      return win._ai.brief;
+    };
+    /* The same two stand-ins the standards stage needs, for the same reason:
+       playbook() reads `state` bare and playbookKeyFor opens by calling cKind,
+       so without either every lookup throws into a swallowed try and the
+       playbook step reports "no standard" on a stage that never reached one. */
+    Object.assign(win, {
+      state: win.state || { contracts: [], settings: {} },
+      cKind: win.cKind || (() => 'Contract'),
+    });
+    if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
+    if (!opts.obligations) files.push(OBLIGATIONS);
+    files.push(TRIAGE);
   }
   if (opts.copilotRead) {
     /* ---- AND THE STAGE MUST ANSWER cKind, OR THE FILE PROVES NOTHING ----

@@ -189,7 +189,10 @@ describe('f260 (4) — what is explicitly not touched', () => {
   });
 
   test('and the read-stamp the scan writes', () => {
-    assert.match(OB_CODE, /if\(_obText && _obText\.length>=120\)\{ obligationsReadStamp\(c, _obText\); persist\(c\); \}/);
+    /* THE RELATION, NOT THE NUMBER: the stamp is withheld below the reader's
+       own floor, and that floor is the NAMED one — so moving it costs no edit
+       here and a second copy of it anywhere fails f273. */
+    assert.match(OB_CODE, /if\(_obText && _obText\.length>=OBLIG_TEXT_MIN\)\{ obligationsReadStamp\(c, _obText\); persist\(c\); \}/);
     /* Its DEFINITION also matches `obligationsReadStamp(c`, so the claim is
        counted off the CALLS — one, and it is the scan's. */
     const calls = (OB_CODE.match(/(?<!function )obligationsReadStamp\(c/g) || []);

@@ -1288,12 +1288,44 @@ function uploadConfirmHtml(ext, meta){
         <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
       ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${triageOptInHtml(ext)}
       <div class="flex items-center gap-2">
         <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
         <span style="flex:1"></span>
         <button id="up-cancel-2" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
         <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('check2','w-3.5 h-3.5')} ${i18t('ct_file_contract')}</button>
       </div>`;
+}
+/* ---- AUTO-TRIAGE'S ONE QUESTION, AND IT IS ASKED HERE (owner-ruled 9 Sep
+   2026) ----
+   Reading a contract the moment it lands costs three Copilot calls, and until
+   this feature NOTHING in HaTi spent unless a person pressed a button. So it
+   is asked for — once, on the one screen where somebody is already standing
+   there confirming what was read off the document, which is what makes
+   declining cost them nothing.
+
+   TICKED BY DEFAULT, because reading it is the answer almost everybody wants
+   and the ordinary case should be pressing File it and nothing else.
+
+   NOT A WORKSPACE SETTING: that is a decision made once, months ago, by
+   somebody else, and it cannot know that today is the morning thirty contracts
+   are being imported. NOT ALWAYS-ON for the same reason.
+
+   THE COST IS NAMED, and it is THREE rather than four: the risk scan is
+   deterministic rule-matching and costs nothing. A sentence that overstates
+   what a press costs is as dishonest as one that hides it.
+
+   DRAWN ONLY WHERE THERE IS A DOCUMENT TO READ — with no file chosen there is
+   nothing to offer and the row would be furniture. */
+function triageOptInHtml(ext){
+  if(!ext) return '';
+  return `<label for="up-triage" style="display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;margin:0 0 12px;padding-top:12px;border-top:1px solid var(--color-divider);cursor:pointer">
+    <input type="checkbox" id="up-triage" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--accent-fill)">
+    <span>
+      <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong)">${esc(i18t('ct_triage_optin'))}</span>
+      <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('ct_triage_optin_sub'))}</span>
+    </span>
+  </label>`;
 }
 /* Named progress line for an upload — turns the anxious wait into visible steps
    and reinforces that a human confirms at the end. active is 1-based; steps at
@@ -1443,6 +1475,15 @@ async function submitUpload(){
   const value=vtype==='none'?0:Number(fval('up-value')||0);
   const expiry=fval('up-expiry')||null;
   const btn=document.getElementById('up-go');
+  /* READ BEFORE closeModal, or the element is gone by the time it is asked.
+     NO BOX MEANS NO READING, never a silent yes: the one promise this feature
+     makes is that the cost is NAMED, and a box that did not draw is a question
+     nobody was asked. Unreachable today — the box is drawn wherever a file has
+     been chosen, and this cannot run without one — but the direction matters,
+     because spending unasked is a broken promise the reader cannot see while a
+     reading that did not happen is a card they notice is missing. */
+  const triageBox=document.getElementById('up-triage');
+  const wantTriage=!!(triageBox&&triageBox.checked);
   btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_filing')}</span>`;
   // API mode: store bytes on the server and keep only a reference in the
   // synced record. Done HERE, not in the pipeline — a person who read the
@@ -1522,6 +1563,19 @@ async function submitUpload(){
   toast(i18t('ct_uploaded_filed_in')+FOLDERS[folder].name);
   setView('workspace');
   renderSideFolders();
+  /* ---- AND THEN IT IS READ, IF THE READER LEFT THE BOX TICKED ----
+     AFTER the contract is filed and on screen, and deliberately NOT awaited:
+     the three readings take the better part of a minute between them, and
+     making somebody watch a spinner before their own contract appears would
+     be paying for the feature twice. The cards fill in behind them.
+     ITS OWN CATCH, because a reading that fails must not take the upload — the
+     act that actually mattered — down with it. What went wrong is on the card. */
+  if(wantTriage && window.triageRun){
+    try{ triageRun(c,{ onStep:x=>{
+      if(window.renderChecksCard && document.getElementById('checks-card')) renderChecksCard(x);
+      if(window.renderKeyTerms && document.getElementById('kt-side')) renderKeyTerms(x);
+    }}); }catch(e){ /* the card says what happened */ }
+  }
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){

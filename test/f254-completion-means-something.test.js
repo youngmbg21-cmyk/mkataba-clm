@@ -301,17 +301,32 @@ describe('f254 (5) — the contract remembers that it was read', () => {
     else assert.equal(c.obligationsReadHash, undefined, 'and no hash is invented without the fingerprint');
   });
 
-  test('IT IS STAMPED BY THE SCAN AND BY NOTHING ELSE', () => {
-    /* A stamp written anywhere else would claim a reading that never happened,
-       which is the exact fault the Insights page reported as a blind spot. */
+  test('IT IS STAMPED ONLY WHERE A READING REALLY HAPPENED', () => {
+    /* REVERSED IN PLACE 9 Sep 2026, and the claim is STRONGER for it. It read
+       "by the SCAN and by nothing else", which was the right rule stated by
+       naming its only caller — and auto-triage on upload runs the SAME reader,
+       so a stamp there records a reading that genuinely happened. What must
+       hold is the REASON rather than the count: every caller runs the reader
+       first, and every caller withholds the stamp below the reader's own
+       NAMED floor. Two callers now, each asserted; a third that stamps
+       without reading fails here. */
     const hits = (OB_CODE.match(/obligationsReadStamp\(/g) || []).length;
-    assert.equal(hits, 2, 'one definition, one caller');
+    assert.equal(hits, 2, 'inside this file: one definition, one caller');
     const run = OB_CODE.match(/async function runFindObligations\(c\)\{[\s\S]*?\n\}/)[0];
     assert.match(run, /obligationsReadStamp\(c, _obText\)/);
-    assert.match(run, /_obText\.length>=120/,
-      'and never where there was nothing to read — extractObligations refuses '
-      + 'a document under 120 characters, and a stamp there would record a '
-      + 'reading of something that could not be read');
+    assert.match(run, /_obText\.length>=OBLIG_TEXT_MIN/,
+      'and never where there was nothing to read — the reader refuses a '
+      + 'document under that floor, and a stamp there would record a reading '
+      + 'of something that could not be read');
+
+    /* THE SECOND CALLER, and it asks the same floor by the same name. */
+    const TRI = strip(fs.readFileSync(path.join(ROOT, 'js/triage.js'), 'utf8'));
+    const tri = (TRI.match(/obligationsReadStamp\(/g) || []).length;
+    assert.equal(tri, 1, 'auto-triage stamps once, in the obligations step');
+    assert.match(TRI, /extractObligations\(/, 'and only after running the reader');
+    assert.match(TRI, /OBLIG_TEXT_MIN/, 'through the named floor, never a copy of it');
+    assert.ok(!/\bobligationsReadStamp\(/.test(TRI.slice(0, TRI.indexOf('extractObligations'))),
+      'the stamp comes after the reading, never before it');
   });
 });
 

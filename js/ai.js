@@ -3352,8 +3352,17 @@ function aiNoteRead(c, action, detail){
   if (typeof persist === 'function') persist(c);
   return true;
 }
+/* `opts.quiet` STOPS THE TOAST AND NOTHING ELSE, and it exists for exactly one
+   caller: auto-triage, which runs three readings in a row. Left loud, a
+   workspace with no Copilot key would stack three red boxes over the page the
+   moment somebody uploaded — which is the fault the owner rang about on 23 Aug
+   2026 ("I never want to see this in the platform again"). The FACT is not
+   swallowed: a quiet caller is handed the reason and prints it where the reader
+   is looking. Absent, every existing caller is byte-identical. */
 async function runContractBrief(c,opts={}){
-  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){ toast(i18t('br_no_ai'),'warn'); return null; }
+  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured){
+    if(opts.quiet) return { error:i18t('br_no_ai') };
+    toast(i18t('br_no_ai'),'warn'); return null; }
   const text=isUpload(c)?(c.upload&&c.upload.extractedText)||'':(window.contractPlainText?contractPlainText(c):'');
   try{
     // The whole wording goes — the server's aiDocChars is the one ceiling, and
@@ -3366,7 +3375,11 @@ async function runContractBrief(c,opts={}){
       if(!r.cached) aiNoteRead(c,'Brief',opts.force?'Contract brief rewritten by Copilot':'Contract brief written by Copilot');
       return r.brief;
     }
-  }catch(e){ toast(i18t('br_failed')+(e&&e.message?' '+e.message:''),'err'); }
+  }catch(e){
+    const msg=i18t('br_failed')+(e&&e.message?' '+e.message:'');
+    if(opts.quiet) return { error:msg };
+    toast(msg,'err');
+  }
   return null;
 }
 function briefFactsHtml(d){

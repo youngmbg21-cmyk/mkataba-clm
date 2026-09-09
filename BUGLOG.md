@@ -9936,3 +9936,116 @@ Noticed, not fixed
   runs these files as classic scripts sharing one scope, so jurisdiction.js's
   own top-level const survives deleting the window copy. Pinned at source with
   the reason written where it stands, rather than staged dishonestly.
+
+================================================================================
+2026-09-09 — AUTO-TRIAGE ON UPLOAD (idea 2, owner-ruled after four rulings and
+one correction)
+================================================================================
+Upload a contract somebody sent you and HaTi reads it there and then — risk
+scan, brief, Our standards, obligations — and the answer waits on Home as a
+card at the top of "Needs your decision". Every reading already existed behind a
+button on the Checks card; what was missing is that nobody presses four buttons
+on a contract they have not read yet.
+
+WHAT THE DESIGN SETTLED
+- A tick-box on the upload confirm screen, TICKED. This is the first thing in
+  the product that spends Copilot money with nobody pressing a button, so it
+  says so and can be cleared before the file is filed.
+- The answer is a ROW in a list that already exists, not a new section on Home
+  and not a band — that list already takes rows from five sources.
+- Four tiles: Brief, Standards, Obligations, Filed. The signing-route tile is
+  HELD BACK because HaTi has no reading of who signs; "Change the route" waits
+  on it. Filed stays: it only reports the stream and owner already on the record.
+- Obligations are PROPOSED and never filed. The scan's list is held on the
+  triage record; a person still ticks.
+
+DEFECTS FOUND WHILE BUILDING, each reproduced before it was touched
+- AN EMPTY DOCUMENT "PASSED" THE RISK SCAN. Rule-matching over an empty string
+  succeeds by finding nothing in nothing, so a photographed lease whose words
+  never came out of the file would have been reported as read and clean. The
+  runner asks once, before it spends anything, and every reading says it could
+  not read the document. Not the readers' own readability floor — strictly
+  weaker, and the readers still apply theirs.
+- THE CARD'S HEADLINE LIED ON THAT VERY CASE. Tag "Not read", sub-line "No text
+  came out of the file", and the TITLE — the biggest line — "read and ready for
+  you". Found by looking at the rendered card; no source check could see it.
+  The title now comes off triageReadAnything, the same reading the tag and the
+  coloured edge already use.
+- I EDITED DEAD CODE FOR AN HOUR. js/views/home.js builds a decisionRows /
+  activitySection pair that is never interpolated; the live renderer is ddRows
+  in the .hm-* vocabulary. The row drew nothing, in silence, and every source
+  check passed. Diagnosed by probing the rendered page for what it actually
+  held. When a change draws nothing, ask the PAGE before re-reading the source.
+- THREE READERS COULD HAVE SHOUTED AT ONCE. opts.quiet on the brief, the
+  standards pass and the obligations scan hands the reason back on the options
+  object instead of toasting it — three red boxes over one upload is the fault
+  this product has already been rung about. Every existing caller passes nothing
+  and behaves exactly as it did.
+
+- AND THE TICK-BOX'S FALLBACK POINTED THE WRONG WAY. An absent box read as a
+  silent YES. Unreachable — the box draws wherever a file has been chosen and
+  the filing cannot run without one — but the direction is the promise: money
+  spent unasked is a broken promise the reader cannot see, where a reading that
+  did not happen is a card they notice is missing.
+
+- QUIET TOOK THE FALLBACK WITH THE TOAST. Written the first way, a quiet
+  caller returned "unavailable" where a loud one falls through to the heuristic
+  — a real reading. So the card would have reported nothing found on a contract
+  a person pressing the same button would have got answers for. Quiet may never
+  be quieter AND worse: it suppresses the toast and changes nothing else. Where
+  there is genuinely no answer, the reason still comes back for the card to
+  print. Both readers.
+- AND THE OBLIGATIONS TILE PRINTED A COUNT WITH NOTHING UNDER IT. It read
+  `x.text`; the field is `desc` — the server's schema requires it, the
+  heuristic writes it, and every obligation surface in the product reads it. A
+  number the reader cannot act on. Caught by re-reading my own diff against the
+  server's schema, not by any check; the check that now catches it was proved
+  to fail against the defect before it was trusted.
+- AND THE DECLINE DIALOG ESCAPED TWICE. confirmDialog draws its message in a
+  <p> and escapes it, so "Smith & Co" would have read "Smith &amp; Co" in the
+  one dialog that asks somebody to decline a contract. Mine was the only caller
+  in the product escaping the name; every other one passes it raw.
+
+ONE READING WHERE THERE WERE THREE
+- OBLIG_TEXT_MIN. The readability floor was typed as a literal in two places in
+  js/obligations.js — with a comment beside one of them claiming it was "one
+  reading, not a second copy of the test" — and my new code would have made a
+  third. Named once, published, read by the reader, the read-stamp and
+  auto-triage. Both comments now describe the code.
+
+REVERSED IN PLACE
+- "obligationsReadStamp is written by the SCAN and by nothing else" (J-2.2).
+  Auto-triage stamps it too, and the rule's REASON is untouched: it exists so a
+  stamp can never claim a reading that did not happen, and auto-triage runs the
+  same reader through the same named floor first. Two callers now, each
+  asserted; a third that stamps without reading fails f254.
+
+TESTS
+- f273 NEW, 59. Against the parent the file cannot load at all, because the
+  reading does not exist.
+- auto-triage-verify NEW, 29 browser checks. 23 of the first 28 fail against the parent, the
+  headline one reporting the tick-box absent from the upload screen. Every
+  driven half is guarded, so a build without the feature REPORTS its failures
+  rather than stopping at the fourth — the first version aborted at check four
+  and proved nothing about the twenty-two it never reached.
+- f254's stamp claim REVERSED IN PLACE and made stronger; f260's RE-POINTED at
+  the named floor rather than the number.
+- test/world.js gained a triage stage standing in for js/ai.js, which cannot be
+  loaded in the node world at all.
+- Full node suite 5897/5897. home-page-verify 34/34 (the screen I changed),
+  auto-triage-verify 29/29. Lint unchanged at the baseline (179 problems, 4
+  pre-existing duplicate keys).
+- ONE THING THE BROWSER STAGE CANNOT SAY, out loud: its scripted stand-in
+  answers the three paid readings with nothing, so every count on the card
+  there is zero. That is a real state and the one most worth drawing, and it
+  means the tile CONTENT behind a non-zero count is proved in f273 against the
+  product's own heuristic. The browser check asks the relation that holds on
+  any stage — no tile reports a number with nothing under it — rather than
+  claiming a reach it does not have.
+
+Noticed, not fixed
+- The four rows of the "+ Draft new agreement" menu are still hardcoded English
+  while the screens they open are translated.
+- The learned-standards card is still hosted on #precedent-panel, a name from
+  the feature it grew out of.
+- cal_next_30 still names 30 while the calendar's agenda window is a control.
