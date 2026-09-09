@@ -336,6 +336,144 @@ describe('F272 — the standards page', () => {
       assert.equal(split.stdDraftFromSigned().rows.find(r => r.key === 'payment').proposed, false,
         'four contracts that do not agree carry no usual figure');
     });
+    /* ------------------------------------------------------------
+       THE GOVERNING LAW ROW — owner-reported 9 Sep 2026
+       ------------------------------------------------------------
+       The row printed "Nothing to compare — your standard is wording, not a
+       figure" while the standard sat visible eight rows below saying Sweden.
+       That sentence described the CARD's limit and read as a fact about the
+       RECORD, and with the comparison missing the card was silently dropping
+       the strongest finding it can make: a Required standard the signed book
+       does not follow. It is a real comparison now, and it is the product's
+       own — jxNamesHome, which the playbook check and the risk scan ask. */
+    const lawStage = (laws, market) => {
+      const win = stage(laws.map((l, i) =>
+        contract('L-' + i, [], { metadata: { governingLaw: l } })));
+      if (market) win.getOrg = () => ({ jurisdiction: market });
+      return win;
+    };
+    const lawRow = win => win.stdDraftFromSigned().rows.find(r => r.key === 'law');
+
+    test('the governing law row compares against the workspace\'s own market', () => {
+      const win = lawStage(['Kenya', 'Kenya', 'Kenya']);
+      assert.equal(win.jxName(), 'Kenya', 'the control: the stage really has a market');
+      const law = lawRow(win);
+      assert.equal(law.compare, 'home', 'it is a home comparison, not a figure one');
+      assert.equal(law.current, 'Kenya',
+        'so the standard column names the market rather than saying there is nothing to compare');
+      assert.equal(law.seen, 3);
+      assert.equal(law.have, 3);
+      assert.equal(law.differ, 0);
+      assert.equal(law.agrees, true, 'all three name home');
+    });
+
+    test('and it COUNTS the ones that do not — the finding the card used to drop', () => {
+      /* The owner's own screen: ten recorded governing laws, all different,
+         a Swedish workspace. At most one can name Sweden, and the card said
+         nothing at all about it. */
+      const win = lawStage(['California', 'Delaware', 'England and Wales', 'Sweden',
+        'Singapore', 'New York', 'Ireland', 'Netherlands', 'Texas', 'Ontario'], 'sweden');
+      assert.equal(win.jxName(), 'Sweden', 'the control: the market really moved');
+      const law = lawRow(win);
+      assert.equal(law.current, 'Sweden');
+      assert.equal(law.have, 10);
+      assert.equal(law.seen, 1, 'one of the ten names Sweden');
+      assert.equal(law.differ, 9, 'and nine name something else');
+      assert.equal(law.agrees, false);
+    });
+
+    test('the count it PRINTS is the match, not how many share a spelling', () => {
+      /* Both are true of the same book and only one answers the reader's
+         question. Written as one number they disagree the moment a subject is
+         compared any way but by counting duplicates. */
+      const win = lawStage(['California', 'California', 'California', 'Kenya']);
+      const law = lawRow(win);
+      assert.equal(law.topN, 3, 'California is the commonest');
+      assert.equal(law.seen, 1, 'but one contract names home');
+      assert.equal(law.differ, 3);
+    });
+
+    test('it proposes NOTHING — a governing law is moved by the market setting', () => {
+      /* The ONE DOOR rule. A button here would be a second way into a
+         settings act that already has one, and two doors onto one act drift. */
+      const win = lawStage(['California', 'California', 'California', 'California']);
+      const law = lawRow(win);
+      assert.equal(law.agrees, false, 'the book plainly departs from the standard');
+      assert.equal(law.proposed, false, 'and it still presses nothing');
+      const draft = SET.slice(SET.indexOf('function renderStandardsDraft'),
+        SET.indexOf('/* THE DRAFT CARD WRITES NOTHING EITHER'));
+      assert.match(draft, /r\.proposed&&mayAdopt/,
+        'the button is drawn off proposed alone, so the model is the wall');
+    });
+
+    test('without a market pack it falls back honestly, never to a guess', () => {
+      /* ASSERTED AT SOURCE, and that is the honest way round rather than a
+         convenience. This harness runs these files as classic scripts sharing
+         one scope, so jurisdiction.js's own top-level const survives deleting
+         the window copy — the absence cannot be staged here at all, and a test
+         that pretended to stage it would be describing itself. What CAN be
+         pinned is the guard, and the behaviour of the branch it falls into. */
+      const home = STD.slice(STD.indexOf('const _stdHomeName'),
+        STD.indexOf('const stdSignedBook'));
+      assert.match(home, /typeof jxName === 'function'/, 'the market is asked, never assumed');
+      assert.match(home, /: null/, 'and its absence answers null rather than a guess');
+      assert.match(home, /typeof jxNamesHome === 'function'/,
+        'so is the reading of whether a law names home');
+      /* And a row whose current is null draws the sentence that says so —
+         which is what the governing law row would fall back to, and is what
+         the liability row does today. */
+      const law = lawRow(lawStage(['Kenya']));
+      assert.equal(law.current, 'Kenya', 'the control: with a pack it really compares');
+      const liab = stage([]).stdDraftFromSigned().rows.find(r => r.key === 'liability');
+      assert.equal(liab.current, null);
+      assert.match(SET, /std_no_figure_to_compare/, 'and the card says so in words');
+    });
+
+    test('"what you usually sign" stops claiming one where there is none', () => {
+      /* California was printed under that heading having been seen once in
+         ten — it won the alphabetical tie-break, not a count. */
+      const win = lawStage(['California', 'Delaware', 'England and Wales', 'Sweden',
+        'Singapore', 'New York', 'Ireland', 'Netherlands', 'Texas', 'Ontario'], 'sweden');
+      const law = lawRow(win);
+      assert.equal(law.value, 'California', 'the reading still knows the commonest');
+      assert.equal(law.pattern, false, 'but one in ten is not a usual value');
+      const draft = SET.slice(SET.indexOf('const grey=t=>'),
+        SET.indexOf('const why=r=>'));
+      assert.match(draft, /if\(!r\.pattern\) return grey\(i18t\('std_no_usual'\)\)/,
+        'so the cell says the absence rather than the alphabet');
+      assert.match(draft, /if\(!r\.have\) return '—'/,
+        'and nothing on file is still the em-dash it always was');
+    });
+
+    test('nothing on file is not a disagreement', () => {
+      /* "0 of your signed contracts carry one and they do not agree" — the
+         card arguing with its own zero. */
+      const wStart = SET.indexOf('const why=r=>{');
+      const why = SET.slice(wStart, SET.indexOf('host.innerHTML=`', wStart));
+      assert.match(why, /if\(!r\.have\) return esc\(i18t\('std_none_carry'\)\)/,
+        'the empty column has a sentence of its own');
+      assert.ok(why.indexOf("!r.have") < why.indexOf('std_disagree'),
+        'and it is asked before the disagreement sentence');
+    });
+
+    test('"already matches" needs a pattern to match', () => {
+      /* 3 of 7 reported "Already matches" because agrees was asked first: a
+         standard equal to a MINORITY value is not agreement. */
+      const wStart = SET.indexOf('const why=r=>{');
+      const why = SET.slice(wStart, SET.indexOf('host.innerHTML=`', wStart));
+      assert.ok(why.indexOf('!r.pattern') < why.indexOf('r.agrees===true'),
+        'whether there is a pattern at all is asked before whether it matches');
+      const win = stage([
+        contract('T-1', [], { metadata: { noticePeriodDays: 30 } }),
+        contract('T-2', [], { metadata: { noticePeriodDays: 45 } }),
+        contract('T-3', [], { metadata: { noticePeriodDays: 60 } }),
+        contract('T-4', [], { metadata: { noticePeriodDays: 90 } }),
+      ]);
+      const term = win.stdDraftFromSigned().rows.find(r => r.key === 'term');
+      assert.equal(term.pattern, false, 'four contracts that do not agree carry no usual figure');
+      assert.equal(term.agrees, true, 'even though the standard happens to equal one of them');
+    });
+
     test('what it cannot read is NAMED, never quietly left out', () => {
       const win = stage(signedBook());
       const d = win.stdDraftFromSigned();
@@ -452,7 +590,9 @@ describe('F272 — the standards page', () => {
         'std_th_position', 'std_th_usually', 'std_th_standard', 'std_th_seen',
         'std_seen_of', 'std_seen_of_carrying', 'std_not_proposed', 'std_agrees',
         'std_cannot_read', 'std_adopt', 'std_adopt_q', 'std_adopt_msg', 'std_adopted',
-        'std_adopt_none', 'std_unit_days', 'std_draft_pref_detail', 'std_standard_text', 'std_standard_none'];
+        'std_adopt_none', 'std_unit_days', 'std_draft_pref_detail', 'std_standard_text', 'std_standard_none',
+        /* The four the governing law fix added, 9 Sep 2026. */
+        'std_no_usual', 'std_none_carry', 'std_seen_naming'];
       for (const k of keys)
         assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
     });
@@ -461,7 +601,7 @@ describe('F272 — the standards page', () => {
          and inert, because a key removed from one book and not the other is how
          a screen ends up half-English. */
       for (const k of ['std_show_rounds', 'std_draft_go', 'std_draft_title',
-        'std_draft_adopt_all', 'std_disagree'])
+        'std_draft_adopt_all', 'std_disagree', 'std_law_differ'])
         for (const f of ['_one', '_other'])
           assert.equal((I18N.match(new RegExp('\\b' + k + f + ':', 'g')) || []).length, 2, k + f);
     });

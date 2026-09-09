@@ -267,11 +267,16 @@ const SEED = () => {
     await page.evaluate(() => {
       state.settings = Object.assign({}, state.settings);
       delete state.settings.clauseLibrary; delete state.settings.playbook;
-      const mk = (id, days) => ({ id, name: 'Signed ' + id, counterparty: 'Naivas',
+      const mk = (id, days, law) => ({ id, name: 'Signed ' + id, counterparty: 'Naivas',
         status: 'Signed', folder: 'proc', fields: {}, obligations: [], audit: [],
         rounds: [], versions: [], signatures: [], comments: [], changes: [],
-        metadata: { paymentTerms: days + ' days from invoice', governingLaw: 'Kenya' } });
-      state.contracts.unshift(mk('SG-1', 60), mk('SG-2', 60), mk('SG-3', 60), mk('SG-4', 30));
+        metadata: { paymentTerms: days + ' days from invoice', governingLaw: law } });
+      /* AND THE GOVERNING LAWS DEPART, which is the owner's own case (9 Sep
+         2026): four recorded, all different, one naming home. Seeded all-Kenya
+         the row would only ever say "Already matches" and the finding this
+         section exists for could not be measured at all. */
+      state.contracts.unshift(mk('SG-1', 60, 'California'), mk('SG-2', 60, 'Delaware'),
+        mk('SG-3', 60, 'England and Wales'), mk('SG-4', 30, 'Kenya'));
       setView('playbook');
     });
     await pause(1000);
@@ -316,6 +321,39 @@ const SEED = () => {
     check('6e · and what HaTi cannot read off the record is NAMED',
       /confidentiality/i.test(table.txt) && /data protection/i.test(table.txt),
       table.txt.slice(-150));
+
+    /* ---- THE GOVERNING LAW ROW, owner-reported 9 Sep 2026 ----
+       It printed "Nothing to compare — your standard is wording, not a
+       figure" over a standard sitting visible below it saying Sweden, and
+       with the comparison missing it was dropping the strongest finding the
+       card can make. MEASURED AS PAINT, because the whole complaint was about
+       what the row SAID: the reading can be right while the cells still read
+       wrong. */
+    const home = await page.evaluate(() =>
+      (typeof jxName === 'function' ? jxName() : ''));
+    check('6i · the standard column NAMES the market, not "nothing to compare"',
+      !!(table.law && home && table.law.cells.some(c => c.includes(home))
+         && !table.law.cells.some(c => /nothing to compare|inget att jämföra/i.test(c))),
+      { home, cells: table.law && table.law.cells });
+    /* "1 of 4" ALONE IS NOT THE CLAIM — the old row printed that too, meaning
+       how many shared a spelling. What is new is what the count is OF. */
+    check('6j · and the row COUNTS how many of the signed book name it',
+      !!(table.law && /1 of 4 name it|1 av 4 anger den/.test(table.law.cells.join(' | '))),
+      table.law && table.law.cells);
+    check('6k · the finding is stated — three name a different law',
+      !!(table.law && /\b3\b/.test(table.law.cells[table.law.cells.length - 1])
+         && /different law|annan lag/i.test(table.law.cells[table.law.cells.length - 1])),
+      table.law && table.law.cells[table.law.cells.length - 1]);
+    check('6l · "what you usually sign" claims nothing where one in four is not a habit',
+      !!(table.law && /no usual value|inget vanligt värde/i.test(table.law.cells[1])
+         && !/california/i.test(table.law.cells[1])),
+      table.law && table.law.cells[1]);
+    /* A CONTROL: true before this fix and after it. Its job is to fail the day
+       somebody gives this row a button, which would be a second door onto a
+       settings act that already has one. */
+    check('6m · and it presses nothing — a governing law moves with the market setting',
+      !!(table.law && table.law.adopt === false),
+      table.law && { adopt: table.law.adopt });
     /* IT OPENS THE EDITOR AND WRITES NOTHING — driven, and this is the check
        that caught the defect it now pins. Written as a straight write, the
        press replaced "The Buyer shall pay each undisputed invoice within

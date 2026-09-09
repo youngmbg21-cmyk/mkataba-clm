@@ -10471,6 +10471,54 @@ contracts they have already signed and say what they usually agree to.
   cap in months are not fields the record holds, so the card says which subjects
   stay the reader's to write. A cap or an omission is a FACT — the standing rule
   — and inventing a standard is the one thing this must never do.
+- **AND THE GOVERNING LAW ROW COMPARES AFTER ALL — REVERSED IN PLACE 9 Sep
+  2026** (owner-reported, off their own card: *"it is not using the governing
+  law i usually sign rather it says california is okay"*, then, pointing at the
+  standard sitting visible eight rows below it, *"but the governing law says
+  swedish per the attached"*). The row printed **"Nothing to compare — your
+  standard is wording, not a figure"**, which was the card describing ITS OWN
+  LIMIT and reading as a fact about the RECORD.
+  - **IT WAS WORSE THAN A WORDING FAULT: the card was silently dropping the
+    strongest finding it can make.** On the owner's book, `seen 1 of have 10`
+    proves every recorded governing law is a singleton, so at most one of ten
+    signed contracts named Sweden — against a standard marked **Required** —
+    and the card said nothing at all about it.
+  - **`compare` IS THE READING AND IT IS NOT ONE QUESTION.** `figure` lines a
+    counted number up against the figure in the preferred wording; `home` asks
+    the only question a governing law has an answer to — does this name our own
+    market — because the standard there is the workspace's market setting
+    rather than a number; `none` is the honest answer where the record holds a
+    category and the standard holds prose.
+  - **THE COMPARISON IS THE PRODUCT'S OWN, NEVER A SECOND COPY.** `jxNamesHome`
+    is what the playbook check and the risk scan already ask, and both readings
+    are `typeof`-guarded, so a stage without js/jurisdiction.js falls back to
+    exactly what this row did before — no comparison, and the sentence that
+    says so. **An honest absence, never a guessed jurisdiction.**
+  - **TWO COUNTS, BECAUSE THEY ANSWER TWO QUESTIONS.** `topN` is how often the
+    commonest value appears, which decides whether there is a usual value at
+    all; `seen` is what the row PRINTS, and on a home comparison that is how
+    many name the home market rather than how many share a spelling. Written as
+    one number they disagree the moment a subject is compared any way but by
+    counting duplicates.
+  - **IT PROPOSES NOTHING, AND THAT IS THE ONE DOOR RULE rather than a limit of
+    the reading.** A governing law is moved by changing the workspace's market,
+    which is a settings act with a door of its own; a button here would be a
+    second way in. So the row STATES its finding and presses nothing.
+- **THREE MORE THINGS THE SAME ROW TAUGHT, all fixed with it.**
+  - **"What you usually sign" claimed one where there was none.** The column
+    printed the commonest value whatever its share, so ten one-off answers
+    printed whichever sorted first in the **ALPHABETICAL TIE-BREAK** — California
+    was there because C sorts early, not because it was common. Below the
+    pattern floor the cell says the absence; with nothing on file at all it is
+    the em-dash it always was.
+  - **Nothing on file is not a disagreement.** The liability row read *"0 of
+    your signed contracts carry one and they do not agree"* — the card arguing
+    with its own zero, because `std_disagree` has no zero case and `i18tn`
+    sends 0 to the `_other` form. It has a sentence of its own, asked first.
+  - **"Already matches" needs a pattern to match.** Termination reported it at
+    3 of 7, because `why()` asked whether the standard AGREES before it asked
+    whether there was a pattern to agree with — a standard equal to a MINORITY
+    value is not agreement. Reordered.
 - **AND ITS ADOPT WAS CORRECTED BEFORE IT SHIPPED, which is the most useful
   thing in this section.** It first wrote the figure straight into the preferred
   as one flat sentence, and **MEASURED in a browser that replaced "The Buyer
@@ -10503,14 +10551,23 @@ identical in both books — and the English was imprecise anyway: the column hol
 a SUBJECT ("Payment terms", "Governing law"), not a position. It is
 **Category / Kategori**.
 
-Tests: f272 (47 — the file cannot even load against the parent, because the
-reading layer does not exist), f222 unchanged (its `renderPrecedentPanel` and
-`precedentAdopt` source claims still hold, unedited), f148,
-**standards-page-verify (33, browser — 28 of them fail against the parent, and
-it is the only place three of these can be asked at all: "one line clipped by
-width" is a GEOMETRY re-measured at a narrower window, "the row opens" is a
-PRESS, and the page must SURVIVE being drawn, since both new cards are called
-from `renderClauseLibrary` and a throw in either takes the tab down)**.
+Tests: f272 (57 — the file cannot even load against the commit that first
+shipped this page, because the reading layer does not exist there; the eight
+added 9 Sep 2026 for the governing law all fail against the commit before that
+fix), f222 unchanged (its `renderPrecedentPanel` and `precedentAdopt` source
+claims still hold, unedited), f148,
+**standards-page-verify (38, browser — it is the only place three of these can
+be asked at all: "one line clipped by width" is a GEOMETRY re-measured at a
+narrower window, "the row opens" is a PRESS, and the page must SURVIVE being
+drawn, since both new cards are called from `renderClauseLibrary` and a throw
+in either takes the tab down. THE GOVERNING LAW CLAIMS ARE MEASURED AS PAINT,
+because the whole complaint was about what the row SAID — the reading can be
+right while the cells still read wrong — and its fixture DEPARTS from the
+standard on purpose: seeded all-home the row would only ever say "Already
+matches" and the finding could not be measured. Four fail against the parent
+and report the owner's own screenshot verbatim, "California" under the heading
+and "Nothing to compare" beside it; 6m is a CONTROL that passes either way, and
+its job is to fail the day somebody gives that row a button)**.
 
 ## Line numbers drift
 

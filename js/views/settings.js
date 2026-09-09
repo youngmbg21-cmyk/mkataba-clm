@@ -3214,15 +3214,39 @@ function renderStandardsDraft(){
   }
   const d=stdDraftFromSigned();
   const cell='padding:5px 8px;font-size:var(--t-label);text-align:left;vertical-align:top';
+  const grey=t=>`<span style="color:var(--color-neutral-600)">${esc(t)}</span>`;
+  /* WHAT YOU USUALLY SIGN, AND ONLY WHERE THERE IS A USUAL VALUE. The column
+     printed the commonest value whatever its share, so a book of ten one-off
+     answers printed whichever sorted first alphabetically under a heading
+     claiming it was habitual — owner-reported 9 Sep 2026, California, seen
+     once in ten. Below the floor the honest cell is the absence, and with
+     nothing on file at all it is the em-dash it always was. */
   const say=r=>{
+    if(!r.have) return '—';
+    if(!r.pattern) return grey(i18t('std_no_usual'));
     if(r.kind==='days'&&r.value!=null) return esc(String(r.value))+' '+esc(i18t('std_unit_days'));
     return esc(String(r.value==null?'—':r.value));
   };
-  const cur=r=>r.current!=null?esc(String(r.current))+' '+esc(i18t('std_unit_days'))
-    :`<span style="color:var(--color-neutral-600)">${esc(i18t(r.kind==='days'?'std_standard_none':'std_no_figure_to_compare'))}</span>`;
-  const why=r=>r.agrees===true?esc(i18t('std_agrees'))
-    :!r.pattern?esc(i18tn('std_disagree',r.have,{n:r.have}))
-    :'';
+  /* WHAT THE STANDARD SAYS: a figure carries its unit, a market carries its
+     own name, and only a subject with nothing to line up against says so. */
+  const cur=r=>r.current==null
+    ?grey(i18t(r.kind==='days'?'std_standard_none':'std_no_figure_to_compare'))
+    :esc(String(r.current))+(r.compare==='figure'?' '+esc(i18t('std_unit_days')):'');
+  /* THE FINDING, IN THE ORDER A READER NEEDS IT. Nothing on file beats
+     everything — "they do not agree" over an empty column was the card
+     arguing with its own zero. Then the home comparison, the one row that can
+     state a real departure from a standing position. Then, for a figure,
+     whether there is a pattern AT ALL before whether the standard matches
+     one: asked the other way round, a standard equal to a minority value
+     reported "Already matches" off three contracts in seven. */
+  const why=r=>{
+    if(!r.have) return esc(i18t('std_none_carry'));
+    if(r.compare==='home'&&r.current!=null)
+      return r.differ?esc(i18tn('std_law_differ',r.differ,{n:r.differ})):esc(i18t('std_agrees'));
+    if(!r.pattern) return esc(i18tn('std_disagree',r.have,{n:r.have}));
+    if(r.agrees===true) return esc(i18t('std_agrees'));
+    return '';
+  };
   host.innerHTML=`
     <div style="${CARD}">
       <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18tn('std_draft_title',d.signed,{n:d.signed}))}</h4>
@@ -3242,7 +3266,8 @@ function renderStandardsDraft(){
             <td style="${cell}">${say(r)}</td>
             <td style="${cell}">${cur(r)}</td>
             <td style="${cell};color:var(--color-neutral-600);white-space:nowrap">${
-              esc(i18t(r.kind==='days'?'std_seen_of_carrying':'std_seen_of',{seen:r.seen,have:r.have}))}</td>
+              esc(i18t(r.compare==='home'&&r.current!=null?'std_seen_naming'
+                :r.kind==='days'?'std_seen_of_carrying':'std_seen_of',{seen:r.seen,have:r.have}))}</td>
             <td style="${cell};white-space:nowrap">${
               r.proposed&&mayAdopt
                 ? `<button class="ui-btn" data-std-adopt="${esc(r.key)}" style="${B}">${esc(i18t('std_learn_move_pref',{figure:r.value,unit:i18t('std_unit_days')}))}</button>`

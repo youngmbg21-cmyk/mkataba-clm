@@ -9877,3 +9877,62 @@ Noticed, not fixed
   most one of the ten signed contracts that record a governing law names Sweden
   — against a standard marked Required. That is the strongest thing the card
   could have said and it said nothing.
+
+## 2026-09-09 — the governing law row compares after all (owner: "fix it")
+
+Fixed the four findings logged in the two entries above. The row was the ask;
+the other three came with it because they are the same card and the same cells.
+
+DEFECTS FIXED
+- Governing law printed "Nothing to compare — your standard is wording, not a
+  figure" while the standard sat visible eight rows below saying Sweden. That
+  sentence described the CARD's own limit and read as a claim about the RECORD,
+  and with the comparison missing the card was silently dropping the strongest
+  finding it can make: a Required standard the signed book does not follow. On
+  the owner's own book, seen=1 of have=10 proves every value is a singleton, so
+  at most one of ten named Sweden and the card said nothing.
+- The comparison is the product's OWN: jxNamesHome, which the playbook check and
+  the risk scan already ask. Both readings typeof-guarded, so a stage without
+  js/jurisdiction.js falls back to exactly the old behaviour rather than to a
+  guessed jurisdiction.
+- "What you usually sign" claimed a habit at 1 of 10. All ten values are
+  singletons, so the winner came from the ALPHABETICAL tie-break — California
+  was there because C sorts early. Below the pattern floor the cell now says the
+  absence; nothing on file is still the em-dash it always was.
+- "0 of your signed contracts carry one and they do not agree" — the card
+  arguing with its own zero. Its own sentence, asked first.
+- "Already matches" at 3 of 7: why() asked agrees BEFORE pattern, so a standard
+  equal to a MINORITY value reported agreement. Reordered.
+
+WHAT WAS DELIBERATELY NOT BUILT
+- No button on the governing law row. Moving it means changing the workspace's
+  market, a settings act with a door of its own; a button here is a second door.
+  proposed is now s.compare==='figure' && ..., and 6m is a control that passes
+  either way whose job is to fail the day somebody adds one.
+- Liability cap still says "nothing to compare" — the record holds a category
+  and the standard holds prose, so that sentence is TRUE there. Not in the ask.
+
+TWO COUNTS WHERE THERE WAS ONE
+- topN (how often the commonest value appears — decides whether there is a usual
+  value) and seen (what the row PRINTS). Written as one number they disagree the
+  moment a subject is compared any way but by counting duplicates.
+
+TESTS
+- f272 47 -> 57. The eight new ones all fail against the parent.
+- standards-page-verify 33 -> 38, and its fixture now DEPARTS from the standard
+  on purpose: seeded all-home the row could only ever say "Already matches" and
+  the finding could not be measured at all. Four fail against the parent and
+  report the owner's screenshot verbatim — "California" under the heading,
+  "Nothing to compare" beside it.
+- One anchor bug of my own, caught by the first run: two slices used
+  SET.indexOf(end) without a start offset, so they searched from the top of the
+  file, ended before they began, and handed two checks an empty string that both
+  passed against. A false pass is the expensive half.
+- Full node suite 5852/5852. settings-tabs-verify 65/65 (the file I edited).
+  Lint unchanged at the baseline (179 problems, 4 pre-existing duplicate keys).
+
+Noticed, not fixed
+- The browser stage cannot exercise the no-jurisdiction fallback: this harness
+  runs these files as classic scripts sharing one scope, so jurisdiction.js's
+  own top-level const survives deleting the window copy. Pinned at source with
+  the reason written where it stands, rather than staged dishonestly.

@@ -253,18 +253,40 @@ function stdLearned(opts = {}){
    they come back under `unreadable` and the screen says so. A cap or an
    omission is a FACT — the standing rule — and inventing a standard is the one
    thing this feature must never do. */
+/* HOW EACH SUBJECT IS COMPARED AGAINST THE STANDARD, and it is not one
+   question. `figure` lines a counted number up against the figure in the
+   preferred wording. `home` asks the only question a governing law has an
+   answer to — does this name our own market — because the standard there is
+   the workspace's market setting rather than a number, and the product
+   already publishes that reading (jxNamesHome, asked by the playbook check
+   and by the risk scan). `none` is the honest answer where the record holds a
+   category and the standard holds prose: nothing lines up, and the row says
+   so rather than inventing a comparison.
+
+   THE ROW USED TO SAY "nothing to compare" ON GOVERNING LAW AND THAT WAS THE
+   CARD DESCRIBING ITS OWN LIMIT AS THOUGH IT WERE A FACT ABOUT THE RECORD
+   (owner-reported 9 Sep 2026, pointing at the standard sitting visible eight
+   rows below saying Sweden). It was worse than a wording fault: with the
+   comparison missing, the card was silently dropping the strongest finding it
+   could make — a Required standard that the signed book does not follow. */
 const STD_DRAFT_SUBJECTS = [
-  { key: 'law', category: 'Governing law', clause: 'cl-law', kind: 'text',
+  { key: 'law', category: 'Governing law', clause: 'cl-law', kind: 'text', compare: 'home',
     read: c => String((c.metadata && c.metadata.governingLaw) || '').trim() },
-  { key: 'payment', category: 'Payment terms', clause: 'cl-pay', kind: 'days',
+  { key: 'payment', category: 'Payment terms', clause: 'cl-pay', kind: 'days', compare: 'figure',
     read: c => (typeof payDays === 'function') ? payDays(c) : null },
-  { key: 'term', category: 'Termination', clause: 'cl-term', kind: 'days',
+  { key: 'term', category: 'Termination', clause: 'cl-term', kind: 'days', compare: 'figure',
     read: c => { const n = Number(c.metadata && c.metadata.noticePeriodDays);
       return isFinite(n) && n > 0 ? n : null; } },
-  { key: 'liability', category: 'Liability cap', clause: 'cl-liab', kind: 'text',
+  { key: 'liability', category: 'Liability cap', clause: 'cl-liab', kind: 'text', compare: 'none',
     read: c => { const v = String((c.metadata && c.metadata.liabilityCapped) || '').trim();
       return (v === 'capped' || v === 'uncapped') ? v : ''; } },
 ];
+/* THE HOME MARKET, ASKED THROUGH `typeof` LIKE EVERY OTHER CROSS-FILE READ
+   HERE. A stage without js/jurisdiction.js answers null and the governing law
+   row falls back to exactly what it did before this — no comparison, and the
+   sentence that says so. An honest absence, never a guessed jurisdiction. */
+const _stdHomeName = () => (typeof jxName === 'function') ? (jxName() || null) : null;
+const _stdNamesHome = v => (typeof jxNamesHome === 'function') ? !!jxNamesHome(v) : false;
 /* The subjects the library holds a clause for and this reading cannot answer.
    Listed so the screen can say which ones the customer has to write by hand. */
 const STD_DRAFT_UNREADABLE = ['Confidentiality', 'Data protection'];
@@ -297,19 +319,41 @@ function stdDraftFromSigned(){
     const ranked = [...counts.entries()].sort((a, b) => (b[1].n - a[1].n)
       || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
     const top = ranked.length ? ranked[0] : null;
-    const seen = top ? top[1].n : 0;
-    const share = have ? seen / have : 0;
+    /* TWO COUNTS, BECAUSE THEY ANSWER TWO QUESTIONS AND ONLY ONE OF THEM IS
+       ALWAYS THE SAME. `topN` is how often the commonest value appears, which
+       is what decides whether there is a usual value at all; `seen` is what
+       the row PRINTS, and on a home comparison that is how many name the home
+       market rather than how many share a spelling. Written as one number
+       they disagree the moment a subject is compared any way but by counting
+       duplicates. */
+    const topN = top ? top[1].n : 0;
+    const share = have ? topN / have : 0;
     const usual = top ? top[1].sample : null;
     /* WHAT THE STANDARD SAYS TODAY, so the row can be read as a comparison
-       rather than as an instruction. Only a figure is comparable — where the
-       standard is prose there is nothing to line up against a counted value,
-       and the row says what was signed and leaves the judgement alone. */
+       rather than as an instruction. A figure lines up against a figure; a
+       governing law lines up against the workspace's own market; where the
+       standard is prose and the record holds a category there is nothing to
+       line up, and the row says what was signed and leaves the judgement
+       alone. */
     const cl = byId.get(s.clause) || null;
-    const cur = (cl && s.kind === 'days') ? stdPreferredFigure(cl) : null;
-    const current = cur ? cur.figure : null;
-    const agrees = (current != null && usual != null) ? Number(current) === Number(usual) : null;
+    const home = (s.compare === 'home') ? _stdHomeName() : null;
+    const cur = (cl && s.compare === 'figure') ? stdPreferredFigure(cl) : null;
+    const current = (s.compare === 'home') ? home : (cur ? cur.figure : null);
+    /* HOW MANY OF THE SIGNED ONES MEET THE STANDARD. On a home comparison that
+       is a real count of the book; anywhere else the question is only whether
+       the commonest value equals the standard, which is what it has always
+       been. */
+    const homeN = (s.compare === 'home' && home) ? vals.filter(_stdNamesHome).length : 0;
+    const seen = (s.compare === 'home' && home) ? homeN : topN;
+    const agrees = (s.compare === 'home')
+      ? (home && have ? homeN === have : null)
+      : ((current != null && usual != null) ? Number(current) === Number(usual) : null);
     rows.push({ key: s.key, category: s.category, clause: s.clause, kind: s.kind,
-      value: usual, seen, have, signed: signed.length,
+      compare: s.compare,
+      value: usual, seen, have, topN, signed: signed.length,
+      /* What is NOT met, so the screen prints the finding rather than working
+         it out again and risking a different answer from the count beside it. */
+      differ: (s.compare === 'home' && home) ? (have - homeN) : 0,
       confidence: have ? Math.round(share * 100) : 0,
       distinct: counts.size,
       current, agrees,
@@ -318,7 +362,14 @@ function stdDraftFromSigned(){
          offers nothing — a table where every row demands a decision is one
          nobody reads to the end. */
       pattern: have >= STD_DRAFT_MIN && share >= STD_DRAFT_SHARE,
-      proposed: have >= STD_DRAFT_MIN && share >= STD_DRAFT_SHARE && agrees === false });
+      /* PROPOSED IS A FIGURE AND ONLY EVER A FIGURE, which is the ONE DOOR
+         rule rather than a limit of the reading. A governing law is moved by
+         changing the workspace's market, which is a settings act with a door
+         of its own; a button here would be a second way into it, and two
+         doors onto one act drift. So the home row STATES its finding and
+         presses nothing. */
+      proposed: s.compare === 'figure'
+        && have >= STD_DRAFT_MIN && share >= STD_DRAFT_SHARE && agrees === false });
   }
   return { signed: signed.length, rows,
     proposed: rows.filter(r => r.proposed).length,
