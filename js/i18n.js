@@ -323,7 +323,15 @@ const STRINGS = {
     reg_only_clear: 'Show the whole register again',
     reg_only_fallback: 'A chosen set',
     reg_clear_all_filters: 'Clear all filters',
-    reg_saved_views: 'Saved views',
+    /* RENAMED 9 Sep 2026 (owner-asked). It was 'Saved views', which promised
+       a feature that has never existed: this dropdown is seven shortcuts
+       written into the product, and nothing in HaTi saves a view of the
+       reader's own — so there was no list of their views to manage and no
+       delete anywhere. The owner went looking for that delete button. The
+       name says what the control IS now. `reg_saved_views` is STALE — flag
+       any mention. THE FILTER'S OWN KEY IS STILL 'view' and must stay: it
+       is what R.view and the stored bar preference are written under. */
+    reg_quick_filters: 'Quick filters',
     reg_no_fulltext: 'No full-text matches.',
     reg_nothing_selected: 'Nothing selected',
     reg_nothing_to_export: 'Nothing to export',
@@ -4211,6 +4219,12 @@ const STRINGS = {
 
     // ---- the Copilot's own replies ----
     ai_go_to_wording: 'Go to the wording',
+    /* AN ANSWER IS A WORKLIST — one door under a Copilot answer that names
+       several contracts, narrowing the Contracts page to exactly those.
+       Deliberately no count: the expander above it already prints how many,
+       and the register narrows further inside a named set. */
+    ai_worklist: 'Open these in Contracts',
+    ai_worklist_title: 'Narrow the Contracts page to exactly these contracts. The way back is on the chip it puts on the filter bar.',
     ai_show_all_one: 'Show all {n} contract ▾',
     ai_add_key_for_full: 'Add your Anthropic API key in Team & Settings → Copilot engine to unlock the full assistant.',
     ai_engine_unavailable: 'The Copilot engine could not be reached just now, so this is a basic answer. Try again in a moment.',
@@ -4963,7 +4977,7 @@ const STRINGS = {
     reg_widen: 'Try widening the filters, or clear them to see everything.',
     reg_not_sent: 'not sent',
     reg_in_days: '{n} d',
-    reg_saved_views_title: 'Saved views — expiry, auto-renewal and obligation presets',
+    reg_quick_filters_title: 'Quick filters — expiry, auto-renewal and obligation shortcuts',
     reg_create_from_template: 'Create one from a template, or upload a contract you received.',
 
     // ---- roles and the theme button ----
@@ -5937,7 +5951,7 @@ const STRINGS = {
     reg_only_clear: 'Visa hela registret igen',
     reg_only_fallback: 'Ett valt urval',
     reg_clear_all_filters: 'Rensa alla filter',
-    reg_saved_views: 'Sparade vyer',
+    reg_quick_filters: 'Snabbfilter',
     reg_no_fulltext: 'Inga träffar i fritextsökningen.',
     reg_nothing_selected: 'Inget valt',
     reg_nothing_to_export: 'Inget att exportera',
@@ -9470,6 +9484,8 @@ const STRINGS = {
 
     // ---- the Copilot's own replies ----
     ai_go_to_wording: 'Gå till formuleringen',
+    ai_worklist: 'Öppna dessa i Avtal',
+    ai_worklist_title: 'Begränsa sidan Avtal till exakt dessa avtal. Vägen tillbaka finns på brickan den lägger i filterraden.',
     ai_show_all_one: 'Visa alla {n} avtal ▾',
     ai_add_key_for_full: 'Lägg till din Anthropic API-nyckel under Team och inställningar → Copilot-motorn för att låsa upp hela assistenten.',
     ai_engine_unavailable: 'Copilot-motorn kunde inte nås just nu, så det här är ett enkelt svar. Försök igen om en stund.',
@@ -10196,7 +10212,7 @@ const STRINGS = {
     reg_widen: 'Prova att vidga filtren, eller rensa dem för att se allt.',
     reg_not_sent: 'inte skickat',
     reg_in_days: '{n} d',
-    reg_saved_views_title: 'Sparade vyer — förval för utgång, automatisk förnyelse och åtaganden',
+    reg_quick_filters_title: 'Snabbfilter — genvägar för utgång, automatisk förnyelse och åtaganden',
     reg_create_from_template: 'Skapa ett från en mall, eller ladda upp ett avtal du fått.',
 
     // ---- roles and the theme button ----

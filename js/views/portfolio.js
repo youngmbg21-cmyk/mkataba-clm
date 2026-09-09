@@ -35,7 +35,7 @@ const PF_MAX_ROWS = 8;          // the leaderboard shows the largest eight
    with page buttons in the card and a scroller of its own, which is what the
    owner asked for by name. PF_MAX_FINDINGS is retired with the cap it was. */
 const PF_FINDINGS_PAGE = 10;
-const PF_SOON_DAYS = 90;        // "ends soon" — the same window the register's saved view uses
+const PF_SOON_DAYS = 90;        // "ends soon" — the same window the register's quick filter uses
 
 /* Per sitting, in memory — like every other reading on this page. A page number
    that outlived the sitting would open this card three pages down on a book the

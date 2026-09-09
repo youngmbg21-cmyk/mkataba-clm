@@ -66,7 +66,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
   console.log('\n1 · the default bar is exactly what shipped before');
   const d = await onBar();
-  ok('stage, stream, saved view and category are on it',
+  ok('stage, stream, quick filter and category are on it',
      d.stage && d.type && d.view && d.category, JSON.stringify(d));
   ok('Renewal is NOT — the owner asked for that twice', d.renewal === false);
   ok('the bar is one line', (await barLines()) === 1, (await barLines()) + ' line(s)');

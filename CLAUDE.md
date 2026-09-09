@@ -509,7 +509,7 @@ Strategy report first (the HaTi Gap Map), one work order, six builds on the over
 - THE CONTRACT BRIEF. **IT IS A CARD IN THE KEY TERMS COLUMN, not a row on the Checks card** (owner-asked 20 Aug 2026: "it only makes sense to review a brief while in the Key terms page than while under the documents page"). The other three Checks rows all PIN THEIR FINDINGS TO A CLAUSE, which is why they belong beside the wording; a brief is prose about the whole agreement and pins to nothing — and the moment it is most wanted is a contract somebody sent you that you have never read, which is where Key terms already sends you. `ktBriefCardHtml` / `wireKtBriefCard` draw it between Renewal and Agreement family; the Checks card is THREE rows again and its 'brief' run-branch went with the row (one path per act). NOTHING ELSE MOVED: checkVerdict still answers for 'brief', openCheckPanel still hosts the same brief-section id renderBriefSection fills, and the caching, the money masking and the share-payload strip are untouched — only the door moved. Result in the side panel (brief-section, renderBriefSection in js/ai.js). **THE PANEL IS A QUARTER WIDER AND IT SAYS WHERE TO LOOK TWICE** (owner-asked 19 Aug 2026, "very bland and boring"): 500px rather than 400 — a max-width, so a narrow window still gets the whole screen — and the brief alone, because the other three panels are lists rather than prose. **briefMark(text)** is the emphasis and it is DETERMINISTIC: one pass over the finished text for money, periods, percentages and dates (`.br-fig`, bold in the accent ink). No model decides what is emphasised, so nothing can be talked up, and it ESCAPES BEFORE IT MARKS because the input is the model's own text. The JUDGEMENT half was already in the data and simply was not dressed as one: `watchouts` is drawn as amber warning cards carrying the wording each rests on, `unusual` as GREY notes — worth knowing, not a second warning, because three tints in one panel flatten the one that matters. The facts are a small Term/Money table rather than two lines of prose. ONE MARKER, BOTH SHELLS — the phone borrows briefMark through window and falls back to plain escaped text without it, so the two cannot disagree about what matters. POST /api/ai/brief: feature 'brief', deep tier, editor-and-up (it spends Copilot money; viewers read the cache), reads the CLIENT's text — the same source extractObligations reads — with contractFullBody as fallback, cached per wording-hash in the BRIEFS TABLE (its own table: a server-side write must not bump the version under an open editor), riding GETs as _brief TRANSPORT: stripped on PUT and by saveContract, money section removed for a reader without canViewValues, and POST /api/shares strips brief/_brief from even a hand-built payload — the brief never travels. A SIGNED contract can still be briefed: 'brief' joins 'oblig' in editableFor's exception (imported signed paper is exactly what most needs explaining; f176's "obligations alone" claim updated in place). The prompt keeps every amount in the money section so the masking has one thing to mask, and never re-runs the playbook — that check keeps its own door. The phone renders the cached memo read-only above its facts list; no key gets the honest br_no_ai sentence, never a dead press. AN ADVISORY READ WRITES NOTHING TO A SEALED RECORD (found 19 Aug 2026, both readings): the brief and the renewal advice each cached server-side correctly and then wrote a courtesy AUDIT LINE with `persist(c)` — refused outright on an executed contract (a room that has drawn a negotiation carries an in-memory negotiation the stored record has never had), so a red "Save failed" landed over advice that had in fact arrived. **aiNoteRead(c, action, detail)** is the one helper both go through: on a sealed record it writes nothing and returns false. Signed paper is exactly what most needs explaining, which is why the brief is allowed there at all — the reading stays, the line stands down. Tests: f213 (16), f219 (15).
 - THE DAILY BRIEF — HaTi SPEAKS FIRST. runDailyBriefs beside runReminders on the same timer, under its OWN catch with its own admin-visible outbox failure note (the M-6 lesson applied on arrival). Per member, at most once per day (reminders table, daily:<user>:<day>, aiToday's workspace-local day), folder-scoped, each reader's own language. PERSONAL means personal: own obligations due within 7 days or overdue, reviews waiting on their verdict (rvOpenList + rvIsReviewer + !rvSpent), a signing turn that is theirs (the notify route's own reading, precomputed once per contract). ADMINS additionally: expiries inside 30 days, notice deadlines inside 14 (effExpiryReader), and overdue obligations nobody owns. QUIET DAYS SEND NOTHING AND BURN NOTHING — an item landing later the same day still briefs. HOW OFTEN IS THE READER'S OWN CHOICE, AND THERE ARE THREE ANSWERS (owner-asked 19 Aug 2026): daily · weekly · off. **briefCadence(u)** (server) and **briefCadenceOf(u)** (js/views/settings.js) are the one rule on each host and they agree: `prefs.briefEvery` where it says one of the three, ABSENT MEANS DAILY, and an account still carrying the old `prefs.dailyBrief === false` reads 'off' — that is the whole migration, nobody's setting moves and the boolean is never rewritten. A value outside the three is REFUSED by PUT /api/me/prefs (400) rather than stored. WEEKLY IS KEYED ON THE WEEK'S MONDAY (`weekly:<user>:<monday>`, briefWeekOf parses the workspace day as UTC), so it normally leaves Monday morning and a server that was down for it still sends on the Tuesday rather than losing the week; the DAILY key keeps its historic shape, so the upgrade re-fires nothing. The two cadences do not share a dedupe row. The words say WHICH brief this is (mail_wb_subject/_lead/_off beside mail_db_*) — a weekly brief must never arrive saying "today". Drawn as THREE OPTIONS, not three states, in the account page's email section: each says what it means, each is one press, written on change like every other setting in that drawer. THE SECTION IS ON SCREEN TWICE (the You tab and the drawer over it), so the radio group name is unique per rendering — shared, the two copies fight — and a save repaints every copy (briefPaintCadence). POST /api/daily-brief/run (admin) runs it on demand. THE FAMILY TERM ARITHMETIC IS SHARED: effExpiryReader was lifted out of runReminders and both sweeps read it — a third copy is the recorded defect class ("only a signed amendment moves the term"). Tests: f214 (10), f65 unchanged.
 - ASK-YOUR-BOOK FROM THE PALETTE. Cmd/Ctrl+K gains an "In the wording" section off GET /api/search — the Register box's own route, so two doors share one index and the server's value-masking stands — debounced ~250ms and merged only while the box still says what was asked. An "Ask Copilot: …" row rides LAST whenever anything is typed: a HANDOFF that opens the existing panel with the question prefilled (openAI + #ai-input), never a second AI path — the palette calls no AI route. Local mode: no fetch, the handoff stays. The sync matcher is untouched and synchronous, so the first paint never waits on the network. Tests: f215 (source-pinned, the f187 way — buildWorld never loads the shell).
-- THE ARCHIVE SHELF. c.archived = {at, by} — a FILING FACT BESIDE STATUS, not a status: an archived Signed contract stays Signed, and the flag is additive like a note (not in EXECUTED_IMMUTABLE, so the promise the delete refusal has always made — "archive it instead" — is finally true). ONE act, contractSetArchived (js/core.js): editor-and-up, audited both ways in English, on the register row's ⋯ AND the room's ⋯ (ws-archive), the room-sub wearing ct_archived_tag while it stands. OFF EVERY DEFAULT LIST AND COUNT: regFiltered's one pair of lines (the 'archived' saved view is the one way back in), the stream drawer, hmDashSlices AT ITS ONE DOOR (every KPI, the pipeline and Decisions due inherit), buildAlerts, pfLive, negoIsLive (the negotiations door's one predicate refuses), Copilot's live readings, the calendar, reports, weekly, the health report, and BOTH sweeps. STILL FINDABLE: FTS keeps it and the palette tags it — filing, not deleting. AN ARCHIVED EXECUTED AMENDMENT STILL SETS ITS PARENT'S TERM — both family twins are deliberately unswept; the sweeps skip at the contract loop, never inside effExpiryReader. The flag survives the light list by construction (HEAVY spreads the record). The phone inherits the exclusions and offers no act — the phone files no changes. Tests: f216.
+- THE ARCHIVE SHELF. c.archived = {at, by} — a FILING FACT BESIDE STATUS, not a status: an archived Signed contract stays Signed, and the flag is additive like a note (not in EXECUTED_IMMUTABLE, so the promise the delete refusal has always made — "archive it instead" — is finally true). ONE act, contractSetArchived (js/core.js): editor-and-up, audited both ways in English, on the register row's ⋯ AND the room's ⋯ (ws-archive), the room-sub wearing ct_archived_tag while it stands. OFF EVERY DEFAULT LIST AND COUNT: regFiltered's one pair of lines (the 'archived' quick filter is the one way back in), the stream drawer, hmDashSlices AT ITS ONE DOOR (every KPI, the pipeline and Decisions due inherit), buildAlerts, pfLive, negoIsLive (the negotiations door's one predicate refuses), Copilot's live readings, the calendar, reports, weekly, the health report, and BOTH sweeps. STILL FINDABLE: FTS keeps it and the palette tags it — filing, not deleting. AN ARCHIVED EXECUTED AMENDMENT STILL SETS ITS PARENT'S TERM — both family twins are deliberately unswept; the sweeps skip at the contract loop, never inside effExpiryReader. The flag survives the light list by construction (HEAVY spreads the record). The phone inherits the exclusions and offers no act — the phone files no changes. Tests: f216.
 
 - TWO-STEP SIGN-IN. Standard authenticator TOTP (RFC 6238, node crypto, no dependency), per member, off until enrolled. THE ENROLMENT IS PROVEN: the secret stays totp_pending until a first code shows the app holds it — an account can never be locked behind a key nobody scanned; ten recovery codes, hashes stored, plaintext shown exactly once, each spends once. THE PASSWORD ALONE IS HALF A SIGN-IN on a two-step account: a five-minute single-use TICKET (in-memory, the rate-bucket precedent) and no session — publicUser does not leave before the second half; POST /api/login/totp turns ticket into session, and code failures cost the failures-only bucket (f204's rule). Turning it OFF costs a current code (a stolen session must not remove the lock it could not pick); the lost-phone rescue is the admin grant clearTwoStep on PATCH /api/users/:id, refused on yourself — its People-page button is Phase 2. THE SECRET TRAVELS NOWHERE: publicUser is an allow-list carrying only the twoStep boolean, admin-only on other people's rows (ADMIN_ONLY_USER_FIELDS). doLoginTotp is the form's hand-over; stTwoStepToggle the account page's whole enrolment. Tests: f217 (the test brings its own RFC generator — the server is checked against the standard, never against itself).
 
@@ -7002,6 +7002,90 @@ Tests: f135e (4 — the reported reply as advice with nothing to apply, and pinn
 as carrying no "I" and no question mark so nobody rewrites the fixture into a
 case an older rule would catch), f135f (19 — the near misses each pattern was
 narrowed to survive, plus the corpus), f135d reversed in place and made stronger.
+
+## AN ANSWER IS A WORKLIST, AND "SAVED VIEWS" WAS NEVER ONE (owner-asked 9 Sep 2026)
+
+*"tell me how you delete a previously built saved view?"* — and the answer is
+that **you cannot, because you cannot build one.** `REG_VIEWS` is seven presets
+written into js/views/register.js and nothing anywhere in this product creates a
+saved view, so there is no list of the reader's views to manage and no delete
+anywhere. The owner had gone hunting for a button that could not exist, because
+the control's own name promised a feature nobody had built.
+
+- **IT IS `reg_quick_filters` NOW — Quick filters / Snabbfilter**, label and
+  tooltip, owner-ruled. **THE KEYS MOVED WITH THE WORDS**: a key named for what
+  a control used to say is a trap for whoever searches next, so
+  `reg_saved_views` and `reg_saved_views_title` are STALE and are GONE rather
+  than left answering — f268 asserts both are `undefined` in both books and that
+  the renderer asks for neither. **THE FILTER'S OWN KEY IS STILL `'view'` and
+  must stay**: that is what `R.view` and the stored bar preference
+  (`hati.v1.regBarFilters`) are written under.
+- **REAL SAVED VIEWS ARE NOT BUILT AND WERE NOT ASKED FOR.** Named, kept,
+  renamed, deleted — with the separate question of whether a view is one
+  reader's or the company's — is its own job with its own store.
+
+**THEN THE WORKLIST DOOR — idea 25.** A question about the book and a filtered
+list of the book are the same thing seen twice, and the second was unreachable:
+the cards under a Copilot answer open ONE contract each, so *"which of these ends
+inside sixty days and has nobody on it"* left the reader opening eight contracts
+one at a time — or rebuilding the question by hand in the filter bar, where
+several of these answers cannot be rebuilt at all.
+
+- **IT SPENDS NOTHING AND ASKS NOTHING.** The ids are already on the answer: the
+  model names its contracts as CITATIONS, the route resolves those into `cards`,
+  and `aiRenderServerAnswer` turns them into records — every local branch hands
+  `aiCards` real records too. So this is a reading of an answer that has already
+  arrived, never a second question and never a second call. f268 greps the
+  builder for `copilotAsk`, `fetch(`, `api(` and `ai/`.
+- **ONE DOOR.** `regShowOnly(ids, label)` is the register's only way in and it
+  brings its own two safety properties with it — the chip SAYS what the list is
+  narrowed to, and the way back is on that same chip. **Nothing here narrows
+  anything itself**: f268 fails on `R.only =` or `regSetScope(` appearing in
+  js/ai.js.
+- **IT CARRIES NO COUNT, DELIBERATELY.** The register narrows FURTHER inside a
+  named set — a stage filter the reader left on still applies — so a figure on
+  this button could promise seven and land on three, which is the one thing a
+  door must never do. **The count is not lost**: the "Show all N" expander
+  directly above already prints how many the answer holds, so this is the same
+  fact declining to be printed twice in the one place it could be wrong.
+- **BUILT INSIDE `aiCards`, WHICH IS WHAT MAKES IT ONE DOOR RATHER THAN
+  ELEVEN.** Every branch of the intent engine and the server answer alike reach
+  the reader through that one function, and **the phone draws the same markup**
+  through renderAIFeed. It reads AFTER the expander, because it is the act on
+  the whole list rather than part of the list.
+- **DRAWN FROM TWO (`AI_WORKLIST_MIN`).** A worklist of one contract IS that
+  contract and its card is already the door. **And never where `regShowOnly` is
+  not on the page**, so it can never be a press that does nothing — the
+  product's own "a verb that cannot work is not drawn" rule.
+- **THE LABEL IS THE READER'S OWN QUESTION, READ AT BUILD TIME** — `aiFmt`'s own
+  reasoning one function along: this runs while the answer is being built, so
+  the last question on the record is the one being answered. Read at the PRESS,
+  an older answer's button would carry whatever was asked most recently.
+  **Trimmed at `AI_WORKLIST_LABEL_MAX` (60)**, because the chip it lands in sits
+  on a filter bar the owner has twice ruled must fit one line and **that chip
+  sets no width of its own** — so the trimming is this builder's job rather than
+  a change to the chip. An empty ask stays empty: the chip has its own fallback
+  sentence and inventing one here would be a second answer.
+- **THE PRESS CLOSES THE PANEL FIRST**, which is the card handler's own move one
+  line up and for the same reason: this drawer covers the right of the window,
+  so landing the reader on a narrowed register with the thing that sent them
+  still over it is half a journey.
+- **THE LABEL LANDS IN AN ATTRIBUTE AND IS FREE TEXT A PERSON TYPED**, so it
+  goes through components.js's published `esc` — the one that escapes quotes as
+  well as angle brackets, and whose own note says why. A contract id is minted
+  `MK-<n>` and carries no space, which is what lets the whole set travel in one
+  attribute; f268 fails the day an id gains one.
+
+Tests: f268 (31 — **24 of them fail against the parent**), **answer-worklist-verify
+(19, browser — the only place the four things that decide whether this works can
+be asked at all: is the door VISIBLE PIXELS rather than markup behind something,
+does a real press land on the register, is it narrowed to exactly the answer's
+contracts, and does the way back work. The answer is SCRIPTED THROUGH THE REAL
+SERVER PATH rather than staged as markup, and it names a SUBSET of the book on
+purpose — an answer naming every contract there is cannot answer whether
+clearing widens the list. 8 of its 19 fail against the parent**),
+contracts-page-verify (one comment re-pointed: its claim is about label LENGTH,
+so a rename costs it nothing).
 
 ## THE CHARTS, AND THE HEALTH REPORT
 

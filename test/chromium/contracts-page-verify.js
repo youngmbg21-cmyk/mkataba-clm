@@ -178,9 +178,11 @@ const check = (name, ok, detail) => {
     });
     check('5a every filter carries a visible label',
       filters.n >= 5 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}`);
-    /* The fault this guards: "Saved views — expiry, auto-renewal and
-       obligation presets" (57 characters) used as a LABEL, which ran to 460px
-       and pushed the bar off its row. The sentence is the tooltip now. */
+    /* The fault this guards: the quick-filter dropdown's own sentence — 57
+       characters — used as a LABEL, which ran to 460px and pushed the bar off
+       its row. The sentence is the tooltip now. (That control read "Saved
+       views" until 9 Sep 2026 and is "Quick filters"; the claim is about
+       LENGTH, so it costs nothing when a label is renamed.) */
     check('5b no label is a sentence — the long one stays a tooltip',
       filters.widest <= 24, `longest label ${filters.widest} chars`);
     check('5c and they sit on one row at 1440', filters.oneRow === 1,

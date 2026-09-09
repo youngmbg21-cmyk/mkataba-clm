@@ -888,6 +888,19 @@ function renderAIFeed(typing=false){
   }
   renderAISuggest();   // chips live on an empty panel only — a repaint re-decides
   feed.querySelectorAll('[data-ai-open]').forEach(el=>el.addEventListener('click',()=>{ closeAI(); openWorkspace(el.getAttribute('data-ai-open')); }));
+  /* THE WORKLIST DOOR — see aiWorklistHtml. It closes the panel FIRST, which
+     is the card handler's own move one line up and for the same reason: this
+     drawer covers the right of the window, so landing the reader on a
+     narrowed register with the thing that sent them still over it is half a
+     journey. Then regShowOnly, which is the register's one way in and which
+     navigates itself. Wired per paint like the cards beside it, because the
+     feed is rebuilt from ai.history on every repaint. */
+  feed.querySelectorAll('[data-ai-worklist]').forEach(el=>el.addEventListener('click',()=>{
+    const ids=String(el.getAttribute('data-ai-worklist')||'').split(/\s+/).filter(Boolean);
+    if(!ids.length || typeof window.regShowOnly!=='function') return;
+    closeAI();
+    regShowOnly(ids, el.getAttribute('data-ai-worklist-label')||'');
+  }));
   if(typeof aiWireProposals==='function') aiWireProposals();
   /* The panel's own composer and any the feed drew: re-measured on every paint
      so a half-typed question is not clipped back to one line by an answer
@@ -908,13 +921,76 @@ function aiContractCard(c){
     ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
   </button>`;
 }
+/* ═══ AN ANSWER IS A WORKLIST (owner-asked 9 Sep 2026) ═══════════════════
+   A question about the book and a filtered list of the book are the same
+   thing seen twice, and the second one was unreachable. The cards under an
+   answer open ONE contract each, so "which of these ends inside sixty days
+   and has nobody on it" left the reader opening eight contracts one at a
+   time, or rebuilding the question by hand in the filter bar — where several
+   of these answers cannot be rebuilt at all.
+
+   IT SPENDS NOTHING AND ASKS NOTHING. The ids are already on the answer: the
+   server names its contracts by id and aiRenderServerAnswer resolves them,
+   and every local branch hands aiCards real records. So this is a reading of
+   an answer that has already arrived, never a second question and never a
+   second call.
+
+   ONE DOOR — regShowOnly(ids, label) is the register's only way in, and it
+   brings its own two safety properties with it: the chip SAYS what the list
+   is narrowed to, and the way back is on that same chip. Nothing here
+   narrows anything itself.
+
+   IT CARRIES NO COUNT, DELIBERATELY. The expander directly above it already
+   prints how many the answer holds, and the register narrows FURTHER inside
+   a named set — a stage filter the reader left on still applies — so a
+   figure on this button could disagree with the list behind it, which is the
+   one thing a door must never do.
+
+   DRAWN FROM TWO. A worklist of one contract IS that contract, and its card
+   is already the door. And never where regShowOnly is not on the page, so it
+   can never be a press that does nothing. */
+const AI_WORKLIST_MIN = 2;
+/* The chip this label lands in sits on a filter bar the owner has twice
+   ruled must fit one line, and that chip sets no width of its own — so the
+   trimming is this builder's job rather than a change to the chip. */
+const AI_WORKLIST_LABEL_MAX = 60;
+function aiWorklistHtml(list){
+  if(!Array.isArray(list) || list.length < AI_WORKLIST_MIN) return '';
+  if(typeof window==='undefined' || typeof window.regShowOnly!=='function') return '';
+  const ids = list.map(c=>c&&c.id).filter(Boolean);
+  if(ids.length < AI_WORKLIST_MIN) return '';
+  /* THE LABEL IS THE READER'S OWN QUESTION, and it is read HERE rather than
+     at the press — aiFmt's own reasoning, one function along: this runs while
+     the answer is being built, so the last question on the record is the one
+     being answered. Read at press time, an older answer's button would carry
+     whatever was asked most recently. An empty ask is left empty on purpose:
+     the chip has its own fallback sentence for exactly that. */
+  const ask = String(typeof aiLastAsk==='function'?aiLastAsk():'').replace(/\s+/g,' ').trim();
+  const label = ask.length>AI_WORKLIST_LABEL_MAX
+    ? ask.slice(0,AI_WORKLIST_LABEL_MAX-1).trim()+'…' : ask;
+  /* esc() escapes quotes as well as angle brackets — its own note says so,
+     because these values land inside attributes. A contract id is minted as
+     MK-<n> and carries no space, which is what lets the set travel as one. */
+  return `<div class="mt-1.5"><button type="button" class="ai-worklist"
+    data-ai-worklist="${esc(ids.join(' '))}" data-ai-worklist-label="${esc(label)}"
+    title="${esc(i18t('ai_worklist_title'))}"
+    style="border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer"
+    >${esc(i18t('ai_worklist'))} &rarr;</button></div>`;
+}
 /* Card lists lead with at most 3; the rest sit behind a "Show all" expander so
-   a broad question reads as an answer, not a wall of cards. */
+   a broad question reads as an answer, not a wall of cards.
+
+   THE WORKLIST DOOR IS BUILT HERE, which is what makes it one door rather
+   than eleven: every branch of the intent engine and the server answer alike
+   reach the reader through this one function, and the phone draws this same
+   markup through renderAIFeed. It sits AFTER the expander because it is the
+   act on the whole list rather than part of the list. */
 const aiCards = list => {
-  if(list.length<=3) return `<div class="space-y-1.5">${list.map(aiContractCard).join('')}</div>`;
+  const work = aiWorklistHtml(list);
+  if(list.length<=3) return `<div class="space-y-1.5">${list.map(aiContractCard).join('')}</div>${work}`;
   return `<div class="space-y-1.5">${list.slice(0,3).map(aiContractCard).join('')}</div>
     <details class="mt-1.5"><summary class="cursor-pointer select-none text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18tn('ai_show_all',list.length,{n:list.length})}</summary>
-      <div class="space-y-1.5 mt-1.5">${list.slice(3).map(aiContractCard).join('')}</div></details>`;
+      <div class="space-y-1.5 mt-1.5">${list.slice(3).map(aiContractCard).join('')}</div></details>${work}`;
 };
 
 /* Does this question ask for the portfolio report? Two words have to appear:
@@ -3578,4 +3654,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

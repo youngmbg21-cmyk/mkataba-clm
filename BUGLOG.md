@@ -9170,3 +9170,66 @@ Noticed, not fixed:
   — five checks in unrelated sections went red, none of them near the change.
   Fixed in the test with an answerLeave helper, skipNote's own shape; recorded
   because the next feature that adds a dialog will pay it again.
+
+## 9 Sep 2026 — an answer is a worklist, and "Saved views" is renamed
+
+The owner asked how you delete a previously built saved view. YOU CANNOT, AND
+THE ANSWER IS THAT YOU CANNOT BUILD ONE. REG_VIEWS is seven presets written
+into js/views/register.js; nothing anywhere in the product creates a saved view,
+so there is no list of the reader's views to manage and no delete. They had gone
+looking for a button that could not exist, because the control's own name
+promised a feature nobody had built. Owner-ruled: rename it. It is Quick
+filters / Snabbfilter, label and tooltip, and the KEYS moved with the words —
+reg_saved_views is STALE — because a key named for what a control used to say is
+a trap for whoever searches next. The filter's own key stays 'view': that is
+what R.view and the stored bar preference are written under.
+
+THEN BUILD 25. A question about the book and a filtered list of the book are the
+same thing seen twice, and the second was unreachable: the cards under a Copilot
+answer open ONE contract each, so "which of these ends inside sixty days and has
+nobody on it" left the reader opening eight contracts one at a time — or
+rebuilding the question by hand in the filter bar, where several of these
+answers cannot be rebuilt at all.
+
+IT SPENDS NOTHING. The ids are already on the answer — the server names its
+contracts as citations, the route resolves them into cards, aiRenderServerAnswer
+turns them into records — so this is a reading of an answer that has arrived,
+never a second question and never a second call.
+
+ONE DOOR: regShowOnly(ids, label), which is the register's only way in and which
+brings its own two safety properties with it — the chip SAYS what the list is
+narrowed to and the way back is on that same chip. f268 greps that ai.js writes
+neither R.only nor regSetScope.
+
+IT CARRIES NO COUNT, and that is the decision worth recording. The register
+narrows FURTHER inside a named set — a stage filter the reader left on still
+applies — so a figure on this button could promise seven and land on three,
+which is the one thing a door must never do. The expander directly above already
+prints how many the answer holds, so nothing is lost; it is simply not printed
+twice in the one place it could be wrong.
+
+BUILT INSIDE aiCards, which is what makes it one door rather than eleven: every
+branch of the intent engine and the server answer alike reach the reader through
+that one function, and the phone draws the same markup through renderAIFeed. It
+is drawn from TWO contracts up (a worklist of one IS that contract, and its card
+is already the door) and never where regShowOnly is absent, so it can never be a
+press that does nothing. The label is the reader's own question, read at BUILD
+time — aiFmt's own reasoning one function along — because read at the press an
+older answer's button would carry whatever was asked most recently; trimmed at
+60, because the chip it lands in sits on a bar the owner has twice ruled must
+fit one line and that chip sets no width of its own.
+
+Node 5646/5646, lint unchanged (4 errors before and after — see below). Browser:
+answer-worklist 19/19 (NEW), contracts-page 78/78, analytics, phone 61/61,
+one-language 16/16. Against the parent, f268 reports 24 of its 31 checks failing
+and answer-worklist 8 of 19.
+
+Noticed, not fixed:
+- js/i18n.js has four pre-existing duplicate keys — co_password_updated and
+  act_next, one of each per language — which are the whole of `npm run lint`'s
+  error count. Identical on main before this run; measured by stashing.
+- The register's `only` chip sets no max-width, so a long label would push the
+  filter bar off its one line. Nothing today hands it one (the calendar's labels
+  are short and this build trims its own), so it is latent rather than live.
+- aiCards' "Show all N" expander is an 11px sentence, and --t-micro's own note
+  says that rung is for uppercase micro labels and never a sentence.

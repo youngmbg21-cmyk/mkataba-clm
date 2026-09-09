@@ -379,7 +379,7 @@ let REG_SCOPE = null;
    solved that on 24 Aug by DELETING the Renewal filter outright.
 
    THIS DOES NOT REVERSE THAT RULING, AND THE DEFAULT IS WHY. The bar's default
-   set is exactly what ships today — stage, stream, saved view, category — and
+   set is exactly what ships today — stage, stream, quick filter, category — and
    Renewal is NOT on it. The owner asked twice for it to be off their bar and
    it stays off. What changes is that a reader who wants it can now put it
    there, on their own browser, instead of the filter being unreachable.
@@ -396,7 +396,7 @@ const REG_BAR_KEY = 'hati.v1.regBarFilters';
 const REG_BAR_FILTERS = [
   { k:'stage',    fixed:true,  get label(){ return i18t('reg_lifecycle_stage'); } },
   { k:'type',     fixed:true,  get label(){ return i18t('reg_value_stream'); } },
-  { k:'view',     fixed:false, get label(){ return i18t('reg_saved_views'); } },
+  { k:'view',     fixed:false, get label(){ return i18t('reg_quick_filters'); } },
   { k:'category', fixed:false, get label(){ return i18t('me_category'); } },
   { k:'renewal',  fixed:false, get label(){ return i18t('reg_renewal'); } },
   /* DELIBERATELY NOT ONE OF THE DEFAULT FOUR (J-5.1). This row already fits on
@@ -887,7 +887,8 @@ function regFiltered(){
       return dd!=null && typeof payBucketOf==='function' && payBucketOf(dd)===R.payterms;
     });
   }
-  // E3-T5 saved views (presets over metadata/obligations)
+  // E3-T5 quick filters (presets over metadata/obligations; "Saved views"
+  // until 9 Sep 2026 — the name promised a feature nothing here ever built)
   // family-aware: expiry views work on AGREEMENTS and on the term the latest
   // amendment actually set, not on whatever was typed on the master
   const expWithin=n=>c=>{ if(c.parentId||c.status==='Declined') return false; const e=effectiveExpiry(c); return !!e&&daysUntil(e)>=0&&daysUntil(e)<=n; };
@@ -1393,7 +1394,7 @@ function renderRegister(opts){
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
   const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
-     Stages, streams and saved views used to be three full-width rows of pills
+     Stages, streams and quick filters used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
      register's own data started below the fold. Each filter is now a compact
      dropdown on a single row; an active one carries the accent border so a
@@ -1418,7 +1419,7 @@ function renderRegister(opts){
   const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
-  const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
+  const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_quick_filters')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
   /* ---- RENEWAL IS BACK, AND IT IS OFF THE BAR BY DEFAULT ----
      Recovered unchanged from before WO-15 removed it, except that it now goes
@@ -1882,7 +1883,7 @@ function renderRegister(opts){
              white ground, with the table's card below it on the page grey. */}
       <div class="reg-band">
       ${headHtml}
-      <!-- THE ONE FILTER BAR: stage · stream · saved view · category · renewal ·
+      <!-- THE ONE FILTER BAR: stage · stream · quick filter · category · renewal ·
            clear,
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
@@ -1901,7 +1902,7 @@ function renderRegister(opts){
         ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
-        ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'),i18t('reg_saved_views')):''}
+        ${BAR.includes('view')?selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
         ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
