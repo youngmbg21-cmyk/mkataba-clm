@@ -39,6 +39,7 @@ import './dedupe.js';
 import './family.js';
 import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
+import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './assurance.js';     // which rung a signature was taken at (W3-3)
 import './views/negotiation-css.js'; // that page's stylesheets, lifted out of the file below (21 Aug 2026)
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking

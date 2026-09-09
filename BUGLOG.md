@@ -9757,3 +9757,83 @@ Noticed, not fixed
   already reads per counterparty through precedentForChange's withThem, which
   is idea 4's own reading. Worth building them together rather than in
   sequence.
+
+================================================================================
+2026-09-09 — OUR STANDARDS: the row opens, and the playbook learns
+================================================================================
+Owner-asked off a screenshot, then an artifact showing the whole redesign, then
+four rulings at its foot: "build all four as you recommended."
+
+BUILT
+- js/standards.js (NEW) — the page's reading layer. No view, no route, no store,
+  no writes. Its own file because two views read it: written inside either, the
+  other would reach it through window on a stage without that view, get
+  undefined, and count zero silently (the rlPaperFootHtml family). Loads after
+  js/precedent.js, because STD_MIN_ROUNDS reads PRECEDENT_MIN AT LOAD.
+- Ruling 1 — the closed row states Required/Preferred, READ from the playbook
+  every time it is drawn and never stored twice. A position true of only some
+  contract types draws quieter (outline, not fill); a clause the playbook is
+  silent about draws no chip at all.
+- Ruling 2 — one line of the wording, clipped by WIDTH not by counting
+  characters; the whole sentence stays on the row's own title. The fallback is
+  on the closed row too, as a figure.
+- The row OPENS: both halves under their own labels, this clause's history, and
+  the acts. One at a time, in memory, per sitting.
+- Ruling 3 — the learned card reads the last quarter (STD_WINDOW_DAYS 92, stated
+  on the card) and keeps PRECEDENT_MIN as the floor. precedentMine gained an
+  optional `since`; absent, every bare caller is byte-identical.
+- Idea 21 — where a workspace has saved neither a library nor a playbook, the
+  page offers to read its signed contracts and compare what it usually signs
+  against what its standard says. Reads `metadata` (the confirmed record), never
+  the wording. Names what it cannot read.
+- Ruling 4 was deliberately no code: the two tabs stay apart, and the open row's
+  "Change the position" is a proxy onto the tab that exists.
+
+REVERSALS, NAMED
+- precedentSuggestions' own rule ("never the preferred position; history cannot
+  argue with an aspiration") is reversed FOR THE NEW CARD ONLY. That function is
+  untouched and still proposes fallbacks. A fallback is a LINE and moving one is
+  a press; a preferred is WORDING and moving one opens the clause editor.
+- The design's "No standards yet" state does not exist — clauseLibrary() and
+  playbook() both fall back to HaTi's defaults. Reframed as "still on HaTi's
+  standard wording" and built as a comparison. Reported to the owner.
+- "Adopt all" was drawn on the design and is NOT built: it cannot honestly exist
+  once each move is a person reading a clause. Reported to the owner.
+
+DEFECT OF MY OWN, CAUGHT BY THE BROWSER FILE BEFORE IT SHIPPED
+- Idea 21's Adopt wrote the figure straight into the preferred as one flat
+  sentence. MEASURED: it replaced "The Buyer shall pay each undisputed invoice
+  within thirty (30) days..." with "Payment terms at 60 days." — the drafted
+  clause thrown away to move a number inside it, which this feature's own
+  written reasoning forbids one screen away. Now routed through
+  stdOpenPreferred, one door, and the two cards call the move by one name.
+  Substituting the figure into the prose was weighed and refused: nothing in
+  this product spells a number in words, so it would leave a formal clause
+  reading "60 days" mid-drafting.
+- Two facts wore one class. .std-chip-pos and .std-chip-fb split them: the row
+  draws the position only sometimes, so a bare .std-chip selector resolved to
+  the FALLBACK on those rows — which is how the browser file first reported a
+  chip on a row that draws none.
+
+FOUND BY AN EXISTING NET
+- f148 flagged std_th_position as identical in both dictionaries. The English
+  was imprecise too (the column holds a SUBJECT, not a position): Category /
+  Kategori.
+
+TESTS
+- f272 (47 new). It cannot even load against the parent — the reading layer does
+  not exist there.
+- standards-page-verify (33 new, browser). 28 fail against the parent, and every
+  driven half is guarded so it REPORTS rather than aborting (it aborted twice on
+  the parent before that was fixed). Three claims can be asked nowhere else: the
+  clip is a GEOMETRY re-measured at a narrower window, the row opening is a
+  PRESS, and the page must survive being drawn at all.
+- f222 unchanged, unedited — its renderPrecedentPanel and precedentAdopt source
+  claims still hold.
+- Full node suite 5844/5844 after the f148 fix. Lint unchanged (179 problems, 4
+  pre-existing duplicate-key errors).
+
+Noticed, not fixed
+- The learned card's heading key is std_learn_title but the panel's host element
+  is still #precedent-panel, named for the reading it replaced.
+- cal_next_30 still names 30 while the calendar panel's window is a control.

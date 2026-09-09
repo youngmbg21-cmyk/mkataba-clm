@@ -2055,6 +2055,35 @@ function renderPlaybookPage(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
+    ${''/* THE STANDARDS PAGE'S OWN CLOTHES, WRITTEN IN THE PAGE. It is
+          thrown away the moment the reader leaves, so it cannot quietly
+          repaint a screen that has not asked for it — the register's own
+          precedent, painting its own element for its own reason. */}
+    <style>
+      .std-row{border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:8px 10px}
+      .std-row.is-open{border-color:color-mix(in srgb,var(--accent-solid) 34%,transparent)}
+      .std-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);flex:none}
+      .std-name{font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .std-chip{font-size:var(--t-micro);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);white-space:nowrap;flex:none}
+      .std-chip-none{color:var(--color-neutral-600);border:1px solid var(--color-divider)}
+      .std-open{font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);background:none;border:0;padding:2px 4px;cursor:pointer;font-family:inherit;flex:none}
+      .std-open:hover{text-decoration:underline}
+      ${''/* ONE LINE, CLIPPED BY WIDTH — owner's ruling 2. Never a character
+            count: a cut counted in characters ends mid-word at whatever the
+            column happens to be, and reads as a broken product rather than
+            as a sentence that continues. */}
+      .std-clip{margin:4px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .std-body{margin:9px 0 2px;display:flex;flex-direction:column;gap:9px}
+      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600)}
+      .std-quote{font-size:var(--t-label);line-height:1.6;color:var(--color-text);border-left:2px solid var(--color-divider);padding:2px 0 2px 10px;white-space:pre-wrap}
+      .std-none{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
+      .std-hist{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
+      .std-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--color-divider);padding-top:8px}
+      .std-acts button{font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+      .std-acts button:hover{text-decoration:underline}
+      .std-acts button.warn{color:var(--danger)}
+    </style>
     ${tabRow}
     <p id="pb-tabsub" class="st-tabsub">${esc(i18t(PB_TAB_SUB[tab]))}</p>
 
@@ -2068,6 +2097,10 @@ function renderPlaybookPage(){
         <span style="flex:1"></span>
         ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px var(--s-3)">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
       </div>
+      <!-- idea 21: what your own signed contracts say, offered only where
+           this workspace has never saved a standard of its own. It LEADS,
+           because on that workspace it is the thing worth doing first. -->
+      <div id="standards-draft" class="empty:hidden" style="margin-bottom:10px"></div>
       <div id="clause-lib" style="display:flex;flex-direction:column;gap:var(--s-2)"></div>
       <!-- W3-2: what the workspace's own settled rounds say the fallback
            should be. Empty (and undrawn) until there is real history. -->

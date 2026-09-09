@@ -534,7 +534,7 @@ Four builds after the currency ruling, all in WORKORDER-gap-map.md. What is left
 
 Three builds. Read this before touching any of them: each one is safe only because of a rule that is easy to delete by accident.
 
-- **PRECEDENT MEMORY (W3-2).** `js/precedent.js` mines the workspace's OWN settled rounds — what was asked, by which side, on which standard, how it ended, and the figure it settled at. DETERMINISTIC ON PURPOSE: counting is not a job for a model and a recommendation about the company's own standards must be checkable; f222 greps the file for `api(`, `fetch(` and `ai/` and fails on any of them. PER WORKSPACE, NEVER ACROSS CUSTOMERS — it reads `state.contracts`, the caller's own scoped bootstrap, and there must never be a route. THREE JUDGEMENTS, each load-bearing: `withdrawn` is NEITHER agreed nor refused (counting it as a refusal flatters our own position every time somebody changed their mind); the suggested figure is the worst REPEATED one, never the average (a number nobody signed) or the extreme (the one deal everybody regrets); and nothing is suggested below `PRECEDENT_MIN` (3) settled arguments. IT SUGGESTS THE FALLBACK, NEVER THE PREFERRED POSITION — history cannot argue with an aspiration. `precedentFigure` reads "forty-five (45) days" as well as "45 days", which is how legal drafting — and HaTi's own seeded library — actually writes numbers; reading only bare digits found nothing and silently killed every suggestion. Drawn: a panel beside the clause library (admin's Adopt goes through `saveClauseLibrary`, the ordinary write) and ONE sentence in the clause panel mid-negotiation. NEVER on the counterparty's seat — how far we have bent before is the most useful thing an opponent could read. TWO FAULTS FOUND WHILE PHOTOGRAPHING IT (19 Aug 2026, both fixed): (1) THE STEMS COULD NOT MATCH THE WORDS THEY WERE WRITTEN FOR. `/\b(terminat|liabilit|indemnif|arbitrat|confidential|invoic)\b/` — the trailing boundary refuses "termination", "liability", "confidentiality", every inflected form — so the whole Termination topic was invisible and two others were rescued only by a second alternative. Same family as precedentFigure's "forty-five (45) days": a pattern whose only symptom is silence. The stems carry `\w*` now, in js/precedent.js AND in js/obligations.js's indemnity cue AND in js/views/intelligence.js's question router, which carried the same trap. f222 sweeps every regex group closed by `\b` and fails on the next one. (2) THE ONE-SENTENCE READING WAS BUILT IN ENGLISH and said "pushed on Payment terms 1 times" — it goes through the dictionary now (pc_hist_*, one/other, both languages). Tests: f222 (32).
+- **PRECEDENT MEMORY (W3-2).** `js/precedent.js` mines the workspace's OWN settled rounds — what was asked, by which side, on which standard, how it ended, and the figure it settled at. DETERMINISTIC ON PURPOSE: counting is not a job for a model and a recommendation about the company's own standards must be checkable; f222 greps the file for `api(`, `fetch(` and `ai/` and fails on any of them. PER WORKSPACE, NEVER ACROSS CUSTOMERS — it reads `state.contracts`, the caller's own scoped bootstrap, and there must never be a route. THREE JUDGEMENTS, each load-bearing: `withdrawn` is NEITHER agreed nor refused (counting it as a refusal flatters our own position every time somebody changed their mind); the suggested figure is the worst REPEATED one, never the average (a number nobody signed) or the extreme (the one deal everybody regrets); and nothing is suggested below `PRECEDENT_MIN` (3) settled arguments. IT SUGGESTS THE FALLBACK, NEVER THE PREFERRED POSITION — history cannot argue with an aspiration. **THAT RULE IS REVERSED FOR THE STANDARDS PAGE'S OWN CARD, 9 Sep 2026 — see OUR STANDARDS below — and `precedentSuggestions` ITSELF IS UNTOUCHED and still proposes fallbacks only.** The reasoning here is right about an ASPIRATION and wrong about SILENCE: a preferred nobody has held in a quarter is a number the playbook check flags on every contract and everybody has learned to wave through. So the newer reading names it, and moving one opens the clause editor rather than writing. `precedentFigure` reads "forty-five (45) days" as well as "45 days", which is how legal drafting — and HaTi's own seeded library — actually writes numbers; reading only bare digits found nothing and silently killed every suggestion. Drawn: a panel beside the clause library (admin's Adopt goes through `saveClauseLibrary`, the ordinary write) and ONE sentence in the clause panel mid-negotiation. NEVER on the counterparty's seat — how far we have bent before is the most useful thing an opponent could read. TWO FAULTS FOUND WHILE PHOTOGRAPHING IT (19 Aug 2026, both fixed): (1) THE STEMS COULD NOT MATCH THE WORDS THEY WERE WRITTEN FOR. `/\b(terminat|liabilit|indemnif|arbitrat|confidential|invoic)\b/` — the trailing boundary refuses "termination", "liability", "confidentiality", every inflected form — so the whole Termination topic was invisible and two others were rescued only by a second alternative. Same family as precedentFigure's "forty-five (45) days": a pattern whose only symptom is silence. The stems carry `\w*` now, in js/precedent.js AND in js/obligations.js's indemnity cue AND in js/views/intelligence.js's question router, which carried the same trap. f222 sweeps every regex group closed by `\b` and fails on the next one. (2) THE ONE-SENTENCE READING WAS BUILT IN ENGLISH and said "pushed on Payment terms 1 times" — it goes through the dictionary now (pc_hist_*, one/other, both languages). Tests: f222 (32).
 - **THE REDLINE CO-PILOT (W3-1) — RETIRED 24 Aug 2026 (WO-3, owner-asked: "delete the copilot first pass feature completely", then "Just delete the strip for now").** `rlPlanBandHtml` is a `return ''` STUB and nothing mounts it; js/redlineplan.js, the `rp_*` wording in both languages and the `.rl-plan` rules are untouched and dormant, so restoring it is putting the body of that one function back. **IT DECIDED NOTHING AND FILED NOTHING, which is why removing it took no capability away** — every button it drew carried the ordinary cards' own attributes and pressed the ordinary funnel. Everything below is the record of how it worked and why, kept because the reasoning is the useful part; `copilot-band-verify` measures a band that no longer draws and is on run-all.js's own list rather than a working net. **THE READER'S TEXT SIZE DOES NOT REACH IT** (owner-reported 22 Aug 2026, off a screenshot at an 11px document setting: "the font adjuster should not adjust the fonts in the copilot's first pass ... it should be stagnant like the cards but the fonts should be bigger as it is barely legible"). Both halves were one fault: every size in the band was written as `calc(px * var(--doc-scale,1))` — the token the A⁻/A⁺ stepper writes on the page root — while the CHANGE CARDS twelve pixels below are plain px and do not move, so the one thing on that column still shrinking was a reading ABOUT those cards. MEASURED at the reported setting (11 against a base of 15, a scale of 0.73): an 8.4px heading and 7.3px chips beside a card badge holding 12.5px; at the floor of 8 the band drops to about 5px. THE PAPER SCALES, THE FURNITURE DOES NOT — the rule this page has now learned four times, and `.rl-cp-src{--doc-scale:1}` is the precedent copied line for line: `.rl-plan` carries the same pin AND plain px, the pin being what stops a rule added inside the band later quietly reintroducing it. The sizes are the CARDS' OWN (id 11.5 mono, chips 11.5, reasoning 12.5, bar 13), so the two objects finally measure alike. **AND A CHIP READING ZERO NOW DRAWS NOTHING**: four chips plus a title plus a caret do not fit a 300px column at legible type — measured, the title wrapped to four lines and a folded band is meant to be ONE — so an empty verdict stands down (the alert dot's own rule) and the title ellipsises with the whole sentence on the bar's hover. The verdict is not lost: every row below names its own. Tests: f223 (both halves, failing against the code before), copilot-band-verify (the COMPUTED size at both ends of the stepper, against a paper proved to be moving). `js/redlineplan.js` + `rlPlanBandHtml` — a folded band over the change column proposing an answer to each of THEIR pending asks: take it, push back, escalate, or read it yourself. **IT DECIDES NOTHING, AND THAT IS THE DESIGN.** Every button carries the CARDS' OWN attributes (`data-nego-accept`, `data-rl-ask-review`, `data-rl-cp-open`) so the existing per-paint handlers pick them up and a press runs the ordinary funnel — desk rule, review gate, accept guard, live-link catch-up. The band's own wiring binds ONLY its fold; wiring the rows here would be the second decision path and f223 fails if the engine so much as mentions `negoResolve`, `negoFileChange`, `persist` or `logAudit`. The judging is deterministic and names the position or figure it rests on; where the playbook is silent it returns `review` and says so — a guess dressed as a recommendation is the one forbidden output. Escalation is the EXISTING internal review, not a new concept. Only their pending asks (ours are ours to send or revise); never their seat, never a narrowed reviewer. THE FOLD WAS A DEAD PRESS (found 19 Aug 2026, photographing the band): the toggle read `if (window.rlRepaintFrom) rlRepaintFrom(b)` — rlRepaintFrom is NOT among this module's window exports, so the guard was always false, the state flipped and the page never redrew, and the band could not be opened at all. Every other caller in the file calls it BARE and it is now bare here too. The rlPaperFootHtml lesson exactly: nothing catches a call that is never made, and no jsdom test can see it. **copilot-band-verify** (10, browser) is the file that would have: it presses the bar for real, counts the rows as visible pixels, checks every row button carries a CARD attribute, and presses "Take it" through to an accepted change. Tests: f223 (the evaluation set the order asked for — and note its harness must supply `cKind`, or every playbook lookup throws, the engine falls safely to `review`, and the file passes while proving nothing).
 - **THE SIGNATURE ASSURANCE LADDER (W3-3).** `js/assurance.js` — six named rungs (paper · typed name · email code checked · signed-in account · account with two-step · national eID), each stating what it proves. **STAMPED AT SIGNING, NEVER DERIVED AFTERWARDS**: whether the account carried a second step is a fact about the MOMENT, so an account changed later must not move a signature either way. Three sites stamp (`assuranceAtSigning`): both internal signing paths and the counterparty response as it is applied. An unstamped older signature is read CONSERVATIVELY (never `account-2fa`) and reported `derived:true` — an inference must never be dressed as a record. `contractAssurance` takes the WEAKEST rung, because the flattering reading is the one a dispute destroys. THIS CHANGES WHAT IS SAID, NOT WHAT IS ACCEPTED — nothing is refused that was accepted before. `national-eid` is declared `available:false` so every surface can say "not this one" honestly and the BankID rung clips on the day a broker account exists. Drawn: the evidence pack (rung, basis, derived flag, plus one agreement-level statement) and the signing screen's sub-line with the basis on hover. Tests: f224.
 
@@ -10369,6 +10369,148 @@ been on screen.
 Tests: f246 (3)'s four claims REVERSED IN PLACE — the catch-all is gone, the
 fallback is asserted as a band that exists rather than as a literal, and the
 last pile is `withdrawn` with nothing after it.
+
+## OUR STANDARDS — THE ROW OPENS, AND THE PLAYBOOK LEARNS (owner-ruled 9 Sep 2026)
+
+Off a screenshot of the page, then an artifact showing the whole redesign, then
+four rulings at its foot: *"build all four as you recommended."*
+
+1. the closed clause row states **Required** or **Preferred**;
+2. it keeps **one line** of the wording, clipped by **width**;
+3. the learned proposals read the **last quarter**, and only where there are
+   enough settled rounds to mean anything;
+4. the clause library and the negotiation playbook **stay two tabs**.
+
+**`js/standards.js` IS THE READING AND IT HAS NO VIEW, NO ROUTE AND NO STORE.**
+Counting is not drawing — the Insights panels' rule — so it returns plain data
+and f272 greps it for `innerHTML`, `<div`, `document.`, `api(`, `fetch(` and
+`ai/`. **ITS OWN FILE IS LOAD-BEARING for the same reason js/payterms.js's is:**
+two views read it, and written inside either the other would reach it through
+`window` on a stage that does not carry that view, get `undefined`, and count
+**zero, silently** — the rlPaperFootHtml family. **AND IT LOADS AFTER
+js/precedent.js**, because `STD_MIN_ROUNDS` reads `PRECEDENT_MIN` AT LOAD; f272
+pins the order in js/app.js rather than leaving it to be discovered.
+
+- **RULING 1 — THE STANCE IS READ, NEVER STORED TWICE.** `stdStanceOf(cl)` asks
+  the playbook every time the row is drawn, which was the owner's whole
+  condition: one fact stored in two places is the thing that drifts, and a
+  reading cannot drift from its own source. **A POSITION TRUE OF SOME CONTRACT
+  TYPES SAYS `scope:'some'` AND IS DRAWN QUIETER** — an outline where a baseline
+  position is a fill — because the word alone over-states and silence says
+  nothing. **A CLAUSE THE PLAYBOOK IS SILENT ABOUT DRAWS NO CHIP AT ALL**;
+  guessing "Preferred" there would be the page inventing a company position.
+- **TWO CHIPS, TWO CLASSES.** `.std-chip-pos` and `.std-chip-fb` beside the
+  shared `.std-chip`: they are two different FACTS, the row draws the first only
+  sometimes, and a bare `.std-chip` selector therefore resolves to the FALLBACK
+  on those rows — which is exactly how the browser file first reported a chip on
+  a row that draws none.
+- **RULING 2 — ONE LINE, CLIPPED BY WIDTH.** The row showed the first 140
+  characters and stopped mid-word every time. `white-space:nowrap` plus
+  `text-overflow:ellipsis`, so it ends where the ROW ends; **nothing is cut in
+  the markup** and the whole sentence is on the row's own `title`. **The fallback
+  is on the closed row too**, as a FIGURE where the wording carries one — the
+  card is headed "preferred & fallback wording" and half of it had never drawn.
+- **THE ROW OPENS**, one at a time, in memory, per sitting — the clause panel's
+  own rule. Behind the press: both halves under their own labels, this clause's
+  own history line, and the acts. **The press repaints the LIST and nothing
+  else**; the draft card and the learned card sit either side of it.
+- **RULING 3 — THE LAST QUARTER, AND A FLOOR UNDER IT.** `STD_WINDOW_DAYS` is
+  92, stated on the card so nobody has to guess which rounds are in it, and
+  `precedentMine` gained an optional `since` (absent, every bare caller is
+  byte-identical). **THE WINDOW CHANGES THE ANSWER RATHER THAN TRIMMING THE
+  COUNT** — on the test book, all-time the held payment figure is 90 and this
+  quarter it is 45 — which is the only way to prove the ruling rather than
+  describe it. `stdHeld` keeps `PRECEDENT_MIN` as the floor, so a subject argued
+  once inside the window proposes nothing: below it there is no pattern, only an
+  anecdote.
+- **THIS REVERSES `precedentSuggestions`' OWN RULE, LOUDLY.** That function's
+  note reads *"THE ONLY SUGGESTION MADE IS ABOUT THE FALLBACK, never the
+  preferred position. A preferred position is what the company wants; history
+  cannot argue with an aspiration."* **The reasoning is right about ASPIRATION
+  and wrong about SILENCE**: a preferred nobody has held in a quarter is not an
+  aspiration, it is a number the playbook check flags on every contract and
+  everybody has learned to wave through. **`precedentSuggestions` ITSELF IS
+  UNTOUCHED** and still answers only about fallbacks — this is a second reading
+  beside it, and f272 greps that function to prove it.
+- **A FALLBACK IS A LINE AND A PREFERRED IS WORDING**, and that decides which
+  door each takes. Moving a fallback presses `precedentAdopt` — the ordinary
+  `saveClauseLibrary` write, asking first. Moving a preferred opens
+  **`stdOpenPreferred`**, which writes NOTHING: it asks, then opens the clause
+  editor on that clause, and the record moves only when a person presses Save
+  there. f272 greps that function for every writer.
+- **`precedentAdopt` TAKES THE ROW IT IS ADOPTING.** There are TWO readings of
+  history in this product now — the all-time one and the windowed one — and a
+  caller passing only a key would silently adopt the other one's figure. Absent,
+  it falls back to `precedentSuggestions` exactly as before.
+- **A POSITION BEING MET SAYS SO AND OFFERS NOTHING.** Holding rows are drawn as
+  context BESIDE a proposal — "we looked at four subjects, two need moving, two
+  are being met" is what makes the two proposals trustworthy — and **never on
+  their own**: a card that only ever says everything is fine is furniture, and
+  the reader stops opening it before the quarter it matters.
+
+**A FIRST PLAYBOOK, READ OFF WHAT WAS SIGNED (idea 21).** Where a workspace has
+saved neither a clause library nor a playbook, the page offers to read the
+contracts they have already signed and say what they usually agree to.
+
+- **THE DESIGN SAID "NO STANDARDS YET" AND THAT STATE DOES NOT EXIST**, which
+  changed what was built and is reported rather than absorbed: `clauseLibrary()`
+  and `playbook()` both fall back to HaTi's own defaults, so every workspace has
+  six standards from its first minute and that heading would be printed over six
+  visible ones. `stdUsingDefaults()` is the real, detectable, day-one case — a
+  workspace still on wording somebody else wrote — so the card is a
+  **COMPARISON** rather than a blank page being filled in.
+- **IT READS THE RECORD, NOT THE WORDING.** Every figure comes off `metadata`,
+  which IS this product's reading of a contract: extracted, printed back with
+  its verbatim span, and confirmed by a person on Key terms. Re-reading the
+  agreements would be slower, would need a model, and would rest on nothing
+  anybody had checked.
+- **IT PROPOSES ONLY WHERE THE TWO DISAGREE**, and only above `STD_DRAFT_MIN`
+  (3) contracts and `STD_DRAFT_SHARE` (half) of those that carry a figure. A row
+  that already matches is good news and offers nothing to press.
+- **WHAT IT CANNOT READ IS NAMED.** A confidentiality duration and a liability
+  cap in months are not fields the record holds, so the card says which subjects
+  stay the reader's to write. A cap or an omission is a FACT — the standing rule
+  — and inventing a standard is the one thing this must never do.
+- **AND ITS ADOPT WAS CORRECTED BEFORE IT SHIPPED, which is the most useful
+  thing in this section.** It first wrote the figure straight into the preferred
+  as one flat sentence, and **MEASURED in a browser that replaced "The Buyer
+  shall pay each undisputed invoice within thirty (30) days…" with "Payment
+  terms at 60 days."** — the company's drafted clause thrown away to move a
+  number inside it, which the reasoning written one screen away forbids by name.
+  It goes through `stdOpenPreferred` now: **ONE DOOR for moving what the company
+  asks for**, and the two cards call it by one name (`std_learn_move_pref` — a
+  control reading "Adopt" that opened an editor would be naming somewhere it
+  does not go). **"ADOPT ALL" WENT WITH IT AND IS NAMED RATHER THAN DROPPED**:
+  it was drawn on the design and cannot honestly exist once each move is a
+  person reading a clause. Substituting the figure into the existing prose was
+  weighed and refused — this library writes "forty-five (45) days" and nothing
+  in the product spells a number in words, so a substitution would leave a
+  formal clause reading "60 days" in the middle of its own drafting.
+  `std_adopt`, `std_adopt_q`, `std_adopt_msg`, `std_adopted`, `std_adopt_none`
+  and `std_draft_adopt_all_*` are STALE, left inert in BOTH dictionaries.
+
+**RULING 4 IS DELIBERATELY NO CODE.** The two tabs stay apart; what f272 asserts
+for it is that nothing merged them, and that the open row's "Change the
+position" is a **proxy onto the tab that already exists** rather than a second
+door onto that act.
+
+**THE PAGE'S OWN CLOTHES ARE WRITTEN IN THE PAGE** — a `<style>` block inside
+`#content`, thrown away when the reader leaves, so it cannot quietly repaint a
+screen that has not asked for it. The register's own precedent.
+
+**AND THE LANGUAGE NET CAUGHT A REAL ONE.** f148 flagged `std_th_position` as
+identical in both books — and the English was imprecise anyway: the column holds
+a SUBJECT ("Payment terms", "Governing law"), not a position. It is
+**Category / Kategori**.
+
+Tests: f272 (47 — the file cannot even load against the parent, because the
+reading layer does not exist), f222 unchanged (its `renderPrecedentPanel` and
+`precedentAdopt` source claims still hold, unedited), f148,
+**standards-page-verify (33, browser — 28 of them fail against the parent, and
+it is the only place three of these can be asked at all: "one line clipped by
+width" is a GEOMETRY re-measured at a narrower window, "the row opens" is a
+PRESS, and the page must SURVIVE being drawn, since both new cards are called
+from `renderClauseLibrary` and a throw in either takes the tab down)**.
 
 ## Line numbers drift
 

@@ -118,6 +118,13 @@ const FAMILY = 'js/family.js';
    then the engine that weighs them. */
 const PRECEDENT = 'js/precedent.js';
 const REDLINE_PLAN = 'js/redlineplan.js';
+/* The Standards page's own readings (buildWorld({standards:true})). It sits on
+   the same shelf as precedent.js and payterms.js — no view, no store, no route
+   — and asks the playbook, the memory and the payment reading through `typeof`,
+   so the option brings all four rather than letting the file exercise its own
+   absent-function fallbacks. STD_MIN_ROUNDS is read AT LOAD off PRECEDENT_MIN,
+   so precedent.js goes first; that is js/app.js's order too. */
+const STANDARDS = 'js/standards.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 /* Payment terms turned into a number of days (buildWorld({payterms:true})).
@@ -365,6 +372,21 @@ function buildWorld(opts = {}) {
      caller has asked for it by name — a module run twice in one context
      redeclares its own constants and throws. */
   if (opts.copilotRead && !opts.playbook) files.push(PLAYBOOK);
+  if (opts.standards) {
+    /* The same two stand-ins the read needs, and for the same reason: playbook()
+       reads `state` bare and playbookKeyFor opens by calling cKind, so without
+       either every lookup throws into a swallowed try and the page reads as a
+       workspace with no standards at all. */
+    Object.assign(win, {
+      state: win.state || { contracts: [], settings: {} },
+      cKind: win.cKind || (() => 'Contract'),
+    });
+    if (!opts.playbook && !opts.copilotRead) files.push(PLAYBOOK);
+    if (!opts.copilotRead) files.push(PRECEDENT);
+    if (!opts.payterms && !opts.homeView && !opts.intelView && !opts.registerView)
+      files.push(PAYTERMS);
+    files.push(STANDARDS);
+  }
   if (opts.copilotRead) {
     /* ---- AND THE STAGE MUST ANSWER cKind, OR THE FILE PROVES NOTHING ----
        playbookKeyFor opens by calling it, so a stage without it THROWS on

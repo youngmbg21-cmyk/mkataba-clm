@@ -134,6 +134,20 @@ const PRECEDENT_MIN = 3;
 function precedentMine(opts={}){
   const cs=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
   const only=String(opts.counterparty||'').trim().toLowerCase();
+  /* A WINDOW, and only when one is asked for — called bare this counts every
+     settled round exactly as it always has, which is what every reading
+     written before this asserts. It exists for the Standards page's quarterly
+     proposal: a suggestion to move a standing position should rest on how the
+     company is behaving now. A change with NO date on it is counted whatever
+     the window says: dropping it would quietly shrink the history on records
+     old enough not to carry one, which is the opposite of what a window is
+     for. */
+  const since=opts.since?Date.parse(opts.since):NaN;
+  const inWindow=ch=>{
+    if(!isFinite(since)) return true;
+    const at=Date.parse(ch&&(ch.updatedAt||ch.createdAt)||'');
+    return !isFinite(at)||at>=since;
+  };
   const out={};
   for(const t of PRECEDENT_TOPICS)
     out[t.key]={ key:t.key, category:t.category, clause:t.clause, unit:t.unit||null,
@@ -145,6 +159,7 @@ function precedentMine(opts={}){
     for(const ch of c.changes){
       const outcome=precedentOutcome(ch);
       if(!PRECEDENT_SETTLED.includes(outcome)) continue;
+      if(!inWindow(ch)) continue;
       const t=precedentTopicOf(ch); if(!t) continue;
       const row=out[t.key];
       /* WHOSE ASK IT WAS decides which half of the ledger moves. `authorSide`

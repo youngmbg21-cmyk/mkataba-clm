@@ -3020,47 +3020,123 @@ function renderMyAccountPage(){
 }
 /* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
 function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
-/* ---- WHAT YOUR OWN HISTORY SAYS (W3-2, precedent memory) ----
+/* ---- WHAT YOUR OWN HISTORY SAYS — A PLAYBOOK THAT LEARNS (idea 20) ----
    The suggestions sit WITH the clause library, because the thing they
-   propose to change is a library fallback and a proposal belongs beside the
-   thing it is about. Nothing here writes: an admin presses Adopt, and that
-   press goes through saveClauseLibrary exactly as hand-editing the clause
-   would. A suggestion is evidence and a button, never a change.
+   propose to change is a library position and a proposal belongs beside the
+   thing it is about. Nothing here writes: an admin presses a button, and
+   that press goes through saveClauseLibrary — or through the clause editor —
+   exactly as hand-editing the clause would. A suggestion is evidence and a
+   button, never a change.
 
-   IT SAYS NOTHING UNTIL THERE IS SOMETHING TO SAY. With a thin book
-   (PRECEDENT_MIN) the panel does not draw at all — an empty "no patterns
-   yet" card on every workspace's settings page is furniture, and this
-   feature has to earn its place by having read something real. */
+   IT READS THE LAST QUARTER, NOT ALL TIME (owner's ruling 3, 9 Sep 2026).
+   The panel it replaces mined every settled round this workspace had ever
+   had, so a line the company moved off two years ago went on being proposed
+   for ever and the card said the same thing every quarter until somebody
+   adopted it. A standard is a live position, so what it should be measured
+   against is what has actually been happening — STD_WINDOW_DAYS, stated on
+   the card so nobody has to guess which rounds are in it.
+
+   AND ONLY WHERE THERE ARE ENOUGH ROUNDS TO MEAN ANYTHING (the same ruling):
+   stdHeld holds the PRECEDENT_MIN floor, so a subject argued once inside the
+   window proposes nothing at all. Below it there is no pattern, only an
+   anecdote, and a standards page that moves the company's line on one round
+   is worse than one that says nothing.
+
+   THIS REVERSES precedentSuggestions' OWN RULE, LOUDLY. That function's note
+   says "THE ONLY SUGGESTION MADE IS ABOUT THE FALLBACK, never the preferred
+   position. A preferred position is what the company wants; history cannot
+   argue with an aspiration." The reasoning is right about ASPIRATION and
+   wrong about SILENCE: a preferred position nobody has held in a quarter is
+   not an aspiration any more, it is a number the playbook check flags on
+   every contract and everybody has learned to wave through. So the card
+   NAMES it — and adopting a preferred OPENS THE CLAUSE EDITOR rather than
+   writing, so a human hand stays on the wording HaTi drafts with. A fallback
+   is a line, and moving a line is a press; a preferred is wording, and
+   wording is written by a person. precedentSuggestions ITSELF IS UNTOUCHED
+   and still answers only about fallbacks — this is a second reading, not an
+   edit to that one.
+
+   IT SAYS NOTHING UNTIL THERE IS SOMETHING TO PROPOSE. Holding rows are
+   drawn as context BESIDE a proposal — "we looked at four subjects, two need
+   moving, two are being met" is what makes the two proposals trustworthy —
+   and never on their own: a card that only ever says everything is fine is
+   furniture, and the reader stops opening it before the quarter it matters. */
 function renderPrecedentPanel(){
   const host=document.getElementById('precedent-panel'); if(!host) return;
-  if(typeof precedentSuggestions!=='function'){ host.innerHTML=''; return; }
-  const sug=precedentSuggestions();
+  if(typeof stdLearned!=='function'){ host.innerHTML=''; return; }
+  const learned=stdLearned();
+  const sug=learned?learned.proposals:[];
   if(!sug.length){ host.innerHTML=''; return; }
   const mayAdopt=isAdmin()||currentUser()?.role==='legal';
+  /* A MONTH IS A WORD, so it follows the READER'S LANGUAGE — langLocale, the
+     one reading, exactly as todayStr and the signed-day label do. */
+  const d=x=>{ try{ return x.toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+    catch(_){ return x.toISOString().slice(0,10); } };
+  const B='font-size:var(--t-label);padding:var(--s-1) 10px';
   host.innerHTML=`
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px">
-      <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('pc_title'))}</h4>
-      <p class="st-note" style="margin:0 0 9px">${esc(i18t('pc_sub'))}</p>
+      <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('std_learn_title'))}</h4>
+      <p class="st-note" style="margin:0 0 9px">${esc(i18t('std_learn_win',{
+        from:d(learned.window.from), to:d(learned.window.to), n:learned.rounds }))}</p>
       ${sug.map(x=>`
         <div style="border-top:1px solid var(--color-divider);padding:9px 0 3px">
-          <div style="font-size:var(--t-meta);line-height:1.55">${esc(i18t('pc_line',{
+          <div style="font-size:var(--t-meta);line-height:1.55">${esc(i18t('std_learn_line',{
             category:x.category, figure:x.figure, unit:x.unit, seen:x.seen, settled:x.settled }))}</div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px">${
-            x.currentFigure!=null
-              ? esc(i18t('pc_current',{figure:x.currentFigure,unit:x.unit}))
-              : esc(i18t('pc_current_none'))}
+            [ x.preferredFigure!=null?esc(i18t('std_learn_pref_says',{figure:x.preferredFigure,unit:x.unit})):'',
+              x.fallbackFigure!=null?esc(i18t('std_learn_fb_says',{figure:x.fallbackFigure,unit:x.unit})):'',
+              (x.preferredFigure==null&&x.fallbackFigure==null)?esc(i18t('std_learn_no_fig')):''
+            ].filter(Boolean).join(' ')}
             · ${esc(i18tn('pc_from_n',x.contracts.length,{n:x.contracts.length}))}</div>
-          ${mayAdopt?`<button class="ui-btn" data-pc-adopt="${esc(x.key)}" style="font-size:var(--t-label);padding:var(--s-1) 10px;margin-top:6px">${esc(i18t('pc_adopt'))}</button>`:''}
+          ${mayAdopt?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+            ${x.moves.includes('preferred')?`<button class="ui-btn" data-std-pref="${esc(x.key)}" style="${B}">${esc(i18t('std_learn_move_pref',{figure:x.figure,unit:x.unit}))}</button>`:''}
+            ${x.moves.includes('fallback')?`<button class="ui-btn" data-std-fb="${esc(x.key)}" style="${B}">${esc(i18t('std_learn_move_fb',{figure:x.figure,unit:x.unit}))}</button>`:''}
+          </div>`:''}
         </div>`).join('')}
+      ${learned.holding.length?`<div style="border-top:1px solid var(--color-divider);padding:9px 0 0;margin-top:3px">
+        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
+        ${learned.holding.map(h=>`<div style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55">${esc(h.category)} — ${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</div>`).join('')}
+      </div>`:''}
     </div>`;
-  host.querySelectorAll('[data-pc-adopt]').forEach(b=>b.addEventListener('click',()=>precedentAdopt(b.getAttribute('data-pc-adopt'))));
+  /* ONE ACT PER BUTTON AND EACH GOES WHERE ITS OWN KIND OF CHANGE BELONGS:
+     the fallback presses the ordinary write, the preferred opens the editor. */
+  const row=k=>(learned.proposals||[]).find(p=>p.key===k)||null;
+  host.querySelectorAll('[data-std-fb]').forEach(b=>b.addEventListener('click',()=>{
+    const x=row(b.getAttribute('data-std-fb')); if(!x) return;
+    const cl=(typeof clauseById==='function')?clauseById(x.clause):null;
+    precedentAdopt(x.key,{ ...x, current:cl?String(cl.fallback||'')||null:null });
+  }));
+  host.querySelectorAll('[data-std-pref]').forEach(b=>b.addEventListener('click',()=>{
+    const x=row(b.getAttribute('data-std-pref')); if(x) stdOpenPreferred(x);
+  }));
+}
+/* MOVING WHAT THE COMPANY ASKS FOR IS NOT A PRESS — see the reversal above.
+   It asks, and then it opens the clause editor on that clause with the
+   wording in front of the reader; nothing is written until they press Save
+   there. So this function writes NOTHING itself, which is the whole point of
+   it: the record only moves through the editor every hand-edit already uses. */
+async function stdOpenPreferred(x,detail){
+  const lib=clauseLibrary(); const i=lib.findIndex(cl=>cl.id===x.clause);
+  if(i<0){ toast(i18t('pc_no_clause'),'err'); return; }
+  if(!await confirmDialog({ title:i18t('std_learn_pref_q',{category:x.category}),
+    message:(detail?detail+'\n\n':'')+i18t('std_learn_pref_msg'),
+    confirmLabel:i18t('std_edit_wording') })) return;
+  openClauseEditor(i);
+  toast(i18t('std_learn_pref_opened'),'ok');
 }
 /* ADOPTING IS THE ADMIN'S ACT, and it asks first — a fallback is the line
    the company holds, and moving it moves what every future review calls a
    deviation. The write is the ordinary one; nothing about this bypasses the
-   editor a person would otherwise have used. */
-async function precedentAdopt(key){
-  const x=(precedentSuggestions()||[]).find(s=>s.key===key); if(!x) return;
+   editor a person would otherwise have used.
+
+   IT TAKES THE ROW IT IS ADOPTING (9 Sep 2026) rather than looking one up:
+   there are TWO readings of history in this product now — the all-time one
+   precedentSuggestions makes, and the windowed one the panel above reads —
+   and a caller that only passed a key would silently adopt the other one's
+   figure. Absent, it falls back to precedentSuggestions exactly as before,
+   so every older caller is unchanged. */
+async function precedentAdopt(key,row){
+  const x=row||(precedentSuggestions()||[]).find(s=>s.key===key); if(!x) return;
   const t=(typeof precedentTopicByKey==='function')?precedentTopicByKey(key):null;
   const lib=clauseLibrary().slice();
   const i=lib.findIndex(cl=>cl.id===x.clause);
@@ -3078,25 +3154,265 @@ async function precedentAdopt(key){
   renderClauseLibrary();
   toast(i18t('pc_adopted',{category:x.category}),'ok');
 }
+/* ---- A FIRST PLAYBOOK, READ OFF WHAT WAS SIGNED (idea 21) ----------------
+   The day-one state of this page is six standards HaTi wrote and three tabs
+   nobody has touched, and what a new customer does with it decides whether
+   they ever set standards at all. So where the workspace has saved neither a
+   clause library nor a playbook, the page OFFERS to read the contracts they
+   have already signed and say what they usually agree to.
+
+   THE DESIGN SAID "NO STANDARDS YET" AND THAT STATE DOES NOT EXIST — said out
+   loud because it changed what was built. clauseLibrary() and playbook() both
+   fall back to HaTi's own defaults, so every workspace has six clauses from
+   its first minute and a card headed "no standards yet" would be printed over
+   six visible standards. What IS real is a workspace still on wording
+   somebody else wrote (stdUsingDefaults), so the card is a COMPARISON — here
+   is what your standard says, here is what you actually sign — rather than a
+   blank page being filled in.
+
+   IT PROPOSES ONLY WHERE THE TWO DISAGREE. A row where the standard already
+   matches what gets signed is good news and offers nothing to press; a table
+   where every row demands a decision is one nobody reads to the end.
+
+   AND WHAT IT CANNOT READ IS NAMED. A confidentiality duration and a
+   liability cap in months are not fields this record holds, so the card says
+   which subjects stay the reader's to write rather than quietly leaving them
+   out. A cap or an omission is a FACT — the standing rule — and inventing a
+   standard is the one thing this must never do.
+
+   ONE STATE, IN MEMORY, PER SITTING: has the reader asked to see the
+   comparison. Stored, it would open a table over somebody's standards a week
+   later with nothing on screen saying why. */
+let _stdDraftOpen = false;
+function renderStandardsDraft(){
+  const host=document.getElementById('standards-draft'); if(!host) return;
+  if(typeof stdDraftWorthOffering!=='function'||!stdDraftWorthOffering()){ host.innerHTML=''; return; }
+  const mayAdopt=isAdmin()||currentUser()?.role==='legal';
+  const CARD='border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px';
+  const B='font-size:var(--t-label);padding:var(--s-1) 10px';
+  if(!_stdDraftOpen){
+    /* THE OFFER. It states what a standard IS before it asks for anything —
+       this is the one screen where a reader may not yet know that the
+       playbook check and the Copilot review measure against these words. */
+    const n=stdSignedBook().length;
+    host.innerHTML=`
+      <div style="${CARD}">
+        <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('std_draft_still_default'))}</h4>
+        <p class="st-note" style="margin:0 0 9px">${esc(i18t('std_draft_still_default_sub'))}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="ui-btn" data-std-draft-go style="${B}">${esc(i18tn('std_draft_go',n,{n}))}</button>
+          <button class="ui-btn" data-std-draft-no style="${B}">${esc(i18t('std_draft_by_hand'))}</button>
+        </div>
+      </div>`;
+    host.querySelector('[data-std-draft-go]')?.addEventListener('click',()=>{ _stdDraftOpen=true; renderStandardsDraft(); });
+    /* "Leave them as they are" is not a store — it closes the card for this
+       sitting, which is what a reader who has just answered the question
+       wants, and it comes back on the next visit because the fact it states
+       is still true. */
+    host.querySelector('[data-std-draft-no]')?.addEventListener('click',()=>{ host.innerHTML=''; });
+    return;
+  }
+  const d=stdDraftFromSigned();
+  const cell='padding:5px 8px;font-size:var(--t-label);text-align:left;vertical-align:top';
+  const say=r=>{
+    if(r.kind==='days'&&r.value!=null) return esc(String(r.value))+' '+esc(i18t('std_unit_days'));
+    return esc(String(r.value==null?'—':r.value));
+  };
+  const cur=r=>r.current!=null?esc(String(r.current))+' '+esc(i18t('std_unit_days'))
+    :`<span style="color:var(--color-neutral-600)">${esc(i18t(r.kind==='days'?'std_standard_none':'std_no_figure_to_compare'))}</span>`;
+  const why=r=>r.agrees===true?esc(i18t('std_agrees'))
+    :!r.pattern?esc(i18tn('std_disagree',r.have,{n:r.have}))
+    :'';
+  host.innerHTML=`
+    <div style="${CARD}">
+      <h4 style="margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18tn('std_draft_title',d.signed,{n:d.signed}))}</h4>
+      <p class="st-note" style="margin:0 0 9px">${esc(i18t('std_draft_note'))}</p>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid var(--color-divider)">
+          <th style="${cell};font-weight:var(--w-title);color:var(--color-neutral-600)">${esc(i18t('std_th_position'))}</th>
+          <th style="${cell};font-weight:var(--w-title);color:var(--color-neutral-600)">${esc(i18t('std_th_usually'))}</th>
+          <th style="${cell};font-weight:var(--w-title);color:var(--color-neutral-600)">${esc(i18t('std_th_standard'))}</th>
+          <th style="${cell};font-weight:var(--w-title);color:var(--color-neutral-600)">${esc(i18t('std_th_seen'))}</th>
+          <th style="${cell}"></th>
+        </tr></thead>
+        <tbody>${d.rows.map(r=>`
+          <tr style="border-bottom:1px solid var(--color-divider)" data-std-draft-row="${esc(r.key)}">
+            <td style="${cell};font-weight:var(--w-title)">${esc(r.category)}</td>
+            <td style="${cell}">${say(r)}</td>
+            <td style="${cell}">${cur(r)}</td>
+            <td style="${cell};color:var(--color-neutral-600);white-space:nowrap">${
+              esc(i18t(r.kind==='days'?'std_seen_of_carrying':'std_seen_of',{seen:r.seen,have:r.have}))}</td>
+            <td style="${cell};white-space:nowrap">${
+              r.proposed&&mayAdopt
+                ? `<button class="ui-btn" data-std-adopt="${esc(r.key)}" style="${B}">${esc(i18t('std_learn_move_pref',{figure:r.value,unit:i18t('std_unit_days')}))}</button>`
+                : `<span style="color:var(--color-neutral-600)">${why(r)||esc(i18t('std_not_proposed'))}</span>`}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+      </div>
+      <p class="st-note" style="margin:9px 0 0">${esc(i18t('std_cannot_read',{list:d.unreadable.join(', ')}))}</p>
+    </div>`;
+  /* ONE DOOR FOR MOVING WHAT THE COMPANY ASKS FOR, and it is the learned
+     card's — see the reversal above. Both cards propose the same kind of
+     thing, so both hand it to the same person in the same way. */
+  host.querySelectorAll('[data-std-adopt]').forEach(b=>b.addEventListener('click',()=>{
+    const r=d.rows.find(x=>x.key===b.getAttribute('data-std-adopt')); if(!r) return;
+    stdOpenPreferred({ category:r.category, clause:r.clause, figure:r.value,
+      unit:i18t('std_unit_days') },
+      i18t('std_draft_pref_detail',{ figure:r.value, unit:i18t('std_unit_days'),
+        seen:r.seen, have:r.have }));
+  }));
+}
+/* THE DRAFT CARD WRITES NOTHING EITHER, AND THAT IS A CORRECTION MADE
+   BEFORE THIS SHIPPED. It first wrote the figure straight into the preferred
+   as one flat sentence — and MEASURED in a browser, that replaced "The Buyer
+   shall pay each undisputed invoice within thirty (30) days…" with "Payment
+   terms at 60 days.", throwing away the drafted clause to move a number
+   inside it. The reasoning written twenty lines above forbids exactly that:
+   a fallback is a LINE and moving a line is a press; a preferred is WORDING
+   and wording is written by a person. So it goes through stdOpenPreferred,
+   the same door, with the figure named in the question.
+
+   AND "ADOPT ALL" WENT WITH IT, said out loud rather than quietly dropped:
+   it was drawn on the design and it cannot honestly exist once each move is a
+   person reading a clause — four editors do not open at once. Substituting
+   the figure into the existing prose was weighed and refused: this library
+   writes "forty-five (45) days" and nothing in the product spells a number in
+   words, so a substitution would leave a formal clause reading "60 days" in
+   the middle of its own drafting. std_adopt, std_adopt_q, std_adopt_msg,
+   std_adopted, std_adopt_none and std_draft_adopt_all_* are STALE and are
+   left inert in both dictionaries. */
+
+/* ---- THE CLAUSE ROW OPENS (owner-approved design, 9 Sep 2026) -------------
+   The row showed the first 140 characters of the preferred wording and stopped
+   — mid-word, every time — and never showed the fallback at all, though the
+   card above it is headed "preferred & fallback wording". Three faults in one
+   line: a cut counted in characters rather than fitted to the row, a whole
+   half of the record invisible, and six rows of clipped prose that look
+   identical to a reader scanning them.
+
+   THE SAME MOVE THE CHANGE COLUMN MADE ON 2 Sep: the closed row carries what
+   you SCAN for and everything you READ lives behind one press. It costs the
+   page no width, which the two alternatives (a second column, a reading pane)
+   both do — and it is one behaviour to learn rather than two.
+
+   ONE ROW OPEN AT A TIME, in memory, per sitting. The clause panel's own rule
+   and the change card's before it. */
+let _stdOpenClause = null;
+const stdOpenClauseId = () => _stdOpenClause;
+function stdSetOpenClause(id){ _stdOpenClause = (id == null ? null : String(id)); }
+
+/* TWO CHIPS, TWO CLASSES — .std-chip-pos and .std-chip-fb beside the shared
+   .std-chip. They are two different FACTS (what the position is, and what the
+   fallback says) and a rule written later for one of them would otherwise
+   reach both; the row also draws the position chip only sometimes, so a bare
+   .std-chip selector silently resolves to the fallback on those rows. Shared
+   metrics, separate identities.
+
+   The stance chip. OWNER'S RULING 1: the closed row states Required or
+   Preferred, which today lives on the Negotiation playbook tab. It is READ
+   from the playbook every time it is drawn and never stored twice, which was
+   the whole condition — one fact stored in two places is the thing that
+   drifts, and a reading cannot drift from its own source. */
+function stdStanceChipHtml(cl){
+  const st = (typeof stdStanceOf === 'function') ? stdStanceOf(cl) : null;
+  if (!st) return '';
+  const word = i18t(st.pos === 'required' ? 'std_required'
+    : st.pos === 'forbidden' ? 'std_forbidden' : 'std_preferred');
+  const names = (st.types || []).map(t => t.label).join(', ');
+  const tip = st.scope === 'some'
+    ? i18t('std_stance_some', { types: names })
+    : (names ? i18t('std_stance_all') + ' ' + i18t('std_stance_stricter', { types: names })
+             : i18t('std_stance_all'));
+  const hard = st.pos === 'required' || st.pos === 'forbidden';
+  /* PARTIAL IS DRAWN QUIETER, never louder: an outline rather than a fill
+     where the position is true of some contract types and not all. The word
+     alone would over-state, and silence would say nothing at all. */
+  const dress = st.scope === 'some'
+    ? `border:1px solid ${hard ? 'var(--st-ruby-fg)' : 'var(--color-divider)'};color:${hard ? 'var(--st-ruby-fg)' : 'var(--color-neutral-600)'}`
+    : (hard ? 'background:var(--st-ruby-bg);color:var(--st-ruby-fg)'
+            : 'background:var(--st-steel-bg);color:var(--st-steel-fg)');
+  return `<span class="std-chip std-chip-pos" style="${dress}" title="${esc(tip)}">${esc(word)}</span>`;
+}
+
+/* What the fallback says, in the room a row has. A FIGURE where the wording
+   carries one, because "Fallback 45 days" is the fact a person is deciding
+   against; the word alone where it does not; and "No fallback" — quietly —
+   where there is none, which is itself a real and useful answer. */
+function stdFallbackChipHtml(cl){
+  const fb = (typeof stdFallbackOf === 'function') ? stdFallbackOf(cl) : null;
+  if (!fb) return `<span class="std-chip std-chip-fb std-chip-none">${esc(i18t('std_no_fallback'))}</span>`;
+  const word = fb.figure != null
+    ? i18t('std_fallback_n', { figure: fb.figure, unit: fb.unit })
+    : i18t('std_fallback');
+  return `<span class="std-chip std-chip-fb" style="background:var(--st-amber-bg);color:var(--st-amber-fg)"
+    title="${esc(fb.text)}">${esc(word)}</span>`;
+}
+
 function renderClauseLibrary(){
   const host=document.getElementById('clause-lib'); if(!host) return;
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   const lib=clauseLibrary();
-  host.innerHTML=lib.map((cl,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:11px 13px">
-      <div style="display:flex;align-items:center;gap:var(--s-2)">
-        <span style="font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${cl.category}</span>
-        <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${cl.name}</span>
-        ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
-          <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
-          <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
+  const openId=stdOpenClauseId();
+  host.innerHTML=lib.map((cl,i)=>{
+    const on=openId!=null&&String(cl.id)===openId;
+    const head=`<div class="std-head">
+      <span class="std-cat">${esc(cl.category)}</span>
+      <span class="std-name">${esc(cl.name)}</span>
+      ${stdStanceChipHtml(cl)}
+      <span style="flex:1"></span>
+      ${stdFallbackChipHtml(cl)}
+      <button class="std-open" data-std-open="${esc(String(cl.id))}" aria-expanded="${on?'true':'false'}"
+        aria-controls="std-body-${esc(String(cl.id))}"
+        aria-label="${esc((on?i18t('act_close'):i18t('std_open_clause'))+' — '+cl.name)}"
+        >${esc(on?i18t('act_close'):i18t('std_open_clause'))}</button>
+    </div>`;
+    if(!on){
+      /* OWNER'S RULING 2: one line of the wording, and it is clipped by WIDTH
+         rather than by counting characters — so it ends where the row ends and
+         reads as a sentence continuing, not as a broken product. */
+      return `<div class="std-row" data-std-row="${esc(String(cl.id))}">${head}
+        <p class="std-clip" title="${esc(String(cl.preferred||''))}">${esc(String(cl.preferred||''))}</p>
+      </div>`;
+    }
+    const fb=(typeof stdFallbackOf==='function')?stdFallbackOf(cl):null;
+    const h=(typeof stdHistoryFor==='function')?stdHistoryFor(cl):null;
+    return `<div class="std-row is-open" data-std-row="${esc(String(cl.id))}">${head}
+      <div class="std-body" id="std-body-${esc(String(cl.id))}">
+        <div><p class="std-lab">${esc(i18t('std_ask_for'))}</p>
+          <div class="std-quote">${esc(String(cl.preferred||''))}</div></div>
+        <div><p class="std-lab">${esc(i18t('std_go_down_to'))}</p>
+          ${fb?`<div class="std-quote">${esc(fb.text)}</div>`
+              :`<p class="std-none">${esc(i18t('std_no_fallback_note'))}</p>`}</div>
+        ${h?`<p class="std-hist"><b>${esc(i18t('std_your_history'))}</b> ${esc(
+            i18t('std_hist_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</p>`:''}
+        ${canEditLib?`<div class="std-acts">
+          <button data-cl-edit="${i}">${esc(i18t('std_edit_wording'))}</button>
+          <button data-std-pos="1">${esc(i18t('std_change_position'))}</button>
+          <span style="flex:1"></span>
+          <button data-cl-del="${i}" class="warn">${esc(i18t('set_remove_lower'))}</button>
+        </div>`:''}
       </div>
-      <div style="margin-top:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600)"><b>${i18t('set_preferred')}</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
-    </div>`).join('')||`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_clauses')}</p>`;
+    </div>`;
+  }).join('')||`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_clauses')}</p>`;
+
+  /* THE PRESS IS A REPAINT OF THIS LIST AND NOTHING ELSE — the page holds a
+     draft card and a proposals card either side of it and neither has moved. */
+  host.querySelectorAll('[data-std-open]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.getAttribute('data-std-open');
+    stdSetOpenClause(stdOpenClauseId()===id?null:id);
+    renderClauseLibrary();
+  }));
+  /* A PROXY ONTO THE TAB THAT ALREADY EXISTS, never a second door: the
+     position lives on the Negotiation playbook tab and that tab's own button
+     is what moves the reader there. */
+  host.querySelectorAll('[data-std-pos]').forEach(b=>b.addEventListener('click',()=>
+    document.querySelector('[data-pb-tab="playbook"]')?.click()));
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
-  host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
+  host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); stdSetOpenClause(null); renderClauseLibrary(); toast(i18t('set_t_clause_removed')); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
   renderPrecedentPanel();
+  renderStandardsDraft();
   renderPlaybookView();
 }
 /* ---- playbook viewer + editor (Admin / Legal) ---- */
@@ -3459,7 +3775,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
