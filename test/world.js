@@ -107,6 +107,17 @@ const REGISTER_VIEW = 'js/views/register.js';
    14 Aug 2026 — writing a new amendment from blank paper
    (buildWorld({family:true})). */
 const FAMILY = 'js/family.js';
+/* Copilot's read on an open change card (buildWorld({copilotRead:true})).
+   THREE FILES, because half the engine is worse than none: rlpJudge answers
+   "there is nothing to measure" when precedent.js is absent and "the playbook
+   says nothing" when playbook.js is, so a stage carrying one of the three
+   would exercise those fallbacks and read as a product that had judged. The
+   card itself asks for all three by name and draws nothing where any is
+   missing, which is what every test written before this asserts. Order is
+   js/app.js's: the playbook first, then the memory that reads settled rounds,
+   then the engine that weighs them. */
+const PRECEDENT = 'js/precedent.js';
+const REDLINE_PLAN = 'js/redlineplan.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 /* Payment terms turned into a number of days (buildWorld({payterms:true})).
@@ -349,6 +360,35 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
+  /* The guard is the one this file already uses for intelView and obligations:
+     asking for the read brings the playbook it measures against, unless the
+     caller has asked for it by name — a module run twice in one context
+     redeclares its own constants and throws. */
+  if (opts.copilotRead && !opts.playbook) files.push(PLAYBOOK);
+  if (opts.copilotRead) {
+    /* ---- AND THE STAGE MUST ANSWER cKind, OR THE FILE PROVES NOTHING ----
+       playbookKeyFor opens by calling it, so a stage without it THROWS on
+       every playbook lookup, rlpRangeFor swallows that in its own try, and
+       the engine falls safely to "there is nothing to measure" — a green run
+       against a product that never reached its own judgement. f223 recorded
+       this trap in its own words and this is the same one.
+       THE PLAINEST ANSWER ON PURPOSE, the same one the register's stand-in
+       gives: the playbook key is then resolved from the contract's FOLDER,
+       which is a real route through the real function, rather than from
+       anything the harness was clever enough to invent. A stub kinder than
+       the thing it stands in for turns its test into a description. */
+    /* AND A `state` TO READ THE PLAYBOOK OUT OF, for the same reason and with
+       the same consequence: playbook() reads it BARE (core.js declares it as a
+       const, so there is no window.state to guard on), this world creates none,
+       and without one resolvePlaybook throws into the same swallowed try. A
+       caller that sets its own still wins — this runs at build time, before
+       any test touches it. */
+    Object.assign(win, {
+      state: win.state || { contracts: [], settings: {} },
+      cKind: win.cKind || (() => 'Contract'),
+    });
+    files.push(PRECEDENT, REDLINE_PLAN);
+  }
   /* Home, Insights and the register all ask this reading -- Home for the tile,
      Insights for the tab, the register for its payment terms filter -- so a
      stage drawing any of them without it would exercise this module's own

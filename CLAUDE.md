@@ -9880,6 +9880,103 @@ list needs a mark to be scannable and a row of coloured words does not). Both
 would come back with the menu; `rlMorePlace` and `RL_MORE_ICONS` are dormant
 beside `rlCardMoreHtml` for exactly that.
 
+## COPILOT'S READ, INSIDE THE OPEN CARD (owner-chose it 9 Sep 2026)
+
+*"start on 3 but do not code yet. I want to understand how the push back is
+suggested. For instance, if they simplify a clause, what would the copilot
+read?"* — then, off three options: *"build option B."*
+
+**THE QUESTION WAS THE RIGHT ONE AND IT LANDED ON THE WEAK SPOT.** The engine
+judges by MEASUREMENT and only TWO of its six standards carry a figure to
+measure — payment in days, liability in months — so on a simplification it
+answers *"read it yourself"* and has nothing else to say. Honest, and thin on
+the commonest kind of change, which is the one where a person most wants a
+second pair of eyes: the danger is quiet, words dropped that were doing work.
+
+**THE ENGINE IS NOT NEW AND THE BAND'S RETIREMENT STANDS.** js/redlineplan.js
+has been dormant since 24 Aug ("delete the copilot first pass feature
+completely") — only the BAND went, and `rlPlanBandHtml` is still a stub. What
+changed is that a card now OPENS, which is a home the 300px row never had.
+
+- **IT SPENDS NOTHING AND ASKS NOTHING.** Every line is read off the record —
+  the playbook's own limit, the workspace's own settled rounds, the change's
+  own stored ops. No model is called, so it works with no Copilot key, cannot
+  flatter, and has nothing to cache or invalidate. f271 greps both the builder
+  and the engine for `api(`, `fetch(`, `ai/` and `copilotAsk`.
+- **THE PUSH-BACK IS SUGGESTED IN EXACTLY ONE CIRCUMSTANCE**, which is the
+  answer to the owner's question: a NUMBER sits outside a limit the playbook
+  wrote down. Never on tone, never on risk, never on a model's opinion. A
+  forbidden position escalates without being weighed; governing law moved
+  abroad escalates without a number; everything else is **Read it**, which says
+  why it has nothing.
+- **OPTION B — WHAT CAME OUT — IS A FACT, NOT A JUDGEMENT**, which is what lets
+  it sit beside a deterministic engine without weakening it. The change's own
+  ops already say which words went; this collects and counts them. **THE ORDER
+  IS BY LENGTH**, so the substantial removals lead — a fact about the runs, not
+  a claim about them, which is why the label stays neutral.
+- **A RE-ALIGNED WORD IS NOT A REMOVAL, and this was caught by the tests rather
+  than foreseen.** The tokens carry their own punctuation, so dropping a comma
+  comes back as del "pay," beside ins "pay", and a pure ADDITION comes back as
+  del "pay." beside ins "pay promptly." Reporting either would have made the
+  line untrustworthy on the first change anybody looked at. **A word still
+  present in what they put in its place was not removed** — a comparison, not a
+  judgement — and a SET rather than a tally, so a duplicate under-reports: an
+  artefact in this line costs the whole line's credit.
+- **CONTIGUOUS RUNS, NEVER A JOINED LIST.** Surviving words that are not
+  neighbours belong to different places in the clause, and joining them would
+  read as one phrase nobody wrote. Clipped at a WORD, and the ellipsis is a
+  clip and not a splice — nothing is joined across a gap.
+- **THE COUNT IS THE WORDS IT LISTS, NOT THE DIFF'S OWN FIGURE**, and that is a
+  departure said out loud: the card's running `+N −N` is the RAW diff and stays
+  raw, because it answers a different question. What must hold is that this
+  line agrees with ITSELF, which f271 asserts.
+- **IT DRAWS NO VERBS OF ITS OWN — A DEPARTURE FROM THE DRAWING**, which drew
+  Accept 60 / Counter at 45 / Hold at 30 beneath the read. The card's own verbs
+  sit twelve pixels below, so a second row would be the duplicate-door fault
+  this file has removed four times this fortnight. **The read STATES the figure
+  and the card ACTS on it.** The one-press counter is therefore NOT built and
+  is named rather than dropped: the figure is derivable (precedent picks the
+  worst REPEATED settled figure, never an average, and refuses below three
+  settled arguments), so it is an ask away.
+- **ONLY THEIR PENDING ASKS** — the engine's own third rule. Ours are ours to
+  send or revise; a settled change is a record, and advice on a decision
+  already taken is worse than silence.
+- **OUR SEAT ONLY, AND THAT IS STRUCTURAL RATHER THAN GUARDED.** The body it
+  lives in is built by the flat-row shape, drawn inside
+  `side === 'owner' && !previewSeat`, so the counterparty's page and the
+  owner's preview of it never reach it. How far we have bent before is the
+  most useful thing an opponent could read.
+- **HALF THE ENGINE IS NOT THE ENGINE.** `rlpJudge` falls back to "nothing to
+  measure" without precedent.js and to "the playbook says nothing" without
+  playbook.js — a wrong answer wearing a right one's clothes — so the card asks
+  for both by name and a stage carrying neither draws nothing at all.
+- **A HAIRLINE AND NOTHING ELSE.** It is the one thing in the card that is a
+  judgement rather than a record, so one rule sets it apart where a box or a
+  fill would make a card inside a card. **THE QUIET VERDICT CARRIES NO TINT**:
+  *Read it* is what the engine answers on most changes, so a coloured chip
+  there would mark every card in the column and the two verdicts that mean
+  something would stop being read — the same argument as a count that is amber
+  only when something is actually late.
+
+**AND THE STAGE HAD TO BE TAUGHT TO JUDGE, OR THE WHOLE FILE WOULD PROVE
+NOTHING.** `rlpRangeFor` swallows its own exceptions, so a world that cannot
+answer `cKind` — or that has no `state` to read a playbook out of, and
+test/world.js creates neither — makes every lookup throw and the engine fall
+safely to "there is nothing to measure". **f223 recorded that trap in its own
+words and this is the same one.** `buildWorld({copilotRead:true})` supplies the
+plainest possible `cKind` (so the playbook key resolves from the contract's
+FOLDER, a real route through the real function) and a bare `state`, and f271's
+FIRST section is the control that proves the judgement is reached. **And
+test/chromium/redline.html carries the three scripts now** — the harness pages
+build their own script list, so a module in js/ is not automatically on them.
+
+Tests: f271 (17 — **12 of them fail against the parent**), redline-verify
+section 22 (10, browser — **8 fail against the parent**; the read measured as
+PAINT because the whole of it is a cascade question, its geometry against the
+wording above and the verbs below, both chip states as computed colour, and the
+owner's own simplification case read off the page: *6 words removed. Among
+them: "all material", "in writing", "reasonably", "promptly"*).
+
 ## THE CARD SHOWS ONLY WHAT CHANGED (owner-asked 2 Sep 2026)
 
 *"lets only have the sentences or bullet points that have been redlined show up

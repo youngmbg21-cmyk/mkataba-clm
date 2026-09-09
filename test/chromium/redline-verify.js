@@ -2081,6 +2081,137 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   }
   await page.screenshot({ path: path.join(OUT, '21-card-shows-changed.png') });
 
+  /* ---- 22. COPILOT'S READ, INSIDE THE OPEN CARD (owner-chose it 9 Sep 2026)
+     The engine has been dormant since the band was deleted on 24 Aug; what is
+     new is a home for it. Everything here is measured as PAINT, because the
+     whole of this block is a cascade question — a rule that loses a fight
+     looks perfectly correct in the source — and because the one thing that
+     could go wrong quietly is the verdict tones: a tinted chip on the verdict
+     the engine gives MOST changes would put a coloured mark on every card in
+     the column and stop the other two being read.
+
+     THE CONTROL COMES FIRST. rlpRangeFor swallows its own exceptions, so a
+     page that cannot resolve a playbook makes the engine fall safely to "there
+     is nothing to measure" and every check below would pass against a product
+     that never judged. That is f223's own recorded trap. */
+  const read = await page.evaluate(async () => {
+    try {
+      const c = window.CONTRACT;
+      c.redlineText = '<h1>SUPPLY AGREEMENT</h1><p>Between the parties.</p>'
+        + '<h2>3. PAYMENT</h2><p>The Buyer shall pay each undisputed invoice in writing '
+        + 'within thirty (30) days of the invoice date.</p>'
+        + '<h2>4. DELIVERY</h2><p>The Supplier shall promptly deliver the Materials in '
+        + 'writing to the Buyer and shall reasonably notify all material defects.</p>'
+        + '<h2>5. NOTICES</h2><p>Notices shall be given in writing to the addresses above.</p>';
+      c.format = 'rich';
+      c.changes = []; delete c.negotiation;
+      negoInit(c);
+      const list = negoClauseList(c);
+      const pay = list.find(x => /invoice/.test(x.text || ''));
+      const del = list.find(x => /Materials/.test(x.text || ''));
+      /* OUR OWN DRAFT GOES ON A CLAUSE OF ITS OWN. Filed on theirs it would
+         SUPERSEDE it — the funnel's own counter rule — and the card under
+         test would leave the column, which is the rule working and a staging
+         fault either way. */
+      const not = list.find(x => /addresses above/.test(x.text || ''));
+      if (!pay || !del || !not) return { error: 'the stage did not build three clauses' };
+      /* THEIRS: the payment figure past the standard — a measured verdict. */
+      const theirs = await negoEditClause(c, pay.clauseId,
+        '<p>The Buyer shall pay each invoice within sixty (60) days of the invoice date.</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru', summary: 'staged' });
+      /* THEIRS: a simplification with no figure — the owner's own question. */
+      const simple = await negoEditClause(c, del.clauseId,
+        '<p>The Supplier shall deliver the Materials to the Buyer and shall notify defects.</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru', summary: 'staged' });
+      /* OURS, so the "only their asks" rule can be measured rather than argued. */
+      const ours = await negoEditClause(c, not.clauseId,
+        '<p>Notices shall be given in writing or by email to the addresses above.</p>',
+        { side: 'owner', author: 'Young Mbagaya', summary: 'staged' });
+      if (!theirs || !simple || !ours) return { error: 'the stage filed no change' };
+      renderRedline();
+      await new Promise(r => setTimeout(r, 300));
+      const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
+        return !!el.offsetParent && r.width > 0 && r.height > 0; };
+      const open = async id => {
+        const b = document.querySelector(
+          `#rl-changes [data-nego-card="${CSS.escape(id)}"] [data-rl-card-open]`);
+        if (!b) return null;
+        b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 380));
+        const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+        const blk = card && card.querySelector('.rl-rd');
+        if (!blk) return { drawn: false };
+        const cs = getComputedStyle(blk);
+        const chip = blk.querySelector('.rl-rd-v');
+        const ccs = chip ? getComputedStyle(chip) : null;
+        const q = card.querySelector('.rl-cb-q');
+        const verbs = card.querySelector('.rl-card-verbs');
+        const cut = [...blk.querySelectorAll('.rl-rd-f')]
+          .map(n => n.textContent.replace(/\s+/g, ' ').trim());
+        return { drawn: true, seen: seen(blk),
+          verdict: chip ? chip.textContent.trim() : '',
+          klass: chip ? chip.className : '',
+          chipInk: ccs ? ccs.color : '', chipBg: ccs ? ccs.backgroundColor : '',
+          rule: cs.borderTopWidth, fill: cs.backgroundColor,
+          why: (blk.querySelector('.rl-rd-why') || {}).textContent || '',
+          facts: cut,
+          underWording: q ? blk.getBoundingClientRect().top >= q.getBoundingClientRect().bottom : null,
+          overVerbs: verbs ? blk.getBoundingClientRect().bottom <= verbs.getBoundingClientRect().top : null };
+      };
+      const pb = (typeof playbookKeyFor === 'function') ? playbookKeyFor(c) : null;
+      const range = (typeof rlpRangeFor === 'function') ? rlpRangeFor(c, 'payment') : null;
+      const judged = (typeof rlpJudge === 'function') ? rlpJudge(c, theirs) : null;
+      const bodyInk = getComputedStyle(document.body).color;
+      return { pb, range: range ? range.value : null, judged: judged ? judged.verdict : null,
+        bodyInk,
+        theirs: await open(theirs.id), simple: await open(simple.id), ours: await open(ours.id) };
+    } catch (e) { return { error: String(e && e.message || e) }; }
+  });
+
+  if (read.error){
+    check('22 the stage builds a read', false, read.error);
+  } else {
+    /* THE CONTROL. */
+    check('22 CONTROL — the page resolves a playbook and the engine really judges',
+      !!read.pb && read.range != null && read.judged && read.judged !== 'review',
+      `playbook=${read.pb} limit=${read.range} verdict=${read.judged}`);
+    check('22 the read is drawn inside the open card, as visible pixels',
+      read.theirs && read.theirs.drawn && read.theirs.seen === true,
+      JSON.stringify(read.theirs && { drawn: read.theirs.drawn, seen: read.theirs.seen }));
+    check('22 with a verdict and the reason it rests on',
+      !!(read.theirs && read.theirs.verdict && /\d/.test(read.theirs.why)),
+      `${read.theirs && read.theirs.verdict} — ${(read.theirs && read.theirs.why || '').slice(0, 90)}`);
+    check('22 it sits under the wording it is about and above the verbs',
+      read.theirs && read.theirs.underWording === true && read.theirs.overVerbs === true,
+      `under=${read.theirs && read.theirs.underWording} over=${read.theirs && read.theirs.overVerbs}`);
+    /* A HAIRLINE AND NOTHING ELSE: set apart by one rule, never boxed — a card
+       inside a card is what the flat row was built to stop. */
+    check('22 set apart by a hairline, not by a box',
+      read.theirs && parseFloat(read.theirs.rule) > 0
+        && /rgba\(0, 0, 0, 0\)|transparent/.test(read.theirs.fill),
+      `border-top ${read.theirs && read.theirs.rule} · fill ${read.theirs && read.theirs.fill}`);
+    /* THE TONE, AND THE QUIET ONE. */
+    check('22 a measured verdict carries a tone',
+      !!(read.theirs && read.theirs.chipInk && read.theirs.chipInk !== read.bodyInk
+        && !/rgba\(0, 0, 0, 0\)|transparent/.test(read.theirs.chipBg)),
+      `${read.theirs && read.theirs.chipInk} on ${read.theirs && read.theirs.chipBg}`);
+    check('22 and "read it" — what it answers on most changes — carries none',
+      !!(read.simple && read.simple.drawn && /rl-rd-review/.test(read.simple.klass)
+        && /rgba\(0, 0, 0, 0\)|transparent/.test(read.simple.chipBg)),
+      `${read.simple && read.simple.verdict} · bg ${read.simple && read.simple.chipBg}`);
+    /* OPTION B — the line a simplification can actually use. */
+    check('22 a simplification is told what came out of the clause',
+      ((read.simple && read.simple.facts) || []).some(t => /removed/i.test(t) && /[“"]/.test(t)),
+      ((read.simple && read.simple.facts) || []).join(' || ') || 'no facts');
+    check('22 and it names the words that went, not the ones that stayed',
+      ((read.simple && read.simple.facts) || []).some(t => /promptly|reasonably|in writing|material/i.test(t)),
+      ((read.simple && read.simple.facts) || []).join(' || ') || 'no facts');
+    check('22 our own draft gets no read at all',
+      !!(read.ours && read.ours.drawn === false),
+      `drawn: ${read.ours && read.ours.drawn}`);
+  }
+  await page.screenshot({ path: path.join(OUT, '22-copilot-read.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

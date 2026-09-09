@@ -83,6 +83,15 @@ window.customTemplates = () => [];
 <script src="../../js/discuss.js"></script>
 <script src="../../js/negotiation.js"></script>
 <script src="../../js/ai.js"></script>
+<!-- Copilot's read, inside an open card (9 Sep 2026). THREE FILES AND THIS
+     ORDER: the playbook holds the limits, precedent.js builds its topic table
+     from CLAUSE_KINDS at load and so must follow clausemodel.js, and the
+     engine that weighs them comes last. Half the engine is worse than none —
+     rlpJudge answers "nothing to measure" without precedent.js — so the card
+     asks for all three by name and draws nothing where any is missing. -->
+<script src="../../js/playbook.js"></script>
+<script src="../../js/precedent.js"></script>
+<script src="../../js/redlineplan.js"></script>
 <!-- The negotiation page is TWO files since 21 Aug 2026: its stylesheets were
      lifted into negotiation-css.js. It loads first, because the renderer below
      calls negoStyleHtml and redlineLayoutCss by name. -->

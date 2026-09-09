@@ -9702,3 +9702,58 @@ Noticed, not fixed
   untouched". Both are about the change column's sort and the retired WHOSE
   ASKS filter, not this head. PROVED pre-existing: the same two fail with this
   change reverted.
+
+## 9 Sep 2026 — Copilot's read, inside the open change card (idea 3, option B)
+
+Owner asked to start on idea 3 without coding, to understand first: "I want to
+understand how the push back is suggested. For instance, if they simplify a
+clause, what would the copilot read?" Answered, then: "build option B."
+
+BUILT
+- The dormant co-pilot engine now draws inside an OPEN change card, on their
+  pending asks only. It was retired as a BAND on 24 Aug and only the band went;
+  the card opening is the home it never had.
+- The push-back is suggested in exactly one circumstance: a number sits outside
+  a limit the playbook wrote down. Everything else is "Read it", which says why
+  it has nothing.
+- OPTION B: "What came out" — the words removed, counted and quoted from the
+  change's own stored ops. Deterministic, no model, no key, no spend. The order
+  is by length so the substantial removals lead; runs are contiguous and never
+  joined; a long one is clipped at a word.
+- No verbs of its own: the card's own verbs sit twelve pixels below. The
+  drawing's one-press "Counter at 45" is NOT built and is named rather than
+  dropped.
+- Our seat only, and structurally so — the open body is built inside
+  side === 'owner' && !previewSeat.
+
+FOUND WHILE BUILDING, by the tests rather than by reading
+- A re-aligned word was being reported as removed. The word tokens carry their
+  own punctuation, so dropping a comma read as del "pay," / ins "pay", and a
+  pure ADDITION read as del "pay." / ins "pay promptly." — so a change that
+  added a word would have said "1 word removed". Now: a word still present in
+  what they put in its place was not removed.
+
+THE STAGE HAD TO BE TAUGHT TO JUDGE
+- rlpRangeFor swallows its own exceptions, so a world without cKind — or
+  without a bare `state` to read a playbook out of, and test/world.js creates
+  neither — makes every playbook lookup throw and the engine fall safely to
+  "there is nothing to measure". f223 recorded this trap; this is the same one.
+  buildWorld({copilotRead:true}) supplies both, and f271's first section is the
+  control that proves the judgement is reached before anything else is claimed.
+- test/chromium/redline.html now carries playbook.js, precedent.js and
+  redlineplan.js. The harness pages build their own script list.
+
+TESTS
+- f271 (17 new — 12 fail against the parent).
+- redline-verify section 22 (10 new, 191/191 — 8 fail against the parent).
+  Measured as paint: visibility, geometry against the wording above and the
+  verbs below, the hairline, and both chip states as computed colour.
+- Full node suite 5806/5806. Lint unchanged (4 pre-existing duplicate-key
+  errors, 179 problems). Browser: redline 191/191, nego-redesign 57/57,
+  parity 41/41, clause-door 117/117.
+
+Noticed, not fixed
+- Idea 3 and idea 4 (counterparty memory) overlap: the "settled before" line
+  already reads per counterparty through precedentForChange's withThem, which
+  is idea 4's own reading. Worth building them together rather than in
+  sequence.

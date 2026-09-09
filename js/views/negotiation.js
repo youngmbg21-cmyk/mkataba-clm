@@ -11135,6 +11135,73 @@ function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
    a hole in it and the explanation elsewhere is worse than either, so the two
    sentences that account for a MISSING verb — the desk's "instead" and the
    review hold's "what now" — sit with the bar they explain. */
+/* ---- COPILOT'S READ, INSIDE THE OPEN CARD (owner-chose it 9 Sep 2026) ----
+   The band version of this was deleted on 24 Aug ("delete the copilot first
+   pass feature completely") and only the BAND went: js/redlineplan.js and its
+   wording have been dormant ever since. What has changed is that a card now
+   OPENS, which is a home the 300px row never had — the reason to try again
+   rather than a reason to argue with the removal.
+
+   IT SPENDS NOTHING AND ASKS NOTHING. Every line here is read off the record:
+   the playbook's own limit, the workspace's own settled rounds, and the
+   change's own stored ops. No model is called, so it works with no Copilot key
+   and cannot flatter, and there is nothing to cache or invalidate.
+
+   IT DRAWS NO VERBS OF ITS OWN, WHICH IS A DEPARTURE FROM THE DRAWING. That
+   drew a row reading Accept 60 / Counter at 45 / Hold at 30 beneath the read;
+   the card's own verbs sit twelve pixels below it, so a second row would be
+   the duplicate-door fault this file has removed four times this fortnight.
+   The read STATES the figure and the card ACTS on it.
+
+   ONLY THEIR PENDING ASKS — the engine's own third rule. Our drafts are ours
+   to send or revise, and proposing that we push back on ourselves is nonsense;
+   a settled change is a record, and advice about a decision already taken is
+   worse than silence.
+
+   OUR SEAT ONLY, AND THAT IS STRUCTURAL RATHER THAN GUARDED. This body is
+   built by the flat-row shape, which is drawn inside `side === 'owner' &&
+   !previewSeat`, so the counterparty's page and the owner's preview of it
+   never reach it. How far we have bent before is the most useful thing an
+   opponent could read.
+
+   HALF THE ENGINE IS NOT THE ENGINE. rlpJudge falls back to "nothing to
+   measure" when precedent.js is absent, which is a wrong answer wearing a
+   right one's clothes, so both are asked for by name and a stage carrying
+   neither draws nothing at all. */
+function rlCardReadHtml(c, ch){
+  if (!ch || typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return '';
+  if (ch.authorSide !== 'counterparty') return '';
+  if (ch.status !== 'pending' || ch.withdrawn) return '';
+  let j = null;
+  try { j = rlpJudge(c, ch); } catch (_) { j = null; }
+  const V = (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
+  if (!V) return '';
+  const why = (j.why || []).filter(Boolean).join(' ');
+  let settled = '';
+  try {
+    if (typeof precedentForChange === 'function' && typeof precedentLine === 'function')
+      settled = precedentLine(precedentForChange(c, ch)) || '';
+  } catch (_) { settled = ''; }
+  let cut = null;
+  try { cut = (typeof rlpWordsCut === 'function') ? rlpWordsCut(ch) : null; } catch (_) { cut = null; }
+  const rows = [];
+  if (settled) rows.push([i18t('ng_rd_settled'), _ne(settled)]);
+  if (cut) {
+    /* ONE RUN IS QUOTED; SEVERAL ARE INTRODUCED. "Among them" over a single
+       removal reads as though something is being held back. */
+    const q = cut.runs.map(t => '\u201c' + _ne(t) + '\u201d').join(', ');
+    const lead = _ne(i18tn('ng_rd_cut', cut.words, { n: cut.words }))
+      + ' ' + (cut.runs.length > 1 ? _ne(i18t('ng_rd_among')) + ' ' : '');
+    const more = cut.more ? ' ' + _ne(i18t('ng_rd_cut_more', { n: cut.more })) : '';
+    rows.push([i18t('ng_rd_cut'), lead + q + more]);
+  }
+  return `<div class="rl-cb-blk rl-rd" title="${_nea(i18t('ng_rd_title_tip'))}">
+    <p class="rl-cb-k rl-rd-k">${_ne(i18t('ng_rd_title'))}<span
+      class="rl-rd-v rl-rd-${_ne(j.verdict)}">${_ne(V.label)}</span></p>
+    ${why ? `<p class="rl-rd-why">${_ne(why)}</p>` : ''}
+    ${rows.map(([k, v]) => `<p class="rl-rd-f"><b>${_ne(k)}</b><span>${v}</span></p>`).join('')}
+  </div>`;
+}
 function rlCardBodyHtml(c, ch, opts, side, st){
   /* ---- ONLY THE LINES THIS CHANGE TOUCHES (owner-asked 2 Sep 2026) ----
      "lets only have the sentences or bullet points that have been redlined
@@ -11175,6 +11242,10 @@ function rlCardBodyHtml(c, ch, opts, side, st){
   const bits = [];
   if (wording) bits.push(`<div class="rl-cb-blk"><p class="rl-cb-k">${lead}</p>
     <div class="rl-cb-q">${wording}</div>${omitted}</div>`);
+  /* THE READ SITS UNDER THE WORDING IT IS ABOUT and above everything else in
+     the body — it is what a person weighs before they reach for a verb. */
+  const read = rlCardReadHtml(c, ch);
+  if (read) bits.push(read);
   if (st.info) bits.push(`<div class="rl-cb-blk rl-card-info">${st.info}</div>`);
   if (st.actions) bits.push(`<div class="rl-cb-acts">${st.actions}</div>`);
   /* THE COMMENTS, IN THE TWO ROOMS THEY ALREADY LIVE IN. The drawer's own
@@ -16105,7 +16176,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen,
+  rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen, rlCardReadHtml,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlAlertsBellHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   /* The per-card open/shut model went with the fold (12 Aug 2026), and the

@@ -2814,6 +2814,37 @@ function redlineLayoutCss(){
          beside it. */}
   .redline-page .rl-cb-omit{margin:5px 0 0;font-size:var(--t-label);
     color:var(--color-neutral-600)}
+  ${''/* ---- COPILOT'S READ (owner-chose it 9 Sep 2026) ----
+         A HAIRLINE AND NOTHING ELSE. It is the one thing in this card that is
+         a judgement rather than a fact off the record, so it is set apart --
+         and one rule does that where a box or a fill would make a card inside
+         a card, which is what the flat row was built to stop.
+         THE VERDICT CARRIES THE TONE AND THE QUIET ONE CARRIES NONE. Read it
+         is what the engine answers on most changes, so a tinted chip there
+         would put a coloured mark on every card in the column and the two
+         verdicts that mean something would stop being read. Same argument as
+         a count that is only amber when something is actually late. */}
+  .redline-page .rl-rd{margin-top:var(--s-4);padding-top:var(--s-3);
+    border-top:1px solid var(--color-divider)}
+  .redline-page .rl-rd-k{display:flex;align-items:center;gap:var(--s-2)}
+  .redline-page .rl-rd-v{margin-left:auto;font-size:var(--t-label);
+    font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;
+    padding:1px 7px;border-radius:var(--radius);white-space:nowrap}
+  .redline-page .rl-rd-accept{color:var(--st-green-fg);background:var(--st-green-bg)}
+  .redline-page .rl-rd-push{color:var(--st-amber-fg);background:var(--st-amber-bg)}
+  .redline-page .rl-rd-escalate{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
+  ${''/* No tint, no letter-spacing bump: it recedes into the label shade. */}
+  .redline-page .rl-rd-review{color:var(--color-neutral-600);background:none;padding-left:0;padding-right:0}
+  .redline-page .rl-rd-why{margin:0;font-size:var(--t-meta);line-height:1.55;
+    color:var(--color-text)}
+  ${''/* The label and its value on one line, the label fixed so several of
+         them line up, the value taking what is left and wrapping under
+         nothing. */}
+  .redline-page .rl-rd-f{display:flex;gap:var(--s-2);margin:6px 0 0;
+    font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)}
+  .redline-page .rl-rd-f b{flex:0 0 96px;font-weight:var(--w-title);
+    color:var(--color-neutral-600)}
+  .redline-page .rl-rd-f span{flex:1 1 auto;min-width:0;color:var(--color-text)}
   ${''/* ---- THE @ PICKER (owner-asked 2 Sep 2026) ----
          It hangs OVER the composer rather than pushing it down: a list that
          reflows the box while somebody is typing into it moves the thing under
