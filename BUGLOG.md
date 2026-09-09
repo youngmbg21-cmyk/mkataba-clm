@@ -9515,3 +9515,69 @@ Noticed, not fixed:
 - The two oddities on the owner's own contract (three "Governing law - New
   clause added -" rows with nothing after the dash, and two byte-identical
   "Clause 2 ... Clause deleted" rows) are still open from two runs ago.
+
+================================================================================
+9 Sep 2026 — THE EMAILED MEMO, AND TWO THINGS ON THE OWNER'S CONTRACT
+================================================================================
+"fix both."
+
+THE EMAIL. sendEmail gained opts.html, riding BESIDE the text rather than
+replacing it: one message carrying both, so a client that can render it does
+and a plain-text reader still gets what it always got. The outbox keeps the
+text, because that is what an admin reads there. The BODY is the browser's —
+one composition, so the panel, the clipboard and the inbox cannot say different
+things — and the FRAME is the server's: greeting, note, link and notice, built
+in the RECIPIENT'S own language exactly as the plain-text body already builds
+them, with the link composed from contractUrl rather than accepted.
+
+mailSafeHtml is the second wall, and it exists because HTML off a request is
+not text off a request: text cannot carry a link that says one thing and goes
+to another, a tracking pixel, or a script. The wall that matters is still WHO
+is written to, so the blast radius is a colleague who can already open the
+contract; this one stops HaTi's sending domain carrying somebody else's markup.
+It REBUILDS rather than strips: a tag not on the list is dropped whole, the
+only surviving attribute is style, and inside it only a fixed property list. No
+href, no src, no class, no id, no event handler, no url() and no javascript:.
+Deliberately NOT a general sanitiser and it should stay that narrow.
+
+TWO ROWS THAT LOOKED IDENTICAL WERE TWO CHANGES. Two asks on one clause draw
+the same clause name and, where neither carries a summary somebody typed, the
+same GENERATED line — because that line is built from the wording. The one
+thing that tells them apart is the reference, and the memo was the ONLY surface
+in the product that did not print it. All three drawings lead with the id now.
+
+A CLAUSE IS ITS WORDS. Three rows read "New clause added -" with nothing after
+the dash: an insertion filed with an empty body, which draws as a heading over
+blank paper, asks the other side to accept nothing, and carries a fingerprint
+over an empty string for the life of the negotiation. Refused in the FUNNEL,
+because the wrappers are not where guards live. A heading is not enough on its
+own — every row reported carried one. And a record that already holds one says
+so rather than drawing a blank.
+
+AND IT CAUGHT A TEST THAT WAS PROVING NOTHING, which is worth more than the
+guard. f193's "a clause can be written into the blank page - the whole promise"
+called negoInsertClause(c, {title,text}, {side,author}) — the clause object in
+the AFTER slot and the options in the clause slot — so bodyHtml was undefined
+and what it filed was a clause with no words. It passed for as long as the
+funnel accepted one. The CALL is corrected and the claim now asserts the
+wording is on the filed change, which is the half whose absence let the wrong
+call through.
+
+One test claim of my own was narrowed rather than the code bent: the wall's
+attack sweep looked for "<a href" and reported the FRAME's own link — the
+product's way back into the agreement — as an attack. It counts the links and
+names the one that is ours.
+
+Node 5729/5729, lint unchanged (the same 4 pre-existing duplicate-key errors).
+Browser: negotiation-memo 60/60, redline 181/181. Against the parent, f269
+reports 8 of the new claims failing; the control ("a message with no HTML still
+goes, exactly as it did") passes on both, which is what makes the others mean
+something.
+
+Noticed, not fixed:
+- ng_wording_matches ("the wording already matches") is the generic sentence
+  Copilot's apply prints when nothing files, and it now covers one more case —
+  an insertion with no wording. It was already generic across several refusals;
+  a per-reason sentence there is its own piece of work.
+- Whether the owner's two identical rows really were two changes cannot be
+  settled from here — the memo now names them, so their own screen will say.

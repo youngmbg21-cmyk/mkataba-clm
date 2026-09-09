@@ -1415,6 +1415,26 @@ async function negoFileChange(c, draft, opts = {}){
     : draft.changeType === 'insertClause' ? [{ op: 'ins', text: newText }]
     : [{ op: 'del', text: oldText }];
 
+  /* ---- AN INSERTION WITH NO WORDING PROPOSES NOTHING (owner-reported 9 Sep
+     2026, off a memo carrying three rows that read "New clause added —" with
+     nothing after the dash) ----
+     A clause is its words. An insertion whose body comes back empty — a model
+     that answered with nothing, a paste the sanitiser had nothing to keep —
+     files a change with a name and no wording: it draws as a heading over
+     blank paper, it asks the other side to accept nothing, and it carries a
+     fingerprint over an empty string for the life of the negotiation.
+
+     IN THE FUNNEL, because the wrappers are not where guards live: the clause
+     library, the playbook's two entrances, Copilot's apply and the Word round
+     trip all arrive here without knowing they need to. It is the same refusal
+     the no-op guard below already makes for a modify that changes nothing —
+     one rule, two shapes of nothing — and it answers null, which every caller
+     already handles.
+
+     THE HEADING IS NOT ENOUGH ON ITS OWN, and that is the whole of the report:
+     all three rows carried a heading ("Governing law") and no body. */
+  if (draft.changeType === 'insertClause' && !String(newText || '').trim()) return null;
+
   /* A no-op produces NO record. Saving a clause you looked at and did not
      change must not file a fingerprint against it — an index full of empty
      changes is an index nobody reads.

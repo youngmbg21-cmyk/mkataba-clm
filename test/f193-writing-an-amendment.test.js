@@ -306,12 +306,26 @@ describe('f193 · the body the rest of the product has to read', () => {
     const { win } = world([master()]);
     const c = win.createAmendment(win.state.contracts[0], { skeleton: false }).contract;
     win.negoInit(c);
-    const ch = await win.negoInsertClause(c,
-      { title: 'Term', text: 'Clause 4.1 of the Agreement is deleted and replaced.' },
+    /* ---- CORRECTED 9 Sep 2026, and the correction is the point ----
+       This called negoInsertClause(c, {title,text}, {side,author}) — the clause
+       object in the AFTER slot and the options in the clause slot — so
+       `bodyHtml` was undefined and what it actually filed was a clause with no
+       words at all. It passed for as long as the funnel accepted one, and was
+       caught the day the funnel started refusing an insertion that proposes
+       nothing (owner-reported, off a memo full of "New clause added —" rows).
+       A test that files nothing and asserts something was filed is a
+       description; the claim it was making is real and is made properly here. */
+    const ch = await win.negoInsertClause(c, null,
+      { headingText: 'Term',
+        bodyHtml: '<p>Clause 4.1 of the Agreement is deleted and replaced.</p>' },
       { side: 'owner', author: ME.name });
     assert.ok(ch, 'the negotiation inserts into an empty body');
     assert.equal(c.changes.length, 1);
     assert.equal(c.changes[0].status, 'pending', 'filed as our ask, like any other change');
+    /* AND THE WORDING IS ON IT — the half whose absence let the wrong call
+       pass, and the whole of what "a clause can be written" means. */
+    assert.match(String(c.changes[0].newText || ''), /deleted and replaced/,
+      'the clause was filed with no words in it');
   });
 
   test('the skeleton arrives as four clauses the negotiation can work on', () => {

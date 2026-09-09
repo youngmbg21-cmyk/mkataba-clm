@@ -1842,6 +1842,64 @@ async function resendError(r) {
    outbox row notes the attachment names in `detail` so a queued message is
    honest about what it would have carried; the bytes themselves are not
    duplicated into the outbox. */
+/* ---- HTML THAT CAME FROM A BROWSER, ON ITS WAY INTO AN EMAIL (9 Sep 2026) ----
+   The negotiation memo is composed in the browser — that split is the calendar
+   share's own and it is right, because the memo is a reading of the contract
+   and a second copy of it here is the recorded defect class. But a TEXT body
+   and an HTML body are not the same risk: text cannot carry a link that says
+   one thing and goes to another, a tracking pixel, or a script.
+
+   THE WALL THAT MATTERS IS STILL WHO IS WRITTEN TO — a member of this
+   workspace, in scope, resolved from our own records — so the blast radius is
+   a colleague who can already open the contract. This is the second wall, and
+   it REBUILDS rather than strips: a tag not on the list is dropped whole, and
+   the only attribute that survives is `style`, filtered to properties that
+   describe type and spacing. No href, no src, no class, no id, no event
+   handler, no url() and no expression().
+
+   It is deliberately NOT a general HTML sanitiser. It exists so one route can
+   mail a document this product composed, and it should stay that narrow. */
+const MAIL_HTML_TAGS = new Set(['p', 'div', 'span', 'b', 'strong', 'i', 'em', 'u',
+  'ins', 'del', 's', 'br', 'hr', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'blockquote']);
+const MAIL_HTML_STYLE = new Set(['color', 'background-color', 'font-family', 'font-size',
+  'font-weight', 'font-style', 'text-decoration', 'text-decoration-line', 'text-align',
+  'line-height', 'letter-spacing', 'margin', 'margin-top', 'margin-right', 'margin-bottom',
+  'margin-left', 'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'border', 'border-top', 'border-bottom', 'border-left', 'border-right']);
+const MAIL_HTML_MAX = 400000;
+function mailSafeHtml(html){
+  const src = String(html == null ? '' : html).slice(0, MAIL_HTML_MAX);
+  const style = raw => {
+    const out = [];
+    for (const bit of String(raw).split(';')){
+      const i = bit.indexOf(':');
+      if (i < 0) continue;
+      const k = bit.slice(0, i).trim().toLowerCase(), v = bit.slice(i + 1).trim();
+      if (!MAIL_HTML_STYLE.has(k)) continue;
+      /* A value that can fetch or evaluate anything is not a value this needs. */
+      if (/url\s*\(|expression\s*\(|javascript:|[<>"]/i.test(v)) continue;
+      out.push(`${k}:${v.slice(0, 200)}`);
+    }
+    return out.join(';');
+  };
+  return src.replace(/<[^>]*>/g, tag => {
+    const m = /^<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(tag);
+    if (!m) return '';
+    const name = m[2].toLowerCase();
+    if (!MAIL_HTML_TAGS.has(name)) return '';
+    if (m[1]) return `</${name}>`;
+    const sm = /\sstyle\s*=\s*("([^"]*)"|'([^']*)')/i.exec(tag);
+    const st = sm ? style(sm[2] != null ? sm[2] : sm[3]) : '';
+    const self = /\/\s*>$/.test(tag) || name === 'br' || name === 'hr';
+    return `<${name}${st ? ` style="${st.replace(/"/g, '')}"` : ''}${self ? '/' : ''}>`;
+  });
+}
+
+/* `opts.html` rides BESIDE the text rather than replacing it: one message
+   carrying both, so a mail client that can render it does and a plain-text
+   reader still gets what it always got. THE OUTBOX KEEPS THE TEXT, because
+   that is what an admin reads there and what every existing reader of that
+   table expects. */
 async function sendEmail(to, subject, body, devHint, opts = {}) {
   const id = 'e_' + rid(8), at = now();
   let sent = 0, provider = 'outbox', detail = null;
@@ -1857,7 +1915,9 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
       const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to: [to], subject, text: body, ...(attachments.length ? { attachments } : {}) }),
+        body: JSON.stringify({ from, to: [to], subject, text: body,
+          ...(opts.html ? { html: String(opts.html) } : {}),
+          ...(attachments.length ? { attachments } : {}) }),
       });
       if (r.ok) { sent = 1; provider = 'resend'; }
       else { provider = 'resend-http-' + r.status; detail = (await resendError(r)) || `Resend rejected this message (${r.status}).`; }
@@ -6983,6 +7043,30 @@ app.post('/api/contracts/:id/memo', auth, editor, async (req, res) => {
   const cName = c.name || req.params.id;
   const link = contractUrl(req, req.params.id, 'redline');
   const L = langForEmail(u.email);
+  /* ---- THE SAME MEMO, IN BOTH FLAVOURS (owner-asked 9 Sep 2026) ----
+     The reader pasted the memo into Word and lost the marks; Copy was taught
+     to carry a document, and this is the same document reaching an inbox. The
+     BODY is the browser's — one composition, so the panel, the clipboard and
+     the email cannot say different things — and it goes through mailSafeHtml,
+     because HTML off a request is a different risk from text off a request.
+     THE FRAME IS THE SERVER'S: the greeting, the note, the link and the notice
+     are built here in the RECIPIENT'S own language, exactly as the plain-text
+     body already builds them, and the link is composed from contractUrl rather
+     than accepted from anybody. */
+  const eh = v => String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const memoHtml = mailSafeHtml(b.html);
+  const html = memoHtml ? `<div style="font-family:Aptos, Calibri, 'Segoe UI', Arial, sans-serif;`
+      + `font-size:10.5pt;color:#0e1a18;line-height:1.45">`
+    + `<p style="margin:0 0 10px">${eh(tFor(L, 'mail_hello'))} ${eh(u.name)},</p>`
+    + `<p style="margin:0 0 10px">${eh(tFor(L, 'mail_memo_line', { who: req.user.name, name: cName }))}</p>`
+    + (note ? `<p style="margin:0 0 14px;padding-left:10px;border-left:2px solid #dfe4e3;`
+        + `color:#54635f"><i>${eh(note)}</i></p>` : '')
+    + memoHtml
+    + (link ? `<p style="margin:16px 0 0">${eh(tFor(L, 'mail_at_open'))}<br>`
+        + `<a href="${eh(link)}">${eh(link)}</a></p>` : '')
+    + `<p style="margin:14px 0 0;font-size:9pt;color:#54635f">${eh(tFor(L, 'mail_automated_notice'))}</p>`
+    + `</div>` : '';
   const r = await sendEmail(u.email,
     tFor(L, 'mail_memo_subject', { who: req.user.name, name: cName }),
     `${tFor(L, 'mail_hello')} ${u.name},\n\n`
@@ -6991,7 +7075,8 @@ app.post('/api/contracts/:id/memo', auth, editor, async (req, res) => {
       + `\n${lines.join('\n')}\n`
       + (link ? `\n${tFor(L, 'mail_at_open')}\n${link}\n` : '')
       + `\n${tFor(L, 'mail_automated_notice')}`,
-    `memo: ${req.params.id} -> ${u.email}`);
+    `memo: ${req.params.id} -> ${u.email}`,
+    html ? { html } : {});
   /* THE SAME HONEST THREE-WAY ANSWER EVERY OTHER MAIL HERE GIVES — it went, it
      queued in the outbox because no provider is configured, or the provider
      refused and said why. "Sent" has to mean sent. */

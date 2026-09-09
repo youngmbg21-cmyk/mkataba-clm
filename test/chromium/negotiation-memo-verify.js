@@ -486,6 +486,12 @@ const visible = (page, sel) => page.evaluate(s => {
     check(/Ninety days is what our board approved/.test(body),
       '7q and the reason with it');
     check(/#contract=/.test(body), '7r with a way back into the agreement');
+    /* AND THE MESSAGE CARRIES THE DOCUMENT TOO (owner-asked 9 Sep 2026, after
+       the clipboard was fixed). The outbox stores the TEXT body — that is what
+       an admin reads there — so the HTML flavour is read off the ROUTE'S own
+       answer, which reports whether one went. */
+    check(sentMsg.top.body && /AGREED|Agreed/.test(String(sentMsg.top.body)),
+      '7s the plain flavour is the one an admin reads in the outbox');
   }
 
   /* ============ 8. THE SEND CHANGED NOTHING EITHER ============ */

@@ -7140,8 +7140,20 @@ function negoMemoHtml(m, opts = {}){
   const row = r => {
     const wording = quote(r);
     return `<div style="font-size:var(--t-meta);line-height:1.45;padding:7px 0;border-top:1px solid var(--color-divider)">
-      <b>${_ne(r.clause)}</b>${r.said ? ` — ${_ne(r.said)}` : ''}${
-      wording ? `<div class="ng-memo-wording" style="padding:5px 0 0">${wording}</div>` : ''}${
+      ${/* ---- THE ROW NAMES ITS CHANGE (owner-reported 9 Sep 2026) ----
+           Two asks on one clause draw the same clause name and, where neither
+           carries a summary somebody typed, the same generated line — so the
+           memo showed what looked like the same row twice and was reported as
+           a duplicate. It was not: the ONE thing that tells them apart is the
+           reference, and this was the only surface in the product that did not
+           print it. Every card, tag, panel row and audit line names a change
+           by its id. */''}<b>${_ne(r.id)}</b>${r.id ? ' · ' : ''}<b>${_ne(r.clause)}</b>${r.said ? ` — ${_ne(r.said)}` : ''}${
+      wording ? `<div class="ng-memo-wording" style="padding:5px 0 0">${wording}</div>`
+        /* AN ABSENCE IS SAID, NOT LEFT BLANK — the standing rule. A change can
+           carry no wording at all (an insertion filed with an empty body, which
+           the funnel refuses now but which older records still hold), and a row
+           that simply stops reads as a memo that lost something. */
+        : `<div style="${meta}"><i>${_ne(i18t('ng_memo_no_wording'))}</i></div>`}${
       /* A CAP IS A FACT, NEVER A SILENT TRIM — the standing rule, and the same
          sentence the open card prints, counted off the same ops. */
       r.unchanged ? `<div style="${meta}">${_ne(i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }))}</div>` : ''}${
@@ -7223,8 +7235,9 @@ function negoMemoRichHtml(m){
     i18t('ng_memo_from_record', { at: when })].filter(Boolean).join(' &middot; ');
   const row = r => [
     P(`${base};font-size:10.5pt;margin-top:9px`,
-      `<b>${_ne(r.clause)}</b>${r.said ? ` &mdash; ${_ne(r.said)}` : ''}`),
-    wording(r),
+      `<b>${_ne([r.id, r.clause].filter(Boolean).join(' · '))}</b>${
+        r.said ? ` &mdash; ${_ne(r.said)}` : ''}`),
+    wording(r) || P(`${quiet};margin-left:24px`, `<i>${_ne(i18t('ng_memo_no_wording'))}</i>`),
     r.unchanged ? P(`${quiet};margin-left:24px`,
       `<i>${_ne(i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }))}</i>`) : '',
     r.why ? P(`${quiet};margin-left:24px`,
@@ -7288,8 +7301,10 @@ function negoMemoText(m){
     const rows = m[sec.k] || [];
     if (!rows.length) out.push('  ' + i18t('ng_memo_nil'));
     for (const r of rows){
-      out.push('  ' + r.clause + (r.said ? ' — ' + r.said : ''));
-      for (const l of negoMemoWording(r.ops)) out.push('    ' + l);
+      out.push('  ' + [r.id, r.clause].filter(Boolean).join(' · ') + (r.said ? ' — ' + r.said : ''));
+      const w = negoMemoWording(r.ops);
+      if (w.length) for (const l of w) out.push('    ' + l);
+      else out.push('    ' + i18t('ng_memo_no_wording'));
       if (r.unchanged) out.push('    ' + i18tn('ng_cb_unchanged', r.unchanged, { n: r.unchanged }));
       if (r.why) out.push('    ' + i18t('ng_memo_why') + ' ' + r.why);
       if (r.precedent) out.push('    ' + r.precedent);
@@ -7426,9 +7441,14 @@ function openNegoMemoShare(c, m){
     const toId = document.getElementById('ng-memo-who')?.value || '';
     const note = String(document.getElementById('ng-memo-note')?.value || '').slice(0, 1000);
     const lines = negoMemoText(m).split('\n');
+    /* BOTH FLAVOURS TRAVEL, exactly as they do onto the clipboard: the route
+       mails them as one message and the reader's own mail client picks which
+       to show. The body is composed HERE and nowhere else, so the panel, the
+       paste and the inbox cannot say different things. */
+    const html = negoMemoRichHtml(m);
     btn.disabled = true; btn.textContent = i18t('ng_memo_sending');
     try {
-      const r = await api('contracts/' + encodeURIComponent(c.id) + '/memo', 'POST', { toId, note, lines });
+      const r = await api('contracts/' + encodeURIComponent(c.id) + '/memo', 'POST', { toId, note, lines, html });
       closeModal();
       /* "SENT" HAS TO MEAN SENT — the same honest three-way answer every other
          mail in this product gives, and each is a different thing to do next. */

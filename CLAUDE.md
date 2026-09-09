@@ -4577,11 +4577,66 @@ lines and the structure arrived as nothing.
   is not something a word processor can be relied on to honour; the paragraph's
   own is.** `rlChangeWordingHtml` forwards those three BY NAME and nothing
   else — a renderer that passes everything through has no contract at all.
-- **NOT DONE, and said out loud: the EMAILED memo is still plain text.**
-  `sendEmail(to, subject, body, …)` posts a text body and every caller in the
-  product shares that shape, so an HTML flavour there is a change to the mail
-  layer rather than to this feature. Send to a colleague therefore looks like
-  the screenshot that prompted this; Copy does not.
+- **AND THE EMAILED MEMO IS A DOCUMENT TOO — REVERSED IN PLACE 9 Sep 2026**
+  (owner-asked: *"fix both"*). `sendEmail` gained `opts.html`, which rides
+  BESIDE the text rather than replacing it: one message carrying both, so a
+  client that can render it does and a plain-text reader still gets what it
+  always got. **THE OUTBOX KEEPS THE TEXT**, because that is what an admin
+  reads there and what every existing reader of that table expects. **The BODY
+  is the browser's** — one composition, so the panel, the clipboard and the
+  inbox cannot say different things — and **the FRAME is the server's**: the
+  greeting, the note, the link and the notice, built in the RECIPIENT'S own
+  language exactly as the plain-text body already builds them, with the link
+  composed from `contractUrl` rather than accepted from anybody.
+- **`mailSafeHtml` IS THE SECOND WALL, because HTML off a request is not text
+  off a request.** Text cannot carry a link that says one thing and goes to
+  another, a tracking pixel, or a script. The wall that matters is still WHO is
+  written to — a member of this workspace, in scope, resolved from our own
+  records — so the blast radius is a colleague who can already open the
+  contract; this is the one that stops HaTi's sending domain carrying somebody
+  else's markup. **It REBUILDS rather than strips**: a tag not on
+  `MAIL_HTML_TAGS` is dropped whole, the only attribute that survives is
+  `style`, and inside it only `MAIL_HTML_STYLE` — no href, no src, no class, no
+  id, no event handler, no `url()` and no `javascript:`. **It is deliberately
+  NOT a general HTML sanitiser** and should stay this narrow. f269 (17) attacks
+  it against a running server AND asserts the memo's own tags and marks all
+  survive — a wall that ate the document would be the same failure pointing the
+  other way — and it COUNTS the links in the message rather than sweeping for
+  `<a href`, because the frame carries one and that sweep would report the
+  product's own way in as an attack.
+
+**AND TWO THINGS THE OWNER SAW ON THEIR OWN CONTRACT (reported 9 Sep 2026 off a
+live memo; two different faults that arrived in one screenshot).**
+
+- **TWO ROWS THAT LOOKED IDENTICAL WERE TWO CHANGES.** Two asks on one clause
+  draw the same clause name and — where neither carries a summary somebody
+  typed — the same GENERATED line, because that line is built from the wording.
+  The one thing that tells them apart is the reference, and **this was the only
+  surface in the product that did not print it**: every card, tag, panel row
+  and audit line names a change by its id. All three drawings now lead with
+  `CHG-004 · Clause 2 · …`.
+- **A CLAUSE IS ITS WORDS, AND THE FUNNEL REFUSES AN INSERTION WITH NONE.**
+  Three rows read *"New clause added —"* with nothing after the dash: an
+  insertion filed with an empty body, which draws as a heading over blank
+  paper, asks the other side to accept nothing, and carries a fingerprint over
+  an empty string for the life of the negotiation. **A HEADING IS NOT ENOUGH ON
+  ITS OWN** — every row reported carried one. Refused in `negoFileChange`,
+  because the wrappers are not where guards live: the clause library, both
+  playbook entrances, Copilot's apply and the Word round trip all arrive there
+  without knowing they need to. It is the same refusal the no-op guard beside
+  it already makes for a modify that changes nothing — one rule, two shapes of
+  nothing — and it answers null, which every caller already handles.
+- **AND A RECORD THAT ALREADY HOLDS ONE SAYS SO** rather than drawing a blank
+  row: `ng_memo_no_wording`, in all three drawings. An absence is said, never
+  left as a gap.
+- **IT CAUGHT A TEST THAT WAS PROVING NOTHING, which is the part worth
+  keeping.** f193's *"a clause can be written into the blank page — the whole
+  promise"* called `negoInsertClause(c, {title,text}, {side,author})` — the
+  clause object in the AFTER slot and the options in the clause slot — so
+  `bodyHtml` was undefined and what it actually filed was a clause with no
+  words. It passed for as long as the funnel accepted one. The CALL is
+  corrected and the claim now asserts the wording is on the filed change, which
+  is the half whose absence let the wrong call through.
 
 Tests: f269 (49 — **29 fail against the parent**), **negotiation-memo-verify
 (24, browser — the only place four of the claims can be asked at all: the row

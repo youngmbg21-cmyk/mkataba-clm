@@ -857,7 +857,8 @@ describe('f269 (15) the memo as a document', () => {
     assert.match(html, /font-size:14pt;font-weight:bold[^>]*>Supply Agreement/,
       'the agreement’s name does not lead');
     assert.match(html, /font-weight:bold[^>]*>AGREED \(0\)/, 'the sections are not headings');
-    assert.match(html, /<b>Clause 2 · Specifications<\/b>/, 'the clause name is not bold');
+    assert.match(html, /<b>CHG-7 · Clause 2 · Specifications<\/b>/,
+      'the row does not lead with its reference and clause, in bold');
     /* The wording is REGULAR — it is the content, not a signpost. */
     const block = /<p class="rl-line[^>]*>([\s\S]*?)<\/p>/.exec(html);
     assert.ok(block, 'the wording is not drawn as its own block');
@@ -906,5 +907,189 @@ describe('f269 (15) the memo as a document', () => {
     assert.match(body, /typeof ClipboardItem === 'function'/,
       'a browser without ClipboardItem gets a dead press');
     assert.match(body, /\.then\(done, plain\)/, 'a refused rich write does not fall back');
+  });
+});
+
+/* ================================================================
+   f269 (16) — THE TWO THINGS THE OWNER SAW ON THEIR OWN CONTRACT
+   ================================================================
+   Reported 9 Sep 2026 off a memo of a live negotiation, and they are two
+   different faults that happened to arrive in one screenshot:
+
+   · TWO ROWS THAT LOOKED IDENTICAL. "Clause 2 · SPECIFICATIONS … Clause
+     deleted — 2.1 Compliance with Specifications…" twice, with another row
+     between them. They were not one change drawn twice: two asks on one clause
+     draw the same clause name and — where neither carries a summary somebody
+     typed — the same GENERATED line, and the one thing that tells them apart
+     is the reference. Every card, tag, panel row and audit line in this
+     product names a change by its id; the memo was the only surface that did
+     not.
+   · THREE ROWS READING "New clause added —" WITH NOTHING AFTER THE DASH. An
+     insertion filed with an empty body: a clause with a name and no words. It
+     draws as a heading over blank paper, asks the other side to accept
+     nothing, and carries a fingerprint over an empty string for the life of
+     the negotiation. Refused at the FUNNEL now — and the memo says so for the
+     records that already hold one, because an absence is said rather than left
+     as a blank row. */
+describe('f269 (16) two rows are two rows, and a clause is its words', () => {
+  const w = W();
+
+  test('every drawing names the change, so two asks are never one row', () => {
+    /* THE OWNER'S OWN SHAPE: two deletions of one clause, which generate a
+       byte-identical summary because the summary is built from the wording. */
+    const twin = (id) => ch(id, { status: 'accepted', clauseLabel: 'Clause 2 · Specifications',
+      summary: 'Clause deleted — 2.1 Compliance with Specifications. Supplier warrants…',
+      ops: [{ op: 'del', text: '2.1 Compliance with Specifications.' }] });
+    const m = w.negoMemo(deal([twin('CHG-004'), twin('CHG-011')]));
+    assert.equal(list(m.agreed).length, 2, 'the fixture is not two changes');
+    for (const drawn of [w.negoMemoHtml(m), w.negoMemoText(m), w.negoMemoRichHtml(m)]){
+      assert.ok(drawn.includes('CHG-004') && drawn.includes('CHG-011'),
+        'a drawing does not name its changes — two asks read as one row twice');
+    }
+  });
+
+  test('the funnel refuses an insertion with no wording', async () => {
+    const w2 = buildWorld({ negotiationView: true, contractView: true }).win;
+    w2.state = { contracts: [], view: '' };
+    const c = { id: 'MK-5', redlineText: '<h2>Clause 1</h2><p>Some wording.</p>' };
+    w2.negoInit(c);
+    const before = (c.changes || []).length;
+    /* A HEADING IS NOT ENOUGH ON ITS OWN — that is the whole of the report:
+       every row the owner saw carried a heading and no body. */
+    const empty = await w2.negoInsertClause(c, null, { headingText: 'Governing law', bodyHtml: '' });
+    assert.equal(empty, null, 'a clause with a name and no words was filed');
+    assert.equal((c.changes || []).length, before, 'a refusal still wrote to the record');
+
+    /* THE CONTROL, and without it "nothing was filed" proves nothing: the same
+       call with wording in it must still file. */
+    const real = await w2.negoInsertClause(c, null,
+      { headingText: 'Governing law', bodyHtml: '<p>This Agreement is governed by Kenyan law.</p>' });
+    assert.ok(real && real.id, 'a real insertion was refused too');
+    assert.equal((c.changes || []).length, before + 1);
+  });
+
+  test('and a record that already holds one says so rather than drawing a blank', () => {
+    /* Filed before the guard existed, so it is built as the stored shape by
+       hand and says so — the ordinary route can no longer produce it. */
+    const m = w.negoMemo(deal([ch('CHG-2', { changeType: 'insertClause',
+      clauseLabel: 'Governing law', summary: 'New clause added — ',
+      ops: [{ op: 'ins', text: '' }] })]));
+    for (const drawn of [w.negoMemoHtml(m), w.negoMemoText(m), w.negoMemoRichHtml(m)])
+      assert.match(drawn, /No wording was recorded/,
+        'a change carrying nothing drew a blank row instead of saying so');
+  });
+
+  test('the words answer in both languages', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    for (const lang of ['en', 'sv'])
+      assert.ok(STRINGS[lang].ng_memo_no_wording, `ng_memo_no_wording missing in ${lang}`);
+    assert.notEqual(STRINGS.en.ng_memo_no_wording, STRINGS.sv.ng_memo_no_wording);
+  });
+});
+
+/* ================================================================
+   f269 (17) — THE EMAILED MEMO IS A DOCUMENT TOO
+   ================================================================
+   Owner-asked 9 Sep 2026, after the clipboard was fixed: the memo that reaches
+   an inbox looked like the screenshot that started all this, because sendEmail
+   posted a text body and nothing else.
+
+   IT RIDES BESIDE THE TEXT, never instead of it: one message carrying both, so
+   a client that can render it does and a plain-text reader still gets what it
+   always got.
+
+   AND HTML OFF A REQUEST IS A DIFFERENT RISK FROM TEXT OFF A REQUEST. Text
+   cannot carry a link that says one thing and goes to another, a tracking
+   pixel, or a script. The wall that matters is still WHO is written to — a
+   member of this workspace, in scope, resolved from our own records — and
+   mailSafeHtml is the second one: it REBUILDS rather than strips, and the only
+   attribute that survives is a filtered `style`. */
+describe('f269 (17) the emailed memo', () => {
+  const { startHatiWithMail, seedWorkspace } = require('./helpers.js');
+  const LINES = ['Supply Agreement — Nordkust', 'MK-B1 · Round 1', '', 'AGREED (1)',
+    '  CHG-004 · Clause 2 — added “thirty (30) days”', '    - sixty (60) days', '    + thirty (30) days'];
+  const RICH = '<div style="font-family:Aptos"><p style="font-weight:bold">AGREED (1)</p>'
+    + '<p><b>CHG-004 · Clause 2</b></p>'
+    + '<p style="margin:0 0 4px 24px"><del style="color:#be123c;text-decoration:line-through">sixty (60) days</del>'
+    + '<ins style="color:#047857;text-decoration:underline">thirty (30) days</ins></p></div>';
+  const send = (W, body) => W.admin.json('/api/contracts/MK-B1/memo', { method: 'POST', body });
+
+  test('both flavours leave in one message, and the frame is the server’s', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    await send(W, { toId: W.users.unrestricted.id, note: 'Before Friday', lines: LINES, html: RICH });
+    const msg = h.mail.sent[0];
+    assert.ok(msg.text && msg.text.includes('AGREED (1)'), 'the plain flavour stopped travelling');
+    assert.ok(msg.body.html, 'no HTML flavour left the building');
+    assert.match(msg.body.html, /text-decoration:line-through/, 'the marks did not survive');
+    assert.match(msg.body.html, /thirty \(30\) days/, 'the wording did not survive');
+    /* THE FRAME IS BUILT HERE, in the recipient's own language, and the link is
+       composed from contractUrl rather than accepted from anybody. */
+    assert.match(msg.body.html, /Before Friday/, 'the sender’s note is not in the document');
+    assert.match(msg.body.html, /#contract=MK-B1/, 'the link is not in the document');
+    assert.match(msg.body.html, /Unrestricted Legal/, 'the greeting does not name the reader');
+  });
+
+  test('a message with no HTML still goes, exactly as it did', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const r = await send(W, { toId: W.users.unrestricted.id, lines: LINES });
+    assert.equal(r.emailSent, true);
+    assert.equal(h.mail.sent[0].body.html, undefined,
+      'an HTML body was invented for a caller that sent none');
+    assert.ok(h.mail.sent[0].text.includes('AGREED (1)'));
+  });
+
+  /* THE WALL. Each of these is a thing text could never carry. */
+  test('the wall drops what an email has no business carrying', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    const nasty = '<div style="color:#0e1a18">kept'
+      + '<script>alert(1)</script>'
+      + '<img src="https://tracker.example/p.gif">'
+      + '<a href="https://phish.example">click</a>'
+      + '<p onclick="steal()" class="x" id="y" style="color:#047857;position:fixed">styled</p>'
+      + '<p style="background:url(https://tracker.example/p.gif)">urly</p>'
+      + '<p style="color:javascript:alert(1)">js</p>'
+      + '</div>';
+    await send(W, { toId: W.users.unrestricted.id, lines: LINES, html: nasty });
+    const got = h.mail.sent[0].body.html;
+    for (const bad of ['<script', '<img', 'onclick', 'tracker.example',
+                       'phish.example', 'position:fixed', 'javascript:', 'class="x"', 'id="y"'])
+      assert.equal(got.includes(bad), false, `the wall let through: ${bad}`);
+    /* THE ONE LINK IN THE MESSAGE IS THE SERVER'S OWN, built from contractUrl
+       and never accepted from anybody. Asserted as a COUNT rather than as an
+       absence, because the frame legitimately carries one and a sweep for
+       "<a href" would report the product's own way in as an attack. */
+    const links = got.match(/<a\s+href/g) || [];
+    assert.equal(links.length, 1, `the message carries ${links.length} links`);
+    assert.match(got, /<a href="[^"]*#contract=MK-B1[^"]*">/,
+      'the one link is not the one this server composed');
+    /* AND IT KEEPS WHAT THE MEMO IS MADE OF — a wall that ate the document
+       would be the same failure pointing the other way. */
+    assert.match(got, />kept/);
+    assert.match(got, />styled/);
+    assert.match(got, /color:#047857/, 'a permitted style property was dropped');
+    assert.match(got, /<p style="color:#0e1a18"|<div style="color:#0e1a18"/,
+      'the document’s own colour was dropped');
+  });
+
+  test('the memo’s own tags and marks all survive the wall', async (t) => {
+    const h = await startHatiWithMail();
+    t.after(() => h.stop());
+    const W = await seedWorkspace(h);
+    h.mail.reset();
+    await send(W, { toId: W.users.unrestricted.id, lines: LINES, html: RICH });
+    const got = h.mail.sent[0].body.html;
+    for (const tag of ['<div', '<p', '<b>', '<del', '<ins'])
+      assert.ok(got.includes(tag), `the wall ate ${tag}, which the memo is made of`);
+    for (const prop of ['font-weight:bold', 'color:#be123c', 'text-decoration:underline', 'margin:0 0 4px 24px'])
+      assert.ok(got.includes(prop), `the wall ate ${prop}`);
   });
 });
