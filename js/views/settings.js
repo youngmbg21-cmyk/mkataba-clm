@@ -2578,17 +2578,35 @@ function stAcceptanceHtml(){
   catch(_){ return ''; }
   const head = `<div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${
     esc(i18t('ai_tr_title'))}</div><p class="st-note">${esc(i18t('ai_tr_sub'))}</p>`;
+  /* ---- WHAT THE BOOK ALREADY HOLDS (owner-asked 9 Sep 2026) ----
+     The recording starts the day it ships, so without this the section opens
+     empty on every workspace and stays that way for weeks — which the owner
+     met and reported as the feature not being there at all. History can answer
+     ONE question honestly (how much of Copilot's wording was actually filed)
+     and cannot answer the other three, so it is a COUNT with its own limit
+     written under it rather than a second table pretending to the same
+     columns. See aiTraceHistory for why the playbook half is not countable. */
+  let hist = { taken: 0, contracts: 0 };
+  try{ if (typeof window.aiTraceHistory === 'function')
+    hist = aiTraceHistory((typeof state !== 'undefined' && state.contracts) || []); }catch(_){ }
+  const before = hist.taken
+    ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:6px">${
+        esc(i18tn('ai_tr_before', hist.taken, { n: hist.taken }))}</div>
+       <p class="st-note" style="margin-top:2px">${esc(i18t('ai_tr_before_why'))}</p>`
+    : '';
   /* An empty state that only says "nothing here" leaves the reader to work out
      whether that is because nobody uses Copilot or because something is
      broken. It says which, and what will fill it. */
   if (!d.proposals && !d.readings) return `<div class="st-sec" id="ai-acceptance">${head}
-    <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:6px">${esc(i18t('ai_tr_none'))}</div>
-    <p class="st-note" style="margin-top:4px">${esc(i18t('ai_tr_none_why'))}</p></div>`;
+    <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:6px">${
+      esc(i18t(hist.taken ? 'ai_tr_since_none' : 'ai_tr_none'))}</div>
+    ${hist.taken ? '' : `<p class="st-note" style="margin-top:4px">${esc(i18t('ai_tr_none_why'))}</p>`}
+    ${before}</div>`;
   const sh = aiTraceShares(d);
   const tile = (n, w) => `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2)">
     <div style="font-size:var(--t-section);font-weight:var(--w-title);color:var(--color-text);line-height:var(--lh-tight)">${esc(String(n))}</div>
     <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${esc(w)}</div></div>`;
-  const cell = (v, strong) => `<span style="flex:none;width:64px;text-align:right;font-family:var(--font-mono);font-size:var(--t-label)${
+  const cell = (v, strong) => `<span style="flex:none;width:72px;text-align:right;font-family:var(--font-mono);font-size:var(--t-label)${
     strong ? ';font-weight:var(--w-strong)' : ';color:var(--color-neutral-600)'}">${esc(String(v))}</span>`;
   const rows = d.rows.map(r => `<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(aiTraceFeatureLabel(r.feature))}</span>
@@ -2604,14 +2622,15 @@ function stAcceptanceHtml(){
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
       <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">
         <span style="flex:1;min-width:0">${esc(i18t('ai_tr_th_feature'))}</span>
-        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_proposals'))}</span>
-        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_as_is'))}</span>
-        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_edited'))}</span>
-        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_not_taken'))}</span>
+        <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_proposals'))}</span>
+        <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_as_is'))}</span>
+        <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_edited'))}</span>
+        <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_not_taken'))}</span>
       </div>${rows}</div>
     ${d.readings ? `<div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:6px">${
       esc(i18tn('ai_tr_readings', d.readings, { n: d.readings }))}</div>` : ''}
     <p class="st-note" style="margin-top:6px">${esc(i18t('ai_tr_note'))} ${esc(i18t('ai_tr_untaken_note'))} ${esc(i18t('ai_tr_started'))}</p>
+    ${before}
   </div>`;
 }
 function stEngineBodyHtml(){
@@ -2640,6 +2659,39 @@ function stEngineBodyHtml(){
       <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
     </div>
     <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
+
+    <div class="st-sec st-sec-top">
+      <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_today')}</div>
+      <div id="ai-usage" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:6px 0 var(--s-1)">${i18t('set_today_dash')}</div>
+      <div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-bottom:var(--s-2)"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
+      <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
+    </div>
+
+    ${stAcceptanceHtml()}
+
+    ${''/* ---- THE PANEL IS THE KEY, THE MONEY AND WHAT CAME OF IT (owner-asked
+           9 Sep 2026) ----
+           "delete anything unnecessary information in the panel ... The only
+           thing i use currently is where i enter the anthropic key." Eight
+           sections of number boxes stood between the key and everything a
+           person actually reads, and the owner's own drawing of this panel has
+           three: the key, the spend, and what became of its proposals.
+
+           SO IT FOLDS RATHER THAN DELETES, which is this product's own answer
+           to a panel with too much on it (the workspace-status foot, 20 Aug).
+           Nothing here is decoration: the daily budget is the one real money
+           wall, "Prepare renewal notes" is the switch on the ONE thing HaTi
+           spends on unasked, and a stale rate table silently under-reports the
+           bill. Deleting any of those would take a wall away rather than tidy
+           a screen, so every one of them is still here and still one press
+           away — which is what "stoppable from a screen" has always meant.
+
+           IT IS SHUT BY DEFAULT and holds its own state for the sitting only:
+           a drawer that remembered being open would put the wall of boxes back
+           for the one reader who ever opened it. */}
+    <details class="st-adv" id="ai-advanced">
+      <summary class="st-adv-sum">${i18t('set_more_settings')}</summary>
+      <p class="st-note" style="margin-top:2px">${i18t('set_more_settings_sub')}</p>
 
     <div class="st-sec">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_model_routing')}</div>
@@ -2671,9 +2723,6 @@ function stEngineBodyHtml(){
     <div class="st-sec">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_spend_controls')}</div>
       <p class="st-note">${i18t('set_spend_governed')} ${i18t('set_spend_money')}</p>
-      <div id="ai-usage" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:6px 0 var(--s-1)">${i18t('set_today_dash')}</div>
-      <div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-bottom:var(--s-2)"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
-      <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
       ${''/* ---- AND THE SAME MONEY BY PERSON ----
              It is here, under the by-feature breakdown, because this is where
              the money already lives — and NOT on the People tab, where a
@@ -2720,8 +2769,6 @@ function stEngineBodyHtml(){
            than at the foot of the drawer for that reason, and everything below
            it — the allowance, the rate table, the backfill — is configuration
            rather than a reading. */}
-    ${stAcceptanceHtml()}
-
     <div class="st-sec">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>
       <p class="st-note">${i18t('set_allowance_sub')}</p>
@@ -2754,7 +2801,8 @@ function stEngineBodyHtml(){
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:2px">${i18t('set_file_existing')}</div>
       <p class="st-note">${i18t('set_file_existing_sub')}</p>
       <button id="meta-backfill" style="margin-top:6px;${ST_BTN2}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">${i18t('set_extract_metadata')}</span></button>
-    </div>`;
+    </div>
+    </details>`;
 }
 function stWireEngine(){
   if(!API_MODE()){

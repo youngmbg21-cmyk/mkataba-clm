@@ -11285,6 +11285,87 @@ ITSELF**, paid for again here: the file press did nothing, three diagnoses chase
 the product, and an isolated probe showed the whole chain working on a fresh
 page. Section 28 reloads and stages its own ground.
 
+**AND THE SCREEN WAS EMPTY, WHICH FROM THE OWNER'S CHAIR IS NOT BUILT
+(owner-reported 9 Sep 2026, three times).** *"I do not see the changes for 23
+and 22 as designed in the artifact"*, then *"but I also cannot find this"*, then
+— over a screenshot of the section itself — *"like i said, it is not there."*
+
+**THEY WERE RIGHT, AND THE FAULT WAS THE DELIVERY RATHER THAN THE CODE.** The
+recording starts the day it ships, so on a workspace with a year of Copilot
+behind it the drawer opens on "Nothing recorded yet" and stays there for weeks
+— below a wall of number boxes that took four screenshots to scroll past. What
+was handed over was the machinery and an empty box, and the honest thing to
+have said at the point of merging was so.
+
+- **`aiTraceHistory` COUNTS WHAT THE BOOK ALREADY HOLDS.** Long before any of
+  this, a change filed from Copilot's wording carried its provenance — `note`
+  reads "Copilot — Simplify" — so a proposal that was TAKEN is countable right
+  back through the book. **It is printed as a COUNT with its limit under it,
+  never as a second table**: the record never held what the model first said
+  (as-is against edited is unknowable) and never held a proposal nobody used
+  (refused and never-acted-on are unknowable), and a table with one honest
+  column and three guessed ones is worse than a sentence.
+- **A PLAYBOOK FILING IS DELIBERATELY NOT COUNTED**, which is the recording's
+  own rule one step back: `Playbook — <category>` says a standard was filed and
+  does NOT say which of the three wordings went in, and two of the three are the
+  workspace's own clause library. Counting them would be HaTi taking credit for
+  its customer's drafting.
+- **IT READS WITHOUT WRITING, and this is the trap it would have fallen into.**
+  `negoAllChanges` is the product's own answer to *every change this negotiation
+  ever carried* — and it calls `negoInit`, which creates a negotiation record
+  and stamps clause ids into the document. A sweep over the whole book would
+  have started a negotiation on every contract merely by counting it.
+  `c.changes` and the archived rounds are read RAW, deduped on the change id.
+- **TWO KINDS OF EMPTY, and they are different facts**: never used at all, and
+  nothing since the recording started. The section says which.
+
+**AND THE PANEL IS THE KEY, THE MONEY AND WHAT CAME OF IT (owner-asked 9 Sep
+2026).** *"delete anything unnecessary information in the panel because it has
+too much information that I have never used and I do not see the value for. The
+only thing i use currently is where i enter the anthropic key."*
+
+- **IT FOLDS RATHER THAN DELETES, and the difference is not pedantry.** Nothing
+  in that panel is decoration: the daily budget is the one real money wall, the
+  renewal-notes switch is the stop on the ONE thing HaTi spends unasked — which
+  this rulebook requires to be *stoppable from a screen* — and a stale rate
+  table silently under-reports the bill. Deleting any of them takes a wall away
+  rather than tidies a screen. **One `<details>` holds model routing, the
+  by-person spend, every limit, both switches, the allowance, the rate table and
+  the backfill**; each is one press away, which is what stoppable has always
+  meant. The precedent is this product's own: the workspace-status foot folds.
+- **MEASURED: the drawer was 2093px in an 873px window and is 873.** The key,
+  the spend and what became of its proposals are all on screen with nothing to
+  scroll, which is the owner's own drawing of this panel — it has three sections
+  and the real one had eight.
+- **SHUT BY DEFAULT AND IT REMEMBERS NOTHING.** A fold that remembered being
+  open would put the wall of boxes back for the one reader who ever opened it.
+- **IT IS NOT CALLED "ADVANCED", because the model row already is.** Two doors
+  on one screen sharing a word is a name nobody can use; `set_more_settings`.
+- **THE PROSE MOVED WITH ITS CONTROLS.** The spend-governance paragraph and the
+  by-person note read below the fold now, beside the things they explain — an
+  admin who opens it is exactly who wants them.
+- **`.st-sec-top` IS A CLASS, NOT `:first-of-type`.** `.st-sec` dresses every
+  drawer in Settings and the rule that separates the first section from the key
+  block is a decision about ONE of them.
+
+**AND ONE FAULT WAS FOUND BY MEASURING RATHER THAN READING**, which is this
+file's own standing lesson: slicing the spend section in two left the first
+`<div>` unclosed, so `#ai-acceptance` was a CHILD of it rather than a sibling —
+`.st-sec + .st-sec` never applied, and the two sections drew with no rule and no
+gap between them. It looks perfectly correct in the source. A computed-style
+read of `border-top` is what named it.
+
+Tests: f276 (67 — sections 10 and 11 new, and the empty-state claim REVERSED IN
+PLACE onto the two kinds of empty), **f203's placement claim REVERSED IN PLACE**
+(it pinned the by-person table as being in the same SECTION as the by-feature
+one, which the fold separates; what that decision was always about is which
+SCREEN carries per-person cost, and the "never on the People tab" half beside it
+is untouched), settings-tabs-verify (80 — four new claims measuring the drawer
+as PAINT: it fits with nothing to scroll, the fold is shut, the three readings
+are above it, and all eight folded controls are reachable in one press; the
+renewal-switch claim re-pointed to open the fold first, which is what a person
+does).
+
 Tests: f276 (50 — the funnel's own settle first as the CONTROL, the five
 outcomes, the hash, the cap, no route and no drawing, both readings, the three
 recording surfaces and both languages), clause-editor-verify section 28 (6,

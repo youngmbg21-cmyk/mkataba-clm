@@ -462,6 +462,12 @@ const signIn = async (page, base, email, pass) => {
        cannot see whether the row actually DRAWS — this product has shipped a
        class nothing defined and a rule that lost a cascade fight, and both read
        perfectly correct in the file. */
+    /* THE PANEL FOLDS SINCE 9 Sep 2026, so every wall below the fold is one
+       press away rather than on screen. Opening it is what a person does; the
+       claim is still that the switch can be reached and turned off from this
+       panel, which is what "stoppable from a screen" has always meant. */
+    await page.click('#ai-advanced > summary');
+    await page.waitForTimeout(400);
     const prep = await page.evaluate(() => {
       const box = document.getElementById('ai-renewal-prep');
       const cap = document.getElementById('ai-renewal-max');
@@ -483,6 +489,49 @@ const signIn = async (page, base, email, pass) => {
        at all, that the key box the owner asked to keep is still above it, that
        the shares a reader actually reads add up, and that the row's counts are
        the reading's own counts rather than three rounded thirds. */
+    /* ---- THE PANEL IS THE KEY, THE MONEY AND WHAT CAME OF IT ----
+       Owner-asked 9 Sep 2026, after scrolling the whole drawer and reporting the
+       section as simply not there: "delete anything unnecessary information in
+       the panel ... The only thing i use currently is where i enter the
+       anthropic key." Three things only a browser can answer — whether the
+       three sections a person reads are on screen WITHOUT scrolling, whether
+       the fold is shut, and whether every wall behind it is still reachable. */
+    await page.click('#ai-advanced > summary');   // shut it again for the measurement
+    await page.waitForTimeout(300);
+    const shape = await page.evaluate(() => {
+      const b = document.getElementById('st-dbody');
+      const top = id => { const e = document.getElementById(id); const r = e && e.getBoundingClientRect();
+        return r ? Math.round(r.top) : null; };
+      return { scrollH: b ? b.scrollHeight : 0, clientH: b ? b.clientHeight : 0,
+        key: top('ai-key'), spend: top('ai-spend-breakdown'), acc: top('ai-acceptance'),
+        adv: top('ai-advanced'), advOpen: !!(document.getElementById('ai-advanced') || {}).open };
+    });
+    check('the whole panel fits without scrolling — it was 2093px of drawer in an 873px window',
+      shape.scrollH <= shape.clientH + 2, `${shape.scrollH} of ${shape.clientH}`);
+    check('the fold is shut when the panel opens', !shape.advOpen);
+    check('and the key, the money and what came of it all read above it',
+      shape.key < shape.spend && shape.spend < shape.acc && shape.acc < shape.adv,
+      `key ${shape.key} · spend ${shape.spend} · proposals ${shape.acc} · fold ${shape.adv}`);
+    /* FOLDED IS NOT DELETED, and this is the half that matters: the daily money
+       ceiling and the switch on the one thing HaTi spends unasked are both
+       rulebook walls, so a fold that lost them would be a worse fault than the
+       crowded panel it fixed. */
+    const walls = await page.evaluate(async () => {
+      document.getElementById('ai-advanced').open = true;
+      await new Promise(r => setTimeout(r, 250));
+      const seen = id => { const e = document.getElementById(id); const r = e && e.getBoundingClientRect();
+        return !!(r && r.width > 0 && r.height > 0); };
+      const out = {};
+      for (const id of ['ai-daily-spend', 'ai-renewal-prep', 'ai-renewal-max', 'ai-rates-table',
+                        'ai-model-fast', 'ai-spend-people', 'meta-backfill', 'ai-allow-budget'])
+        out[id] = seen(id);
+      document.getElementById('ai-advanced').open = false;
+      return out;
+    });
+    const missing = Object.keys(walls).filter(k => !walls[k]);
+    check('every control it folds away is reachable in one press', !missing.length,
+      missing.length ? 'unreachable: ' + missing.join(', ') : Object.keys(walls).length + ' of them');
+
     const acc = await page.evaluate(VISIBLE, '#ai-acceptance');
     check('the engine drawer carries "what became of its proposals"', acc.ok, acc.why);
     /* THE CONTROL, and it is the owner's own instruction: the section was added

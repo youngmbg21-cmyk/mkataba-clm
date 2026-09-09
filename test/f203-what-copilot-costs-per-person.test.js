@@ -230,10 +230,19 @@ describe('f203 — two people\'s calls land under two people', () => {
 describe('f203 — where an admin reads it', () => {
   const set = read('js/views/settings.js');
 
-  test('a second breakdown, under the by-feature one, on the Copilot engine panel', () => {
+  /* REVERSED IN PLACE 9 Sep 2026, and the claim is the one this decision was
+     always about. The owner folded everything in this panel they do not use
+     behind one disclosure, so the by-feature table now reads above the fold and
+     the by-person one below it — they are no longer in the same section. What
+     was NEVER negotiable is which SCREEN carries per-person cost: it belongs
+     with the money in the Copilot engine panel and never on the roster. The
+     next test is the other half and is untouched. */
+  test('per-person cost lives with the money in the Copilot engine panel', () => {
     assert.match(set, /id="ai-spend-people"/);
-    const panel = set.slice(set.indexOf('id="ai-spend-breakdown"'), set.indexOf('id="ai-spend-breakdown"') + 900);
-    assert.match(panel, /ai-spend-people/, 'beneath it, in the same section as the money');
+    const engine = set.slice(set.indexOf('function stEngineBodyHtml'));
+    assert.match(engine, /id="ai-spend-people"/, 'in the panel that already reports the spend');
+    assert.match(engine, /set_spend_controls/,
+      'and inside the spend section, whichever side of the fold that section sits on');
   });
 
   test('NOT on the People tab — that would make the roster a league table', () => {

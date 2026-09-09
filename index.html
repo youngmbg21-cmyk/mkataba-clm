@@ -2471,6 +2471,23 @@
     font-size:var(--t-meta); line-height:1.55; font-weight:var(--w-strong); }
   .st-sec{ margin-bottom:18px; padding-bottom:2px; }
   .st-sec + .st-sec{ border-top:1px solid var(--color-divider); padding-top:15px; }
+  /* ONE DISCLOSURE HOLDS EVERYTHING THIS PANEL CONFIGURES (owner-asked 9 Sep
+     2026). Not a section — a door — so it takes the rule ABOVE it and none of
+     .st-sec's own spacing, and the first section inside it must not draw a
+     second rule directly under the summary. */
+  /* The FIRST section under the key block gets the rule its siblings get from
+     .st-sec + .st-sec. Scoped to a class rather than :first-of-type, because
+     .st-sec dresses every drawer in Settings and this is a decision about ONE
+     of them. */
+  .st-sec-top{ border-top:1px solid var(--color-divider); padding-top:15px; margin-top:15px; }
+  .st-adv{ border-top:1px solid var(--color-divider); padding-top:15px; margin-top:18px; }
+  .st-adv-sum{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;
+    font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-adv-sum::-webkit-details-marker{ display:none; }
+  .st-adv-sum::before{ content:'\25B8'; font-size:var(--t-label); color:var(--color-neutral-500);
+    transition:transform var(--dur-1) var(--ease); }
+  .st-adv[open] > .st-adv-sum::before{ transform:rotate(90deg); }
+  .st-adv > .st-sec:first-of-type{ border-top:0; padding-top:0; margin-top:15px; }
   .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-mono);
     font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text); margin:0 0 var(--s-2); }
   .st-sec-n{ flex:none; width:19px; height:19px; border-radius:50%; display:inline-grid;

@@ -1,5 +1,5 @@
 /* ============================================================
-   F274 — What Copilot proposed, and what became of it (ideas 22 & 23)
+   F276 — What Copilot proposed, and what became of it (ideas 22 & 23)
    ============================================================
    Two screens were asked for and they are ONE recording seen twice: the AI
    involvement record in a contract's evidence pack, and acceptance metrics in
@@ -55,7 +55,7 @@ function stage(){
 /* ============================================================
    1 — THE CONTROL: a proposal really is settled by the funnel
    ============================================================ */
-describe('F274 (1) the funnel settles what was recorded', () => {
+describe('F276 (1) the funnel settles what was recorded', () => {
   test('taken word-for-word reads as-is; a word changed reads edited', async () => {
     const { win, c } = stage();
     win.negoInit(c);
@@ -123,7 +123,7 @@ describe('F274 (1) the funnel settles what was recorded', () => {
 /* ============================================================
    2 — the five outcomes, and the fifth is the honest one
    ============================================================ */
-describe('F274 (2) the outcomes', () => {
+describe('F276 (2) the outcomes', () => {
   test('nothing is inferred from silence — proposed is its own answer', () => {
     const { win, c } = stage();
     win.aiTraceNote(c, { feature: 'redline', kind: 'wording', what: 'a' });
@@ -161,7 +161,7 @@ describe('F274 (2) the outcomes', () => {
 /* ============================================================
    3 — the hash answers equality, and only equality
    ============================================================ */
-describe('F274 (3) the hash', () => {
+describe('F276 (3) the hash', () => {
   test('the same words in different dressing are the same wording', () => {
     const { win } = stage();
     assert.equal(win.aiTraceHash('<p>Thirty days.</p>'),
@@ -182,7 +182,7 @@ describe('F274 (3) the hash', () => {
 /* ============================================================
    4 — the cap is a fact
    ============================================================ */
-describe('F274 (4) bounds', () => {
+describe('F276 (4) bounds', () => {
   test('a contract holds at most AI_TRACE_MAX entries, oldest dropped', () => {
     const { win, c } = stage();
     for (let i = 0; i < win.AI_TRACE_MAX + 5; i++)
@@ -204,7 +204,7 @@ describe('F274 (4) bounds', () => {
 /* ============================================================
    5 — no store, no route, no drawing
    ============================================================ */
-describe('F274 (5) it adds no route and draws nothing', () => {
+describe('F276 (5) it adds no route and draws nothing', () => {
   test('the reading reaches no network verb', () => {
     for (const v of ['api(', 'fetch(', "'ai/", '"ai/'])
       assert.ok(!TRACE_CODE.includes(v), `${v} must never appear here`);
@@ -227,7 +227,7 @@ describe('F274 (5) it adds no route and draws nothing', () => {
 /* ============================================================
    6 — IDEA 22: the contract's own record, in the evidence pack
    ============================================================ */
-describe('F274 (6) the evidence pack', () => {
+describe('F276 (6) the evidence pack', () => {
   test('the pack states what the section is NOT, in its own first line', () => {
     const { win, c } = stage();
     win.aiTraceNote(c, { feature: 'redline', kind: 'wording', what: 'a' });
@@ -284,7 +284,7 @@ describe('F274 (6) the evidence pack', () => {
 /* ============================================================
    7 — IDEA 23: the workspace, by feature
    ============================================================ */
-describe('F274 (7) the acceptance reading', () => {
+describe('F276 (7) the acceptance reading', () => {
   test('it counts across contracts and groups by the surface that proposed', () => {
     const { win, c } = stage();
     const c2 = { id: 'MK-501', audit: [], comments: [] };
@@ -360,10 +360,18 @@ describe('F274 (7) the acceptance reading', () => {
       'counting is not drawing — a percentage worked out here is a second arithmetic');
   });
 
-  test('an empty book says which kind of empty it is', () => {
+  /* REVERSED IN PLACE 9 Sep 2026: there are TWO kinds of empty now, because the
+     book can hold Copilot history from before the recording existed. Never used
+     at all is a different fact from nothing since the recording started, and the
+     claim is stronger for naming both. */
+  test('an empty book says which kind of empty it is, and there are two kinds', () => {
     const body = drawer();
-    assert.ok(body.includes("i18t('ai_tr_none')") && body.includes("i18t('ai_tr_none_why')"),
+    assert.ok(/ai_tr_since_none.*:.*ai_tr_none|ai_tr_none.*:.*ai_tr_since_none/.test(body),
+      'the empty state is chosen by whether history holds anything');
+    assert.ok(body.includes("i18t('ai_tr_none_why')"),
       'an empty state that only says "nothing here" leaves the reader guessing why');
+    assert.ok(body.includes("i18t('ai_tr_before_why')"),
+      'and a book with history says what that history cannot answer');
   });
 
   test('the table prints counts and the tiles print shares', () => {
@@ -384,7 +392,7 @@ describe('F274 (7) the acceptance reading', () => {
 /* ============================================================
    8 — the three surfaces that record, and the one that must not
    ============================================================ */
-describe('F274 (8) where a proposal is recorded', () => {
+describe('F276 (8) where a proposal is recorded', () => {
   test('the clause editor records at arrival and stamps at the press', () => {
     const code = strip(CE);
     assert.ok(/aiTraceNote\(_ceC,\s*\{\s*feature:\s*'redline'/.test(code),
@@ -439,7 +447,7 @@ describe('F274 (8) where a proposal is recorded', () => {
 /* ============================================================
    9 — both languages
    ============================================================ */
-describe('F274 (9) the words', () => {
+describe('F276 (9) the words', () => {
   const KEYS = ['ai_tr_title', 'ai_tr_sub', 'ai_tr_none', 'ai_tr_none_why', 'ai_tr_started',
     'ai_tr_proposals', 'ai_tr_as_is', 'ai_tr_edited', 'ai_tr_not_taken',
     'ai_tr_th_feature', 'ai_tr_th_proposals', 'ai_tr_th_as_is', 'ai_tr_th_edited', 'ai_tr_th_not_taken',
@@ -460,5 +468,157 @@ describe('F274 (9) the words', () => {
       for (const k of KEYS) assert.notEqual(win.i18t(k), k, `${k} is missing in ${lang}`);
     }
     win.langSet('en');
+  });
+});
+
+/* ============================================================
+   10 — WHAT HISTORY ALREADY HOLDS (owner-asked 9 Sep 2026)
+   ============================================================
+   The recording starts the day it ships, so the drawer opened empty on every
+   workspace and the owner reported the feature as simply not being there. This
+   is the half that CAN be recovered — and, just as importantly, the three
+   halves that cannot. */
+describe('F276 (10) the history count', () => {
+  const bookOf = changes => [{ id: 'MK-1', changes }];
+
+  test('a change filed from Copilot wording is counted', () => {
+    const { win } = buildWorld({});
+    const h = win.aiTraceHistory(bookOf([{ id: 'CHG-1', note: 'Copilot — Simplify' }]));
+    assert.equal(h.taken, 1);
+    assert.equal(h.contracts, 1);
+  });
+
+  test('a PLAYBOOK filing is deliberately not counted', () => {
+    const { win } = buildWorld({});
+    /* Two of the playbook's three wordings are the workspace's OWN clause
+       library, and the note does not say which went in. Counting it would be
+       HaTi taking credit for its customer's drafting — the same rule the
+       recording itself keeps. */
+    const h = win.aiTraceHistory(bookOf([{ id: 'CHG-1', note: 'Playbook — Payment terms' }]));
+    assert.equal(h.taken, 0);
+  });
+
+  test('an ordinary change with no provenance is not counted', () => {
+    const { win } = buildWorld({});
+    assert.equal(win.aiTraceHistory(bookOf([{ id: 'CHG-1' }, { id: 'CHG-2', note: 'Typo' }])).taken, 0);
+  });
+
+  test('archived rounds are counted too — closing a round moves a change off c.changes', () => {
+    const { win } = buildWorld({});
+    const h = win.aiTraceHistory([{ id: 'MK-1', changes: [{ id: 'CHG-9', note: 'Copilot — Shorten' }],
+      negotiation: { rounds: [ { n: 1, changes: [
+        { id: 'CHG-1', note: 'Copilot — Firmer' }, { id: 'CHG-2', note: 'Playbook — Liability' } ] } ] } }]);
+    assert.equal(h.taken, 2, 'one live and one archived; the playbook one is not ours to claim');
+  });
+
+  test('one change is never counted twice', () => {
+    const { win } = buildWorld({});
+    const ch = { id: 'CHG-1', note: 'Copilot — Simplify' };
+    const h = win.aiTraceHistory([{ id: 'MK-1', changes: [ch],
+      negotiation: { rounds: [{ n: 1, changes: [ch] }] } }]);
+    assert.equal(h.taken, 1, 'a double-counted figure is the one thing this must not print');
+  });
+
+  test('IT READS WITHOUT WRITING — no negotiation is started by counting the book', () => {
+    const { win } = buildWorld({});
+    const c = { id: 'MK-1', format: 'rich', redlineText: CLAUSE };
+    win.aiTraceHistory([c]);
+    assert.ok(!('negotiation' in c),
+      'negoAllChanges and negoChanges both call negoInit, which would start a negotiation on ' +
+      'every contract merely by counting it');
+    assert.equal(c.redlineText, CLAUSE, 'and would stamp clause ids into the document');
+  });
+
+  test('the reading never touches a route or the network', () => {
+    for (const bad of ['api(', 'fetch(', "'ai/", 'aiTraceHistory = async']) {
+      assert.ok(!TRACE_CODE.includes(bad), `js/aitrace.js must not contain ${bad}`);
+    }
+    assert.ok(!/negoAllChanges|negoChanges\(/.test(TRACE_CODE),
+      'it must read c.changes and the rounds RAW');
+  });
+
+  test('the drawer prints the count and says what it cannot answer', () => {
+    const body = drawer();
+    assert.ok(body.includes('aiTraceHistory'), 'the section asks for it');
+    assert.ok(body.includes("i18tn('ai_tr_before'"), 'and prints it as a count, one/other');
+    assert.ok(body.includes("i18t('ai_tr_before_why')"),
+      'a figure this partial without its limit beside it is worse than no figure');
+    assert.ok(!/ai_tr_before[^_]/.test(body) || body.includes("i18tn('ai_tr_before'"),
+      'never as a second table pretending to the same four columns');
+  });
+
+  test('and it is read through window, so a stage without the file draws no line', () => {
+    assert.ok(/window\.aiTraceHistory/.test(drawer()),
+      'a bare cross-module read throws; this file is loaded on stages that carry no aitrace.js');
+  });
+});
+
+/* ============================================================
+   11 — THE PANEL IS THE KEY, THE MONEY AND WHAT CAME OF IT
+   ============================================================
+   Owner-asked 9 Sep 2026. The claim is NOT that things were deleted — every one
+   of them is a wall somebody argued for, and two are named in the rulebook. It
+   is that they FOLD, and that the three things a person reads are above the
+   fold. */
+describe('F276 (11) the folded panel', () => {
+  /* THE SERVER BRANCH ONLY. stEngineBodyHtml returns a short local-mode panel
+     first — key, a note, and the acceptance reading — and reading both together
+     puts that branch's stAcceptanceHtml() BEFORE the spend table and makes an
+     ordering claim answer about the wrong panel. The fold is the server one. */
+  const panel = () => {
+    const all = strip(SETTINGS).split('function stEngineBodyHtml(){')[1].split('\nfunction ')[0];
+    return all.slice(all.lastIndexOf('id="ai-cfg-status"'));
+  };
+
+  test('the key box, the spend and the proposals all read before the fold', () => {
+    const b = panel();
+    const fold = b.indexOf('<details');
+    assert.ok(fold > 0, 'there is a fold');
+    for (const id of ['id="ai-key"', 'id="ai-spend-breakdown"', '${stAcceptanceHtml()}']) {
+      assert.ok(b.indexOf(id) > 0 && b.indexOf(id) < fold, `${id} must read before the fold`);
+    }
+  });
+
+  test('and it sits directly after the spend, where the owner\'s drawing puts it', () => {
+    const b = panel();
+    assert.ok(b.indexOf('id="ai-spend-breakdown"') < b.indexOf('${stAcceptanceHtml()}'),
+      'what it cost, then what came of it');
+    assert.ok(b.indexOf('${stAcceptanceHtml()}') < b.indexOf('<details'),
+      'and nothing configurable in between');
+  });
+
+  test('EVERY WALL IS STILL THERE — folded is not deleted', () => {
+    const b = panel();
+    for (const id of ['ai-daily-spend', 'ai-renewal-prep', 'ai-renewal-max', 'ai-rates-table',
+                      'ai-model-fast', 'ai-spend-people', 'meta-backfill', 'ai-allow-budget']) {
+      /* A limit field is built by stLimitField, so its id is an ARGUMENT rather
+         than markup — reading only for id="…" would report half these walls as
+         missing on a panel that still draws every one of them. */
+      assert.ok(b.includes(`id="${id}"`) || b.includes(`'${id}'`),
+        `${id} is a control somebody argued for; it may fold, not go`);
+    }
+  });
+
+  test('the fold is shut by default and remembers nothing', () => {
+    const b = panel();
+    assert.ok(/<details class="st-adv" id="ai-advanced">/.test(b), 'no open attribute');
+    assert.ok(!/st-adv[^>]*\bopen\b/.test(b));
+    assert.ok(!/localStorage|hati\.v1\.[a-z]*adv/i.test(b),
+      'a drawer that remembered being open would put the wall of boxes back');
+  });
+
+  test('it is not called Advanced, because the model row already is', () => {
+    const b = panel();
+    assert.ok(b.includes("i18t('set_more_settings')"), 'the fold has its own name');
+    assert.ok(b.includes("i18t('set_advanced_override')"),
+      'and the model routing keeps its own, which is why the two may not share a word');
+  });
+
+  test('both dictionaries carry every word this panel gained', () => {
+    for (const k of ['set_more_settings', 'set_more_settings_sub', 'set_spend_today',
+                     'ai_tr_before_one', 'ai_tr_before_other', 'ai_tr_before_why', 'ai_tr_since_none']) {
+      const hits = (I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length;
+      assert.equal(hits, 2, `${k} must be in BOTH books, found ${hits}`);
+    }
   });
 });

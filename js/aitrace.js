@@ -335,11 +335,62 @@ function aiTraceShares(d){
   return { asIs, edited, notTaken: Math.max(0, 100 - asIs - edited) };
 }
 
+/* ---- WHAT HISTORY ALREADY HOLDS, AND WHAT IT CANNOT ----
+   The recording above starts the day it ships, so on a workspace with a year
+   of Copilot behind it the drawer opens empty and stays that way for weeks.
+   That is honest and it is useless, and the owner said so.
+
+   ONE HALF OF ONE COLUMN IS RECOVERABLE. Long before any of this, a change
+   filed from Copilot's wording carried its provenance — `note` reads
+   "Copilot — Simplify" — so a proposal that was TAKEN can be counted right
+   back through the book. Nothing else can: the record never held what the
+   model first said, so as-is against edited is unknowable, and it never held
+   a proposal nobody used, so refused and never-acted-on are unknowable too.
+   The drawer prints this as a COUNT with that limit written under it rather
+   than as a table, because a table with one honest column and three guessed
+   ones is worse than a sentence.
+
+   PLAYBOOK FILINGS ARE DELIBERATELY NOT COUNTED, and this is the same rule
+   the recording itself keeps: `Playbook — <category>` says a standard was
+   filed and does NOT say which of the three wordings went in, and two of the
+   three are the workspace's own clause library. Counting them would be HaTi
+   taking credit for its customer's own drafting.
+
+   IT READS WITHOUT WRITING. `c.changes` and the archived rounds are read RAW,
+   never through negoAllChanges or negoChanges — both call negoInit, which
+   creates a negotiation record and stamps clause ids into the document, so a
+   sweep over the whole book would start a negotiation on every contract
+   merely by counting it. */
+const AI_TRACE_NOTE_RE = /^\s*copilot\b/i;
+const aiTraceFromCopilot = ch => !!(ch && AI_TRACE_NOTE_RE.test(String(ch.note || '')));
+function aiTraceHistory(list){
+  let taken = 0, contracts = 0;
+  for (const c of (Array.isArray(list) ? list : [])){
+    if (!c) continue;
+    /* Deduped on the change id: closing a round moves a change OFF c.changes
+       and onto the round, so nothing should be in both — the guard is cheap
+       and a double-counted figure is the one thing this must not print. */
+    const seen = new Set();
+    let n = 0;
+    const take = ch => {
+      if (!aiTraceFromCopilot(ch)) return;
+      const k = ch.id || ('#' + n);
+      if (seen.has(k)) return;
+      seen.add(k); n++;
+    };
+    for (const ch of (Array.isArray(c.changes) ? c.changes : [])) take(ch);
+    const rounds = (c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [];
+    for (const r of rounds) for (const ch of (Array.isArray(r && r.changes) ? r.changes : [])) take(ch);
+    if (n){ taken += n; contracts++; }
+  }
+  return { taken, contracts };
+}
+
 Object.assign(window, {
   AI_TRACE_MAX, AI_TRACE_WHAT_MAX, AI_TRACE_RESTED_MAX,
   AI_TRACE_OUTCOMES, AI_TRACE_TAKEN, AI_TRACE_UNTAKEN, AI_TRACE_FEATURES,
   aiTraceFeatureLabel, aiTraceFeatureEnglish,
   aiTraceHash, aiTraceList, aiTraceNote, aiTraceById, aiTraceApplied,
   aiTraceRefuse, aiTraceTaken, aiTraceSettle, aiTraceSave, aiTracePack, aiTraceStats,
-  aiTraceShares,
+  aiTraceShares, aiTraceHistory, aiTraceFromCopilot, AI_TRACE_NOTE_RE,
 });

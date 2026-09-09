@@ -10584,3 +10584,64 @@ redline-verify 191/191, parity-verify 41/41, obligations-tab-verify green.
 ### Noticed, not fixed
 - 4 pre-existing lint errors (no-dupe-keys, two keys in the dictionary) — proved present before this run by stashing; outside this request.
 - Lint warnings went 176 to 177; the one new warning was not located before the search was stopped.
+
+## 2026-09-09 (7) — THE EMPTY SCREEN, AND THE PANEL THAT FOLDS (owner-reported, then owner-asked)
+
+*"I do not see the changes for 23 and 22 as designed in the artifact"* → *"but I
+also cannot find this"* → over a screenshot of the section itself, *"like i
+said, it is not there."* Then: *"go ahead with both but also delete anything
+unnecessary information in the panel ... The only thing i use currently is where
+i enter the anthropic key."*
+
+**THE OWNER WAS RIGHT AND THE FAULT WAS THE DELIVERY.** The section was on the
+page and it said "Nothing recorded yet", below four screens of number boxes. The
+recording starts the day it ships, so it opens empty on every workspace and
+stays that way for weeks. What shipped was the machinery and an empty box.
+
+**FIRST, WHAT WAS RULED OUT BY MEASURING RATHER THAN REASONING.** Driven in a
+real browser: the section draws, at 1231px in a 1000px viewport inside a 2093px
+drawer — below the fold, exactly where their screenshot stopped. And against a
+real server, `aiTrace` survives a save and comes back on the LIGHT list (HEAVY
+spreads and strips only execution.html, upload bodies, comments and audit), so
+the plumbing was never the problem. Idea 22 was never on the screen they
+photographed at all: the evidence pack is a downloaded JSON file, not a rendered
+report — and the report in the artifact does not exist in the product, for any
+of its six sections. Reported, not built.
+
+**aiTraceHistory — WHAT THE BOOK ALREADY HOLDS.** A change filed from Copilot's
+wording has carried its provenance since long before this (`note` reads
+"Copilot — Simplify"), so a proposal that was TAKEN is countable right back
+through the book. Printed as a COUNT with its limit under it, never as a second
+table: as-is against edited is unknowable and refused is unknowable, and a table
+with one honest column and three guessed ones is worse than a sentence.
+**A PLAYBOOK FILING IS NOT COUNTED** — the note does not say which of the three
+wordings went in and two of them are the workspace's own clause library.
+**IT READS WITHOUT WRITING**: c.changes and the archived rounds RAW, deduped on
+the id, never negoAllChanges — which calls negoInit and would start a
+negotiation on every contract merely by counting it.
+
+**THE PANEL FOLDS RATHER THAN LOSES ANYTHING.** Nothing in it is decoration: the
+daily budget is the one real money wall, the renewal-notes switch is the stop on
+the ONE thing HaTi spends unasked, and a stale rate table under-reports the bill.
+One <details> holds model routing, by-person spend, every limit, both switches,
+the allowance, the rate table and the backfill — each one press away, which is
+what "stoppable from a screen" has always meant. MEASURED: 2093px of drawer in an
+873px window became 873, with the key, the spend and the proposals all on screen.
+Shut by default and remembering nothing. Named "More settings", because the model
+row is already called Advanced and two doors sharing a word is a name nobody can
+use.
+
+**ONE FAULT FOUND BY MEASURING, NOT READING.** Slicing the spend section in two
+left its first div unclosed, so #ai-acceptance became a CHILD rather than a
+sibling and `.st-sec + .st-sec` never applied — the two sections drew with no
+rule and no gap. It reads perfectly correct in the source; a computed-style read
+of border-top named it.
+
+Verified: lint unchanged (4 pre-existing errors, 177 warnings), node 6083/6083,
+f276 67/67, settings-tabs-verify 80/80, settings-holds-still-verify 18/18,
+f193/f194/f201/f203/f275 green.
+
+### Noticed, not fixed
+- theme-tokens-verify is 37/40 — templates--light, negotiate--light, negotiate--dark. PROVED pre-existing by running the file in a worktree at the parent commit: identical 37/40, identical three screens. Not this run's and not widened by it.
+- The evidence pack is a JSON download and nothing renders it as a readable report; the artifact designs one for all six sections. Reported to the owner, awaiting their call.
+- 4 pre-existing lint errors (no-dupe-keys) — unchanged, outside this request.
