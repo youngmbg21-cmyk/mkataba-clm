@@ -2883,12 +2883,38 @@ async function ceAsk(question, opts = {}){
   }
   const wording = String(res.proposedText || '').trim();
   const rests = [cePlaybookLine(), cePrecedentLine()].filter(Boolean)[0] || '';
+  /* ---- THE PROPOSAL GOES ON THE RECORD THE MOMENT IT IS MADE (idea 22) ----
+     RECORDED AT ARRIVAL, NOT AT THE PRESS, and that is the whole reason this
+     surface can answer "how much of what Copilot offered was actually used".
+     A card is one paid answer to one question; the reader either takes it or
+     does not, and a proposal recorded only when it is APPLIED can never report
+     the ones nobody wanted. Everything else in this file already treats a card
+     as a one-shot offer.
+
+     IT RECORDS AND IT DOES NOT DECIDE. The outcome starts at `proposed` and is
+     settled by the funnel when something is filed; a card nobody presses stays
+     `proposed` for good, which the two readers print as "not taken" rather than
+     folding into a refusal — the rulebook's own rule that a call which never
+     got an answer is not a wrong answer.
+
+     THE ID RIDES ON THE CARD for the same reason the passage does: Apply may be
+     pressed minutes later, after other answers have landed, and the entry this
+     press settles must be the entry this card was written from. */
+  let _trace = null;
+  if (wording && window.aiTraceNote){
+    try{
+      _trace = aiTraceNote(_ceC, { feature: 'redline', kind: 'wording',
+        clauseId: _ceClauseId, clauseLabel: ceClauseLabel(cl),
+        what: wording, rested: rests });
+      if (window.aiTraceSave) aiTraceSave(_ceC);
+    }catch(_){ _trace = null; }
+  }
   _ceThread.push({ who: 'ai',
     text: String(res.advice || '').trim(),
     read,
     cards: wording ? [{ name: _cet(scope ? 'ce_suggestion_passage' : 'ce_suggestion'),
       chip: _cet('ce_chip_copilot'), chipTone: 'wait',
-      line: '', rests, text: wording, passage: scope || null }] : [] });
+      line: '', rests, text: wording, passage: scope || null, trace: _trace }] : [] });
   ceRenderLane();
 }
 
@@ -3749,6 +3775,15 @@ function ceWirePage(page){
          the foot is still what puts it on the record. */
       if (card.passage) ceReplacePassage(card.passage, card.text);
       else ceApply(card.text, _cet('ce_step_copilot'));
+      /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
+         changed it before filing. Stamped AFTER the apply and read off the
+         draft itself rather than off the card — a passage replacement puts
+         Copilot's words inside a clause the reader wrote the rest of, and it is
+         the filed thing the comparison has to be made against. */
+      try{ if (card.trace && window.aiTraceApplied){
+        aiTraceApplied(_ceC, card.trace, _ceText);
+        if (window.aiTraceSave) aiTraceSave(_ceC);
+      } }catch(_){}
       return; }
 
     const refine = hit('[data-ce-refine]');
@@ -3772,12 +3807,51 @@ function ceWirePage(page){
       const words = String((parts[1] === 'fallback' ? it.fallback
         : parts[1] === 'draft' ? it.draft : it.preferred) || '').trim();
       if (!words) return;
+      /* ---- ONLY THE DRAFT IS COPILOT'S WORDING (idea 22) ----
+         rlPlaybookProposals names THREE wordings on a finding and only `draft`
+         is the model's: `preferred` and `fallback` are the clause library's,
+         approved in this workspace and editable in Settings. So a reader who
+         presses "Use our standard" has taken the COMPANY'S words, not
+         Copilot's — counting that as a Copilot proposal accepted would be this
+         product taking credit for its customer's own drafting.
+
+         WHICH MAKES IT A REFUSAL, precisely and honestly: Copilot's draft was
+         on the card, in front of them, and they used our own wording instead.
+         Where the finding carries no draft at all Copilot proposed no wording
+         here and nothing is recorded — there is no proposal to have an outcome.
+
+         RECORDED AT THE PRESS rather than when the scan runs, and that is a
+         deliberate difference from the Copilot cards above. A playbook finding
+         is not a one-shot answer: it STANDS on the card until it is dealt with,
+         so a reader who has not got to it yet is visible there — recording it
+         here as well would count the same not-yet twice, once on a card and
+         once as a statistic. */
+      const _pbDraft = String((it && it.draft) || '').trim();
+      let _pbTrace = null;
+      if (_pbDraft && window.aiTraceNote){
+        try{
+          _pbTrace = aiTraceNote(_ceC, { feature: 'playbook', kind: 'wording',
+            clauseId: it.clauseId || null,
+            clauseLabel: it.clauseLabel || (it.v && it.v.category) || '',
+            what: _pbDraft, rested: (it.v && it.v.category) || '',
+            /* A new clause is filed by the press itself, so its hash has to be
+               on the record before rlFilePlaybookProposal reaches the funnel. */
+            hash: (parts[1] === 'draft' && !it.clauseId && window.aiTraceHash)
+              ? aiTraceHash(words) : null });
+          if (parts[1] !== 'draft') aiTraceRefuse(_ceC, _pbTrace, _cet('ce_trace_used_ours'));
+          if (window.aiTraceSave) aiTraceSave(_ceC);
+        }catch(_){ _pbTrace = null; }
+      }
       /* THE VERB FOLLOWS THE FINDING, never the button that was pressed. A rule
          that located THIS clause fills the box and files nothing; a rule that
          located no clause at all has nothing here to replace, so it files a new
          clause instead. One decision, taken from the finding's own clauseId. */
       if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
       else ceAddMissingClause(it, words, scan);
+      try{ if (_pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
+        aiTraceApplied(_ceC, _pbTrace, _ceText);
+        if (window.aiTraceSave) aiTraceSave(_ceC);
+      } }catch(_){}
       return; }
 
     /* A ROW IS A DOOR TO ITS CLAUSE, and it is ceGoClause — the crumb's own act

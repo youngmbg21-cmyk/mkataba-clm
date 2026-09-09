@@ -65,6 +65,14 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   rep.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});
   fs.createReadStream(f).pipe(rep)});s.listen(0,'127.0.0.1',()=>res(s))})}
 
+/* The note window opens after a filing and covers the page. Where a journey is
+   not ABOUT that window, it is answered and the walk goes on — skipNote's own
+   shape, for skipNote's own reason. */
+const dismissNote = async pg => {
+  const b = await pg.$('#rl-note-skip');
+  if (b) { await b.click(); await pause(350); }
+};
+
 (async()=>{
   const srv=await serve();
   const br=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
@@ -2977,6 +2985,123 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const s27h = await st27();
   ck('27h and saying yes really leaves', s27h.page === false && s27h.dialog === false,
      `page ${s27h.page} · dialog ${s27h.dialog}`);
+
+  /* ---- 28. WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (ideas 22 & 23) ----
+     The reading and the funnel are proved in f274. What only a browser can
+     answer is whether the RECORDING is reached at all on a real page: a card
+     carries its entry, the Apply press stamps what the draft became, and the
+     funnel then settles it. Every one of those is a `window.` guard that would
+     be silently false on a page that does not load js/aitrace.js — this
+     codebase's most repeated defect — and it really was false when this
+     section was first written, because the harness pages build their own
+     script list and none of them had been told about the new file.
+
+     IT STAGES ITS OWN GROUND. Twenty-seven sections of drafts, dialogs and
+     half-finished journeys run above it, and a check that inherits that is a
+     check whose failures say nothing about itself. The page is reloaded, so
+     the contract this reads is a fresh one and "one entry" means one.
+
+     DRIVEN THROUGH THE SAME window.copilotAsk STUB section 14 uses, so
+     everything between the model's reply and the record is the product's own
+     code. */
+  await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`, { waitUntil: 'load' });
+  await p.evaluate(() => window.READY); await pause(500);
+
+  const TRACE_WORDS = 'This Agreement shall continue for four (4) years from the '
+    + 'Effective Date and may be terminated by either Party on sixty (60) days written notice.';
+
+  await p.evaluate(({ reply }) => {
+    const cl = negoClauseList(window.CONTRACT)[1];
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+    const tab = document.querySelector('#clause-editor [data-ce-tab="chat"]');
+    if (tab) tab.click();
+    window.copilotAvailable = () => true;
+    window.copilotAsk = async () => reply;
+  }, { reply: TRACE_WORDS });
+  await p.fill('#ce-ask', 'make the term four years');
+  await p.click('#clause-editor [data-ce-act="ask"]');
+  await pause(700);
+
+  const readTrace = async () => await p.evaluate(() => {
+    const t = (window.CONTRACT.aiTrace || []);
+    const e = t[t.length - 1] || null;
+    return { n: t.length, outcome: e && e.outcome, feature: e && e.feature,
+      hashed: !!(e && e.hash), change: (e && e.changeId) || null,
+      onCard: !!document.querySelector('#clause-editor [data-ce-apply]') };
+  });
+
+  const t0 = await readTrace();
+  ck('28a a Copilot card puts its proposal on the record the moment it arrives',
+     t0.n === 1 && t0.outcome === 'proposed' && t0.feature === 'redline',
+     `${t0.n} entr(y/ies) · ${t0.outcome} · ${t0.feature}`);
+  ck('28b and it is recorded as offered, with nothing taken yet',
+     t0.hashed === false && t0.onCard === true,
+     `hashed ${t0.hashed} · card ${t0.onCard}`);
+
+  await p.click('#clause-editor [data-ce-apply]');
+  await pause(500);
+  const t1 = await readTrace();
+  ck('28c pressing Apply stamps what the draft became — still offered, now taken into a draft',
+     t1.outcome === 'proposed' && t1.hashed === true,
+     `${t1.outcome} · hashed ${t1.hashed}`);
+
+  const before28 = await p.evaluate(() => (window.CONTRACT.changes || []).length);
+  await p.click('#clause-editor [data-ce-act="save"]');
+  await pause(900);
+  const filedNow = await p.evaluate(before => {
+    const ch = (window.CONTRACT.changes || []).slice(-1)[0];
+    return { before, after: (window.CONTRACT.changes || []).length, id: ch && ch.id };
+  }, before28);
+  /* Filing raises the note window (31 Aug 2026), which covers the page — so it
+     is answered before anything else is pressed. Skipping it is a real answer:
+     a blank reason has always been allowed on purpose. */
+  await dismissNote(p);
+  const t2 = await readTrace();
+  ck('28d THE WHOLE POINT: filing it word-for-word settles it as taken as-is',
+     t2.outcome === 'as-is' && t2.change === filedNow.id,
+     `${t2.outcome} · change ${t2.change} · filed ${filedNow.id} (${filedNow.before}→${filedNow.after})`);
+
+  const stats = await p.evaluate(() => {
+    if (typeof window.aiTraceStats !== 'function') return null;
+    const s = window.aiTraceStats([window.CONTRACT]);
+    return { proposals: s.proposals, asIs: s.asIs, notTaken: s.notTaken,
+      pack: (window.aiTracePack ? window.aiTracePack(window.CONTRACT).takenAsIs : null) };
+  });
+  ck('28e and both readings count it — the drawer\'s and the evidence pack\'s',
+     !!(stats && stats.proposals === 1 && stats.asIs === 1 && stats.notTaken === 0 && stats.pack === 1),
+     JSON.stringify(stats));
+
+  /* THE OTHER HALF: wording the reader rewrote before filing is EDITED, and
+     without it "as-is" is satisfied by a build that marks everything taken. */
+  const edited = await p.evaluate(async ({ reply }) => {
+    const cl = negoClauseList(window.CONTRACT)[2];
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+    const tab = document.querySelector('#clause-editor [data-ce-tab="chat"]');
+    if (tab) tab.click();
+    window.copilotAvailable = () => true;
+    window.copilotAsk = async () => reply;
+    return { clauseId: cl.clauseId };
+  }, { reply: TRACE_WORDS });
+  await p.fill('#ce-ask', 'make the term four years');
+  await p.click('#clause-editor [data-ce-act="ask"]');
+  await pause(700);
+  await p.click('#clause-editor [data-ce-apply]');
+  await pause(400);
+  await p.evaluate(() => {
+    /* the reader's own hand, over what Copilot proposed */
+    window.ceApply('<p>The term is five (5) years and either Party may leave on ninety (90) days notice.</p>', 'typed');
+  });
+  await pause(300);
+  await p.click('#clause-editor [data-ce-act="save"]');
+  await pause(900);
+  const t3 = await p.evaluate(() => {
+    const t = (window.CONTRACT.aiTrace || []);
+    const ch = (window.CONTRACT.changes || []).slice(-1)[0];
+    return { outcome: t[t.length - 1] && t[t.length - 1].outcome, id: ch && ch.id };
+  });
+  await dismissNote(p);
+  ck('28f and wording the reader rewrote first reads as edited, not as taken',
+     t3.outcome === 'edited', `${t3.outcome} · ${t3.id}`);
 
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 

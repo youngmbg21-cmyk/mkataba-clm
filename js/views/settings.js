@@ -2536,6 +2536,84 @@ function stGoLive(){
    override, today's spend against the budget with the per-feature ledger, every
    ceiling field, the onboarding allowance and the editable rate table. USD,
    because the API bills in USD. */
+/* ============================================================================
+   WHAT BECAME OF COPILOT'S PROPOSALS (idea 23)
+   ----------------------------------------------------------------------------
+   The engine drawer already answers what Copilot COST. This answers what came
+   of it, which is the question an admin actually has when they look at that
+   figure: of the wording it proposed, how much went into agreements as
+   written, how much was rewritten first, and how much nobody used.
+
+   IT IS A READING AND IT ADDS NO ROUTE. Every figure is counted in the browser
+   off `state.contracts` — the caller's own already-scoped bootstrap, exactly as
+   the portfolio panels and the payment-terms tab are counted — so it is live on
+   every draw and there is nothing to schedule, invalidate or fetch. The spend
+   table above it comes from the server because only the server knows what
+   Anthropic charged; this comes from the book because only the book knows what
+   happened to the words.
+
+   COUNTING IS NOT DRAWING: aiTraceStats returns plain data and draws nothing;
+   this draws it and counts nothing of its own.
+
+   ---- THE TABLE PRINTS COUNTS AND THE TILES PRINT SHARES ----
+   A DEPARTURE FROM THE DRAWING, which put a percentage in every cell. A
+   percentage per row hides its own sample size, and three rounded shares in one
+   row regularly sum to 99 or 101 — a table that does not add up is a table
+   nobody trusts. The counts are exact and the Proposals column beside them is
+   the denominator, so a reader can still see the rate. In the TILES, where
+   shares are the point, "not taken" takes the rounding residual: it errs
+   towards showing a lower acceptance, which is the honest direction for a
+   number this product has an interest in.
+
+   ---- AND IT SAYS WHEN THE COUNTING STARTED ----
+   A workspace with a year of Copilot behind it would otherwise read this as
+   "3 proposals" and conclude nobody uses the thing. The recording began when it
+   was built; nothing before it can ever be counted, and the note says so rather
+   than leaving an admin to infer it from a number that looks wrong.
+   ==========================================================================*/
+function stAcceptanceHtml(){
+  if (typeof window.aiTraceStats !== 'function') return '';
+  let d = null;
+  try{ d = aiTraceStats((typeof state !== 'undefined' && state.contracts) || []); }
+  catch(_){ return ''; }
+  const head = `<div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${
+    esc(i18t('ai_tr_title'))}</div><p class="st-note">${esc(i18t('ai_tr_sub'))}</p>`;
+  /* An empty state that only says "nothing here" leaves the reader to work out
+     whether that is because nobody uses Copilot or because something is
+     broken. It says which, and what will fill it. */
+  if (!d.proposals && !d.readings) return `<div class="st-sec" id="ai-acceptance">${head}
+    <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:6px">${esc(i18t('ai_tr_none'))}</div>
+    <p class="st-note" style="margin-top:4px">${esc(i18t('ai_tr_none_why'))}</p></div>`;
+  const sh = aiTraceShares(d);
+  const tile = (n, w) => `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2)">
+    <div style="font-size:var(--t-section);font-weight:var(--w-title);color:var(--color-text);line-height:var(--lh-tight)">${esc(String(n))}</div>
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${esc(w)}</div></div>`;
+  const cell = (v, strong) => `<span style="flex:none;width:64px;text-align:right;font-family:var(--font-mono);font-size:var(--t-label)${
+    strong ? ';font-weight:var(--w-strong)' : ';color:var(--color-neutral-600)'}">${esc(String(v))}</span>`;
+  const rows = d.rows.map(r => `<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
+      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(aiTraceFeatureLabel(r.feature))}</span>
+      ${cell(r.proposals, true)}${cell(r.asIs)}${cell(r.edited)}${cell(r.refused + r.pending)}
+    </div>`).join('');
+  return `<div class="st-sec" id="ai-acceptance">${head}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:var(--s-2);margin:6px 0 var(--s-2)">
+      ${tile(d.proposals, i18t('ai_tr_proposals'))}
+      ${tile(sh.asIs + '%', i18t('ai_tr_as_is'))}
+      ${tile(sh.edited + '%', i18t('ai_tr_edited'))}
+      ${tile(sh.notTaken + '%', i18t('ai_tr_not_taken'))}
+    </div>
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">
+        <span style="flex:1;min-width:0">${esc(i18t('ai_tr_th_feature'))}</span>
+        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_proposals'))}</span>
+        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_as_is'))}</span>
+        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_edited'))}</span>
+        <span style="flex:none;width:64px;text-align:right">${esc(i18t('ai_tr_th_not_taken'))}</span>
+      </div>${rows}</div>
+    ${d.readings ? `<div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:6px">${
+      esc(i18tn('ai_tr_readings', d.readings, { n: d.readings }))}</div>` : ''}
+    <p class="st-note" style="margin-top:6px">${esc(i18t('ai_tr_note'))} ${esc(i18t('ai_tr_untaken_note'))} ${esc(i18t('ai_tr_started'))}</p>
+  </div>`;
+}
 function stEngineBodyHtml(){
   if(!API_MODE()){
     return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
@@ -2545,7 +2623,14 @@ function stEngineBodyHtml(){
         <button id="ai-key-save" style="${ST_BTN}">${i18t('set_save_key')}</button>
       </div>
       <button id="ai-key-clear" style="margin-top:6px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${i18t('set_remove_key')}</button>
-      <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>`;
+      <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_local_mode_note')}</p>
+      ${''/* THE ACCEPTANCE READING IS DRAWN HERE TOO, and that is the one-builder
+             rule rather than a convenience: it counts the book in the browser and
+             needs no server at all, so a workspace running without one has exactly
+             the same question and would otherwise lose the answer for no reason.
+             The spend table above it is absent here because only a server knows
+             what was charged; this one does not depend on that. */}
+      ${stAcceptanceHtml()}`;
   }
   return `
     <div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
@@ -2619,6 +2704,14 @@ function stEngineBodyHtml(){
         <span style="color:var(--st-amber-fg)">${i18t('set_thorough_warn')}</span> ${i18t('set_preflight')}</span></label>
       <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
     </div>
+
+    ${''/* WHAT IT COST is directly above; WHAT CAME OF IT is here, because those
+           are the two halves of one question and an admin reading the first
+           immediately has the second. It sits after the spend section rather
+           than at the foot of the drawer for that reason, and everything below
+           it — the allowance, the rate table, the backfill — is configuration
+           rather than a reading. */}
+    ${stAcceptanceHtml()}
 
     <div class="st-sec">
       <div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_onboarding_allowance')}</div>

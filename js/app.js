@@ -17,6 +17,7 @@ import './advice.js';
 import './metadata.js';
 import './versioning.js';
 import './discuss.js';    // the light channel: talking about a point, not redrafting it
+import './aitrace.js';   // what Copilot proposed and what became of it (ideas 22 & 23)
 import './negotiation.js'; // the fingerprinted change model every intake path converges on
 import './obligations.js';
 import './playbook.js';

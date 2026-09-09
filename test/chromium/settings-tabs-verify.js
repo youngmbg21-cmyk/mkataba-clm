@@ -454,6 +454,74 @@ const signIn = async (page, base, email, pass) => {
       /not a performance measure/i.test(said), said.replace(/\s+/g, ' ').trim().slice(0, 90));
     check('with nothing on it that refuses or caps anybody',
       !/limit|cap|blocked/i.test(said), 'Phase 1 shows; Phase 2 is not built');
+
+    /* ---- AND WHAT BECAME OF ITS PROPOSALS (idea 23) ----
+       No test world loads js/views/settings.js, so this section can only be
+       DRIVEN here. Four things a source check cannot see: that it is on screen
+       at all, that the key box the owner asked to keep is still above it, that
+       the shares a reader actually reads add up, and that the row's counts are
+       the reading's own counts rather than three rounded thirds. */
+    const acc = await page.evaluate(VISIBLE, '#ai-acceptance');
+    check('the engine drawer carries "what became of its proposals"', acc.ok, acc.why);
+    /* THE CONTROL, and it is the owner's own instruction: the section was added
+       BELOW what was already there and removed nothing. */
+    const keyBox = await page.evaluate(VISIBLE, '#ai-key');
+    check('and the Anthropic key box is still on screen above it', keyBox.ok, keyBox.why);
+    const accOrder = await page.evaluate(() => {
+      const k = document.getElementById('ai-key');
+      const b = document.getElementById('ai-spend-breakdown');
+      const a = document.getElementById('ai-acceptance');
+      if (!k || !b || !a) return null;
+      return { afterKey: (k.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING) > 0,
+               afterSpend: (b.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 };
+    });
+    check('it reads after the key and after the money, which is the question it answers next',
+      !!(accOrder && accOrder.afterKey && accOrder.afterSpend), JSON.stringify(accOrder));
+    const emptySaid = await page.evaluate(() =>
+      (document.getElementById('ai-acceptance') || {}).textContent || '');
+    check('a workspace with nothing recorded says WHICH kind of empty it is',
+      /Nothing recorded yet/i.test(emptySaid) && /fills in as people/i.test(emptySaid),
+      emptySaid.replace(/\s+/g, ' ').trim().slice(0, 90));
+
+    /* Three proposals on the record — one taken word-for-word, one rewritten
+       first, one nobody used — so every column has something in it and the
+       shares are the awkward thirds that used to sum to 99. */
+    await page.evaluate(() => {
+      const c = (state.contracts || [])[0];
+      if (!c) return;
+      c.aiTrace = [
+        { id: 'ai_a', at: nowISO(), feature: 'redline', kind: 'wording', what: 'thirty days',
+          clauseId: 'cl_1', clauseLabel: 'Payment', rested: 'Playbook: 30 days', outcome: 'as-is', by: 'Wanjiru Kamau' },
+        { id: 'ai_b', at: nowISO(), feature: 'redline', kind: 'wording', what: 'forty-five days',
+          clauseId: 'cl_1', clauseLabel: 'Payment', rested: '', outcome: 'edited', by: 'Wanjiru Kamau' },
+        { id: 'ai_c', at: nowISO(), feature: 'redline', kind: 'wording', what: 'sixty days',
+          clauseId: 'cl_1', clauseLabel: 'Payment', rested: '', outcome: 'proposed', by: 'Wanjiru Kamau' },
+      ];
+      stDrawerOpen('engine');
+    });
+    await page.waitForTimeout(900);
+    const filled = await page.evaluate(() => {
+      const el = document.getElementById('ai-acceptance');
+      if (!el) return null;
+      const txt = el.textContent || '';
+      const pcs = (txt.match(/(\d+)%/g) || []).map(x => Number(x.replace(/\D/g, '')));
+      return { txt: txt.replace(/\s+/g, ' ').trim(), pcs,
+               rows: Array.prototype.map.call(el.querySelectorAll('div'), d => d.textContent).length };
+    });
+    check('with proposals on the record the three shares are drawn',
+      !!(filled && filled.pcs.length === 3), JSON.stringify(filled && filled.pcs));
+    check('and they add up to 100 — a set of shares that does not is a set nobody trusts',
+      !!(filled && filled.pcs.reduce((a, b) => a + b, 0) === 100),
+      JSON.stringify(filled && filled.pcs));
+    check('the row names the surface that proposed, not the route that was billed',
+      !!(filled && /Redline \(clause editor\)/.test(filled.txt)),
+      (filled && filled.txt.slice(0, 90)) || '—');
+    check('and it says when the counting started, so a small number is not read as a verdict',
+      !!(filled && /since this recording was added/i.test(filled.txt)),
+      (filled && filled.txt.slice(-90)) || '—');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.evaluate(() => { settingsGoTab('build'); stDrawerOpen('engine'); });
+    await page.waitForTimeout(900);
     /* And NOT on the People tab, which is a list about permissions. */
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await page.evaluate(() => settingsGoTab('people'));

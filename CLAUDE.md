@@ -10901,6 +10901,144 @@ could-not-read card, whose own title is check 6d. Every driven half is guarded,
 so a build without the feature REPORTS its failures rather than stopping at the
 fourth)**.
 
+## WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (owner-asked 9 Sep 2026, ideas 22 & 23)
+
+*"implement 23 and 22 but for 23, do not delete the where I have to enter the
+anthropic key for now per the attached image."*
+
+Two screens, and they are **ONE RECORDING SEEN TWICE**: the AI involvement
+record in a contract's own evidence pack (22), and acceptance metrics in
+Settings → Build & launch → Copilot engine (23).
+
+**NEITHER COULD BE COMPUTED FROM ANYTHING ON FILE.** The product recorded that a
+change came from Copilot — `note` reads *"Copilot — Simplify"* — and nothing
+else: not what was offered and never taken, and not whether wording that WAS
+taken went in word-for-word or was rewritten first. The build order's own
+parenthetical had said *"quietly start recording Copilot's involvement — for 23
+later"* and it was never built, so the recording is most of this job and the two
+screens are only as true as it is.
+
+- **`js/aitrace.js` IS THE RECORDING AND IT ADDS NO ROUTE AND NO TABLE.**
+  `c.aiTrace` is an ordinary field, so it rides the light list by construction
+  (HEAVY spreads the record and strips five named things), and the workspace
+  reading counts `state.contracts` in the browser — the caller's own
+  already-scoped bootstrap. Same shelf as js/precedent.js and js/payterms.js:
+  a deterministic reading with no view and no network verb. **Its own file is
+  load-bearing** — four surfaces reach it, and written inside any one of them
+  the others would read it through `window` on a stage that does not carry that
+  view and record NOTHING, silently.
+- **FIVE OUTCOMES, AND THE FIFTH IS THE HONEST ONE.** `proposed` (offered,
+  nothing has happened) is printed and **never counted as a refusal** — this
+  codebase's own rule that a call which never got an answer is not a wrong
+  answer. `as-is`, `edited`, `refused`, and `read` for a reading, which is
+  counted apart because it was never a candidate for the agreement.
+- **SETTLED AT THE FUNNEL, NOT AT THE PRESS.** `negoFileChange` is where every
+  change is filed, so a proposal that reached the agreement by any door is
+  marked without that door knowing it had to — the same reasoning the two guards
+  above it are written under. **OUR SIDE ONLY**: a counterparty change on the
+  same clause is their wording, and letting it settle one of ours would mark a
+  proposal nobody here took as taken. **The newest APPLIED proposal on that
+  clause, and only that one** — a reader who takes card A, then B over it, then
+  files has used B, so A stays `proposed`, which is what "offered, not taken"
+  means.
+- **THE HASH IS FOR EQUALITY, NEVER FOR ATTESTATION**, and the file says so by
+  name. It is a cheap FNV over the TEXT PROJECTION, so a change of dressing that
+  leaves the words alone still reads as taken as-is — which is what a reader
+  means by it. **It is not the seal** (SHA-256 over the sealed wording) and not
+  the negotiation fingerprint.
+- **THREE SURFACES RECORD, EACH AT ITS OWN NATURAL MOMENT.** The clause editor's
+  Copilot card is recorded **at arrival**, because a card is one paid answer to
+  one question and a proposal recorded only when it is applied can never report
+  the ones nobody wanted. The playbook is recorded **at the press**, because a
+  finding STANDS on its card until it is dealt with — recording it earlier would
+  count the same not-yet twice, once on a card and once as a statistic.
+  Obligations are recorded **at the draw**, so the denominator is every proposal
+  the reader was SHOWN rather than only the ones they got round to answering.
+- **ONLY THE DRAFT IS COPILOT'S WORDING.** `rlPlaybookProposals` names three and
+  only `draft` is the model's; `preferred` and `fallback` are the clause
+  library's, approved in this workspace. Counting a *"Use our standard"* press as
+  a Copilot proposal accepted would be this product taking credit for its
+  customer's own drafting — **so it is recorded as a refusal of the draft, which
+  is exactly what it is.**
+- **A DUPLICATE OBLIGATION IS NEITHER**, and is not recorded: Copilot proposed
+  something the contract already carries, so there is no decision for a person to
+  make. Ticking is `as-is` and never `edited` — that window offers no way to
+  change the wording, so an edited outcome there would be a state the screen
+  cannot produce.
+- **DRAFT FROM A SENTENCE IS DELIBERATELY NOT RECORDED, said out loud.** Its
+  proposal becomes a CONTRACT, so a draft nobody took has no contract to be
+  recorded on: the feature could only ever report as-is and edited, and a "not
+  taken" column reading zero for it would be a lie by omission on the one row
+  that could not answer.
+- **A SEALED RECORD TAKES NO COURTESY WRITE** — `aiTraceSave` is `aiNoteRead`'s
+  own reasoning one field along: persist is refused outright on an executed
+  contract, so it records in memory and declines to save.
+- **THE CAP IS A FACT.** `AI_TRACE_MAX` (40) per contract, oldest dropped, and
+  the label and the "rested on" line are clipped rather than stored whole — what
+  is wanted from them is recognition, and the wording itself is one press away on
+  the clause the entry names.
+
+**IDEA 22 — THE PACK STATES WHAT IT IS NOT, IN ITS OWN FIRST LINE.** *"Nothing
+here is part of the agreement — the agreement is the sealed wording above."* A
+lawyer reading it in a dispute must not have to infer that, and reading it the
+other way round — as though the model had authored a clause — is what a plain
+statement at the top is for. **It keeps ENGLISH**, because a record read by
+somebody who was never in this workspace must not put two languages in one
+exhibit. Drawn only where there is something to say; a `copilot` key reading zero
+on every older pack would be a section about an absence.
+
+**IDEA 23 — IT SITS UNDER THE MONEY, AND THE KEY BOX IS UNTOUCHED.** The owner's
+own instruction, and it is asserted as a control rather than assumed: the
+Anthropic key box, Remove key, the model routing and both spend tables are all
+still drawn, and the new section reads AFTER them — what Copilot COST is directly
+above, what came OF it is here, and everything below is configuration.
+
+- **THE FEATURE IS THE SURFACE THAT PROPOSED, NOT THE SPEND BUCKET.** The clause
+  editor's Copilot spends on the `chat` route, so borrowing the server's
+  `AI_FEATURE_LABEL` would file every redline proposal under a row called
+  "Copilot" that also holds every question anybody asked anywhere. `redline` ·
+  `playbook` · `obligations`, named once in `AI_TRACE_FEATURES` and resolved at
+  read time so it follows a reader who changes language mid-sitting.
+- **THE TABLE PRINTS COUNTS AND THE TILES PRINT SHARES — a departure from the
+  drawing**, which put a percentage in every cell. A percentage per row hides its
+  own sample size, and three rounded shares regularly sum to 99 or 101; a table
+  that does not add up is a table nobody trusts. **`aiTraceShares` is the one
+  arithmetic** (drawn in the drawer it would be a drawing that computes) and
+  **NOT TAKEN takes the rounding residual**, which errs towards showing a lower
+  acceptance — the honest direction for a number this product has an interest in.
+- **"NOT TAKEN" HOLDS BOTH HALVES on purpose** — wording that was declined and
+  wording nobody used. They are different facts and the record keeps them apart;
+  a five-column table in a drawer this narrow is what would have to give, and the
+  note under it says what the column counts.
+- **AND IT SAYS WHEN THE COUNTING STARTED.** A workspace with a year of Copilot
+  behind it would otherwise read "3 proposals" as a verdict on the feature. The
+  recording began when it was built and nothing before it can ever be counted.
+- **AN EMPTY BOOK SAYS WHICH KIND OF EMPTY IT IS** — read and genuinely quiet, or
+  a recording that has not had time to fill.
+- **DRAWN IN BOTH MODES FROM ONE BUILDER.** It counts the book in the browser and
+  needs no server, so a workspace running without one has the same question and
+  would otherwise lose the answer for no reason.
+
+**AND THE HARNESS PAGES HAD TO LEARN THE NEW FILE — the browser check caught it
+in one run.** Those pages build their own script list rather than loading
+index.html, so `window.aiTraceNote` was silently undefined and a card recorded
+NOTHING while every source claim passed. Four of them load the funnel and all
+four now load this beside it.
+
+**AND A CHECK THAT INHERITS TWENTY-SEVEN SECTIONS OF DRAFTS PROVES NOTHING ABOUT
+ITSELF**, paid for again here: the file press did nothing, three diagnoses chased
+the product, and an isolated probe showed the whole chain working on a fresh
+page. Section 28 reloads and stages its own ground.
+
+Tests: f274 (50 — the funnel's own settle first as the CONTROL, the five
+outcomes, the hash, the cap, no route and no drawing, both readings, the three
+recording surfaces and both languages), clause-editor-verify section 28 (6,
+browser — the only place the `window.` guards can be shown to FIRE: a card
+recorded on arrival, Apply stamping the draft, a real press of File settling it
+as-is, and a rewritten one reading edited), settings-tabs-verify (the section as
+visible pixels with the key box beside it as the control, the shares proved to
+add to 100 on the awkward thirds, and the empty state saying which empty it is).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

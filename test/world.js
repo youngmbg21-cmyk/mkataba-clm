@@ -46,6 +46,10 @@ const MODULES = [
   'js/docxwrite.js',
   'js/versioning.js',
   'js/discuss.js',
+  /* Before the funnel, because the funnel settles what it records. It carries
+     no dependency of its own and every reader it reaches for is guarded, so a
+     world that loads it and never proposes anything is byte-identical. */
+  'js/aitrace.js',
   'js/negotiation.js',
   /* The internal review sits directly on top of the change model and is read by
      it nowhere — it annotates changes, it never rewrites them — so it loads

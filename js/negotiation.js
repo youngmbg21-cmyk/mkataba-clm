@@ -1657,6 +1657,25 @@ async function negoFileChange(c, draft, opts = {}){
   }
   await negoIssue(c, ch);
   c.changes.push(ch);
+  /* ---- AND IF COPILOT PROPOSED THIS WORDING, THE RECORD SAYS SO (idea 22) ----
+     SETTLED AT THE FUNNEL, NOT AT THE PRESS. Every door that files a change
+     arrives here — the clause editor, the playbook rail, the Word round trip,
+     the caller written next year — so a Copilot proposal that reached the
+     agreement is marked without any of them knowing they had to mark it. It is
+     the same reasoning the two guards at the top of this function are written
+     under, applied to a record rather than to a refusal.
+
+     OUR SIDE ONLY. The proposals are recorded by OUR clause editor against OUR
+     clauses; a change arriving from the counterparty on the same clause is
+     their wording, and letting it settle one of ours would mark a proposal
+     nobody here took as taken.
+
+     IT WRITES NOTHING WHERE THERE IS NOTHING TO SETTLE (aiTraceSettle reads the
+     list and returns null on a contract that has never met Copilot), and it is
+     read through window because this file is loaded on stages that do not carry
+     js/aitrace.js — the ES-module rule. */
+  try{ if (side === 'owner' && window.aiTraceSettle)
+    aiTraceSettle(c, { clauseId: ch.clauseId, bodyHtml: ch.bodyHtml, changeId: ch.id, by: author }); }catch(_){}
   if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
     `#${ch.id} proposed by ${author} in round ${roundN} — “${ch.summary}”` +
     ` on ${ch.clauseLabel || ch.clauseId} · fingerprint ${ch.hash}` +

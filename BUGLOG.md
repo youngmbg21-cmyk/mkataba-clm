@@ -10261,3 +10261,94 @@ home-page 34/34.
 - obligations-tab-verify is 49/50 on its band heading check. PROVED
   pre-existing by running the same file in a worktree at the parent commit:
   identical count, identical check.
+
+## 2026-09-09 (6) — WHAT COPILOT PROPOSED, AND WHAT BECAME OF IT (owner-asked, ideas 22 & 23)
+
+*"implement 23 and 22 but for 23, do not delete the where I have to enter the
+anthropic key for now per the attached image."*
+
+**IDEA 23 HAD NO DATA SOURCE AT ALL, AND THAT IS MOST OF THIS JOB.** The product
+recorded that a change came from Copilot — the note reads "Copilot — Simplify" —
+and nothing else: not what was offered and never taken, and not whether wording
+that WAS taken went in word-for-word or was rewritten first. So neither screen
+could be computed from anything on file. The build order's own parenthetical had
+said "quietly start recording Copilot's involvement — for 23 later" and it was
+never built. **22 AND 23 ARE ONE RECORDING SEEN TWICE**, and the recording is
+what was built first.
+
+**js/aitrace.js — NO ROUTE, NO TABLE, ITS OWN FILE.** c.aiTrace is an ordinary
+field, so it rides the light list by construction (HEAVY spreads the record) and
+the workspace reading counts state.contracts in the browser — the caller's own
+already-scoped bootstrap, the shelf js/precedent.js, js/payterms.js and
+js/standards.js already sit on. **Its own file is load-bearing**: four surfaces
+reach it, and written inside any one of them the others would read it through
+window on a stage that does not carry that view and record NOTHING, silently.
+
+**FIVE OUTCOMES AND THE FIFTH IS THE HONEST ONE.** proposed — offered, nothing
+has happened — is printed and never counted as a refusal, this codebase's own
+rule that a call which never got an answer is not a wrong answer. as-is, edited,
+refused, and read for a reading, counted apart because it was never a candidate
+for the agreement.
+
+**SETTLED AT THE FUNNEL, NOT AT THE PRESS.** negoFileChange is where every change
+is filed, so a proposal that reached the agreement by any door is marked without
+that door knowing it had to. **Our side only** — a counterparty change on the
+same clause is their wording. The newest APPLIED proposal on that clause and only
+that one, so a reader who takes A, then B over it, then files leaves A proposed,
+which is what "offered, not taken" means.
+
+**THE HASH IS FOR EQUALITY, NEVER FOR ATTESTATION**, and the file says so by
+name: a cheap FNV over the TEXT PROJECTION, so a change of dressing that leaves
+the words alone still reads as taken as-is. It is not the seal and not the
+negotiation fingerprint.
+
+**ONLY THE DRAFT IS COPILOT'S WORDING.** rlPlaybookProposals names three and only
+draft is the model's; preferred and fallback are the clause library's, approved
+in this workspace. Counting a "Use our standard" press as a Copilot proposal
+accepted would be this product taking credit for its customer's own drafting — so
+it is recorded as a refusal of the draft, which is exactly what it is.
+
+**DRAFT FROM A SENTENCE IS DELIBERATELY NOT RECORDED, said out loud.** Its
+proposal becomes a CONTRACT, so a draft nobody took has no contract to be
+recorded on: the feature could only ever report as-is and edited, and a "not
+taken" column reading zero for it would be a lie by omission on the one row that
+could not answer.
+
+**THE PACK STATES WHAT IT IS NOT, IN ITS OWN FIRST LINE** — "Nothing here is part
+of the agreement — the agreement is the sealed wording above." A lawyer reading
+it in a dispute must not have to infer that. It keeps ENGLISH, because a record
+read by somebody who was never in this workspace must not put two languages in
+one exhibit, and it is drawn only where there is something to say.
+
+**THE ACCEPTANCE SECTION SITS UNDER THE MONEY AND THE KEY BOX IS UNTOUCHED** —
+the owner's own instruction, asserted as a CONTROL rather than assumed: the
+Anthropic key box, Remove key, the model routing and both spend tables are all
+still drawn. **The table prints COUNTS and the tiles print SHARES**, a departure
+from the drawing: a percentage per row hides its own sample size, and three
+rounded shares regularly sum to 99 or 101. NOT TAKEN takes the rounding residual,
+which errs towards showing a lower acceptance — the honest direction for a number
+this product has an interest in.
+
+**AND THE HARNESS PAGES HAD TO LEARN THE NEW FILE — the browser check caught it
+in one run.** Those pages build their own script list rather than loading
+index.html, so window.aiTraceNote was silently undefined and a card recorded
+NOTHING while every source claim passed. Four of them load the funnel and all
+four now load this beside it.
+
+**AND A CHECK THAT INHERITS TWENTY-SEVEN SECTIONS OF DRAFTS PROVES NOTHING ABOUT
+ITSELF**, paid for again here: the File press did nothing, three diagnoses chased
+the product, and an isolated probe showed the whole chain working on a fresh
+page. Section 28 reloads and stages its own ground.
+
+**ONE FAULT FOUND BY RE-READING MY OWN DIFF BEFORE IT SHIPPED**: a ticked
+proposal that became a duplicate mid-dialog was being marked refused — the reader
+had chosen it and the contract already held it, which is neither. It is left
+proposed, and f274 pins it.
+
+Verified: lint 181/4 (errors unchanged and proven pre-existing by stash), node
+5967/5967, f274 50/50, settings-tabs-verify 73/73, clause-editor-verify 235/235,
+redline-verify 191/191, parity-verify 41/41, obligations-tab-verify green.
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys, two keys in the dictionary) — proved present before this run by stashing; outside this request.
+- Lint warnings went 176 to 177; the one new warning was not located before the search was stopped.

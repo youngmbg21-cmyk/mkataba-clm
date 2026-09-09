@@ -2891,6 +2891,28 @@ function downloadEvidence(c){
         return a?!!a.derived:null; })(),
       ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     distribution:c.distribution||null,
+    /* ---- WHAT COPILOT PROPOSED, AND WHAT A PERSON DID WITH IT (idea 22) ----
+       A pack that proves who signed what should also say where the words came
+       from. This is the one place in the product that can answer it, because
+       the pack is downloaded from an opened contract and therefore holds the
+       whole record rather than the light row.
+
+       IT IS NOT EVIDENCE OF THE AGREEMENT and the section says so in its own
+       first line: the agreement is the sealed wording above, and every entry
+       here is a proposal that a named person accepted, changed or turned down.
+       Reading it the other way round — as though the model had authored a
+       clause — is exactly what a plain statement at the top of the section is
+       for.
+
+       DRAWN ONLY WHERE THERE IS SOMETHING TO SAY. A contract that never met
+       Copilot carries no aiTrace, and a `copilot` key reading zero on every
+       older pack would be a section about an absence. Read through window
+       because this file is loaded on stages that do not carry js/aitrace.js. */
+    copilot:(()=>{ try{
+      if(typeof window.aiTracePack!=='function') return null;
+      const p=aiTracePack(c);
+      return (p&&(p.proposals||p.readings))?p:null;
+    }catch(_){ return null; } })(),
     auditTrail:c.audit||[],
   },null,2));
   logAudit(c,'Exported','Evidence pack downloaded'); persist(c); renderAuditSection(c);

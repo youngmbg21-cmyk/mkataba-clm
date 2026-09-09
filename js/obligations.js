@@ -839,6 +839,29 @@ function obligationAlreadyOn(c, proposal){
 function openObligationsReview(c, found){
   const dupe = found.map(o => obligationAlreadyOn(c, o));
   const fresh = dupe.filter(d => !d).length;
+  /* ---- WHAT COPILOT PROPOSED HERE GOES ON THE RECORD (idea 22) ----
+     RECORDED AT THE DRAW, so the denominator is every proposal the reader was
+     SHOWN rather than only the ones they got round to answering. Recorded at
+     the confirm instead, a reader who reads the list and closes the window
+     would vanish from the arithmetic entirely and this feature's acceptance
+     rate would flatter itself by exactly the proposals nobody wanted.
+
+     A DUPLICATE IS NEITHER, and is not recorded at all. Copilot proposed
+     something the contract already carries: there is no decision for a person
+     to make, so there is no outcome to keep — and counting it as taken would
+     credit the model for wording that was already there.
+
+     THE TICKS SETTLE IT below: ticked is taken, unticked is a refusal, and a
+     window that is simply closed leaves every entry `proposed`, which the two
+     readers print as "not taken" rather than as a refusal. */
+  const trace = found.map((o, i) => {
+    if (dupe[i] || !window.aiTraceNote) return null;
+    try{
+      return aiTraceNote(c, { feature: 'obligations', kind: 'wording',
+        what: o && o.desc, rested: (o && o.quote) || '' });
+    }catch(_){ return null; }
+  });
+  try{ if (trace.some(Boolean) && window.aiTraceSave) aiTraceSave(c); }catch(_){}
   openModal(`
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
@@ -910,6 +933,7 @@ function openObligationsReview(c, found){
        two it had set aside — which is the silent half of the reported bug
        returning in politer clothes. */
     let n=0, skipped=dupe.filter(d=>d).length;
+    const picked=new Set();
     document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(!cb.checked) return;
       const o=found[Number(cb.getAttribute('data-ob-pick'))];
       /* ASKED AGAIN AT THE ADD, not only at the draw. The dialog can be open
@@ -918,7 +942,29 @@ function openObligationsReview(c, found){
       /* And the wall: a proposal the reader ticked anyway, or one that became
          a duplicate while the dialog was open, is still not added twice. */
       if(obligationAlreadyOn(c,o)) return;
-      c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++; });
+      c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++;
+      picked.add(Number(cb.getAttribute('data-ob-pick'))); });
+    /* AND WHAT WAS LEFT UNTICKED IS AN EXPLICIT NO — the one surface in the
+       product where a reader says so about a Copilot proposal in as many
+       words. Taken is `as-is` and never `edited`: this window offers no way to
+       change the wording before it is added, so an edited outcome here would
+       be a state the screen cannot produce. */
+    try{
+      const ticked = new Set();
+      document.querySelectorAll('[data-ob-pick]').forEach(cb => {
+        if (cb.checked) ticked.add(Number(cb.getAttribute('data-ob-pick'))); });
+      if (window.aiTraceTaken) trace.forEach((id, i) => {
+        if (!id) return;
+        if (picked.has(i)) aiTraceTaken(c, id);
+        /* TICKED AND NOT ADDED is the one that became a duplicate while the
+           window was open. The reader said yes, so it is not a refusal; the
+           contract already carries the wording, so it is not a fresh
+           acceptance either. It is left as offered, which is the only one of
+           the five that is true of it. */
+        else if (!ticked.has(i) && window.aiTraceRefuse)
+          aiTraceRefuse(c, id, i18t('ob_trace_untick'));
+      });
+    }catch(_){}
     logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`
       +(skipped?` — ${skipped} already on the contract`:''));
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
