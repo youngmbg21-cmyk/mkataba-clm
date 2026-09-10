@@ -5520,9 +5520,53 @@ function copilotDetail(ctx, id) {
     // under way — asked "how many additions have I added?" it answered, quite
     // correctly, that it had no way to know. It was not refusing; it was blind.
     negotiation: copilotNegotiation(c),
+    /* ---- WHAT THE PLAYBOOK PANEL IS SHOWING, ON THE SAME RECORD ---- (10 Sep 2026)
+       Copilot carried the scan findings and the negotiation and NOT the stored
+       standards review, so it could not see what the reader was looking at and
+       re-ran its own check BY CONSTRUCTION — and then, finding a different
+       answer, went looking for a "different source" or "a note added manually".
+       It was not refusing and it was not inventing; it was blind. */
+    standardsReview: copilotStoredPlaybook(c),
   };
   if (!ctx.money) { delete detail.value; delete detail.valueType; delete detail.monetary; }
   return detail;
+}
+/* ---- THE STORED STANDARDS REVIEW, REDUCED TO WHAT AN ANSWER RESTS ON ----
+   SCOPE AND MONEY HOLD BY CONSTRUCTION, and it is worth saying out loud: this
+   is the workspace's own standards and its own verdicts on its own contract,
+   read off the record copilotGetJson has already scoped, and every one of them
+   is already on the reader's screen in the Playbook review panel. Nothing
+   reachable here was not already there — the verdicts carry a category, a
+   status, the workspace's own position and a quote from the customer's own
+   wording, and no figure and no colleague's name is among them.
+
+   WHEN IT WAS RUN IS READ OFF THE RECORD, NEVER GUESSED. c.playbook carries no
+   timestamp of its own; the audit trail's last 'Playbook' line does, and where
+   there is none this answers null and says nothing rather than implying the
+   review is current. A STORED REVIEW CAN BE STALE — run before the wording
+   moved — and there is no freshness test here and none is invented: the date is
+   stated and the reader judges.
+
+   BOUNDED, like the negotiation block beside it. A cap is a FACT and is named,
+   never a silent trim. */
+const COPILOT_VERDICT_CAP = 40;
+function copilotStoredPlaybook(c) {
+  const r = c && c.playbook;
+  if (!r || !Array.isArray(r.verdicts) || !r.verdicts.length) return null;
+  let at = null;
+  for (const a of (Array.isArray(c.audit) ? c.audit : []))
+    if (a && a.action === 'Playbook' && a.at) at = a.at;
+  const clip = (x, k) => { const t = String(x || ''); return t.length > k ? t.slice(0, k) + '…' : t; };
+  return {
+    playbook: r.label || r.key || '',
+    checkedBy: r.source === 'ai' ? 'Copilot-assisted' : 'rule-based',
+    checkedAt: at,
+    verdicts: r.verdicts.slice(0, COPILOT_VERDICT_CAP).map(v => ({
+      category: v.category || '', status: v.status || '',
+      position: clip(v.position, 300), quote: clip(v.quote, 300),
+      escalate: !!v.escalate })),
+    verdictsOmitted: Math.max(0, r.verdicts.length - COPILOT_VERDICT_CAP),
+  };
 }
 /* The negotiation record, reduced to what an answer can be built from.
 
@@ -5636,8 +5680,62 @@ function workspacePlaybook() {
    the contract's template + name stand in for the client's cKind() label, and
    the folder works the same on both sides. Custom types' match keywords win
    first, exactly as in the client. */
+/* ---- WHAT KIND OF CONTRACT THIS IS, THE WAY THE BROWSER ANSWERS IT ----
+   (owner-reported 10 Sep 2026: the Playbook review panel was headed "Against
+   the Supply / raw material / packaging playbook" and Copilot, asked about the
+   same contract in the same chat, said its playbook was "Professional /
+   marketing services" and listed different standards — then went hunting for a
+   "different source" or "a note added manually", because it could not see what
+   the panel was showing.)
+
+   BOTH ANSWERS WERE REAL CODE AND BOTH RULES RAN CORRECTLY. What differed is
+   what they were matched AGAINST. playbookKeyFor reads cKind(c) — the contract
+   TYPE — and falls back to the folder. This read `${c.template} ${c.name}`,
+   the TITLE. MK-382 is an upload (no template) in the 'proc' folder titled
+   "Warehousing and Transportation Services — …": the browser read the folder
+   and answered 'supply'; the title's word "Services" matched the services
+   regex and this answered 'services'. Two books, line for line the two
+   screenshots.
+
+   THE PANEL'S ANSWER IS THE RIGHT ONE and this is the half that moved. A
+   contract's TYPE and its FILING are facts about it; its TITLE is prose, and a
+   contract may be called anything. Teaching the browser to read the title too
+   would have made both wrong together.
+
+   THE KIND TABLE IS A MIRROR AND IS DECLARED AS ONE. cKind reads
+   TEMPLATES[c.template].kind, and the server loads none of the browser modules
+   — the same situation, and the same defence, as the keyword regexes below:
+   pin both sides in a test that runs BOTH rules over the same contracts and
+   requires the same key, so a template added on one side without the other
+   fails there rather than in a customer's chat. */
+const COPILOT_TEMPLATE_KIND = {
+  RM: 'Raw Material Supply', PK: 'Packaging Supply', CM: 'Contract Manufacturing',
+  EQ: 'Equipment Lease', WH: 'Warehousing', FF: 'Distribution Logistics',
+  DA: 'Distributor', RL: 'Retail Listing', MK: 'Marketing Services',
+  ND: 'NDA', LE: 'Lease', PS: 'Professional Services',
+};
+/* cKind's twin: an upload answers as an upload does — it has no type, which is
+   exactly why the folder is what decides its playbook. */
+function copilotContractKind(c) {
+  if (c && c.source === 'upload') return 'External Document';
+  return COPILOT_TEMPLATE_KIND[c && c.template] || 'Contract';
+}
+/* ---- THE CONTRACT'S OWN WORDING, THE WAY runPlaybookReview READS IT ----
+   The stored body is the senior of the two (it is what the product renders and
+   what a change is filed against); an upload's extracted text answers only
+   where there is none. A rich body is sanitised HTML, so the words are taken
+   and the markup left — the server has no DOM, and this is a reading rather
+   than evidence. COPILOT_PB_TEXT_MIN mirrors js/playbook.js's own floor. */
+const COPILOT_PB_TEXT_MIN = 120;
+function copilotContractWording(c) {
+  const body = String((c && c.redlineText) || '').trim();
+  if (body) return (c.format === 'rich' ? richBodyToSearchText(body) : body).trim();
+  return String((c && c.upload && c.upload.extractedText) || '').trim();
+}
 function copilotPlaybookKey(pb, c) {
-  const k = `${c.template || ''} ${c.name || ''}`.toLowerCase();
+  /* THE TYPE, NEVER THE TITLE — see above. The browser's own line is
+     `const k=(cKind(c)||'').toLowerCase()`. */
+  const k = copilotContractKind(c).toLowerCase();
   const f = c.folder || '';
   for (const key in pb) {
     const p = pb[key];
@@ -5673,14 +5771,78 @@ function copilotResolvePlaybook(pb, key) {
 async function copilotPlaybookCheck(ctx, id, key, who) {
   const c = copilotGetJson(ctx, id);
   if (!c) return { id, found: false };
+  /* ---- THE PANEL'S ANSWER WHERE THERE IS ONE ---- (owner-asked 10 Sep 2026)
+     The reader is looking at a stored review; quoting it is how the chat and
+     the screen stop being two opinions. Running our own on top would spend
+     Copilot money to produce a SECOND verdict about a contract the workspace
+     has already judged, which is the fault this is here to close.
+
+     ONLY WHERE A CONTRACT HAS NEVER BEEN CHECKED does it run its own — and it
+     says THAT, so a reader is never told a fresh answer is what their panel
+     shows. Both branches name the book. */
+  const stored = copilotStoredPlaybook(c);
+  if (stored) return { id: c.id, name: c.name || c.id, source: 'stored-review', ...stored,
+    note: 'This is the standards review already on the contract — the same one the '
+      + 'reader sees in the Playbook review panel. Quote it as the workspace\'s own '
+      + 'verdicts, name the playbook it was checked against, and say when it was run. '
+      + 'It is a record, not a fresh reading: if the wording has moved since, it may be '
+      + 'out of date — say so rather than presenting it as current.' };
   const pb = workspacePlaybook();
   const resolved = pb ? copilotResolvePlaybook(pb, copilotPlaybookKey(pb, c)) : null;
   if (!resolved) return { id: c.id, name: c.name || c.id, noPlaybook: true };
+  /* ---- A DOCUMENT WITH NO WORDING IS READ BY NOTHING AND PAYS FOR NOTHING ----
+     FOUND WHILE MAKING AN EMPTY CHECK SAY SO, and it is the likeliest way one
+     happens. This sent contractFullBody(c) — which is the SEARCH bundle: the
+     name, the counterparty, the id, the fields, the metadata and the
+     obligations, with the wording added where there is any. So a scanned
+     upload whose words never came out of the file arrived at the deep tier as
+     a line of metadata, and came back — quite correctly — with nothing to say.
+     Money spent, and "no verdicts at all" reported as a finding about the
+     customer's own contract.
+
+     THE CLIENT HAS REFUSED THIS ALL ALONG and this is its floor, mirrored:
+     runPlaybookReview reads the DOCUMENT (a stored body, or an upload's
+     extracted text) and refuses below COPILOT_PB_TEXT_MIN characters with
+     pb_no_readable_clause. Two hosts, one rule — pinned in f133 so the pair
+     cannot drift.
+
+     WHAT GOES TO THE MODEL IS THE WORDING TOO, not the bundle: a standards
+     check reading the counterparty's name as though it were a clause is how a
+     verdict comes back about text nobody drafted. */
+  const wording = copilotContractWording(c);
+  if (wording.length < COPILOT_PB_TEXT_MIN)
+    return { id: c.id, name: c.name || c.id, playbook: resolved.label,
+      source: 'run-now', verdicts: [], checkedNothing: true, noText: true,
+      note: 'There is no readable wording on this contract, so nothing was checked — '
+        + 'the words have not come out of the file. Say that plainly. Do NOT report '
+        + 'this contract as meeting every standard, and do not offer to run the check '
+        + 'again until the document can be read.' };
   const r = await aiPlaybookVerdicts(key,
-    { text: contractFullBody(c), playbook: resolved, kind: resolved.label },
+    { text: wording, playbook: resolved, kind: resolved.label },
     { feature: 'chat', who: who || null });
   if (!r.ok) return { error: 'playbook review failed' + (r.resp && r.resp.status ? ' (provider ' + r.resp.status + ')' : '') };
-  return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };
+  /* ---- AND AN EMPTY CHECK SAYS SO ---- (owner-reported 10 Sep 2026: Copilot
+     reported "no verdicts at all".) TWO different things arrived here as one
+     empty list — the model judging nothing, and the answer being cut short
+     before it could say — and both were handed on as a FINISHED list of no
+     findings. (The third way a check can come back with nothing, a tool call
+     carrying no structured result at all, already answers ok:false and takes
+     the error branch above.)
+     That is the obligations reader's own recorded lesson, unapplied here: an
+     answer cut short is not an empty answer. */
+  if (!r.verdicts.length)
+    return { id: c.id, name: c.name || c.id, playbook: resolved.label, source: 'run-now',
+      verdicts: [], checkedNothing: true,
+      cutShort: !!(r.resp && r.resp.truncated),
+      note: (r.resp && r.resp.truncated)
+        ? 'The check was CUT SHORT before it could report anything — say that, and '
+          + 'offer to run it again. Do NOT report this contract as meeting every standard.'
+        : 'The check ran and returned no verdicts at all. That is not the same as '
+          + '"this contract meets every standard" — say the check came back empty.' };
+  return { id: c.id, name: c.name || c.id, playbook: resolved.label, source: 'run-now',
+    verdicts: r.verdicts, cutShort: !!(r.resp && r.resp.truncated),
+    note: 'This contract had NO stored standards review, so this was checked now — '
+      + 'say so, and name the playbook it was checked against.' };
 }
 
 /* ---- THE INSIGHTS PANELS, READ AND NEVER RECOMPUTED ----
@@ -5747,7 +5909,7 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
   { name: 'get_insights_panel', description: COPILOT_PANEL_DESC,
     input_schema: { type: 'object', properties: { panel: { type: 'string', enum: COPILOT_PANEL_NAMES, description: 'Which panel. Stable English keys — never a translated title.' } }, required: ['panel'] } },
-  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), or noPlaybook:true when no playbook is configured for that contract type. Use for questions about whether a contract matches our standards, positions or playbook. This runs a deeper, slower legal-review pass — reach for it when the question is really about playbook conformance, not for ordinary reading.',
+  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
     input_schema: { type: 'object', properties: {
@@ -5872,6 +6034,7 @@ ${guideRules}
 HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
+- QUESTIONS ABOUT OUR STANDARDS OR THE PLAYBOOK are answered from the review the workspace already holds. get_contract carries it as "standardsReview" — the playbook it was checked against, when, and every verdict — and it is the SAME review the reader has open in their Playbook review panel. Quote it, NAME THE PLAYBOOK, and say when it was run. Never re-judge a contract that has one, and never work out for yourself which playbook applies: if what you would have said differs from the review on the record, the review is what the reader is looking at. Where a contract has none, check_against_playbook runs one and says so — report it as a fresh check rather than as what their panel shows.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
 - If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document. A truncated record is not a reason to refuse an edit: when the request itself quotes the passage to work on, that quoted passage is the authoritative text — draft from it, and note the truncation in your reasoning rather than asking for the document again.
 - QUESTIONS ABOUT A CHART ON INSIGHTS → PORTFOLIO — the workload runway, the renewal runway, money held back, promises still live, won and lost — are answered from get_insights_panel. Quote its figures rather than recomputing them from list_portfolio, and when the question is WHY a bar is big, name that bucket's drivers (the two or three contracts carrying it) and its "why" counts — a start date defaulted to the signature date, or work whose start and end fall in one month. Reading the total back to somebody who is looking at the chart is not an answer. Say what the panel excludes whenever its "excluded" block is not empty.
