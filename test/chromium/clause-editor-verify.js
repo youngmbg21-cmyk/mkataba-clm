@@ -355,6 +355,26 @@ const dismissNote = async pg => {
       w: Math.round(er.width), h: Math.round(er.height),
       filled: cs.backgroundColor, ink: cs.color,
       named: (exit.getAttribute('aria-label') || ''),
+      /* ---- THE WORD, AS PAINT (owner-reported 10 Sep 2026) ----
+         "the exit button is not so clear it is an exit button ... Maybe it
+         should be a button that says exit." A label in the markup is not a
+         label on the screen: it can be clipped by a fixed-width box, hidden by
+         a rule that lost a cascade fight, or painted in the button's own
+         background. So the span's own rect is read, and its ink beside it. */
+      word: (() => { const w = exit.querySelector('.ce-exit-word');
+        if (!w) return null; const r = w.getBoundingClientRect();
+        return { text: (w.textContent || '').trim(),
+          painted: r.width > 0 && r.height > 0, w: Math.round(r.width) }; })(),
+      /* THE SYMBOL IS STILL THERE, and it still RESOLVES — an <svg> that draws
+         nothing paints an empty box in silence. */
+      symbol: (() => { const g = exit.querySelector('svg');
+        if (!g) return null; try { const b = g.getBBox();
+          return b.width > 0 && b.height > 0; } catch (_) { return null; } })(),
+      /* ONE LINE: the strip is a nowrap row, so a label allowed to break would
+         grow the BAR rather than the button. */
+      wordLines: (() => { const w = exit.querySelector('.ce-exit-word');
+        if (!w) return 0; const r = document.createRange(); r.selectNodeContents(w);
+        return r.getClientRects().length; })(),
       /* every retired piece of the head, named literally so this cannot be
          re-pointed at whatever sits there next */
       head: ['#ce-title', '#ce-crumb', '#ce-ostat', '#ce-facts', '#ce-sel', '#ce-headacts']
@@ -368,10 +388,23 @@ const dismissNote = async pg => {
   ck('2n the way out is the LAST thing on the strip, at the wall',
      out.exit === true && out.onStrip === true && out.fromRight < 20,
      out.exit ? `${out.fromRight}px from the strip's right edge` : 'no exit button');
-  ck('2o …filled, square, and named — the prototype\'s own drawing',
-     out.exit && out.w === out.h && /rgb/.test(out.filled)
+  /* ---- 2o REVERSED IN PLACE 10 Sep 2026 ----
+     It pinned "filled, SQUARE, and named", which was the prototype's shape for
+     a button carrying a symbol and nothing else. The owner has now reported
+     that shape as unclear, so the square is what reverses; the FILL and the
+     accessible NAME are what this check was always really about and both
+     stand. */
+  ck('2o …filled and named — and the box now takes the word\'s width',
+     out.exit && out.w > out.h && /rgb/.test(out.filled)
        && !/rgba\(0, 0, 0, 0\)/.test(out.filled) && /work mode|arbetsläget/i.test(out.named),
      out.exit ? `${out.w}x${out.h} ${out.filled} "${out.named}"` : '');
+  ck('2q AND IT SAYS THE WORD — visible pixels, not markup behind something',
+     !!(out.word && out.word.painted && out.word.text.length > 0),
+     out.word ? `"${out.word.text}" ${out.word.w}px wide` : 'no label span');
+  ck('2q2 the symbol stays beside it, and it really resolves',
+     out.symbol === true, String(out.symbol));
+  ck('2q3 and the label holds one line, so it grows the button not the bar',
+     out.wordLines === 1, `${out.wordLines} line(s)`);
   ck('2p and it is the ONE way out — two controls leaving one page is the '
      + 'duplication reported on the contract room',
      out.doors === 1, `${out.doors}`);

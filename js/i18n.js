@@ -1813,6 +1813,11 @@ const STRINGS = {
     ce_scan_add_unavailable: 'Adding a clause is not available on this screen.',
     ce_rule: 'Playbook rule',
     ce_leave_work_mode: 'Leave work mode',
+    /* THE BUTTON'S OWN WORD, beside the symbol. The line above is what its
+       hover says — which mode is being left — and this is the act in one word.
+       Swedish takes the verb rather than the noun so it reads with that
+       hover: "Lämna" / "Lämna arbetsläget". */
+    ce_exit: 'Exit',
     ce_zoom_in: 'Zoom in — how big the page looks, not the font size',
     ce_zoom_out: 'Zoom out — how big the page looks, not the font size',
     ce_inline_cut: 'Suggest deleting these words',
@@ -7602,6 +7607,7 @@ const STRINGS = {
     ce_scan_add_unavailable: 'Att lägga till en klausul är inte tillgängligt på den här skärmen.',
     ce_rule: 'Spelboksregel',
     ce_leave_work_mode: 'Lämna arbetsläget',
+    ce_exit: 'Lämna',
     ce_zoom_in: 'Zooma in \u2014 hur stor sidan ser ut, inte teckenstorleken',
     ce_zoom_out: 'Zooma ut \u2014 hur stor sidan ser ut, inte teckenstorleken',
     ce_inline_cut: 'Föreslå att de här orden tas bort',

@@ -6314,8 +6314,27 @@ all on the negotiation page this opens from. `#ce-title`, `#ce-crumb`,
 **`#ce-say` IS THE ONE THING KEPT FROM IT**, on the strip: it is where a refusal
 is spoken, and a refusal with nowhere to appear is a dead press.
 
-**THE WAY OUT IS THE LAST THING ON THE STRIP** — filled, square, corners
-pointing in, "Leave work mode" — which is what the prototype draws in that slot.
+**THE WAY OUT IS THE LAST THING ON THE STRIP** — filled, corners pointing in,
+"Leave work mode" — which is what the prototype draws in that slot. **AND IT
+SAYS THE WORD SINCE 10 Sep 2026, which REVERSES "square" IN PLACE**
+(owner-reported: *"the exit button is not so clear it is an exit button in the
+negotiations page. Maybe it should be a button that says exit"*). Square was the
+prototype's shape for a button carrying a SYMBOL AND NOTHING ELSE, and that
+symbol — four corners pointing in — reads as *make this smaller* as readily as
+it reads as *leave*. **THE ONLY WAY OUT OF A FULL-WINDOW PAGE MAY NOT BE A
+GUESS**: this page covers the shell, so a reader who cannot place the control
+has nothing else to press. **THE SYMBOL STAYS BESIDE THE WORD** — it is what
+makes the control findable at a glance once you know it, and the word is what
+teaches it the first time — and **the hover keeps the longer sentence**, because
+a control whose name and whose title read the same tells the reader nothing
+twice (`ce_exit` is the act in one word, `ce_leave_work_mode` names which mode).
+**THE HEIGHT IS UNTOUCHED at 28**, deliberately: the ask was about being
+READABLE rather than bigger, the box grows to fit the label and `.ce-barg` — the
+flex:1 spacer — gives up exactly what it takes, so nothing else on the strip
+moves. Bold because it is filled, which is the owner's own rule for a control
+row. Tests: f245 (two claims, one of them REVERSED IN PLACE),
+clause-editor-verify 2o REVERSED IN PLACE plus 2q/2q2/2q3 (**3 of the 4 fail
+against the parent, the headline one reporting "no label span"**).
 This REVERSES the contract-alone toggle built two days earlier: that was a
 reading of the button the owner reported missing from the render, and the
 artifact settles it. With the header gone it is the ONLY way out, so it is never
@@ -8250,6 +8269,17 @@ one, a status word on every row where it has one only where it adds something.
   - **ONE LEFT EDGE DOWN THE WHOLE COLUMN.** The row's words started at 27px
     against the heading's 16 (the spine plus its padding), and `.rl-idx` insetted
     itself 12px while everything under it sat at 16. All three are `--s-4` now.
+    **AND SO IS THE EMPTY COLUMN SINCE 10 Sep 2026** (owner-reported: *"The
+    paragraph below the redlines should be aligned at the same line as the
+    redlines to give the card balance"*). **THIS SWEEP NEVER REACHED IT**, and
+    the reason is worth keeping: `.rl-cards-empty` draws only when the column is
+    EMPTY, so on the day the head, the rows and the band headings were swept
+    there was nothing on screen to compare it against and it kept its own 2px.
+    MEASURED before the fix — the head's caption at x=1032 and the empty state's
+    two lines at x=1018, fourteen pixels out. Both empty states wear that one
+    class (the genuinely-empty column and the filtered-empty one), so neither
+    can drift from the other. Tests: f246 (8), redline-verify 23 (**failing
+    against the parent at `head 972 · lines [958,958]`**).
   - **EVERY PILE'S COUNT AT THE RIGHT WALL** (`margin-left:auto` on `.rl-band b`),
     so seven of them line up rather than each following its own words.
   - **AND `.rl-idx-head` TAKES NO ROOM WHEN IT HAS NOTHING TO SAY.** Its one

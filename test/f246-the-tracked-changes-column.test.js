@@ -988,6 +988,32 @@ describe('f246 (8) — one ruled list, and the act at the head', () => {
       'the index insets by the same token as the rows and the headings');
   });
 
+  /* ---- AND SO DOES THE EMPTY COLUMN (owner-reported 10 Sep 2026) ----
+     "The paragraph below the redlines should be aligned at the same line as
+     the redlines to give the card balance."
+
+     THE 26 Aug SWEEP NEVER REACHED IT. That pass gave the head, the rows and
+     the band headings one inset off --s-4 so the column reads as one ruled
+     list; this state draws only when the column is EMPTY, so nobody was
+     looking at it that day and it kept its own 2px. MEASURED before the fix:
+     the head's caption at x=1032 and this text at x=1018, fourteen pixels out.
+
+     WHAT LIVES HERE is that all four now read ONE TOKEN, which is the claim
+     that survives the next time that measure moves. That the two really line
+     up on a rendered page is redline-verify's own measurement. */
+  test('and so does the empty column — both of its states', () => {
+    const empty = /\.redline-page \.rl-cards-empty\{([^}]*)\}/.exec(NCSS)[1];
+    assert.match(empty, /padding:6px var\(--s-4\)/,
+      'the empty state insets by the same token as the head and the rows');
+    assert.ok(!/padding:6px 2px/.test(empty),
+      'the 2px it used to carry is gone, not overridden further down');
+    /* BOTH EMPTY STATES WEAR THIS ONE CLASS — the genuinely-empty column and
+       the filtered-empty one — so neither can drift from the other. */
+    const NEGO = require('node:fs').readFileSync('js/views/negotiation.js', 'utf8');
+    assert.equal((NEGO.match(/class="rl-cards-empty"/g) || []).length, 2,
+      'one class, two emptinesses');
+  });
+
   test('SEND ALL is at the opposite end of the column\'s name', async () => {
     const p = await bench();
     const go = p.$('.rl-unsent-go');

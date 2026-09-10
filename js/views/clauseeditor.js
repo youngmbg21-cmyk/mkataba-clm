@@ -352,9 +352,23 @@ function clauseEditorCss(){
   .ce-barrow .ce-bar{border:0; padding:0; min-height:0}
   .ce-barrow .ce-say{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap}
-  .ce-exit{flex:none; width:28px; height:28px; display:inline-grid; place-items:center;
+  /* ---- THE WAY OUT WEARS ITS WORD ----
+     It was a 28px square holding the symbol alone. The box grows to fit the
+     word rather than the word being squeezed into the box, so nothing else on
+     the strip moves: .ce-barg is the flex:1 spacer between the tools and this,
+     and it gives up exactly what the label takes. THE HEIGHT IS UNCHANGED at
+     28, deliberately — the ask was about being READABLE, not about being
+     bigger, and this control's own height is a decision somebody else made.
+     BOLD BECAUSE IT IS FILLED, which is the owner's own rule for a control row
+     (10 Sep 2026: "Only the shaded buttons should bold"). */
+  .ce-exit{flex:none; height:28px; display:inline-flex; align-items:center; gap:6px;
     background:var(--accent-ink); border:1px solid var(--accent-ink); color:#fff;
-    cursor:pointer; padding:0; border-radius:var(--radius)}
+    cursor:pointer; padding:0 10px; border-radius:var(--radius); font:inherit;
+    font-size:var(--t-body); font-weight:var(--w-strong); line-height:1}
+  /* ONE LINE, WHATEVER THE LANGUAGE. Swedish is the longer word and the strip
+     is a nowrap row, so a label allowed to break would grow the bar's height
+     rather than the button's width. */
+  .ce-exit-word{white-space:nowrap}
   .ce-exit:hover{background:var(--color-accent-700); border-color:var(--color-accent-700)}
   .ce-exit:focus-visible{box-shadow:var(--focus)}
   .ce-col{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
@@ -1176,10 +1190,29 @@ function clauseEditorHtml(){
         <span class="ce-barg"></span>
         ${''/* THE WAY OUT, where the prototype draws it: the last thing on the
                strip, filled, corners pointing in. It is the ONLY way out now
-               that the header has gone, so it is never conditional. */}
+               that the header has gone, so it is never conditional.
+
+               ---- AND IT SAYS THE WORD (owner-reported 10 Sep 2026: "the exit
+               button is not so clear it is an exit button in the negotiations
+               page. Maybe it should be a button that says exit.") ----
+               It was the symbol alone, and the symbol is the prototype's own —
+               four corners pointing in, which reads as "make this smaller" as
+               readily as it reads as "leave". THE ONLY WAY OUT OF A FULL-WINDOW
+               PAGE MAY NOT BE A GUESS: this page covers the shell, so a reader
+               who cannot place this control has nothing else to press.
+
+               THE SYMBOL STAYS BESIDE THE WORD rather than being replaced by
+               it — it is what makes the control findable at a glance once you
+               know it, and the word is what teaches it the first time.
+
+               THE HOVER KEEPS THE LONGER SENTENCE. The label is the act in one
+               word and the title says which mode is being left; a control whose
+               name and whose hover are the same string tells the reader nothing
+               twice. */}
         <button type="button" class="ce-exit" data-ce-act="close"
           title="${_ceea(_cet('ce_leave_work_mode'))}"
-          aria-label="${_ceea(_cet('ce_leave_work_mode'))}">${CE_LEAVE_ICON}</button>
+          aria-label="${_ceea(_cet('ce_leave_work_mode'))}">${CE_LEAVE_ICON}<span
+          class="ce-exit-word">${_cee(_cet('ce_exit'))}</span></button>
       </div>
     </div>
         <div class="ce-left">

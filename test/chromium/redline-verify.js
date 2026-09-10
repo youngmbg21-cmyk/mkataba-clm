@@ -2212,6 +2212,38 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   }
   await page.screenshot({ path: path.join(OUT, '22-copilot-read.png') });
 
+  /* ---- 23. AN EMPTY COLUMN SHARES THE COLUMN'S ONE LEFT EDGE ----
+     (owner-reported 10 Sep 2026: "The paragraph below the redlines should be
+     aligned at the same line as the redlines to give the card balance.")
+
+     IT HAS TO BE MEASURED HERE. The rule reads a token and looks perfectly
+     correct in the stylesheet either way — this page has been caught three
+     times by a declaration that lost a cascade fight — so what is asked is
+     where the GLYPHS land, from the head's own caption to the empty state's
+     two lines.
+
+     STAGED BY EMPTYING THE COLUMN, which is the one state the whole check is
+     about and which the harness's own fixture deliberately is not: it seeds
+     five changes so the cards can be measured. Both of the empty column's
+     states wear one class, so measuring either measures both. */
+  const emptyCol = await page.evaluate(() => {
+    CONTRACT.changes = [];
+    renderRedline();
+    const L = sel => { const e = document.querySelector(sel); if (!e) return null;
+      return Math.round(e.getBoundingClientRect().left * 10) / 10; };
+    const kids = [...document.querySelectorAll('.rl-cards-empty > *')];
+    return { head: L('.rl-idx-title'), box: L('.rl-cards-empty'),
+      lines: kids.map(e => Math.round(e.getBoundingClientRect().left * 10) / 10),
+      drawn: kids.length };
+  });
+  check('23 the empty column is drawn at all — the state this is about',
+    emptyCol.drawn >= 2, `${emptyCol.drawn} line(s)`);
+  check('23 and every line of it starts on the head\'s own vertical',
+    emptyCol.head != null && emptyCol.lines.length > 0
+      && emptyCol.lines.every(x => Math.abs(x - emptyCol.head) < 1),
+    `head ${emptyCol.head} · lines ${JSON.stringify(emptyCol.lines)}`);
+  await page.screenshot({ path: path.join(OUT, '23-empty-column.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

@@ -634,8 +634,54 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
     assert.ok(/\.rb-btn:disabled/.test(CODE), 'and a greyed tool looks greyed');
   });
 
+  /* ---- AND IT SAYS THE WORD (owner-reported 10 Sep 2026) ----
+     "the exit button is not so clear it is an exit button in the negotiations
+     page. Maybe it should be a button that says exit." It carried the
+     prototype's symbol alone — four corners pointing in, which reads as "make
+     this smaller" as readily as it reads as "leave" — and this page covers the
+     shell, so a reader who cannot place that control has nothing else to
+     press. Whether the word is VISIBLE PIXELS is measured on the drawn page
+     (clause-editor-verify 2q); what lives here is that it is drawn at all, and
+     that the two things the button says are two different things. */
+  test('the way out carries a word, not the symbol alone', () => {
+    const btn = CODE.match(/<button type="button" class="ce-exit"[\s\S]*?<\/button>/);
+    assert.ok(btn, 'the way out is still one button');
+    assert.ok(/ce-exit-word/.test(btn[0]), 'and it carries a label span');
+    assert.ok(/_cet\('ce_exit'\)/.test(btn[0]), 'whose word comes from the dictionary');
+    /* THE SYMBOL STAYS BESIDE IT: it is what makes the control findable at a
+       glance once you know it, and the word is what teaches it the first
+       time. */
+    assert.ok(/CE_LEAVE_ICON/.test(btn[0]), 'the symbol is not replaced by the word');
+    /* THE LABEL AND THE HOVER ARE TWO DIFFERENT STRINGS. A control whose name
+       and whose title read the same tells the reader nothing twice. */
+    assert.ok(/_cet\('ce_leave_work_mode'\)/.test(btn[0]),
+      'the hover still names which mode is being left');
+    assert.notEqual(
+      (I18N.match(/\n\s*ce_exit: '([^']*)'/) || [])[1],
+      (I18N.match(/\n\s*ce_leave_work_mode: '([^']*)'/) || [])[1],
+      'and the two are not the same word');
+  });
+
+  test('and the dress grows to fit it rather than squeezing it', () => {
+    const rule = CODE.match(/\.ce-exit\{[^}]*\}/);
+    assert.ok(rule, 'the way out has its own rule');
+    assert.ok(!/width:28px/.test(rule[0]),
+      'the fixed square is gone — the box takes the word\'s width');
+    assert.ok(/height:28px/.test(rule[0]),
+      'and the height is UNTOUCHED: the ask was about being readable, not bigger');
+    /* BOLD BECAUSE IT IS FILLED — the owner's own rule for a control row
+       (10 Sep 2026: "Only the shaded buttons should bold"). */
+    assert.ok(/font-weight:var\(--w-strong\)/.test(rule[0]), 'the filled act is bold');
+    /* ON THE LADDER, never a fraction: this product draws no half-pixel type. */
+    assert.ok(/font-size:var\(--t-body\)/.test(rule[0]), 'and its size is a token');
+    /* ONE LINE WHATEVER THE LANGUAGE — the strip is a nowrap row, so a label
+       allowed to break would grow the BAR rather than the button. */
+    assert.ok(/\.ce-exit-word\{white-space:nowrap\}/.test(CODE),
+      'the label cannot wrap');
+  });
+
   test('both languages carry the new control\'s words', () => {
-    for (const k of ['ce_leave_work_mode']){
+    for (const k of ['ce_leave_work_mode', 'ce_exit']){
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2,
         k + ' is in BOTH languages');
     }

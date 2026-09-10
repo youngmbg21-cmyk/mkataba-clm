@@ -2501,7 +2501,21 @@ function redlineLayoutCss(){
          moved ONTO THE ROW as its own padding, so the ruling is continuous and
          the words still sit 16px in. */}
   .redline-page .rl-cards{padding:0}
-  .redline-page .rl-cards-empty{padding:6px 2px;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
+  /* ---- THE EMPTY COLUMN SHARES THE COLUMN'S ONE LEFT EDGE ----
+     (owner-reported 10 Sep 2026: "The paragraph below the redlines should be
+     aligned at the same line as the redlines to give the card balance.")
+
+     MEASURED before it was touched: the head's caption started at x=1032 and
+     this text at x=1018 — fourteen pixels out, which is 16px against 2.
+
+     IT IS THE 26 Aug SWEEP FINISHING ITS JOB. That pass gave the head, the
+     rows and the band headings ONE inset off --s-4 so the column reads as one
+     ruled list, and it never reached this state — which draws only when the
+     column is empty, so nobody was looking at it that day. Reading the same
+     token rather than typing 16 is what keeps it true the next time that
+     measure moves. BOTH empty states wear this class: the genuinely-empty one
+     and the filtered-empty one, so neither can drift from the other. */
+  .redline-page .rl-cards-empty{padding:6px var(--s-4);font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
   /* ---- AN INDEX CARD, WITH A SPINE THAT SAYS WHOSE IT IS ----

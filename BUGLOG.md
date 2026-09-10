@@ -10987,3 +10987,59 @@ identical on the parent).
 - ct_collapse_facts_title / ct_expand_facts_title still read as though the fold
   were about making room, which was the snap's own argument. Accurate enough as
   hovers on a manual control; worth a re-read if that section is ever revisited.
+
+## 10 Sep 2026 — the way out says the word, and the empty column lines up (segment 2 of 6)
+
+Two more of the owner's thirteen. Both are about a screen reading wrong rather
+than behaving wrong, and one of them is a number.
+
+THE ONLY WAY OUT OF WORK MODE WAS A SYMBOL. "the exit button is not so clear it
+is an exit button in the negotiations page. Maybe it should be a button that says
+exit." It carried the approved prototype's own mark — four corners pointing in —
+and nothing else. That mark reads as MAKE THIS SMALLER as readily as it reads as
+LEAVE, and this page covers the whole shell: a reader who cannot place that
+control has nothing else to press. It says Exit now (Lämna in Swedish), with the
+symbol still beside it. The symbol is what makes the control findable at a glance
+once you know it and the word is what teaches it the first time, so neither
+replaces the other. The hover keeps the longer sentence — ce_exit is the act in
+one word and ce_leave_work_mode names which mode is being left, because a control
+whose name and whose title read the same tells the reader nothing twice.
+
+THE HEIGHT IS UNTOUCHED AT 28 and that was a decision rather than an oversight.
+The ask was about being READABLE, not about being bigger; the box grows to fit
+the label and .ce-barg — the flex:1 spacer between the tools and the wall — gives
+up exactly what the label takes, so nothing else on the strip moves. Measured
+after: 71x28 with the word 30px wide, and the strip is still one 45px row with
+nothing off its centre line.
+
+THE EMPTY CHANGE COLUMN STARTED FOURTEEN PIXELS LEFT OF ITS OWN HEADING. "The
+paragraph below the redlines should be aligned at the same line as the redlines
+to give the card balance." MEASURED before it was touched: the head's caption at
+x=1032 and both lines of the empty state at x=1018 — 16px of inset against 2.
+IT IS THE 26 Aug SWEEP FINISHING ITS JOB rather than a new rule. That pass gave
+the head, the rows and the band headings one inset off --s-4 so the column reads
+as one ruled list, and it never reached this state, for a reason worth keeping:
+.rl-cards-empty draws only when the column is EMPTY, so on the day of that sweep
+there was nothing on screen to compare it against. Reading the token rather than
+typing 16 is what keeps it true the next time that measure moves. Both empty
+states wear the one class — the genuinely-empty column and the filtered-empty
+one — so neither can drift from the other. Measured after: 1032, 1032, 1032.
+
+Verified: node 6160/6160. f245 82/82 and f246 46/46, with both files failing at
+the parent (4 failures across the two). clause-editor-verify 238/238, and at the
+parent 3 of its 4 new checks fail — headline "AND IT SAYS THE WORD — visible
+pixels, not markup behind something → no label span", plus 2o reporting the old
+28x28 square. redline-verify 193/193, and at the parent its new check reports the
+owner's screenshot as a number: "head 972 · lines [958,958]". Lint unchanged
+(4 pre-existing errors, identical on the parent).
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- The way out is 28px tall on a strip whose writing tools are 34. That predates
+  this change and the owner's ask was about clarity, not size — but it is more
+  visible now the button carries a word, and the owner's own 10 Sep ruling for
+  the two rows below is that a control row should hold one height. Worth a word
+  if it reads wrong on screen.
+- The empty state's vertical padding is 6px where a card row's is 9. Nobody
+  reported it and only the left edge was in the ask.
