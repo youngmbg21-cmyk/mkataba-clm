@@ -2335,12 +2335,32 @@ async function rereadUploadText(c, btn){
        not change under anybody, and this control has always refused one. What
        it gains here is the STRUCTURE the upload path now stores, so an unsigned
        upload filed before J-3.1 can be brought up to date by the person who
-       owns it, one press, deliberately. A Word file goes through the same one
-       reader the upload uses; everything else reads exactly as it did. */
+       owns it, one press, deliberately. A Word file AND a PDF each go through
+       the same one reader the upload uses; everything else reads exactly as it
+       did. */
     let text='', html='', rep=null;
     if(window.isWordDoc && isWordDoc(c)){
       const w=await extractWordText(u.dataUrl);
       text=w.text; html=w.html||''; rep=w.report||null;
+    } else if(/pdf/.test(u.mime||'') && window.readPdfStructured){
+      /* ---- AND A PDF GOES THROUGH THE SAME READER TOO (J-3.4) ----
+         THIS DOOR IS THE ONLY WAY A PDF ALREADY ON FILE CAN EVER GET ITS
+         STRUCTURE, because nothing already uploaded is re-read automatically
+         (D-5, above) — so leaving it on the flat reader meant a contract
+         uploaded before J-3.4 could never draw the Plain English switch, by any
+         route, for the rest of its life. Reported by the owner as "you have not
+         fixed it", on a contract that was already in the workspace: the new
+         upload path was right and the door beside it had never been told.
+         IT MIRRORS submitUpload's OWN PDF BRANCH, line for line — the same
+         reader, the same bound, and the same fall back to the plain reader
+         rather than a refusal — so a re-read of a file produces the identical
+         record a fresh upload of it would. A second reading here is how the two
+         would come to disagree about what a PDF says. */
+      try{
+        const r=await readPdfStructured(dataUrlBytes(u.dataUrl).buffer);
+        text=String(r.text||'').slice(0,EXTRACT_MAX_CHARS);
+        html=r.html||''; rep=r.report||null;
+      }catch(_){ text=await extractDocText(u.dataUrl, u.mime||''); }
     } else {
       text=await extractDocText(u.dataUrl, u.mime||'');
     }

@@ -374,6 +374,61 @@ const INK = `(() => {
     check('5e a PDF whose structure was really READ does not claim it was guessed',
       saysRead === false, saysRead ? 'it wears the guessed phrase' : 'correct');
 
+    /* ============ 7. A PDF ALREADY IN THE WORKSPACE — THE OWNER'S OWN CASE ============
+       "You have not fixed 1 and 2", said on a contract that was ALREADY in the
+       book. Everything above proves a NEW upload, and every one of those checks
+       passed while the report was true — because NOTHING ALREADY UPLOADED IS
+       RE-READ (D-5), deliberately, so the only route an existing PDF has is the
+       Re-read control, and that control had only ever been taught about Word.
+
+       SO THE STATE IS STAGED THE WAY A PRE-J-3.4 RECORD REALLY IS — the file
+       still on the record, and the structure and the stored body taken off it —
+       and then the REAL button is pressed. Staged rather than uploaded on the
+       old code, because that code is two commits back; what matters is that
+       the record is the shape those uploads left behind, which 7a proves by
+       measuring the switch GONE before the press. */
+    const oldId = await page.evaluate(i => {
+      const c = getContract(i);
+      delete c.redlineText; delete c.format;
+      if (c.upload) delete c.upload.docStructure;
+      return c.id;
+    }, id);
+    await openDoc(oldId);
+    const swBefore = await page.evaluate(() => !!document.querySelector('[data-doc-read]'));
+    check('7a a PDF filed before this shipped draws NO Plain English switch',
+      swBefore === false, swBefore ? 'the switch is there — nothing was staged' : 'gone, as reported');
+
+    const pressed = await page.evaluate(() => {
+      const b = document.querySelector('[data-reread]');
+      if (!b) return 'no Re-read control on the page';
+      b.click(); return '';
+    });
+    check('7b the Re-read control is on the page to press', pressed === '', pressed || 'pressed');
+    await page.waitForTimeout(6000);
+
+    const after = await page.evaluate(i => {
+      const c = getContract(i);
+      return { rich: !!c.redlineText, report: (c.upload || {}).docStructure || null };
+    }, oldId);
+    check('7c re-reading a PDF stores its structure — the fix',
+      after.rich === true && !!after.report && !!(after.report.headings || after.report.numbered),
+      after.rich ? `headings ${(after.report||{}).headings}, numbered ${(after.report||{}).numbered}`
+                 : 'no body stored — the door is still Word-only');
+
+    await openDoc(oldId);
+    const swAfter = await page.evaluate(() => {
+      const el = document.querySelector('[data-doc-read]');
+      if (!el) return { on: false, clauses: -1 };
+      const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      return { on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
+        clauses: (typeof docReadClauses === 'function')
+          ? docReadClauses(getContract(state.activeId)).length : -1 };
+    });
+    check('7d and the Plain English switch is VISIBLE PIXELS afterwards',
+      swAfter.on === true, `${swAfter.on} · ${swAfter.clauses} clauses`);
+    check('7e with real clauses on the sheet', swAfter.clauses >= 4, String(swAfter.clauses));
+    await page.screenshot({ path: path.join(OUT, '03-after-reread.png') });
+
     check('6 no page errors anywhere in the journey', errors.length === 0,
       errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {

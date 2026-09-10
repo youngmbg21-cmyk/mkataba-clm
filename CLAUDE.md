@@ -3137,7 +3137,27 @@ touched; the page it is asked about was, and it reappeared on its own.
   handed the agreement AND a file frame under it. **SCOPED TO PDFs**: a scan is
   an image and keeps its picture, which is the evidence.
 - **NOTHING ALREADY UPLOADED IS RE-READ.** "Re-read document" is the one door
-  and it already refuses a sealed record and an edited one.
+  and it already refuses a sealed record and an edited one. **AND THAT DOOR
+  ONLY KNEW ABOUT WORD — REVERSED IN PLACE 10 Sep 2026**, owner-reported as
+  *"you have not fixed 1 and 2"* on a contract that was already in the
+  workspace. Every check above drives a NEW upload and every one of them passed
+  while the report was true: a PDF fell to the flat reader in that branch, so
+  `html` stayed empty, the structure was never stored, and **a PDF filed before
+  this shipped could never draw the Plain English switch by any route for the
+  rest of its life** — automatic re-reading being refused by design, this was
+  the only door it had. **BUG FIX RULE 2, FAILED IN ITS USUAL DIRECTION**: every
+  place the NEW path appears was found, and the one place an EXISTING record
+  appears was not. It mirrors `submitUpload`'s own PDF branch line for line —
+  the same reader, the same bound, the same fall back to the plain reader rather
+  than a refusal — so a re-read produces the identical record a fresh upload of
+  that file would, and a second reading here is how the two would come to
+  disagree about what a PDF says. **The three guards on the write are
+  untouched**: never on a sealed record, never over an edited one, and the
+  clause ids are carried across. Tests: pdf-structure-verify section 7 (**3 fail
+  against the unfixed door, reporting it verbatim — "the door is still
+  Word-only"**; 7a is the CONTROL, measuring the switch GONE before the press,
+  which is what proves the staged record really is the shape those uploads left
+  behind).
 - **WHAT IT COSTS, said out loud**: laying the words out loses the other side's
   fonts, page layout and logo. HaTi already makes that trade for Word.
 - **AND ONE THING IS WIDER THAN THE ORDER ASKED FOR**, reported rather than

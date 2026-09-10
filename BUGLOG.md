@@ -12043,3 +12043,60 @@ Noticed, not fixed
 - js/pdfrich.js is loaded by no test stage at all, so none of it has ever been
   exercised. Left alone: loading it while it is unwired would shadow the reader
   that does ship.
+
+## 10 Sep 2026 — "you have not fixed 1 and 2" (owner, on a contract already in the workspace)
+
+REPORTED after Jobs 1 & 2 had shipped, been merged and been proved green by a
+browser file that drives a real upload through the real file input. Both facts
+were true at once, and the gap between them is the whole finding.
+
+WHAT WAS ACTUALLY WRONG. Nothing already uploaded is re-read automatically —
+that is D-5 and it is deliberate, a sealed record must not change under
+anybody. So an existing PDF has exactly ONE route to its structure: the
+"Re-read document" control on the file strip. That control only ever learned
+about Word. A PDF took its `else` branch and went through the FLAT reader, so
+`html` came back empty, `docxHasStructure` was never satisfied, and no body was
+ever stored. From the owner's chair: open the PDF contract that has been in the
+workspace all along, and it is identical to before — no Plain English switch,
+no structure on the Negotiate page — and pressing the one control that looks as
+though it should help does nothing either.
+
+BUG FIX RULE 2, FAILED IN ITS USUAL DIRECTION. Every place the NEW upload path
+appears was found and fixed. The one place an EXISTING record appears was not
+looked at. The door's own comment even says what it gains "so an unsigned
+upload filed before J-3.1 can be brought up to date" — J-3.1 was the WORD job,
+and J-3.4 never went back to it.
+
+AND THE NET COULD NOT SEE IT, WHICH IS THE HALF WORTH KEEPING. pdf-structure-
+verify was 19/19 throughout. Every one of its sections uploads a file and then
+measures; not one of them asks what happens to a contract that was already
+there. A file that only ever drives the arriving path proves the arriving path,
+and says nothing about the book the customer already has. Section 7 starts
+where the reader starts: the record staged the shape a pre-J-3.4 upload left
+behind, the switch measured GONE (7a, the control), the REAL button pressed,
+and the structure and the switch read back off the page. 3 of the 5 fail
+against the unfixed door and report it verbatim.
+
+FIXED: the re-read door mirrors submitUpload's own PDF branch line for line —
+same reader, same bound, same fall back to the plain reader rather than a
+refusal — so a re-read produces the identical record a fresh upload of that
+file would. The three guards on the write are untouched: never on a sealed
+record, never over an edited one, clause ids carried across.
+
+### Noticed, not fixed
+- The owner has to know to press "Re-read document" on each PDF filed before
+  this shipped. There is nothing on screen saying a contract could be brought
+  up to date, and no way to do a workspace at a time. Whether that is worth a
+  prompt, or a one-off sweep, is the owner's call.
+- AND ONE CASE THIS FIX DOES NOT REACH, which may be the same report again. A
+  PDF that carries text but NO readable structure — no bold or larger headings,
+  no numbered clauses the reader recognises — stores no body, so uploadDocBody
+  keeps its file frame and there are still no clauses on the sheet and still no
+  Plain English switch. The equivalent WORD file does better: with no structure
+  it falls to documentTextHtml's guesswork, which lays the text out and gives
+  the switch something to walk. That asymmetry is deliberate as far as it goes
+  (a scan is an image and must keep its picture, which is the evidence) but it
+  was never decided for a text-bearing flat PDF, and it is the one shape that
+  would still look unfixed from the owner's chair after today. Whether a flat
+  PDF should fall to the same guesswork a flat Word file does is a product
+  decision — it changes what every such upload looks like — and is the owner's.
