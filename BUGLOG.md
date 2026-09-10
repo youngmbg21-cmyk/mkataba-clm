@@ -10844,3 +10844,84 @@ Lint unchanged.
   match, so nothing lands beside the wrong clause, but nothing re-reads either.
   Refreshing there would spend Copilot money with nobody pressing anything, which
   is a decision for the owner rather than one to take in passing.
+
+## 10 Sep 2026 — the walk reads both shapes of paper
+
+Young, off a screenshot of MK-253's Document tab with an empty slot ringed:
+"some times when i click on a contract from a different page, in this case from
+the calendar page and it takes me to the documents page per the attached, the
+contract view and plain english buttons are missing. This is a bug so please
+review and fix"
+
+REPRODUCED BEFORE ANYTHING WAS TOUCHED, and the report's own diagnosis is not
+the cause. Drove four arrivals in a real browser — dashboard, register, calendar
+and a bare tab press — and the switch behaved identically on every one, because
+all four are selectContract then openWorkspace then setView('workspace'), one
+door. Then probed all four fixture contracts on the same arrival: MK-A2, MK-B1
+and MK-B2 drew the switch (4 clauses each) and MK-A1 did not (0 clauses). WHAT
+DIFFERS IS THE CONTRACT, not the route.
+
+THE CAUSE. A contract drawn from PLAIN TEXT is laid out by documentTextHtml,
+which paints a heading as a styled div and a clause number as a styled span —
+there is not one h1-h4 in the wording. docReadSheet knew one shape of paper, the
+rich one. So on every received document and every working text a negotiation has
+stored — which is what Young's screenshot shows, "WORKING TEXT" on the sheet and
+"Round 1 · 2 need you" in the head — the walk found nothing, docReadSwitchHtml
+correctly stood down, and the reader was offered nothing at all. MEASURED on a
+template contract's own working text (docPlainText, which is exactly what the
+first redline stores): 0 rows.
+
+AND A SECOND FAULT UNDER THE SAME CAUSE. Where a run of body lines happens to
+start with a dotted number the walk did anchor — on the whole RUN, because that
+builder puts a section's 1.1, 1.2 and 1.3 into ONE pre-wrap div. That is one row
+for three clauses and one note for all of them: precisely the summary Young
+rejected the day before, arriving through the other door.
+
+THE FIX. The builder already asked docLineKind which lines are headings and
+docClausePrefix which carry a number, and threw both answers away. It writes
+them down now — doc-t-h on the heading div, doc-t-n on the number's span — and
+the walk reads those two names beside the h1-h4 it already knew. TWO CLASSES AND
+NOTHING ELSE: no element moves, no style changes, no line breaks differently, so
+the five other callers of that builder (the counterparty's page, the template
+library's two previews, richdoc's fallback, the upload branch) render byte for
+byte as they did and carry an inert class. Proved as PAINT rather than asserted:
+every text line's own rect and the canvas's own box, measured in a worktree at
+the parent and again here — IDENTICAL, not one pixel.
+
+The number's span is the anchor rather than its paragraph, because a marked
+number is already a real element at the top of its own line and a Range from it
+to the next one is exactly that clause's wording — so the sheet is not
+restructured to be read. _docReadWords was lifted out so the two shapes cannot
+name the same clause differently. The seal is untouched by construction:
+freezeContractHtml builds its own markup for a plain-text body and never calls
+this builder. Checked before changing it: nothing anywhere parses that markup
+back.
+
+MEASURED AFTER, on a template contract's own working text: switch drawn, four
+clauses each carrying the paper's own number, the first entry level with its
+clause to the pixel, contract not narrowed by one.
+
+Verified: node 6153/6153. f277 82/82, and 7 of the 9 new claims fail in a
+worktree at the parent (headline "the reported fault: this paper had no switch
+at all — got 0"). plain-english-verify 55/55, 6 failing against the parent and
+reporting the screenshot verbatim: "the switch is VISIBLE PIXELS on it" FAIL,
+"0 rows", "the control is not on the page". Also green: upload-structure 18/18,
+upload-party 19/19, term-and-fields 25/25, readonly-copy 11/11, redline 191/191,
+clause-door 117/117, counterparty-reading-and-more 63/63, parity 41/41,
+signing-on-paper 30/30, phone 61/61. Lint unchanged (4 pre-existing errors,
+identical on the parent).
+
+### Noticed, not fixed
+- theme-tokens-verify is 27/40. PROVED pre-existing: the failing set is
+  line-for-line identical in a worktree at the parent (13 checks, same screens).
+  Not this change's — two classes that style nothing cannot move a colour.
+- pages-read-alike-verify is 47/50, the same three negotiation-head failures as
+  the previous run. PROVED pre-existing against the parent again.
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- A section heading carries no num on either shape of paper, so the edition
+  cites a section by its heading text rather than by a number. Existing
+  behaviour on the rich sheet and unchanged here; worth a look if the numbering
+  ever has to be quoted separately.
+- The plain-English edition is still not on the phone, not on the counterparty's
+  page, and not offered on the Signing tab. Named in the MAP as deliberate.

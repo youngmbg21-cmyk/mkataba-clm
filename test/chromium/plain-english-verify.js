@@ -585,6 +585,107 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     check(/five working days/.test(fresh.text),
       '9c and what draws is the reading of the NEW wording', fresh.text.slice(0, 90));
 
+    /* ============ 10 · THE OTHER SHAPE OF PAPER (Young, 10 Sep 2026) ============
+       "the contract view and plain english buttons are missing."
+
+       Reported as an arrival and it is nothing to do with the route: MEASURED
+       from the dashboard, the register and the calendar, the switch behaved
+       identically. What differs is the CONTRACT. A working text — which is
+       what Young's screenshot shows, and what every received document is —
+       is laid out by documentTextHtml, whose headings are styled <div>s and
+       whose clause numbers are styled <span>s. Not one <h*> on the sheet.
+
+       WHY A BROWSER FILE FOR THIS AND NOT ONLY f277: the node stage plants
+       markup on a canvas, which proves the READING. Whether the switch is
+       VISIBLE PIXELS on a real contract, whether a real press brings back a
+       note beside the clause it is about, and whether the paper moved by so
+       much as a pixel are three questions only a rendered page answers. */
+    /* THE STAGE IS THE PRODUCT'S OWN, never a body typed out here: the working
+       text is docPlainText of the contract's own paper, which is exactly what
+       a negotiation stores the first time somebody redlines a template
+       contract — the state Young's screenshot is in ("Round 1 · 2 need you",
+       "WORKING TEXT" on the sheet). Typing a body out would be staging a shape
+       the product might not produce. */
+    await drive(page, () => { openWorkspace('MK-B2'); }, undefined, null);
+    await pause(1800);
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = docPlainText(c); c.format = 'text'; renderWorkspace();
+    }, undefined, null);
+    await pause(1400);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(800);
+
+    const txtSheet = await drive(page, () => {
+      const cv = document.getElementById('doc-canvas');
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      let rows = []; try { rows = docReadClauses(c); } catch (_) { rows = []; }
+      /* The WORDING's own headings, never the paper head's title — that one
+         is furniture and the walk has always stepped over it. */
+      const heads = cv ? Array.from(cv.querySelectorAll('h1,h2,h3,h4'))
+        .filter(el => !el.closest('.rl-paper-head,.rl-paper-foot,header')).length : -1;
+      return { h: heads,
+        rows: rows.length, nums: rows.map(r => r.num),
+        kinds: rows.map(r => r.kind),
+        width: cv ? Math.round(cv.getBoundingClientRect().width) : -1 };
+    }, undefined, { h: -1, rows: 0, nums: [], kinds: [], width: -1 });
+    check(txtSheet.h === 0,
+      '10a the stage is the reported one — this paper\'s wording carries no <h*>', txtSheet.h);
+    check(await visible(page, '.doc-read-seg'),
+      '10b the switch is VISIBLE PIXELS on it — against the parent it is not drawn at all');
+    check(txtSheet.rows >= 4 && txtSheet.nums.filter(Boolean).join(',') === '1,2,3,4',
+      '10c and the walk reads it clause for clause, each with the paper\'s own number',
+      `${txtSheet.rows} rows: ${txtSheet.nums.join('|')}`);
+
+    /* THE PAPER MAY NOT MOVE. The classes name what was already there; if one
+       of them changed a line box this is where it shows. */
+    const beforeLines = await drive(page, () => {
+      const cv = document.getElementById('doc-canvas');
+      const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT);
+      const out = []; let n;
+      while ((n = w.nextNode())) {
+        const t = (n.textContent || '').trim(); if (!t) continue;
+        const r = document.createRange(); r.selectNode(n);
+        for (const rc of r.getClientRects()) out.push(`${t.slice(0, 20)}@${Math.round(rc.top)},${Math.round(rc.left)}`);
+      }
+      return out;
+    }, undefined, []);
+    check(beforeLines.length > 6,
+      '10d the sheet really paints its lines — or the measurement below proves nothing',
+      beforeLines.length);
+
+    const txtRows = txtSheet.rows;
+    ai.reset();
+    ai.script(tool(Array.from({ length: txtRows }, (_, i) => (txtSheet.kinds[i] === 'section'
+      ? { i, head: 'PART ' + (i + 1), plain: '' }
+      : { i, head: 'What this means', plain: `PLAIN ${txtSheet.nums[i]}: you must do what this clause says.` }))));
+    const txtPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '10 Plain English on a working text');
+    await pause(3200);
+    const txtOut = await drive(page, () => {
+      const cv = document.getElementById('doc-canvas');
+      const marks = {};
+      cv.querySelectorAll('.doc-t-n').forEach(m => { marks[m.textContent.trim()] = Math.round(m.getBoundingClientRect().top); });
+      const notes = Array.from(document.querySelectorAll('.doc-read-note')).map(n => ({
+        num: ((n.querySelector('.dr-n') || {}).textContent || '').trim(),
+        top: Math.round(n.getBoundingClientRect().top),
+      }));
+      return { layer: !!document.getElementById('doc-read') && !document.getElementById('doc-read').hidden,
+        notes, marks, width: Math.round(cv.getBoundingClientRect().width) };
+    }, undefined, { layer: false, notes: [], marks: {}, width: -1 });
+    check(txtPressed && txtOut.layer && txtOut.notes.length === txtRows,
+      '10e a real press brings back one entry per row of the walk',
+      `${txtOut.notes.length} of ${txtRows}`);
+    check(txtOut.notes.some(n => n.num === '1') && txtOut.notes.some(n => n.num === '4'),
+      '10f and each numbered entry cites the paper\'s own clause number',
+      txtOut.notes.map(n => n.num || '·').join(' '));
+    const first = txtOut.notes.find(n => n.num === '1');
+    check(!!first && Math.abs(first.top - txtOut.marks['1.']) <= 6,
+      '10g the first entry is LEVEL with the clause it reads',
+      first && `note ${first.top} · clause ${txtOut.marks['1.']}`);
+    check(txtOut.width === txtSheet.width,
+      '10h and the contract did not narrow by a pixel', `${txtSheet.width} → ${txtOut.width}`);
+    await page.screenshot({ path: path.join(OUT, '10-working-text.png') }).catch(() => {});
+
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));
   } catch (e) {

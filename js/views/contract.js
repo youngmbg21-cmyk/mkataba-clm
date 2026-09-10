@@ -997,6 +997,31 @@ const trackedNote=t=>(t&&(t.ins||t.del))
    surfaces and the negotiation page's roots, so every other caller — the
    template library's preview, the migration preview, an export — resolves it
    to 1 and renders exactly as before. */
+/* ---- AND THE SHEET SAYS WHAT THIS BUILDER ALREADY DECIDED (Young reported
+   it 10 Sep 2026: "the contract view and plain english buttons are missing")
+   ----
+   Every heading and every clause number on this paper is a decision made
+   right here, by docLineKind — and none of it was written down anywhere a
+   later reader could find. A heading came out as a styled <div> and a clause
+   number as a styled <span>, so to anything reading the finished sheet this
+   was a wall of anonymous divs.
+
+   THE PLAIN-ENGLISH LAYER READS THE PAINTED SHEET, which is the safety of its
+   whole pairing (see docReadSheet): the list sent to the model and the anchors
+   the notes hang on are the SAME WALK, so a note cannot land beside the wrong
+   wording. That walk knew ONE shape of paper — the rich one, with real <h*>
+   headings — and this is the other, which is what every received document and
+   every redlined working text is drawn in. MEASURED on a working text with
+   two sections and four sub-clauses: the walk found no headings at all, so
+   the switch stood down and the reader was offered nothing.
+
+   TWO CLASSES AND NOTHING ELSE. No element moves, no style changes, no line
+   breaks differently — the classes name what was already there, so the five
+   other callers of this builder (the counterparty's page, the template
+   library's two previews, richdoc's fallback, the upload branch) render byte
+   for byte as they did and simply carry an inert class. The alternative was to
+   teach the walk to read an inline style string, which is the kind of reading
+   that breaks in silence. */
 function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   /* One helper so the three sizes below cannot drift apart. */
@@ -1021,13 +1046,13 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
       if(k==='heading'){
         if(para.length&&kind(para[para.length-1].replace(/<[^>]*>/g,''))==='blank') para.pop();
         endPara();
-        paras.push(`<div style="font-weight:var(--w-title);font-size:${scaled(hSize)};letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
+        paras.push(`<div class="doc-t-h" style="font-weight:var(--w-title);font-size:${scaled(hSize)};letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
         if(i+1<buf.length&&kind(buf[i+1])==='blank') i++;
         continue;
       }
       if(k==='clause'&&window.docClausePrefix){
         const p=docClausePrefix(l), at=l.indexOf(p);
-        para.push(esc(l.slice(0,at))+`<span style="font-weight:var(--w-strong)">${esc(p)}</span>`+esc(l.slice(at+p.length)));
+        para.push(esc(l.slice(0,at))+`<span class="doc-t-n" style="font-weight:var(--w-strong)">${esc(p)}</span>`+esc(l.slice(at+p.length)));
         continue;
       }
       para.push(esc(l));
@@ -6923,6 +6948,33 @@ const docReadItems=c=>{
 const _docReadNorm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
 const DOC_READ_HEADS='h1,h2,h3,h4';
 const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header';
+/* ---- THE OTHER SHAPE OF PAPER, AND IT IS THE COMMONER ONE ----
+   A contract drawn from PLAIN TEXT — every received document, and every
+   working text a negotiation has stored — is laid out by documentTextHtml,
+   which paints a heading as a styled <div> and a clause number as a styled
+   <span>. There is not one <h*> on the sheet, so a walk that knew only the
+   rich shape found nothing, drew no switch, and offered the reader nothing on
+   exactly the paper a plain-English reading is worth most on.
+
+   These are the two names that builder now stamps on its own decisions. The
+   walk reads them and nothing else changes: a marked heading is a SECTION
+   exactly as an <h*> is, and a marked clause number is a CLAUSE anchor whose
+   wording runs to the next anchor. ONE WALK, BOTH SHAPES — the property the
+   pairing rests on, which is why this is read here rather than inferred from
+   an inline style. */
+const DOC_READ_TXT_HEAD='.doc-t-h';
+const DOC_READ_TXT_NUM='.doc-t-n';
+/* ---- AND WHY THE NUMBER'S SPAN IS THE ANCHOR RATHER THAN ITS PARAGRAPH ----
+   That builder puts a whole RUN of body lines into one pre-wrap <div>, so a
+   section's 1.1, 1.2 and 1.3 share one element and there is no paragraph to
+   anchor each on. Anchoring the run would hand the model one row for three
+   clauses and bring back one note for all of them — which is precisely the
+   summary Young rejected on 10 Sep, arriving through the other door.
+
+   The number is already a real element, it already sits at the top of its own
+   line, and a Range from it to the next one is exactly that clause's wording.
+   So the sheet is not restructured to be read; the reading uses what is
+   there. */
 /* A NUMBERED CLAUSE IS AN ANCHOR OF ITS OWN, AND THAT IS THE WHOLE OF WHY THIS
    READ AS A SUMMARY (Young reported it 10 Sep 2026, off their own supply
    agreement: "if there clause 1.1 in the contract then there should be a
@@ -6949,6 +7001,12 @@ const _docReadNumOf=el=>{
    the pairing guard compares. Real paper sets that lead-in bold, so the bold
    run is taken where there is one at the very start; failing that the first
    few words, which is stable for the same document and is all the guard needs. */
+/* ONE READING OF "THE FIRST FEW WORDS", because a marked clause number has no
+   element of its own to read a bold run out of — its wording is the text that
+   FOLLOWS it — and two copies of this would let the two shapes of paper name
+   the same clause differently. */
+const _docReadWords=t=>String(t||'').replace(/\s+/g,' ').trim()
+  .split(' ').slice(0,8).join(' ').slice(0,140);
 const _docReadLead=el=>{
   const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
   let b=null;
@@ -6957,7 +7015,7 @@ const _docReadLead=el=>{
     const bt=String(b.textContent||'').replace(/\s+/g,' ').trim();
     if(bt&&t.indexOf(bt)>=0&&t.indexOf(bt)<=2) return bt.slice(0,140);
   }
-  return t.split(' ').slice(0,8).join(' ').slice(0,140);
+  return _docReadWords(t);
 };
 function docReadSheet(c){
   const canvas=document.getElementById('doc-canvas');
@@ -6967,16 +7025,29 @@ function docReadSheet(c){
   /* ONE WALK OF THE PAINTED SHEET, in document order, so the list sent to the
      model and the anchors the entries hang on cannot disagree by construction. */
   let seenName=false;
-  let rows=Array.from(canvas.querySelectorAll(DOC_READ_HEADS+',p,li,div'))
+  const isMark=el=>{ try{ return !!(el.matches&&el.matches(DOC_READ_TXT_NUM)); }catch(_){ return false; } };
+  let rows=Array.from(canvas.querySelectorAll(
+      DOC_READ_HEADS+',p,li,div,'+DOC_READ_TXT_HEAD+','+DOC_READ_TXT_NUM))
     .filter(el=>!el.closest(DOC_READ_FURNITURE))
     .map(el=>{
-      const isHead=/^H[1-4]$/.test(el.tagName);
+      /* A HEADING IS EITHER SHAPE OF HEADING. The rich sheet writes real
+         <h*>; the plain-text sheet writes a div this builder has marked. One
+         reading, so the name rule and the section rule below reach both. */
+      let head=false;
+      try{ head=/^H[1-4]$/.test(el.tagName)||el.matches(DOC_READ_TXT_HEAD); }catch(_){ head=/^H[1-4]$/.test(el.tagName); }
       /* THE CONTRACT'S OWN NAME IS NOT A CLAUSE — the first heading on the
          sheet, and only where it really is the name, so it can never eat one. */
-      if(isHead&&!seenName){ seenName=true; if(name&&_docReadNorm(el.textContent)===name) return null; }
-      const num=isHead?'':_docReadNumOf(el);
-      if(!isHead&&!num) return null;
-      return {el,isHead,num};
+      if(head&&!seenName){ seenName=true; if(name&&_docReadNorm(el.textContent)===name) return null; }
+      /* A MARKED CLAUSE NUMBER IS AN ANCHOR IN ITS OWN RIGHT, and its own text
+         IS the number — so it is read off the mark rather than out of a line
+         that has not started yet. */
+      if(isMark(el)){
+        const n=String(el.textContent||'').replace(/\s+/g,' ').trim().replace(/[.)]\s*$/,'');
+        return n?{el,isHead:false,isMark:true,num:n}:null;
+      }
+      const num=head?'':_docReadNumOf(el);
+      if(!head&&!num) return null;
+      return {el,isHead:head,isMark:false,num};
     })
     .filter(Boolean);
   /* A WRAPPER THAT MERELY CONTAINS the numbered paragraph is not the clause —
@@ -7000,8 +7071,11 @@ function docReadSheet(c){
        of the clause rather than a label on it. The last row stops at the
        signature block where there is one, so the parties are never read as
        wording. */
-    const heading=row.isHead?own:_docReadLead(row.el);
-    const text=row.isHead?after:(after?own+' '+after:own);
+    /* A MARK'S OWN TEXT IS THE NUMBER, NEVER THE WORDING, so its lead-in and
+       its wording both come from what follows it — where a paragraph anchor's
+       wording includes its own line. */
+    const heading=row.isHead?own:(row.isMark?_docReadWords(after):_docReadLead(row.el));
+    const text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
     if(heading||text) out.push({el:row.el,heading,text,num:row.num,kind:row.isHead?'section':'clause'});
   });
   return out;

@@ -1802,6 +1802,72 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## THE WALK READS BOTH SHAPES OF PAPER (Young reported it 10 Sep 2026)
+
+*"some times when i click on a contract from a different page, in this case
+from the calendar page and it takes me to the documents page per the attached,
+the contract view and plain english buttons are missing."*
+
+**IT IS NOTHING TO DO WITH THE ROUTE, and that was MEASURED before anything
+was touched** — the dashboard, the register, the calendar and a bare tab press
+all behaved identically, because every one of them is `selectContract` →
+`openWorkspace` → `setView('workspace')`, one door. **WHAT DIFFERS IS THE
+CONTRACT.**
+
+- **A CONTRACT DRAWN FROM PLAIN TEXT HAD NO SWITCH AT ALL**, and that is most
+  of the book: every received document, and every working text a negotiation
+  has stored — which is the state Young's own screenshot is in ("Round 1 · 2
+  need you", "WORKING TEXT" on the sheet). `documentTextHtml` lays that paper
+  out and paints a heading as a styled `<div>` and a clause number as a styled
+  `<span>`; there is not one `<h*>` in the wording. The walk knew ONE shape of
+  paper. MEASURED on a template contract's own working text: **0 rows**, so
+  `docReadSwitchHtml` correctly stood down and the reader was offered nothing —
+  on exactly the paper a plain-English reading is worth most on.
+- **THE BUILDER NOW NAMES WHAT IT ALREADY DECIDED.** It asked `docLineKind`
+  which lines are headings and `docClausePrefix` which carry a number, and then
+  threw both answers away. `doc-t-h` and `doc-t-n` are those two decisions
+  written down. **TWO CLASSES AND NOTHING ELSE** — no element moves, no style
+  changes, no line breaks differently — so the five other callers of that
+  builder (the counterparty's page, the template library's two previews,
+  richdoc's fallback, the upload branch) render byte for byte as they did and
+  carry an inert class. **MEASURED AS PAINT rather than asserted**: every text
+  line's own rect and the canvas's own box, before and after, identical.
+- **THE ALTERNATIVE WAS TO READ AN INLINE STYLE STRING**, which is the kind of
+  reading that breaks in silence. The seal is untouched by construction —
+  `freezeContractHtml` builds its own markup for a plain-text body and never
+  calls this builder.
+- **THE NUMBER'S SPAN IS THE ANCHOR, NOT ITS PARAGRAPH, and that is the half
+  that keeps this a translation rather than a summary.** That builder puts a
+  whole RUN of body lines into one `pre-wrap` div, so a section's 1.1, 1.2 and
+  1.3 share one element. Anchoring the run would hand the model one row for
+  three clauses and bring back one note for all of them — **precisely the
+  summary Young rejected on 10 Sep, arriving through the other door**. The
+  number is already a real element sitting at the top of its own line, and a
+  Range from it to the next one is exactly that clause's wording. So the sheet
+  is not restructured to be read; the reading uses what is there.
+- **ONE WALK, BOTH SHAPES** — the property the whole pairing rests on. A marked
+  heading is a SECTION exactly as an `<h*>` is; a marked number is a CLAUSE
+  whose wording runs to the next anchor. The contract's own name is stepped
+  over on this paper too, because that rule now asks one reading of "is this a
+  heading" rather than testing a tag name.
+- **`_docReadWords` IS ONE READING OF "THE FIRST FEW WORDS"**, because a marked
+  number has no element of its own to read a bold run out of — its wording is
+  what FOLLOWS it — and two copies would let the two shapes of paper name the
+  same clause differently.
+
+**MEASURED AFTER, on a template contract's own working text: the switch drawn,
+four clauses each carrying the paper's own number, the first entry level with
+its clause to the pixel, and the contract not narrowed by one.**
+
+Tests: f277 (12) (9 — **7 of them fail against the parent**; the paper is built
+by the REAL builder, never typed out, because a block that hand-writes the
+shape the product produces passes on the commit before the product could
+produce it), plain-english-verify section 10 (8, browser — the only place three
+of these can be asked: whether the switch is VISIBLE PIXELS on a real contract,
+whether a real press brings back a note beside the clause it reads, and whether
+the paper moved. **6 fail against the parent, reporting Young's own screenshot
+verbatim — the switch not drawn and 0 rows**).
+
 ## PLAIN ENGLISH BESIDE THE CONTRACT — THE FIRST BUILD (Young ruled 9 Sep 2026)
 
 What follows is the record of the first build, kept because the reasoning is

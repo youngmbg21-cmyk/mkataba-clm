@@ -810,3 +810,143 @@ describe('f277 (11) the control row reads as one row with the acts above it', ()
       'and every rule in the block is scoped to the group that was ringed');
   });
 });
+
+/* ============================================================
+   12. THE OTHER SHAPE OF PAPER — Young reported it 10 Sep 2026
+   ============================================================
+   "the contract view and plain english buttons are missing."
+
+   Reported as an arrival — "sometimes when i click on a contract from a
+   different page" — and it is nothing to do with the route. MEASURED on four
+   arrivals: from the dashboard, from the register, from the calendar and
+   straight to the tab, the switch behaved identically every time. What
+   differs is the CONTRACT.
+
+   A contract drawn from PLAIN TEXT — every received document, and every
+   working text a negotiation has stored, which is what Young's own screenshot
+   shows — is laid out by documentTextHtml. It paints a heading as a styled
+   <div> and a clause number as a styled <span>: there is not one <h*> on the
+   sheet. So the walk found nothing, the switch stood down, and the reader was
+   offered nothing at all on the paper a plain-English reading is worth most
+   on. MEASURED against the parent: 0 rows.
+
+   THE BUILDER NOW NAMES WHAT IT ALREADY DECIDED — it asked docLineKind and
+   then threw the answer away — and the walk reads those two names beside the
+   <h*> it already knew. ONE WALK, BOTH SHAPES.
+
+   THE PAPER IS BUILT BY THE REAL BUILDER HERE, never hand-written: a block
+   that types out the shape the product produces passes on the commit before
+   the product could produce it. */
+describe('f277 (12) the walk reads the plain-text sheet too', () => {
+  let win;
+  before(() => { win = buildWorld({ contractView: true }).win; win.innerWidth = 1440; });
+
+  const TEXT = [
+    'EQUIPMENT LEASE & MAINTENANCE',
+    '',
+    'This agreement is made between Kwetu and Juno Limited.',
+    '',
+    '1. DEFINITIONS AND INTERPRETATION',
+    '',
+    '1.1 Master Agreement Structure. This agreement sets out the terms on which equipment is leased.',
+    '1.2 Order Forms. Each order form is incorporated into this agreement by reference.',
+    '',
+    '2. LEASE CHARGES',
+    '',
+    '2.1 The Lessee shall pay the charges monthly in advance, exclusive of VAT.',
+    '2.2 Late payment attracts interest at 1.5% per month on the outstanding sum.',
+  ].join('\n');
+  const C = { id: 'MK-1', name: 'Equipment Lease & Maintenance — Juno Limited', changes: [], audit: [] };
+  const paint = () => sheet(win, win.documentTextHtml(TEXT));
+
+  test('the builder marks its own two decisions and nothing else', () => {
+    const html = win.documentTextHtml(TEXT);
+    assert.ok(/class="doc-t-h"/.test(html), 'a heading it decided is a heading says so');
+    assert.ok(/class="doc-t-n"/.test(html), 'and a clause number it decided is a number says so');
+    /* A NAME, NOT A RESTRUCTURING. Nothing moves, so the five other callers of
+       this builder render as they did and simply carry an inert class. */
+    const plain = html.replace(/ class="doc-t-[hn]"/g, '');
+    assert.equal(plain, win.documentTextHtml(TEXT).replace(/ class="doc-t-[hn]"/g, ''),
+      'strip the two names and the markup is what it always was');
+  });
+
+  test('the reported fault: this paper had no switch at all', () => {
+    paint();
+    const rows = win.docReadClauses(C);
+    assert.ok(rows.length >= 7,
+      `against the parent this was 0, so docReadSwitchHtml drew nothing — got ${rows.length}`);
+    assert.notEqual(win.docReadSwitchHtml(C), '', 'and the switch is drawn');
+  });
+
+  test('a section is a section and a numbered clause is a row of its own', () => {
+    paint();
+    const rows = win.docReadClauses(C);
+    assert.deepEqual(Array.from(rows, r => r.num),
+      ['', '', '1.1', '1.2', '', '2.1', '2.2'],
+      'every clause carries the number the paper gives it, in document order');
+    assert.deepEqual(Array.from(rows, r => r.kind),
+      ['section', 'section', 'clause', 'clause', 'section', 'clause', 'clause']);
+  });
+
+  test("a clause's wording runs to the next clause and no further", () => {
+    paint();
+    const rows = win.docReadClauses(C);
+    const c11 = rows.find(r => r.num === '1.1');
+    assert.ok(/equipment is leased/.test(c11.text), 'it carries its own wording');
+    assert.ok(!/Order Forms/.test(c11.text), 'and not its neighbour');
+    assert.ok(!/^1\.1/.test(c11.text.trim()),
+      'the number is the anchor, so it is not repeated inside the wording');
+  });
+
+  test("a marked clause's heading is the lead-in that follows the number", () => {
+    paint();
+    const rows = win.docReadClauses(C);
+    assert.ok(/^Master Agreement Structure/.test(rows.find(r => r.num === '1.1').heading),
+      'what the drafter wrote as its name');
+  });
+
+  test('a section title does not swallow the clauses beneath it', () => {
+    paint();
+    const rows = win.docReadClauses(C);
+    const sec = rows.find(r => /DEFINITIONS/.test(r.heading));
+    assert.ok(!/Master Agreement Structure/.test(sec.text),
+      'the wording belongs to 1.1, which now has a row to put it in');
+  });
+
+  /* THE CONTRACT'S OWN NAME IS NOT A CLAUSE, and that rule has to reach this
+     shape of paper too — it was written for an <h*> and the first heading here
+     is a marked div. */
+  test("the contract's own name is stepped over on this paper as well", () => {
+    sheet(win, win.documentTextHtml(['EQUIPMENT LEASE & MAINTENANCE', '', '1.1 It runs for a year.'].join('\n')));
+    const rows = win.docReadClauses({ id: 'MK-1', name: 'Equipment Lease & Maintenance', changes: [], audit: [] });
+    assert.ok(rows.length, 'the clause under it is found — or this proves nothing');
+    assert.ok(!rows.some(r => /EQUIPMENT LEASE/i.test(r.heading)),
+      'the paper naming itself is front matter, whichever shape it is drawn in');
+  });
+
+  /* IT ONLY EVER ADDS ANCHORS. The rich sheet is what every claim above this
+     section reads, and it must walk byte for byte as it did — this is the
+     CONTROL and it passes before and after. */
+  test('CONTROL: the rich sheet is untouched by any of it', () => {
+    sheet(win, [
+      '<h1>Raw Materials Supply Agreement</h1>',
+      '<h2>1. Scope</h2>',
+      '<p><strong>1.1 Structure.</strong> This Agreement establishes the framework.</p>',
+      '<p><strong>1.2 Orders.</strong> Supplier shall confirm each PO in writing.</p>',
+    ].join(''));
+    const rows = win.docReadClauses({ id: 'MK-1', name: 'Raw Materials Supply Agreement', changes: [], audit: [] });
+    assert.deepEqual(Array.from(rows, r => r.num), ['', '1.1', '1.2']);
+    assert.deepEqual(Array.from(rows, r => r.kind), ['section', 'clause', 'clause']);
+  });
+
+  /* ONE READING OF "THE FIRST FEW WORDS", or the two shapes of paper would
+     name the same clause differently. */
+  test('one reading of the lead words, read by both shapes', () => {
+    const SRC = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    assert.equal((SRC.match(/const _docReadWords\s*=/g) || []).length, 1,
+      'declared once');
+    assert.ok(/_docReadWords\(t\)/.test(SRC) && /_docReadWords\(after\)/.test(SRC),
+      'and asked by the paragraph anchor and by the mark alike');
+  });
+});
