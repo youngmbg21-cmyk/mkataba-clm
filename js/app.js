@@ -2472,7 +2472,20 @@ function wireShell(){
   if(search){
     search.addEventListener('input',()=>{
       const q=search.value;
-      if(window.regState){ regState().query=q; }
+      /* ---- IT WRITES TO THE SEAT IT LANDS ON, NOT THE ONE IT WAS PRESSED
+         FROM (owner-reported 10 Sep 2026) ----
+         regState() answers for whichever page is showing, and this box always
+         opens CONTRACTS. Typed from Negotiations it therefore wrote the query
+         onto that page's filters and then opened a register that had never
+         heard of it — MEASURED: {contractsQuery:"", negoQuery:"lease"}.
+
+         regShowOnly has cleared the scope before reading the state since it was
+         written, in its own words: "a calendar day pressed while the reader
+         happened to be on the Negotiations page would write its answer into
+         that page's filters and then open a register that had never heard of
+         it." Same door, same fix, one line. */
+      if(window.regSetScope){ regSetScope(null); }
+      if(window.regState){ const R=regState(); R.query=q; R.page=1; }
       if(state.view!=='register'){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;

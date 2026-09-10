@@ -177,15 +177,19 @@ describe('f263 (3) — neither seat draws a search control', () => {
       'and the shell bar\'s own write');
   });
 
-  test('A STALE QUERY NARROWS NOTHING, ON EITHER SEAT', () => {
-    /* The shell bar writes regState().query and then navigates, so a value
-       really can be left on the state. A page narrowed by a control nobody can
-       see is worse than the duplicate box ever was, because there is nothing on
-       screen to press to widen it again. */
-    assert.ok(!/R\.query\)\.trim\(\)\.toLowerCase\(\)/.test(REG),
-      'the text filter is gone from the ONE reading, not cleared in a renderer '
-      + 'another path goes around');
+  test('A QUERY NARROWS ON THE SEAT WITH A BOX, AND NOWHERE ELSE', () => {
+    /* ---- REVERSED IN PLACE 10 Sep 2026 (owner: "the search feature is not
+       working") ----
+       This asserted that a stale query narrowed nothing ANYWHERE, on the
+       reasoning that a page narrowed by a control nobody can see has nothing on
+       screen to press to widen it again. That is right about the box M-5 and
+       N-3 removed and WRONG about the shell bar's, which is on screen, says it
+       searches contracts, and is the one the reader types into — measured, four
+       rows, type "lease", four rows.
 
+       The rule is unchanged and only its subject moved, so the Negotiations
+       half below is untouched and is now the CONTROL: that seat draws no box on
+       either shell, and a query there must still narrow nothing. */
     const w = buildWorld({ negotiationView: true, contractView: true, registerView: true });
     const { win } = w;
     const a = supplyContract({ id: 'MK-1', name: 'Warehousing' });
@@ -204,23 +208,35 @@ describe('f263 (3) — neither seat draws a search control', () => {
     assert.equal(win.regFiltered().length, beforeNeg,
       'a query nobody can see must not narrow Negotiations');
 
-    /* AND THE SAME ON CONTRACTS, which is what N-3 changed: this used to be the
-       CONTROL — the seat where the box was drawn and the query still bit. */
+    /* AND ON CONTRACTS IT BITES, because that is the seat the shell bar's box
+       opens and the box holds the words that say so. */
+    win.regState().query = '';
     win.regSetScope(null);
     const beforeReg = win.regFiltered().length;
     win.regState().query = 'Warehousing';
-    assert.equal(win.regFiltered().length, beforeReg,
-      'nor Contracts, now that it draws no box either');
+    const narrowed = win.regFiltered();
+    assert.ok(beforeReg > 1 && narrowed.length < beforeReg,
+      `the query narrows Contracts — ${beforeReg} before, ${narrowed.length} after`);
+    assert.deepEqual([...narrowed.map(c => c.id)], ['MK-1'],
+      'and only the row that matches comes back');
+    win.regState().query = '';
   });
 
   test('AND WHAT COUNTS AS NARROWED AGREES WITH WHAT NARROWS', () => {
     /* Two answers to one question is how a Clear button comes to offer itself
        over a list nothing filtered — the empty state saying one thing and the
-       reading behind it another. */
+       reading behind it another.
+
+       RE-POINTED 10 Sep 2026, claim unchanged and STRONGER: it pinned the
+       empty state's own inline copy, which was one of THREE that had drifted
+       apart (this one had lost the Signed and payment filters outright). They
+       are one function now, so the two can no longer be made to disagree —
+       which is what this test was always really about. */
+    assert.match(REG, /function regNarrowed\s*\(/, 'there is one reading');
     const empty = REG.match(/const filtered = [^;]+;/)[0];
-    assert.ok(!/R\.query/.test(empty),
-      'the empty state does not count a query that narrows nothing');
-    assert.match(empty, /R\.stage!=='all'/, 'and still counts the filters that do');
+    assert.match(empty, /regNarrowed\(R\)/, 'and the empty state asks it');
+    assert.ok(!/const filtered=R\.stage!=='all'/.test(REG),
+      'no surface works it out again');
   });
 
   test('THE SORT NOTE IS GONE, and its key is left inert in both languages', () => {

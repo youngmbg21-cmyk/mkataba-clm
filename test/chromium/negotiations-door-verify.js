@@ -635,19 +635,26 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       box.shell === true, `shell search ${box.shell}`);
     check('11 and no "sorts within each group" line under the controls',
       box.note === false, box.note ? '#reg-sort-note still drawn' : 'gone');
-    /* THE COLOUR CLAIM, ON THE SEAT THAT STILL HAS THE BOX. */
+    /* ---- REVERSED IN PLACE 10 Sep 2026, AND IT HAD BEEN RED SINCE 31 Aug ----
+       M-5 removed the Negotiations box and its note said Contracts kept its
+       own; N-3 then removed that one too, on the owner naming the other seat,
+       and these two checks were left asserting the opposite of the shipped
+       page. Both halves are re-pointed rather than deleted, because both are
+       still worth pinning: NEITHER seat draws a box of its own, and the row of
+       filter controls still reads as one convention. */
     await page.evaluate(() => { regSetScope(null); setView('register'); });
     await page.waitForTimeout(1400);
     const cbox = await page.evaluate(() => {
-      const s = document.getElementById('reg-search');
       const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
       const g = e => e ? getComputedStyle(e).backgroundColor : null;
-      return { found: !!s, search: g(s), neighbours: [...new Set(sels.map(g))] };
+      return { found: !!document.getElementById('reg-search'),
+        shell: !!document.getElementById('cmd-search'),
+        neighbours: [...new Set(sels.map(g))] };
     });
-    check('11 CONTRACTS KEEPS ITS BOX — the ask named Negotiations alone',
-      cbox.found === true, JSON.stringify(cbox));
-    check('11 …and it is still the same colour as the controls beside it',
-      cbox.neighbours.length === 1 && cbox.search === cbox.neighbours[0], JSON.stringify(cbox));
+    check('11 CONTRACTS DRAWS NO BOX EITHER — the shell bar is the one search',
+      cbox.found === false && cbox.shell === true, JSON.stringify(cbox));
+    check('11 …and the filter controls beside it still read as one row',
+      cbox.neighbours.length === 1, JSON.stringify(cbox));
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

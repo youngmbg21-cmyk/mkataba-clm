@@ -11224,3 +11224,120 @@ pre-existing errors, identical on the parent).
 - The brief's own audit line is still written for a cut-short answer, so the
   trail says a brief was written by Copilot on a contract that holds none.
   Same family; outside this request.
+
+## 10 Sep 2026 — the search narrows again, and every column sorts (segment 5 of 6)
+
+Two more of the owner's thirteen, both on the Contracts page, and the first is
+a feature that had been dead for ten days.
+
+THE SEARCH WAS DEAD, AND THE CAUSE IS ONE COMMENT'S OVER-REACH. "the search
+feature is not working." REPRODUCED IN A BROWSER BEFORE ANYTHING WAS TOUCHED:
+four rows, type "lease", four rows — the box holding the word, the state
+holding the word, and not one row filtered. N-3 (31 Aug) retired the
+register's OWN search box on the Contracts seat — the owner asked for it,
+because the shell bar carries one directly above — and took the text filter
+out of regFiltered with it, on the reasoning that a page narrowed by a control
+nobody can see is the worse fault. THAT REASONING IS RIGHT ABOUT THE BOX THAT
+WENT AND WRONG ABOUT THE ONE THAT REMAINS: the shell bar's box is on screen, it
+says "Search contracts, clauses, counterparties…", it writes regState().query
+and then opens Contracts, and nothing had read that field since. So the rule is
+unchanged and only its subject moved — a query narrows where a box says what it
+is set to, and nowhere else. The Negotiations seat draws none on either shell
+and still narrows nothing, which is M-5's own rule and is now a named CONTROL
+in both nets rather than an inherited assumption.
+
+AND THE SECOND HALF WOULD HAVE SURVIVED THE FIRST. regState() answers for
+whichever seat is showing, so typing from the Negotiations page wrote the query
+onto state.regNego and then opened Contracts, whose own query is empty —
+MEASURED: {contractsQuery:"", negoQuery:"lease"}. regShowOnly has cleared the
+scope before reading the state since it was written, in its own words about a
+calendar day pressed from the wrong page; this door never did. One line, and it
+is the same line.
+
+THE WAY BACK IS PAINTED, NOT ONLY BUILT — and the browser is what caught it.
+The shell bar repaints only the BODY on every keystroke (a full render per
+letter would rebuild the page under the reader), so a Clear interpolated into
+the filter bar's markup appeared on a full render alone: the page narrowed by
+the search with nothing on it to press, which is the exact fault the retirement
+was reasoning about. It is a slot and a painter with ONE builder and ONE wiring,
+the shape #ws-tabrow-end and the footer count already use. Clear empties the
+query AND the box that holds it, or the shell bar reads "lease" over a list it
+is no longer narrowing.
+
+"IS ANYTHING NARROWING" WAS WRITTEN THREE TIMES AND ALL THREE DISAGREED. The
+empty state's copy had lost the Signed and payment filters outright, so a page
+those had emptied offered no way back; the filter bar's left out the query; and
+the Negotiations head counted a query that narrowed nothing, so it claimed the
+page was filtered when it was not. regNarrowed is the one reading and all three
+ask it. Making it one function is what fixes the drift, rather than three edits
+that agree today.
+
+AND THE PHONE'S OWN SEARCH WAS BROKEN TOO, which nobody had reported: it draws
+its own box, writes the same field and reads the same regFiltered. One reading,
+so one line mends both shells — the duplication warning in its usual direction.
+
+EVERY COLUMN THAT CAN BE ORDERED NOW ORDERS ITSELF. "I should be able to sort
+on each column like in the signed column." Four could not: reference,
+counterparty, value stream, and the last. THE LAST DELIBERATELY STILL DOES NOT
+— on Contracts it holds the row's ⋯ and carries no heading at all, so there is
+nothing to press; on Negotiations it is whose move, which is the very thing the
+bands above it already group by.
+
+A BLANK CELL SORTS LAST IN BOTH DIRECTIONS, AND A SENTINEL CANNOT DO IT.
+regFiltered sorts with dir*cmp, so a value that puts the blanks last ascending
+puts them FIRST descending — a column opening on a screen of em-dashes. The
+signed column invented the direction-aware answer in J-5.1 and wrote it out
+inside itself; three more columns can be blank, so it is lifted into
+regBlanksLast and named once. f258's own claim about it was REVERSED IN PLACE
+onto the shared reading and is stronger for it.
+
+THE REFERENCE SORTS AS A NUMBER, NOT AS A STRING. Compared as text MK-10 sorts
+before MK-2 and the column reads as shuffled, which is the commonest fault a
+reference column has. The prefix is compared first and the number second, so a
+migrated book carrying MK-P1 beside MK-2 keeps each family in its own run.
+And the STREAM sorts by the word the cell prints: ordering by the folder id
+would put the column in a sequence the reader cannot see, and core's
+streamLabel answers with the SHORT name, which is a third word again — so the
+cell and the comparator ask one reading.
+
+THE DROPDOWN AND THE HEADS ARE ONE LIST NOW, and they had already drifted
+before this. A select whose value matches no option falls back to its FIRST, so
+sorting by Status or Signed from the head left the Sort control reading
+"Recently updated" over a table sorted by something else — true since those two
+heads were built, and adding three more would have made five of eight lie. It
+is the Signed FILTER's own recorded trap one control along, and the answer is
+the same: whatever is in force is on the list. f281 fails on a comparator added
+without a default direction or an option. Signed is never offered on the
+Negotiations seat, for the reason that seat's own filter already gives.
+
+Verified: node 6198/6198. f281 19/19, and 16 of its 18 fail in a worktree at
+the parent — the two that pass are named CONTROLS (the Negotiations seat, and
+the last column not sorting), whose job is to fail the day somebody widens
+this. contracts-page-verify 95/95 with 24 new checks, and 12 fail at the parent
+— the headline ones reporting the owner's report verbatim: "17a a real query
+narrows the table — 40 rows → 40", "17e — {contracts:"", nego:"lease"}", and
+"18a — [null,"name",null,null,…]". Every driven half is guarded, so the parent
+run REPORTS its twelve rather than aborting on the first missing control.
+signed-and-columns 31/31, keyboard-reach 40/40, phone 61/61. Lint unchanged
+(4 pre-existing errors, identical on the parent).
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- Between 768px and 1000px the shell bar's box is hidden by CSS and the phone
+  has not taken over, so that band has no search control at all — you cannot
+  start a search there, and a query typed wider and then narrowed into it is
+  held by a box you cannot see. The filter bar's Clear is on screen throughout,
+  which is why this is a gap rather than the trap N-3 was worried about. Worth
+  a decision about whether that box should draw down to 768.
+- The register's own FTS wiring (#reg-search, #reg-fts, ftsSearch) is still in
+  the file, guarded and unreachable on both seats — the full-text route behind
+  the shell bar's palette still uses it, so it is dormant rather than dead.
+- negotiations-door-verify's two room-tab checks still say "four tabs" and the
+  room has five since the Obligations tab landed on 29 Aug. Identical at the
+  parent; outside this request.
+- flat-rows-and-alerts-verify 2d/2e/2f still ask for the WHOSE ASKS filter that
+  was retired on 26 Aug. Identical at the parent; outside this request.
+- The Sort dropdown and the column heads now hold one list, but `risk` is a
+  sort with no column and the last column is a column with no sort — both
+  deliberate, and both worth remembering before anybody "tidies" either list.

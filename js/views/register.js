@@ -317,12 +317,30 @@ function regTypes(){
     folders.map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
   );
 }
+/* ---- THE DROPDOWN AND THE COLUMN HEADS ARE ONE LIST ----
+   A <select> whose value matches no option falls back to its FIRST, so a sort
+   the dropdown does not offer left this control reading "Recently updated"
+   over a table sorted by something else. That was already true of Status and
+   Signed before the owner asked for the other three (10 Sep 2026), and adding
+   heads without adding options would have made five of eight lie.
+
+   It is the Signed FILTER's own recorded trap one control along — "the select
+   would then show Any while the list was still narrowed" — and the answer is
+   the same: whatever is in force is on the list. So every key in REG_CMP is
+   here, and f281 fails on a comparator or a default direction added without
+   its option. `risk` is the one that carries no column, which is fine: a
+   dropdown may offer more than the heads, never less. */
 const REG_SORTS=[
   {k:'updated',get label(){ return i18t('reg_sort_recent'); }},
   {k:'value',get label(){ return i18t('reg_sort_value'); }},
   {k:'risk',get label(){ return i18t('reg_sort_risk'); }},
   {k:'expiry',get label(){ return i18t('reg_sort_expiring'); }},
   {k:'name',get label(){ return i18t('reg_sort_name'); }},
+  {k:'ref',get label(){ return i18t('reg_sort_ref'); }},
+  {k:'party',get label(){ return i18t('reg_sort_party'); }},
+  {k:'stream',get label(){ return i18t('reg_sort_stream'); }},
+  {k:'stage',get label(){ return i18t('reg_sort_stage'); }},
+  {k:'signed',get label(){ return i18t('reg_sort_signed'); }},
 ];
 const REG_VIEWS=[
   {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
@@ -669,6 +687,61 @@ function regDensityVars(k){
 }
 
 function regScope(){ return REG_SCOPE; }
+/* ---- IS ANYTHING THE READER CHOSE NARROWING THIS LIST? ----
+   ONE READING, because it was written THREE times and all three disagreed:
+   the empty state's copy left out signed and payterms, the filter bar's left
+   out the query, and the Negotiations head counted a query that narrowed
+   nothing. Two answers to one question is how a Clear button comes to offer
+   itself over a list nothing had filtered — and how a page comes to say it is
+   narrowed while the reading behind it says otherwise.
+
+   THE SCOPE IS NOT A FILTER. Live-negotiations-only is a property of the page,
+   applied above every filter and untouched by Clear, so it is deliberately not
+   counted here.
+
+   AND THE QUERY COUNTS ONLY WHERE IT NARROWS. The Negotiations seat draws no
+   search box on either shell, so regFiltered ignores a stale query there; a
+   head that called it a filter would be the control saying one thing and the
+   table another. */
+/* ---- THE WAY BACK IS PAINTED, NOT ONLY BUILT ----
+   The shell bar's search repaints the BODY on every keystroke (a full render
+   per letter would rebuild the page under the reader), so a Clear button
+   interpolated into the filter bar's markup only ever appeared on a full
+   render — a page narrowed by the search with nothing on it to press, which is
+   the very fault the retirement was reasoning about. It is a slot and a
+   painter, the shape #ws-tabrow-end and the footer count already use.
+
+   ONE BUILDER AND ONE WIRING, so the two callers cannot draw or arm it
+   differently. */
+function regClearHtml(){
+  return regNarrowed() ? `<button id="reg-clear-filters" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer;padding:2px var(--s-1)">${i18t('reg_clear')}</button>` : '';
+}
+function regPaintClear(){
+  const slot=document.getElementById('reg-clear-slot'); if(!slot) return;
+  slot.innerHTML=regClearHtml();
+  wireRegClear();
+}
+function wireRegClear(){
+  /* CLEAR CLEARS THE QUERY AND THE BOX THAT HOLDS IT. Emptying the state alone
+     would leave the shell bar still reading "lease" over a list it was no
+     longer narrowing — the control saying one thing and the table another. */
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{
+    const R=regState();
+    R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all';
+    R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1;
+    const cs=document.getElementById('cmd-search'); if(cs) cs.value='';
+    regRepaint();
+  });
+}
+function regNarrowed(R){
+  const st = R || regState();
+  const q = (regScope()==='negotiations') ? '' : String(st.query||'').trim();
+  return !!(q || st.stage!=='all' || st.type!=='all' || st.view
+    || (st.renewal && st.renewal!=='all') || (st.category && st.category!=='all')
+    || (st.signed && st.signed!=='all') || (st.payterms && st.payterms!=='all')
+    || st.only);
+}
+
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
 const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
 function regState(){
@@ -751,6 +824,48 @@ function regCatMatch(c, want){
 // Ascending-natural comparators; regFiltered() multiplies each by R.dir (1 = asc, -1 = desc)
 // so a column header click can toggle direction. STAGE follows lifecycle order.
 const REG_STAGE_ORDER={ 'Draft':0, 'Under Review':1, 'Signed':2, 'Declined':3 };
+/* ---- AN EMPTY CELL SORTS LAST IN BOTH DIRECTIONS ----
+   A SENTINEL CANNOT DO THIS, and that is the whole reason this is a function
+   rather than a magic value: regFiltered sorts with `dir*cmp`, so a value that
+   puts the blanks last ascending puts them FIRST descending — and a column
+   opening on a screen of em-dashes is the one thing a sort must never do.
+   The comparator has to ASK which way it is being read and return a value that
+   survives the multiplication.
+
+   The signed column has done exactly this since J-5.1 and wrote the trick out
+   inside itself; three more columns can be blank (counterparty, value stream,
+   and signed itself), so it is named once here rather than copied — where two
+   surfaces must answer alike, the question becomes one function.
+
+   Returns null when BOTH cells carry something, which is the caller saying
+   "nothing to see here, order them yourself". */
+function regBlanksLast(A, B){
+  if(A && B) return null;
+  if(!A && !B) return 0;
+  const d=(regState().dir===1?1:-1);
+  return A ? -d : d;
+}
+/* ---- THE STREAM'S OWN WORD, READ ONCE ----
+   The column prints the stream's FULL name, so the sort has to order by that
+   same word: ordering by the folder id would put the column in a sequence the
+   reader cannot see, and core's streamLabel answers with the SHORT name, which
+   is a third word again. The cell and the comparator ask this one reading so
+   neither can drift. Guarded, because a stage without FOLDERS must draw the
+   table rather than take the page down. */
+function regStreamName(c){
+  return (window.FOLDERS && FOLDERS[c&&c.folder] && FOLDERS[c.folder].name) || '';
+}
+/* ---- A REFERENCE IS A NUMBER WITH A PREFIX, NOT A STRING ----
+   Compared as text MK-10 sorts before MK-2 and the column reads as shuffled,
+   which is the commonest fault a reference column has. The PREFIX is compared
+   first and the number second, so a migrated book carrying MK-P1 beside MK-2
+   keeps each family in its own run rather than interleaving the two. */
+const REG_REF_RE=/^(.*?)(\d+)\s*$/;
+function regRefParts(id){
+  const s=String(id||'').trim();
+  const m=REG_REF_RE.exec(s);
+  return m ? [m[1].toLowerCase(), Number(m[2])] : [s.toLowerCase(), -1];
+}
 const REG_CMP={
   updated:(a,b)=>((Date.parse(a.lastAction)||0)-(Date.parse(b.lastAction)||0)),
   value:(a,b)=>Number(a.value||0)-Number(b.value||0),
@@ -762,22 +877,34 @@ const REG_CMP={
      guard the expiry comparator above already carries: '' sorts before every
      real date ascending and after none descending, so an unsigned draft would
      lead the list one way round. The sentinel is compared as a STRING because
-     an ISO day already sorts correctly as one. */
+     an ISO day already sorts correctly as one. The direction-aware half is
+     regBlanksLast, which this column wrote and three more now inherit. */
   signed:(a,b)=>{
     const A=regSignedOn(a), B=regSignedOn(b);
-    if(!A&&!B) return 0;
-    /* A SENTINEL CANNOT DO THIS. regFiltered sorts with `dir*cmp`, so a value
-       that puts the unsigned last ascending puts them FIRST descending — and
-       the default here is newest-first, which would open on a screen of
-       em-dashes. The comparator asks which way it is being read and returns a
-       value that survives the multiplication. */
-    const d=(regState().dir===1?1:-1);
-    if(!A) return d;
-    if(!B) return -d;
+    const e=regBlanksLast(A,B); if(e!==null) return e;
     return A<B?-1:A>B?1:0; },
+  /* ---- THE FOUR COLUMNS THAT COULD NOT BE ORDERED (owner-asked 10 Sep 2026:
+     "I should be able to sort on each column like in the signed column") ----
+     Reference, counterparty and value stream. The ninth column is deliberately
+     not one: on Contracts it holds the row's ⋯ and carries no heading, so
+     there is nothing to press; on Negotiations it is whose move, which is the
+     very thing the bands above it already group by. */
+  ref:(a,b)=>{
+    const A=regRefParts(a.id), B=regRefParts(b.id);
+    if(A[0]!==B[0]) return A[0]<B[0]?-1:1;
+    return A[1]-B[1]; },
+  party:(a,b)=>{
+    const A=String(a.counterparty||'').trim(), B=String(b.counterparty||'').trim();
+    const e=regBlanksLast(A,B); if(e!==null) return e;
+    return A.localeCompare(B); },
+  stream:(a,b)=>{
+    const A=regStreamName(a), B=regStreamName(b);
+    const e=regBlanksLast(A,B); if(e!==null) return e;
+    return A.localeCompare(B); },
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
-const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1 };
+const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1, signed:-1,
+  ref:1, party:1, stream:1 };
 /* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
    Contracts pages at 40 because a register holds every agreement a company has
    ever had. Live negotiations are the handful being argued over right now — a
@@ -901,23 +1028,27 @@ function regFiltered(){
   else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
-  /* ---- NO TEXT FILTER, BECAUSE NEITHER SEAT DRAWS A BOX ----
-     M-5 (Negotiations) and then N-3 (Contracts), 31 Aug 2026, both reported in
-     the same words: *"we already have one on top of the screen."* M-5's own
-     note said this was the Negotiations seat's rule and that Contracts kept its
-     box; that is REVERSED IN PLACE by the owner naming the other seat, and the
-     claim is simpler for it — it is no longer a question about seats at all.
+  /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
+     (owner-reported 10 Sep 2026: *"the search feature is not working."*
+     MEASURED before it was touched: four rows, type "lease", four rows.)
 
-     The shell bar's own search writes regState().query and then navigates, so a
-     stale value really can be left on this state, and a page narrowed by a
-     control nobody can see is the fault this file's whole filter section exists
-     to prevent — worse than the duplicate box ever was, because there would be
-     nothing on screen to press to widen it again.
+     M-5 (Negotiations) and then N-3 (Contracts), 31 Aug 2026, retired the
+     register's OWN search box — the owner asked for both, because the shell
+     bar carries one directly above — and N-3 took this filter out with it,
+     reasoning that "a page narrowed by a control nobody can see" is the worse
+     fault. THAT REASONING IS RIGHT ABOUT THE BOX THAT WENT AND WRONG ABOUT THE
+     ONE THAT REMAINS: the shell bar's box is on screen, it says "Search
+     contracts, clauses, counterparties…", it writes regState().query and then
+     opens Contracts — and nothing had read that field since.
 
-     IGNORED HERE, IN THE ONE READING, rather than cleared in a renderer another
-     path could go around. regRowsHtml's own "is anything filtered" reading
-     leaves it out for the same reason: two answers to one question is how a
-     Clear button comes to offer itself over a list nothing narrowed. */
+     SO THE RULE IS UNCHANGED AND ONLY ITS SUBJECT MOVED: a query narrows where
+     a box says what it is set to, and nowhere else. On Contracts that box is
+     the shell bar's, and clearing it widens the list again; the Negotiations
+     seat draws none on either shell, so a stale value there narrows nothing —
+     which is M-5's own rule, kept. regNarrowed asks the same question the same
+     way, so no head can call this page filtered when it is not. */
+  const q=(regScope()==='negotiations'?'':String(R.query||'')).trim().toLowerCase();
+  if(q) cs=cs.filter(c=>((c.name||'')+' '+(c.counterparty||'')+' '+(c.id||'')).toLowerCase().includes(q));
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
@@ -1099,13 +1230,11 @@ function regRowsHtml(cs){
   const R=regState();
   const neg=regScope()==='negotiations';
   if(!cs.length){
-    /* ---- WHAT COUNTS AS NARROWED MUST BE WHAT ACTUALLY NARROWS (N-3) ----
-       R.query is deliberately absent: with no search box on either seat it
-       narrows nothing in regFiltered, so counting it here would offer "Clear
-       all filters" over a list nothing had filtered — the empty state saying
-       one thing and the reading behind it another. Two answers to one question
-       is how a control comes to lie about its own list. */
-    const filtered = R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
+    /* ---- WHAT COUNTS AS NARROWED MUST BE WHAT ACTUALLY NARROWS ----
+       Asked of regNarrowed, the ONE reading, rather than worked out again
+       here. This copy had already drifted: it left out the Signed and payment
+       filters, so an empty page they had narrowed offered no way back. */
+    const filtered = regNarrowed(R);
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
@@ -1206,7 +1335,10 @@ function regRowsHtml(cs){
              link you sent them", which is a fact about one contract rather than
              something you scan a register for, and it drew an em-dash on every
              row of an ordinary workspace. It is on the contract's own page. */}
-      <td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'')}">${esc((window.FOLDERS&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'—')}</td>
+      ${''/* ONE READING, SHARED WITH THE COLUMN'S OWN SORT — see
+             regStreamName. A comparator that ordered by the folder id would
+             put this column in a sequence the reader cannot see. */}
+      <td style="color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(regStreamName(c))}">${esc(regStreamName(c)||'—')}</td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       ${''/* The mockup's expiry cell: the date, then "· in Nd" in the urgency
             colour — red inside 30 days, amber to 90 — carrying its weight. */}
@@ -1265,6 +1397,9 @@ function renderRegisterBody(){
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
+  /* The search narrows from the shell bar, which repaints only this body — so
+     the way back has to follow it here rather than waiting for a full render. */
+  regPaintClear();
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
@@ -1357,7 +1492,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -1466,7 +1601,6 @@ function renderRegister(opts){
   const BAR=regBarShown(R);
   const densityOpts=['comfortable','compact','condensed']
     .map(k=>`<option value="${k}" ${regDensity()===k?'selected':''}>${esc(i18t('reg_density_'+k))}</option>`).join('');
-  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||(R.signed&&R.signed!=='all')||(R.payterms&&R.payterms!=='all')||!!R.only;
   /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
      regShowOnly. It leads the bar because it is the widest statement on it:
      every dropdown beside it narrows within this set. */
@@ -1493,7 +1627,12 @@ function renderRegister(opts){
      page, not to the chip, and regFiltered applies it first whatever the bar
      draws. `lockChip` and `#reg-lock-chip` are retired — flag any mention. */
   const lockChip='';
-  const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+  /* NEVER SIGNED ON THE NEGOTIATIONS SEAT, for the reason its own filter gives
+     twenty lines down: that page holds live negotiations and has no Signed
+     column, so ordering by a date none of them carries is a control whose one
+     outcome is a list of em-dashes. */
+  const sortOpts=visibleSorts(REG_SORTS).filter(s=>!(neg&&s.k==='signed'))
+    .map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
   const sortCaret=key=>R.sort===key
@@ -1935,7 +2074,7 @@ function renderRegister(opts){
                weight Fiori gives it. */}
         <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
           style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px var(--s-1);align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
-        ${filtered?`<button id="reg-clear-filters" style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);background:none;border:0;cursor:pointer;padding:2px var(--s-1)">${i18t('reg_clear')}</button>`:''}
+        <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
                "stack Sort's label like the other five") ----
@@ -2019,10 +2158,19 @@ function renderRegister(opts){
                        and two of these columns already differ by seat; a Signed
                        column on a page of live negotiations is an em-dash on
                        every row. */}
-                ${(()=>{ const i=_colN; return `<th style="${colAt()}">MK${gripFor(i)}</th>`; })()}
+                ${''/* ---- EVERY COLUMN THAT CAN BE ORDERED ORDERS ITSELF
+                       (owner-asked 10 Sep 2026: "I should be able to sort on
+                       each column like in the signed column") ----
+                       Reference, counterparty and value stream joined the four
+                       that already sorted. THE LAST COLUMN DELIBERATELY DOES
+                       NOT: on Contracts it holds the row's ⋯ and carries no
+                       heading at all, so there is nothing to press; on
+                       Negotiations it is whose move, which is the very thing
+                       the bands above it already group by. */}
+                ${sortableTh('ref','MK')}
                 ${sortableTh('name',i18t('reg_col_title'))}
-                ${(()=>{ const i=_colN; return `<th style="${colAt()}">${i18t('reg_col_counterparty')}${gripFor(i)}</th>`; })()}
-                ${(()=>{ const i=_colN; return `<th style="${colAt()}">${i18t('reg_value_stream')}${gripFor(i)}</th>`; })()}
+                ${sortableTh('party',i18t('reg_col_counterparty'))}
+                ${sortableTh('stream',i18t('reg_value_stream'))}
                 ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
                 ${neg?'':sortableTh('signed',i18t('reg_col_signed'))}
                 ${sortableTh('expiry',i18t('reg_col_expiry'))}
@@ -2143,7 +2291,7 @@ function renderRegister(opts){
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1; regRepaint(); });
+  wireRegClear();
 
   regWireColResize();
   regFitBandOffset();
@@ -2202,5 +2350,6 @@ function ftsSearch(q){
 Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
+  REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
   REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

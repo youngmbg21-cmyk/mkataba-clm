@@ -308,7 +308,11 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     assert.ok(!/reg-kind/.test(rowsFn), 'and no row draws one');
     assert.match(rowsFn, /title="\$\{esc\(regTitleOf\(c\)\)\} · \$\{esc\(cKind\(c\)\)\}"/,
       'the kind is still said — on the title’s own hover');
-    assert.match(rowsFn, /FOLDERS\[c\.folder\]/,
+    /* RE-POINTED 10 Sep 2026, not weakened: this pinned the folder lookup as a
+       LITERAL where the claim is that the stream has a column of its own. The
+       cell and that column's own sort now share one reading (regStreamName),
+       so the literal was the expression rather than the fact. */
+    assert.match(rowsFn, /regStreamName\(c\)/,
       'and the stream it sat beside is written out in a column');
     /* The height is stated on the CELL, which for a td is a floor rather than a
        cap — content taller than it still expands the row. */

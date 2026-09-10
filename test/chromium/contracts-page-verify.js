@@ -807,20 +807,179 @@ const check = (name, ok, detail) => {
     check('16c and neither does Negotiations — one renderer, one answer',
       negBox === false, negBox ? 'still there' : 'not drawn');
 
-    /* A STALE QUERY MUST NARROW NOTHING. The shell bar writes regState().query
-       and navigates, so a value really can be left behind — and a page narrowed
-       by a control nobody can see has nothing on screen to press to widen it. */
-    const stale = await page.evaluate(() => {
-      if (window.regSetScope) regSetScope(null);
+    /* A QUERY NARROWS ON THE SEAT WITH A BOX, AND NOWHERE ELSE — REVERSED IN
+       PLACE 10 Sep 2026 (owner: "the search feature is not working").
+       This asserted that a stale query narrowed nothing ANYWHERE, on the
+       reasoning that a page narrowed by a control nobody can see has nothing to
+       press to widen it. That is right about the box N-3 removed and wrong
+       about the shell bar's, which is on screen, says it searches contracts,
+       and is the one the reader types into. The rule is unchanged and only its
+       subject moved, so BOTH halves are pinned: the Negotiations seat draws no
+       box on either shell and must still narrow nothing. */
+    const staleNego = await page.evaluate(() => {
+      if (window.regSetScope) regSetScope('negotiations');
       const before = regFiltered().length;
       regState().query = 'zzzz-no-such-contract';
       const after = regFiltered().length;
       regState().query = '';
       return { before, after };
     });
-    check('16d a query nobody can see narrows nothing',
-      stale.before === stale.after && stale.before > 0,
-      `${stale.before} rows before, ${stale.after} after`);
+    check('16d a query narrows nothing on the seat with no box',
+      staleNego.before === staleNego.after,
+      `${staleNego.before} rows before, ${staleNego.after} after`);
+
+    /* ============ 17. THE SEARCH BOX ACTUALLY NARROWS THE TABLE ============
+       DRIVEN WITH REAL KEYSTROKES, because this is the whole report and the
+       markup looked perfectly correct throughout: the handler ran, the state
+       took the value, and regFiltered had stopped reading it. Only pressing
+       the box a reader presses and counting the rows that come back can say
+       so. MEASURED before the fix: four rows, type "lease", four rows. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(700);
+    const term = await page.evaluate(() => {
+      const t = document.querySelector('tr[data-row] .reg-title');
+      return t ? (t.textContent.trim().split(/\s+/)[0] || '') : '';
+    });
+    const searched = await page.evaluate(async (q) => {
+      const box = document.getElementById('cmd-search');
+      const before = document.querySelectorAll('tr[data-row]').length;
+      box.focus(); box.value = q;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 500));
+      const rows = [...document.querySelectorAll('tr[data-row] .reg-title')].map(e => e.textContent.trim());
+      return { before, after: rows.length, rows,
+        clear: !!document.getElementById('reg-clear-filters') };
+    }, term);
+    check('17a a real query narrows the table',
+      searched.before > 0 && searched.after > 0 && searched.after < searched.before,
+      `${searched.before} rows → ${searched.after} for "${term}"`);
+    check('17b and every row that comes back really matches',
+      searched.rows.every(r => r.toLowerCase().includes(term.toLowerCase())),
+      JSON.stringify(searched.rows));
+    /* THE WAY BACK IS ON THE PAGE, not only in the box: a narrowing that draws
+       no Clear leaves a reader who cannot see the shell bar with nothing to
+       press — the exact fault the retirement was reasoning about. */
+    check('17c and the page says it is narrowed, with a way back on it',
+      searched.clear === true, searched.clear ? 'Clear is drawn' : 'no Clear');
+
+    /* EVERY DRIVEN HALF IS GUARDED, so a build without the fix REPORTS its
+       failures rather than aborting on the first missing control — a probe
+       that throws proves nothing about the checks after it. */
+    const cleared = await page.evaluate(async () => {
+      const b = document.getElementById('reg-clear-filters');
+      if (!b) return { err: 'no Clear to press' };
+      b.click();
+      await new Promise(r => setTimeout(r, 500));
+      return { rows: document.querySelectorAll('tr[data-row]').length,
+        box: document.getElementById('cmd-search').value,
+        q: regState().query };
+    });
+    check('17d Clear widens the list AND empties the box that holds the query',
+      !cleared.err && cleared.rows === searched.before && cleared.box === '' && cleared.q === '',
+      JSON.stringify(cleared));
+
+    /* ---- IT WRITES TO THE SEAT IT LANDS ON ----
+       MEASURED before the fix: typed from Negotiations the query went onto
+       state.regNego and Contracts opened with an empty one. */
+    await page.evaluate(async () => {
+      /* Whatever the check above did, this one starts from a clean page. */
+      const b = document.getElementById('cmd-search');
+      if (b){ b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
+      await new Promise(r => setTimeout(r, 400));
+    });
+    const seat = await page.evaluate(async () => {
+      if (window.regSetScope) regSetScope('negotiations');
+      const box = document.getElementById('cmd-search');
+      if (!box) return { err: 'no shell box' };
+      box.value = 'lease';
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 700));
+      const out = { view: state.view, contracts: (state.reg || {}).query, nego: (state.regNego || {}).query };
+      box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      return out;
+    });
+    check('17e typed from the other seat, it still narrows the page it opens',
+      !seat.err && seat.contracts === 'lease' && !seat.nego, JSON.stringify(seat));
+
+    /* ============ 18. EVERY COLUMN THAT CAN BE ORDERED SORTS ============
+       PRESSED, not read: the attribute and the handler are wired separately
+       and either one alone leaves a dead control — this file's own recorded
+       lesson. And the ORDER is read back off the page, because a head that
+       toggles its arrow while the rows stay put is the same dead press wearing
+       a tick. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(700);
+    const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
+      .map(th => ({ text: th.textContent.replace(/[▲▼↕]/g, '').trim(), sort: th.getAttribute('data-reg-sort') })));
+    check('18a the reference, counterparty and stream heads all sort now',
+      ['ref', 'party', 'stream'].every(k => heads.some(h => h.sort === k)),
+      JSON.stringify(heads.map(h => h.sort)));
+    check('18b and the last column, which has no heading, still does not',
+      heads.length > 0 && heads[heads.length - 1].sort === null,
+      JSON.stringify(heads[heads.length - 1] || null));
+
+    /* THE TABLE PAGES AT 40, so ascending and descending show two different
+       slices of the book rather than one list reversed — the claim is that
+       each page is in the order its own head says, and that the two do not
+       open on the same row. Judged IN THE PAGE so the comparison uses the same
+       Intl the product does, and with its own natural-key reading rather than
+       the product's, or this would be checking the sort against itself. */
+    const pressed = await page.evaluate(async () => {
+      const nat = s => { const m = /^(.*?)(\d+)\s*$/.exec(s.trim());
+        return m ? [m[1].toLowerCase(), +m[2]] : [s.trim().toLowerCase(), -1]; };
+      const cmpNat = (a, b) => { const A = nat(a), B = nat(b);
+        return A[0] < B[0] ? -1 : A[0] > B[0] ? 1 : A[1] - B[1]; };
+      const cmpTxt = (a, b) => a.localeCompare(b);
+      const cell = i => [...document.querySelectorAll('tr[data-row]')]
+        .map(r => r.children[i].textContent.trim()).filter(x => x && x !== '—');
+      const ordered = (xs, cmp, sign) => xs.every((_, i) => i === 0 || sign * cmp(xs[i - 1], xs[i]) <= 0);
+      const out = {};
+      for (const [key, i, cmp] of [['ref', 0, cmpNat], ['party', 2, cmpTxt], ['stream', 3, cmpTxt]]){
+        const head = () => document.querySelector(`[data-reg-sort="${key}"]`);
+        if (!head()){ out[key] = { err: 'no head sorts ' + key, n: 0 }; continue; }
+        head().click();
+        await new Promise(r => setTimeout(r, 450));
+        const asc = cell(i);
+        const aria = head() ? head().getAttribute('aria-sort') : null;
+        if (head()) head().click();
+        await new Promise(r => setTimeout(r, 450));
+        const desc = cell(i);
+        out[key] = { n: asc.length, aria, head: [asc[0], desc[0]],
+          up: ordered(asc, cmp, 1), down: ordered(desc, cmp, -1) };
+      }
+      return out;
+    });
+    for (const key of ['ref', 'party', 'stream']){
+      const p = pressed[key];
+      check(`18c ${key}: a press really reorders the column`,
+        !p.err && p.n > 1 && p.head[0] !== p.head[1] && p.aria === 'ascending',
+        p.err || `${p.n} rows · first asc "${p.head[0]}" vs first desc "${p.head[1]}" · aria ${p.aria}`);
+      check(`18d ${key}: and each direction is really in that order`,
+        !p.err && p.up && p.down, p.err || `up ${p.up} · down ${p.down}`);
+    }
+
+    /* THE HEAD ROW STILL HOLDS ONE LINE. Three carets are three more glyphs on
+       a row of fixed percentage widths, and Swedish's words are longer. */
+    for (const [lang, w] of [['en', 1440], ['sv', 1280]]){
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.evaluate(l => { if (window.langSet) langSet(l); if (window.setView) setView('register'); }, lang);
+      await page.waitForTimeout(800);
+      const row = await page.evaluate(() => {
+        const ths = [...document.querySelectorAll('.reg-table thead th')];
+        const tr = document.querySelector('.reg-table thead tr');
+        return { h: +tr.getBoundingClientRect().height.toFixed(1),
+          cell: Math.max(...ths.map(t => +t.getBoundingClientRect().height.toFixed(1))),
+          side: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      });
+      check(`18e the head row is one line at ${w}px in ${lang}`,
+        row.cell <= row.h + 1, JSON.stringify(row));
+      check(`18f and the page never scrolls sideways at ${w}px in ${lang}`,
+        row.side <= 0, `${row.side}px`);
+    }
+    await page.evaluate(() => { if (window.langSet) langSet('en'); });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(400);
 
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {

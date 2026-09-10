@@ -92,8 +92,14 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        reset and a stored array cannot each hold their own opinion of the
        default, and the heading now also carries a resize grip. What is pinned
        is that the register writes this heading out — it is not the stream
-       drawer's — and that it takes its width from the one list. */
-    assert.match(reg, /\$\{i18t\('reg_value_stream'\)\}\$\{gripFor\(i\)\}/);
+       drawer's — and that it takes its width from the one list.
+       RE-POINTED A THIRD TIME 10 Sep 2026, claim STILL unchanged: the owner
+       asked for every column to sort, so this heading goes through sortableTh
+       — which is the one builder that hands a head its width, its grip, its
+       caret and its keyboard reach. Pinned as that RELATION rather than as the
+       markup, which is what has moved three times. */
+    assert.match(reg, /sortableTh\('stream',i18t\('reg_value_stream'\)\)/);
+    assert.match(reg, /const sortableTh=\(key,label,extra=''\)=>\{[\s\S]{0,400}gripFor\(i\)/);
     assert.match(reg, /const colAt=\(extra=''\)=>\{ const i=_colN\+\+; return `width:\$\{COLW\[i\]\}%/);
   });
 

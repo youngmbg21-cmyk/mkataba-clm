@@ -189,9 +189,16 @@ describe('f258 (4) — the column, the sort and the filter', () => {
        unsigned last ascending puts them FIRST descending — and the default here
        is newest-first, which would open on a screen of em-dashes. Driven both
        ways rather than read, because the multiplication is the whole trap. */
-    const src = REG_CODE.slice(REG_CODE.indexOf('signed:(a,b)=>'));
-    assert.match(src.slice(0, 400), /const d=\(regState\(\)\.dir===1\?1:-1\);/,
+    /* RE-POINTED 10 Sep 2026. The trick this column invented is now
+       regBlanksLast, one reading that three more columns inherit — so the
+       claim moved to it rather than being deleted, and it is a stronger one
+       for being asked of the shared function. The driving below is unchanged
+       and is what actually proves it. */
+    const src = REG_CODE.slice(REG_CODE.indexOf('function regBlanksLast'));
+    assert.match(src.slice(0, 320), /const d=\(regState\(\)\.dir===1\?1:-1\);/,
       'the direction is asked, not assumed');
+    assert.match(REG_CODE.slice(REG_CODE.indexOf('signed:(a,b)=>'), REG_CODE.indexOf('signed:(a,b)=>') + 260),
+      /regBlanksLast\(A,B\)/, 'and the signed column asks it rather than keeping a copy');
     const A = { execution: { at: '2021-03-14T09:00:00.000Z', tzOffsetMin: 0 } };
     const B = { execution: { at: '2026-08-12T07:00:00.000Z', tzOffsetMin: 0 } };
     const N = {};
@@ -265,7 +272,19 @@ describe('f258 (4) — the column, the sort and the filter', () => {
   });
 
   test('Clear clears it, and it counts as a filter', () => {
-    assert.match(REG_CODE, /const filtered=[^;]*R\.signed&&R\.signed!=='all'/);
+    /* RE-POINTED 10 Sep 2026 and made stronger. This pinned the filter bar's
+       own inline copy of "is anything narrowing" — one of THREE that had
+       drifted apart — and that reading is now regNarrowed, asked by all three
+       surfaces. The claim was never the expression: it is that this filter
+       counts as one and that Clear clears it. Driven rather than read, which
+       an inline literal could not do. */
+    const R = win.regState();
+    const keep = R.signed;
+    R.signed = 'all';
+    assert.equal(win.regNarrowed(R), false, 'the control: nothing narrowing');
+    R.signed = '2021';
+    assert.equal(win.regNarrowed(R), true, 'the Signed filter counts as one');
+    R.signed = keep;
     assert.match(REG_CODE, /reg-clear-filters'\)\?\.addEventListener\('click',\(\)=>\{[^}]*R\.signed='all';/);
   });
 });

@@ -7496,9 +7496,15 @@ function negoListHeadHtml(shown){
   const live = negoLiveList().length;
   const R = (window.regState ? window.regState() : null);
   /* Is anything the READER chose narrowing this? Not the live-negotiations
-     scope, which is the page itself. */
-  const filtered = !!(R && (String(R.query || '').trim() || R.stage !== 'all' || R.type !== 'all'
-    || R.view || (R.renewal && R.renewal !== 'all') || (R.category && R.category !== 'all') || R.only));
+     scope, which is the page itself.
+
+     ASKED OF regNarrowed, THE ONE READING (10 Sep 2026). This copy counted a
+     QUERY, which regFiltered has never applied on this seat — so a stale value
+     left by the shell bar made this head claim the page was filtered while
+     nothing had narrowed. Read through window, as every cross-module call in
+     this app is; a stage without the register draws no Negotiations page at
+     all, so the fallback is the honest "nothing is narrowing". */
+  const filtered = !!(R && typeof window.regNarrowed === 'function' && window.regNarrowed(R));
   const n = Array.isArray(shown) ? shown.length : live;
   /* THE RESTING SUBTITLE IS GONE (owner-asked 25 Aug 2026, off a screenshot
      with it boxed: "delete the added words highlighted"). It described the
