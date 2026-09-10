@@ -12100,3 +12100,97 @@ record, never over an edited one, clause ids carried across.
   would still look unfixed from the owner's chair after today. Whether a flat
   PDF should fall to the same guesswork a flat Word file does is a product
   decision — it changes what every such upload looks like — and is the owner's.
+
+---
+
+## 10 Sep 2026 — SIX PIECES OFF ONE COMPLAINT: THE CONTRACT AND ITS TOOLS SPEAK ONE LANGUAGE
+
+Young's own words, over two screenshots of the Negotiate page and one of an
+uploaded Word contract: *"when in the negotiate page the design, structure and
+formatting is poor. When I begin to make written edits with the tools I have
+been provided … they do not match up with the document itself. The bullet points
+do not work together with how the sentences or bullet points in the contract are
+designed. They do not speak the same language."* Then, on the upload: *"it is
+well designed but when uploaded it looked like the attached images … the contract
+became unappealing to look at. HaTi Customers will not stand for this."*
+
+THE WHOLE OF IT WAS ONE ROOT FACT. HaTi has ONE idea of a contract's shape — a
+marker sitting in a fixed hanging gutter — and FOUR things ignored it: the Word
+reader dropped every indent on the way IN, the toolbar built browser lists
+BESIDE the gutter rather than in it, three of the four renderers applied no
+gutter at all, and the Word writer dropped the shape again on the way OUT. Six
+pieces, one shared vocabulary, and every one of them proved end to end on
+Young's own services agreement.
+
+**PIECE 1 — ONE GUTTER ON EVERY SCREEN.** The step is one class name, written by
+four emitters and drawn by four sheets, so a sub-bullet is the same distance in
+wherever it appears. The Compare dialog drew sub-levels for the first time.
+
+**PIECE 2 — THE FILE'S OWN SHAPE SURVIVES THE UPLOAD.** MEASURED on Young's own
+contract before a line was written: 80 paragraphs with a real hanging indent
+arrived flush against the margin, 21 of them a whole step in from where the
+drafter put them; 18 contents rows had their page numbers welded on, because a
+tab collapses in HTML; five page breaks vanished; and every one of thirteen
+clause headings drew CENTRED at the size of a document's TITLE. Each is now a
+fact read off the file rather than a guess about it, nothing free-form reaches
+storage, and a file that states nothing reads exactly as it did before.
+
+**PIECE 3 — THE BAR SPEAKS THE CONTRACT'S OWN LANGUAGE.** Indent, Outdent and
+the two list buttons wrote browser lists in a vocabulary the paper does not use,
+so the tools and the document disagreed on screen. They write the contract's own
+markers in the contract's own gutter now, and Numbers continues the sequence the
+document is already using rather than restarting at 1.
+
+**PIECE 4 — ONE CLAUSE, ONE PAIR OF HANDS.** Young: *"when user 1 is editing
+clause 5, it is locked to others until user 1 is out. When user 2 tries to click
+on the pencil symbol, they see the initials of User 1 and a short small line
+saying 'Locked by R. C.'"* Built as an advisory that expires after two minutes,
+names its holder in every refusal, and is let go on every way out. THE PENCIL IS
+THE SIGN AND THE EDITOR'S DOOR IS THE WALL — four other doors reach that page
+without passing the pencil, so a rule kept at one of five would be no rule — and
+the SERVER refuses as a difference off the stored record behind both. It adds no
+route and no table, and it never travels: the share payload is an allow-list and
+does not carry it, and the reading refuses the counterparty's page besides.
+
+**PIECE 5 — THE STRUCTURE GOES OUT AS WELL AS IN.** The exported .docx carried
+none of it: levels, tab stops, paragraph spacing and page breaks all went, so a
+contract that arrived correct left flattened. A full round trip now returns the
+same document and the same words.
+
+**PIECE 6 — PLAIN ENGLISH IS SET LIKE THE CONTRACT.** Young ruled that the two
+should look almost identical apart from the white ground, and that Copilot
+should stop writing its own headings. The edition borrows the contract's own
+headings, numbers and gutter, and Copilot writes only the readings.
+
+### What was measured, not asserted
+- Node suite **6410/6410**, one run, clean.
+- Browser set **87 of 100 green**. The 13 red were each re-run in a worktree at
+  unmodified `origin/main` and report the IDENTICAL count there — the colour
+  census's failing screens and values diff byte for byte across the two trees,
+  and the one file that aborts aborts at the same line on both. **Not one of the
+  13 is this run's.** They are: calendar-redesign, flat-rows-and-alerts,
+  negotiations-door, obligations-tab, paper-grows, pages-read-alike,
+  portal-header-verbs, reopen-a-refusal, room-order-and-notices,
+  settled-ask-reopen, standard-paper, tracked-changes-scroll, theme-tokens.
+- Every regression test written this run was proved to FAIL against its parent
+  before it was trusted: f286 (17), f287 (17), f288 (12), f289 (26 — 25 failing),
+  plus new blocks in f277 and browser sections in plain-english-verify and
+  redline-verify (section 25, 11 checks, 8 failing against the parent).
+
+### Noticed, not fixed
+- **js/i18n.js carries four duplicate-key lint errors** — `co_password_updated`
+  and `act_next`, each written twice, once in the English book and once in the
+  Swedish. They predate this run and `npm run lint` has been reporting them
+  throughout. They are the only four errors in the product. Which of each pair
+  is meant to win is a wording question rather than a mechanical one, so it is
+  the owner's to rule on and is not swept here.
+- **The clause lock is not pushed.** A colleague sees it when their browser next
+  reads the contract, so two people who open the same clause within a few seconds
+  of each other can still both get in — which is why the server refuses the
+  second one's filing rather than the browser being trusted. Making it live needs
+  a channel this product does not have, and is its own decision.
+- **Only the pencil carries the monogram.** The card's Edit, the sparkle on a
+  tracked change, the clause panel's Copilot button and the editor's own clause
+  dropdown all refuse in words naming the holder, but none of them draws the
+  initials. That is the ask answered exactly and no wider; putting a monogram
+  into the card's fixed verb column would move a layout nobody asked to move.
