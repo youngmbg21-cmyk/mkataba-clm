@@ -10645,3 +10645,87 @@ f193/f194/f201/f203/f275 green.
 - theme-tokens-verify is 37/40 — templates--light, negotiate--light, negotiate--dark. PROVED pre-existing by running the file in a worktree at the parent commit: identical 37/40, identical three screens. Not this run's and not widened by it.
 - The evidence pack is a JSON download and nothing renders it as a readable report; the artifact designs one for all six sections. Reported to the owner, awaiting their call.
 - 4 pre-existing lint errors (no-dupe-keys) — unchanged, outside this request.
+
+## 9 Sep 2026 — PLAIN ENGLISH BESIDE THE CONTRACT (idea 7)
+
+Young ruled it off a rendered mock: the switch in the slot they drew on the tab
+row, no ring, Contract View first and lit at rest, the negotiation door matched
+in height — and the readings clear enough for a regular person, because "part of
+the frustration with reading contracts is the legal verbiage".
+
+Built additively. The right-hand column is NOT deleted — the worry that shaped
+the whole design — it takes turns, exactly as it already does between the
+Document tab and Signing. The layer is an absolutely-positioned child of the
+document grid's second track and the cards take visibility:hidden, so they keep
+their place, their scroll and their content character for character. The
+contract does not move by a pixel: measured 293px above the first line before
+and after, and identical on unmodified main.
+
+FIVE DEFECTS, EVERY ONE FOUND BY THE BROWSER FILE AND NOT ONE VISIBLE IN THE
+SOURCE.
+
+1. THE ROUTE WAS NEVER LANDING. The call passed a leading /api and api() already
+   prefixes it, so every press hit a doubled path and came back 404. It toasted,
+   which is the only reason it was not silent.
+2. CLAUSE SEGMENTATION WAS THE WRONG READING FOR THIS PAPER. clauseSegment is
+   this product's one splitter and is untouched — but it reads a DOCUMENT MODEL,
+   top-level blocks under their own headings, and docBody draws a template
+   contract with each clause inside a block of its own and the heading nested in
+   it. MEASURED: MK-A2's sheet paints five headings and segmenting the same html
+   returns ONE clause, the whole agreement. A reading built on it would have been
+   one note for the entire contract. This layer reads the PAINTED SHEET now, and
+   the list sent to the model and the anchors the notes hang on are the SAME
+   WALK — so a note cannot land beside the wrong wording by construction rather
+   than by care.
+3. EVERY NOTE SAT A CONSTANT 29px LOW. Offsets were measured from the paper's
+   scroller, and a note hangs in a box that starts below this column's own head.
+   29px reads as a note beside the clause after its own.
+4. THE TITLE WAS READ AS A CLAUSE. The upload branch draws its own head out of a
+   bare div rather than the header the template paper uses, so a scan whose words
+   never came out of the file drew the switch and would have asked the model to
+   explain a contract's name. The front matter now takes TWO readings — the
+   paper's own header/foot, and the first heading being the contract's own NAME —
+   narrow enough that it can never eat a clause.
+5. THE SLOT WAS TWO HEIGHTS. The text-size stepper states height:28px UNSCOPED
+   2,350 lines into the negotiation sheet, so trimming its padding here could
+   never reach it: measured 28 beside two controls at 32. Pinned in this slot
+   alone, because that stepper also draws on the counterparty's page and on the
+   negotiation control row, whose fold ladder is measured in pixels.
+
+AND ONE FOUND BY READING MY OWN DIFF. A Swedish reader got a button reading
+"Klarsprak" over an English reading — a half-translated screen, the fault srvMsg
+exists to prevent one layer along. The reading follows the READER's own language
+(this product's split: language is the person's, market is the company's), the
+prompt says so plainly because a model drifts to the language in front of it, and
+the LANGUAGE IS IN THE CACHE KEY — without it a Swedish reader is served the
+English answer and the switch looks broken to exactly the person the translation
+is for.
+
+The feature is NAMED IN THE SPEND LEDGER ON ARRIVAL, for the reason the document
+converter's omission records: an unnamed feature lands in the Other bucket, which
+is the one number an admin goes looking for by name.
+
+TWO STAGE ARTEFACTS WORTH CARRYING FORWARD. A value assigned in script fires no
+change event on blur at all — only a value a person changed does — so the probe
+for "the box is saved before the swap" had to type with a real keyboard or it
+would have passed against a product that never learned to save it. And
+deepStrictEqual compares PROTOTYPES, so two identical lists came back as
+different because one was a jsdom-realm Array; Array.from in the test's own realm
+is the fix.
+
+Verified: lint unchanged (4 pre-existing errors, 177 warnings — proved by
+re-linting an unmodified js/i18n.js), node 6118/6118, f277 35/35,
+plain-english-verify 32/32, signing-on-paper-verify 30/30 with the contract's
+pixels unchanged at 293, f91/f148/f232/f48/f236/f238 155/155.
+
+### Noticed, not fixed
+- pages-read-alike-verify is 47/50 — three failures on the NEGOTIATION head
+  ("does not wrap", "it is ONE line", "STILL one line under it", head 126px).
+  PROVED pre-existing by running the file in a worktree at origin/main: identical
+  47/50, identical three checks. Not this run's and not widened by it — the new
+  rule is scoped to the Document tab's own slot, which that head does not contain.
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js — unchanged, outside this request.
+- The plain-English layer is not on the phone and not on the counterparty's page,
+  and is not offered on the Signing tab. Named in the MAP as deliberate, not
+  forgotten.

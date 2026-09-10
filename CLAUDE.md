@@ -1622,6 +1622,129 @@ draft on the record — plus the nothing-fits answer creating nothing. 34 of its
 41 checks fail against the parent, and every driven half is guarded so it
 REPORTS rather than timing out).**
 
+## PLAIN ENGLISH BESIDE THE CONTRACT (Young ruled 9 Sep 2026 — idea 7)
+
+*"go with the switch is in your slot option as i shared with no ring around the
+buttons plus ensuring the negotiation button matches ... switch the 2 buttons so
+that the first button is 'Contract View' and then 'Plain English' comes second
+which the button will be shaded at first. Note that part of the frustration with
+reading contracts is the legal verbiage in contracts so the plain english needs
+to be clear enough for a regular person."*
+
+Every clause on the Document tab gets a short reading of what it MEANS FOR YOU,
+beside the wording it explains. Simplify has done this for one highlighted
+passage since 17 Aug; this does it for the whole document, on one press.
+
+- **THE COLUMN TAKES TURNS, IT IS NOT DELETED**, and that is the worry the whole
+  design answers — Young's own words two messages earlier, over a screenshot with
+  the right-hand column ringed: *"i am concerned you want to delete the
+  highlighted area."* That column already swaps between the Document tab's cards
+  and the Signing tab's order, keyed on `data-doc-col`; a third state is the
+  mechanism it already has. The cards are **COVERED, never rebuilt** — `#doc-read`
+  is an absolutely-positioned child of `#doc-grid` at `grid-column:2`, the clause
+  panel's own precedent, and `#doc-right` takes `visibility:hidden`, so the three
+  cards keep their place, their scroll and their content character for character.
+  **NOT INSIDE `#doc-right`**, which carries an inline `overflow-y:auto` a
+  stylesheet cannot beat without `!important`.
+- **AND THE CONTRACT DOES NOT MOVE BY A PIXEL** — the six questions' one absolute
+  refusal. The paper is in the grid's first track and the layer takes the second;
+  measured either side of the swap, and the distance above the first line of the
+  agreement is unchanged at 293.
+- **THE SWITCH IS IN THE SLOT YOUNG DREW**, before the text-size stepper, with the
+  negotiation door still last. Contract View first and lit at rest, Plain English
+  second: **a page that opened on the readings would be a page that had spent
+  Copilot money nobody asked for.** No ring — the red box on the mock was
+  annotation. The lit half takes `--accent-fill` rather than the raw ramp (white
+  on accent-600 measures 3.74:1) and the ink is `--accent-ink`, the one accent
+  token with a night answer.
+- **ONE HEIGHT ACROSS THAT SLOT, AND THE STEPPER HAD TO BE PINNED RATHER THAN
+  PADDED.** `.rl-type-step` states `height:28px` UNSCOPED 2,350 lines into the
+  negotiation sheet — one builder, three homes — so trimming its padding here
+  could never reach it: measured 28 beside two controls at 32. Pinned in this
+  slot alone, because that same stepper draws on the counterparty's page and on
+  the negotiation control row, whose fold ladder is measured in pixels.
+- **WHAT COUNTS AS A CLAUSE HERE IS WHAT IS PAINTED ON THE SHEET, and that is
+  the safety of the pairing rather than a shortcut.** `clauseSegment` is still
+  this product's one splitter and is untouched — but it reads a DOCUMENT MODEL,
+  top-level blocks under their own headings, which is the shape a stored rich
+  body has and NOT the shape `docBody` draws for a template contract: there each
+  clause sits inside a block of its own with the heading nested in it. MEASURED
+  before this was written — MK-A2's sheet paints five headings and segmenting the
+  same html returns **ONE** clause, the whole agreement under its title. So the
+  list sent to the model and the anchors the notes hang on are **the SAME WALK**,
+  which means a note cannot land beside the wrong wording by construction rather
+  than by care. Scoped to this layer: nothing files against it, nothing is stored,
+  and no fingerprint sees it.
+- **THE FRONT MATTER IS NOT A CLAUSE, and it takes TWO readings because this tab
+  draws the head two ways.** Template paper builds it with `docPaperHeadHtml`, a
+  real `<header>`; an UPLOAD builds its own out of a bare div. So the second
+  reading is the fact both share — **the first heading on the sheet is the
+  contract's own NAME** — narrow on purpose, only the first and only where it
+  really is the name, so it can never eat a clause. Without it a scan whose words
+  never came out of the file drew the switch and would have asked the model to
+  explain a title. The last clause stops at the signature block, which is derived
+  from the record rather than from the wording.
+- **PAIRED BY THE NUMBER IT WAS GIVEN AND CHECKED AGAINST THE HEADING'S OWN
+  WORDS.** The number alone is enough while the sheet is the sheet the reading was
+  written about; the heading guard is what makes a repainted or re-read document
+  draw **NOTHING** rather than shunt every note one clause along. Silence is the
+  only safe failure here.
+- **MEASURED FROM THE CLIP, NEVER FROM THE SCROLLER.** A note's top is relative to
+  the box it hangs in, and that box starts below this column's own head — so
+  measuring against the paper's scroller put every note a constant **29px** low,
+  which reads as a note beside the clause after its own. Caught as PIXELS; nothing
+  in the markup looked wrong. The two columns are kept in step by a **transform**
+  on one inner element rather than a scroller of its own: two scrollers drifting
+  apart is the one thing this may never do.
+- **IT IS NEVER PART OF THE DOCUMENT.** Painted after the canvas on
+  `wireDocCanvas` — the signature places' own funnel (J-1) and for the same three
+  reasons: `docBody` is what the share copy, the exports and the phone all render,
+  so a note written into it would travel; the wording is untouched, so no
+  fingerprint moves; and it dies with every re-render, which is why it is re-armed
+  there.
+- **TRANSPORT, NEVER THE RECORD.** Its own `clause_readings` table — the brief's
+  own bargain — hashed on exactly the text that was sent, riding GETs as
+  `_readings`, stripped on PUT, stripped by `saveContract`, and stripped out of
+  any share payload. **A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE**: the
+  brief paid for that lesson once.
+- **A CAP IS A FACT.** `READ_MAX_CLAUSES` is 60 and what is over it is COUNTED and
+  said on the column, never trimmed in silence.
+- **THE PROMPT IS THE FEATURE, and it is pinned word for word** because it is the
+  only part of this a test can hold on to. Everyday words for somebody with no
+  lawyer; what the clause means for the reader — who does what, by when, and what
+  happens if they do not; one or two sentences; never advise, warn, redraft or
+  judge; never restate an amount (the figure is on the page beside the reading);
+  and **an EMPTY reading is the right answer** for a cover page, a table of
+  contents, headings and interpretation — far better than padding one out.
+- **THE BOX IS SAVED BEFORE THE SWAP** (Young ruled it). That column regularly
+  holds the contract form, whose fields commit on CHANGE — that is, on blur — so a
+  reader mid-typing who pressed the switch would have lost that one box. Blurring
+  first fires the same commit the form already listens for, which is why it is one
+  line rather than a second way to save.
+- **BELOW 1024px IT IS NOT DRAWN AT ALL** — the clause editor's own floor, and for
+  its reason: two working columns need room to be two columns. The stored
+  preference is **READ, NEVER WRITTEN** there, the nav drawer's rule: a narrow
+  sitting must not quietly clear a choice made on a laptop.
+- **A VERB THAT CANNOT WORK IS NOT DRAWN.** No clauses on the sheet, no switch.
+- **`readings: 'Plain English'` IS NAMED IN THE SPEND LEDGER ON ARRIVAL**, for the
+  reason the document converter's omission records: an unnamed feature lands in
+  the Other bucket, which is the one number an admin goes looking for by name.
+- **NOT BUILT, said out loud**: nothing on the phone, nothing on the counterparty's
+  page, and the readings are not offered on the Signing tab — that column holds
+  the signing order there and this one has nothing to say about it.
+
+Tests: f277 (34 — the switch's order and default, the one walk, the two front-
+matter readings, the pairing and its heading guard, never in `docBody`, its own
+table and every strip, the prompt's own words, the route against a real server
+with a scripted provider, and both languages), **plain-english-verify (32, browser
+— the only place five of these can be asked: `test/world.js` stands a ONE-LINE
+`docBody` in for the real one, so the node stage can only prove the RELATION; that
+the real builder yields real clauses, that a note lands on its own clause to the
+pixel, that the cards are covered and come back whole, that the contract does not
+narrow, and that the slot is one height are all measurements on a rendered page.
+It caught the 29px offset, the unreachable route path and the title being read as
+a clause — none of which looked wrong in the source).**
+
 ## A NEW DRAFT OPENS ON KEY TERMS
 
 roomOpenOnTerms(id) registers the intent; wsTabDefaults consumes it. THREE properties (f170): ONCE (id deleted on arrival; same-contract tab memory _wsTabFor untouched), **NOT-YET-EXECUTED ONLY** — this read DRAFTS ONLY until 20 Aug 2026, when the owner reported an uploaded contract landing on the Document tab: the uploader registers the intent like every other site, and an upload naming a counterparty is filed 'Under Review', so the rule threw the request away. THE REASONING SURVIVES THE WIDENING and is stronger for an upload, not weaker (a new draft goes to Key terms because its document is a template full of blanks fed FROM the terms; an upload arrives with a complete document whose TERMS are the blanks, just read out of the file and waiting to be confirmed). What stays excluded is an EXECUTED agreement — negoExecuted, not `status==='Signed'`, so a sealed record that arrived by migration is excluded too. An explicit request (_wsTabWant) still wins. SEVEN creation sites register it — wizard, built-in template route (app.js), library template form (templatefields.js), versioned template library, clause library, "Draft new agreement" in the room, migration importer — there is no creation funnel, and f170 reads all seven sources and fails on an unregistered eighth. roomCurrentTab() exists so the rule is observable.

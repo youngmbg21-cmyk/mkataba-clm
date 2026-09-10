@@ -1010,6 +1010,10 @@ async function saveContract(c){
      so the home page's coverage tile can count without the memo itself riding
      every row. Same rule — transport, never record. */
   delete payload._hasBrief;
+  /* _readings is the plain-English layer's transport (idea 7), off its own
+     server table. Same rule as _brief above: a reading written back into the
+     record would be stale the moment the wording moved. */
+  delete payload._readings;
   /* _renewalPrep is the list's twin of _renewalAdvice below — one word saying a
      renewal note exists and who wrote it, so the desk can say so without the
      memo riding every row. Same rule: transport, never record. */

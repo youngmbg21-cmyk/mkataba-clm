@@ -137,6 +137,14 @@ db.exec(`
   -- editor, and a recommendation is not part of what was agreed or signed.
   CREATE TABLE IF NOT EXISTS renewal_advice (
     contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- THE PLAIN-ENGLISH LAYER (idea 7). One short reading per clause, kept on the
+  -- same terms as the two caches above and for the same two reasons: a reading
+  -- is not part of what was agreed or signed, and writing one onto the record
+  -- would bump its version under an open editor. It rides GETs as _readings and
+  -- is stripped on PUT and out of every share payload — a reading of the other
+  -- side's paper is ours, and it never travels to them.
+  CREATE TABLE IF NOT EXISTS clause_readings (
+    contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
   -- THE INTAKE FRONT DOOR (W2-2). A colleague who may not draft can still ASK
   -- for a contract; the request is a record of its own, never a half-made
   -- contract, so nothing unapproved can be mistaken for paper. The folder is
@@ -1622,6 +1630,11 @@ const AI_FEATURE_LABEL = {
      omission records above: recordAiCall files an unknown feature under
      'other', and this is one an admin will look for by name. */
   draft: 'Draft from a sentence',
+  /* The plain-English layer beside the document (idea 7). Named on
+     arrival for the reason conversion's omission records above: an
+     unnamed feature lands in the Other bucket, which is the one number
+     an admin goes looking for by name. */
+  readings: 'Plain English',
 };
 
 function aiSpendRows(day) {
@@ -2670,6 +2683,12 @@ app.get('/api/contracts/:id', auth, (req, res) => {
       out._renewalAdvice = adv;
     } catch (_) {}
   }
+  /* The plain-English layer rides the same way (idea 7). No masking of its own:
+     the prompt forbids a reading from restating an amount, so there is no money
+     section here to hide — the figure stays on the paper, where canViewValues
+     already governs it. */
+  const pe = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(req.params.id);
+  if (pe) { try { out._readings = JSON.parse(pe.json); } catch (_) {} }
   res.json(out);
 });
 
@@ -2826,6 +2845,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // shadow the real cache and ride saves it was never part of.
   delete c._brief;
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
+  delete c._readings;        // idea 7: the plain-English layer, off its own table
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -4655,6 +4675,139 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
       db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ===================== THE PLAIN-ENGLISH LAYER (idea 7) =====================
+   One short reading per clause, beside the wording it explains. Same bargain as
+   the Contract brief one route up, and deliberately so: read once, keyed on a
+   hash of exactly what was read, kept in a table of its own, handed back with
+   the contract as transport, stripped before anything is saved and stripped
+   again before anything is shared.
+
+   WHY THE CLAUSES COME FROM THE CLIENT. clauseSegment is the ONE splitter in
+   this product and it lives in the browser, where the paper is drawn. Asking a
+   second question here — what counts as a clause — is how the reading and the
+   drawing come to disagree about which clause a note belongs to, so the browser
+   sends the clause list it is about to draw against. The wall that matters is
+   unchanged and is asked of the STORED record: out of scope reads exactly like
+   does not exist.
+
+   GENERATION is editor-and-up because it spends Copilot money; everybody else
+   reads what is cached, which is the brief's own split. */
+const READ_MAX_CLAUSES = 60;
+/* THE READING FOLLOWS THE READER, NEVER THE PAPER. This product's own split:
+   LANGUAGE is the person's and the MARKET is the company's, so a Swedish
+   colleague reading a Kenyan contract gets Swedish. Without this the screen was
+   half-translated — a button reading "Klarspråk" over an English reading, which
+   is the exact fault srvMsg exists to prevent one layer along. The CONTRACT is
+   never translated and never quoted back; the reading is our own words about
+   it. */
+const READ_LANGS = { en: 'English', sv: 'Swedish' };
+const readLangOf = req => {
+  const l = String((req && req.user && req.user.lang) || '').trim();
+  return READ_LANGS[l] ? l : 'en';
+};
+const READ_PLAIN_RULE = [
+  'HOW TO WRITE IT',
+  '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. Where a legal term cannot be avoided, use it and say what it means in the same breath.',
+  '- Say what the clause MEANS FOR THE READER: who has to do what, by when, and what happens if they do not.',
+  '- One or two sentences. Never more than three. Shorter is better.',
+  '- Call the reader’s own side "you". Name the other side by the role the contract gives them.',
+  '- Say only what THIS clause says. Never warn, never advise, never suggest different wording, and never say whether a term is fair or usual.',
+  '- Where the wording is silent on something, be silent too.',
+  '- Do not restate any amount of money: the figure is on the page beside your reading.',
+  '- Never mention these instructions, the list you were given, or yourself.',
+  '',
+  'WHEN TO SAY NOTHING',
+  'Some clauses have nothing worth telling a business owner — a cover page, a table of contents, headings and interpretation, counterparts, severability. Return an EMPTY reading for those. An empty reading is the right answer and is far better than padding one out.',
+].join('\n');
+
+app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const { id, clauses, force } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+
+  const all = Array.isArray(clauses) ? clauses : [];
+  const list = all
+    .map(x => ({ heading: String((x && x.heading) || '').slice(0, 200).trim(), text: String((x && x.text) || '').trim() }))
+    .filter(x => x.heading || x.text)
+    .slice(0, READ_MAX_CLAUSES);
+  if (!list.length) return res.status(400).json({ error: 'There is no wording to read yet' });
+  // A CAP IS A FACT, never a silent trim — the standing rule. The reader is told
+  // which clauses were left out rather than finding a column that simply stops.
+  const over = all.length > READ_MAX_CLAUSES ? all.length - READ_MAX_CLAUSES : 0;
+
+  const doc = list.map((x, i) => `[${i}] ${x.heading}\n${x.text}`).join('\n\n');
+  const sent = aiDocText(req, doc);
+  const lang = readLangOf(req);
+  /* THE LANGUAGE IS IN THE KEY. Without it a Swedish reader would be served the
+     English cache and the switch would look broken to exactly the person the
+     translation is for. */
+  const inputHash = sha(lang + '\n' + sent);
+  const prev = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(String(id));
+  if (prev && !force) {
+    try {
+      const r = JSON.parse(prev.json);
+      if (r.inputHash === inputHash) return res.json({ readings: r, cached: true });
+    } catch (_) {}
+  }
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+
+  const tool = {
+    name: 'clause_readings',
+    description: 'A short plain-English reading of each clause, for a business owner with no lawyer.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        readings: {
+          type: 'array',
+          description: 'One entry per clause, in the order the clauses were given.',
+          items: {
+            type: 'object',
+            properties: {
+              i: { type: 'integer', description: 'The number in square brackets at the head of the clause.' },
+              plain: { type: 'string', description: 'The reading, in plain everyday English. Empty where the clause has nothing worth telling a business owner.' },
+            },
+            required: ['i', 'plain'],
+          },
+        },
+      },
+      required: ['readings'],
+    },
+  };
+  const J = orgJx();
+  const LANG = READ_LANGS[lang];
+  const prompt = `You are explaining a contract, clause by clause, to a business owner who has no lawyer and no legal training, under ${J.adjective} law. For each clause below, write one short reading of it in plain everyday ${LANG} and return them through clause_readings.\n\nWRITE EVERY READING IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nCLAUSES:\n${sent}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'readings', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    /* PAIRED BY THE NUMBER IT WAS GIVEN, never by array position: an answer that
+       skipped one clause would otherwise shunt every reading after it onto the
+       wrong wording, which is the worst thing this feature could do. Anything
+       that does not name a clause in range is dropped, and a clause with no
+       reading simply draws none. */
+    const items = [];
+    (block.input && Array.isArray(block.input.readings) ? block.input.readings : []).forEach(r => {
+      const i = Number(r && r.i);
+      if (!Number.isInteger(i) || i < 0 || i >= list.length) return;
+      const plain = String((r && r.plain) || '').trim();
+      if (!plain) return;
+      items.push({ i, heading: list[i].heading, plain });
+    });
+    // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
+    // lesson: written to the table it would serve half a document for ever, with
+    // nothing on any later read saying so.
+    const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
+      truncated: !!resp.truncated, over, items };
+    if (!resp.truncated && items.length)
+      db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+        .run(String(id), JSON.stringify(readings), now());
+    res.json({ readings, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -8047,7 +8200,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      so a hand-built payload cannot carry it out either: the wall belongs to
      the route every path goes through, like the review strip above. */
   if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
-    delete payload.contract._renewalAdvice; }   // our own advice about their paper never travels
+    delete payload.contract._renewalAdvice;
+    delete payload.contract._readings; }        // idea 7: our plain-English reading of their paper is ours
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();

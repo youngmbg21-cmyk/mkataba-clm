@@ -3384,9 +3384,15 @@ function wsTabRowEndHtml(c){
      Ghost is the level between — a button, plainly, but not competing.
      The amber `ws-to-nego-due` face when changes need this reader is untouched,
      and still outranks this. */
+  /* ONE HEIGHT ACROSS THIS SLOT (Young reported it 9 Sep 2026, pointing at this
+     door standing taller than the box beside it). The vertical padding is what
+     did it: on top of .ui-btn's own min-height it made this the only control in
+     the row that set its own size. It is gone, and #ws-tabrow-end pins the
+     height for everything in the slot — the head-row rule this product already
+     keeps on the negotiation page, applied to the tab row. */
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
-    style="flex:none;font-size:var(--t-body);padding:7px 14px" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
-  return step+door;
+    style="flex:none;font-size:var(--t-body)" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
+  return docReadSwitchHtml(c)+step+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -3488,6 +3494,7 @@ function wsPaintTabRowEnd(c){
      a handler bound in each stacks one per tab change. This slot's own note
      three functions up is the reason it exists. */
   end.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
+  wireDocRead(c,end);
 }
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
@@ -3581,6 +3588,9 @@ function applyWsTabs(c){
   if(_wsTab==='history') roomPaintHistory(c);
   if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
   if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c); }
+  /* The layer belongs to the Document tab alone, and the cards it covers have to
+     be handed back on the way to any other tab (idea 7). */
+  docReadPaint(c);
   /* The Document pane has just been given a width for the first time since it
      was hidden. Measure it NOW — see the note in layoutDocResizer about why it
      refuses to measure a hidden pane at all. */
@@ -6617,6 +6627,15 @@ function renderWorkspace(){
         </div>
       </section>
 
+      ${''/* ---- THE PLAIN-ENGLISH LAYER SITS IN THE RIGHT-HAND TRACK (idea 7) ----
+             Absolutely positioned into the grid's SECOND area — the clause
+             panel's own trick on the negotiation page — so it takes the column
+             the cards occupy without narrowing the paper by a pixel or being
+             able to fall out of step with the track's width. It is empty and
+             hidden until somebody presses Plain English; docReadPaint fills it,
+             and wireDocCanvas puts it back after every re-render of the sheet. */}
+      <div id="doc-read" hidden style="grid-column:2;grid-row:1;position:absolute;inset:0;overflow:hidden"></div>
+
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
       <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
         <span style="width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)"></span>
@@ -6817,6 +6836,237 @@ function renderWorkspace(){
    Wiring them through one function lets every re-render re-arm them; wiring
    them inline at only the first render is how the Word buttons went dead the
    moment a reloaded page rehydrated (BUGLOG F9-003). */
+/* ============================================================
+   THE PLAIN-ENGLISH LAYER (idea 7 — Young ruled 9 Sep 2026)
+   ============================================================
+   A short "what this means for you" beside every clause, in the column that
+   already sits to the right of the paper. Young's own words on why it exists:
+   *"part of the frustration with reading contracts is the legal verbiage ... the
+   plain english needs to be clear enough for a regular person."*
+
+   THE SWITCH IS IN THE SLOT YOUNG DREW — the tab row's right-hand end, before
+   the A-/A+ stepper — and reads Contract View | Plain English, in that order,
+   with Contract View lit at rest. Ruled off a rendered mock on 9 Sep 2026.
+
+   IT IS PAINTED BESIDE THE PAPER AND NEVER INTO IT. docBody is the ONE builder
+   for a contract's wording and it is what the share copy, the exports and the
+   phone all render — so a reading written into it would travel. This hangs off
+   wireDocCanvas instead, exactly as the signature places on the paper do (J-1),
+   which buys four promises rather than four rules: it cannot reach the other
+   side, no wording and no fingerprint moves, it dies and is redrawn with every
+   re-render so it cannot go stale under an edit, and the document builder is
+   not edited at all.
+
+   THE COLUMN TAKES TURNS, IT IS NOT REPLACED. Young's own worry, put in those
+   words: the three cards there are not deleted, they are one press away — which
+   is the same thing the Document and Signing tabs already do to that column.
+
+   AND THE FORM IS SAVED BEFORE THE SWAP. That column regularly holds the
+   contract form, whose boxes commit on CHANGE — that is, when the box loses
+   focus — so a reader mid-typing who pressed the switch would have lost that
+   one box. Blurring first fires the same commit the form already listens for,
+   which is why this is one line rather than a second way to save. */
+const DOC_READ_KEY='hati.v1.docPlainEnglish';
+/* The clause editor's own floor, and for the same reason: two working columns
+   need room to be two columns. Below it the layer stands down. */
+const DOC_READ_MIN_W=1024;
+let _docReadBusy=false;
+
+const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
+/* READ, NEVER WRITTEN, WHERE IT CANNOT BE HONOURED — the nav drawer's rule: a
+   sitting at a narrow width must not quietly clear a choice made on a laptop. */
+function docReadOn(){
+  if(!docReadFits()) return false;
+  try{ return localStorage.getItem(DOC_READ_KEY)==='1'; }catch(_){ return false; }
+}
+function docReadSet(v){
+  if(!docReadFits()) return;
+  try{ localStorage.setItem(DOC_READ_KEY, v?'1':'0'); }catch(_){}
+}
+const docReadItems=c=>{
+  const r=c&&c._readings;
+  return (r&&Array.isArray(r.items)) ? r.items.slice().sort((a,b)=>(a.i||0)-(b.i||0)) : [];
+};
+/* WHAT COUNTS AS A CLAUSE HERE IS WHAT IS PAINTED ON THE SHEET, and that is
+   the safety of the whole pairing rather than a shortcut.
+
+   clauseSegment is this product's one splitter and it stays that. It reads a
+   DOCUMENT MODEL — top-level blocks under their own headings — which is the
+   shape a STORED rich body has. The Document tab's paper for a TEMPLATE
+   contract is not that shape: docBody draws each clause inside a block of its
+   own with the heading nested in it, so at the top level there is one thing.
+   MEASURED on this product's own paper before this was written — MK-A2's sheet
+   paints five headings and segmenting the same html returns ONE clause, the
+   whole agreement under its title. A reading built on that would have been one
+   note for the entire contract.
+
+   So this layer reads the SHEET, and the list sent to the model and the
+   anchors the notes hang on are the SAME WALK — which means a note cannot land
+   beside the wrong wording by construction rather than by care. It is scoped
+   to this layer and is not a second opinion about what a clause is anywhere
+   else: nothing files against it, nothing is stored, and no fingerprint sees
+   it.
+
+   THE FRONT MATTER IS NOT A CLAUSE, which is what clauseSegment says too — the
+   title and the parties are the paper naming itself, and the signature block
+   is derived from the record rather than from the wording. Both are stepped
+   over, and it takes TWO readings because this tab draws the head two ways:
+   template paper builds it with docPaperHeadHtml, which is a real <header>,
+   and an UPLOAD builds its own out of a bare div. So the second reading is the
+   fact both of them share — the first heading on the sheet is the contract's
+   own NAME. Narrow on purpose: only the FIRST, and only where it really is the
+   name, so it can never eat a clause. MEASURED before it was written — without
+   it, a scan whose words never came out of the file drew the switch and would
+   have asked the model to explain a title. */
+const _docReadNorm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
+const DOC_READ_HEADS='h1,h2,h3,h4';
+const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header';
+function docReadSheet(c){
+  const canvas=document.getElementById('doc-canvas');
+  if(!canvas) return [];
+  const name=_docReadNorm(c&&c.name);
+  const heads=Array.from(canvas.querySelectorAll(DOC_READ_HEADS))
+    .filter(el=>!el.closest(DOC_READ_FURNITURE))
+    .filter((el,i)=>!(i===0&&name&&_docReadNorm(el.textContent)===name));
+  const foot=canvas.querySelector('.rl-paper-foot');
+  const out=[];
+  heads.forEach((el,i)=>{
+    const heading=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    let text='';
+    try{
+      const r=document.createRange();
+      r.setStartAfter(el);
+      /* A clause is its heading and everything under it up to the next one. The
+         last one stops at the signature block where there is one, so the parties
+         are never read as wording. */
+      if(heads[i+1]) r.setEndBefore(heads[i+1]);
+      else if(foot) r.setEndBefore(foot);
+      else r.setEnd(canvas, canvas.childNodes.length);
+      text=String(r.toString()||'').replace(/\s+/g,' ').trim();
+    }catch(_){}
+    if(heading||text) out.push({el,heading,text});
+  });
+  return out;
+}
+/* What the route is sent: the same walk, without the elements. */
+const docReadClauses=c=>docReadSheet(c).map(r=>({heading:r.heading,text:r.text}));
+/* PAIRED BY THE NUMBER IT WAS GIVEN AND CHECKED AGAINST THE HEADING'S OWN
+   WORDS. The number alone would be enough while the sheet is the sheet the
+   reading was written about; the heading guard is what makes a repainted or
+   re-read document draw NOTHING rather than shunt every note one clause along.
+   Silence is the only safe failure here — a note beside the wrong clause is
+   worse than no note at all. */
+function docReadAnchors(c, items){
+  const list=docReadSheet(c);
+  const out=[];
+  (items||[]).forEach(it=>{
+    const i=Number(it&&it.i);
+    const row=(Number.isInteger(i)&&i>=0)?list[i]:null;
+    if(!row) return;
+    if(!String(it.plain||'').trim()) return;
+    if(_docReadNorm(row.heading)!==_docReadNorm(it.heading)) return;
+    out.push({el:row.el,it});
+  });
+  return out;
+}
+function docReadSync(){
+  const sc=document.getElementById('doc-scroll'), inner=document.getElementById('doc-read-inner');
+  if(sc&&inner) inner.style.transform='translateY('+(-sc.scrollTop)+'px)';
+}
+function docReadPaint(c){
+  const layer=document.getElementById('doc-read');
+  if(!layer) return;
+  const on=docReadOn()&&_wsTab==='docs'&&docReadItems(c).length>0;
+  layer.hidden=!on;
+  /* The cards keep their place and their own scroll position; they are covered,
+     never rebuilt. visibility also takes them out of the way of the pointer. */
+  const right=document.getElementById('doc-right');
+  if(right) right.style.visibility=on?'hidden':'';
+  if(!on){ layer.innerHTML=''; return; }
+  const canvas=document.getElementById('doc-canvas');
+  const pairs=docReadAnchors(c, docReadItems(c));
+  const over=Number((c._readings&&c._readings.over)||0);
+  layer.innerHTML=`
+    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
+    <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>
+      `<div class="doc-read-note" data-doc-read-note="${n}"><div>${esc(p.it.plain)}</div></div>`).join('')}
+      ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
+    </div></div>`;
+  const inner=document.getElementById('doc-read-inner');
+  const sc=document.getElementById('doc-scroll');
+  const clip=layer.querySelector('.doc-read-clip');
+  if(!inner||!sc||!clip) return;
+  /* MEASURED FROM THE CLIP, NEVER FROM THE SCROLLER. A note's top is relative
+     to the box it hangs in, and that box starts below this column's own head —
+     so measuring against the paper's scroller put every note a constant 29px
+     low, which reads as a note beside the clause after its own. Caught as
+     PIXELS in plain-english-verify; nothing in the markup looked wrong. */
+  const base=clip.getBoundingClientRect().top - sc.scrollTop;
+  pairs.forEach((p,n)=>{
+    const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
+    if(el) el.style.top=Math.round(p.el.getBoundingClientRect().top - base)+'px';
+  });
+  const last=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
+  const overEl=inner.querySelector('.doc-read-over');
+  if(overEl) overEl.style.top=Math.round(last+24)+'px';
+  inner.style.height=Math.round(last+140)+'px';
+  docReadSync();
+  if(!sc.dataset.docReadBound){
+    sc.dataset.docReadBound='1';
+    sc.addEventListener('scroll',docReadSync,{passive:true});
+  }
+  /* The paper changes height when the reader changes its type size, and the
+     notes have to follow it. One observer, armed once on the canvas. */
+  if(window.ResizeObserver&&canvas&&!canvas.dataset.docReadObs){
+    canvas.dataset.docReadObs='1';
+    new ResizeObserver(()=>{ const cur=state.contracts.find(x=>x.id===c.id)||c; docReadPaint(cur); }).observe(canvas);
+  }
+}
+function docReadSwitchHtml(c){
+  if(!c||!docReadFits()) return '';
+  /* A VERB THAT CANNOT WORK IS NOT DRAWN. Asked of the clause list itself
+     rather than of docHasNoWording, which is narrow by design (a blank
+     amendment) and answers false for the case that actually matters here — a
+     scan whose words never came out of the file. */
+  if(!docReadClauses(c).length) return '';
+  const on=docReadOn()&&docReadItems(c).length>0;
+  return `<div class="doc-read-seg" role="group" aria-label="${esc(i18t('ct_read_group'))}">
+    <button type="button" data-doc-read="0" aria-pressed="${!on}">${esc(i18t('ct_read_contract'))}</button>
+    <button type="button" data-doc-read="1" aria-pressed="${on}"${_docReadBusy?' disabled':''}
+      title="${esc(i18t('ct_read_plain_title'))}">${esc(_docReadBusy?i18t('ct_read_reading'):i18t('ct_read_plain'))}</button>
+  </div>`;
+}
+async function docReadRun(c){
+  if(_docReadBusy) return false;
+  const clauses=docReadClauses(c);
+  if(!clauses.length){ toast(i18t('ct_read_nothing'),'warn'); return false; }
+  _docReadBusy=true; wsPaintTabRowEnd(c);
+  try{
+    const r=await api('ai/readings','POST',{id:c.id,clauses});
+    if(r&&r.readings&&Array.isArray(r.readings.items)&&r.readings.items.length){
+      c._readings=r.readings;
+    } else { toast(i18t('ct_read_nothing_back'),'warn'); return false; }
+  }catch(e){ toast((e&&e.message)||i18t('ct_read_failed'),'err'); return false; }
+  finally{ _docReadBusy=false; wsPaintTabRowEnd(c); }
+  return true;
+}
+function wireDocRead(c,host){
+  (host||document).querySelectorAll('[data-doc-read]').forEach(b=>{
+    b.addEventListener('click',async ()=>{
+      const want=b.getAttribute('data-doc-read')==='1';
+      /* SAVE THE BOX FIRST (Young ruled 9 Sep 2026). The contract form in that
+         column commits a field on CHANGE, so a field still holding the caret is
+         not on the record yet; blurring fires that same commit before anything
+         is covered over. */
+      const act=document.activeElement;
+      if(act&&act!==document.body&&act.blur&&act.closest&&act.closest('#doc-right')) act.blur();
+      if(want&&!docReadItems(c).length){ if(!await docReadRun(c)) return; }
+      docReadSet(want);
+      wsPaintTabRowEnd(c);
+      docReadPaint(c);
+    });
+  });
+}
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
@@ -6825,6 +7075,10 @@ function wireDocCanvas(c){
      signSpotsPaint — so it dies with every re-render, exactly like the two
      buttons above, and for exactly the same reason it is re-armed here. */
   if(window.signSpotsPaint) signSpotsPaint(c);
+  /* The plain-English layer rides this same funnel and for the same reason: it
+     is painted BESIDE the canvas rather than inside docBody, so it dies with
+     every re-render and has to be put back here (idea 7). */
+  docReadPaint(c);
 }
 
 /* ============================================================
@@ -8680,4 +8934,10 @@ Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChe
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
-  DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill});
+  DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
+  /* idea 7 — the plain-English layer. Published because a name read through
+     window from another module, or from a test stage, is silence when it is
+     not on this list: this codebase's most repeated defect. */
+  DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
+  docReadSheet,docReadClauses,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
+  docReadRun,wireDocRead});
