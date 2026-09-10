@@ -3036,7 +3036,88 @@ scraper's own output on the same file.
 **THE GUESSWORK STAYS, AS THE FALLBACK IT SHOULD ALWAYS HAVE BEEN.** A Word
 file with no styles and no numbering reads BYTE-IDENTICALLY to the scraper and
 stores no body at all (`docxHasStructure`), so the screen goes on guessing for
-it — and for PDFs and scans, which genuinely have no structure to read.
+it — and for scans, which genuinely have no structure to read. **"AND FOR PDFs"
+STOOD HERE AND IS REVERSED IN PLACE (J-3.4, 10 Sep 2026) — A PDF KNOWS WHERE
+ITS INK SITS.** See the section below; the sentence was true of the READER
+rather than of the format, and Word was fixed while PDF never was.
+
+## A PDF KEEPS ITS STRUCTURE TOO (J-3.4, owner-reported 10 Sep 2026)
+
+*"when I upload a pdf contract, I cant read it in plain english because the
+plain english button does not appear. Also, when i go from the document page to
+the negotiate page, the structure of the contract breaks and I am unable to
+follow the clauses and sub clauses. I need for the structure to stay intact and
+where there is a bold header to remain a bold header etc, same way a word
+document would."*
+
+**TWO REPORTS, ONE CAUSE, AND IT IS J-3.1's FAULT ONE FORMAT ALONG.** The
+Document tab returned an `<iframe>` of the file, so the sheet held no clauses —
+and the Plain English switch then refused CORRECTLY, because an iframe is a
+separate document the walk cannot and must not enter. **That is the product's
+own rule working**: a verb that cannot work is not drawn. The switch was never
+touched; the page it is asked about was, and it reappeared on its own.
+
+- **THE FACTS WERE ALREADY IN THE BUILDING, WHICH IS WHY THIS WAS CHEAP.**
+  `pdfRunsToLines` has always computed, per line, the dominant point size, the
+  left and right edges, whether the line is set BOLD, and an inline-marked-up
+  `html` — and **only `maxSize` had a reader anywhere in the product**. Nothing
+  new is parsed out of the page; what changed is that what was already read is
+  no longer thrown away.
+- **`extractPdfRich` IS `extractWordText`'s SIBLING** — the same
+  `{ text, html, report }` — and **`text` is BYTE-IDENTICAL to what
+  `extractPdfText` has always returned**. That is not negotiable: it is the
+  stored wording, and every fingerprint, the Copilot readings, the obligations
+  reader and the standards pass already bind it. One walk (`pdfReadPages`) now
+  serves both, and `pdfLinesToText` / `pdfParaBreak` are SHARED, so the stored
+  text and the rich body cannot disagree about where a paragraph ends.
+- **A HEADING IS DECIDED FROM THE PAGE, NEVER FROM THE CAPITALS**: bold, or
+  noticeably larger than the body, and short enough to be a title
+  (`PDF_HEAD_MAX`). **`docLineKind` IS NOT LOOSENED** — it is the fallback for
+  documents that genuinely have no structure to read, and every one of them
+  would change. The point was to stop NEEDING the guess on a PDF that can
+  answer for itself.
+- **A SOFT WRAP JOINS, A PARAGRAPH BREAK BREAKS, AND A PAGE BREAK BREAKS** —
+  the text projection's own rule, asked rather than re-derived.
+- **A NUMBERED LINE REQUIRES A SEPARATOR OR A SECOND PART** (`PDF_NUM_LINE`). A
+  wrapped line beginning *"30 days of receipt…"* starts with digits and a space
+  and is not a clause; reading it as one would break the paragraph AND overstate
+  the report, **which is what decides whether a body is stored at all**.
+- **THE TITLE TAKES h1 AND THE LEVELS SHIFT UNDER IT** — J-3.1's own rule for
+  its own reason. A PDF whose headings are all one size has no title to shift
+  under, so they start at **h2** and nothing is eaten.
+- **STORED ON EXACTLY THE TERMS A WORD FILE IS**: through `sanitizeRich` with
+  no exception, **the allow-list not widened by one tag**, and ONLY where the
+  reader REPORTS structure. A flat PDF reports nothing, stores nothing, and
+  keeps today's guesswork.
+- **THE WORDING IS THE PAGE, so the frame stands down.** `uploadDocBody` prefers
+  the stored wording and falls back to the iframe — otherwise the reader is
+  handed the agreement AND a file frame under it. **SCOPED TO PDFs**: a scan is
+  an image and keeps its picture, which is the evidence.
+- **NOTHING ALREADY UPLOADED IS RE-READ.** "Re-read document" is the one door
+  and it already refuses a sealed record and an edited one.
+- **WHAT IT COSTS, said out loud**: laying the words out loses the other side's
+  fonts, page layout and logo. HaTi already makes that trade for Word.
+- **AND ONE THING IS WIDER THAN THE ORDER ASKED FOR**, reported rather than
+  absorbed: a PDF carrying numbered clauses but NO headings is now stored as a
+  rich body (paragraphs joined, numbers kept) where before it took the
+  guesswork. A resolvable clause number IS readable structure, and joining soft
+  wraps into real paragraphs is a genuine gain over a column of short lines.
+
+Tests: f233 (10) (8 claims, all eight failing against the parent — every fixture
+a REAL PDF, because one that hand-writes the line objects the reader is supposed
+to produce passes on the commit before the product could produce them),
+**pdf-structure-verify (NEW, 19, browser — 11 fail against the parent, the
+headline one reporting the report verbatim: the Plain English switch NOT DRAWN.
+Four claims can be asked nowhere else: is the switch VISIBLE PIXELS, does a bold
+heading render bolder or larger than the body on the Document tab AND the
+Negotiate page, is the file frame gone, and Q3)**. f257, f235, f277,
+upload-structure-verify and scan-verify all unmoved.
+
+**Q3 HAS NO BEFORE/AFTER NUMBER ON THIS SCREEN, and saying so is the honest
+half**: on the parent a PDF drew an iframe, so there was no first line of the
+agreement to measure. What is asserted instead is what Q3 exists to stop — that
+this job put nothing of its own above the wording — measured on the same
+contract with the structure line on the strip and with it taken away.
 
 **J-3.3 IS THE HALF THE ORDER ITSELF NAMED, AND NO MORE.** Its own words were
 that it *"may end as 'accept the guesswork and say so on screen' rather than as
