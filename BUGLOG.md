@@ -10729,3 +10729,118 @@ pixels unchanged at 293, f91/f148/f232/f48/f236/f238 155/155.
 - The plain-English layer is not on the phone and not on the counterparty's page,
   and is not offered on the Signing tab. Named in the MAP as deliberate, not
   forgotten.
+
+## 10 Sep 2026 — Plain English becomes a clause-for-clause edition, and one control rung for both rows
+
+Young, off their own supply agreement and a render they approved first: the
+reading must be a TRANSLATION rather than a summary ("if there clause 1.1 in
+the contract then there should be a traslated clause 1.1 in plain english"),
+at the contract's own font size, on a white card rather than the grey page,
+refreshed when the contract is redlined — and the buttons under the acts row
+must take the acts row's own height, size and weight, with only the shaded
+half bold, on the Document tab AND on the negotiation page.
+
+### The cause was the segmentation, not the prompt
+docReadSheet walked HEADINGS and nothing else. On real commercial paper the
+headings are the SECTION titles while 1.1, 1.2 and 1.3 are bold lead-ins inside
+ordinary paragraphs — so the whole of section 1 arrived at the route as ONE row
+and could only come back as one note. It was never a decision to summarise; the
+model was doing the only thing it could with what it was handed. MEASURED on
+the reported shape: 6 rows where there was 1.
+
+- A numbered paragraph is now an anchor of its own, and REQUIRES A DOT (1.1 and
+  3.2.1 are sub-clauses; a bare "1." is as likely to be a list item). It only
+  ever ADDS anchors — paper with no numbered paragraphs walks byte-identically,
+  which is f277's CONTROL and passes before and after.
+- The clause's heading is its own bold lead-in, which is both what the drafter
+  wrote as its name and what the pairing guard compares. A wrapper that merely
+  CONTAINS the numbered paragraph is never the anchor.
+- The NUMBER is the paper's and is never asked of the model — read off the same
+  walk the entries hang on, which is what lets it be printed as a citation. The
+  model supplies the plain HEADING; a row marked SECTION gets a heading and no
+  reading, and is the only row that may stand on a heading alone.
+
+### The prompt asks for a translation and keeps the figures
+"TRANSLATE, DO NOT SUMMARISE", match the clause you are given, a heading per
+entry in sentence case, never the number in the heading. Two old rules went and
+both are named in the MAP: the three-sentence cap (it is what made this a
+summary), and "do not restate any amount". THE MONEY RULE WAS RIGHT ABOUT A
+SUMMARY AND WRONG ABOUT A TRANSLATION — an edition that drops "0.5% per day,
+capped at 10%" has described the clause rather than translated it, and the
+figure is in the WORDING the same reader is already reading; canViewValues
+governs the contract's value FIELD, never the document text. max_tokens 4,000 →
+8,000 from the schema's own arithmetic (60 clauses × ~110 tokens), and a
+cut-short answer is still not cached.
+
+### A white sheet, at the contract's own size
+The size is MEASURED off the paper on every paint rather than computed from a
+token: --doc-scale is written on the paper's own zoom wrapper in the OTHER
+column and never reaches this one, and a document style can multiply it again
+(compact-executive takes .94). Entries sit level with their own clause and STEP
+DOWN rather than overlapping — level is what makes it a parallel reading, the
+step is what keeps that honest when it cannot be exact.
+
+### The reading follows the wording
+The press ran the route only where there was NO reading at all, so a redlined
+clause went on showing the reading of the wording it replaced. docReadSig is
+the browser's own signature of the walk — NOT the cache key, which the route
+owns — only how the press knows whether to ask. Unchanged wording asks nothing;
+moved wording calls the route, which answers from its own cache and spends
+nothing if it agrees. Stamped from the walk that was SENT, taken before the
+await, because the paper can be repainted while the request is in flight.
+
+### One control rung, and the two halves were wrong in different places
+Measured on both pages before anything was touched, which is what stopped this
+being one blanket sweep:
+- The Document tab's slot: 32px, mixed 13/14px, RESTING half at weight 700 —
+  against a row of acts 40px above at 28px/14px/400.
+- The negotiation control row: already 28px and already unbold; only the SIZE
+  was wrong, 13px against 14.
+That is exactly what each screenshot's own wording asked for — "shorter" on the
+first, "the same size" on the second. Scoped to the group that was ringed, with
+:not(.rl-readwrap) as well, so the 44px reading tabs and the counterparty's
+header are untouched. Every control the row draws, not only the four in the
+screenshot (the head-row pin one page along records why). "All negotiations" is
+a bare text link with no box, so it takes the size and is checked for sitting on
+the others' centre line. THE FOLD LADDER WAS THE ONE REAL RISK and was
+re-measured: one line from 1240 down to 940px, every word intact.
+
+### Things the build got wrong first, and what caught them
+- The clause heading was the whole paragraph, not the lead-in. Caught by writing
+  the pairing test.
+- A browser check re-rendered with openWorkspace, which setView correctly
+  no-ops when you are already on that view — so the new wording never reached
+  the sheet and four checks failed for the wrong reason. renderWorkspace is what
+  section 6 of that file already used.
+- The same check then set c.redlineText WITHOUT c.format='rich', so docBody drew
+  the markup as PLAIN TEXT in a pre-wrap box, tags and all, and the walk quite
+  correctly found no headings. Diagnosed by printing the rendered canvas rather
+  than re-reading the source.
+- The button probe measured the segmented switch's INNER halves (26px inside its
+  own 28) and one hidden head button (0px), and reported a correct row as
+  broken. Height is asked of the CONTROL, and of the visible ones only.
+- A "CONTROL" test asserted a field the old code does not have, so it failed on
+  the parent — which makes it not a control. Split: the control asserts only
+  what was true before as well.
+
+Verified: node 6144/6144. f277 61/61, and 25 of those fail in a worktree at the
+parent commit — headline "a section of three numbered clauses is FOUR rows, not
+one". plain-english-verify 47/47 (12 fail against the parent, reporting slot 32
+against head 28 and a resting half at weight 700). control-row-folds-verify
+27/27 (1 fails against the parent: row 13px against head 14px). redline-verify
+191/191, nego-redesign-verify 57/57, counterparty-reading-and-more-verify 63/63.
+Lint unchanged.
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical count on the parent; outside this request.
+- pages-read-alike-verify is 47/50 — three failures on the NEGOTIATION head
+  ("does not wrap", "it is ONE line", head 126px). PROVED pre-existing by running
+  the file in a worktree at the parent: identical 47/50, identical three checks.
+- The plain-English edition is still not on the phone, not on the counterparty's
+  page, and not offered on the Signing tab. Named in the MAP as deliberate.
+- While the layer is ON and the wording moves underneath it, the entries are not
+  refreshed until the next press — the heading guard drops any that no longer
+  match, so nothing lands beside the wrong clause, but nothing re-reads either.
+  Refreshing there would spend Copilot money with nobody pressing anything, which
+  is a decision for the owner rather than one to take in passing.

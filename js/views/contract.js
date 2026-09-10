@@ -6870,6 +6870,8 @@ const DOC_READ_KEY='hati.v1.docPlainEnglish';
 /* The clause editor's own floor, and for the same reason: two working columns
    need room to be two columns. Below it the layer stands down. */
 const DOC_READ_MIN_W=1024;
+/* The air an entry keeps below it when the one above has pushed it down. */
+const DOC_READ_GAP=18;
 let _docReadBusy=false;
 
 const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
@@ -6921,35 +6923,116 @@ const docReadItems=c=>{
 const _docReadNorm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
 const DOC_READ_HEADS='h1,h2,h3,h4';
 const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header';
+/* A NUMBERED CLAUSE IS AN ANCHOR OF ITS OWN, AND THAT IS THE WHOLE OF WHY THIS
+   READ AS A SUMMARY (Young reported it 10 Sep 2026, off their own supply
+   agreement: "if there clause 1.1 in the contract then there should be a
+   translated clause 1.1 in plain english").
+
+   The walk took HEADINGS and nothing else — and on real commercial paper the
+   headings are the SECTION titles, while 1.1, 1.2 and 1.3 are bold lead-ins
+   inside ordinary paragraphs. So the whole of section 1 arrived as one row and
+   came back as one note. It was never a decision to summarise; it was the
+   segmentation, and the model was doing the only thing it could with what it
+   was handed.
+
+   REQUIRES A DOT, deliberately: "1.1" and "3.2.1" are sub-clauses, "1." on its
+   own is as likely to be a list item or a sentence opening with a figure. This
+   only ever ADDS anchors — a document with no numbered paragraphs walks exactly
+   as it did — which is what makes it safe on paper nobody has seen. */
+const DOC_READ_NUM=/^\s*(\d+(?:\.\d+)+)[.)]?\s+\S/;
+const _docReadNumOf=el=>{
+  const m=DOC_READ_NUM.exec(String(el&&el.textContent||''));
+  return m?m[1]:'';
+};
+/* THE CLAUSE'S OWN LEAD-IN IS ITS HEADING — "1.1 Master Agreement Structure."
+   — because that is what the drafter wrote as its name, and because it is what
+   the pairing guard compares. Real paper sets that lead-in bold, so the bold
+   run is taken where there is one at the very start; failing that the first
+   few words, which is stable for the same document and is all the guard needs. */
+const _docReadLead=el=>{
+  const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
+  let b=null;
+  try{ b=el.querySelector&&el.querySelector('strong,b'); }catch(_){}
+  if(b){
+    const bt=String(b.textContent||'').replace(/\s+/g,' ').trim();
+    if(bt&&t.indexOf(bt)>=0&&t.indexOf(bt)<=2) return bt.slice(0,140);
+  }
+  return t.split(' ').slice(0,8).join(' ').slice(0,140);
+};
 function docReadSheet(c){
   const canvas=document.getElementById('doc-canvas');
   if(!canvas) return [];
   const name=_docReadNorm(c&&c.name);
-  const heads=Array.from(canvas.querySelectorAll(DOC_READ_HEADS))
-    .filter(el=>!el.closest(DOC_READ_FURNITURE))
-    .filter((el,i)=>!(i===0&&name&&_docReadNorm(el.textContent)===name));
   const foot=canvas.querySelector('.rl-paper-foot');
+  /* ONE WALK OF THE PAINTED SHEET, in document order, so the list sent to the
+     model and the anchors the entries hang on cannot disagree by construction. */
+  let seenName=false;
+  let rows=Array.from(canvas.querySelectorAll(DOC_READ_HEADS+',p,li,div'))
+    .filter(el=>!el.closest(DOC_READ_FURNITURE))
+    .map(el=>{
+      const isHead=/^H[1-4]$/.test(el.tagName);
+      /* THE CONTRACT'S OWN NAME IS NOT A CLAUSE — the first heading on the
+         sheet, and only where it really is the name, so it can never eat one. */
+      if(isHead&&!seenName){ seenName=true; if(name&&_docReadNorm(el.textContent)===name) return null; }
+      const num=isHead?'':_docReadNumOf(el);
+      if(!isHead&&!num) return null;
+      return {el,isHead,num};
+    })
+    .filter(Boolean);
+  /* A WRAPPER THAT MERELY CONTAINS the numbered paragraph is not the clause —
+     the paragraph inside it is. Anchoring the outer one would put the entry
+     above its own wording and swallow every clause after it. */
+  rows=rows.filter((r,i)=>!rows.some((o,j)=>j!==i&&r.el.contains(o.el)));
   const out=[];
-  heads.forEach((el,i)=>{
-    const heading=String(el.textContent||'').replace(/\s+/g,' ').trim();
-    let text='';
+  rows.forEach((row,i)=>{
+    const own=String(row.el.textContent||'').replace(/\s+/g,' ').trim();
+    let after='';
     try{
       const r=document.createRange();
-      r.setStartAfter(el);
-      /* A clause is its heading and everything under it up to the next one. The
-         last one stops at the signature block where there is one, so the parties
-         are never read as wording. */
-      if(heads[i+1]) r.setEndBefore(heads[i+1]);
+      r.setStartAfter(row.el);
+      if(rows[i+1]) r.setEndBefore(rows[i+1].el);
       else if(foot) r.setEndBefore(foot);
       else r.setEnd(canvas, canvas.childNodes.length);
-      text=String(r.toString()||'').replace(/\s+/g,' ').trim();
+      after=String(r.toString()||'').replace(/\s+/g,' ').trim();
     }catch(_){}
-    if(heading||text) out.push({el,heading,text});
+    /* A SECTION is its title and everything under it up to the next anchor; a
+       numbered CLAUSE includes its own paragraph, because the lead-in is part
+       of the clause rather than a label on it. The last row stops at the
+       signature block where there is one, so the parties are never read as
+       wording. */
+    const heading=row.isHead?own:_docReadLead(row.el);
+    const text=row.isHead?after:(after?own+' '+after:own);
+    if(heading||text) out.push({el:row.el,heading,text,num:row.num,kind:row.isHead?'section':'clause'});
   });
   return out;
 }
 /* What the route is sent: the same walk, without the elements. */
-const docReadClauses=c=>docReadSheet(c).map(r=>({heading:r.heading,text:r.text}));
+const docReadClauses=c=>docReadSheet(c).map(r=>({num:r.num,heading:r.heading,text:r.text,kind:r.kind}));
+/* THE READING FOLLOWS THE WORDING (Young asked 10 Sep 2026: "when the contract
+   in the document changes or is redlined and you click on plain english it
+   should update the translation accordingly with the new changes").
+
+   It did not. The press ran the route only where there was NO reading at all,
+   so once a contract had been read once, a redlined clause went on showing the
+   reading of the wording it replaced — and after a round closed, the heading
+   guard would drop the moved entries and the column would quietly thin out
+   instead.
+
+   This is the browser's own signature of the walk it is looking at. It is not
+   the cache key — the ROUTE owns that, hashing exactly what it was sent — it
+   is only how the press knows whether to ask at all. Where the wording has not
+   moved the press asks nothing; where it has, the route is called and answers
+   from its own cache without spending anything if it turns out to agree. FNV-1a
+   because this is an equality check and nothing more: it is never stored, never
+   travels, and attests to nothing. */
+function docReadSig(c){
+  const rows=docReadClauses(c);
+  if(!rows.length) return '';
+  const src=rows.map(r=>r.num+'\u0001'+r.heading+'\u0001'+r.text).join('\u0002');
+  let h=0x811c9dc5;
+  for(let i=0;i<src.length;i++){ h^=src.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return rows.length+':'+h.toString(36);
+}
 /* PAIRED BY THE NUMBER IT WAS GIVEN AND CHECKED AGAINST THE HEADING'S OWN
    WORDS. The number alone would be enough while the sheet is the sheet the
    reading was written about; the heading guard is what makes a repainted or
@@ -6963,9 +7046,13 @@ function docReadAnchors(c, items){
     const i=Number(it&&it.i);
     const row=(Number.isInteger(i)&&i>=0)?list[i]:null;
     if(!row) return;
-    if(!String(it.plain||'').trim()) return;
+    /* A SECTION TITLE STANDS ON ITS HEADING ALONE — it carries no wording by
+       design. Everything else needs a reading, or the edition would draw a
+       title over nothing. */
+    const hasBody=!!String(it.plain||'').trim();
+    if(!hasBody&&!(row.kind==='section'&&String(it.head||'').trim())) return;
     if(_docReadNorm(row.heading)!==_docReadNorm(it.heading)) return;
-    out.push({el:row.el,it});
+    out.push({el:row.el,row,it});
   });
   return out;
 }
@@ -6984,12 +7071,38 @@ function docReadPaint(c){
   if(right) right.style.visibility=on?'hidden':'';
   if(!on){ layer.innerHTML=''; return; }
   const canvas=document.getElementById('doc-canvas');
+  /* THE SIZE IS MEASURED OFF THE PAPER, never computed from a token here. The
+     reader's A⁻/A⁺ choice is written as --doc-scale on the paper's own zoom
+     wrapper, which is in the OTHER column and does not reach this one, and a
+     document style can multiply the size again on top of it. Asking the sheet
+     what it actually resolves to follows both, and follows the next one. */
+  try{
+    const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
+    const px=paper?getComputedStyle(paper).fontSize:'';
+    if(px&&parseFloat(px)>0) layer.style.setProperty('--dr-size',px);
+    else layer.style.removeProperty('--dr-size');
+  }catch(_){}
   const pairs=docReadAnchors(c, docReadItems(c));
   const over=Number((c._readings&&c._readings.over)||0);
+  /* THE EDITION IS DRAWN AS A DOCUMENT, not as a stack of notes: the clause's
+     own number, then a heading of its own, then the reading — at the size the
+     contract itself is set at. The NUMBER is the paper's, read off the sheet by
+     docReadSheet and never asked of the model, which is what lets it be printed
+     as a citation. */
   layer.innerHTML=`
     <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
-    <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>
-      `<div class="doc-read-note" data-doc-read-note="${n}"><div>${esc(p.it.plain)}</div></div>`).join('')}
+    <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>{
+      const sec=p.row.kind==='section';
+      const num=String(p.it.num||p.row.num||'').trim();
+      const head=String(p.it.head||'').trim();
+      const body=String(p.it.plain||'').trim();
+      const numHtml=num?`<span class="dr-n">${esc(num)}</span> `:'';
+      return `<div class="doc-read-note${sec?' dr-sec':''}" data-doc-read-note="${n}">`
+        +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`
+              :(num&&!sec?`<h4 class="dr-h">${numHtml}</h4>`:''))
+        +(body?`<p>${esc(body)}</p>`:'')
+        +`</div>`;
+    }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
     </div></div>`;
   const inner=document.getElementById('doc-read-inner');
@@ -7002,11 +7115,22 @@ function docReadPaint(c){
      low, which reads as a note beside the clause after its own. Caught as
      PIXELS in plain-english-verify; nothing in the markup looked wrong. */
   const base=clip.getBoundingClientRect().top - sc.scrollTop;
+  /* EACH ENTRY SITS LEVEL WITH ITS OWN CLAUSE, and steps DOWN rather than
+     overlapping where the plain wording runs past the clause above it. Level is
+     what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
+     keeps that promise honest when it cannot be kept exactly. */
+  let floor=0, bottom=0;
   pairs.forEach((p,n)=>{
     const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
-    if(el) el.style.top=Math.round(p.el.getBoundingClientRect().top - base)+'px';
+    if(!el) return;
+    let top=Math.round(p.el.getBoundingClientRect().top - base);
+    if(top<floor) top=floor;
+    el.style.top=top+'px';
+    floor=top+el.offsetHeight+DOC_READ_GAP;
+    bottom=floor;
   });
-  const last=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
+  const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
+  const last=Math.max(lastEl,bottom);
   const overEl=inner.querySelector('.doc-read-over');
   if(overEl) overEl.style.top=Math.round(last+24)+'px';
   inner.style.height=Math.round(last+140)+'px';
@@ -7040,11 +7164,17 @@ async function docReadRun(c){
   if(_docReadBusy) return false;
   const clauses=docReadClauses(c);
   if(!clauses.length){ toast(i18t('ct_read_nothing'),'warn'); return false; }
+  const sig=docReadSig(c);
   _docReadBusy=true; wsPaintTabRowEnd(c);
   try{
     const r=await api('ai/readings','POST',{id:c.id,clauses});
     if(r&&r.readings&&Array.isArray(r.readings.items)&&r.readings.items.length){
       c._readings=r.readings;
+      /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature
+         of the walk that was SENT — taken before the await, because the paper
+         can be repainted while the request is in flight and a signature read
+         afterwards would claim a reading of wording nobody read. */
+      c._readSig=sig;
     } else { toast(i18t('ct_read_nothing_back'),'warn'); return false; }
   }catch(e){ toast((e&&e.message)||i18t('ct_read_failed'),'err'); return false; }
   finally{ _docReadBusy=false; wsPaintTabRowEnd(c); }
@@ -7060,7 +7190,12 @@ function wireDocRead(c,host){
          is covered over. */
       const act=document.activeElement;
       if(act&&act!==document.body&&act.blur&&act.closest&&act.closest('#doc-right')) act.blur();
-      if(want&&!docReadItems(c).length){ if(!await docReadRun(c)) return; }
+      if(want){
+        const sig=docReadSig(c);
+        /* Ask where there is nothing yet, or where the paper has moved since
+           the reading we hold was made. Unchanged wording asks nothing. */
+        if(!docReadItems(c).length||c._readSig!==sig){ if(!await docReadRun(c)) return; }
+      }
       docReadSet(want);
       wsPaintTabRowEnd(c);
       docReadPaint(c);
@@ -8939,5 +9074,5 @@ Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChe
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
-  docReadSheet,docReadClauses,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
+  docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
   docReadRun,wireDocRead});

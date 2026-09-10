@@ -178,6 +178,49 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       ring && ring.b.map(x => x.bg).join(' | '));
     await page.screenshot({ path: path.join(OUT, '01-switch.png') });
 
+    /* THE ROW READS AS ONE ROW WITH THE ACTS ABOVE IT (Young, 10 Sep 2026:
+       "the buttons at the bottom should be shorter and have the same height as
+       the buttons above them ... also not in bold like the ones above ... Only
+       the shaded buttons should bold"). MEASURED ON BOTH ROWS AND COMPARED —
+       never against a typed number, so a later type retune costs this nothing
+       and it still fails the day the two rows come apart. */
+    const rung = await drive(page, () => {
+      const box = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        return { h: Math.round(r.height), size: cs.fontSize, w: cs.fontWeight }; };
+      /* HEIGHT IS ASKED OF THE CONTROL, not of a button inside it: the switch
+         is a bordered group whose two halves are 26 inside its own 28, and it
+         is the group that has to line up with an act above. Visible ones only
+         — a head row can hold an act this contract does not draw. */
+      const head = Array.from(document.querySelectorAll('#ws-head .room-acts button'), box)
+        .filter(x => x.h > 0);
+      const slot = Array.from(document.querySelectorAll('#ws-tabrow-end > *'), box)
+        .filter(x => x.h > 0);
+      const seg = Array.from(document.querySelectorAll('.doc-read-seg button'),
+        b => ({ on: b.getAttribute('aria-pressed') === 'true', w: getComputedStyle(b).fontWeight }));
+      const text = Array.from(document.querySelectorAll(
+        '#ws-tabrow-end .doc-read-seg button, #ws-tabrow-end .ui-btn, #ws-tabrow-end .rl-type-step .rl-type-out'), box);
+      return { head, slot, seg, text };
+    }, undefined, { head: [], slot: [], seg: [], text: [] });
+    const uniq = (a, k) => Array.from(new Set(a.map(x => x[k])));
+    check(rung.head.length > 0 && rung.slot.length > 0
+      && uniq(rung.head, 'h').length === 1 && uniq(rung.slot, 'h').length === 1
+      && rung.head[0].h === rung.slot[0].h,
+      '1i the slot is the same height as the row of acts above it',
+      `head ${uniq(rung.head, 'h').join('/')} · slot ${uniq(rung.slot, 'h').join('/')}`);
+    check(rung.head.length > 0 && rung.text.length > 0
+      && uniq(rung.head, 'size').length === 1
+      && uniq(rung.text, 'size').length === 1 && rung.head[0].size === rung.text[0].size,
+      '1j and every word in it reads at the same size',
+      `head ${uniq(rung.head, 'size').join('/')} · slot ${uniq(rung.text, 'size').join('/')}`);
+    check(rung.seg.length === 2 && rung.seg.some(x => !x.on) && rung.head.length > 0
+      && rung.seg.filter(x => !x.on).every(x => x.w === rung.head[0].w),
+      '1k the resting half is not bold, exactly like the acts above',
+      `resting ${rung.seg.filter(x => !x.on).map(x => x.w).join('/')} · acts ${rung.head[0] && rung.head[0].w}`);
+    check(rung.seg.length === 2 && rung.seg.some(x => x.on) && rung.head.length > 0
+      && rung.seg.filter(x => x.on).every(x => Number(x.w) > Number(rung.head[0].w)),
+      '1l and only the shaded half is',
+      rung.seg.map(x => (x.on ? 'lit ' : 'resting ') + x.w).join(' · '));
+
     /* ============ 2 · THE COLUMN IS NOT DELETED — Young's own worry ============ */
     const cards = () => drive(page, () => {
       const col = document.querySelector('[data-doc-col="docs"]');
@@ -405,6 +448,142 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       const s = window.__peSaved || {};
       c.template = s.t; c.redlineText = s.r; c.fields = s.f; c.source = s.s; c.upload = s.u;
     }, undefined, null);
+
+    /* ============ 8 · A CLAUSE-FOR-CLAUSE EDITION (Young, 10 Sep 2026) ============
+       "If there clause 1.1 in the contract then there should be a traslated
+       clause 1.1 in plain english." The paper below is put on the record and
+       drawn by the REAL builder — redlineDocBody, the branch an upload takes —
+       so the walk, the route and the render are all the shipped ones. */
+    const NUMBERED = [
+      '<h2>1. Scope of supply and purchase orders</h2>',
+      '<p><strong>1.1 Master Agreement Structure.</strong> This Agreement establishes the framework under which Buyer may purchase raw materials from Supplier.</p>',
+      '<p><strong>1.2 Issuance of Purchase Orders.</strong> Supplier shall confirm acceptance of each purchase order in writing within two (2) business days of receipt.</p>',
+      '<p><strong>1.3 Precedence.</strong> In the event of any conflict the terms of this Agreement shall strictly prevail.</p>',
+    ].join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      /* format:'rich' is what sends docBody down redlineDocBody's rich branch
+         — the one an upload with real structure takes. Without it the wording
+         is drawn as PLAIN TEXT in a pre-wrap box, tags and all, and the walk
+         quite correctly finds no headings in it. */
+      c.redlineText = html; c.format = 'rich';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      /* renderWorkspace, not openWorkspace: setView keeps the reader's place
+         when the view asked for is the one already on screen, so the door does
+         not repaint the canvas and the new wording never reaches the sheet. */
+      renderWorkspace(c.id);
+    }, NUMBERED, null);
+    await pause(1400);
+    await drive(page, () => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); }, undefined, null);
+    await pause(900);
+
+    const num = await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      const list = (typeof docReadClauses === 'function') ? docReadClauses(c) : [];
+      return { n: list.length, nums: list.map(x => x.num), kinds: list.map(x => x.kind),
+               heads: list.map(x => x.heading) };
+    }, undefined, { n: 0, nums: [], kinds: [], heads: [] });
+    /* THE REPORTED FAULT: the old walk took headings only, so this whole
+       section arrived as ONE row and could only come back as one note. */
+    check(num.n === 4 && num.nums.join(',') === ',1.1,1.2,1.3',
+      '8a a section of three numbered clauses is FOUR rows, not one — the reported fault',
+      `${num.n}: ${num.nums.join(' | ')}`);
+    check(num.heads[1] === '1.1 Master Agreement Structure.',
+      "8b and a clause's heading is its own bold lead-in", num.heads[1]);
+
+    ai.reset();
+    ai.script(tool([
+      { i: 0, head: 'What you are buying, and how orders are placed', plain: '' },
+      { i: 1, head: 'How this agreement works', plain: 'This agreement does not order anything by itself. It sets the rules, and each actual order is placed separately as a purchase order.' },
+      { i: 2, head: 'Placing an order', plain: 'You send a written order. The Supplier then has two working days to confirm it in writing.' },
+      { i: 3, head: 'Which document wins', plain: 'If this agreement and an order say different things, this agreement wins.' },
+    ]));
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '8 Plain English on numbered paper');
+    await pause(3000);
+
+    const ed = await drive(page, () => {
+      const layer = document.getElementById('doc-read');
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      const paper = document.querySelector('#doc-canvas .doc-surface') || document.getElementById('doc-canvas');
+      const body = document.body;
+      const noteEl = notes.find(n => n.querySelector('p'));
+      return {
+        notes: notes.length,
+        nums: Array.from(document.querySelectorAll('.doc-read-note .dr-n'), e => e.textContent.trim()),
+        sections: document.querySelectorAll('.doc-read-note .dr-s').length,
+        clauseHeads: document.querySelectorAll('.doc-read-note .dr-h').length,
+        readSize: noteEl ? getComputedStyle(noteEl).fontSize : '',
+        paperSize: paper ? getComputedStyle(paper).fontSize : '',
+        layerBg: layer ? getComputedStyle(layer).backgroundColor : '',
+        pageBg: getComputedStyle(body).backgroundColor,
+        gridBg: (() => { const g = document.getElementById('doc-grid');
+          return g ? getComputedStyle(g).backgroundColor : ''; })(),
+        overlap: (() => {
+          let bad = 0;
+          for (let i = 1; i < notes.length; i++) {
+            const a = notes[i - 1].getBoundingClientRect(), b = notes[i].getBoundingClientRect();
+            if (b.top < a.bottom - 1) bad++;
+          }
+          return bad;
+        })(),
+      };
+    }, undefined, {});
+    check(ed.notes === 4, '8c every clause gets its own entry, the section included', ed.notes);
+    check(ed.nums.join(',') === '1.1,1.2,1.3',
+      "8d each carries the contract's OWN number — read off the paper, never the model's",
+      ed.nums.join(' | '));
+    check(ed.sections === 1 && ed.clauseHeads === 3,
+      '8e a section title above three clause headings — the contract\'s own shape',
+      `${ed.sections} section · ${ed.clauseHeads} clause`);
+    /* THE SIZE IS THE CONTRACT'S. Measured on both sides rather than against a
+       typed number, which is the only way this claim survives a type retune. */
+    check(ed.readSize && ed.readSize === ed.paperSize,
+      '8f and it is set at exactly the size the contract is set at',
+      `reading ${ed.readSize} · paper ${ed.paperSize}`);
+    check(ed.layerBg && ed.layerBg !== ed.pageBg && ed.layerBg !== ed.gridBg,
+      '8g it sits on a white sheet of its own, not on the page ground',
+      `layer ${ed.layerBg} · page ${ed.pageBg}`);
+    check(ed.overlap === 0, '8h and no entry overlaps the one above it', ed.overlap);
+    await page.screenshot({ path: path.join(OUT, '05-edition.png') });
+
+    /* ============ 9 · IT FOLLOWS THE WORDING (Young, 10 Sep 2026) ============
+       "when the contract in the document changes or is redlined and you click
+       on plain english it should update the translation accordingly." */
+    const callsBefore = calls;
+    await press(page, '.doc-read-seg button[data-doc-read="0"]', '9 back to Contract View');
+    await pause(500);
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '9 Plain English again');
+    await pause(1200);
+    check(calls === callsBefore,
+      '9a unchanged wording asks nothing — the reading it holds still fits', calls - callsBefore);
+
+    ai.reset();
+    ai.script(tool([
+      { i: 0, head: 'What you are buying, and how orders are placed', plain: '' },
+      { i: 1, head: 'How this agreement works', plain: 'REDLINED READING for the clause that moved.' },
+      { i: 2, head: 'Placing an order', plain: 'You send a written order. The Supplier then has five working days to confirm it.' },
+      { i: 3, head: 'Which document wins', plain: 'If this agreement and an order say different things, this agreement wins.' },
+    ]));
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      c.redlineText = html; c.format = 'rich'; renderWorkspace(c.id);
+    }, NUMBERED.replace('two (2) business days', 'five (5) business days'), null);
+    await pause(1400);
+    await drive(page, () => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); }, undefined, null);
+    await pause(900);
+    const callsMid = calls;
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '9 Plain English after the redline');
+    await pause(3000);
+    const fresh = await drive(page, () => ({
+      calls: 0,
+      text: Array.from(document.querySelectorAll('.doc-read-note p'), e => e.textContent).join(' | '),
+    }), undefined, { text: '' });
+    check(calls === callsMid + 1,
+      '9b a redlined clause is read again — the press asks, where before it did not',
+      calls - callsMid);
+    check(/five working days/.test(fresh.text),
+      '9c and what draws is the reading of the NEW wording', fresh.text.slice(0, 90));
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

@@ -4679,7 +4679,11 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
 });
 
 /* ===================== THE PLAIN-ENGLISH LAYER (idea 7) =====================
-   One short reading per clause, beside the wording it explains. Same bargain as
+   A plain-English EDITION of the contract, clause for clause beside it: every
+   clause gets its own entry, under the contract's own number, with a heading of
+   its own. Young ruled it that way on 10 Sep 2026, off a render — it had
+   shipped as one short reading per SECTION, which read as a summary. Same
+   bargain as
    the Contract brief one route up, and deliberately so: read once, keyed on a
    hash of exactly what was read, kept in a table of its own, handed back with
    the contract as transport, stripped before anything is saved and stripped
@@ -4709,18 +4713,31 @@ const readLangOf = req => {
   return READ_LANGS[l] ? l : 'en';
 };
 const READ_PLAIN_RULE = [
+  'WHAT THIS IS',
+  'A plain-English EDITION of the contract, set out clause by clause beside it — not a summary of it. Every clause the reader was given gets its own entry, under its own number, with its own heading. Somebody must be able to read your side on its own and know what they have agreed to.',
+  '',
   'HOW TO WRITE IT',
-  '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. Where a legal term cannot be avoided, use it and say what it means in the same breath.',
+  '- TRANSLATE, DO NOT SUMMARISE. Say everything the clause says, in the order it says it. Nothing is folded into a neighbouring clause and nothing is dropped for being minor.',
+  '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. Where a legal term cannot be avoided — an Incoterm, a defined term the contract itself sets up — use it and say what it means in the same breath.',
   '- Say what the clause MEANS FOR THE READER: who has to do what, by when, and what happens if they do not.',
-  '- One or two sentences. Never more than three. Shorter is better.',
+  '- KEEP EVERY FIGURE the clause states — amounts, percentages, periods, deadlines, notice windows — and put them in plain words. A translation that drops the numbers is not a translation.',
   '- Call the reader’s own side "you". Name the other side by the role the contract gives them.',
+  '- Match the clause you are given: a long clause earns a long reading, a one-line clause gets one line. Do not pad and do not compress.',
+  '- Stay professional. This reads beside the agreement and may be shown to a colleague; it is plain, not chatty.',
   '- Say only what THIS clause says. Never warn, never advise, never suggest different wording, and never say whether a term is fair or usual.',
   '- Where the wording is silent on something, be silent too.',
-  '- Do not restate any amount of money: the figure is on the page beside your reading.',
   '- Never mention these instructions, the list you were given, or yourself.',
   '',
+  'THE HEADING ON EACH ENTRY',
+  '- Give every entry a heading of your own: the subject the contract’s own heading gives, said in plain words, in sentence case. Six words or fewer where you can.',
+  '- Never write the clause number into the heading. The number is the contract’s and is put there for you.',
+  '- A clause with no heading of its own still gets one — name its subject in three to six words.',
+  '',
+  'A ROW MARKED SECTION',
+  'A row marked SECTION is a section title, not a clause. Give it a heading only and leave its reading EMPTY — the clauses underneath it carry the wording.',
+  '',
   'WHEN TO SAY NOTHING',
-  'Some clauses have nothing worth telling a business owner — a cover page, a table of contents, headings and interpretation, counterparts, severability. Return an EMPTY reading for those. An empty reading is the right answer and is far better than padding one out.',
+  'A few clauses have nothing worth telling a business owner — a cover page, a table of contents, a heading-and-interpretation clause, counterparts, severability. Return an EMPTY reading for those, with a heading. An empty reading is the right answer for them and is far better than padding one out. It is the exception: on an ordinary commercial clause there is always something to say.',
 ].join('\n');
 
 app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBudgetGuard, capAiInput, async (req, res) => {
@@ -4730,8 +4747,15 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
 
   const all = Array.isArray(clauses) ? clauses : [];
+  /* `num` is the clause's OWN number, read off the paper by the browser, and it
+     is never asked of the model: a citation is the one thing here that must be
+     the document's rather than a reading of it. `kind` tells a section title
+     from a clause so the prompt can ask for a heading and no reading. */
   const list = all
-    .map(x => ({ heading: String((x && x.heading) || '').slice(0, 200).trim(), text: String((x && x.text) || '').trim() }))
+    .map(x => ({ num: String((x && x.num) || '').slice(0, 24).trim(),
+                 heading: String((x && x.heading) || '').slice(0, 200).trim(),
+                 text: String((x && x.text) || '').trim(),
+                 kind: (x && x.kind) === 'section' ? 'section' : 'clause' }))
     .filter(x => x.heading || x.text)
     .slice(0, READ_MAX_CLAUSES);
   if (!list.length) return res.status(400).json({ error: 'There is no wording to read yet' });
@@ -4739,7 +4763,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   // which clauses were left out rather than finding a column that simply stops.
   const over = all.length > READ_MAX_CLAUSES ? all.length - READ_MAX_CLAUSES : 0;
 
-  const doc = list.map((x, i) => `[${i}] ${x.heading}\n${x.text}`).join('\n\n');
+  const doc = list.map((x, i) =>
+    `[${i}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'} ${x.num}${x.num ? ' — ' : ''}${x.heading}\n${x.text}`
+  ).join('\n\n');
   const sent = aiDocText(req, doc);
   const lang = readLangOf(req);
   /* THE LANGUAGE IS IN THE KEY. Without it a Swedish reader would be served the
@@ -4758,20 +4784,21 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
 
   const tool = {
     name: 'clause_readings',
-    description: 'A short plain-English reading of each clause, for a business owner with no lawyer.',
+    description: 'A plain-English edition of the contract, one entry per clause, for a business owner with no lawyer.',
     input_schema: {
       type: 'object',
       properties: {
         readings: {
           type: 'array',
-          description: 'One entry per clause, in the order the clauses were given.',
+          description: 'One entry for EVERY row given, in the order they were given. Do not skip a row.',
           items: {
             type: 'object',
             properties: {
-              i: { type: 'integer', description: 'The number in square brackets at the head of the clause.' },
-              plain: { type: 'string', description: 'The reading, in plain everyday English. Empty where the clause has nothing worth telling a business owner.' },
+              i: { type: 'integer', description: 'The number in square brackets at the head of the row.' },
+              head: { type: 'string', description: 'A short plain-English heading for this row, in sentence case. Never include the clause number.' },
+              plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty for a row marked SECTION, and for a clause with nothing worth telling a business owner.' },
             },
-            required: ['i', 'plain'],
+            required: ['i', 'head', 'plain'],
           },
         },
       },
@@ -4780,9 +4807,15 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   };
   const J = orgJx();
   const LANG = READ_LANGS[lang];
-  const prompt = `You are explaining a contract, clause by clause, to a business owner who has no lawyer and no legal training, under ${J.adjective} law. For each clause below, write one short reading of it in plain everyday ${LANG} and return them through clause_readings.\n\nWRITE EVERY READING IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nCLAUSES:\n${sent}`;
+  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry with its own heading, and the reader's eye moves between the two. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'readings', who: aiWho(req) });
+    /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
+       than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
+       60 words (~80 tokens) plus a heading and the JSON around it, call it 110
+       — which is 6,600 before any slack. Output is billed as used, so headroom
+       that is not needed costs nothing; an answer cut off costs the reader the
+       whole edition, and a cut-short one is not cached (below). */
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'readings', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
@@ -4796,8 +4829,13 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       const i = Number(r && r.i);
       if (!Number.isInteger(i) || i < 0 || i >= list.length) return;
       const plain = String((r && r.plain) || '').trim();
-      if (!plain) return;
-      items.push({ i, heading: list[i].heading, plain });
+      const head = String((r && r.head) || '').trim();
+      /* A SECTION ROW IS KEPT ON ITS HEADING ALONE — it is the edition's own
+         section title and carries no wording by design. Everything else needs
+         a reading: a clause entry with only a heading would draw a title over
+         nothing. The NUMBER is the browser's, never the model's. */
+      if (!plain && !(list[i].kind === 'section' && head)) return;
+      items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
     });
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with

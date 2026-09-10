@@ -1685,6 +1685,37 @@ function redlineLayoutCss(){
   .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:var(--t-figure);font-weight:var(--w-title);
     line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
     border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 6px}
+  /* ---- THE CONTROL ROW READS AS ONE ROW WITH THE ACTS ABOVE IT ----
+     (Young ruled 10 Sep 2026, off a screenshot of this page with the group
+     ringed: the same rule they gave the Document tab's own slot.) These sat at
+     34px and 12-13px against a head row of 28px and 14px directly above them,
+     so the page carried two control heights and two control sizes one under
+     the other. The rung, the size and the weight are the head row's own now —
+     .ui-btn-lg is --ctl-h at --t-body, weight 400 — and ONLY A SHADED SEGMENT
+     IS BOLD, which is what marks the live half of a pair once the row reads at
+     one weight.
+
+     SCOPED TO .rl-head, WHICH IS THE GROUP THAT WAS RINGED. The reading tabs
+     (Redlined / As agreed / With changes) share .rl-segwrap with the seat
+     switch and are a 44px tab bar before the spacer, so they are excluded
+     twice over: they sit outside .rl-head, and the selector says
+     :not(.rl-readwrap) as well. The counterparty's header draws the same
+     builders and is untouched for the same reason.
+
+     EVERY CONTROL THE ROW DRAWS, not only the four in the screenshot — the
+     head-row pin one page along records why: a rule naming today's controls is
+     one the next control walks past, and a row at two sizes is what was
+     reported. rlFitTabRow's fold ladder measures this row in pixels and is
+     unchanged; it is re-measured in control-row-folds-verify. */
+  .redline-page .rl-head .rl-type-step{height:var(--ctl-h);padding:0 3px}
+  .redline-page .rl-head .rl-type-step button,
+  .redline-page .rl-head .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
+  .redline-page .rl-head .rl-segwrap:not(.rl-readwrap){height:var(--ctl-h)}
+  .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg{height:20px;
+    font-size:var(--t-body);font-weight:var(--w-body)}
+  .redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg.on{font-weight:var(--w-title)}
+  .redline-page .rl-head .rl-livelist{font-size:var(--t-body);font-weight:var(--w-body)}
+  .redline-page .rl-head .rl-needs{font-size:var(--t-body)}
   ${''/* THE PURPLE CAME OFF (owner-asked 20 Aug 2026, off a screenshot of the
         row): the two review buttons wear the "N needs you" chip's own
         neutral clothes — surface, hairline, quiet ink — and keep their bold

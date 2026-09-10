@@ -260,6 +260,66 @@ const OPEN = async page => {
         'no rail toggle on this build — the width path is covered above');
     }
 
+    /* ---- THE ROW READS AS ONE ROW WITH THE ACTS ABOVE IT ----
+       Young, 10 Sep 2026, off a screenshot of this page with the group ringed:
+       the same rule they gave the Document tab's own slot. The controls sat at
+       34px and 12-13px against a head row of 28px and 14px directly above
+       them. MEASURED ON BOTH ROWS AND COMPARED, never against a typed number,
+       so a later type retune costs this nothing and it still fails the day the
+       two rows come apart. */
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.waitForTimeout(500);
+    const rung = await page.evaluate(() => {
+      const box = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        return { h: Math.round(r.height), size: cs.fontSize, w: cs.fontWeight }; };
+      /* Height is asked of the CONTROL — a segmented pair is a bordered group
+         whose halves are smaller than it — and only of the ones on screen. */
+      const head = Array.from(document.querySelectorAll('#ws-head .room-acts button'), box)
+        .filter(x => x.h > 0);
+      /* THE BOXED CONTROLS. "All negotiations" is a bare text link with no
+         border, no fill and no padding — it is the way out rather than a
+         button — so it has no box to line up and is centred against these two
+         instead. Its SIZE is asked below with everything else's. */
+      const ctl = ['.rl-head .rl-type-step', '.rl-head .rl-segwrap:not(.rl-readwrap)']
+        .map(sel => document.querySelector(sel)).filter(Boolean).map(box).filter(x => x.h > 0);
+      const way = (() => { const el = document.querySelector('.rl-head .rl-livelist');
+        const grp = document.querySelector('.rl-head .rl-segwrap:not(.rl-readwrap)');
+        if (!el || !grp) return null;
+        const a = el.getBoundingClientRect(), b = grp.getBoundingClientRect();
+        return Math.round(Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)));
+      })();
+      const words = Array.from(document.querySelectorAll(
+        '.rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg, .rl-head .rl-livelist, .rl-head .rl-type-step .rl-type-out'), box);
+      const seg = Array.from(document.querySelectorAll('.rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg'),
+        b => ({ on: b.classList.contains('on'), w: getComputedStyle(b).fontWeight }));
+      /* THE READING TABS ARE NOT IN THE ASK and share .rl-segwrap with the
+         seat switch — the one thing this change may not have touched. */
+      const readTabs = (() => { const el = document.querySelector('.rl-readwrap');
+        return el ? Math.round(el.getBoundingClientRect().height) : -1; })();
+      return { head, ctl, words, seg, readTabs, way };
+    });
+    const only = (a, k) => Array.from(new Set(a.map(x => x[k])));
+    check('the control row is the same height as the acts above it',
+      rung.head.length > 0 && rung.ctl.length > 0
+        && only(rung.head, 'h').length === 1 && only(rung.ctl, 'h').length === 1
+        && rung.head[0].h === rung.ctl[0].h,
+      `head ${only(rung.head, 'h').join('/')} · row ${only(rung.ctl, 'h').join('/')}`);
+    check('and every word on it reads at the same size',
+      rung.head.length > 0 && rung.words.length > 0
+        && only(rung.head, 'size').length === 1 && only(rung.words, 'size').length === 1
+        && rung.head[0].size === rung.words[0].size,
+      `head ${only(rung.head, 'size').join('/')} · row ${only(rung.words, 'size').join('/')}`);
+    check('nothing on it is bold but the shaded half',
+      rung.seg.length >= 2 && rung.head.length > 0
+        && rung.seg.filter(x => !x.on).every(x => x.w === rung.head[0].w)
+        && rung.seg.filter(x => x.on).every(x => Number(x.w) > Number(rung.head[0].w)),
+      rung.seg.map(x => (x.on ? 'lit ' : 'resting ') + x.w).join(' · '));
+    check('and the way out sits on their centre line',
+      rung.way !== null && rung.way <= 1, `${rung.way}px off centre`);
+    check('and the reading tabs, which were not in the ask, keep their own bar',
+      rung.readTabs === -1 || rung.readTabs > rung.ctl[0].h,
+      `reading tabs ${rung.readTabs} · control row ${rung.ctl[0] && rung.ctl[0].h}`);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

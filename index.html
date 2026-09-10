@@ -2700,7 +2700,15 @@
      (24px buttons + 3px each side + 1px border = 32). SCOPED TO THIS SLOT ON
      PURPOSE: the same stepper draws on the negotiation page's control row,
      whose fold ladder is measured in pixels, and must not move. */
-  #ws-tabrow-end .ui-btn{ min-height:var(--ctl-h-lg); padding-block:0; }
+  /* ---- ONE HEIGHT, AND IT IS THE HEAD ROW'S OWN (Young ruled 10 Sep 2026) ----
+     This slot pinned everything to --ctl-h-lg (32) so the three controls agreed
+     with each other. They did, and they disagreed with the row of acts forty
+     pixels above them, which is --ctl-h (28) — so the page carried two control
+     heights one under the other. The rung is the head row's now, and the type
+     and weight follow it too: .ui-btn-lg is 14px at weight 400, and only a
+     PRESSED segment is bold. */
+  #ws-tabrow-end .ui-btn{ min-height:var(--ctl-h); padding-block:0;
+    font-size:var(--t-body); font-weight:var(--w-body); }
   /* THE STEPPER STATES ITS OWN HEIGHT, so this slot has to state one too.
      Its own block 2,350 lines into the negotiation sheet pins height:28px
      UNSCOPED and deliberately — one builder, three homes — so trimming the
@@ -2708,19 +2716,25 @@
      32. Pinned rather than padded, and scoped to this slot on purpose,
      because that same stepper draws on the counterparty's page and on the
      negotiation control row, whose fold ladder is measured in pixels. */
-  #ws-tabrow-end .rl-type-step{ height:var(--ctl-h-lg); padding:0 3px; }
+  #ws-tabrow-end .rl-type-step{ height:var(--ctl-h); padding:0 3px; }
+  #ws-tabrow-end .rl-type-step button,
+  #ws-tabrow-end .rl-type-step .rl-type-out{ font-size:var(--t-body); font-weight:var(--w-body); }
 
   /* ---- THE PLAIN-ENGLISH SWITCH (idea 7) ----
      Contract View first and lit at rest, Plain English second — Young's own
      order, ruled off a rendered mock. The fill is --accent-fill rather than the
      raw ramp because white on accent-600 measures 3.74:1, and the ink is
      --accent-ink, the one accent token with a night answer. */
-  .doc-read-seg{ display:inline-flex; flex:none; overflow:hidden; height:var(--ctl-h-lg);
+  .doc-read-seg{ display:inline-flex; flex:none; overflow:hidden; height:var(--ctl-h);
     border:1px solid var(--accent-ink); border-radius:var(--radius); }
   .doc-read-seg button{ display:grid; place-items:center; height:100%; padding:0 12px;
-    border:0; background:none; font:inherit; font-size:var(--t-meta);
-    font-weight:var(--w-title); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
-  .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff; }
+    border:0; background:none; font:inherit; font-size:var(--t-body);
+    font-weight:var(--w-body); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
+  /* ONLY THE SHADED ONE IS BOLD — Young's own rule for both of this product's
+     control rows: the row reads at one weight and the lit half is what stands
+     out of it. */
+  .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff;
+    font-weight:var(--w-title); }
   .doc-read-seg button:disabled{ opacity:.55; cursor:default; }
 
   /* ---- THE READINGS, IN THE COLUMN THE CARDS OCCUPY ----
@@ -2728,10 +2742,16 @@
      by a transform rather than a scroller of its own: two columns that scroll
      apart would put a reading beside the wrong wording, which is the one thing
      this may never do. */
-  #doc-read{ display:flex; flex-direction:column; padding:var(--s-1) 2px 0; }
+  /* ---- A WHITE SHEET, NOT NOTES ON THE PAGE GROUND (Young ruled 10 Sep 2026:
+     "Let the plain english also sit in a white card and not the grey
+     background"). A facing page beside the contract's cream one, which is also
+     what makes the edition read as a document in its own right. */
+  #doc-read{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
+    background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
   #doc-read[hidden]{ display:none; }
   .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px;
-    padding:0 2px 7px; border-bottom:1px solid var(--color-divider);
+    padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--accent-ink); }
   .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
@@ -2739,10 +2759,24 @@
     color:var(--color-neutral-600); }
   .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
   #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
-  .doc-read-note{ position:absolute; left:0; right:0; padding-right:4px; }
-  .doc-read-note > div{ font-size:var(--t-meta); line-height:1.55; color:var(--color-neutral-700);
-    border-left:2px solid color-mix(in srgb, var(--accent-solid,var(--color-accent)) 34%, transparent);
-    padding-left:11px; }
+  .doc-read-note{ position:absolute; left:0; right:0; padding-right:4px;
+    /* SET AT THE SIZE THE CONTRACT IS SET AT (Young reported it 10 Sep 2026).
+       --dr-size is MEASURED off the paper by docReadPaint rather than computed
+       from a token here, and that is what makes the claim a RELATION rather
+       than two rules agreeing: --doc-scale is written on the paper's own zoom
+       wrapper in the OTHER column and never reaches this one, and a document
+       style can multiply the size again on top of it (compact-executive takes
+       .94). Reading what the paper actually resolves to follows both. */
+    font-size:var(--dr-size,var(--t-body)); line-height:1.75;
+    color:var(--color-neutral-700); }
+  .doc-read-note p{ margin:0; }
+  /* The clause's own number, and it is the PAPER'S — read off the sheet, never
+     asked of the model — which is what lets it be printed as a citation. */
+  .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  .doc-read-note .dr-h{ margin:0 0 3px; font-size:1em; line-height:1.4;
+    font-weight:var(--w-strong); color:var(--color-text); }
+  .doc-read-note .dr-s{ margin:0; font-size:1.13em; line-height:1.35;
+    font-weight:var(--w-title); color:var(--color-text); text-wrap:balance; }
   .doc-read-over{ position:absolute; left:0; right:0; padding-right:4px;
     font-size:var(--t-label); color:var(--color-neutral-600); }
 

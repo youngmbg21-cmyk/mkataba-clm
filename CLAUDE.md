@@ -1733,6 +1733,81 @@ passage since 17 Aug; this does it for the whole document, on one press.
   page, and the readings are not offered on the Signing tab — that column holds
   the signing order there and this one has nothing to say about it.
 
+**AND IT IS A CLAUSE-FOR-CLAUSE EDITION, NOT A SUMMARY — REVERSED IN PLACE
+10 Sep 2026** (Young, off their own supply agreement: *"Plain english should be
+structured in the sense that is translates the contracts into plain english and
+not just summarizing. If there clause 1.1 in the contract then there should be
+a traslated clause 1.1 in plain english ... the clause should be numbered like
+in the contract and have the headers to match as well ... it should almost look
+like a contract in itself"*, then *"Let the plain english also sit in a white
+card and not the grey background"*, then *"when the contract in the document
+changes or is redlined and you click on plain english it should update the
+translation accordingly"*). Built to a render they approved first.
+
+- **THE CAUSE WAS THE SEGMENTATION, NOT THE PROMPT, and that is the whole of
+  why it read as a summary.** The walk took HEADINGS and nothing else — and on
+  real commercial paper the headings are the SECTION titles while 1.1, 1.2 and
+  1.3 are bold lead-ins inside ordinary paragraphs. So the whole of section 1
+  arrived as ONE row and could only ever come back as one note. It was never a
+  decision to summarise; the model was doing the only thing it could with what
+  it was handed. MEASURED on the reported shape: 6 rows where there was 1.
+- **A NUMBERED PARAGRAPH IS AN ANCHOR OF ITS OWN, AND IT REQUIRES A DOT.**
+  `1.1` and `3.2.1` are sub-clauses; `1.` alone is as likely to be a list item
+  or a sentence opening with a figure. **It only ever ADDS anchors** — paper
+  with no numbered paragraphs walks exactly as it did, which is what makes this
+  safe on documents nobody has seen, and f277's CONTROL passes before and after.
+- **THE CLAUSE'S HEADING IS ITS OWN BOLD LEAD-IN** — "1.1 Master Agreement
+  Structure." — because that is what the drafter wrote as its name and because
+  it is what the pairing guard compares. A wrapper that merely CONTAINS the
+  numbered paragraph is never the anchor: taking it would put the entry above
+  its own wording and swallow every clause after it.
+- **THE NUMBER IS THE PAPER'S AND IS NEVER ASKED OF THE MODEL.** It is read off
+  the sheet by the same walk the entries hang on, which is what lets it be
+  printed as a citation — the renewal adviser's own rule about dates, on a
+  clause reference. The model supplies the plain HEADING; a row marked SECTION
+  gets a heading and no reading, and is the one row that may stand on a heading
+  alone.
+- **THE PROMPT ASKS FOR A TRANSLATION AND KEEPS EVERY FIGURE.** *TRANSLATE, DO
+  NOT SUMMARISE*, match the clause you are given, and the old "never more than
+  three sentences" and "do not restate any amount" are both gone. **The money
+  rule was right about a summary and wrong about a translation**: an edition
+  that drops "0.5% per day, capped at 10%" has described the clause rather than
+  translated it, and the figure is in the WORDING the same reader is already
+  reading — `canViewValues` governs the contract's value FIELD, never the
+  document text. `max_tokens` is 8,000 from the schema's own arithmetic rather
+  than a guess (60 clauses × ~110 tokens), and a cut-short answer is still not
+  cached.
+- **A WHITE SHEET, AND THE CONTRACT'S OWN SIZE.** A facing page beside the
+  cream one rather than notes on the page ground. **The size is MEASURED off
+  the paper on every paint, never computed from a token here**: `--doc-scale`
+  is written on the paper's own zoom wrapper in the OTHER column and never
+  reaches this one, and a document style can multiply the size again on top of
+  it (`compact-executive` takes .94). Asking the sheet what it resolves to
+  follows both, and follows the next one.
+- **LEVEL WITH ITS OWN CLAUSE, STEPPING DOWN RATHER THAN OVERLAPPING.** Level
+  is what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
+  keeps that promise honest when it cannot be kept exactly.
+- **THE READING FOLLOWS THE WORDING.** The press ran the route only where there
+  was NO reading at all, so a redlined clause went on showing the reading of
+  the wording it replaced. `docReadSig` is the browser's own signature of the
+  walk — **not the cache key, which the ROUTE owns**, only how the press knows
+  whether to ask. Unchanged wording asks nothing; moved wording calls the
+  route, which answers from its own cache without spending anything if it turns
+  out to agree. Stamped from the walk that was SENT, taken before the await,
+  because the paper can be repainted while the request is in flight.
+
+Tests: f277 (61 — **25 fail against the parent**, the headline one reporting a
+section of three clauses as one row), **plain-english-verify (47, browser — 12
+fail against the parent; sections 8 and 9 stage the reported shape through the
+REAL builder and drive the whole journey, and 8f measures the reading and the
+paper against EACH OTHER rather than against a typed size)**.
+
+## PLAIN ENGLISH BESIDE THE CONTRACT — THE FIRST BUILD (Young ruled 9 Sep 2026)
+
+What follows is the record of the first build, kept because the reasoning is
+the useful part; the edition above reverses its segmentation and its prompt in
+place and keeps everything else.
+
 Tests: f277 (34 — the switch's order and default, the one walk, the two front-
 matter readings, the pairing and its heading guard, never in `docBody`, its own
 table and every strip, the prompt's own words, the route against a real server
@@ -11497,6 +11572,57 @@ recorded on arrival, Apply stamping the draft, a real press of File settling it
 as-is, and a rewritten one reading edited), settings-tabs-verify (the section as
 visible pixels with the key box beside it as the control, the shares proved to
 add to 100 on the awkward thirds, and the empty state saying which empty it is).
+
+## ONE CONTROL ROW, AND IT IS THE HEAD ROW'S OWN RUNG (Young ruled 10 Sep 2026)
+
+Off two screenshots, one per page, each with the lower row ringed: *"the
+buttons at the bottom should be shorter and have the same height as the buttons
+above them. They should also take the same font size as the fonts in the
+buttons above and also not in bold like the ones above ... Only the shaded
+buttons should bold."*
+
+**TWO PAGES CARRIED TWO CONTROL HEIGHTS ONE UNDER THE OTHER, AND THE TWO HALVES
+WERE WRONG IN DIFFERENT PLACES** — measured on both before anything was
+touched, which is what stopped this being one blanket sweep:
+- **The Document tab's slot** was 32px, mixed 13px and 14px, with the RESTING
+  half of the switch at weight 700 — against a row of acts forty pixels above
+  at 28px, 14px and weight 400.
+- **The negotiation page's control row** was already 28px and already unbold;
+  what was wrong there was only the SIZE, 13px against the head row's 14. That
+  is exactly what each screenshot's own wording asked for — "shorter" on the
+  first, "the same size" on the second — and reading them as one instruction
+  would have been a change nobody asked for on one of the two.
+
+- **`.ui-btn-lg` IS THE RUNG AND BOTH ROWS ARE MEASURED AGAINST IT** —
+  `--ctl-h` at `--t-body`, weight 400. Every claim is written as a RELATION
+  between the two rows rather than against a typed number, so a later type
+  retune moves them together and costs no test edit.
+- **ONLY THE SHADED HALF IS BOLD**, on both pages: once a row reads at one
+  weight, the lit half of a pair is what stands out of it, and it is the only
+  thing that needs to.
+- **SCOPED TO THE GROUP THAT WAS RINGED.** On the negotiation page that is
+  `.rl-head`, and the rules say `:not(.rl-readwrap)` as well — the reading tabs
+  (Redlined / As agreed / With changes) share `.rl-segwrap` with the seat
+  switch, are a 44px tab bar before the spacer, and were not in the ask. The
+  counterparty's header draws the same builders and is untouched for the same
+  reason.
+- **EVERY CONTROL THE ROW DRAWS, not only the four in a screenshot.** The
+  head-row pin one page along records why in its own words: a rule naming
+  today's controls is one the next control walks past, and a row at two sizes
+  is what was reported. So the "N needs you" chip took the size too.
+- **"ALL NEGOTIATIONS" HAS NO BOX TO LINE UP.** It is a bare text link — no
+  border, no fill, no padding — so it takes the size and is checked for sitting
+  on the other controls' centre line, not for a height it does not have.
+- **THE FOLD LADDER IS UNCHANGED AND WAS RE-MEASURED, which was the one real
+  risk**: `rlFitTabRow` measures that row in pixels, and bigger type could have
+  made it bite earlier. control-row-folds-verify holds one line at 1240 through
+  940px, every word intact, 27/27.
+
+Tests: f277 (11) (the rung as a relation, both rows, the scoping proved by
+sweeping every selector in the block), plain-english-verify 1i-1l (**3 fail
+against the parent, reporting `slot 32` against `head 28` and a resting half at
+weight 700**), control-row-folds-verify (**1 fails against the parent, reporting
+`row 13px` against `head 14px`**).
 
 ## Line numbers drift
 
