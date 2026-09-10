@@ -628,6 +628,17 @@ function viewLayersClosed(view){
   return false;
 }
 
+/* ONE PAINT, GUARDED, AND IT SAYS SO WHEN IT FAILS. Each of the six calls that
+   follow a view change is wrapped on its own: one failing panel must not cost
+   the other five, and must never cost the record of where the reader is
+   standing. A throw here used to be completely silent — no catch, no log, no
+   toast — which is why an intermittent teleport on refresh had nothing
+   anywhere to point at. It reaches the console at minimum; the reader is not
+   toasted, because a panel that did not paint is not something they pressed. */
+function viewPaint(what, fn){
+  try{ fn(); }
+  catch(e){ try{ console.error('[hati] '+what+' failed after a view change', e); }catch(_){} }
+}
 function setView(view){
   /* The layer over the page area is asked about BEFORE anything is drawn — a
      page rendered behind a guard the reader then cancels is a navigation that
@@ -671,7 +682,17 @@ function setView(view){
     else if(view==='team') renderTeam();
     else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
-    else renderWorkspace();
+    else if(view==='workspace'||view==='doc') renderWorkspace();
+    /* ---- A NAME THIS PRODUCT HAS NO PAGE FOR SAYS SO (10 Sep 2026) ----
+       This was `else renderWorkspace()` — a catch-all, so ANY view name that is
+       not one of the sixteen above silently opened THE CONTRACT WORKSPACE
+       rather than failing. It was not hypothetical: `templatelib` sat in
+       startApp's restore allowlist and in no branch here, so a browser holding
+       that stored view came back into a contract with nothing saying why.
+       Thrown into the catch below rather than handled here, so an unknown view
+       gets the same visible failure page and the same toast every other broken
+       render gets — silently opening something else is the fault being fixed. */
+    else throw new Error('there is no page called "'+view+'" in this product');
   }catch(e){
     /* The id, when the record can be named. An error raised deep in a helper
        does not know which contract it was reading, so nothing is invented: the
@@ -685,14 +706,46 @@ function setView(view){
     }catch(_){}
     if(window.toast) toast(`${VIEW_LABEL[view]||view} could not be drawn${cid?` — check ${cid}`:''}: ${(e&&e.message)||e}`,'err');
   }
-  setActiveNav(view);
-  updateCommandBar(view);
-  updateSidebarCounts();
-  applyPanelLayout();
-  placeLanguageSwitch();
-  renderContextPanel();
-  if(getOrg()&&!API_MODE()) persist();
-  else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+  /* ---- WHERE THE READER IS STANDING IS RECORDED BEFORE THE PANELS ARE
+     PAINTED, AND EACH PAINT IS GUARDED ON ITS OWN (owner-reported 10 Sep 2026:
+     "sometimes when i am on one page and i refresh, the page refreshes and
+     lands me on a different page in which i was not on previously") ----
+
+     THE "SOMETIMES" IS THE WHOLE DIAGNOSIS. The RENDER above is wrapped in
+     try/catch, deliberately, with a visible failure page and a toast. The six
+     paints below were not — and the write to LS.ui came AFTER all six. So one
+     throw in any of them exited setView early and THE PAGE JUST NAVIGATED TO
+     WAS NEVER RECORDED: the store still held the page before it, and the next
+     refresh landed there. It is DATA-DEPENDENT, which is why it is
+     intermittent: renderContextPanel runs buildAlerts, which reads every
+     contract in the book, and updateSidebarCounts reads negoNeedsYouIds across
+     it. One record in an unexpected shape and the throw happens on some
+     navigations and not others — silently, because nothing after the render
+     reported a failure to anybody.
+
+     TWO CHANGES, AND THE FIRST IS THE ONE THAT FIXES IT. Where the reader is
+     standing is a fact about the NAVIGATION rather than about whether every
+     panel drew, so it is recorded first and unconditionally — including when
+     the render itself failed, because that reader is looking at a page that
+     says so and can navigate away, where being moved somewhere else without
+     explanation is the report. And each paint is guarded ON ITS OWN: a single
+     try around all six would let one throw skip the other five.
+
+     ONE STORE, THE ONE THAT ALREADY EXISTS. No second key and no second
+     reading — two places remembering where somebody was is how they disagree.
+     PER BROWSER, NEVER PER ACCOUNT: this never travels to the server. */
+  try{
+    if(getOrg()&&!API_MODE()) persist();
+    else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+  }catch(e){ try{ console.error('[hati] could not record where you are', e); }catch(_){} }
+  /* A FAILING PAINT MUST NOT BE SILENT — six unguarded calls that could take a
+     navigation down without a word is the fault underneath the fault. */
+  viewPaint('setActiveNav', ()=>setActiveNav(view));
+  viewPaint('updateCommandBar', ()=>updateCommandBar(view));
+  viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
+  viewPaint('applyPanelLayout', ()=>applyPanelLayout());
+  viewPaint('placeLanguageSwitch', ()=>placeLanguageSwitch());
+  viewPaint('renderContextPanel', ()=>renderContextPanel());
   /* Opening a contract that is out with the other side is the moment to start
      watching closely, and leaving it is the moment to stop. */
   if(window.schedulePolling) schedulePolling();

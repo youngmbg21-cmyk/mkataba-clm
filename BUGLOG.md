@@ -11916,3 +11916,42 @@ the job costs nothing.
 - Non-English self-naming words (Klausul, Artikel, Avsnitt, Bilaga, Del) are
   not on the list, so a Swedish or Norwegian contract's headings carry no
   citation unless they open with a bare digit. Same ruling.
+
+## Job 4 — a refresh lands you where you were (10 Sep 2026)
+
+Owner-reported: "sometimes when i am on one page and i refresh, the page
+refreshes and lands me on a different page in which i was not on previously."
+
+DEFECTS FOUND AND FIXED
+- setView wrote where the reader is standing AFTER six unguarded paints, so one
+  throw in any of them exited early and the navigation was never recorded. The
+  store still held the previous page and the next refresh landed there. Silent:
+  no catch, no log, no toast anywhere after the render.
+- The record is written FIRST now, and guarded on its own. Each of the six
+  paints is guarded on its own through viewPaint — a single try around all six
+  would let one throw skip the other five.
+- setView's dispatch ended `else renderWorkspace()`, so any view name not among
+  the sixteen silently opened the contract workspace. It throws now, into the
+  catch that was already there, so an unknown name gets the same visible failure
+  page every other broken render gets.
+- `templatelib` was in startApp's restore allowlist and in no branch of the
+  dispatch. Removed — with the catch-all closed it would throw at boot.
+- pages-read-alike-verify asked for setView('queue'), which is not a view (the
+  renderer is renderPipeline). Fourteen header sweeps had been measuring the
+  contract room a second time under the name "Approvals". Repaired here because
+  closing the catch-all is what broke it.
+
+MEASUREMENT THAT CHANGED THE WORK
+- The first staging of the fault used a throwing `archived` field, on the
+  reasoning that buildAlerts opens by reading it. All six paints came back
+  clean — buildAlerts' callers each carry their own try/catch — so that check
+  passed against the parent too, which makes it a description. Probed each of
+  the six in a browser instead: `obligations` takes updateSidebarCounts down,
+  which is the third of them. `status` would also break most renders and
+  conflate two mechanisms, so `obligations` was chosen deliberately.
+
+Noticed, not fixed
+- pages-read-alike-verify section 1 is 47/50 on both this branch and the parent
+  — three checks about the negotiation head wrapping at 126px. Pre-existing.
+- js/mobile.js's view→bottom-bar map still carries a `templatelib` key. It is a
+  lookup, so an unused key costs nothing, but the name is stale.

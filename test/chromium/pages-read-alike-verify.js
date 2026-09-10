@@ -477,7 +477,13 @@ const SEED = async () => {
       ['Templates',    () => setView('templates')],
       ['Settings',     () => setView('team')],
       ['Reports',      () => setView('reports')],
-      ['Approvals',    () => setView('queue')],
+      /* 'pipeline', NOT 'queue'. The renderer lives in js/views/queue.js and is
+         called renderPipeline, and setView's branch reads 'pipeline' — so this
+         line asked for a page that does not exist and, until the catch-all at
+         the end of that dispatch was closed on 10 Sep 2026, silently opened THE
+         CONTRACT WORKSPACE. Every sweep below has therefore been measuring the
+         contract room a second time under the name "Approvals". */
+      ['Approvals',    () => setView('pipeline')],
       ['Requests',     () => setView('intake')],
       ['People',       () => setView('directory')],
       /* The page the 25 Aug subtitle ask was screenshotted on. */

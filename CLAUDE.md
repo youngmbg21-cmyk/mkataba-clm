@@ -4566,6 +4566,88 @@ and the check then measures its own actionability rather than the product. The
 presses are dispatched in the page, which runs the same delegated handler a
 mouse does and touches nothing else.
 
+## A REFRESH LANDS YOU WHERE YOU WERE (owner-reported 10 Sep 2026)
+
+*"sometimes when i am on one page and i refresh, the page refreshes and lands
+me on a different page in which i was not on previously."*
+
+**THE "SOMETIMES" IS THE WHOLE DIAGNOSIS, and it is why nothing pointed at
+this for so long.** `setView` wraps the RENDER in try/catch — deliberately,
+with a visible failure page and a toast — and then made **six more calls that
+were not guarded**, with the write to `LS.ui` **after all six**. So one throw
+in any of them exited `setView` early and **the page just navigated to was
+never recorded**: the store still held the page before it, and the next
+refresh landed there.
+
+- **IT IS DATA-DEPENDENT, WHICH IS WHAT MADE IT INTERMITTENT.**
+  `renderContextPanel` runs `buildAlerts` over every contract in the book and
+  `updateSidebarCounts` reads `allObligations()` across it, both unguarded. One
+  record in an unexpected shape breaks some navigations and not others —
+  **silently**, because nothing after the render reported a failure to anybody.
+  MEASURED rather than guessed: a first staging used a throwing `archived` on
+  the reasoning that `buildAlerts` opens by reading it, and every one of the six
+  paints came back clean, because that function's callers already carry their
+  own try/catch. **A check that passes against the parent is a description**, so
+  the field was found by probing each of the six in a browser: `obligations`
+  takes `updateSidebarCounts` down, which is the THIRD of them.
+- **WHERE THE READER IS STANDING IS RECORDED FIRST, AND UNCONDITIONALLY** —
+  including when the render itself failed. It is a fact about the NAVIGATION
+  rather than about whether every panel drew, and a reader looking at a page
+  that says it could not be drawn can navigate away, where **being moved
+  somewhere else with no explanation is the report**. The write is itself
+  guarded, because the one statement whose failure would cost the reader their
+  place is the one statement that must not be able to throw.
+- **`viewPaint(what, fn)` GUARDS EACH PAINT ON ITS OWN.** A single try around
+  all six would let one throw skip the other five — the same fault one level in.
+  It **logs and does not toast**: a panel that did not paint is not something
+  the reader pressed, so it is reported where somebody debugging will find it
+  rather than thrown in front of a person who did nothing wrong.
+- **THE CLAIM IS A SWEEP, NEVER A LIST OF THE SIX.** Between recording where the
+  reader is and handing back to the poller, nothing may call a painter bare —
+  so a seventh added later has to join the guard rather than sit outside it with
+  every check still green.
+- **ONE STORE, THE ONE THAT ALREADY EXISTS.** No second key and no second
+  reading — two places remembering where somebody was is how they disagree.
+  Per browser, never per account: this never travels to the server.
+
+**AND A THIRD THING FELL OUT OF READING THE DISPATCH.** It ended
+`else renderWorkspace()` — a catch-all, so **ANY view name that is not one of
+the sixteen silently opened THE CONTRACT WORKSPACE** rather than failing.
+
+- **IT WAS NOT HYPOTHETICAL:** `templatelib` sat in `startApp`'s restore
+  allowlist and in no branch, so a browser holding that stored view came back
+  into a contract with nothing saying why. **AND IT WAS HIDING A LIVE TEST
+  FAULT BESIDES** — `pages-read-alike-verify` asked for `'queue'`, which is not
+  a view either (the renderer is `renderPipeline`, in js/views/queue.js), so
+  fourteen header sweeps had been measuring the contract room a second time
+  under the name "Approvals". Repaired with this, because closing the catch-all
+  is what broke it.
+- **AN UNKNOWN NAME THROWS INTO THE CATCH THAT IS ALREADY THERE**, so it gets
+  the same visible failure page and the same toast every other broken render
+  gets. Handling it separately would be a second way of saying one thing.
+- **`workspace` AND `doc` BECAME NAMED BRANCHES**, or closing the catch-all
+  would have lost the two pages that were relying on it.
+- **THE ALLOWLIST IS PINNED AS A RELATION, NEVER AS A LIST OF NAMES:** every
+  name `startApp` can restore must be a name `setView` has a branch for.
+  `templatelib` leaving that list is a CONSEQUENCE of the relation rather than a
+  literal to keep in step — and with the catch-all closed it is no longer
+  optional, because a stored name with no branch does not open the wrong page,
+  it **throws at boot**, which is worse than the fault being fixed.
+  **`templatelib` is STALE** and survives in the phone's view→tab map, which is
+  a lookup and costs nothing; flag any other mention.
+
+Tests: f284 (10 — **8 of them fail against the parent**; the two that pass are
+a named CONTROL, that a failing RENDER still draws its failure page, and a WALL,
+that there is exactly one store), **keeps-your-page-verify (11, browser — the
+only place this claim can be made at all, because a source check cannot see a
+reload and cannot see that a paint threw. The fault is staged the way it
+happens, a REAL reload is driven, and the page that comes back is read off the
+running app. 6 of the 11 fail against the parent, the headline one reporting the
+owner's own report verbatim: navigate to Templates, refresh, `landed on
+"calendar"`. Every driven half is GUARDED — on the parent the throw escapes
+`setView` entirely and would otherwise kill the run at the fourth check rather
+than reporting the six.)**
+
 ## THE NOTES DRAWER IS A QUARTER WIDER (owner-asked 28 Aug 2026)
 
 264 / 292 / 320 became **330 / 365 / 400** — **all three rungs together**,
