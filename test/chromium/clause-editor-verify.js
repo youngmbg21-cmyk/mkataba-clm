@@ -3136,6 +3136,115 @@ const dismissNote = async pg => {
   ck('28f and wording the reader rewrote first reads as edited, not as taken',
      t3.outcome === 'edited', `${t3.outcome} · ${t3.id}`);
 
+  /* ==========================================================================
+     29 — ADDING A STANDARD REDRAWS BOTH SCREENS
+     --------------------------------------------------------------------------
+     (owner-reported 10 Sep 2026: the rail card settled into "Added as a new
+     clause" while the contract on the left was unchanged and the column behind
+     read "Redlines (0) · No changes on the table". A refresh brought both up to
+     date, which is what said the record was right and the screen was stale.)
+
+     ONLY A RENDERED PAGE CAN ANSWER IT. "Did the screen update" is not a source
+     claim, and the two things that were stale are on two different surfaces —
+     the paper this page draws, and the column BEHIND it, which is repainted
+     through the caller's own repaint rather than by anything on this page.
+
+     IT STAGES ITS OWN GROUND, and it names a standard NO EARLIER SECTION HAS
+     ADDED. Section 12 presses Add on a Data protection rule, and adding a
+     standard the contract already carries is REFUSED as a duplicate — so a
+     check that reused that category would report the redraw as broken when what
+     it had really measured was the wall doing its job. A check that inherits
+     twenty-eight sections of drafts proves nothing about itself.
+     ========================================================================== */
+  await p.evaluate(() => { try{ window.rlCloseClauseEditor(); }catch(_){} });
+  await answerLeave(p);
+  await pause(250);
+  const stage29 = await p.evaluate(() => {
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    window.clauseLibrary = () => ([
+      { id:'cl-fm', category:'Force majeure', name:'Force majeure',
+        preferred:'Neither party is liable for delay caused by an event beyond its reasonable control.',
+        fallback:'' },
+    ]);
+    window.CONTRACT.playbook = { key:'x', label:'test', source:'ai', verdicts: [
+      { category:'Force majeure', status:'missing', quote:'',
+        position:'A force majeure clause is preferred', redline:'', escalate:false },
+    ] };
+    const cls = negoClauseList(window.CONTRACT);
+    const cl = cls[cls.length - 1];
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
+    return { clauseId: cl.clauseId };
+  });
+  await pause(600);
+  await p.click('#clause-editor [data-ce-tab="scan"]');
+  await pause(350);
+  /* Typing on, whatever posture the clause opened in — the page opens showing
+     its marks where the clause already carries one. */
+  /* THE PENCIL ON THE LIVE CLAUSE, never the first one on the paper: every
+     clause carries one and on any OTHER clause it MOVES the page rather than
+     turning typing on — so a bare querySelector here walks the reader to
+     clause 1 and the check then measures a page it never asked for. */
+  await p.evaluate(id => {
+    const box = document.getElementById('ce-clausebody');
+    if (!box || box.getAttribute('contenteditable') !== 'true'){
+      const cl = document.querySelector(`#ce-doc [data-clause="${id}"]`);
+      const pen = cl && cl.querySelector('[data-ce-pencil]');
+      if (pen) pen.click();
+    }
+  }, stage29.clauseId);
+  await pause(350);
+  /* keepView, because a bare ceApply turns typing OFF by its own rule — the
+     strip passes it for the same reason. Without it this check would be
+     measuring ceApply's posture rather than whether a filing elsewhere on the
+     page disturbs the reader's own box. */
+  await p.evaluate(() => window.ceApply('<p>Wording nobody has filed yet, typed by hand.</p>',
+    'typed', { keepView: true }));
+  await pause(350);
+
+  const readCount = () => p.evaluate(() => {
+    const t = document.querySelector('.rl-idx-title');
+    const m = String((t && t.textContent) || '').match(/(\d+)/);
+    const box = document.getElementById('ce-clausebody');
+    const h = document.getElementById('ce-doc');
+    return { head: String((t && t.textContent) || '').replace(/\s+/g, ' ').trim(),
+      n: m ? Number(m[1]) : -1,
+      clauses: document.querySelectorAll('#ce-doc .rl-clause').length,
+      changes: (window.CONTRACT.changes || []).length,
+      scroll: h ? h.scrollTop : -1,
+      draft: String((box && box.textContent) || ''),
+      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
+      dirty: !!(window.clauseEditorDirty && window.clauseEditorDirty()),
+      filedCard: !!document.querySelector('#clause-editor .ce-rule .filed') };
+  });
+  const b29 = await readCount();
+  /* The BOX is deliberately not read here: ceApply does not rewrite it while
+     the caret is in it (the 30 Aug rule — nothing is rebuilt while the reader
+     is typing), so what proves there is unfiled wording is the page's own
+     reading of it. */
+  ck('29a the reader is typing, with unfiled wording of their own (control)',
+     b29.typing && b29.dirty, `typing ${b29.typing} · dirty ${b29.dirty}`);
+
+  const add29 = await p.$('#clause-editor .ce-rule [data-ce-scan$=":preferred"]');
+  if (add29) await add29.click();
+  await pause(1000);
+  const a29 = await readCount();
+
+  /* THE CONTROL — it passes either way, and its job is to stop "the screen
+     updated" being satisfied by nothing having happened. */
+  ck('29b the record really gained the change (control)',
+     a29.changes === b29.changes + 1, `${b29.changes} → ${a29.changes}`);
+  ck('29c the paper drew the new clause without a refresh',
+     a29.clauses > b29.clauses, `${b29.clauses} → ${a29.clauses}`);
+  ck('29d and the Redlines column behind the page counted it',
+     a29.n > b29.n && b29.n >= 0, `${b29.head} → ${a29.head}`);
+  ck('29e the reader’s unfiled draft is still theirs, and still in the box',
+     a29.dirty && a29.typing && /nobody has filed yet/.test(a29.draft),
+     `dirty ${a29.dirty} · typing ${a29.typing} · ${JSON.stringify(a29.draft.slice(0, 48))}`);
+  ck('29f and their place on the paper did not move',
+     Math.abs(a29.scroll - b29.scroll) <= 2, `${b29.scroll} → ${a29.scroll}`);
+  ck('29g the card still settles into "Added as a new clause"',
+     a29.filedCard === true, String(a29.filedCard));
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

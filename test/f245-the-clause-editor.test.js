@@ -319,6 +319,12 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
      WHAT IT WAS REALLY PINNING SURVIVES AND IS STRONGER: after a filing the
      reader is left looking at the record as it now stands, rather than at a
      stale page. It is simply the page they are already on. */
+  /* ---- RE-POINTED 10 Sep 2026, and the claim is the relation it always was ----
+     It read ceRenderAll and _ceAgain out of ceFile's own body, which was a
+     LITERAL where the claim is that the record moving repaints both screens.
+     Those two lines are now one named reading — ceFiled — because a second
+     filing door had been forgetting them. So the claim asks for the reading
+     rather than for the expression, and the next door costs no test edit. */
   test('filing keeps the page, and re-reads it from the record', () => {
     const file = CODE.match(/async function ceFile\([\s\S]*?\n\}/)[0];
     assert.ok(!/rlCloseClauseEditor\(/.test(file),
@@ -326,10 +332,13 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
     assert.match(file, /ceSeedDraft\(ch\.id\)/,
       'the record has moved, so the draft is re-read from it — the same seeding '
       + 'the door uses, never a second copy');
-    assert.match(file, /ceRenderAll\(\)/, 'and the page redraws in place');
-    assert.match(file, /_ceAgain\(\)/,
-      'the page underneath is repainted behind this one, because the column and '
-      + 'the counts read a record that has just changed');
+    assert.match(file, /ceFiled\(c\)/,
+      'and it finishes through the one reading of what follows a filing');
+    const ff = CODE.match(/function ceFiled\([\s\S]*?\n\}/)[0];
+    assert.match(ff, /ceRenderAll\(\)/, 'which redraws this page in place');
+    assert.match(ff, /_ceAgain\(\)/,
+      'and repaints the page underneath, because the column and the counts read '
+      + 'a record that has just changed');
   });
 
   /* ---- REVERSED IN PLACE 31 Aug 2026 (M-1), AND THE RULING IS KEPT ----
@@ -2408,5 +2417,110 @@ describe('f245 (23) — the paper lands rather than travels', () => {
     const neg = read('js/views/negotiation.js');
     assert.match(neg, /scroll-behavior:\s*smooth/,
       'the smooth rule stands; what changed is which writes are exempt from it');
+  });
+});
+
+/* ============================================================
+   f245 (24) — a filing from this page repaints both screens
+   ============================================================
+   (owner-reported 10 Sep 2026: press "Add our standard" in the Playbook scan
+   rail and the card settles into "Added as a new clause" while the contract on
+   the left is unchanged and the column behind reads "Redlines (0)". A refresh
+   brings both up to date, which is what says the record is right and the
+   screen is stale.)
+
+   MEASURED before it was touched: the change landed on the record, the paper
+   still drew five clauses, and the caller's repaint was never called once.
+
+   THE CAUSE IS TWO DOORS AND NO SHARED ANSWER. File as a change did five
+   things after a change landed; Add our standard did one. ceFiled is that one
+   reading, so the third door inherits it rather than having to remember it.
+   ============================================================ */
+describe('f245 (24) — a filing from this page repaints both screens', () => {
+  test('ceAddMissingClause finishes the way a filing finishes', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    let again = 0;
+    p.win.rlOpenClauseEditor(p.c, id, { again: () => { again++; } });
+    const doc = p.doc;
+    const before = doc.querySelectorAll('#ce-doc .rl-clause').length;
+    assert.equal((p.c.changes || []).length, 0, 'nothing on the record yet');
+
+    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
+      preferred: 'Each party shall process personal data only on the other’s documented instructions.',
+      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
+    const ok = await p.win.ceAddMissingClause(it, it.preferred, null);
+    assert.equal(ok, true, 'it filed');
+
+    /* THE CONTROL, and it passes either way: the record really did gain the
+       change, so "the screen updated" cannot be satisfied by nothing having
+       happened. */
+    assert.equal((p.c.changes || []).length, 1,
+      'the record gained the change — this is the control');
+
+    assert.ok(doc.querySelectorAll('#ce-doc .rl-clause').length > before,
+      'the paper drew the new clause without a refresh: '
+      + before + ' → ' + doc.querySelectorAll('#ce-doc .rl-clause').length);
+    assert.ok(again >= 1,
+      'and the page underneath was repainted — the column, the contract and '
+      + 'the counts all read the record: again=' + again);
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('the reader’s own unfiled draft survives it', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    p.win.rlOpenClauseEditor(p.c, id, { typing: true, again: () => {} });
+    const mine = '<p>Wording nobody has filed yet.</p>';
+    p.win.ceApply(mine, 'typed');
+    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
+      preferred: 'Each party shall process personal data only on documented instructions.',
+      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
+    await p.win.ceAddMissingClause(it, it.preferred, null);
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.ok(box && /nobody has filed yet/.test(String(box.textContent || '')),
+      'the standard lands at the end of the terms and the reader is still on '
+      + 'the clause they opened, so their draft is untouched');
+    assert.ok(p.win.clauseEditorDirty(),
+      'and it is still theirs to file — no re-seed moved them onto other wording');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('ONE reading, and it is not the seed', () => {
+    /* ceSeedDraft is what re-reads the draft, and it is owed only where the
+       change landed on the clause the reader is EDITING. The standard goes in
+       at the end of the terms. */
+    assert.match(CODE, /function ceFiled\(c\)\{/,
+      'the five things that follow a filing are named once');
+    const body = CODE.slice(CODE.indexOf('function ceFiled(c){'));
+    const shut = body.slice(0, body.indexOf('\n}') + 2);
+    assert.ok(!/ceSeedDraft/.test(shut),
+      'and the seed is NOT in it — re-seeding on an added standard would move '
+      + 'the reader onto wording they never asked to edit');
+    assert.ok(/ceRenderAll\(\)/.test(shut) && /_ceAgain/.test(shut),
+      'both screens are in it: this page and the page underneath');
+    /* Two callers, and a third joins them rather than growing a copy. */
+    const calls = (CODE.match(/ceFiled\(/g) || []).length;
+    assert.ok(calls >= 3, 'the definition and both doors: ' + calls);
+  });
+
+  test('and the card still settles into "Added as a new clause"', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { again: () => {} });
+    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
+      preferred: 'Each party shall process personal data only on documented instructions.',
+      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
+    await p.win.ceAddMissingClause(it, it.preferred, null);
+    /* _ceScanFiled is set BEFORE the repaint, because ceFiled draws the rail
+       among the rest — marking it after would leave the card offering the add
+       again until the next paint. */
+    const src = CODE.slice(CODE.indexOf('async function ceAddMissingClause'));
+    const fn = src.slice(0, src.indexOf('\n}') + 2);
+    assert.ok(fn.indexOf('_ceScanFiled[') < fn.indexOf('ceFiled(_ceC)'),
+      'the card is marked filed before the page is repainted');
+    p.win.rlCloseClauseEditor();
   });
 });

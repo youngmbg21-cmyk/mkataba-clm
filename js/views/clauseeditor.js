@@ -3094,9 +3094,21 @@ async function ceAddMissingClause(it, words, btn){
     ceSay(_cet('ce_scan_add_failed'));
     return false;
   }
-  try{ if (window.persist) persist(_ceC); }catch(_){}
+  /* THE CARD SETTLES FIRST, then the whole page is repainted: ceFiled draws the
+     rail among the rest, so marking it filed after the repaint would leave the
+     card offering the add again until the next paint. */
   _ceScanFiled[ceScanKey(it)] = true;
-  ceRenderLane();
+  /* ---- AND IT FINISHES THE WAY A FILING FINISHES ---- (owner-reported 10 Sep 2026)
+     This used to persist and draw the RAIL and nothing else, so the card settled
+     into "Added as a new clause" over a contract with no new clause on it and a
+     column still reading "Redlines (0)". The record was right and both screens
+     were stale, which is why a refresh appeared to fix it.
+
+     NO ceSeedDraft: see the note at ceFiled. The standard lands at the end of
+     the terms and the reader is still on the clause they opened, so their draft
+     and their place on the page are untouched — ceRenderPaper keeps the scroll
+     and ceApply is what owns the box. */
+  ceFiled(_ceC);
   ceSay(_cet('ce_scan_added', { name: String((it.v && it.v.category) || '') }));
   return true;
 }
@@ -3565,6 +3577,46 @@ function ceCutPassage(){
    fingerprint, same desk rule, same review gate. This page has no private way
    into the contract.
    ========================================================================== */
+/* ---- WHAT HAPPENS AFTER A CHANGE LANDS ON THE RECORD ----
+   (owner-reported 10 Sep 2026: "Add our standard" filed correctly and the paper
+   and the Redlines column behind it stayed as they were until the page was
+   refreshed.)
+
+   ONE reading, because there are TWO doors onto "a change has been filed from
+   this page" and there was no shared answer between them: File as a change did
+   all five of these and Add our standard did one. A third door would have
+   forgotten them again, which is exactly what the second one did.
+
+   THE FIVE, AND EACH IS OWED FOR ITS OWN REASON — EXCEPT THE FIRST, WHICH IS
+   NOT, AND IS KEPT ANYWAY WITH THE REASON SAID OUT LOUD. negoIssue is what
+   stamps a change's hash and it already clears _chainVerify and rebuilds it
+   from the new chain before it returns, so by the time either door here is
+   reached the cache is not stale. It is kept because it is what File as a
+   change has always done, dropping it would be a change to a door nobody
+   reported, and clearing a cache that will be rebuilt on the next read costs
+   nothing. It is not the reason this reading exists.
+     · the verification cache — as above;
+     · the record has moved, so it is saved — under _ceOpts.persist, because a
+       caller that says it will save is a caller that must not be saved over;
+     · this page reads the record, so the paper, the foot, the tabs and the rail
+       are stale;
+     · the page UNDERNEATH reads it too — the change column, the contract and
+       the counts — so it is repainted behind this one rather than on the way
+       out of it;
+     · and the paper may have grown a clause, so the shell is re-measured.
+
+   THE SEED IS NOT IN IT, deliberately. Re-reading the draft is owed only where
+   the change landed on the clause the reader is EDITING — the standard goes in
+   at the end of the terms and the reader is still on the clause they were on,
+   so re-seeding there would move them onto wording they never asked to edit.
+   Each door does its own seeding before it calls this. */
+function ceFiled(c){
+  try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
+  try{ if ((!_ceOpts || _ceOpts.persist !== false) && window.persist) persist(c); }catch(_){}
+  ceRenderAll();
+  try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
+  try{ ceFitToShell(); }catch(_){}
+}
 async function ceFile(why){
   if (_ceBusy) return null;
   if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return null; }
@@ -3611,8 +3663,18 @@ async function ceFile(why){
     if (window.toast) toast(_cet('ng_nothing_changed_no_fp'), 'warn');
     return null;
   }
-  try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
-  try{ if ((!_ceOpts || _ceOpts.persist !== false) && window.persist) persist(c); }catch(_){}
+  /* ---- THE RECORD HAS MOVED, SO THE PAGE IS RE-READ FROM IT ----
+     The same seeding the door uses, which is what makes the foot name the
+     change that now exists and the marks measure against the right baseline.
+     The POSTURE is untouched: typing stays on, the rail stays where it was, and
+     the reader's place in the contract is the one thing they were holding on to.
+
+     IT IS TAKEN BEFORE THE NOTE IS ASKED FOR, which is a move rather than a
+     reorder: ceSeedDraft reads the record and writes module state only — it
+     touches no element — and the note dialog reads the contract and the change
+     and none of what the seed writes. So the DOM sequence is what it always
+     was, and both filing doors can then run one identical tail. */
+  ceSeedDraft(ch.id);
   /* ---- AND THEN IT ASKS FOR A NOTE (owner-ruled 31 Aug 2026) ----
      The dialog's own lead sentence begins "Filed." and its heading names the
      change, so where it opens the toast STANDS DOWN: two boxes twelve pixels
@@ -3645,20 +3707,8 @@ async function ceFile(why){
      WHAT THE PRESS COSTS, and it is what was promised: the first change in a
      clause is two presses (the pencil, then send) and every one after it is
      one, because the page the reader is already on is the page they carry on
-     in.
-
-     THE RECORD HAS MOVED, SO THE PAGE IS RE-READ FROM IT — the same seeding the
-     door uses, which is what makes the foot name the change that now exists and
-     the marks measure against the right baseline. The POSTURE is untouched:
-     typing stays on, the rail stays where it was, and the reader's place in the
-     contract is the one thing they were holding on to. */
-  ceSeedDraft(ch.id);
-  ceRenderAll();
-  /* The page underneath is stale the moment a change lands on the record — the
-     column, the contract and the counts all read it — so it is repainted
-     BEHIND this page rather than on the way out of it. */
-  try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
-  try{ ceFitToShell(); }catch(_){}
+     in. */
+  ceFiled(c);
   /* A note lands on the change, and the column behind this page prints the
      change's own note count — so the page underneath is repainted again once
      the reader has answered, and not at all where they had nothing to answer. */
