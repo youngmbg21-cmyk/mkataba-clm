@@ -4278,6 +4278,94 @@ rather than as its value, because that number is a look and has moved once
 already), clause-editor-verify 17d2/17d3 (**measured as paint** — the two boxes
 proved to draw nothing, and the frame proved by GEOMETRY to contain both).
 
+## A FILING REPAINTS BOTH SCREENS, WHICHEVER DOOR FILED IT (owner-reported 10 Sep 2026)
+
+*"an added standard does not show until the page is refreshed."* Adding a
+standard from the clause editor's scan rail filed it, persisted it and marked
+the card **Added** — and the paper beside it went on showing a document without
+it. The change was on the record the whole time; nothing drew it.
+
+- **TWO DOORS FINISHED DIFFERENTLY AND ONLY ONE OF THEM WAS FINISHED.**
+  `ceFile` ends by invalidating the verification, persisting, repainting the
+  whole page and re-running the caller's own `_ceAgain`; `ceAddMissingClause`
+  ended at `ceRenderLane()`, which is the RAIL. So the door that adds wording to
+  the agreement was the one that never redrew the agreement.
+- **`ceFiled(c)` IS THAT ENDING, LIFTED AND NAMED**, with exactly two callers.
+  Written as a rule taught to each door it would be taught twice and missed by
+  the third; f245 (24) counts the callers and fails on a filing that ends any
+  other way.
+- **THE SEED IS DELIBERATELY NOT IN IT.** `ceFile` re-seeds the draft from the
+  record because the reader has just filed the clause they were typing in;
+  `ceAddMissingClause` files a DIFFERENT clause and the reader's draft must
+  survive it. **MEASURED both ways**: the draft is character-identical across
+  the press and the paper does not move.
+- **`negoInvalidateVerification` IS NOT STRICTLY OWED HERE and is kept anyway,
+  said out loud.** `negoIssue` — which the funnel runs on every filing —
+  already clears `_chainVerify` and rebuilds it, so the call is inert on this
+  path. It stays because the two doors then have ONE ending rather than one
+  ending and a shorter one that happens to be equivalent today, and because the
+  day a filing arrives without an issue the ending is still right.
+- **THE CARD STILL SETTLES.** `_ceScanFiled` is written BEFORE the repaint, or
+  the rail redraws from a record the marker has not reached.
+
+Tests: f245 (24) (4 — 3 fail against the parent), clause-editor-verify section
+29 (7 — **3 fail against the parent, the headline one reporting the owner's
+report as a number: the paper draws 5 clauses after a filing that put 6 on the
+record**). The section stages a standard the file has not already added, and
+scopes its pencil to the clause it means: `#ce-doc [data-ce-pencil]` picks the
+FIRST clause's, which MOVES the page rather than turning typing on.
+
+## THE CLAUSE EDITOR CANNOT HIDE A PROPOSED DELETION (owner-reported 10 Sep 2026)
+
+An ask to strike a clause out drew as the clause standing untouched, in an
+editable box. Two shapes, one fault: a true `deleteClause` (no `bodyHtml` at
+all) fell through `ceWordingOf`'s `|| _ceBase` to the STANDING wording, and a
+`modify` proposing `<p><br></p>` drew an empty box. Either way the page showed
+the reader a clause nobody had proposed, and offered to type in it.
+
+- **ONE READING OF "THIS ASK LEAVES NO WORDING", AND IT IS ASKED OF THE ASK.**
+  `ceRemovesWording(ch)`: a `deleteClause` by its own type, and anything else
+  whose proposed body carries no WORDS once the markup is off. **The words, not
+  the markup** — `<p><br></p>` and `<p></p>` are the shapes an empty editor
+  produces, and testing for an empty STRING would call the first of them
+  wording. Used for both shapes and by every reader below, so the paper, the
+  pencil, Apply, the card and the chips cannot come to disagree about what is
+  being proposed.
+- **THE STRIKE IS DRAWN THROUGH THE OP RENDERER, NEVER RE-DIFFED.** `ceWordingOf`
+  answers `''` and the page's own live-clause marks do the rest, so what is
+  shown is the change's own stored ops — the mark the other side verified —
+  rather than a fresh comparison that could differ from it.
+- **IT OPENS SHOWING ITS MARKS AND CANNOT BE TYPED IN, even through a door
+  asking for typing.** `_ceEditing` asks `ceUnderDeletion()` FIRST, so the
+  28 Aug arrival rule and the 29 Aug narrowing that overrules it both stand
+  down here: an explicit ask to type is still refused, because there is nothing
+  to type into. **The pencil is not drawn on that clause** (a verb that cannot
+  work is not drawn — `rlClauseEditPillHtml` gained an `opts.pill.skip` the
+  caller decides), and **the pencil elsewhere still works**, so this narrows one
+  clause rather than the page.
+- **APPLY REFUSES IN WORDS**, because it is the third door into the wording and
+  a rule kept at two of three is not a rule. The card offers no Apply and no
+  Refine, and the "softer version" chip stands down: three ways of offering a
+  rewrite of wording somebody has asked to delete.
+- **`ceTheirAsk` NAMES WHAT IS PROPOSED.** It said *they have proposed new
+  wording*; on a deletion it says the clause is proposed for deletion, so the
+  greeting, the scope line and the chips agree with the paper.
+- **ACCEPT AND REJECT ARE DELIBERATELY NOT MIRRORED HERE.** The card in the
+  change column already carries them, and a second door onto an act that
+  already has one is what this rulebook refuses by name. f245 (25) fails if this
+  file so much as mentions `negoResolve`.
+- **AND TYPING IS SIMPLY NOT OFFERED ON A CLAUSE UNDER DELETION**, which is the
+  interim answer rather than a decision: what a reader should be able to do
+  INSTEAD — propose wording that supersedes the deletion, from this page — is
+  the owner's to rule on, and nothing is built for it.
+
+Tests: f245 (25) (8 — 6 fail against the parent; the two that pass are named
+CONTROLS: an ordinary modify still draws its own wording, and the file mentions
+no decision verb), clause-editor-verify section 30 (6, browser — **all 6 fail
+against the parent**: the strike measured as painted `del` runs, the box proved
+not editable, the pencil counted on that clause and on the others, and Apply
+driven into its refusal).
+
 ## THE OTHER SIDE MAY NOT RENAME OUR CLAUSES (owner-ruled 29 Aug 2026)
 
 The rename shipped on 28 Aug with **no rule about seats**, and their page mounts
@@ -11282,22 +11370,46 @@ written before."*
   exists for that one sitting and is gone the moment the contract is read back.
   **The triage record is DURABLE**, so the strip went on saying the brief was
   written for ever, while the card beside it correctly said there was none.
-- **THE CACHING RULE IS RIGHT AND IS UNTOUCHED**, and f280 (4) pins it so this
-  cannot be "fixed" the other way round: caching a half-answer would hand the
-  reader a permanent one, which is worse than asking again. What was wrong is
-  the SUMMARY claiming a reading the record does not hold.
+- **THE CACHING RULE IS REVERSED IN PLACE — owner-ruled 10 Sep 2026**: *"once
+  the brief is written, when I refresh the page I should not lose the previously
+  created brief until I choose to rerun the brief."* A CUT-SHORT BRIEF IS KEPT
+  NOW, written to the table with `truncated` on it. **The half of the rule that
+  mattered is what the flag is for**: half a memo may never be served as a whole
+  one, so every reader of a brief SAYS it is partial and offers to write it
+  again — the Copilot panel, the Key terms card (a second Rewrite beside the
+  amber pill), the phone, and the strip's own tile. What is gone is the loss:
+  the reader chooses when to run it again, and nothing throws their memo away on
+  a refresh. f280 (4) is reversed with it and now pins the opposite pair — the
+  row is written, and it carries its flag. **`force` IS WHAT MAKES THE REWRITE
+  REACH THE MODEL**, or the route would answer from the cache it has just been
+  taught to keep.
 - **AND THE SUMMARY LINE GOES WITH IT, deliberately.** It was drawn from a brief
   nobody can now open, and a one-line précis of something that is not there is
   the contradiction this fixes rather than a consolation for it. The step
   carries the reason instead, and the reason names **the one thing the reader
   can act on** — write it again.
-- **THE ORDER IS THE FIX.** The truncated branch is asked BEFORE the ordinary
-  success one, or an answer that was cut short still lands as written; f280 (3)
-  asserts the ordering rather than only the branch.
+- **THE ORDER WAS THE FIX AND IS REVERSED WITH IT.** There is one branch again:
+  the row is written whatever the provider stopped for, and the flag rides on
+  it. f280 (3) is re-pointed onto the claim that survives — a cut-short brief is
+  recorded as WRITTEN and as PARTIAL, never as one without the other.
 - **THE TILE FOLLOWS BY CONSTRUCTION**, which is why this needed no second rule
   and no browser restaging: `triageTiles` reads the step, so a step recorded
   not-done takes `TRIAGE_HEADS.brief.no` and prints its reason wherever it is
   drawn. Asserted as that RELATION in f280 (6).
+- **AND THE CAP IS THE BRIEF'S OWN FACT NOW, ASKED FIRST.** With a cut-short
+  brief kept, the exact answer is on the thing being read rather than inferred
+  from a note beside it. **The note's cap survives as the FALLBACK** for a brief
+  written before the flag was persisted, still drawn only over the brief the
+  note described — the same brief being the one that yields the same line.
+- **AND THE STRIP HAD THE RIGHT ANSWER AND NOTHING WAS DRAWING IT** (10 Sep
+  2026, the second half of the same report). The tile has read the brief live
+  since the entry below; what was missing is that `wireKtBriefCard` repainted
+  the COLUMN and not the strip, so writing a brief left the tile saying "No
+  brief" until the page was reloaded — the reported contradiction arriving
+  through the other door. It calls `paintKtTriage` too, BARE, because both live
+  in js/views/contract.js and `renderKeyTermsSide` is not on that file's export
+  list. **Every button on the card is wired**, never `#kt-brief-run` by name: a
+  partial brief draws two.
 - **IT IS THE BRIEF ALONE.** A cut-short brief must not read as a failed triage
   — the strip's headline asks whether ANYTHING was read, and the risk scan, the
   standards pass and the obligations reader are untouched by it.
@@ -11316,9 +11428,12 @@ note already on file**: every contract read before that commit carries
 missing is a READING rather than a repair.
 
 - **THE STORE CAN OUTLIVE THE NOTE ABOUT IT, AND ONLY HERE.** A brief lives in
-  its own table under the caching rule above — a cut-short one is never written
-  — while `c.triage` is DURABLE. The card reads the brief and was right; the
-  strip read a note written once at upload and never repaired.
+  its own table and `c.triage` is DURABLE, so a note written once at upload is
+  never repaired. (When this was written a cut-short brief was not written to
+  that table at all, which is what made the two boxes disagree on that
+  contract; the caching rule above is reversed and a cut-short brief is KEPT
+  now, so the two stores agree far more often — and the reading below is what
+  makes them agree at all, including for every note already on file.)
 - **SO THE TILE ASKS WHETHER THERE IS A BRIEF, LIVE**, and falls back to the note
   only where there is nothing to look at. **NOTHING IS MIGRATED AND NOTHING IS
   REPAIRED**: an old wrong note is simply not read, and a brief a person writes
@@ -12284,6 +12399,96 @@ page, with the contract's own room as the control), and f183's tab claim
 REVERSED IN PLACE and made stronger — it was passing on the FALLBACK, so its
 stage now carries the page's own tab and it asserts that where the tab cannot be
 read, none is named.
+
+## COPILOT AND THE PLAYBOOK PANEL READ ONE BOOK (owner-reported 10 Sep 2026)
+
+One chat about one contract saying two different things: the Playbook review
+panel headed *"Against the Supply / raw material / packaging playbook"*, and
+Copilot in the same conversation naming *"Professional / marketing services"*,
+listing different standards, then hunting for *"a different source"* or *"a note
+added manually"*.
+
+**THREE FAULTS, AND NOT ONE OF THEM AN INVENTION.**
+
+- **WHICH BOOK APPLIES.** Both rules ran correctly; what differed is what they
+  were matched AGAINST. `playbookKeyFor` reads `cKind(c)` — the contract TYPE —
+  and falls back to the folder. `copilotPlaybookKey` read
+  `` `${c.template} ${c.name}` ``, the TITLE. An upload (so no template) filed
+  in 'proc' and titled "Warehousing and Transportation Services" gave the
+  browser 'supply' off the folder and the server 'services' off the word in the
+  title: two books, line for line the two screenshots. **THE PANEL'S ANSWER IS
+  THE RIGHT ONE and that is the half that moved** — a contract's TYPE and its
+  FILING are facts about it, its TITLE is prose, and a contract may be called
+  anything. **The browser is deliberately NOT taught to read the title too**,
+  which would have made both wrong together.
+- **`COPILOT_TEMPLATE_KIND` IS A MIRROR AND IS DECLARED AS ONE.** `cKind` reads
+  `TEMPLATES[c.template].kind` and the server loads none of the browser modules
+  — the same situation and the same defence as the keyword regexes beside it.
+  An upload answers as an upload does ('External Document'), which is exactly
+  why the FOLDER is what decides its playbook.
+- **COPILOT COULD NOT SEE THE PANEL, so it re-judged the contract BY
+  CONSTRUCTION.** `copilotDetail` carried the scan findings and the negotiation
+  and not the stored standards review. It carries `standardsReview` now — the
+  book, the verdicts, whether it was Copilot-assisted or rule-based, and WHEN,
+  read off the audit trail's last `Playbook` line rather than guessed (there is
+  no timestamp on `c.playbook`; where there is no line it answers null and says
+  nothing rather than implying the review is current).
+- **SCOPE AND MONEY HOLD BY CONSTRUCTION**: it is read off a record
+  `copilotGetJson` has already scoped, and every field is on the reader's own
+  screen already. Rebuilt field by field, never spread — a spread carries
+  whatever the record grew since — and pinned as an ALLOW-LIST, because a
+  blocklist tests the fields somebody thought of. Bounded at
+  `COPILOT_VERDICT_CAP` with the omission COUNTED: a cap is a FACT.
+- **`check_against_playbook` PREFERS THE STORED REVIEW and burns no provider
+  call on it.** Running our own on top would spend Copilot money to produce a
+  SECOND verdict about a contract the workspace has already judged, which is the
+  fault. Only a contract nobody has checked is checked now, and it SAYS so
+  (`source:'run-now'`), so a reader is never told a fresh answer is what their
+  panel shows. **BOTH BRANCHES NAME THE BOOK.** A stored review can be stale —
+  run before the wording moved — and **no freshness test is invented**: the date
+  is stated and the reader judges.
+- **AN EMPTY CHECK SAYS SO.** Two things arrived as one empty list — the model
+  judging nothing, and the answer being CUT SHORT before it could say — and both
+  were handed on as a finished list of no findings. That is the obligations
+  reader's own recorded lesson, unapplied here. (The third way a check comes
+  back with nothing — a tool call carrying no structured result — already
+  answers `ok:false` and takes the error branch.)
+- **AND A FOURTH, FOUND WHILE FIXING THE THIRD.** The check sent
+  `contractFullBody(c)`, which is the SEARCH bundle: the name, the counterparty,
+  the id, the fields, the metadata and the obligations, with the wording added
+  where there is any. So a scanned upload whose words never came out of the file
+  arrived at the deep tier as a line of metadata and came back — quite correctly
+  — with nothing to say: money spent, and "no verdicts at all" reported as a
+  finding about the customer's own contract. **It reads the WORDING now**
+  (`copilotContractWording`, the stored body senior to an upload's extracted
+  text, markup stripped) and refuses below `COPILOT_PB_TEXT_MIN` — 120, mirroring
+  `runPlaybookReview`'s own floor — spending nothing. What goes to the model is
+  the wording too: a standards check reading the counterparty's name as though
+  it were a clause is how a verdict comes back about text nobody drafted.
+
+**THREE CLAIMS REVERSED IN PLACE IN f133, and two of them had been describing
+the bug.** The mirror claim pinned the four keyword REGEXES, which are identical
+in both files and always were — so it passed throughout while the two hosts
+disagreed. The regex claim is KEPT (it would still catch a keyword edited on one
+side only) and the measurement is added beside it: **run BOTH rules over the
+same contracts and require the same key**, including an upload with "Services"
+in its title, an NDA, a lease, a template-made services contract and a custom
+match keyword. The custom-keyword test staged a keyword (`'milk'`) findable only
+in a TITLE and asserted it "as in the client" — an answer the client could never
+give, since `playbookKeyFor` matches a custom keyword against the KIND or the
+FOLDER and nothing else; it is keyed to a value stream now, which both hosts
+read. And "the contract document travelled" matched the contract's NAME, which
+appears nowhere in its wording — it passed only because the check was sending
+the search bundle.
+
+**REPORTED, NOT BUILT: whether a reader should be able to SET the type or the
+playbook on an upload.** An upload has no template, so its book is decided by
+the folder alone — and a reader who thinks the wrong standards were applied has
+nothing to press but a re-filing, which moves who can see the contract. One line
+in BUGLOG.md.
+
+Tests: f133 (27 — **12 fail against the parent**, three of them claims reversed
+in place).
 
 ## Line numbers drift
 

@@ -11750,3 +11750,127 @@ The friction block is STAGED there because this file's own book carries no
 negotiations at all, so the block does not draw and a check run against that
 would have passed over an absence. insights-panels-verify 42/42,
 clause-door-verify 117/117. Lint unchanged (4 pre-existing errors).
+
+================================================================================
+FIVE JOBS — 10 September 2026
+================================================================================
+Five reported faults, five commits, kept apart. Every one reproduced before it
+was touched and re-measured after. Full node suite 6283/6283. Lint unchanged
+(4 pre-existing errors, see "Noticed, not fixed" below).
+
+JOB 1 — AN ADDED STANDARD DID NOT SHOW UNTIL THE PAGE WAS REFRESHED. Adding a
+standard from the clause editor's scan rail filed it, persisted it and marked
+the card Added, and the paper beside it went on showing a document without it.
+The change was on the record the whole time; nothing drew it. ceFile ends by
+invalidating the verification, persisting, repainting the page and re-running
+the caller's own _ceAgain; ceAddMissingClause ended at ceRenderLane(), which is
+the RAIL — so the door that ADDS wording to the agreement was the one that never
+redrew the agreement. ceFiled(c) is that ending, lifted and named, with exactly
+two callers. The SEED is deliberately not in it: ceFile re-seeds because the
+reader has just filed the clause they were typing in, and this door files a
+DIFFERENT clause, so the draft has to survive — measured both ways, the draft is
+character-identical across the press and the paper does not move.
+negoInvalidateVerification is NOT strictly owed here (negoIssue already clears
+_chainVerify and rebuilds it, so the call is inert on this path) and is kept
+anyway, so the two doors have ONE ending rather than one ending and a shorter
+one that happens to be equivalent today. f245 (24), 3 of 4 fail at the parent;
+clause-editor-verify 29, 3 of 7 fail, the headline one reporting the report as a
+number — the paper draws 5 clauses after a filing that put 6 on the record.
+
+JOB 2 — COPILOT AND THE PLAYBOOK PANEL DISAGREED ABOUT WHICH STANDARDS APPLY.
+Three faults, and not one of them an invention. (a) Both key rules ran
+correctly; what differed is what they were matched AGAINST — playbookKeyFor
+reads cKind(c), the contract TYPE, and copilotPlaybookKey read the template id
+and the contract NAME, its TITLE. An upload in 'proc' titled "Warehousing and
+Transportation Services" gave the browser 'supply' off the folder and the server
+'services' off the word in the title. The panel's answer is the right one and
+the browser is deliberately NOT taught to read the title. (b) Copilot could not
+see the review the reader had open, so it re-judged the contract by construction
+and then went looking for "a different source"; get_contract carries
+standardsReview now — bounded, the omission counted, rebuilt field by field —
+and check_against_playbook PREFERS it and burns no provider call on it. A stored
+review can be stale: the date is stated (read off the audit trail, not guessed)
+and no freshness test is invented. (c) An empty check was handed on as a
+finished list of no findings; it says so now, and a check CUT SHORT says that
+instead. AND A FOURTH, FOUND WHILE FIXING THE THIRD: the check sent
+contractFullBody, the SEARCH bundle, so a scan whose words never came out of the
+file arrived at the deep tier as a line of metadata and came back correctly with
+nothing to say — money spent, "no verdicts at all" reported as a finding about
+the customer's contract. It reads the WORDING now and refuses below the client's
+own 120-character floor. f133: 12 of 27 fail at the parent, three of them claims
+REVERSED IN PLACE — including two that had been describing the bug (a custom
+keyword findable only in a TITLE asserted "as in the client", and "the contract
+document travelled" matching the contract's NAME, which appears nowhere in its
+wording).
+
+JOB 3 — THE STRIP AND THE CARD CONTRADICTED EACH OTHER, THE OTHER WAY ROUND.
+The tile has read the brief live since 10 Sep, so it had the right answer the
+moment it was drawn — and nothing was drawing it: wireKtBriefCard repainted the
+COLUMN and not the strip, so writing a brief left the tile saying "No brief"
+until the page was reloaded. It calls paintKtTriage too, BARE (both live in
+js/views/contract.js and renderKeyTermsSide is not on that file's export list,
+so a window guard would have been false for exactly the one being added). Every
+button on the card is wired rather than #kt-brief-run by name, because a partial
+brief draws two. THE STANDARDS TILE WAS CHECKED FOR THE SAME DRIFT AND CANNOT
+HAVE IT: c.playbook is a real record field, is not stripped by HEAVY and
+survives saveContract, so the note and the store cannot come apart the way the
+brief's did.
+
+JOB 4 — A WRITTEN BRIEF NOW SURVIVES A REFRESH. max_tokens on /api/ai/brief was
+1400 against a schema asking for about 1,550 at its own face value, so a
+thorough brief truncated BY CONSTRUCTION; it is 4000, derived from the schema's
+own maxItems and pinned to them in f280 (9). And the caching rule is REVERSED IN
+PLACE, owner-ruled: a cut-short brief is KEPT, written with its truncated flag.
+The half of the old rule that mattered is what the flag is for — half a memo may
+never be served as a whole one — so the Copilot panel, the Key terms card, the
+phone and the strip's tile all say it is partial and offer to write it again.
+CHECKED BEFORE BUILDING, as asked: raising the ceiling makes 4.2 RARER and not
+unreachable (maxItems is advisory — this codebase has already measured 40 items
+returned against a stated 20), and 4.2 costs almost nothing, so both are worth
+it. 12 of f280's tests fail at the parent (5 reversed in place, 7 new);
+auto-triage-verify 11, 4 of 6 fail.
+
+JOB 5 — THE CLAUSE EDITOR COULD NOT SHOW A PROPOSED DELETION. An ask to strike a
+clause out drew as the clause standing untouched, in an editable box. Two
+shapes, one fault: a true deleteClause (no bodyHtml at all) fell through
+ceWordingOf's fallback to the STANDING wording, and a modify proposing an empty
+paragraph drew an empty box. ONE READING of "this ask leaves no wording" —
+ceRemovesWording — asked of the ask: a deleteClause by its own type, and
+anything else whose proposed body carries no WORDS once the markup is off. The
+words, not the markup, because an empty paragraph is the shape an empty editor
+produces and testing for an empty STRING would call it wording. The strike is
+drawn through the existing op renderer, never re-diffed. It opens showing its
+marks and cannot be typed in even through a door asking for typing; the pencil
+is not drawn on that clause and still is on the others; Apply refuses in words;
+the card offers no Apply and no Refine and the "softer version" chip stands
+down. Accept/Reject are NOT mirrored here — the card in the change column
+already carries them — and f245 (25) fails if the file so much as mentions
+negoResolve. f245 (25), 6 of 8 fail at the parent (the two that pass are named
+controls); clause-editor-verify 30, all 6 fail.
+
+--------------------------------------------------------------------------------
+Noticed, not fixed
+--------------------------------------------------------------------------------
+- The clause editor's Copilot rail can answer "Request failed (502)" on a live
+  workspace. Job 5 was told to log it rather than chase it; nothing in this run
+  touched the provider path, and the 502 is upstream of everything above.
+- js/i18n.js carries two duplicate keys — co_password_updated and act_next, each
+  twice, once per language book — and they are the four eslint ERRORS the lint
+  run reports. PRE-EXISTING: verified by running lint on an unmodified main
+  before any of this work (181 problems / 4 errors / 177 warnings, the same four
+  lines). Whichever copy loses is silent, so one of each pair is dead wording.
+- Should a reader be able to SET the contract type, or the playbook, on an
+  upload? An upload has no template, so its book is decided by the FOLDER alone
+  — and a reader who thinks Copilot and the panel applied the wrong standards
+  now has nothing to press but a re-filing, which changes who can see the
+  contract. My read: yes, and it belongs on Key terms beside the value stream
+  (the one door an upload already has onto its own facts), stored as an explicit
+  override that both hosts read ahead of the folder. It is a product decision
+  with a record field behind it, not a fix to make in passing.
+- copilotPlaybookCheck's error branch answers "playbook review failed" with no
+  provider status when the model returns no structured result, where the
+  /api/ai/playbook route answers "Copilot returned no structured result" and a
+  502. Two readings of one failure; the route's is the more useful one.
+- triage's standards tile prints a COUNT that is a snapshot and can go stale
+  after a later re-run of the playbook (already logged 10 Sep; re-checked this
+  run and still true — it is the count, never the fact).
