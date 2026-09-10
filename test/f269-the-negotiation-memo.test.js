@@ -159,10 +159,15 @@ describe('f269 (5) every line is QUOTED, never composed', () => {
 
   /* A change with no summary quotes NOTHING rather than repeating its own
      heading — a row that quotes its own title reads as a quote that is not one. */
+  /* REVERSED IN PLACE 10 Sep 2026 (one clause-name format on screen): the
+     fixture stamps "Clause 5 · Payment terms" and the memo is a SCREEN, so it
+     reads in the product's one format. The claim is stronger for it — the
+     NUMBER is still the stamped one, never a lookup, and the CASE is the
+     product's own rather than whichever way the paper happened to shout. */
   test('with no summary the row quotes nothing rather than inventing something', () => {
     const m = W().negoMemo(deal([ch('CHG-1', { summary: '' })]));
     assert.equal(m.open[0].said, '');
-    assert.equal(m.open[0].clause, 'Clause 5 · Payment terms');
+    assert.equal(m.open[0].clause, 'Clause 5 · Payment Terms');
   });
 
   test('with no stamped label the row falls back to the id, not to a lookup', () => {

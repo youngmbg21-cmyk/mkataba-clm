@@ -12,6 +12,11 @@ window.PORTAL_OPTS={};
    up and answers the contract on this page; there is no file to take away and
    none to bring back. js/docx.js still READS a .docx, because a contract can
    still ARRIVE as one — that is intake, and a different thing entirely. */
+/* A stored clause name on its way to the screen, in the product's one format —
+   negotiation.js's own reading, reached through window so a stage without that
+   module prints the raw name rather than throwing. */
+const _pvClauseName = s => (window.negoClauseName ? negoClauseName(s)
+  : String(s == null ? '' : s));
 function portalVersions(){
   const p=PORTAL_OPTS.payload;
   return (p&&p.contract&&Array.isArray(p.contract.versions))?p.contract.versions:[];
@@ -2457,7 +2462,7 @@ function portalViewerRedlineHtml(c){
     const st=String(ch.status||'pending');
     const chip=st==='accepted'?'Agreed':st==='rejected'?'Not agreed':'Still open';
     return `<li class="pv-chg" data-status="${esc(st)}">
-      <div class="pv-chg-head"><span class="pv-chg-where">${esc(ch.clauseLabel||'Clause')}</span>
+      <div class="pv-chg-head"><span class="pv-chg-where">${esc(_pvClauseName(ch.clauseLabel)||'Clause')}</span>
         <span class="pv-chg-state">${chip}</span></div>
       <div class="pv-chg-body">${marks}</div></li>`;
   }).join('');

@@ -1786,10 +1786,17 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'ONE READING, because two surfaces raise this one guard');
     assert.match(CODE, /_cet\('ce_leave_on', \{ clause: name \}\)/,
       'it names the clause');
-    assert.match(CODE, /clauseLabel\(cl\)/,
-      'through clauseLabel — the product\'s own answer to "which clause is '
-      + 'this", which the cards and the Chat rows already print, and which '
-      + 'falls back to the clause\'s own wording where there is no heading');
+    /* RE-POINTED 10 Sep 2026 (one clause-name format on screen): the warning
+       asks ceClauseLabel, which is this page's ONE display naming and which
+       asks clauseLabel itself — so the reading is unchanged and the sentence
+       now reads in the same format as the crumb above it. The claim was always
+       the RELATION: the product's own answer to "which clause is this", which
+       the cards and the Chat rows already print, and which falls back to the
+       clause's own wording where there is no heading. */
+    assert.match(CODE, /const name = ceClauseLabel\(cl\);/,
+      'through the page\'s one display naming');
+    assert.match(CODE, /function ceClauseLabel\(cl\)\{[\s\S]{0,320}negoClauseLabel\(cl\)/,
+      'and that names the clause through the product\'s own clauseLabel');
     assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut \}\)/,
       'and quotes back what is not filed');
     assert.match(CODE, /window\.richToText \? richToText\(_ceText \|\| ''\) : ''/,

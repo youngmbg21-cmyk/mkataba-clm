@@ -413,7 +413,10 @@ describe('what the column renders', () => {
        so the fingerprint moved to the tooltip rather than being dropped. */
     assert.doesNotMatch(html, new RegExp(`${a.id} · Governing law`),
       'the fingerprint no longer leads the row');
-    assert.equal((html.match(/class="rl-q-k">Governing law</g) || []).length, 2,
+    /* "Governing Law" and not "Governing law" since 10 Sep 2026: the queue is a
+       SCREEN and names its clauses in the product's one format. The claim is
+       untouched — both rows read as the clause they are. */
+    assert.equal((html.match(/class="rl-q-k">Governing Law</g) || []).length, 2,
       'both rows read as the clause they are');
     assert.match(html, new RegExp(`title="${a.id}"`), 'the first is still identifiable');
     assert.match(html, new RegExp(`title="${b.id}"`), 'and so is the second');

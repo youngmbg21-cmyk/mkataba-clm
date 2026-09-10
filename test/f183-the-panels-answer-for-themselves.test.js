@@ -87,6 +87,12 @@ function world(over = {}) {
       TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,
       state: { contracts: JSON.parse(JSON.stringify(CONTRACTS)), settings: {}, view: 'intel',
         serverStats: null, shareOverview: {}, shareByContract: {}, aiFeed: [], pf: null },
+      /* THE PAGE'S OWN TAB, which js/views/intelligence.js owns and this stage
+         does not load. It was absent, and the claim below passed on a FALLBACK
+         that named 'portfolio' whatever tab was really open — which is the
+         fault f283 closes. A stage claiming to be on Insights now says which
+         tab, like the page does. */
+      intel: { tab: 'frame' },
       cKind: () => 'Agreement',
       riskBand: r => (r >= 70 ? 'ruby' : r >= 40 ? 'amber' : 'green'),
       openFindings: () => [], canViewValues: () => true,
@@ -262,6 +268,13 @@ describe('F183 — the figures ride with the brief, and the tool is not the only
     const ctx = w.aiChatContext();
     assert.ok(ctx.insights && ctx.insights.panels, 'the computed panels ship with the brief');
     assert.equal(ctx.insightsTab, 'portfolio', 'and which tab is open, like the negotiation room');
+    /* REVERSED IN PLACE 10 Sep 2026 (f283): it used to be filled in as
+       'portfolio' whenever the tab could not be read, so a reader on Payment
+       terms was described as looking at another tab's chart. Nothing is
+       claimed where nothing was read. */
+    const blind = world({ intel: null });
+    assert.equal(blind.aiChatContext().insightsTab, undefined,
+      'and where the tab cannot be read, none is named');
     assert.match(ctx.guideLive, /INSIGHTS PANELS/,
       'a reader looking at the chart gets the figures without a round trip');
     assert.match(ctx.guideLive, /workload_runway/);

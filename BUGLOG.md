@@ -11563,3 +11563,139 @@ errors).
   card beside it says "3 to look at". Same family, one size smaller.
 - 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next,
   twice each) in js/i18n.js. Identical on the parent; outside this request.
+
+## 10 Sep 2026 — SEGMENT 6: ONE CLAUSE-NAME FORMAT, AND COPILOT KNOWS THE PAGE
+
+Owner-asked, two of the segment's jobs and explicitly not the third: *"continue
+with segment 6 but only Presentation + Copilot 4 (clause name format), 8 (page
+awareness). Do not fix the images portion of my request."*
+
+### JOB 4 — one clause-name format on screen
+
+*"Some clauses are in capital letters and some in small letters. Let them all
+be in one format for presentation purposes."*
+
+MEASURED FIRST, through the product's own one naming function on one document's
+own headings: "Clause 1 · SUPPLY & SPECIFICATION" above "Clause 2 · Price &
+Contract Value" above "Clause 3 · quality & rejection". Three cases in one
+column, none of them a decision anybody here took — they are three firms'
+drafting habits printed straight back.
+
+clauseNameShown (js/clausemodel.js) is the ONE reading and the style is TITLE
+CASE, which is the style this product already prints in: the friction page
+settled the identical question on 26 Aug and its reasoning governs — a screen
+listing eight contracts' clauses has to have a voice of its own or every row
+shouts as loudly as its author did. Only the TITLE is re-cased; the number and
+the shape are left exactly as they stand, so a raw heading stays a raw heading
+and a built label stays a built label. A name the parse cannot hand back the
+tail of is left alone: clauseCaseTo's own rule, "I could not tell" must never
+become "so I changed it anyway".
+
+IT CHANGES WHAT IS PRINTED AND NOTHING ELSE, and one attempt was reverted to
+keep that true. The first build put the format inside clauseLabel — which is
+where every live lookup goes AND what stamps ch.clauseLabel onto every change
+and names the front-matter region, where the stamped string keeps English. Two
+existing tests said so within the minute (f250 read "Front Matter", f269 read
+"Payment Terms" off a record). clauseLabel builds a RECORD and does NOT present;
+the format is applied at the DRAW. f282 pins that as a WALL that passes before
+and after, so nobody moves it one level too deep again.
+
+THE PAPER IS DELIBERATELY NOT SWEPT: the agreement on screen is what was
+drafted, and a document tab that quietly re-cased its own headings would read
+differently from the file it came out of. f282 asserts that redlineDocHtml,
+negoDocHtml and documentTextHtml present nothing, and redline-verify 24c reads
+the fixture's own "3. PAYMENT" back off the sheet as the control.
+
+THE SWEEP IS ONE HELPER PER FILE AND ONE READING BEHIND THEM ALL —
+negoClauseName in js/negotiation.js, itself clausemodel's. negoTimeline's own
+pushChange presents ONCE and that covers five history surfaces at a stroke (the
+room's History tab, the negotiation page's history screen, its exported report,
+the clause filter and the phone). ceClauseLabel is the clause editor's one
+display naming and now presents, so its greeting, its reading line, its scope
+line and its leave warning cannot call one clause four things.
+
+TESTS: f282, 9 claims of which 6 fail against the parent; the three that pass
+are named CONTROLS (clauseLabel builds a record, the sentence fallback is never
+presented, the paper is not swept). redline-verify section 24, 4 checks of
+which 2 fail at the parent reporting the owner's own screen verbatim,
+["quality & rejection","Price & Contract Value","SUPPLY & SPECIFICATION"].
+Claims REVERSED IN PLACE, never deleted: f269 (5), f246 (4), f37, f130, f245
+(18) — each keeps what it was really pinning and two are stronger for it
+(f246's and f245's were literals where the claim was a relation).
+
+### JOB 8 — Copilot knows what page this is
+
+*"the copilot is not aware of what is on the page per my question in the
+image."* The image half of that request (pasting an image and asking about it)
+is EXCLUDED by the owner and is not built.
+
+MEASURED FIRST, with the reader standing on Contracts. Copilot was told
+view: "register" — a developer's word for a page the reader has never seen —
+and activeContractId: "MK-9", under a prompt line reading *"The contract open
+on screen is MK-9 — an unqualified 'this contract' means that one."* NO
+CONTRACT WAS OPEN. state.activeId is a global that survives whatever was last
+opened ANYWHERE and is never cleared on the way out, so that sentence was false
+on fifteen of the seventeen pages in this product. And nothing at all said what
+was ON the page.
+
+AND ONE MAP WAS INCOMPLETE, which is very likely the shape in the owner's
+image: AI_INSIGHTS_TABS named THREE of Insights' five tabs, and the caller
+filled the gap with 'portfolio' — so a reader on Payment terms or Obligations
+was described as looking at a chart on another tab. A wrong answer wearing a
+right one's clothes. All five are named now and an unknown tab is said NOTHING
+about.
+
+aiScreenContractId answers for the two pages that really show a contract, and
+on the negotiation page it reads redlineHeldId — the contract that was PAINTED
+— never the global. That is this codebase's own recorded defect (POLL_ON_ARRIVAL
+read the wrong view for the same reason), closed here.
+
+aiPageContext is the reading and it adds no store, no route and no spend. The
+page's name travels in STABLE ENGLISH with the reader's own label beside it —
+the insights panels' rule, for its own reason: a translated title gives a model
+nothing to match on and a key like "intel" gives a READER nothing to recognise.
+EVERY COUNT IS BORROWED: regFiltered, regNarrowed, regState, obwFilters,
+obwNarrowing and obwRows are the pages' own readings, so what Copilot is told
+cannot disagree with what the page drew. Where a page's reading is not on the
+stage it says NOTHING about that page's contents rather than guessing.
+
+obwNarrowing was exported for it, and the test caught a real defect on the way:
+the worklist opens on state='open', which is a CUT, so my first version — which
+compared against 'all' — reported the page as filtered the moment it was drawn.
+That trap is recorded in the worklist's own source and the fix is to borrow its
+one reading rather than write a second.
+
+THE SENTENCE IS WRITTEN TWICE ON PURPOSE, in js/ai.js and server/server.js. What
+travels is FIELDS, never a ready-made sentence: a request that could hand the
+route a finished line of the system prompt is a request that could put anything
+in it, so every field is clamped where it lands, exactly as ctx.view and
+ctx.insightsTab already are. f283 (5) pins that both hosts say the same facts
+and that a crafted page object cannot fill the prompt.
+
+TESTS: f283, 24 claims and ALL 24 fail against the parent (the reading does not
+exist there). contracts-page-verify section 19, 5 checks of which all 5 fail at
+the parent — the headline one reporting the fault verbatim, {"id":"MK-B2"} on
+the Contracts page. f183's tab claim REVERSED IN PLACE and made stronger: it
+was passing on the FALLBACK, so its stage now carries the page's own tab and it
+asserts that where the tab cannot be read, none is named.
+
+Node suite green. Browser: redline-verify 197/197, clause-editor-verify
+238/238, history-head-verify 35/35, contracts-page-verify 100/100. Lint
+unchanged (4 pre-existing errors).
+
+### Noticed, not fixed
+- THE PLAYBOOK CATEGORIES AND THE CLAUSE LIBRARY NAMES are left exactly as
+  typed, deliberately: those are names somebody here chose for a standard, not
+  the paper's own headings, and re-casing them would change what the author
+  wrote rather than how a contract's own heading is presented. Where a standard
+  is inserted into a document with no readable habit its clause will therefore
+  read in its own case on the PAPER while the chrome presents it — the same
+  trade the friction page already accepts.
+- aiTraceNote's clauseLabel is a display label ON a record (the proposal trace)
+  and is left raw. It is not a screen, and presenting it would move a record.
+- js/ai.js still puts ctx.clause and the Copilot prompt's own clause line
+  together without the page reading; the passage-level awareness (Simplify /
+  Ask Copilot on a highlighted passage) was already built and was not in this
+  request.
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next,
+  twice each) in js/i18n.js. Identical on the parent; outside this request.

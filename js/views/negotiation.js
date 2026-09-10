@@ -115,6 +115,12 @@ const _ngOurParty = c => (typeof window !== 'undefined' && window.contractParty)
    moment the value is a person's name inside title="…" — one apostrophe or
    double quote and the attribute closes early, with everything after it parsed
    as markup. Every attribute this view writes from a NAME goes through here. */
+/* A stored clause name on its way to the screen, in the product's one format.
+   The page's ONE reading of it — negotiation.js's own, itself clausemodel's —
+   so a name cannot read one way on a card and another in the queue beside it.
+   Never asked of the PAPER: the agreement is drawn exactly as it was drafted. */
+const _neClause = s => (window.negoClauseName ? negoClauseName(s)
+  : String(s == null ? '' : s));
 const _nea = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -1480,7 +1486,7 @@ function negoLiveCardsHtml(c, opts){
             ? _ne(i18t('ng_nocopy_say', { who: c.counterparty || i18t('ng_the_counterparty') }))
             : `It stops being outstanding when ${mine ? 'you withdraw it' : `${_ne(_liveShort(ch.author))} withdraws it`} — until then neither side can signal readiness to sign.`}</div>` : ''}
         <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.45;margin-bottom:var(--s-1)">${_ne(ch.summary)}</div>
-        <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
+        <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
         ${''/* The "(your side)" italic that used to live here is gone. It was
                 the only thing on the card saying whose ask this was: grey, small,
                 at the bottom, next to a name that on a deal where both sides are
@@ -1658,7 +1664,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
         title="${_ne(i18t('ng_decided_archived',{n:r.n}))}">${i18t('ng_round_lower',{n:_ne(r.n)})}</span>
     </div>
     <div style="font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.45;margin-bottom:var(--s-1)">${_ne(ch.summary)}</div>
-    <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
+    <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
     ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
       <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
@@ -3134,7 +3140,7 @@ async function negoBatchConfirm(c, kind, split){
   }
   const list = arr => arr.slice(0, 12).map(x => {
     const ch = x.ch || x;
-    return `<li style="margin:0 0 var(--s-1)"><code style="font-family:var(--font-mono);font-size:var(--t-label)">#${e(ch.id)}</code> ${e(ch.clauseLabel || ch.clauseId || '')}${
+    return `<li style="margin:0 0 var(--s-1)"><code style="font-family:var(--font-mono);font-size:var(--t-label)">#${e(ch.id)}</code> ${e(_neClause(ch.clauseLabel || ch.clauseId || ''))}${
       x.why ? ` <span style="color:var(--st-ruby-fg)">— ${e(x.why.join('; '))}</span>` : ''}</li>`;
   }).join('') + (arr.length > 12 ? `<li style="color:var(--color-neutral-600)">${i18t('ng_and_more',{n:arr.length - 12})}</li>` : '');
   const body = `
@@ -7043,7 +7049,7 @@ function negoMemo(c){
     const stats = (typeof redlineBlockStats === 'function') ? redlineBlockStats(ops) : null;
     return {
       id: ch.id || '',
-      clause: String(ch.clauseLabel || '').trim() || String(ch.id || ''),
+      clause: _neClause(String(ch.clauseLabel || '').trim()) || String(ch.id || ''),
       said: String(ch.summary || '').trim(),
       side: ch.authorSide === 'counterparty' ? 'them' : 'us',
       round: ch.roundN || null,
@@ -8512,7 +8518,7 @@ function renderRedline(){
       try{
         const res = await api('contracts/' + c.id + '/messages', 'POST', {
           topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
-          topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`,
+          topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
           body: msg.text });
         c._messages = (res && res.messages) || c._messages || [];
         if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
@@ -11901,7 +11907,7 @@ async function rlOpenPlaybookReview(c, again){
       <b style="font-size:var(--t-body)">${_ne(it.v.category)}</b>${chip(it)}
       <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${it.v.status === 'missing'
         ? 'missing — files as a new clause at the end'
-        : (it.clauseLabel ? `deviation &middot; ${_ne(it.clauseLabel)}` : 'deviation')}</span>
+        : (it.clauseLabel ? `deviation &middot; ${_ne(_neClause(it.clauseLabel))}` : 'deviation')}</span>
     </div>
     ${it.v.position ? `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
     ${''/* THE PREVIEW NAMES WHOSE WORDING IT IS, and it draws `lead` — the same
@@ -12864,7 +12870,7 @@ async function negoPostToChannel(c, ch, msg){
   const res = await api('contracts/' + c.id + '/messages', 'POST', {
     topic: (window.negoTopicFor ? negoTopicFor(ch) : (ch ? 'change:' + ch.id : 'general')),
     topicLabel: ch
-      ? `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`
+      ? `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`
       : (window.i18t ? i18t('di_contract_generally') : 'The contract generally'),
     body: msg.text });
   c._messages = (res && res.messages) || c._messages || [];
@@ -13052,7 +13058,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
     <button type="button" class="rl-np-which" data-rl-np-clause="${_nea(ch.clauseId || '')}"
       ${ch.clauseId ? '' : 'disabled'}>
       <span class="t">
-        <span class="id">${_ne(ch.id)}${ch.clauseLabel ? ` <em>· ${_ne(ch.clauseLabel)}</em>` : ''}</span>
+        <span class="id">${_ne(ch.id)}${ch.clauseLabel ? ` <em>· ${_ne(_neClause(ch.clauseLabel))}</em>` : ''}</span>
         <span class="s">${_ne(rlAskWord ? rlAskWord(ch) : '')}</span>
       </span>
       ${ch.clauseId ? '<span class="ch" aria-hidden="true">&rsaquo;</span>' : ''}
@@ -13268,7 +13274,7 @@ function rlChatPanelHtml(c, opts = {}){
                  what let the label wrap; see the rule in index.html.
                  ng_chat_on is STALE and left inert in both dictionaries. */}
           <span class="id">${_ne(ch.id)}</span>
-          ${ch.clauseLabel ? `<em>${_ne(ch.clauseLabel)}</em>` : ''}
+          ${ch.clauseLabel ? `<em>${_ne(_neClause(ch.clauseLabel))}</em>` : ''}
         </button>` : ''}
         ${rlNpNoteHtml(m, room, side, other)}
       </div>`).join('')
@@ -14192,7 +14198,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        already splits mine from theirs, and a sentence removed from a slot must
        stay findable — so they moved into this line's HOVER (the tip below),
        not out of the product. */
-    const who = _ne(ch.clauseLabel || ch.clauseId || '');
+    const who = _ne(_neClause(ch.clauseLabel || ch.clauseId || ''));
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
     /* The person who last MOVED the wording, which is the reviser where there is
@@ -15089,7 +15095,7 @@ function rlQueueRows(c, opts = {}){
         /* The region is named in the reader's own language; `clauseLabel` is
            the RECORD's word and stays on the record. */
         title: key === _frontId ? i18t('ng_front_matter')
-          : (parsed.title || String(ch.clauseLabel || '').trim()),
+          : _neClause(parsed.title || String(ch.clauseLabel || '').trim()),
         at: order.has(key) ? order.get(key) : Number.MAX_SAFE_INTEGER,
         changes: [], pending: 0, held: 0, accepted: 0, rejected: 0, why: [], lead: null };
       rows.set(key, row);

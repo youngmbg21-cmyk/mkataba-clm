@@ -198,6 +198,11 @@ function clauseParseHeading(raw){
 function clauseLabel(cl){
   if (!cl) return '';
   const num = String(cl.num || '').replace(/[.)]$/, '');
+  /* THIS BUILDS A RECORD, so it does NOT present. `clauseLabel`'s answer is
+     stamped onto every change as `ch.clauseLabel` and onto the front-matter
+     region, where the stamped string keeps English — and "for presentation
+     purposes" is about what a SCREEN shows, never about what is written down.
+     The one format is applied at the draw, by clauseNameShown. */
   const title = String(cl.title || '').trim();
   if (num && title) return `Clause ${num} · ${title}`;
   if (num) return `Clause ${num}`;
@@ -351,6 +356,46 @@ function clauseHeadingCase(clauses){
    then apply it" is three places for them to come to disagree. */
 function clauseHeadingFor(text, clauses){
   return clauseCaseTo(text, clauseHeadingCase(clauses));
+}
+
+/* ---------- ONE FORMAT ON SCREEN (owner-asked 10 Sep 2026) ----------
+   *"Some clauses are in capital letters and some in small letters. Let them all
+   be in one format for presentation purposes."*
+
+   MEASURED on one document's own headings, through the product's one naming
+   function: "Clause 1 · SUPPLY & SPECIFICATION" sat above "Clause 2 · Price &
+   Contract Value" and "Clause 3 · quality & rejection". Three cases in one
+   column, and none of them a decision anybody here took — they are three firms'
+   drafting habits printed straight back.
+
+   THE STYLE IS TITLE CASE AND IT IS THE ONE THIS PRODUCT ALREADY PRINTS IN.
+   The friction page settled the identical question on 26 Aug and its reasoning
+   is the reasoning here: a screen listing eight contracts' clauses has to have
+   a voice of its own or every row shouts as loudly as its author did. Using a
+   second style here would be two house styles in one product.
+
+   IT CHANGES WHAT IS PRINTED AND NOTHING ELSE. No contract is rewritten, no
+   heading on any paper moves, no stored wording moves and no fingerprint moves
+   — the fingerprint carries `headingText`, which this never touches. THE PAPER
+   IS DELIBERATELY NOT SWEPT: the agreement on screen is what was drafted, and
+   a document tab that quietly re-cased its own headings would be the contract
+   reading differently from the file it came out of.
+
+   THE NUMBER AND THE SHAPE ARE LEFT EXACTLY AS THEY STAND. Only the TITLE is
+   re-cased, in place, so a raw heading stays a raw heading and a built label
+   stays a built label — this is asked of both, and of stamped labels written
+   before it existed.
+
+   AND A NAME IT CANNOT READ IS LEFT ALONE. Where the parse does not hand back
+   the tail of the string there is nothing safe to put back, and clauseCaseTo's
+   own rule governs: "I could not tell" must never become "so I changed it
+   anyway". */
+function clauseNameShown(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const title = String(clauseParseHeading(t).title || '');
+  if (!title || !t.endsWith(title)) return t;
+  return t.slice(0, t.length - title.length) + clauseTitleCase(title);
 }
 
 /* ---------- WHERE A NUMBER IS MISSING ----------
@@ -1236,6 +1281,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
   clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,
+  clauseNameShown,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
   CLAUSE_FRONT_ID, clauseFrontClause, clauseFrontParts, clauseReplaceFront,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,

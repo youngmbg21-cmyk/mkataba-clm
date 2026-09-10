@@ -12134,6 +12134,130 @@ guarded, so the parent run REPORTS its twelve rather than aborting on the first
 missing control)**, negotiations-door-verify's two search-box claims REVERSED IN
 PLACE (they had asserted the opposite of the shipped page since 31 Aug).
 
+## ONE CLAUSE-NAME FORMAT ON SCREEN (owner-asked 10 Sep 2026)
+
+*"Some clauses are in capital letters and some in small letters. Let them all
+be in one format for presentation purposes."*
+
+**MEASURED through the product's own one naming function, on ONE document's own
+headings:** *"Clause 1 · SUPPLY & SPECIFICATION"* above *"Clause 2 · Price &
+Contract Value"* above *"Clause 3 · quality & rejection"*. Three cases in one
+column, and none of them a decision anybody here took — they are three firms'
+drafting habits printed straight back.
+
+- **`clauseNameShown` IS THE ONE READING and the style is TITLE CASE, which is
+  the style this product already prints in.** The friction page settled the
+  identical question on 26 Aug and its reasoning governs: a screen listing eight
+  contracts' clauses has to have a voice of its own or every row shouts as
+  loudly as its author did. A second style here would be two house styles in one
+  product, and f282 pins that this reading and `clauseTitleCase` answer alike.
+- **ONLY THE TITLE IS RE-CASED, IN PLACE.** The number, the punctuation and the
+  shape are left exactly as they stand, so a raw heading stays a raw heading and
+  a built label stays a built label — and it is asked of stamped labels written
+  long before it existed. **A name the parse cannot hand back the tail of is
+  left alone**, which is `clauseCaseTo`'s own rule: *"I could not tell" must
+  never become "so I changed it anyway"*.
+- **`clauseLabel` BUILDS A RECORD, SO IT DOES NOT PRESENT — and a first build
+  got this wrong.** Its answer is stamped onto every change as `ch.clauseLabel`
+  and onto the front-matter region, where **the stamped string keeps English**;
+  putting the format inside it rewrote records for a screen's sake, and two
+  existing tests said so within the minute (f250 read *"Front Matter"*, f269
+  read *"Payment Terms"* off a record). **The format is applied at the DRAW**,
+  and f282 pins `clauseLabel`'s silence as a WALL that passes before and after,
+  so nobody moves it one level too deep again.
+- **THE PAPER IS DELIBERATELY NOT SWEPT.** The agreement on screen is what was
+  drafted, and a document tab that quietly re-cased its own headings would read
+  differently from the file it came out of. `redlineDocHtml`, `negoDocHtml` and
+  `documentTextHtml` present nothing, asserted rather than assumed.
+- **THE OPENING-WORDS FALLBACK IS NEVER PRESENTED.** A clause with no number and
+  no heading is named by its own first words, and Title Case on a sentence is
+  worse than the shouting it would fix.
+- **ONE HELPER PER FILE AND ONE READING BEHIND ALL OF THEM** — `negoClauseName`
+  in js/negotiation.js, itself clausemodel's, reached through `window` so a
+  stage without the module prints the raw name rather than throwing.
+  `negoTimeline`'s own `pushChange` presents **ONCE** and that covers five
+  history surfaces at a stroke (the room's History tab, the negotiation page's
+  history screen, its exported report, the clause filter, the phone).
+  **`ceClauseLabel` is the clause editor's one display naming** and presents, so
+  its greeting, its reading line, its scope line and its leave warning cannot
+  come to call one clause four different things.
+- **WHAT IS DELIBERATELY LEFT AS TYPED, said out loud:** the playbook categories
+  and the clause library's own names. Those are names somebody HERE chose for a
+  standard rather than a contract's own heading, and re-casing them would change
+  what their author wrote. So a standard inserted into a document with no
+  readable habit reads in its own case on the PAPER while the chrome presents it
+  — the same trade the friction page already accepts.
+
+Tests: f282 (9 — **6 fail against the parent**; the three that pass are named
+CONTROLS: `clauseLabel` builds a record, the sentence fallback, and the paper),
+redline-verify section 24 (**2 of 4 fail at the parent, reporting the owner's
+own screen verbatim**), and claims REVERSED IN PLACE in f269, f246, f37, f130
+and f245 — two of them stronger for it, having pinned a literal where the claim
+was a relation.
+
+## COPILOT KNOWS WHAT PAGE THIS IS (owner-asked 10 Sep 2026)
+
+*"the copilot is not aware of what is on the page."* **The image half of that
+report — pasting an image and asking about it — is EXCLUDED by the owner and is
+not built.**
+
+**MEASURED with the reader standing on Contracts.** Copilot was told
+`view: "register"` — a developer's word for a page the reader has never seen —
+and `activeContractId: "MK-9"`, under a prompt line reading *"The contract open
+on screen is MK-9 — an unqualified 'this contract' means that one."* **NO
+CONTRACT WAS OPEN.** `state.activeId` is a global that survives whatever was
+last opened ANYWHERE and is never cleared on the way out, so that sentence was
+false on **fifteen of the seventeen pages** in this product. And nothing at all
+said what was ON the page.
+
+- **AND ONE MAP WAS INCOMPLETE.** `AI_INSIGHTS_TABS` named THREE of Insights'
+  five tabs, and the caller filled the gap with `'portfolio'` — so a reader on
+  **Payment terms** or **Obligations** was described as looking at a chart on
+  another tab. A wrong answer wearing a right one's clothes. All five are named
+  and **an unknown tab is said NOTHING about**; f283 reads `IG_TABS` off the
+  page so the map cannot fall behind it again.
+- **`aiScreenContractId` ANSWERS FOR THE TWO PAGES THAT REALLY SHOW ONE**, and
+  on the negotiation page it reads **`redlineHeldId`** — the contract that was
+  PAINTED — never the global. That is this codebase's own recorded defect
+  (`POLL_ON_ARRIVAL` read the wrong view for the same reason), closed here; with
+  the negotiations LIST up there is no contract on screen at all.
+- **`aiPageContext` ADDS NO STORE, NO ROUTE AND NO SPEND.** It is a reading of
+  what is already on the screen, assembled in `aiChatContext` — the ONE place
+  the brief is built, so the server-mediated and browser-direct paths cannot
+  drift apart. It writes nothing and asked twice it answers twice the same.
+- **THE NAME IS STABLE ENGLISH AND THE READER'S OWN LABEL RIDES BESIDE IT** —
+  the insights panels' rule, for its own reason: a translated title gives a model
+  nothing to match on, and a key like `intel` or `pipeline` gives a READER
+  nothing to recognise. `AI_PAGE_NAMES` must name every view `state.view` can
+  take, and f283 reads js/app.js to make sure it does.
+- **EVERY COUNT IS BORROWED, NEVER TAKEN HERE.** `regFiltered`, `regNarrowed`,
+  `regState`, `obwFilters`, `obwNarrowing` and `obwRows` are the pages' own
+  readings, so what Copilot is told the page is showing cannot disagree with
+  what the page drew. **Where a page's reading is not on the stage it says
+  NOTHING about that page's contents** rather than guessing — Copilot has tools
+  to fetch data, and an invented summary of a screen is the one thing it may not
+  rest on.
+- **`obwNarrowing` WAS EXPORTED FOR IT, AND THE TEST CAUGHT A REAL DEFECT ON THE
+  WAY.** That worklist opens on `state='open'`, which is a **CUT** — so a first
+  version comparing against `'all'` reported the page as filtered the moment it
+  was drawn, which is the trap recorded in the worklist's own source. Borrow its
+  one reading; never write a second.
+- **THE SENTENCE IS WRITTEN TWICE ON PURPOSE**, `aiPageSays` in js/ai.js and
+  `pageSays` in server/server.js. **What travels is FIELDS, never a ready-made
+  sentence**: a request that could hand the route a finished line of the system
+  prompt is a request that could put anything in it, so every field is clamped
+  where it lands — exactly as `ctx.view` and `ctx.insightsTab` already are.
+  f283 (5) pins that both hosts say the same facts and that a crafted page
+  object cannot fill the prompt.
+
+Tests: f283 (24 — **all 24 fail against the parent**, the reading does not exist
+there), contracts-page-verify section 19 (**all 5 fail at the parent**, the
+headline one reporting the fault verbatim: `{"id":"MK-B2"}` on the Contracts
+page, with the contract's own room as the control), and f183's tab claim
+REVERSED IN PLACE and made stronger — it was passing on the FALLBACK, so its
+stage now carries the page's own tab and it asserts that where the tab cannot be
+read, none is named.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

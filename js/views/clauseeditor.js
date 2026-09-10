@@ -847,10 +847,17 @@ function ceIsProposed(){
   const cl = ceClause();
   return !!(cl && cl._ceProposed);
 }
+/* Presented: this is a name on its way to a SCREEN — the greeting, the reading
+   line, the scope line and the leave warning — and the page reads in the
+   product's one format whatever case the paper shouted in. The RECORD is not
+   touched: clauseLabel still builds the stamped name, and this only changes
+   what is printed. */
 function ceClauseLabel(cl){
   if (!cl) return '';
-  try{ if (window.negoClauseLabel) return negoClauseLabel(cl); }catch(_){}
-  return String(cl.headingText || cl.title || '').trim();
+  let raw = '';
+  try{ if (window.negoClauseLabel) raw = negoClauseLabel(cl); }catch(_){}
+  if (!raw) raw = String(cl.headingText || cl.title || '').trim();
+  return window.negoClauseName ? negoClauseName(raw) : raw;
 }
 /* READ WITHOUT WRITING is not at stake here — this page is only ever opened on
    a contract whose negotiation is already live — but the raw read is used
@@ -1946,7 +1953,7 @@ function clauseEditorLeaveAsk(){
   const bits = [];
   try{
     const cl = ceClause();
-    const name = (cl && window.clauseLabel) ? String(clauseLabel(cl) || '').trim() : '';
+    const name = ceClauseLabel(cl);
     if (name) bits.push(_cet('ce_leave_on', { clause: name }));
   }catch(_){}
   try{

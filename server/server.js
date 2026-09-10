@@ -5768,6 +5768,39 @@ async function runCopilotTool(ctx, name, input, aux) {
    Anthropic's API takes `system` as an array of text blocks; a block whose
    text falls under the model's minimum cacheable length simply caches nothing
    — the flag is never an error. */
+/* THE PAGE, SAID IN ONE SENTENCE (owner-asked 10 Sep 2026: "the copilot is not
+   aware of what is on the page").
+
+   THE TWIN of aiPageSays in js/ai.js, and it is written twice ON PURPOSE. What
+   travels is FIELDS, never a ready-made sentence: a request that could hand
+   this route a finished line of the system prompt is a request that could put
+   anything in it. Every field is clamped where it lands, exactly as ctx.view
+   and ctx.insightsTab already are. f283 pins that both hosts say the same
+   facts — an unchecked client/server twin is the recorded defect class here.
+
+   IT SAYS ONLY WHAT IT WAS GIVEN. An absent count is silence rather than a
+   guess: the tools are there to fetch data, and an invented summary of a
+   screen is the one thing Copilot may not rest on. */
+function pageSays(p){
+  if (!p || typeof p !== 'object') return '';
+  const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 60);
+  const name = cut(p.name || p.view); if (!name) return '';
+  let t = `The user is on the ${name} page`;
+  const label = cut(p.label);
+  if (label && label !== name) t += ` (they see it labelled "${label}")`;
+  t += '. ';
+  if (p.tab) t += `They are on its "${cut(p.tab)}" tab. `;
+  if (p.valueStream) t += `It is filtered to the "${cut(p.valueStream)}" value stream. `;
+  if (p.showing) t += `It is showing ${cut(p.showing, 80)}. `;
+  if (p.searchBox) t += `Its search box reads "${cut(p.searchBox)}". `;
+  if (Array.isArray(p.filters) && p.filters.length)
+    t += `Filters in force: ${p.filters.slice(0, 6).map(x => cut(x, 40)).join(', ')}. `;
+  if (typeof p.matching === 'number')
+    t += `${p.matching}${typeof p.ofBook === 'number' ? ' of ' + p.ofBook : ''} row${p.matching === 1 ? '' : 's'} match. `;
+  else if (p.narrowed === false) t += 'Nothing is narrowing it. ';
+  t += '"This page", "this list" and "what I am looking at" mean that screen. ';
+  return t;
+}
 function buildCopilotSystem(context, scopeCtx) {
   const ctx = context || {};
   // Live workspace facts so Copilot knows what exists without blind searching —
@@ -5780,7 +5813,9 @@ function buildCopilotSystem(context, scopeCtx) {
   const folders = db.prepare(`SELECT DISTINCT folder FROM contracts ${whereOf('org_id=?', "folder<>''", fs.sql)}`).all(scopeCtx.org, ...fs.args).map(r => r.folder).filter(Boolean);
   const orgName = (getSetting('org') && getSetting('org').name) || 'this workspace';
   let view = '';
-  if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
+  const says = pageSays(ctx.page);
+  if (says) view += says;
+  else if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
   /* WHICH INSIGHTS TAB. "intel" is three different pages, and a reader looking

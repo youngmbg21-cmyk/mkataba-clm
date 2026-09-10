@@ -20,6 +20,11 @@ const KIND_LABEL = {get risk(){ return i18t('kind_risk'); },
   get missing(){ return i18t('kind_missing'); },
   get ambiguity(){ return i18t('kind_ambiguity'); }};
 
+/* A clause name on its way to the screen, in the product's one format —
+   negotiation.js's own reading, reached through window so a stage without that
+   module prints the raw name rather than throwing. */
+const _aiClauseName = s => (window.negoClauseName ? negoClauseName(s)
+  : String(s == null ? '' : s));
 function scanRules(c){
   if(isUpload(c)) return uploadScanRules(c);
   /* A drafted contract that has since been EDITED no longer renders per-clause
@@ -1380,7 +1385,13 @@ an answer. And say what the panel EXCLUDES when it excludes anything: the
 
    NOTHING IS RE-COUNTED HERE, and nothing is counted on the server. A second
    place that counts the same money is the failure f151 exists to catch. */
-const AI_INSIGHTS_TABS = { frame:'portfolio', friction:'negotiation-friction', map:'contract-graph' };
+/* EVERY tab this page draws, in stable English. It named THREE of five, so a
+   reader on Payment terms or Obligations answered null — and the caller then
+   filled the gap with 'portfolio', telling Copilot they were looking at a
+   chart on a different tab. A map that has to be complete says so, and f283
+   reads IG_TABS to make sure it stays complete. */
+const AI_INSIGHTS_TABS = { frame:'portfolio', friction:'negotiation-friction',
+  obligations:'obligations', payterms:'payment-terms', map:'contract-graph' };
 function aiInsightsTab(){
   try{
     if(typeof intel!=='object' || !intel) return null;
@@ -1443,6 +1454,125 @@ function aiInsightsBrief(panels, tab){
   return lines.join('\n');
 }
 
+/* ---------- WHAT THE READER IS ACTUALLY LOOKING AT (owner-asked 10 Sep 2026)
+   *"the copilot is not aware of what is on the page"*
+
+   MEASURED before it was touched, with the reader standing on Contracts:
+   Copilot was told `view: "register"` — a developer's word for the page, which
+   the reader has never seen — and `activeContractId: "MK-9"`, under a prompt
+   line reading *"The contract open on screen is MK-9"*. No contract was open.
+   `state.activeId` is a global that survives whatever was last opened
+   ANYWHERE and is never cleared on the way out, so that sentence was false on
+   fifteen of the seventeen pages in this product.
+
+   THREE THINGS, AND NONE OF THEM IS A NEW STORE, A ROUTE OR A SPEND. It is a
+   reading of what is already on screen, assembled in aiChatContext — the ONE
+   place the brief is built, so the server-mediated and browser-direct paths
+   cannot drift apart.
+
+   THE NAME IS STABLE ENGLISH AND THE READER'S OWN LABEL RIDES BESIDE IT — the
+   insights panels' own rule, for its own reason: a translated title gives a
+   model nothing to match on, and a key like "intel" or "pipeline" gives a
+   READER nothing to recognise. So both travel and neither has to do the
+   other's job.
+
+   EVERY COUNT IS BORROWED, NEVER TAKEN HERE. regFiltered, regNarrowed,
+   regState and obwRows are the pages' own readings, so what Copilot is told
+   the page is showing cannot disagree with what the page drew. Where a page's
+   reading is not on this stage it says NOTHING about that page's contents
+   rather than guessing — Copilot has tools to fetch data, and an invented
+   summary is the one thing it may not rest on.
+
+   AND IT WRITES NOTHING. No state moves, nothing is persisted, nothing is
+   rendered; asked twice it answers twice the same. */
+const AI_PAGE_NAMES = {
+  dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
+  redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
+  obligations: 'Obligations', calendar: 'Calendar', templates: 'Templates',
+  playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
+  directory: 'People', team: 'Settings & rules', reports: 'Reports',
+  migration: 'Import contracts', advice: 'Advice desk',
+};
+/* WHICH CONTRACT IS REALLY ON THE SCREEN, and on two pages only.
+   On the negotiation page it is the one that was PAINTED — redlineHeldId, the
+   fact recorded on the paint — and never state.activeId, which is the recorded
+   defect: that page reads a global that still names whatever was last opened
+   from anywhere, and with the negotiations LIST up there is no contract on
+   screen at all. */
+function aiScreenContractId(){
+  try{
+    const v = (typeof state === 'object' && state && state.view) || '';
+    if (v === 'workspace') return state.activeId || null;
+    if (v === 'redline')
+      return (typeof window.redlineHeldId === 'function') ? (redlineHeldId() || null) : null;
+    return null;
+  }catch(_){ return null; }
+}
+function aiPageContext(){
+  let view = '';
+  try{ view = (typeof state === 'object' && state && state.view) || ''; }catch(_){ return null; }
+  if (!view) return null;
+  const page = { view };
+  if (AI_PAGE_NAMES[view]) page.name = AI_PAGE_NAMES[view];
+  /* The reader's own word for this page, in their own language — what they
+     would use to describe where they were. */
+  try{
+    if (typeof commandMeta === 'function'){
+      const m = commandMeta(view);
+      if (m && m[0] && String(m[0]) !== page.name) page.label = String(m[0]);
+    }
+  }catch(_){}
+
+  /* ---- THE TWO LISTS, THROUGH THE REGISTER'S OWN READINGS ---- */
+  if (view === 'register' || view === 'folder'){
+    try{
+      if (typeof regScope === 'function' && regScope() === 'negotiations')
+        page.name = AI_PAGE_NAMES.redline;
+      if (typeof regState === 'function' && typeof regFiltered === 'function'){
+        const st = regState();
+        page.narrowed = (typeof regNarrowed === 'function') ? !!regNarrowed(st) : undefined;
+        const q = String(st.query || '').trim();
+        if (q) page.searchBox = q;
+        const cuts = ['stage','type','category','signed','payterms','renewal']
+          .filter(k => st[k] && st[k] !== 'all').map(k => `${k}=${st[k]}`);
+        if (st.only) cuts.push('a named set of contracts');
+        if (cuts.length) page.filters = cuts;
+        page.matching = regFiltered().length;
+        page.ofBook = (state.contracts || []).length;
+      }
+      if (view === 'folder' && typeof FOLDERS === 'object' && FOLDERS && state.folderId
+        && FOLDERS[state.folderId]) page.valueStream = FOLDERS[state.folderId].name;
+    }catch(_){}
+  }
+
+  /* ---- THE OBLIGATIONS WORKLIST, THROUGH ITS OWN ---- */
+  if (view === 'obligations'){
+    try{
+      if (typeof obwFilters === 'function' && typeof obwRows === 'function'
+        && typeof obwNarrowing === 'function'){
+        const f = obwFilters();
+        page.matching = obwRows(f).length;
+        /* obwNarrowing and NOT a comparison against 'all': that list opens on
+           state='open', which is a cut, so anything measuring against 'all'
+           reports the page as filtered the moment it is drawn — the worklist's
+           own recorded trap. One reading, three readers. */
+        const cuts = obwNarrowing(f);
+        if (cuts.length) page.filters = cuts.map(k => `${k}=${f[k]}`);
+        page.narrowed = cuts.length > 0;
+      }
+    }catch(_){}
+  }
+
+  /* ---- A CONTRACT'S OWN ROOM: which contract, and which tab of it ---- */
+  if (view === 'workspace'){
+    try{ if (typeof roomCurrentTab === 'function'){
+      const t = roomCurrentTab(); if (t) page.tab = String(t); } }catch(_){}
+  }
+  /* ---- THE NEGOTIATIONS DOOR: a list, or one negotiation ---- */
+  if (view === 'redline' && !aiScreenContractId()) page.showing = 'the list of live negotiations';
+  return page;
+}
+
 /* Page-awareness snapshot: which screen the user is on and which contract is
    open, so Copilot can answer about what's visible without being told. */
 function buildAssistantContext(){ return aiChatContext(); }
@@ -1473,7 +1603,13 @@ function aiChatContext(){
       (typeof AI_TONE_RULES==='string'?AI_TONE_RULES:''), '',
       (typeof AI_CHART_RULES==='function'?AI_CHART_RULES():'')].join('\n'),
     guideLive: aiPortfolioSnapshot() };
-  if(state.activeId){ const c=getContract(state.activeId); if(c){ ctx.activeContractId=c.id; ctx.activeContractName=c.name; } }
+  /* ONLY where a contract is genuinely on the screen. This used to read
+     state.activeId unconditionally, so every page in the product told Copilot
+     a contract was open — see aiScreenContractId. */
+  const screenId=aiScreenContractId();
+  if(screenId){ const c=getContract(screenId); if(c){ ctx.activeContractId=c.id; ctx.activeContractName=c.name; } }
+  /* What the reader is looking at, and what that page is showing. */
+  const pg=aiPageContext(); if(pg) ctx.page=pg;
   /* THE PANELS TRAVEL WITH EVERY MESSAGE, and the paragraph only where the
      reader is looking at them. The objects are aggregates, not rows — small —
      and shipping them means get_insights_panel can answer from ANY screen
@@ -1484,9 +1620,13 @@ function aiChatContext(){
   const panels=aiInsightsPanels();
   if(panels && Object.keys(panels).length) ctx.insights={ panels };
   if(state.view==='intel'){
+    /* A tab this map does not know is SAID NOTHING ABOUT. It used to fall back
+       to 'portfolio', which made Copilot describe a chart the reader was not
+       looking at — a wrong answer wearing a right one's clothes, and the
+       reported fault. */
     const tab=aiInsightsTab();
-    ctx.insightsTab=tab||'portfolio';
-    if(ctx.insights) ctx.insights.tab=ctx.insightsTab;
+    if(tab) ctx.insightsTab=tab;
+    if(ctx.insights && tab) ctx.insights.tab=tab;
     if(ctx.insightsTab==='portfolio'){
       const brief=aiInsightsBrief(panels, ctx.insightsTab);
       if(brief) ctx.guideLive=[ctx.guideLive, brief].filter(Boolean).join('\n\n');
@@ -1610,11 +1750,44 @@ const LOCAL_AI_TOOLS=[
     compare:{type:'object',properties:{columns:{type:'array',items:{type:'object',properties:{id:{type:'string'},label:{type:'string'}},required:['id','label']}},rows:{type:'array',items:{type:'object',properties:{label:{type:'string'},cells:{type:'array',items:{type:'string'}}},required:['label','cells']}},verdict:{type:'string'}},required:['columns','rows']}},
     required:['answer']} },
 ];
+/* THE PAGE, SAID IN ONE SENTENCE — and written twice on purpose, here and in
+   server/server.js, because the browser cannot reach the server's prompt and
+   the server must not take a ready-made sentence from a request: what travels
+   is FIELDS, each clamped where it lands, exactly as ctx.view and
+   ctx.activeContractId already do. f283 pins that the two hosts say the same
+   facts, which is the relation that matters — a client/server twin nobody
+   checks is the recorded defect class here.
+
+   IT NAMES THE PAGE AND WHAT IS NARROWING IT, and nothing it was not given:
+   an absent count is silence rather than a guess, because Copilot has tools to
+   fetch data and an invented summary is the one thing it may not rest on. */
+function aiPageSays(p){
+  if(!p || typeof p!=='object') return '';
+  const cut=(v,n)=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,n||60);
+  const name=cut(p.name||p.view); if(!name) return '';
+  let t=`The user is on the ${name} page`;
+  const label=cut(p.label);
+  if(label && label!==name) t+=` (they see it labelled "${label}")`;
+  t+='. ';
+  if(p.tab) t+=`They are on its "${cut(p.tab)}" tab. `;
+  if(p.valueStream) t+=`It is filtered to the "${cut(p.valueStream)}" value stream. `;
+  if(p.showing) t+=`It is showing ${cut(p.showing, 80)}. `;
+  if(p.searchBox) t+=`Its search box reads "${cut(p.searchBox)}". `;
+  if(Array.isArray(p.filters) && p.filters.length)
+    t+=`Filters in force: ${p.filters.slice(0,6).map(x=>cut(x,40)).join(', ')}. `;
+  if(typeof p.matching==='number')
+    t+=`${p.matching}${typeof p.ofBook==='number'?' of '+p.ofBook:''} row${p.matching===1?'':'s'} match. `;
+  else if(p.narrowed===false) t+='Nothing is narrowing it. ';
+  t+='"This page", "this list" and "what I am looking at" mean that screen. ';
+  return t;
+}
 function _localSystem(context){
   const cs=state.contracts||[]; const ctx=context||{};
   const byStatus={}; cs.forEach(c=>{ byStatus[c.status||'Unknown']=(byStatus[c.status||'Unknown']||0)+1; });
   let view='';
-  if(ctx.view) view+=`The user is on the "${ctx.view}" screen. `;
+  const says=aiPageSays(ctx.page);
+  if(says) view+=says;
+  else if(ctx.view) view+=`The user is on the "${ctx.view}" screen. `;
   /* WHICH INSIGHTS TAB, following the negotiation room's own pattern: "intel"
      does not say what is on the screen, and three different pages answer to
      it. A reader looking at the Portfolio charts asking "why is this so big"
@@ -2731,7 +2904,7 @@ function aiProposalAnchorHtml(p){
   const placement = aiNormalizePlacement(p.placement);
   const line = s => `<div style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5">${s}</div>`;
   if (placement === 'newClause')
-    return line(`New clause${p.clauseLabel ? ` after <i>${e(p.clauseLabel)}</i>` : ''}${
+    return line(`New clause${p.clauseLabel ? ` after <i>${e(_aiClauseName(p.clauseLabel))}</i>` : ''}${
       p.headingText ? ` · heading <i>${e(p.headingText)}</i>` : ''}`);
   if (!p.replacing) return '';
   const quote = e(p.replacing.length > 110 ? p.replacing.slice(0, 109) + '…' : p.replacing);
@@ -2786,7 +2959,7 @@ function aiProposalCardHtml(p){
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
       <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
         background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:var(--radius);padding:2px var(--s-2)">${i18t('ai_proposed_wording')}</span>
-      ${p.clauseLabel ? `<span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
+      ${p.clauseLabel ? `<span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${e(_aiClauseName(p.clauseLabel))}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
         style="font-size:var(--t-label);color:var(--st-amber-fg)">${i18t('ai_unstructured_reply')}</span>` : ''}
     </div>
@@ -3075,7 +3248,7 @@ function aiOpenRephraseSession(opts){
      they have typed a sentence the document is behind a drawer. */
   aiPush('assistant', { text: `
     <div class="ai-target">
-      <div class="ai-target-head">Target text${o.clauseLabel ? ` · ${_aiEsc(o.clauseLabel)}` : ''}</div>
+      <div class="ai-target-head">Target text${o.clauseLabel ? ` · ${_aiEsc(_aiClauseName(o.clauseLabel))}` : ''}</div>
       <div class="ai-target-body">${_aiEsc(passage.length > 600 ? passage.slice(0, 599) + '…' : passage)}</div>
     </div>
     <div class="ai-target-ask">${_aiEsc(o.greeting || 'What would you like to add or change here?')}</div>` });
@@ -3669,4 +3842,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
