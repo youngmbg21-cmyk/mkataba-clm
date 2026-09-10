@@ -61,6 +61,13 @@
    answers to "what is a clause" is how a change comes to be filed against a
    passage nobody is looking at. */
 const negoClauseLabel = cl => (window.clauseLabel ? clauseLabel(cl) : '');
+/* A clause name on its way to a SCREEN, written in the product's one format —
+   clausemodel's reading, reached through window so a stage without that module
+   prints the raw name rather than throwing. It is asked of STAMPED labels,
+   which were written by whatever `clauseLabel` said on the day they were filed:
+   the record keeps the name it was given and the screen reads in one voice. */
+const negoClauseName = s => (window.clauseNameShown
+  ? clauseNameShown(String(s == null ? '' : s)) : String(s == null ? '' : s));
 
 /* The rich body a negotiation runs on. A contract that is already rich is used
    as it stands; a plain-text one is lifted to the same shape so that every
@@ -670,7 +677,7 @@ function negoTimeline(c, f = {}){
   const pushChange = (ch, roundN) => {
     if (!ch || ch.status === 'superseded') return;
     const base = { round: roundN, clauseId: ch.clauseId || null,
-      clauseLabel: ch.clauseLabel || ch.clauseId || '', changeId: ch.id || null };
+      clauseLabel: negoClauseName(ch.clauseLabel || ch.clauseId || ''), changeId: ch.id || null };
     const sideWord = ch.authorSide === 'owner' ? 'owner side' : 'counterparty';
     ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
       side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
@@ -4391,7 +4398,7 @@ if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'ne
   Object.defineProperty(window, 'negoLastRefusal', { get: () => negoLastRefusal, configurable: true });
 if (typeof window !== 'undefined') Object.assign(window, {
   cardName, negoTheirCopy,
-  negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
+  negoClauseLabel, negoClauseName, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
   negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,
   negoWordsMoved, negoHeadingAsk, negoStandingHeading, negoFrontClause, negoIsFrontId,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,

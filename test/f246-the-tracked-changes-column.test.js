@@ -482,7 +482,14 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
     const meta = card.querySelector('.rl-card-meta').textContent;
     const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
     assert.ok(meta.includes(ch.id), 'the reference');
-    assert.ok(meta.includes(String(ch.clauseLabel || ch.clauseId)), 'and the clause it is on');
+    /* RE-POINTED 10 Sep 2026 (one clause-name format on screen): the row prints
+       the STAMPED name in the product's one format, so the claim is the RELATION
+       — it names the clause this change is on — rather than the stored string's
+       own case, which is whichever way that paper happened to shout. */
+    const shown = p.win.negoClauseName
+      ? p.win.negoClauseName(String(ch.clauseLabel || ch.clauseId))
+      : String(ch.clauseLabel || ch.clauseId);
+    assert.ok(meta.includes(shown), 'and the clause it is on');
     assert.equal(card.querySelector('.rl-card-sum').textContent.trim(), ch.summary,
       'and the bold line is the change\'s own summary, quoted, never composed here');
   });

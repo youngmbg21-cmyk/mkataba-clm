@@ -981,6 +981,51 @@ const check = (name, ok, detail) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.waitForTimeout(400);
 
+    /* ---- 19. COPILOT IS TOLD WHICH PAGE THIS IS ----
+       (owner-asked 10 Sep 2026: "the copilot is not aware of what is on the
+       page".)
+
+       IT HAS TO BE ASKED ON A REAL SHELL. The reading is provable in node; what
+       cannot be staged there is a reader who OPENS a contract and then WALKS
+       BACK to the register, which is the whole of how state.activeId comes to
+       name a contract on a page that shows none. Against the code of an hour
+       before, the brief tells Copilot a contract is open on the Contracts page.
+
+       AND THE CONTRACT'S OWN ROOM IS THE CONTROL: a page that really does show
+       one must still name it, or "no contract is claimed" is satisfied by a
+       brief that has simply stopped saying anything. */
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(400);
+    const brief = await page.evaluate(() => {
+      const out = {};
+      const first = (state.contracts[0] || {}).id || null;
+      /* Open one, then walk back — the journey that leaves the global set. */
+      if (first) openWorkspace(first);
+      out.room = (() => { const c = aiChatContext();
+        return { id: c.activeContractId || null, page: c.page ? c.page.name : null,
+          tab: c.page ? c.page.tab || null : null }; })();
+      setView('register');
+      out.list = (() => { const c = aiChatContext();
+        return { id: c.activeContractId || null, page: c.page ? c.page.name : null,
+          matching: c.page ? c.page.matching : null,
+          says: (typeof aiPageSays === 'function' ? aiPageSays(c.page) : '') }; })();
+      out.opened = first;
+      return out;
+    });
+    check('19 THE CONTROL: a contract\'s own room names the contract on screen',
+      brief.room.id === brief.opened && brief.room.page === 'a contract',
+      JSON.stringify(brief.room));
+    check('19a THE REPORTED FAULT: back on Contracts, no contract is claimed open',
+      brief.list.id === null, JSON.stringify(brief.list));
+    check('19b and the page names itself instead',
+      brief.list.page === 'Contracts', JSON.stringify(brief.list));
+    check('19c with the number of rows it is actually showing',
+      typeof brief.list.matching === 'number' && brief.list.matching > 0,
+      String(brief.list.matching));
+    check('19d and the sentence Copilot reads says so',
+      /on the Contracts page/.test(brief.list.says) && /rows? match/.test(brief.list.says),
+      brief.list.says.slice(0, 200));
+
     check('the page threw nothing', errors.length === 0, errors.join(' | '));
   } finally {
     await browser.close();

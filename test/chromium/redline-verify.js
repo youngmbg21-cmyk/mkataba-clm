@@ -2244,6 +2244,54 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     `head ${emptyCol.head} · lines ${JSON.stringify(emptyCol.lines)}`);
   await page.screenshot({ path: path.join(OUT, '23-empty-column.png') });
 
+  /* ---- 24. ONE CLAUSE-NAME FORMAT ON SCREEN ----
+     (owner-asked 10 Sep 2026: "Some clauses are in capital letters and some in
+     small letters. Let them all be in one format for presentation purposes.")
+
+     IT HAS TO BE MEASURED ON A RENDERED COLUMN. The reading is provable in
+     node; what a person actually READS is the run of names down this column,
+     and only a rendered page has all of them at once.
+
+     STAGED WITH THE FAULT THE OWNER REPORTED — three changes on one contract,
+     stamped the three ways one document's own headings arrive: shouted, title
+     case, and small. A stamped label is what this column prints, and it was
+     written by whatever the paper shouted on the day it was filed; against the
+     code of an hour before, all three come straight back out.
+
+     AND THE PAPER IS THE CONTROL. The agreement beside the column keeps the
+     heading it was drafted with, so this can never read as "the fix worked"
+     on a page that had quietly re-cased the contract itself. */
+  const names = await page.evaluate(() => {
+    const c = CONTRACT;
+    const mk = (id, clauseId, label, old, now) => ({
+      id, clauseId, clauseLabel: label, changeType: 'modify', status: 'pending',
+      author: 'Amina Yusuf', authorSide: 'owner', summary: 'a shorter line',
+      oldText: old, newText: now, createdAt: new Date().toISOString(), seq: 1 });
+    c.changes = [
+      mk('CHG-901', 'cl_a', 'Clause 1 · SUPPLY & SPECIFICATION', 'The Supplier shall supply.', 'The Supplier supplies.'),
+      mk('CHG-902', 'cl_b', 'Clause 2 · Price & Contract Value', 'The price is agreed.', 'The price is fixed.'),
+      mk('CHG-903', 'cl_c', 'Clause 3 · quality & rejection', 'Rejection is allowed.', 'Rejection is permitted.'),
+    ];
+    renderRedline();
+    const metas = [...document.querySelectorAll('#rl-changes .rl-card-d .rl-card-meta')]
+      .map(e => e.textContent.replace(/\s+/g, ' ').trim());
+    const sheet = document.querySelector('.rl-paper') || document.querySelector('.rl-doc');
+    const paper = sheet ? sheet.textContent.replace(/\s+/g, ' ') : '';
+    return { metas, paper };
+  });
+  const shouted = s => /[A-Za-z]/.test(s) && !/[a-z]/.test(s);
+  const titles = names.metas.map(m => (m.split('·').pop() || '').trim());
+  check('24 the column draws a name for each of the three changes',
+    titles.length === 3, JSON.stringify(titles));
+  check('24a not one of them shouts — the half the owner reported',
+    titles.length === 3 && !titles.some(shouted), JSON.stringify(titles));
+  check('24b and not one of them opens in small letters either',
+    titles.length === 3 && titles.every(t => /^[^a-z]/.test(t)), JSON.stringify(titles));
+  check('24c THE CONTROL: the contract beside it keeps the heading it was drafted with',
+    /\bPAYMENT\b/.test(names.paper),
+    names.paper.slice(0, 160));
+  await page.screenshot({ path: path.join(OUT, '24-one-name-format.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

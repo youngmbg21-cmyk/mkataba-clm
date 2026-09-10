@@ -75,6 +75,11 @@ const REVIEW_VERDICT_RECORD = {
   'advise-reject': 'advises rejecting',
   'advise-discuss': 'advises discussing',
 };
+/* A stored clause name on its way to the screen, in the product's one format —
+   negotiation.js's own reading, reached through window so a stage without that
+   module prints the raw name rather than throwing. */
+const _rvClauseName = s => (window.negoClauseName ? negoClauseName(s)
+  : String(s == null ? '' : s));
 function reviewVerdictLabel(v){
   const k = { cleared: 'rv_v_cleared', held: 'rv_v_held', 'advise-accept': 'rv_v_adv_accept',
     'advise-reject': 'rv_v_adv_reject', 'advise-discuss': 'rv_v_adv_discuss' }[String(v || '')];
@@ -1488,7 +1493,7 @@ function reviewAskModalHtml(c, opts = {}){
       color:var(--color-accent);border-radius:var(--radius);padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
     <span style="flex:1;min-width:0">
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);line-height:1.4">${_rvE(ch.summary || '')}</span>
-      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${_rvE(ch.clauseLabel || ch.clauseId || '')}</span>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${_rvE(_rvClauseName(ch.clauseLabel || ch.clauseId || ''))}</span>
     </span></li>`;
   return `
   ${reviewDialogHeadHtml('&#128100;', i18t('rv_modal_title'), i18t('rv_modal_sub'))}

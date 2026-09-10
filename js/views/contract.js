@@ -4348,6 +4348,11 @@ function roomHistoryEvents(c,f={}){
   });
   return nego.concat(sys).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
 }
+/* A stored clause name on its way to the screen, in the product's one format —
+   negotiation.js's own reading, reached through window so a stage without that
+   module prints the raw name rather than throwing. */
+const _ctClauseName = s => (window.negoClauseName ? negoClauseName(s)
+  : String(s == null ? '' : s));
 function roomHistoryHtml(c,f={}){
   const evs=roomHistoryEvents(c,f);
   /* The total is the UNFILTERED list, counted the same way — merged twins are
@@ -4682,7 +4687,7 @@ function openNegotiationOwnerRoom(c){
       try{
         const res=await api('contracts/'+c.id+'/messages','POST',{
           topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+ch.id),
-          topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}`,
+          topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+_ctClauseName(ch.clauseLabel):''}`,
           body:msg.text });
         c._messages=(res&&res.messages)||c._messages||[];
         toast(`Comment posted on #${ch.id} — ${c.counterparty||'the counterparty'} sees it on the same change. The contract is unchanged.`);
