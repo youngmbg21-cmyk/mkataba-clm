@@ -3021,6 +3021,31 @@ function ceScanCardHtml(it, i, group){
       own ? ` title="${_ceea(own)}"` : ''}>${_cet(verbs[kind])}</button>`;
   };
   const filed = !!_ceScanFiled[ceScanKey(it)];
+  /* ---- THE SIGN, WHERE IT CAN BE KNOWN BEFORE THE PRESS (owner-asked 10 Sep
+     2026) ----
+     negoAddNamedClause is the WALL and refuses in words; this is the product's
+     own other half — grey a control that cannot work rather than refuse after
+     it is pressed. Only the MISSING group can duplicate: a rule in the `here`
+     group edits a clause that is already located and adds nothing.
+
+     IT ASKS THE ONE READING through window with no fallback past it: where the
+     model is not loaded there is nothing to compare against and the card draws
+     exactly as it did. The heading is built the way the filing will build it,
+     or the sign would be answering about a different name from the wall.
+
+     AND IT READS WITHOUT WRITING: negoClauseList calls negoInit, which CREATES
+     a negotiation and stamps clause ids into the stored wording, so DRAWING a
+     card would start one. Asked only where a negotiation already exists —
+     which costs nothing here (this page is the negotiation's own editor) and
+     costs nothing anywhere, because negoDupClauseStop's own reading is guarded
+     the same way and answers null there too. */
+  const stop = (group === 'missing' && !filed && window.negoDupClauseStop && _ceC)
+    ? negoDupClauseStop(_ceC, window.clauseHeadingFor
+        ? clauseHeadingFor(String(v.category || ''),
+            (_ceC.negotiation && typeof negoClauseList === 'function')
+              ? negoClauseList(_ceC) : [])
+        : String(v.category || ''))
+    : null;
   return `<div class="ce-rule ${tone}">
     <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
     <span class="l">${_cee(line)}</span>
@@ -3029,6 +3054,9 @@ function ceScanCardHtml(it, i, group){
     ${cost ? `<span class="cost">${_cee(cost)}</span>` : ''}
     <div class="av">${filed
       ? `<span class="filed">${_cee(_cet('ce_scan_added_row'))}</span>`
+      : stop
+      ? `<span class="filed" title="${_ceea(stop.message)}">${_cee(_cet(
+          stop.hit.where === 'document' ? 'ng_dup_clause_here_doc' : 'ng_dup_clause_here_table'))}</span>`
       : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)}</div>
   </div>`;
 }

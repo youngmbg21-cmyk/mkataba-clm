@@ -261,11 +261,57 @@ function pbHeadPill(sm){
   return chip('var(--st-amber-bg)','var(--st-amber-fg)',`${n} to fix`);
 }
 
+/* ---- WHAT HAS BEEN PROPOSED INTO THIS CONTRACT, READ OFF THE NEGOTIATION ----
+   (owner-asked 10 Sep 2026, as the second half of retiring this panel's own
+   Apply.)
+
+   THIS LIST USED TO READ c.clauseInserts, A STORE WITH ONE WRITER — the very
+   button that has just gone — so it would have drawn permanently empty. And it
+   was already incomplete before that: a standard added from the clause
+   editor's scan rail or the Playbook review window never wrote a row, so the
+   panel's record of "clauses proposed" quietly missed two of the three doors.
+
+   SO IT IS RE-POINTED RATHER THAN RETIRED, and that is the stronger half: it
+   reads the negotiation's OWN pending insertClause asks, which is where every
+   door lands, so the list finally covers all of them and there is one fewer
+   store to keep in step. What it loses is a row for a proposal whose round has
+   since closed and been archived — which is a proposal that is no longer
+   pending, and this heading says "proposed".
+
+   IT READS WITHOUT WRITING. `negoChanges` calls `negoInit`, which CREATES a
+   negotiation and stamps clause ids into the stored wording; this panel is
+   drawn on contracts that have never had one, so the record is read RAW —
+   the trap negoClauseNamed already records against exactly this reading.
+
+   THE SHAPE IS pbShowInsert'S OWN, so the "Show me" button beside each row is
+   unchanged and still lands on the clause rather than on the negotiation. */
+function pbProposedClauses(c){
+  const out=[];
+  for(const ch of ((c&&c.changes)||[])){
+    if(!ch || ch.changeType!=='insertClause') continue;
+    if(ch.withdrawn || ch.status==='superseded' || ch.status==='rejected') continue;
+    if((ch.authorSide||'owner')!=='owner') continue;
+    /* The row's own `x.name||'Clause'` is the fallback and always was — naming
+       one here as well would be two answers to one question.
+
+       AND THE SUB-LINE ONLY CLAIMS A PLACE WHERE THE RECORD HOLDS ONE. The
+       panel's own path anchored every clause at the END of the document and
+       the note said so; the negotiation's own path anchors AHEAD of the
+       execution wording, which is why that door was retired — so a row for a
+       clause added by the rail or the review window must not go on printing
+       "proposed for the end of the document". `afterClauseId` is what the
+       change records, and an absent one really is the end. */
+    out.push({ name:String(ch.headingText||'').trim(),
+      where:ch.afterClauseId?'awaiting':'end', at:ch.at||null, by:ch.author||null,
+      changeId:ch.id||null, clauseId:ch.clauseId||null });
+  }
+  return out;
+}
 function renderPlaybookSection(c){
   const host=document.getElementById('playbook-section'); if(!host) return;
   const editable=canEdit()&&c.status!=='Signed';
   const r=c.playbook;
-  const ins=(c.clauseInserts||[]);
+  const ins=pbProposedClauses(c);
   // the card must still render when a clause has been inserted but no review has
   // been run — otherwise the record of what was added would have nowhere to live
   /* Nothing run and nothing inserted → nothing to draw. The INVITATION to run
@@ -300,7 +346,25 @@ function renderPlaybookSection(c){
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
         ${v.quote?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
         ${v.status!=='aligned'&&v.position?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
-        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
+        ${''/* ---- THIS PANEL IS A READING, AND NOTHING ON IT FILES (owner-asked
+               10 Sep 2026: "ONE DOOR ONTO ADDING A CLAUSE") ----
+               It carried "Apply suggested wording as a redline", a FOURTH way
+               to put a standard on the table, with its own filing path
+               (applyClauseRedline) and its own landing rule — it anchored a new
+               clause after the LAST clause in the document where the
+               negotiation's own path deliberately anchors ahead of the
+               execution wording, because text below a signature block can be
+               argued as outside what was signed. Two doors onto one act do not
+               fail; they drift, and these two already had.
+
+               So the panel says what is missing or off standard and nothing
+               more. ADDING STAYS WHERE IT IS: the clause editor's Playbook scan
+               rail and the Playbook review window, both through
+               rlFilePlaybookProposal, both now through negoAddNamedClause.
+
+               WHAT IT COSTS, said out loud: a reader on the Document tab can no
+               longer add a standard from there and must open the negotiation.
+               `pb_apply_suggested` is STALE and left inert in both books. */}
       </div>`:''}
     </div>`;
   }).join('') : '';
@@ -320,7 +384,7 @@ function renderPlaybookSection(c){
       ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
         ${''/* ---- THEY ARE PROPOSED, NOT INSERTED ----
                This said "Clauses inserted into this document", and they are
-               not in the document: applyClauseRedline files each one as a
+               not in the document: every door files one as a
                TRACKED CHANGE awaiting Accept or Reject, deliberately, so
                preferred wording gets a fingerprint and a decision like any
                other ask. The heading promised the opposite, and "Show me" then
@@ -359,11 +423,6 @@ function renderPlaybookSection(c){
     if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
     renderPlaybookSection(c); renderSignButton&&renderSignButton(c);
   });
-  host.querySelectorAll('[data-pb-apply]').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation();
-    const v=r.verdicts[Number(b.getAttribute('data-pb-apply'))];
-    applyClauseRedline(c, v.redline, v.category);   // files a tracked change; see above
-  }));
 }
 /* ---- WHERE THAT CLAUSE WENT — ONE READING, TWO CALLERS (owner-reported
    10 Sep 2026: "When I click on apply this suggested wording it needs to take
@@ -422,8 +481,43 @@ function clauseInsertNote(where){
   /* Says what actually happened. "appended to the end of the document" read as
      a completed edit; it is a proposal sitting in the negotiation, and where it
      would land is the end of the document. */
-  return where==='end' ? 'proposed for the end of the document · awaiting a decision' : String(where||'');
+  if(where==='end') return 'proposed for the end of the document · awaiting a decision';
+  /* WHERE THE RECORD NAMES AN ANCHOR, THE PLACE IS NOT OURS TO STATE — the
+     clause sits after whichever clause that is, and printing "the end of the
+     document" would be this row asserting something the change does not say. */
+  if(where==='awaiting') return 'proposed · awaiting a decision';
+  return String(where||'');
 }
+/* ---- NO LIVE CALLER SINCE 10 Sep 2026, AND KEPT EXPORTED ALL THE SAME ----
+   Its two callers were the panel's "Apply suggested wording as a redline",
+   retired that day on the owner's ask for ONE door onto adding a clause, and
+   openClausePicker's DEFAULT onPick — already dead, because that picker's one
+   caller (#nego-insert-lib) passes its own.
+
+   This file's convention for a builder whose feature has gone is negoCounter-
+   LineHtml's: keep it exported rather than delete it, so a third caller cannot
+   bring the feature back through a door nobody remembered — and here that
+   matters more than usual, because this path anchors a new clause after the
+   LAST clause in the document while the negotiation's own deliberately anchors
+   AHEAD of the execution wording. It also writes c.clauseInserts, a store
+   nothing reads any more.
+
+   IT IS POINTED AT negoAddNamedClause ANYWAY, so a caller revived later
+   inherits the wall by construction rather than by remembering — and its old
+   guard named negoDupClauseAsk, a model function that no longer exists, which
+   would have been a silent no-op: this codebase's most repeated defect.
+   f279 asserts it has no caller.
+
+   AND THE JOURNEY AT THE END OF IT WENT UNREACHABLE WITH IT, said out loud
+   rather than left to be discovered. pbShowInsert(c,row) below is the answer to
+   the owner's own report of the same morning — "when I click on apply this
+   suggested wording it needs to take me where it has been added" — and it was
+   put HERE because this was the press that needed it. Neither surviving door
+   walks the reader to the clause: both are mid-task on a page the paper is
+   already beside, and jumping away on every press would throw them out of the
+   list they are working through. The walk is still one press away on every row
+   of the proposed list above, which since the same day covers those two doors
+   for the first time. */
 async function applyClauseRedline(c, clauseText, label){
   if(!clauseText) return null;
   const name=String(label||'Clause').trim();
@@ -450,25 +544,38 @@ async function applyClauseRedline(c, clauseText, label){
     const heading=(window.clauseHeadingFor?clauseHeadingFor(name,clauses):name);
     /* ---- A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED ----
        (owner-reported 10 Sep 2026.) THE THIRD DOOR onto this act, and it asks
-       the SAME reading with the SAME words as the other two: negoDupClauseAsk
-       builds the question and no door here writes a sentence of its own, so
-       three surfaces cannot come to warn about three different things.
+       the SAME reading with the SAME words as the others: no door here writes a
+       sentence of its own, so four surfaces cannot come to warn about four
+       different things.
 
-       IT REFUSES NOTHING — two clauses on one subject is sometimes exactly what
-       somebody wants, and only the reader can tell. A no returns null, which is
-       what both of this function's callers already handle.
+       IT REFUSES NOTHING — REVERSED IN PLACE 10 Sep 2026 (owner-asked: "Today
+       it is a question that refuses nothing. I want it to be impossible.").
+       What stood here was that two clauses on one subject is sometimes exactly
+       what somebody wants and only the reader can tell. The owner has met that
+       dialog and ruled the other way, and the half of the reasoning that
+       survives is the half that mattered: the reader still has a way forward,
+       it is simply the RIGHT one — open the ask that is already there and
+       change its wording, or withdraw it.
 
-       ASKED BEFORE ANYTHING IS WRITTEN. negoInsertClause files, stamps a
-       fingerprint and pushes a row onto c.clauseInserts; a question after that
-       would be asking about something that had already happened. */
-    if(window.negoDupClauseAsk && window.confirmDialog){
-      const ask=negoDupClauseAsk(c, heading);
-      if(ask && !(await confirmDialog(ask))) return null;
-    }
-    const ch=await negoInsertClause(c, after,
-      { headingText:heading, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
-      { side:'owner', author:(u&&u.name)||'This workspace',
-        summary:`Preferred wording inserted from the playbook — ${name}` });
+       REFUSED BEFORE ANYTHING IS WRITTEN, which is why the wall sits inside the
+       one act rather than after the filing: negoInsertClause files, stamps a
+       fingerprint and pushes a row; a refusal after that would be refusing
+       something that had already happened.
+
+       AND THIS BUILDER HAS NO LIVE CALLER (see the note at the top of it). It
+       is pointed at the one act anyway, so a caller revived later inherits the
+       wall by construction rather than by remembering — a guard here naming a
+       model function that no longer exists would be a silent no-op, which is
+       this codebase's most repeated defect. */
+    const bag={ side:'owner', author:(u&&u.name)||'This workspace',
+      summary:`Preferred wording inserted from the playbook — ${name}` };
+    const add=window.negoAddNamedClause;
+    const ch=add
+      ? await add(c, { headingText:heading, afterClauseId:after,
+          bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) }, bag)
+      : await negoInsertClause(c, after,
+          { headingText:heading, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) }, bag);
+    if(!ch && bag.refused){ toast(bag.refused.message,'warn'); return null; }
     if(ch){
       /* clauseId as well as changeId: the workbench scrolls to a CLAUSE, and
          without it "Show me" reaches the negotiation and then stops. */
@@ -608,6 +715,23 @@ function jumpToInsertedClause(name){
 
 function openClausePicker(c, opts){
   const lib=clauseLibrary();
+  /* ---- THE SIGN ON THE FOURTH DOOR (owner-asked 10 Sep 2026) ----
+     negoAddNamedClause is the WALL and this row can know before the press, so
+     it says so and offers nothing rather than refusing after it. The heading is
+     built the way the filing will build it — the same one call — or the sign
+     would be answering about a different name from the wall. Null where the
+     model is not loaded, which draws the list exactly as it drew before.
+
+     AND IT READS WITHOUT WRITING: negoClauseList calls negoInit, which CREATES
+     a negotiation and stamps clause ids into the stored wording, so DRAWING a
+     row would start one. It is asked only where a negotiation already exists —
+     which costs nothing, because negoDupClauseStop's own reading is guarded the
+     same way and answers null there too, so the sign and the wall still agree. */
+  const clauses=(c&&c.negotiation&&window.negoClauseList)?negoClauseList(c):[];
+  const stopFor=cl=>(!window.negoDupClauseStop||!c)?null
+    :negoDupClauseStop(c, window.clauseHeadingFor
+      ? clauseHeadingFor(cl.name, clauses)
+      : cl.name);
   openModal(`
     <div class="p-6">
       <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('pb_insert_from_library')}</h3>
@@ -615,18 +739,28 @@ function openClausePicker(c, opts){
       ${''/* No 50vh cap: the side panel this now opens in scrolls itself, and
              a scroll box inside a scroll box is two bars for one list. */}
       <div class="space-y-2">
-        ${lib.map(cl=>`<div class="rounded-lg border border-line bg-white p-3">
+        ${lib.map(cl=>{ const stop=stopFor(cl); return `<div class="rounded-lg border border-line bg-white p-3">
           <div class="flex items-center gap-2"><span class="text-[10px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
             <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>
-            <button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">${i18t('pb_insert')}</button></div>
+            ${stop
+              ? `<span class="ml-auto text-[11px] font-600 text-ink/55" title="${_pbEsc(stop.message)}">${i18t('ng_dup_clause_here')}</span>`
+              : `<button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">${i18t('pb_insert')}</button>`}</div>
           <div class="mt-1 text-[11px] text-ink/65">${cl.preferred.slice(0,160)}${cl.preferred.length>160?'…':''}</div>
-        </div>`).join('')}
+          ${stop?`<div class="mt-1 text-[11px] text-ink/55">${_pbEsc(stop.message)}</div>`:''}
+        </div>`; }).join('')}
       </div>
       <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_close')}</button></div>
     </div>`);
   document.getElementById('cp-close').addEventListener('click',closeModal);
-  const onPick=(opts&&typeof opts.onPick==='function')?opts.onPick:(cl=>applyClauseRedline(c, cl.preferred, cl.name));
-  document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
+  /* ---- NO DEFAULT, AND THAT IS THE POINT (owner-asked 10 Sep 2026) ----
+     This defaulted to applyClauseRedline — a second filing path with its own
+     landing rule and no wall against duplicates. It was already dead, because
+     this picker's one caller passes its own onPick; leaving it wired is
+     precisely the "third caller brings the feature back through a door nobody
+     remembered" that keeping the builder exported is meant to prevent. A
+     picker opened with nothing to do with what it picks does nothing. */
+  const onPick=(opts&&typeof opts.onPick==='function')?opts.onPick:null;
+  document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

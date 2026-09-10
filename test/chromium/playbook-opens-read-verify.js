@@ -104,7 +104,20 @@ const REVIEW = {
     check('the wording it objects to is on screen without a second press',
       m.swedish && m.fortyfive && m.cmr);
     check('so is the standard each one misses', m.standards === 4, String(m.standards));
-    check('and so is the way to act on it', m.applies >= 2, `${m.applies} redline buttons`);
+    /* REVERSED IN PLACE (Young, 10 Sep 2026, "ONE DOOR ONTO ADDING A CLAUSE").
+       This asserted the opposite — that the panel drew the button that turns a
+       finding into a redline, and that the reported fixture drew at least two
+       of them. THE HALF THAT STANDS is everything above it: the panel arrives
+       READ, with the wording and the standard on screen without a second press,
+       which is what the report of 11 Aug was about. What is reversed is the
+       ACT: adding a clause has one door and it is not here.
+
+       THIS FIXTURE IS THE WEARER — three of its four findings carry a
+       `redline`, so it is exactly the shape that used to draw three buttons,
+       which is what makes the absence worth measuring here as well as on the
+       real contract in the room below. */
+    check('and it offers no way to act on it — the panel is a reading',
+      m.applies === 0, `${m.applies} redline button(s) still drawn`);
 
     /* ---- and a row can still be shut, and stays shut ---- */
     await page.evaluate(() => document.querySelector('[data-pb-row]').click());
@@ -162,115 +175,182 @@ const REVIEW = {
       && /<b>Document<\/b>/.test(kt.html));
 
     /* ================================================================
-       APPLYING A STANDARD (owner-reported 10 Sep 2026, two jobs)
+       ONE DOOR ONTO ADDING A CLAUSE, AND A CLAUSE IS NEVER ADDED TWICE
        ----------------------------------------------------------------
-         · "When I click on apply this suggested wording it needs to take me
-           where it has been added in the contract."
-         · "make sure that when someone is adding a duplicate clause from the
-           playbook / standards that the user is alerted before it is applied."
+       REVERSED IN PLACE 10 Sep 2026. What stood here drove the side panel's
+       "Apply suggested wording as a redline" and pinned two things: that
+       applying takes you to the clause, and that a second add is SAID and then
+       "saying yes still adds it — two clauses on one subject is the reader's
+       call, not ours."
 
-       BOTH HAVE TO BE DRIVEN. A source check sees the call and cannot see
-       whether the reader ends up looking at the clause, and a dialog that is
-       built but never reaches the screen looks identical in the markup to one
-       that does. The dialog is also the only thing standing between a press and
-       a second clause on the record, so "it came up" and "saying no filed
-       nothing" are two separate claims.
+       The owner has met that alert and ruled both the other way:
+         · the panel must stop offering to add at all — one door onto the act
+         · a duplicate must be IMPOSSIBLE, not asked about
+
+       So the journey through the panel is gone with the panel's button, and
+       what is measured instead is every door that still adds. IT HAS TO BE
+       DRIVEN: whether a button is drawn, and whether a press files anything,
+       cannot be read off the source — a control removed from one branch and
+       left in another looks identical in a grep.
        ================================================================ */
-    await page.evaluate(id => { const c = getContract(id);
-      /* A CLEAN START: this file has been folding rows, and the panel must be
-         open on the contract we are about to measure. */
-      c.clauseInserts = []; openCheckPanel(c, 'playbook'); }, cid);
-    await page.waitForTimeout(700);
-
-    const before = await page.evaluate(id =>
-      ((getContract(id).changes) || []).length, cid);
-    /* "Data protection" is the missing standard with a redline behind it — the
-       one this panel offers to ADD rather than to edit in place. */
-    await page.evaluate(() => {
-      const btns = [...document.querySelectorAll('[data-pb-apply]')];
-      const want = btns.find(b => /data protection/i.test(
-        b.closest('div[style]')?.parentElement?.textContent || ''));
-      (want || btns[btns.length - 1]).click();
-    });
-    await page.waitForTimeout(2000);
-
-    const landed = await page.evaluate(id => {
-      const c = getContract(id);
-      const added = (c.changes || []).filter(x => x.changeType === 'insertClause');
-      const lit = document.querySelector('.rl-clause.is-linked, .rl-clause.rl-arrived');
-      return { changes: (c.changes || []).length, added: added.length,
-        heading: added.length ? added[added.length - 1].headingText : null,
-        onNego: !!document.querySelector('#redline-host, .redline-page'),
-        panelGone: !document.getElementById('side-panel'),
-        litClause: !!lit,
-        /* THE ATTRIBUTE IS data-clause. A first writing read data-clause-id,
-           which nothing on this page carries, so the probe reported the jump as
-           landing on the wrong clause while the page was doing exactly the
-           right thing. Rule out the instrument before believing the finding. */
-        litIsIt: !!(lit && added.length
-          && lit.getAttribute('data-clause') === added[added.length - 1].clauseId) };
-    }, cid);
-    check('APPLY FILES THE STANDARD as a tracked change',
-      landed.changes === before + 1 && landed.added >= 1,
-      `${before} → ${landed.changes} change(s), heading "${landed.heading}"`);
-    check('AND IT TAKES YOU THERE — the negotiation, not the tab you pressed from',
-      landed.onNego === true, `on the negotiation: ${landed.onNego}`);
-    check('with the panel it was pressed from taken down behind you',
-      landed.panelGone === true);
-    check('and the clause it just added is the one lit',
-      landed.litClause === true && landed.litIsIt === true,
-      `lit: ${landed.litClause}, and it is the new clause: ${landed.litIsIt}`);
-
-    /* ---- THE SAME STANDARD A SECOND TIME ---- */
     await page.evaluate(id => { const c = getContract(id);
       state.activeId = c.id; setView('workspace'); }, cid);
     await page.waitForTimeout(1500);
     await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
-    await page.waitForTimeout(700);
-    const mid = await page.evaluate(id => ((getContract(id).changes) || []).length, cid);
-    await page.evaluate(() => {
-      const btns = [...document.querySelectorAll('[data-pb-apply]')];
-      const want = btns.find(b => /data protection/i.test(
-        b.closest('div[style]')?.parentElement?.textContent || ''));
-      (want || btns[btns.length - 1]).click();
-    });
-    await page.waitForTimeout(900);
-    const warned = await page.evaluate(() => {
-      const ov = document.getElementById('confirm-overlay');
-      return { up: !!ov, text: ov ? ov.textContent.replace(/\s+/g, ' ').trim() : '',
-        cancel: !!document.getElementById('cf-cancel'),
-        go: !!document.getElementById('cf-ok') };
-    });
-    check('A SECOND ADD OF THE SAME STANDARD IS SAID FIRST — the reported bug',
-      warned.up === true, warned.up ? warned.text.slice(0, 120) : 'no dialog came up');
-    check('and the sentence NAMES what it found',
-      /data protection/i.test(warned.text), warned.text.slice(0, 160));
-    check('it offers a way forward as well as a way out — it refuses nothing',
-      warned.cancel === true && warned.go === true);
+    await page.waitForTimeout(800);
 
-    /* SAYING NO FILES NOTHING. This is the whole point of asking before rather
-       than after, so it is measured on the record and not on the screen. */
-    await page.evaluate(() => document.getElementById('cf-cancel')?.click());
-    await page.waitForTimeout(700);
-    check('SAYING NO FILES NOTHING — the record is where that has to be read',
-      (await page.evaluate(id => ((getContract(id).changes) || []).length, cid)) === mid,
-      `${mid} change(s), unchanged`);
-
-    /* AND THE WAY FORWARD REALLY WORKS: a warning whose confirm did nothing
-       would be a wall wearing a question's clothes. */
-    await page.evaluate(() => {
-      const btns = [...document.querySelectorAll('[data-pb-apply]')];
-      const want = btns.find(b => /data protection/i.test(
-        b.closest('div[style]')?.parentElement?.textContent || ''));
-      (want || btns[btns.length - 1]).click();
+    const panel = await page.evaluate(() => {
+      const sp = document.getElementById('side-panel') || document;
+      const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && el.offsetParent !== null; };
+      return { applies: [...sp.querySelectorAll('[data-pb-apply]')].filter(vis).length,
+        rows: sp.querySelectorAll('[data-pb-row]').length,
+        text: sp.textContent.replace(/\s+/g, ' ').trim().slice(0, 400) };
     });
-    await page.waitForTimeout(900);
-    await page.evaluate(() => document.getElementById('cf-ok')?.click());
-    await page.waitForTimeout(2000);
-    check('and saying yes still adds it — two clauses on one subject is the '
-      + 'reader\'s call, not ours',
-      (await page.evaluate(id => ((getContract(id).changes) || []).length, cid)) === mid + 1,
-      `${mid} → ${await page.evaluate(id => ((getContract(id).changes) || []).length, cid)}`);
+    check('THE SIDE PANEL IS A READING — it offers no way to add a clause',
+      panel.applies === 0, `${panel.applies} add button(s) still drawn`);
+    check('and it still says what is missing or off standard',
+      panel.rows >= 3, `${panel.rows} findings`);
+
+    /* The negotiation is where every remaining door lives. */
+    await page.evaluate(id => { if (window.closeModal) closeModal();
+      openRedlineWorkbench(id); }, cid);
+    await page.waitForTimeout(2200);
+
+    /* ---- THE FOURTH DOOR: the clause library picker ----
+       MEASURED on the code before this: pressing the same standard twice
+       through the room's "+ Insert clause" filed TWO clauses and raised NO
+       dialog at all, because that handler reached negoInsertClause directly
+       while the other three shared a filing path that had been taught the rule.
+
+       ITS ROW IS DRIVEN HERE, which is what a source check cannot do: whether
+       the Insert button is drawn is a rendered fact, and a control removed from
+       one branch and left in another looks identical in a grep. The picker is
+       OPENED through its own function — this file already stages openCheckPanel
+       the same way — and then the real row is pressed. */
+    const base = await page.evaluate(id => ((getContract(id).changes) || []).length, cid);
+    const pick = await page.evaluate(async id => {
+      const c = getContract(id);
+      let picked = null;
+      window.openClausePicker(c, { onPick: cl => { picked = cl; } });
+      await new Promise(r => setTimeout(r, 400));
+      const rows = [...document.querySelectorAll('[data-cl-ins]')];
+      const b = rows[0];
+      const clId = b ? b.getAttribute('data-cl-ins') : null;
+      if (b) b.click();
+      await new Promise(r => setTimeout(r, 300));
+      if (!picked) return { offered: rows.length, clId, filed: false };
+      /* THE ROOM'S OWN HANDLER, act for act: it builds the heading the way the
+         paper writes headings and goes through the one act. */
+      const heading = window.clauseHeadingFor
+        ? clauseHeadingFor(picked.name, negoClauseList(c)) : picked.name;
+      const bag = { side: 'owner', author: 'Test' };
+      /* GUARDED, so a build without the act REPORTS its failures rather than
+         stopping the file at the fourth section from the end. */
+      const add = window.negoAddNamedClause || window.negoInsertClause;
+      const ch = window.negoAddNamedClause
+        ? await add(c, { headingText: heading, bodyHtml: '<p>' + picked.preferred + '</p>' }, bag)
+        : await add(c, null, { headingText: heading, bodyHtml: '<p>' + picked.preferred + '</p>' }, bag);
+      return { offered: rows.length, clId, filed: !!ch, name: picked.name, heading,
+        oneAct: !!window.negoAddNamedClause };
+    }, cid);
+    await page.waitForTimeout(600);
+    const afterFirst = await page.evaluate(id => ((getContract(id).changes) || []).length, cid);
+    check('the clause picker files a standard the first time',
+      pick.offered > 0 && pick.filed === true && afterFirst === base + 1,
+      `${pick.offered} offered · ${base} → ${afterFirst} · "${pick.name}"`);
+
+    /* THE SIGN: the same row can know before the press, so it says so and
+       offers nothing rather than refusing after it. */
+    const signed = await page.evaluate(async (arg) => {
+      const c = getContract(arg.id);
+      window.openClausePicker(c, { onPick: () => {} });
+      await new Promise(r => setTimeout(r, 400));
+      const still = !!document.querySelector(`[data-cl-ins="${arg.clId}"]`);
+      const root = document.getElementById('modal-root') || document;
+      const txt = root.textContent.replace(/\s+/g, ' ');
+      if (window.closeModal) closeModal();
+      return { still, says: /already/i.test(txt),
+        wayForward: /withdraw|edit that clause/i.test(txt), txt: txt.slice(0, 200) };
+    }, { id: cid, clId: pick.clId });
+    check('THE SIGN: the row it already added offers no Insert',
+      signed.still === false, signed.still ? 'the button is still drawn' : 'not drawn');
+    check('and it says it is already here, with the way forward on it',
+      signed.says === true && signed.wayForward === true, signed.txt);
+
+    /* THE WALL: driven past the sign, straight at the act every door reaches. */
+    const walled = await page.evaluate(async arg => {
+      const c = getContract(arg.id);
+      const bag = { side: 'owner', author: 'Test' };
+      const ch = window.negoAddNamedClause
+        ? await window.negoAddNamedClause(c, { headingText: arg.heading, bodyHtml: '<p>x</p>' }, bag)
+        : await window.negoInsertClause(c, null, { headingText: arg.heading, bodyHtml: '<p>x</p>' }, bag);
+      return { filed: !!ch, refused: bag.refused ? bag.refused.message : null,
+        n: (c.changes || []).length };
+    }, { id: cid, heading: pick.heading });
+    check('THE WALL: the act itself refuses a second add outright',
+      pick.oneAct === true && walled.filed === false && walled.n === afterFirst,
+      pick.oneAct ? `filed ${walled.filed} · ${afterFirst} → ${walled.n}`
+                  : 'there is no one act — negoAddNamedClause is not published');
+    check('and the refusal names what to do instead',
+      !!walled.refused && /withdraw|edit that clause/i.test(walled.refused),
+      walled.refused || 'no refusal came back');
+
+    /* ---- DOOR: the Playbook review window ----
+       Its row for a standard already here draws no verbs at all — the same
+       shape the unplaced branch beside it already uses, and for the reason that
+       branch gives in its own words: a control whose one outcome is a refusal
+       is furniture.
+
+       THE REVIEW ITSELF IS STUBBED AND THE WINDOW IS NOT. This workspace's own
+       paper comes back aligned on every position, so there would be no row to
+       measure; what is replaced is the READING that produces verdicts, and the
+       modal, its row builder and its verbs are the product's own. It is given
+       two missing positions — one named exactly what the picker just added, one
+       nobody has added — so the claim has both a wearer and a control. */
+    const modal = await page.evaluate(async arg => {
+      const c = getContract(arg.id);
+      const real = window.runPlaybookReview;
+      window.runPlaybookReview = async () => ({ label: 'Test', source: 'rules', verdicts: [
+        { category: arg.name, status: 'missing', position: 'We require this.',
+          redline: 'The parties agree to the standard position.' },
+        { category: 'Zzz unrelated standard', status: 'missing', position: 'We require that.',
+          redline: 'The parties agree to the other standard position.' },
+      ] });
+      try{
+        await window.rlOpenPlaybookReview(c, () => {});
+      } finally { window.runPlaybookReview = real; }
+      await new Promise(r => setTimeout(r, 500));
+      const root = document.getElementById('modal-root');
+      if (!root) return { open: false };
+      const rows = [...root.querySelectorAll('[id^="pbr-item-"]')];
+      const verbs = r => !!r.querySelector('[data-pbr-go],[data-pbr-fb],[data-pbr-draft]');
+      const already = rows.filter(r => /already/i.test(r.textContent));
+      /* THE WHOLE ROW IS READ AND ONLY THE REPORT IS TRIMMED. The sign is the
+         LAST thing in the row, under the name, the position and the quoted
+         wording — so a slice taken off the front tests the quote and reports a
+         failure on a row that says exactly the right thing. */
+      const txt = already.length
+        ? already[0].textContent.replace(/\s+/g, ' ').trim() : '';
+      return { open: rows.length > 0, rows: rows.length,
+        already: already.length,
+        alreadyHasVerbs: already.some(verbs),
+        withVerbs: rows.filter(verbs).length,
+        says: /already/i.test(txt),
+        wayForward: /withdraw|edit that clause/i.test(txt),
+        text: txt.slice(-220) };
+    }, { id: cid, name: pick.name });
+    check('THE REVIEW WINDOW: a standard already here offers no verbs',
+      modal.open === true && modal.already === 1 && modal.alreadyHasVerbs === false,
+      modal.open ? `${modal.rows} rows · ${modal.already} already here · verbs on them: ${modal.alreadyHasVerbs}`
+                 : 'the window did not open');
+    check('and it says so, with the way forward on it',
+      modal.says === true && modal.wayForward === true,
+      modal.text || 'no row said it');
+    check('while the row nobody has added keeps its verbs',
+      modal.withVerbs === 1, `${modal.withVerbs} row(s) still offer a verb`);
+    await page.evaluate(() => document.getElementById('pbr-close')?.click());
+    await page.waitForTimeout(500);
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

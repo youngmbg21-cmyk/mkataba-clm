@@ -3826,11 +3826,24 @@ function wireNegotiationTab(c, opts = {}){
       const heading = window.clauseHeadingFor
         ? clauseHeadingFor(cl.name, (window.negoClauseList ? negoClauseList(c) : []))
         : cl.name;
-      const ch = await negoInsertClause(c, after || null,
-        { headingText: heading, bodyHtml: window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>` },
-        { side, author: opts.by,
-          summary: `Preferred wording inserted from the playbook — ${cl.name}` });
-      if (!ch){ if (window.toast) toast(i18t('ng_clause_not_inserted'), 'err'); return; }
+      /* ---- THE FOURTH DOOR, AND UNTIL 10 Sep 2026 IT ASKED NOTHING AT ALL ----
+         Measured on the code before this: pressing the same standard twice here
+         filed TWO clauses and raised NO dialog, because this handler reached
+         negoInsertClause directly while the other three shared a filing path
+         that had been taught the rule. It goes through negoAddNamedClause now —
+         arriving at the one act rather than being taught separately, which is
+         the whole point of there being one. */
+      const bag = { side, author: opts.by,
+        summary: `Preferred wording inserted from the playbook — ${cl.name}` };
+      const body = window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>`;
+      const add = window.negoAddNamedClause;
+      const ch = add
+        ? await add(c, { headingText: heading, bodyHtml: body, afterClauseId: after || null }, bag)
+        : await negoInsertClause(c, after || null, { headingText: heading, bodyHtml: body }, bag);
+      if (!ch){
+        if (window.toast) toast(bag.refused ? bag.refused.message : i18t('ng_clause_not_inserted'), 'err');
+        return;
+      }
       _negoActive = ch.id;
       if (window.negoInvalidateVerification) negoInvalidateVerification(c);
       if (opts.persist !== false && window.persist) persist(c);
@@ -11756,43 +11769,26 @@ async function rlFilePlaybookProposal(c, item, wording){
      copy of a clause it already carries. Every surface that offers this act
      asks the same reading first; this is what holds if one forgets. */
   if (item && item.landing === 'unplaced') return null;
-  /* ---- AND A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED ----
+  /* ---- AND A STANDARD THAT IS ALREADY HERE IS REFUSED ----
      (owner-reported 10 Sep 2026: "make sure that when someone is adding a
      duplicate clause from the playbook / standards that the user is alerted
-     before it is applied.")
+     before it is applied", then, having met the alert: "I want it to be
+     impossible.")
 
-     THE ASK IS AT THE FILING RATHER THAN AT EACH BUTTON, which is why the
-     Playbook review window and the clause editor's scan rail both inherit it
-     without either of them knowing it had to: this function is what they share.
-     The third door — the panel's "Apply suggested wording as a redline" — asks
-     the SAME reading with the SAME words, because negoDupClauseAsk builds the
-     question and neither door writes a sentence of its own.
+     THE WALL IS AT negoAddNamedClause, WHICH IS WHERE EVERY DOOR ONTO THIS ACT
+     NOW ARRIVES, so neither the Playbook review window nor the clause editor's
+     scan rail has to remember it — this function is what they share, and the
+     room's own "+ Insert clause" was taught to arrive there too rather than
+     being given a rule of its own. It used to ASK here, one door at a time,
+     which is precisely why the fourth door walked past it.
 
      ONLY ON AN ADD. A deviation that EDITS a located clause changes wording in
      place and duplicates nothing; the risk is the insert, which mints a fresh
      clause every time.
 
-     IT REFUSES NOTHING. Two clauses on one subject is sometimes exactly what
-     somebody wants, and only the reader can tell — so this is a question with
-     the way forward on it, never a wall. A reader who says no gets null, which
-     is what every caller here already handles.
-
-     THE READING IS ASKED THROUGH window WITH NO FALLBACK PAST IT. Where the
-     model is not loaded there is nothing to compare against and the add
-     proceeds exactly as it did; what must never happen is a fallback that
-     answers "no duplicate" while a reading exists. */
-  if (!item || !item.clauseId){
-    const heading = window.clauseHeadingFor
-      ? clauseHeadingFor(String((item && item.v && item.v.category) || ''), 
-          (typeof negoClauseList === 'function') ? negoClauseList(c) : [])
-      : String((item && item.v && item.v.category) || '');
-    if (window.negoDupClauseAsk && window.confirmDialog){
-      /* THE SHAPE IS confirmDialog'S OWN, so the question travels whole rather
-         than being taken apart and put back together at each door. */
-      const ask = negoDupClauseAsk(c, heading);
-      if (ask && !(await confirmDialog(ask))) return null;
-    }
-  }
+     THE SENTENCE IS THE MODEL'S AND THE DRAWING IS THIS DOOR'S — the refusal
+     travels back on the options bag and is printed here, so no surface writes a
+     wording of its own. */
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
@@ -11832,9 +11828,20 @@ async function rlFilePlaybookProposal(c, item, wording){
     const heading = window.clauseHeadingFor
       ? clauseHeadingFor(String(item.v.category || ''), clauses)
       : String(item.v.category || '');
-    return await negoInsertClause(c, after, { headingText: heading, bodyHtml: body },
-      { side: 'owner', author, note,
-        summary: `Playbook position inserted — ${item.v.category}` });
+    /* THROUGH THE ONE ACT, not straight at the funnel: negoAddNamedClause is
+       what carries the refusal, and a caller that went round it would be the
+       fourth door's own fault written a second time. Where the model is not
+       loaded there is nothing to compare against and the add proceeds exactly
+       as it did — what must never happen is a fallback that answers "no
+       duplicate" while a reading exists. */
+    const bag = { side: 'owner', author, note,
+      summary: `Playbook position inserted — ${item.v.category}` };
+    const add = window.negoAddNamedClause;
+    const ch = add
+      ? await add(c, { headingText: heading, bodyHtml: body, afterClauseId: after }, bag)
+      : await negoInsertClause(c, after, { headingText: heading, bodyHtml: body }, bag);
+    if (!ch && bag.refused && window.toast) toast(bag.refused.message, 'err');
+    return ch;
   }
   return null;
 }
@@ -11873,6 +11880,22 @@ async function rlOpenPlaybookReview(c, again){
   const chip = it => it.risk === 'high'
     ? `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,var(--danger-hover))">${i18t('ng_high_risk')}</span>`
     : `<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-amber-bg,var(--st-amber-bg));color:var(--st-amber-fg,var(--st-amber-fg))">${i18t('ng_medium')}</span>`;
+  /* THE ONE READING, asked the way the filing will ask it — same heading
+     builder, same model function — so the sign and the wall cannot come to
+     disagree about which name is already here. Null where the model is not
+     loaded, which draws the row exactly as it drew before.
+
+     AND IT READS WITHOUT WRITING: negoClauseList calls negoInit, which CREATES
+     a negotiation and stamps clause ids into the stored wording, so DRAWING
+     this window would start one. Asked once for the whole list rather than per
+     row, and only where a negotiation already exists — which costs nothing,
+     because negoDupClauseStop's own reading is guarded the same way. */
+  const dupClauses = (c && c.negotiation && typeof negoClauseList === 'function')
+    ? negoClauseList(c) : [];
+  const dupStop = it => (!it || it.clauseId || !window.negoDupClauseStop) ? null
+    : negoDupClauseStop(c, window.clauseHeadingFor
+        ? clauseHeadingFor(String((it.v && it.v.category) || ''), dupClauses)
+        : String((it.v && it.v.category) || ''));
   const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3) 14px;margin-bottom:10px;background:var(--color-surface)">
     <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap">
       <b style="font-size:var(--t-body)">${_ne(it.v.category)}</b>${chip(it)}
@@ -11895,8 +11918,20 @@ async function rlOpenPlaybookReview(c, again){
            safe on it, and a control whose one outcome is a refusal is
            furniture — so it draws none and says what to do instead. The quote
            above is what tells the reader where to look. */}
+    ${''/* ---- AND A STANDARD THAT IS ALREADY HERE OFFERS NO VERBS ----
+           (owner-asked 10 Sep 2026.) The same shape the unplaced branch above
+           already uses, and for the same reason it gives in its own words: a
+           control whose one outcome is a refusal is furniture. negoAddNamed-
+           Clause is the WALL and refuses in words if this row is pressed some
+           other way; this is the SIGN, and it names the way forward rather than
+           leaving the reader with a row that simply does nothing.
+
+           ONLY AN ADD CAN DUPLICATE — a located deviation edits a clause that
+           is already there. */}
     ${it.landing === 'unplaced'
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_unplaced')}</div>`
+      : dupStop(it)
+      ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)"><b>${i18t('ng_dup_clause_here')}</b> &middot; ${_ne(dupStop(it).message)}</div>`
       : `<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
       ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}

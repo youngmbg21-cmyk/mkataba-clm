@@ -1514,14 +1514,29 @@ const STRINGS = {
     /* ---- ADDING A STANDARD THAT IS ALREADY THERE (owner-asked 10 Sep 2026) ----
        The sentence NAMES what it found and says WHERE, because "already on the
        table" and "already in the agreement" are two different facts with two
-       different things to do about them. It refuses nothing: adding a second
-       clause on one subject is sometimes exactly right, and the reader is the
-       one who can tell. */
+       different things to do about them — which is why there are two `_fix_`
+       sentences and two `_here_` ones rather than one of each.
+
+       IT REFUSES NOTHING — REVERSED IN PLACE the same day, owner-asked ("Today
+       it is a question that refuses nothing. I want it to be impossible."). It
+       said that adding a second clause on one subject is sometimes exactly
+       right and the reader is the one who can tell. The half that survives is
+       that the reader still gets a way forward, which is what the `_fix_`
+       sentences are: open the ask that is already there and change its
+       wording, or withdraw it. `ng_dup_clause_ask` and `ng_dup_clause_go` are
+       the question's own two lines and are STALE — left INERT in BOTH books,
+       because a key removed from one and not the other is how a screen ends up
+       half-English. */
     ng_dup_clause_title: 'This clause is already here',
     ng_dup_clause_table: '\u201c{name}\u201d is already on the table as a proposed clause.',
     ng_dup_clause_doc: 'This contract already has a clause called \u201c{name}\u201d.',
     ng_dup_clause_ask: 'Adding this one will put a second clause on the same subject.',
     ng_dup_clause_go: 'Add it anyway',
+    ng_dup_clause_fix_table: 'Open that ask to change its wording, or withdraw it first.',
+    ng_dup_clause_fix_doc: 'Edit that clause instead of adding a second one.',
+    ng_dup_clause_here: 'Already here',
+    ng_dup_clause_here_table: 'Already on the table as a proposed clause.',
+    ng_dup_clause_here_doc: 'This contract already has a clause with this name.',
     /* WHAT HAPPENED, not what to do next: the reader is looking at the clause
        by the time this is read, so telling them to go to the negotiation would
        be sending them where they already are. It names the fingerprint, which
@@ -7403,6 +7418,11 @@ const STRINGS = {
     ng_dup_clause_doc: 'Avtalet har redan en klausul som heter \u201d{name}\u201d.',
     ng_dup_clause_ask: 'Lägger du till den här får du två klausuler om samma sak.',
     ng_dup_clause_go: 'Lägg till ändå',
+    ng_dup_clause_fix_table: 'Öppna den begäran för att ändra dess lydelse, eller dra tillbaka den först.',
+    ng_dup_clause_fix_doc: 'Redigera den klausulen i stället för att lägga till en till.',
+    ng_dup_clause_here: 'Finns redan',
+    ng_dup_clause_here_table: 'Ligger redan på bordet som en föreslagen klausul.',
+    ng_dup_clause_here_doc: 'Avtalet har redan en klausul med det namnet.',
     pb_proposed_as: '\u201d{name}\u201d föreslagen som {id}',
     ng_draft_is_copilots: 'Ett utkast är Copilots egen formulering för det här avtalet — användbar, men ingen position som någon här har godkänt.',
     ng_preferred: 'Föredragen',

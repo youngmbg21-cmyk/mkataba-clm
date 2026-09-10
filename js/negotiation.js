@@ -1879,18 +1879,69 @@ function negoClauseNamed(c, headingText){
   }catch(_){}
   return null;
 }
-/* THE QUESTION, BUILT ONCE SO TWO DOORS CANNOT ASK IT DIFFERENTLY. Null where
-   there is nothing to ask about, which is every ordinary add. */
-function negoDupClauseAsk(c, headingText){
+/* ---- THE REFUSAL, BUILT ONCE SO NO DOOR CAN WORD IT DIFFERENTLY ----
+   REVERSED IN PLACE 10 Sep 2026 (owner-asked: "I want it to be impossible").
+   This was `negoDupClauseAsk` and it built a QUESTION — "Add it anyway" beside
+   Cancel — on the reasoning that two clauses on one subject is sometimes
+   exactly what somebody wants and only the reader can tell. THE OWNER HAS
+   RULED THE OTHER WAY, and the reasoning that survives is why the refusal has
+   to be narrow rather than why it should be a question: EXACT AFTER FOLDING,
+   never fuzzy, because a rule that fires when it should not is one people
+   learn to press through — and here they can no longer press through it at all,
+   so a false positive costs more than it did.
+
+   A REFUSAL NEEDS ITS WAY FORWARD ON THE SAME SCREEN, so the message names what
+   to do instead, and the two places a clause can be want two different
+   remedies: an ask already on the table is REVISED or WITHDRAWN, a clause
+   already in the agreement is EDITED. `ng_dup_clause_ask` and
+   `ng_dup_clause_go` are STALE and left inert in both dictionaries.
+
+   IT RETURNS A SHAPE AND DRAWS NOTHING — the rule this file records by name —
+   so the wall can refuse in the model and each door prints the one sentence.
+   Null where there is nothing to refuse, which is every ordinary add. */
+function negoDupClauseStop(c, headingText){
   const hit = negoClauseNamed(c, headingText);
   if (!hit) return null;
   const name = hit.label || String(headingText || '').trim();
-  return { hit,
+  const doc = hit.where === 'document';
+  return { hit, name,
     title: i18t('ng_dup_clause_title'),
-    message: i18t(hit.where === 'document' ? 'ng_dup_clause_doc' : 'ng_dup_clause_table',
-      { name }) + ' ' + i18t('ng_dup_clause_ask'),
-    confirmLabel: i18t('ng_dup_clause_go'),
-    cancelLabel: i18t('act_cancel') };
+    message: i18t(doc ? 'ng_dup_clause_doc' : 'ng_dup_clause_table', { name })
+      + ' ' + i18t(doc ? 'ng_dup_clause_fix_doc' : 'ng_dup_clause_fix_table') };
+}
+/* ---- ONE DOOR ONTO ADDING A NAMED STANDARD, AND THE WALL IS ON IT ----
+   (owner-asked 10 Sep 2026, after measuring four doors: the clause editor's
+   scan rail, the Playbook review modal, the side panel's Apply — retired the
+   same day — and the negotiation room's "+ Insert clause", which filed
+   negoInsertClause DIRECTLY and never asked anything at all: two clauses, no
+   dialog.)
+
+   A REFUSAL THAT LIVES AT EACH BUTTON IS ONE THE NEXT BUTTON WALKS PAST, which
+   is exactly what the fourth door did. So this is the one act every
+   standard-adding door reaches, and none of them has to remember the rule.
+
+   IT IS NOT negoInsertClause ITSELF, AND THAT IS THE LOAD-BEARING PART. That
+   funnel has two other callers and neither is adding a standard by name:
+   applyNegoProposals reconciles a WHOLE returned document (the Word round trip,
+   the counterparty's redraft) and the clause editor's fileAll applies a whole
+   Copilot rewrite. Both insert clauses they could not match to an existing one
+   — which is the counterparty really adding a clause — and a wall there would
+   DROP their wording silently, which is far worse than the duplicate this
+   prevents. The rule belongs to the act "add a named standard", not to the act
+   "insert a clause". f279 sweeps for a fifth caller so a new standard-door
+   cannot be written past it.
+
+   THE REASON TRAVELS ON THE OPTIONS BAG the caller already handed in — the
+   shape auto-triage's `opts.notice` uses — so the model refuses and the door
+   says the sentence, and there is still exactly one wording. */
+async function negoAddNamedClause(c, clause, opts = {}){
+  const heading = String((clause && clause.headingText) || '').trim();
+  const stop = negoDupClauseStop(c, heading);
+  if (stop){
+    if (opts && typeof opts === 'object') opts.refused = stop;
+    return null;
+  }
+  return negoInsertClause(c, (clause && clause.afterClauseId) || null, clause, opts);
 }
 
 /* A proposed deletion. The wording is NOT removed here and is not removed when
@@ -4354,7 +4405,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
   /* PUBLISHED, or the doors that ask read undefined through window and file in
      silence — this codebase's most repeated defect. */
-  negoClauseNameKey, negoClauseNamed, negoDupClauseAsk,
+  negoClauseNameKey, negoClauseNamed, negoDupClauseStop, negoAddNamedClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,

@@ -1939,19 +1939,23 @@ repaint run first, so a failure in the walk cannot cost the filing. The toast
 now says WHAT HAPPENED (`pb_proposed_as`, naming the fingerprint) rather than
 where to go, because by the time it is read the reader is looking at the clause.
 
-## A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED (owner-reported 10 Sep 2026)
+## A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED — AND SINCE THE SAME DAY, IT CANNOT BE ADDED AT ALL (owner-reported 10 Sep 2026)
 
 *"make sure that when someone is adding a duplicate clause from the playbook /
 standards that the user is alerted before it is applied."* The reported screen
 carried two pending asks headed QUALITY & REJECTION — one the clause library's
 wording, one the model's draft.
 
-- **THREE DOORS, AND NONE COULD SEE THE OTHER TWO.** Adding a standard files an
-  `insertClause` ask and `negoInsertClause` mints a FRESH clause id every time,
-  so two adds are two clauses. The doors are the Playbook review window, the
-  clause editor's scan rail (both through `rlFilePlaybookProposal`) and the
-  panel's *Apply suggested wording as a redline* (`applyClauseRedline`, which
-  also serves the clause library picker).
+- **THREE DOORS, AND NONE COULD SEE THE OTHER TWO — AND MEASURING FOUND A
+  FOURTH.** Adding a standard files an `insertClause` ask and
+  `negoInsertClause` mints a FRESH clause id every time, so two adds are two
+  clauses. The doors were the Playbook review window, the clause editor's scan
+  rail (both through `rlFilePlaybookProposal`) and the panel's *Apply suggested
+  wording as a redline* (`applyClauseRedline`). **THE FOURTH IS THE ROOM'S OWN
+  `#nego-insert-lib`** — *Insert clause from library* — which called
+  `negoInsertClause` DIRECTLY and asked nothing at all, so it was outside the
+  question entirely. **THREE OF THE FOUR SURVIVE**; the panel's is retired (see
+  ONE DOOR ONTO ADDING A CLAUSE below).
 - **THE HEADING IS THE IDENTITY, and it is structural rather than parsed out of
   prose.** Every door names the new clause from the standard's own name through
   `clauseHeadingFor` — one function, which only ever changes CASE to match the
@@ -1976,25 +1980,128 @@ wording, one the model's draft.
   `negoClauseList` calls `negoInit`, which CREATES a negotiation and stamps
   clause ids into the stored wording — so the document half started a
   negotiation on any contract it was merely asked about. It is guarded on
-  `c.negotiation` already existing, which costs nothing at any real door (both
-  callers arrive from a page that has opened one, and `applyClauseRedline` calls
-  `negoInit` itself two lines above the ask) and means a sweep written later
-  cannot turn this into a write. **Caught by f279 (4), which was written for
-  exactly that trap.**
-- **THE MODEL RETURNS A SHAPE AND DRAWS NOTHING.** `negoDupClauseAsk` builds the
-  question in `confirmDialog`'s own shape and the door puts it up — a model
-  function with a dialog in it is the fault this rulebook records by name. **No
-  door writes a sentence of its own**, so three surfaces cannot come to warn
-  about three different things.
-- **IT REFUSES NOTHING.** Two clauses on one subject is sometimes exactly right
-  and only the reader can tell, so this is a question with the way forward on
-  it. A no returns null, which every caller already handles. **ONLY ON AN ADD** —
-  a deviation that edits a located clause duplicates nothing.
+  `c.negotiation` already existing, which costs nothing at any real door (every
+  one of them arrives from a page that has opened a negotiation) and means a
+  sweep written later cannot turn this into a write. **Caught by f279 (4), which
+  was written for exactly that trap** — and the SIGNS got the same guard a day
+  later for the same reason, see AND NO SIGN WRITES below.
+- **THE MODEL RETURNS A SHAPE AND DRAWS NOTHING.** `negoDupClauseStop` builds
+  the refusal and the door prints it — a model function with a dialog in it is
+  the fault this rulebook records by name. **No door writes a sentence of its
+  own**, so four surfaces cannot come to warn about four different things.
+  (It was `negoDupClauseAsk` and returned `confirmDialog`'s own shape while
+  this was a question; the name moved with the answer.)
+- **IT REFUSES NOTHING — REVERSED IN PLACE 10 Sep 2026** (owner-asked: *"Today
+  it is a question that refuses nothing. I want it to be impossible."*). What
+  stood here was that two clauses on one subject is sometimes exactly right and
+  only the reader can tell, so this was a question with the way forward on it.
+  **THE OWNER HAS MET THAT DIALOG AND RULED THE OTHER WAY**, and the half of the
+  reasoning that survives is the half that mattered: the reader still has a way
+  forward, it is simply the RIGHT one — open the ask that is already there and
+  change its wording, or withdraw it. Two identical clauses on one subject was
+  never that. **ONLY ON AN ADD** is unchanged — a deviation that edits a located
+  clause duplicates nothing.
+- **THE WALL IS ONE ACT AND THE DOORS ARRIVE AT IT.** `negoAddNamedClause` is
+  *add a clause under a name* — it asks the reading, refuses, and otherwise
+  presses `negoInsertClause`. **Written as a rule taught to each door it would
+  have been taught three times and missed the fourth**, which is exactly what
+  the measurement found. A refused call hands the refusal back on the options
+  bag (`opts.refused`) and returns null, which every caller already handles.
+- **AND IT IS NOT ON `negoInsertClause`, DELIBERATELY.** Besides the one act,
+  that funnel has TWO other callers and neither adds a standard by name:
+  `negoFileProposal` (a whole returned document — the Word round trip, the
+  counterparty's redraft, the portal's box) and the clause editor's `fileAll`
+  (a whole Copilot rewrite). Both insert clauses they could not match to an
+  existing one, which is the other side really adding a clause, and **a wall
+  there would DROP their wording silently** — far worse than the duplicate this
+  prevents. The rule belongs to the act *add a named standard*, never to the act
+  *insert a clause*. f279 (10) pins that absence as a wall of its own: it passes
+  before and after, and its job is to fail the day somebody moves the guard one
+  level down to "cover every caller".
+- **THE SIGN IS ON EVERY CONTROL THAT CAN KNOW BEFORE THE PRESS** — the
+  product's own rule. The clause library picker draws *Already here* where the
+  Insert button was; the Playbook review window's row draws no verbs at all,
+  which is the same shape its unplaced branch already uses and for the reason
+  that branch gives in its own words; the clause editor's scan rail draws the
+  refusal where its three add buttons were. **Each asks the ONE reading through
+  the same heading builder the filing will use**, so the sign and the wall
+  cannot come to disagree about which name is already here.
+- **AND EVERY REFUSAL NAMES THE WAY FORWARD ON THE SAME SCREEN**: open that ask
+  and change its wording (`negoReviseInsert`), or withdraw it. Two sentences,
+  one for a clause on the table and one for a clause already in the agreement,
+  because the remedies are different.
+- **AND NO SIGN WRITES, which the first build of all three got wrong.**
+  `negoClauseList` calls `negoInit`, which CREATES a negotiation and stamps
+  clause ids into the stored wording — so a sign built while DRAWING a row would
+  have started one on any contract a row is drawn for. `negoClauseNamed` already
+  carried that guard and records the trap in its own words; the three signs carry
+  it too, asking for the clause list ONCE and only where a negotiation already
+  exists. It costs nothing, because `negoDupClauseStop` answers null there
+  anyway, so the sign and the wall still agree.
 
-Tests: f279 (8 — **all eight fail against the parent**),
-playbook-opens-read-verify (22 — **8 fail against the parent**, the headline
-ones reporting *"no dialog came up"*, *"on the negotiation: false"* and the
-owner's own screenshot as a number: two presses filing 1 → 3).
+**ONE DOOR ONTO ADDING A CLAUSE** (owner-asked 10 Sep 2026). The Playbook
+review SIDE PANEL is a READING now and offers no way to add at all.
+
+- **IT WAS A FOURTH FILING PATH WITH ITS OWN LANDING RULE.**
+  `applyClauseRedline` anchored a new clause after the LAST clause in the
+  document, where `rlFilePlaybookProposal` deliberately anchors AHEAD of the
+  execution wording — because text below a signature block can be argued as
+  outside what was signed. **Two doors onto one act do not fail; they drift, and
+  these two already had.**
+- **`applyClauseRedline` KEEPS THIS FILE'S CONVENTION** — exported, with no live
+  caller, like `negoCounterLineHtml` — so a third caller cannot bring a second
+  filing path back through a door nobody remembered. f279 (12) counts the calls
+  at zero. **AND THE PICKER'S DEFAULT `onPick` WENT WITH IT**: it was already
+  dead (that picker's one caller passes its own) and leaving it wired is
+  precisely the door nobody remembered.
+- **THE "CLAUSES PROPOSED" LIST IS RE-POINTED, NOT RETIRED.** It read
+  `c.clauseInserts`, a store whose ONE writer was the button that has just gone
+  — so it would have drawn permanently empty — and it already missed the rail
+  and the review window. `pbProposedClauses(c)` reads the negotiation's own
+  pending `insertClause` asks (ours, still on the table), which is where every
+  door lands. **IT READS WITHOUT WRITING**: `c.changes` raw, never
+  `negoChanges`, which would start a negotiation on a contract merely asked
+  about. **AND THE HEADING WAS ALREADY WRONG** — it said *inserted into this
+  document* and they are proposals awaiting a decision; that correction is
+  older than this one and is unchanged.
+- **AND ITS SUB-LINE STOPPED CLAIMING A PLACE THE RECORD DOES NOT HOLD.** It
+  read *"proposed for the end of the document"*, which was true of the retired
+  path — that one anchored every clause at the END — and is not true of the
+  negotiation's own, which anchors AHEAD of the execution wording, **which is
+  the very drift that retired it**. The change records `afterClauseId`; where
+  there is one the row says *"proposed · awaiting a decision"* and names no
+  position. An absent anchor really is the end, so nothing that was true
+  stopped being said.
+- **`pb_apply_suggested` IS STALE** and is left INERT in BOTH dictionaries — a
+  key removed from one and not the other is how a screen ends up half-English.
+- **WHAT IT COSTS, SAID OUT LOUD:** a reader on the Document tab can no longer
+  add a standard from the Playbook panel and must open the negotiation page.
+  The panel still says what is missing or off standard, still quotes the
+  wording it objects to, and still lists what has been proposed.
+- **AND THE 10 Sep JOURNEY WENT WITH THE BUTTON IT WAS BUILT FOR, which is the
+  one thing to weigh before restoring anything here.** *"When I click on apply
+  this suggested wording it needs to take me where it has been added"* was
+  answered by putting `pbShowInsert` on the panel's Apply; that Apply is gone,
+  and **neither surviving door walks you to the clause** — the review window
+  marks its row *Filed as #CHG-011* and keeps you in the list, the scan rail
+  marks its card *Added* and keeps you on the clause you were editing. **That
+  is deliberate, not an oversight**: both readers are mid-task on a page the
+  paper is already beside, and jumping them away on every press would throw
+  them out of the very list they are working through. **THE JOURNEY IS NOT
+  LOST** — every row of the panel's proposed list carries *Show me*, which is
+  `pbShowInsert` itself, and re-pointing that list means it covers the rail and
+  the review window **for the first time**. If the owner wants the walk back on
+  a press, it is `pbShowInsert(c, row)` at those two call sites and a decision
+  about interrupting a list.
+
+Tests: f279 (14 — **7 fail against the parent**; the seven that pass are the
+reading's own edges, which the owner ruled must not be loosened, plus the
+`negoInsertClause` wall above and the two "applying takes you to it" claims,
+all four of them controls), playbook-opens-read-verify (23 — **9 fail against
+the parent**, the headline ones reporting the owner's own screen as a fact:
+*"the button is still drawn"*, *"there is no one act"*, and the panel with
+*"2 add button(s) still drawn"*. Every driven half is GUARDED, so a build
+without the act reports its failures rather than stopping the file).
 
 ## A CONTRACT KNOWS WHOSE IT IS (14 Aug 2026)
 
