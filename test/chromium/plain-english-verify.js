@@ -778,6 +778,81 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       hOut.map(n => `${n.num || '·'}/${n.head.slice(0, 14)}`).join(' | '));
     await page.screenshot({ path: path.join(OUT, '11-heading-numbers.png') }).catch(() => {});
 
+    /* ============ 12 · THE HEADING IS THE DRAFTER'S OWN (Young, 10 Sep 2026) ============
+       *"Dropping copilot headings makes sense"*, and *"make the page for plain
+       english have a similar structure so you almost do not notice a difference
+       except plain english will be sitting on a plain white background."*
+
+       The model is scripted with headings NOTHING like the paper's, so a pass
+       cannot be an accident of the two agreeing. */
+    ai.reset();
+    ai.script(tool([
+      { i: 0, head: 'ZZZ MODEL HEADING ONE', plain: 'The Supplier provides the goods listed on each order.' },
+      { i: 1, head: 'ZZZ MODEL HEADING TWO', plain: 'The first party moves the services across on the timetable.' },
+      { i: 2, head: 'ZZZ MODEL HEADING THREE', plain: 'This clause explains the defined words.' },
+    ]));
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace(c.id);
+    }, undefined, null);
+    await pause(1200);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(700);
+    const pPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '12 Plain English');
+    await pause(3200);
+    const paperHeads = await drive(page, () => {
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      const canvas = document.getElementById('doc-canvas');
+      const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const sheet = Array.from(canvas.querySelectorAll('h1,h2,h3,h4')).map(h => norm(h.textContent));
+      return notes.map(n => {
+        /* The citation is a span of its own INSIDE the heading, so it is taken
+           off before the name is compared — otherwise the check reads "1Scope
+           of supply" and can never match the sheet. */
+        const el = n.querySelector('.dr-h,.dr-s');
+        const cite = el && el.querySelector('.dr-n');
+        const h = el ? String(el.textContent || '').slice(cite ? String(cite.textContent || '').length : 0) : '';
+        return { head: String(h).replace(/\s+/g, ' ').trim(),
+          onSheet: sheet.some(t => t && norm(h) && t.indexOf(norm(h)) >= 0) };
+      });
+    }, undefined, []);
+    check(pPressed && paperHeads.length === 3, '12a the readings came back', paperHeads.length);
+    check(paperHeads.length > 0 && paperHeads.every(n => !/ZZZ MODEL/.test(n.head)),
+      '12b NOT ONE MODEL HEADING IS DRAWN — Young’s own ruling',
+      paperHeads.map(n => n.head.slice(0, 22)).join(' | '));
+    check(paperHeads.length > 0 && paperHeads.every(n => n.onSheet),
+      '12c every heading drawn is one the DRAFTER wrote, found on the sheet itself',
+      paperHeads.map(n => `${n.onSheet ? '✓' : '✗'} ${n.head.slice(0, 22)}`).join(' | '));
+
+    /* ---- AND THE EDITION IS SET LIKE THE CONTRACT ---- */
+    const shaped = await drive(page, () => {
+      /* A clause a step in with its marker in a gutter, staged on the paper the
+         same way an uploaded contract carries it. */
+      const canvas = document.getElementById('doc-canvas');
+      /* The class goes on the ANCHOR the entry faces — which on this staged
+         paper is a heading — because that is the element docReadShape walks up
+         from. Marking some other paragraph proves nothing. */
+      const heads = Array.from(canvas.querySelectorAll('h1,h2,h3,h4'));
+      if (heads[1]) heads[1].className = ((heads[1].className || '') + ' rl-hang hati-lv-1').trim();
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      if (typeof docReadPaint === 'function') docReadPaint(c);
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      return { any: notes.length,
+        stepped: notes.filter(n => /hati-lv-/.test(n.className)).length,
+        hung: notes.filter(n => /dr-hang/.test(n.className)).length,
+        rule: (() => { try{ return [...document.styleSheets].some(sh => {
+          try{ return [...sh.cssRules].some(r => /doc-read-note\.hati-lv-1/.test(r.selectorText || '')); }
+          catch(_){ return false; } }); }catch(_){ return false; } })() };
+    }, undefined, { any: 0, stepped: 0, hung: 0, rule: false });
+    check(shaped.rule,
+      '12d the edition draws the SAME step ladder as the paper — one vocabulary',
+      shaped.rule ? 'hati-lv-N reaches the reading column' : 'no rule');
+    check(shaped.any > 0 && shaped.stepped > 0 && shaped.hung > 0,
+      '12e an entry facing an indented clause is indented, and one facing a gutter hangs',
+      JSON.stringify(shaped));
+
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));
   } catch (e) {

@@ -4821,10 +4821,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
             type: 'object',
             properties: {
               i: { type: 'integer', description: 'The number in square brackets at the head of the row.' },
-              head: { type: 'string', description: 'A short plain-English heading for this row, in sentence case. Never include the clause number.' },
               plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty for a row marked SECTION, and for a clause with nothing worth telling a business owner.' },
             },
-            required: ['i', 'head', 'plain'],
+            required: ['i', 'plain'],
           },
         },
       },
@@ -4833,7 +4832,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   };
   const J = orgJx();
   const LANG = READ_LANGS[lang];
-  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry with its own heading, and the reader's eye moves between the two. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
+  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
   try {
     /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
        than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
@@ -4856,11 +4855,23 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       if (!Number.isInteger(i) || i < 0 || i >= list.length) return;
       const plain = String((r && r.plain) || '').trim();
       const head = String((r && r.head) || '').trim();
+      /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
+         `head` is no longer asked for and is kept here for the one reason that
+         matters: a reading CACHED before this ruling still carries one, and the
+         section rule below is what keeps those rows alive. The browser draws
+         the paper's own heading either way, so nothing already read has to be
+         paid for again — and a model that answers with one anyway is stored
+         and simply not drawn. */
       /* A SECTION ROW IS KEPT ON ITS HEADING ALONE — it is the edition's own
          section title and carries no wording by design. Everything else needs
          a reading: a clause entry with only a heading would draw a title over
          nothing. The NUMBER is the browser's, never the model's. */
-      if (!plain && !(list[i].kind === 'section' && head)) return;
+      /* A SECTION ROW NEEDS NOTHING FROM THE MODEL NOW, which is why this test
+         moved: it kept a section only where the model had written a heading,
+         and with headings no longer asked for that would have dropped every
+         section title out of the edition. A section is kept because it IS one —
+         the paper's own heading is what the browser draws under it. */
+      if (!plain && list[i].kind !== 'section') return;
       items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
     });
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this

@@ -1846,6 +1846,58 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## THE PLAIN ENGLISH EDITION IS SET LIKE THE CONTRACT (Young ruled 10 Sep 2026)
+
+*"Can we also make the page for plain english have a similar structure so you
+almost do not notice a difference except plain english will be sitting on a
+plain white background"*, and then, on the one question that needed a ruling:
+*"Dropping copilot headings makes sense."*
+
+**THE HEADINGS ARE THE DRAFTER'S OWN AND THE MODEL IS NO LONGER ASKED FOR ONE.**
+The edition is a TRANSLATION of this contract, so its headings are this
+contract's; a model-written heading beside the drafter's is a second name for
+one clause, and the two disagree the moment it is renamed.
+
+- **THE FIELD IS GONE FROM THE SCHEMA AND THE PROMPT SAYS WHY** — *do not write
+  headings, each entry is drawn under the contract's own heading and number*.
+- **NOTHING ALREADY READ IS PAID FOR AGAIN**, and that is a fact about the cache
+  rather than luck: the route's key is a hash of the LANGUAGE and the WORDING it
+  was sent, never of the prompt. A reading cached with a heading keeps it on the
+  record and simply stops being drawn.
+- **A SECTION ROW SURVIVES WITHOUT ONE.** It used to be kept only where the
+  model had written a heading — with headings no longer asked for, that test
+  would have dropped every section title out of the edition. A section is kept
+  because it IS one.
+- **`ownHead` IS ITS OWN FIELD, not `heading` re-used.** `heading` is a READING
+  the pairing guard and the route use, and for a marked clause number it is only
+  the first few words; the name to PRINT is the drafter's. A marked number has
+  no element of its own to read a bold lead-in out of, so the lead-in is looked
+  for at the start of what FOLLOWS it, in a COPY of that range — and where there
+  is none the entry carries no heading, which is honest: that clause has none on
+  the paper either.
+- **`_docReadHeadCut` CUTS THE NUMBER AND THE NAME ONCE.** They are printed in
+  different places — the number as a citation in its own gutter, the name beside
+  it — and cutting the string twice is how one heading comes to be printed with
+  its number and again without. `_docReadHeadNum` is now half of that reading.
+
+**AND THE EDITION BORROWS THE PAPER'S OWN SKELETON**: the same gutter and the
+same steps, in the SAME vocabulary — `hati-lv-N`, which the Word reader writes
+off a file's own indent, the writing bar writes off a press, and the gutter walk
+derives from a marker. A second ladder here would be a fourth opinion about how
+wide a step is.
+
+- **THE SHAPE IS READ OFF THE PAGE, NEVER STORED IN THE READING.** A reading is
+  cached against the WORDING, and a clause can be indented without a word
+  moving — so a stored shape would go stale under a reader while the paper in
+  front of them said otherwise. `docReadShape` asks the DOM and nothing else,
+  walking UP because a marked clause number is a span inside the paragraph that
+  carries the class.
+- **THE WHITE SHEET WAS ALREADY DONE** (Young, the same day) and is untouched.
+
+Tests: f277 (13) (7 — **5 fail against the parent**), plain-english-verify
+section 12 (5, browser — the model scripted with headings NOTHING like the
+paper's, so a pass cannot be the two agreeing by accident).
+
 ## THE STRUCTURE GOES OUT AS WELL AS IN (Young asked 10 Sep 2026)
 
 *"Can we also ensure that when exported to Microsoft Word, the structure is not

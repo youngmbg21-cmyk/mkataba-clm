@@ -2805,6 +2805,22 @@
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  /* ---- THE EDITION IS SET LIKE THE CONTRACT (Young asked 10 Sep 2026: "make
+     the page for plain english have a similar structure so you almost do not
+     notice a difference except plain english will be sitting on a plain white
+     background") ----
+     The same gutter and the same steps as the paper, in the SAME vocabulary —
+     hati-lv-N, which the Word reader writes off a file's own indent, the
+     writing bar writes off a press, and the gutter walk derives from a marker.
+     A second ladder here would be a fourth opinion about how wide a step is. */
+  .doc-read-note.dr-hang > .dr-h,.doc-read-note.dr-hang > .dr-s{
+    padding-left:2.6em; text-indent:-2.6em; }
+  .doc-read-note.dr-hang > .dr-h .dr-n,.doc-read-note.dr-hang > .dr-s .dr-n{
+    display:inline-block; min-width:2.6em; text-indent:0; }
+  .doc-read-note.dr-hang > p{ padding-left:2.6em; }
+  .doc-read-note.hati-lv-1{ margin-left:2.6em; }
+  .doc-read-note.hati-lv-2{ margin-left:5.2em; }
+  .doc-read-note.hati-lv-3{ margin-left:7.8em; }
   .doc-read-note .dr-h{ margin:0 0 3px; font-size:1em; line-height:1.4;
     font-weight:var(--w-strong); color:var(--color-text); }
   .doc-read-note .dr-s{ margin:0; font-size:1.13em; line-height:1.35;
