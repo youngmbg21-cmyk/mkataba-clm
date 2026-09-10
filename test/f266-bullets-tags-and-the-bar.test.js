@@ -121,18 +121,23 @@ describe('f266 (2) — the depth reaches the drawing', () => {
     const lines = html.split('</p>').filter(x => x.includes('rl-line'));
     const sub = lines.find(l => l.includes('No worries'));
     const top = lines.find(l => l.includes('Data protection'));
-    assert.match(sub, /rl-hang rl-hang-2/, 'the sub-bullet sits under its parent');
-    assert.ok(!/rl-hang-2/.test(top), 'and its sibling does not');
+    /* RE-POINTED 10 Sep 2026: this named the step by the redline's own
+       prefixed class. The claim is that a sub-bullet SITS UNDER its parent, and
+       the step is now one shared vocabulary — hati-lv-N — written by this
+       renderer, by the Word reader off a file's own indent, and by the writing
+       bar off a press. */
+    assert.match(sub, /rl-hang hati-lv-1/, 'the sub-bullet sits under its parent');
+    assert.ok(!/hati-lv-/.test(top), 'and its sibling does not');
     assert.match(sub, /rl-marker/, 'with its own glyph still in the gutter');
   });
 
   test('and both sheets draw the indent — one reading, both canvases', () => {
     const CSS = read('js/views/negotiation-css.js');
-    assert.match(CSS, /\.redline-page \.rl-doc \.rl-hang-2/);
-    assert.match(CSS, /\.redline-page \.rl-cp-src \.rl-hang-2/,
+    assert.match(CSS, /\.redline-page \.rl-doc \.hati-lv-1/);
+    assert.match(CSS, /\.redline-page \.rl-cp-src \.hati-lv-1/,
       'the clause panel renders the same builder');
-    assert.match(CSS, /\.nego-redline \.rl-hang-2/, 'and so does the room');
-    assert.match(CSS, /rl-hang-2\{margin-left/,
+    assert.match(CSS, /\.nego-redline \.hati-lv-1/, 'and so does the room');
+    assert.match(CSS, /hati-lv-1\{margin-left/,
       'MARGIN, never padding: padding-left is what the hang itself uses, and '
       + 'adding to it would pull the marker out of its gutter');
   });

@@ -830,8 +830,14 @@ function redlineOpsBlocksHtml(ops, opts = {}){
        Presentation only: nothing here changes what the line SAYS, which is why
        it is safe to do at the draw and would not be safe in the ops. */
     const depth = hang ? redlineMarkerDepth(shownMark) : 0;
+    /* THE STEP IS NOT PREFIXED, AND THAT IS DELIBERATE. `rl-line`, `rl-hang`
+       and their friends belong to whichever surface is drawing; how far in a
+       line SITS is one fact this product states in one vocabulary — the same
+       hati-lv-N the Word reader writes off a file's own indent and the writing
+       bar writes off a press. Two names for one step is how they come to
+       disagree about how wide a step is. */
     const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
-      depth ? `${pre}-hang-${depth + 1}` : '',
+      depth ? `hati-lv-${depth}` : '',
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
     /* THE BLOCK'S OWN STYLE, for markup that leaves this app — see the note on

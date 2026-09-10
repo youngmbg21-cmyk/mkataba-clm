@@ -4229,7 +4229,17 @@ function wireNegotiationTab(c, opts = {}){
     holder.before(fmt);
     fmt.querySelectorAll('[data-nego-fmt]').forEach(fb => fb.addEventListener('mousedown', ev => {
       ev.preventDefault(); ev.stopPropagation();
-      try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
+      const cmd = fb.getAttribute('data-nego-fmt');
+      /* ---- ONE SET OF HANDS, TWO EDITORS (Young asked 10 Sep 2026) ----
+         This bar called execCommand directly and work mode's calls
+         richBarPress, so a bulleted limb typed here came out as a browser list
+         at its own padding while the same press over there wrote a marker in
+         the contract's own gutter. The act is the same act; a second
+         implementation of it is how the two came to speak different languages.
+         richBarPress falls back to execCommand itself where there is no
+         paragraph to act on, so nothing this bar could do before is lost. */
+      if (window.richBarPress){ try{ if (richBarPress(cmd)) return; }catch(_){} }
+      try{ document.execCommand(cmd); }catch(_){ /* an engine without execCommand still has the keyboard */ }
     }));
     /* ---- SAVE IS ONE PRESS ----
        REVERSED IN PLACE 28 Aug 2026, owner-asked: "we need to remove the

@@ -2519,7 +2519,12 @@ function ceHeadReadHtml(){
    about what it holds. The WORDING is sanitised rather than flattened, exactly
    as the clause panel's editor does it — reading textContent there is what used
    to throw the reader's bold and bullets away on every keystroke. */
-function cePullText(){
+/* `opts.repaint` FORCES the paper to be rebuilt. The sanitiser's own signal
+   below catches a paste; it cannot catch a press of the writing bar's four
+   SHAPE tools, because what those move is a marker and a step class that the
+   allow-list keeps exactly as written — nothing to correct, and the paper still
+   owes the reader the marker in its gutter. */
+function cePullText(opts){
   if (!ceIsTyping()) return;
   const box = _ceQ('#ce-clausebody');
   const headBox = _ceQ('#ce-clausehead');
@@ -2544,7 +2549,7 @@ function cePullText(){
   if (next === _ceText && !headMoved) return;
   _ceHead = nextHead;
   ceApply(next, (headMoved && next === _ceText) ? _cet('ce_step_named') : _cet('ce_step_typed'),
-    { keepView: true, headMoved, repaint: corrected });
+    { keepView: true, headMoved, repaint: corrected || !!(opts && opts.repaint) });
 }
 
 function ceRenderFoot(){
@@ -3537,6 +3542,9 @@ function ceRenderScope(){
    reading of "which words were those", and nothing to go stale. The caret is
    handed straight back to the strip, so the gesture the reader is in the middle
    of is not interrupted. */
+/* Which presses move a paragraph's SHAPE rather than its dressing — asked of
+   richdoc's own list, never a second copy of four names here. */
+const ceBarMovesShape = k => !!(window.RICH_SHAPE_KEYS && window.RICH_SHAPE_KEYS.has(k));
 function ceBarOnHeld(k){
   const box = _ceQ('#ce-clausebody');
   const span = box && box.querySelector ? box.querySelector('.' + CE_HELD_CLASS) : null;
@@ -3565,7 +3573,7 @@ function ceBarOnHeld(k){
      owed and the reader is put back after it rather than the repaint being
      skipped. The text of the passage does not move under a dressing change,
      which is what makes finding it again honest. */
-  cePullText();
+  cePullText({ repaint: ceBarMovesShape(k) });
   ceReopenHeld(held);
   return true;
 }
@@ -3904,7 +3912,7 @@ function ceWirePage(page){
        state the caret is in whenever the strip is open. Everywhere else the
        bar reads the reader's own selection in the clause, exactly as it did. */
     if (_ceSel && ceBarOnHeld(k)) return;
-    if (window.richBarPress && richBarPress(k)) cePullText();
+    if (window.richBarPress && richBarPress(k)) cePullText({ repaint: ceBarMovesShape(k) });
   });
 
   /* The picker's own presses. mousedown for the same reason the bar uses it —

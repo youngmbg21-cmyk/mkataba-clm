@@ -663,6 +663,12 @@ function openCompareModal(c){
         #cmp-out h4.cmp-line{font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:.02em;margin:14px 0 7px}
         #cmp-out .cmp-doc>h4.cmp-line:first-child{margin-top:0}
         #cmp-out .cmp-hang{padding-left:34px;text-indent:-34px}
+        /* THE STEP, in this dialog's own gutter width. It carried none before
+           and drew a sub-bullet level with its parent; the shared class is what
+           makes one rule here enough. */
+        #cmp-out .hati-lv-1{margin-left:34px}
+        #cmp-out .hati-lv-2{margin-left:68px}
+        #cmp-out .hati-lv-3{margin-left:102px}
         #cmp-out .cmp-marker{font-weight:var(--w-strong);margin-right:6px}
         #cmp-out ins.cmp-ins{background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:var(--radius);padding:0 2px}
         #cmp-out del.cmp-del{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:var(--radius);padding:0 2px}

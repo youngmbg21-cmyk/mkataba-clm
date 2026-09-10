@@ -1846,6 +1846,92 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## THE BAR SPEAKS THE CONTRACT'S OWN LANGUAGE (Young asked 10 Sep 2026)
+
+*"When I begin to make written edits with the tools I have been provided, they
+do not match up with the document itself. The bullet points do not work together
+with how the sentences or bullets points in the contract are designed. They do
+not speak the same language."*
+
+**THERE WERE TWO RIVAL WAYS TO INDENT A LINE AND THE BAR SPOKE THE WRONG ONE.**
+A contract in this product is a marker in a hanging gutter — 2.1, (a), a bullet
+— with the wording hanging beside it; that is what the paper draws, what the
+text projection carries and what the redline files. The four list tools called
+`document.execCommand`, which builds a browser `<ul>` at its own padding. So a
+limb typed with the bar sat at a different indent from the limb above it,
+carried a marker the projection numbered differently, and could not be continued
+from.
+
+- **IT WRITES CHARACTERS, NOT MARKUP.** A marker put in by the bar is text in
+  the paragraph, character for character what the reader would have typed — so
+  the projection the redline diffs against carries it, the gutter walk finds it,
+  and **a marker HaTi wrote is indistinguishable from one the other side did**.
+  A marker that lived in markup would be invisible to the diff, so the other
+  side would never see the line become a bullet.
+- **THE LEVEL IS THE ONE THE PAPER ALREADY DRAWS** — `hati-lv-1..3`, the same
+  class the Word reader writes from a file's own indent. One vocabulary.
+- **THE READING OF WHAT A MARKER IS HAS EXACTLY ONE HOME.** The bar asks
+  `redlineSplitMarker` through `window`; a second pattern here is how the bar
+  would come to write something the gutter does not recognise.
+- **NUMBERS CONTINUES THE CONTRACT'S OWN SEQUENCE** — the nearest block ABOVE
+  sitting at the same step and wearing the same kind of marker. It stops at a
+  heading, a shallower step or an unmarked paragraph, because a run that has
+  been interrupted has started again: a number carried across it would cite a
+  clause that is not there.
+- **THE MARKER SHAPE FOLLOWS THE STEP, as legal drafting sets one**: 2.1, then
+  (a), then (i). Level 3 falls back to a bracketed number rather than repeating
+  (i), so a reader can still tell the two apart.
+- **A PLAIN SENTENCE MOVES**, which is most of what a reader indents; the old
+  tools only ever moved a list item.
+- **A BULLET FOLLOWS THE STEP AND A NUMBER NEVER DOES.** The glyph ladder is
+  this product's own reading of how deep a bullet is, so a dot left at the wrong
+  rung would say one thing while the step said another. **A number is a
+  citation** — "subject to clause 2.1" — and nothing that moves a line sideways
+  may rewrite it.
+- **BOTH TOOLS ARE STILL TOGGLES**, judged on the FIRST block so a mixed
+  selection lands one way rather than alternating down the page.
+- **AND THE ELEMENT A CUT MARKER LEAVES BEHIND GOES WITH IT.** Word writes a
+  clause number bold, so cutting its characters out of a `<strong>` leaves an
+  empty one — which the sanitiser would clear on save, and which until then is
+  an invisible box the reader's next keystroke lands inside and comes out bold.
+- **THE REST OF THE BAR IS UNTOUCHED.** Bold, italic, underline, strike, the
+  inks, the sizes and the quote are `execCommand` exactly as they were, and the
+  four shape tools fall back to it where there is no paragraph to act on — so
+  nothing this bar could do before is lost.
+
+**AND THERE WERE TWO BARS, WHICH IS THE HALF NOBODY REPORTED.** Work mode's went
+through `richBarPress`; the room's own inline editor called `execCommand`
+itself, so the same press produced different wording depending which editor you
+were in. The room asks the one set of hands now. **A second implementation of
+one act is how the two came to speak different languages in the first place.**
+
+**AND A HOST IS TOLD WHICH PRESSES MOVE A SHAPE.** `RICH_SHAPE_KEYS` is those
+four, named once: they owe the paper a repaint — the marker has to land in its
+gutter and the step has to move the line — where a dressing change does not, and
+the sanitiser's own "did I have to correct the box" signal cannot see it,
+because the allow-list keeps a marker and a step class exactly as written. Work
+mode asks that list rather than carrying four names of its own.
+
+**AND THE STEP HAD A SECOND EMITTER, which the browser found and no source check
+could.** `redlineOpsBlocksHtml` — the renderer that draws a filed change's marks
+— stamped its own prefixed `rl-hang-N`, so renaming the class in the gutter walk
+alone left a sub-bullet in a redline drawn level with its parent. **The step is
+NOT prefixed, and that is deliberate**: `rl-line` and `rl-hang` belong to
+whichever surface is drawing, and how far in a line SITS is one fact this
+product states in one vocabulary. **The Compare dialog gains it**: it carried no
+step rule at all and drew a sub-bullet level with its parent, which is one rule
+now that the name is shared.
+
+**IT DECIDES NOTHING AND FILES NOTHING** — `richBarShape` is greppable for every
+funnel and carries none. Whether a change is filed, and through which door,
+belongs to the host, exactly as the rest of this bar already works. **An indent
+with no wording change files as `formattingOnly`** by machinery that already
+exists: `canonicalRich` carries attributes, so a level really is a change to the
+document's shape and the funnel's own no-op guard is untouched.
+
+Tests: f287 (17 — **14 fail against the parent**, the headline one reporting a
+browser `<ul>` where the contract wants a marker).
+
 ## THE FILE'S OWN SHAPE SURVIVES THE UPLOAD (Young asked 10 Sep 2026)
 
 *"I downloaded this contract into HaTi and it is well designed but when

@@ -1975,7 +1975,12 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     const bar = CODE.match(/bar\.addEventListener\('mousedown'[\s\S]*?\n  \}\);/)[0];
     assert.match(bar, /if \(_ceSel && ceBarOnHeld\(k\)\) return;/,
       'a held passage is asked about FIRST');
-    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(\);/,
+    /* RE-POINTED 10 Sep 2026: this pinned the call's whole EXPRESSION, so the
+       day it gained an argument it failed on a claim that was still true. What
+       it is about is that with nothing held the bar reads the reader's own
+       selection and the page then pulls the text — never that the pull takes
+       no arguments. */
+    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(/,
       'and with nothing held the bar reads the reader\'s own selection exactly '
       + 'as it did');
     const held = CODE.match(/function ceBarOnHeld\([\s\S]*?\n\}/)[0];
