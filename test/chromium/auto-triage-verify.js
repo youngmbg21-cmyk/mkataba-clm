@@ -445,8 +445,11 @@ const SEED = t => {
        shortcut: the reported note was written by the code of 9 Sep and today's
        code cannot produce it. So the shape is written onto the record and the
        page is re-opened, which is exactly what a reader who opens MK-379 gets.
-       `_brief` is deleted because a cut-short brief was never kept — section 7
-       proves that against a real server. */
+       `_brief` is deleted because that is the state the note lies about: a note
+       claiming a brief the record does not hold. (A cut-short brief IS kept
+       since 10 Sep — f280 (7) proves that against a real server — so this is a
+       note written by an older run, or one whose keep did not land. Either
+       way, the tile may not believe it.) */
     const cid = await drive(() => state.activeId, undefined, null);
     const staged = await drive(id => {
       const c = state.contracts.find(x => x.id === id);
@@ -536,6 +539,88 @@ const SEED = t => {
       !!(both2 && !/cut short|klipptes|again/i.test(both2.detail)), both2 && both2.detail);
     check('10i · and the card agrees, again',
       !!(both2 && both2.cardOpen === true), both2 && { open: both2.cardOpen });
+
+    /* ============ 11 · A CUT-SHORT BRIEF IS KEPT, AND SAID TO BE PARTIAL ====
+       (owner-reported 10 Sep 2026, two halves of one screen.)
+
+       "The strip says No brief while the card beside it opens a complete
+       brief" — the reader had pressed Write the brief after the upload's own
+       run failed, it worked, and the strip never noticed. The tile has read
+       the record live since 10 Sep, so it had the right answer the moment it
+       was drawn; NOTHING WAS DRAWING IT. And: "the brief is written and
+       readable; refresh and the card is back to Not written yet" — a cut-short
+       answer was deliberately not kept.
+
+       DRIVEN, BECAUSE "THEY AGREE" IS A CLAIM ABOUT TWO BOXES and only a
+       rendered page has both — and because the fault is a REPAINT, which no
+       source check can see. The provider is stood in for at the route, exactly
+       as startScriptedAi stands in for it elsewhere: everything from the
+       button's own handler inward is the product's. */
+    const staged11 = await drive(id => {
+      const c = state.contracts.find(x => x.id === id);
+      if (!c) return null;
+      /* The reported state: auto-triage ran at upload and the brief FAILED. */
+      c.triage = { at: new Date().toISOString(), by: 'Young', steps: {
+        brief: { ok: false, why: 'Copilot request failed: fetch failed' },
+        risk: { ok: true, open: 0 },
+        playbook: { ok: true, dev: 1, miss: 0, cats: ['Payment terms'] },
+        oblig: { ok: true, found: [] } } };
+      delete c._brief; delete c._hasBrief;
+      delete (c.triage || {}).seenAt;
+      state.aiConfigured = true;
+      if (window.openWorkspace) openWorkspace(c.id);
+      return { ok: true };
+    }, cid, null);
+    await pause(900);
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(600);
+    const read11 = () => drive(() => {
+      const e = document.getElementById('kt-triage');
+      const card = document.getElementById('brief-card');
+      const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
+      const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
+      return { head: t(tile && tile.querySelector('.kt-tri-th')),
+        detail: t(tile && tile.querySelector('.kt-tri-td')),
+        cardTxt: t(card),
+        cardWrite: !!(card && card.querySelector('[data-kt-brief="run"]')),
+        cardOpen: !!(card && card.querySelector('[data-kt-brief="open"]')) };
+    }, undefined, null);
+    const before11 = await read11();
+    check('11a · the reported starting state — no brief, on both boxes (control)',
+      !!(staged11 && before11 && /No brief|Ingen sammanfattning/.test(before11.head)
+         && before11.cardWrite === true && before11.cardOpen === false),
+      before11 && { head: before11.head, write: before11.cardWrite });
+
+    /* The provider, stood in for at the route. stopReason max_tokens is what a
+       thorough brief really hits, and the flag is what the record now keeps. */
+    await ctx.route('**/api/ai/brief', route => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ brief: { v: 1, at: new Date().toISOString(), by: 'Copilot',
+        inputHash: 'h', truncated: true,
+        data: { overview: 'A haulage contract for the northern route, running a year.',
+          watchouts: [], unusual: [], term: {}, money: {} } },
+        notice: 'The Copilot answer was longer than the space allowed.' }) }));
+    await drive(() => { const b = document.querySelector('#brief-card [data-kt-brief="run"]');
+      if (b) b.click(); });
+    await pause(1400);
+    await page.screenshot({ path: path.join(OUT, '11-partial-brief.png'), fullPage: false });
+    const after11 = await read11();
+    check('11b · the press really wrote one (control)',
+      !!(after11 && after11.cardOpen === true), after11 && { open: after11.cardOpen });
+    check('11c · THE REPORTED FAULT: the strip repaints with the card, no reload',
+      !!(after11 && /Brief written|Sammanfattning skriven/.test(after11.head)),
+      after11 && after11.head);
+    check('11d · and it says the answer was cut short rather than serving half a memo whole',
+      !!(after11 && /cut short|klipptes/i.test(after11.detail)),
+      after11 && after11.detail);
+    check('11e · the card beside it says it too, in the same breath',
+      !!(after11 && /cut short|Part of this|klipptes|En del av/i.test(after11.cardTxt)),
+      after11 && after11.cardTxt.slice(0, 120));
+    check('11f · and the way forward is ON the card — write it again',
+      !!(after11 && after11.cardWrite === true && after11.cardOpen === true),
+      after11 && { write: after11.cardWrite, open: after11.cardOpen });
+    await ctx.unroute('**/api/ai/brief');
 
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));

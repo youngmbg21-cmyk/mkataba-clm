@@ -2572,6 +2572,13 @@ const STRINGS = {
     br_open: "Read the brief",
     br_write: "Write the brief",
     br_kt_sub: "A plain-English read of this contract — what it commits you to, the money, and what is worth watching.",
+    /* ---- A BRIEF THAT WAS CUT SHORT IS KEPT AND SAYS SO ---- (10 Sep 2026)
+       Owner-ruled: a written brief must survive a refresh. It is kept with its
+       flag, and every surface that reads one says it is partial rather than
+       serving half a memo as a whole one — which is the fault the old rule was
+       written for and the one thing that may not come back. */
+    br_partial: "Part of this was cut short",
+    br_partial_sub: "The answer ran out of room, so some of it is missing. Write it again for the whole thing.",
     br_kt_none: "Not written yet. Copilot reads the wording and explains it in plain English.",
     br_kt_none_viewer: "No brief has been written for this contract yet.",
     br_failed: "The brief could not be written.",
@@ -4957,6 +4964,9 @@ const STRINGS = {
     tri_no_answer: 'Copilot gave no answer.',
     /* A cut-short brief is deliberately not kept, so the strip may not say one
        was written. The sentence names the one thing the reader can act on. */
+    /* STALE 10 Sep 2026, left INERT in BOTH books. A cut-short brief is KEPT
+       now, marked, so nothing records it as not kept — and a key removed from
+       one book and not the other is how a screen ends up half-English. */
     tri_brief_cut: 'The answer was cut short, so it was not kept \u2014 write the brief again.',
     /* AND WHERE THE RECORD SIMPLY HOLDS NONE. The head already says "No
        brief", so this says the one thing it cannot: where to write one. */
@@ -8254,6 +8264,8 @@ const STRINGS = {
     br_open: "Läs sammanfattningen",
     br_write: "Skriv sammanfattningen",
     br_kt_sub: "En sammanfattning av avtalet på vanlig svenska — vad det förbinder er till, pengarna och vad som är värt att bevaka.",
+    br_partial: "En del av detta klipptes av",
+    br_partial_sub: "Svaret fick inte plats, så en del saknas. Skriv om den för att få hela.",
     br_kt_none: "Inte skriven än. Copilot läser formuleringen och förklarar den på vanlig svenska.",
     br_kt_none_viewer: "Ingen sammanfattning har skrivits för det här avtalet än.",
     br_failed: "Sammanfattningen kunde inte skrivas.",
@@ -10485,6 +10497,7 @@ const STRINGS = {
     tri_fold: 'Fäll ihop',
     tri_unfold: 'Visa vad som hittades',
     tri_no_answer: 'Copilot gav inget svar.',
+    /* STALE 10 Sep 2026 — see the English book. */
     tri_brief_cut: 'Svaret klipptes av och sparades därför inte \u2014 skriv sammanfattningen igen.',
     tri_brief_none: 'Ingen finns sparad \u2014 skriv den från kortet Avtalssammanfattning.',
     tri_not_available: 'Den här läsningen är inte tillgänglig här.',

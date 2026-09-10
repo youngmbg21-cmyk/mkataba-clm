@@ -3650,11 +3650,22 @@ function renderBriefSection(c){
       #brief-section .br-facts dt{font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;
         text-transform:uppercase;color:var(--color-neutral-600);padding-top:2px}
       #brief-section .br-facts dd{margin:0;font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
+      /* ---- AND A PARTIAL BRIEF SAYS SO WHERE IT IS READ ---- (10 Sep 2026)
+         A cut-short brief is kept now, so the one place that could never carry
+         the cut — a cached read — is the place that has to. Amber, because it
+         is work owed: the memo below is not the whole memo and Rewrite is
+         directly under it. A LINE rather than a band: it says something the
+         panel does not already say, and the act that answers it is already on
+         the same screen. */
+      #brief-section .br-cut{margin:var(--s-4) 0 0;padding:8px 11px;font-size:var(--t-label);
+        line-height:1.55;color:var(--st-amber-fg);background:var(--st-amber-bg);
+        border-left:3px solid var(--st-amber-dot);border-radius:var(--radius)}
     </style>
     <div class="br-lead">${briefMark(d.overview||'')}</div>
     ${briefFactsHtml(d)}
     ${wl?head(i18t('br_watchouts'),'watch')+`<ul class="br-list">${wl}</ul>`:''}
     ${ul?head(i18t('br_unusual'),'odd')+`<ul class="br-list">${ul}</ul>`:''}
+    ${b.truncated?`<p class="br-cut">${_aiEsc(i18t('br_partial'))} — ${_aiEsc(i18t('br_partial_sub'))}</p>`:''}
     <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--color-divider)">
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('br_written',{date:when,name:_aiEsc(b.by||'Copilot')})}</span>
       ${mayRemake?`<button class="ui-btn" data-brief-remake style="margin-left:auto;font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('br_rewrite')}</button>`:''}

@@ -4654,26 +4654,52 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
   const J = orgJx();
   const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list.\n\nDOCUMENT:\n${sent}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
+    /* ---- ROOM FOR THE ANSWER THIS SCHEMA ASKS FOR ---- (owner-reported 10 Sep 2026)
+       "The brief is written and readable; refresh and the card is back to Not
+       written yet." The cause was that the answer had been cut short, and a
+       cut-short brief was deliberately not kept.
+
+       1400 WAS SMALLER THAN A COMPLETE ANSWER, so a thorough brief truncated BY
+       CONSTRUCTION rather than rarely. The arithmetic, written down beside it:
+       an overview of 2-4 sentences (~150), term's three strings and money's two
+       (~200), SIX watchouts each carrying a plain sentence AND a verbatim quote
+       (~150 each = 900), four unusual terms (~200), and the JSON around them
+       (~100) — about 1,550 at the schema's own face value. And maxItems is
+       ADVISORY, not a cap: this codebase MEASURED the obligations reader
+       returning 40 items against a stated 20, so the list halves are budgeted
+       at double. That is ~2,650, and 4,000 leaves the wrapper room on top.
+
+       OUTPUT IS BILLED AS USED, so headroom that is not needed costs nothing;
+       an answer cut off costs the whole answer. The obligations reader learned
+       exactly this and its ceiling is pinned to its own schema for the same
+       reason — see f280, which pins this one to the two maxItems above rather
+       than to the number, so the two cannot drift. */
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    /* ---- A CUT-SHORT BRIEF IS NOT CACHED AS A WHOLE ONE ----
-       max_tokens here is 1400 against a schema asking for an overview, term,
-       money, up to six watchouts each carrying a verbatim quote and up to four
-       unusual terms. When it runs out, block.input arrives with some of the
-       lists missing — and this wrote it to the briefs table as though it were
-       finished, so EVERY later read served the truncated memo as complete, for
-       ever, with no notice. The notice on this response is the only place the
-       cut was ever mentioned, and a cached read does not carry it.
-       So the flag travels with the record, and a cut-short brief is not written
-       at all: the reader is told, and the next press asks again rather than
-       being handed a permanent half-answer. */
+    /* ---- A CUT-SHORT BRIEF IS KEPT, MARKED — REVERSED IN PLACE 10 Sep 2026 ----
+       (owner-ruled: "once the brief is written, when I refresh the page I should
+       not lose the previously created brief until I choose to rerun the brief.")
+
+       WHAT STOOD HERE, and the half of its reasoning that is still right: this
+       route used to write a truncated answer to the table as though it were
+       finished, so EVERY later read served a partial memo as COMPLETE, for
+       ever, with no notice — the notice on this response was the only place the
+       cut was ever mentioned, and a cached read did not carry it. THAT FAULT
+       MUST NOT COME BACK, and it is what the flag below is for.
+
+       The remedy chosen for it was not to write the row at all, which threw the
+       reader's brief away on the next read. So the row is written WITH its flag
+       — the flag already existed and already travelled on this response; what
+       it never did was persist — and every surface that reads a brief says it
+       is partial and offers to write it again. A cached read carries the cut,
+       which is exactly the thing the old note said a cached read could not do.
+       That is now the requirement rather than the objection. */
     const brief = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
       truncated: !!resp.truncated, data: block.input || {} };
-    if (!resp.truncated)
-      db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
-        .run(String(id), JSON.stringify(brief), now());
+    db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
+      .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });

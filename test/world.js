@@ -421,9 +421,18 @@ function buildWorld(opts = {}) {
     };
     win.openFindings = c => ((c.scan && c.scan.findings) || [])
       .filter(f => !((c.scan && c.scan.dismissed) || []).includes(f.id));
-    win.runContractBrief = async () => {
+    /* IT LANDS THE BRIEF ON THE CONTRACT, exactly as the real one does
+       (`c._brief=r.brief`) — and that is not a detail: the strip's own tile
+       reads the brief itself and falls back to the note only where there is
+       nothing to look at, so a stand-in that answered without landing it made
+       every stage here look like a contract whose brief was never kept. A
+       stand-in kinder — or here, thinner — than the thing it replaces turns
+       its test into a description, which is the note directly above. */
+    win.runContractBrief = async (c) => {
       if (win._ai.briefThrows) throw new Error('brief failed');
-      return win._ai.brief;
+      const r = win._ai.brief;
+      if (c && r && !r.error) c._brief = r;
+      return r;
     };
     /* The same two stand-ins the standards stage needs, for the same reason:
        playbook() reads `state` bare and playbookKeyFor opens by calling cKind,

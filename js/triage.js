@@ -162,13 +162,19 @@ function triageTiles(c){
          about it — and otherwise the plain fact that there is none to open. */
       : (b.why || ((typeof i18t === 'function') ? i18t('tri_brief_none') : '')),
     null,
-    /* AND THE NOTE'S CAP IS DRAWN ONLY OVER THE BRIEF THE NOTE DESCRIBED.
-       It is the same brief when it yields the same line — a comparison rather
-       than a guess, and cheap. Rewrite the brief from the card and the line
+    /* ---- THE CUT IS THE BRIEF'S OWN FACT WHERE IT CARRIES ONE ---- (10 Sep 2026)
+       A cut-short brief is KEPT now, marked with its own `truncated` flag, so
+       the exact answer is on the thing being read rather than inferred from a
+       note beside it. That flag is asked first.
+
+       THE NOTE'S CAP SURVIVES AS THE FALLBACK, for a brief written before the
+       flag was persisted — and it is drawn only over the brief the note
+       DESCRIBED, which is the same brief when it yields the same line: a
+       comparison rather than a guess, and cheap. Rewrite the brief and the line
        moves, so the old run's warning does not follow it. */
     { ok: hasBrief,
-      cut: !!(hasBrief && brief && b.ok && b.cut
-        && b.line && b.line === triageBriefLine(brief)) });
+      cut: !!(hasBrief && brief && (brief.truncated
+        || (b.ok && b.cut && b.line && b.line === triageBriefLine(brief)))) });
 
   const p = s.playbook || {};
   add('playbook', p.ok ? (p.cats && p.cats.length ? p.cats.join(', ') : '') : (p.why || ''),
@@ -317,23 +323,27 @@ async function triageRun(c, opts = {}){
          things. A brief the provider CUT SHORT is deliberately not written to
          the briefs table — the route's own note says why, in its own words:
          "the reader is told, and the next press asks again rather than being
-         handed a permanent half-answer." So it exists in memory for that one
-         sitting and is gone the moment the contract is read back. This record
+         handed a permanent half-answer." So it existed in memory for that one
+         sitting and was gone the moment the contract was read back. This record
          is DURABLE, though, so the strip went on saying the brief was written
          for ever while the card beside it correctly said there was none.
 
-         THE CACHING RULE IS RIGHT AND IS UNTOUCHED. What was wrong is this
-         summary claiming a reading the record does not hold. A cut-short brief
-         is recorded as NOT DONE, with the reason, so the strip and the card
-         agree and the strip tells the reader the one thing they can act on.
+         AND THE PREMISE UNDER IT IS GONE — REVERSED IN PLACE 10 Sep 2026.
+         Owner-ruled that a written brief must survive a refresh, so the route
+         KEEPS a cut-short brief now, marked with its own flag. A step recorded
+         "not done" over a brief the record really holds would be the same
+         contradiction pointing the other way — the note and the thing it
+         describes disagreeing about one brief.
 
-         AND THE SUMMARY LINE GOES WITH IT, deliberately: it was drawn from a
-         brief nobody can now open, and a one-line précis of something that is
-         not there is the contradiction this fixes rather than a consolation
-         for it. */
-      else if (r && r.truncated) t.steps.brief = { ok: false,
-        why: (typeof i18t === 'function') ? i18t('tri_brief_cut') : '' };
-      else if (r) t.steps.brief = { ok: true, line: triageBriefLine(r), cut: o.notice || '' };
+         SO IT IS RECORDED AS DONE, PARTIALLY: the line off the brief that
+         exists, and the cap said beside it. `tri_brief_cut` is STALE and is
+         left inert in both books. The tile does not depend on any of this —
+         since 10 Sep it asks the brief itself and falls back to the note only
+         where there is nothing to look at, which is what makes a note that
+         goes wrong harmless rather than load-bearing. */
+      else if (r) t.steps.brief = { ok: true, line: triageBriefLine(r),
+        cut: o.notice || (r.truncated
+          ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '') };
       else t.steps.brief = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
     }catch(e){ t.steps.brief = { ok: false, why: String(e && e.message || e) }; }
     paint();

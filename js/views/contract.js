@@ -4171,8 +4171,16 @@ function ktBriefCardHtml(c,CARD){
   if(!c) return '';
   const v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null;
   const may=(typeof canEdit==='function'?canEdit():true);
+  /* ---- A BRIEF THAT WAS CUT SHORT IS PARTIAL, AND THE CARD SAYS SO ----
+     (10 Sep 2026.) It is kept now rather than thrown away, which is the ruling;
+     what may never come back is half a memo served as a whole one. So the pill
+     wears amber rather than green, the sub-line says what is missing, and the
+     way forward — write it again — is a second button beside Read the brief
+     rather than a sentence pointing somewhere else. */
+  const cut=!!(v&&c._brief&&c._brief.truncated);
   const act=v
     ? `<button type="button" data-kt-brief="open" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_open')}</button>`
+      +(cut&&may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_rewrite')}</button>`:'')
     : (may?`<button type="button" data-kt-brief="run" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px">${i18t('br_write')}</button>`:'');
   /* flex-direction:row said out loud: the column's own `.kt-side-card > div`
      rule makes every direct child a flex COLUMN, which stacks a head row's
@@ -4180,28 +4188,42 @@ function ktBriefCardHtml(c,CARD){
   return `<section id="brief-card" class="kt-side-card" style="${CARD}">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('br_title')}</h6>
-      ${v?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${esc(v.label)}</span>`:''}
+      ${v?`<span class="pill-x" style="background:var(--st-${cut?'amber':'green'}-bg);color:var(--st-${cut?'amber':'green'}-fg)">${esc(cut?i18t('br_partial'):v.label)}</span>`:''}
     </div>
     <p style="margin:0 0 9px;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${
-      v?i18t('br_kt_sub'):(may?i18t('br_kt_none'):i18t('br_kt_none_viewer'))}</p>
+      v?(cut?i18t('br_partial_sub'):i18t('br_kt_sub')):(may?i18t('br_kt_none'):i18t('br_kt_none_viewer'))}</p>
     ${act?`<div style="display:flex;flex-direction:row;gap:7px;flex:none">${act}</div>`:''}
   </section>`;
 }
+/* EVERY BUTTON ON THE CARD, not the first one. A partial brief draws TWO —
+   Read the brief and Write it again — and a bare querySelector here would wire
+   the first and leave the second a dead press, which is the fault this file
+   keeps recording. */
 function wireKtBriefCard(c){
-  const b=document.querySelector('[data-kt-brief]'); if(!b) return;
-  b.addEventListener('click',async()=>{
+  const list=[...document.querySelectorAll('[data-kt-brief]')]; if(!list.length) return;
+  list.forEach(b=>b.addEventListener('click',async()=>{
     if(b.getAttribute('data-kt-brief')==='open') return openCheckPanel(c,'brief');
     if(!window.runContractBrief) return;
+    const word=b.textContent;
     b.disabled=true; b.textContent=i18t('ct_working');
     try{
-      const r=await runContractBrief(c);
+      /* force, because a rewrite of a brief already on file must not be
+         answered out of the cache with the same partial memo. */
+      const r=await runContractBrief(c,{force:!!c._brief});
       /* The column repaints so the card states what it now holds; the panel
          opens only where a brief actually arrived — a dead panel over a failed
          read is the fault the renewal card was just corrected for. */
       renderKeyTermsSide(c);
+      /* ---- AND THE STRIP ABOVE IT IS REPAINTED TOO ---- (owner-reported
+         10 Sep 2026: "the strip says No brief while the card beside it opens a
+         complete brief".) The strip's brief tile asks the record live, so it
+         has the right answer the moment it is drawn — and nothing was drawing
+         it. Both halves, or the reader still has to leave the page to see the
+         two agree. */
+      try{ paintKtTriage(c); }catch(_){}
       if(r) openCheckPanel(c,'brief');
-    }catch(e){ b.disabled=false; b.textContent=i18t('br_write'); }
-  });
+    }catch(e){ b.disabled=false; b.textContent=word; }
+  }));
 }
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;

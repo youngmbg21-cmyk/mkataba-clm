@@ -294,6 +294,7 @@ function mTermsHtml(c){
       <div class="m-card m-brief" style="margin:var(--s-4) var(--s-4) 0;padding:14px">
         <div style="font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
         <div style="font-size:var(--t-card);line-height:1.6">${mk(b.overview||'')}</div>
+        ${(c._brief&&c._brief.truncated)?`<div style="margin-top:var(--s-2);padding:7px 10px;border-radius:var(--radius);font-size:var(--t-label);line-height:1.5;color:var(--st-amber-fg);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mEsc(i18t('br_partial'))} — ${mEsc(i18t('br_partial_sub'))}</div>`:''}
         ${(b.watchouts||[]).length?`<ul style="margin:var(--s-2) 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:var(--t-body);line-height:1.55;margin:6px 0;padding:var(--s-2) 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
       </div>` : '';
   return `
