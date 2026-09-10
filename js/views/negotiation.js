@@ -5968,25 +5968,29 @@ function rlClauseEditPillHtml(cl, opts = {}){
    by the panel's standing block, which is what makes the two agree on a marked
    clause AND on an unmarked one. The room's two-pane view is deliberately not
    in this list: it has its own sheet and its own rules, and negoRichBody stays
-   exactly what it was for every caller that is not this page. */
+   exactly what it was for every caller that is not this page.
+
+   ---- IT IS redlineHangHtml NOW, AND THIS IS ITS NAME ON THIS PAGE (Young
+   asked 10 Sep 2026) ---- The walk moved to js/redline.js, beside RL_MARKER and
+   redlineMarkerDepth, because that is where the marker vocabulary lives and
+   because THREE more surfaces needed the same treatment: the Document tab (via
+   renderDocHtml), the clause editor's typing box, and the counterparty's copy.
+   Written out again on each it would be four readings of one document.
+
+   THE COPY THIS REPLACED COULD NOT SEE A MARKER SET IN BOLD, which is what
+   Word writes and what HaTi's own reader stores — so every numbered clause of
+   an uploaded contract sat flush against the margin — and it added no depth,
+   so a lettered limb drew level with the clause it belongs to. Both are the
+   shared builder's now.
+
+   This name is kept: it is what this file's own renderers and half a dozen
+   tests reach for, and one caller renaming a shared reading is churn.
+
+   It is read through the module's own scope rather than through window: both
+   files are loaded together by js/app.js, and a stage that carries this page
+   but not the engine draws no marks at all. */
 function rlHangRichHtml(html){
-  const src = String(html == null ? '' : html);
-  if (!src || typeof redlineSplitMarker !== 'function') return src;
-  return src.replace(/<p\b([^>]*)>([^<]*)/g, (whole, attrs, text) => {
-    let split;
-    try { split = redlineSplitMarker(text); } catch (e){ return whole; }
-    if (!split || !split.marker) return whole;
-    /* The marker's own characters, boxed to the hanging measure. The text after
-       it is left untouched — the split is on the leading run only, so anything
-       else in the paragraph (bold, a defined term, a nested span) is never
-       reached. */
-    const head = text.slice(0, text.length - split.rest.length);
-    const at = String(attrs || '');
-    const dressed = /\bclass\s*=\s*"/.test(at)
-      ? at.replace(/\bclass\s*=\s*"/, 'class="rl-hang ')
-      : at + ' class="rl-hang"';
-    return `<p${dressed}><span class="rl-marker">${head}</span>${split.rest}`;
-  });
+  return (typeof redlineHangHtml === 'function') ? redlineHangHtml(html) : String(html == null ? '' : html);
 }
 
 /* The panel's contents for ONE clause.

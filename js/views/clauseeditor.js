@@ -2322,22 +2322,35 @@ function ceRenderPaper(){
      obey the tab they had just pressed. Both clean readings go through the same
      op renderer with the two texts equal, which is how they inherit the
      hanging indents and the sub-paragraph shape the rest of the paper has. */
+  /* THE CLEAN READINGS SHOW THE WORDING AS IT IS DRESSED, which is the whole
+     point of asking for them: bold, a size and a colour are invisible in the
+     marked reading (it is built from the words that moved) and this is where
+     they show. rlHangRichHtml is the paper's own treatment of rendered markup,
+     so the sub-paragraph shape and the hanging indents are the same here as
+     everywhere else it draws. */
+  const dress = h => (window.rlHangRichHtml ? rlHangRichHtml(h) : h);
   let clean = null;
   if (!typing){
     const mode = (window.rlReadMode ? rlReadMode() : 'marks');
-    /* THE CLEAN READINGS SHOW THE WORDING AS IT IS DRESSED, which is the whole
-       point of asking for them: bold, a size and a colour are invisible in the
-       marked reading (it is built from the words that moved) and this is where
-       they show. rlHangRichHtml is the paper's own treatment of rendered
-       markup, so the sub-paragraph shape and the hanging indents are the same
-       here as everywhere else it draws. */
-    const dress = h => (window.rlHangRichHtml ? rlHangRichHtml(h) : h);
     if (mode === 'agreed') clean = dress(_ceBase);
     else if (mode === 'proposed') clean = dress(_ceText);
   }
+  /* ---- AND THE BOX BEING TYPED IN KEEPS ITS GUTTER (Young asked 10 Sep 2026:
+     the tools and the contract must speak one language) ----
+     The typing branch handed the wording over undressed, so the clause the
+     reader had just pressed the pencil on was the one clause on the page with
+     its numbers flush against the margin — it lost its shape the moment they
+     started and snapped back when they stopped. MEASURED on an uploaded
+     services agreement: 2.2 and its (a)/(b) limbs hung correctly until the
+     pencil, then jumped left by a full gutter.
+
+     IT CANNOT REACH THE RECORD. The marker span carries a class the sanitiser
+     does not admit, so anything read back out of the box is unwrapped on the
+     way — and ceBoxHtml takes it off the copy it compares, so a pull never
+     reports the box as corrected and nothing repaints under the caret. */
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${window.sanitizeRich ? sanitizeRich(_ceText) : _ceText}</div>`
+        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
   /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
@@ -3377,15 +3390,33 @@ function ceClearHeld(scope){
     try{ p.normalize(); }catch(_){}
   });
 }
-/* WHAT THE BOX SAYS, WITH THE MARK TAKEN OFF — the one reading both the pull
-   and the dirty check use, so neither can mistake the mark for the reader's own
-   work. The live DOM keeps the mark; only this copy loses it. */
+/* WHAT THE BOX SAYS, WITH THE PAINT TAKEN OFF — the one reading both the pull
+   and the dirty check use, so neither can mistake a mark HaTi drew for the
+   reader's own work. The live DOM keeps both; only this copy loses them.
+
+   TWO THINGS COME OFF, for the same reason and by the same means. The held
+   passage's wash, and — since 10 Sep 2026, when the typing box was given the
+   contract's own gutter — the marker span the gutter hangs the number in.
+   Neither is wording. Leaving the marker on would make every pull report the
+   box as CORRECTED (the sanitiser unwraps a span whose class it does not
+   admit), and a corrected box repaints the paper, which is the one thing that
+   may not happen under a caret. */
+const CE_PAINT_SEL = '.' + CE_HELD_CLASS + ',.rl-marker';
 function ceBoxHtml(box){
   if (!box) return '';
-  if (!box.querySelector || !box.querySelector('.' + CE_HELD_CLASS)) return String(box.innerHTML || '');
+  if (!box.querySelector || !box.querySelector(CE_PAINT_SEL)) return String(box.innerHTML || '');
   try{
     const clone = box.cloneNode(true);
     ceClearHeld(clone);
+    /* The span goes and its characters stay: the marker IS part of the clause's
+       wording, and a pull that dropped it would file a change striking the
+       number out. */
+    clone.querySelectorAll('.rl-marker').forEach(sp => {
+      const par = sp.parentNode;
+      if (!par) return;
+      while (sp.firstChild) par.insertBefore(sp.firstChild, sp);
+      par.removeChild(sp);
+    });
     return String(clone.innerHTML || '');
   }catch(_){ return String(box.innerHTML || ''); }
 }

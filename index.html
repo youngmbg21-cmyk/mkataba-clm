@@ -5445,6 +5445,17 @@
   .hati-doc h4{font-size:1em;}
   .hati-doc strong{font-weight:var(--w-strong);}
   .hati-doc u{text-underline-offset:2px;}
+  /* ---- THE MARKER'S GUTTER, THE SAME ONE THE NEGOTIATION PAGE DRAWS ----
+     (Young asked 10 Sep 2026.) A contract's number or lettered limb sits in a
+     gutter of ONE width whatever the marker is, and its wrapped lines start
+     under its own first word. These are the negotiation sheet's own measures,
+     stated here so the Document tab, the counterparty's copy and every preview
+     set a clause exactly as the page it is redlined on does. The classes are
+     put on by redlineHangHtml (js/redline.js) — one reading, four surfaces. */
+  .hati-doc .rl-hang{padding-left:2.6em;text-indent:-2.6em;}
+  .hati-doc .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0;}
+  .hati-doc .rl-hang-2{margin-left:2.6em;}
+  .hati-doc .rl-hang-3{margin-left:5.2em;}
   .hati-doc ul,.hati-doc ol{margin:0 0 0.85em;padding-left:2.1em;}
   .hati-doc ul ul,.hati-doc ol ol,.hati-doc ul ol,.hati-doc ol ul{margin-bottom:0;}
   .hati-doc li{margin:0 0 0.35em;}

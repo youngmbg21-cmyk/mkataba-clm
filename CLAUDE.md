@@ -1846,6 +1846,67 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## ONE GUTTER ON EVERY SCREEN (Young asked 10 Sep 2026)
+
+*"When I begin to make written edits with the tools I have been provided, they
+do not match up with the document itself. The bullet points do not work together
+with how the sentences or bullets points in the contract are designed. They do
+not speak the same language."*
+
+**THE PRODUCT HAD ONE IDEA OF A CONTRACT'S SHAPE AND THREE THINGS IGNORED IT.**
+A marker — `2.1`, `(a)`, a bullet — sits in a fixed gutter and the wording hangs
+beside it; `RL_MARKER` has read one and `.rl-hang` has drawn it since the
+negotiation page was built. What none of it reached is the paper anywhere else.
+
+- **A MARKER SET IN BOLD FELL STRAIGHT THROUGH, WHICH IS MOST OF THE REPORT.**
+  `rlHangRichHtml` matched the plain text immediately after `<p>` — and
+  `<p><strong>2.1</strong>` is what Word writes and what HaTi's own reader
+  stores, so **every numbered clause of an uploaded contract sat flush against
+  the margin**. MEASURED on Young's own services agreement before a line was
+  written: 0 of 73 numbered paragraphs hung.
+- **A LETTERED LIMB HAD NO DEPTH AT ALL**, so `(a)` drew level with the 2.2 it
+  belongs to and the indent that is the only thing on the page saying so was
+  gone. That is the second screenshot.
+- **`renderDocHtml` APPLIED NO GUTTER**, so the Document tab, the counterparty's
+  copy and every preview set one contract differently from the page beside them.
+- **AND THE CLAUSE EDITOR'S TYPING BOX HANDED THE WORDING OVER UNDRESSED**, so
+  the one clause the reader had pressed the pencil on was the one clause whose
+  numbers jumped left, and jumped back when they stopped.
+
+**`redlineHangHtml` IS THE ONE WALK AND IT LIVES BESIDE THE MARKER VOCABULARY.**
+js/redline.js already owns `RL_MARKER`, `redlineSplitMarker` and
+`redlineMarkerDepth`; a second copy of any of them is how the marked half of a
+document (drawn from stored ops) and the unmarked half (drawn from its own
+markup) come apart. Four surfaces ask it and none carries a walk of its own:
+`renderDocHtml`, `rlHangRichHtml` (this page's own name for it, now a caller),
+and both of the clause editor's readings.
+
+- **THE DEPTH IS READ OFF THE MARKER, NEVER STORED.** A number already says
+  where it sits (`2.1`, `3.2.1`), so it takes the first stop; a letter is one
+  step in; a roman is two. **A SINGLE ROMAN IS READ AS A LETTER, said out
+  loud**: `(i)` is the ninth letter as often as it is the first roman and
+  nothing in the marker can tell them apart, so the cost where this is wrong is
+  one step of indent and never a wrong word.
+- **IT REFUSES RATHER THAN EMITTING BROKEN MARKUP.** `<strong>2.1 The Services
+  shall</strong>` puts the wording inside the same element as the marker, so
+  wrapping the head alone would emit crossing tags — the paragraph is returned
+  exactly as it was. **An un-hung line reads as an ordinary paragraph; broken
+  markup does not.**
+- **IT CHANGES NOT ONE CHARACTER OF WORDING** — a class on the paragraph and a
+  span around characters that were already there. The lead is walked across
+  inline markup with each text character's SOURCE index recorded, so an entity
+  counts as one character and only `&nbsp;` is decoded (the one entity that can
+  be a marker's separator).
+- **AND THE MARKER CAN NEVER REACH THE RECORD.** `rl-marker` is not on
+  `richSpanClassOk`'s list, so the sanitiser unwraps it by construction; and
+  `ceBoxHtml` takes the span off the copy it compares — without that, every pull
+  reports the box as corrected and repaints the paper under the caret. The
+  span's CHARACTERS stay, because the marker IS part of the wording.
+
+Tests: f285 (16 — **14 fail against the parent**, the headline one reporting a
+bold number not hanging), and the four surfaces asserted by name so a fifth that
+draws a stored body joins the list rather than growing a second walk.
+
 ## THE WALK READS BOTH SHAPES OF PAPER (Young reported it 10 Sep 2026)
 
 *"some times when i click on a contract from a different page, in this case

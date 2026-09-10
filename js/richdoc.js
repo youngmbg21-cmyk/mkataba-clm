@@ -347,7 +347,20 @@ function renderDocHtml(content, format, opts={}){
       : `<div style="white-space:pre-wrap">${String(content==null?'':content).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
   }
   const cls='hati-doc'+(opts.className?' '+opts.className:'');
-  return `<div class="${cls}">${sanitizeRich(content)}</div>`;
+  /* ---- THE MARKER SITS IN ITS GUTTER HERE TOO (Young asked 10 Sep 2026) ----
+     The negotiation page has hung a clause's number in a gutter since it was
+     built, and this renderer — the Document tab, the counterparty's read-only
+     copy, every template preview — drew the same stored body flush against the
+     margin, so one contract was set two ways depending which screen you opened.
+     redlineHangHtml is that one reading; it adds a class and a span around
+     characters already there and changes not one word.
+     Read through window because js/redline.js loads after this file: a stage
+     without it renders exactly as it did before, which is a paragraph with no
+     gutter rather than a wrong one. */
+  const body=sanitizeRich(content);
+  const hung=(typeof window!=='undefined'&&typeof window.redlineHangHtml==='function')
+    ? window.redlineHangHtml(body) : body;
+  return `<div class="${cls}">${hung}</div>`;
 }
 
 /* ---------- text projection ----------
