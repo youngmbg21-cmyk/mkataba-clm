@@ -1846,6 +1846,59 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## THE STRUCTURE GOES OUT AS WELL AS IN (Young asked 10 Sep 2026)
+
+*"Can we also ensure that when exported to Microsoft Word, the structure is not
+lost nor is the spacing."*
+
+J-3.2 taught the writer headings, numbering and tables; what it still threw away
+was the PAGE GEOMETRY — and once the reader learned to keep it, a contract that
+arrived correctly set left again as a flat run of paragraphs. MEASURED on Young's
+own agreement: 23 indented lines, 73 hanging markers, 5 page breaks and 18
+contents rows went in and **not one came out**.
+
+- **A HANGING INDENT IS THREE THINGS AND THE WRITER EMITTED NONE OF THEM**: a
+  real `w:ind` with a hanging measure, a left TAB STOP at the hanging point, and
+  **a real TAB between the marker and the wording**. Without the stop Word
+  advances to its own default and the whole second column of an agreement is out
+  of line.
+- **AND THE TAB WAS THE CRUX.** The tokeniser collapsed every run of whitespace
+  to a space, so even with an indent the wording would have sat against the
+  number. `_dxSpace` collapses whitespace as HTML does and **keeps a tab**,
+  spaces either side going with it; `_dxRun` emits `w:tab` inside the run, which
+  is a run child in OOXML, so the run keeps its own dressing across the break.
+- **THE SHAPE IS READ OFF THE MARKUP, NEVER RE-DERIVED.** `hati-lv-N` is where
+  the line sits, `rl-hang` says the marker is in a gutter, `hati-tight` that the
+  line has no space after it, `hati-pb` that a page ends there, `hati-toc` that
+  the line has a right-hand number. Asking `redlineSplitMarker` again would be a
+  cross-module read this file cannot make at load AND a second reading that
+  could drift from the class the paper is drawn by.
+- **`DOCX_STEP` IS WORD'S OWN HALF INCH**, which is what this writer already
+  used for a list paragraph, so an exported contract lines up with everything
+  else Word sets. `DOCX_TOC_STOP` is DERIVED from the section this writer's own
+  `DOCX_SECT` sets — the page less its two margins — so a page-size change moves
+  the contents page's numbers with it.
+- **THE DEFAULT SPACING BELONGS TO THE STYLE, NOT TO EVERY PARAGRAPH.** `Normal`
+  carries `after="160"` and a line rule; a Word default of nothing runs the whole
+  agreement together. Headings gained air above and `keepNext`, so a clause
+  heading cannot be left alone at the foot of a page.
+- **A CLAUSE STRUCK WHOLE TAKES ITS PARAGRAPH MARK WITH IT.** Word marks the
+  paragraph MARK as deleted separately from the words, and without it a reviewer
+  accepts every change and is left tidying empty paragraphs out of a document we
+  sent them. **Only where every run is a deletion** — accepting an ordinary edit
+  must never delete the clause.
+- **WHAT IS STILL DELIBERATELY NOT CARRIED IS UNCHANGED**: fonts, page size,
+  margins, headers, footers and images. Those belong to a printed page, and the
+  writer's own list has said so since J-3.2.
+
+**PROVED AS A LOOP ON THE OWNER'S OWN CONTRACT, which is the only way this claim
+can be made**: read, drawn as the paper draws it, exported, and READ BACK through
+the real reader — 23 levels, 5 page breaks, 13 headings, 5 tables and 18 contents
+rows in and the same out, with the words identical.
+
+Tests: f288 (12 — **9 fail against the parent**, the headline one reporting a
+clause number welded to its wording).
+
 ## THE BAR SPEAKS THE CONTRACT'S OWN LANGUAGE (Young asked 10 Sep 2026)
 
 *"When I begin to make written edits with the tools I have been provided, they

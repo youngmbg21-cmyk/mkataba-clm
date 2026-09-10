@@ -1181,6 +1181,13 @@ function docxStripUiBadges(html){
    table out before this tokeniser sees it; this is what catches one that is
    nested or malformed. */
 const DOCX_BLOCK_TAGS = /^(?:p|div|h[1-6]|li|tr|td|th|blockquote|section|article|ol|ul|table|tbody|thead|tfoot)$/i;
+/* Collapse runs of whitespace as HTML does — EXCEPT a tab, which in this
+   product's wording is the separator between a clause number and its words and
+   is what Word needs to reach the tab stop. Spaces either side of one go with
+   it, so a marker written by the reader and one typed by a person come out the
+   same. */
+const _dxSpace = t => String(t == null ? '' : t)
+  .replace(/[^\S\t]+/g, ' ').replace(/ *\t */g, '\t');
 function docxRunsFromHtml(html){
   const src = docxStripUiBadges(html);
   const paras = [];
@@ -1188,10 +1195,33 @@ function docxRunsFromHtml(html){
   const fmt = { strong: 0, em: 0, u: 0 };
   let ins = 0, del = 0;
   let list = [];                               // the ol/ul nesting, innermost last
+  /* ---- THE SHAPE THE PARAGRAPH IS ALREADY WEARING (Young asked 10 Sep 2026) ----
+     *"Can we also ensure that when exported to Microsoft Word, the structure is
+     not lost nor is the spacing."*
+
+     It is READ OFF THE MARKUP rather than re-derived, and that is what makes
+     this one reading rather than two: `hati-lv-N` is where the line sits (the
+     Word reader wrote it off a file's own indent, or the writing bar off a
+     press), `rl-hang` says the marker is in a gutter, `hati-tight` that the
+     line has no space after it, `hati-pb` that a page ends there. A second
+     opinion here — asking redlineSplitMarker again, say — would be a cross-
+     module read this file cannot make at load and a reading that could drift
+     from the class the paper is drawn by. */
+  let pending = null;
   const open = () => {
-    if (!cur) cur = { runs: [], list: list.length ? list[list.length - 1] : null,
-      level: Math.max(0, list.length - 1), heading: 0 };
+    if (!cur){
+      cur = { runs: [], list: list.length ? list[list.length - 1] : null,
+        level: Math.max(0, list.length - 1), heading: 0 };
+      if (pending){ Object.assign(cur, pending); pending = null; }
+    }
     return cur;
+  };
+  const shapeOf = attrs => {
+    const cls = (/\bclass\s*=\s*("|')([^"']*)\1/i.exec(attrs || '') || [])[2] || '';
+    const lv = /\bhati-lv-([123])\b/.exec(cls);
+    return { level: lv ? Number(lv[1]) : 0, hang: /\brl-hang\b/.test(cls),
+      tight: /\bhati-tight\b/.test(cls), pageBreak: /\bhati-pb\b/.test(cls),
+      toc: /\bhati-toc\b/.test(cls) };
   };
   const close = () => {
     if (cur && (cur.runs.some(r => r.text) || cur.forced)) paras.push(cur);
@@ -1210,7 +1240,7 @@ function docxRunsFromHtml(html){
   const tag = /<(\/?)([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)>/g;
   let i = 0, m;
   while ((m = tag.exec(src))){
-    push(decodeXmlEntities(src.slice(i, m.index).replace(/\s+/g, ' ')));
+    push(decodeXmlEntities(_dxSpace(src.slice(i, m.index))));
     i = m.index + m[0].length;
     const closing = m[1] === '/', name = m[2].toLowerCase(), selfClose = m[4] === '/';
     if (name === 'br'){ close(); open().forced = true; continue; }
@@ -1228,11 +1258,19 @@ function docxRunsFromHtml(html){
     }
     if (DOCX_BLOCK_TAGS.test(name)){
       close();
-      if (!closing && !selfClose && /^h([1-6])$/i.test(name)) open().heading = Number(name[1]);
+      if (!closing && !selfClose){
+        /* Held until the paragraph is opened by its first run: a block with no
+           wording at all — which is where a page break lives — still has to
+           carry its shape, so `close()` is told to keep it. */
+        const sh = shapeOf(m[3]);
+        if (/^h([1-6])$/i.test(name)) open().heading = Number(name[1]);
+        else if (/^(?:p|li|div)$/i.test(name)) pending = sh;
+        if (sh.pageBreak){ open(); Object.assign(cur, sh); cur.forced = true; }
+      }
       continue;
     }
   }
-  push(decodeXmlEntities(src.slice(i).replace(/\s+/g, ' ')));
+  push(decodeXmlEntities(_dxSpace(src.slice(i))));
   close();
   return paras;
 }
@@ -1247,23 +1285,77 @@ const _dxX = s => String(s == null ? '' : s)
 function _dxRunProps(r){
   return (r.bold ? '<w:b/>' : '') + (r.italic ? '<w:i/>' : '') + (r.under ? '<w:u w:val="single"/>' : '');
 }
+/* A TAB IS A TAB, and in a contract it is the one that matters: it is what
+   takes the wording from a clause number to the tab stop, so a hanging indent
+   reads as a gutter rather than as a number welded to the first word. Written
+   as a space — which is what this writer did — Word draws the whole second
+   column of an agreement a few characters out of line. `w:tab` is a run child
+   in OOXML, so the run keeps its own dressing across the break. */
 function _dxRun(r){
   const pr = _dxRunProps(r);
   const t = r.mark === 'del' ? 'w:delText' : 'w:t';
-  return `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}<${t} xml:space="preserve">${_dxX(r.text)}</${t}></w:r>`;
+  const body = String(r.text == null ? '' : r.text).split('\t')
+    .map((seg, i) => (i ? '<w:tab/>' : '')
+      + (seg ? `<${t} xml:space="preserve">${_dxX(seg)}</${t}>` : '')).join('');
+  return `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ''}${body}</w:r>`;
 }
 
 /* The whole point of the writer: a run inside <ins> becomes <w:ins>, a run
    inside <del> becomes <w:del> with its wording kept in w:delText. Word then
    shows the file as a tracked-changes document a reviewer can accept or reject
    — the same two verbs HaTi offers, on their side of the wire. */
+/* Word's own step, and the one this writer already uses for a list paragraph.
+   HaTi's gutter is 2.6em, which at an 11pt body is about 28pt — near enough to
+   Word's half-inch default that using the default is honest, and it means an
+   exported contract lines up with everything else Word sets. */
+const DOCX_STEP = 720;
+/* The printable width of the page this writer's own DOCX_SECT sets: 11906 wide
+   less a 1134 margin each side. Derived rather than typed, so a page size change
+   moves the contents page's numbers with it. */
+const DOCX_TOC_STOP = 11906 - 1134 - 1134;
 function docxTrackedParagraphXml(p, state){
   const props = [];
   if (p.heading) props.push(`<w:pStyle w:val="Heading${Math.min(p.heading, 6)}"/>`);
   else if (p.list) props.push('<w:pStyle w:val="ListParagraph"/>');
   if (p.list) props.push(`<w:numPr><w:ilvl w:val="${p.level || 0}"/>`
     + `<w:numId w:val="${p.list === 'ol' ? 2 : 1}"/></w:numPr>`);
-  const body = (p.runs || []).map(r => {
+  /* ---- THE STRUCTURE GOES OUT AS WELL AS IN ----
+     A REAL HANGING INDENT AND A REAL TAB STOP, which is what makes a clause
+     number sit in its own gutter in Word rather than welded to the wording: the
+     marker starts at `left - hanging`, the tab takes the wording to `left`, and
+     every wrapped line hangs there too. Without the tab stop Word advances to
+     its own default and the second column of a whole contract is a few pixels
+     out from where the drafter put it. */
+  if (!p.list && (p.hang || p.level || p.toc)){
+    const level = Math.max(0, Math.min(3, p.level || 0));
+    const left = DOCX_STEP * (level + (p.hang ? 1 : 0));
+    /* A CONTENTS ROW GOES BACK AS ONE. Word says "this line has a right-hand
+       number" with a RIGHT tab stop and a dot leader, which is what the reader
+       reads it by — so an exported contents page comes back through the round
+       trip as a contents page rather than as a run of ordinary lines.
+       DOCX_TOC_STOP is the printable width this writer's own section already
+       sets: the page less its two margins, so the number lands on the margin
+       rather than at a number typed twice. */
+    const stops = [];
+    if (left) stops.push(`<w:tab w:val="left" w:pos="${left}"/>`);
+    if (p.toc) stops.push(`<w:tab w:val="right" w:pos="${DOCX_TOC_STOP}" w:leader="dot"/>`);
+    if (stops.length) props.push(`<w:tabs>${stops.join('')}</w:tabs>`);
+    if (left) props.push(`<w:ind w:left="${left}"${p.hang ? ` w:hanging="${DOCX_STEP}"` : ''}/>`);
+  }
+  /* THE FILE SAID NO SPACE AFTER THIS LINE, which is how a label sits above its
+     value. Everything else takes the document's own default from the Normal
+     style rather than a number repeated on every paragraph. */
+  if (p.tight) props.push('<w:spacing w:after="0"/>');
+  /* ---- A CLAUSE STRUCK WHOLE TAKES ITS PARAGRAPH MARK WITH IT ----
+     Word marks the paragraph MARK as deleted separately from the words. Without
+     it, accepting a deletion in Word leaves an empty paragraph where the clause
+     was — so the reviewer accepts every change and still has to tidy up after
+     us, on a document we sent them. */
+  const runs = (p.runs || []).filter(r => r.text);
+  if (runs.length && runs.every(r => r.mark === 'del'))
+    props.push(`<w:rPr><w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}"/></w:rPr>`);
+  const brk = p.pageBreak ? '<w:r><w:br w:type="page"/></w:r>' : '';
+  const body = brk + (p.runs || []).map(r => {
     if (!r.text) return '';
     if (r.mark === 'ins') return `<w:ins w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:ins>`;
     if (r.mark === 'del') return `<w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:del>`;
@@ -1379,9 +1471,9 @@ function docxDocumentXml(html, opts = {}){
 const DOCX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles ${DOCX_NS}>
 <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>
-<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:style>
 <w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style>
-${[1,2,3,4,5,6].map(n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:pPr><w:outlineLvl w:val="${n-1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${30 - n*2}"/></w:rPr></w:style>`).join('')}
+${[1,2,3,4,5,6].map(n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="${360 - n*40}" w:after="120"/><w:outlineLvl w:val="${n-1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${30 - n*2}"/></w:rPr></w:style>`).join('')}
 </w:styles>`;
 
 /* A real numbering definition, shipped with the file. Without it a <w:numPr>
