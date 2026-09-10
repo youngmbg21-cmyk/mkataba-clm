@@ -1999,14 +1999,42 @@ function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; 
    door, two scopes, and the panel's own heading says which it is showing.
    A contract is still required: a drawer with no contract has nothing to draw
    and the button that would press it is dead with a reason on its hover. */
+/* ---- AND PRESSING THE DOOR YOU ARE ALREADY BEHIND SHUTS IT ----
+   (owner-asked 10 Sep 2026: "just like the alerts button, when i click on the
+   chat button once it should appear which it does today but when i click on it
+   again it should collapse.")
+
+   THE ALERTS BELL AND ACTIVITY HAVE ALWAYS DONE THIS and this door did not:
+   openPanel reads `same` and flips the state, while this one set panelOpen
+   true unconditionally — so Chat was the one header icon in the shell that
+   could only ever open. One drawer, three faces, and a reader who has learned
+   what one icon does may not find the third behaves differently.
+
+   THE RULE IS THE BELL'S, WITH THE SCOPE IN IT, and the scope is what makes it
+   safe: this door carries a contract and possibly a change where the other two
+   carry nothing, so "the same thing" is the face AND the contract AND the
+   change. Pressing Chat over Chat on this contract closes it; pressing a
+   CHANGE's own Notes row while the drawer shows the whole contract's chat
+   swaps to that change, which is what a reader asking to see one thread means.
+   Written as "already open on this face" alone it would close on the swap and
+   the reader would have to press twice to move between two threads.
+
+   THE SCOPE IS RECORDED EITHER WAY, never cleared on the close: reopening the
+   drawer comes back to the conversation it was showing, exactly as the bell
+   comes back to alerts. And the render is skipped on the way out, which is
+   openPanel's own shape — there is nothing to draw into a shut drawer. */
 function openNotesPanel(contractId, changeId){
   if(!contractId) return;
+  const was=state.notesFor||{};
+  const same=state.panelOpen&&panelFace()==='notes'
+    &&String(was.contractId||'')===String(contractId)
+    &&String(was.changeId==null?'':was.changeId)===String(changeId==null?'':changeId);
   state.notesFor={contractId:String(contractId),
     changeId: changeId==null?null:String(changeId)};
   setPanelFace('notes');
-  state.panelOpen=true;
+  state.panelOpen=!same;
   applyPanelLayout();
-  renderContextPanel();
+  if(state.panelOpen) renderContextPanel();
 }
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;

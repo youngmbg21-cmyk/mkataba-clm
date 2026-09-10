@@ -10925,3 +10925,65 @@ identical on the parent).
   ever has to be quoted separately.
 - The plain-English edition is still not on the phone, not on the counterparty's
   page, and not offered on the Signing tab. Named in the MAP as deliberate.
+
+## 10 Sep 2026 — a control does what you press, and nothing else (segment 1 of 6)
+
+Two of thirteen reports the owner sent in one batch. Segmented into six pieces of
+work at their ask; this is the first, and the two jobs in it are one complaint
+read off two screens.
+
+THE FACT ROW FOLDED ITSELF ON SCROLL. "Where collapse and Expand are available,
+remove the feature where I scroll up they collapse automatically. Let the user
+click to collapse and expand." What stood there was SAP Fiori's dynamic page
+header, added 25 Aug: one capture-phase scroll listener on document folded the
+contract room's four facts once the reader had scrolled about as far as folding
+would save, and opened them again at the top. It was written to buy the contract
+those pixels without anybody having to ask. IT IS THE SAME COMPLAINT THIS PAGE
+HAS NOW HAD TWICE — the 26 Aug narrowing ("fix scrolling in the tracked changes
+area so that when you scroll down the page does not collapse") answered one
+instance by naming which scroller counts; this answers the class by taking the
+second opinion away. document._wsSnapBound, paintSnap and window._wsSnapApply
+are stale. Nothing else about the fold moved: the choice is still the reader's,
+still per sitting and in memory, still a class flip and never a repaint, and the
+control still says which way it goes.
+
+THE CHAT DOOR COULD ONLY EVER OPEN. "just like the alerts button, when i click on
+the chat button once it should appear which it does today but when i click on it
+again it should collapse." The bell and Activity have toggled since they were
+built — openPanel reads `same` and flips the state — and openNotesPanel set
+panelOpen true unconditionally, so Chat was the one header icon in the shell that
+behaved differently from the two beside it. It is the bell's own rule now WITH
+THE SCOPE IN IT, and the scope is what makes it safe: this door carries a
+contract and possibly a change where the other two carry nothing, so "the same
+thing" is the face AND the contract AND the change. Pressing Chat over Chat
+closes it; pressing a change's own Notes row while the drawer shows the whole
+contract's chat SWAPS to that change. Written as "already on this face" alone it
+would close on the swap and moving between two threads would cost two presses.
+The old scope is read BEFORE the new one is stored, or the comparison is against
+itself and every press looks like the same press; it is never cleared on the way
+out, so reopening comes back to the conversation it was showing; and the render
+is skipped when the press closed it, which is openPanel's own shape.
+
+snap-header-verify is RENAMED room-head-fold-verify with its claims reversed in
+place rather than deleted. Two of its three founding claims are unchanged — the
+reader's press must win (it is now the only thing that moves the fold, which is
+the same claim with nothing left to argue with it) and the title, status and acts
+must not move. The headline claim is the owner's own gesture, measured: scroll
+down, scroll further, scroll back, read the fold each time.
+
+Verified: node 6157/6157. f278 4/4, and 3 of the 4 fail in a worktree at the
+parent — the survivor is the CONTROL that proves the removal is narrow rather
+than a sweep (the toggle still works). room-head-fold-verify 18/18 in a real
+browser. notes-two-rooms-verify 67/67 with 5 new checks, and against the parent
+it reports the owner's bug verbatim: FAIL "a SECOND press on Chat shuts the
+drawer" (66/67). The other three of those five pass either way — the bell
+measured beside Chat as the control, so a run where neither closes reads as a
+broken stage rather than a broken door. Lint unchanged (4 pre-existing errors,
+identical on the parent).
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- ct_collapse_facts_title / ct_expand_facts_title still read as though the fold
+  were about making room, which was the snap's own argument. Accurate enough as
+  hovers on a manual control; worth a re-read if that section is ever revisited.

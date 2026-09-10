@@ -1,17 +1,27 @@
-/* THE CONTRACT ROOM'S HEADER SNAPS — SAP Fiori's dynamic page header
-   (25 Aug 2026). The title, the status and the acts persist; the FACT ROW
-   scrolls away and comes back at the top.
+/* THE CONTRACT ROOM'S FACT ROW FOLDS WHEN YOU PRESS THE CONTROL, AND AT NO
+   OTHER TIME (owner-asked 10 Sep 2026: "remove the feature where I scroll up
+   they collapse automatically. Let the user click to collapse and expand.")
 
-   THREE THINGS THIS FILE EXISTS TO PIN, and each is a way the feature could
-   be built wrong rather than not built:
-     - the manual control must WIN. Snapping that overrides a reader's own
-       press means they open the facts, scroll one notch, and watch them shut.
-     - the fact row must stay REACHABLE. A snap that hides four facts also
-       removes them from the tab order unless focus re-expands it — Fiori
-       documents exactly that behaviour and it is the accessible half.
-     - the title, status and acts must NOT move. A head whose buttons jump
-       when it folds is a head you stop trusting, and that is the reason the
-       fold was scoped to the facts in the first place. */
+   THIS FILE'S CLAIMS ARE REVERSED IN PLACE rather than deleted, and it is
+   renamed with them: it used to be snap-header-verify and pinned SAP Fiori's
+   dynamic page header — scroll down and the facts fold themselves, scroll back
+   and they return. That is gone. What the file was really about survives, and
+   two of its three founding claims are unchanged:
+
+     - the reader's own press must WIN. It used to have to win over a snap;
+       now it is the ONLY thing that moves the fold, which is the same claim
+       with nothing left to argue with it.
+     - the fact row must stay REACHABLE. A fold that hides four facts must not
+       quietly take them out of the tab order.
+     - the title, status and acts must NOT move. A head whose buttons jump when
+       it folds is a head you stop folding — and that is why the fold was
+       scoped to the facts in the first place.
+
+   THE CLAIM THAT REVERSED is the headline, and it is written as a MEASUREMENT
+   of the reported gesture rather than as an absence: scroll the room, both
+   ways, and read the fold back. Against the code of an hour before, section 2
+   reports the owner's own bug — the facts folded because they were scrolled
+   past. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
@@ -81,16 +91,21 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   });
   ok('there is something to scroll', scrollable > 60, scrollable + 'px of scroll');
 
-  console.log('\n2 · it snaps on scroll, both ways');
+  console.log('\n2 · scrolling does NOT fold it — the reported gesture');
+  /* THE HEADLINE, AND IT IS THE OWNER'S OWN GESTURE. Scroll the room down as
+     far as the snap used to fold at, and further; then scroll back. The fold
+     may not move at any point, because nothing was pressed. */
   const before = await anchors();
   await scrollTo(240);
-  ok('scrolling down folds the facts', (await folded()) === true);
+  ok('scrolling down does not fold the facts', (await folded()) === false);
+  await scrollTo(600);
+  ok('nor does scrolling further', (await folded()) === false);
+  await scrollTo(0);
+  ok('and scrolling back leaves it open', (await folded()) === false);
   const after = await anchors();
   ok('the title did not move', JSON.stringify(before.title) === JSON.stringify(after.title),
      JSON.stringify(before.title) + ' → ' + JSON.stringify(after.title));
   ok('the acts did not move', JSON.stringify(before.acts) === JSON.stringify(after.acts));
-  await scrollTo(0);
-  ok('back at the top it opens again', (await folded()) === false);
 
   console.log('\n3 · what was deliberately NOT built');
   /* Fiori's dynamic header re-expands when its content takes keyboard focus.
@@ -106,7 +121,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   ok('nothing in the folded region is focusable, so the fold costs no tab stop',
      (await page.evaluate(() => document.querySelectorAll(
        '#ws-facts .room-facets a,#ws-facts .room-facets button,#ws-facts .room-facets [tabindex]').length)) === 0);
-  await scrollTo(240);
+  /* FOLDED BY THE PRESS, because that is the only way it folds now. */
+  await page.click('#ws-facts-toggle');
+  await page.waitForTimeout(250);
   ok('and the region really is display:none when folded', await page.evaluate(() => {
     const f = document.querySelector('#ws-facts .room-facets');
     return getComputedStyle(f).display === 'none';
@@ -116,16 +133,20 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     return document.getElementById('ws-facts').classList.contains('is-folded');
   }));
+  await page.click('#ws-facts-toggle');
+  await page.waitForTimeout(250);
 
-  console.log('\n4 · the reader\'s own press wins over the snap');
+  console.log('\n4 · the press is the only thing that moves it');
   await scrollTo(0);
   await page.waitForTimeout(200);
   await page.click('#ws-facts-toggle');
   await page.waitForTimeout(250);
   const pinnedShut = await folded();
   ok('pressing Collapse folds it', pinnedShut === true);
+  await scrollTo(300);
+  ok('and scrolling down does NOT undo the reader', (await folded()) === true);
   await scrollTo(0);
-  ok('and scrolling to the top does NOT undo the reader', (await folded()) === true);
+  ok('nor does scrolling back to the top', (await folded()) === true);
   await page.click('#ws-facts-toggle');
   await page.waitForTimeout(250);
   ok('pressing again opens it', (await folded()) === false);

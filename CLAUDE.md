@@ -4301,7 +4301,7 @@ Redesigned to the mock-up, and the region was ringed in a screenshot: everything
 - **A BREADCRUMB, NOT A BACK ARROW.** `#ws-back` **is still the button** — same id, same title, same `data-back`, same handler in wireRoomHead — restyled as the crumb it always behaved like. That is what makes it safe on the negotiation page, where this control is the only way back to the agreement. `.room-back` is STALE.
 - **STATUS IS COLOURED TEXT** — `contractStatusTextHtml` (js/core.js), sharing STATUS_META and the partially-signed and expired branches with `contractStatusChip` so word and tone can never disagree. **The chip is NOT retired**: every register row, card and list still wears it, and there it is right — a scanned column needs a shape to catch the eye, which is the opposite of a head row's problem.
 - **THE RUN-TOGETHER SUB-LINE BECAME A FACT ROW.** It opened "MK-B2 · Sales & Route-to-Market · Round 1 · KES 78,000,000 · updated 10 Jul 2026" — five kinds of fact in one grey sentence, none labelled. `roomFactsHtml` draws four label-above-value pairs divided by hairlines, the same treatment Key terms uses one screen down. It **borrows every reading**: negoMovePillHtml for whose move (the register's own builder), fmtMoneyOf for the amount in the contract's own currency, docTermSpan for the term. An absent fact is drawn and named with an em-dash, never omitted — a row that loses a column reads as a different page.
-- **A COLLAPSE CONTROL** overhangs the row's lower rule, centred. It folds the FACTS only: title, status and acts never move, because a head whose buttons jump when you fold it is one you stop folding. Per sitting, in memory, a class flip and never a repaint (the head is built once per render; a repaint would drop the acts' handlers).
+- **A COLLAPSE CONTROL** overhangs the row's lower rule, centred. It folds the FACTS only: title, status and acts never move, because a head whose buttons jump when you fold it is one you stop folding. Per sitting, in memory, a class flip and never a repaint (the head is built once per render; a repaint would drop the acts' handlers). **AND THE PRESS IS THE WHOLE OF IT — REVERSED IN PLACE 10 Sep 2026** (owner-asked: *"remove the feature where I scroll up they collapse automatically. Let the user click to collapse and expand"*). Between 25 Aug and now the row ALSO folded itself on scroll — SAP Fiori's dynamic page header, one capture-phase listener on `document`, written to buy the contract those pixels without anybody asking. **IT IS THE SAME COMPLAINT THIS PAGE HAS NOW HAD TWICE**: the 26 Aug narrowing (*"fix scrolling in the tracked changes area so that when you scroll down the page does not collapse"*) answered one instance of it by naming which scroller counts; this answers the class by taking the second opinion away. `document._wsSnapBound`, `paintSnap` and `window._wsSnapApply` are STALE — flag any mention. Nothing else moved: the choice is still the reader's, still per sitting, still a class flip. Tests: f278 (1)/(2), **room-head-fold-verify (18, browser — renamed from snap-header-verify with its claims REVERSED IN PLACE; two of its three founding claims are unchanged and the headline one is now the owner's own gesture, measured: 3 of 4 node claims and the scroll section fail against the parent)**.
 - **NOT DRAWN ON THE WORKBENCH** — that page's head is one compact row by the mock-up's own drawing, and the facts a negotiator needs (round, whose move) are already on its own row.
 - **AND THE FACT ROW SITS AFTER THE ACTS IN SOURCE ORDER**, which is load-bearing: `.room-head` wraps, and a full-width item placed before the acts pushes them onto a line of their own. Caught by photographing it.
 - **THE WHOLE HEAD IS A WHITE BAND (owner-asked 23 Aug 2026** — "the highlighted area should be white just like highlighted in the attached html"). The mock-up paints all three of its head strips — `.h-title`, `.h-hc`, `.h-anchor` — on `var(--surface)` and keeps the grey for the page BELOW them; this room painted **none** of them, so the crumb, title, acts, fact band and tab row all sat on the page ground. MEASURED: `#ws-head` computed `rgba(0,0,0,0)` over a body of `rgb(244,246,246)`. **`.room-band` IS A WRAPPER, NOT A BACKGROUND ON EACH STRIP** — painting the three separately leaves the 8px flex gap between them grey and gives three bars instead of one band — and the wrapper is also what lets it bleed: `margin:-6px -16px 0` cancels the view's own padding, `padding:6px 16px 0` puts it back inside, so the white runs to the shell's edge while nothing it contains moves by a pixel (the head still starts at x=272, asserted). **IT ENDS AT THE TAB ROW'S OWN HAIRLINE** — no bottom padding — and `#ws-actionbar` is deliberately OUTSIDE it, because the mock-up's `.h-content` sits on the grey too. `#ws-strips` is inside it: it is `display:contents`, so its children become the band's flex children, and closing the wrapper early would drop any strip onto the grey.
@@ -9736,6 +9736,27 @@ its tab row, so a sentence under it would be that fact twice.
 **IT COUNTS AND READS NOTHING OF ITS OWN** — `negoRoomNotes`, `negoWhen` and
 `rlNpNoteHtml` are borrowed whole, so a note cannot read one way here and
 another there.
+
+**AND PRESSING IT AGAIN SHUTS IT (owner-asked 10 Sep 2026:** *"just like the
+alerts button, when i click on the chat button once it should appear which it
+does today but when i click on it again it should collapse"*). The bell and
+Activity have toggled since they were built — `openPanel` reads `same` and
+flips the state — and `openNotesPanel` set `panelOpen` true unconditionally, so
+Chat was the one header icon in the shell that could only ever open.
+**IT IS THE BELL'S OWN RULE WITH THE SCOPE IN IT, and the scope is what makes
+it safe**: this door carries a contract and possibly a change where the other
+two carry nothing, so "the same thing" is the face AND the contract AND the
+change. Pressing Chat over Chat closes it; pressing a CHANGE's own Notes row
+while the drawer shows the contract's chat SWAPS to that change — written as
+"already on this face" alone it would close on the swap and moving between two
+threads would cost two presses. **The old scope is read BEFORE the new one is
+stored**, or the comparison is against itself and every press looks like the
+same press; it is never cleared on the way out, so reopening comes back to the
+conversation it was showing; and the render is skipped when the press closed
+it, which is `openPanel`'s own shape. Tests: f278 (3)/(4),
+notes-two-rooms-verify (**the second press DRIVEN, with the bell measured
+beside it as the control — 1 of the 5 fails against the parent and it is the
+owner's own report**).
 
 **AND THE DOOR IS DEAD WHERE PRESSING IT WOULD DO NOTHING**, with three
 different sentences for three different facts. No contract open. Or the **clause

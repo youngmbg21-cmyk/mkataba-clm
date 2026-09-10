@@ -282,6 +282,41 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         box: !!document.querySelector('#context-panel .rl-np-in') };
     });
     check('THE PRESS OPENS CHAT — not a dead press', chat.open === true);
+    /* ---- AND A SECOND PRESS SHUTS IT (owner-asked 10 Sep 2026) ----
+       "just like the alerts button, when i click on the chat button once it
+       should appear which it does today but when i click on it again it should
+       collapse." IT HAS TO BE DRIVEN: the source says the state flips, and
+       whether the drawer actually leaves the screen is a class on a rendered
+       panel. The BELL is measured beside it as the CONTROL — it has toggled
+       since it was built, so a run where neither closes is a broken stage
+       rather than a broken door. */
+    await page.click('#hdr-chat');
+    await page.waitForTimeout(500);
+    check('a SECOND press on Chat shuts the drawer',
+      (await page.evaluate(() =>
+        !document.querySelector('#context-panel').classList.contains('open'))) === true);
+    await page.click('#hdr-chat');
+    await page.waitForTimeout(500);
+    check('and a third opens it again — it is a toggle, not a one-shot',
+      (await page.evaluate(() =>
+        document.querySelector('#context-panel').classList.contains('open'))) === true);
+    /* THE SWAP MUST NOT BE READ AS A SECOND PRESS. Pressing the BELL while
+       Chat is up has to show alerts rather than close the drawer, or moving
+       between two faces costs two presses. */
+    await page.click('#hdr-notify');
+    await page.waitForTimeout(500);
+    check('pressing the bell over Chat SWAPS the face rather than closing',
+      (await page.evaluate(() => ({
+        open: document.querySelector('#context-panel').classList.contains('open'),
+        title: (document.getElementById('panel-title') || {}).textContent })))
+        .open === true);
+    check('the bell still toggles too — the control for this pair',
+      (await (async () => { await page.click('#hdr-notify'); await page.waitForTimeout(500);
+        return page.evaluate(() =>
+          !document.querySelector('#context-panel').classList.contains('open')); })()) === true);
+    /* Back to Chat for the rest of the section. */
+    await page.click('#hdr-chat');
+    await page.waitForTimeout(600);
     check('and the heading says Chat, not Notes — two scopes, one shell',
       /chat|chatt/i.test(chat.title || ''), chat.title);
     /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: "revert back to the

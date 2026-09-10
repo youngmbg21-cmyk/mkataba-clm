@@ -6110,106 +6110,36 @@ function wireRoomHead(c){
     ftog.addEventListener('click',e=>{ e.stopPropagation();
       _wsFactsFolded=facts.classList.toggle('is-folded'); paint(); });
 
-    /* ═══ THE HEADER SNAPS — SAP Fiori's dynamic page header ═══════════════
-       The title, the status and the acts persist; the FACT ROW scrolls away
-       and comes back at the top. HaTi had the fold and only a manual control
-       for it, so the space it buys was only ever bought on purpose.
+    /* ---- THE FACTS FOLD WHEN YOU PRESS THE CONTROL, AND AT NO OTHER TIME
+           (owner-asked 10 Sep 2026: "Where collapse and Expand are available,
+           remove the feature where I scroll up they collapse automatically.
+           Let the user click to collapse and expand.") ----
 
-       IT LISTENS IN THE CAPTURE PHASE ON document, AND THAT IS THE WHOLE
-       MECHANIC. A first attempt bound to #content-scroll and never fired:
-       MEASURED, that element has 0px of scroll in this room. The head sits
-       ABOVE the room's own inner scroller and each tab brings a different one
-       — the Document tab scrolls #doc-scroll, Key terms scrolls its own
-       column. Scroll events do not bubble, but they DO capture, so one
-       listener on document catches whichever scroller the current tab
-       mounted, without this code having to know their names.
+       WHAT STOOD HERE was SAP Fiori's dynamic page header, added 25 Aug 2026:
+       one capture-phase scroll listener on document folded the fact row once
+       the reader had scrolled about as far as folding would save, and opened
+       it again at the top. It was written to buy the contract those pixels
+       without anybody having to ask for them.
 
-       THE MANUAL PRESS WINS. Snapping only runs while _wsFactsFolded is null;
-       the first press pins the reader's choice for the sitting. Without that
-       the two fight: open the facts, scroll one notch, watch them shut.
+       WHAT IT COST is the thing the owner rang about, and it is the same
+       complaint this page has now had twice — the head changing size under a
+       gesture that was about reading something else. The 26 Aug narrowing
+       ("only the contract may fold it") answered one instance of it by naming
+       which scroller counts; this answers the class, by taking the second
+       opinion away. A fold has a control, the control is on screen, and
+       pressing it is the only thing that moves it.
 
-       FIORI'S "RE-EXPAND ON KEYBOARD FOCUS" IS DELIBERATELY NOT BUILT, and
-       the reason is worth keeping. It was written, and then measured: this
-       fold is `display:none` on .room-facets, and a display:none subtree
-       cannot receive focus at all — so a focusin handler for it can never
-       fire. Dead twice over, in fact: that region holds only divs today, so
-       folding it removes nothing from the tab order in the first place.
-       AND IT WOULD HAVE BEEN ACTIVELY WRONG. The Collapse button and the
-       check rows are inside #ws-facts but OUTSIDE .room-facets, so a handler
-       watching the whole row would have popped the facts open the moment a
-       reader tabbed to Collapse — the one press that means the opposite.
-       If the facet values ever gain a control, the fold has to stop being
-       display:none before any of this becomes reachable.
+       NOTHING ELSE ABOUT THE FOLD MOVED. `_wsFactsFolded` is still the
+       reader's own choice, still per SITTING and in memory, still a class flip
+       and never a repaint; `paint()` above is still the one painter and the
+       control still says which way it goes. What is gone is the machinery that
+       used to overrule it: `document._wsSnapBound`, the `paintSnap` reading
+       and `window._wsSnapApply` are STALE — flag any mention.
 
-       BOUND ONCE, on document rather than per render: this head is re-wired
-       on every render and on every tab change. */
-    if(!document._wsSnapBound){
-      document._wsSnapBound=true;
-      let ticking=false, lastTop=0;
-      const paintSnap=()=>{
-        ticking=false;
-        const el=document.getElementById('ws-facts');
-        if(!el) return;                                   /* another view */
-        if(_wsFactsFolded!==null) return;                 /* the reader ruled */
-        /* NO activeElement GUARD. One was written here for the focus
-           behaviour above and left behind when that was removed — and it did
-           real harm: #ws-facts contains the Collapse button, so with focus on
-           that button the snap stopped responding to scroll ENTIRELY. Caught
-           by snap-header-verify section 4, which tabs to Collapse in the
-           section before. A guard for a feature that no longer exists is not
-           inert; it is a condition nobody is checking any more. */
-        /* THE THRESHOLD IS THE ROW'S OWN HEIGHT, never a typed number: fold
-           once the reader has scrolled about as far as folding would save,
-           so the page cannot gain and lose the same pixels in a loop. */
-        const h=el.getBoundingClientRect().height||44;
-        el.classList.toggle('is-folded', lastTop > h);
-        const t=document.getElementById('ws-facts-toggle');
-        if(t){
-          const shut=el.classList.contains('is-folded');
-          t.setAttribute('aria-expanded',shut?'false':'true');
-          const w=t.querySelector('.room-snap-word');
-          if(w) w.textContent=i18t(shut?'ct_expand':'ct_collapse');
-        }
-      };
-      document.addEventListener('scroll',e=>{
-        const t=e.target;
-        if(!t||t===document||t.nodeType!==1) return;
-        /* Only a scroller inside the shell's main column, and never the fact
-           row itself — an unrelated drawer or the Copilot feed must not fold
-           the contract's header. */
-        const main=document.getElementById('content-scroll');
-        if(!main||!main.contains(t)) return;
-        const el=document.getElementById('ws-facts');
-        if(el&&el.contains(t)) return;
-        /* ---- AND ON THE NEGOTIATION PAGE, ONLY THE CONTRACT MAY FOLD IT
-               (owner-asked 26 Aug 2026: "fix scrolling in the tracked changes
-               area so that when you scroll down the page does not collapse ...
-               It should only happen in the contracts section") ----
-           MEASURED, and this is what the report is: scrolling the tracked-
-           changes column folded this header and the head went from 120px to
-           95px, then back to 120 on scrolling the cards up again — the page
-           expanding and collapsing under a gesture that has nothing to do with
-           the contract. The guard above already excluded the fact row itself;
-           it did not exclude the OTHER scrollers in the room, and that page has
-           four (the cards, the clause panel, the round queue, a ⋯ menu).
-           A FIRST PASS AIMED AT THE WRONG MECHANISM and is worth recording:
-           overscroll-behavior stops a scroll CHAINING to the page behind it,
-           which is a different thing from a scroll EVENT that some listener
-           acts on. That rule is right and stays; it was never going to fix
-           this, and only driving the page proved which of the two it was.
-           WRITTEN AS A POSITIVE RULE rather than a list of what to skip: on
-           this page the fold answers the DOCUMENT pane and nothing else, so a
-           scroller added to that column later inherits the answer instead of
-           having to be remembered. */
-        const rl=document.querySelector('.redline-page');
-        if(rl&&rl.contains(t)&&!(t.closest&&t.closest('.rl-doc'))) return;
-        lastTop=t.scrollTop;
-        if(ticking) return; ticking=true; requestAnimationFrame(paintSnap);
-      },true);
-      /* So a test — and a reader landing mid-page — can settle the state
-         without waiting for a scroll event. */
-      window._wsSnapApply=(top)=>{ if(typeof top==='number') lastTop=top; paintSnap(); };
-    }
+       THE REASONING FOR THE FOLD'S OWN SCOPE IS KEPT, because it is what makes
+       the control worth having at all: it folds the FACTS only, so the title,
+       the status and the acts never move, and a head whose buttons jump when
+       you fold it is a head you stop folding. */
   }
 
   const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
