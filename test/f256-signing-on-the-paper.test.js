@@ -358,9 +358,15 @@ describe('f256 (8) — the marks freeze at execution (D-4, as delivered)', () =>
       'no images in a contract’s stored markup');
     assert.ok(!/'A'/.test(tags) && !/href/.test(RICH.match(/const RICH_ATTRS = \{[\s\S]*?\};/)[0]),
       'and no links either — the same boundary');
-    const md = read('CLAUDE.md');
-    assert.match(md, /SIGNING ON THE PAPER/,
-      'and the rulebook carries the departure where the next reader will meet it');
+    /* RE-POINTED 10 Sep 2026: the rulebook was split by subject, so the rule
+       lives in the contract room's own file. The claim is unchanged — the next
+       reader must meet the departure where they would look for it — and it is
+       stronger read here, because CLAUDE.md's index lists every heading and
+       would match on the title alone. */
+    assert.match(read('docs/map/contract-room.md'), /SIGNING ON THE PAPER/,
+      'the area file carries the departure where the next reader will meet it');
+    assert.match(read('CLAUDE.md'), /contract-room\.md/,
+      'and CLAUDE.md points at that file');
   });
 
   test('an executed contract offers no placement act at all', async () => {
