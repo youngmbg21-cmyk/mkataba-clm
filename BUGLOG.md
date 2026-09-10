@@ -11874,3 +11874,30 @@ Noticed, not fixed
 - triage's standards tile prints a COUNT that is a snapshot and can go stale
   after a later re-run of the playbook (already logged 10 Sep; re-checked this
   run and still true — it is the count, never the fact).
+
+## Run — five jobs (PDF structure · the clause number · setView's record · the theme at boot), 10 Sep 2026
+
+### Job 1 & 2 — a PDF loses its structure, and Plain English never appears
+
+Fixed. `extractPdfRich` is `extractWordText`'s sibling for PDFs: the same
+`{ text, html, report }`, with `text` byte-identical to what `extractPdfText`
+has always returned. The per-line facts `pdfRunsToLines` was already computing
+and throwing away — bold, size, left, right and an inline-marked-up html — now
+have a reader. A body is stored on exactly the terms a Word file's is: through
+`sanitizeRich`, with no tag added to the allow-list, and only where the reader
+REPORTS real structure. The Document tab prefers the wording and falls back to
+the frame. The Plain English switch is untouched and reappears because the sheet
+finally holds clauses.
+
+#### Noticed, not fixed
+- Spurious spaces from glyph positioning in some PDFs ("statem ents") — the
+  run-joining threshold in pdfRunsToLines, not this job.
+- Typos in a counterparty's own contract ("agreeement") are theirs, not ours.
+- Tables inside PDFs are not reconstructed: report.tables is 0 by construction
+  and a ruled block still reads as prose.
+- The Negotiate page's own layout beyond the heading/paragraph shape.
+- A PDF carrying numbered clauses but NO headings is now stored as a rich body
+  (paragraphs joined, numbers kept) where before it took the guesswork. That is
+  an improvement rather than the unchanged behaviour the order asked for on a
+  PDF with "no readable structure" — a resolvable clause number IS readable
+  structure — and it is said out loud here rather than absorbed.

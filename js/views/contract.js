@@ -689,20 +689,216 @@ function pdfRunsToLines(runs){
 }
 
 /* Lines → text, with a blank line where the page leaves a paragraph's worth of
-   vertical space. */
-function pdfRunsToText(runs){
-  const rendered=pdfRunsToLines(runs);
-  if(!rendered.length) return '';
+   vertical space.
+
+   SPLIT IN TWO so the rich reconstruction can read the SAME paragraph
+   boundaries this projection uses (J-3.4). pdfRunsToText is what it always was
+   — pdfLinesToText over pdfRunsToLines — and its output is byte-identical;
+   what is new is that the structure pass can ask the same question rather than
+   growing a second opinion about where a paragraph ends. */
+function pdfRunsToText(runs){ return pdfLinesToText(pdfRunsToLines(runs)); }
+/* Is the gap between two rendered lines a PARAGRAPH break rather than a soft
+   wrap? One reading, asked by the text projection and by the rich one. */
+function pdfParaBreak(prev, cur, median){
+  const own=Math.max(prev.maxSize, cur.maxSize)*1.55;
+  const limit=median>0?Math.max(median*1.4, own):own;
+  return (prev.y-cur.y)>limit;
+}
+function pdfLineGapMedian(rendered){
   const gaps=[]; for(let i=1;i<rendered.length;i++) gaps.push(rendered[i-1].y-rendered[i].y);
   const sorted=gaps.slice().sort((a,b)=>a-b);
-  const median=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
+  return sorted.length?sorted[Math.floor(sorted.length/2)]:0;
+}
+function pdfLinesToText(rendered){
+  if(!rendered.length) return '';
+  const median=pdfLineGapMedian(rendered);
   let out=rendered[0].text;
   for(let i=1;i<rendered.length;i++){
-    const own=Math.max(rendered[i-1].maxSize, rendered[i].maxSize)*1.55;
-    const limit=median>0?Math.max(median*1.4, own):own;
-    out+=((rendered[i-1].y-rendered[i].y)>limit?'\n\n':'\n')+rendered[i].text;
+    out+=(pdfParaBreak(rendered[i-1], rendered[i], median)?'\n\n':'\n')+rendered[i].text;
   }
   return out;
+}
+
+/* ============================================================
+   A PDF THAT CAN ANSWER FOR ITSELF IS NOT GUESSED AT (J-3.4)
+   ============================================================
+   THE OWNER'S OWN WORDS (10 Sep 2026, a Financial Services Transfer Agreement
+   uploaded as a PDF): "when i go from the document page to the negotiate page,
+   the structure of the contract breaks and I am unable to follow the clauses
+   and sub clauses. I need for the structure to stay intact and where there is a
+   bold header to remain a bold header etc, same way a word document would."
+
+   THIS IS THE SAME FAULT J-3.1 FIXED FOR WORD FILES, ONE FORMAT ALONG. That
+   entry's own words: "THE READER WAS A TEXT SCRAPER … the paragraph styles, the
+   numbering definition, the list levels, the tables and the emphasis were all
+   discarded at that moment, and the screen then GUESSED the structure back out
+   of the wording." Word was fixed and PDF never was — and the guess is
+   docLineKind's ALL-CAPITALS rule, so "ARTICLE 2. Obligations of the first
+   party" carries a lowercase letter, is not read as a heading, and lands inside
+   an ordinary paragraph run. That is the reported screen.
+
+   AND THE FACTS WERE ALREADY IN THE BUILDING. pdfRunsToLines has always
+   computed, per line, the dominant point size, the left and right edges,
+   whether the line is set bold, and an inline-marked-up html — and of those
+   only maxSize had a reader anywhere in the product. This gives the other four
+   one. Nothing new is parsed out of the page; what changes is that what was
+   already read is no longer thrown away.
+
+   DO NOT LOOSEN docLineKind. It is the fallback for documents that genuinely
+   have no structure to read — scans, pasted text, a PDF with no styled text
+   layer — and every one of those would change. The point of this pass is to
+   stop NEEDING the guess on a PDF that can answer for itself. */
+
+/* A heading is a TITLE, so it is short. A bold sentence in the middle of a
+   clause is not a heading however emphatic it is, and this is the one bound
+   that tells the two apart without reading the words. */
+const PDF_HEAD_MAX=120;
+/* A NUMBERED LINE, and it requires a separator or a second part deliberately.
+   A soft-wrapped line beginning "30 days of receipt…" starts with digits and a
+   space and is not a clause; "2.1 Delivery" and "2. Delivery" are. Reading the
+   first as a clause would break the paragraph AND overstate the report, which
+   is what decides whether the body is stored at all. */
+const PDF_NUM_LINE=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+\S/;
+
+/* Lines → a structured body, the way docxXmlToRich builds one out of Word's own
+   styles. Same shape out: { html, report }, so submitUpload stores a PDF on
+   exactly the terms it already stores a Word file on.
+
+   THE HEADING IS DECIDED FROM THE PAGE, NEVER FROM THE CAPITALS: a line is a
+   heading when it is set bold, or noticeably larger than the body, and is short
+   enough to be a title. A numbered clause KEEPS ITS NUMBER as part of its
+   wording — js/docx.js's DOC_LABEL note says why: the number is the citation.
+
+   NOTHING IS INVENTED. Where a document carries no bold and no larger type the
+   report comes back empty, docxHasStructure answers false, nothing is stored
+   and the guesswork stays exactly as it is today. */
+function pdfLinesToRich(pages){
+  const all=[].concat(...(pages||[]).map(p=>p||[])).filter(l=>l&&l.text);
+  const report={ headings:0, numbered:0, unnumbered:0, tables:0 };
+  if(!all.length) return { html:'', report };
+  /* THE BODY SIZE IS THE SIZE MOST OF THE DOCUMENT'S CHARACTERS ARE SET AT,
+     weighted by characters rather than by lines: a contract with forty headings
+     and four hundred lines of wording still has one body size, and counting
+     lines would let a run of short headings outvote it. */
+  const byChars={};
+  all.forEach(l=>{ const k=Math.round(l.size*10)/10; byChars[k]=(byChars[k]||0)+l.text.length; });
+  const body=Number(Object.keys(byChars).sort((a,b)=>byChars[b]-byChars[a])[0])||all[0].size;
+  /* The base margin: the left edge most lines start at. An indented heading is
+     one level deeper than a heading at the margin — which is the only thing
+     `left` is asked here, deliberately. Reading a nested LIST out of
+     indentation is a bigger claim about the page than this pass makes. */
+  const byLeft={};
+  all.forEach(l=>{ const k=Math.round(l.left); byLeft[k]=(byLeft[k]||0)+1; });
+  const baseLeft=Number(Object.keys(byLeft).sort((a,b)=>byLeft[b]-byLeft[a])[0])||0;
+
+  const isHead=l=>{
+    const t=String(l.text||'').trim();
+    if(!t||t.length>PDF_HEAD_MAX) return false;
+    return !!l.bold || l.size>=body*1.15;
+  };
+  const sz=l=>Math.round(l.size*10)/10;
+  const sizes=[...new Set(all.filter(isHead).map(sz))].sort((a,b)=>b-a);
+  /* THE DOCUMENT'S OWN TITLE TAKES h1 AND THE LEVELS SHIFT UNDER IT — the rule
+     J-3.1 wrote down for Word, for its reason: HaTi's clause model reads a
+     LEADING h1 as the title and the headings below it as the clauses, so a
+     title mapped one-for-one is not a heading at all, and one mapped without
+     the shift becomes clause 1. A PDF whose headings are all one size has no
+     title to shift under, so they start at h2 and NOTHING is eaten. */
+  const titled = sizes.length>1 && isHead(all[0]) && sz(all[0])===sizes[0];
+  const rank=l=>{
+    const i=sizes.indexOf(sz(l));
+    const base=i<0?2:(titled?(i===0?1:i+1):i+2);
+    const deep=l.left>baseLeft+18?1:0;
+    return Math.min(4, Math.max(1, base+deep));
+  };
+
+  const out=[];
+  let open=null;
+  const flush=()=>{ if(open&&open.replace(/<[^>]*>/g,'').trim()) out.push('<p>'+open+'</p>'); open=null; };
+  (pages||[]).forEach(raw=>{
+    const lines=(raw||[]).filter(l=>l&&l.text);
+    const median=pdfLineGapMedian(lines);
+    lines.forEach((l,i)=>{
+      if(isHead(l)){
+        flush();
+        /* A heading is already bold by being a heading, so a <strong> wrapping
+           the WHOLE of one is the same fact stored twice. Unwrapped only where
+           it covers everything — emphasis on PART of a heading is the
+           document's own and is kept. */
+        const lvl=rank(l);
+        const m=/^<strong>([\s\S]*)<\/strong>$/.exec(l.html);
+        const inner=(m && m[1].indexOf('<strong>')<0) ? m[1] : l.html;
+        out.push('<h'+lvl+'>'+inner+'</h'+lvl+'>'); report.headings++; return;
+      }
+      const numbered=PDF_NUM_LINE.test(l.text);
+      if(numbered) report.numbered++;
+      /* THE PARAGRAPH BOUNDARY IS THE TEXT PROJECTION'S OWN (pdfParaBreak), so
+         the stored wording and the plain text cannot disagree about where one
+         paragraph ends — and a page break is a boundary, exactly as the text
+         joins its pages with a blank line. A soft wrap joins with a space,
+         which is what makes this read as a document rather than as a column of
+         short lines. */
+      const brk = i===0 || numbered || open==null || pdfParaBreak(lines[i-1], l, median);
+      if(brk){ flush(); open=l.html; }
+      else open+=' '+l.html;
+    });
+  });
+  flush();
+  return { html:out.join(''), report };
+}
+
+/* ONE WALK OF THE FILE, read by both projections. extractPdfText's own output
+   is byte-identical to what it always returned — that is not negotiable: it is
+   the stored wording, and every fingerprint, the Copilot readings, the
+   obligations reader and the standards pass already bind it. */
+async function pdfReadPages(buf){
+  const bin=pdfLatin(new Uint8Array(buf));
+  let pages=[];
+  try{
+    const objs=pdfIndexObjects(bin);
+    await pdfExpandObjStreams(objs);
+    for(const pn of pdfPageObjects(objs)){
+      const po=objs.get(pn); if(!po) continue;
+      let resDict='', node=po, hops=0;                    // /Resources can be inherited from /Pages
+      while(node&&hops++<8){
+        const ri=node.dict.indexOf('/Resources');
+        if(ri>=0){ const tail=node.dict.slice(ri+10), ref=pdfRef(tail);
+          resDict=ref!=null?(objs.get(ref)?.dict||''):tail; break; }
+        const par=pdfRef(pdfDictVal(node.dict,'/Parent')); node=par!=null?objs.get(par):null;
+      }
+      const fonts=await pdfPageFonts(objs, resDict);
+      const ci=po.dict.indexOf('/Contents'); if(ci<0) continue;
+      const tail=po.dict.slice(ci+9);
+      const one=pdfRef(tail);
+      let refs=[];
+      if(one!=null) refs=[one];
+      else { const arr=/\[([\s\S]*?)\]/.exec(tail);
+        if(arr){ const re=/(\d+)\s+\d+\s+R/g; let m; while((m=re.exec(arr[1]))) refs.push(Number(m[1])); } }
+      let content='';
+      for(const r of refs){ const b=await pdfStreamBytes(objs.get(r)); if(b) content+=pdfLatin(b)+'\n'; }
+      if(!content.trim()) continue;
+      const lines=pdfRunsToLines(pdfTextRuns(content, fonts));
+      const txt=pdfLinesToText(lines).trim();
+      if(txt) pages.push({ lines, text:txt });
+    }
+  }catch(e){ pages=[]; }
+  return { bin, pages };
+}
+/* The one gate, on every path out of the reader — see looksLikeText. */
+async function pdfPagesText(bin, pages){
+  const text = pages.length
+    ? pages.map(p=>p.text).join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim()
+    : await pdfFlatText(bin);
+  return looksLikeText(text) ? text : '';
+}
+/* The Word reader's own shape — { text, html, report } — so the upload path
+   stores a PDF on exactly the terms it already stores a .docx on. */
+async function extractPdfRich(buf){
+  const { bin, pages } = await pdfReadPages(buf);
+  const text = await pdfPagesText(bin, pages);
+  if(!text || !pages.length) return { text, html:'', report:null };
+  const { html, report } = pdfLinesToRich(pages.map(p=>p.lines));
+  return { text, html, report };
 }
 
 /* Last resort for PDFs whose page tree we can't follow: the old flat scan of
@@ -813,40 +1009,8 @@ function looksLikeText(s){
 }
 
 async function extractPdfText(buf){
-  const bin=pdfLatin(new Uint8Array(buf));
-  let pages=[];
-  try{
-    const objs=pdfIndexObjects(bin);
-    await pdfExpandObjStreams(objs);
-    for(const pn of pdfPageObjects(objs)){
-      const po=objs.get(pn); if(!po) continue;
-      let resDict='', node=po, hops=0;                    // /Resources can be inherited from /Pages
-      while(node&&hops++<8){
-        const ri=node.dict.indexOf('/Resources');
-        if(ri>=0){ const tail=node.dict.slice(ri+10), ref=pdfRef(tail);
-          resDict=ref!=null?(objs.get(ref)?.dict||''):tail; break; }
-        const par=pdfRef(pdfDictVal(node.dict,'/Parent')); node=par!=null?objs.get(par):null;
-      }
-      const fonts=await pdfPageFonts(objs, resDict);
-      const ci=po.dict.indexOf('/Contents'); if(ci<0) continue;
-      const tail=po.dict.slice(ci+9);
-      const one=pdfRef(tail);
-      let refs=[];
-      if(one!=null) refs=[one];
-      else { const arr=/\[([\s\S]*?)\]/.exec(tail);
-        if(arr){ const re=/(\d+)\s+\d+\s+R/g; let m; while((m=re.exec(arr[1]))) refs.push(Number(m[1])); } }
-      let content='';
-      for(const r of refs){ const b=await pdfStreamBytes(objs.get(r)); if(b) content+=pdfLatin(b)+'\n'; }
-      if(!content.trim()) continue;
-      const txt=pdfRunsToText(pdfTextRuns(content, fonts)).trim();
-      if(txt) pages.push(txt);
-    }
-  }catch(e){ pages=[]; }
-  const text = pages.length
-    ? pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim()
-    : await pdfFlatText(bin);
-  // one gate, on every path out of here — see looksLikeText
-  return looksLikeText(text) ? text : '';
+  const { bin, pages } = await pdfReadPages(buf);
+  return pdfPagesText(bin, pages);
 }
 /* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
    CSP (connect-src 'self'), so the bytes are unpacked without a request. */
@@ -1413,6 +1577,19 @@ async function runUploadPipeline(file){
     try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked;
       wordHtml=w.html||''; wordReport=w.report||null; }
     catch(e){ refuse('Could not read this Word file: '+e.message); return; }
+  } else if(/pdf/.test(mime) && window.extractPdfRich){
+    /* ---- A PDF IS READ THE WAY A WORD FILE IS (J-3.4) ----
+       Same reader as before for the WORDING — extractPdfRich's `text` is
+       byte-identical to extractPdfText's — and the structure it already
+       computed per line now comes out with it instead of being discarded.
+       A failure falls back to the plain reader rather than refusing: a PDF
+       has always been readable as text, and losing that on a structure pass
+       would be a worse product than the one being fixed. */
+    try{
+      const r=await extractPdfRich(dataUrlBytes(dataUrl).buffer);
+      extractedText=String(r.text||'').slice(0,EXTRACT_MAX_CHARS);
+      wordHtml=r.html||''; wordReport=r.report||null;
+    }catch(e){ extractedText=await extractDocText(dataUrl, mime); }
   } else {
     extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   }
@@ -1554,6 +1731,11 @@ async function submitUpload(){
 
      IT GOES THROUGH sanitizeRich LIKE ANY OTHER BODY: what a person may not
      write, a file may not smuggle in. */
+  /* J-3.4: A PDF ARRIVES HERE ON EXACTLY THE SAME TERMS. The condition is
+     unchanged — a body is stored only where the reader REPORTS real structure,
+     and it goes through sanitizeRich like any other. What is new is that a PDF
+     can now answer that question; before this it never could, so it always
+     took the guesswork branch. */
   if(wordHtml && window.docxHasStructure && docxHasStructure(upload.docStructure)
      && window.sanitizeRich){
     const body=sanitizeRich(wordHtml);
@@ -1875,14 +2057,27 @@ function uploadDocBody(c){
   const isDocx=!!(window.isWordDoc&&isWordDoc(c));
   // a generous reading surface: fills the viewport height, with an Expand
   // control that opens the document near-fullscreen for comfortable review
-  const canPreview = isPdf||isText||isImg;
+  /* ---- THE WORDING IS THE PAGE ON A PDF TOO (J-3.4) ----
+     The isPdf branch below returned an <iframe> of the file FIRST, whatever
+     else was known about the document — so a PDF whose structure has now been
+     read would have drawn the laid-out agreement AND the file frame under it,
+     and the Plain English switch would still have had no clauses to walk,
+     because an iframe is a separate document the walk cannot and must not
+     enter. Where the wording is on the page there is nothing left for a frame
+     to show; the original file is one press away on the strip above, which is
+     where a fact about the FILE belongs.
+     SCOPED TO PDFs. A scan is an image and keeps its picture — that picture is
+     the evidence — and a text file keeps its frame. */
+  const hasBody = !!(c.redlineText && String(c.redlineText).trim());
+  const pdfLaidOut = isPdf && hasBody;
+  const canPreview = (isPdf||isText||isImg) && !pdfLaidOut;
   const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_document_preview')}</div>
       <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
-  const preview = previewHead + ((isPdf||isText)
+  const preview = previewHead + (((isPdf&&!pdfLaidOut)||isText)
     ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="${i18t('ct_uploaded_document')}"></iframe>`
     : isImg
     ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="${i18t('ct_uploaded_document')}"/></div>`
@@ -2075,7 +2270,7 @@ function uploadDocBody(c){
          are the workspace's, not the file's, and a caption claiming otherwise
          would be worse than none. */}
     ${c.redlineText?`
-    ${(isDocx && !(window.uploadWordingEdited ? uploadWordingEdited(c)
+    ${((isDocx||isPdf) && !(window.uploadWordingEdited ? uploadWordingEdited(c)
         : ((c.changes||[]).length || (c.versions||[]).length)))
       ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
     <div class="mb-4" data-anchor="redline" style="color:var(--color-doc-text)">${
@@ -9078,7 +9273,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,pdfLinesToRich,pdfReadPages,pdfPagesText,extractPdfRich,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
