@@ -3245,6 +3245,79 @@ const dismissNote = async pg => {
   ck('29g the card still settles into "Added as a new clause"',
      a29.filedCard === true, String(a29.filedCard));
 
+  /* ==========================================================================
+     30 — A PROPOSED DELETION IS ON THE PAGE, AS PIXELS
+     --------------------------------------------------------------------------
+     (owner-reported 10 Sep 2026: the counterparty asked to remove the whole of
+     Clause 2. Press ✦ Edit with Copilot and the page opened on an EMPTY
+     editable box with "+0 −103" above it — nothing said what was being
+     removed.)
+
+     "CAN THE READER SEE WHAT IS BEING REMOVED" IS A MEASUREMENT ON A RENDERED
+     PAGE. f245 pins the reading; only here can the strike-through be read as
+     PAINTED text, and only here can the pencil be shown to be absent from the
+     paper rather than merely absent from a string.
+     ========================================================================== */
+  await p.evaluate(() => { try{ window.rlCloseClauseEditor(); }catch(_){} });
+  await answerLeave(p);
+  await pause(250);
+  const del30 = await p.evaluate(async () => {
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    const cls = negoClauseList(window.CONTRACT);
+    /* A clause nothing above has touched, so what is measured is the deletion
+       rather than somebody else's staging. */
+    const cl = cls[Math.max(0, cls.length - 2)];
+    const ch = await negoDeleteClause(window.CONTRACT, cl.clauseId,
+      { side: 'counterparty', author: 'Amina Wanjiru', why: 'covered elsewhere' });
+    /* The ✦ on a change — the door the fault was reported through — asks for
+       typing. */
+    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId,
+      { typing: true, changeId: ch && ch.id });
+    return { clauseId: cl.clauseId, id: ch && ch.id, type: ch && ch.changeType,
+      words: String(cl.text || '').split(/\s+/).filter(Boolean).length };
+  });
+  await pause(700);
+  const seen30 = await p.evaluate(() => {
+    const seen = el => { if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const body = document.getElementById('ce-clausebody');
+    const dels = body ? [...body.querySelectorAll('del, .nego-del')].filter(seen) : [];
+    const struck = dels.map(d => String(d.textContent || '').trim()).join(' ');
+    const st = document.querySelector('#clause-editor .ce-stat');
+    const line = dels.length ? getComputedStyle(dels[0]).textDecorationLine : '';
+    return {
+      typing: !!(body && body.getAttribute('contenteditable') === 'true'),
+      dels: dels.length, struck,
+      strikeDrawn: /line-through/.test(line),
+      stat: String((st && st.textContent) || '').replace(/\s+/g, ' ').trim(),
+      chips: [...document.querySelectorAll('#ce-chips button')].map(b => b.textContent.trim()),
+      pencilHere: document.querySelectorAll(
+        `#ce-doc [data-clause="${window.clauseEditorClauseId()}"] [data-ce-pencil]`).length,
+      pencilsElsewhere: document.querySelectorAll('#ce-doc [data-ce-pencil]').length,
+      applyRefused: window.ceApply('<p>Wording of our own.</p>', 'typed') === false,
+      canFile: window.ceCanFile(),
+      says: String((document.getElementById('ce-say') || {}).textContent || ''),
+    };
+  });
+  ck('30a it does NOT open on an empty typeable box',
+     seen30.typing === false, `typing ${seen30.typing} · ${del30.type}`);
+  ck('30b the wording that would go is struck through, as painted text',
+     seen30.dels > 0 && seen30.strikeDrawn && seen30.struck.length > 20,
+     `${seen30.dels} del run(s) · line-through ${seen30.strikeDrawn} · ${JSON.stringify(seen30.struck.slice(0, 60))}`);
+  ck('30c and the count still reads the whole clause out',
+     /−|-/.test(seen30.stat) && new RegExp(String(del30.words)).test(seen30.stat),
+     `${seen30.stat} · clause is ${del30.words} words`);
+  ck('30d the pencil is not drawn on that clause, and still is on the others',
+     seen30.pencilHere === 0 && seen30.pencilsElsewhere > 0,
+     `here ${seen30.pencilHere} · elsewhere ${seen30.pencilsElsewhere}`);
+  ck('30e Apply refuses, in words, where the reader is looking',
+     seen30.applyRefused && /remove/i.test(seen30.says) && seen30.canFile === false,
+     `${seen30.applyRefused} · ${JSON.stringify(seen30.says.slice(0, 70))}`);
+  ck('30f the rail offers only what it can answer — four, not five',
+     seen30.chips.length === 4 && !seen30.chips.some(t => /softer/i.test(t)),
+     JSON.stringify(seen30.chips));
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

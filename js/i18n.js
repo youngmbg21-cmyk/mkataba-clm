@@ -1812,6 +1812,15 @@ const STRINGS = {
     ce_pb_flags: 'Our playbook flags this clause for: {list}.',
     ce_their_ask: 'They have asked for a change ({id}).',
     ce_their_ask_why: 'They asked for {id}, because: {why}',
+    /* A DELETION IS A DIFFERENT ASK AND HAS TO BE SAID AS ONE. Named the same
+       way as an edit, Copilot was handed a clause and no proposal — and had
+       nothing to say about the one thing on the page. */
+    ce_their_ask_del: 'They have asked for this clause to be REMOVED in full ({id}). The wording shown is what would go.',
+    ce_their_ask_del_why: 'They have asked for this clause to be REMOVED in full ({id}), because: {why} The wording shown is what would go.',
+    /* The one refusal on a clause under deletion, and it carries its way
+       forward: the decision lives on the change's own card, which is where
+       Accept and Reject already are. */
+    ce_under_deletion: 'This clause is under a proposal to remove it — there is no wording to change. Accept or reject it on its card in the change column.',
     ce_scan_none: 'This contract has not been checked against our playbook yet.',
     ce_scan_run: 'Run the playbook scan',
     ce_scan_again: 'Run it again',
@@ -7633,6 +7642,9 @@ const STRINGS = {
     ce_pb_flags: 'Vår spelbok flaggar den här klausulen för: {list}.',
     ce_their_ask: 'De har bett om en ändring ({id}).',
     ce_their_ask_why: 'De bad om {id}, därför att: {why}',
+    ce_their_ask_del: 'De har begärt att hela klausulen TAS BORT ({id}). Ordalydelsen som visas är den som skulle försvinna.',
+    ce_their_ask_del_why: 'De har begärt att hela klausulen TAS BORT ({id}), därför att: {why} Ordalydelsen som visas är den som skulle försvinna.',
+    ce_under_deletion: 'Klausulen är föremål för ett förslag om att tas bort — det finns ingen ordalydelse att ändra. Godta eller avslå det på dess kort i ändringskolumnen.',
     ce_scan_none: 'Det här avtalet har inte kontrollerats mot vår spelbok ännu.',
     ce_scan_run: 'Kör spelbokskontrollen',
     ce_scan_again: 'Kör den igen',

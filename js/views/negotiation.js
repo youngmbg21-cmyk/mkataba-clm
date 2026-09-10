@@ -5913,6 +5913,16 @@ function rlClauseEditPillHtml(cl, opts = {}){
     if (typeof v === 'function'){ try{ return v(cl); }catch(_){ return fb; } }
     return v || fb;
   };
+  /* ---- AND A CALLER MAY SAY THAT ITS PENCIL CANNOT WORK HERE ----
+     (owner-reported 10 Sep 2026, on a clause the other side has asked to have
+     removed.) Symmetric with label and title above, and a function of the
+     clause for the same reason: on the clause editor the same pencil means two
+     different things depending on which clause it is drawn on, and on a clause
+     under a proposed deletion it means nothing at all — there is no wording to
+     type. NOT DRAWN rather than drawn dead, which is this paper's own answer
+     one line up, where a reading that refuses editing draws no pencil either.
+     Absent, nothing changes for any caller written before this. */
+  if (say(pill && pill.skip, false) === true) return '';
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
   /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
      this tooltip). The default said "Open this clause — what it says now, what

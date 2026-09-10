@@ -908,15 +908,66 @@ function ceHeadingOf(ch){
    null, so the box is simply not drawn where the act cannot work. */
 const ceHeadEditable = () => !!_ceHeadBase;
 
+/* WHAT A CHANGE STORES, WITH NO FALLBACK. bodyHtml first: it is what the change
+   actually holds and what the funnel takes back. newText is its projection and
+   is the fallback for a change filed before rich bodies existed. Empty means
+   the change stored no wording of its own — which is a different fact from
+   "it proposes the wording that stands", and telling the two apart is what the
+   reading below is for. */
+function ceProposedOf(ch){
+  const rich = String((ch && ch.bodyHtml) == null ? '' : ch.bodyHtml).trim();
+  if (rich) return rich;
+  const t = String((ch && ch.newText) == null ? '' : ch.newText).trim();
+  return t ? ceRich(t) : '';
+}
+/* ---- AN ASK THAT LEAVES NO WORDING ---- (owner-reported 10 Sep 2026)
+   "Press ✦ Edit with Copilot and the clause editor opens on an EMPTY editable
+   box with +0 −103 above it. Nothing on the page says what is being removed."
+
+   ONE READING, because a proposed deletion reaches this page in TWO shapes and
+   testing the type in one place and the body in another is how they would come
+   to disagree about the same ask:
+
+     A · a TRUE deleteClause stores bodyHtml:null and newText:'' — so the old
+         ceWordingOf fell through both and answered with the STANDING wording,
+         and the page then drew the clause in full, clean, and (because the
+         draft equalled the baseline) opened TYPEABLE. The deletion was invisible
+         and nothing on the page even hinted at it. MEASURED: 0 del marks.
+     B · a MODIFY whose body is empty markup — `<p><br></p>`, which is exactly
+         what a browser leaves when you select all and delete in a contenteditable
+         box. It survives sanitising, seeds the draft as that markup, and drew an
+         empty box. THAT IS THE REPORTED SCREEN.
+
+   A CHANGE WHOSE PROPOSED BODY RENDERS TO NOTHING IS A PROPOSAL TO REMOVE THE
+   WORDING, WHATEVER ITS changeType SAYS. That is the reading, and it is the one
+   the page never had.
+
+   IT REQUIRES SOMETHING TO HAVE BEEN STORED, and that narrowing is deliberate.
+   A change holding no body and no newText at all stored NOTHING rather than
+   stored emptiness — the funnel refuses a modify that proposes nothing, so it
+   should not exist — and reading it as "remove the clause" would be this page
+   inventing an ask. It falls through to what it always did. */
+function ceRemovesWording(ch){
+  if (!ch) return false;
+  if (ch.changeType === 'deleteClause') return true;
+  const body = ceProposedOf(ch);
+  if (!body) return false;
+  return !String(ceWords(body) || '').trim();
+}
+/* Is the clause on this page under a proposal to remove it? Read off the LEAD
+   change, which is the one the paper is drawing — so the editor and the
+   contract agree about which of several rival asks the page is answering. */
+const ceUnderDeletion = () => ceRemovesWording(_ceLead);
+
 function ceWordingOf(ch){
   if (!ch) return _ceBase;
-  /* bodyHtml first: it is what the change actually stores and what the funnel
-     takes back. newText is its projection and is the fallback for a change
-     filed before rich bodies existed. */
-  const rich = String(ch.bodyHtml == null ? '' : ch.bodyHtml).trim();
-  if (rich) return rich;
-  const t = String(ch.newText == null ? '' : ch.newText).trim();
-  return t ? ceRich(t) : _ceBase;
+  /* EMPTY, so the marks measure the whole clause OUT. ceRedlineHtml then draws
+     the standing wording struck through — the deletion's own reading, through
+     the page's own op renderer, so it inherits the same hanging indents and
+     sub-paragraph shape as every other clause. Nothing is re-diffed: what is
+     compared is the two texts the record already holds. */
+  if (ceRemovesWording(ch)) return '';
+  return ceProposedOf(ch) || _ceBase;
 }
 function ceStanding(){
   const cl = ceClause();
@@ -1656,7 +1707,24 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      on a clause carrying marks — nothing is being HIDDEN from somebody who has
      just put their cursor in it. What the rule above still governs is ARRIVAL,
      which is where it was reported. */
-  _ceEditing = wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase);
+  /* ---- AND A PROPOSED DELETION OUTRANKS THE ASK TO TYPE ---- (10 Sep 2026)
+     The rule above is "is there anything to hide?", and on a clause the other
+     side wants removed there is: the whole of it. The ✦ on a change, the
+     paper's pencil and the panel's Copilot button all ask for typing, and all
+     three of them are the doors a reader reaches this state through — so an
+     ask to type must not be what hides the ask being read. It opens SHOWING
+     THE STRIKE-THROUGH, every time.
+
+     AND TYPING IS NOT OFFERED ON IT AT ALL, which is the honest interim answer
+     to a question that is the owner's: what SHOULD typing mean on a clause
+     under deletion? It is a real act — counter-proposing wording, which the
+     funnel already handles by superseding rivals — but "Save to CHG-005" is
+     the wrong name for it and would read as editing an ask that proposes
+     nothing. Until that is ruled on, every door into the wording asks
+     ceUnderDeletion and stands down: the pencil is not drawn, Apply refuses in
+     words, and a card carries no Apply. */
+  _ceEditing = !ceUnderDeletion()
+    && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
   _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
   _ceScan = null; _ceScanFiled = {};
@@ -2303,6 +2371,12 @@ function ceRenderPaper(){
          one does: here it turns typing on and off, and on another clause it
          moves the page to that clause. */
       pill: { attr: 'data-ce-pencil', pressed: typing ? _ceClauseId : '',
+        /* NOT ON THE CLAUSE THE OTHER SIDE WANTS REMOVED. There is no wording
+           to type there, so the pencil would be a control whose only outcome
+           is a refusal — the product's own "a verb that cannot work is not
+           drawn". It is asked of THIS clause alone: the pencil on every other
+           clause still moves the page, which is what it has always meant. */
+        skip: cl => String(cl.clauseId) === String(_ceClauseId) && ceUnderDeletion(),
         label: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
           : (typing ? _cet('ce_pencil_stop') : _cet('ce_pencil')),
         title: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
@@ -2553,6 +2627,15 @@ function ceSay(msg){
 function ceApply(text, label, opts = {}){
   if (!clauseEditorOpen()) return false;
   if (text == null) return false;
+  /* ---- NOT ON A CLAUSE THE OTHER SIDE WANTS REMOVED ---- (10 Sep 2026)
+     The third door into the wording, and the one that is still pressable once
+     the pencil has stood down — a Copilot card's Apply, a playbook standard, a
+     passage rewritten in place. Wording applied here would become a
+     counter-proposal filed under a button reading "Save to CHG-005", which is
+     the wrong name for it; what typing SHOULD mean on a clause under deletion
+     is the owner's to rule on. Said IN the page, beside the press, because a
+     refusal delivered off-screen is how a live button reads as a dead one. */
+  if (ceUnderDeletion()){ ceSay(_cet('ce_under_deletion')); return false; }
   /* ---- NOT ON A READING THAT HIDES THE MARKS (Phase 4) ----
      'As agreed' and 'With changes' draw the paper without its marks, so wording
      applied there would move under a reader who cannot see it move. The pencil
@@ -2733,6 +2816,13 @@ function ceCardHtml(card, i, j){
      reads as the change it is. */
   const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
   const vote = card.vote || '';
+  /* ---- ON A CLAUSE UNDER DELETION A CARD IS A READING ---- (10 Sep 2026)
+     Copilot may still advise — that is the whole of what this page owes the
+     reader there — but its answer cannot be moved into the wording, because
+     Apply is refused. So the two verbs that would put it there are not drawn:
+     a verb that cannot work is not drawn, and a card offering Refine over an
+     Apply that refuses is the same dead press one step further away. */
+  const offerWording = !!card.text && !ceUnderDeletion();
   return `<div class="ce-card">
     <div class="n"><span>${_cee(card.name || _cet('ce_suggestion'))}</span><span class="g"></span>${
       card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
@@ -2740,8 +2830,8 @@ function ceCardHtml(card, i, j){
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
     <div class="av">
-      ${card.text ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
-      ${card.text ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
+      ${offerWording ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
+      ${offerWording ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
       <span class="g"></span>
       <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:up"
         aria-pressed="${vote === 'up' ? 'true' : 'false'}"
@@ -2771,7 +2861,15 @@ function ceRenderChips(){
   } else {
     const on = ceOnTable(), theirs = on.find(x => x.authorSide === 'counterparty');
     if (theirs) qs.push(_cet('ce_q_answer', { id: theirs.id }));
-    qs.push(_cet('ce_q_softer'), _cet('ce_q_our_standard'), _cet('ce_q_risk'), _cet('ce_q_plain'));
+    /* ---- AND ONE OF THEM CANNOT BE ASKED ON A DELETION ---- (10 Sep 2026)
+       "Give me a softer version" asks for replacement wording, and on a clause
+       the other side wants removed there is nothing to soften and nowhere for
+       the answer to go — Apply is refused there. The other three still stand:
+       how to answer the ask, what our playbook says, what the risk is, and what
+       the clause says in plain English are all questions about a clause you may
+       be about to lose. */
+    if (!ceUnderDeletion()) qs.push(_cet('ce_q_softer'));
+    qs.push(_cet('ce_q_our_standard'), _cet('ce_q_risk'), _cet('ce_q_plain'));
   }
   box.innerHTML = qs.map(q => `<button type="button" data-ce-chip="${_ceea(q)}">${_cee(q)}</button>`).join('');
 }
@@ -2850,10 +2948,23 @@ function cePrecedentLine(){
     return p ? String(precedentLine(p) || '').replace(/<[^>]*>/g, '').trim() : '';
   }catch(_){ return ''; }
 }
+/* ---- WHAT THE OTHER SIDE HAS ACTUALLY ASKED FOR ---- (10 Sep 2026)
+   It named the change and its reason and NEVER THE ASK, so on a deletion it
+   handed Copilot a clause and no proposal — which is why the rail had nothing
+   to say about the one thing on the page. It says the ask now.
+
+   IT STATES A FACT OFF THE RECORD AND ASKS FOR NOTHING NEW: no extra call, no
+   extra spend. The clause's own wording already reaches the model through
+   copilotPropose's `passage`, which on a deletion falls back to the standing
+   wording — so what was missing was the sentence saying it is the wording that
+   would go, and that is what this adds. */
 function ceTheirAsk(){
   const theirs = ceOnTable().find(x => x.authorSide === 'counterparty');
   if (!theirs) return '';
   const why = String(theirs.why || '').trim();
+  if (ceRemovesWording(theirs))
+    return why ? _cet('ce_their_ask_del_why', { id: theirs.id, why })
+      : _cet('ce_their_ask_del', { id: theirs.id });
   return why ? _cet('ce_their_ask_why', { id: theirs.id, why }) : _cet('ce_their_ask', { id: theirs.id });
 }
 function ceReadList(){
@@ -3813,6 +3924,12 @@ function ceWirePage(page){
          already on. The clause LIST at the top is the door that moves without
          editing. */
       if (id && id !== _ceClauseId){ ceGoClause(id, { typing: true }); return; }
+      /* THE WALL BEHIND THE SIGN. The pencil is not drawn on a clause under a
+         proposed deletion, so this branch is only reached where the paper is
+         drawing one it should not — a stale paint, or a caller supplying its
+         own markup. Refusing here is what makes "typing is not offered" a rule
+         rather than a drawing decision. */
+      if (ceUnderDeletion()){ ceSay(_cet('ce_under_deletion')); return; }
       cePullText();
       /* ---- THE PENCIL FILES WHEN THERE IS SOMETHING TO FILE ----
          (owner-ruled 31 Aug 2026, decision B: "click the pencil indicating you

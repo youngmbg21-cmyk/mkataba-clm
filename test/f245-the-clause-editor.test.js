@@ -1687,9 +1687,19 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        to type, which is the reader clicking into the words. What the rule
        governs is ARRIVAL, which is where it was reported; a reader who has
        just put their cursor in a clause is not having anything hidden from
-       them. */
-    assert.match(CODE, /_ceEditing = wantTyping \|\| \(_ceText === _ceBase && _ceHead === _ceHeadBase\)/,
-      'it opens typeable only where there is nothing being kept from anybody');
+       them.
+
+       REVERSED IN PLACE AGAIN 10 Sep 2026 and stronger a second time: the ask
+       to type is itself now overridden by a PROPOSED DELETION, which is the
+       one state where the ask would hide the whole clause. Pinned as the
+       RELATION rather than as the expression — the two overrides and the
+       question, in that order — so the next narrowing costs no test edit. */
+    assert.match(CODE, /_ceEditing = !ceUnderDeletion\(\)/,
+      'a proposed deletion outranks everything: the whole clause is what would '
+      + 'be hidden');
+    assert.match(CODE, /wantTyping \|\| \(_ceText === _ceBase && _ceHead === _ceHeadBase\)/,
+      'and under that, it opens typeable only where there is nothing being kept '
+      + 'from anybody');
     assert.equal(/_ceEditing = true;/.test(CODE), false,
       'and never unconditionally');
   });
@@ -2522,5 +2532,150 @@ describe('f245 (24) — a filing from this page repaints both screens', () => {
     assert.ok(fn.indexOf('_ceScanFiled[') < fn.indexOf('ceFiled(_ceC)'),
       'the card is marked filed before the page is repainted');
     p.win.rlCloseClauseEditor();
+  });
+});
+
+/* ============================================================
+   f245 (25) — the page may not hide a proposed deletion
+   ============================================================
+   (owner-reported 10 Sep 2026: the counterparty asked to remove the whole of
+   Clause 2. The negotiation page drew it correctly — struck through, "103 words
+   removed", Accept / Reject on the card. Press ✦ Edit with Copilot and the
+   clause editor opened on an EMPTY editable box with "+0 −103" above it, with
+   nothing on the page saying what was being removed.)
+
+   THIS IS NOT A NEW RULE. "THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS
+   THAT EXIST" was written for this exact complaint about the Redlined tab. A
+   pending deletion is a mark that exists, and BOTH shapes of it broke the rule:
+
+     A · a true deleteClause stores bodyHtml:null and newText:'', so the draft
+         fell back to the STANDING wording — the clause drawn in full, clean,
+         and (the draft equalling the baseline) opened typeable. MEASURED: 0 del
+         marks. The worse of the two, because nothing hinted at it.
+     B · a modify whose body is `<p><br></p>` — what a browser leaves after
+         select-all-and-delete — drew an empty box. The reported screen.
+
+   ONE READING for both, because testing the type in one place and the body in
+   another is how they would come to disagree about one ask.
+   ============================================================ */
+describe('f245 (25) — the page may not hide a proposed deletion', () => {
+  async function deletionBench(kind){
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    const ch = kind === 'delete'
+      ? await p.win.negoDeleteClause(p.c, id, { side: 'counterparty', author: 'Amina Wanjiru' })
+      /* Exactly what the box leaves behind — not a hand-written shape. */
+      : await p.win.negoEditClause(p.c, id, '<p><br></p>',
+          { side: 'counterparty', author: 'Amina Wanjiru' });
+    /* The ✦ on a change asks for typing, which is the door the fault was
+       reported through. */
+    p.win.rlOpenClauseEditor(p.c, id, { typing: true, changeId: ch && ch.id, again: () => {} });
+    return { p, id, ch };
+  }
+  const marksIn = doc => doc.querySelectorAll(
+    '#ce-clausebody del, #ce-clausebody .nego-del').length;
+
+  test('A — a true deleteClause draws the standing wording struck through', async () => {
+    const { p, ch } = await deletionBench('delete');
+    assert.equal(ch.changeType, 'deleteClause');
+    assert.equal(ch.bodyHtml, null, 'it stores no body — this is the control on the fixture');
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.ok(box && box.getAttribute('contenteditable') !== 'true',
+      'and it does NOT open typeable — an ask to type must not be what hides '
+      + 'the ask being read');
+    assert.ok(marksIn(p.doc) > 0,
+      'the wording that would go is struck through: ' + marksIn(p.doc) + ' del run(s)');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('B — a modify whose body renders to nothing is the same ask', async () => {
+    const { p, ch } = await deletionBench('empty');
+    assert.equal(ch.changeType, 'modify', 'its TYPE says nothing about it');
+    assert.equal(ch.bodyHtml, '<p><br></p>', 'the shape the box really leaves');
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.ok(box && box.getAttribute('contenteditable') !== 'true', 'not typeable');
+    assert.ok(marksIn(p.doc) > 0, 'and struck through: ' + marksIn(p.doc));
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('CONTROL — an ordinary counterparty modify opens exactly as it did', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    const ch = await p.win.negoEditClause(p.c, id,
+      '<p>Real replacement wording, proposed by the other side.</p>',
+      { side: 'counterparty', author: 'Amina Wanjiru' });
+    p.win.rlOpenClauseEditor(p.c, id, { typing: true, changeId: ch.id, again: () => {} });
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.equal(box && box.getAttribute('contenteditable'), 'true',
+      'an explicit ask to type still wins where there is wording to type');
+    assert.ok(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length > 0,
+      'and the pencil is still drawn');
+    assert.equal(p.doc.querySelectorAll('#ce-chips button').length, 5,
+      'and all five ready-made questions are offered');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('ONE reading, and it asks what was STORED rather than what the type says', () => {
+    assert.match(CODE, /function ceRemovesWording\(ch\)\{/, 'the one reading exists');
+    const fn = CODE.match(/function ceRemovesWording\([\s\S]*?\n\}/)[0];
+    assert.match(fn, /changeType === 'deleteClause'/, 'shape A');
+    assert.match(fn, /ceWords\(/, 'and shape B — what it stores, rendered');
+    assert.match(fn, /if \(!body\) return false;/,
+      'a change that stored NOTHING stored no emptiness either: reading it as '
+      + '"remove the clause" would be this page inventing an ask');
+    /* Everything that offers editing asks the one predicate. */
+    assert.ok((CODE.match(/ceUnderDeletion\(\)/g) || []).length >= 5,
+      'the door, the pencil, its handler, Apply, the card and the chips all ask it');
+  });
+
+  test('typing is NOT offered on it — the sign and the wall', async () => {
+    const { p, id } = await deletionBench('delete');
+    assert.equal(p.doc.querySelectorAll(`#ce-doc [data-clause="${id}"] [data-ce-pencil]`).length, 0,
+      'the pencil is not drawn on that clause — a verb that cannot work is not drawn');
+    assert.ok(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length > 0,
+      'and it is still drawn on every OTHER clause, where it moves the page');
+    assert.equal(p.win.ceApply('<p>Wording of our own.</p>', 'typed'), false,
+      'and Apply — the door still pressable once the pencil has stood down — refuses');
+    assert.equal(p.win.ceCanFile(), false, 'so nothing can be filed from it');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('the rail advises, and offers only what it can answer', async () => {
+    const { p, ch } = await deletionBench('delete');
+    const chips = [...p.doc.querySelectorAll('#ce-chips button')].map(b => b.textContent);
+    assert.equal(chips.length, 4, 'four, not five: ' + JSON.stringify(chips));
+    assert.ok(!chips.some(t => /softer/i.test(t)),
+      '"Give me a softer version" cannot be asked — there is nothing to soften '
+      + 'and nowhere for the answer to go');
+    assert.ok(chips.some(t => new RegExp(ch.id).test(t)),
+      'how to ANSWER it still stands, and is the first thing offered');
+    /* 5.3 — Copilot is told what is proposed. It named the id and the reason
+       and never the ask, which is why it had nothing to say. */
+    const said = p.win.ceReadList().map(r => r[1]).join(' | ');
+    assert.match(said, /REMOVED in full/,
+      'the ask is named: ' + said.slice(0, 160));
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('and this page still files no decision', () => {
+    /* 5.2 — Accept and Reject exist, on the card in the change column, and they
+       work. Mirroring them here would be a second door onto an act that already
+       has one. What the edit page owes the reader is the READING. */
+    assert.ok(!/negoResolve/.test(CODE),
+      'the clause editor does not so much as mention the decide funnel');
+  });
+
+  test('both languages', () => {
+    for (const k of ['ce_their_ask_del', 'ce_their_ask_del_why', 'ce_under_deletion']){
+      assert.ok(new RegExp('\\b' + k + ':').test(I18N),
+        k + ' is written');
+      assert.ok((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length >= 2,
+        k + ' is written in BOTH books');
+    }
+    /* The refusal carries its way forward on the same screen. */
+    assert.match(I18N, /ce_under_deletion: '[^']*card in the change column/,
+      'and it names where the decision lives');
   });
 });
