@@ -161,6 +161,117 @@ const REVIEW = {
       /Governing law, the liability cap and the payment terms are in the wording, not in this panel/.test(kt.text)
       && /<b>Document<\/b>/.test(kt.html));
 
+    /* ================================================================
+       APPLYING A STANDARD (owner-reported 10 Sep 2026, two jobs)
+       ----------------------------------------------------------------
+         · "When I click on apply this suggested wording it needs to take me
+           where it has been added in the contract."
+         · "make sure that when someone is adding a duplicate clause from the
+           playbook / standards that the user is alerted before it is applied."
+
+       BOTH HAVE TO BE DRIVEN. A source check sees the call and cannot see
+       whether the reader ends up looking at the clause, and a dialog that is
+       built but never reaches the screen looks identical in the markup to one
+       that does. The dialog is also the only thing standing between a press and
+       a second clause on the record, so "it came up" and "saying no filed
+       nothing" are two separate claims.
+       ================================================================ */
+    await page.evaluate(id => { const c = getContract(id);
+      /* A CLEAN START: this file has been folding rows, and the panel must be
+         open on the contract we are about to measure. */
+      c.clauseInserts = []; openCheckPanel(c, 'playbook'); }, cid);
+    await page.waitForTimeout(700);
+
+    const before = await page.evaluate(id =>
+      ((getContract(id).changes) || []).length, cid);
+    /* "Data protection" is the missing standard with a redline behind it — the
+       one this panel offers to ADD rather than to edit in place. */
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('[data-pb-apply]')];
+      const want = btns.find(b => /data protection/i.test(
+        b.closest('div[style]')?.parentElement?.textContent || ''));
+      (want || btns[btns.length - 1]).click();
+    });
+    await page.waitForTimeout(2000);
+
+    const landed = await page.evaluate(id => {
+      const c = getContract(id);
+      const added = (c.changes || []).filter(x => x.changeType === 'insertClause');
+      const lit = document.querySelector('.rl-clause.is-linked, .rl-clause.rl-arrived');
+      return { changes: (c.changes || []).length, added: added.length,
+        heading: added.length ? added[added.length - 1].headingText : null,
+        onNego: !!document.querySelector('#redline-host, .redline-page'),
+        panelGone: !document.getElementById('side-panel'),
+        litClause: !!lit,
+        /* THE ATTRIBUTE IS data-clause. A first writing read data-clause-id,
+           which nothing on this page carries, so the probe reported the jump as
+           landing on the wrong clause while the page was doing exactly the
+           right thing. Rule out the instrument before believing the finding. */
+        litIsIt: !!(lit && added.length
+          && lit.getAttribute('data-clause') === added[added.length - 1].clauseId) };
+    }, cid);
+    check('APPLY FILES THE STANDARD as a tracked change',
+      landed.changes === before + 1 && landed.added >= 1,
+      `${before} → ${landed.changes} change(s), heading "${landed.heading}"`);
+    check('AND IT TAKES YOU THERE — the negotiation, not the tab you pressed from',
+      landed.onNego === true, `on the negotiation: ${landed.onNego}`);
+    check('with the panel it was pressed from taken down behind you',
+      landed.panelGone === true);
+    check('and the clause it just added is the one lit',
+      landed.litClause === true && landed.litIsIt === true,
+      `lit: ${landed.litClause}, and it is the new clause: ${landed.litIsIt}`);
+
+    /* ---- THE SAME STANDARD A SECOND TIME ---- */
+    await page.evaluate(id => { const c = getContract(id);
+      state.activeId = c.id; setView('workspace'); }, cid);
+    await page.waitForTimeout(1500);
+    await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
+    await page.waitForTimeout(700);
+    const mid = await page.evaluate(id => ((getContract(id).changes) || []).length, cid);
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('[data-pb-apply]')];
+      const want = btns.find(b => /data protection/i.test(
+        b.closest('div[style]')?.parentElement?.textContent || ''));
+      (want || btns[btns.length - 1]).click();
+    });
+    await page.waitForTimeout(900);
+    const warned = await page.evaluate(() => {
+      const ov = document.getElementById('confirm-overlay');
+      return { up: !!ov, text: ov ? ov.textContent.replace(/\s+/g, ' ').trim() : '',
+        cancel: !!document.getElementById('cf-cancel'),
+        go: !!document.getElementById('cf-ok') };
+    });
+    check('A SECOND ADD OF THE SAME STANDARD IS SAID FIRST — the reported bug',
+      warned.up === true, warned.up ? warned.text.slice(0, 120) : 'no dialog came up');
+    check('and the sentence NAMES what it found',
+      /data protection/i.test(warned.text), warned.text.slice(0, 160));
+    check('it offers a way forward as well as a way out — it refuses nothing',
+      warned.cancel === true && warned.go === true);
+
+    /* SAYING NO FILES NOTHING. This is the whole point of asking before rather
+       than after, so it is measured on the record and not on the screen. */
+    await page.evaluate(() => document.getElementById('cf-cancel')?.click());
+    await page.waitForTimeout(700);
+    check('SAYING NO FILES NOTHING — the record is where that has to be read',
+      (await page.evaluate(id => ((getContract(id).changes) || []).length, cid)) === mid,
+      `${mid} change(s), unchanged`);
+
+    /* AND THE WAY FORWARD REALLY WORKS: a warning whose confirm did nothing
+       would be a wall wearing a question's clothes. */
+    await page.evaluate(() => {
+      const btns = [...document.querySelectorAll('[data-pb-apply]')];
+      const want = btns.find(b => /data protection/i.test(
+        b.closest('div[style]')?.parentElement?.textContent || ''));
+      (want || btns[btns.length - 1]).click();
+    });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => document.getElementById('cf-ok')?.click());
+    await page.waitForTimeout(2000);
+    check('and saying yes still adds it — two clauses on one subject is the '
+      + 'reader\'s call, not ours',
+      (await page.evaluate(id => ((getContract(id).changes) || []).length, cid)) === mid + 1,
+      `${mid} → ${await page.evaluate(id => ((getContract(id).changes) || []).length, cid)}`);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

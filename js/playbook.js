@@ -351,21 +351,7 @@ function renderPlaybookSection(c){
   }));
   host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
     const x=ins[Number(b.getAttribute('data-pb-jump'))]; if(!x) return;
-    /* SHOW IT WHERE IT ACTUALLY IS. A proposal lives in the negotiation until
-       it is accepted, so that is where this goes — the workbench, scrolled to
-       the change. Only once it HAS been accepted is it in the document, and
-       then the old document-side jump is the right one; try that first so an
-       accepted clause still shows in place. */
-    if(jumpToInsertedClause(x.name)) return;
-    if(x.changeId && window.openRedlineWorkbench){
-      if(window.closeModal) closeModal();
-      openRedlineWorkbench(c.id);
-      const cid=x.clauseId||x.changeId;
-      setTimeout(()=>{ if(window.rlJumpToClause) rlJumpToClause(cid,{edit:false}); },420);
-      toast(`“${x.name}” is a proposed change — opening the negotiation`);
-      return;
-    }
-    toast(`“${x.name}” was proposed but its change can no longer be found — it may have been withdrawn`,'err');
+    pbShowInsert(c,x);
   }));
   document.getElementById('pb-run')?.addEventListener('click',async()=>{
     const btn=document.getElementById('pb-run'); btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('pb_reviewing')}</span>`;
@@ -378,6 +364,44 @@ function renderPlaybookSection(c){
     const v=r.verdicts[Number(b.getAttribute('data-pb-apply'))];
     applyClauseRedline(c, v.redline, v.category);   // files a tracked change; see above
   }));
+}
+/* ---- WHERE THAT CLAUSE WENT — ONE READING, TWO CALLERS (owner-reported
+   10 Sep 2026: "When I click on apply this suggested wording it needs to take
+   me where it has been added in the contract.") ----
+
+   THE "Show me" BUTTON HAS DONE THIS SINCE IT WAS BUILT and Apply did not: it
+   filed the change, repainted the room and left the reader on the Document tab
+   with a toast telling them to go and look. So the journey existed and only the
+   press that most needs it could not reach it. Lifted out of that button's own
+   handler rather than copied, because two answers to "where did it go" is how
+   the two come to land in different places.
+
+   SHOW IT WHERE IT ACTUALLY IS. A proposal lives in the negotiation until it is
+   accepted, so that is where this goes — the workbench, scrolled to the change.
+   Only once it HAS been accepted is it in the document, and then the old
+   document-side jump is the right one; try that first so an accepted clause
+   still shows in place.
+
+   THE SIDE PANEL COMES DOWN WITH IT, and closeModal is what does that: the
+   panel openSidePanel draws wires its own ✕ to closeModal, so one call takes
+   whichever of the two is up. A closeSidePanel() was written here first and
+   there is no such function — a guarded call to a name nothing publishes is
+   this codebase's most repeated defect, and it would have left the reader on
+   the negotiation behind a drawer about the page they had just left. */
+function pbShowInsert(c, x){
+  if(!x) return false;
+  if(jumpToInsertedClause(x.name)) return true;
+  if(x.changeId && window.openRedlineWorkbench){
+    if(window.closeModal) closeModal();
+    openRedlineWorkbench(c.id);
+    const cid=x.clauseId||x.changeId;
+    /* THE SAME BEAT THE BUTTON HAS ALWAYS USED. The workbench mounts and paints
+       before the jump can find a clause to scroll to. */
+    setTimeout(()=>{ if(window.rlJumpToClause) rlJumpToClause(cid,{edit:false}); },420);
+    return true;
+  }
+  toast(`“${x.name}” was proposed but its change can no longer be found — it may have been withdrawn`,'err');
+  return false;
 }
 /* Insert a preferred clause as a redline addition (uses E2 redline text).
 
@@ -424,6 +448,23 @@ async function applyClauseRedline(c, clauseText, label){
     /* The heading is written the way THIS paper writes headings — see
        clauseHeadingFor; the playbook's own insert asks the same one call. */
     const heading=(window.clauseHeadingFor?clauseHeadingFor(name,clauses):name);
+    /* ---- A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED ----
+       (owner-reported 10 Sep 2026.) THE THIRD DOOR onto this act, and it asks
+       the SAME reading with the SAME words as the other two: negoDupClauseAsk
+       builds the question and no door here writes a sentence of its own, so
+       three surfaces cannot come to warn about three different things.
+
+       IT REFUSES NOTHING — two clauses on one subject is sometimes exactly what
+       somebody wants, and only the reader can tell. A no returns null, which is
+       what both of this function's callers already handle.
+
+       ASKED BEFORE ANYTHING IS WRITTEN. negoInsertClause files, stamps a
+       fingerprint and pushes a row onto c.clauseInserts; a question after that
+       would be asking about something that had already happened. */
+    if(window.negoDupClauseAsk && window.confirmDialog){
+      const ask=negoDupClauseAsk(c, heading);
+      if(ask && !(await confirmDialog(ask))) return null;
+    }
     const ch=await negoInsertClause(c, after,
       { headingText:heading, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
       { side:'owner', author:(u&&u.name)||'This workspace',
@@ -431,11 +472,33 @@ async function applyClauseRedline(c, clauseText, label){
     if(ch){
       /* clauseId as well as changeId: the workbench scrolls to a CLAUSE, and
          without it "Show me" reaches the negotiation and then stops. */
-      c.clauseInserts=(c.clauseInserts||[]).concat([{ name, where:'end', at:nowISO(),
-        by:(u&&u.name)||'System', changeId:ch.id, clauseId:ch.clauseId||null }]);
+      const row={ name, where:'end', at:nowISO(),
+        by:(u&&u.name)||'System', changeId:ch.id, clauseId:ch.clauseId||null };
+      c.clauseInserts=(c.clauseInserts||[]).concat([row]);
       logAudit(c,'Playbook',`Preferred wording (${name}) proposed as ${'#'+ch.id} — it is a tracked change awaiting a decision, not an edit to the document`);
       persist(c); renderWorkspace();
-      toast(`“${name}” proposed as ${'#'+ch.id} — review it in the negotiation`);
+      /* ---- AND IT TAKES YOU THERE (owner-reported 10 Sep 2026) ----
+         "When I click on apply this suggested wording it needs to take me where
+         it has been added in the contract."
+
+         It filed, repainted the room and left the reader on the Document tab
+         with a toast telling them to go and look — so the one press that most
+         needs the journey was the one press that could not reach it, while the
+         "Show me" button eight rows down had done exactly this since it was
+         built. pbShowInsert is that button's own reading, lifted out rather
+         than copied, so the two cannot land in different places.
+
+         THE TOAST STILL SPEAKS, and it says what happened rather than what to
+         do next: the reader is now looking at the clause, so "review it in the
+         negotiation" would be telling them to go where they already are. What
+         it names is the fingerprint, which is the fact the screen does not
+         carry — and it is 'ok' rather than silent, because a bare call prints
+         nothing and this act leaves a record.
+
+         THE JOURNEY IS LAST. persist and renderWorkspace run first, so a
+         failure anywhere in the walk cannot cost the filing. */
+      toast(i18t('pb_proposed_as',{name,id:'#'+ch.id}),'ok');
+      pbShowInsert(c,row);
     }
     return ch;
   }
@@ -566,4 +629,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

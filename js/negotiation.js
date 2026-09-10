@@ -1791,6 +1791,108 @@ async function negoReviseInsert(c, clauseId, clause, opts = {}){
     afterClauseId: live.afterClauseId || null,
     clauseLabel: headingText ? negoClauseLabel(clauseParseHeading(headingText)) : 'New clause' }, opts);
 }
+/* ============================================================================
+   IS THERE ALREADY A CLAUSE BY THIS NAME
+   ----------------------------------------------------------------------------
+   (owner-reported 10 Sep 2026: "make sure that when someone is adding a
+   duplicate clause from the playbook / standards that the user is alerted
+   before it is applied.")
+
+   WHAT WAS WRONG. Adding a standard files an insertClause ask, and
+   negoInsertClause mints a FRESH clause id every time — so two adds are two
+   clauses, and nothing anywhere compared them. Three doors reach that act (the
+   Playbook review window, the clause editor's scan rail, and the panel's
+   "Apply suggested wording as a redline"), and none of them could see what the
+   other two had already put on the table. The reported screen carried two asks
+   headed QUALITY & REJECTION, one holding the library's wording and one the
+   model's draft.
+
+   THE HEADING IS THE IDENTITY, and it is structural rather than parsed out of
+   prose. Every one of those doors names the new clause from the standard's own
+   name through clauseHeadingFor — one function, which only ever changes CASE to
+   match the paper — so headingText on the change is the standard's name, and
+   two adds of one standard carry the same one. That also catches a clause a
+   PERSON wrote by hand under the same heading, which a note-parsing reading
+   would miss.
+
+   IT READS BOTH PLACES A CLAUSE CAN BE, because they are two different facts
+   and the sentence has to say which: already ON THE TABLE as somebody's pending
+   ask, or already IN the agreement. A standard the scan reported missing while
+   the document plainly carries a clause by that name is the scan being wrong,
+   and warning is exactly right there.
+
+   EXACT AFTER FOLDING, NEVER FUZZY. Case and punctuation go, nothing else:
+   "Quality & rejection" and "QUALITY & REJECTION" are one name and "Quality
+   Assurance & Rejection" is not. A looser reading would nag on ordinary adds,
+   and a warning that fires when it should not is how a reader learns to press
+   through the one that matters.
+
+   IT RETURNS A SHAPE AND DRAWS NOTHING. A model function that put a dialog up
+   is the fault this rulebook records by name; the caller holds the question and
+   decides what to say. */
+function negoClauseNameKey(s){
+  return String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+/* WITHDRAWN AND SUPERSEDED WORK DOES NOT COUNT, and neither does a decided ask:
+   a withdrawn proposal has been taken off the table, a superseded one lost it
+   to a counter, and a REJECTED one is a record of something the other side
+   refused. Only what is still standing can be duplicated. An ACCEPTED insert
+   is deliberately in, because its wording is what stands. */
+function negoClauseNamed(c, headingText){
+  const want = negoClauseNameKey(headingText);
+  if (!want) return null;
+  /* THE TABLE FIRST, because that is the commoner answer and the one the
+     reported screen showed. Read RAW off the record — negoChanges runs
+     negoInit, and a reading asked before a filing must not create a
+     negotiation on a contract that has none. */
+  for (const ch of ((c && c.changes) || [])){
+    if (!ch || ch.changeType !== 'insertClause') continue;
+    if (ch.withdrawn || ch.status === 'superseded' || ch.status === 'rejected') continue;
+    if (negoClauseNameKey(ch.headingText) !== want) continue;
+    return { where: 'table', id: ch.id || null,
+      label: String(ch.headingText || '').trim(),
+      side: ch.authorSide || 'owner', status: ch.status || 'pending' };
+  }
+  /* THEN THE AGREEMENT ITSELF — BUT ONLY WHERE THERE IS ALREADY A NEGOTIATION
+     TO READ, and that guard is the whole of what makes this a reading.
+     negoClauseList calls negoInit, which CREATES a negotiation record and
+     stamps clause ids into the stored wording; a reading that did that would
+     start a negotiation on every contract it was merely asked about — the trap
+     this codebase records against negoChanges, met here in my own first
+     writing of it and caught by f279 (4).
+
+     IT COSTS NOTHING AT ANY REAL DOOR. Both callers reach this from a page that
+     has already opened the negotiation, and applyClauseRedline calls negoInit
+     itself two lines above the ask. What the guard buys is that a sweep written
+     later cannot turn this into a write.
+
+     ALSO GUARDED AGAINST A THROW: a stage without the clause model answers
+     nothing rather than failing, which is the safe direction — it warns about
+     less, never about more. */
+  try{
+    if (!c || !c.negotiation) return null;
+    for (const cl of (negoClauseList(c) || [])){
+      if (negoClauseNameKey(cl && cl.headingText) !== want) continue;
+      return { where: 'document', id: (cl && cl.clauseId) || null,
+        label: String((cl && cl.headingText) || '').trim(), side: null, status: null };
+    }
+  }catch(_){}
+  return null;
+}
+/* THE QUESTION, BUILT ONCE SO TWO DOORS CANNOT ASK IT DIFFERENTLY. Null where
+   there is nothing to ask about, which is every ordinary add. */
+function negoDupClauseAsk(c, headingText){
+  const hit = negoClauseNamed(c, headingText);
+  if (!hit) return null;
+  const name = hit.label || String(headingText || '').trim();
+  return { hit,
+    title: i18t('ng_dup_clause_title'),
+    message: i18t(hit.where === 'document' ? 'ng_dup_clause_doc' : 'ng_dup_clause_table',
+      { name }) + ' ' + i18t('ng_dup_clause_ask'),
+    confirmLabel: i18t('ng_dup_clause_go'),
+    cancelLabel: i18t('act_cancel') };
+}
+
 /* A proposed deletion. The wording is NOT removed here and is not removed when
    the change is filed — it is struck through in the working pane and stays in
    the document until someone accepts the deletion. */
@@ -4250,6 +4352,9 @@ if (typeof window !== 'undefined') Object.assign(window, {
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,
   NEGO_HASH_V, NEGO_HASH_VERIFIES,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
+  /* PUBLISHED, or the doors that ask read undefined through window and file in
+     silence — this codebase's most repeated defect. */
+  negoClauseNameKey, negoClauseNamed, negoDupClauseAsk,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,

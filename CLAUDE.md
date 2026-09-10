@@ -1916,7 +1916,84 @@ Tests: term-and-fields-verify (24, browser).
 
 ## PLAYBOOK FINDINGS ARRIVE OPEN
 
-pbUI records what is SHUT, so a finding arrives read and pressing it folds it. Deliberate asymmetry with change cards (forty cards arrive as a wall; a handful of findings IS the panel's content). The fold is keyed by pbFoldKey (contract + category, never row index), in memory, never persisted. Quotes live in the review panel ONLY (the Key-terms reprint was removed); the one standing sentence in Key terms stays — it explains why governing law and the liability cap are not rows, drawn with or without a run. Tests: playbook-opens-read-verify (13, browser); f178's Key-terms assertions untouched.
+pbUI records what is SHUT, so a finding arrives read and pressing it folds it. Deliberate asymmetry with change cards (forty cards arrive as a wall; a handful of findings IS the panel's content). The fold is keyed by pbFoldKey (contract + category, never row index), in memory, never persisted. Quotes live in the review panel ONLY (the Key-terms reprint was removed); the one standing sentence in Key terms stays — it explains why governing law and the liability cap are not rows, drawn with or without a run. Tests: playbook-opens-read-verify (22, browser); f178's Key-terms assertions untouched.
+
+**AND APPLYING ONE TAKES YOU TO IT (owner-reported 10 Sep 2026:** *"When I click
+on apply this suggested wording it needs to take me where it has been added in
+the contract."*). It filed, repainted the room and left the reader on the
+Document tab with a toast saying to go and look — **while the "Show me" button
+eight rows below it had done exactly that journey since it was built.** So the
+walk existed and the one press that most needs it could not reach it.
+**`pbShowInsert(c, x)` is that button's own reading, LIFTED rather than copied**
+— two answers to *where did it go* is how the button and the press come to land
+in different places — with exactly two callers, asserted. It tries the
+document-side jump FIRST (a proposal lives in the negotiation until it is
+accepted; only then is it in the document), then opens the workbench and
+scrolls to the clause on the beat that button has always used. **`closeModal` is
+what takes the side panel down** — the panel `openSidePanel` draws wires its own
+✕ to it — and a `closeSidePanel()` written here first named a function nothing
+publishes, which would have left the reader on the negotiation behind a drawer
+about the page they had just left. **THE JOURNEY IS LAST**: persist and the
+repaint run first, so a failure in the walk cannot cost the filing. The toast
+now says WHAT HAPPENED (`pb_proposed_as`, naming the fingerprint) rather than
+where to go, because by the time it is read the reader is looking at the clause.
+
+## A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED (owner-reported 10 Sep 2026)
+
+*"make sure that when someone is adding a duplicate clause from the playbook /
+standards that the user is alerted before it is applied."* The reported screen
+carried two pending asks headed QUALITY & REJECTION — one the clause library's
+wording, one the model's draft.
+
+- **THREE DOORS, AND NONE COULD SEE THE OTHER TWO.** Adding a standard files an
+  `insertClause` ask and `negoInsertClause` mints a FRESH clause id every time,
+  so two adds are two clauses. The doors are the Playbook review window, the
+  clause editor's scan rail (both through `rlFilePlaybookProposal`) and the
+  panel's *Apply suggested wording as a redline* (`applyClauseRedline`, which
+  also serves the clause library picker).
+- **THE HEADING IS THE IDENTITY, and it is structural rather than parsed out of
+  prose.** Every door names the new clause from the standard's own name through
+  `clauseHeadingFor` — one function, which only ever changes CASE to match the
+  paper — so `headingText` on the change IS the standard's name and two adds of
+  one standard carry the same one. It also catches a clause a PERSON wrote by
+  hand under that heading, which a note-parsing reading would miss.
+- **IT READS BOTH PLACES A CLAUSE CAN BE**, because they are two different facts
+  with two different remedies: already ON THE TABLE as somebody's pending ask,
+  or already IN the agreement. A standard the scan called missing while the
+  document plainly carries a clause by that name is the scan being wrong, and
+  warning is right there.
+- **EXACT AFTER FOLDING, NEVER FUZZY.** Case and punctuation go and nothing
+  else: "Quality & rejection" and "QUALITY & REJECTION" are one name, "Quality
+  Assurance & Rejection" is not. A looser reading would nag on ordinary adds,
+  and a warning that fires when it should not is how a reader learns to press
+  through the one that matters.
+- **WORK THAT IS OFF THE TABLE DOES NOT COUNT** — withdrawn, superseded and
+  rejected asks are all gone from it; an ACCEPTED insert is deliberately IN,
+  because its wording is what stands. And a `modify` is never a duplicate: it
+  changes wording in place.
+- **IT READS WITHOUT WRITING, and my own first writing of it did not.**
+  `negoClauseList` calls `negoInit`, which CREATES a negotiation and stamps
+  clause ids into the stored wording — so the document half started a
+  negotiation on any contract it was merely asked about. It is guarded on
+  `c.negotiation` already existing, which costs nothing at any real door (both
+  callers arrive from a page that has opened one, and `applyClauseRedline` calls
+  `negoInit` itself two lines above the ask) and means a sweep written later
+  cannot turn this into a write. **Caught by f279 (4), which was written for
+  exactly that trap.**
+- **THE MODEL RETURNS A SHAPE AND DRAWS NOTHING.** `negoDupClauseAsk` builds the
+  question in `confirmDialog`'s own shape and the door puts it up — a model
+  function with a dialog in it is the fault this rulebook records by name. **No
+  door writes a sentence of its own**, so three surfaces cannot come to warn
+  about three different things.
+- **IT REFUSES NOTHING.** Two clauses on one subject is sometimes exactly right
+  and only the reader can tell, so this is a question with the way forward on
+  it. A no returns null, which every caller already handles. **ONLY ON AN ADD** —
+  a deviation that edits a located clause duplicates nothing.
+
+Tests: f279 (8 — **all eight fail against the parent**),
+playbook-opens-read-verify (22 — **8 fail against the parent**, the headline
+ones reporting *"no dialog came up"*, *"on the negotiation: false"* and the
+owner's own screenshot as a number: two presses filing 1 → 3).
 
 ## A CONTRACT KNOWS WHOSE IT IS (14 Aug 2026)
 

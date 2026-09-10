@@ -11043,3 +11043,91 @@ owner's screenshot as a number: "head 972 · lines [958,958]". Lint unchanged
   if it reads wrong on screen.
 - The empty state's vertical padding is 6px where a card row's is 9. Nobody
   reported it and only the left edge was in the ask.
+
+## 10 Sep 2026 — a standard added twice is said first, and applying one takes you to it (segment 3 of 6)
+
+Two more of the owner's thirteen, and both are about one act.
+
+THREE DOORS ADD A STANDARD AND NONE COULD SEE THE OTHER TWO. "make sure that when
+someone is adding a duplicate clause from the playbook / standards that the user
+is alerted before it is applied." The reported screen carried two pending asks
+headed QUALITY & REJECTION — one the clause library's wording, one the model's
+draft. Adding a standard files an insertClause ask and negoInsertClause mints a
+FRESH clause id every time, so two adds are two clauses, and nothing anywhere
+compared them. The doors are the Playbook review window, the clause editor's scan
+rail (both through rlFilePlaybookProposal) and the panel's "Apply suggested
+wording as a redline" (applyClauseRedline, which also serves the clause library
+picker).
+
+THE HEADING IS THE IDENTITY, and it is structural rather than parsed out of
+prose. Every one of those doors names the new clause from the standard's own name
+through clauseHeadingFor — one function, which only ever changes CASE to match the
+paper — so headingText on the change IS the standard's name and two adds of one
+standard carry the same one. It also catches a clause a PERSON wrote by hand
+under that heading, which a note-parsing reading would miss. It reads both places
+a clause can be, because "already on the table" and "already in the agreement"
+are two different facts with two different remedies, and the sentence says which.
+Exact after folding, never fuzzy: case and punctuation go and nothing else, so
+"Quality & rejection" and "QUALITY & REJECTION" are one name and "Quality
+Assurance & Rejection" is not — a looser reading would nag on ordinary adds, and
+a warning that fires when it should not is how a reader learns to press through
+the one that matters. Withdrawn, superseded and rejected asks are all off the
+table and do not count; an accepted insert deliberately does, because its wording
+is what stands; and a modify is never a duplicate.
+
+IT READS WITHOUT WRITING, AND MY OWN FIRST WRITING OF IT DID NOT. negoClauseList
+calls negoInit, which CREATES a negotiation record and stamps clause ids into the
+stored wording — so the document half of this reading started a negotiation on
+any contract it was merely asked about. It is guarded on c.negotiation already
+existing, which costs nothing at any real door (both callers arrive from a page
+that has opened one, and applyClauseRedline calls negoInit itself two lines above
+the ask) and means a sweep written later cannot turn this into a write. Caught by
+f279 (4), which was written for exactly that trap before the code was.
+
+THE MODEL RETURNS A SHAPE AND DRAWS NOTHING. negoDupClauseAsk builds the question
+in confirmDialog's own shape and the door puts it up; a model function with a
+dialog in it is the fault this rulebook records by name. No door writes a
+sentence of its own, so three surfaces cannot come to warn about three different
+things. And it refuses nothing — two clauses on one subject is sometimes exactly
+right and only the reader can tell, so this is a question with the way forward on
+it, never a wall.
+
+APPLYING A STANDARD LEFT YOU WHERE YOU WERE. "When I click on apply this
+suggested wording it needs to take me where it has been added in the contract."
+It filed, repainted the room and left the reader on the Document tab with a toast
+saying to go and look — while the "Show me" button eight rows below it had done
+exactly that journey since it was built. So the walk existed and the one press
+that most needs it could not reach it. pbShowInsert is that button's own reading,
+LIFTED rather than copied, with exactly two callers. THE JOURNEY IS LAST: persist
+and the repaint run first, so a failure in the walk cannot cost the filing. The
+toast now says what happened, naming the fingerprint, rather than telling the
+reader to go where they already are.
+
+AND A closeSidePanel() WAS WRITTEN HERE FIRST. There is no such function —
+closeModal is what takes the side panel down, because the panel openSidePanel
+draws wires its own ✕ to it. A guarded call to a name nothing publishes is
+silence, and it would have left the reader on the negotiation behind a drawer
+about the page they had just left. Caught by reading the export list rather than
+by any test.
+
+Verified: node 6168/6168. f279 8/8, and ALL EIGHT fail in a worktree at the
+parent. playbook-opens-read-verify 22/22 with 9 new checks, and 8 of them fail
+at the parent — headline "A SECOND ADD OF THE SAME STANDARD IS SAID FIRST → no
+dialog came up", "AND IT TAKES YOU THERE → on the negotiation: false", and the
+owner's own screenshot as a number: two presses of one standard filing 1 → 3.
+Lint unchanged (4 pre-existing errors, identical on the parent).
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- applyClauseRedline is still a SECOND filing path beside rlFilePlaybookProposal:
+  it lands a new clause after the LAST clause in the document, where the other
+  one deliberately anchors ahead of the execution wording, because text below a
+  signature block can be argued as outside what was signed. Both now warn about
+  duplicates and both go through the funnel, but the landing rules differ. Worth
+  merging the two into one filing path; outside this request.
+- The Playbook review window and the clause editor's scan rail settle a filed
+  row in place rather than jumping — deliberately. The window lists several
+  findings and jumping out after the first would strand the rest, and the rail
+  is already on the negotiation with the clause in view. Only the panel's Apply
+  was in the ask.

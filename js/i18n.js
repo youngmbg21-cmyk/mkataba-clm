@@ -1507,6 +1507,22 @@ const STRINGS = {
     ng_file_preferred: 'File preferred',
     ng_file_draft: 'File Copilot\'s draft',
     ng_pb_unplaced: 'Our standard is in this contract somewhere, but HaTi could not tell which clause holds it \u2014 so it is not offering to change one. The quoted wording above is where to look.',
+    /* ---- ADDING A STANDARD THAT IS ALREADY THERE (owner-asked 10 Sep 2026) ----
+       The sentence NAMES what it found and says WHERE, because "already on the
+       table" and "already in the agreement" are two different facts with two
+       different things to do about them. It refuses nothing: adding a second
+       clause on one subject is sometimes exactly right, and the reader is the
+       one who can tell. */
+    ng_dup_clause_title: 'This clause is already here',
+    ng_dup_clause_table: '\u201c{name}\u201d is already on the table as a proposed clause.',
+    ng_dup_clause_doc: 'This contract already has a clause called \u201c{name}\u201d.',
+    ng_dup_clause_ask: 'Adding this one will put a second clause on the same subject.',
+    ng_dup_clause_go: 'Add it anyway',
+    /* WHAT HAPPENED, not what to do next: the reader is looking at the clause
+       by the time this is read, so telling them to go to the negotiation would
+       be sending them where they already are. It names the fingerprint, which
+       is the one fact the screen does not carry. */
+    pb_proposed_as: '\u201c{name}\u201d proposed as {id}',
     ng_draft_is_copilots: 'A draft is Copilot\'s own wording for this contract — useful, but not a position anybody here has approved.',
     ng_preferred: 'Preferred',
     ng_opening_position: 'is your opening position;',
@@ -7371,6 +7387,12 @@ const STRINGS = {
     ng_file_preferred: 'Arkivera föredragen',
     ng_file_draft: 'Arkivera Copilots utkast',
     ng_pb_unplaced: 'Vår standard finns någonstans i avtalet, men HaTi kunde inte avgöra vilken klausul som bär den \u2014 så den erbjuder sig inte att ändra någon. Den citerade formuleringen ovan är var du ska leta.',
+    ng_dup_clause_title: 'Klausulen finns redan här',
+    ng_dup_clause_table: '\u201d{name}\u201d ligger redan på bordet som en föreslagen klausul.',
+    ng_dup_clause_doc: 'Avtalet har redan en klausul som heter \u201d{name}\u201d.',
+    ng_dup_clause_ask: 'Lägger du till den här får du två klausuler om samma sak.',
+    ng_dup_clause_go: 'Lägg till ändå',
+    pb_proposed_as: '\u201d{name}\u201d föreslagen som {id}',
     ng_draft_is_copilots: 'Ett utkast är Copilots egen formulering för det här avtalet — användbar, men ingen position som någon här har godkänt.',
     ng_preferred: 'Föredragen',
     ng_opening_position: 'är din utgångsposition;',

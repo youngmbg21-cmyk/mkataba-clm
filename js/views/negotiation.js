@@ -11750,6 +11750,43 @@ async function rlFilePlaybookProposal(c, item, wording){
      copy of a clause it already carries. Every surface that offers this act
      asks the same reading first; this is what holds if one forgets. */
   if (item && item.landing === 'unplaced') return null;
+  /* ---- AND A STANDARD THAT IS ALREADY HERE IS SAID BEFORE IT IS ADDED ----
+     (owner-reported 10 Sep 2026: "make sure that when someone is adding a
+     duplicate clause from the playbook / standards that the user is alerted
+     before it is applied.")
+
+     THE ASK IS AT THE FILING RATHER THAN AT EACH BUTTON, which is why the
+     Playbook review window and the clause editor's scan rail both inherit it
+     without either of them knowing it had to: this function is what they share.
+     The third door — the panel's "Apply suggested wording as a redline" — asks
+     the SAME reading with the SAME words, because negoDupClauseAsk builds the
+     question and neither door writes a sentence of its own.
+
+     ONLY ON AN ADD. A deviation that EDITS a located clause changes wording in
+     place and duplicates nothing; the risk is the insert, which mints a fresh
+     clause every time.
+
+     IT REFUSES NOTHING. Two clauses on one subject is sometimes exactly what
+     somebody wants, and only the reader can tell — so this is a question with
+     the way forward on it, never a wall. A reader who says no gets null, which
+     is what every caller here already handles.
+
+     THE READING IS ASKED THROUGH window WITH NO FALLBACK PAST IT. Where the
+     model is not loaded there is nothing to compare against and the add
+     proceeds exactly as it did; what must never happen is a fallback that
+     answers "no duplicate" while a reading exists. */
+  if (!item || !item.clauseId){
+    const heading = window.clauseHeadingFor
+      ? clauseHeadingFor(String((item && item.v && item.v.category) || ''), 
+          (typeof negoClauseList === 'function') ? negoClauseList(c) : [])
+      : String((item && item.v && item.v.category) || '');
+    if (window.negoDupClauseAsk && window.confirmDialog){
+      /* THE SHAPE IS confirmDialog'S OWN, so the question travels whole rather
+         than being taken apart and put back together at each door. */
+      const ask = negoDupClauseAsk(c, heading);
+      if (ask && !(await confirmDialog(ask))) return null;
+    }
+  }
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
