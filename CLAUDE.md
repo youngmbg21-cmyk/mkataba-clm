@@ -1846,6 +1846,105 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## ONE CLAUSE, ONE PAIR OF HANDS (Young asked 10 Sep 2026)
+
+*"to avoid collisions as far as multiple people editing the same clause, could
+we make it so that when user 1 is editing clause 5, it is locked to others until
+user 1 is out. When user 2 tries to click on the pencil symbol, they see the
+initials of User 1 and a short small line saying 'Locked by R. C.' or something
+to that effect?"*
+
+**TWO COLLEAGUES ON OUR OWN SIDE BOTH HAVE THE RIGHT TO REDLINE** — the desk
+already decides who does — and nothing stopped them opening the same clause in
+the same minute. The second one to file put a revision over wording the first
+was still writing, and neither was told.
+
+- **IT IS AN ADVISORY AND IT IS SAID SO PLAINLY, which is what makes it safe.**
+  Nobody is denied a right they had; what is prevented is two people walking
+  into each other by accident. That is why it EXPIRES after two minutes, why
+  every refusal NAMES who holds it, and why a holder always lets go on the way
+  out.
+- **IT ADDS NO ROUTE AND NO TABLE.** `c.locks` is an ordinary field, **absent on
+  every record already on file — the whole migration story** — so it rides the
+  ordinary save every other act on this page already makes. A route of its own
+  would be a second way for two browsers to disagree about one contract.
+- **AND IT NEVER TRAVELS.** Who on our side is typing is the most internal fact
+  there is. `buildSharePayload` is an allow-list builder and does not carry it,
+  so their page holds none **by construction**; the reading refuses `PORTAL_MODE`
+  outright besides, so a payload hand-built by somebody else still could not put
+  a colleague's initials in front of the counterparty. f289 asserts both.
+- **THE PENCIL IS THE SIGN AND THE EDITOR'S DOOR IS THE WALL**, and that split is
+  what makes it a rule rather than a decoration: **FOUR other doors reach the
+  editing page without passing the pencil** — the card's Edit, the sparkle on a
+  tracked change, the clause panel's Copilot button, and the clause dropdown at
+  the top of the editor. A rule kept at one of five is not a rule. Said out loud:
+  **only the pencil carries the monogram**; the other four refuse in words naming
+  the holder, which is the ask answered exactly and no wider.
+- **THE SIGN TAKES THE PENCIL'S OWN CORNER AND IS NOT A BUTTON.** Two controls in
+  one corner would mean a pencil that looks pressable over a sentence saying it
+  is not — the dead press this builder already refuses one line up — and Young's
+  own words are that the reader reaching for the pencil finds this instead.
+- **AND IT IS ALWAYS DRAWN, WHERE THE PENCIL IS HOVER-ONLY.** It is a FACT rather
+  than a control, so there is nothing to focus and a hover-only fact is one a
+  keyboard reader never meets; and it draws on one clause for two minutes, which
+  is what stops it becoming the furniture the hover rule was written against.
+  **The label shade, never amber** — amber on this page means work waiting on the
+  reader, and a colleague typing is neither work nor theirs.
+- **THE MONOGRAM AND THE LINE, BOTH**, because Young asked for both by name. The
+  initials are the glance and the line is the sentence; **the whole name is on
+  the hover**, because two colleagues can share a monogram and who holds a clause
+  must be readable rather than guessed at. It is the same fact twice, which this
+  rulebook ordinarily warns against — **an owner ruling outranks a system rule on
+  the element it names.**
+- **ASKED ONCE, IN THE BUILDER**, beside the reading that refuses a pencil on a
+  reading — so the four clause branches and the clause editor's own paper cannot
+  come to disagree about who holds a clause, and a surface written later inherits
+  it rather than having to remember it.
+- **NOBODY SIGNED IN IS REFUSED NOTHING AND SHOWN NOTHING**, and both readings say
+  so: a preview, a test world and the sign-in screen behave exactly as they did
+  before this existed. Two readings that disagreed about whether the machinery is
+  on would be a stage that draws a lock it then lets you walk straight through.
+- **LETTING GO IS ONLY EVER YOUR OWN.** `clauseLockRelease` refuses somebody
+  else's, which is the one way this feature could take a clause off a colleague
+  who is holding it correctly — exactly what happens when two browsers race.
+- **THE SERVER IS THE WALL BEHIND BOTH**, asked of the STORED contract and as a
+  DIFFERENCE like every guard around it: which clauses did this save add, reword
+  or re-decide one of OUR changes on, and does another member hold one. A save
+  that leaves our changes alone passes untouched — which is every save that
+  merely refreshes a lock, records a decision or moves a field. **Deliberately
+  narrow**: our own side's wording, the same scope the desk guard beside it
+  draws, because two people DECIDING at once is a different collision and was not
+  what was asked about.
+- **A HEARTBEAT, BECAUSE A READER CAN WRITE FOR TWENTY MINUTES WITHOUT
+  BLURRING.** One interval at well under half the window, started at the door and
+  stopped at the door out. It costs one small save a minute while an editor is
+  open, **and that is what makes the lock visible to anybody but its holder** — a
+  lock held in one tab is a note to yourself. A pull refreshes the stamp in
+  memory only, which is free.
+- **A SEALED RECORD TAKES NO COURTESY WRITE** — `aiNoteRead`'s own lesson, one
+  field along. Unreachable in practice, because the editor refuses an executed
+  contract outright, and one line to close rather than a fault waiting for the
+  day another door reaches this.
+
+**WHAT IT DOES NOT DO, said out loud: it is not pushed.** A colleague sees the
+lock when their browser next reads the contract, so two people who open the same
+clause within a few seconds of each other can still both get in. That is why the
+SERVER refuses the second one's filing rather than the browser being trusted, and
+it is why this is an advisory rather than a promise. **The refusal happens before
+anything is written, so the loser's draft is still in the box they are looking
+at.**
+
+Tests: f289 (26 — **25 of them fail against the parent**; the one that passes
+is the share payload, a named CONTROL whose job is to fail the day somebody
+puts a colleague's initials on the wire), redline-verify section 25 (11,
+browser — **8 fail against the parent, the headline one reporting Young's own
+report as a fact: the editor OPENS on a clause a colleague is holding**. It is
+the only place three of these can be asked at all — whether the monogram is
+VISIBLE PIXELS where the pencil would be, whether the pencil is really gone
+rather than merely covered, and whether the ink is the label shade rather than
+amber. Every driven half is guarded, so a build without the feature REPORTS
+its failures rather than throwing on the first line).
+
 ## THE PLAIN ENGLISH EDITION IS SET LIKE THE CONTRACT (Young ruled 10 Sep 2026)
 
 *"Can we also make the page for plain english have a similar structure so you

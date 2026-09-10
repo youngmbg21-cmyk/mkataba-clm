@@ -5933,6 +5933,41 @@ function rlClauseEditPillHtml(cl, opts = {}){
      one line up, where a reading that refuses editing draws no pencil either.
      Absent, nothing changes for any caller written before this. */
   if (say(pill && pill.skip, false) === true) return '';
+  /* ---- AND A CLAUSE A COLLEAGUE IS ALREADY TYPING IN DRAWS THE LOCK ----
+     (Young asked 10 Sep 2026: *"when user 1 is editing clause 5, it is locked
+     to others until user 1 is out. When user 2 tries to click on the pencil
+     symbol, they see the initials of User 1 and a short small line saying
+     'Locked by R. C.'"*)
+
+     ASKED HERE, LIKE THE READING ABOVE IT, so the four clause branches and the
+     clause editor's own paper cannot come to disagree about who holds a clause
+     — one reading, one place, and a surface written later inherits it rather
+     than having to remember it.
+
+     IT TAKES THE PENCIL'S SLOT RATHER THAN SITTING BESIDE IT. Two controls in
+     one corner would mean a pencil that looks pressable over a sentence saying
+     it is not, which is the dead press this builder already refuses one line
+     up; and Young's own words are that the reader reaching for the pencil finds
+     this instead. It is NOT a button: nothing here can be pressed, and a
+     control drawn dead is how a reader comes to blame themselves.
+
+     ALWAYS DRAWN, unlike the pencil, and that is deliberate rather than an
+     oversight. It is a FACT rather than a control, so there is nothing to
+     focus and hover-only would hide it from a keyboard reader entirely; and it
+     is rare and short-lived by construction — one clause, two minutes — so it
+     cannot become the furniture the hover rule was written against. */
+  const held = (typeof window !== 'undefined' && window.clauseLockHeldByOther)
+    ? clauseLockHeldByOther(opts.c, cl.clauseId) : null;
+  if (held){
+    /* THE MONOGRAM AND THE LINE, both, because Young asked for both by name.
+       The initials are the glance and the line is the sentence; the WHOLE name
+       is on the hover, because two colleagues can share a monogram and the
+       record of who holds a clause must be readable rather than guessed at. */
+    return `<span class="rl-cp-lock" title="${_nea(clauseLockTitle(held))}">
+      <b class="rl-cp-lock-mono" aria-hidden="true">${_ne(clauseLockInitials((held.by && held.by.name) || ''))}</b>
+      <span class="rl-cp-lock-say">${_ne(clauseLockLine(held))}</span>
+    </span>`;
+  }
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
   /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
      this tooltip). The default said "Open this clause — what it says now, what
@@ -10427,7 +10462,7 @@ function redlineDocHtml(c, opts = {}){
         pencil claiming a page nothing can open, which is the dead press this
         whole draw-time decision exists to prevent. */
   const editorTakesIt = rlEditorTakesIt(side);
-  const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill,
+  const pillFor = cl => rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';

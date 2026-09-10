@@ -2293,6 +2293,42 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-pill:hover{background:var(--color-accent-100,#ccfbf1);
     color:var(--color-accent-800,#115e59)}
   .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  /* ---- AND WHERE A COLLEAGUE HOLDS THE CLAUSE, THE SLOT SAYS SO ----
+     (Young asked 10 Sep 2026.) It takes the pencil's own corner because that
+     is where the reader is reaching, and it is NOT a button: nothing here can
+     be pressed, and a control drawn dead is how a reader comes to blame
+     themselves. Not pinned, unlike the pencil — a monogram and a sentence are
+     wider than a glyph and the heading reserves only the glyph's width, so it
+     sits in the row and lets the heading give up what it needs. margin-left
+     auto rather than the row's space-between, for the pencil's own recorded
+     reason: a headingless clause leaves this as the row's only child.
+
+     ALWAYS VISIBLE, unlike the pencil, and the sheet is where that difference
+     lives so the builder does not have to know about it. It is a fact rather
+     than a control, so there is nothing to focus and a hover-only fact is one
+     a keyboard reader never meets; and it draws on one clause for two minutes,
+     which is what stops it becoming the furniture the hover rule was written
+     against.
+
+     IT FOLLOWS THE SHEET'S TYPE, like every other piece of furniture on this
+     paper, and takes the label shade rather than amber: amber on this page
+     means work waiting on the reader, and a colleague typing is neither work
+     nor theirs. */
+  .redline-page .rl-cp-lock{margin-left:auto;flex:none;display:inline-flex;align-items:center;
+    gap:calc(5px * var(--doc-scale,1));color:var(--color-neutral-600);
+    font:inherit;font-size:calc(11px * var(--doc-scale,1));line-height:1;
+    white-space:nowrap;-webkit-user-select:none;user-select:none}
+  .redline-page .rl-cp-lock-mono{display:inline-flex;align-items:center;justify-content:center;
+    width:calc(18px * var(--doc-scale,1));height:calc(18px * var(--doc-scale,1));
+    border-radius:9999px;background:var(--color-neutral-100,#f1f5f9);
+    color:var(--color-text);font-size:calc(9px * var(--doc-scale,1));
+    font-weight:var(--w-title);letter-spacing:.02em;flex:none}
+  .redline-page .rl-cp-lock-say{font-weight:var(--w-body,400)}
+  ${''/* The heading reserves the PENCIL's width; where the lock is drawn
+       instead there is no pinned control to reserve for, and the reserved
+       padding would only push the heading's own words into a needless second
+       line. One rule, on the row that knows which of the two it holds. */}
+  .redline-page .rl-clause-top:has(.rl-cp-lock) .rl-clause-h{padding-right:0}
   /* Every clause's panel body is in the panel already; opening flips which one
      is on. ONE AT A TIME — the same single-value rule as the card pop-out and
      the ask reveal — so the panel can never show two clauses at once, and

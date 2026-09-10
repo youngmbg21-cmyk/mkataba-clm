@@ -903,6 +903,54 @@ function ourChangesTouched(prev, next) {
   return false;
 }
 
+/* ============================================================
+   ONE CLAUSE, ONE PAIR OF HANDS — AS THE SERVER READS IT
+   ============================================================
+   (Young asked 10 Sep 2026.) The browser draws the monogram on the pencil and
+   refuses at the editor's door; this is the wall behind both, and it is here
+   for the reason every guard on this route is here — a rule kept only in the
+   pixels holds until somebody sends the request themselves.
+
+   ASKED OF THE STORED CONTRACT, never of the request body: who holds a clause
+   is exactly the half the person being refused would otherwise get to restate
+   on the way past. And asked as a DIFFERENCE, like every guard around it — a
+   save that leaves our changes alone passes untouched, which is every save
+   that merely refreshes a lock, records a decision or moves a field.
+
+   TWO MINUTES, and the same number the browser reads. Two readings of "is this
+   lock alive" is how a holder and everybody else come to disagree about it. */
+const CLAUSE_LOCK_MS = 120000;
+const srvLockLive = l => !!(l && l.at && (Date.now() - Date.parse(l.at)) < CLAUSE_LOCK_MS);
+/* Which clauses did THIS save add, reword or re-decide one of OUR changes on?
+   Their proposals arrive through the share routes, which have their own wall —
+   the same scope ourChangesTouched draws, one field along. */
+function ourClausesTouched(prev, next) {
+  const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide !== 'counterparty')
+    .map(x => [String(x.id), { clauseId: String(x.clauseId || ''),
+      stamp: String(x.hash || '') + '|' + String(x.status || '') }]));
+  const a = ours(prev), b = ours(next);
+  const out = new Set();
+  for (const [id, v] of b) if (!a.has(id) || a.get(id).stamp !== v.stamp) out.add(v.clauseId);
+  for (const [id, v] of a) if (!b.has(id)) out.add(v.clauseId);
+  out.delete('');
+  return out;
+}
+/* WHO ELSE HOLDS ONE OF THEM, or null. Nobody signed in holds nothing, which is
+   the browser's own answer: a stage with no user behaves exactly as it did
+   before this existed. */
+function srvClauseLockClash(prev, next, user) {
+  const locks = (prev && prev.locks && typeof prev.locks === 'object') ? prev.locks : null;
+  if (!locks || !user) return null;
+  for (const clauseId of ourClausesTouched(prev, next)) {
+    const l = locks[clauseId];
+    if (!srvLockLive(l)) continue;
+    if (String((l.by && l.by.id) || '') === String(user.id || '')) continue;
+    return { clauseId, name: String((l.by && l.by.name) || '').trim() };
+  }
+  return null;
+}
+
 function folderScopeFor(user) {
   if (!user) return [];
   if (user.role === 'admin') return ADMIN_SCOPE;
@@ -3059,6 +3107,24 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,
           desk: 'not-a-member' });
     }
+  }
+
+  /* ---- AND A CLAUSE A COLLEAGUE IS TYPING IN IS NOT YOURS TO FILE AGAINST ----
+     (Young asked 10 Sep 2026.) The browser refuses at the editor's door and
+     draws the holder's initials where the pencil would be; this is what makes
+     it a rule. It is deliberately NARROW — our own side's wording, the same
+     scope the desk guard beside it draws — because two people DECIDING at once
+     is a different collision and is not what was asked about.
+
+     NAMES WHO HOLDS IT AND SAYS THE WORK IS SAFE, because that is true: the
+     refusal happens before anything is written, so the draft is still in the
+     box the reader is looking at. */
+  if (prev) {
+    const clash = srvClauseLockClash(prev, c, req.user);
+    if (clash)
+      return res.status(403).json({
+        error: `${clash.name || 'A colleague'} is editing this clause right now. Your work is safe — try again in a moment.`,
+        lock: clash.clauseId });
   }
 
   /* ---- THE ROUTE IS SHUT ONCE ANYBODY HAS SIGNED ----
