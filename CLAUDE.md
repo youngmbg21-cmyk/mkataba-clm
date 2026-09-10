@@ -11302,6 +11302,76 @@ written before."*
   — the strip's headline asks whether ANYTHING was read, and the risk scan, the
   standards pass and the obligations reader are untouched by it.
 
+**AND THE TILE ASKS THE BRIEF RATHER THAN A NOTE ABOUT IT — THE CLAIM ABOVE IS
+REVERSED IN PLACE** (owner-reported 10 Sep 2026, off one contract's Key terms
+tab: *"The Key terms strip and the Contract brief card contradict each other."*
+The strip said *Brief written — This is a logistics contract between… — part of
+it was cut short* and the card four inches below said *Not written yet* with a
+Write the brief button).
+
+**"THE TILE FOLLOWS BY CONSTRUCTION" WAS TRUE OF A NEW RUN AND OF NOTHING ELSE.**
+The fix above changed how a run RECORDS a cut-short brief and **cannot reach a
+note already on file**: every contract read before that commit carries
+`{ ok:true, line, cut }` for ever. So it was right and incomplete, and what was
+missing is a READING rather than a repair.
+
+- **THE STORE CAN OUTLIVE THE NOTE ABOUT IT, AND ONLY HERE.** A brief lives in
+  its own table under the caching rule above — a cut-short one is never written
+  — while `c.triage` is DURABLE. The card reads the brief and was right; the
+  strip read a note written once at upload and never repaired.
+- **SO THE TILE ASKS WHETHER THERE IS A BRIEF, LIVE**, and falls back to the note
+  only where there is nothing to look at. **NOTHING IS MIGRATED AND NOTHING IS
+  REPAIRED**: an old wrong note is simply not read, and a brief a person writes
+  later turns the tile green **by itself**, which it could never do before.
+- **BOTH FIELDS, AND THAT PAIR IS THE TRAP.** `_brief` is transport riding the
+  SINGLE contract's GET; `_hasBrief` is the boolean the LIST route attaches.
+  Read `_brief` alone and this is right locally and wrong in server mode on a
+  light row — the recorded defect class, twice paid for. **js/views/home.js
+  reads the same pair for the same reason**, and is copied rather than a third
+  reading being written.
+- **THE LINE COMES FROM THE BRIEF TOO** — `triageBriefLine` is the one reading,
+  so the tile can never say something the panel behind it does not. On a light
+  row there is a brief and nothing to draw a line from: **say nothing** rather
+  than reach for a stored line that may describe an older one.
+- **AND THE CAP RIDES THE READING IT HAPPENED TO.** Left alone, the note's *part
+  of it was cut short* would ride whatever brief is on file — so the very next
+  state of the very contract reported (press Write the brief, it comes back
+  whole) would say the NEW brief was cut short. It is drawn only over the brief
+  the note describes, and **the same brief is the one that yields the same
+  line**: a comparison, not a guess. **The cap is not dropped**, because an
+  auto-triage run reads quietly and the strip is the only place a capped reading
+  is ever said.
+- **THE BUSY STATE STILL WINS, BY CONSTRUCTION RATHER THAN BY CARE** — the head
+  takes `ing` first, the strip's tone and mark both branch on `working` before
+  they look at `ok`, and the detail and the count are suppressed while it is
+  true. So a re-run over a contract that already carries a brief reads as
+  working.
+- **`triageReadAnything` IS A DIFFERENT QUESTION AND IS NOT SWEPT.** It asks
+  whether ANYTHING was read at all, off the STORED steps — a contract whose
+  brief is gone was still read — so the headline stays true.
+- **THE OTHER THREE TILES GO ON READING THEIR NOTE**, and each for its own
+  reason: obligations are HELD on the triage record and filed nowhere else, so
+  there is no second store to ask; the risk scan and the standards pass are
+  stored on the contract itself and move with it. **MEASURED for the standards
+  tile, which was the one worth checking**: `c.playbook` is a real record field,
+  is never cleared, and survives both HEAVY and `saveContract`, so the note and
+  the store cannot come apart the way the brief's did. Its COUNT is a snapshot
+  and can go stale after a later re-run — logged, not fixed here.
+- **`c.triage.steps.brief` STILL CARRIES `line` AND `cut`, AND BOTH ARE STILL
+  READ**: the cap through the line comparison above, and the line as the thing
+  that comparison is made against. Its `why` is what a not-written tile prints.
+  Nothing on it is now dead.
+
+Tests: f280 (8) (9 claims — **6 of them fail against the parent**; the other
+three are named CONTROLS whose job is to fail the day the live reading is swept
+wider than it should go), **auto-triage-verify section 10 (9, browser — the one
+place this claim can be made at all, because *they agree* is a claim about TWO
+BOXES and only a rendered page has both. The record is staged and the page
+re-opened, deliberately: the reported note was written by the code of 9 Sep and
+today's code cannot produce it. 6 of the 9 fail against the parent, the headline
+one reporting the owner's screenshot verbatim — `"✓Brief written"` over `"This
+is a logistics contract between two parties. — part of it was cut short"`)**.
+
 **AND WHAT WAS READ IS ON THE CONTRACT ITSELF (owner-ruled 9 Sep 2026, off
 three drawn options).** *"it still lands in the key terms page and I then have
 to go back to the home page which is not ideal"* — and the answer chosen was to

@@ -96,11 +96,25 @@ function triageTiles(c){
      whole page reading "Try again, or narrow what you asked for" — written for
      somebody who ASKED, and nobody asked for this. Appended rather than
      replacing the detail, because what WAS read is still worth reading. */
-  const add = (key, detail, count) => {
+  /* `okLive` IS THE ANSWER READ OFF THE RECORD RATHER THAN OFF THE NOTE, and
+     only the brief passes one. A note is DURABLE and the reading it describes
+     may not be — see the brief's own block below — so where a tile can ask
+     the thing itself it asks the thing itself. Absent, the note decides,
+     which is every other tile and is unchanged.
+     THE BUSY STATE STILL WINS, and by construction rather than by care: the
+     head takes `ing` first, the strip's tone and mark both branch on
+     `working` before they look at `ok`, and the detail and the count are
+     suppressed while it is true. So a re-run over a contract that already
+     carries a brief reads as working, not as done. */
+  const add = (key, detail, count, live) => {
     const st = s[key];
     const working = key !== 'filed' && !st && triageBusy(c);
-    const ok = key === 'filed' ? true : !!(st && st.ok);
-    const cut = ok && (st || {}).cut
+    const ok = key === 'filed' ? true : (live ? !!live.ok : !!(st && st.ok));
+    /* THE CAP RIDES THE READING IT HAPPENED TO, so a tile reading a live
+       store has to say whether the cap belongs to what it is looking at —
+       otherwise a brief somebody wrote later wears the old run's warning,
+       which is this section's own fault one size smaller. */
+    const cut = ok && (live ? live.cut : (st || {}).cut)
       ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '';
     const d = working ? '' : [detail || '', cut].filter(Boolean).join(' — ');
     out.push({ key, ok, working,
@@ -108,8 +122,53 @@ function triageTiles(c){
       detail: d, count: (working || count == null) ? null : count });
   };
 
+  /* ---- THE TILE ASKS THE BRIEF, NOT A NOTE ABOUT IT (owner-reported
+     10 Sep 2026) ----
+     *"The Key terms strip and the Contract brief card contradict each other."*
+     The strip said "Brief written" and the card four inches below said "Not
+     written yet", on one contract, at the same moment.
+
+     BOTH WERE RIGHT ABOUT DIFFERENT THINGS, which is what made it look like a
+     broken card rather than a stale note. The CARD reads the brief itself, so
+     it was right. The STRIP read a note WRITTEN ONCE at upload and never
+     repaired — and the 10 Sep fix below, which records a cut-short brief as
+     not-done, changed how a NEW run records that step and cannot reach a note
+     already on file. Every contract read before that commit carries
+     `{ ok:true, line, cut }` for ever. So that fix was right and incomplete.
+
+     THE REMEDY IS A READING, NOT A REPAIR. The tile asks whether there IS a
+     brief, live, and falls back to the note only where there is nothing to
+     look at — so an old wrong note is simply not read, nothing has to be
+     migrated, and a brief a person writes later turns the tile green by
+     itself, which it could never do before.
+
+     BOTH FIELDS, AND THAT PAIR IS THE TRAP. `_brief` is transport that rides
+     the SINGLE contract's GET; `_hasBrief` is the boolean the LIST route
+     attaches. Read `_brief` alone and this is right locally and wrong in
+     server mode on a light row — this codebase's recorded defect class, twice
+     paid for (the dashboard's raised-by-me, Reports' cycle time).
+     js/views/home.js reads the same pair for the same reason. */
   const b = s.brief || {};
-  add('brief', b.ok ? (b.line || '') : (b.why || ''));
+  const brief = (c && c._brief) || null;
+  const hasBrief = !!(c && (c._brief || c._hasBrief));
+  add('brief',
+    /* THE LINE COMES FROM THE BRIEF TOO — `triageBriefLine` is the one reading,
+       so the tile can never say something the panel behind it does not. On a
+       light row there is a brief and nothing to draw a line from: say nothing
+       rather than reach for a stored line that may describe an older one. */
+    hasBrief ? (brief ? triageBriefLine(brief) : '')
+      /* WITH NO BRIEF the reason is the record's own where it has one — a
+         cut-short answer already says so, in the words that name what to do
+         about it — and otherwise the plain fact that there is none to open. */
+      : (b.why || ((typeof i18t === 'function') ? i18t('tri_brief_none') : '')),
+    null,
+    /* AND THE NOTE'S CAP IS DRAWN ONLY OVER THE BRIEF THE NOTE DESCRIBED.
+       It is the same brief when it yields the same line — a comparison rather
+       than a guess, and cheap. Rewrite the brief from the card and the line
+       moves, so the old run's warning does not follow it. */
+    { ok: hasBrief,
+      cut: !!(hasBrief && brief && b.ok && b.cut
+        && b.line && b.line === triageBriefLine(brief)) });
 
   const p = s.playbook || {};
   add('playbook', p.ok ? (p.cats && p.cats.length ? p.cats.join(', ') : '') : (p.why || ''),

@@ -416,8 +416,16 @@ describe('F273 — auto-triage on upload', () => {
        toasts it for a quiet caller, so the fact has to arrive here instead: the
        suppression and the saying are ONE change, or a badly-worded warning
        becomes a silent trim. */
+    /* RE-STAGED 10 Sep 2026, and the claim is unchanged. It used to put a note
+       saying the brief was written on a contract carrying NO brief — which is
+       exactly the record the owner reported the strip lying about, so the
+       staging was pinning the fault as correct. The tile reads the brief live
+       now, so the cap is drawn over the brief the note describes: same brief,
+       same line. WHAT THIS TEST IS ABOUT IS UNTOUCHED — the cap is said on the
+       tile it happened to, and on no other. */
     test('a reading that was cut short says so on its own tile', () => {
       const { win, c } = stage();
+      c._brief = { at: '2026-09-09T00:00:00.000Z', data: { overview: 'A supply agreement.' } };
       c.triage = { at: '2026-09-09T00:00:00.000Z', steps: {
         brief: { ok: true, line: 'A supply agreement.', cut: 'the answer was cut short' },
         playbook: { ok: true, dev: 0, miss: 0, cats: [] },
