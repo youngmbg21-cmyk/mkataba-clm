@@ -1037,7 +1037,18 @@ function renderIntel(){
 const _igClauseName = s => {
   const t=String(s==null?'':s).replace(/\s+/g,' ').trim();
   if(!t) return '';
-  try{ return window.clauseTitleCase ? clauseTitleCase(t) : t; }catch(_){ return t; }
+  /* clauseNameShown AND NOT clauseTitleCase, which is what this asked from
+     26 Aug 2026 until 10 Sep and which did NOTHING to the labels on this page.
+     MEASURED: "Clause 2 · SPECIFICATIONS, QUALITY & INSPECTION" came back
+     unchanged. The reason is the acronym rule reading the WHOLE string — the
+     word "Clause" carries a lowercase letter, so the name is not "shouting",
+     so every capitalised word after it is read as an acronym somebody typed
+     and kept exactly. Right for a bare heading, wrong for a LABEL with a
+     number in front of it, and a stamped clause name is always the second
+     shape. clauseNameShown parses the number off first, which is the whole
+     reason it exists. */
+  try{ return window.clauseNameShown ? clauseNameShown(t)
+    : (window.clauseTitleCase ? clauseTitleCase(t) : t); }catch(_){ return t; }
 };
 function intelFrictionStats(filter){
   const f=filter||null;

@@ -450,6 +450,67 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.waitForTimeout(600);
 
 
+    /* ---- 10. THE MOST-CONTESTED CLAUSES READ IN ONE FORMAT ----
+       (owner-reported 10 Sep 2026, off this very page: "i still see some
+       clauses in capital letters" — over "Clause 2 · SPECIFICATIO…" beside
+       "Data Protection".)
+
+       THIS PAGE ASKED clauseTitleCase FROM 26 Aug AND IT DID NOTHING. The
+       acronym rule reads the WHOLE string: the word "Clause" carries a
+       lowercase letter, so the label is not "shouting", so every capital word
+       after it is read as an acronym somebody typed and kept exactly. Right
+       for a bare heading, wrong for a label with a number in front of it —
+       and a stamped clause name is always the second shape.
+
+       MEASURED AS PAINTED TEXT, because the fault was invisible in the source:
+       the page really was calling the case machinery, and the call really was
+       a no-op. Only reading the rows off the page can tell those apart. */
+    await page.evaluate(() => {
+      /* STAGED, because this file's own book has no negotiations at all — the
+         block simply does not draw, and a check run against that would pass
+         over an absence. Three changes, stamped the three ways one document's
+         own headings arrive: shouted, title case, and small. */
+      const nowIso = new Date().toISOString();
+      const mkCh = (id, label) => ({ id, clauseId: 'cl_' + id, clauseLabel: label,
+        changeType: 'modify', status: 'rejected', authorSide: 'counterparty',
+        author: 'B', summary: 's', createdAt: nowIso });
+      state.contracts.push(Object.assign({ id: 'MK-FR1', name: 'Friction fixture',
+        counterparty: 'Naivas', status: 'Under Review', value: 1000000,
+        valueType: 'standard', audit: [], folder: 'proc', rounds: [] }, {
+        negotiation: { startedAt: nowIso, round: 2, rounds: [] },
+        changes: [
+          mkCh('CHG-801', 'Clause 2 · SPECIFICATIONS, QUALITY & INSPECTION'),
+          mkCh('CHG-802', 'Clause 5 · INDEMNIFICATION'),
+          mkCh('CHG-803', 'Clause 4 · Governing Law'),
+        ] }));
+      intel.tab = 'friction'; renderIntel();
+    });
+    await page.waitForTimeout(700);
+    const clauseRows = await page.evaluate(() => {
+      /* The bar block names itself with an aria-label, which is the one handle
+         on it that is not a style string. Its grid runs label · bar · % · +r,
+         so the LABEL is the first cell of every group of four. */
+      const grid = [...document.querySelectorAll('[role="img"]')]
+        .find(e => /most-contested/i.test(e.getAttribute('aria-label') || ''));
+      if (!grid) return null;
+      const cells = [...grid.children]
+        .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim());
+      return cells.filter((_, i) => i % 4 === 0).filter(Boolean);
+    });
+    const shouty = (Array.isArray(clauseRows) ? clauseRows : []).filter(t => {
+      const words = t.replace(/…/g, '').split(/\s+/)
+        .filter(w => /[A-Za-z]{2,}/.test(w) && !/^Clause$/i.test(w));
+      return words.length > 0 && words.every(w => w === w.toUpperCase());
+    });
+    check('10 the most-contested list draws rows at all — the state this is about',
+      Array.isArray(clauseRows) && clauseRows.length > 0,
+      clauseRows ? `${clauseRows.length} row(s)` : 'no host found');
+    check('10a THE REPORTED FAULT: not one of them shouts',
+      shouty.length === 0, JSON.stringify(shouty).slice(0, 220));
+    await page.screenshot({ path: path.join(OUT, '10-clause-names.png') });
+    await page.evaluate(() => { intel.tab = 'frame'; renderIntel(); });
+    await page.waitForTimeout(500);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

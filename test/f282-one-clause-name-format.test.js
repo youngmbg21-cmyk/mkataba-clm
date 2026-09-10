@@ -19,11 +19,13 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
+const path = require('path');
 const { buildWorld } = require('./world.js');
 
 const W = buildWorld();
 const win = W.win;
-const read = p => fs.readFileSync(p, 'utf8');
+const ROOT = path.join(__dirname, '..');
+const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 test('f282 — one clause-name format on screen', async t => {
 
@@ -52,6 +54,44 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(shown('2019 DATA PROTECTION ACT'), '2019 Data Protection Act');
     assert.strictEqual(shown(''), '');
     assert.strictEqual(shown(null), '');
+  });
+
+  /* ---------- THE TRAP THAT GOT THE FRICTION PAGE ----------
+     (owner-reported 10 Sep 2026, off Insights → Negotiation friction:
+     "i still see some clauses in capital letters".)
+
+     That page has asked clauseTitleCase since 26 Aug and it did NOTHING to the
+     names it prints. The acronym rule reads the WHOLE string: the word "Clause"
+     carries a lowercase letter, so a label is not "shouting", so every capital
+     word after it is read as an acronym somebody typed and kept exactly. Right
+     for a bare heading, wrong for a LABEL with a number in front of it — and a
+     stamped clause name is always the second shape. */
+  await t.test('clauseTitleCase does NOTHING to a built label — this is why the one reading exists', () => {
+    const label = 'Clause 2 · SPECIFICATIONS, QUALITY & INSPECTION';
+    assert.strictEqual(win.clauseTitleCase(label), label,
+      'the fault, kept as a fact: title-casing a whole label is a no-op');
+    assert.strictEqual(win.clauseNameShown(label),
+      'Clause 2 · Specifications, Quality & Inspection',
+      'the one reading parses the number off first, which is why it exists');
+  });
+
+  await t.test('no screen asks clauseTitleCase — the one reading is clauseNameShown', () => {
+    /* THE NET THAT WOULD HAVE CAUGHT IT. clauseTitleCase is the case machinery
+       and clauseNameShown is the reading a screen asks; a surface reaching past
+       one for the other is a surface that will silently do nothing to half the
+       names it prints. */
+    const dir = f => fs.readdirSync(path.join(ROOT, f))
+      .filter(n => n.endsWith('.js')).map(n => path.join(f, n));
+    for (const rel of [...dir('js'), ...dir('js/views')]){
+      if (rel.endsWith('clausemodel.js')) continue;
+      const src = read(rel);
+      const i = src.indexOf('clauseTitleCase(');
+      if (i < 0) continue;
+      /* Allowed only as the fallback BEHIND clauseNameShown, for a stage that
+         does not carry the newer name. */
+      assert.ok(/clauseNameShown\([\s\S]{0,120}clauseTitleCase\(/.test(src),
+        `${rel} asks clauseTitleCase on its own — a built label comes back unchanged`);
+    }
   });
 
   await t.test('it is clausemodel\'s own case machinery and not a second copy', () => {
@@ -140,6 +180,11 @@ test('f282 — one clause-name format on screen', async t => {
       'js/review.js': '_rvClauseName',
       'js/ai.js': '_aiClauseName',
     };
+    /* The friction page reached its names by its own route and was missed by a
+       sweep for the stamped field alone — so it is named here by its own
+       helper, which now asks the one reading. */
+    assert.ok(/_igClauseName[\s\S]{0,1200}clauseNameShown\(/.test(read('js/views/intelligence.js')),
+      'the Insights friction page names its clauses through the one reading');
     for (const [path, helper] of Object.entries(files)){
       const src = read(path);
       assert.ok(src.includes(`const ${helper} =`),

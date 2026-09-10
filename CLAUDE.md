@@ -12188,6 +12188,33 @@ drafting habits printed straight back.
   readable habit reads in its own case on the PAPER while the chrome presents it
   — the same trade the friction page already accepts.
 
+**AND THE FRICTION PAGE WAS ASKING THE MACHINERY, WHICH DID NOTHING**
+(owner-reported the same day, off Insights → Negotiation friction: *"i still
+see some clauses in capital letters"*). That page has asked `clauseTitleCase`
+since 26 Aug and it was a **no-op** on every name it prints — which is why the
+sweep passed over it: the source really was calling the case machinery.
+
+- **THE CAUSE IS THE ACRONYM RULE READING THE WHOLE STRING.** `_clShouts` asks
+  whether a name contains a lowercase letter; the word *"Clause"* carries one,
+  so the label is not shouting, so every capital word after it is read as an
+  acronym somebody TYPED and kept exactly. **Right for a bare heading, wrong for
+  a LABEL with a number in front of it** — and a stamped clause name is always
+  the second shape. MEASURED: `clauseTitleCase("Clause 2 · SPECIFICATIONS,
+  QUALITY & INSPECTION")` returns it unchanged.
+- **SO A SCREEN ASKS `clauseNameShown` AND NEVER THE MACHINERY UNDERNEATH IT**,
+  and f282 sweeps js/ and js/views/ to keep it that way — the machinery is
+  allowed only as the fallback BEHIND the reading, for a stage that does not
+  carry the newer name. The no-op is kept in that file as a FACT, so nobody
+  "simplifies" the reading back to the thing it wraps.
+- **THE CLAUSE PANEL'S NAME LINE WENT WITH IT** — it printed the raw heading.
+  **Its EDITABLE name box is untouched and stays raw**: that element is replaced
+  wholesale when the editor opens and is seeded from the stored heading, so what
+  a reader types back is what was stored. Presenting there would file a case
+  change as a rename.
+- **THE LESSON, and it cost the owner a second report:** *"it already calls the
+  right function"* is not the same claim as *"it produces the right answer"*.
+  Only measuring tells the two apart.
+
 Tests: f282 (9 — **6 fail against the parent**; the three that pass are named
 CONTROLS: `clauseLabel` builds a record, the sentence fallback, and the paper),
 redline-verify section 24 (**2 of 4 fail at the parent, reporting the owner's
