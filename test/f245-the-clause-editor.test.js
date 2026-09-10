@@ -1702,6 +1702,15 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       + 'from anybody');
     assert.equal(/_ceEditing = true;/.test(CODE), false,
       'and never unconditionally');
+    /* ---- WIDENED 10 Sep 2026, and it is the same claim with a second wearer.
+       "Propose wording instead" turns typing on outside arrival — the reader
+       has just taken the deletion off the table, so nothing is being kept from
+       them — and it asks the SAME reading rather than asserting the answer:
+       rejecting one ask can reveal another underneath it. */
+    const fn = CODE.slice(CODE.indexOf('async function ceCounterDeletion()'));
+    assert.match(fn.slice(0, fn.indexOf('\nasync function ceFile')),
+      /_ceEditing = !ceUnderDeletion\(\);/,
+      'the one act that turns typing on outside arrival asks the one reading');
   });
 
   test('the ask to type is CONSUMED, so it cannot leak into every later move', () => {
@@ -2659,23 +2668,170 @@ describe('f245 (25) — the page may not hide a proposed deletion', () => {
     p.win.rlCloseClauseEditor();
   });
 
-  test('and this page still files no decision', () => {
-    /* 5.2 — Accept and Reject exist, on the card in the change column, and they
-       work. Mirroring them here would be a second door onto an act that already
-       has one. What the edit page owes the reader is the READING. */
-    assert.ok(!/negoResolve/.test(CODE),
-      'the clause editor does not so much as mention the decide funnel');
+  /* ---- REVERSED IN PLACE (owner-ruled 10 Sep 2026) ----
+     WHAT THIS ASSERTED was that the file does not so much as MENTION
+     negoResolve — written for 5.2's refusal to mirror Accept and Reject here,
+     on the ground that mirroring them is a second door onto an act that
+     already has one. That reasoning is untouched and this still holds it: what
+     it now pins is that the ONE thing this page decides goes through the ONE
+     verb, that nothing else here decides anything, and that Accept is still
+     nowhere on this page. A mirror of the card would fail every one of them. */
+  test('it decides through the ONE verb, once, and mirrors nothing', () => {
+    /* THE COMPOUND ACT, and it is the only reader of the funnel in this file. */
+    assert.equal((CODE.match(/negoResolve\(/g) || []).length, 1,
+      'exactly one call to the decide funnel — a second would be a second door '
+      + 'onto an act this page already has one door onto');
+    const fn = CODE.slice(CODE.indexOf('async function ceCounterDeletion()'));
+    const body = fn.slice(0, fn.indexOf('\nasync function ceFile'));
+    assert.match(body, /negoResolve\(c, ch\.id, 'rejected'/,
+      'and it rejects — never accepts');
+    assert.ok(!/'accepted'/.test(body),
+      'accepting a deletion removes a clause from the agreement, and this page '
+      + 'offers no door onto that: it is the card\u2019s, where the whole '
+      + 'column can be seen');
+    /* NO SECOND FILING PATH EITHER — the wording the reader then writes goes
+       through ceFile like every other change from this page. */
+    assert.ok(!/negoFileChange|changes\.push|negoDeleteClause/.test(body),
+      'it files nothing itself');
+    /* AND IT ENDS THE WAY EVERY OTHER DOOR ON THIS PAGE ENDS. */
+    assert.match(body, /ceFiled\(c\)/,
+      'the shared ending, so the page underneath is repainted');
+    assert.match(body, /onDecided/,
+      'and the other side\u2019s copy is caught up the same way the card does it');
+    /* ---- AND THE HOOK REALLY REACHES THIS PAGE ----
+       It is read off _ceOpts, which is whatever the door handed over. The door
+       spreads the negotiation mount's OWN opts, and that mount is where
+       onDecided is supplied — so this is the same hook the card's decide()
+       calls rather than a name that happens to be spelt alike. Pinned because
+       a door written later that names its options one by one would drop it in
+       SILENCE: the guard here is a typeof, so nothing would fail and the other
+       side's copy would simply stop being caught up. */
+    assert.match(NEGO, /rlOpenClauseEditor\(c, clauseId,\s*\{ \.\.\.opts,/,
+      'the door spreads the mount\u2019s own options onto this page');
+    assert.match(NEGO, /onDecided\(\)\{ if \(window\.refreshLiveShareQuietly\)/,
+      'and that mount is what supplies onDecided');
+  });
+
+  test('the sign is the wall — nobody is offered a press that would be refused', async () => {
+    /* Each of these is a state negoResolve itself refuses. The control is not
+       drawn in any of them: a verb that cannot work is not drawn. */
+    const { p, ch } = await deletionBench('delete');
+    assert.ok(p.win.ceDeletionAnswerable(),
+      'their pending deletion, on a reading that shows the marks: answerable '
+      + '(this is the control — everything below has to be able to fail)');
+
+    /* OUR OWN ASK. Nobody rules on their own proposal. */
+    const p2 = await bench({ ask: false });
+    wide(p2.win);
+    const id2 = firstClauseId(p2);
+    const mine = await p2.win.negoDeleteClause(p2.c, id2, { side: 'owner', author: 'Me' });
+    p2.win.rlOpenClauseEditor(p2.c, id2, { changeId: mine.id, again: () => {} });
+    assert.equal(p2.win.ceDeletionAnswerable(), null,
+      'a deletion of OUR OWN is answered by withdrawing it, which is a '
+      + 'different act with its own verb on its own card');
+    assert.equal(p2.doc.querySelector('#ce-railfoot [data-ce-act="counter"]').hidden, true,
+      'and the control is not on the page');
+    p2.win.rlCloseClauseEditor();
+
+    /* A READING THAT HIDES THE MARKS. Phase 4's rule — every other act on this
+       page greys there and this one must too. */
+    p.win.rlSetReadMode('agreed');
+    p.win.ceRenderAll();
+    assert.equal(p.win.ceDeletionAnswerable(), null,
+      'not on a reading that draws the paper without its marks');
+    p.win.rlSetReadMode('marks');
+    p.win.ceRenderAll();
+    assert.ok(p.win.ceDeletionAnswerable(), 'and back the moment the marks are');
+
+    /* SETTLED. It is a record, not an ask. */
+    p.win.negoResolve(p.c, ch.id, 'rejected', { side: 'owner', by: 'Me' });
+    p.win.ceRenderAll();
+    assert.equal(p.win.ceDeletionAnswerable(), null,
+      'a deletion already answered takes no second decision');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('ONE PRESS — the deletion is turned down and the reader is writing', async () => {
+    const { p, id, ch } = await deletionBench('delete');
+    let again = 0, decided = 0;
+    /* The mount's own hooks, spread onto this page exactly as openEditor
+       spreads them in the product. */
+    p.win.rlCloseClauseEditor();
+    p.win.rlOpenClauseEditor(p.c, id, { typing: true, changeId: ch.id,
+      again: () => { again++; }, onDecided: () => { decided++; } });
+
+    /* THE CONTROL: nothing on the page can keep this clause before the press. */
+    assert.equal(p.doc.querySelectorAll(`#ce-doc [data-clause="${id}"] [data-ce-pencil]`).length, 0,
+      'no pencil');
+    assert.equal(p.win.ceApply('<p>Mine.</p>', 'typed'), false, 'Apply refuses');
+    const foot = () => [...p.doc.querySelectorAll('#ce-railfoot button')]
+      .filter(b => !b.hidden).map(b => b.textContent);
+    assert.deepEqual(foot(), ['Propose wording instead'],
+      'the row draws ONE act, and it has swapped rather than grown: '
+      + JSON.stringify(foot()));
+
+    const ok = await p.win.ceCounterDeletion();
+    assert.equal(ok, true, 'the press landed');
+
+    assert.equal(p.win.negoChangeById(p.c, ch.id).status, 'rejected',
+      'the deletion is turned down, through the product\u2019s own verb');
+    assert.equal(p.win.negoChangeById(p.c, ch.id).reply,
+      'We are not agreeing to remove this clause.',
+      'and it travels back with a reason, because a decision reaches them '
+      + 'before any wording does');
+    assert.ok(decided >= 1, 'their copy was caught up: onDecided=' + decided);
+    assert.ok(again >= 1, 'and the page underneath was repainted: again=' + again);
+
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.equal(box && box.getAttribute('contenteditable'), 'true',
+      'the reader is writing, on the clause, with no second press');
+    assert.equal(marksIn(p.doc), 0, 'the strike is gone — the clause stays');
+    assert.deepEqual(foot(), ['Discard changes', 'File as a change'],
+      'and the row is the ordinary one again');
+
+    /* AND WHAT THEY WRITE IS AN ORDINARY CHANGE, through the ordinary funnel. */
+    assert.equal(p.win.ceApply('<p>Wording of our own, on a clause that stays.</p>', 'typed',
+      { keepView: true }), true, 'Apply works now');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('and there is never a moment with two live proposals on one clause', async () => {
+    const { p, id, ch } = await deletionBench('delete');
+    await p.win.ceCounterDeletion();
+    p.win.ceApply('<p>Wording of our own, on a clause that stays.</p>', 'typed', { keepView: true });
+    await p.win.ceFile('');
+    const live = (p.c.changes || []).filter(x => x.clauseId === id
+      && x.status === 'pending' && !x.withdrawn);
+    assert.equal(live.length, 1, 'exactly one ask is on the table: '
+      + JSON.stringify(live.map(x => x.id + ':' + x.changeType)));
+    assert.equal(live[0].authorSide, 'owner', 'and it is ours');
+    const del = p.win.negoChangeById(p.c, ch.id);
+    assert.equal(del.status, 'rejected', 'the deletion is on the record as refused');
+    assert.notEqual(del.status, 'superseded',
+      'and NOT superseded — it was answered, which is a different fact and the '
+      + 'one the other side is owed');
+    p.win.rlCloseClauseEditor();
   });
 
   test('both languages', () => {
-    for (const k of ['ce_their_ask_del', 'ce_their_ask_del_why', 'ce_under_deletion']){
+    for (const k of ['ce_their_ask_del', 'ce_their_ask_del_why', 'ce_under_deletion',
+      'ce_counter_deletion', 'ce_counter_deletion_title', 'ce_counter_reply', 'ce_counter_done']){
       assert.ok(new RegExp('\\b' + k + ':').test(I18N),
         k + ' is written');
       assert.ok((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length >= 2,
         k + ' is written in BOTH books');
     }
-    /* The refusal carries its way forward on the same screen. */
-    assert.match(I18N, /ce_under_deletion: '[^']*card in the change column/,
-      'and it names where the decision lives');
+    /* ---- REVERSED IN PLACE. The refusal still carries its way forward on the
+       same screen; what moved is that the way forward IS on this screen now
+       rather than a walk to the change column. */
+    assert.match(I18N, /ce_under_deletion: '[^']*Propose wording instead/,
+      'and it names the button twelve pixels away');
+    /* THE REASON THAT TRAVELS STATES THE REFUSAL AND NEVER A PROMISE. A reader
+       who presses this and writes nothing must not have promised anything on
+       the record. */
+    assert.match(I18N, /ce_counter_reply: 'We are not agreeing to remove this clause\.'/,
+      'it says what was refused');
+    assert.ok(!/ce_counter_reply: '[^']*(will|going to|shortly|coming)/.test(I18N),
+      'and never that wording is coming');
   });
 });

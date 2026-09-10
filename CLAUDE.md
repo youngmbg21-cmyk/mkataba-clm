@@ -4350,21 +4350,113 @@ the reader a clause nobody had proposed, and offered to type in it.
 - **`ceTheirAsk` NAMES WHAT IS PROPOSED.** It said *they have proposed new
   wording*; on a deletion it says the clause is proposed for deletion, so the
   greeting, the scope line and the chips agree with the paper.
-- **ACCEPT AND REJECT ARE DELIBERATELY NOT MIRRORED HERE.** The card in the
-  change column already carries them, and a second door onto an act that
-  already has one is what this rulebook refuses by name. f245 (25) fails if this
-  file so much as mentions `negoResolve`.
-- **AND TYPING IS SIMPLY NOT OFFERED ON A CLAUSE UNDER DELETION**, which is the
-  interim answer rather than a decision: what a reader should be able to do
-  INSTEAD — propose wording that supersedes the deletion, from this page — is
-  the owner's to rule on, and nothing is built for it.
+- **ACCEPT IS DELIBERATELY NOT MIRRORED HERE.** The card in the change column
+  carries it, and accepting a deletion takes a clause out of the agreement —
+  which is a thing to do where the whole column can be seen. **REJECT IS NOT
+  MIRRORED EITHER**: what this page has is a COMPOUND act, below, and it is a
+  different act.
+- **AND TYPING IS ANSWERED BY REJECTING THE DELETION — see PROPOSE WORDING
+  INSTEAD below. REVERSED IN PLACE 10 Sep 2026.** What stood here was the
+  honest interim answer: typing was simply not offered, and what a reader
+  should be able to do instead was the owner's to rule on. They have ruled.
 
-Tests: f245 (25) (8 — 6 fail against the parent; the two that pass are named
-CONTROLS: an ordinary modify still draws its own wording, and the file mentions
-no decision verb), clause-editor-verify section 30 (6, browser — **all 6 fail
-against the parent**: the strike measured as painted `del` runs, the box proved
-not editable, the pencil counted on that clause and on the others, and Apply
-driven into its refusal).
+Tests: f245 (25) (11 — 5 fail against the parent; the survivors are named
+CONTROLS: an ordinary modify still draws its own wording, the pencil still
+stands down, and no decide verb is mirrored onto this page),
+clause-editor-verify section 30 (6, browser — **all 6 fail against the
+parent**: the strike measured as painted `del` runs, the box proved not
+editable, the pencil counted on that clause and on the others, and Apply driven
+into its refusal).
+
+## PROPOSE WORDING INSTEAD (owner-ruled 10 Sep 2026)
+
+*"Build option (b) for 5.4 — propose wording instead."* Off three drawn
+options: (a) nothing here, go to the card — which is what the product did; (b)
+one press that rejects the deletion and opens the editor; (c) let the reader
+type and file a rival that supersedes the deletion.
+
+**MEASURED ON THE PAGE AS IT STOOD**, which is what makes this a gap rather
+than a preference: on a clause the other side wants removed there were **27
+live buttons and not one of them could keep the clause** — no decide verb
+anywhere on the page, no pencil on that clause, nothing to file. The walk was
+leave work mode, find the card, press Open, press Reject, answer the reason
+dialog, come back in, press the pencil.
+
+- **IT IS ONE COMPOUND ACT, AND THAT IS WHY IT IS NOT A SECOND DOOR ONTO
+  REJECT.** The card's Reject is *reject*, and it leaves the reader on a card
+  with nothing written; this is *reject it and keep the clause with wording of
+  my own*, which had no door at all. **SAID OUT LOUD RATHER THAN CLAIMED AWAY:
+  this IS a second way to reach `negoResolve`.** What it is not is a second way
+  to reach it FROM HERE — nothing else on this page decides anything, and f245
+  counts the calls at exactly one — and it goes through the same one verb, the
+  same persist, the same live-link catch-up and the same repaint tail as the
+  card does, so the two cannot come to disagree about what rejecting costs.
+- **(c) WAS REFUSED AND THE REASON IS THE RECORD.** Filing a rival that
+  supersedes the deletion would leave the other side's ask marked *superseded*
+  — "a counter took its place" — when what actually happened is that we
+  **answered** it. Two live proposals on one clause is the state this codebase
+  spent a whole work order making unrepresentable, and rejecting first means
+  there is never a moment when it exists: the deletion is off the table before
+  a word is typed, so the funnel supersedes nothing.
+- **THE ROW SWAPS RATHER THAN GROWING.** The rail's foot is where the reader's
+  eye already goes for *what do I do with this clause*, and on a clause under
+  deletion both of its buttons are dead. So it draws ONE act in place of two
+  dead ones: no new furniture, no band, and nothing added to the page's rest
+  state. **Seeded with the other two and toggled by `hidden`, NEVER rebuilt** —
+  that row's own rule, because a press is a mousedown and a mouseup and
+  rebuilding the row between them replaces the button under the reader's
+  finger.
+- **THE SIGN IS THE WALL.** `ceDeletionAnswerable` is the one reading and every
+  narrowing in it is a state `negoResolve` itself refuses, asked one layer
+  earlier so the control is never drawn and then refused: the ask must be still
+  on the table, it must be **THEIRS** (nobody rules on their own — a deletion
+  of ours is answered by withdrawing it, which is a different act with its own
+  verb on its own card, and is **NOT BUILT** here), the reading must show the
+  marks, and the reader must be able to edit. The counterparty's seat, a
+  read-only mount and frozen wording are refused by `clauseEditorRefusal`
+  before the page opens at all and are deliberately not repeated; a contract
+  signed WHILE the page is open is the one of those that can arrive late, and
+  `negoResolve` refuses it in words.
+- **IT WRITES THE REASON RATHER THAN ASKING FOR ONE, and the line is one press
+  short of a promise on purpose.** A decision travels down a live link the
+  moment it is made where proposed wording waits for the round, so a bare "no"
+  would reach them now and the answer only later — which is what the card's own
+  reason dialog exists to prevent. But a dialog before the reader may type is
+  the press this ruling was about. So the line states the **REFUSAL**, which is
+  true whatever the reader does next, and never that wording is coming: a
+  reader who presses this and then writes nothing must not have promised
+  anything on the record. f245 fails on a reply that says one is.
+- **NO NOTE DIALOG.** That window follows a FILING and names the change filed;
+  nothing is filed here, and the card's Reject raises none either.
+- **AND THE TOAST IS OWED BECAUSE THE ACT LEAVES THE BUILDING** — the product's
+  own test for one. The page's visible change (the strike gone, the box
+  typeable, the row back to Discard and File) is the local half.
+- **IT ENDS THROUGH `ceFiled`, THE SHARED ENDING**, so the change column, the
+  contract and the counts behind this page are repainted. That function's own
+  note says a third door would forget the five things it does; this is that
+  third door, joining it rather than growing a copy.
+- **IT TURNS TYPING ON BY ASKING THE ONE READING, NOT BY ASSERTING THE
+  ANSWER.** The reader has just taken the deletion off the table, so nothing is
+  being kept from them — but rejecting one ask can REVEAL another underneath
+  it, so the line is `_ceEditing = !ceUnderDeletion()` rather than `= true`.
+  The funnel supersedes a rival on filing, so a second deletion should not be
+  reachable; this is a line rather than a probability argument, and if one ever
+  is, the page shows the strike and offers this control again. **f245's own
+  claim that nothing sets it unconditionally therefore still stands**, and is
+  widened rather than reversed: it now names this act as its second wearer.
+- **`ce_under_deletion` IS REVERSED IN PLACE** and names the button twelve
+  pixels away rather than the card in the change column. The refusal still
+  carries its way forward on the same screen; what moved is that the way
+  forward is now ON that screen.
+
+Tests: f245 (25) (11 — **5 fail against the parent**), clause-editor-verify
+section 31 (9, browser — **8 fail against the parent, the headline one
+reporting the two dead buttons verbatim: `["Discard changes","Save to
+CHG-006"]`**; the only place three of these can be asked at all — whether the
+row SWAPPED rather than grew is a count of what is painted, the one act's
+primary dress is a cascade question, and "one press" is a real mouse. **31d is
+a named CONTROL that passes either way**, and its job is to fail the day
+somebody mirrors Accept and Reject onto this page).
 
 ## THE OTHER SIDE MAY NOT RENAME OUR CLAUSES (owner-ruled 29 Aug 2026)
 

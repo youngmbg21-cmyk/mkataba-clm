@@ -3318,6 +3318,86 @@ const dismissNote = async pg => {
      seen30.chips.length === 4 && !seen30.chips.some(t => /softer/i.test(t)),
      JSON.stringify(seen30.chips));
 
+  /* ==========================================================================
+     31 — AND THE READER CAN ANSWER IT, IN ONE PRESS
+     --------------------------------------------------------------------------
+     (owner-ruled 10 Sep 2026, off three drawn options: "Build option (b) for
+     5.4 — propose wording instead.")
+
+     MEASURED on the page as it stood before this: 27 LIVE BUTTONS on a clause
+     under deletion, and not one of them could keep the clause — no decide verb
+     anywhere on the page, no pencil on that clause, nothing to file. The walk
+     was leave work mode, find the card, Open, Reject, answer the reason
+     dialog, come back, press the pencil.
+
+     ONLY A RENDERED PAGE CAN ANSWER THIS. "The row swapped rather than grew"
+     is a count of what is actually PAINTED — a hidden button is in the markup
+     either way — and "one press" is a real press with a real mouse. f245 pins
+     the readings and the record; this is the pixels and the walk.
+     ========================================================================== */
+  const foot31 = () => p.evaluate(() => {
+    const seen = el => { if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const page = document.getElementById('clause-editor');
+    const box = document.getElementById('ce-clausebody');
+    const btn = document.querySelector('#ce-railfoot [data-ce-act="counter"]');
+    const r = btn && btn.getBoundingClientRect();
+    return {
+      foot: [...document.querySelectorAll('#ce-railfoot button')].filter(seen)
+        .map(b => String(b.textContent || '').trim()),
+      counterVisible: !!(btn && seen(btn)),
+      w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
+      title: btn ? String(btn.getAttribute('title') || '') : '',
+      /* THE ONE ACT IS THE PRIMARY, wearing the row's own class rather than a
+         dress of its own — measured as paint, because a rule that loses a
+         cascade fight looks perfectly correct in the source. */
+      filled: btn ? getComputedStyle(btn).backgroundColor : '',
+      plain: (() => { const o = document.querySelector('#ce-railfoot [data-ce-act="discard"]');
+        return o ? getComputedStyle(o).backgroundColor : ''; })(),
+      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
+      dels: box ? [...box.querySelectorAll('del, .nego-del')].filter(seen).length : -1,
+      pencilHere: document.querySelectorAll(
+        `#ce-doc [data-clause="${window.clauseEditorClauseId()}"] [data-ce-pencil]`).length,
+      /* NO DECIDE VERB IS MIRRORED HERE — the card's own Accept and Reject stay
+         on the card, which is the half of 5.2's rule this build did not touch. */
+      mirrored: page ? page.querySelectorAll('[data-nego-accept],[data-nego-reject]').length : -1,
+      status: String(((window.CONTRACT.changes || [])
+        .find(x => x.id === window.__del31) || {}).status || ''),
+      reply: String(((window.CONTRACT.changes || [])
+        .find(x => x.id === window.__del31) || {}).reply || ''),
+    };
+  });
+  await p.evaluate(id => { window.__del31 = id; }, del30.id);
+  const b31 = await foot31();
+  ck('31a the row draws ONE act, and it has swapped rather than grown',
+     b31.foot.length === 1 && /Propose wording instead/.test(b31.foot[0]),
+     JSON.stringify(b31.foot));
+  ck('31b it is visible pixels, wearing the row’s own primary dress',
+     b31.counterVisible && b31.w > 60 && b31.h > 20 && b31.filled !== b31.plain,
+     `${b31.w}x${b31.h} · ${b31.filled} vs ${b31.plain}`);
+  ck('31c and it names the change it would turn down, on its hover',
+     new RegExp(del30.id).test(b31.title), JSON.stringify(b31.title));
+  ck('31d no decide verb is mirrored onto this page (control)',
+     b31.mirrored === 0, String(b31.mirrored));
+
+  const btn31 = await p.$('#ce-railfoot [data-ce-act="counter"]');
+  if (btn31) await btn31.click();
+  await pause(900);
+  const a31 = await foot31();
+  ck('31e ONE real press turns the deletion down',
+     a31.status === 'rejected', `${b31.status} → ${a31.status}`);
+  ck('31f and it travels back with a reason rather than a bare no',
+     /not agreeing to remove/i.test(a31.reply), JSON.stringify(a31.reply));
+  ck('31g the reader is writing, on the clause, with no second press',
+     a31.typing === true && a31.pencilHere === 1,
+     `typing ${a31.typing} · pencil ${a31.pencilHere}`);
+  ck('31h the strike is gone — the clause stays',
+     a31.dels === 0, `${b31.dels} del run(s) → ${a31.dels}`);
+  ck('31i and the row is the ordinary one again',
+     a31.foot.length === 2 && /File as a change/.test(a31.foot.join(' ')),
+     JSON.stringify(a31.foot));
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

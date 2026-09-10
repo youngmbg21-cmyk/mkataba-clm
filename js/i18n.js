@@ -1817,10 +1817,24 @@ const STRINGS = {
        nothing to say about the one thing on the page. */
     ce_their_ask_del: 'They have asked for this clause to be REMOVED in full ({id}). The wording shown is what would go.',
     ce_their_ask_del_why: 'They have asked for this clause to be REMOVED in full ({id}), because: {why} The wording shown is what would go.',
-    /* The one refusal on a clause under deletion, and it carries its way
-       forward: the decision lives on the change's own card, which is where
-       Accept and Reject already are. */
-    ce_under_deletion: 'This clause is under a proposal to remove it — there is no wording to change. Accept or reject it on its card in the change column.',
+    /* ---- THE ONE REFUSAL ON A CLAUSE UNDER DELETION, AND ITS WAY FORWARD IS
+       NOW ON THIS PAGE (owner-ruled 10 Sep 2026) ----
+       It named the card in the change column, which was true and was a walk
+       across two screens. The act sits in the rail's own foot now, so the
+       refusal names the button twelve pixels away. Accepting still lives on
+       the card, deliberately: this page offers the one act it can complete. */
+    ce_under_deletion: 'This clause is under a proposal to remove it — there is no wording to change yet. Press “Propose wording instead” to turn the removal down and write your own.',
+    /* THE ACT ITSELF. The owner's own phrase, and it says both halves of what
+       one press does. */
+    ce_counter_deletion: 'Propose wording instead',
+    ce_counter_deletion_title: 'Turn down {id} — the clause stays — and start writing wording of your own on it.',
+    /* WHAT TRAVELS BACK WITH THE REFUSAL. A decision reaches the other side at
+       once where wording waits for the round, so a bare “no” would be all they
+       had until then. It states the REFUSAL and never that wording is coming:
+       a reader who presses this and writes nothing must not have promised
+       anything on the record. */
+    ce_counter_reply: 'We are not agreeing to remove this clause.',
+    ce_counter_done: '{id} turned down — the clause stays and the ask travels back as an open point. Write your wording and file it as a change.',
     ce_scan_none: 'This contract has not been checked against our playbook yet.',
     ce_scan_run: 'Run the playbook scan',
     ce_scan_again: 'Run it again',
@@ -7654,7 +7668,11 @@ const STRINGS = {
     ce_their_ask_why: 'De bad om {id}, därför att: {why}',
     ce_their_ask_del: 'De har begärt att hela klausulen TAS BORT ({id}). Ordalydelsen som visas är den som skulle försvinna.',
     ce_their_ask_del_why: 'De har begärt att hela klausulen TAS BORT ({id}), därför att: {why} Ordalydelsen som visas är den som skulle försvinna.',
-    ce_under_deletion: 'Klausulen är föremål för ett förslag om att tas bort — det finns ingen ordalydelse att ändra. Godta eller avslå det på dess kort i ändringskolumnen.',
+    ce_under_deletion: 'Klausulen är föremål för ett förslag om att tas bort — det finns ännu ingen ordalydelse att ändra. Tryck på ”Föreslå egen ordalydelse” för att avslå borttagningen och skriva din egen.',
+    ce_counter_deletion: 'Föreslå egen ordalydelse',
+    ce_counter_deletion_title: 'Avslå {id} — klausulen står kvar — och börja skriva en egen ordalydelse på den.',
+    ce_counter_reply: 'Vi går inte med på att ta bort den här klausulen.',
+    ce_counter_done: '{id} avslogs — klausulen står kvar och begäran går tillbaka som en öppen punkt. Skriv din ordalydelse och registrera den som en ändring.',
     ce_scan_none: 'Det här avtalet har inte kontrollerats mot vår spelbok ännu.',
     ce_scan_run: 'Kör spelbokskontrollen',
     ce_scan_again: 'Kör den igen',

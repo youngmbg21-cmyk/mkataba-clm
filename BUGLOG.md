@@ -11874,3 +11874,87 @@ Noticed, not fixed
 - triage's standards tile prints a COUNT that is a snapshot and can go stale
   after a later re-run of the playbook (already logged 10 Sep; re-checked this
   run and still true — it is the count, never the fact).
+
+================================================================================
+5.4 — PROPOSE WORDING INSTEAD — 10 September 2026
+================================================================================
+Owner ruling on the option drawn at the end of the five-jobs run: "Merge to main
+then Build option (b) for 5.4 — propose wording instead." The branch was merged
+to main first (fast-forward, a13de32..67ba56a) and this was built on top.
+
+MEASURED FIRST, in a real browser, on a clause the other side had asked to
+remove: 27 LIVE BUTTONS on the page and not one of them could keep the clause.
+No Accept, no Reject, no pencil on that clause, nothing to file, ceCanFile
+false. The walk to "keep it, with my wording" was leave work mode, find the
+card in the Redlines column, press Open, press Reject, answer the reason
+dialog, come back in, press the pencil.
+
+BUILT: one act in the rail's own foot. It rejects the deletion through
+negoResolve — the product's ONE decide verb, and this file's only call to it —
+catches the other side's copy up through the mount's own onDecided, re-seeds
+the draft from what stands, turns typing on and repaints both screens through
+ceFiled, the shared ending. One press.
+
+THE ROW SWAPS RATHER THAN GROWING. On a clause under deletion Discard and File
+are both dead, so the same row draws ONE act in place of two greyed ones — no
+band, no new furniture, and the page's rest state on every other clause is
+byte-identical. All three buttons are seeded together and toggled by `hidden`,
+never rebuilt: that row's own rule, because rebuilding it between a mousedown
+and a mouseup is the reported dead-press fault.
+
+THE SIGN IS THE WALL. ceDeletionAnswerable is the one reading and every
+narrowing in it is a state negoResolve itself refuses, asked one layer earlier
+so the control is never drawn and then refused: still on the table, THEIRS
+(nobody rules on their own ask), a reading that shows the marks, and a reader
+who may edit. The counterparty's seat, a read-only mount and frozen wording are
+refused before the page opens and are deliberately not repeated.
+
+THE REASON IS WRITTEN, NOT ASKED FOR, and is one press short of a promise on
+purpose. A decision travels down a live link at once where wording waits for
+the round, so a bare "no" would reach them now and the answer only later. The
+line states the REFUSAL — true whatever the reader does next — and never that
+wording is coming. f245 fails on a reply that says one is.
+
+(c) WAS REFUSED AND THE REASON IS THE RECORD. Filing a rival that supersedes
+the deletion would mark their ask "superseded" — a counter took its place —
+when what happened is that we ANSWERED it. Rejecting first also means there is
+never a moment with two live proposals on one clause.
+
+TWO CLAIMS REVERSED IN PLACE, never deleted. f245 (25)'s "this page still files
+no decision" is now "it decides through the ONE verb, once, and mirrors
+nothing" — the 5.2 reasoning is untouched and what it pins is that there is
+exactly one call to the funnel, that it only ever rejects, and that Accept is
+still nowhere on this page. And ce_under_deletion names the button twelve
+pixels away rather than the card in the change column; the refusal still
+carries its way forward on the same screen, and what moved is that the way
+forward is now ON that screen.
+
+ONE CLAIM WIDENED RATHER THAN REVERSED. f245 pins that nothing sets _ceEditing
+unconditionally. My first writing of this act did exactly that; corrected to
+_ceEditing = !ceUnderDeletion(), because rejecting one ask can reveal another
+underneath it — so the claim still holds and now names this act as its second
+wearer.
+
+MEASURED AGAINST THE PARENT: f245 (25), 5 of 11 fail (the survivors are named
+CONTROLS — an ordinary modify still draws its own wording, the pencil still
+stands down, no decide verb is mirrored here); f245 (18)'s widened claim also
+fails, so 6 node claims in all. clause-editor-verify section 31, 8 of 9 fail,
+the headline one reporting the parent's two dead buttons verbatim:
+["Discard changes","Save to CHG-006"]. 31d is the named control.
+
+Node 6286/6286. clause-editor-verify 260/260, clause-door-verify 117/117,
+redline-verify 197/197. Lint unchanged at 183 problems / 4 errors / 179
+warnings — the same four pre-existing duplicate-key errors.
+
+--------------------------------------------------------------------------------
+Noticed, not fixed
+--------------------------------------------------------------------------------
+- A deletion of OUR OWN leaves the reader on this page with the same nothing:
+  no pencil, no Apply, and no control, because nobody rules on their own ask.
+  The answer there is to WITHDRAW it, which is a different act with its own verb
+  on its own card. Not built; the ruling named the counterparty's deletion.
+- ACCEPTING a deletion is still only on the card. Deliberate — it takes a clause
+  out of the agreement, which is a thing to do where the whole column can be
+  seen — but a reader who agrees with the removal still has to leave this page.
+- The four eslint ERRORS (duplicate co_password_updated and act_next, one pair
+  per language book) are unchanged and still pre-existing.

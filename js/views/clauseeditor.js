@@ -959,6 +959,54 @@ function ceRemovesWording(ch){
    contract agree about which of several rival asks the page is answering. */
 const ceUnderDeletion = () => ceRemovesWording(_ceLead);
 
+/* ---- AND THE READER CAN ANSWER IT FROM HERE ---- (owner-ruled 10 Sep 2026)
+   "Build option (b) for 5.4 — propose wording instead."
+
+   WHAT WAS HERE BEFORE was the honest interim answer to a question that was
+   the owner's: typing was simply not offered on a clause under deletion, and
+   the refusal pointed at the card in the change column. MEASURED on the page
+   as it stood: 27 live buttons, and not ONE of them could keep the clause —
+   no Accept, no Reject, no pencil on that clause, nothing to file. The walk
+   was leave work mode, find the card, press Open, press Reject, answer the
+   reason dialog, come back, press the pencil.
+
+   THIS READING IS WHO MAY MAKE THAT PRESS, and every narrowing below is a
+   state in which the act cannot work, so the control is not drawn — never
+   drawn and then refused. Each is asked here so the SIGN and the WALL cannot
+   come apart: negoResolve refuses exactly these, and this is the same list
+   read one layer earlier.
+
+     · there is a proposed deletion on this clause, and it is what the paper is
+       drawing (ceUnderDeletion is the one reading of that);
+     · it is still on the table — a settled or withdrawn ask is a record, and
+       negoResolve refuses a superseded one outright;
+     · IT IS THEIRS. Nobody rules on their own ask, which negoResolve enforces
+       in the model. A deletion of OUR OWN is answered by withdrawing it, which
+       is a different act with its own verb on its own card — said out loud
+       rather than built here;
+     · the reading shows the marks, because a page whose band says "not
+       editable" over a live act is a page arguing with itself (Phase 4's rule,
+       which every other act on this page already obeys);
+     · the reader may edit at all — negoResolve refuses a viewer;
+     · and the funnel is on this stage. Read through `window`, the ES-module
+       rule: a bare call to another module's name is silence, not a refusal.
+
+   THREE MORE ARE HANDLED BY CONSTRUCTION AND ARE DELIBERATELY NOT REPEATED —
+   the counterparty's seat, a read-only mount and frozen wording are all
+   refused by clauseEditorRefusal before this page opens at all. A contract
+   somebody signs WHILE the page is open is the one of those three that can
+   arrive late, and negoResolve refuses it in words. */
+function ceDeletionAnswerable(){
+  const ch = _ceLead;
+  if (!ch || !ceRemovesWording(ch)) return null;
+  if (ch.status !== 'pending' || ch.withdrawn) return null;
+  if (ch.authorSide !== 'counterparty') return null;
+  if (!ceEditableReading()) return null;
+  try{ if (typeof window.canEdit === 'function' && !canEdit()) return null; }catch(_){ return null; }
+  if (typeof window.negoResolve !== 'function') return null;
+  return ch;
+}
+
 function ceWordingOf(ch){
   if (!ch) return _ceBase;
   /* EMPTY, so the marks measure the whole clause OUT. ceRedlineHtml then draws
@@ -2579,12 +2627,30 @@ function ceRenderFoot(){
      rests on. */
   let discard = foot.querySelector('[data-ce-act="discard"]');
   let save = foot.querySelector('[data-ce-act="save"]');
-  if (!discard || !save){
+  let counter = foot.querySelector('[data-ce-act="counter"]');
+  if (!discard || !save || !counter){
     foot.innerHTML = '<button type="button" data-ce-act="discard"></button>'
-      + '<button type="button" class="p" data-ce-act="save"></button>';
+      + '<button type="button" class="p" data-ce-act="save"></button>'
+      + '<button type="button" class="p" data-ce-act="counter"></button>';
     discard = foot.querySelector('[data-ce-act="discard"]');
     save = foot.querySelector('[data-ce-act="save"]');
+    counter = foot.querySelector('[data-ce-act="counter"]');
   }
+  /* ---- THE ONE ACT ON A CLAUSE THEY WANT REMOVED ---- (owner-ruled 10 Sep 2026)
+     THE ROW SWAPS RATHER THAN GROWING. On a clause under deletion there is no
+     draft, so Discard and File are both dead — this row, which is where the
+     reader's eye already goes for "what do I do with this clause", held two
+     greyed buttons and nothing else. So the same row draws ONE act instead of
+     two dead ones: no new furniture, no band, and nothing added to a page that
+     is at its rest state on every other clause.
+
+     SEEDED WITH THE OTHER TWO AND TOGGLED BY `hidden`, NEVER REWRITTEN. This
+     row's own rule, three paragraphs up, is that it is patched in place — a
+     press is a mousedown and a mouseup, and rebuilding the row between them
+     replaces the button under the reader's finger. Building the third button
+     on demand would put exactly that fault back through a door nobody
+     remembered, so all three live for the life of the page. */
+  const answerable = ceDeletionAnswerable();
   const label = _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
   /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
      DISCARD asks "has the wording moved from what STANDS in the contract" —
@@ -2600,10 +2666,19 @@ function ceRenderFoot(){
   const anyToFile = ceCanFile();
   [[discard, _cet('ce_discard'), moved], [save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
+    b.hidden = !!answerable;
     b.disabled = !(on && live);
     if (live) b.removeAttribute('title'); else b.setAttribute('title', _cet('ce_reading_only'));
     if (b.textContent !== word) b.textContent = word;
   });
+  if (counter){
+    counter.hidden = !answerable;
+    counter.disabled = !answerable;
+    const word = _cet('ce_counter_deletion');
+    if (counter.textContent !== word) counter.textContent = word;
+    counter.setAttribute('title', answerable
+      ? _cet('ce_counter_deletion_title', { id: answerable.id }) : '');
+  }
 }
 
 function ceSay(msg){
@@ -3728,6 +3803,91 @@ function ceFiled(c){
   try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){}
   try{ ceFitToShell(); }catch(_){}
 }
+/* ---- REJECT THE DELETION AND WRITE INSTEAD, IN ONE PRESS ----
+   (owner-ruled 10 Sep 2026, off three drawn options: "Build option (b) for
+   5.4 — propose wording instead.")
+
+   ONE COMPOUND ACT, AND THAT IS WHY IT IS NOT A SECOND DOOR ONTO REJECT.
+   The card's Reject is *reject*, and it leaves the reader on a card with
+   nothing written; this is *reject it and keep the clause with wording of my
+   own*, which had no door at all — MEASURED, the walk was leave work mode,
+   find the card, press Open, press Reject, answer the reason dialog, come
+   back in, press the pencil. What makes the difference honest rather than
+   convenient is that the ACT is compound and the state is one in which no
+   decide verb is on this page at all.
+
+   SAID OUT LOUD, because it is the cost rather than a thing to claim away:
+   this IS a second way to reach negoResolve. What it is not is a second way to
+   reach it FROM HERE — nothing else on this page decides anything — and it
+   goes through the same one verb, the same persist, the same live-link
+   catch-up and the same repaint tail as the card does, so the two cannot come
+   to disagree about what rejecting costs.
+
+   IT DECIDES THROUGH negoResolve AND FILES NOTHING. No wording moves here: the
+   deletion is refused, the clause reverts to the baseline (negoResolve commits
+   that itself), and the reader is left typing on wording that stands. What
+   they then write is an ordinary change through the ordinary funnel, with
+   every guard it carries — and because the deletion is no longer PENDING, the
+   funnel supersedes nothing and there is never a moment with two live
+   proposals on one clause.
+
+   IT WRITES THE REASON RATHER THAN ASKING FOR ONE, and the reason is one press
+   short of a promise on purpose. A decision travels down a live link the
+   moment it is made where proposed wording waits for the round, so a bare "no"
+   would reach them now and the answer only later — which is what the card's
+   own reason dialog exists to prevent. But a dialog before the reader may type
+   is the press this ruling was about. So the line states the REFUSAL, which is
+   true whatever the reader does next, and never that wording is coming: a
+   reader who presses this and then writes nothing must not have promised
+   anything on the record.
+
+   NO NOTE DIALOG. That window follows a FILING and names the change that was
+   filed; nothing is filed here. The card's Reject raises none either.
+
+   AND THE TOAST IS OWED BECAUSE THE ACT LEAVES THE BUILDING — the product's
+   own test for one. The page's visible change (the strike gone, the box
+   typeable, the row back to Discard and File) is the local half; the toast is
+   the half that says it travelled. */
+async function ceCounterDeletion(){
+  if (_ceBusy) return false;
+  const ch = ceDeletionAnswerable();
+  if (!ch) return false;
+  const c = _ceC;
+  _ceBusy = true;
+  let out = null;
+  try{
+    out = negoResolve(c, ch.id, 'rejected', {
+      side: 'owner', by: (_ceOpts && _ceOpts.by) || undefined,
+      reply: _cet('ce_counter_reply') });
+  }catch(_){ out = null; }
+  _ceBusy = false;
+  /* negoResolve says why in its own words — a frozen contract, a viewer, an
+     ask that moved under the reader — so this adds nothing on top of it and
+     leaves the page exactly as it was. */
+  if (!out) return false;
+  /* ---- THEIR COPY HAS TO SEE THIS ----
+     Whoever mounted the negotiation supplies onDecided, and the clause editor
+     is opened with that mount's own opts spread onto it — so this is the same
+     catch-up the card's own decide() runs, reached the same way rather than a
+     second reading of what a decision costs on the other side. */
+  try{ if (_ceOpts && typeof _ceOpts.onDecided === 'function') _ceOpts.onDecided(c, out); }catch(_){}
+  /* THE RECORD HAS MOVED, SO THE PAGE IS RE-READ FROM IT. The deletion is off
+     the table, so ceLeadChange finds nothing and the draft seeds to what
+     STANDS — which is exactly the wording the reader is about to change. */
+  ceSeedDraft();
+  /* AND THE ASK TO TYPE STILL ASKS THE ONE READING. Rejecting the deletion can
+     reveal ANOTHER pending ask underneath it — the funnel supersedes a rival
+     on filing, so a second deletion should not be reachable, and this is a
+     line rather than a probability argument: if what is revealed is another
+     proposal to remove the clause, the page shows the strike and offers this
+     control again, which is exactly right. */
+  _ceEditing = !ceUnderDeletion();
+  ceFiled(c);
+  ceDetachPassage();
+  ceFocusTyping();
+  if (window.toast) toast(_cet('ce_counter_done', { id: ch.id }), 'ok');
+  return true;
+}
 async function ceFile(why){
   if (_ceBusy) return null;
   if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return null; }
@@ -4148,6 +4308,11 @@ function ceWirePage(page){
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
       case 'save': cePullText(); ceFile(); break;
+      /* ---- AND THE ONE ACT ON A CLAUSE THEY WANT REMOVED (10 Sep 2026) ----
+         It replaces the two above it in the same row rather than joining them,
+         so on this state there is exactly one thing to press and it is the
+         thing the reader came here to do. */
+      case 'counter': ceCounterDeletion(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
@@ -4324,6 +4489,7 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
+  ceCounterDeletion, ceDeletionAnswerable,
   ceBoxDirty,
   ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,
