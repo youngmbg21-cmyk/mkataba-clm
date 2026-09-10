@@ -4927,6 +4927,9 @@ const STRINGS = {
     tri_fold: 'Fold this away',
     tri_unfold: 'Show what was found',
     tri_no_answer: 'Copilot gave no answer.',
+    /* A cut-short brief is deliberately not kept, so the strip may not say one
+       was written. The sentence names the one thing the reader can act on. */
+    tri_brief_cut: 'The answer was cut short, so it was not kept \u2014 write the brief again.',
     tri_not_available: 'This reading is not available here.',
     tri_no_text: 'No text came out of the file, so nothing was read.',
     ob_proposed_n_one: '{n} proposed',
@@ -10439,6 +10442,7 @@ const STRINGS = {
     tri_fold: 'Fäll ihop',
     tri_unfold: 'Visa vad som hittades',
     tri_no_answer: 'Copilot gav inget svar.',
+    tri_brief_cut: 'Svaret klipptes av och sparades därför inte \u2014 skriv sammanfattningen igen.',
     tri_not_available: 'Den här läsningen är inte tillgänglig här.',
     tri_no_text: 'Ingen text kunde läsas ur filen, så ingenting lästes.',
     ob_proposed_n_one: '{n} f\u00f6reslaget',

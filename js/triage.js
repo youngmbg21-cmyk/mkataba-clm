@@ -248,6 +248,32 @@ async function triageRun(c, opts = {}){
       const r = (typeof runContractBrief === 'function')
         ? await runContractBrief(c, o) : { error: triageAbsent() };
       if (r && r.error) t.steps.brief = { ok: false, why: r.error };
+      /* ---- A READING THAT WAS NOT KEPT IS NOT RECORDED AS DONE ----
+         (owner-reported 10 Sep 2026: "contract brief in the top highlight says
+         brief written but as you can see on the bottom highlighted area on the
+         contract brief, I had to click write brief for a second time. This
+         should not be the case if it was already written before.")
+
+         REPRODUCED, and both halves were telling the truth about different
+         things. A brief the provider CUT SHORT is deliberately not written to
+         the briefs table — the route's own note says why, in its own words:
+         "the reader is told, and the next press asks again rather than being
+         handed a permanent half-answer." So it exists in memory for that one
+         sitting and is gone the moment the contract is read back. This record
+         is DURABLE, though, so the strip went on saying the brief was written
+         for ever while the card beside it correctly said there was none.
+
+         THE CACHING RULE IS RIGHT AND IS UNTOUCHED. What was wrong is this
+         summary claiming a reading the record does not hold. A cut-short brief
+         is recorded as NOT DONE, with the reason, so the strip and the card
+         agree and the strip tells the reader the one thing they can act on.
+
+         AND THE SUMMARY LINE GOES WITH IT, deliberately: it was drawn from a
+         brief nobody can now open, and a one-line précis of something that is
+         not there is the contradiction this fixes rather than a consolation
+         for it. */
+      else if (r && r.truncated) t.steps.brief = { ok: false,
+        why: (typeof i18t === 'function') ? i18t('tri_brief_cut') : '' };
       else if (r) t.steps.brief = { ok: true, line: triageBriefLine(r), cut: o.notice || '' };
       else t.steps.brief = { ok: false, why: (typeof i18t === 'function') ? i18t('tri_no_answer') : '' };
     }catch(e){ t.steps.brief = { ok: false, why: String(e && e.message || e) }; }

@@ -2912,8 +2912,35 @@
      scroll — and the card sizing to its own content is what keeps a short one
      looking finished. The .kt-side-card rules below (a flex column whose list
      scrolls) are untouched and still do their job inside whatever height the
-     card ends up with. */
-  .terms-grid #kt-side > .kt-side-card{ flex:0 1 auto; }
+     card ends up with.
+
+     ---- AND SHRINK IS 0, WHICH IS WHAT MAKES THAT SENTENCE TRUE
+          (owner-reported 10 Sep 2026, off two screenshots: "it looks like
+          buttons and cards are not aligned and they overlay on each other or
+          buttons are not in the cards they are supposed to be in") ----
+
+     IT WAS `flex:0 1 auto` — do not grow, DO SHRINK — and every card here also
+     carries `min-height:0`, so a column whose cards add up to more than the
+     height available did not scroll: flexbox SHRANK the cards first, each one
+     below the height its own content needs, and the content then spilled out of
+     its box and drew over the card beneath.
+
+     MEASURED on the reported shape (a renewal card carrying a paragraph of
+     advice, at 1500x720): the column needed 492px and had 457; the brief card
+     was squeezed to 75px against the 96 its content needs, so its "Write brief"
+     button hung 21px BELOW its own card and overlapped the Agreement family
+     card by 9 — which is the owner's screenshot, where the word "Write" sits on
+     top of the heading "Agreement family".
+
+     WITH SHRINK AT 0 the cards keep their content height, the column's
+     scrollHeight finally exceeds its clientHeight, and the `overflow-y:auto`
+     two rules up does the job it was put there to do. IT IS THE WHOLE COLUMN,
+     not only `.kt-side-card`: `#renewal-host` is a plain div and carried the
+     default shrink of 1, so it could be crushed the same way by a card added
+     later. Nothing in this column has an inner scroller that relies on being
+     shrunk — the obligations list, which did, left for the Checks card in
+     August. */
+  .terms-grid #kt-side > *{ flex:0 0 auto; }
   /* The handle sits IN the gap it is dividing: it is the whole middle track, so
      there is no separate gutter to keep in step with it. Its grab area is the
      track's full width and the line it draws is 1px in the middle of that. */

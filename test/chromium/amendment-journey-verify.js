@@ -448,6 +448,73 @@ const VISIBLE = `(el) => {
       !signed.playbook && !signed.risk,
       `playbook ${signed.playbook} · risk ${signed.risk}`);
 
+    /* ================================================================
+       NO CARD IN THIS COLUMN IS CRUSHED (owner-reported 10 Sep 2026)
+       ----------------------------------------------------------------
+       "In the key terms tab, it looks like buttons and cards are not aligned
+       and they overlay on each other or buttons are not in the cards they are
+       supposed to be in."
+
+       IT HAS TO BE MEASURED, and it has to be measured at a height where the
+       column does not fit — that is the whole state. The cards carried
+       flex-shrink:1 and min-height:0, so a tall column did not scroll: flexbox
+       shrank each card below the height its own content needs and the content
+       drew over the card beneath. At 1000px on the seeded book there is room
+       for everything and nothing overlaps either way, which is why this
+       section makes its own crowding first: a renewal card carrying a
+       paragraph of advice, which is what the reported contract had.
+
+       THE CLAIM IS GEOMETRY, three ways: no card's content exceeds its own
+       box, every card's box ends before the next one starts, and the brief's
+       own button is inside the brief's own card. A class check would pass on a
+       page where every one of those was false. */
+    await page.setViewportSize({ width: 1500, height: 720 });
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
+    await page.waitForTimeout(900);
+    await page.evaluate(() => {
+      const host = document.getElementById('renewal-host');
+      if (host) host.innerHTML = '<section class="kt-side-card" style="background:var(--color-surface);'
+        + 'border:1px solid var(--color-divider);border-radius:4px;padding:13px 15px">'
+        + '<h6>Renewal</h6><p>' + ('This is a fixed-term mutual NDA tied to a specific possible '
+        + 'transaction that expired in 2012 and has no renewal mechanism, so it should simply be '
+        + 'left to lapse. ').repeat(4) + '</p><button class="ui-btn">Think again</button></section>';
+    });
+    await page.waitForTimeout(500);
+    const crowded = await page.evaluate(() => {
+      const side = document.getElementById('kt-side');
+      if (!side) return null;
+      const R = el => { const r = el.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
+      const kids = [...side.children].filter(k => k.getBoundingClientRect().height > 0);
+      const btn = document.querySelector('[data-kt-brief]');
+      const brief = document.getElementById('brief-card');
+      return {
+        n: kids.length,
+        /* THE COLUMN REALLY IS OVER-FULL — without this the section proves
+           nothing, because nothing overlaps when everything fits. */
+        overFull: side.scrollHeight > side.clientHeight + 1,
+        crushed: kids.filter(k => k.scrollHeight > k.clientHeight + 1)
+          .map(k => (k.id || k.className) + ' needs ' + k.scrollHeight + ' has ' + k.clientHeight),
+        overlaps: kids.slice(1).filter((k, i) => R(kids[i]).bottom > R(k).top)
+          .map(k => k.id || k.className),
+        btnOut: !!(btn && brief && R(btn).bottom > R(brief).bottom + 1),
+        btnGap: (btn && brief) ? Math.round(R(brief).bottom - R(btn).bottom) : null,
+      };
+    });
+    check('the Key terms column is over-full — the state this is about',
+      !!crowded && crowded.overFull === true && crowded.n >= 3,
+      crowded ? `${crowded.n} cards, over-full: ${crowded.overFull}` : 'no column');
+    check('NO CARD IS SQUEEZED BELOW ITS OWN CONTENT',
+      !!crowded && crowded.crushed.length === 0,
+      crowded ? (crowded.crushed.join(' | ') || 'none') : '');
+    check('and no card draws over the one beneath it',
+      !!crowded && crowded.overlaps.length === 0,
+      crowded ? (crowded.overlaps.join(' | ') || 'none') : '');
+    check('the brief\'s own button is inside the brief\'s own card',
+      !!crowded && crowded.btnOut === false,
+      crowded ? `${crowded.btnGap}px of card below the button` : '');
+    await page.setViewportSize({ width: 1500, height: 1000 });
+
     check('still no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) {
     check('the run completed', false, e.message);

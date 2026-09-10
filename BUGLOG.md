@@ -11131,3 +11131,96 @@ Lint unchanged (4 pre-existing errors, identical on the parent).
   findings and jumping out after the first would strand the rest, and the rail
   is already on the negotiation with the clause in view. Only the panel's Apply
   was in the ask.
+
+## 10 Sep 2026 — the Key terms column stops crushing its own cards, and a brief that was not kept stops being called written (segment 4 of 6)
+
+Three of the owner's thirteen, and two of them are one fault seen from two ends.
+
+THE CARDS OVERLAPPED BECAUSE THE COLUMN DID NOT SCROLL. "In the key terms tab,
+it looks like buttons and cards are not aligned and they overlay on each other
+or buttons are not in the cards they are supposed to be in." The column has had
+overflow-y:auto since the divider was built and it had never once been able to
+use it: the cards were given flex:0 1 auto — do not grow, DO SHRINK — and every
+one of them also carries min-height:0, so flexbox squeezed each card below the
+height its own content needs instead of letting the column scroll, and the
+content then spilled out of its box over the card beneath. MEASURED on the
+reported shape at 1500x720, a renewal card carrying a paragraph of advice: the
+column needed 492px and had 457, the brief card was squeezed to 75 against the
+96 its content needs, and its Write brief button hung 21px BELOW its own card
+and 9px into the Agreement family card — which is the screenshot, where the word
+"Write" sits on top of the heading "Agreement family". With shrink at 0 the
+cards keep their content height, scrollHeight finally exceeds clientHeight, and
+the rule that was already there does the job it was put there to do.
+
+IT IS THE WHOLE COLUMN, NOT ONE CLASS. #renewal-host is a plain div and carried
+the default shrink of 1, so a card added inside it later could be crushed the
+same way by a rule nobody would think to look at. Nothing in that column has an
+inner scroller that relied on being shrunk — the obligations list, which did,
+left for the Checks card in August — and the card's own inner rules (a flex
+column whose list scrolls) are untouched and still do their job inside whatever
+height the card ends up with.
+
+THE CLAIM IN THE MAP WAS RIGHT ABOUT THE HEIGHT AND WRONG ABOUT THE VALUE, so it
+is reversed in place rather than added beside: "the column takes the height, the
+card in it takes its content" is exactly the intention, and 0 1 auto is not how
+you say it.
+
+AND A READING THAT WAS NOT KEPT WAS BEING CALLED WRITTEN. "contract brief in the
+top highlight says brief written but as you can see on the bottom highlighted
+area on the contract brief, I had to click write brief for a second time. This
+should not be the case if it was already written before." BOTH HALVES WERE
+TELLING THE TRUTH ABOUT DIFFERENT THINGS, which is why it read as a broken card
+rather than as a wrong sentence. A brief the provider CUT SHORT is deliberately
+not written to the briefs table — the route's own note says why, in its own
+words: the reader is told, and the next press asks again rather than being
+handed a permanent half-answer — so it lives for one sitting and is gone the
+moment the contract is read back. The triage record is DURABLE, so the strip
+went on saying the brief was written for ever while the card beside it correctly
+said there was none. REPRODUCED end to end against a real server with a provider
+scripted to cut the answer short: the response says truncated and carries its
+notice, and the next read of the contract carries no brief at all.
+
+THE CACHING RULE IS RIGHT AND IS UNTOUCHED, and f280 (4) pins it so this cannot
+be "fixed" the other way round — caching a half-answer would hand the reader a
+permanent one. What was wrong is the summary claiming a reading the record does
+not hold. A cut-short brief is recorded as NOT DONE with its reason, and the
+reason names the one thing the reader can act on. THE SUMMARY LINE GOES WITH IT,
+deliberately: it was drawn from a brief nobody can now open, and a one-line
+précis of something that is not there is the contradiction this fixes rather
+than a consolation for it. THE ORDER IS THE FIX — the truncated branch is asked
+BEFORE the ordinary success one, or a cut-short answer still lands as written,
+and the test asserts the ordering rather than only the branch. It is the brief
+alone: the risk scan, the standards pass and the obligations reader are
+untouched, and the strip still says this contract was read.
+
+THE TILE NEEDED NO SECOND RULE AND NO BROWSER RESTAGING. triageTiles is a pure
+reading of the step, so a step recorded not-done takes the could-not head and
+prints its reason wherever it is drawn — asserted as that RELATION rather than
+as one rendering of it. Restaging auto-triage-verify would have meant giving
+that file a scripted truncating provider, which is a whole new staging to prove
+something the relation already carries.
+
+Verified: node 6179/6179. f280 13/13, and 5 of its 7 blocks fail in a worktree at
+the parent — headline "the strip may not say written about a brief the record
+does not hold". Its other two are CONTROLS and pass either way on purpose: the
+column still scrolls, and the server's caching rule is unchanged.
+amendment-journey-verify 53/53 with 4 new geometry checks, and at the parent 2 of
+them fail reporting the owner's screenshot as numbers — "brief-card needs 96 has
+73" and a button "-22px of card below" it. auto-triage-verify 32/32 and
+white-band-and-tabs 36/38 (identical at the parent). Lint unchanged (4
+pre-existing errors, identical on the parent).
+
+### Noticed, not fixed
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next, twice
+  each) in js/i18n.js. Identical on the parent; outside this request.
+- white-band-and-tabs-verify 5d/5e are red on main and were before this work: the
+  register's list titles compute lineHeight 20px against the reference's 19.6.
+  Identical at the parent; outside this request.
+- Within the one sitting a cut-short brief IS still handed back and the card
+  shows it, while the strip now says it was not kept. Both are true — the route
+  deliberately hands the partial answer over once — but a reader could meet the
+  two in one breath. Making the card refuse it too would change what somebody
+  pressing Write brief themselves gets, which was not in the ask.
+- The brief's own audit line is still written for a cut-short answer, so the
+  trail says a brief was written by Copilot on a contract that holds none.
+  Same family; outside this request.

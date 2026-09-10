@@ -410,12 +410,13 @@ Tests: f154 (model/gate/wall/renderers/payload), f155 (notifications), f156 (pic
 
 ## KEY TERMS HAS A DIVIDER, AND THE RIGHT-HAND CARD SCROLLS (owner-asked 19 Aug 2026)
 
-"Keep the size of the card on the left intact and next changes the size. Add a divider between the two cards so that you can scroll on the right hand side especially when you can ran a renewal reason." THREE TRACKS in `.terms-grid` — card · handle · card — and this REVERSES "the two cards square off" for this grid: squaring off was right while the slot beside Key terms held a short list, and wrong the moment it can hold a paragraph of reasoning, because the card that grows drags Key terms up with it and its own content runs off the bottom of the window. The RIGHT column stretches to the grid and scrolls inside itself (`#kt-side` — the grid takes the pane's height via flex:1/min-height:0, which is what gives it a bound to scroll inside); the LEFT card is its own height again. **THE COLUMN TAKES THE HEIGHT, THE CARD IN IT TAKES ITS CONTENT** (`.terms-grid #kt-side > .kt-side-card{flex:0 1 auto}`) — measured on the real page: stretched as well, a short Agreement family card became a floor-to-ceiling box with a paragraph at the top of it. The column is what has to be tall, because that is what gives a long card somewhere to scroll.
+"Keep the size of the card on the left intact and next changes the size. Add a divider between the two cards so that you can scroll on the right hand side especially when you can ran a renewal reason." THREE TRACKS in `.terms-grid` — card · handle · card — and this REVERSES "the two cards square off" for this grid: squaring off was right while the slot beside Key terms held a short list, and wrong the moment it can hold a paragraph of reasoning, because the card that grows drags Key terms up with it and its own content runs off the bottom of the window. The RIGHT column stretches to the grid and scrolls inside itself (`#kt-side` — the grid takes the pane's height via flex:1/min-height:0, which is what gives it a bound to scroll inside); the LEFT card is its own height again. **THE COLUMN TAKES THE HEIGHT, THE CARD IN IT TAKES ITS CONTENT** (`.terms-grid #kt-side > *{flex:0 0 auto}`) — measured on the real page: stretched as well, a short Agreement family card became a floor-to-ceiling box with a paragraph at the top of it. The column is what has to be tall, because that is what gives a long card somewhere to scroll.
 
+- **AND SHRINK IS 0, WHICH IS WHAT MAKES THAT SENTENCE TRUE — REVERSED IN PLACE 10 Sep 2026** (owner-reported, off two screenshots: *"it looks like buttons and cards are not aligned and they overlay on each other or buttons are not in the cards they are supposed to be in"*). **THE RULE ABOVE WAS RIGHT ABOUT THE HEIGHT AND WRONG ABOUT THE VALUE.** It said `flex:0 1 auto` — do not grow, DO SHRINK — and every card here also carries `min-height:0`, so a column whose cards add up to more than the room available **did not scroll**: flexbox shrank each card below the height its own content needs, and the content then spilled out of its box and drew over the card beneath. **MEASURED on the reported shape** (a renewal card carrying a paragraph of advice, at 1500x720): the column needed 492px and had 457; the brief card was squeezed to 75 against the 96 its content needs, so its Write brief button hung **21px below its own card and 9px into the Agreement family card** — which is the screenshot, where the word "Write" sits on top of the heading "Agreement family". With shrink at 0 the cards keep their content height, `scrollHeight` finally exceeds `clientHeight`, and the `overflow-y:auto` already on the column does the job it was put there to do. **IT IS THE WHOLE COLUMN, not only `.kt-side-card`**: `#renewal-host` is a plain div and carried the default shrink of 1, so it could be crushed the same way by a card added later. Nothing here has an inner scroller that relied on being shrunk — the obligations list, which did, left for the Checks card in August.
 - **IT IS THE NEGOTIATION PAGE'S DIVIDER, IN ITS OWN GRID** — deliberately the same mechanism, never a second one: `ktFitSplit` / `ktWireSplit` mirror rlLayoutResizer line for line, so the fraction comes from where the POINTER IS inside the grid (never distance travelled — that is what made the other handle fall behind the cursor and gave it a dead band), both halves ask `_ktAvail` for the geometry, the limits show in amber when they bite, arrow keys move it 2%, and a double-click puts it back. KT_LEFT_MIN 320 / KT_RIGHT_MIN 300; stored per browser at `hati.v1.ktLeftFrac`.
 - **THE STORED FRACTION IS READ, NEVER WRITTEN, WHERE IT CANNOT BE HONOURED** (the nav drawer's rule): below 980px the layout stacks, `ktStacked()` asks the WINDOW the stylesheet's own question, the inline columns are cleared and nothing is saved — a phone-width sitting cannot quietly reset a split set on a laptop.
 - Bound ONCE per element (`dataset.ktSplitBound`) because wireKeyTerms runs from renderKeyTerms AND from the room's own wiring — the trap the stream picker beside it already records. A ResizeObserver on the grid re-fits when the pane stops being `display:none`, which is the only time the first measurement is a zero.
-- Tests: f176's third block reversed in place, amendment-journey-verify (the two heights, the right column proved to scroll and to end inside the pane, and **the divider dragged with a real pointer** with the split proved remembered).
+- Tests: f176's third block reversed in place, f280 (1)-(2) (the rule and the scroller it rests on, as a PAIR — cards that cannot shrink are only safe because the column can scroll), amendment-journey-verify (the two heights, the right column proved to scroll and to end inside the pane, **the divider dragged with a real pointer** with the split proved remembered, and — since flex-shrink has no answer until something is laid out — **the over-full column measured card by card**, which reports the owner's screenshot as a number against the parent: `brief-card needs 96 has 73` and a button `-22px` below its own card).
 
 ## AN AMENDMENT IS WRITTEN HERE, NOT ONLY FILED HERE (js/family.js, owner-asked 14 Aug 2026)
 
@@ -11158,6 +11159,40 @@ failed as SILENCE or as the wrong sentence rather than as an error.**
   JSON-only and reported the prose as the code**: end a slice at the function's
   own last line.
 
+**AND A READING THAT WAS NOT KEPT IS NOT RECORDED AS DONE (owner-reported
+10 Sep 2026).** *"contract brief in the top highlight says brief written but as
+you can see on the bottom highlighted area on the contract brief, I had to click
+write brief for a second time. This should not be the case if it was already
+written before."*
+
+- **BOTH HALVES WERE TELLING THE TRUTH ABOUT DIFFERENT THINGS, and that is what
+  made it look like a broken card rather than a wrong sentence.** A brief the
+  provider CUT SHORT is deliberately **not written to the briefs table** — the
+  route's own note says why in its own words, *"the reader is told, and the next
+  press asks again rather than being handed a permanent half-answer"* — so it
+  exists for that one sitting and is gone the moment the contract is read back.
+  **The triage record is DURABLE**, so the strip went on saying the brief was
+  written for ever, while the card beside it correctly said there was none.
+- **THE CACHING RULE IS RIGHT AND IS UNTOUCHED**, and f280 (4) pins it so this
+  cannot be "fixed" the other way round: caching a half-answer would hand the
+  reader a permanent one, which is worse than asking again. What was wrong is
+  the SUMMARY claiming a reading the record does not hold.
+- **AND THE SUMMARY LINE GOES WITH IT, deliberately.** It was drawn from a brief
+  nobody can now open, and a one-line précis of something that is not there is
+  the contradiction this fixes rather than a consolation for it. The step
+  carries the reason instead, and the reason names **the one thing the reader
+  can act on** — write it again.
+- **THE ORDER IS THE FIX.** The truncated branch is asked BEFORE the ordinary
+  success one, or an answer that was cut short still lands as written; f280 (3)
+  asserts the ordering rather than only the branch.
+- **THE TILE FOLLOWS BY CONSTRUCTION**, which is why this needed no second rule
+  and no browser restaging: `triageTiles` reads the step, so a step recorded
+  not-done takes `TRIAGE_HEADS.brief.no` and prints its reason wherever it is
+  drawn. Asserted as that RELATION in f280 (6).
+- **IT IS THE BRIEF ALONE.** A cut-short brief must not read as a failed triage
+  — the strip's headline asks whether ANYTHING was read, and the risk scan, the
+  standards pass and the obligations reader are untouched by it.
+
 **AND WHAT WAS READ IS ON THE CONTRACT ITSELF (owner-ruled 9 Sep 2026, off
 three drawn options).** *"it still lands in the key terms page and I then have
 to go back to the home page which is not ideal"* — and the answer chosen was to
@@ -11278,7 +11313,8 @@ reading a second time.
 somebody sent you; the card is not on the phone; and nothing about it reaches
 the counterparty, asserted rather than assumed.
 
-Tests: f273 (59 — the runner's order, the three quiet readers, the empty
+Tests: f280 (3)-(7) for the cut-short brief — the branch, its ordering, the caching rule it rests on, the tile that follows it, both languages, and the reproduction against a real server with a provider scripted to cut the answer short (the CONTROL first: a whole brief IS kept, or "nothing was kept" passes against a server that keeps nothing) — plus
+f273 (59 — the runner's order, the three quiet readers, the empty
 document proved to spend nothing, the obligations proved HELD and not filed,
 the named floor with its three readers, the card's reading, the headline
 following that reading, the acknowledgement as an act, and both languages; the
