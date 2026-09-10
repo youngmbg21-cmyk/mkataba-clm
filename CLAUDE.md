@@ -1846,6 +1846,435 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## ONE CLAUSE, ONE PAIR OF HANDS (Young asked 10 Sep 2026)
+
+*"to avoid collisions as far as multiple people editing the same clause, could
+we make it so that when user 1 is editing clause 5, it is locked to others until
+user 1 is out. When user 2 tries to click on the pencil symbol, they see the
+initials of User 1 and a short small line saying 'Locked by R. C.' or something
+to that effect?"*
+
+**TWO COLLEAGUES ON OUR OWN SIDE BOTH HAVE THE RIGHT TO REDLINE** — the desk
+already decides who does — and nothing stopped them opening the same clause in
+the same minute. The second one to file put a revision over wording the first
+was still writing, and neither was told.
+
+- **IT IS AN ADVISORY AND IT IS SAID SO PLAINLY, which is what makes it safe.**
+  Nobody is denied a right they had; what is prevented is two people walking
+  into each other by accident. That is why it EXPIRES after two minutes, why
+  every refusal NAMES who holds it, and why a holder always lets go on the way
+  out.
+- **IT ADDS NO ROUTE AND NO TABLE.** `c.locks` is an ordinary field, **absent on
+  every record already on file — the whole migration story** — so it rides the
+  ordinary save every other act on this page already makes. A route of its own
+  would be a second way for two browsers to disagree about one contract.
+- **AND IT NEVER TRAVELS.** Who on our side is typing is the most internal fact
+  there is. `buildSharePayload` is an allow-list builder and does not carry it,
+  so their page holds none **by construction**; the reading refuses `PORTAL_MODE`
+  outright besides, so a payload hand-built by somebody else still could not put
+  a colleague's initials in front of the counterparty. f289 asserts both.
+- **THE PENCIL IS THE SIGN AND THE EDITOR'S DOOR IS THE WALL**, and that split is
+  what makes it a rule rather than a decoration: **FOUR other doors reach the
+  editing page without passing the pencil** — the card's Edit, the sparkle on a
+  tracked change, the clause panel's Copilot button, and the clause dropdown at
+  the top of the editor. A rule kept at one of five is not a rule. Said out loud:
+  **only the pencil carries the monogram**; the other four refuse in words naming
+  the holder, which is the ask answered exactly and no wider.
+- **THE SIGN TAKES THE PENCIL'S OWN CORNER AND IS NOT A BUTTON.** Two controls in
+  one corner would mean a pencil that looks pressable over a sentence saying it
+  is not — the dead press this builder already refuses one line up — and Young's
+  own words are that the reader reaching for the pencil finds this instead.
+- **AND IT IS ALWAYS DRAWN, WHERE THE PENCIL IS HOVER-ONLY.** It is a FACT rather
+  than a control, so there is nothing to focus and a hover-only fact is one a
+  keyboard reader never meets; and it draws on one clause for two minutes, which
+  is what stops it becoming the furniture the hover rule was written against.
+  **The label shade, never amber** — amber on this page means work waiting on the
+  reader, and a colleague typing is neither work nor theirs.
+- **THE MONOGRAM AND THE LINE, BOTH**, because Young asked for both by name. The
+  initials are the glance and the line is the sentence; **the whole name is on
+  the hover**, because two colleagues can share a monogram and who holds a clause
+  must be readable rather than guessed at. It is the same fact twice, which this
+  rulebook ordinarily warns against — **an owner ruling outranks a system rule on
+  the element it names.**
+- **ASKED ONCE, IN THE BUILDER**, beside the reading that refuses a pencil on a
+  reading — so the four clause branches and the clause editor's own paper cannot
+  come to disagree about who holds a clause, and a surface written later inherits
+  it rather than having to remember it.
+- **NOBODY SIGNED IN IS REFUSED NOTHING AND SHOWN NOTHING**, and both readings say
+  so: a preview, a test world and the sign-in screen behave exactly as they did
+  before this existed. Two readings that disagreed about whether the machinery is
+  on would be a stage that draws a lock it then lets you walk straight through.
+- **LETTING GO IS ONLY EVER YOUR OWN.** `clauseLockRelease` refuses somebody
+  else's, which is the one way this feature could take a clause off a colleague
+  who is holding it correctly — exactly what happens when two browsers race.
+- **THE SERVER IS THE WALL BEHIND BOTH**, asked of the STORED contract and as a
+  DIFFERENCE like every guard around it: which clauses did this save add, reword
+  or re-decide one of OUR changes on, and does another member hold one. A save
+  that leaves our changes alone passes untouched — which is every save that
+  merely refreshes a lock, records a decision or moves a field. **Deliberately
+  narrow**: our own side's wording, the same scope the desk guard beside it
+  draws, because two people DECIDING at once is a different collision and was not
+  what was asked about.
+- **A HEARTBEAT, BECAUSE A READER CAN WRITE FOR TWENTY MINUTES WITHOUT
+  BLURRING.** One interval at well under half the window, started at the door and
+  stopped at the door out. It costs one small save a minute while an editor is
+  open, **and that is what makes the lock visible to anybody but its holder** — a
+  lock held in one tab is a note to yourself. A pull refreshes the stamp in
+  memory only, which is free.
+- **A SEALED RECORD TAKES NO COURTESY WRITE** — `aiNoteRead`'s own lesson, one
+  field along. Unreachable in practice, because the editor refuses an executed
+  contract outright, and one line to close rather than a fault waiting for the
+  day another door reaches this.
+
+**WHAT IT DOES NOT DO, said out loud: it is not pushed.** A colleague sees the
+lock when their browser next reads the contract, so two people who open the same
+clause within a few seconds of each other can still both get in. That is why the
+SERVER refuses the second one's filing rather than the browser being trusted, and
+it is why this is an advisory rather than a promise. **The refusal happens before
+anything is written, so the loser's draft is still in the box they are looking
+at.**
+
+Tests: f289 (26 — **25 of them fail against the parent**; the one that passes
+is the share payload, a named CONTROL whose job is to fail the day somebody
+puts a colleague's initials on the wire), redline-verify section 25 (11,
+browser — **8 fail against the parent, the headline one reporting Young's own
+report as a fact: the editor OPENS on a clause a colleague is holding**. It is
+the only place three of these can be asked at all — whether the monogram is
+VISIBLE PIXELS where the pencil would be, whether the pencil is really gone
+rather than merely covered, and whether the ink is the label shade rather than
+amber. Every driven half is guarded, so a build without the feature REPORTS
+its failures rather than throwing on the first line).
+
+## THE PLAIN ENGLISH EDITION IS SET LIKE THE CONTRACT (Young ruled 10 Sep 2026)
+
+*"Can we also make the page for plain english have a similar structure so you
+almost do not notice a difference except plain english will be sitting on a
+plain white background"*, and then, on the one question that needed a ruling:
+*"Dropping copilot headings makes sense."*
+
+**THE HEADINGS ARE THE DRAFTER'S OWN AND THE MODEL IS NO LONGER ASKED FOR ONE.**
+The edition is a TRANSLATION of this contract, so its headings are this
+contract's; a model-written heading beside the drafter's is a second name for
+one clause, and the two disagree the moment it is renamed.
+
+- **THE FIELD IS GONE FROM THE SCHEMA AND THE PROMPT SAYS WHY** — *do not write
+  headings, each entry is drawn under the contract's own heading and number*.
+- **NOTHING ALREADY READ IS PAID FOR AGAIN**, and that is a fact about the cache
+  rather than luck: the route's key is a hash of the LANGUAGE and the WORDING it
+  was sent, never of the prompt. A reading cached with a heading keeps it on the
+  record and simply stops being drawn.
+- **A SECTION ROW SURVIVES WITHOUT ONE.** It used to be kept only where the
+  model had written a heading — with headings no longer asked for, that test
+  would have dropped every section title out of the edition. A section is kept
+  because it IS one.
+- **`ownHead` IS ITS OWN FIELD, not `heading` re-used.** `heading` is a READING
+  the pairing guard and the route use, and for a marked clause number it is only
+  the first few words; the name to PRINT is the drafter's. A marked number has
+  no element of its own to read a bold lead-in out of, so the lead-in is looked
+  for at the start of what FOLLOWS it, in a COPY of that range — and where there
+  is none the entry carries no heading, which is honest: that clause has none on
+  the paper either.
+- **`_docReadHeadCut` CUTS THE NUMBER AND THE NAME ONCE.** They are printed in
+  different places — the number as a citation in its own gutter, the name beside
+  it — and cutting the string twice is how one heading comes to be printed with
+  its number and again without. `_docReadHeadNum` is now half of that reading.
+
+**AND THE EDITION BORROWS THE PAPER'S OWN SKELETON**: the same gutter and the
+same steps, in the SAME vocabulary — `hati-lv-N`, which the Word reader writes
+off a file's own indent, the writing bar writes off a press, and the gutter walk
+derives from a marker. A second ladder here would be a fourth opinion about how
+wide a step is.
+
+- **THE SHAPE IS READ OFF THE PAGE, NEVER STORED IN THE READING.** A reading is
+  cached against the WORDING, and a clause can be indented without a word
+  moving — so a stored shape would go stale under a reader while the paper in
+  front of them said otherwise. `docReadShape` asks the DOM and nothing else,
+  walking UP because a marked clause number is a span inside the paragraph that
+  carries the class.
+- **THE WHITE SHEET WAS ALREADY DONE** (Young, the same day) and is untouched.
+
+Tests: f277 (13) (7 — **5 fail against the parent**), plain-english-verify
+section 12 (5, browser — the model scripted with headings NOTHING like the
+paper's, so a pass cannot be the two agreeing by accident).
+
+## THE STRUCTURE GOES OUT AS WELL AS IN (Young asked 10 Sep 2026)
+
+*"Can we also ensure that when exported to Microsoft Word, the structure is not
+lost nor is the spacing."*
+
+J-3.2 taught the writer headings, numbering and tables; what it still threw away
+was the PAGE GEOMETRY — and once the reader learned to keep it, a contract that
+arrived correctly set left again as a flat run of paragraphs. MEASURED on Young's
+own agreement: 23 indented lines, 73 hanging markers, 5 page breaks and 18
+contents rows went in and **not one came out**.
+
+- **A HANGING INDENT IS THREE THINGS AND THE WRITER EMITTED NONE OF THEM**: a
+  real `w:ind` with a hanging measure, a left TAB STOP at the hanging point, and
+  **a real TAB between the marker and the wording**. Without the stop Word
+  advances to its own default and the whole second column of an agreement is out
+  of line.
+- **AND THE TAB WAS THE CRUX.** The tokeniser collapsed every run of whitespace
+  to a space, so even with an indent the wording would have sat against the
+  number. `_dxSpace` collapses whitespace as HTML does and **keeps a tab**,
+  spaces either side going with it; `_dxRun` emits `w:tab` inside the run, which
+  is a run child in OOXML, so the run keeps its own dressing across the break.
+- **THE SHAPE IS READ OFF THE MARKUP, NEVER RE-DERIVED.** `hati-lv-N` is where
+  the line sits, `rl-hang` says the marker is in a gutter, `hati-tight` that the
+  line has no space after it, `hati-pb` that a page ends there, `hati-toc` that
+  the line has a right-hand number. Asking `redlineSplitMarker` again would be a
+  cross-module read this file cannot make at load AND a second reading that
+  could drift from the class the paper is drawn by.
+- **`DOCX_STEP` IS WORD'S OWN HALF INCH**, which is what this writer already
+  used for a list paragraph, so an exported contract lines up with everything
+  else Word sets. `DOCX_TOC_STOP` is DERIVED from the section this writer's own
+  `DOCX_SECT` sets — the page less its two margins — so a page-size change moves
+  the contents page's numbers with it.
+- **THE DEFAULT SPACING BELONGS TO THE STYLE, NOT TO EVERY PARAGRAPH.** `Normal`
+  carries `after="160"` and a line rule; a Word default of nothing runs the whole
+  agreement together. Headings gained air above and `keepNext`, so a clause
+  heading cannot be left alone at the foot of a page.
+- **A CLAUSE STRUCK WHOLE TAKES ITS PARAGRAPH MARK WITH IT.** Word marks the
+  paragraph MARK as deleted separately from the words, and without it a reviewer
+  accepts every change and is left tidying empty paragraphs out of a document we
+  sent them. **Only where every run is a deletion** — accepting an ordinary edit
+  must never delete the clause.
+- **WHAT IS STILL DELIBERATELY NOT CARRIED IS UNCHANGED**: fonts, page size,
+  margins, headers, footers and images. Those belong to a printed page, and the
+  writer's own list has said so since J-3.2.
+
+**PROVED AS A LOOP ON THE OWNER'S OWN CONTRACT, which is the only way this claim
+can be made**: read, drawn as the paper draws it, exported, and READ BACK through
+the real reader — 23 levels, 5 page breaks, 13 headings, 5 tables and 18 contents
+rows in and the same out, with the words identical.
+
+Tests: f288 (12 — **9 fail against the parent**, the headline one reporting a
+clause number welded to its wording).
+
+## THE BAR SPEAKS THE CONTRACT'S OWN LANGUAGE (Young asked 10 Sep 2026)
+
+*"When I begin to make written edits with the tools I have been provided, they
+do not match up with the document itself. The bullet points do not work together
+with how the sentences or bullets points in the contract are designed. They do
+not speak the same language."*
+
+**THERE WERE TWO RIVAL WAYS TO INDENT A LINE AND THE BAR SPOKE THE WRONG ONE.**
+A contract in this product is a marker in a hanging gutter — 2.1, (a), a bullet
+— with the wording hanging beside it; that is what the paper draws, what the
+text projection carries and what the redline files. The four list tools called
+`document.execCommand`, which builds a browser `<ul>` at its own padding. So a
+limb typed with the bar sat at a different indent from the limb above it,
+carried a marker the projection numbered differently, and could not be continued
+from.
+
+- **IT WRITES CHARACTERS, NOT MARKUP.** A marker put in by the bar is text in
+  the paragraph, character for character what the reader would have typed — so
+  the projection the redline diffs against carries it, the gutter walk finds it,
+  and **a marker HaTi wrote is indistinguishable from one the other side did**.
+  A marker that lived in markup would be invisible to the diff, so the other
+  side would never see the line become a bullet.
+- **THE LEVEL IS THE ONE THE PAPER ALREADY DRAWS** — `hati-lv-1..3`, the same
+  class the Word reader writes from a file's own indent. One vocabulary.
+- **THE READING OF WHAT A MARKER IS HAS EXACTLY ONE HOME.** The bar asks
+  `redlineSplitMarker` through `window`; a second pattern here is how the bar
+  would come to write something the gutter does not recognise.
+- **NUMBERS CONTINUES THE CONTRACT'S OWN SEQUENCE** — the nearest block ABOVE
+  sitting at the same step and wearing the same kind of marker. It stops at a
+  heading, a shallower step or an unmarked paragraph, because a run that has
+  been interrupted has started again: a number carried across it would cite a
+  clause that is not there.
+- **THE MARKER SHAPE FOLLOWS THE STEP, as legal drafting sets one**: 2.1, then
+  (a), then (i). Level 3 falls back to a bracketed number rather than repeating
+  (i), so a reader can still tell the two apart.
+- **A PLAIN SENTENCE MOVES**, which is most of what a reader indents; the old
+  tools only ever moved a list item.
+- **A BULLET FOLLOWS THE STEP AND A NUMBER NEVER DOES.** The glyph ladder is
+  this product's own reading of how deep a bullet is, so a dot left at the wrong
+  rung would say one thing while the step said another. **A number is a
+  citation** — "subject to clause 2.1" — and nothing that moves a line sideways
+  may rewrite it.
+- **BOTH TOOLS ARE STILL TOGGLES**, judged on the FIRST block so a mixed
+  selection lands one way rather than alternating down the page.
+- **AND THE ELEMENT A CUT MARKER LEAVES BEHIND GOES WITH IT.** Word writes a
+  clause number bold, so cutting its characters out of a `<strong>` leaves an
+  empty one — which the sanitiser would clear on save, and which until then is
+  an invisible box the reader's next keystroke lands inside and comes out bold.
+- **THE REST OF THE BAR IS UNTOUCHED.** Bold, italic, underline, strike, the
+  inks, the sizes and the quote are `execCommand` exactly as they were, and the
+  four shape tools fall back to it where there is no paragraph to act on — so
+  nothing this bar could do before is lost.
+
+**AND THERE WERE TWO BARS, WHICH IS THE HALF NOBODY REPORTED.** Work mode's went
+through `richBarPress`; the room's own inline editor called `execCommand`
+itself, so the same press produced different wording depending which editor you
+were in. The room asks the one set of hands now. **A second implementation of
+one act is how the two came to speak different languages in the first place.**
+
+**AND A HOST IS TOLD WHICH PRESSES MOVE A SHAPE.** `RICH_SHAPE_KEYS` is those
+four, named once: they owe the paper a repaint — the marker has to land in its
+gutter and the step has to move the line — where a dressing change does not, and
+the sanitiser's own "did I have to correct the box" signal cannot see it,
+because the allow-list keeps a marker and a step class exactly as written. Work
+mode asks that list rather than carrying four names of its own.
+
+**AND THE STEP HAD A SECOND EMITTER, which the browser found and no source check
+could.** `redlineOpsBlocksHtml` — the renderer that draws a filed change's marks
+— stamped its own prefixed `rl-hang-N`, so renaming the class in the gutter walk
+alone left a sub-bullet in a redline drawn level with its parent. **The step is
+NOT prefixed, and that is deliberate**: `rl-line` and `rl-hang` belong to
+whichever surface is drawing, and how far in a line SITS is one fact this
+product states in one vocabulary. **The Compare dialog gains it**: it carried no
+step rule at all and drew a sub-bullet level with its parent, which is one rule
+now that the name is shared.
+
+**IT DECIDES NOTHING AND FILES NOTHING** — `richBarShape` is greppable for every
+funnel and carries none. Whether a change is filed, and through which door,
+belongs to the host, exactly as the rest of this bar already works. **An indent
+with no wording change files as `formattingOnly`** by machinery that already
+exists: `canonicalRich` carries attributes, so a level really is a change to the
+document's shape and the funnel's own no-op guard is untouched.
+
+Tests: f287 (17 — **14 fail against the parent**, the headline one reporting a
+browser `<ul>` where the contract wants a marker).
+
+## THE FILE'S OWN SHAPE SURVIVES THE UPLOAD (Young asked 10 Sep 2026)
+
+*"I downloaded this contract into HaTi and it is well designed but when
+uploaded it looked like the attached images in the document page, so even in
+that sense the contract became unappealing to look at. HaTi Customers will not
+stand for this."*
+
+**A WORD CONTRACT STATES WHERE EACH LINE SITS, WHICH LINES BELONG TOGETHER AND
+WHERE A PAGE ENDS, AND THE READER CARRIED NONE OF IT.** J-3.1 taught it
+headings, numbering and tables; the page GEOMETRY was still thrown away at
+intake. MEASURED on Young's own services agreement before a line was written:
+80 paragraphs with a real hanging indent arrived flush against the margin, 21 of
+them a whole step in from where the drafter put them; 18 contents rows had their
+page numbers welded to the entry, because a tab collapses in HTML; five page
+breaks vanished; and all thirteen clause headings were drawn CENTRED at 1.42em.
+
+- **THE LADDER IS THE FILE'S OWN AND THE STEP IS MEASURED, NEVER TYPED.** Word
+  counts in twentieths of a point and a firm's template steps in 680, 720 or 567
+  (a centimetre), so `docxIndentStep` reads the commonest positive hanging
+  indent off the document. `left - hanging` is where the line BEGINS, which is
+  what a reader sees. Bounded at three: past that a contract is unreadable on a
+  phone, and the deepest limb anybody drafts is (i) under (a) under 2.1.
+- **LEVEL 0 CARRIES NO CLASS**, so an ordinary paragraph is byte-identical to
+  what this reader produced before. **That is the whole migration story**:
+  nothing already uploaded is re-read, and a file that states nothing reads
+  exactly as it did.
+- **THE FILE OUTRANKS THE MARKER, AND THAT IS THE ONE ORDERING THAT MATTERS.**
+  Piece 1's gutter derives a level from the marker, which is the right reading
+  for paper that says nothing; where the drafter MEASURED it, their measurement
+  wins. `redlineHangHtml` adds its gutter and leaves a stated level alone.
+  MEASURED: the party list on that agreement is `(1)`, `(2)` set one step in,
+  and a bracketed number read alone is a limb at the first stop.
+- **ONE STEP VOCABULARY, WHOEVER WROTE IT DOWN.** `hati-lv-1..3` is emitted by
+  the reader from the file and by the gutter walk from the marker, and all three
+  sheets that draw a stored body define it. `rl-hang-2/3` — Piece 1's own second
+  name for the same step — is RETIRED rather than left beside it.
+- **THREE MORE FACTS, EACH READ AND NEVER GUESSED.** `hati-tight` where the file
+  says no space after a paragraph, which is how Word writes a label above its
+  value; `hati-pb` where a page break falls, on the paragraph that carries it,
+  which in a professionally set contract is regularly an empty one; and
+  `hati-toc` where the paragraph declares a RIGHT tab stop, which is Word saying
+  the line has a left entry and a right-hand number.
+- **THE CONTENTS ROW REFUSES RATHER THAN GUESSING.** The tail must be short,
+  unbroken and the last thing in the paragraph's own markup, or the split would
+  fall inside a bold run and move half a sentence to the right wall. **An
+  un-split row reads as an ordinary line; broken markup does not.**
+- **THE ALLOW-LIST IS WIDENED EXACTLY AS THE DRAFTER'S MARKS WIDENED IT AND NO
+  WIDER**: `class` on `P`, filtered against `RICH_SHAPE_CLASSES` — a FIXED SET
+  of named classes, nothing free-form, so a contract can never arrive carrying a
+  size, a colour or a layout this workspace did not choose. `style` is still
+  refused on everything. Per NAME rather than whole-value, because a tight line
+  one step in genuinely is both, where a span is a field OR an ink OR a size and
+  never two. An unknown name is dropped and the half this product wrote is kept.
+- **NOT ONE WORD MOVES.** Every one of these is a class on a block whose content
+  is untouched, so the text projection the redline diffs against is character for
+  character what it was — asserted against the scraper's own output on the same
+  file.
+- **THE CENTRED h1 IS THE DOCUMENT'S OWN TITLE AND NOTHING ELSE.** HaTi's clause
+  model reads a LEADING h1 as the title and every heading after it as a clause,
+  so `.hati-doc > h1:first-child` is centred at 1.42em and every other h1 is a
+  clause heading, left and modest. **The paper now draws it the way the model
+  reads it** — and this is a CSS rule rather than a reader change, so no
+  contract's clause identity moves.
+
+**WHAT IS DELIBERATELY NOT CARRIED, said out loud.** Fonts, sizes, colours,
+margins, headers and footers — Young ruled that HaTi sets its own paper, and the
+writer's own list has said the same since J-3.2. And the **document's own TITLE
+is not guessed**: on this file it is a 24pt run split across two paragraphs, so
+reading it as a title means joining two paragraphs, which is a rewrite of the
+document rather than a reading of it. The cover page is therefore set at one
+size, which is what "HaTi sets its own paper" looks like on a title page.
+
+Tests: f286 (17 — **11 fail against the parent**, the headline one reporting a
+contents row with its page number against the entry), f285's step claim REVERSED
+IN PLACE onto the shared vocabulary, f245's span-class claim RE-POINTED (it
+pinned the reading's whole EXPRESSION where the claim is that there is ONE
+reading and that it is a closed set), upload-structure-verify 18/18.
+
+## ONE GUTTER ON EVERY SCREEN (Young asked 10 Sep 2026)
+
+*"When I begin to make written edits with the tools I have been provided, they
+do not match up with the document itself. The bullet points do not work together
+with how the sentences or bullets points in the contract are designed. They do
+not speak the same language."*
+
+**THE PRODUCT HAD ONE IDEA OF A CONTRACT'S SHAPE AND THREE THINGS IGNORED IT.**
+A marker — `2.1`, `(a)`, a bullet — sits in a fixed gutter and the wording hangs
+beside it; `RL_MARKER` has read one and `.rl-hang` has drawn it since the
+negotiation page was built. What none of it reached is the paper anywhere else.
+
+- **A MARKER SET IN BOLD FELL STRAIGHT THROUGH, WHICH IS MOST OF THE REPORT.**
+  `rlHangRichHtml` matched the plain text immediately after `<p>` — and
+  `<p><strong>2.1</strong>` is what Word writes and what HaTi's own reader
+  stores, so **every numbered clause of an uploaded contract sat flush against
+  the margin**. MEASURED on Young's own services agreement before a line was
+  written: 0 of 73 numbered paragraphs hung.
+- **A LETTERED LIMB HAD NO DEPTH AT ALL**, so `(a)` drew level with the 2.2 it
+  belongs to and the indent that is the only thing on the page saying so was
+  gone. That is the second screenshot.
+- **`renderDocHtml` APPLIED NO GUTTER**, so the Document tab, the counterparty's
+  copy and every preview set one contract differently from the page beside them.
+- **AND THE CLAUSE EDITOR'S TYPING BOX HANDED THE WORDING OVER UNDRESSED**, so
+  the one clause the reader had pressed the pencil on was the one clause whose
+  numbers jumped left, and jumped back when they stopped.
+
+**`redlineHangHtml` IS THE ONE WALK AND IT LIVES BESIDE THE MARKER VOCABULARY.**
+js/redline.js already owns `RL_MARKER`, `redlineSplitMarker` and
+`redlineMarkerDepth`; a second copy of any of them is how the marked half of a
+document (drawn from stored ops) and the unmarked half (drawn from its own
+markup) come apart. Four surfaces ask it and none carries a walk of its own:
+`renderDocHtml`, `rlHangRichHtml` (this page's own name for it, now a caller),
+and both of the clause editor's readings.
+
+- **THE DEPTH IS READ OFF THE MARKER, NEVER STORED.** A number already says
+  where it sits (`2.1`, `3.2.1`), so it takes the first stop; a letter is one
+  step in; a roman is two. **A SINGLE ROMAN IS READ AS A LETTER, said out
+  loud**: `(i)` is the ninth letter as often as it is the first roman and
+  nothing in the marker can tell them apart, so the cost where this is wrong is
+  one step of indent and never a wrong word.
+- **IT REFUSES RATHER THAN EMITTING BROKEN MARKUP.** `<strong>2.1 The Services
+  shall</strong>` puts the wording inside the same element as the marker, so
+  wrapping the head alone would emit crossing tags — the paragraph is returned
+  exactly as it was. **An un-hung line reads as an ordinary paragraph; broken
+  markup does not.**
+- **IT CHANGES NOT ONE CHARACTER OF WORDING** — a class on the paragraph and a
+  span around characters that were already there. The lead is walked across
+  inline markup with each text character's SOURCE index recorded, so an entity
+  counts as one character and only `&nbsp;` is decoded (the one entity that can
+  be a marker's separator).
+- **AND THE MARKER CAN NEVER REACH THE RECORD.** `rl-marker` is not on
+  `richSpanClassOk`'s list, so the sanitiser unwraps it by construction; and
+  `ceBoxHtml` takes the span off the copy it compares — without that, every pull
+  reports the box as corrected and repaints the paper under the caret. The
+  span's CHARACTERS stay, because the marker IS part of the wording.
+
+Tests: f285 (16 — **14 fail against the parent**, the headline one reporting a
+bold number not hanging), and the four surfaces asserted by name so a fifth that
+draws a stored body joins the list rather than growing a second walk.
+
 ## THE WALK READS BOTH SHAPES OF PAPER (Young reported it 10 Sep 2026)
 
 *"some times when i click on a contract from a different page, in this case

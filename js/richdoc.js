@@ -48,7 +48,55 @@ const RICH_CLAUSE_ID_RE = /^cl_[a-z0-9]{4,24}$/;
 const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-field-key']),
   H1:new Set([RICH_CLAUSE_ATTR]), H2:new Set([RICH_CLAUSE_ATTR]),
   H3:new Set([RICH_CLAUSE_ATTR]), H4:new Set([RICH_CLAUSE_ATTR]),
-  P:new Set([RICH_CLAUSE_ATTR]) };
+  P:new Set([RICH_CLAUSE_ATTR,'class']) };
+/* ---- WHAT A PARAGRAPH'S OWN FILE SAID ABOUT ITS SHAPE (Young asked 10 Sep 2026)
+   ----
+   A Word contract states where each line sits, which lines belong together and
+   where a page ends, and until now HaTi threw all of it away on the way in: an
+   uploaded agreement arrived as one flat run of paragraphs and a reader who had
+   sent us a well-set document got back something that "became unappealing to
+   look at".
+
+   These four are the smallest set that carries that back, and every one of them
+   is a FACT READ OFF THE FILE rather than a guess about it:
+
+     hati-lv-1..3  where the file's OWN indent puts the line. Level 0 is the
+                   default and carries no class, so an ordinary paragraph is
+                   byte-identical to what it was.
+     hati-tight    the file says no space after this paragraph — Word's way of
+                   writing a label above its value, which is how a definitions
+                   clause and a key-terms block are set.
+     hati-pb       a page break falls here.
+     hati-toc      the file declares a RIGHT tab stop on this line, which is
+                   Word saying the line has a left entry and a right-hand
+                   number. The tail rides in one span (below).
+
+   THEY ARE ADMITTED EXACTLY AS THE DRAFTER'S MARKS ARE AND NO WIDER: a FIXED
+   SET OF NAMED CLASSES, nothing free-form, so a contract can never arrive
+   carrying a size, a colour or a layout this workspace did not choose. A
+   paragraph may carry several — a tight line one step in is both — which is
+   why this test is a per-name one where a span's is a whole-value one: a span
+   is a field OR an ink OR a size and never two, and a paragraph's shape really
+   does have independent halves.
+
+   NOTHING HERE MOVES A WORD. Each one is a class on a block whose content is
+   untouched, so the text projection the redline diffs against is character for
+   character what it was. */
+const RICH_SHAPE_CLASSES = new Set(['hati-lv-1','hati-lv-2','hati-lv-3',
+  'hati-tight','hati-pb','hati-toc']);
+/* The one span class that is a SHAPE rather than a mark: the right-hand column
+   of a contents row. It carries no value of its own — the page number is the
+   span's own text — and it exists because CSS cannot right-align the tail of a
+   text node without an element to hang it on. */
+const RICH_TOC_TAIL_CLASS = 'hati-toc-n';
+/* ONE reading of "may a BLOCK carry this class", asked by the attribute pass
+   and by nothing else. Per name, and unknown names are dropped rather than the
+   attribute: a paragraph carrying `hati-tight nonsense` keeps the half this
+   product wrote. */
+function richBlockClass(v){
+  const keep = String(v == null ? '' : v).split(/\s+/).filter(c => RICH_SHAPE_CLASSES.has(c));
+  return keep.length ? Array.from(new Set(keep)).join(' ') : '';
+}
 /* The single allowlisted span class: HaTi's own field-placeholder marker. */
 const RICH_FIELD_CLASS = 'hati-field';
 /* ---------- THE DRAFTER'S OWN MARKS (owner-asked 27-28 Aug 2026) ----------
@@ -88,7 +136,8 @@ const RICH_MARK_CLASSES = new Set([].concat(
    space-separated list: a span is a field, OR an ink, OR a highlight, OR a size,
    and anything wanting two is two nested spans — which keeps this test total
    rather than a parser. */
-const richSpanClassOk = v => v === RICH_FIELD_CLASS || RICH_MARK_CLASSES.has(v);
+const richSpanClassOk = v => v === RICH_FIELD_CLASS || v === RICH_TOC_TAIL_CLASS
+  || RICH_MARK_CLASSES.has(v);
 /* The one data attribute a hati-field span may carry: which template-form
    field the blank belongs to, so a click on the document can route to the
    right input. Admitted under the same reasoning as data-clause-id — the
@@ -213,6 +262,12 @@ function _stripAttrs(el){
     if(el.tagName==='SPAN' && name==='class'){
       // exactly one class, and it must be on the list — see RICH_MARK_CLASSES
       if(!richSpanClassOk(String(attr.value||'').trim())) el.removeAttribute(attr.name);
+      continue;
+    }
+    if(el.tagName==='P' && name==='class'){
+      // the shapes a paragraph's own file stated — see RICH_SHAPE_CLASSES
+      const keep=richBlockClass(attr.value);
+      if(keep) el.setAttribute('class',keep); else el.removeAttribute(attr.name);
       continue;
     }
     if(el.tagName==='SPAN' && name===RICH_FIELD_KEY_ATTR){
@@ -347,7 +402,20 @@ function renderDocHtml(content, format, opts={}){
       : `<div style="white-space:pre-wrap">${String(content==null?'':content).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
   }
   const cls='hati-doc'+(opts.className?' '+opts.className:'');
-  return `<div class="${cls}">${sanitizeRich(content)}</div>`;
+  /* ---- THE MARKER SITS IN ITS GUTTER HERE TOO (Young asked 10 Sep 2026) ----
+     The negotiation page has hung a clause's number in a gutter since it was
+     built, and this renderer — the Document tab, the counterparty's read-only
+     copy, every template preview — drew the same stored body flush against the
+     margin, so one contract was set two ways depending which screen you opened.
+     redlineHangHtml is that one reading; it adds a class and a span around
+     characters already there and changes not one word.
+     Read through window because js/redline.js loads after this file: a stage
+     without it renders exactly as it did before, which is a paragraph with no
+     gutter rather than a wrong one. */
+  const body=sanitizeRich(content);
+  const hung=(typeof window!=='undefined'&&typeof window.redlineHangHtml==='function')
+    ? window.redlineHangHtml(body) : body;
+  return `<div class="${cls}">${hung}</div>`;
 }
 
 /* ---------- text projection ----------
@@ -913,6 +981,211 @@ function richBarHtml(opts){
   return out.join('');
 }
 
+/* ==========================================================================
+   THE BAR SPEAKS THE CONTRACT'S OWN LANGUAGE (Young asked 10 Sep 2026)
+   ==========================================================================
+   *"When I begin to make written edits with the tools I have been provided,
+   they do not match up with the document itself. The bullet points do not work
+   together with how the sentences or bullets points in the contract are
+   designed. They do not speak the same language."*
+
+   THERE WERE TWO RIVAL WAYS TO INDENT A LINE AND THE BAR SPOKE THE WRONG ONE.
+   A contract in this product is a marker in a hanging gutter — 2.1, (a), a
+   bullet — with the wording hanging beside it; that is what the paper draws and
+   what the redline files. The four list tools called `document.execCommand`,
+   which builds a browser <ul>/<ol> at its own padding. So a limb typed with the
+   bar sat at a different indent from the limb above it, carried a marker the
+   text projection numbered differently, and could not be continued from.
+
+   These four act on the PARAGRAPH instead, in the vocabulary the document
+   already uses. Nothing else in the bar changes: bold, italic, the inks, the
+   sizes and the quote are execCommand exactly as they were.
+
+   IT WRITES CHARACTERS, NOT MARKUP. A marker put in by the bar is text in the
+   paragraph, character for character what the reader would have typed — so the
+   projection the redline diffs against carries it, the gutter walk finds it,
+   and a marker HaTi wrote is indistinguishable from one the other side did.
+
+   AND THE LEVEL IS THE ONE THE PAPER ALREADY DRAWS: hati-lv-1..3, the same
+   class the Word reader writes from a file's own indent. */
+
+/* The kind of marker each step of the ladder wears, which is how legal drafting
+   sets one: 2.1, then (a), then (i). Level 3 falls back to a bracketed number
+   rather than repeating (i), so a reader can still tell the two apart. */
+const RICH_NUM_KIND = ['1.', '(a)', '(i)', '(1)'];
+const _rbLevelOf = el => {
+  const m = String((el && el.className) || '').match(/\bhati-lv-([123])\b/);
+  return m ? Number(m[1]) : 0;
+};
+function _rbSetLevel(el, n){
+  if(!el || !el.classList) return;
+  for(let i = 1; i <= 3; i++) el.classList.remove('hati-lv-' + i);
+  if(n > 0) el.classList.add('hati-lv-' + Math.min(3, n));
+  if(!el.getAttribute('class')) el.removeAttribute('class');
+}
+/* The number a marker carries, so the next one can continue it. Returns 0 for
+   anything this cannot read, which is the honest answer — a list that cannot be
+   continued starts again at one rather than at a guess. */
+function _rbOrdinal(mark){
+  const m = String(mark || '').replace(/[().]/g, '').trim();
+  if(!m) return 0;
+  if(/^\d+$/.test(m)) return Number(m);
+  if(/^[ivxlcdm]+$/i.test(m)){
+    const V = { i:1, v:5, x:10, l:50, c:100, d:500, m:1000 };
+    const t = m.toLowerCase(); let n = 0;
+    for(let i = 0; i < t.length; i++){
+      const a = V[t[i]], b = V[t[i + 1]];
+      if(!a) return 0;
+      n += (b && b > a) ? -a : a;
+    }
+    return n;
+  }
+  if(/^[a-z]$/i.test(m)) return m.toLowerCase().charCodeAt(0) - 96;
+  return 0;
+}
+function _rbMarkFor(kind, level, n){
+  if(kind === 'ul') return RICH_BULLETS[Math.min(level, RICH_BULLETS.length - 1)];
+  const shape = RICH_NUM_KIND[Math.min(level, RICH_NUM_KIND.length - 1)];
+  if(shape === '1.') return String(n) + '.';
+  if(shape === '(a)') return '(' + _alpha(n).toLowerCase() + ')';
+  if(shape === '(i)') return '(' + _roman(n).toLowerCase() + ')';
+  return '(' + String(n) + ')';
+}
+/* ---- reading and writing a paragraph's own leading marker ----
+   The split is redlineSplitMarker's, which is the ONE reading of what a marker
+   is in this product; a second copy here is how the bar would come to write
+   something the gutter does not recognise. Read through window because
+   js/redline.js loads after this file. */
+const _rbSplit = t => (typeof window !== 'undefined' && typeof window.redlineSplitMarker === 'function')
+  ? window.redlineSplitMarker(String(t == null ? '' : t)) : null;
+/* Take N characters off the front of a block, whatever markup they sit in. The
+   marker may be bold — Word writes it that way and HaTi's own reader stores it
+   that way — so this walks text nodes rather than assuming one. */
+function _rbCutLead(block, n){
+  let left = n;
+  const walk = block.ownerDocument.createTreeWalker(block, 4 /* NodeFilter.SHOW_TEXT */);
+  const empties = [];
+  let node;
+  while(left > 0 && (node = walk.nextNode())){
+    const t = node.nodeValue || '';
+    if(!t.length) continue;
+    const take = Math.min(left, t.length);
+    node.nodeValue = t.slice(take);
+    left -= take;
+    if(!node.nodeValue) empties.push(node);
+  }
+  /* AND THE ELEMENT IT LEFT BEHIND. Word writes a clause number in bold, so
+     cutting the characters out of a <strong> leaves an empty one — which the
+     sanitiser would clear on save, and which until then is an invisible box the
+     reader's next keystroke would land inside and come out bold. */
+  empties.forEach(x => {
+    let n = x;
+    while(n && n !== block && !(n.nodeValue || '').length && !(n.childNodes || []).length){
+      const up = n.parentNode;
+      if(up) up.removeChild(n);
+      n = up;
+    }
+  });
+}
+/* Put a marker at the front as PLAIN text, never inside whatever element the
+   first word happens to sit in: a number welded into a bold run would come back
+   out bold on the next edit. */
+function _rbPutLead(block, s){
+  block.insertBefore(block.ownerDocument.createTextNode(s), block.firstChild);
+}
+/* Every block the selection touches, in document order. Blocks only — a caret
+   in bare text inside a fresh contenteditable has no paragraph to act on, and
+   answering with nothing is what lets the caller fall back to what it did
+   before rather than guess. */
+function _rbSelBlocks(){
+  if(typeof window === 'undefined' || !window.getSelection) return [];
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return [];
+  const r = sel.getRangeAt(0);
+  const up = n => { while(n && n.nodeType !== 1) n = n.parentNode;
+    while(n && !/^(P|H1|H2|H3|H4|LI|BLOCKQUOTE)$/.test(n.tagName)) n = n.parentNode; return n; };
+  const a = up(r.startContainer), b = up(r.endContainer);
+  if(!a || !b) return [];
+  if(a === b) return [a];
+  const host = a.parentNode && a.parentNode.contains(b) ? a.parentNode : null;
+  if(!host) return [a];
+  const all = Array.from(host.children).filter(x => /^(P|H1|H2|H3|H4|LI|BLOCKQUOTE)$/.test(x.tagName));
+  const i = all.indexOf(a), j = all.indexOf(b);
+  if(i < 0 || j < 0) return [a];
+  return all.slice(Math.min(i, j), Math.max(i, j) + 1);
+}
+/* WHERE THE NEXT NUMBER COMES FROM: the nearest block ABOVE this one sitting at
+   the same step and wearing the same kind of marker. That is what "continue the
+   contract's own sequence" means — and it stops at a block of a different kind
+   or a shallower step, because a list that has been interrupted has started
+   again. */
+function _rbNextNumber(block, level){
+  let prev = block.previousElementSibling;
+  while(prev){
+    if(/^(H1|H2|H3|H4)$/.test(prev.tagName)) break;
+    const lv = _rbLevelOf(prev);
+    if(lv < level) break;
+    if(lv === level){
+      const sp = _rbSplit(prev.textContent || '');
+      if(sp && sp.marker){
+        const n = _rbOrdinal(sp.marker);
+        if(n) return n + 1;
+        break;                       // a bullet, or a marker this cannot read
+      }
+      break;                         // an unmarked paragraph ends the run
+    }
+    prev = prev.previousElementSibling;
+  }
+  return 1;
+}
+/* ---- the four acts ----
+   NAMED ONCE, because a host has to know which presses move a paragraph's SHAPE
+   rather than its dressing: those are the ones that owe the paper a repaint, so
+   the marker lands in its gutter and the step moves the line. A second list of
+   four names at the call site is how the two would come apart. */
+const RICH_SHAPE_KEYS = new Set(['insertUnorderedList', 'insertOrderedList', 'indent', 'outdent']);
+function richBarShape(k){
+  const blocks = _rbSelBlocks();
+  if(!blocks.length) return false;
+  if(k === 'indent' || k === 'outdent'){
+    /* A PLAIN SENTENCE MOVES TOO, which is most of what a reader indents: the
+       old tools only ever moved a list item. */
+    blocks.forEach(b => {
+      const to = Math.max(0, Math.min(3, _rbLevelOf(b) + (k === 'indent' ? 1 : -1)));
+      _rbSetLevel(b, to);
+      /* A BULLET FOLLOWS THE STEP; A NUMBER NEVER DOES. The glyph ladder is
+         this product's own reading of how deep a bullet is, so a dot left at
+         the wrong rung would say one thing while the step said another. A
+         NUMBER is a citation — "subject to clause 2.1" — and nothing that moves
+         a line sideways may rewrite it. */
+      const text = b.textContent || '';
+      const sp = _rbSplit(text);
+      const at = sp && sp.marker ? RICH_BULLETS.indexOf(String(sp.marker).trim()) : -1;
+      if(at < 0) return;
+      _rbCutLead(b, text.length - sp.rest.length);
+      _rbPutLead(b, _rbMarkFor('ul', to, 1) + '\t');
+    });
+    return true;
+  }
+  const kind = k === 'insertUnorderedList' ? 'ul' : 'ol';
+  /* A TOGGLE, like the buttons it replaces: pressed on a run that already wears
+     this kind of marker, it takes them off. Judged on the FIRST block so a
+     mixed selection lands one way rather than alternating down the page. */
+  const first = _rbSplit(blocks[0].textContent || '');
+  const isBullet = m => RICH_BULLETS.indexOf(String(m || '').trim()) >= 0;
+  const already = !!(first && first.marker
+    && (kind === 'ul' ? isBullet(first.marker) : !isBullet(first.marker)));
+  let n = already ? 0 : _rbNextNumber(blocks[0], _rbLevelOf(blocks[0]));
+  blocks.forEach(b => {
+    const text = b.textContent || '';
+    const sp = _rbSplit(text);
+    if(sp && sp.marker) _rbCutLead(b, text.length - sp.rest.length);
+    if(already) return;
+    _rbPutLead(b, _rbMarkFor(kind, _rbLevelOf(b), n++) + '\t');
+  });
+  return true;
+}
+
 /* The acts this bar performs itself. Anything not here — undo, redo — belongs
    to the host, because what "step back" means differs between an editor with a
    draft stack and one without. Returns false when it did not handle the key,
@@ -926,9 +1199,16 @@ function richBarPress(k){
     try{ document.execCommand('formatBlock', false, 'blockquote'); }catch(e){}
     return true;
   }
-  if (k === 'bold' || k === 'italic' || k === 'underline' || k === 'strikeThrough'
-    || k === 'insertUnorderedList' || k === 'insertOrderedList'
+  if (k === 'insertUnorderedList' || k === 'insertOrderedList'
     || k === 'indent' || k === 'outdent'){
+    /* THE CONTRACT'S OWN LANGUAGE FIRST — see richBarShape. It answers false
+       where there is no paragraph to act on, and only then does the browser's
+       own list-building run, which is exactly what this bar did before. */
+    try{ if (richBarShape(k)) return true; }catch(e){}
+    try{ document.execCommand(k); }catch(e){}
+    return true;
+  }
+  if (k === 'bold' || k === 'italic' || k === 'underline' || k === 'strikeThrough'){
     /* An engine without execCommand still has the keyboard — the same fallback
        the panel's bar has carried since it was written. */
     try{ document.execCommand(k); }catch(e){}
@@ -999,10 +1279,11 @@ function richSizeAt(node, fallback){
 }
 
 Object.assign(window,{RICH_TAGS,
-  RICH_BAR_TOOLS,RICH_BAR_ICON,richBarHtml,richBarPress,richMarkSelection,richUnmark,
+  RICH_BAR_TOOLS,RICH_BAR_ICON,RICH_SHAPE_KEYS,richBarHtml,richBarPress,richBarShape,richMarkSelection,richUnmark,
   richSizeAt,richMarkDefault,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
   RICH_MARK_INKS,RICH_MARK_HLS,RICH_SIZES,RICH_MARK_CLASSES,richSpanClassOk,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
+  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,richBlockClass,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});

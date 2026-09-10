@@ -1965,6 +1965,18 @@ const dismissNote = async pg => {
   ck('19a2 …and ONE press of the pencil on that clause starts the writing',
      (await typeable()) === 'true', String(await typeable()));
 
+  /* ---- REVERSED IN PLACE 10 Sep 2026 (Young: "they do not speak the same
+     language") ---- These three measured a BROWSER LIST: a real <ul>, its
+     computed list-style-type and its own padding. That was the right claim
+     while the bar called execCommand, and it is the fault itself now — a
+     contract in this product is a MARKER IN A HANGING GUTTER, and the browser's
+     list is a second way to indent a line at a padding of its own.
+
+     WHAT EACH WAS REALLY ABOUT SURVIVES AND IS PINNED HARDER: a bullet press
+     must leave a bullet the reader can SEE, a numbered press must leave a
+     number, and the marker must sit in the gutter rather than jammed against
+     the wording. Measured as PAINT, because the whole complaint was that it
+     looked wrong. */
   const bullets = await p.evaluate(async () => {
     const box = document.getElementById('ce-clausebody'); box.focus();
     const p0 = box.querySelector('p') || box;
@@ -1974,22 +1986,21 @@ const dismissNote = async pg => {
       .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 800));
     const now = document.getElementById('ce-clausebody');
-    const ul = now.querySelector('ul'), li = now.querySelector('li');
-    return { made: !!(ul && li), nested: !!now.querySelector('p>ul'),
-      marker: ul ? getComputedStyle(ul).listStyleType : '(none)',
-      pad: ul ? Math.round(parseFloat(getComputedStyle(ul).paddingLeft)) : 0,
-      wide: li ? Math.round(li.getBoundingClientRect().width) : 0 };
+    const p1 = now.querySelector('p') || now;
+    const mk = p1.querySelector('.rl-marker');
+    return { list: !!now.querySelector('ul,ol,li'),
+      text: (p1.textContent || '').slice(0, 12),
+      hung: /\brl-hang\b/.test(p1.className || ''),
+      gutter: mk ? Math.round(mk.getBoundingClientRect().width) : 0,
+      wide: Math.round(p1.getBoundingClientRect().width) };
   });
-  ck('19b THE BULLET BUTTON MAKES A REAL LIST', bullets.made, JSON.stringify(bullets));
-  ck('19c …and it DRAWS A BULLET — the reported fault was an indent with no marker',
-     bullets.marker === 'disc' && bullets.wide > 100,
-     `${bullets.marker}, item ${bullets.wide}px wide`);
-  /* NOT what killed it, and said so rather than left implying it: the HTML
-     parser closes the <p> that execCommand opens, so the stored body was never
-     malformed. Pinned anyway, because a list that DID end up inside a paragraph
-     would draw exactly the reported symptom for a second reason. */
-  ck('19d …and no list is left inside a paragraph, which would break it again',
-     bullets.nested === false, bullets.nested ? 'a <ul> is still inside a <p>' : 'well formed');
+  ck('19b THE BULLET BUTTON WRITES THE CONTRACT’S OWN MARKER',
+     /^\u2022/.test(bullets.text) && !bullets.list, JSON.stringify(bullets));
+  ck('19c …and it DRAWS A BULLET, in the gutter — the reported fault was an indent with no marker',
+     bullets.hung && bullets.gutter > 10 && bullets.wide > 100,
+     `${bullets.text.trim().slice(0,1) || '(none)'}, gutter ${bullets.gutter}px, line ${bullets.wide}px`);
+  ck('19d …and no browser list is built beside it, which is the two-languages fault',
+     bullets.list === false, bullets.list ? 'a <ul> was built' : 'one vocabulary');
   const numbers = await p.evaluate(async () => {
     const box = document.getElementById('ce-clausebody'); box.focus();
     const ps = [...box.querySelectorAll('p')];
@@ -1999,11 +2010,14 @@ const dismissNote = async pg => {
     document.querySelector('#ce-bar [data-rb="insertOrderedList"]')
       .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 800));
-    const ol = document.querySelector('#ce-clausebody ol');
-    return { made: !!ol, marker: ol ? getComputedStyle(ol).listStyleType : '(none)' };
+    const now = document.getElementById('ce-clausebody');
+    const ps2 = [...now.querySelectorAll('p')];
+    const last = ps2[ps2.length - 1];
+    return { list: !!now.querySelector('ul,ol,li'),
+      text: last ? (last.textContent || '').slice(0, 12) : '(none)' };
   });
-  ck('19e and a numbered list draws its numbers',
-     numbers.made && numbers.marker === 'decimal', JSON.stringify(numbers));
+  ck('19e and a numbered press leaves a number, not a browser list',
+     /^\(?[0-9a-z]+[.)]/i.test(numbers.text) && !numbers.list, JSON.stringify(numbers));
 
   const errsBefore = errs.length;
   const undone = await p.evaluate(async () => {
@@ -2929,7 +2943,8 @@ const dismissNote = async pg => {
   ck('26j AND IT IS INDENTED PAST ITS SIBLING — the reported fault, as pixels',
      bul.subLeft != null && bul.topLeft != null && bul.subLeft > bul.topLeft + 20,
      `sub ${bul.subLeft} vs sibling ${bul.topLeft}`);
-  ck('26k drawn by the depth class, so the rule is reachable', /rl-hang-2/.test(bul.subCls), bul.subCls);
+  ck('26k drawn by the ONE step class the whole product shares, so the rule is reachable',
+     /hati-lv-1/.test(bul.subCls), bul.subCls);
   await p.evaluate(() => rlCloseClauseEditor({}));
   await pause(300);
 

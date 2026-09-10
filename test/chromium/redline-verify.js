@@ -2292,6 +2292,106 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     names.paper.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '24-one-name-format.png') });
 
+  /* ---------------------------------------------------------------- 25. ONE
+     CLAUSE, ONE PAIR OF HANDS (Young asked 10 Sep 2026) --------------------
+     *"when user 2 tries to click on the pencil symbol, they see the initials of
+     User 1 and a short small line saying 'Locked by R. C.'"*
+
+     ONLY A RENDERED PAGE CAN ANSWER THIS. Whether the monogram is VISIBLE
+     PIXELS where the pencil would be, and whether the pencil is really gone
+     rather than merely covered, are measurements; the source says neither.
+     And the CONTROL comes first, or "the pencil is gone" is satisfied by a page
+     that draws no pencils at all. */
+  const lock = await page.evaluate(() => {
+    const c = CONTRACT;
+    const clauses = (window.negoClauseList ? negoClauseList(c) : []).slice(0, 2);
+    const mine = clauses[0] && clauses[0].clauseId;
+    const theirs = clauses[1] && clauses[1].clauseId;
+    const seen = el => { if (!el) return null; const r = el.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left) }; };
+    const pencils = () => [...document.querySelectorAll('#rl-doc-pane .rl-cp-pill,' +
+      ' .rl-doc .rl-cp-pill')].map(b => b.getAttribute('data-rl-cp-editor') ||
+      b.getAttribute('data-rl-cp-open'));
+
+    delete c.locks;
+    renderRedline();
+    const before = { pencils: pencils(), locks: document.querySelectorAll('.rl-cp-lock').length };
+
+    /* A colleague — a DIFFERENT id from the harness's own signed-in reader —
+       takes the second clause, exactly as their browser would.
+
+       WRITTEN ONTO THE RECORD RATHER THAN THROUGH THE VERB, and GUARDED: a
+       build without the feature must REPORT its ten failures rather than throw
+       on the first line and prove nothing. */
+    c.locks = { [theirs]: { by: { id: 'u_other', name: 'Ruth Chege' },
+      at: new Date().toISOString() } };
+    renderRedline();
+
+    const sign = document.querySelector('.rl-cp-lock');
+    const clauseEl = theirs ? document.querySelector('[data-clause="' + theirs + '"]') : null;
+    const pencil = clauseEl ? clauseEl.querySelector('.rl-cp-pill') : null;
+    const mono = sign ? sign.querySelector('.rl-cp-lock-mono') : null;
+    const say = sign ? sign.querySelector('.rl-cp-lock-say') : null;
+    const cs = sign ? getComputedStyle(sign) : null;
+    const out = {
+      before,
+      after: { pencils: pencils(), locks: document.querySelectorAll('.rl-cp-lock').length },
+      onHeld: !!(sign && clauseEl && clauseEl.contains(sign)),
+      pencilOnHeld: !!pencil,
+      box: seen(sign),
+      mono: mono ? mono.textContent.trim() : null,
+      say: say ? say.textContent.replace(/\s+/g, ' ').trim() : null,
+      title: sign ? sign.getAttribute('title') : null,
+      isButton: !!(sign && sign.tagName === 'BUTTON'),
+      opacity: cs ? cs.opacity : null,
+      /* Not amber: amber on this page means work waiting on the reader. */
+      ink: cs ? cs.color : null,
+      amber: (() => { const p = document.createElement('i');
+        p.style.color = 'var(--st-amber-fg, #b45309)'; document.body.appendChild(p);
+        const v = getComputedStyle(p).color; p.remove(); return v; })(),
+      /* THE WALL BEHIND THE SIGN — the four other doors reach this page without
+         passing the pencil, so the door itself has to refuse. */
+      opened: (() => { try{ return window.rlOpenClauseEditor
+        ? rlOpenClauseEditor(c, theirs, { again: () => {} }) : 'no editor on this stage'; }
+        catch(e){ return 'threw: ' + e.message; } })(),
+      pageUp: !!document.getElementById('clause-editor'),
+      /* AND YOUR OWN CLAUSE IS UNTOUCHED. */
+      mineHasPencil: !!(mine && document.querySelector('[data-clause="' + mine + '"] .rl-cp-pill')),
+    };
+    delete c.locks;
+    return out;
+  });
+  check('25 THE CONTROL: with nothing held the paper draws pencils and no lock',
+    lock.before.pencils.length > 1 && lock.before.locks === 0,
+    `pencils ${lock.before.pencils.length} · locks ${lock.before.locks}`);
+  check('25a a clause a colleague holds draws the sign, in the pencil\'s own clause',
+    lock.onHeld === true, JSON.stringify({ onHeld: lock.onHeld, box: lock.box }));
+  check('25b and that clause draws no pencil — one control in one corner',
+    lock.pencilOnHeld === false && lock.after.pencils.length === lock.before.pencils.length - 1,
+    `before ${lock.before.pencils.length} · after ${lock.after.pencils.length}`);
+  check('25c the monogram is VISIBLE PIXELS and reads as the initials Young asked for',
+    lock.mono === 'RC' && !!lock.box && lock.box.w > 0 && lock.box.h > 0,
+    JSON.stringify({ mono: lock.mono, box: lock.box }));
+  check('25d and the line beside it names the holder',
+    lock.say === 'Locked by R. C.', JSON.stringify(lock.say));
+  check('25e the whole name is on the hover, because two colleagues share a monogram',
+    /Ruth Chege/.test(lock.title || ''), JSON.stringify(lock.title));
+  check('25f it is not a control — nothing here can be pressed',
+    /* the sign has to EXIST, or "not a button" is satisfied by a page that
+       draws nothing at all */
+    !!lock.box && lock.isButton === false,
+    lock.box ? `tag is ${lock.isButton ? 'BUTTON' : 'not a button'}` : 'no sign drawn');
+  check('25g it is drawn at rest, unlike the pencil — a fact nobody has to hover to meet',
+    Number(lock.opacity) === 1, `opacity ${lock.opacity}`);
+  check('25h the label shade, never amber — amber here means work waiting on you',
+    !!lock.ink && lock.ink !== lock.amber, `${lock.ink} vs amber ${lock.amber}`);
+  check('25i THE WALL: the editor\'s own door refuses a clause a colleague holds',
+    lock.opened === false && lock.pageUp === false,
+    `opened ${JSON.stringify(lock.opened)} · page ${lock.pageUp}`);
+  check('25j and your own clauses are untouched',
+    lock.mineHasPencil === true, `pencil on your own clause: ${lock.mineHasPencil}`);
+  await page.screenshot({ path: path.join(OUT, '25-one-pair-of-hands.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

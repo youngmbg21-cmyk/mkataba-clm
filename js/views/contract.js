@@ -7222,10 +7222,20 @@ const _docReadNumOf=el=>{
    are deliberately out; both are logged. */
 const DOC_READ_HEAD_NUM=
   /^\s*(?:(?:clause|article|section|schedule|annex|appendix|part)\s+(\d+(?:\.\d+)*)[.):]?|(\d+(?:\.\d+)+)[.)]?|(\d{1,2})[.)])\s+\S/i;
-const _docReadHeadNum=t=>{
-  const m=DOC_READ_HEAD_NUM.exec(String(t||''));
-  return m?(m[1]||m[2]||m[3]||''):'';
+/* ONE READING OF A HEADING'S NUMBER AND ITS NAME, because the two are printed
+   in different places — the number as a citation in its own gutter, the name
+   beside it — and cutting the string twice is how the same heading comes to be
+   printed with its number and again without. */
+const _docReadHeadCut=t=>{
+  const src=String(t||'').replace(/\s+/g,' ').trim();
+  const m=DOC_READ_HEAD_NUM.exec(src);
+  if(!m) return {num:'',rest:src};
+  const num=m[1]||m[2]||m[3]||'';
+  /* The match ends one character INTO the name (it requires a non-space after
+     the number), so the cut is one short of the match. */
+  return {num,rest:src.slice(Math.max(0,m[0].length-1)).trim()};
 };
+const _docReadHeadNum=t=>_docReadHeadCut(t).num;
 /* THE CLAUSE'S OWN LEAD-IN IS ITS HEADING — "1.1 Master Agreement Structure."
    — because that is what the drafter wrote as its name, and because it is what
    the pairing guard compares. Real paper sets that lead-in bold, so the bold
@@ -7287,7 +7297,7 @@ function docReadSheet(c){
   const out=[];
   rows.forEach((row,i)=>{
     const own=String(row.el.textContent||'').replace(/\s+/g,' ').trim();
-    let after='';
+    let after='', leadEl=null;
     try{
       const r=document.createRange();
       r.setStartAfter(row.el);
@@ -7295,6 +7305,9 @@ function docReadSheet(c){
       else if(foot) r.setEndBefore(foot);
       else r.setEnd(canvas, canvas.childNodes.length);
       after=String(r.toString()||'').replace(/\s+/g,' ').trim();
+      /* A COPY, never the live nodes: this is only read for a lead-in, and
+         cloneContents leaves the sheet exactly where it was. */
+      if(row.isMark){ leadEl=document.createElement('div'); leadEl.appendChild(r.cloneContents()); }
     }catch(_){}
     /* A SECTION is its title and everything under it up to the next anchor; a
        numbered CLAUSE includes its own paragraph, because the lead-in is part
@@ -7305,6 +7318,26 @@ function docReadSheet(c){
        its wording both come from what follows it — where a paragraph anchor's
        wording includes its own line. */
     const heading=row.isHead?own:(row.isMark?_docReadWords(after):_docReadLead(row.el));
+    /* ---- THE HEADING THE DRAFTER WROTE (Young ruled 10 Sep 2026: "dropping
+       copilot headings makes sense") ----
+       The edition is a translation of this contract, so its headings are this
+       contract's. A model-written heading beside the drafter's own is a second
+       name for one clause, and the two disagree the moment the clause is
+       renamed. `heading` above is a READING used by the pairing guard and the
+       route — for a marked number it is only the first few words — so the name
+       to PRINT is its own field rather than that one re-used.
+
+       A marked number has no element of its own to read a bold run out of, so
+       the lead-in is looked for at the start of what FOLLOWS it. Where there is
+       none the entry simply carries no heading, which is honest: that clause
+       has none on the paper either. */
+    let ownHead='';
+    if(row.isHead) ownHead=_docReadHeadCut(own).rest;
+    else if(row.isMark){
+      const b=leadEl&&leadEl.querySelector?leadEl.querySelector('strong,b'):null;
+      const bt=b?String(b.textContent||'').replace(/\s+/g,' ').trim():'';
+      if(bt&&after.indexOf(bt)>=0&&after.indexOf(bt)<=2) ownHead=bt.slice(0,140);
+    } else ownHead=_docReadHeadCut(_docReadLead(row.el)).rest;
     const text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
     /* `cite` IS THE NUMBER TO SHOW, AND IT IS NOT `num` — DELIBERATELY.
        `num` is what docReadClauses sends to /api/ai/readings, and that route's
@@ -7315,7 +7348,7 @@ function docReadSheet(c){
        move by a byte, docReadSig does not move, and the painter reads this as
        its last fallback. */
     const cite=row.isHead?_docReadHeadNum(heading):'';
-    if(heading||text) out.push({el:row.el,heading,text,num:row.num,cite,
+    if(heading||text) out.push({el:row.el,heading,ownHead,text,num:row.num,cite,
       kind:row.isHead?'section':'clause'});
   });
   return out;
@@ -7410,10 +7443,20 @@ function docReadPaint(c){
       /* The stored number first, the live walk second, and the heading's own
          number last — a heading carries no `num` by design (see _docReadHeadNum). */
       const num=String(p.it.num||p.row.num||p.row.cite||'').trim();
-      const head=String(p.it.head||'').trim();
+      /* THE HEADING IS THE DRAFTER'S OWN, never the model's — Young's own
+         ruling. A model-written heading beside the paper's is a second name for
+         one clause, and they disagree the moment it is renamed. The reading's
+         own `head` is left on the record and simply not drawn, so nothing
+         already read has to be paid for again. */
+      const head=String(p.row.ownHead||'').trim();
       const body=String(p.it.plain||'').trim();
-      const numHtml=num?`<span class="dr-n">${esc(num)}</span> `:'';
-      return `<div class="doc-read-note${sec?' dr-sec':''}" data-doc-read-note="${n}">`
+      /* THE ENTRY SITS WHERE ITS CLAUSE SITS. The step and the gutter are the
+         paper's own — hati-lv-N and rl-hang, read off the clause this entry
+         faces — so the two columns are genuinely parallel rather than two lists
+         that happen to line up at the top. */
+      const shape=docReadShape(p.el);
+      const numHtml=num?`<span class="dr-n">${esc(num)}</span>`:'';
+      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}" data-doc-read-note="${n}">`
         +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`
               :(num&&!sec?`<h4 class="dr-h">${numHtml}</h4>`:''))
         +(body?`<p>${esc(body)}</p>`:'')
@@ -7461,6 +7504,24 @@ function docReadPaint(c){
     canvas.dataset.docReadObs='1';
     new ResizeObserver(()=>{ const cur=state.contracts.find(x=>x.id===c.id)||c; docReadPaint(cur); }).observe(canvas);
   }
+}
+/* THE SHAPE OF THE CLAUSE THIS ENTRY FACES, in the paper's own vocabulary. It
+   is read off the DOM rather than carried in the reading, because the reading
+   is cached against the WORDING and a clause can be indented without a word
+   moving — so a stored shape would go stale under a reader while the paper in
+   front of them said otherwise. Walks up because a marked clause number is a
+   span inside the paragraph that carries the class. */
+function docReadShape(el){
+  let n=el, hang=false, lv=0;
+  for(let i=0;i<4&&n&&n.classList;i++){
+    const cls=String(n.className||'');
+    if(/\brl-hang\b/.test(cls)) hang=true;
+    const m=/\bhati-lv-([123])\b/.exec(cls);
+    if(m&&!lv) lv=Number(m[1]);
+    if(hang&&lv) break;
+    n=n.parentElement;
+  }
+  return (hang?' dr-hang':'')+(lv?' hati-lv-'+lv:'');
 }
 function docReadSwitchHtml(c){
   if(!c||!docReadFits()) return '';

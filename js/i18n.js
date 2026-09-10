@@ -1655,6 +1655,13 @@ const STRINGS = {
        tooltip, 30 Aug. ng_cp_open_title is still live and still right on the
        controls that really do open the panel. */
     ng_cp_edit_title: 'Edit this clause — the wording, with Copilot beside it',
+    /* ONE CLAUSE, ONE PAIR OF HANDS (Young asked 10 Sep 2026). The monogram is
+       a glance; the whole name is on the control's own title, because two
+       colleagues can share a monogram. */
+    cl_locked_by: 'Locked by {who}',
+    cl_locked_title: '{who} is editing this clause. It frees up when they finish, or a couple of minutes after they stop.',
+    cl_a_colleague: 'a colleague',
+    cl_locked_refuse: '{who} is editing this clause right now. Your work is safe — try again in a moment.',
     /* The History | + notes switch in the panel head — default without notes. */
     ng_cp_notes_group: 'Show the clause history with or without its notes',
     ng_cp_hist: 'History',
@@ -7518,6 +7525,10 @@ const STRINGS = {
     ng_memo_send_failed: 'Det gick inte iväg. {why}',
     ng_memo_send_nobody: 'Det finns ingen annan i arbetsytan att skicka det till',
     ng_cp_edit_title: 'Redigera klausulen — texten, med Copilot bredvid',
+    cl_locked_by: 'Låst av {who}',
+    cl_locked_title: '{who} redigerar klausulen just nu. Den frigörs när de är klara, eller ett par minuter efter att de slutat.',
+    cl_a_colleague: 'en kollega',
+    cl_locked_refuse: '{who} redigerar klausulen just nu. Ditt arbete är kvar — försök igen om en stund.',
     ng_cp_notes_group: 'Visa klausulens historik med eller utan noteringar',
     ng_cp_hist: 'Historik',
     ng_cp_hist_title: 'Klausulen och dess \u00e4ndringar, utan konversationen',

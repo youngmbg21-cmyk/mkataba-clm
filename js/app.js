@@ -25,6 +25,7 @@ import './payterms.js';    // payment terms turned into a number of days, and co
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
+import './clauselock.js';   // one clause, one pair of hands (Young asked 10 Sep 2026)
 import './signature.js';
 import './wizard.js';
 import './draft.js';    // draft from a sentence: it picks from your own paper and mints nothing (W-1)

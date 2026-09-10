@@ -459,7 +459,14 @@ function redlineLineKind(line){
 /* The marker a line opens with — "7.1", "(b)", "•" — and the wording after it.
    Split so the marker can sit in the hanging indent's gutter and the wording
    can wrap under itself, which is how a contract is set on paper. */
-const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+const RL_MARKER = /^(\s*)((?:\(\d{1,3}\))|(?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+/* A BRACKETED NUMBER IS A LIMB, NOT A CLAUSE NUMBER (Young's own agreement,
+   10 Sep 2026). "(1)" and "(2)" are how a contract numbers its parties and
+   "(A)", "(B)" its recitals, and they were the one shape of marker this pattern
+   did not read — so on real paper the party list drew with its numbers welded
+   to the wording while the recital directly beneath it hung correctly. It is
+   listed FIRST because the plain-number alternative would otherwise match the
+   digits inside the brackets and leave the closing one behind. */
 /* ---- HOW DEEP A BULLET IS, READ OFF ITS OWN GLYPH ----
    richToText projects a nested bullet list as • then ◦ then ▪ (see _listMark in
    js/richdoc.js, which is the one place that ladder is decided). Everything
@@ -467,15 +474,160 @@ const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxl
    its depth in the number itself ("2.1"), so indenting it as well would say the
    same thing twice. Past the third level the glyph repeats, and so does the
    indent; a marker a reader cannot name is worse than one that is reused. */
+/* ---- A LETTERED LIMB IS ONE STEP IN, AND A ROMAN ONE IS TWO (Young ruled
+   10 Sep 2026) ----
+   The note above read "everything but a bullet is depth 0", on the reasoning
+   that a decimal sub-list carries its depth in the number itself. THAT HALF
+   STANDS AND IS WHY A NUMBER IS STILL DEPTH 0 \u2014 "2.1" says where it sits, and
+   indenting it as well would say the same thing twice. What was wrong is that
+   it said the same of "(a)", which says nothing of the kind: legal drafting
+   numbers a clause 2.2 and then hangs its limbs (a), (b), (c) one step further
+   in, and that indent is the ONLY thing on the page saying they belong to it.
+   MEASURED on real commercial paper \u2014 Word's own indents on an uploaded
+   services agreement \u2014 2.1 sits at one stop and (a) at the next, exactly this
+   ladder.
+
+   IT IS READ OFF THE MARKER RATHER THAN STORED, and that is what makes it ONE
+   reading rather than two: the marked-clause renderer has only the text
+   projection to work from, so a level kept anywhere else could not reach it and
+   the two halves of one document would draw at different indents.
+
+   A SINGLE ROMAN IS READ AS A LETTER, deliberately: "(i)" is the ninth letter
+   as often as it is the first roman, and nothing in the marker itself can tell
+   them apart. Two characters or more is unambiguous. Where this is wrong the
+   cost is one step of indent on one limb, never a wrong word. */
 const RL_BULLET_DEPTH = { '\u2022': 0, '\u25e6': 1, '\u25aa': 2 };
+const RL_MARK_ROMAN = /^\(?[ivxlcdm]{2,}[).]?$/i;
+/* BRACKETS MEAN A LIMB. A bare or dotted number says where it sits ("2.1"); a
+   number in brackets is a list under something, exactly as "(a)" is, and is
+   drawn at the same stop. */
+const RL_MARK_BRACKET_NUM = /^\(\d{1,3}\)$/;
+const RL_MARK_LETTER = /^\(?[a-z][).]?$/i;
 function redlineMarkerDepth(marker){
-  return RL_BULLET_DEPTH[String(marker || '').trim()] || 0;
+  const m = String(marker || '').trim();
+  if (Object.prototype.hasOwnProperty.call(RL_BULLET_DEPTH, m)) return RL_BULLET_DEPTH[m];
+  if (RL_MARK_BRACKET_NUM.test(m)) return 1;
+  if (RL_MARK_ROMAN.test(m)) return 2;
+  if (RL_MARK_LETTER.test(m)) return 1;
+  return 0;
 }
 function redlineSplitMarker(line){
   const s = String(line == null ? '' : line);
   const m = s.match(RL_MARKER);
   if (!m) return { indent: '', marker: '', rest: s };
   return { indent: m[1] || '', marker: m[2], rest: s.slice(m[0].length) };
+}
+
+/* ============================================================
+   THE GUTTER, ON RENDERED MARKUP
+   ============================================================
+   (Young asked 10 Sep 2026: the tools and the contract must speak one
+   language.) The op renderer below hangs a MARKED clause's marker in a gutter
+   and always has. A clause nobody has touched is drawn from its own stored
+   markup and got that treatment from a copy in js/views/negotiation.js which
+   could reach only some of it, so one document was set two ways.
+
+   THIS IS THAT ONE READING, and it lives here because this is where the marker
+   vocabulary lives: RL_MARKER decides what a marker is and redlineMarkerDepth
+   how deep it sits, and a second copy of either is how the two halves of a
+   document come apart. Every surface that draws a stored body now asks it —
+   renderDocHtml (the Document tab, the counterparty's copy, the previews),
+   redlineDocHtml's own richBody, the clause panel and the clause editor's
+   typing box.
+
+   NOTHING IS RE-DIFFED, RE-WORDED OR REWRITTEN. It is a class and a span
+   around characters that were already there; textContent is identical, and the
+   span carries no class the sanitiser admits, so a box a person types in hands
+   the record back clean.
+
+   ---- IT READS A MARKER SET IN BOLD, WHICH IS THE COMMONEST SHAPE ON REAL
+   PAPER ---- The copy this replaces matched the plain text immediately after
+   `<p>`, so `<p><strong>2.1</strong>` — what Word writes, and what HaTi's own
+   reader stores — fell straight through and every numbered clause in an
+   uploaded contract sat flush against the margin. So the paragraph's opening
+   text is read ACROSS its inline markup, and the cut is made at the source
+   position of the first character after the marker.
+
+   ---- AND IT REFUSES WHERE THE CUT WOULD CROSS A TAG ---- `<strong>2.1 The
+   Services</strong>` puts the wording inside the same element as the marker,
+   and wrapping the head alone would emit tags that cross. There the paragraph
+   is left exactly as it was: silence is the only safe failure here, and an
+   un-hung line reads as an ordinary paragraph rather than as broken markup. */
+const RL_HANG_LEAD_MAX = 40;
+/* The paragraph's opening TEXT, and where each of its characters sits in the
+   source. An entity counts as ONE character so the two stay in step; only a
+   non-breaking space is decoded, because it is the one entity that can be the
+   separator a marker needs. Anything else becomes a character that can be part
+   of neither a marker nor a space. */
+function _rlHangLead(inner){
+  const s = String(inner == null ? '' : inner);
+  let text = '', at = [], i = 0;
+  while (i < s.length && text.length < RL_HANG_LEAD_MAX){
+    const ch = s[i];
+    if (ch === '<'){
+      const gt = s.indexOf('>', i);
+      if (gt < 0) break;
+      i = gt + 1;
+      continue;
+    }
+    if (ch === '&'){
+      const sc = s.indexOf(';', i);
+      if (sc > i && sc - i <= 9){
+        text += (/^&(nbsp|#160|#xa0);$/i.test(s.slice(i, sc + 1))) ? ' ' : '';
+        at.push(i);
+        i = sc + 1;
+        continue;
+      }
+    }
+    text += ch; at.push(i); i++;
+  }
+  return { text, at };
+}
+/* Are the tags in this fragment balanced? A cut that leaves an element open
+   would emit crossing tags once the head is wrapped. */
+function _rlHangBalanced(html){
+  const s = String(html || '');
+  const stack = [];
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g;
+  let m;
+  while ((m = re.exec(s))){
+    const name = m[2].toLowerCase();
+    if (/\/\s*$/.test(m[3]) || name === 'br' || name === 'hr' || name === 'img') continue;
+    if (m[1]) { if (stack.pop() !== name) return false; }
+    else stack.push(name);
+  }
+  return stack.length === 0;
+}
+function redlineHangHtml(html){
+  const src = String(html == null ? '' : html);
+  if (!src || src.indexOf('<p') < 0) return src;
+  return src.replace(/<p\b([^>]*)>([\s\S]*?)(?=<\/p>|<p\b|$)/g, (whole, attrs, inner) => {
+    const lead = _rlHangLead(inner);
+    if (!lead.text) return whole;
+    let split;
+    try { split = redlineSplitMarker(lead.text); } catch (e){ return whole; }
+    if (!split || !split.marker) return whole;
+    const n = lead.text.length - split.rest.length;
+    if (!(n > 0) || n > lead.at.length) return whole;
+    const cut = n < lead.at.length ? lead.at[n] : inner.length;
+    const head = inner.slice(0, cut);
+    if (!_rlHangBalanced(head)) return whole;
+    const depth = redlineMarkerDepth(split.marker);
+    const at = String(attrs || '');
+    if (/\brl-hang\b/.test(at)) return whole;
+    /* TWO CLASSES, TWO FACTS. rl-hang is the GUTTER — the marker pulled out of
+       the wording — and the level class is HOW FAR IN the line sits. The level
+       is the FILE'S to state where it stated one: an uploaded contract carries
+       its own off its own indent, and a marker's depth is the reading for
+       paper that says nothing. Overwriting it would put HaTi's guess above the
+       drafter's own measurement. */
+    const stated = /\bhati-lv-[123]\b/.test(at);
+    const add = 'rl-hang' + (depth && !stated ? ' hati-lv-' + depth : '');
+    const dressed = /\bclass\s*=\s*"/.test(at)
+      ? at.replace(/\bclass\s*=\s*"/, 'class="' + add + ' ')
+      : at + ' class="' + add + '"';
+    return `<p${dressed}><span class="rl-marker">${head}</span>${inner.slice(cut)}`;
+  });
 }
 
 /* Render a block plan. Every line becomes its own element, carrying its own
@@ -678,8 +830,14 @@ function redlineOpsBlocksHtml(ops, opts = {}){
        Presentation only: nothing here changes what the line SAYS, which is why
        it is safe to do at the draw and would not be safe in the ops. */
     const depth = hang ? redlineMarkerDepth(shownMark) : 0;
+    /* THE STEP IS NOT PREFIXED, AND THAT IS DELIBERATE. `rl-line`, `rl-hang`
+       and their friends belong to whichever surface is drawing; how far in a
+       line SITS is one fact this product states in one vocabulary — the same
+       hati-lv-N the Word reader writes off a file's own indent and the writing
+       bar writes off a press. Two names for one step is how they come to
+       disagree about how wide a step is. */
     const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
-      depth ? `${pre}-hang-${depth + 1}` : '',
+      depth ? `hati-lv-${depth}` : '',
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
     /* THE BLOCK'S OWN STYLE, for markup that leaves this app — see the note on
@@ -1030,7 +1188,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
-  redlineLineKind, redlineSplitMarker, redlineMarkerDepth,
+  redlineLineKind, redlineSplitMarker, redlineMarkerDepth, redlineHangHtml,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
@@ -1039,7 +1197,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
-  redlineLineKind, redlineSplitMarker, redlineMarkerDepth, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
+  redlineLineKind, redlineSplitMarker, redlineMarkerDepth, redlineHangHtml, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   Redline, redlineRemoveChange, redlineClearMarkup, redlineChangesOf,
   redlineRebaseOffset, REDLINE_DRAFT_STAGE,
 };

@@ -1065,3 +1065,92 @@ describe('f277 (13) a heading carries its own number', () => {
     assert.ok(!/^1\b/.test(p.it.head), 'the number is in the entry heading too — it would print twice');
   });
 });
+
+/* ---------------------------------------------------------------------------
+   f277 (13) — THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026)
+   ---------------------------------------------------------------------------
+   *"Dropping copilot headings makes sense."*
+
+   The edition is a TRANSLATION of this contract, so its headings are this
+   contract's. A model-written heading beside the drafter's own is a second name
+   for one clause, and the two disagree the moment it is renamed.
+   --------------------------------------------------------------------------- */
+test('f277 (13) — the heading is the drafter’s own', async t => {
+  const fs2 = require('node:fs');
+  const path2 = require('node:path');
+  const ROOT2 = path2.join(__dirname, '..');
+  const rd = f => fs2.readFileSync(path2.join(ROOT2, f), 'utf8');
+
+  await t.test('the model is no longer ASKED for one', () => {
+    const srv = rd('server/server.js');
+    const i = srv.indexOf("app.post('/api/ai/readings'");
+    const route = srv.slice(i, srv.indexOf("app.post('/api/", i + 40));
+    assert.doesNotMatch(route, /head: \{ type: 'string'/,
+      'the schema field is gone rather than being asked for and ignored');
+    assert.match(route, /required: \['i', 'plain'\]/);
+    assert.match(route, /DO NOT WRITE HEADINGS/,
+      'and the prompt says so, with the reason: a heading of the model’s would '
+      + 'be a second name for one clause');
+  });
+
+  await t.test('a SECTION row survives without one', () => {
+    /* It used to be kept only where the model had written a heading. With
+       headings no longer asked for, that test would have dropped every section
+       title out of the edition. */
+    const srv = rd('server/server.js');
+    assert.match(srv, /if \(!plain && list\[i\]\.kind !== 'section'\) return;/);
+  });
+
+  await t.test('nothing already read has to be paid for again', () => {
+    /* The route's cache key is a hash of the DOCUMENT it was sent, not of the
+       prompt — so dropping the field re-runs nothing, and a reading cached with
+       a heading keeps it on the record and simply stops being drawn. */
+    const srv = rd('server/server.js');
+    const i = srv.indexOf("app.post('/api/ai/readings'");
+    const route = srv.slice(i, srv.indexOf("app.post('/api/", i + 40));
+    assert.match(route, /const inputHash = sha\(lang \+ '\\n' \+ sent\)/,
+      'the key is the language and the wording, and neither moved');
+  });
+
+  await t.test('the painter draws the PAPER’S heading', () => {
+    const src = rd('js/views/contract.js');
+    const i = src.indexOf('const numHtml=num?');
+    const region = src.slice(Math.max(0, i - 900), i + 400);
+    assert.match(region, /const head=String\(p\.row\.ownHead\|\|''\)\.trim\(\)/,
+      'the sheet’s own heading, not p.it.head');
+    assert.doesNotMatch(region, /p\.it\.head/,
+      'and the model’s is not drawn at all');
+  });
+
+  await t.test('the number and the name are cut ONCE', () => {
+    /* They are printed in different places — the number as a citation in its
+       own gutter, the name beside it — and cutting the string twice is how the
+       same heading comes to be printed with its number and again without. */
+    const src = rd('js/views/contract.js');
+    assert.match(src, /const _docReadHeadCut=t=>/);
+    assert.match(src, /const _docReadHeadNum=t=>_docReadHeadCut\(t\)\.num;/,
+      'the older reading is now half of the one reading');
+  });
+
+  await t.test('the edition borrows the paper’s own step vocabulary', () => {
+    const src = rd('js/views/contract.js');
+    assert.match(src, /function docReadShape\(el\)\{[\s\S]{0,700}hati-lv-\(\[123\]\)/,
+      'hati-lv-N — the same class the Word reader, the writing bar and the '
+      + 'gutter walk all write');
+    assert.match(src, /function docReadShape[\s\S]{0,700}rl-hang/);
+    const css = rd('index.html');
+    assert.match(css, /\.doc-read-note\.hati-lv-1\{ margin-left:2\.6em; \}/);
+    assert.match(css, /\.doc-read-note\.dr-hang > \.dr-h[^{]*\{[^}]*text-indent:-2\.6em/);
+  });
+
+  await t.test('and the shape is read off the PAGE, never stored in the reading', () => {
+    /* A reading is cached against the WORDING, and a clause can be indented
+       without a word moving — so a stored shape would go stale under a reader
+       while the paper in front of them said otherwise. */
+    const src = rd('js/views/contract.js');
+    const i = src.indexOf('function docReadShape');
+    const fn = src.slice(i, src.indexOf('\n}', i));
+    assert.doesNotMatch(fn, /_readings|it\.|readSig/,
+      'it asks the DOM and nothing else');
+  });
+});

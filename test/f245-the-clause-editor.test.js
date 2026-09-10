@@ -1975,7 +1975,12 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     const bar = CODE.match(/bar\.addEventListener\('mousedown'[\s\S]*?\n  \}\);/)[0];
     assert.match(bar, /if \(_ceSel && ceBarOnHeld\(k\)\) return;/,
       'a held passage is asked about FIRST');
-    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(\);/,
+    /* RE-POINTED 10 Sep 2026: this pinned the call's whole EXPRESSION, so the
+       day it gained an argument it failed on a claim that was still true. What
+       it is about is that with nothing held the bar reads the reader's own
+       selection and the page then pulls the text — never that the pull takes
+       no arguments. */
+    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(/,
       'and with nothing held the bar reads the reader\'s own selection exactly '
       + 'as it did');
     const held = CODE.match(/function ceBarOnHeld\([\s\S]*?\n\}/)[0];
@@ -2213,8 +2218,14 @@ describe('f245 (21) — the sentence the rail is holding', () => {
        IT FAILS THE DAY SOMEBODY PUTS THIS CLASS ON THAT LIST, which is exactly
        when somebody should be made to re-read this. */
     const rich = fs.readFileSync(path.join(ROOT, 'js/richdoc.js'), 'utf8');
-    assert.match(rich, /richSpanClassOk = v => v === RICH_FIELD_CLASS \|\| RICH_MARK_CLASSES\.has\(v\)/,
+    /* RE-POINTED 10 Sep 2026: this pinned the reading's whole EXPRESSION, so the
+       day a second allow-listed class was admitted beside the field marker it
+       failed on a claim that was still perfectly true. What it is about is that
+       there is ONE reading and that it is a CLOSED list of named classes. */
+    assert.match(rich, /const richSpanClassOk = v =>[^;]*RICH_MARK_CLASSES\.has\(v\)/,
       'one reading of whether a span may keep its class');
+    assert.doesNotMatch(rich, /const richSpanClassOk = v =>[^;]*(?:test\(|startsWith|indexOf|\/\^)/,
+      'and it is a set membership, never a pattern a class could be crafted to pass');
     assert.ok(!/ce-held/.test(rich),
       'and the held mark is deliberately NOT on the allow-list');
     assert.match(rich, /querySelectorAll\('span'\)[\s\S]{0,200}richSpanClassOk[\s\S]{0,260}sp\.remove\(\)/,

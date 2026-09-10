@@ -4229,7 +4229,17 @@ function wireNegotiationTab(c, opts = {}){
     holder.before(fmt);
     fmt.querySelectorAll('[data-nego-fmt]').forEach(fb => fb.addEventListener('mousedown', ev => {
       ev.preventDefault(); ev.stopPropagation();
-      try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
+      const cmd = fb.getAttribute('data-nego-fmt');
+      /* ---- ONE SET OF HANDS, TWO EDITORS (Young asked 10 Sep 2026) ----
+         This bar called execCommand directly and work mode's calls
+         richBarPress, so a bulleted limb typed here came out as a browser list
+         at its own padding while the same press over there wrote a marker in
+         the contract's own gutter. The act is the same act; a second
+         implementation of it is how the two came to speak different languages.
+         richBarPress falls back to execCommand itself where there is no
+         paragraph to act on, so nothing this bar could do before is lost. */
+      if (window.richBarPress){ try{ if (richBarPress(cmd)) return; }catch(_){} }
+      try{ document.execCommand(cmd); }catch(_){ /* an engine without execCommand still has the keyboard */ }
     }));
     /* ---- SAVE IS ONE PRESS ----
        REVERSED IN PLACE 28 Aug 2026, owner-asked: "we need to remove the
@@ -5923,6 +5933,41 @@ function rlClauseEditPillHtml(cl, opts = {}){
      one line up, where a reading that refuses editing draws no pencil either.
      Absent, nothing changes for any caller written before this. */
   if (say(pill && pill.skip, false) === true) return '';
+  /* ---- AND A CLAUSE A COLLEAGUE IS ALREADY TYPING IN DRAWS THE LOCK ----
+     (Young asked 10 Sep 2026: *"when user 1 is editing clause 5, it is locked
+     to others until user 1 is out. When user 2 tries to click on the pencil
+     symbol, they see the initials of User 1 and a short small line saying
+     'Locked by R. C.'"*)
+
+     ASKED HERE, LIKE THE READING ABOVE IT, so the four clause branches and the
+     clause editor's own paper cannot come to disagree about who holds a clause
+     — one reading, one place, and a surface written later inherits it rather
+     than having to remember it.
+
+     IT TAKES THE PENCIL'S SLOT RATHER THAN SITTING BESIDE IT. Two controls in
+     one corner would mean a pencil that looks pressable over a sentence saying
+     it is not, which is the dead press this builder already refuses one line
+     up; and Young's own words are that the reader reaching for the pencil finds
+     this instead. It is NOT a button: nothing here can be pressed, and a
+     control drawn dead is how a reader comes to blame themselves.
+
+     ALWAYS DRAWN, unlike the pencil, and that is deliberate rather than an
+     oversight. It is a FACT rather than a control, so there is nothing to
+     focus and hover-only would hide it from a keyboard reader entirely; and it
+     is rare and short-lived by construction — one clause, two minutes — so it
+     cannot become the furniture the hover rule was written against. */
+  const held = (typeof window !== 'undefined' && window.clauseLockHeldByOther)
+    ? clauseLockHeldByOther(opts.c, cl.clauseId) : null;
+  if (held){
+    /* THE MONOGRAM AND THE LINE, both, because Young asked for both by name.
+       The initials are the glance and the line is the sentence; the WHOLE name
+       is on the hover, because two colleagues can share a monogram and the
+       record of who holds a clause must be readable rather than guessed at. */
+    return `<span class="rl-cp-lock" title="${_nea(clauseLockTitle(held))}">
+      <b class="rl-cp-lock-mono" aria-hidden="true">${_ne(clauseLockInitials((held.by && held.by.name) || ''))}</b>
+      <span class="rl-cp-lock-say">${_ne(clauseLockLine(held))}</span>
+    </span>`;
+  }
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
   /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
      this tooltip). The default said "Open this clause — what it says now, what
@@ -5968,25 +6013,29 @@ function rlClauseEditPillHtml(cl, opts = {}){
    by the panel's standing block, which is what makes the two agree on a marked
    clause AND on an unmarked one. The room's two-pane view is deliberately not
    in this list: it has its own sheet and its own rules, and negoRichBody stays
-   exactly what it was for every caller that is not this page. */
+   exactly what it was for every caller that is not this page.
+
+   ---- IT IS redlineHangHtml NOW, AND THIS IS ITS NAME ON THIS PAGE (Young
+   asked 10 Sep 2026) ---- The walk moved to js/redline.js, beside RL_MARKER and
+   redlineMarkerDepth, because that is where the marker vocabulary lives and
+   because THREE more surfaces needed the same treatment: the Document tab (via
+   renderDocHtml), the clause editor's typing box, and the counterparty's copy.
+   Written out again on each it would be four readings of one document.
+
+   THE COPY THIS REPLACED COULD NOT SEE A MARKER SET IN BOLD, which is what
+   Word writes and what HaTi's own reader stores — so every numbered clause of
+   an uploaded contract sat flush against the margin — and it added no depth,
+   so a lettered limb drew level with the clause it belongs to. Both are the
+   shared builder's now.
+
+   This name is kept: it is what this file's own renderers and half a dozen
+   tests reach for, and one caller renaming a shared reading is churn.
+
+   It is read through the module's own scope rather than through window: both
+   files are loaded together by js/app.js, and a stage that carries this page
+   but not the engine draws no marks at all. */
 function rlHangRichHtml(html){
-  const src = String(html == null ? '' : html);
-  if (!src || typeof redlineSplitMarker !== 'function') return src;
-  return src.replace(/<p\b([^>]*)>([^<]*)/g, (whole, attrs, text) => {
-    let split;
-    try { split = redlineSplitMarker(text); } catch (e){ return whole; }
-    if (!split || !split.marker) return whole;
-    /* The marker's own characters, boxed to the hanging measure. The text after
-       it is left untouched — the split is on the leading run only, so anything
-       else in the paragraph (bold, a defined term, a nested span) is never
-       reached. */
-    const head = text.slice(0, text.length - split.rest.length);
-    const at = String(attrs || '');
-    const dressed = /\bclass\s*=\s*"/.test(at)
-      ? at.replace(/\bclass\s*=\s*"/, 'class="rl-hang ')
-      : at + ' class="rl-hang"';
-    return `<p${dressed}><span class="rl-marker">${head}</span>${split.rest}`;
-  });
+  return (typeof redlineHangHtml === 'function') ? redlineHangHtml(html) : String(html == null ? '' : html);
 }
 
 /* The panel's contents for ONE clause.
@@ -10413,7 +10462,7 @@ function redlineDocHtml(c, opts = {}){
         pencil claiming a page nothing can open, which is the dead press this
         whole draw-time decision exists to prevent. */
   const editorTakesIt = rlEditorTakesIt(side);
-  const pillFor = cl => rlClauseEditPillHtml(cl, { editable, hasPanel, pill: opts.pill,
+  const pillFor = cl => rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';

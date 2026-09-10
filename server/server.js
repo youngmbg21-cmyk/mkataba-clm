@@ -903,6 +903,54 @@ function ourChangesTouched(prev, next) {
   return false;
 }
 
+/* ============================================================
+   ONE CLAUSE, ONE PAIR OF HANDS — AS THE SERVER READS IT
+   ============================================================
+   (Young asked 10 Sep 2026.) The browser draws the monogram on the pencil and
+   refuses at the editor's door; this is the wall behind both, and it is here
+   for the reason every guard on this route is here — a rule kept only in the
+   pixels holds until somebody sends the request themselves.
+
+   ASKED OF THE STORED CONTRACT, never of the request body: who holds a clause
+   is exactly the half the person being refused would otherwise get to restate
+   on the way past. And asked as a DIFFERENCE, like every guard around it — a
+   save that leaves our changes alone passes untouched, which is every save
+   that merely refreshes a lock, records a decision or moves a field.
+
+   TWO MINUTES, and the same number the browser reads. Two readings of "is this
+   lock alive" is how a holder and everybody else come to disagree about it. */
+const CLAUSE_LOCK_MS = 120000;
+const srvLockLive = l => !!(l && l.at && (Date.now() - Date.parse(l.at)) < CLAUSE_LOCK_MS);
+/* Which clauses did THIS save add, reword or re-decide one of OUR changes on?
+   Their proposals arrive through the share routes, which have their own wall —
+   the same scope ourChangesTouched draws, one field along. */
+function ourClausesTouched(prev, next) {
+  const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide !== 'counterparty')
+    .map(x => [String(x.id), { clauseId: String(x.clauseId || ''),
+      stamp: String(x.hash || '') + '|' + String(x.status || '') }]));
+  const a = ours(prev), b = ours(next);
+  const out = new Set();
+  for (const [id, v] of b) if (!a.has(id) || a.get(id).stamp !== v.stamp) out.add(v.clauseId);
+  for (const [id, v] of a) if (!b.has(id)) out.add(v.clauseId);
+  out.delete('');
+  return out;
+}
+/* WHO ELSE HOLDS ONE OF THEM, or null. Nobody signed in holds nothing, which is
+   the browser's own answer: a stage with no user behaves exactly as it did
+   before this existed. */
+function srvClauseLockClash(prev, next, user) {
+  const locks = (prev && prev.locks && typeof prev.locks === 'object') ? prev.locks : null;
+  if (!locks || !user) return null;
+  for (const clauseId of ourClausesTouched(prev, next)) {
+    const l = locks[clauseId];
+    if (!srvLockLive(l)) continue;
+    if (String((l.by && l.by.id) || '') === String(user.id || '')) continue;
+    return { clauseId, name: String((l.by && l.by.name) || '').trim() };
+  }
+  return null;
+}
+
 function folderScopeFor(user) {
   if (!user) return [];
   if (user.role === 'admin') return ADMIN_SCOPE;
@@ -3061,6 +3109,24 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- AND A CLAUSE A COLLEAGUE IS TYPING IN IS NOT YOURS TO FILE AGAINST ----
+     (Young asked 10 Sep 2026.) The browser refuses at the editor's door and
+     draws the holder's initials where the pencil would be; this is what makes
+     it a rule. It is deliberately NARROW — our own side's wording, the same
+     scope the desk guard beside it draws — because two people DECIDING at once
+     is a different collision and is not what was asked about.
+
+     NAMES WHO HOLDS IT AND SAYS THE WORK IS SAFE, because that is true: the
+     refusal happens before anything is written, so the draft is still in the
+     box the reader is looking at. */
+  if (prev) {
+    const clash = srvClauseLockClash(prev, c, req.user);
+    if (clash)
+      return res.status(403).json({
+        error: `${clash.name || 'A colleague'} is editing this clause right now. Your work is safe — try again in a moment.`,
+        lock: clash.clauseId });
+  }
+
   /* ---- THE ROUTE IS SHUT ONCE ANYBODY HAS SIGNED ----
      Owner's rule, 11 Aug 2026: "once one person has signed, there can be no
      option to add other signers, and the process would have to start all over
@@ -4821,10 +4887,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
             type: 'object',
             properties: {
               i: { type: 'integer', description: 'The number in square brackets at the head of the row.' },
-              head: { type: 'string', description: 'A short plain-English heading for this row, in sentence case. Never include the clause number.' },
               plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty for a row marked SECTION, and for a clause with nothing worth telling a business owner.' },
             },
-            required: ['i', 'head', 'plain'],
+            required: ['i', 'plain'],
           },
         },
       },
@@ -4833,7 +4898,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   };
   const J = orgJx();
   const LANG = READ_LANGS[lang];
-  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry with its own heading, and the reader's eye moves between the two. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
+  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
   try {
     /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
        than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
@@ -4856,11 +4921,23 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       if (!Number.isInteger(i) || i < 0 || i >= list.length) return;
       const plain = String((r && r.plain) || '').trim();
       const head = String((r && r.head) || '').trim();
+      /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
+         `head` is no longer asked for and is kept here for the one reason that
+         matters: a reading CACHED before this ruling still carries one, and the
+         section rule below is what keeps those rows alive. The browser draws
+         the paper's own heading either way, so nothing already read has to be
+         paid for again — and a model that answers with one anyway is stored
+         and simply not drawn. */
       /* A SECTION ROW IS KEPT ON ITS HEADING ALONE — it is the edition's own
          section title and carries no wording by design. Everything else needs
          a reading: a clause entry with only a heading would draw a title over
          nothing. The NUMBER is the browser's, never the model's. */
-      if (!plain && !(list[i].kind === 'section' && head)) return;
+      /* A SECTION ROW NEEDS NOTHING FROM THE MODEL NOW, which is why this test
+         moved: it kept a section only where the model had written a heading,
+         and with headings no longer asked for that would have dropped every
+         section title out of the edition. A section is kept because it IS one —
+         the paper's own heading is what the browser draws under it. */
+      if (!plain && list[i].kind !== 'section') return;
       items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
     });
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this

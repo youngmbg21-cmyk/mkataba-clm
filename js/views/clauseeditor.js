@@ -1648,11 +1648,54 @@ function ceSeedDraft(changeId){
   _ceOpenHead = _ceHead;
   _ceSavedAt = (_ceText !== _ceBase || _ceHead !== _ceHeadBase) ? ceNowHm() : null;
 }
+/* ---- THE LOCK IS KEPT WHILE THE PAGE IS OPEN ----
+   A reader can write for twenty minutes without blurring the box, and a lock
+   that lapsed under them would let a colleague in and then have the SERVER
+   refuse the filing they had been writing all that time. So one interval, at
+   well under half the window, so a missed tick can never cost the clause.
+
+   IT COSTS ONE SMALL SAVE A MINUTE while an editor is open, and that is what
+   makes the lock visible to anybody but its holder — a lock held in one tab is
+   a note to yourself. Started at the door and STOPPED AT THE DOOR OUT, before
+   the release, or a page that closed would go on holding a clause it had let
+   go of. */
+const CE_LOCK_BEAT_MS = 45000;
+let _ceLockBeat = null;
+function ceLockBeat(stop){
+  if (_ceLockBeat){ clearInterval(_ceLockBeat); _ceLockBeat = null; }
+  if (stop) return;
+  _ceLockBeat = setInterval(() => {
+    if (!clauseEditorOpen()){ ceLockBeat(true); return; }
+    try{
+      if (window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+    }catch(_){}
+  }, CE_LOCK_BEAT_MS);
+}
+
 function rlOpenClauseEditor(c, clauseId, opts = {}){
   const refusal = clauseEditorRefusal(c, opts);
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
   const probeC = c, probeId = String(clauseId || '');
   if (!probeId){ if (window.toast) toast(_cet('ce_no_clause'), 'err'); return false; }
+  /* ---- ONE CLAUSE, ONE PAIR OF HANDS ---- (Young asked 10 Sep 2026)
+     THE PENCIL IS THE SIGN AND THIS IS THE WALL, which is what makes the lock
+     a rule rather than a decoration: the paper's pencil stands down where a
+     colleague holds a clause, and FOUR other doors reach this page without
+     passing it — the card's Edit, the sparkle on a tracked change, the clause
+     panel's Copilot button, and the clause dropdown at the top of this page.
+     A rule kept at one of five is not a rule.
+
+     ASKED ON THE PROBE, BEFORE ANY STATE IS SET, so a refusal leaves nothing
+     half-open behind it. */
+  const heldBy = window.clauseLockHeldByOther ? clauseLockHeldByOther(probeC, probeId) : null;
+  if (heldBy){
+    /* 'warn' RATHER THAN 'err': nothing failed and nothing was refused that
+       will not be permitted in a minute — this is somebody else's turn, not a
+       mistake of the reader's. */
+    if (window.toast) toast(_cet('cl_locked_refuse',
+      { who: String((heldBy.by && heldBy.by.name) || '').trim() || _cet('cl_a_colleague') }), 'warn');
+    return false;
+  }
   /* ---- AN EXPLICIT ASK TO TYPE OUTRANKS THE OPENING POSTURE ----
      Set when the reader clicked INTO another clause's words, which is that
      reader saying "type here" as plainly as a pencil press does. It is
@@ -1675,6 +1718,13 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     if (window.toast) toast(_cet('ce_clause_gone'), 'err');
     return false;
   }
+  /* TAKEN ONCE THE CLAUSE IS REALLY THERE, never at the press: a lock on a
+     clause this page then refuses to open would be held by nobody who could
+     let it go. It is refreshed on every pull and released at every door out. */
+  try{
+    if (window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+  }catch(_){}
+  ceLockBeat();
   ceSeedDraft(opts.changeId);
   /* ---- THE PAGE NEVER OPENS IN A STATE THAT HIDES MARKS THAT EXIST ----
      (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined
@@ -1788,6 +1838,14 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
 }
 
 function rlCloseClauseEditor(opts = {}){
+  /* LETTING GO IS THE FIRST THING THE CLOSE DOES, and only ever our own lock —
+     clauseLockRelease refuses somebody else's, which is what stops a browser
+     that lost a race taking a clause off the colleague who won it. Before the
+     state is cleared, because the release needs to know which clause. */
+  ceLockBeat(true);
+  try{
+    if (window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+  }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page) page.remove();
   document.body.classList.remove('ce-open');
@@ -2322,22 +2380,35 @@ function ceRenderPaper(){
      obey the tab they had just pressed. Both clean readings go through the same
      op renderer with the two texts equal, which is how they inherit the
      hanging indents and the sub-paragraph shape the rest of the paper has. */
+  /* THE CLEAN READINGS SHOW THE WORDING AS IT IS DRESSED, which is the whole
+     point of asking for them: bold, a size and a colour are invisible in the
+     marked reading (it is built from the words that moved) and this is where
+     they show. rlHangRichHtml is the paper's own treatment of rendered markup,
+     so the sub-paragraph shape and the hanging indents are the same here as
+     everywhere else it draws. */
+  const dress = h => (window.rlHangRichHtml ? rlHangRichHtml(h) : h);
   let clean = null;
   if (!typing){
     const mode = (window.rlReadMode ? rlReadMode() : 'marks');
-    /* THE CLEAN READINGS SHOW THE WORDING AS IT IS DRESSED, which is the whole
-       point of asking for them: bold, a size and a colour are invisible in the
-       marked reading (it is built from the words that moved) and this is where
-       they show. rlHangRichHtml is the paper's own treatment of rendered
-       markup, so the sub-paragraph shape and the hanging indents are the same
-       here as everywhere else it draws. */
-    const dress = h => (window.rlHangRichHtml ? rlHangRichHtml(h) : h);
     if (mode === 'agreed') clean = dress(_ceBase);
     else if (mode === 'proposed') clean = dress(_ceText);
   }
+  /* ---- AND THE BOX BEING TYPED IN KEEPS ITS GUTTER (Young asked 10 Sep 2026:
+     the tools and the contract must speak one language) ----
+     The typing branch handed the wording over undressed, so the clause the
+     reader had just pressed the pencil on was the one clause on the page with
+     its numbers flush against the margin — it lost its shape the moment they
+     started and snapped back when they stopped. MEASURED on an uploaded
+     services agreement: 2.2 and its (a)/(b) limbs hung correctly until the
+     pencil, then jumped left by a full gutter.
+
+     IT CANNOT REACH THE RECORD. The marker span carries a class the sanitiser
+     does not admit, so anything read back out of the box is unwrapped on the
+     way — and ceBoxHtml takes it off the copy it compares, so a pull never
+     reports the box as corrected and nothing repaints under the caret. */
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${window.sanitizeRich ? sanitizeRich(_ceText) : _ceText}</div>`
+        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
   /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
@@ -2506,8 +2577,18 @@ function ceHeadReadHtml(){
    about what it holds. The WORDING is sanitised rather than flattened, exactly
    as the clause panel's editor does it — reading textContent there is what used
    to throw the reader's bold and bullets away on every keystroke. */
-function cePullText(){
+/* `opts.repaint` FORCES the paper to be rebuilt. The sanitiser's own signal
+   below catches a paste; it cannot catch a press of the writing bar's four
+   SHAPE tools, because what those move is a marker and a step class that the
+   allow-list keeps exactly as written — nothing to correct, and the paper still
+   owes the reader the marker in its gutter. */
+function cePullText(opts){
   if (!ceIsTyping()) return;
+  /* SOMEBODY IS TYPING IN THIS CLAUSE, so the lock's stamp moves with them.
+     IN MEMORY ONLY and therefore free — the beat above is what carries it to
+     the other browser, and a save on every blur would be a save on every
+     keystroke's worth of hesitation. */
+  try{ if (window.clauseLockKeep) clauseLockKeep(_ceC, _ceClauseId); }catch(_){}
   const box = _ceQ('#ce-clausebody');
   const headBox = _ceQ('#ce-clausehead');
   let next = _ceText;
@@ -2531,7 +2612,7 @@ function cePullText(){
   if (next === _ceText && !headMoved) return;
   _ceHead = nextHead;
   ceApply(next, (headMoved && next === _ceText) ? _cet('ce_step_named') : _cet('ce_step_typed'),
-    { keepView: true, headMoved, repaint: corrected });
+    { keepView: true, headMoved, repaint: corrected || !!(opts && opts.repaint) });
 }
 
 function ceRenderFoot(){
@@ -3377,15 +3458,33 @@ function ceClearHeld(scope){
     try{ p.normalize(); }catch(_){}
   });
 }
-/* WHAT THE BOX SAYS, WITH THE MARK TAKEN OFF — the one reading both the pull
-   and the dirty check use, so neither can mistake the mark for the reader's own
-   work. The live DOM keeps the mark; only this copy loses it. */
+/* WHAT THE BOX SAYS, WITH THE PAINT TAKEN OFF — the one reading both the pull
+   and the dirty check use, so neither can mistake a mark HaTi drew for the
+   reader's own work. The live DOM keeps both; only this copy loses them.
+
+   TWO THINGS COME OFF, for the same reason and by the same means. The held
+   passage's wash, and — since 10 Sep 2026, when the typing box was given the
+   contract's own gutter — the marker span the gutter hangs the number in.
+   Neither is wording. Leaving the marker on would make every pull report the
+   box as CORRECTED (the sanitiser unwraps a span whose class it does not
+   admit), and a corrected box repaints the paper, which is the one thing that
+   may not happen under a caret. */
+const CE_PAINT_SEL = '.' + CE_HELD_CLASS + ',.rl-marker';
 function ceBoxHtml(box){
   if (!box) return '';
-  if (!box.querySelector || !box.querySelector('.' + CE_HELD_CLASS)) return String(box.innerHTML || '');
+  if (!box.querySelector || !box.querySelector(CE_PAINT_SEL)) return String(box.innerHTML || '');
   try{
     const clone = box.cloneNode(true);
     ceClearHeld(clone);
+    /* The span goes and its characters stay: the marker IS part of the clause's
+       wording, and a pull that dropped it would file a change striking the
+       number out. */
+    clone.querySelectorAll('.rl-marker').forEach(sp => {
+      const par = sp.parentNode;
+      if (!par) return;
+      while (sp.firstChild) par.insertBefore(sp.firstChild, sp);
+      par.removeChild(sp);
+    });
     return String(clone.innerHTML || '');
   }catch(_){ return String(box.innerHTML || ''); }
 }
@@ -3506,6 +3605,9 @@ function ceRenderScope(){
    reading of "which words were those", and nothing to go stale. The caret is
    handed straight back to the strip, so the gesture the reader is in the middle
    of is not interrupted. */
+/* Which presses move a paragraph's SHAPE rather than its dressing — asked of
+   richdoc's own list, never a second copy of four names here. */
+const ceBarMovesShape = k => !!(window.RICH_SHAPE_KEYS && window.RICH_SHAPE_KEYS.has(k));
 function ceBarOnHeld(k){
   const box = _ceQ('#ce-clausebody');
   const span = box && box.querySelector ? box.querySelector('.' + CE_HELD_CLASS) : null;
@@ -3534,7 +3636,7 @@ function ceBarOnHeld(k){
      owed and the reader is put back after it rather than the repaint being
      skipped. The text of the passage does not move under a dressing change,
      which is what makes finding it again honest. */
-  cePullText();
+  cePullText({ repaint: ceBarMovesShape(k) });
   ceReopenHeld(held);
   return true;
 }
@@ -3873,7 +3975,7 @@ function ceWirePage(page){
        state the caret is in whenever the strip is open. Everywhere else the
        bar reads the reader's own selection in the clause, exactly as it did. */
     if (_ceSel && ceBarOnHeld(k)) return;
-    if (window.richBarPress && richBarPress(k)) cePullText();
+    if (window.richBarPress && richBarPress(k)) cePullText({ repaint: ceBarMovesShape(k) });
   });
 
   /* The picker's own presses. mousedown for the same reason the bar uses it —

@@ -326,8 +326,23 @@ function negoStyleHtml(){
      glyph out of its box. */
   .nego-redline .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
   /* The same ladder in the room's own sheet — one reading, both canvases. */
-  .nego-redline .rl-hang-2{margin-left:2.6em}
-  .nego-redline .rl-hang-3{margin-left:5.2em}
+  /* ---- THE STEPS A LINE CAN SIT AT ----
+     ONE vocabulary for one fact, whoever wrote it down: the level class is
+     emitted by the Word reader where the FILE stated an indent, and by the
+     gutter walk where the MARKER is all there is. Two names for one step is
+     how they come to disagree about how wide a step is. */
+    .nego-redline .hati-lv-1{margin-left:2.6em}
+    .nego-redline .hati-lv-2{margin-left:5.2em}
+    .nego-redline .hati-lv-3{margin-left:7.8em}
+  /* A label directly above its value — the file said no space after it. */
+    .nego-redline .hati-tight{margin-bottom:0}
+  /* Where the page ended. A rule and air on screen; a real break in print and
+     in anything that paginates. */
+    .nego-redline .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    break-before:page;page-break-before:always}
+  /* A contents row: the entry at the left, its page number at the right wall. */
+    .nego-redline .hati-toc{overflow:hidden}
+    .nego-redline .hati-toc-n{float:right;padding-left:1.2em}
   .nego-redline .rl-clause{margin-top:9px}
   /* A line that arrived or went whole is marked in the margin as well as in
      its colour, so the two are still distinguishable in print and to anyone
@@ -2085,8 +2100,23 @@ function redlineLayoutCss(){
      stays in its own gutter and the wording keeps its tab stop. margin, never
      padding, because padding-left is what the hang itself uses and adding to it
      would pull the marker out of the gutter with the wording. */
-  .redline-page .rl-doc .rl-hang-2,.redline-page .rl-cp-src .rl-hang-2{margin-left:2.6em}
-  .redline-page .rl-doc .rl-hang-3,.redline-page .rl-cp-src .rl-hang-3{margin-left:5.2em}
+  /* ---- THE STEPS A LINE CAN SIT AT ----
+     ONE vocabulary for one fact, whoever wrote it down: the level class is
+     emitted by the Word reader where the FILE stated an indent, and by the
+     gutter walk where the MARKER is all there is. Two names for one step is
+     how they come to disagree about how wide a step is. */
+    .redline-page .rl-doc .hati-lv-1,.redline-page .rl-cp-src .hati-lv-1{margin-left:2.6em;}
+    .redline-page .rl-doc .hati-lv-2,.redline-page .rl-cp-src .hati-lv-2{margin-left:5.2em;}
+    .redline-page .rl-doc .hati-lv-3,.redline-page .rl-cp-src .hati-lv-3{margin-left:7.8em;}
+  /* A label directly above its value — the file said no space after it. */
+    .redline-page .rl-doc .hati-tight,.redline-page .rl-cp-src .hati-tight{margin-bottom:0;}
+  /* Where the page ended. A rule and air on screen; a real break in print and
+     in anything that paginates. */
+    .redline-page .rl-doc .hati-pb,.redline-page .rl-cp-src .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    break-before:page;page-break-before:always;}
+  /* A contents row: the entry at the left, its page number at the right wall. */
+    .redline-page .rl-doc .hati-toc,.redline-page .rl-cp-src .hati-toc{overflow:hidden;}
+    .redline-page .rl-doc .hati-toc-n,.redline-page .rl-cp-src .hati-toc-n{float:right;padding-left:1.2em;}
   /* A real list gets the same shape from the browser, but only if it is allowed
      its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
      some surfaces and at zero on others, and at zero the marker sits ON the
@@ -2263,6 +2293,42 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-pill:hover{background:var(--color-accent-100,#ccfbf1);
     color:var(--color-accent-800,#115e59)}
   .redline-page .rl-cp-pill:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  /* ---- AND WHERE A COLLEAGUE HOLDS THE CLAUSE, THE SLOT SAYS SO ----
+     (Young asked 10 Sep 2026.) It takes the pencil's own corner because that
+     is where the reader is reaching, and it is NOT a button: nothing here can
+     be pressed, and a control drawn dead is how a reader comes to blame
+     themselves. Not pinned, unlike the pencil — a monogram and a sentence are
+     wider than a glyph and the heading reserves only the glyph's width, so it
+     sits in the row and lets the heading give up what it needs. margin-left
+     auto rather than the row's space-between, for the pencil's own recorded
+     reason: a headingless clause leaves this as the row's only child.
+
+     ALWAYS VISIBLE, unlike the pencil, and the sheet is where that difference
+     lives so the builder does not have to know about it. It is a fact rather
+     than a control, so there is nothing to focus and a hover-only fact is one
+     a keyboard reader never meets; and it draws on one clause for two minutes,
+     which is what stops it becoming the furniture the hover rule was written
+     against.
+
+     IT FOLLOWS THE SHEET'S TYPE, like every other piece of furniture on this
+     paper, and takes the label shade rather than amber: amber on this page
+     means work waiting on the reader, and a colleague typing is neither work
+     nor theirs. */
+  .redline-page .rl-cp-lock{margin-left:auto;flex:none;display:inline-flex;align-items:center;
+    gap:calc(5px * var(--doc-scale,1));color:var(--color-neutral-600);
+    font:inherit;font-size:calc(11px * var(--doc-scale,1));line-height:1;
+    white-space:nowrap;-webkit-user-select:none;user-select:none}
+  .redline-page .rl-cp-lock-mono{display:inline-flex;align-items:center;justify-content:center;
+    width:calc(18px * var(--doc-scale,1));height:calc(18px * var(--doc-scale,1));
+    border-radius:9999px;background:var(--color-neutral-100,#f1f5f9);
+    color:var(--color-text);font-size:calc(9px * var(--doc-scale,1));
+    font-weight:var(--w-title);letter-spacing:.02em;flex:none}
+  .redline-page .rl-cp-lock-say{font-weight:var(--w-body,400)}
+  ${''/* The heading reserves the PENCIL's width; where the lock is drawn
+       instead there is no pinned control to reserve for, and the reserved
+       padding would only push the heading's own words into a needless second
+       line. One rule, on the row that knows which of the two it holds. */}
+  .redline-page .rl-clause-top:has(.rl-cp-lock) .rl-clause-h{padding-right:0}
   /* Every clause's panel body is in the panel already; opening flips which one
      is on. ONE AT A TIME — the same single-value rule as the card pop-out and
      the ask reveal — so the panel can never show two clauses at once, and
