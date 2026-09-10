@@ -6139,7 +6139,7 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
            word (English, stamped into clauseLabel) and is deliberately not what
            a screen prints. */}
     <p class="rl-cp-clname">${cl.front ? _ne(i18t('ng_front_matter'))
-      : _ne(String(cl.headingText || cl.title || '').trim() || i18t('ng_cp_stands'))}</p>
+      : _ne(_neClause(String(cl.headingText || cl.title || '').trim()) || i18t('ng_cp_stands'))}</p>
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t(isNew ? 'ng_cp_proposed' : 'ng_cp_stands')}</h5>
       <p class="rl-cp-note">${i18t(isNew ? 'ng_cp_proposed_note' : 'ng_cp_stands_note')}</p>

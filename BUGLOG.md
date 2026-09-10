@@ -11699,3 +11699,54 @@ unchanged (4 pre-existing errors).
   request.
 - 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next,
   twice each) in js/i18n.js. Identical on the parent; outside this request.
+
+## 10 Sep 2026 — THE FRICTION PAGE WAS ASKING THE CASE MACHINERY AND IT DID NOTHING
+
+Owner-reported, off Insights → Negotiation friction the hour job 4 shipped:
+*"job 4, i still see some clauses in capital letters"* — over "Clause 2 ·
+SPECIFICATIO…" and "Clause 5 · INDEMNIFICAT…" sitting beside "Data Protection".
+
+THAT PAGE HAS ASKED clauseTitleCase SINCE 26 Aug 2026 AND IT WAS A NO-OP,
+which is why the sweep passed over it: the source really was calling the case
+machinery, and the call really did nothing. MEASURED:
+
+  clauseTitleCase("Clause 2 · SPECIFICATIONS, QUALITY & INSPECTION")
+    -> "Clause 2 · SPECIFICATIONS, QUALITY & INSPECTION"
+  clauseNameShown (same input)
+    -> "Clause 2 · Specifications, Quality & Inspection"
+
+THE CAUSE IS THE ACRONYM RULE READING THE WHOLE STRING. `_clShouts` asks
+whether a name contains a lowercase letter; the word "Clause" carries one, so
+the label is not "shouting", so every capital word after it is read as an
+acronym somebody TYPED and kept exactly. That reading is right for a bare
+heading and wrong for a LABEL with a number in front of it — and a stamped
+clause name is always the second shape. clauseNameShown parses the number off
+first, which is the whole reason it exists; the friction page was reaching past
+it for the machinery underneath.
+
+MY OWN SWEEP MISSED IT FOR ONE REASON, worth recording: I grepped for the
+stamped field, found intelligence.js in the results, saw it already asked the
+case machinery, and marked it done WITHOUT CHECKING THAT THE CALL WORKED ON THE
+SHAPE IT IS GIVEN. "It already calls the right function" is not the same claim
+as "it produces the right answer", and only measuring tells them apart.
+
+FIXED IN TWO PLACES, both chrome and neither the paper: _igClauseName (the
+friction page's most-contested list and its written brief) and the clause
+panel's own name line, which printed the raw heading. The panel's EDITABLE name
+box is untouched and stays raw — it replaces that element wholesale and is
+seeded from the stored heading, so what a reader types back is what was stored.
+
+THE NET THAT WOULD HAVE CAUGHT IT is now in f282: no file outside clausemodel
+may ask clauseTitleCase on its own — the one reading a screen asks is
+clauseNameShown, and the machinery underneath is allowed only as the fallback
+behind it. The no-op itself is kept as a FACT in the same file, so nobody
+"simplifies" the reading back to the machinery.
+
+TESTS: f282, 2 new claims and 1 kept control; both new ones fail against the
+commit shipped an hour before. insights-panels-verify section 10, 2 checks —
+the second fails at that commit reporting the owner's screenshot verbatim,
+["Clause 2 · SPECIFICATIONS, QUALITY & INSPECT","Clause 5 · INDEMNIFICATION"].
+The friction block is STAGED there because this file's own book carries no
+negotiations at all, so the block does not draw and a check run against that
+would have passed over an absence. insights-panels-verify 42/42,
+clause-door-verify 117/117. Lint unchanged (4 pre-existing errors).
