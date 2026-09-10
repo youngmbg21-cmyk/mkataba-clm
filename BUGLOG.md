@@ -11955,3 +11955,91 @@ Noticed, not fixed
   — three checks about the negotiation head wrapping at 126px. Pre-existing.
 - js/mobile.js's view→bottom-bar map still carries a `templatelib` key. It is a
   lookup, so an unused key costs nothing, but the name is stale.
+
+## Job 5 — the workspace keeps its colour (10 Sep 2026)
+
+Owner-reported: "when i choose the blue theme and refresh the page, the theme
+goes back to green."
+
+DEFECTS FOUND AND FIXED
+- The pre-paint script at the top of index.html read only 'hati-theme'. The
+  appearance became two axes on 24 Aug 2026 and setBrand/setDark write
+  'hati-brand' and 'hati-dark', which that script never learned about — so the
+  desktop's own appearance controls stored a choice the next load ignored.
+  MEASURED: press navy, refresh, and hati-brand is still 'navy' in the browser
+  while data-brand is gone. The choice was never forgotten, it was never read.
+- The same was true of light/dark, which nobody had reported. The phone's
+  toggle survived a refresh because it goes through setTheme, which does write
+  the legacy key; that asymmetry is what named the fault.
+- The script asked `if dark ... else if navy` — an ELSE, so a dark workspace
+  could never also be navy however the keys were written. Navy-at-night could
+  be chosen and could not survive a load. Two independent questions now.
+- applyAppearance had exactly two callers and both were inside the setters, so
+  nothing in the product ever applied the appearance on a fresh load. It runs
+  once from wireThemeMenu now, so the module is the authority and a future
+  drift shows as a correction rather than as a theme that is permanently wrong.
+  repaintForAppearance is deliberately NOT called there — it re-renders the
+  whole view and this runs on every load.
+
+MEASUREMENT THAT CHANGED THE WORK
+- The browser check first read #side-nav for the colour and reported no change
+  between green and navy. It was right: the 24 Aug shell rebuild made the nav
+  COLUMN white in both brands and moved the brand ground to the 44px bar above
+  it. A probe there reports rgb(255,255,255) either way and would have passed
+  against a product with no brand at all. It reads #top-header.
+
+Noticed, not fixed
+- brandNow() falls back to themeNow(), which collapses the two axes into one
+  name — so a browser holding ONLY the legacy 'navy' loses its brand the moment
+  setDark writes the dark key. Reachable only for a browser last written before
+  24 Aug 2026, and only once. The pre-paint script copies the quirk on purpose:
+  a boot that painted navy where the app thinks green is a NEW disagreement,
+  and with the painter now running at boot it would show as a flicker.
+- theme-tokens-verify is 27/40 and the SAME 13 screens fail on this branch and
+  on its parent, checked as a set difference. Not this run's, and deliberately
+  not re-recorded: re-saving the census would bake somebody else's loss in.
+  The values are rgba(15,23,42,0.04) arriving on the dark screens, and the
+  Copilot violet and Reject's ink gone from negotiate--dark — the second is
+  already recorded in THE MAP as a consequence of the card opening (a verb
+  behind a disclosure is not painted on a page at rest).
+- js/mobile.js's view→bottom-bar map still carries a stale `templatelib` key.
+
+## The full suite found a second PDF structure reader (10 Sep 2026)
+
+f48 and f232 both went red on the full run: js/views/contract.js and
+js/pdfrich.js each declared pdfLinesToRich and extractPdfRich, so two modules
+exported the same two names and whichever js/app.js imported last won silently.
+
+WHAT IT REALLY WAS
+- js/pdfrich.js has been in the product since 9 Sep 2026, is exported to window,
+  and has NEVER HAD A CALLER — not in the product, not in a test, and not even
+  loaded by a node stage. The rlPaperFootHtml family: a whole module built,
+  exported and never reached.
+- Jobs 1 & 2 did not find it and built a second reader. That is Bug Fix Rule 2
+  not being done. The names here are the ones that moved, because the newcomer
+  yields: docPdfStructure and readPdfStructured.
+
+WHICH READER SHOULD SHIP — MEASURED, THEN REVERSED
+- pdfrich.js was wired up, measured, and unwired again. On the same file the two
+  produce byte-identical html, and pdfrich.js does more besides: real lists,
+  nesting depth, bold and italic runs, a content-loss sanity check, and its own
+  documented entry point (extractDocRich) written for exactly the ingestion path
+  submitUpload is. It ran green on 5 of f233 (10)'s 8 claims.
+- It was unwired because of one thing: its list-marker rule reads a SOFT-WRAPPED
+  "(30)" as an ordered-list marker, so "…within thirty (30) days of receipt."
+  comes back as "…within thirty" plus a list item numbered 30, and the STORED
+  WORDING then reads "thirty 30. days". That changes a contract's own words.
+  extractDocRich's content-loss check does not catch it — it counts characters
+  and this loses one. Reproduced in isolation on a two-line page.
+- So the narrow reader ships: it parses no markers at all, so it cannot invent
+  one. The capable one stays unwired until its marker rule can tell a wrapped
+  continuation from a list item.
+
+Noticed, not fixed
+- js/pdfrich.js's marker rule, above. Fixing it and then choosing which reader
+  ships is a real piece of work with a measurement behind it, and it changes
+  what every uploaded PDF looks like — the owner's call, not one to make at the
+  end of a run.
+- js/pdfrich.js is loaded by no test stage at all, so none of it has ever been
+  exercised. Left alone: loading it while it is unwired would shadow the reader
+  that does ship.

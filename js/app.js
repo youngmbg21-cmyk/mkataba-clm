@@ -2417,6 +2417,20 @@ function bindOnce(el,fn){
   el.addEventListener('click',fn);
 }
 function wireThemeMenu(){
+  /* ---- THE ONE PAINTER RUNS AT BOOT TOO (10 Sep 2026) ----
+     applyAppearance had exactly TWO callers and both were inside the setters,
+     so NOTHING in the product ever applied the appearance on a fresh load —
+     the inline script at the top of index.html was the only thing that had
+     ever painted it, and when that script fell behind the keys the setters
+     write, the wrong theme was permanent rather than corrected.
+
+     It runs here because wireShell calls this once at load. It is free: it
+     toggles a class and an attribute and renders nothing — repaintForAppearance
+     is the expensive one and is deliberately NOT called. With the inline script
+     mirroring brandNow/darkNow exactly the two agree and this changes no pixel;
+     what it buys is that the MODULE is the authority, so the day the duplicate
+     drifts again the reader sees a corrected theme rather than a wrong one. */
+  applyAppearance();
   paintAppearance();
   bindOnce(document.getElementById('theme-btn'),toggleDark);
   BRANDS.forEach(b=>bindOnce(document.getElementById('brand-'+b),()=>setBrand(b)));

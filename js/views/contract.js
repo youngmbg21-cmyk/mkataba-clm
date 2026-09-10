@@ -747,7 +747,34 @@ function pdfLinesToText(rendered){
    DO NOT LOOSEN docLineKind. It is the fallback for documents that genuinely
    have no structure to read — scans, pasted text, a PDF with no styled text
    layer — and every one of those would change. The point of this pass is to
-   stop NEEDING the guess on a PDF that can answer for itself. */
+   stop NEEDING the guess on a PDF that can answer for itself.
+
+   ---- AND THERE IS A SECOND PDF STRUCTURE READER: js/pdfrich.js ----
+   It has been in the product since 9 Sep 2026, is exported to window, and has
+   NEVER HAD A CALLER — not in the product, not in a test, not even loaded by a
+   node stage. This pass did not find it (Bug Fix Rule 2 not being done) and
+   shipped names that collided with two of its own; f48 caught that within the
+   hour, which is what f48 is for. The names here are the ones that moved,
+   because the newcomer yields.
+
+   WHICH READER SHOULD SHIP IS A REAL DECISION AND IT IS MEASURED, NOT GUESSED.
+   On the same file the two produce BYTE-IDENTICAL html, and pdfrich.js does
+   more besides — real lists, nesting depth, bold and italic runs, a sanity
+   check against content loss, and its own documented entry point
+   (extractDocRich) written for exactly the ingestion path submitUpload is.
+   It was wired up, measured, and UNWIRED AGAIN, because of one thing:
+
+     its list-marker rule reads a SOFT-WRAPPED "(30)" as an ordered-list
+     marker, so a clause reading "…within thirty (30) days of receipt."
+     comes back as "…within thirty" followed by a list item numbered 30,
+     and the STORED WORDING then says "thirty 30. days".
+
+   That changes a contract's own words, which is the one thing this product may
+   not do — and extractDocRich's content-loss check does not catch it, because
+   it counts characters and this loses one. Reproduced in isolation on a
+   two-line page before this note was written. Until that is fixed, the safe
+   reader is the narrow one here: it parses no markers at all, so it cannot
+   invent one. Logged in BUGLOG.md. */
 
 /* A heading is a TITLE, so it is short. A bold sentence in the middle of a
    clause is not a heading however emphatic it is, and this is the one bound
@@ -772,7 +799,7 @@ const PDF_NUM_LINE=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+\S/;
    NOTHING IS INVENTED. Where a document carries no bold and no larger type the
    report comes back empty, docxHasStructure answers false, nothing is stored
    and the guesswork stays exactly as it is today. */
-function pdfLinesToRich(pages){
+function docPdfStructure(pages){
   const all=[].concat(...(pages||[]).map(p=>p||[])).filter(l=>l&&l.text);
   const report={ headings:0, numbered:0, unnumbered:0, tables:0 };
   if(!all.length) return { html:'', report };
@@ -893,11 +920,11 @@ async function pdfPagesText(bin, pages){
 }
 /* The Word reader's own shape — { text, html, report } — so the upload path
    stores a PDF on exactly the terms it already stores a .docx on. */
-async function extractPdfRich(buf){
+async function readPdfStructured(buf){
   const { bin, pages } = await pdfReadPages(buf);
   const text = await pdfPagesText(bin, pages);
   if(!text || !pages.length) return { text, html:'', report:null };
-  const { html, report } = pdfLinesToRich(pages.map(p=>p.lines));
+  const { html, report } = docPdfStructure(pages.map(p=>p.lines));
   return { text, html, report };
 }
 
@@ -1577,16 +1604,16 @@ async function runUploadPipeline(file){
     try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked;
       wordHtml=w.html||''; wordReport=w.report||null; }
     catch(e){ refuse('Could not read this Word file: '+e.message); return; }
-  } else if(/pdf/.test(mime) && window.extractPdfRich){
+  } else if(/pdf/.test(mime) && window.readPdfStructured){
     /* ---- A PDF IS READ THE WAY A WORD FILE IS (J-3.4) ----
-       Same reader as before for the WORDING — extractPdfRich's `text` is
+       Same reader as before for the WORDING — readPdfStructured's `text` is
        byte-identical to extractPdfText's — and the structure it already
        computed per line now comes out with it instead of being discarded.
        A failure falls back to the plain reader rather than refusing: a PDF
        has always been readable as text, and losing that on a structure pass
        would be a worse product than the one being fixed. */
     try{
-      const r=await extractPdfRich(dataUrlBytes(dataUrl).buffer);
+      const r=await readPdfStructured(dataUrlBytes(dataUrl).buffer);
       extractedText=String(r.text||'').slice(0,EXTRACT_MAX_CHARS);
       wordHtml=r.html||''; wordReport=r.report||null;
     }catch(e){ extractedText=await extractDocText(dataUrl, mime); }
@@ -9316,7 +9343,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,pdfLinesToRich,pdfReadPages,pdfPagesText,extractPdfRich,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

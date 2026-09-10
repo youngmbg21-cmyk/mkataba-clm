@@ -128,13 +128,93 @@ describe('F96 — the choice is remembered, and old choices still mean something
     assert.equal(s.win.themeNow(), 'green');
   });
 
-  test('the pre-paint script in the page agrees with the app', () => {
-    /* It is deliberately duplicated — nothing is loaded that early — so the two
-       copies have to be checked against each other rather than assumed. */
-    const head = src('index.html').slice(0, 2000);
-    assert.match(head, /if \(t === 'light'\) t = 'green'/);
-    assert.match(head, /if \(t === 'dark'\) document\.documentElement\.classList\.add\('dark'\)/);
-    assert.match(head, /else if \(t === 'navy'\) document\.documentElement\.setAttribute\('data-brand', 'navy'\)/);
+  /* ---- REVERSED IN PLACE, 10 Sep 2026 — AND MADE THE RELATION IT ALWAYS
+     MEANT (owner-reported: the navy workspace goes green on refresh) ----
+
+     This pinned three LITERALS out of the pre-paint script, and one of them
+     was the fault: `else if (t === 'navy')`. An ELSE, so a dark workspace
+     could never also be navy — the three-states-not-two-axes model the app
+     itself left behind on 24 Aug 2026 and this script was never told about.
+     Worse, it read only 'hati-theme', which setBrand and setDark do not write,
+     so from that day the desktop's own appearance controls stored a choice the
+     next load ignored. MEASURED before it was touched: press navy, refresh,
+     and hati-brand is still 'navy' in the browser while data-brand is gone.
+
+     The claim this test was making — "the two copies have to be checked
+     against each other rather than assumed" — is exactly right and could never
+     have caught that, because it checked the copy against ITSELF. So the
+     script is RUN, against every combination of the three keys, and its answer
+     is compared with brandNow() and darkNow(). Three literals cannot drift
+     apart quietly again, and a fourth key would have to be taught to both. */
+  test('the pre-paint script in the page agrees with the app, on every stored combination', () => {
+    const head = src('index.html');
+    const at = head.indexOf('var brand  = localStorage.getItem');
+    assert.ok(at > -1, 'the pre-paint script no longer reads the brand key at all');
+    const open = head.lastIndexOf('try{', at);
+    const close = head.indexOf('}catch(e){}', at);
+    assert.ok(open > -1 && close > open, 'could not read the pre-paint block back');
+    const boot = head.slice(head.indexOf('{', open) + 1, close);
+
+    const VALUES = [null, 'green', 'navy'];
+    const DARKS = [null, '0', '1'];
+    const LEGACY = [null, '', 'light', 'green', 'navy', 'dark', 'chartreuse'];
+    let combinations = 0;
+
+    for (const b of VALUES) for (const d of DARKS) for (const l of LEGACY){
+      const s = stage();
+      s.win.localStorage.clear();
+      if (b !== null) s.win.localStorage.setItem('hati-brand', b);
+      if (d !== null) s.win.localStorage.setItem('hati-dark', d);
+      if (l !== null) s.win.localStorage.setItem('hati-theme', l);
+      /* The script as it really runs, on this document. */
+      s.root.className = '';
+      s.root.removeAttribute('data-brand');
+      vm.runInContext(boot, vm.createContext(s.win));
+      const bootSays = {
+        navy: s.root.getAttribute('data-brand') === 'navy',
+        dark: s.root.classList.contains('dark'),
+      };
+      const appSays = { navy: s.win.brandNow() === 'navy', dark: s.win.darkNow() };
+      const where = `brand=${b} dark=${d} legacy=${l}`;
+      assert.equal(bootSays.navy, appSays.navy, 'the brand disagrees at ' + where);
+      assert.equal(bootSays.dark, appSays.dark, 'light/dark disagrees at ' + where);
+      combinations++;
+    }
+    assert.ok(combinations > 60, 'the sweep read back too short: ' + combinations);
+  });
+
+  test('and it asks the two questions independently — navy at night survives a load', () => {
+    /* The one combination the old `else if` could not paint, whatever was
+       stored. It is the whole reason the two axes exist. */
+    const head = src('index.html');
+    const at = head.indexOf('var brand  = localStorage.getItem');
+    const open = head.lastIndexOf('try{', at);
+    const close = head.indexOf('}catch(e){}', at);
+    const boot = head.slice(head.indexOf('{', open) + 1, close);
+    const s = stage();
+    s.win.localStorage.clear();
+    s.win.localStorage.setItem('hati-brand', 'navy');
+    s.win.localStorage.setItem('hati-dark', '1');
+    vm.runInContext(boot, vm.createContext(s.win));
+    assert.equal(s.root.getAttribute('data-brand'), 'navy', 'the workspace lost its brand at night');
+    assert.equal(s.root.classList.contains('dark'), true, 'the night was lost with it');
+  });
+
+  test('and the one painter runs at boot, so the module is the authority', () => {
+    /* applyAppearance had exactly two callers and both were inside the
+       setters, so nothing in the product ever applied the appearance on a
+       fresh load — the pre-paint script was the only thing that ever had, and
+       when it fell behind, the wrong theme was permanent rather than
+       corrected. wireShell calls wireThemeMenu once at load. */
+    const app = src('js/app.js');
+    const from = app.indexOf('function wireThemeMenu(');
+    const to = app.indexOf('function renderThemeMenu(');
+    assert.ok(from > -1 && to > from, 'wireThemeMenu moved');
+    const body = app.slice(from, to);
+    assert.match(body, /applyAppearance\(\)/, 'the appearance is never applied at boot');
+    /* And NOT the expensive one: this runs on every load. */
+    assert.doesNotMatch(body, /repaintForAppearance\(\)/,
+      'wireThemeMenu re-renders the whole view at boot');
   });
 });
 

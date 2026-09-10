@@ -12,20 +12,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>HaTi — Contract Lifecycle Management</title>
 <script>
-  // Apply the saved theme BEFORE first paint. This runs ahead of the
+  // Apply the saved appearance BEFORE first paint. This runs ahead of the
   // stylesheet on purpose: set it any later and every visitor on Navy or Dark
   // gets one frame of green first, which reads as a flicker on every load.
   //
-  // Deliberately duplicated from THEMES in js/app.js rather than shared —
-  // nothing is loaded yet, so there is nothing to share with. Three keys and
-  // two lines; if a fourth theme is ever added, it is added here too.
+  // Deliberately duplicated from js/app.js rather than shared — nothing is
+  // loaded yet, so there is nothing to share with. What it MIRRORS is
+  // brandNow() and darkNow(), line for line, quirks included: a duplicate that
+  // reasons for itself is a duplicate that drifts.
+  //
+  // ---- IT READ ONE KEY THE CONTROLS STOPPED WRITING (owner-reported
+  // 10 Sep 2026: the navy workspace goes green on refresh) ----
+  // The appearance became TWO AXES on 24 Aug 2026 — the brand belongs to the
+  // workspace, light/dark belongs to the person — and setBrand/setDark write
+  // 'hati-brand' and 'hati-dark'. This script went on reading only the single
+  // legacy 'hati-theme', which those two setters never touch. So pressing the
+  // navy swatch stored navy and painted navy, and the very next load ignored
+  // it: MEASURED, hati-brand was still 'navy' in the browser while
+  // data-brand was gone. The reader's choice was never forgotten — it was
+  // never read. The same was true of dark. The phone's own toggle survived a
+  // refresh because it goes through setTheme, which does write the legacy key,
+  // and that asymmetry is what named the fault.
+  //
+  // AND THE TWO QUESTIONS ARE ASKED INDEPENDENTLY. This used to be
+  // `if dark … else if navy` — an ELSE, so a dark workspace could never also
+  // be navy. That is the three-states-not-two-axes fault the app itself fixed
+  // in August and this script was never told about, so navy-at-night could not
+  // survive a load however the keys were written.
+  //
   // 'light' is what the old two-position switch wrote and is still in
   // people's browsers; it means green.
   try{
-    var t = localStorage.getItem('hati-theme') || 'green';
-    if (t === 'light') t = 'green';
-    if (t === 'dark') document.documentElement.classList.add('dark');
-    else if (t === 'navy') document.documentElement.setAttribute('data-brand', 'navy');
+    var brand  = localStorage.getItem('hati-brand');
+    var dark   = localStorage.getItem('hati-dark');
+    var legacy = localStorage.getItem('hati-theme') || '';
+    if (legacy === 'light') legacy = 'green';
+    // themeNow(): the pair answers as a whole the moment EITHER half is
+    // written, and the legacy key answers only while both are silent.
+    var name = (brand !== null || dark !== null)
+      ? (dark === '1' ? 'dark' : (brand === 'navy' ? 'navy' : 'green'))
+      : legacy;
+    // brandNow() / darkNow(): each half prefers its own key and falls back to
+    // that name — never to the other half's key.
+    var isNavy = (brand === 'green' || brand === 'navy') ? brand === 'navy' : name === 'navy';
+    var isDark = dark === '1' ? true : (dark === '0' ? false : name === 'dark');
+    if (isDark) document.documentElement.classList.add('dark');
+    if (isNavy) document.documentElement.setAttribute('data-brand', 'navy');
   }catch(e){}
 </script>
 <script>

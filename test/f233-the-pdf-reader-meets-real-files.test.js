@@ -268,7 +268,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
          moved one byte of it would be a migration nobody asked for. */
       for (const [name, bytes] of [['the reported document', reportedPdf()], ['flat prose', flatPdf()]]) {
         const plain = await W.extractPdfText(bytes.buffer);
-        const rich = await W.extractPdfRich(bytes.buffer);
+        const rich = await W.readPdfStructured(bytes.buffer);
         assert.ok(plain.length > 40, `${name}: nothing was read at all`);
         assert.equal(rich.text, plain, `${name}: the rich reader moved the stored wording`);
       }
@@ -276,7 +276,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
 
   test('f233-10b a bold mixed-case heading is a heading — the reported fault',
     async () => {
-      const rich = await W.extractPdfRich(reportedPdf().buffer);
+      const rich = await W.readPdfStructured(reportedPdf().buffer);
       assert.ok(rich.report && rich.report.headings >= 2,
         `the page's own headings were not read: ${JSON.stringify(rich.report)}`);
       assert.match(rich.html, /<h[12]>[^<]*ARTICLE 2\. Obligations of the first party<\/h[12]>/,
@@ -291,7 +291,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
 
   test('f233-10c the sub-clauses survive, and a soft wrap is not a paragraph',
     async () => {
-      const rich = await W.extractPdfRich(reportedPdf().buffer);
+      const rich = await W.readPdfStructured(reportedPdf().buffer);
       assert.ok(rich.report.numbered >= 3,
         `the numbered sub-clauses were not read: ${JSON.stringify(rich.report)}`);
       /* A clause that wrapped onto a second line is ONE paragraph, with its
@@ -306,7 +306,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
     /* "30 days of receipt…" opens with digits and a space. Reading it as a
        numbered clause would break the paragraph AND overstate the report —
        and the report is what decides whether a body is stored at all. */
-    const rich = await W.extractPdfRich(flatPdf().buffer);
+    const rich = await W.readPdfStructured(flatPdf().buffer);
     assert.equal(rich.report.numbered, 0,
       'a soft-wrapped line starting with a figure was counted as a clause');
   });
@@ -315,7 +315,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
     /* CONTROL. No bold, one size, no numbers: nothing is reported, so
        docxHasStructure answers false, nothing is stored, and the guesswork
        stays exactly where it is. */
-    const rich = await W.extractPdfRich(flatPdf().buffer);
+    const rich = await W.readPdfStructured(flatPdf().buffer);
     assert.equal(rich.report.headings, 0, 'flat prose reported a heading');
     assert.equal(W.docxHasStructure(rich.report), false,
       'flat prose would now be stored as a structured body');
@@ -325,7 +325,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
     /* HaTi's clause model reads a LEADING h1 as the title and the headings
        below it as the clauses. A title mapped one-for-one is not a heading at
        all; one mapped without the shift becomes clause 1. */
-    const withTitle = await W.extractPdfRich(reportedPdf().buffer);
+    const withTitle = await W.readPdfStructured(reportedPdf().buffer);
     assert.match(withTitle.html, /^<h1>[^<]*FINANCIAL SERVICES TRANSFER AGREEMENT<\/h1>/,
       'the document title did not take h1: ' + withTitle.html.slice(0, 200));
     assert.match(withTitle.html, /<h2>[^<]*ARTICLE 1\./, 'the sections did not shift under the title');
@@ -335,7 +335,7 @@ describe('f233 (10) the PDF keeps its structure', () => {
     const add = (t, o = {}) => { L.push({ t, y, ...o }); y -= (o.gap || 18); };
     add('ARTICLE 1. Scope', { bold: true, size: 12, gap: 22 });
     add('1.1 The parties agree to the following.', {});
-    const flatHeads = await W.extractPdfRich(makeLaidOut(L).buffer);
+    const flatHeads = await W.readPdfStructured(makeLaidOut(L).buffer);
     assert.ok(flatHeads.html.indexOf('<h1>') < 0,
       'a document with no title still gave a heading h1: ' + flatHeads.html);
     assert.match(flatHeads.html, /<h2>[^<]*ARTICLE 1\. Scope<\/h2>/, flatHeads.html);
@@ -347,13 +347,13 @@ describe('f233 (10) the PDF keeps its structure', () => {
        claim is a RELATION: what the reader produces survives the sanitiser
        unchanged, so nothing is smuggled and nothing is lost. */
     if (!W.sanitizeRich) { assert.ok(true, 'this stage carries no sanitiser'); return; }
-    const rich = await W.extractPdfRich(reportedPdf().buffer);
+    const rich = await W.readPdfStructured(reportedPdf().buffer);
     assert.equal(W.sanitizeRich(rich.html), rich.html,
       'the sanitiser changed the reader\'s own body — a tag is being smuggled or lost');
   });
 
   test('f233-10h the reader reports what it found, and never a promise', async () => {
-    const rich = await W.extractPdfRich(reportedPdf().buffer);
+    const rich = await W.readPdfStructured(reportedPdf().buffer);
     assert.deepEqual(Object.keys(rich.report).sort(),
       ['headings', 'numbered', 'tables', 'unnumbered'],
       'the report is not the shape the Word reader hands back');
