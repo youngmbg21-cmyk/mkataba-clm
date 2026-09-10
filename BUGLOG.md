@@ -11901,3 +11901,18 @@ finally holds clauses.
   an improvement rather than the unchanged behaviour the order asked for on a
   PDF with "no readable structure" — a resolvable clause number IS readable
   structure — and it is said out loud here rather than absorbed.
+
+### Job 3 — the clause number appears on a reading
+
+Fixed. A heading's own number is read off the front of its text and drawn on
+the reading beside it. It goes on a NEW field (`cite`) rather than on `num`,
+because `num` is what the readings route is sent and that route's cache key is
+a hash of exactly what it was sent — so nothing already read is re-asked and
+the job costs nothing.
+
+#### Noticed, not fixed
+- Roman-numeral headings ("IV. Termination") are not read as numbered. The
+  owner can rule on whether they should be.
+- Non-English self-naming words (Klausul, Artikel, Avsnitt, Bilaga, Del) are
+  not on the list, so a Swedish or Norwegian contract's headings carry no
+  citation unless they open with a bare digit. Same ruling.

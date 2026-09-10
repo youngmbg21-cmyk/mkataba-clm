@@ -530,7 +530,17 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       };
     }, undefined, {});
     check(ed.notes === 4, '8c every clause gets its own entry, the section included', ed.notes);
-    check(ed.nums.join(',') === '1.1,1.2,1.3',
+    /* REVERSED IN PLACE (Job 3, 10 Sep 2026). WHAT THIS CLAIM IS ABOUT is
+       unchanged and is the half that matters: the number is the PAPER'S, read
+       off the sheet, never asked of the model — which is what lets it be
+       printed as a citation. What moved is that the SECTION heading now
+       carries its own too. It read ",1.1,1.2,1.3" here, and that empty first
+       entry was the reported fault being pinned: this fixture's section is
+       "1. Scope of supply and purchase orders", and a heading was given no
+       number unconditionally. f277 (13a) is the other half — what the ROUTE is
+       sent still reads ",1.1,1.2,1.3" and must, because its cache key is a
+       hash of exactly that. */
+    check(ed.nums.join(',') === '1,1.1,1.2,1.3',
       "8d each carries the contract's OWN number — read off the paper, never the model's",
       ed.nums.join(' | '));
     check(ed.sections === 1 && ed.clauseHeads === 3,
@@ -685,6 +695,88 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     check(txtOut.width === txtSheet.width,
       '10h and the contract did not narrow by a pixel', `${txtSheet.width} → ${txtOut.width}`);
     await page.screenshot({ path: path.join(OUT, '10-working-text.png') }).catch(() => {});
+
+    /* ============ 11 · A HEADING'S OWN NUMBER IS ON THE READING (Job 3) ============
+       docReadPaint has always drawn the clause's number and on real paper it
+       drew nothing: a HEADING row is given none, and the paragraph rule beside
+       it is only ever applied to non-headings. Section 10 above stages
+       PLAIN-TEXT paper, whose numbers are marked spans and so always had one —
+       which is exactly why the fault survived. This stages the other shape:
+       RICH paper whose clause numbers live in its headings, which is most
+       commercial paper and every structured PDF since J-3.4.
+
+       ONLY A RENDERED PAGE CAN ANSWER IT: whether a citation is PAINTED beside
+       the reading is a fact about pixels, and the parent draws the note
+       perfectly with the number simply absent. */
+    const HEADNUM = [
+      '<h2>1. Scope of supply and purchase orders</h2>',
+      '<p>The Supplier shall supply the Goods described in each Order.</p>',
+      '<h2>ARTICLE 2. Obligations of the first party</h2>',
+      '<p>The first party shall transfer the Services in accordance with Schedule 1.</p>',
+      '<h2>Definitions</h2>',
+      '<p>In this Agreement the following expressions have the meanings given.</p>',
+    ].join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = html; c.format = 'rich';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace(c.id);
+    }, HEADNUM, null);
+    await pause(1500);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+
+    const hSheet = await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      let rows = []; try { rows = docReadSheet(c); } catch (_) { rows = []; }
+      let sent = []; try { sent = docReadClauses(c); } catch (_) { sent = []; }
+      return { rows: rows.length, kinds: rows.map(r => r.kind),
+        sentNums: sent.map(r => r.num || ''),
+        sentKeys: sent.length ? Object.keys(sent[0]).sort().join(',') : '' };
+    }, undefined, { rows: 0, kinds: [], sentNums: [], sentKeys: '' });
+    /* THREE ROWS, NOT SIX: a heading's row is the heading AND everything under
+       it up to the next anchor, and an unnumbered paragraph is not an anchor of
+       its own. That is the walk working as designed, and it is the shape the
+       owner's screenshot is in — every reading a SECTION with no number. */
+    check(hSheet.rows === 3 && hSheet.kinds.filter(k => k === 'section').length === 3,
+      '11a the stage is the reported one — clause numbers inside the headings',
+      `${hSheet.rows} rows: ${hSheet.kinds.join('|')}`);
+    /* CONTROL, and the claim that keeps this job free of spend: the route's
+       cache key is a hash of exactly what it is sent, so a number added THERE
+       would make every contract already read pay for an identical re-read. */
+    check(hSheet.sentNums.join(',') === ',,' && hSheet.sentKeys === 'heading,kind,num,text',
+      '11b CONTROL — what the route is sent has not moved by a byte',
+      `[${hSheet.sentNums.join('|')}] keys ${hSheet.sentKeys}`);
+
+    ai.reset();
+    ai.script(tool([
+      { i: 0, head: 'Scope of supply', plain: 'The Supplier provides the goods listed on each order you place.' },
+      { i: 1, head: 'Obligations of the first party', plain: 'The first party moves the services across on the timetable in Schedule 1.' },
+      { i: 2, head: 'Definitions', plain: 'This clause explains the defined words used everywhere else.' },
+    ]));
+    const hPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '11 Plain English on headed paper');
+    await pause(3200);
+    const hOut = await drive(page, () => Array.from(document.querySelectorAll('.doc-read-note')).map(n => ({
+      num: ((n.querySelector('.dr-n') || {}).textContent || '').trim(),
+      head: ((n.querySelector('.dr-h,.dr-s') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    })), undefined, []);
+    check(hPressed && hOut.length === 3, '11c a real press brings back the readings', hOut.length);
+    const cites = hOut.map(n => n.num).filter(Boolean);
+    check(cites.includes('1'),
+      '11d the numbered section heading CITES its own number — the fault',
+      hOut.map(n => n.num || '·').join(' '));
+    check(cites.includes('2'),
+      '11e and a self-naming heading does too ("ARTICLE 2." → 2)',
+      hOut.map(n => `${n.num || '·'}:${n.head.slice(0, 18)}`).join(' | '));
+    const defs = hOut.find(n => /^Definitions/.test(n.head));
+    check(!!defs && defs.num === '',
+      '11f a heading with no number invents none — a wrong citation is worse than a missing one',
+      defs ? `"${defs.head}" → "${defs.num}"` : 'the row is gone');
+    check(hOut.every(n => !n.num || n.head.indexOf(n.num + '.') !== 0),
+      '11g and the number is not printed twice on one entry',
+      hOut.map(n => `${n.num || '·'}/${n.head.slice(0, 14)}`).join(' | '));
+    await page.screenshot({ path: path.join(OUT, '11-heading-numbers.png') }).catch(() => {});
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

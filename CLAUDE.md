@@ -1768,6 +1768,49 @@ translation accordingly"*). Built to a render they approved first.
   clause reference. The model supplies the plain HEADING; a row marked SECTION
   gets a heading and no reading, and is the one row that may stand on a heading
   alone.
+- **AND A HEADING'S OWN NUMBER IS READ TOO (Job 3, 10 Sep 2026) — the rule above
+  was right and drew NOTHING on most real paper.** `docReadPaint` has always
+  drawn the number, and two things compounded to make it invisible:
+  `docReadSheet` gave a HEADING row no number unconditionally, and
+  `_docReadNumOf` requires a multi-part number and is only ever applied to
+  non-headings anyway. So on any contract whose clause numbers live in its
+  headings — most commercial paper, and every structured PDF since J-3.4 —
+  every reading was drawn with no citation at all.
+  - **THE PARAGRAPH RULE IS NOT LOOSENED**, and its reasoning is why this is a
+    SECOND reading rather than a widening: in a paragraph "1." is as likely to
+    be a list item or a sentence opening with a figure, which is why
+    `DOC_READ_NUM` requires a dot. A HEADING is a different object — a title
+    that begins "1." is a section number.
+  - **`_docReadHeadNum` REFUSES FAR MORE THAN IT ACCEPTS.** A bare single number
+    needs a `.` or `)` and at most two digits, so *"2026 Annual Review Terms"*
+    never becomes clause 2026 and a bare *"1 Scope"* is left alone; a self-naming
+    word (Clause · Article · Section · Schedule · Annex · Appendix · Part) removes
+    the ambiguity, so *"Schedule 1 — Fees"* is read without one. **Missing a
+    number is the safe direction; INVENTING ONE IS A WRONG CITATION** printed
+    beside the agreement, which is worse than a missing one. Roman numerals and
+    non-English self-naming words are deliberately out and are logged.
+  - **IT GOES ON A NEW FIELD, `cite`, AND NEVER ON `num` — this is the
+    load-bearing part.** `num` is what `docReadClauses` SENDS to
+    `/api/ai/readings`, and that route's cache key is a hash of exactly what it
+    was sent. Fill `num` and every contract already read pays for one deep call
+    that returns an identical reading — **and it buys the model nothing**,
+    because the number is already inside the heading string it is sent. So the
+    sent shape does not move by a byte, `docReadSig` does not move, nothing is
+    re-asked, and the painter reads `p.it.num || p.row.num || p.row.cite`.
+  - **`heading` IS NOT TOUCHED.** The pairing guard compares
+    `_docReadNorm(row.heading)` against the stored `it.heading`; strip the
+    number out of one side and every reading already on file is silently
+    dropped.
+  - **THE NUMBER CAPTURED IS A NUMBER, NOT A WORD.** If a later job prints a
+    word before it, that word must be taken from the paper's own heading —
+    never hardcoded as "Clause", or *"ARTICLE 5"* is cited as clause 5.
+  - Tests: f277 (13) (7 — **4 fail against the parent**; 13a/13b/13c are the
+    WALL and pass both ways: what the route is sent, the signature, and the
+    paragraph rule), plain-english-verify section 11 (7 — **2 fail against the
+    parent, reporting the fault verbatim as three readings citing nothing**)
+    and **8d REVERSED IN PLACE** — it pinned the empty first entry, which was
+    the fault; what it is about, that the number is the paper's and never the
+    model's, is unchanged and is now true of the section too.
 - **THE PROMPT ASKS FOR A TRANSLATION AND KEEPS EVERY FIGURE.** *TRANSLATE, DO
   NOT SUMMARISE*, match the clause you are given, and the old "never more than
   three sentences" and "do not restate any amount" are both gone. **The money

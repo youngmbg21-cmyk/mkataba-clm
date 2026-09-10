@@ -7148,6 +7148,37 @@ const _docReadNumOf=el=>{
   const m=DOC_READ_NUM.exec(String(el&&el.textContent||''));
   return m?m[1]:'';
 };
+/* ---- A HEADING'S OWN NUMBER (Job 3, 10 Sep 2026) ----
+   docReadPaint has always drawn the clause's number, and on real paper it drew
+   nothing: a HEADING row is given no number at all (`num = head ? '' : …`), and
+   the paragraph rule above is only ever applied to non-headings anyway. So on
+   any contract whose clause numbers live in its headings — which is most
+   commercial paper, and every structured PDF since J-3.4 — every reading was
+   drawn with no citation.
+
+   THE PARAGRAPH RULE IS RIGHT AND IS NOT LOOSENED. In a paragraph "1." is as
+   likely to be a list item or a sentence opening with a figure, which is why
+   DOC_READ_NUM requires a dot. A HEADING is a different object: a title that
+   begins "1." is a section number. This is a heading-only reading beside it.
+
+   WHY THE SEPARATOR IS REQUIRED ON A BARE SINGLE NUMBER: "2026 Annual Review
+   Terms" must not become clause 2026. Where a self-naming word is present the
+   ambiguity is gone, so "Schedule 1 — Fees" is read without one. Missing a
+   number is the safe direction; INVENTING ONE IS A WRONG CITATION printed
+   beside the agreement, which is worse than a missing one.
+
+   AND THE NUMBER CAPTURED HERE IS A NUMBER, NOT A WORD. If a later job prints a
+   word before it, that word must be taken from the paper's own heading — never
+   hardcoded as "Clause", or "ARTICLE 5" is cited as clause 5.
+
+   Roman numerals and non-English self-naming words (Klausul, Artikel, Bilaga)
+   are deliberately out; both are logged. */
+const DOC_READ_HEAD_NUM=
+  /^\s*(?:(?:clause|article|section|schedule|annex|appendix|part)\s+(\d+(?:\.\d+)*)[.):]?|(\d+(?:\.\d+)+)[.)]?|(\d{1,2})[.)])\s+\S/i;
+const _docReadHeadNum=t=>{
+  const m=DOC_READ_HEAD_NUM.exec(String(t||''));
+  return m?(m[1]||m[2]||m[3]||''):'';
+};
 /* THE CLAUSE'S OWN LEAD-IN IS ITS HEADING — "1.1 Master Agreement Structure."
    — because that is what the drafter wrote as its name, and because it is what
    the pairing guard compares. Real paper sets that lead-in bold, so the bold
@@ -7228,7 +7259,17 @@ function docReadSheet(c){
        wording includes its own line. */
     const heading=row.isHead?own:(row.isMark?_docReadWords(after):_docReadLead(row.el));
     const text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
-    if(heading||text) out.push({el:row.el,heading,text,num:row.num,kind:row.isHead?'section':'clause'});
+    /* `cite` IS THE NUMBER TO SHOW, AND IT IS NOT `num` — DELIBERATELY.
+       `num` is what docReadClauses sends to /api/ai/readings, and that route's
+       cache key is a hash of exactly what it was sent. Fill `num` here and
+       every contract already read pays for one deep call that returns an
+       identical reading — and IT BUYS THE MODEL NOTHING, because the number is
+       already inside the heading string it is sent. So the sent shape does not
+       move by a byte, docReadSig does not move, and the painter reads this as
+       its last fallback. */
+    const cite=row.isHead?_docReadHeadNum(heading):'';
+    if(heading||text) out.push({el:row.el,heading,text,num:row.num,cite,
+      kind:row.isHead?'section':'clause'});
   });
   return out;
 }
@@ -7319,7 +7360,9 @@ function docReadPaint(c){
     <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
     <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>{
       const sec=p.row.kind==='section';
-      const num=String(p.it.num||p.row.num||'').trim();
+      /* The stored number first, the live walk second, and the heading's own
+         number last — a heading carries no `num` by design (see _docReadHeadNum). */
+      const num=String(p.it.num||p.row.num||p.row.cite||'').trim();
       const head=String(p.it.head||'').trim();
       const body=String(p.it.plain||'').trim();
       const numHtml=num?`<span class="dr-n">${esc(num)}</span> `:'';
@@ -9273,7 +9316,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,pdfLinesToRich,pdfReadPages,pdfPagesText,extractPdfRich,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,pdfLinesToRich,pdfReadPages,pdfPagesText,extractPdfRich,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

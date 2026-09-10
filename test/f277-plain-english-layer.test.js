@@ -950,3 +950,118 @@ describe('f277 (12) the walk reads the plain-text sheet too', () => {
       'and asked by the paragraph anchor and by the mark alike');
   });
 });
+
+/* ============================================================
+   F277 (13) — THE CLAUSE NUMBER APPEARS ON A READING (Job 3)
+   ============================================================
+   docReadPaint has always drawn the clause's number, and on real paper it drew
+   nothing. Two reasons, and they compound:
+
+     1. docReadSheet sets `num = head ? '' : _docReadNumOf(el)` — A HEADING ROW
+        IS GIVEN NO NUMBER, UNCONDITIONALLY.
+     2. _docReadNumOf requires a multi-part number (1.1, 3.2.1) and is only
+        ever applied to non-heading rows anyway.
+
+   So on any contract whose clause numbers live in its headings — which is most
+   commercial paper, and every structured PDF since J-3.4 — every reading was
+   drawn with no citation at all.
+
+   THE CONTROLS COME FIRST, and they are the wall rather than the fix: what the
+   route is SENT may not move by a byte, because its cache key is a hash of
+   exactly that. Fill the sent field and every contract already read pays for a
+   deep call that returns an identical reading. */
+describe('f277 (13) a heading carries its own number', () => {
+  let win;
+  before(() => { win = buildWorld({ contractView: true }).win; win.innerWidth = 1440; });
+
+  /* The shape the whole job is about: a numbered SECTION heading over numbered
+     paragraph clauses — f277's own NUMBERED fixture, and the owner's screenshot. */
+  const NUMBERED = [
+    '<h2>1. Scope of supply and purchase orders</h2>',
+    '<p><strong>1.1 Master Agreement Structure.</strong> This Agreement establishes the framework.</p>',
+    '<p><strong>1.2 Issuance of Purchase Orders.</strong> Supplier shall confirm each order in writing.</p>',
+    '<p><strong>1.3 Precedence.</strong> In the event of any conflict this Agreement prevails.</p>',
+  ].join('');
+  const C = { id: 'MK-A2', name: 'Supply Agreement — Juno Limited', changes: [], audit: [] };
+
+  test('13a CONTROL — what the route is sent does not move by a byte', () => {
+    /* The route's cache key is sha(lang + the document it was sent), and that
+       document is built from num + heading + text. This claim is what keeps the
+       job free: no re-read, no spend, and nothing already on file re-asked. */
+    sheet(win, NUMBERED);
+    const sent = win.docReadClauses(C);
+    assert.equal(sent.length, 4, 'the walk itself moved');
+    assert.equal(sent.map(r => r.num).join(','), ',1.1,1.2,1.3',
+      'the SENT number changed — every contract already read would pay for a re-read');
+    assert.deepEqual(Object.keys(sent[0]).sort(), ['heading', 'kind', 'num', 'text'],
+      'a field leaked into what the route is sent: ' + Object.keys(sent[0]).join(','));
+  });
+
+  test('13b CONTROL — the reading signature is unchanged, so nothing is re-asked', () => {
+    sheet(win, NUMBERED);
+    /* docReadSig hashes the SENT rows. It is not the cache key — the route owns
+       that — it is only how the press knows whether to ask at all. */
+    const sig = win.docReadSig(C);
+    assert.equal(sig, '4:' + sig.split(':')[1], 'the signature stopped counting the sent rows');
+    assert.equal(win.docReadSig(C), sig, 'the signature is not stable across two reads');
+  });
+
+  test('13c CONTROL — a numbered paragraph keeps the number it always had', () => {
+    sheet(win, NUMBERED);
+    const rows = win.docReadSheet(C);
+    const paras = rows.filter(r => r.kind === 'clause');
+    assert.equal(paras.map(r => r.num).join(','), '1.1,1.2,1.3', 'the paragraph rule was loosened');
+    assert.ok(paras.every(r => !r.cite),
+      'a paragraph row grew a heading number — the two readings are not kept apart');
+  });
+
+  test('13d the rule refuses far more than it accepts', () => {
+    /* INVENTING A NUMBER IS A WRONG CITATION printed beside the agreement,
+       which is worse than a missing one. "2026 Annual Review Terms" must not
+       become clause 2026, and a bare "1 Scope" is left alone on purpose. */
+    for (const t of ['Definitions', '2026 Annual Review Terms', '1 Scope of supply',
+                     '2026. Annual Review', 'Appendix A Fees', '']) {
+      assert.equal(win._docReadHeadNum(t), '', `"${t}" was read as a numbered clause`);
+    }
+  });
+
+  test('13e the section heading carries its own number — the fault', () => {
+    sheet(win, NUMBERED);
+    const rows = win.docReadSheet(C);
+    const sec = rows.find(r => r.kind === 'section');
+    assert.ok(sec, 'the section row is gone');
+    assert.equal(sec.cite, '1',
+      'the heading still carries no number — this is the reported screen');
+  });
+
+  test('13f a self-naming heading is read too, and the WORD is not captured', () => {
+    /* Job 1 & 2's own reproduction case is "ARTICLE 2. Obligations of the first
+       party", so leaving this out would ship two jobs that do not meet. Only
+       the NUMBER is captured: if a later job prints a word before it, that word
+       must come from the paper's own heading, or an article is cited as a
+       clause. */
+    assert.equal(win._docReadHeadNum('ARTICLE 2. Obligations of the first party'), '2');
+    assert.equal(win._docReadHeadNum('Article 5 — Liability'), '5');
+    assert.equal(win._docReadHeadNum('Schedule 1 — Fees'), '1');
+    assert.equal(win._docReadHeadNum('Section 3. Confidentiality'), '3');
+    assert.equal(win._docReadHeadNum('Clause 12) Termination'), '12');
+    assert.equal(win._docReadHeadNum('1.1 Master Agreement Structure'), '1.1');
+  });
+
+  test('13g and the painter draws it, without printing it twice', () => {
+    sheet(win, NUMBERED);
+    const rows = win.docReadSheet(C);
+    /* The model is told never to include the clause number in its heading, so
+       the entry's own head is the plain title and the number is the paper's. */
+    C._readings = { items: rows.map((r, i) => ({
+      i, num: r.num, heading: r.heading, kind: r.kind,
+      head: r.kind === 'section' ? 'Scope of supply' : 'What this covers',
+      plain: 'A short plain reading of this clause for a business owner.' })) };
+    const pairs = win.docReadAnchors(C, C._readings.items);
+    assert.equal(pairs.length, 4, 'the pairing guard dropped an entry');
+    const p = pairs[0];
+    const num = String(p.it.num || p.row.num || p.row.cite || '').trim();
+    assert.equal(num, '1', 'the painter\'s fallback does not reach the heading\'s number');
+    assert.ok(!/^1\b/.test(p.it.head), 'the number is in the entry heading too — it would print twice');
+  });
+});
