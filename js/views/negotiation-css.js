@@ -326,8 +326,23 @@ function negoStyleHtml(){
      glyph out of its box. */
   .nego-redline .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
   /* The same ladder in the room's own sheet — one reading, both canvases. */
-  .nego-redline .rl-hang-2{margin-left:2.6em}
-  .nego-redline .rl-hang-3{margin-left:5.2em}
+  /* ---- THE STEPS A LINE CAN SIT AT ----
+     ONE vocabulary for one fact, whoever wrote it down: the level class is
+     emitted by the Word reader where the FILE stated an indent, and by the
+     gutter walk where the MARKER is all there is. Two names for one step is
+     how they come to disagree about how wide a step is. */
+    .nego-redline .hati-lv-1{margin-left:2.6em}
+    .nego-redline .hati-lv-2{margin-left:5.2em}
+    .nego-redline .hati-lv-3{margin-left:7.8em}
+  /* A label directly above its value — the file said no space after it. */
+    .nego-redline .hati-tight{margin-bottom:0}
+  /* Where the page ended. A rule and air on screen; a real break in print and
+     in anything that paginates. */
+    .nego-redline .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    break-before:page;page-break-before:always}
+  /* A contents row: the entry at the left, its page number at the right wall. */
+    .nego-redline .hati-toc{overflow:hidden}
+    .nego-redline .hati-toc-n{float:right;padding-left:1.2em}
   .nego-redline .rl-clause{margin-top:9px}
   /* A line that arrived or went whole is marked in the margin as well as in
      its colour, so the two are still distinguishable in print and to anyone
@@ -2085,8 +2100,23 @@ function redlineLayoutCss(){
      stays in its own gutter and the wording keeps its tab stop. margin, never
      padding, because padding-left is what the hang itself uses and adding to it
      would pull the marker out of the gutter with the wording. */
-  .redline-page .rl-doc .rl-hang-2,.redline-page .rl-cp-src .rl-hang-2{margin-left:2.6em}
-  .redline-page .rl-doc .rl-hang-3,.redline-page .rl-cp-src .rl-hang-3{margin-left:5.2em}
+  /* ---- THE STEPS A LINE CAN SIT AT ----
+     ONE vocabulary for one fact, whoever wrote it down: the level class is
+     emitted by the Word reader where the FILE stated an indent, and by the
+     gutter walk where the MARKER is all there is. Two names for one step is
+     how they come to disagree about how wide a step is. */
+    .redline-page .rl-doc .hati-lv-1,.redline-page .rl-cp-src .hati-lv-1{margin-left:2.6em;}
+    .redline-page .rl-doc .hati-lv-2,.redline-page .rl-cp-src .hati-lv-2{margin-left:5.2em;}
+    .redline-page .rl-doc .hati-lv-3,.redline-page .rl-cp-src .hati-lv-3{margin-left:7.8em;}
+  /* A label directly above its value — the file said no space after it. */
+    .redline-page .rl-doc .hati-tight,.redline-page .rl-cp-src .hati-tight{margin-bottom:0;}
+  /* Where the page ended. A rule and air on screen; a real break in print and
+     in anything that paginates. */
+    .redline-page .rl-doc .hati-pb,.redline-page .rl-cp-src .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    break-before:page;page-break-before:always;}
+  /* A contents row: the entry at the left, its page number at the right wall. */
+    .redline-page .rl-doc .hati-toc,.redline-page .rl-cp-src .hati-toc{overflow:hidden;}
+    .redline-page .rl-doc .hati-toc-n,.redline-page .rl-cp-src .hati-toc-n{float:right;padding-left:1.2em;}
   /* A real list gets the same shape from the browser, but only if it is allowed
      its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
      some surfaces and at zero on others, and at zero the marker sits ON the

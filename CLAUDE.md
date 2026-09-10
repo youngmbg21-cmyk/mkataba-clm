@@ -1846,6 +1846,84 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## THE FILE'S OWN SHAPE SURVIVES THE UPLOAD (Young asked 10 Sep 2026)
+
+*"I downloaded this contract into HaTi and it is well designed but when
+uploaded it looked like the attached images in the document page, so even in
+that sense the contract became unappealing to look at. HaTi Customers will not
+stand for this."*
+
+**A WORD CONTRACT STATES WHERE EACH LINE SITS, WHICH LINES BELONG TOGETHER AND
+WHERE A PAGE ENDS, AND THE READER CARRIED NONE OF IT.** J-3.1 taught it
+headings, numbering and tables; the page GEOMETRY was still thrown away at
+intake. MEASURED on Young's own services agreement before a line was written:
+80 paragraphs with a real hanging indent arrived flush against the margin, 21 of
+them a whole step in from where the drafter put them; 18 contents rows had their
+page numbers welded to the entry, because a tab collapses in HTML; five page
+breaks vanished; and all thirteen clause headings were drawn CENTRED at 1.42em.
+
+- **THE LADDER IS THE FILE'S OWN AND THE STEP IS MEASURED, NEVER TYPED.** Word
+  counts in twentieths of a point and a firm's template steps in 680, 720 or 567
+  (a centimetre), so `docxIndentStep` reads the commonest positive hanging
+  indent off the document. `left - hanging` is where the line BEGINS, which is
+  what a reader sees. Bounded at three: past that a contract is unreadable on a
+  phone, and the deepest limb anybody drafts is (i) under (a) under 2.1.
+- **LEVEL 0 CARRIES NO CLASS**, so an ordinary paragraph is byte-identical to
+  what this reader produced before. **That is the whole migration story**:
+  nothing already uploaded is re-read, and a file that states nothing reads
+  exactly as it did.
+- **THE FILE OUTRANKS THE MARKER, AND THAT IS THE ONE ORDERING THAT MATTERS.**
+  Piece 1's gutter derives a level from the marker, which is the right reading
+  for paper that says nothing; where the drafter MEASURED it, their measurement
+  wins. `redlineHangHtml` adds its gutter and leaves a stated level alone.
+  MEASURED: the party list on that agreement is `(1)`, `(2)` set one step in,
+  and a bracketed number read alone is a limb at the first stop.
+- **ONE STEP VOCABULARY, WHOEVER WROTE IT DOWN.** `hati-lv-1..3` is emitted by
+  the reader from the file and by the gutter walk from the marker, and all three
+  sheets that draw a stored body define it. `rl-hang-2/3` — Piece 1's own second
+  name for the same step — is RETIRED rather than left beside it.
+- **THREE MORE FACTS, EACH READ AND NEVER GUESSED.** `hati-tight` where the file
+  says no space after a paragraph, which is how Word writes a label above its
+  value; `hati-pb` where a page break falls, on the paragraph that carries it,
+  which in a professionally set contract is regularly an empty one; and
+  `hati-toc` where the paragraph declares a RIGHT tab stop, which is Word saying
+  the line has a left entry and a right-hand number.
+- **THE CONTENTS ROW REFUSES RATHER THAN GUESSING.** The tail must be short,
+  unbroken and the last thing in the paragraph's own markup, or the split would
+  fall inside a bold run and move half a sentence to the right wall. **An
+  un-split row reads as an ordinary line; broken markup does not.**
+- **THE ALLOW-LIST IS WIDENED EXACTLY AS THE DRAFTER'S MARKS WIDENED IT AND NO
+  WIDER**: `class` on `P`, filtered against `RICH_SHAPE_CLASSES` — a FIXED SET
+  of named classes, nothing free-form, so a contract can never arrive carrying a
+  size, a colour or a layout this workspace did not choose. `style` is still
+  refused on everything. Per NAME rather than whole-value, because a tight line
+  one step in genuinely is both, where a span is a field OR an ink OR a size and
+  never two. An unknown name is dropped and the half this product wrote is kept.
+- **NOT ONE WORD MOVES.** Every one of these is a class on a block whose content
+  is untouched, so the text projection the redline diffs against is character for
+  character what it was — asserted against the scraper's own output on the same
+  file.
+- **THE CENTRED h1 IS THE DOCUMENT'S OWN TITLE AND NOTHING ELSE.** HaTi's clause
+  model reads a LEADING h1 as the title and every heading after it as a clause,
+  so `.hati-doc > h1:first-child` is centred at 1.42em and every other h1 is a
+  clause heading, left and modest. **The paper now draws it the way the model
+  reads it** — and this is a CSS rule rather than a reader change, so no
+  contract's clause identity moves.
+
+**WHAT IS DELIBERATELY NOT CARRIED, said out loud.** Fonts, sizes, colours,
+margins, headers and footers — Young ruled that HaTi sets its own paper, and the
+writer's own list has said the same since J-3.2. And the **document's own TITLE
+is not guessed**: on this file it is a 24pt run split across two paragraphs, so
+reading it as a title means joining two paragraphs, which is a rewrite of the
+document rather than a reading of it. The cover page is therefore set at one
+size, which is what "HaTi sets its own paper" looks like on a title page.
+
+Tests: f286 (17 — **11 fail against the parent**, the headline one reporting a
+contents row with its page number against the entry), f285's step claim REVERSED
+IN PLACE onto the shared vocabulary, f245's span-class claim RE-POINTED (it
+pinned the reading's whole EXPRESSION where the claim is that there is ONE
+reading and that it is a closed set), upload-structure-verify 18/18.
+
 ## ONE GUTTER ON EVERY SCREEN (Young asked 10 Sep 2026)
 
 *"When I begin to make written edits with the tools I have been provided, they

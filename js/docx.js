@@ -541,6 +541,84 @@ function docxRunsHtml(para, opts){
   return { html, text };
 }
 
+/* ---- WHAT THE FILE SAYS ABOUT A PARAGRAPH'S SHAPE (Young asked 10 Sep 2026)
+   ----
+   *"The bullet points do not work together with how the sentences or bullets
+   points in the contract are designed. They do not speak the same language."*
+   and, of an uploaded services agreement, *"it became unappealing to look at.
+   HaTi Customers will not stand for this."*
+
+   A Word contract states where each line sits, which lines belong together and
+   where a page ends. This reader carried NONE of it, so MEASURED on the file
+   Young sent: 80 paragraphs with a real hanging indent arrived flush against
+   the margin, 21 of them a whole step in from where the drafter put them; 100
+   label/value pairs were set as far apart as ordinary paragraphs; and five page
+   breaks vanished.
+
+   WHAT IS CARRIED IS THE FILE'S OWN STATEMENT AND NOTHING ELSE — no fonts, no
+   sizes, no colours, no margins. Those belong to a printed page and this
+   product sets its own paper (see the writer's own list, which is unchanged). */
+
+/* THE STEP IS THE FILE'S OWN, NEVER A NUMBER TYPED HERE. Word measures in
+   twentieths of a point and a drafter's own ladder can be 680, 720 or 567 (one
+   centimetre) — so the unit is read off the document: the commonest positive
+   hanging indent, which is the width of its own gutter. Falling back to the
+   commonest positive left indent covers a file that indents without hanging.
+   Nothing on file, no step, and every level reads 0 — which is exactly what
+   this reader did before. */
+function docxIndentStep(body){
+  const tally = h => {
+    const c = {};
+    let m; const re = new RegExp('<w:ind\\b[^>]*w:' + h + '="(\\d+)"', 'g');
+    while((m = re.exec(body))){ const n = Number(m[1]); if(n > 0) c[n] = (c[n] || 0) + 1; }
+    const keys = Object.keys(c);
+    if(!keys.length) return 0;
+    keys.sort((a, b) => (c[b] - c[a]) || (Number(a) - Number(b)));
+    return Number(keys[0]);
+  };
+  return tally('hanging') || tally('left') || 0;
+}
+
+/* HOW FAR IN THIS LINE SITS, in the file's own steps. `left` is where the
+   WORDING starts and `hanging` is how far the marker is pulled back out of it,
+   so `left - hanging` is where the line begins — which is what a reader sees
+   and what HaTi's own gutter draws. Bounded at 3: past that a contract is
+   unreadable on a phone and the deepest limb anybody drafts is (i) under (a)
+   under 2.1. */
+const DOCX_LEVEL_MAX = 3;
+function docxIndentLevel(pr, step){
+  if(!step) return 0;
+  const ind = (String(pr || '').match(/<w:ind\b[^>]*?\/?>/) || [''])[0];
+  if(!ind) return 0;
+  const num = k => { const m = ind.match(new RegExp('w:' + k + '="(-?\\d+)"')); return m ? Number(m[1]) : 0; };
+  const at = num('left') - num('hanging');
+  if(!(at > 0)) return 0;
+  return Math.max(0, Math.min(DOCX_LEVEL_MAX, Math.round(at / step)));
+}
+
+/* A CONTENTS ROW IS THE FILE SAYING SO, not a guess from the words. Word writes
+   a RIGHT tab stop when a line has a left entry and a right-hand number, and it
+   is the only paragraph property that means that. The entry and the number are
+   one text node either side of the last tab, so the tail needs an element of
+   its own to sit at the right wall.
+
+   IT REFUSES RATHER THAN GUESSING. The tail must be short, unbroken and the
+   last thing in the paragraph's own markup — otherwise the split would fall
+   inside a bold run or wrap half a sentence, and an un-split row reads as an
+   ordinary line where broken markup does not. */
+const DOCX_TOC_TAIL = /^[^\s]{1,8}$/;
+function docxTocTail(html, text){
+  const at = String(text || '').lastIndexOf('\t');
+  if(at < 0) return null;
+  const tail = String(text).slice(at + 1);
+  if(!DOCX_TOC_TAIL.test(tail)) return null;
+  const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+  const want = esc(tail);
+  const h = String(html || '');
+  if(!h.endsWith(want)) return null;
+  return h.slice(0, h.length - want.length) + '<span class="hati-toc-n">' + want + '</span>';
+}
+
 /* ---- THE STRUCTURED READER ----
    One pass over the body in document order, because the numbering walk demands
    it. Returns the HTML for the record, the plain text for everything else, and
@@ -580,6 +658,9 @@ function docxXmlToRich(xml, parts){
   const hasTitle = new RegExp('<w:pStyle\\b[^>]*w:val="Title"', 'i').test(body);
   const shift = hasTitle ? 1 : 0;
   const report = { headings: 0, numbered: 0, unnumbered: 0, tables: 0, styled: !!Object.keys(heads).length };
+  /* Read ONCE, from the whole document, before a block is emitted: a ladder is
+     a property of the file rather than of any one paragraph. */
+  const step = docxIndentStep(body);
   let guessedTitle = false;
   const out = [], lines = [];
   /* PARAGRAPHS AND TABLES IN ORDER. A table's own paragraphs must not also be
@@ -614,6 +695,17 @@ function docxXmlToRich(xml, parts){
        answer, not a failure, so it must not be counted as one. */
     if(numId === '0') numId = undefined;
     const runs = docxRunsHtml(blk, { rich: true });
+    /* ---- THE SHAPE THE FILE STATED ---- */
+    const shape = [];
+    const level = docxIndentLevel(pr, step);
+    if(level) shape.push('hati-lv-' + level);
+    /* `w:after="0"` is Word's way of writing a label directly above its value —
+       a definitions clause, a key-terms block — and without it the pair reads
+       as two unrelated lines. */
+    if(/<w:spacing\b[^>]*w:after="0"/.test(pr)) shape.push('hati-tight');
+    /* The break belongs to the paragraph that CARRIES it, which in a
+       professionally set contract is regularly an empty one. */
+    if(/<w:br\b[^>]*w:type="page"/.test(blk)) shape.push('hati-pb');
     let mark = '';
     if(numId != null){
       const n = nextNum(numId, ilvl);
@@ -626,7 +718,8 @@ function docxXmlToRich(xml, parts){
       else if(n.bullet) mark = (n.mark || '\u2022') + '\t';
     }
     const plain = (mark + runs.text);
-    if(!plain.trim() && !runs.html){ lines.push(''); out.push('<p><br></p>'); continue; }
+    const cls = shape.length ? ' class="' + shape.join(' ') + '"' : '';
+    if(!plain.trim() && !runs.html){ lines.push(''); out.push('<p' + cls + '><br></p>'); continue; }
     const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
     const lead = mark ? esc(mark) : '';
     let lvl = heads[style] || (/^heading\s*([1-9])$/i.test(String(style).replace(/[-_]/g, ' '))
@@ -655,7 +748,17 @@ function docxXmlToRich(xml, parts){
       }
     }
     if(lvl){ report.headings++; out.push(`<h${lvl}>${lead}${runs.html}</h${lvl}>`); }
-    else out.push(`<p>${lead}${runs.html}</p>`);
+    else {
+      /* A right tab stop is the file saying this line has a right-hand column;
+         where the tail cannot be split cleanly the row is emitted plain. */
+      let inner = lead + runs.html;
+      if(/<w:tab\b[^>]*w:val="right"/.test(pr)){
+        const split = docxTocTail(inner, mark + runs.text);
+        if(split){ inner = split; shape.push('hati-toc'); }
+      }
+      const c = shape.length ? ' class="' + shape.join(' ') + '"' : '';
+      out.push(`<p${c}>${inner}</p>`);
+    }
     lines.push(plain);
   }
   const text = lines.join('\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();

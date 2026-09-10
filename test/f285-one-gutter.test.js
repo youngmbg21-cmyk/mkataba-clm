@@ -87,8 +87,19 @@ test('f285 — one gutter on every screen', async t => {
 
   await t.test('a lettered limb is drawn one step in', () => {
     const out = R.redlineHangHtml('<p>(a)\tthe General Conditions; and</p>');
-    assert.match(out, /class="rl-hang rl-hang-2"/,
-      'the class the sheet turns into a step of the gutter’s own width');
+    assert.match(out, /class="rl-hang hati-lv-1"/,
+      'ONE step vocabulary, whoever wrote it down: the Word reader states the '
+      + 'level off the file’s own indent and this walk derives it from the marker');
+  });
+
+  await t.test('and a level the FILE stated is never overwritten', () => {
+    /* An uploaded contract measures its own ladder; a marker’s depth is the
+       reading for paper that says nothing. `(1)` reads as a number — depth 0 —
+       where a drafter regularly sets it one step in, and on Young’s own
+       agreement 21 paragraphs are exactly that. */
+    const out = R.redlineHangHtml('<p class="hati-lv-1">(1)\tSAINT-GOBAIN BYGGEVARER AS</p>');
+    assert.match(out, /class="rl-hang hati-lv-1"/, 'the gutter is added');
+    assert.strictEqual((out.match(/hati-lv-/g) || []).length, 1, 'and the level is left alone');
   });
 
   await t.test('NOT ONE CHARACTER OF WORDING MOVES', () => {
@@ -177,7 +188,7 @@ test('f285 — one gutter on every screen', async t => {
     ].join('');
     const out = R.redlineHangHtml(doc);
     assert.strictEqual((out.match(/class="rl-hang"/g) || []).length, 2, '2.1 and 2.2 hang at the first stop');
-    assert.strictEqual((out.match(/rl-hang-2/g) || []).length, 2, '(a) and (b) sit one step in');
+    assert.strictEqual((out.match(/hati-lv-1/g) || []).length, 2, '(a) and (b) sit one step in');
     assert.strictEqual(txt(out), txt(doc), 'and the agreement says exactly what it said');
   });
 });

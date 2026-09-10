@@ -459,7 +459,14 @@ function redlineLineKind(line){
 /* The marker a line opens with — "7.1", "(b)", "•" — and the wording after it.
    Split so the marker can sit in the hanging indent's gutter and the wording
    can wrap under itself, which is how a contract is set on paper. */
-const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+const RL_MARKER = /^(\s*)((?:\(\d{1,3}\))|(?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+/* A BRACKETED NUMBER IS A LIMB, NOT A CLAUSE NUMBER (Young's own agreement,
+   10 Sep 2026). "(1)" and "(2)" are how a contract numbers its parties and
+   "(A)", "(B)" its recitals, and they were the one shape of marker this pattern
+   did not read — so on real paper the party list drew with its numbers welded
+   to the wording while the recital directly beneath it hung correctly. It is
+   listed FIRST because the plain-number alternative would otherwise match the
+   digits inside the brackets and leave the closing one behind. */
 /* ---- HOW DEEP A BULLET IS, READ OFF ITS OWN GLYPH ----
    richToText projects a nested bullet list as • then ◦ then ▪ (see _listMark in
    js/richdoc.js, which is the one place that ladder is decided). Everything
@@ -491,10 +498,15 @@ const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxl
    cost is one step of indent on one limb, never a wrong word. */
 const RL_BULLET_DEPTH = { '\u2022': 0, '\u25e6': 1, '\u25aa': 2 };
 const RL_MARK_ROMAN = /^\(?[ivxlcdm]{2,}[).]?$/i;
+/* BRACKETS MEAN A LIMB. A bare or dotted number says where it sits ("2.1"); a
+   number in brackets is a list under something, exactly as "(a)" is, and is
+   drawn at the same stop. */
+const RL_MARK_BRACKET_NUM = /^\(\d{1,3}\)$/;
 const RL_MARK_LETTER = /^\(?[a-z][).]?$/i;
 function redlineMarkerDepth(marker){
   const m = String(marker || '').trim();
   if (Object.prototype.hasOwnProperty.call(RL_BULLET_DEPTH, m)) return RL_BULLET_DEPTH[m];
+  if (RL_MARK_BRACKET_NUM.test(m)) return 1;
   if (RL_MARK_ROMAN.test(m)) return 2;
   if (RL_MARK_LETTER.test(m)) return 1;
   return 0;
@@ -601,9 +613,16 @@ function redlineHangHtml(html){
     const head = inner.slice(0, cut);
     if (!_rlHangBalanced(head)) return whole;
     const depth = redlineMarkerDepth(split.marker);
-    const add = 'rl-hang' + (depth ? ' rl-hang-' + (depth + 1) : '');
     const at = String(attrs || '');
     if (/\brl-hang\b/.test(at)) return whole;
+    /* TWO CLASSES, TWO FACTS. rl-hang is the GUTTER — the marker pulled out of
+       the wording — and the level class is HOW FAR IN the line sits. The level
+       is the FILE'S to state where it stated one: an uploaded contract carries
+       its own off its own indent, and a marker's depth is the reading for
+       paper that says nothing. Overwriting it would put HaTi's guess above the
+       drafter's own measurement. */
+    const stated = /\bhati-lv-[123]\b/.test(at);
+    const add = 'rl-hang' + (depth && !stated ? ' hati-lv-' + depth : '');
     const dressed = /\bclass\s*=\s*"/.test(at)
       ? at.replace(/\bclass\s*=\s*"/, 'class="' + add + ' ')
       : at + ' class="' + add + '"';

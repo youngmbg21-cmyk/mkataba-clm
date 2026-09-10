@@ -5439,7 +5439,14 @@
      are set in the same family as its body, not in the interface face */
   .hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4{
     font-family:var(--font-doc);font-weight:var(--w-strong);line-height:1.3;margin:1.5em 0 0.5em;}
-  .hati-doc h1{font-size:1.42em;text-align:center;letter-spacing:-.01em;}
+  /* THE CENTRED h1 IS THE DOCUMENT'S OWN TITLE and nothing else. HaTi's clause
+     model reads a LEADING h1 as the title and every heading after it as a
+     clause, so the paper draws it the way the model reads it. Set on every h1,
+     an uploaded contract whose firm styles its clause headings at outline
+     level 1 had all thirteen of them drawn centred at 1.42em — a contract
+     whose clauses read like titles, which is what Young photographed. */
+  .hati-doc h1{font-size:1.15em;letter-spacing:-.01em;}
+  .hati-doc > h1:first-child{font-size:1.42em;text-align:center;}
   .hati-doc h2{font-size:1.16em;}
   .hati-doc h3{font-size:1.04em;}
   .hati-doc h4{font-size:1em;}
@@ -5454,8 +5461,23 @@
      put on by redlineHangHtml (js/redline.js) — one reading, four surfaces. */
   .hati-doc .rl-hang{padding-left:2.6em;text-indent:-2.6em;}
   .hati-doc .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0;}
-  .hati-doc .rl-hang-2{margin-left:2.6em;}
-  .hati-doc .rl-hang-3{margin-left:5.2em;}
+  /* ---- THE STEPS A LINE CAN SIT AT ----
+     ONE vocabulary for one fact, whoever wrote it down: `hati-lv-N` is emitted
+     by the Word reader where the FILE stated an indent, and by the gutter walk
+     where the MARKER is all there is. Two names for one step is how they come
+     to disagree about how wide a step is. */
+    .hati-doc .hati-lv-1{margin-left:2.6em;}
+    .hati-doc .hati-lv-2{margin-left:5.2em;}
+    .hati-doc .hati-lv-3{margin-left:7.8em;}
+  /* A label directly above its value — the file said no space after it. */
+    .hati-doc .hati-tight{margin-bottom:0;}
+  /* Where the page ended. A rule and air on screen; a real break in print and
+     in anything that paginates. */
+    .hati-doc .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    break-before:page;page-break-before:always;}
+  /* A contents row: the entry at the left, its page number at the right wall. */
+    .hati-doc .hati-toc{overflow:hidden;}
+    .hati-doc .hati-toc-n{float:right;padding-left:1.2em;}
   .hati-doc ul,.hati-doc ol{margin:0 0 0.85em;padding-left:2.1em;}
   .hati-doc ul ul,.hati-doc ol ol,.hati-doc ul ol,.hati-doc ol ul{margin-bottom:0;}
   .hati-doc li{margin:0 0 0.35em;}

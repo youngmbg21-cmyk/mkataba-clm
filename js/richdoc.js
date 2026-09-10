@@ -48,7 +48,55 @@ const RICH_CLAUSE_ID_RE = /^cl_[a-z0-9]{4,24}$/;
 const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-field-key']),
   H1:new Set([RICH_CLAUSE_ATTR]), H2:new Set([RICH_CLAUSE_ATTR]),
   H3:new Set([RICH_CLAUSE_ATTR]), H4:new Set([RICH_CLAUSE_ATTR]),
-  P:new Set([RICH_CLAUSE_ATTR]) };
+  P:new Set([RICH_CLAUSE_ATTR,'class']) };
+/* ---- WHAT A PARAGRAPH'S OWN FILE SAID ABOUT ITS SHAPE (Young asked 10 Sep 2026)
+   ----
+   A Word contract states where each line sits, which lines belong together and
+   where a page ends, and until now HaTi threw all of it away on the way in: an
+   uploaded agreement arrived as one flat run of paragraphs and a reader who had
+   sent us a well-set document got back something that "became unappealing to
+   look at".
+
+   These four are the smallest set that carries that back, and every one of them
+   is a FACT READ OFF THE FILE rather than a guess about it:
+
+     hati-lv-1..3  where the file's OWN indent puts the line. Level 0 is the
+                   default and carries no class, so an ordinary paragraph is
+                   byte-identical to what it was.
+     hati-tight    the file says no space after this paragraph — Word's way of
+                   writing a label above its value, which is how a definitions
+                   clause and a key-terms block are set.
+     hati-pb       a page break falls here.
+     hati-toc      the file declares a RIGHT tab stop on this line, which is
+                   Word saying the line has a left entry and a right-hand
+                   number. The tail rides in one span (below).
+
+   THEY ARE ADMITTED EXACTLY AS THE DRAFTER'S MARKS ARE AND NO WIDER: a FIXED
+   SET OF NAMED CLASSES, nothing free-form, so a contract can never arrive
+   carrying a size, a colour or a layout this workspace did not choose. A
+   paragraph may carry several — a tight line one step in is both — which is
+   why this test is a per-name one where a span's is a whole-value one: a span
+   is a field OR an ink OR a size and never two, and a paragraph's shape really
+   does have independent halves.
+
+   NOTHING HERE MOVES A WORD. Each one is a class on a block whose content is
+   untouched, so the text projection the redline diffs against is character for
+   character what it was. */
+const RICH_SHAPE_CLASSES = new Set(['hati-lv-1','hati-lv-2','hati-lv-3',
+  'hati-tight','hati-pb','hati-toc']);
+/* The one span class that is a SHAPE rather than a mark: the right-hand column
+   of a contents row. It carries no value of its own — the page number is the
+   span's own text — and it exists because CSS cannot right-align the tail of a
+   text node without an element to hang it on. */
+const RICH_TOC_TAIL_CLASS = 'hati-toc-n';
+/* ONE reading of "may a BLOCK carry this class", asked by the attribute pass
+   and by nothing else. Per name, and unknown names are dropped rather than the
+   attribute: a paragraph carrying `hati-tight nonsense` keeps the half this
+   product wrote. */
+function richBlockClass(v){
+  const keep = String(v == null ? '' : v).split(/\s+/).filter(c => RICH_SHAPE_CLASSES.has(c));
+  return keep.length ? Array.from(new Set(keep)).join(' ') : '';
+}
 /* The single allowlisted span class: HaTi's own field-placeholder marker. */
 const RICH_FIELD_CLASS = 'hati-field';
 /* ---------- THE DRAFTER'S OWN MARKS (owner-asked 27-28 Aug 2026) ----------
@@ -88,7 +136,8 @@ const RICH_MARK_CLASSES = new Set([].concat(
    space-separated list: a span is a field, OR an ink, OR a highlight, OR a size,
    and anything wanting two is two nested spans — which keeps this test total
    rather than a parser. */
-const richSpanClassOk = v => v === RICH_FIELD_CLASS || RICH_MARK_CLASSES.has(v);
+const richSpanClassOk = v => v === RICH_FIELD_CLASS || v === RICH_TOC_TAIL_CLASS
+  || RICH_MARK_CLASSES.has(v);
 /* The one data attribute a hati-field span may carry: which template-form
    field the blank belongs to, so a click on the document can route to the
    right input. Admitted under the same reasoning as data-clause-id — the
@@ -213,6 +262,12 @@ function _stripAttrs(el){
     if(el.tagName==='SPAN' && name==='class'){
       // exactly one class, and it must be on the list — see RICH_MARK_CLASSES
       if(!richSpanClassOk(String(attr.value||'').trim())) el.removeAttribute(attr.name);
+      continue;
+    }
+    if(el.tagName==='P' && name==='class'){
+      // the shapes a paragraph's own file stated — see RICH_SHAPE_CLASSES
+      const keep=richBlockClass(attr.value);
+      if(keep) el.setAttribute('class',keep); else el.removeAttribute(attr.name);
       continue;
     }
     if(el.tagName==='SPAN' && name===RICH_FIELD_KEY_ATTR){
@@ -1018,4 +1073,5 @@ Object.assign(window,{RICH_TAGS,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
+  RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,richBlockClass,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});
