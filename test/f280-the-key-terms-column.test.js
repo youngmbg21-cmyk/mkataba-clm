@@ -242,3 +242,154 @@ describe('f280 (7) — a cut-short brief is not kept', () => {
     } finally { await h.stop(); await ai.stop(); }
   });
 });
+
+/* ============================================================================
+   8 · THE TILE ASKS THE BRIEF, NOT A NOTE ABOUT IT (owner-reported 10 Sep 2026)
+   ----------------------------------------------------------------------------
+   *"The Key terms strip and the Contract brief card contradict each other."*
+   One contract, two boxes, opposite answers: the strip said "Brief written —
+   … — part of it was cut short" and the card four inches below said "Not
+   written yet" with a Write the brief button.
+
+   IT IS NOT THE BUG SECTION 6 FIXED. That one changed how a NEW run RECORDS a
+   cut-short brief, and it cannot reach a note already on file: every contract
+   read before it carries `{ ok:true, line, cut }` for ever. So that fix was
+   right and incomplete, and the half that was missing is a READING — the tile
+   asks whether there IS a brief and falls back to the note only where there is
+   nothing to look at. Nothing is repaired and nothing is migrated: an old
+   wrong note is simply not read.
+
+   THE FIRST FOUR HERE FAIL AGAINST THE COMMIT BEFORE IT. The last three are
+   named CONTROLS that pass either way — their job is to fail the day somebody
+   sweeps the live reading wider than it should go.
+   ==========================================================================*/
+function tileStage(over){
+  const { win } = buildWorld({ triage: true });
+  win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
+  const c = Object.assign({ id: 'MK-379', name: 'Logistics agreement',
+    status: 'Under Review', source: 'upload', folder: 'proc',
+    audit: [], obligations: [], comments: [] }, over || {});
+  win.state.contracts = [c];
+  return { win, c, tile: () => win.triageTiles(c).find(t => t.key === 'brief') };
+}
+/* MK-379's OWN SHAPE — read on 9 Sep by the code of the day, so the note says
+   the brief was written and carries its summary. The brief itself was never
+   kept, so on the next read there is none. */
+const OLD_NOTE = () => ({ triage: { at: Date.now(), by: 'Young', steps: {
+  brief: { ok: true, line: 'This is a logistics contract between two parties.', cut: 'x' },
+  risk: { ok: true, open: 0 },
+  playbook: { ok: true, dev: 1, miss: 0, cats: ['Payment terms'] },
+  oblig: { ok: true, found: [{ desc: 'Deliver within thirty (30) days' }] } } } });
+
+describe('f280 (8) — the strip and the card cannot disagree', () => {
+  test('an old note claiming a brief the record does not hold is not believed', () => {
+    /* THE REPORTED SCREEN. */
+    const { tile, win } = tileStage(OLD_NOTE());
+    const t = tile();
+    assert.equal(t.ok, false,
+      'the strip may not say written about a brief there is none of');
+    assert.equal(t.headKey, win.TRIAGE_HEADS.brief.no,
+      'it takes the No brief head');
+    assert.ok(!/logistics contract between/.test(t.detail || ''),
+      'and does not print a summary of a brief nobody can open: ' + t.detail);
+  });
+
+  test('and the way forward is on it', () => {
+    const { tile } = tileStage(OLD_NOTE());
+    assert.ok(/tri_brief_none|None on file/.test(tile().detail || ''),
+      'with no reason on the record it says there is none and where to write one');
+  });
+
+  test('a brief with no note at all reads as written', () => {
+    /* THE MIRROR, and it is what makes the tile go green BY ITSELF on a
+       contract whose brief a person writes later — which it could not do while
+       it read a note written once at upload. */
+    const { tile, win } = tileStage({ _brief: { at: '2026-09-10T09:00:00Z',
+      data: { overview: 'A logistics contract between two parties.' } },
+      triage: { at: Date.now(), by: 'Young', steps: { risk: { ok: true, open: 0 } } } });
+    const t = tile();
+    assert.equal(t.ok, true, 'there is a brief, so the tile says so');
+    assert.equal(t.headKey, win.TRIAGE_HEADS.brief.ok, 'and takes the written head');
+    assert.ok(/logistics contract/.test(t.detail || ''),
+      'and its line comes from the brief itself: ' + t.detail);
+  });
+
+  test('a light row says written and draws no line', () => {
+    /* THE TRAP THE PAIR EXISTS FOR. `_brief` rides the SINGLE contract's GET
+       and `_hasBrief` is the boolean the LIST route attaches, so a tile reading
+       `_brief` alone is right locally and wrong in server mode — this
+       codebase's recorded defect class. There is nothing to draw a line from
+       here, and a stored line may describe an older brief. */
+    const { tile } = tileStage(Object.assign(OLD_NOTE(), { _hasBrief: true }));
+    const t = tile();
+    assert.equal(t.ok, true, 'the list’s own boolean is believed');
+    assert.equal(t.detail, '', 'and nothing is invented to put under it: ' + t.detail);
+  });
+
+  test('the line is the brief’s, never the stored one', () => {
+    const { tile } = tileStage(Object.assign(OLD_NOTE(),
+      { _brief: { data: { overview: 'A haulage contract for the northern route.' } } }));
+    const t = tile();
+    assert.ok(/haulage contract/.test(t.detail || ''),
+      'it reads the brief on the record: ' + t.detail);
+    assert.ok(!/logistics contract between/.test(t.detail || ''),
+      'never the line the note happens to carry');
+  });
+
+  test('the cap does not ride a brief written later', () => {
+    /* THE VERY NEXT STATE OF THE VERY CONTRACT REPORTED. The reader presses
+       Write the brief from the card, it comes back whole — and the note still
+       says the run it describes was capped. Left riding the tile, the strip
+       would say the new brief was cut short when it was not: this section's
+       own fault, one size smaller. */
+    const { tile } = tileStage(Object.assign(OLD_NOTE(),
+      { _brief: { data: { overview: 'A haulage contract for the northern route.' } } }));
+    assert.ok(!/tri_cut|cut short/.test(tile().detail || ''),
+      'a newer brief does not wear the old run\u2019s warning: ' + tile().detail);
+  });
+
+  /* ---- the three controls ---- */
+  test('CONTROL \u2014 but it IS drawn over the brief the note describes', () => {
+    /* Which is what the cap is for, and what would be lost by dropping it: an
+       auto-triage run reads quietly, so the strip is the only place a capped
+       reading is ever said. Same brief, same line, so the warning stands. */
+    const LINE = 'This is a logistics contract between two parties.';
+    const { tile } = tileStage(Object.assign(OLD_NOTE(),
+      { _brief: { data: { overview: LINE } } }));
+    const t = tile();
+    assert.equal(t.ok, true, 'there is a brief');
+    assert.ok(/tri_cut|cut short/.test(t.detail || ''),
+      'and the run that wrote it is still reported as capped: ' + t.detail);
+  });
+
+  test('CONTROL — the busy state still wins, with a brief and without', () => {
+    for (const extra of [{}, { _brief: { data: { overview: 'A logistics contract.' } } }]){
+      const { tile, win } = tileStage(Object.assign({ _triaging: true,
+        triage: { at: Date.now(), by: 'Young', steps: {} } }, extra));
+      const t = tile();
+      assert.equal(t.working, true, 'a reading still in flight reads as working');
+      assert.equal(t.headKey, win.TRIAGE_HEADS.brief.ing, 'and takes the working head');
+      assert.equal(t.detail, '', 'with nothing under it');
+      assert.equal(t.count, null, 'and no count');
+    }
+  });
+
+  test('CONTROL — the other three tiles still read their note', () => {
+    /* THE NARROWNESS IS THE CLAIM. Obligations are HELD on the triage record
+       and filed nowhere else, so that tile has no second store to ask; the
+       standards and risk readings are on the contract itself and move with it.
+       Only the brief has a store that can outlive the note about it. */
+    const { win, c } = tileStage(OLD_NOTE());
+    const tiles = win.triageTiles(c);
+    for (const k of ['playbook', 'oblig'])
+      assert.equal(tiles.find(t => t.key === k).ok, true, k + ' still reads its note');
+  });
+
+  test('CONTROL — the headline is a different question and is not swept', () => {
+    /* `triageReadAnything` asks whether ANYTHING was read at all, off the
+       STORED steps. A contract whose brief is gone was still read. */
+    const { win, c } = tileStage(OLD_NOTE());
+    assert.equal(win.triageReadAnything(c), true,
+      'the strip still says this contract was read');
+  });
+});

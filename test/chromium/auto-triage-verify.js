@@ -435,6 +435,108 @@ const SEED = t => {
     check('8e · "Got it" puts it away and stamps the same seen the card reads',
       put.pressed === true && put.gone === true && put.seen === true, put);
 
+    /* ============ 10 · THE STRIP AND THE CARD, READ TOGETHER ============ */
+    /* Owner-reported 10 Sep 2026: "The Key terms strip and the Contract brief
+       card contradict each other." One contract, two boxes, opposite answers.
+       THIS IS THE ONE CLAIM ONLY A RENDERED PAGE CAN MAKE — "they agree" is a
+       claim about two boxes, and only a page has both.
+
+       THE RECORD IS STAGED, NOT RE-RUN, and that is the point rather than a
+       shortcut: the reported note was written by the code of 9 Sep and today's
+       code cannot produce it. So the shape is written onto the record and the
+       page is re-opened, which is exactly what a reader who opens MK-379 gets.
+       `_brief` is deleted because a cut-short brief was never kept — section 7
+       proves that against a real server. */
+    const cid = await drive(() => state.activeId, undefined, null);
+    const staged = await drive(id => {
+      const c = state.contracts.find(x => x.id === id);
+      if (!c) return { staged: false };
+      c.triage = { at: new Date().toISOString(), by: 'Young', steps: {
+        brief: { ok: true, line: 'This is a logistics contract between two parties.', cut: 'x' },
+        risk: { ok: true, open: 0 },
+        playbook: { ok: true, dev: 1, miss: 0, cats: ['Payment terms'] },
+        oblig: { ok: true, found: [] } } };
+      delete c._brief; delete c._hasBrief;
+      if (window.openWorkspace) openWorkspace(c.id);
+      return { staged: true };
+    }, cid, { staged: false });
+    await pause(900);
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(600);
+    await page.screenshot({ path: path.join(OUT, '10-strip-and-card.png'), fullPage: false });
+    /* ONE PROBE, BOTH BOXES. Read apart they can each look right. */
+    const both = await drive(() => {
+      const e = document.getElementById('kt-triage');
+      const card = document.getElementById('brief-card');
+      const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
+      const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
+      return {
+        stripDrawn: !!e, cardDrawn: !!card,
+        head: t(tile && tile.querySelector('.kt-tri-th')),
+        detail: t(tile && tile.querySelector('.kt-tri-td')),
+        tone: tile ? tile.className : '',
+        cardWrite: !!(card && card.querySelector('[data-kt-brief="run"]')),
+        cardOpen: !!(card && card.querySelector('[data-kt-brief="open"]')),
+        cardTxt: t(card) };
+    }, undefined, null);
+    check('10a · the reported state really is on screen — both boxes drawn',
+      !!(both && both.stripDrawn && both.cardDrawn && staged.staged), both);
+    check('10b · the strip no longer claims a brief the record does not hold',
+      !!(both && /No brief|Ingen sammanfattning/.test(both.head)
+         && !/Brief written|Sammanfattning skriven/.test(both.head)),
+      both && { head: both.head, detail: both.detail });
+    check('10c · and it prints no summary of a brief nobody can open',
+      !!(both && !/logistics contract between/.test(both.detail)
+         && !/cut short|klipptes/.test(both.detail)),
+      both && both.detail);
+    check('10d · the way forward is on it',
+      !!(both && /None on file|Ingen finns sparad/.test(both.detail)),
+      both && both.detail);
+    check('10e · and the card beside it says the same thing',
+      !!(both && both.cardWrite === true && both.cardOpen === false),
+      both && { write: both.cardWrite, open: both.cardOpen });
+
+    /* THE MIRROR, and it is what the reader gets NEXT: write the brief from the
+       card and the tile turns green by itself — which it could never do while
+       it read a note written once at upload. THE NOTE IS TODAY'S SHAPE HERE —
+       a cut-short run records not-done with its reason — so the tile can only
+       be green because there is a brief, and can only carry that line because
+       it read the brief rather than the note. Staged, because the harness's
+       provider writes no brief. */
+    const after = await drive(id => {
+      const c = state.contracts.find(x => x.id === id);
+      if (!c) return null;
+      c.triage.steps.brief = { ok: false,
+        why: 'The answer was cut short, so it was not kept — write the brief again.' };
+      c._brief = { at: new Date().toISOString(),
+        data: { overview: 'A haulage contract for the northern route.' } };
+      if (window.openWorkspace) openWorkspace(c.id);
+      return { ok: true };
+    }, cid, null);
+    await pause(900);
+    await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
+      if (b) b.click(); });
+    await pause(600);
+    const both2 = await drive(() => {
+      const e = document.getElementById('kt-triage');
+      const card = document.getElementById('brief-card');
+      const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
+      const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
+      return { head: t(tile && tile.querySelector('.kt-tri-th')),
+        detail: t(tile && tile.querySelector('.kt-tri-td')),
+        cardOpen: !!(card && card.querySelector('[data-kt-brief="open"]')) };
+    }, undefined, null);
+    check('10f · a brief written later turns the tile green by itself',
+      !!(after && both2 && /Brief written|Sammanfattning skriven/.test(both2.head)),
+      both2 && both2.head);
+    check('10g · its line is the brief’s own',
+      !!(both2 && /haulage contract/.test(both2.detail)), both2 && both2.detail);
+    check('10h · and the note’s refusal is not printed over a brief that is there',
+      !!(both2 && !/cut short|klipptes|again/i.test(both2.detail)), both2 && both2.detail);
+    check('10i · and the card agrees, again',
+      !!(both2 && both2.cardOpen === true), both2 && { open: both2.cardOpen });
+
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
 

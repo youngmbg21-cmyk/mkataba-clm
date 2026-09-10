@@ -4949,6 +4949,9 @@ const STRINGS = {
     /* A cut-short brief is deliberately not kept, so the strip may not say one
        was written. The sentence names the one thing the reader can act on. */
     tri_brief_cut: 'The answer was cut short, so it was not kept \u2014 write the brief again.',
+    /* AND WHERE THE RECORD SIMPLY HOLDS NONE. The head already says "No
+       brief", so this says the one thing it cannot: where to write one. */
+    tri_brief_none: 'None on file \u2014 write it from the Contract brief card.',
     tri_not_available: 'This reading is not available here.',
     tri_no_text: 'No text came out of the file, so nothing was read.',
     ob_proposed_n_one: '{n} proposed',
@@ -10471,6 +10474,7 @@ const STRINGS = {
     tri_unfold: 'Visa vad som hittades',
     tri_no_answer: 'Copilot gav inget svar.',
     tri_brief_cut: 'Svaret klipptes av och sparades därför inte \u2014 skriv sammanfattningen igen.',
+    tri_brief_none: 'Ingen finns sparad \u2014 skriv den från kortet Avtalssammanfattning.',
     tri_not_available: 'Den här läsningen är inte tillgänglig här.',
     tri_no_text: 'Ingen text kunde läsas ur filen, så ingenting lästes.',
     ob_proposed_n_one: '{n} f\u00f6reslaget',

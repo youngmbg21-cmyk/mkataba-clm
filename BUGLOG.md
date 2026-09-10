@@ -11493,3 +11493,73 @@ red runs — if it returns, this is the second sighting.
 - The Playbook review window's sign is computed per row at draw time, so a row
   added to the table while the window is open does not re-sign until it is
   reopened. The wall still refuses, so it is a stale sign rather than a hole.
+
+## 2026-09-10 — The strip and the card cannot disagree about the brief
+
+REPORTED: "The Key terms strip and the Contract brief card contradict each
+other." On one contract's Key terms tab the auto-triage strip said "Brief
+written — This is a logistics contract between… — part of it was cut short"
+while the Contract brief card four inches below said "Not written yet" with a
+Write the brief button. One contract, two boxes, opposite answers.
+
+MEASURED FIRST, on the reported record shape before anything was touched: the
+strip's brief tile came back ok:true / head "Brief written" / detail "This is a
+logistics contract between two parties. — part of it was cut short", and
+checkVerdict(c,'brief') came back null. That is the screenshot.
+
+IT IS NOT THE BUG FIXED YESTERDAY, and saying so is most of the diagnosis. The
+9 Sep fix records a cut-short brief as NOT DONE — it changed how a NEW run
+writes that step and cannot reach a note already on file. Every contract read
+before it carries { ok:true, line, cut } for ever. So that fix was right and
+incomplete.
+
+THE FIX IS A READING, NOT A REPAIR. The brief tile asks whether there IS a
+brief — c._brief || c._hasBrief, BOTH, because _brief rides the single
+contract's GET and _hasBrief is the boolean the list route attaches, and
+reading _brief alone is right locally and wrong in server mode on a light row
+(the recorded defect class, twice paid for). js/views/home.js reads the same
+pair for the same reason and was copied rather than a third reading written.
+The line comes from the brief too, through triageBriefLine, the one reading; a
+light row has a brief and nothing to draw a line from, so it says nothing
+rather than reaching for a stored line that may describe an older brief. With
+no brief the reason is the note's own `why` where it has one, and otherwise the
+new tri_brief_none sentence, which names where to write one.
+
+AND A SECOND, NARROWER VERSION OF THE SAME FAULT WAS FOUND WHILE FIXING IT, and
+it is the very next state of the very contract reported: press Write the brief
+from the card, it comes back whole — and the old note's "part of it was cut
+short" would ride the new brief. The cap is now drawn only over the brief the
+note describes, and the same brief is the one that yields the same line: a
+comparison rather than a guess. The cap is NOT dropped — an auto-triage run
+reads quietly, so the strip is the only place a capped reading is ever said.
+
+NOTHING IS MIGRATED AND NOTHING IS REPAIRED: an old wrong note is simply not
+read. A brief a person writes later now turns the tile green by itself, which
+it could never do while the tile read a note written once at upload.
+
+WHAT DID NOT MOVE, asserted rather than assumed: the caching rule (a cut-short
+brief is still never written to the briefs table — f280 (4)); triageReadAnything,
+which asks a different question off the STORED steps, so the headline stays
+true; and the other three tiles, which go on reading their note.
+
+TESTS: f280 (8), 9 new claims of which 6 fail against the parent commit; the
+other three are named CONTROLS (the busy state still wins with a brief and
+without, the other tiles still read their note, the headline is not swept).
+auto-triage-verify section 10, 9 new checks of which 6 fail against the parent
+— the headline one reporting the owner's screenshot verbatim, head "✓Brief
+written" over "This is a logistics contract between two parties. — part of it
+was cut short". The record is staged and the page re-opened deliberately: the
+reported note was written by yesterday's code and today's code cannot produce
+it. f280 24/24, auto-triage-verify 41/41. Lint unchanged (4 pre-existing
+errors).
+
+### Noticed, not fixed
+- THE STANDARDS TILE CANNOT DRIFT THE SAME WAY, and this was measured rather
+  than reasoned: c.playbook is a real record field, is never cleared, and
+  survives both HEAVY and saveContract, so the note and the store move
+  together and "Standards checked" can never be a lie. Its COUNT is a snapshot
+  taken at run time, though, while the Checks card computes deviationSummary
+  live — so after a later re-run the strip can say "1 to look at" while the
+  card beside it says "3 to look at". Same family, one size smaller.
+- 4 pre-existing lint errors (no-dupe-keys: co_password_updated, act_next,
+  twice each) in js/i18n.js. Identical on the parent; outside this request.
