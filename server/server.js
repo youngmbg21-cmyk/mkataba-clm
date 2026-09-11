@@ -6040,6 +6040,28 @@ async function copilotPlaybookCheck(ctx, id, key, who) {
 const COPILOT_PANEL_NAMES = ['workload_runway', 'money_held_back', 'promises_live', 'won_and_lost', 'renewal_runway'];
 const COPILOT_PANEL_DESC = 'Fetch the figures behind one chart on the Insights → Portfolio page, counted by the panel itself. Use it whenever the question names a panel ("workload runway", "renewal runway", "money held back", "promises still live", "won and lost") or asks WHY one of them looks the way it does. Returns the panel\'s buckets with, per bucket, its total, how many contracts are in it, the two or three contracts driving it, and a "why" block (how many have a real start date on file versus one defaulted to their signature date, how many start and end in the same month). Also returns an "excluded" block naming the work the chart could NOT place and the reason — quote that rather than presenting the total as everything. "workload runway" is about CONTRACTED WORK, never about staff capacity.';
 const COPILOT_PANEL_BYTES = 300000;          // a bounded read of a client-sent object, like guideLive
+const COPILOT_DEPENDENTS_DESC = 'What depends on one contract — the blast radius if it ends. Returns its DIRECT dependents read off the record: the amendments and annexes filed under it, the payment steps on other contracts that wait on one of its obligations, and the live contracts naming the same counterparty — with the converted value on those contracts, what that total left out for want of a rate, and how many obligations on them are held right now. Use it for "what depends on", "what is affected if X ends / is terminated / lapses", "what hangs off X". It is not a transitive walk and never counts archived or declined contracts; say so if asked about second-order effects.';
+/* A LOOKUP ON A CLIENT-SENT TABLE, never a calculation: the reading lives in
+   the browser (graphDependents) and rides every brief as ctx.graph.links,
+   keyed by id and holding only contracts that have dependents. The server
+   has no family model and must not grow one. Every field read is clamped. */
+function copilotDependents(clientCtx, id) {
+  const key = String(id || '').toUpperCase().trim();
+  const g = clientCtx && typeof clientCtx === 'object' ? clientCtx.graph : null;
+  const links = g && typeof g === 'object' ? g.links : null;
+  if (!links || typeof links !== 'object')
+    return { id: key, found: false, note: 'This reader\'s contract graph was not sent with the question — say the dependents are not available from here rather than guessing.' };
+  const d = links[key];
+  if (!d || typeof d !== 'object')
+    return { id: key, found: true, contracts: [], amendments: 0, paymentStepsWaiting: 0, sameCounterparty: 0, valueOnDependents: null, valueLeftOut: {}, obligationsHeld: 0,
+      note: 'Nothing on the record depends on this contract — no amendment filed under it, no payment step waiting on it, no other live contract with its counterparty.' };
+  const cs = Array.isArray(d.contracts) ? d.contracts.slice(0, 60).map(x => ({ id: String((x && x.id) || '').slice(0, 40), kind: String((x && x.kind) || '').slice(0, 12) })) : [];
+  const n = v => (typeof v === 'number' && isFinite(v)) ? v : 0;
+  const miss = {}; if (d.missing && typeof d.missing === 'object') Object.keys(d.missing).slice(0, 20).forEach(k => { miss[String(k).slice(0, 8)] = n(d.missing[k]); });
+  return { id: key, found: true, contracts: cs, amendments: n(d.amendments), paymentStepsWaiting: n(d.calloffs), sameCounterparty: n(d.party),
+    valueOnDependents: (typeof d.value === 'number' && isFinite(d.value)) ? d.value : null, valueLeftOut: miss, obligationsHeld: n(d.held),
+    note: 'Direct dependents only, read off the record. Not a transitive walk; archived and declined contracts are never counted.' };
+}
 function copilotInsightsPanel(clientCtx, name) {
   const key = String(name || '');
   if (COPILOT_PANEL_NAMES.indexOf(key) < 0)
@@ -6080,6 +6102,8 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
   { name: 'get_insights_panel', description: COPILOT_PANEL_DESC,
     input_schema: { type: 'object', properties: { panel: { type: 'string', enum: COPILOT_PANEL_NAMES, description: 'Which panel. Stable English keys — never a translated title.' } }, required: ['panel'] } },
+  { name: 'get_dependents', description: COPILOT_DEPENDENTS_DESC,
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -6108,6 +6132,7 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
     if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key, aux && aux.who);
     if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
+    if (name === 'get_dependents') return copilotDependents(aux && aux.clientCtx, a.id);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
@@ -6598,6 +6623,7 @@ function copilotProgressLabel(name, input) {
   if (name === 'compare_contracts') { const n = Array.isArray(a.ids) ? a.ids.length : 2; return `Comparing ${n} contracts…`; }
   if (name === 'check_against_playbook') return 'Checking the playbook…';
   if (name === 'get_insights_panel') return 'Reading the Insights panel…';
+  if (name === 'get_dependents') return 'Reading what depends on it…';
   return 'Working…';
 }
 

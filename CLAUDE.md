@@ -13378,6 +13378,81 @@ in BUGLOG.md.
 Tests: f133 (27 — **12 fail against the parent**, three of them claims reversed
 in place).
 
+## THE GRAPH DRAWS THE RECORD'S OWN LINKS, AND A NODE SAYS WHAT DEPENDS ON IT (A-2, owner-ruled 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md, the first of five. The owner asked what the
+Insights → Contract graph's nodes could carry, chose all five options, and
+ruled that a blast radius counts **family + chain + party**.
+
+**THE GRAPH WAS DRAWING A SUPPLY CHAIN NO RECORD HELD.** `REL_SEEDS` was
+seven name-matched demo links — "feeds", "supplies", "precedes" — between
+seeded contracts, so the one page whose job is showing how the book hangs
+together showed a picture somebody typed in 2025. **It is an exported EMPTY
+array now and STALE**: the name survives one release so a third caller cannot
+bring the drawing back, and f290 fails on any reader of it.
+
+- **A LINK IS A FACT OFF THE RECORD OR IT IS NOT DRAWN.** `buildGraphEdges(cs)`
+  reads three fields and nothing else: `parentId` (family — child → master,
+  labelled with the relation word through the `RELATION_LABEL` getter), an
+  obligation's `after` pointing at an obligation stored on ANOTHER contract
+  (the payment chain crossing a contract line — the later step's contract →
+  the earlier's), and the shared counterparty (folded on case and whitespace,
+  `obligationAlreadyOn`'s own rule). **A dangling pointer is an absence, never
+  a guess**: a `parentId` naming no contract, an `after` naming no obligation,
+  or a chain inside one contract is no edge.
+- **A PARTY LINK IS DRAWN THROUGH A HUB OR NOT AT ALL.** Six contracts with one
+  customer would be fifteen pairwise lines saying one thing. The reading
+  returns them as `party:<name>` edges; the model maps those onto the
+  counterparty hub when the graph is grouped by counterparty — the hub→contract
+  fan simply wears `kind:'party'` — and drops them under any other grouping.
+- **A DEAD CONTRACT IS ON NO EDGE.** `graphLiveContract` (not Declined, not
+  archived) is asked first: counting a declined agreement into a blast radius
+  tells the reader a dead deal is at risk.
+- **`graphDependents(id)` IS DIRECT ONLY, NEVER A TRANSITIVE WALK.** An
+  amendment of an amendment is refused by the family model (one level deep), a
+  chain is read one step back by `obligationBlocked`, and "everything a
+  customer touches touches everything else" is a picture no record supports.
+  **Every figure is borrowed**: `fxHome` for the converted value over monetary
+  dependents, `fxMissing` for what that total LEFT OUT (named, never trimmed),
+  `obligationBlocked` for what is held on them right now. **Money obeys
+  `canViewValues`** — a reader who may not see it gets the links and no figure,
+  never a dash.
+- **COUNTING IS NOT DRAWING, AND IT READS WITHOUT WRITING.** The reading
+  returns plain data off `c.parentId`, `c.obligations` and `c.counterparty`
+  raw; `igDependentsHtml` draws it and computes nothing. f290 proves a reading
+  leaves the book byte-identical.
+- **THE LINE WEARS ITS KIND**: family solid in the accent, chain DASHED, party
+  the quiet neutral of a group line — shape as well as colour, so the two kinds
+  are told apart without the legend. **The legend lists exactly the kinds on
+  the page** (`model.edgeKinds`), each row's swatch being the line's own class,
+  so it cannot describe a dress the graph does not wear. Hovering a node lights
+  its dependents by the same adjacency the hub fans use.
+- **"IF THIS ENDS" IS A BLOCK ON THE DOCK'S EXPLAIN CARD, ONLY WHERE SOMETHING
+  DEPENDS** — a card saying "nothing depends on this" on every node is
+  furniture. **"See the list" is `regShowOnly`**, the register's one door onto
+  a named set, carrying the chip and the way back; never a second list drawn
+  in the dock. **No band, strip or notice anywhere.**
+- **COPILOT'S `get_dependents` IS A LOOKUP ON BOTH HOSTS.** The browser answers
+  from `graphDependents`; `graphDependentsAll()` rides every brief as
+  `ctx.graph.links` — keyed by id, holding only contracts that HAVE dependents,
+  names left off — exactly as the Insights panels ride as `ctx.insights`, and
+  the server's `copilotDependents` READS that table with every field clamped.
+  **The server has no family model and must not grow one.** The tool
+  description is written twice on purpose and f290 pins the two identical.
+- **THE OLD BUILDERS ASK THE SAME READING.** `buildGraph` and `openPartyModal`
+  read `buildGraphEdges` for their contract-to-contract links; f290 sweeps the
+  file for a second walk of `.after` outside the reading.
+
+Tests: f290 (23 — **all 23 fail against the parent**; the reading does not
+exist there), insights-panels-verify section 11 (8, browser — **7 fail against
+the parent**, the headline ones reporting no family line, no dashed line, and
+`{"there":false}` for the card block; the family and chain lines measured as
+computed stroke and dash, a real hover lighting the dependents, a real press
+opening the card, and See the list landing on a register narrowed to exactly
+the reading's own answer — checked AGAINST `graphDependents` rather than a
+count typed in the file, because an earlier section adds a same-counterparty
+contract to that book and a party dependent is a fact).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

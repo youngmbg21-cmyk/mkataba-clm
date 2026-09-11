@@ -4913,6 +4913,12 @@
   .ig-link{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.55;transition:stroke var(--dur-1),opacity var(--dur-1),stroke-width var(--dur-1)}
   .ig-link.hi{stroke:var(--color-accent);opacity:1;stroke-width:2.2}
   .ig-link.dim{opacity:.08}
+  /* A-2: the record's own links wear their kind. Family solid in the accent,
+     chain dashed, party the quiet neutral of a group line. The hover rules
+     above still win on .hi/.dim — a link's kind is not its focus state. */
+  .ig-link-family{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8}
+  .ig-link-chain{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8;stroke-dasharray:5 4}
+  .ig-link-party{stroke:var(--color-neutral-400)}
   .ig-node{cursor:pointer}
   .ig-chip{stroke:var(--color-divider);stroke-width:1.4;filter:drop-shadow(0 3px 8px rgba(43,43,45,.08));transition:stroke var(--dur-1),filter var(--dur-1)}
   .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}

@@ -1334,6 +1334,11 @@ const AI_GROUND_RULES = () => `HOW TO ANSWER
 const AI_PANEL_NAMES = (typeof window!=='undefined' && Array.isArray(window.PF_PANEL_NAMES) && window.PF_PANEL_NAMES.length)
   ? window.PF_PANEL_NAMES.slice()
   : ['workload_runway','money_held_back','promises_live','won_and_lost','renewal_runway'];
+/* WRITTEN ONCE HERE AND ONCE ON THE SERVER (COPILOT_DEPENDENTS_DESC), the
+   panel tool's own arrangement: the browser cannot reach the server's tool
+   list and the server must not take a tool description from a request. f290
+   pins that the two say the same thing. */
+const AI_DEPENDENTS_TOOL_DESC = 'What depends on one contract — the blast radius if it ends. Returns its DIRECT dependents read off the record: the amendments and annexes filed under it, the payment steps on other contracts that wait on one of its obligations, and the live contracts naming the same counterparty — with the converted value on those contracts, what that total left out for want of a rate, and how many obligations on them are held right now. Use it for "what depends on", "what is affected if X ends / is terminated / lapses", "what hangs off X". It is not a transitive walk and never counts archived or declined contracts; say so if asked about second-order effects.';
 const AI_PANEL_TOOL_DESC = 'Fetch the figures behind one chart on the Insights → Portfolio page, counted by the panel itself. Use it whenever the question names a panel ("workload runway", "renewal runway", "money held back", "promises still live", "won and lost") or asks WHY one of them looks the way it does. Returns the panel\'s buckets with, per bucket, its total, how many contracts are in it, the two or three contracts driving it, and a "why" block (how many have a real start date on file versus one defaulted to their signature date, how many start and end in the same month). Also returns an "excluded" block naming the work the chart could NOT place and the reason — quote that rather than presenting the total as everything. "workload runway" is about CONTRACTED WORK, never about staff capacity.';
 
 /* Words this product overloads. The model must never guess between two
@@ -1619,6 +1624,12 @@ function aiChatContext(){
      where relevance is near-certain, exactly as the friction stats do. */
   const panels=aiInsightsPanels();
   if(panels && Object.keys(panels).length) ctx.insights={ panels };
+  /* THE GRAPH'S LINKS TRAVEL THE SAME WAY (A-2): what depends on each contract,
+     keyed by id, only for contracts that have dependents — a bounded lookup
+     table, so get_dependents answers from ANY screen on both hosts without
+     the server growing a copy of the reading. Nothing of it enters the prompt
+     unless the model calls that tool. */
+  if(typeof graphDependentsAll==='function'){ try{ const links=graphDependentsAll(); if(links&&Object.keys(links).length) ctx.graph={ links }; }catch(_){} }
   if(state.view==='intel'){
     /* A tab this map does not know is SAID NOTHING ABOUT. It used to fall back
        to 'portfolio', which made Copilot describe a chart the reader was not
@@ -1733,6 +1744,16 @@ function _localToolRun(name,a){
       if(typeof pfPanelData!=='function') return { error:'the Insights panels are not loaded in this window' };
       return pfPanelData(a.panel);
     }
+    /* A LOOKUP, the same reading the dock card draws. Direct dependents only,
+       by the three facts the record holds — never a transitive walk. */
+    if(name==='get_dependents'){
+      if(typeof graphDependents!=='function') return { error:'the contract graph is not loaded in this window' };
+      const d=graphDependents(String(a.id||'').toUpperCase().trim());
+      if(!d.found) return { id:a.id, found:false };
+      return { id:d.id, found:true, contracts:d.contracts, amendments:d.amendments, paymentStepsWaiting:d.calloffs, sameCounterparty:d.party,
+        valueOnDependents:d.value, valueLeftOut:d.missing, obligationsHeld:d.held,
+        note:'Direct dependents only, read off the record: amendments of it (parentId), payment steps on other contracts that wait on one of its obligations, and live contracts naming the same counterparty. Not a transitive walk, and archived or declined contracts are never counted.' };
+    }
   }catch(e){ return { error:'tool failed: '+e.message }; }
   return { error:'unknown tool' };
 }
@@ -1744,6 +1765,7 @@ const LOCAL_AI_TOOLS=[
   { name:'list_portfolio', description:'List/filter contracts by status, folder, expiry horizon or minimum contract value. Returns at most 40 rows plus the TRUE total — when "truncated" is true, quote "total" as the count and say the row list was capped.', input_schema:{type:'object',properties:{status:{type:'string',enum:['Draft','Under Review','Signed','Declined']},folder:{type:'string'},expiringWithinDays:{type:'number'},minValue:{type:'number'}}} },
   { name:'compare_contracts', description:'Fetch 2-4 contracts in full for a side-by-side comparison.', input_schema:{type:'object',properties:{ids:{type:'array',items:{type:'string'},minItems:2,maxItems:4}},required:['ids']} },
   { name:'get_insights_panel', description:AI_PANEL_TOOL_DESC, input_schema:{type:'object',properties:{panel:{type:'string',enum:AI_PANEL_NAMES}},required:['panel']} },
+  { name:'get_dependents', description:AI_DEPENDENTS_TOOL_DESC, input_schema:{type:'object',properties:{id:{type:'string'}},required:['id']} },
   { name:'deliver_answer', description:'Deliver the final grounded answer. Call exactly once, after gathering what you need.', input_schema:{type:'object',properties:{
     answer:{type:'string',description:'Short plain-markdown answer grounded in fetched data. Lead with the insight, not a list.'},
     citations:{type:'array',items:{type:'object',properties:{id:{type:'string'},quote:{type:'string'}},required:['id']}},
@@ -3853,4 +3875,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

@@ -511,6 +511,99 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { intel.tab = 'frame'; renderIntel(); });
     await page.waitForTimeout(500);
 
+    /* ================= 11. THE BLAST RADIUS (A-2, 11 Sep 2026) =============
+       WORKORDER-contract-graph-nodes.md. A link on the graph is a fact off the
+       record or it is not drawn, and a node's card says what would be
+       affected if the contract ended. jsdom holds the reading (f290); this is
+       the only place three of its claims can be asked at all — whether a
+       family edge and a chain edge are VISIBLE LINES in two different dresses,
+       whether the "If this ends" block is pixels on the card a real press
+       opens, and whether "See the list" lands on a register narrowed to
+       exactly those contracts. Against the parent the graph draws no edge but
+       the hub fans, so 11a-11c report the fault verbatim. */
+    await page.evaluate(() => {
+      const by = id => state.contracts.find(c => c.id === id);
+      /* MK-P6 is an amendment of MK-P1; MK-P2's first obligation waits on
+         one stored on MK-P1 (a payment chain crossing a contract line). */
+      by('MK-P6').parentId = 'MK-P1'; by('MK-P6').relation = 'amendment';
+      by('MK-P1').obligations = [{ id: 'ob_p1_del', desc: 'Deliver the roof', due: '', status: 'open' }];
+      by('MK-P2').obligations = [{ id: 'ob_p2_pay', desc: 'Pay on delivery', due: '', status: 'open', after: 'ob_p1_del' }];
+      intel.groupBy = 'folder'; intel.lenses = []; intel.groups = null; intel.history = [];
+      intel.tab = 'map'; renderIntel();
+    });
+    await page.waitForTimeout(1600);
+    const links = await page.evaluate(() => {
+      const paths = [...document.querySelectorAll('#ig-links path')];
+      const read = p => { const cs = getComputedStyle(p); const b = p.getBBox();
+        return { kind: p.getAttribute('data-ig-link') || 'group', dash: cs.strokeDasharray, stroke: cs.stroke, op: Number(cs.opacity), len: Math.round(Math.hypot(b.width, b.height)) }; };
+      const all = paths.map(read);
+      return { family: all.filter(x => x.kind === 'family'), chain: all.filter(x => x.kind === 'chain'), party: all.filter(x => x.kind === 'party'),
+        group: all.filter(x => x.kind === 'group').length, total: all.length,
+        legend: [...document.querySelectorAll('#ig-legend [data-ig-legend-link]')].map(e => e.getAttribute('data-ig-legend-link')) };
+    });
+    check('11a a family link is drawn — solid, visible, in the accent',
+      links.family.length === 1 && links.family[0].len > 10 && links.family[0].op > 0.5 && /^none$/.test(links.family[0].dash),
+      JSON.stringify(links.family));
+    check('11b a payment-chain link is drawn — DASHED, so the two kinds are told apart by shape and not colour alone',
+      links.chain.length === 1 && links.chain[0].len > 10 && links.chain[0].op > 0.5 && !/^none$/.test(links.chain[0].dash),
+      JSON.stringify(links.chain));
+    check('11c and the legend names exactly the kinds on the page — no party row under a folder grouping',
+      links.legend.join(',') === 'family,chain' && links.party.length === 0,
+      `legend ${links.legend.join(',')} · party links ${links.party.length}`);
+    check('11c2 every other line is a hub fan — nothing name-matched survives',
+      links.total === links.group + 2, `${links.total} lines, ${links.group} hub fans`);
+    /* A REAL HOVER lights the dependents — igPaint's adjacency reads the
+       record's own edges now, so hovering the master lights its amendment
+       and the contract whose payment waits on it. */
+    const hover = await page.evaluate(() => {
+      const n = IG.nodes.find(x => x.id === 'MK-P1');
+      n.g.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+      const lit = IG.nodes.filter(x => x.kind === 'contract' && !x.g.classList.contains('dim')).map(x => x.id).sort();
+      n.g.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+      return lit;
+    });
+    check('11d hovering MK-P1 lights MK-P2 and MK-P6 and dims the rest',
+      hover.join(',') === 'MK-P1,MK-P2,MK-P6', hover.join(','));
+    /* A REAL PRESS on the node opens the card in the dock, and the block is
+       measured as pixels rather than as markup. */
+    const card = await page.evaluate(() => {
+      const n = IG.nodes.find(x => x.id === 'MK-P1');
+      n.g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const blk = document.querySelector('#ig-dock [data-ig-deps-block="MK-P1"]');
+      if (!blk) return { there: false };
+      const r = blk.getBoundingClientRect(), dock = document.getElementById('ig-dock').getBoundingClientRect();
+      const btn = blk.querySelector('[data-ig-deps]');
+      /* The reading's own answer, so the card is checked AGAINST it rather
+         than against a count typed here — an earlier section adds a Naivas
+         contract to this book, and a party dependent is a fact, not noise. */
+      const d = graphDependents('MK-P1');
+      return { there: true, w: Math.round(r.width), h: Math.round(r.height), inDock: r.left >= dock.left && r.right <= dock.right + 1,
+        text: (blk.textContent || '').replace(/\s+/g, ' ').trim(), btn: !!btn && btn.getBoundingClientRect().height > 0,
+        n: d.contracts.length, ids: d.contracts.map(x => x.id).sort() };
+    });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(OUT, '11-blast-radius.png') });
+    check('11e the card carries "If this ends" as visible pixels inside the dock',
+      card.there && card.w > 100 && card.h > 30 && card.inDock, JSON.stringify(card));
+    check('11f and it counts what depends — the amendment, the payment step, the same-counterparty contract, and the money on them',
+      card.there && card.n >= 2 && new RegExp(card.n + ' contracts depend on it').test(card.text) && /1 amendment/.test(card.text) && /1 payment step/.test(card.text) && /on those contracts/.test(card.text),
+      card.text);
+    /* "SEE THE LIST" IS THE REGISTER'S ONE DOOR: it lands on Contracts,
+       narrowed to exactly the dependents, with the chip saying so. */
+    /* Guarded, so a build without the door REPORTS 11g rather than aborting. */
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ig-deps="MK-P1"]'); if (b) b.click(); });
+    await page.waitForTimeout(1200);
+    const list = await page.evaluate(() => ({
+      view: state.view,
+      chip: (document.getElementById('reg-only-chip') || {}).textContent || '',
+      rows: [...document.querySelectorAll('#content tr[data-row], #content tr[data-id]')].map(r => r.getAttribute('data-row') || r.getAttribute('data-id')).sort(),
+    }));
+    check('11g See the list lands on the Contracts page narrowed to exactly the dependents, and the chip says why',
+      list.view === 'register' && /MK-P1/.test(list.chip) && list.rows.join(',') === card.ids.join(',') && list.rows.includes('MK-P2') && list.rows.includes('MK-P6'),
+      JSON.stringify(list) + ' vs ' + card.ids.join(','));
+    await page.evaluate(() => { const b = document.getElementById('reg-only-clear'); if (b) b.click(); intel.tab = 'frame'; setView('intel'); });
+    await page.waitForTimeout(600);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();
