@@ -156,8 +156,12 @@ describe('f294 — the drawing, the legend and the words', () => {
     assert.ok(/model\.flow/.test(body) && /int_flow_legend/.test(body));
     assert.ok(/data-ig-legend-flow="in"/.test(body) && /data-ig-legend-flow="out"/.test(body));
     assert.ok(/\(miss\|\|uns\)\?/.test(body), 'the sentence is conditional');
-    assert.ok(/int_flow_paper_note/.test(body), 'the paper note is on the legend');
-    assert.ok(/int_flow_on_paper/.test(bodyOf(IG, 'graphStreamLines')), 'and "on paper" is on the hub itself');
+    /* REVERSED IN PLACE 11 Sep 2026 (owner-asked: "remove the quote"): the
+       legend's "what the paper says, not what was invoiced" sentence is gone —
+       the hub itself says "on paper", and the sentence was that fact twice.
+       The key is left inert in both books; the legend must not draw it. */
+    assert.ok(!/int_flow_paper_note/.test(body), 'the paper note is NOT on the legend');
+    assert.ok(/int_flow_on_paper/.test(bodyOf(IG, 'graphStreamLines')), 'and "on paper" is still on the hub itself');
   });
   test('the hub reads the reading once, in the model — one reading, no second side beside the payment terms tab', () => {
     const src = IG;

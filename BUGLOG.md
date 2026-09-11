@@ -12440,3 +12440,31 @@ untouched as the control. The streaming path is untouched.
 - **The main Copilot panel says the notice twice as well** — inline under the
   answer and as the toast — the same duplicate this fix removed here. Not in
   the ask.
+
+## Run — 11 Sep 2026 (later still): the graph's legend, three asks
+
+Owner-asked off two screenshots: the legend's "what the paper says, not what
+was invoiced" sentence removed (the hub says "on paper" itself; the Left-out
+line stays — it is the one place that omission is said); the legend folds to
+its head on a chevron, per sitting, the sheet doing the hiding; and a lens is
+added ONCE — the dedupe sits in `addLens`, the one funnel, so seven presses on
+Drafting leave one chip.
+
+### What was measured, not asserted
+- `npm run lint` 0 errors.
+- f298 (7 — 5 fail against the parent), f294 reversed in place, f148 unmoved.
+- insights-panels-verify 77/77; against the parent 72/77, 17a reporting the
+  owner's screenshot verbatim ("Drafting · 0" three times) and 15e the ringed
+  sentence. The fold checks are guarded so the parent REPORTS rather than
+  aborts.
+- Full node suite run once on the settled tree, after a run that overlapped
+  my own stash-and-restore was thrown away as untrustworthy.
+
+### Noticed, not fixed
+- **The legend's "Left out: … whose side is not recorded" line has no door.**
+  On the owner's book it names 39 contracts whose side is not recorded and
+  offers no way to the list; the register's payment-terms filter is where they
+  would be found. A door there is a small ask, not a fix on the way past.
+- **A lens chip prints "Drafting · 0" on a book with no drafts** — a cut that
+  matches nothing is still offered by the legend. Whether an empty cut should
+  be pressable at all is the owner's call.

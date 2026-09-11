@@ -843,8 +843,11 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('15d every hub link is drawn at a computed width between 1.5 and 9px, the biggest contract\'s link is the widest at 9, and the width is the edge\'s own',
       flow.links.length >= 5 && flow.links.every(l => l.w >= 1.5 && l.w <= 9 && (l.attr === null || Math.abs(parseFloat(l.attr) - l.w) < 0.05)) && flow.biggest && flow.biggest.w === 9 && flow.links.some(l => l.w < 9),
       JSON.stringify({ links: flow.links, biggest: flow.biggest }));
-    check('15e the legend names in and out, prints what was left out as one sentence whose counts are the reading\'s, and says the money is what the paper says',
-      flow.legend.in && flow.legend.out && /Money on paper/.test(flow.legend.head) && flow.legend.uns >= 1 && flow.legend.left === `Left out: ${flow.legend.miss} with no rate on file, ${flow.legend.uns} whose side is not recorded` && /what the paper says, not what was invoiced/i.test(flow.legend.head),
+    /* REVERSED IN PLACE 11 Sep 2026: the "what the paper says, not what was
+       invoiced" sentence left the legend (owner-asked); the hub itself says
+       "on paper" and 15a still measures that. */
+    check('15e the legend names in and out, prints what was left out as one sentence whose counts are the reading\'s, and no longer carries the paper sentence',
+      flow.legend.in && flow.legend.out && /Money on paper/.test(flow.legend.head) && flow.legend.uns >= 1 && flow.legend.left === `Left out: ${flow.legend.miss} with no rate on file, ${flow.legend.uns} whose side is not recorded` && !/what the paper says, not what was invoiced/i.test(flow.legend.head),
       JSON.stringify(flow.legend));
     await page.screenshot({ path: path.join(OUT, '15-money-flow.png') });
     /* A READER WITHOUT MONEY RIGHTS: the same page, the same grouping. */
@@ -903,6 +906,41 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('16c CONTROL — the main Copilot panel was not in the ask and its pop-up still fires',
       mainPop.some(t => /could not be matched/.test(t)), JSON.stringify(mainPop));
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
+
+    /* ================= 17. THE LEGEND: ONE PRESS, ONE CHIP; AND IT FOLDS ==== */
+    /* Owner-reported 11 Sep 2026 off a dock carrying seven "Drafting · 77"
+       chips. Three REAL presses on the legend's Drafting row must leave ONE
+       chip; the fold is measured as the legend's own painted height and as
+       the rows no longer being on screen. */
+    await page.evaluate(() => { intel.lenses = []; intel.legendFolded = false; rebuildIntelGraph(); renderIntelDock(); });
+    await page.waitForTimeout(400);
+    for (let i = 0; i < 3; i++) { await page.click('#ig-legend [data-igstatus="Draft"]'); await page.waitForTimeout(250); }
+    /* Measured AFTER the presses: a lens narrows the graph, and a narrowed
+       graph draws fewer link kinds, so the legend is shorter with the lens on.
+       The fold is measured against the legend as it stands. */
+    const lgBefore = await page.evaluate(() => document.getElementById('ig-legend').getBoundingClientRect().height);
+    const chips = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-lens-toggle]')].map(b => b.textContent.trim()));
+    check('17a three presses on a legend row leave exactly ONE lens chip on the dock',
+      chips.length === 1 && /Drafting/.test(chips[0]), JSON.stringify(chips));
+    check('17b and the legend no longer prints the paper sentence',
+      !(await page.evaluate(() => /what the paper says/i.test(document.getElementById('ig-legend').textContent))));
+    /* GUARDED: a build without the fold control has nothing to press, and a
+       click that waits for it would stop the whole file rather than report. */
+    const hasFold = await page.evaluate(() => !!document.querySelector('#ig-legend [data-ig-legend-fold]'));
+    if (hasFold) { await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(250); }
+    const folded = !hasFold ? { h: lgBefore, rowVisible: true, expanded: null, head: false } : await page.evaluate(() => {
+      const lg = document.getElementById('ig-legend'); const r = lg.getBoundingClientRect();
+      const row = lg.querySelector('[data-igstatus="Draft"]'); const rr = row.getBoundingClientRect();
+      const btn = lg.querySelector('[data-ig-legend-fold]');
+      return { h: r.height, rowVisible: rr.width > 0 && rr.height > 0, expanded: btn.getAttribute('aria-expanded'), head: lg.querySelector('[data-ig-legend-head]') && lg.querySelector('[data-ig-legend-head]').getBoundingClientRect().height > 0 };
+    });
+    check('17c one press on the chevron folds the legend to its head: shorter, rows gone as pixels, head still there, aria says closed',
+      folded.h < lgBefore / 2 && folded.rowVisible === false && folded.expanded === 'false' && folded.head === true, JSON.stringify({ before: lgBefore, ...folded }));
+    await page.screenshot({ path: path.join(OUT, '17-legend-folded.png') });
+    if (hasFold) { await page.click('#ig-legend [data-ig-legend-fold]'); await page.waitForTimeout(250); }
+    const back = !hasFold ? { h: -1, expanded: null, chips: -1 } : await page.evaluate(() => ({ h: document.getElementById('ig-legend').getBoundingClientRect().height, expanded: document.getElementById('ig-legend').querySelector('[data-ig-legend-fold]').getAttribute('aria-expanded'), chips: document.querySelectorAll('#ig-dock [data-lens-toggle]').length }));
+    check('17d and a second press brings it back whole, with the lens untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 1, JSON.stringify({ before: lgBefore, ...back }));
+    await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); renderIntelDock(); });
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

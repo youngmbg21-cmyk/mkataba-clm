@@ -520,6 +520,7 @@ function igDependentsHtml(id){
   </div>`;
 }
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
+  legendFolded:false /*the graph's legend, folded to its head — per sitting, in memory*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
@@ -602,7 +603,19 @@ function intelActive(){
   return { ids, action: on.some(l=>l.action==='filter')?'filter':'highlight',
     badges: Object.keys(badges).length?badges:null };
 }
+/* ---- A LENS IS ADDED ONCE (owner-reported 11 Sep 2026, off a dock carrying
+   seven "Drafting · 77" chips: every press on a legend row pushed a fresh
+   lens, so a reader who pressed twice to see whether it had worked got the
+   same cut stacked). One filter says one thing however often it is asked
+   for. The reading is the SAME CUT — same action, same label, same set of
+   ids — and it lives here, in the one funnel every lens goes through, so the
+   legend, the Copilot answers and the node-driven cuts inherit it. A second
+   press on a cut that is already on the dock turns it back on if it was
+   switched off, and otherwise changes nothing. */
 function addLens(l){
+  const ids=[...(l.ids||[])], key=ids.slice().sort().join('|');
+  const same=intel.lenses.find(x=>x.action===(l.action||'filter') && x.label===(l.label||ids.length+' matches') && x.ids.slice().sort().join('|')===key);
+  if(same){ same.on=true; renderIntelDock(); return; }
   intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
     label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null });
   renderIntelDock();
@@ -1234,19 +1247,30 @@ function updateIntelNote(){
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
-  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
+  /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
+     graph's own corner, and a reader who knows the colours wants the corner
+     back. A class flip and a per-sitting flag, never a repaint of the graph —
+     the head row is the control, the chevron says which way it goes, and the
+     sheet hides everything under it. Nothing is stored: a legend that came
+     back folded a week later would hide the key to a graph the reader had not
+     seen since. */
+  el.classList.toggle('is-folded', !!intel.legendFolded);
+  el.innerHTML=`<div data-ig-legend-head class="flex items-center justify-between gap-3 mb-1.5"><span class="text-[10px] uppercase tracking-wider text-ink/40">${i18t('int_legend')}</span><button type="button" data-ig-legend-fold aria-expanded="${intel.legendFolded?'false':'true'}" title="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" aria-label="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" class="text-ink/50 hover:text-ink text-[11px] leading-none px-1">${intel.legendFolded?'▸':'▾'}</button></div>`+
+    `<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
     [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
       `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
   /* A-5: the money legend — teal in, amber out — and one sentence naming what
      the figures left out, drawn only where something was. Every hub already
-     says "on paper"; the legend says why: HaTi reads agreements, not invoices. */
+     says "on paper"; the legend's own sentence about it ("what the paper says,
+     not what was invoiced") was RETIRED 11 Sep 2026, owner-asked — the hub
+     carries the fact and the sentence was the same fact a second time.
+     Its dictionary key (the paper-note one) is inert in both books. */
   if(model&&model.flow){
     const F=Object.values(model.flow); const miss=F.reduce((a,S)=>a+Object.values(S.missing||{}).reduce((x,y)=>x+y,0),0), uns=F.reduce((a,S)=>a+(S.unsided||0),0);
     el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_flow_legend')}</div>
       <div data-ig-legend-flow="in" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--accent-solid)"></span>${i18t('int_flow_in_word')}</div>
       <div data-ig-legend-flow="out" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--st-amber-dot)"></span>${i18t('int_flow_out_word')}</div>
-      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}
-      <div class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_paper_note')}</div>`;
+      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}`;
   }
   /* THE LINK KINDS ON THIS PAGE, and only those: a row for a line that is not
      drawn is furniture. Each swatch is the line's own class, so the legend
@@ -1257,6 +1281,7 @@ function renderIntelLegend(model){
     el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_links')}</div>`+
       kinds.map(k=>`<div data-ig-legend-link="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><svg width="22" height="8" aria-hidden="true"><path class="ig-link ig-link-${k}" d="M1,4 L21,4" style="opacity:1"></path></svg>${i18t(word[k])}</div>`).join('');
   }
+  el.querySelector('[data-ig-legend-fold]')?.addEventListener('click',()=>{ intel.legendFolded=!intel.legendFolded; renderIntelLegend(model); });
   el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
     addLens({label:statusLabel(s), ids:state.contracts.filter(c=>c.status===s).map(c=>c.id), action:'filter'}); rebuildIntelGraph(); }));
 }

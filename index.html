@@ -4919,6 +4919,10 @@
   .ig-link-family{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8}
   .ig-link-chain{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8;stroke-dasharray:5 4}
   .ig-link-party{stroke:var(--color-neutral-400)}
+  /* The legend folded to its head (11 Sep 2026): everything under the head row
+     goes, the head stays as the way back. */
+  #ig-legend.is-folded > :not([data-ig-legend-head]){display:none}
+  #ig-legend.is-folded > [data-ig-legend-head]{margin-bottom:0}
   .ig-node{cursor:pointer}
   .ig-chip{stroke:var(--color-divider);stroke-width:1.4;filter:drop-shadow(0 3px 8px rgba(43,43,45,.08));transition:stroke var(--dur-1),filter var(--dur-1)}
   .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}
