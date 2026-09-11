@@ -30,10 +30,12 @@ spend on it, before building, and add nothing the item did not ask for.
    marker ② beside Clause 2, and the drawer open on Chat's Internal room
    showing a Clause 1 note.)
 5. *"Image 3, something has broken because when i highlight and comment, the
-   number for the comment does not appear anymore."* (Image 3: the clause
-   editor; a new note on Clause 8 — *Okay then*, 22:43 — is on the drawer's
-   list with its quoted words, and the paper beside it shows no marker at
-   Clause 8 while ⑤ still sits at Clause 7.)
+   number for the comment does not appear anymore."* — CORRECTED by the owner
+   the same night: *"the problem is that there is a delay before it appears or
+   you have to refresh the page. It should appear immediately."* (Image 3:
+   the clause editor; a new note on Clause 8 — *Okay then*, 22:43 — is on the
+   drawer's list with its quoted words, and the paper beside it shows no
+   marker at Clause 8 yet, while ⑤ still sits at Clause 7.)
 6. *"iMAGE 4, suggest deleting does not work. You should be able to click and
    it essential redlines the selected sentence or word."* (Image 4: the clause
    editor's rail, a passage held under SELECTED · CLAUSE 3, the *Suggest
@@ -108,17 +110,19 @@ without re-focusing. Whatever the cause: a marker press lands ON that note,
 in the room that holds it (switching the room where the note is external),
 scrolled into view and lit — measured in the browser file from both papers.
 
-**5 — A NEW COMMENT DRAWS ITS MARKER.** Image 3 is a regression from
-somewhere in rounds two or three: the note is on the list with its anchor,
-so the record is right and the PAINT is wrong. `rlPaintNoteMarks` runs after
-every paint of a canvas; the likely gap is that posting from the drawer
-repaints the drawer and not the paper beside it (the editor's canvas is
-painted by the editor, the negotiation page's by `negoAfterPaint`), or that
-the Clause 8 anchor's words were read as `moved`/`gone` by
-`negoAnchorState` on a canvas whose clause ids differ. Measure on both papers:
-highlight, Comment, Add note — a marker must appear beside that clause in the
-same breath, numbered after the others. A regression net goes into
-round-two-comments-verify as a real press.
+**5 — A NEW COMMENT DRAWS ITS MARKER AT ONCE.** Not a regression: the marker
+arrives LATE — after a delay, or only on a refresh. The record is right (the
+note is on the list with its anchor); the paper is repainted late. The
+markers are painted by `rlPaintNoteMarks` AFTER a paint of the canvas, and
+posting a note from the drawer repaints the DRAWER, not the paper beside it —
+the paper catches up on its next paint for some other reason (a probe, a
+repaint, a refresh). The fix is at the posting: the one writer of a note
+(`negoPostComment`, through `rlNotesSend`) is followed by a repaint of the
+marks on whichever canvas is mounted — the negotiation page's, the clause
+editor's, their page's — in the same breath, numbered after the others; the
+marker must be on screen before the toast has gone. Measured on both papers
+in round-two-comments-verify as a real press with no wait: highlight,
+Comment, Add note, marker.
 
 **6 — SUGGEST DELETING REDLINES THE PASSAGE.** The press is `scope-cut` →
 `ceCutPassage`: it takes the words out of the draft, applies, and FILES
@@ -153,7 +157,7 @@ committed with its comment. The order proposes (b) unless the owner says (a).
 
 ## ORDER WHEN THE OWNER SAYS GO
 
-3 (a reversal, one function), 5 (a regression — measure first), 4 (measure
+3 (a reversal, one function), 5 (a late paint — repaint the marks at the post), 4 (measure
 which case misses), 6 (measure the refusal), 1 (one gate widened, one key on
 the post), 2 (one door on an act that exists, three refusals in words), 7
 (after the owner's (a)/(b)). Nets: f304 grows a section per item;
