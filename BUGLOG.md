@@ -12328,3 +12328,91 @@ in the same gutter the contract uses, rather than on a line above it.
   and their seat has no clause editor, so the condition is false there too. It
   carries the lock marking anyway because it is the same one-line reading, but
   it cannot honestly be measured on a page that does not draw it.
+
+---
+
+## Run — 11 Sep 2026: the negotiate page's font, and a welded clause number
+
+Two work orders in one message: *"Make the Negotiate page use the document's
+style. Implement this along with the previous work order."*
+
+**THE FONT, AND IT WAS NEVER A DECISION.** Young asked why the same contract
+looked different on the two pages — *"even company standard contracts look
+different especially the font"* — and the cause turned out to be that the
+negotiate page was built beside the document-design feature and never told
+about it. Every rule in the design block named `.doc-surface`, which is the
+DOCUMENT TAB's article; that page's paper is `.rl-paper` and had no
+`data-doc-body` ancestor at all. MEASURED on one contract set to `formal-legal`,
+on both pages, before a line was written: **Times New Roman and justified on
+one, IBM Plex Sans and ragged on the other.** Same contract, two faces.
+
+The fix is a hook on the paper's wrapper and `:is(.doc-surface,.rl-paper)` on
+the rules. **`.rl-paper` was NOT given `.doc-surface` instead**, which was the
+obvious move: that class also sets the page's own size, leading, ink and
+letterfit, and `.nego-doc` sets those too AT EQUAL SPECIFICITY — so which won
+would have come down to which stylesheet was injected first. A rule that wins on
+ORDER is one this codebase has been caught by three times.
+
+**AND WIDENING THE FACE ALONE LEFT HALF THE STYLE BEHIND, which only a rendered
+page showed.** With a stored body in Formal legal the Document tab's clause
+headings came back `uppercase` and the negotiate page's came back `none` —
+because that page draws **no h1 or h2 at all**: it rebuilds every clause heading
+as `h4.rl-clause-h` so a renamed heading can carry its own redline marks. The
+heading rules name that page's own elements now. Same words, same role,
+different tag.
+
+**THE PAPER WEARS THE DESIGN; THE FURNITURE DOES NOT** — the clause pencil and
+the editor's bars sit inside the sheet, so the design's `*` rule reached them. The
+pin lost the cascade on its first writing (0,3,0 against the design rule's
+(0,3,2)) and looked perfectly correct in the source; it is (0,4,0) now, carried
+by the one exclusion worth stating.
+
+**THE WELDED CLAUSE NUMBER.** The paper read "4. Independent Contractor" and the
+Plain English edition read "4Independent Contractor". Two halves: the reading
+that cuts a number off a heading discards the drafter's punctuation — correctly,
+it captures a CITATION — and nothing put it back for the one place the number is
+PRINTED; and the rule that would have separated them regardless only fires where
+the clause hangs its marker in a gutter, which this paper's headings do not. The
+separator is now taken off the source and never invented, the gap is stated in
+the stylesheet as a guarantee, and **neither reaches `num`**, which is what the
+route is sent and whose cache key is a hash of exactly that.
+
+### What was measured, not asserted
+- Node suite **6459/6459**, one run, clean.
+- `npm run lint` **0 errors**.
+- Both faults reproduced on a rendered page before anything was touched, and
+  each fix re-measured on the same contract.
+- Every regression test written this run was proved to FAIL against its parent:
+  f129 (9) (6 — 4 failing), f277 (17) (5 — 4 failing), negotiate-design-verify
+  (20 — 10 failing, the headline one reporting the report verbatim) and
+  plain-english-verify section 14 (5 — 2 failing, reporting
+  `4|0px|Independent Contractor`). The checks that pass either way are named
+  CONTROLS or WALLS.
+- Browser files re-run and green: negotiate-design (20), plain-english (89),
+  nego-redesign (57), redline (216), parity (41), clause-door (117),
+  clause-editor (251), signing-on-paper (30), upload-structure (18),
+  pdf-structure (24), contracts-page (100).
+
+### Noticed, not fixed
+- **theme-tokens-verify 27/40 and pages-read-alike-verify 47/50 are RED and are
+  NOT this run's.** Both were re-run in a worktree at the parent commit and came
+  back with the identical count AND the identical failing checks, compared line
+  for line. The colour census is deliberately not re-recorded: this change adds
+  no colour to any screen at rest (a design must be SET on a contract before a
+  single rule fires), so re-recording would bake in somebody else's loss.
+- **The rest of the 10 Sep upload work order is not built** — the header block
+  above an uploaded contract on the Document tab, its file strip, and the smaller
+  type an upload's wording is set in there (13px against an ordinary contract's
+  13.5). Young's ruling redirected that order, and those three are a separate
+  fix on the other page.
+- **A design's heading SIZES do not travel to the negotiate page**, deliberately:
+  three designs state one, and that page pins its own four classes deep so its
+  scale keeps the proportions the owner tuned. A letterfit stated in `em`
+  therefore lands on a different number of pixels on each page, which is the
+  design working as written.
+- **Two test anchors were fragile and are recorded rather than absorbed.** f277
+  (13)'s painter claim sliced 900 characters back from an anchor rather than to a
+  boundary, so the first comment written above that line pushed the claim out of
+  its own window and it failed on correct code. f129's body-typography claim
+  pinned a literal selector where the claim is that every design is dressed. Both
+  re-pointed onto the relation.

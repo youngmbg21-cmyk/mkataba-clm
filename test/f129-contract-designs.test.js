@@ -93,7 +93,12 @@ describe('f129 — the design catalogue and renderers (pure)', () => {
     for (const id of IDS) {
       const attr = branding.docDesignPaperAttr(branding.normalizeDesignBranding({ designId: id }));
       assert.equal(attr, ` data-doc-body="${id}"`);
-      assert.ok(html.includes(`[data-doc-body="${id}"] .doc-surface`), id + ' has body-typography rules in index.html');
+      /* THE CLAIM IS THAT EVERY DESIGN IS DRESSED, not the shape of the
+         selector that dresses it. This pinned `[data-doc-body="x"] .doc-surface`
+         as a literal and went red the day the rules learned to name the
+         negotiate page's sheet as well — see f129 (9). Pin the relation. */
+      assert.ok(new RegExp(`\\[data-doc-body="${id}"\\] [^,{]*\\.doc-surface`).test(html),
+        id + ' has body-typography rules in index.html');
     }
     assert.equal(branding.docDesignPaperAttr(branding.normalizeDesignBranding({})), '', 'no design, no attribute — the legacy body is untouched');
     // the faces must survive print, where --font-doc is enforced with !important
@@ -240,5 +245,101 @@ describe('f129 — the design travels: org route, publish override, contract sta
   test('a bad design on publish is refused before anything is frozen', async () => {
     const { pub } = await publishTemplate({ designId: 'gothic-castle' });
     assert.equal(pub.status, 400);
+  });
+});
+
+/* ============================================================
+   f129 (9) — THE NEGOTIATE PAGE WEARS THE DOCUMENT'S OWN DESIGN
+   ============================================================
+   Young ruled it 11 Sep 2026 — *"Make the Negotiate page use the document's
+   style"* — after asking why the same contract looked different on the two
+   pages, *"especially the font"*.
+
+   IT WAS NEVER A DECISION. Every rule in the design block named `.doc-surface`
+   and nothing else, and that class is the DOCUMENT TAB's article; the
+   negotiate page's paper is `.rl-paper` and had no `data-doc-body` ancestor at
+   all. MEASURED on one contract set to `formal-legal`, on both pages, before a
+   line was written: Times New Roman and justified on one, IBM Plex Sans and
+   ragged on the other.
+
+   DESIGN ONLY, NEVER STRUCTURE — see docDesignBodyAttr. Two of the three
+   claims about that are WALLS: they pass before and after, and their job is to
+   fail the day somebody hands this page a `data-doc-structure`.
+
+   What DRAWS is in test/chromium/negotiate-design-verify.js; the two files
+   name each other. */
+describe('f129 (9) the negotiate page wears the document’s design', () => {
+  const rd = f => require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', f), 'utf8');
+
+  test('the design half is its own reading, so one surface can take it alone', () => {
+    const src = rd('js/branding.js');
+    assert.match(src, /function docDesignBodyAttr\(b\) \{\s*\n\s*return b && b\.designId \? ` data-doc-body="\$\{b\.designId\}"` : '';/,
+      'the design attribute, and nothing about the structure');
+    /* ONE READING, TWO CALLERS: the whole-paper attribute is built FROM it, so
+       the two can never come to disagree about what a design attribute is. */
+    assert.match(src, /const design = docDesignBodyAttr\(b\);/,
+      'docDesignPaperAttr composes it rather than repeating it');
+    assert.match(src, /docDesignBodyAttr/, 'and it is published');
+  });
+
+  test('the negotiate paper carries the hook, and the sheet carries the dressing', () => {
+    const neg = rd('js/views/negotiation.js');
+    assert.match(neg, /const _dAttr=\(_brand&&window\.docDesignBodyAttr\)\?docDesignBodyAttr\(_brand\):'';/,
+      'the design half only');
+    assert.match(neg, /<div class="rl-zoom"\$\{_dAttr\}/,
+      'the attribute goes on the WRAPPER — the rules read it as an ancestor');
+    assert.match(neg, /<article class="nego-doc rl-paper"\$\{_dStyle\?` style="\$\{_dStyle\}"`:''\}>/,
+      'and the border and accent go on the sheet they draw round');
+  });
+
+  test('WALL — the negotiate page is never handed a structure', () => {
+    const neg = rd('js/views/negotiation.js');
+    assert.doesNotMatch(neg, /docDesignPaperAttr/,
+      'the whole-paper attribute carries data-doc-structure and must not be used here');
+    assert.doesNotMatch(neg, /data-doc-structure/,
+      'two columns, a margin counter or a prepended contents page would each be wrong here');
+  });
+
+  test('the rules name both sheets, and :is() changes no weight', () => {
+    const css = rd('index.html');
+    const a = css.indexOf('/* ============ document designs — body typography');
+    const b = css.indexOf('/* ============ document structures — page architecture');
+    assert.ok(a > 0 && b > a, 'the design block was found');
+    /* THE RULES, NOT THE PROSE. A first writing of this swept the whole block
+       and matched the comment above it, which names .doc-surface four times
+       while explaining why no rule does. Comments out first. */
+    const block = css.slice(a, b).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/\.doc-surface/.test(block.replace(/:is\(\.doc-surface,\.rl-paper\)/g, '')),
+      'no design rule still names .doc-surface on its own');
+    /* Eight designs, each with a face rule (two selectors) and its own heading
+       rules — every one of them widened, or a contract in that design is
+       dressed on one page and not the other. */
+    assert.ok(block.split(':is(.doc-surface,.rl-paper)').length - 1 >= 30,
+      'every selector in the block names both sheets');
+  });
+
+  test('WALL — the structures are NOT widened', () => {
+    const css = rd('index.html');
+    const b = css.indexOf('/* ============ document structures — page architecture');
+    const rest = css.slice(b, b + 4000);
+    assert.doesNotMatch(rest, /\[data-doc-structure="[a-z-]+"\] :is\(/,
+      'a structure may not reach the negotiate paper');
+    assert.match(rest, /\[data-doc-structure="two-column"\] \.doc-surface\{column-count:2/,
+      'and they still dress the Document tab exactly as they did');
+  });
+
+  test('the paper wears the design; the furniture does not', () => {
+    const css = rd('index.html');
+    assert.match(css,
+      /\[data-doc-body\] \.rl-paper :is\(\.rl-cp-pill,\.rl-lock-mono,\.nego-fmt-bar,\.nego-reason,\.nego-edit-bar\):not\(\.rl-clause-h\)/,
+      'the clause pencil, the lock monogram and the editor’s bars keep the product’s face');
+    assert.match(css,
+      /\[data-doc-body\] \.rl-paper :is\([^)]*\) \*:not\(\.rl-clause-h\)\{\s*\n?\s*font-family:var\(--font-body\)!important;\}/,
+      'and so does everything inside them — the pencil’s own icon included');
+    /* THE HEADING IS NEVER FURNITURE. It shares .rl-clause-top with the pencil
+       and is the drafter's own words; the qualifier that says so is also what
+       carries this rule over the design rule's (0,3,2). */
+    assert.ok(css.includes(':not(.rl-clause-h)'), 'the clause heading is excluded by name');
   });
 });

@@ -10984,7 +10984,33 @@ function redlineDocHtml(c, opts = {}){
      on it. The wrapper is inside the document pane and nothing measured by the
      page's own geometry is inside it — see the .rl-zoom rule for the whole
      argument. */
-  return `<div class="rl-zoom" style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper">
+  /* ---- THE PAPER WEARS THE DOCUMENT'S OWN DESIGN (Young ruled 11 Sep 2026:
+     "Make the Negotiate page use the document's style") ----
+     MEASURED on one contract set to `formal-legal`, on both pages, before a
+     line was written: the Document tab drew it in Times New Roman with
+     justified paragraphs and this page drew the same contract in IBM Plex
+     Sans, ragged — because the design rules hang off a `data-doc-body`
+     ancestor and NOTHING above this paper had ever carried one. It was not a
+     decision; this page was built beside the feature and never told about it.
+
+     THE ATTRIBUTE GOES ON THE WRAPPER AND THE DRESSING ON THE SHEET, which is
+     what the Document tab does one file along: the rules read
+     `[data-doc-body] :is(.doc-surface,.rl-paper)`, so the hook has to be an
+     ANCESTOR of the paper rather than the paper itself, while the border and
+     the accent belong to the sheet they draw round.
+
+     DESIGN ONLY, NEVER STRUCTURE — docDesignBodyAttr, whose own note gives the
+     three reasons: two columns beside a change column that pairs with clauses
+     by position, a CSS counter fighting the negotiation's numbering, and a
+     contents page prepended to the baseline every change is filed against.
+
+     READ THROUGH `window` WITH A GUARD. js/branding.js is not on every stage
+     that draws this builder, and a bare cross-module read throws rather than
+     falling through — so a stage without it gets the paper it always got. */
+  const _brand=(typeof window!=='undefined'&&window.resolveDocBranding)?resolveDocBranding(c):null;
+  const _dAttr=(_brand&&window.docDesignBodyAttr)?docDesignBodyAttr(_brand):'';
+  const _dStyle=(_brand&&window.docDesignPaperStyle)?docDesignPaperStyle(_brand):'';
+  return `<div class="rl-zoom"${_dAttr} style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper"${_dStyle?` style="${_dStyle}"`:''}>
     ${head}
     ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
       offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}

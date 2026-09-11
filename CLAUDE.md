@@ -2043,6 +2043,147 @@ synthetic clause ids, so a change whose clause is not on the paper has no panel
 body at all: **a probe that finds nothing has to say whether the thing or the
 staging is missing.**
 
+## THE NEGOTIATE PAGE WEARS THE DOCUMENT'S OWN DESIGN (Young ruled 11 Sep 2026)
+
+*"even company standard contracts look different especially the font"*, and
+then, on the answer: *"Make the Negotiate page use the document's style."*
+
+**IT WAS NEVER A DECISION — THAT PAGE WAS BUILT BESIDE THE FEATURE AND NEVER
+TOLD ABOUT IT.** Every rule in index.html's design block named `.doc-surface`
+and nothing else, and that class is the DOCUMENT TAB's article; the negotiate
+page's paper is `.rl-paper` and had no `data-doc-body` ancestor at all.
+**MEASURED on one contract set to `formal-legal`, on both pages, before a line
+was written: Times New Roman and justified on one, IBM Plex Sans and ragged on
+the other.** Same contract, two faces — and it shows on any contract with a
+design set, uploaded or not, which is why the owner met it on their own
+standards.
+
+- **THE ATTRIBUTE GOES ON THE WRAPPER AND THE DRESSING ON THE SHEET**, which is
+  what the Document tab does one file along: the rules read the hook as an
+  ANCESTOR, so it cannot be the paper itself, while the border and the accent
+  belong to the sheet they draw round. Read through `window` with a guard —
+  js/branding.js is not on every stage that draws this builder, and a bare
+  cross-module read throws rather than falling through.
+- **`:is(.doc-surface,.rl-paper)` IS THE WIDENING, AND `.rl-paper` IS NOT GIVEN
+  `.doc-surface` INSTEAD.** That was the obvious move and is the wrong one:
+  that class also sets the page's own font-size, leading, ink and letterfit,
+  and `.nego-doc` sets those too **at equal specificity** — so which won would
+  come down to which stylesheet was injected first. A rule that wins on ORDER
+  is one this codebase has been caught by three times. `:is()` takes its most
+  specific argument's weight and both are classes, so not one selector changes
+  what it already matched.
+- **THE HEADING RULES NAME THAT PAGE'S OWN HEADING ELEMENTS, and widening the
+  FACE alone left half the style behind.** Only a rendered page showed it:
+  MEASURED with a stored body in Formal legal, the Document tab's clause
+  headings came back `uppercase` and the negotiate page's came back `none`,
+  because **that page draws no `h1` or `h2` at all** — it rebuilds every clause
+  heading as `h4.rl-clause-h` so a renamed heading can carry its own redline
+  marks, and the title as `h3.rl-paper-title`. **SAME WORDS, SAME ROLE,
+  DIFFERENT TAG** is what makes the mapping honest: `.rl-clause-h` holds
+  `cl.headingText`, the drafter's own heading verbatim.
+- **THE SIZES DO NOT TRAVEL, deliberately.** Three designs state a heading
+  font-size; the negotiate page pins its own four classes deep, so its scale
+  wins and keeps the proportions the owner tuned. What travels is the
+  TREATMENT — face, weight, letterfit, case, alignment, accent. A letterfit
+  stated in `em` therefore lands on a different number of pixels on each page,
+  which is the design working as written; the browser file pins the PROPORTION
+  for that reason.
+- **DESIGN ONLY, NEVER STRUCTURE** — `docDesignBodyAttr` is the design half on
+  its own, and `docDesignPaperAttr` is composed FROM it so the two cannot
+  disagree about what a design attribute is. Three reasons, each its own:
+  `two-column` would put the agreement in two columns beside a change column
+  that pairs with clauses by POSITION; `margin-numbers` runs a CSS counter that
+  would fight the negotiation's own numbering; and `contents-first` PREPENDS a
+  contents page, which here would be prepended to the baseline every change is
+  filed against. The negotiate page carries no `data-doc-structure` at all, so
+  they cannot reach it in any case — asserted twice, as walls.
+- **THE PAPER WEARS THE DESIGN; THE FURNITURE DOES NOT.** This sheet holds
+  controls the Document tab's does not — the clause pencil, the lock monogram,
+  and with an editor open the writing bar, the reason box and its two verbs —
+  and they sit INSIDE `.rl-paper`, so the design's `*` rule reaches them. One
+  rule names them, `!important` like the faces above it. **`:not(.rl-clause-h)`
+  carries weight as well as meaning and that is said out loud**: the design
+  rule scores (0,3,2) because its three `:not()`s each count, so the pin
+  written plainly would be (0,3,0) and LOSE while looking perfectly correct in
+  the source. The qualifier takes it to (0,4,0), and it is the one exclusion
+  worth stating — the clause heading shares `.rl-clause-top` with the pencil
+  and is the drafter's own words. **Do not remove it to tidy the selector.**
+- **IT REACHES THE CLAUSE EDITOR AND THE COUNTERPARTY'S PAGE BY CONSTRUCTION**,
+  because both mount `redlineDocHtml`. That is consistent rather than scope
+  creep: all three are the agreement's own paper.
+
+**WHAT IS DELIBERATELY NOT DONE, said out loud:** the rest of the 10 Sep upload
+work order — the header block above an uploaded contract on the Document tab,
+its file strip, and the smaller type an upload's wording is set in there (13px
+against an ordinary contract's 13.5). Young's ruling redirected that order from
+*make the Document tab look like the negotiate page* to *make the negotiate
+page wear the design*, and those three are a separate, smaller fix on the other
+page.
+
+Tests: f129 (9) (6 — **4 fail against the parent**; the two that pass are the
+named WALLS, that this page is never handed a structure and that the structures
+are not widened), f129's own body-typography claim RE-POINTED IN PLACE (it
+pinned `[data-doc-body="x"] .doc-surface` as a LITERAL where the claim is that
+every design is dressed), **negotiate-design-verify (20, browser — the only
+place this can be asked at all, because the whole of it is a cascade question
+and a rule that loses one looks perfectly correct in the source. 10 of the 20
+fail against the parent, the headline one reporting the report verbatim:
+`doc "Times New Roman" · nego "IBM Plex Sans"`. Every claim is a RELATION and
+never a typeface by name — what was reported is that the two pages DISAGREE, so
+what is pinned is that they agree; and 0a/0b are CONTROLS that pass either way,
+because "the two pages agree" is otherwise satisfied by a change that dressed
+every contract in the workspace)**.
+
+## THE CLAUSE NUMBER IS NOT WELDED TO ITS NAME (Young reported it 11 Sep 2026)
+
+*"fix how the Clause header in the plain english contract is merged with the
+clause number"* — off the two columns side by side, the contract reading
+**"4. Independent Contractor"** and the edition reading
+**"4Independent Contractor"**.
+
+**ONE CAUSE WITH TWO HALVES, and neither alone explains it.** The reading that
+cuts a number off a heading discards the drafter's punctuation — **correctly**,
+because it captures a CITATION and "4." and "4" cite the same clause — and
+nothing put it back for the one place the number is PRINTED. And the rule that
+would have separated them regardless gives the number a 2.6em box, which only
+fires where the clause **hangs its marker in a gutter**; this contract's
+headings, and most commercial paper's, do not. So it read correctly on hanging
+paper and welded on everything else.
+
+- **`_docReadSepOf` IS THE SEPARATOR AND IT IS TAKEN OFF THE SOURCE, NEVER
+  INVENTED** — the one character that follows the number, and only where it is
+  one of the three a drafter uses. A heading set "4 Independent Contractor"
+  carries none and is given none.
+- **IT MAY NOT JOIN `num`, which is the load-bearing part.** `num` is what
+  `docReadClauses` SENDS to `/api/ai/readings`, and that route's cache key is a
+  hash of exactly what it was sent — fold the dot into it and every contract
+  already read pays for one deep call returning an identical reading. So it
+  travels as its own field beside `cite`, for `cite`'s own reason, and **the
+  sent shape does not move by a byte**. f277 (17) pins that as a WALL that
+  passes before and after.
+- **THE GAP IS A GUARANTEE WHERE THE PUNCTUATION IS A QUOTATION.** The margin is
+  stated in the stylesheet rather than left to punctuation the drafter may not
+  have used — and **the two gutter rules take it back**, because there the
+  number sits in a 2.6em box whose left edge every wrapped line hangs from, so
+  a margin on top of it would push the wording past its own gutter.
+- **ONE READING, THREE PRODUCERS.** A heading reads its own separator; a mark
+  and a numbered paragraph read theirs in the anchor walk. All three ask the one
+  function, so the edition cannot punctuate one kind of number differently from
+  another.
+
+Tests: f277 (17) (5 — **4 fail against the parent**, the fifth being the wall),
+f277 (13)'s painter claim RE-POINTED IN PLACE (it sliced 900 characters back
+from an ANCHOR rather than to a BOUNDARY, so the first comment written above
+that line pushed the claim out of its own window and it failed on code that was
+perfectly correct — **pin the region, not a byte count**),
+**plain-english-verify section 14 (5, browser — it is a GEOMETRY, which is why
+it lives there: the markup was correct either way and only a rendered page
+knows whether two painted words are touching. Against the parent it reports the
+screenshot verbatim, `4|0px|Independent Contractor`)**, and four citation
+probes in that file RE-POINTED through one named reading (`citeOf`) — they
+asked for a bare `'1'` where the claim is WHICH CLAUSE an entry cites, and the
+citation now carries the paper's own punctuation.
+
 ## THE PLAIN ENGLISH EDITION IS SET LIKE THE CONTRACT (Young ruled 10 Sep 2026)
 
 *"Can we also make the page for plain english have a similar structure so you

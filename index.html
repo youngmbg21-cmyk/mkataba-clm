@@ -2805,6 +2805,16 @@
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  /* ---- AND IT NEVER TOUCHES THE NAME (Young reported it 10 Sep 2026) ----
+     The separator printed beside it is the PAPER'S OWN and may be absent — a
+     heading set "4 Independent Contractor" carries none — so the gap is stated
+     here rather than left to punctuation the drafter may not have used. It is
+     a GUARANTEE where the other half is a quotation.
+     THE TWO GUTTER RULES BELOW TAKE IT BACK, and must: there the number sits in
+     a 2.6em box whose left edge every wrapped line hangs from, so a margin on
+     top of it would push the wording past its own gutter. */
+  .doc-read-note .dr-h .dr-n,.doc-read-note .dr-s .dr-n{ margin-right:.4em; }
+  .doc-read-note.dr-hang > .dr-h .dr-n,.doc-read-note.dr-hang > .dr-s .dr-n{ margin-right:0; }
   /* ---- THE EDITION IS SET LIKE THE CONTRACT (Young asked 10 Sep 2026: "make
      the page for plain english have a similar structure so you almost do not
      notice a difference except plain english will be sitting on a plain white
@@ -5741,47 +5751,118 @@
      typeface, heading treatment, justification. !important on the faces
      because the print sheet above enforces --font-doc with !important and
      these five looks must survive onto paper — that is the whole feature.
-     --doc-design-accent is pinned inline by docDesignPaperStyle. */
-  [data-doc-body="classic-letterhead"] .doc-surface,
-  [data-doc-body="classic-letterhead"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
-  [data-doc-body="classic-letterhead"] .doc-surface h1{text-align:center;letter-spacing:.06em;}
+     --doc-design-accent is pinned inline by docDesignPaperStyle.
 
-  [data-doc-body="modern-minimal"] .doc-surface,
-  [data-doc-body="modern-minimal"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;}
-  [data-doc-body="modern-minimal"] .doc-surface h1{font-weight:var(--w-body);letter-spacing:-.01em;}
-  [data-doc-body="modern-minimal"] .doc-surface h2{font-weight:var(--w-strong);}
+     ---- AND THE NEGOTIATE PAGE'S PAPER IS ONE OF THEM (Young ruled 11 Sep
+     2026: "Make the Negotiate page use the document's style") ----
+     Every rule below named .doc-surface and nothing else, and that class is
+     the DOCUMENT TAB's article — so a contract set to Formal legal was Times
+     New Roman and justified on one page and plain sans-serif and ragged on the
+     other. Same contract, two faces. `:is(.doc-surface,.rl-paper)` is what
+     makes the rule name both sheets; :is() takes its most specific argument's
+     weight and both are classes, so not one selector below changes what it
+     already matched.
 
-  [data-doc-body="formal-legal"] .doc-surface,
-  [data-doc-body="formal-legal"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Times New Roman',Times,Georgia,serif!important;}
-  [data-doc-body="formal-legal"] .doc-surface p{text-align:justify;}
-  [data-doc-body="formal-legal"] .doc-surface h1{text-align:center;text-transform:uppercase;letter-spacing:.14em;}
-  [data-doc-body="formal-legal"] .doc-surface h2{text-transform:uppercase;letter-spacing:.08em;font-size:1em;}
+     .rl-paper IS NOT GIVEN .doc-surface INSTEAD, which was the obvious move
+     and is the wrong one: that class also sets the page's own font-size,
+     leading, ink and letterfit, and .nego-doc sets those too at equal
+     specificity — so which won would come down to which stylesheet was
+     injected first. A rule that wins on ORDER is one this codebase has been
+     caught by three times. Widening the selector brings the design's own
+     declarations and nothing else.
 
-  [data-doc-body="bold-corporate"] .doc-surface,
-  [data-doc-body="bold-corporate"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI',Verdana,Arial,sans-serif!important;}
-  [data-doc-body="bold-corporate"] .doc-surface h1{font-weight:800;letter-spacing:.01em;}
-  [data-doc-body="bold-corporate"] .doc-surface h2{color:var(--doc-design-accent,#37474f);font-weight:var(--w-title);}
+     THE STRUCTURES BELOW ARE DELIBERATELY NOT WIDENED — see docDesignBodyAttr
+     for the three reasons; the negotiate page carries no data-doc-structure,
+     so they cannot reach it in any case.
 
-  [data-doc-body="compact-executive"] .doc-surface,
-  [data-doc-body="compact-executive"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
-  [data-doc-body="compact-executive"] .doc-surface{font-size:calc(14px * var(--doc-scale,1) * .94);}
-  [data-doc-body="compact-executive"] .doc-surface p{line-height:1.55;}
-  [data-doc-body="compact-executive"] .doc-surface h1{font-size:1.35em;}
+     ---- AND THE HEADING RULES NAME THAT PAGE'S OWN HEADING ELEMENTS ----
+     Widening the FACE alone left half the style behind, and only a rendered
+     page showed it: MEASURED with a stored body in Formal legal, the Document
+     tab's clause headings came back `uppercase` and the negotiate page's came
+     back `none`, because THAT PAGE DRAWS NO h1 OR h2 AT ALL. It rebuilds every
+     clause heading as `h4.rl-clause-h` so a renamed heading can carry its own
+     redline marks, and the document's title as `h3.rl-paper-title`.
 
-  [data-doc-body="modern-editorial"] .doc-surface,
-  [data-doc-body="modern-editorial"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
-  [data-doc-body="modern-editorial"] .doc-surface h1{font-size:1.6em;font-weight:var(--w-title);letter-spacing:-.015em;}
-  [data-doc-body="modern-editorial"] .doc-surface h2{font-weight:var(--w-title);letter-spacing:-.005em;}
+     SAME WORDS, SAME ROLE, DIFFERENT TAG — which is what makes the mapping
+     honest rather than a convenience: `.rl-clause-h` holds `cl.headingText`,
+     the drafter's own heading verbatim, and `.rl-paper-title` holds the
+     document's own title. A rule about how this contract sets its headings
+     belongs on both.
 
-  [data-doc-body="ceremonial"] .doc-surface,
-  [data-doc-body="ceremonial"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
-  [data-doc-body="ceremonial"] .doc-surface h1{text-align:center;text-transform:uppercase;letter-spacing:.1em;font-weight:var(--w-title);}
-  [data-doc-body="ceremonial"] .doc-surface h2{text-align:center;letter-spacing:.06em;}
+     THE SIZES DO NOT TRAVEL WITH THEM, and that is deliberate rather than an
+     omission. Three designs state a heading font-size; the negotiate page pins
+     its own at four classes deep (.redline-page .rl-clause h1..h6, and
+     .rl-paper-title), so its scale wins and keeps the proportions the owner
+     tuned on that page. What travels is the treatment — the face, the weight,
+     the letterfit, the case, the alignment and the accent. */
+  [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
+  [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;letter-spacing:.06em;}
 
-  [data-doc-body="facing-parties"] .doc-surface,
-  [data-doc-body="facing-parties"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
-  [data-doc-body="facing-parties"] .doc-surface h1{font-weight:var(--w-title);letter-spacing:-.01em;}
-  [data-doc-body="compact-executive"] .doc-surface h2{font-size:1.02em;}
+  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;}
+  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:var(--w-body);letter-spacing:-.01em;}
+  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-weight:var(--w-strong);}
+
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Times New Roman',Times,Georgia,serif!important;}
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) p{text-align:justify;}
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;text-transform:uppercase;letter-spacing:.14em;}
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){text-transform:uppercase;letter-spacing:.08em;font-size:1em;}
+
+  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI',Verdana,Arial,sans-serif!important;}
+  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:800;letter-spacing:.01em;}
+  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){color:var(--doc-design-accent,#37474f);font-weight:var(--w-title);}
+
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper){font-size:calc(14px * var(--doc-scale,1) * .94);}
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) p{line-height:1.55;}
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-size:1.35em;}
+
+  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
+  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-size:1.6em;font-weight:var(--w-title);letter-spacing:-.015em;}
+  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-weight:var(--w-title);letter-spacing:-.005em;}
+
+  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
+  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;text-transform:uppercase;letter-spacing:.1em;font-weight:var(--w-title);}
+  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){text-align:center;letter-spacing:.06em;}
+
+  [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper),
+  [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
+  [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:var(--w-title);letter-spacing:-.01em;}
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-size:1.02em;}
+
+  /* ---- THE PAPER WEARS THE DESIGN; THE FURNITURE DOES NOT ----
+     (Young ruled 11 Sep 2026, with the rules above.)
+     This page's sheet holds controls the Document tab's does not: the clause
+     pencil, the monogram that says a colleague is holding a clause, and — with
+     an editor open — the writing bar, the reason box and its two verbs. They
+     sit INSIDE .rl-paper, so the `*` above reaches them, and a Save button set
+     in Times New Roman is the page's own chrome pretending to be the
+     agreement.
+
+     IT IS ONE RULE NAMING THE CONTROLS, not nine exclusion lists: the faces
+     above are !important, so this is too, and it is written after them.
+     THE CLAUSE HEADING IS NOT IN IT and must not be — h4.rl-clause-h shares
+     .rl-clause-top with the pencil and is the drafter's own words.
+     Same shape, same reason, as `.rl-cp-src{--doc-scale:1}`: the paper takes
+     the reader's setting and the furniture round it does not.
+
+     `:not(.rl-clause-h)` IS CARRYING WEIGHT AS WELL AS MEANING, and that is
+     said out loud rather than left as a puzzle. The design rule above scores
+     (0,3,2) — its three :not()s each count — so this written plainly would be
+     (0,3,0) and LOSE, while looking perfectly correct in the source. The
+     qualifier takes it to (0,4,0), and it is the one exclusion worth stating:
+     the clause heading shares .rl-clause-top with the pencil and is the
+     drafter's own words, so it must never be read as furniture. Do not remove
+     it to tidy the selector. */
+  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar):not(.rl-clause-h),
+  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar) *:not(.rl-clause-h){
+    font-family:var(--font-body)!important;}
 
   /* ============ document structures — page architecture ============
      A paper div carrying data-doc-structure="<structureId>" (js/branding.js,

@@ -38,6 +38,17 @@ const OUT = path.join(__dirname, 'shots', 'plain-english');
 fs.mkdirSync(OUT, { recursive: true });
 
 let failures = 0;
+/* ---- A CITATION, WITHOUT THE PUNCTUATION THE PAPER PUT AFTER IT ----
+   (Young reported it 11 Sep 2026: "fix how the Clause header in the plain
+   english contract is merged with the clause number".)
+   `.dr-n` carries the number AND the drafter's own separator, because the
+   edition prints the citation as the contract writes it — "4." where the paper
+   says "4." — while `num` on the record stays bare, since that is what the
+   route is sent and its cache key is a hash of exactly that. So a check asking
+   WHICH CLAUSE an entry cites reads through this, and the punctuation itself is
+   asserted where it belongs, in section 14. */
+const citeOf = t => String(t == null ? '' : t).trim().replace(/[.):]$/, '');
+
 const check = (ok, what, detail) => {
   console.log((ok ? '  ok  ' : '  FAIL') + ' — ' + what + (detail != null ? ` [${detail}]` : ''));
   if (!ok) failures++;
@@ -540,7 +551,7 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
        number unconditionally. f277 (13a) is the other half — what the ROUTE is
        sent still reads ",1.1,1.2,1.3" and must, because its cache key is a
        hash of exactly that. */
-    check(ed.nums.join(',') === '1,1.1,1.2,1.3',
+    check(ed.nums.map(citeOf).join(',') === '1,1.1,1.2,1.3',
       "8d each carries the contract's OWN number — read off the paper, never the model's",
       ed.nums.join(' | '));
     check(ed.sections === 1 && ed.clauseHeads === 3,
@@ -711,10 +722,10 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     check(txtPressed && txtOut.layer && txtOut.notes.length === txtRows,
       '10e a real press brings back one entry per row of the walk',
       `${txtOut.notes.length} of ${txtRows}`);
-    check(txtOut.notes.some(n => n.num === '1') && txtOut.notes.some(n => n.num === '4'),
+    check(txtOut.notes.some(n => citeOf(n.num) === '1') && txtOut.notes.some(n => citeOf(n.num) === '4'),
       '10f and each numbered entry cites the paper\'s own clause number',
       txtOut.notes.map(n => n.num || '·').join(' '));
-    const first = txtOut.notes.find(n => n.num === '1');
+    const first = txtOut.notes.find(n => citeOf(n.num) === '1');
     check(!!first && txtOut.marks['1'] != null && Math.abs(first.top - txtOut.marks['1']) <= 6,
       '10g the first entry is LEVEL with the clause it reads',
       first && `note ${first.top} · clause ${txtOut.marks['1']}`);
@@ -788,7 +799,7 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       head: ((n.querySelector('.dr-h,.dr-s') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
     })), undefined, []);
     check(hPressed && hOut.length === 3, '11c a real press brings back the readings', hOut.length);
-    const cites = hOut.map(n => n.num).filter(Boolean);
+    const cites = hOut.map(n => citeOf(n.num)).filter(Boolean);
     check(cites.includes('1'),
       '11d the numbered section heading CITES its own number — the fault',
       hOut.map(n => n.num || '·').join(' '));
@@ -1017,6 +1028,88 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       '13i and the number is not printed a second time in the reading itself',
       s13beside.map(x => x.body).join(' | '));
     await page.screenshot({ path: path.join(OUT, '13-s13beside.png') }).catch(() => {});
+
+    /* ============ 14 · THE NUMBER DOES NOT TOUCH THE NAME ============
+       Young reported it 11 Sep 2026 off the two columns side by side: the
+       contract reading *"4. Independent Contractor"* and the edition reading
+       *"4Independent Contractor"*.
+
+       IT IS A GEOMETRY, WHICH IS WHY IT LIVES HERE. The markup was correct
+       either way — a span holding the number, then the name — so nothing in
+       the source looked wrong; what was missing was that the rule giving the
+       number a column of its own only fires where the clause hangs its marker
+       in a gutter, and this paper's headings do not. Only a rendered page
+       knows whether two painted words are touching.
+
+       IT STAGES ITS OWN GROUND. Section 13 above leaves a WORKING TEXT on
+       screen, whose clauses carry no headings at all — so a first writing of
+       this read what was there and reported four empty checks. A check that
+       inherits the section above it is describing that section, not this one:
+       the shape the report is in is a heading with its number inside it, and
+       that is what is planted here. */
+    /* NO <h1>: the walk steps over the contract's OWN NAME and nothing else,
+       so a title that is not this record's name becomes an ordinary row and
+       the readings land one entry along. Section 11's fixture has none either. */
+    const NUMHEAD = [
+      '<h2>4. Independent Contractor</h2>',
+      '<p>AIT shall act as an independent contractor and shall be solely responsible for '
+        + 'the management, supervision and performance of its employees and agents.</p>',
+      '<h2>5. Limitation of Liability</h2>',
+      '<p>Neither party shall be liable to the other for any indirect, incidental or '
+        + 'consequential damages, including loss of profits, revenue or goodwill.</p>',
+    ].join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = html; c.format = 'rich';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace(c.id);
+    }, NUMHEAD, null);
+    await pause(900);
+    ai.reset();
+    ai.script(tool([
+      { i: 0, plain: 'AIT works for itself, not as your employee, and runs its own people.' },
+      { i: 1, plain: 'Neither of you can claim indirect losses from the other.' },
+    ]));
+    const gPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '14 Plain English on numbered headings');
+    await pause(3200);
+    const gap = await drive(page, () => {
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      return notes.map(n => {
+        const h = n.querySelector('.dr-h,.dr-s');
+        const num = h && h.querySelector('.dr-n');
+        if (!h || !num) return null;
+        /* The name is whatever follows the citation inside the same heading, so
+           it is measured off a Range rather than an element — there is none. */
+        const r = document.createRange();
+        r.setStartAfter(num); r.setEndAfter(h.lastChild);
+        const nb = num.getBoundingClientRect(), tb = r.getBoundingClientRect();
+        return { cite: num.textContent.trim(),
+          rest: String(r.toString() || '').replace(/\s+/g, ' ').trim().slice(0, 24),
+          gap: Math.round((tb.left - nb.right) * 10) / 10,
+          sameLine: Math.abs(Math.round(tb.top) - Math.round(nb.top)) <= 2 };
+      }).filter(Boolean);
+    }, undefined, []);
+    check(gPressed && gap.length >= 2, '14a the stage draws numbered headings to measure',
+      gap.map(g => g.cite).join(' '));
+    /* THE HEADLINE. Against the parent this reports the report itself. */
+    check(gap.length > 0 && gap.every(g => g.gap > 0),
+      '14b the citation and the name never touch — the reported fault',
+      gap.map(g => `${g.cite}|${g.gap}px|${g.rest}`).join(' · '));
+    check(gap.length > 0 && gap.every(g => g.sameLine),
+      '14c and they stay on ONE line — the number is not a line of its own',
+      gap.map(g => `${g.cite}:${g.sameLine}`).join(' '));
+    /* THE PAPER'S OWN PUNCTUATION, printed rather than invented: this fixture's
+       headings are set "1. Scope of supply", so the edition says "1." too. */
+    check(gap.some(g => /[.):]$/.test(g.cite)),
+      '14d the citation carries the separator the drafter wrote',
+      gap.map(g => g.cite).join(' '));
+    /* AND THE NAME IS NOT THE NUMBER AGAIN — the other half of the report,
+       "duplication of clause numbers". */
+    check(gap.every(g => !/^\d/.test(g.rest)),
+      '14e and the name beside it does not repeat the number',
+      gap.map(g => g.rest || '·').join(' | '));
+    await page.screenshot({ path: path.join(OUT, '14-number-and-name.png') }).catch(() => {});
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

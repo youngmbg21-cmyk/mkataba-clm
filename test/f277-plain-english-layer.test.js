@@ -1114,8 +1114,14 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
 
   await t.test('the painter draws the PAPER’S heading', () => {
     const src = rd('js/views/contract.js');
-    const i = src.indexOf('const numHtml=num?');
-    const region = src.slice(Math.max(0, i - 900), i + 400);
+    /* THE REGION IS THE PAINTER, NOT A BYTE WINDOW. This sliced 900 characters
+       back from `numHtml` — which is an ANCHOR, not a boundary — so the first
+       comment written above that line pushed the claim out of its own window
+       and the check failed on code that was perfectly correct. Both landmarks
+       below are the painter's own first and last lines. */
+    const i = src.indexOf("const sec=p.row.kind==='section'");
+    const region = src.slice(i, src.indexOf('data-doc-read-note="', i));
+    assert.ok(i > 0 && region.length > 0, 'the painter was found');
     assert.match(region, /const head=String\(p\.row\.ownHead\|\|''\)\.trim\(\)/,
       'the sheet’s own heading, not p.it.head');
     assert.doesNotMatch(region, /p\.it\.head/,
@@ -1435,5 +1441,81 @@ describe('f277 (16) the number sits beside the reading', () => {
       'the number sits in a gutter of exactly the width the contract uses');
     assert.match(css, /\.doc-read-note\.dr-hang > p:not\(\.dr-lead\)\{ padding-left:2\.6em; \}/,
       'and the two rules do not double up on one paragraph');
+  });
+});
+
+/* ============================================================
+   f277 (17) — THE NUMBER IS NOT WELDED TO THE NAME
+   ============================================================
+   Young reported it 10 Sep 2026, off the two columns side by side: the
+   contract reading *"4. Independent Contractor"* and the edition reading
+   *"4Independent Contractor"*.
+
+   ONE CAUSE WITH TWO HALVES. The reading that cuts a number off a heading
+   discards the drafter's punctuation — correctly, because it captures a
+   CITATION and "4." and "4" cite the same clause — and nothing put it back for
+   the one place the number is PRINTED. And the rule that would have separated
+   them regardless gives the number a 2.6em box, which only fires where the
+   clause hangs its marker in a gutter; this contract's headings, and most
+   commercial paper's, do not.
+
+   THE WALL IS THAT NEITHER HALF REACHES THE ROUTE. `num` is what
+   docReadClauses SENDS, and /api/ai/readings hashes exactly what it was sent,
+   so a separator folded into it would make every contract already read pay for
+   one deep call returning an identical reading. 17d is that claim and it
+   passes before and after — its job is to fail the day somebody folds the
+   punctuation into the citation. */
+describe('f277 (17) the number is not welded to the name', () => {
+  const src = _f277rd('js/views/contract.js');
+
+  test('the separator is the paper’s own, taken off the source', () => {
+    assert.match(src, /const _docReadSepOf=\(src,num\)=>/,
+      'one reading of "what followed the number", with two callers');
+    const i = src.indexOf('const _docReadSepOf=');
+    const fn = src.slice(i, i + 420);
+    assert.match(fn, /indexOf\(n\)/, 'found in the string it was cut from');
+    assert.match(fn, /\/\[\.\):\]\/\.test\(ch\)/,
+      'and only the three a drafter uses — never a character invented here');
+    assert.match(fn, /if\(!n\) return '';/,
+      'no number, no separator');
+  });
+
+  test('the painter prints it beside the number', () => {
+    const i = src.indexOf('const numHtml=num?');
+    const line = src.slice(i, i + 160);
+    assert.match(line, /esc\(num\+String\(p\.row\.sep\|\|''\)\)/,
+      'the row’s separator, printed inside the citation span');
+  });
+
+  test('and the sheet carries it beside the number, never inside it', () => {
+    assert.match(src, /out\.push\(\{el:row\.el,heading,ownHead,text,num:row\.num,cite,sep,/,
+      'sep is its own field on the row');
+    assert.match(src, /const sep=row\.isHead\?_docReadSepOf\(heading,cite\):String\(row\.sep\|\|''\);/,
+      'a heading reads its own; a mark and a paragraph read theirs in the walk');
+    assert.match(src, /return n\?\{el,isHead:false,isMark:true,num:n,sep:_docReadSepOf\(raw,n\)\}:null;/,
+      'a mark IS its number, so the character after it is the whole of it');
+  });
+
+  /* THE WALL. Passes before and after; its job is to fail the day the
+     punctuation is folded into the citation and every contract already read
+     silently pays for a fresh deep call. */
+  test('WALL — what the route is sent does not move by a byte', () => {
+    assert.match(src,
+      /const docReadClauses=c=>docReadSheet\(c\)\.map\(r=>\(\{num:r\.num,heading:r\.heading,text:r\.text,kind:r\.kind\}\)\);/,
+      'the sent shape names num, heading, text and kind — and no separator');
+    const i = src.indexOf('const _docReadHeadCut=');
+    const cut = src.slice(i, i + 520);
+    assert.match(cut, /return \{num,rest:src\.slice/,
+      'the cut still answers a bare citation');
+  });
+
+  test('the gap is a guarantee, and the gutter takes it back', () => {
+    const css = _f277rd('index.html');
+    assert.match(css,
+      /\.doc-read-note \.dr-h \.dr-n,\.doc-read-note \.dr-s \.dr-n\{ margin-right:\.4em; \}/,
+      'a heading that carried no punctuation cannot weld either');
+    assert.match(css,
+      /\.doc-read-note\.dr-hang > \.dr-h \.dr-n,\.doc-read-note\.dr-hang > \.dr-s \.dr-n\{ margin-right:0; \}/,
+      'and where the number sits in its own 2.6em box the margin is given back');
   });
 });
