@@ -2210,6 +2210,11 @@ const dismissNote = async pg => {
       line0: (window.ceLines?String(ceLines()[0]||'').slice(0,120):''),
       hit: (window.ceLines?ceLines().map(l=>l.indexOf(nodes[0].data.trim().slice(0,20))):[]) }) };
     await new Promise(r => setTimeout(r, 400));
+    /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
+    await new Promise(r => setTimeout(r, 120));
+    { const ask = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+      if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); }
+    await new Promise(r => setTimeout(r, 250));
     const before = (window.CONTRACT.changes || []).length;
     const btn = document.querySelector('#ce-scope [data-ce-act="scope-cut"]');
     const found = !!btn;
@@ -2406,6 +2411,10 @@ const dismissNote = async pg => {
     await p.mouse.move(target.x2, target.y2, { steps: 8 });
     await p.mouse.up();
     await pause(450);
+    /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
+    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+      if (a) a.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); });
+    await pause(250);
   }
   const afterDrag = await p.evaluate(() => {
     /* RE-POINTED IN PLACE 31 Aug 2026 (M-1): the passage lands on the rail
@@ -2624,7 +2633,11 @@ const dismissNote = async pg => {
     await p.mouse.move(r.x1, r.y1); await p.mouse.down();
     await p.mouse.move((r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2, { steps: 6 });
     await p.mouse.move(r.x2, r.y2, { steps: 6 }); await p.mouse.up();
-    await pause(400); return true;
+    await pause(400);
+    /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
+    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+      if (a) a.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); });
+    await pause(250); return true;
   };
   const railState = () => p.evaluate(() => ({
     card: !!document.querySelector('#ce-scope .ce-scope'),
