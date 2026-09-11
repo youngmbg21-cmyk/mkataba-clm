@@ -2799,7 +2799,8 @@ const dismissNote = async pg => {
         skip: (ov.querySelector('#rl-note-skip') || {}).textContent,
         go: (ov.querySelector('#rl-note-ok') || {}).textContent,
         del: !!ov.querySelector('#rl-note-del'),
-        who: (ov.querySelector('.rl-note-who') || {}).textContent,
+        who: (ov.querySelector('[data-rl-note-room="external"]') || {}).title,
+        rooms: [...ov.querySelectorAll('[data-rl-note-room]')].map(b => b.getAttribute('data-rl-note-room') + (b.getAttribute('aria-selected') === 'true' ? '*' : '')),
         keep: !!ov.querySelector('.rl-note-keep') };
     });
     ck('25a filing raises the note dialog, as real pixels', dlg.up && dlg.painted,
@@ -2812,9 +2813,13 @@ const dismissNote = async pg => {
     ck('25d two ways on — Skip, and Add note — and no Delete on a change with no note',
        /skip/i.test(dlg.skip || '') && /add/i.test(dlg.go || '') && dlg.del === false,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
-    ck('25e it names WHO reads it, before you type rather than after — and never claims the other side is kept out',
-       /reads this|l\u00e4ser detta/i.test(dlg.who || '') && dlg.keep === false,
-       `"${(dlg.who || '').trim().slice(0, 60)}"${dlg.keep ? ' + a stays-inside line' : ''}`);
+    /* RE-POINTED 11 Sep 2026 (C-3): the line that read the choice back is the
+       CHOICE now — two tabs, External lit at rest, the counterparty named on
+       the external tab's hover. */
+    ck('25e it names WHO reads it, before you type — on the room control, External lit at rest',
+       /reads this|l\u00e4ser detta/i.test(dlg.who || '') && dlg.keep === false
+       && JSON.stringify(dlg.rooms) === JSON.stringify(['internal', 'external*']),
+       `"${(dlg.who || '').trim().slice(0, 60)}" · ${JSON.stringify(dlg.rooms)}`);
     ck('25e2 and the lead asks for the explanation, naming the side that will read it',
        /why|varf\u00f6r/i.test(dlg.lead || ''), (dlg.lead || '').trim().slice(0, 60));
 
@@ -2838,7 +2843,9 @@ const dismissNote = async pg => {
        `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
     ck('25g and the dialog goes', wrote.gone === true);
 
-    /* ---- D: A REVISION FILES SILENTLY ---- */
+    /* ---- C-5 (11 Sep 2026, reversing D): A REVISION IS ASKED AGAIN, and the
+       window opens on the reason already given, saying it is a revision.
+       (Against the parent 25h reports the window did not come up.) ---- */
     await p.evaluate(() => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
       if (b.getAttribute('contenteditable') !== 'true')
@@ -2852,15 +2859,72 @@ const dismissNote = async pg => {
     await pause(400);
     await p.click('#clause-editor [data-ce-act="save"]');
     await pause(1100);
-    const again25 = await p.evaluate(() => ({
-      up: !!document.getElementById('rl-note-overlay'),
-      revs: (() => { const c = window.CONTRACT;
-        const ch = (c.changes || [])[(c.changes || []).length - 1];
-        return (ch.revisions || []).length; })() }));
-    ck('25h A REVISION FILES SILENTLY — asked once, on the filing that created it',
-       again25.up === false && again25.revs > 0,
-       `dialog ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions`);
+    const again25 = await p.evaluate(() => {
+      const ov = document.getElementById('rl-note-overlay');
+      return { up: !!ov,
+        lead: ov ? (ov.querySelector('.rl-note-lead') || {}).textContent : '',
+        value: ov ? (ov.querySelector('#rl-note-in') || {}).value : '',
+        go: ov ? (ov.querySelector('#rl-note-ok') || {}).textContent : '',
+        set: ov ? [...ov.querySelectorAll('[data-rl-note-room]')].every(b => b.disabled) : null,
+        revs: (() => { const c = window.CONTRACT;
+          const ch = (c.changes || [])[(c.changes || []).length - 1];
+          return (ch.revisions || []).length; })() }; });
+    ck('25h A REVISION IS ASKED AGAIN — the window comes up, says so, and opens on the reason already given',
+       again25.up === true && again25.revs > 0 && /again|igen/i.test(again25.lead || '')
+       && /never paid theirs/.test(again25.value || '') && /save|spara/i.test(again25.go || '') && again25.set === true,
+       `dialog ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · "${(again25.lead || '').trim().slice(0, 50)}" · ${(again25.go || '').trim()}`);
     await skipNote(p);
+    /* ---- C-3: THE READER MAY CHOOSE INTERNAL, and an internal note stays at
+       home — on the change's own thread, never delivered, its room said in
+       the confirmation. Driven on a THIRD filing so it is a fresh note (the
+       first one is a record now). ---- */
+    await p.evaluate(() => {
+      const c = window.CONTRACT;
+      const ch = (c.changes || [])[(c.changes || []).length - 1];
+      const mine = (ch.thread || []).find(m => /never paid theirs/.test(m.text || ''));
+      if (mine) mine.sentAt = new Date().toISOString();   /* delivered: a record, not a draft */
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      if (b.getAttribute('contenteditable') !== 'true')
+        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    });
+    await pause(400);
+    await p.evaluate(() => {
+      const b = document.querySelector('#clause-editor #ce-clausebody');
+      b.focus(); b.innerHTML = '<p>Each party shall bear its own costs of any such audit.</p>'; b.blur();
+    });
+    await pause(400);
+    await p.click('#clause-editor [data-ce-act="save"]');
+    await pause(1100);
+    const int25 = await p.evaluate(async () => {
+      const ov = document.getElementById('rl-note-overlay');
+      if (!ov) return { up: false };
+      const tab = ov.querySelector('[data-rl-note-room="internal"]');
+      const live = !!tab && !tab.disabled;
+      if (tab) tab.click();
+      await new Promise(r => setTimeout(r, 120));
+      const ov2 = document.getElementById('rl-note-overlay');
+      const lead = (ov2.querySelector('.rl-note-lead') || {}).textContent || '';
+      const box = ov2.querySelector('#rl-note-in');
+      const tinted = box ? getComputedStyle(box).boxShadow : '';
+      box.value = 'Colleagues: they never paid, do not concede.';
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      ov2.querySelector('#rl-note-ok').click();
+      await new Promise(r => setTimeout(r, 500));
+      const c = window.CONTRACT;
+      const ch = (c.changes || [])[(c.changes || []).length - 1];
+      const m = (ch.thread || [])[(ch.thread || []).length - 1] || {};
+      return { up: true, live, lead, tinted,
+        gone: !document.getElementById('rl-note-overlay'),
+        vis: m.visibility, sent: !!m.sentAt, text: m.text };
+    });
+    ck('25i the window offers Internal live on a fresh note, and the lead names the colleagues',
+       int25.up && int25.live === true && /colleagues|kollegor/i.test(int25.lead),
+       int25.up ? `"${(int25.lead || '').trim().slice(0, 60)}"` : 'no window');
+    ck('25j an INTERNAL note lands on the change\'s own thread, never delivered, and the window goes',
+       int25.vis === 'internal' && int25.sent === false && /never paid/.test(int25.text || '') && int25.gone === true,
+       `${int25.vis} · sent ${int25.sent}`);
+    ck('25k and the internal box drops the external tint — the two rooms are told apart on the box itself',
+       int25.tinted === 'none' || !/inset/.test(int25.tinted || ''), int25.tinted);
     await p.evaluate(() => rlCloseClauseEditor({}));
     await pause(300);
   } else {

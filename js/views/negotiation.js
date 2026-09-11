@@ -13892,18 +13892,35 @@ function rlNoteDialogHtml(c, ch, mine, opts){
   const filed = !!opts.filed;
   const mayWrite = notesMayWrite(c, opts);
   const them = c.counterparty || i18t('ng_the_counterparty');
+  /* ---- WHICH ROOM (Young ruled 11 Sep 2026: "you should be able to choose
+     whether the note is internal or external.") ----
+     The globe line used to READ the choice back — "{who} reads this beside the
+     change" — on a window that offered no choice. It is the control now, in
+     the drawer's own clothes (.rl-np-tabs), and EXTERNAL IS LIT AT REST: the
+     1 Sep ruling made this window the explanation the other side reads, and
+     this adds the choice without moving the default. A note's room is fixed
+     at posting, exactly as in the drawer, so on a note already on file the
+     control is SET to its room and disabled — it states a fact. */
+  const room = (opts.room === 'internal' || opts.room === 'external') ? opts.room : 'external';
+  const ext = room === 'external';
+  const revised = filed && (ch.revisions || []).length > 0;
   /* WHAT HAS ALREADY BEEN SAID ON THIS CHANGE, quietly, above the box — so a
      reader coming back to a change does not write the same sentence twice, and
      so an explanation that has GONE is visible as a record rather than as
      something to correct. It is the panel's own note rule, unchanged. */
   const said = negoRoomNotes(c, ch, null, opts, 'owner');
   const past = said.filter(m => m !== mine);
-  const lead = filed
-    ? i18t('ng_note_filed_lead', { who: _ne(them) })
-    : i18t('ng_note_keep_lead', { who: _ne(them) });
+  /* THE LEAD FOLLOWS THE ROOM, and says so where the filing is a REVISION
+     (C-5): the reader changed the wording again, and the reason may have
+     changed with it. */
+  const lead = revised
+    ? i18t(ext ? 'ng_note_revised_lead' : 'ng_note_revised_lead_int', { who: _ne(them) })
+    : filed
+    ? i18t(ext ? 'ng_note_filed_lead' : 'ng_note_filed_lead_int', { who: _ne(them) })
+    : i18t(ext ? 'ng_note_keep_lead' : 'ng_note_keep_lead_int', { who: _ne(them) });
   const box = mayWrite
-    ? `<textarea id="rl-note-in" rows="2" wrap="soft"
-        placeholder="${_nea(i18t('ng_note_ph'))}"
+    ? `<textarea id="rl-note-in" rows="2" wrap="soft"${ext ? ' class="out"' : ''}
+        placeholder="${_nea(ext ? i18t('ng_note_ph') : i18t('ng_note_ph_int'))}"
         aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}"
         >${_ne(mine ? (mine.text || '') : '')}</textarea>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
@@ -13936,8 +13953,13 @@ function rlNoteDialogHtml(c, ch, mine, opts){
       past.map(m => rlNpNoteHtml(m, negoNoteRoom(m), 'owner', them)).join('')}</div>` : ''}
     ${box}
     <div class="rl-note-acts">
-      <span class="rl-note-who">${RL_NP_GLOBE}<span>${
-        i18t('ng_note_who', { who: _ne(them) })}</span></span>
+      <div class="rl-np-tabs rl-note-room" role="tablist" aria-label="${_nea(i18t('ng_note_room_label'))}">
+        ${['internal', 'external'].map(r => `<button type="button" role="tab"
+          class="rl-np-tab${r === room ? ' on' : ''}" data-rl-note-room="${r}"
+          aria-selected="${r === room}"${mine ? ' disabled' : ''}
+          title="${_nea(r === 'external' ? i18t('ng_note_who', { who: them }) : i18t('ng_note_who_int'))}"
+          >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</button>`).join('')}
+      </div>
       ${del}
       <button type="button" id="rl-note-skip" class="ui-btn">${
         i18t(filed ? 'ng_note_skip' : 'act_close')}</button>
@@ -13975,7 +13997,16 @@ const RL_NOTE_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
 function rlNoteAskAfterFile(c, ch, opts = {}){
   if (!c || !ch) return Promise.resolve(null);
   if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
-  if ((ch.revisions || []).length) return Promise.resolve(null);
+  /* ---- ON EVERY FILING, NOT ONLY THE FIRST (Young reversed decision D on
+     11 Sep 2026: "If i go back later to Clause A and make another redline,
+     this time when i close i do not get a pop up to add a note. This should
+     not be the case.") ----
+     The 31 Aug reading — an empty `revisions` list IS "this press created this
+     change" — is still true and still read: it is what tells the window to
+     SAY it is a revision, and to open on the note already given (so the reason
+     is kept, amended or deleted rather than typed twice) instead of being the
+     reason the window stays shut. Nothing else moved: it never blocks the
+     filing, Skip costs nothing, the other seat still returns. */
   if (!notesMayWrite(c, opts)) return Promise.resolve(null);
   if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);
   return openChangeNoteDialog(c, ch, { ...opts, filed: true });
@@ -13987,9 +14018,21 @@ function openChangeNoteDialog(c, ch, opts = {}){
   return new Promise(resolve => {
     const prev = document.getElementById('rl-note-overlay');
     if (prev) prev.remove();
+    /* THE ROOM IS THE WINDOW'S OWN STATE for one sitting: external at rest,
+       or the room of the note being edited. A press on the control repaints
+       the window and keeps what was typed. */
+    let room = null;
     const paint = () => {
-      const mine = window.negoMyNote ? negoMyNote(c, ch) : null;
-      ov.innerHTML = `<div class="rl-note-scrim"></div>${rlNoteDialogHtml(c, ch, mine, opts)}`;
+      let mine = window.negoMyNote ? negoMyNote(c, ch) : null;
+      /* A NOTE ALREADY DELIVERED IS A RECORD, NOT A DRAFT (C-5): the other side
+         is holding it, so a second filing opens an EMPTY box for a further
+         note and prints the delivered one in the "already said" list above. */
+      if (mine && window.negoNoteDelivered && negoNoteDelivered(mine)) mine = null;
+      if (!room) room = mine ? negoNoteRoom(mine) : 'external';
+      const typed = ov.querySelector('#rl-note-in');
+      const keep = typed ? typed.value : null;
+      ov.innerHTML = `<div class="rl-note-scrim"></div>${rlNoteDialogHtml(c, ch, mine, { ...opts, room })}`;
+      if (keep != null){ const b = ov.querySelector('#rl-note-in'); if (b) b.value = keep; }
       wire(mine);
     };
     const ov = document.createElement('div');
@@ -14031,6 +14074,13 @@ function openChangeNoteDialog(c, ch, opts = {}){
       if (scrim) scrim.addEventListener('click', () => done(null));
       const skip = ov.querySelector('#rl-note-skip');
       if (skip) skip.addEventListener('click', () => done(null));
+      ov.querySelectorAll('[data-rl-note-room]').forEach(b => b.addEventListener('click', () => {
+        if (b.disabled) return;
+        const r = b.getAttribute('data-rl-note-room');
+        if (r === room) return;
+        room = r; paint();
+        const bx = ov.querySelector('#rl-note-in'); if (bx && bx.focus) bx.focus();
+      }));
       /* ---- THE "N OTHER NOTES · OPEN CHAT" LINE IS GONE (1 Sep 2026) ----
          It existed because the window showed only YOUR note, so a reader whose
          colleagues had written three opened an empty box and was told nothing.
@@ -14066,16 +14116,30 @@ function openChangeNoteDialog(c, ch, opts = {}){
            names the counterparty on its own face and exists for no other
            purpose, so a dialog on top of a dialog is exactly the furniture that
            rule warns about. */
+        const toThem = room === 'external';
         if (mine && window.negoEditNote){
           if (!negoEditNote(c, ch, mine, text)) return;
           out = 'updated';
         } else {
+          /* THE ROOM'S OWN ANSWER (C-3): 'shared' on External, nothing on
+             Internal — the writer's safe default is what keeps an internal
+             note at home; there is no third value to get wrong. */
           msg = negoPostComment(c, ch.id, text,
-            { side: 'owner', author: opts.author, visibility: 'shared' });
+            toThem ? { side: 'owner', author: opts.author, visibility: 'shared' }
+                   : { side: 'owner', author: opts.author });
           if (!msg) return;
           out = 'added';
         }
         if (opts.persist !== false && window.persist) persist(c);
+        /* AN INTERNAL NOTE REACHES NOBODY BY NOT BEING POSTED: ch.thread is not
+           on the share payload, and the channel is asked only for the
+           external room. The toast names the room. */
+        if (!toThem && !(msg && msg.visibility === 'shared')){
+          if (window.toast) toast(i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added_int', { id: ch.id }), 'ok');
+          if (typeof opts.onDone === 'function') opts.onDone(out);
+          done(out);
+          return;
+        }
         /* ---- AND "SENT" MEANS SENT ----
            negoPostToChannel is the ONE act that reaches them, and it answers
            honestly: outside API mode it skips, and a provider can refuse. The

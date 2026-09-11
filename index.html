@@ -5235,6 +5235,14 @@
   .rl-note-acts{display:flex;align-items:center;gap:8px;margin-top:11px;}
   .rl-note-who{flex:1;min-width:0;display:flex;align-items:flex-start;gap:5px;
     font-size:var(--t-label);line-height:1.4;color:var(--color-neutral-600);}
+  /* THE ROOM CONTROL (11 Sep 2026) wears the drawer's own tabs, in the slot the
+     globe line held; it is the choice, not a line reading the choice back. A
+     disabled pair states a note's room as a fact. */
+  .rl-note-room{flex:1;min-width:0;padding:0;gap:14px;}
+  .rl-note-room .rl-np-tab:disabled{cursor:default;opacity:.7;}
+  /* the external box wears the drawer's external tint, so the two composers
+     say "this leaves the building" the same way */
+  .rl-note-dlg #rl-note-in.out{background:var(--st-steel-bg);box-shadow:inset 2px 0 0 var(--color-accent);}
   .rl-note-who .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
   /* SKIP IS A BARE WORD AND THE ACT IS FILLED, so the window says which answer
      is the ordinary one. .ui-btn is a bare class rule 3,500 lines above this,

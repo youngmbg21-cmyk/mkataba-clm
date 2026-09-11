@@ -291,21 +291,25 @@ describe('f264 (3) — the note stays inside this organisation', () => {
    4 — ASKED ONCE, ON THE FILING THAT CREATED THE CHANGE (D)
    ============================================================ */
 describe('f264 (4) — the ask is one reading of the record', () => {
-  test('a brand-new change is asked; a revision of it is not', async () => {
+  /* REVERSED IN PLACE 11 Sep 2026 (C-5). Decision D of 31 Aug asked once, on
+     the filing that created the change, and this claim pinned "a revision
+     files silently". The owner: "If i go back later to Clause A and make
+     another redline, this time when i close i do not get a pop up to add a
+     note. This should not be the case." The window comes up on EVERY filing
+     on our seat now; the revisions reading survives as what tells the window
+     to say it is a revision (f302). */
+  test('a brand-new change is asked; a revision of it is asked AGAIN', async () => {
     const p = await bench();
     let opened = 0;
     p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
     await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
     assert.equal(opened, 1, 'revisions[] is empty, so this press created it');
-    /* THE READING IS THE RECORD'S OWN AND NEEDS NOTHING THREADED THROUGH IT:
-       negoFileChange pushes the previous wording onto revisions[] every time it
-       folds a second edit into a pending ask. */
     const cl = p.w.win.negoClauseList(p.c).find(x => x.num === '6');
     await p.w.win.negoEditClause(p.c, cl.clauseId,
       '<p>Pay each invoice within sixty (60) days.</p>', { side: 'owner' });
     assert.ok((p.ch.revisions || []).length, 'the fold really happened');
     await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
-    assert.equal(opened, 1, 'and a revision files silently');
+    assert.equal(opened, 2, 'and a revision is asked too (reversed 11 Sep 2026)');
   });
 
   test('their seat is never asked, and that is where the note would live', async () => {
@@ -399,12 +403,16 @@ describe('f264 (5) — the dialog reads the record for its shape', () => {
      while the note was private; the owner has ruled it is the explanation the
      other side reads, so the window has to say THAT — and a lock over a note
      that travels would be the worst kind of wrong. */
-  test('it names who reads it, on the face, before anything is typed', async () => {
+  /* RE-POINTED 11 Sep 2026 (C-3): the globe line that read the choice back is
+     the CHOICE now — the drawer's own two tabs, External lit at rest — and the
+     counterparty is named on the external tab's hover and in the lead. */
+  test('it names who reads it, on the face, before anything is typed — and the reader may choose', async () => {
     const p = await bench();
     const h = dlg(p, null, { filed: true });
-    assert.match(h, /rl-note-who/);
+    assert.match(h, /rl-note-room/, 'the room control is drawn');
+    assert.match(h, /data-rl-note-room="external"[^>]*aria-selected="true"/, 'External is lit at rest');
     assert.match(h, /Saw Sawa Ltd/, 'the counterparty by name');
-    assert.equal(/rl-note-keep|never sees/.test(h), false,
+    assert.equal(/rl-note-keep/.test(h), false,
       'and no promise of privacy over something that goes to them');
   });
 
