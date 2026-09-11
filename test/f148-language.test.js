@@ -45,6 +45,9 @@ const SAME_IN_BOTH = new Set([
   'act_ok',               // 'OK' is 'OK' — the one dialog button that needs
                           // no translating in either language
   'nav_administration',   // identical spelling in Swedish
+  'int_fr_read',          // 'Copilot' — the product's own name, on the graph node's fact row (A-1)
+  'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
+  'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)
   'reg_col_status',       // ditto
   'pt_col_gap',           // 'Gap' is a loanword Swedish uses unchanged, and a
                           // COLUMN HEAD wants the indefinite form -- the hero

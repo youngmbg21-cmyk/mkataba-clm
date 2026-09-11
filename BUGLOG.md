@@ -12329,6 +12329,146 @@ in the same gutter the contract uses, rather than on a line above it.
   carries the lock marking anyway because it is the same one-line reading, but
   it cannot honestly be measured on a page that does not draw it.
 
+## Run — 11 Sep 2026: the contract graph's nodes (A-2, A-1, A-3, A-4, A-5) and Copilot pre-writing the redlines (A12)
+
+WORKORDER-contract-graph-nodes.md, both parts, on the owner's "Go but start
+from the latest main before you do anything". Rebased onto main first; main did
+not move while this ran.
+
+**PART A — FIVE THINGS ON THE CONTRACT GRAPH, EACH A READING THAT DRAWS
+NOTHING.** The graph's links are the record's own now (family, payment chain,
+shared counterparty — `buildGraphEdges`; the invented `REL_SEEDS` is empty and
+stale), and pressing a node says what depends on it and offers the list. A node
+carries at most three facts in its own tone, with the rest on hover. A
+counterparty hub is the party read across the book — contracts and share by
+converted value, rounds a deal, promises met on time, how they pay. A 'decision'
+grouping lays the book out by the quarter the renewal decision falls in with a
+scrubber that fades what has passed. And each value-stream hub says money in,
+money out and net — ON PAPER — with every link as wide as the value it carries
+on a bounded square-root scale.
+
+- **THE ORDER'S A-5 LINE HAD THE SIDES THE OTHER WAY ROUND** ("supplier = in,
+  customer = out"). The product's one reading (`paySide`, `home_pt_split`)
+  says a customer contract is money IN; following the order would have made
+  the graph disagree with the payment-terms tab about one contract. Followed
+  the product and said so in CLAUDE.md.
+- **THE A-3 SPEC NAMED `negoIsLive` for "live"** and the graph counts the live
+  BOOK (not Declined, not archived — `graphLiveContract`), which is the reading
+  every panel on that page shares; said so in CLAUDE.md.
+- **f292's folder-hub claim reversed in place** — a stream hub carries lines of
+  its own now, and the claim was always that they are not the PARTY's.
+
+**PART B — "PREPARE REDLINES", AND THE REVIEW RUN OVERNIGHT.** A third row in
+the negotiation page's More menu runs the existing playbook review and files
+every proposal through `rlFilePlaybookProposal` as an unsent draft of ours.
+Asks before it spends (one deep call, or "already on file, costs nothing"),
+never files a fallback, sends nothing, records each proposal, one toast with
+the counts. Overnight, `runPlaybookPrep` runs the same review server-side for
+incoming paper with an owner and no review, charged to the owner, under the
+renewal notes' own switch and cap, and stores the ordinary playbook record —
+it files nothing.
+
+- **THE ORDER ASSUMED A WALL THE FUNNEL DID NOT HAVE.** "The no-op guard
+  refuses a modify that changes nothing" measured against the clause AS IT
+  STANDS, so re-filing the very wording a pending draft already carried folded
+  as an identical revision. `negoFileChange` now answers null where the live
+  draft already proposes the same words — in the funnel, because the review
+  window and the clause editor's card reach the same fold.
+- **A LIGHT ROW IS NOT AN EMPTY ONE.** The list strips an upload's extracted
+  text and the negotiation page does not load the full record on arrival; a row
+  greyed off a light record refused a readable contract. The row draws live on
+  a light record and the press loads it first.
+- **THE SERVER CARRIES NO COPY OF THE BROWSER'S DEFAULT PLAYBOOK** — it cannot
+  require js/playbook.js (its default book reads the jurisdiction pack at
+  load). A workspace that has never saved its own standards is skipped by name
+  overnight; the morning press still runs the review itself.
+- **THE ONE OVERNIGHT SWITCH COVERS BOTH SWEEPS** and its row says so now
+  ("Prepare work overnight").
+
+### What was measured, not asserted
+- `npm run lint` **0 errors** throughout.
+- Node suite: Part A **6524/6524**, Part B **6543/6543** (one run each, at the end).
+- Every regression net was proved to FAIL against a worktree at unmodified
+  main before it was trusted: insights-panels-verify sections 11–15 (7/5/2/6/5
+  failing against the parent, the viewer check in 15 a named CONTROL),
+  prepare-redlines-verify (17 of 27 failing against the parent, every driven
+  half guarded so it REPORTS), f290–f296 (each cannot load or fails against the
+  parent, the controls named inside).
+- Browser files re-run green on this branch: insights-panels (70),
+  prepare-redlines (27), clause-editor (251), redline (216),
+  playbook-opens-read (23), settings-tabs (80).
+
+### Noticed, not fixed
+- **The Contract graph draws Declined contracts** (buildGraphModel reads
+  state.contracts unfiltered) while every reading on it — links, facts, party
+  stats, the flow — counts the live book. A dead node with live-book figures
+  round it is a question for the owner, not a fix made on the way past.
+- **`runPlaybookReview` on an UPLOAD reads only the extracted text**, even
+  where a stored structured body exists; on a light row that text is stripped,
+  so the existing Review vs Playbook row refuses "no readable clause" on the
+  negotiation page until something loads the full record. Prepare redlines
+  loads it first; the older row does not.
+- **The overnight sweeps share `aiRenewalPrepMax` per sweep**, so one night can
+  spend up to twice the cap across the two. Bounded by the daily ceiling either
+  way; named rather than resolved.
+- **The negotiation page's divider is still silent at its fraction limit** (the
+  clause editor's was corrected on 25 Aug); unchanged, still logged.
+
+## Run — 11 Sep 2026 (later): no pop-ups on the Insights page
+
+Owner-asked, off a red toast reading "One quoted excerpt could not be matched
+to the contract text and was removed" over a dock answer that already carried
+the sentence in amber. The toast was one fact said twice. Every Copilot call
+the Insights page makes now passes api()'s own `quiet`, the four callers print
+the notice through one line (`igNoticeHtml`), and the main Copilot panel is
+untouched as the control. The streaming path is untouched.
+
+### What was measured, not asserted
+- `npm run lint` 0 errors.
+- f297 (5 — 3 fail against the parent; the two that pass are named controls).
+- insights-panels-verify 73/73; against the parent 72/73, 16b reporting the
+  owner's pop-up verbatim.
+- f134's plain-call pin was a literal where the claim was a relation;
+  re-pointed in place, 17/17.
+- Full node suite run once at the end (see the commit).
+
+### Noticed, not fixed
+- **The pop-up is red on every other page**, the colour for something that
+  failed, and nothing failed — the server dropped a quote it could not verify.
+  The owner asked only about this page; whether that tray should be amber
+  elsewhere is their call.
+- **The main Copilot panel says the notice twice as well** — inline under the
+  answer and as the toast — the same duplicate this fix removed here. Not in
+  the ask.
+
+## Run — 11 Sep 2026 (later still): the graph's legend, three asks
+
+Owner-asked off two screenshots: the legend's "what the paper says, not what
+was invoiced" sentence removed (the hub says "on paper" itself; the Left-out
+line stays — it is the one place that omission is said); the legend folds to
+its head on a chevron, per sitting, the sheet doing the hiding; and a lens is
+added ONCE — the dedupe sits in `addLens`, the one funnel, so seven presses on
+Drafting leave one chip.
+
+### What was measured, not asserted
+- `npm run lint` 0 errors.
+- f298 (7 — 5 fail against the parent), f294 reversed in place, f148 unmoved.
+- insights-panels-verify 77/77; against the parent 72/77, 17a reporting the
+  owner's screenshot verbatim ("Drafting · 0" three times) and 15e the ringed
+  sentence. The fold checks are guarded so the parent REPORTS rather than
+  aborts.
+- Full node suite run once on the settled tree, after a run that overlapped
+  my own stash-and-restore was thrown away as untrustworthy.
+
+### Noticed, not fixed
+- **The legend's "Left out: … whose side is not recorded" line has no door.**
+  On the owner's book it names 39 contracts whose side is not recorded and
+  offers no way to the list; the register's payment-terms filter is where they
+  would be found. A door there is a small ask, not a fix on the way past.
+- **A lens chip prints "Drafting · 0" on a book with no drafts** — a cut that
+  matches nothing is still offered by the legend. Whether an empty cut should
+  be pressable at all is the owner's call.
+
 ---
 
 ## Run — 11 Sep 2026: the negotiate page's font, and a welded clause number
@@ -12362,8 +12502,8 @@ heading rules name that page's own elements now. Same words, same role,
 different tag.
 
 **THE PAPER WEARS THE DESIGN; THE FURNITURE DOES NOT** — the clause pencil and
-the editor's bars sit inside the sheet, so the design's `*` rule reached them. The
-pin lost the cascade on its first writing (0,3,0 against the design rule's
+the editor's bars sit inside the sheet, so the design's `*` rule reached them.
+The pin lost the cascade on its first writing (0,3,0 against the design rule's
 (0,3,2)) and looked perfectly correct in the source; it is (0,4,0) now, carried
 by the one exclusion worth stating.
 

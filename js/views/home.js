@@ -1694,5 +1694,5 @@ if(typeof window!=='undefined' && typeof ResizeObserver==='function'){
   else arm();
 }
 
-Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmFitDecisions,HM_DD_MIN,hmDashSlices,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

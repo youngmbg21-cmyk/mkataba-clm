@@ -6040,6 +6040,48 @@ async function copilotPlaybookCheck(ctx, id, key, who) {
 const COPILOT_PANEL_NAMES = ['workload_runway', 'money_held_back', 'promises_live', 'won_and_lost', 'renewal_runway'];
 const COPILOT_PANEL_DESC = 'Fetch the figures behind one chart on the Insights → Portfolio page, counted by the panel itself. Use it whenever the question names a panel ("workload runway", "renewal runway", "money held back", "promises still live", "won and lost") or asks WHY one of them looks the way it does. Returns the panel\'s buckets with, per bucket, its total, how many contracts are in it, the two or three contracts driving it, and a "why" block (how many have a real start date on file versus one defaulted to their signature date, how many start and end in the same month). Also returns an "excluded" block naming the work the chart could NOT place and the reason — quote that rather than presenting the total as everything. "workload runway" is about CONTRACTED WORK, never about staff capacity.';
 const COPILOT_PANEL_BYTES = 300000;          // a bounded read of a client-sent object, like guideLive
+const COPILOT_DEPENDENTS_DESC = 'What depends on one contract — the blast radius if it ends. Returns its DIRECT dependents read off the record: the amendments and annexes filed under it, the payment steps on other contracts that wait on one of its obligations, and the live contracts naming the same counterparty — with the converted value on those contracts, what that total left out for want of a rate, and how many obligations on them are held right now. Use it for "what depends on", "what is affected if X ends / is terminated / lapses", "what hangs off X". It is not a transitive walk and never counts archived or declined contracts; say so if asked about second-order effects.';
+/* A LOOKUP ON A CLIENT-SENT TABLE, never a calculation: the reading lives in
+   the browser (graphDependents) and rides every brief as ctx.graph.links,
+   keyed by id and holding only contracts that have dependents. The server
+   has no family model and must not grow one. Every field read is clamped. */
+function copilotDependents(clientCtx, id) {
+  const key = String(id || '').toUpperCase().trim();
+  const g = clientCtx && typeof clientCtx === 'object' ? clientCtx.graph : null;
+  const links = g && typeof g === 'object' ? g.links : null;
+  if (!links || typeof links !== 'object')
+    return { id: key, found: false, note: 'This reader\'s contract graph was not sent with the question — say the dependents are not available from here rather than guessing.' };
+  const d = links[key];
+  if (!d || typeof d !== 'object')
+    return { id: key, found: true, contracts: [], amendments: 0, paymentStepsWaiting: 0, sameCounterparty: 0, valueOnDependents: null, valueLeftOut: {}, obligationsHeld: 0,
+      note: 'Nothing on the record depends on this contract — no amendment filed under it, no payment step waiting on it, no other live contract with its counterparty.' };
+  const cs = Array.isArray(d.contracts) ? d.contracts.slice(0, 60).map(x => ({ id: String((x && x.id) || '').slice(0, 40), kind: String((x && x.kind) || '').slice(0, 12) })) : [];
+  const n = v => (typeof v === 'number' && isFinite(v)) ? v : 0;
+  const miss = {}; if (d.missing && typeof d.missing === 'object') Object.keys(d.missing).slice(0, 20).forEach(k => { miss[String(k).slice(0, 8)] = n(d.missing[k]); });
+  return { id: key, found: true, contracts: cs, amendments: n(d.amendments), paymentStepsWaiting: n(d.calloffs), sameCounterparty: n(d.party),
+    valueOnDependents: (typeof d.value === 'number' && isFinite(d.value)) ? d.value : null, valueLeftOut: miss, obligationsHeld: n(d.held),
+    note: 'Direct dependents only, read off the record. Not a transitive walk; archived and declined contracts are never counted.' };
+}
+const COPILOT_COUNTERPARTY_DESC = 'One counterparty read across the whole live book — how many contracts, their converted value and share of the book, what that total left out for want of a rate, rounds per deal from the negotiation record, promises met on time (met over answered), and the payment terms on paper (side, days, standard, how many over). Use it for "how much do we do with X", "what share of the book is X", "how hard is X to negotiate with", "does X pay on time" — and say plainly that on-time is about our own obligations record and payment terms are what the paper says, never what was invoiced.';
+/* A LOOKUP on ctx.graph.parties, keyed by the folded name; the reading is the
+   browser's graphPartyStats and the server computes nothing. */
+function copilotCounterparty(clientCtx, name) {
+  const key = String(name || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
+  const g = clientCtx && typeof clientCtx === 'object' ? clientCtx.graph : null;
+  const parties = g && typeof g === 'object' ? g.parties : null;
+  if (!parties || typeof parties !== 'object')
+    return { name: key, found: false, note: 'This reader\'s counterparty table was not sent with the question — say the figures are not available from here rather than estimating them.' };
+  let p = parties[key];
+  if (!p) { const k = Object.keys(parties).find(x => x.includes(key) || key.includes(x)); if (k) p = parties[k]; }
+  if (!p || typeof p !== 'object') return { name: key, found: false, available: Object.keys(parties).slice(0, 40) };
+  const n = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const miss = {}; if (p.missing && typeof p.missing === 'object') Object.keys(p.missing).slice(0, 20).forEach(k => { miss[String(k).slice(0, 8)] = n(p.missing[k]) || 0; });
+  const ot = p.onTime && typeof p.onTime === 'object' ? { met: n(p.onTime.met) || 0, answered: n(p.onTime.answered) || 0 } : { met: 0, answered: 0 };
+  const rounds = p.rounds && typeof p.rounds === 'object' ? { deals: n(p.rounds.deals) || 0, avg: n(p.rounds.avg) } : null;
+  const pay = p.pay && typeof p.pay === 'object' ? { side: String(p.pay.side || '').slice(0, 12), days: n(p.pay.days), standard: n(p.pay.standard), over: n(p.pay.over) || 0, n: n(p.pay.n) || 0 } : null;
+  return { name: String(p.name || key).slice(0, 120), found: true, contracts: n(p.contracts) || 0, valueInHomeCurrency: n(p.value), shareOfBook: n(p.share), valueLeftOut: miss, roundsPerDeal: rounds, promisesOnTime: ot, paymentTerms: pay,
+    note: 'Counted over the live book (not declined, not archived). Share is by converted value; on-time is met over answered and is a fraction, not a rate, below three answered; payment terms are what the paper says, not what was invoiced.' };
+}
 function copilotInsightsPanel(clientCtx, name) {
   const key = String(name || '');
   if (COPILOT_PANEL_NAMES.indexOf(key) < 0)
@@ -6080,6 +6122,10 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
   { name: 'get_insights_panel', description: COPILOT_PANEL_DESC,
     input_schema: { type: 'object', properties: { panel: { type: 'string', enum: COPILOT_PANEL_NAMES, description: 'Which panel. Stable English keys — never a translated title.' } }, required: ['panel'] } },
+  { name: 'get_dependents', description: COPILOT_DEPENDENTS_DESC,
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
+  { name: 'get_counterparty', description: COPILOT_COUNTERPARTY_DESC,
+    input_schema: { type: 'object', properties: { name: { type: 'string', description: 'The counterparty\'s name as it appears on the contracts.' } }, required: ['name'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -6108,6 +6154,8 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
     if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key, aux && aux.who);
     if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
+    if (name === 'get_dependents') return copilotDependents(aux && aux.clientCtx, a.id);
+    if (name === 'get_counterparty') return copilotCounterparty(aux && aux.clientCtx, a.name);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
@@ -6598,6 +6646,8 @@ function copilotProgressLabel(name, input) {
   if (name === 'compare_contracts') { const n = Array.isArray(a.ids) ? a.ids.length : 2; return `Comparing ${n} contracts…`; }
   if (name === 'check_against_playbook') return 'Checking the playbook…';
   if (name === 'get_insights_panel') return 'Reading the Insights panel…';
+  if (name === 'get_dependents') return 'Reading what depends on it…';
+  if (name === 'get_counterparty') return 'Reading the counterparty…';
   return 'Working…';
 }
 
@@ -10568,6 +10618,91 @@ async function runRenewalPrep() {
   return out;
 }
 app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(await runRenewalPrep()));
+/* ============================================================================
+   A12 — THE OVERNIGHT HALF: THE STANDARDS REVIEW IS RUN BEFORE ANYBODY ARRIVES
+   (WORKORDER-contract-graph-nodes.md Part B, 11 Sep 2026)
+   ============================================================================
+   The change funnel lives in the browser and this server must not grow a copy
+   of it, so overnight HaTi does the READING and none of the filing: for a
+   contract that arrived from the other side and has never been checked, it
+   runs the same deep-tier review the Playbook review panel runs
+   (aiPlaybookVerdicts — the route's own function, lifted for the same reason
+   the renewal advice was) and stores the verdicts as the ordinary playbook
+   record. The next morning "Prepare redlines" finds the review on file and
+   costs nothing; the review panel and Copilot's check_against_playbook read
+   the same record.
+
+   WHO QUALIFIES, and each refusal is counted by name: source 'upload' with a
+   counterparty named (paper the other side sent), not executed and not on the
+   shelf, no review on file, wording above the browser's own floor
+   (COPILOT_PB_TEXT_MIN mirrors PB_TEXT_MIN), and a workspace playbook to check
+   against — the server carries no copy of the browser's default book, so a
+   workspace that has never saved one is skipped and says so.
+
+   THE OWNER PAYS — the renewal prep's own rule, for its reason: a contract
+   with no owner is not prepared, because that would be exactly the
+   unattributed spend Young's ruling exists to prevent.
+
+   THE SAME SWITCH AND THE SAME CAP AS THE RENEWAL NOTES, said out loud rather
+   than mirrored: `aiRenewalPrep` is the one "HaTi spends while nobody is
+   watching" switch, and a second one would be two stops for one kind of
+   money. The cap bounds THIS sweep on its own — each of the two sweeps may
+   prepare up to the cap in one run — and the workspace's daily ceiling is
+   asked by hand before every call, because aiBudgetGuard is middleware and
+   this has no request.
+
+   THE RECORD IS THE DEDUPE. A review on file is what stops a second run, so a
+   failed call is retried tomorrow rather than marking anything done. It writes
+   the ordinary record fields through the row's json — c.playbook and one
+   'Playbook' audit line, which is what the review panel reads for "when" —
+   and never on an executed record, which is not a candidate anyway. */
+async function runPlaybookPrep() {
+  const out = { looked: 0, prepared: 0, skipped: {} };
+  if (!renewalPrepOn()) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const cap = renewalPrepMax();
+  const pb = workspacePlaybook();
+  const rows = db.prepare("SELECT id,json FROM contracts WHERE status!='Declined' AND is_upload=1").all();
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  for (const r of rows) {
+    if (out.prepared >= cap) { out.cap = true; break; }
+    let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
+    if (c.source !== 'upload' || !String(c.counterparty || '').trim()) continue;
+    if (c.archived) continue;
+    if (isExecutedRow(c)) { bump('executed'); continue; }
+    if (c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length) { bump('done'); continue; }
+    out.looked++;
+    const owner = c.owner && c.owner.id ? c.owner : null;
+    if (!owner) { bump('noOwner'); continue; }
+    const wording = copilotContractWording(c);
+    if (wording.length < COPILOT_PB_TEXT_MIN) { bump('noText'); continue; }
+    const pkey = pb ? copilotPlaybookKey(pb, c) : null;
+    const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
+    if (!resolved) { bump('noPlaybook'); continue; }
+    const ceiling = aiDailySpendLimit();
+    if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
+    try {
+      const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) },
+        { feature: 'playbook', who: { id: String(owner.id), name: owner.name || String(owner.id) } });
+      if (!res.ok || res.resp.truncated || !Array.isArray(res.verdicts)) { bump('failed'); continue; }
+      /* The record the review panel leaves, in the same shape, marked as
+         HaTi's own unattended work; re-read the row first so a save made
+         while the model was thinking is not overwritten. */
+      const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(r.id);
+      if (!fresh) { bump('failed'); continue; }
+      let cur = {}; try { cur = JSON.parse(fresh.json) || {}; } catch (_) { bump('failed'); continue; }
+      if (isExecutedRow(cur)) { bump('executed'); continue; }
+      cur.playbook = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
+      cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
+        detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
+      db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cur), r.id);
+      out.prepared++;
+    } catch (e) { bump('failed'); }
+  }
+  return out;
+}
+app.post('/api/playbook-prep/run', auth, admin, async (req, res) => res.json(await runPlaybookPrep()));
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -10628,6 +10763,20 @@ function reminderSweep() {
         .run('rp_' + rid(6), 'admin', 'Renewal notes were not prepared',
           `HaTi could not prepare renewal notes this cycle, so any agreement coming up for renewal will have no note waiting on it.\n\nReason: ${msg}`,
           'system', 'renewal prep failure', now());
+    } catch (_) {}
+  });
+  /* THE STANDARDS REVIEW ON INCOMING PAPER rides the same timer, under its OWN
+     catch and its own note — the fourth application of the M-6 lesson. Async
+     like the renewal prep, started and left to finish; its dedupe is the
+     record itself, so a second run on the same day costs nothing. */
+  Promise.resolve().then(runPlaybookPrep).catch(e => {
+    const msg = (e && e.message) || String(e);
+    console.warn('[playbook-prep] sweep failed, no standards reviews were prepared this cycle:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('pp_' + rid(6), 'admin', 'Standards reviews were not prepared',
+          `HaTi could not check incoming contracts against Our standards this cycle, so "Prepare redlines" will run the review itself when pressed.\n\nReason: ${msg}`,
+          'system', 'playbook prep failure', now());
     } catch (_) {}
   });
 }

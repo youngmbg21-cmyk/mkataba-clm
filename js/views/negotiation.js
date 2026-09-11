@@ -7975,7 +7975,15 @@ function renderRedline(){
     + (mayMenu
     ? `<button type="button" data-rl-memo${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_memo_title'))}"
-      ><span aria-hidden="true">&#9636;</span>${i18t('ng_memo')}</button>` : '');
+      ><span aria-hidden="true">&#9636;</span>${i18t('ng_memo')}</button>` : '')
+  /* ---- AND "PREPARE REDLINES", THE THIRD ROW (A12, 11 Sep 2026) ----
+     A job rather than an act, so it lives beside the playbook pass and the
+     memo and not on the head row. Same gate, and NOT DRAWN on an executed
+     contract — a verb that cannot work is not drawn; greyed, with the reason
+     on hover, where it can be known before the press: the counterparty
+     preview, wording frozen by a signature, or nothing readable to check (the
+     playbook runner's own floor, asked through playbookText). */
+    + (mayMenu && !(window.negoExecuted && negoExecuted(c)) ? rlPrepareRowHtml(c, preview) : '');
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -8342,6 +8350,10 @@ function renderRedline(){
      so every row is bound by the page that owns it. It takes no callback: the
      memo changes nothing, so there is nothing for the page to repaint after. */
   host.querySelector('[data-rl-memo]')?.addEventListener('click', () => openNegoMemo(c));
+  /* "Prepare redlines" repaints the column on the same beat the playbook pass
+     does — the cards arriving under Your drafts ARE the confirmation. */
+  host.querySelector('[data-rl-prepare]')?.addEventListener('click', () =>
+    rlPrepareRedlines(c, () => renderRedline()));
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -11894,11 +11906,162 @@ const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', dr
 function rlPbWordingLabel(kind){
   return i18t(RL_PB_WORDING_KEY[kind] || RL_PB_WORDING_KEY.standard);
 }
+/* ============================================================================
+   A12 — "PREPARE REDLINES": COPILOT PRE-WRITES THE REDLINES ON INCOMING PAPER
+   (owner's work order, WORKORDER-contract-graph-nodes.md Part B, 11 Sep 2026)
+   ============================================================================
+   One press runs the playbook review HaTi already has and files every
+   proposed wording as a draft of OURS, unsent, one card each. The person then
+   sends, edits or retracts each draft exactly as they do today.
+
+   IT IS NOT A SECOND READING AND NOT A SECOND FILING PATH. The review is
+   runPlaybookReview, the proposals are rlPlaybookProposals, and every filing
+   goes through rlFilePlaybookProposal — the door the review window and the
+   clause editor's scan rail already share — which routes an EDIT landing
+   through negoEditClause, an ADD landing through negoAddNamedClause (the
+   wall against a clause already on the table or in the agreement), and
+   refuses an UNPLACED one. So the desk rule, the review gate, the frozen-
+   wording rule, the duplicate wall and the no-op guard all apply without
+   being repeated here, and a second press files nothing new BECAUSE of those
+   walls rather than because this code pre-filtered.
+
+   WHICH WORDING: the same choice the review window's lead button makes — the
+   library's preferred wording where the position has one, otherwise
+   Copilot's fitted draft. NEVER THE FALLBACK: a fallback is a line the
+   company retreats to on purpose, and filing it unasked would concede a
+   position nobody had decided to concede. A proposal carrying only a
+   fallback is counted and left for the reader.
+
+   NOTHING IS SENT. turnAt is not touched, the postbox is not pressed, no
+   round is published. The drafts land under "Your drafts" with Send / Edit /
+   Retract. f295 greps this function for every send verb.
+
+   IT ASKS BEFORE IT SPENDS, and the sentence names the cost — one deep
+   Copilot call — or says the review is already on file and the press costs
+   nothing (the overnight half runs the review server-side; the next morning
+   this finds it). Refusing writes nothing. */
+const _rlSameWords = (a, b) => String(a || '').replace(/\s+/g, ' ').trim() === String(b || '').replace(/\s+/g, ' ').trim();
+function rlPrepareRowHtml(c, preview){
+  const frozen = !!(window.negoWordingFrozen && negoWordingFrozen(c));
+  /* A LIGHT ROW IS NOT AN EMPTY ONE. In server mode the list strips an upload's
+     extracted text, and this page does not load the full record on arrival —
+     so a row read here would grey a perfectly readable contract. Unknown is
+     not "nothing": the row draws live, the press loads the record, and the
+     runner refuses in words if it really is empty. */
+  const light = !!(c._light && !c._loaded);
+  const readable = light || !window.playbookText || String(playbookText(c) || '').length >= (window.PB_TEXT_MIN || 120);
+  const dead = preview ? 'ng_preview_dead' : frozen ? 'ng_prepare_dead_frozen' : !readable ? 'ng_prepare_dead_unreadable' : null;
+  return `<button type="button" data-rl-prepare${dead ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+        title="${_nea(i18t(dead || 'ng_prepare_title'))}"
+      ><span aria-hidden="true">&#9998;</span>${i18t('ng_prepare')}</button>`;
+}
+async function rlPrepareRedlines(c, again){
+  if (!window.runPlaybookReview || !window.confirmDialog || !window.rlPlaybookProposals){
+    if (window.toast) toast(i18t('ng_playbook_not_loaded'), 'err');
+    return null;
+  }
+  /* NEVER ON AN EXECUTED CONTRACT, whatever drew the row. */
+  if (window.negoExecuted && negoExecuted(c)) return null;
+  const stored = !!(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length);
+  const go = await confirmDialog({ title: i18t('ng_prepare'),
+    message: i18t(stored ? 'ng_prepare_ask_stored' : 'ng_prepare_ask'),
+    confirmLabel: i18t('ng_prepare_go') });
+  if (!go) return null;
+  /* THE WHOLE RECORD, never a light row: the runner reads an upload's extracted
+     text and a light row does not carry it — and nothing is ever saved from a
+     light record (persist's own rule). */
+  if (window.ensureFull){ try{ await ensureFull(c); }catch(_){} }
+  /* THE REVIEW IS THE EXISTING ONE — and the one already on file where there
+     is one, which is what makes the overnight half worth having. */
+  let rev = stored ? c.playbook : null;
+  if (!rev){
+    let err = null;
+    try{ rev = await runPlaybookReview(c); }catch(e){ err = e; }
+    if (err || !rev || !Array.isArray(rev.verdicts)){
+      if (window.toast) toast(i18t('ng_review_failed') + ((err && err.message) || 'no usable result'), 'err');
+      return null;
+    }
+    c.playbook = rev;
+    if (window.logAudit) logAudit(c, 'Playbook',
+      `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
+  }
+  const items = rlPlaybookProposals(c, rev);
+  const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0 };
+  if (!items.length){
+    const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
+    if (window.toast) toast(aligned === rev.verdicts.length ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
+      aligned === rev.verdicts.length ? 'ok' : 'warn');
+    if (window.persist) persist(c);
+    if (again) again();
+    return n;
+  }
+  for (const it of items){
+    if (it.landing === 'unplaced'){ n.unplaced++; continue; }
+    const words = String(it.preferred || it.draft || '').trim();   // NEVER it.fallback
+    if (!words){ n.fallback++; continue; }
+    /* RECORD IT — the same entry the clause editor's scan rail writes at ITS
+       press, so the acceptance metrics count what became of these. The draft
+       is what Copilot proposed; where the library's own wording is filed
+       instead, the draft is recorded as not taken. */
+    if (it.draft && window.aiTraceNote){
+      try{
+        const tr = aiTraceNote(c, { feature: 'playbook', kind: 'wording',
+          clauseId: it.clauseId || null,
+          clauseLabel: it.clauseLabel || (it.v && it.v.category) || '',
+          what: it.draft, rested: (it.v && it.v.category) || '',
+          /* THE HASH GOES ON BEFORE THE FILING, for an edit as for an add:
+             this press files straight through the funnel, so the settle that
+             marks the draft as-is or edited has to find a hash already on the
+             entry. (The scan rail fills a box first and hashes at apply.) */
+          hash: (!it.preferred && window.aiTraceHash) ? aiTraceHash(words) : null });
+        if (it.preferred && window.aiTraceRefuse) aiTraceRefuse(c, tr, i18t('ce_trace_used_ours'));
+      }catch(_){}
+    }
+    const bag = { quiet: true };
+    let ch = null;
+    try{ ch = await rlFilePlaybookProposal(c, it, words, bag); }
+    catch(_){ n.refused++; continue; }
+    if (ch){ n.filed++; continue; }
+    /* WHY NOT, read AFTER the wall answered — never a pre-filter. A named
+       clause already here is the duplicate wall's own refusal; an edit whose
+       wording the clause already carries, or that a pending draft of ours
+       already proposes, is the funnel's own "nothing changed". Anything else
+       is a rule refusing (the desk, a frozen clause) and is counted as such. */
+    const already = it.clauseId && (_rlSameWords(words, it.oldText)
+      || (c.changes || []).some(x => x && x.clauseId === it.clauseId && x.status === 'pending'
+        && x.authorSide === 'owner' && !x.withdrawn && _rlSameWords(x.newText, words)));
+    if (bag.refused || already) n.here++;
+    else n.refused++;
+  }
+  if (window.aiTraceSave) aiTraceSave(c);
+  if (window.logAudit) logAudit(c, 'Playbook',
+    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only`);
+  if (window.persist) persist(c);
+  /* SAY WHAT HAPPENED, ONCE. One 'ok' line with the counts; nothing filed is a
+     'warn' that says why. No band, no strip — the column repainting is the
+     confirmation. A count of zero is left off the line: a sentence listing
+     four zeros is furniture. */
+  const parts = [];
+  if (n.here) parts.push(i18t('ng_prepare_here', { n: n.here }));
+  if (n.unplaced) parts.push(i18t('ng_prepare_unplaced', { n: n.unplaced }));
+  if (n.refused) parts.push(i18t('ng_prepare_refused', { n: n.refused }));
+  if (n.fallback) parts.push(i18t('ng_prepare_fallback', { n: n.fallback }));
+  if (window.toast){
+    if (n.filed) toast(i18tn('ng_prepare_filed', n.filed, { n: n.filed }) + (parts.length ? ' · ' + parts.join(' · ') : ''), 'ok');
+    else toast(i18t('ng_prepare_none') + ' ' + parts.join(' · '), 'warn');
+  }
+  if (again) again();
+  return n;
+}
 /* File one proposal. A located clause is a modify through negoEditClause —
    merged into the clause's own markup — and a missing position is an insert
    at the end, both wearing a note that names the playbook position they
    enforce. The same verbs a person's own edit uses; nothing new to audit. */
-async function rlFilePlaybookProposal(c, item, wording){
+async function rlFilePlaybookProposal(c, item, wording, opts){
+  /* `opts` is ADDITIVE (A12, 11 Sep 2026): a batch caller passes `quiet` so
+     one press does not raise one red box per refused proposal, and reads the
+     refusal back off `opts.refused`. Every caller written before passes
+     nothing and behaves exactly as it did. */
   const words = String(wording == null ? '' : wording).trim();
   if (!words) return null;
   /* THE WALL, not a decision about pixels. A deviation nobody could place has
@@ -11977,7 +12140,10 @@ async function rlFilePlaybookProposal(c, item, wording){
     const ch = add
       ? await add(c, { headingText: heading, bodyHtml: body, afterClauseId: after }, bag)
       : await negoInsertClause(c, after, { headingText: heading, bodyHtml: body }, bag);
-    if (!ch && bag.refused && window.toast) toast(bag.refused.message, 'err');
+    if (!ch && bag.refused){
+      if (opts && typeof opts === 'object') opts.refused = bag.refused;
+      if (!(opts && opts.quiet) && window.toast) toast(bag.refused.message, 'err');
+    }
     return ch;
   }
   return null;
@@ -16402,6 +16568,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
+  rlPrepareRedlines, rlPrepareRowHtml,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,

@@ -4923,12 +4923,32 @@
   .ig-link{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.55;transition:stroke var(--dur-1),opacity var(--dur-1),stroke-width var(--dur-1)}
   .ig-link.hi{stroke:var(--color-accent);opacity:1;stroke-width:2.2}
   .ig-link.dim{opacity:.08}
+  /* A-2: the record's own links wear their kind. Family solid in the accent,
+     chain dashed, party the quiet neutral of a group line. The hover rules
+     above still win on .hi/.dim — a link's kind is not its focus state. */
+  .ig-link-family{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8}
+  .ig-link-chain{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8;stroke-dasharray:5 4}
+  .ig-link-party{stroke:var(--color-neutral-400)}
+  /* The legend folded to its head (11 Sep 2026): everything under the head row
+     goes, the head stays as the way back. */
+  #ig-legend.is-folded > :not([data-ig-legend-head]){display:none}
+  #ig-legend.is-folded > [data-ig-legend-head]{margin-bottom:0}
   .ig-node{cursor:pointer}
   .ig-chip{stroke:var(--color-divider);stroke-width:1.4;filter:drop-shadow(0 3px 8px rgba(43,43,45,.08));transition:stroke var(--dur-1),filter var(--dur-1)}
   .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}
   .ig-node.dim{opacity:.22;transition:opacity var(--dur-1)}
   .ig-lab{pointer-events:none;font-size:var(--t-meta);font-family:var(--font-body)}
   .ig-sub{pointer-events:none;font-size:var(--t-figure);font-family:var(--font-mono)}
+  /* A-1: the node's third line and its hover card. A node Copilot has not read
+     is faded — the chip alone, so its facts still read. The hover card is the
+     explain card's own rows beside the node; it takes no pointer, so the node
+     under it keeps its hover and its press. */
+  .ig-facts{pointer-events:none;font-size:var(--t-figure);font-family:var(--font-body)}
+  .ig-node.unread .ig-chip{opacity:.55}
+  /* A-4: a contract whose renewal decision is on or before the scrubber's cutoff. */
+  .ig-node.passed{opacity:.3;transition:opacity var(--dur-1)}
+  .ig-hover{position:absolute;width:240px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;box-shadow:0 8px 24px -14px rgba(43,43,45,.35);pointer-events:none;z-index:3}
+  .ig-hover[hidden]{display:none}
   .ig-node.mut{opacity:.28;transition:opacity var(--dur-1)}
   .ig-node.hit .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 0 7px rgba(89,128,166,.4)) drop-shadow(0 3px 8px rgba(43,43,45,.08))}
   .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:var(--w-title);font-family:var(--font-mono)}

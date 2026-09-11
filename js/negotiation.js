@@ -1518,6 +1518,20 @@ async function negoFileChange(c, draft, opts = {}){
         ? `${negoSummariseOps(draft.changeType, ops, oldText, newText)}; heading ${headLine}`
         : negoSummariseOps(draft.changeType, ops, oldText, newText));
 
+  /* ---- A REVISION THAT PROPOSES WHAT THE DRAFT ALREADY PROPOSES IS NOTHING
+     (A12, 11 Sep 2026) ----
+     The no-op guard above measures against the clause AS IT STANDS, so filing
+     the very wording a pending draft of ours already carries used to pass it
+     and fold as a revision — a revisions[] entry identical to the draft it
+     revises, a new fingerprint over the same words, and nothing on the column
+     any different. "Prepare redlines" pressed twice met exactly that, and the
+     guard belongs here rather than in that caller for the reason every guard
+     in this function is here: the review window's own button and the clause
+     editor's Copilot card reach the same fold. Same words, same markup where
+     any was supplied, and a heading that does not move: nothing changed. */
+  if (live && String(live.newText || '') === String(newText || '')
+    && (draft.bodyHtml == null || String(live.bodyHtml || '') === String(draft.bodyHtml))
+    && (headingText == null || String(live.headingText || '') === String(headingText))) return null;
   if (live){
     /* A revision: same slot, new content, new link in the chain. The previous
        wording is pushed onto revisions[] with its hash intact, which is what
