@@ -165,7 +165,11 @@ describe('f294 — the drawing, the legend and the words', () => {
   });
   test('the hub reads the reading once, in the model — one reading, no second side beside the payment terms tab', () => {
     const src = IG;
-    assert.equal((src.match(/graphStreamFlow\(/g) || []).length, 2, 'declared once, asked once (in buildGraphModel)');
+    /* Re-pointed 11 Sep 2026 (C-1): a second, NAMED reader — graphCopilotContext
+       rides the same flow to the full Copilot as ctx.graph.streams. Still one
+       reading; the callers are named so a fourth cannot arrive unseen. */
+    assert.equal((src.match(/graphStreamFlow\(/g) || []).length, 3, 'declared once, asked twice (buildGraphModel, graphCopilotContext)');
+    assert.ok(/graphStreamFlow\(cs\)/.test(bodyOf(src, 'buildGraphModel')) && /graphStreamFlow\(\)/.test(bodyOf(src, 'graphCopilotContext')));
     assert.ok(!/category==='customer'|category==='supplier'/.test(bodyOf(src, 'graphStreamFlow')));
   });
   test('every word is in both languages', () => {

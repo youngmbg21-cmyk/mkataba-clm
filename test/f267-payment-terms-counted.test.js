@@ -717,19 +717,23 @@ describe('f267 (14) the chart names its boundary, and the graph can group by ter
   });
 
   test('payment terms is a group in the graph, and it borrows the tab\'s own bands', () => {
-    assert.match(INTEL, /\['payterms','Payment terms'\]/, 'it is on the dropdown');
+    /* Re-pointed 11 Sep 2026 (C-1): the dropdown reads the ONE grouping list. */
+    assert.match(INTEL, /k:'payterms',\s*label:'Payment terms'/, 'it is on the dropdown');
+    assert.match(INTEL, /const groupOpts=GRAPH_GROUPINGS\.map/, 'and the dropdown draws that list');
     assert.match(INTEL, /case 'payterms': \{/, 'and the label reader answers for it');
     assert.match(INTEL, /payBucketOf\(dd\)/, 'the bands are the payment terms tab\'s own');
     assert.match(INTEL, /return 'No payment terms'/, 'and an unread contract is its own group');
   });
 
   test('both doors onto the grouping learned it, so the dropdown and Copilot agree', () => {
-    assert.match(INTEL, /has\('by payment terms'/, 'the phrase router');
-    assert.match(INTEL, /payterms:'payment terms'/, 'and the "grouped by" line names it');
+    /* Re-pointed 11 Sep 2026 (C-1): the phrase router is the cue table, and the
+       "grouped by" line reads the list's own word. */
+    assert.match(INTEL, /\['payterms',\s*\[[^\]]*'by payment terms'/, 'the phrase router');
+    assert.match(INTEL, /graphGroupingWord\(intel\.groupBy\)/, 'and the "grouped by" line names it');
   });
 
   test('the group is a reading, not a second parser', () => {
-    const cs = INTEL.slice(INTEL.indexOf("case 'payterms': {"), INTEL.indexOf("case 'source':"));
+    const cs = INTEL.slice(INTEL.indexOf("case 'payterms': {"), INTEL.indexOf("case 'decision':"));
     assert.ok(!/match\(|replace\(|parseInt|Number\(/.test(cs), 'it asks payDays and nothing else');
   });
 });

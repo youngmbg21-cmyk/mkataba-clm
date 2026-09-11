@@ -492,6 +492,40 @@ function graphStreamLines(S){
   L.push({ text:`${i18t('int_flow_net')} ${sign}${fmtMoneyShort(Math.abs(S.net))} · ${i18t('int_flow_on_paper')}`, fill:S.net>0?'var(--st-green-dot)':S.net<0?'var(--st-ruby-dot)':'var(--color-accent-200)' });
   return L;
 }
+/* ============================================================
+   C-1 · THE FULL COPILOT GETS THE GRAPH'S OTHER READINGS (ruling 7)
+   ============================================================
+   ctx.graph already carries links (A-2) and parties (A-3). This adds the
+   streams (graphStreamFlow's per-folder in/out/net/missing), the cliff (the
+   decision quarters and their counts, crowded ones named), the facts (each
+   node's A-1 facts, only for nodes with something to say, capped and the cap
+   counted), and the lenses in force — so "of those" works in a typed
+   question. Every figure is the reading's own; the server never recomputes
+   any of it and clamps each field as pageSays does (f299 pins both hosts say
+   the same sentence). Money obeys canViewValues by construction: the stream
+   flow and the overdue value are read through readings that already ask. */
+const GRAPH_CTX_FACTS_MAX=200;
+function graphCliffQuarters(cs){
+  const hubMap={};
+  (cs||state.contracts||[]).forEach(c=>{ const g=graphDecisionOf(c).label; (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
+  const hubs=Object.values(hubMap), crowded=graphCliffCrowded(hubs);
+  return hubs.map(h=>({ label:h.label, n:h.ids.length, crowded:crowded.has(h.label) })).sort((a,b)=>graphDecisionOrder(a.label)-graphDecisionOrder(b.label));
+}
+function graphCopilotContext(){
+  const out={};
+  try{ const flow=graphStreamFlow(); const streams={};
+    Object.values(flow).forEach(S=>{ streams[S.folder]={ name:FOLDERS[S.folder]?.name||'Other', n:S.n, in:S.in, out:S.out, net:S.net, missing:S.missing, unsided:S.unsided, sided:S.sided }; });
+    if(Object.keys(streams).length) out.streams=streams; }catch(_){}
+  try{ const cliff=graphCliffQuarters(); if(cliff.length) out.cliff=cliff; }catch(_){}
+  try{ const facts={}; let n=0, omitted=0;
+    (state.contracts||[]).forEach(c=>{ if(!graphLiveContract(c)) return; const f=graphNodeFacts(c);
+      if(f.decideDays==null&&!f.whose&&!f.overdue&&f.offStandard==null&&!f.unread) return;
+      if(n>=GRAPH_CTX_FACTS_MAX){ omitted++; return; } n++;
+      facts[c.id]={ decideDays:f.decideDays, missed:f.missed, whose:f.whose, overdue:f.overdue, overdueValue:f.overdueValue, offStandard:f.offStandard, unread:f.unread }; });
+    if(n){ out.facts=facts; if(omitted) out.factsOmitted=omitted; } }catch(_){}
+  try{ const lenses=graphLensesNow(); if(lenses.length) out.lenses=lenses; }catch(_){}
+  return Object.keys(out).length?out:null;
+}
 /* Link width from value: bounded, sqrt of the share of the largest, so one
    giant contract does not make every other link a hairline. */
 const GRAPH_LINK_W_MIN=1.5, GRAPH_LINK_W_MAX=9;
@@ -549,6 +583,54 @@ window.intelRAF = 0;   // animation token
 const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
 function valueBand(v){ v=Number(v||0); const c=jxCurrency(); if(!v) return 'Non-monetary'; if(v>=50e6) return `≥ ${c} 50M`; if(v>=10e6) return `${c} 10–50M`; if(v>=1e6) return `${c} 1–10M`; return `< ${c} 1M`; }
+/* ============================================================
+   C-1 · THE GROUPING MENU IS ONE LIST (owner-reported 11 Sep 2026)
+   ============================================================
+   "cluster by expiration date" was answered with a caption saying so while
+   every node stayed on its value-stream hub: the map Copilot's tool could
+   only NAME six groupings, the dropdown drew ten, and faced with a dimension
+   it could not name the model answered `custom` with an empty map, which the
+   page took on trust. THIS LIST is the one statement of what the map can
+   group by: the dropdown draws it, groupLabelOf cuts every key on it, the
+   built-in interpreter's cues name keys on it, the caption reads its word,
+   the refusal quotes it, and the SERVER's tool enum MIRRORS it (f299 pins the
+   two equal as a set — the IG_TABS rule applied to groupings). A grouping is
+   added HERE and cut in groupLabelOf; nowhere else.
+   `none` is the bucket a contract with no such fact lands in — named, never
+   folded into a neighbour — so the composed answer can say "14 in No expiry
+   set" off the built model. Labels are English literals like every other
+   group on this graph. THE BUCKETS ARE HATI'S, NEVER COPILOT'S: the model
+   names the dimension and the product cuts it.
+   The four time groupings each read ONE existing reading — contractSignedAt
+   (the one reading of when a contract was signed), effectiveExpiry, and
+   repRaisedAt (the `_raisedAt` transport the light list carries, else the
+   trail's first Created line) — never a second arithmetic. */
+const GRAPH_GROUPINGS=[
+  { k:'folder',        label:'Value stream',     none:null },
+  { k:'counterparty',  label:'Customer',         none:'No counterparty' },
+  { k:'status',        label:'Status',           none:null },
+  { k:'valueBand',     label:'Value',            none:'Non-monetary' },
+  { k:'kind',          label:'Type',             none:null },
+  { k:'expiry',        label:'Expiry window',    none:'No expiry set' },
+  { k:'payterms',      label:'Payment terms',    none:'No payment terms' },
+  { k:'decision',      label:'Renewal decision', none:'No decision date' },
+  { k:'risk',          label:'Risk',             none:'Not scanned' },
+  { k:'source',        label:'Origin',           none:null },
+  { k:'signedYear',    label:'Signed year',      none:'Not signed' },
+  { k:'signedQuarter', label:'Signed quarter',   none:'Not signed' },
+  { k:'expiryYear',    label:'Expiry year',      none:'No expiry set' },
+  { k:'createdMonth',  label:'Created month',    none:'No created date' },
+];
+const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
+const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
+/* The caption's word for a grouping — the dropdown's own label, lower-cased,
+   so the control and the note line cannot name one cut two ways. */
+const graphGroupingWord=k=>k==='custom'?'Copilot grouping':((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
+const GRAPH_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const _gSignedDay=c=>{ try{ return (typeof contractSignedAt==='function')?(contractSignedAt(c)||null):null; }catch(_){ return null; } };
+const _gExpiryDay=c=>{ const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry); return e?String(e).slice(0,10):null; };
+const _gCreatedDay=c=>{ try{ if(typeof repRaisedAt!=='function') return null; const t=repRaisedAt(c); if(t==null||isNaN(t)) return null; const d=new Date(t); return isNaN(d.getTime())?null:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }catch(_){ return null; } };
+const _gQuarterOfDay=d=>`Q${Math.floor((Number(d.slice(5,7))-1)/3)+1} ${d.slice(0,4)}`;
 function groupLabelOf(c, groupBy, override){
   if(override && override[c.id]) return override[c.id];
   switch(groupBy){
@@ -557,8 +639,8 @@ function groupLabelOf(c, groupBy, override){
     case 'valueBand': return valueBand(c.value);
     case 'kind': return cKind(c);
     case 'expiry': {
-      const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry);
-      const d=e?daysUntil(String(e).slice(0,10)):null;
+      const e=_gExpiryDay(c);
+      const d=e?daysUntil(e):null;
       if(d==null||isNaN(d)) return 'No expiry set';
       if(d<0) return 'Expired';
       if(d<=30) return 'Within 30 days';
@@ -586,6 +668,13 @@ function groupLabelOf(c, groupBy, override){
        off renewalDecisionDate — the renewal card's and the reminder sweep's
        own reading. A contract with no readable date is its own group. */
     case 'decision': return graphDecisionOf(c).label;
+    /* C-1: three time groupings the dropdown did not have, plus created
+       month. Each is ONE existing reading; a contract with no such date is its
+       own named bucket. */
+    case 'signedYear': { const d=_gSignedDay(c); return d?d.slice(0,4):'Not signed'; }
+    case 'signedQuarter': { const d=_gSignedDay(c); return d?_gQuarterOfDay(d):'Not signed'; }
+    case 'expiryYear': { const e=_gExpiryDay(c); return (e&&/^\d{4}/.test(e))?e.slice(0,4):'No expiry set'; }
+    case 'createdMonth': { const d=_gCreatedDay(c); return d?`${GRAPH_MONTHS[Number(d.slice(5,7))-1]} ${d.slice(0,4)}`:'No created date'; }
     case 'source': return c.source==='upload'?'Uploaded paper'
       :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
@@ -628,6 +717,33 @@ function parseHorizonDays(q){
   if(q.includes('this year')){ const end=new Date(new Date().getFullYear(),11,31); return Math.max(0,Math.ceil((end-Date.now())/86400000)); }
   return null;
 }
+/* THE CUES THAT NAME A GROUPING, in the order they are asked: the more
+   specific phrase first, so "by expiry year" is the year and not the window,
+   "by quarter signed" the signing quarter and not the renewal cliff, "by
+   value stream" the stream and not the value band. Every key here is on
+   GRAPH_GROUPINGS (f299 pins it); a cue for a key the map cannot cut would be
+   a promise the map cannot keep. */
+const GRAPH_GROUP_CUES=[
+  ['expiryYear',   ['by expiry year','by expiration year','by year of expiry','by year of expiration','by year they expire','by year they end','by the year they expire']],
+  ['signedQuarter',['by signed quarter','by quarter signed','by quarter they were signed','by signing quarter','by quarter of signing','when they were signed','by signature date','by signing date','by date signed','by date they were signed','by when signed']],
+  ['signedYear',   ['by signed year','by year signed','by year they were signed','by signing year','by year of signature','by year of signing']],
+  ['createdMonth', ['by created month','by month created','by month they were created','by creation month','by month of creation','when they were created','by creation date','by date created','by date raised','by month raised']],
+  ['counterparty', ['by customer','by counterpart','by party','per customer','by client','by supplier','by vendor']],
+  ['folder',       ['by folder','by function','by value stream','by category','by department','by stream']],
+  ['status',       ['by status','by stage','by lifecycle']],
+  ['valueBand',    ['by value','by size','by amount','by exposure']],
+  ['kind',         ['by type','by kind','by contract type']],
+  ['payterms',     ['by payment terms','by payment term','by terms of payment','by credit terms']],
+  ['decision',     ['by renewal decision','by decision date','by renewal date','renewal cliff','by quarter']],
+  ['expiry',       ['by expiry','by expiration','by expire','by end date','by when they expire','by when they end','by time left','by time remaining','by remaining term']],
+  ['risk',         ['by risk']],
+  ['source',       ['by origin','by source','uploaded vs','by where they came from','by how they were made']],
+];
+function graphGroupCue(q){
+  const s=String(q||'').toLowerCase();
+  const hit=GRAPH_GROUP_CUES.find(([,cues])=>cues.some(x=>s.includes(x)));
+  return hit?hit[0]:null;
+}
 function graphInterpret(qRaw){
   const q=(qRaw||'').toLowerCase().trim();
   const act=intelActive();
@@ -639,17 +755,18 @@ function graphInterpret(qRaw){
   const questionish=/^(which|what|who|how|are|is|do|does)\b/.test(q)||q.includes('?');
   const mode=has('only','show ','filter','display')&&!questionish?'filter':(questionish?'highlight':'filter');
   let groupBy=null, vis=null, note='', badges=null, action=mode;
-  // grouping intent
-  if(has('by customer','by counterpart','by party','per customer','by client')) groupBy='counterparty';
-  else if(has('by folder','by function','by value stream','by category','by department')) groupBy='folder';
-  else if(has('by status','by stage','by lifecycle')) groupBy='status';
-  else if(has('by value','by size','by amount','by exposure')) groupBy='valueBand';
-  else if(has('by type','by kind','by contract type')) groupBy='kind';
-  else if(has('by payment terms','by payment term','by terms of payment','by credit terms')) groupBy='payterms';
-  else if(has('by renewal decision','by decision date','by renewal date','renewal cliff','by quarter')) groupBy='decision';
+  // grouping intent — the cue table names keys on GRAPH_GROUPINGS and nothing else
+  groupBy=graphGroupCue(q);
+  /* A PURE GROUPING ASK IS NOT A FILTER: "cluster by expiration date" carries
+     the word "expir" and used to fall into the expiring-soon filter as well,
+     so the map narrowed to ninety days while the caption said it had grouped.
+     A command that opens with a grouping verb and names a dimension is the
+     grouping alone. */
+  const pureGroup=!!groupBy && /^(group|cluster|regroup|arrange|organi[sz]e|sort|split|break|bucket|lay)\b/.test(q) && !has('only','show ','filter','highlight','hide');
   // filter intent
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
-  if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
+  if(pureGroup){ /* nothing narrows */ }
+  else if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
     const horizon=parseHorizonDays(q)??90;
     vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&!c.archived&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
     note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
@@ -672,8 +789,11 @@ function graphInterpret(qRaw){
     else { const f=Object.values(FOLDERS).find(f=>{ const kw=f.name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>4); return kw.some(w=>q.includes(w)); });
       if(f){ vis=cs.filter(c=>c.folder===f.id); note=f.name; } }
   }
+  /* A grouping's sentence is COMPOSED by intelGraphApply off the built model,
+     so the fallback says nothing of its own there; the filter sentence keeps
+     its "Largest:" line, which the numbers do not say. */
   const answer = vis===null
-    ? (groupBy?'Regrouped the graph.':'I could not match that to a filter — try a contract type, status, counterparty or expiry horizon.')
+    ? (groupBy?'':'I could not match that to a filter — try a contract type, status, counterparty or expiry horizon.')
     : (vis.length
       ? `${vis.length} contract${vis.length===1?'':'s'} match${vis.length===1?'es':''} (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
       : `No contracts match (${note}).`);
@@ -716,15 +836,111 @@ async function intelAsk(qRaw){
   rebuildIntelGraph(); renderIntelDock();
 }
 
+/* ============================================================
+   C-1 · THE CARD CARRIES EVERY FACT THE MAP DRAWS (11 Sep 2026)
+   ============================================================
+   The per-contract card sent to /api/ai/graph used to carry eight fields —
+   no signed date, no created date, no decision date — which is why "cluster
+   by when they were signed" was excused with "I don't have those dates".
+   EVERY VALUE HERE IS BORROWED from the reading the graph already draws
+   (A-1's graphNodeFacts, the pay-terms tab's payDays, the family's
+   effectiveExpiry, the register's negWhoseMove) — never a second arithmetic,
+   and the same card is what `where` is applied to, so what travels and what
+   is filtered are one reading. Money obeys canViewValues here, and the
+   server strips it again on its own reading (scopeAiPortfolio — THE SERVER
+   IS THE WALL). WORDING IS NEVER SENT for a map command: grouping needs
+   none, and the full Copilot reads it on demand through get_contract.
+   READING MUST NOT WRITE: c.changes and c.obligations are read raw through
+   readings that read them raw. */
+const GRAPH_ASK_CAP=600;                       // contracts per map command — a cap is a fact, and the answer says it
+function graphNextDue(c){
+  let best=null;
+  (c.obligations||[]).forEach(o=>{ if(!o) return; if((typeof obState==='function'?obState(o):o.status)==='done') return;
+    if(typeof obligationBlocked==='function'&&obligationBlocked(o,c)) return;
+    const d=(typeof obligationDue==='function')?obligationDue(o):(o.due||null); if(!d) return;
+    const s=String(d).slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return;
+    if(best===null||s<best) best=s; });
+  return best;
+}
+function graphCopilotCard(c){
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const f=graphNodeFacts(c);
+  const m=(c&&c.metadata&&typeof c.metadata==='object')?c.metadata:{};
+  const dec=(typeof renewalDecisionDate==='function')?renewalDecisionDate(c):null;
+  const pay=(typeof payDays==='function')?payDays(c):null;
+  let move=null; try{ if(typeof negWhoseMove==='function'){ const w=negWhoseMove(c); move=(w&&w.k)||null; } }catch(_){}
+  let live=null; try{ if(typeof negoIsLive==='function') live=!!negoIsLive(c); }catch(_){}
+  const card={ id:c.id, name:c.name, counterparty:c.counterparty||'', folder:FOLDERS[c.folder]?.name||'', kind:cKind(c), status:c.status||'',
+    currency:(typeof contractCurrency==='function')?contractCurrency(c):'',
+    expiry:_gExpiryDay(c)||'', signedAt:_gSignedDay(c)||'', createdAt:_gCreatedDay(c)||'',
+    decisionDate:dec?String(dec).slice(0,10):'', noticeDays:(m.noticePeriodDays!=null&&m.noticePeriodDays!=='')?Number(m.noticePeriodDays):null, effDate:m.effectiveDate?String(m.effectiveDate).slice(0,10):'',
+    payTermsDays:(pay==null||isNaN(pay))?null:Number(pay),
+    parentId:c.parentId||'', relation:c.relation||'',
+    move, live, overdue:f.overdue, nextDue:graphNextDue(c)||'',
+    offStandard:f.offStandard, risk:c.scan?riskScore(c):null, read:(f.unread==null)?null:!f.unread,
+    archived:!!c.archived, source:c.source||'' };
+  if(money) card.value=Number(c.value||0);
+  return card;
+}
+/* FILTERS ARE FIELDS, NOT ID LISTS (ruling 4): the tool hands back a
+   structured `where` and HaTi applies it over its own cards, so a
+   159-contract book does not depend on the model copying ids by hand. Every
+   condition reads the card the model was sent; a card carrying no value never
+   matches a money cut (an absence is stated, not guessed). Returns null where
+   nothing in `where` narrows. */
+const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived'];
+function graphWhereIds(where){
+  if(!where||typeof where!=='object') return null;
+  const w={}; GRAPH_WHERE_KEYS.forEach(k=>{ const v=where[k]; if(v==null||v===''||(Array.isArray(v)&&!v.length)) return; w[k]=v; });
+  if(!Object.keys(w).length) return null;
+  const fold=s=>String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const list=v=>(Array.isArray(v)?v:[v]).map(fold).filter(Boolean);
+  const hit=k=>{
+    if(w.status!=null && !list(w.status).includes(fold(k.status))) return false;
+    if(w.folder!=null){ const want=list(w.folder); const f=fold(k.folder); const id=fold((Object.values(FOLDERS).find(x=>fold(x.name)===f)||{}).id); if(!want.some(x=>x===f||x===id||f.includes(x))) return false; }
+    if(w.kind!=null && !list(w.kind).some(x=>fold(k.kind).includes(x))) return false;
+    if(w.counterparty!=null && !list(w.counterparty).some(x=>fold(k.counterparty).includes(x))) return false;
+    if(w.valueAbove!=null){ if(typeof k.value!=='number'||!(k.value>=Number(w.valueAbove))) return false; }
+    if(w.valueBelow!=null){ if(typeof k.value!=='number'||!(k.value<=Number(w.valueBelow))) return false; }
+    if(w.expiringWithinDays!=null){ if(!k.expiry) return false; const d=daysUntil(k.expiry); if(isNaN(d)||d<0||d>Number(w.expiringWithinDays)) return false; }
+    if(w.signedFrom!=null){ if(!k.signedAt||k.signedAt<String(w.signedFrom).slice(0,10)) return false; }
+    if(w.signedTo!=null){ if(!k.signedAt||k.signedAt>String(w.signedTo).slice(0,10)) return false; }
+    if(w.overdueObligations!=null){ if(!!w.overdueObligations!==(k.overdue>0)) return false; }
+    if(w.offStandard!=null){ if(!!w.offStandard!==(k.offStandard>0)) return false; }
+    if(w.notRead!=null){ if(!!w.notRead!==(k.read===false)) return false; }
+    if(w.move!=null){ const want=fold(w.move); const mv=want==='mine'||want==='you'||want==='us'?'you':want==='theirs'||want==='them'?'them':want; if(k.move!==mv) return false; }
+    if(w.archived!=null){ if(!!w.archived!==!!k.archived) return false; }
+    return true;
+  };
+  return (state.contracts||[]).filter(c=>hit(graphCopilotCard(c))).map(c=>c.id);
+}
+/* WHAT IS ON SCREEN TRAVELS TOO (ruling 6): the grouping in force, the lenses
+   (label, action, count), the crowded quarters, the reader's language and the
+   workspace currency. Facts, never sentences — the server clamps each. */
+function graphCrowdedQuarters(cs){
+  const hubMap={};
+  (cs||state.contracts||[]).forEach(c=>{ const g=graphDecisionOf(c).label; (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
+  return [...graphCliffCrowded(Object.values(hubMap))];
+}
+function graphLensesNow(){
+  return intel.lenses.filter(l=>l.on).map(l=>({ label:String(l.label||''), action:l.action||'filter', count:(l.ids||[]).length }));
+}
+function graphAskScreen(){
+  return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
+    lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'' };
+}
 async function intelGraphAsk(q){
   const act=intelActive();
-  let res=null;
+  let res=null, capped=null;
   if(API_MODE() && state.aiConfigured){
     try{
-      const payload={ query:q,
-        contracts: state.contracts.slice(0,600).map(c=>({id:c.id,name:c.name,counterparty:c.counterparty||'',folder:FOLDERS[c.folder]?.name||'',kind:cKind(c),value:Number(c.value||0),status:c.status,expiry:c.expiry||''})),
+      const all=state.contracts||[];
+      const cards=all.slice(0,GRAPH_ASK_CAP).map(graphCopilotCard);
+      if(all.length>cards.length) capped={ sent:cards.length, total:all.length };
+      const payload={ query:q, contracts:cards, sent:cards.length, total:all.length,
         history: intel.history.slice(-9,-1).filter(m=>m.text).map(m=>({role:m.role,text:m.text})),
-        activeIds: act.ids?[...act.ids]:null };
+        activeIds: act.ids?[...act.ids]:null,
+        screen: graphAskScreen() };
       res=await api('ai/graph','POST',payload);
     }catch(e){
       intel.history.push({role:'assistant', err:true,
@@ -739,10 +955,76 @@ async function intelGraphAsk(q){
     }
   }
   if(!res) res=graphInterpret(q);           // fallback
-  if(res.groupBy){ intel.groupBy=res.groupBy; intel.groups=res.groups||null; }
-  if(res.visibleIds && res.visibleIds.length)
-    addLens({ label:res.note||res.visibleIds.length+' matches', ids:res.visibleIds, action:res.action||'filter', badges:res.badges||null });
-  intel.history.push({role:'assistant', text:res.answer||res.note||'Done.', cardIds:(res.visibleIds||[]).slice(0,5)});
+  intelGraphApply(q, res, { capped });
+}
+/* ============================================================
+   C-1 · THE ANSWER IS WRITTEN FROM WHAT THE MAP DID (ruling 5)
+   ============================================================
+   Nothing the model returns is taken on trust. A grouping must be a key on
+   GRAPH_GROUPINGS, or `custom` with a map that places at least one contract
+   under at least two labels; anything else is first read by the product's
+   own cue table (the query "cluster by expiration date" names a dimension
+   the map can cut whatever the model answered) and, where that names nothing
+   either, REFUSED IN WORDS with the map left exactly as it was — no caption
+   flip, no lens. The chat line is composed off the model buildGraphModel
+   builds, so it cannot say "clustered by expiration date" over hubs that
+   are value streams; Copilot's own sentence rides as a second line only
+   where it says something the numbers do not. Returns what it did. */
+function graphSaysMore(own, note, line){
+  const s=String(own||'').replace(/\s+/g,' ').trim(); if(!s) return false;
+  const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
+  if(fold(s)===fold(note)||fold(s)===fold(line)) return false;
+  if(/^(regrouped|done|grouped|clustered|showing|highlighted)\b/i.test(s)) return false;
+  return /\bMK-\d+/i.test(s) || s.split(/\s+/).length>=6;
+}
+function intelGraphApply(q, res, opts){
+  res=res||{}; opts=opts||{};
+  const total=(state.contracts||[]).length;
+  const known=new Set((state.contracts||[]).map(c=>c.id));
+  let groupBy=res.groupBy?String(res.groupBy):null, groups=null, refused=false;
+  if(groupBy==='custom'){
+    const raw=(res.groups&&typeof res.groups==='object')?res.groups:{};
+    const clean={}; Object.keys(raw).forEach(id=>{ const l=String(raw[id]==null?'':raw[id]).replace(/\s+/g,' ').trim(); if(known.has(id)&&l) clean[id]=l.slice(0,60); });
+    const labels=new Set(Object.values(clean));
+    if(Object.keys(clean).length&&labels.size>=2) groups=clean;
+    else groupBy=null;
+  } else if(groupBy && !GRAPH_GROUP_KEYS.includes(groupBy)) groupBy=null;
+  if(res.groupBy && !groupBy){
+    /* The model named a grouping the map cannot draw. The product reads the
+       command itself before giving up. */
+    const cue=graphGroupCue(q);
+    if(cue) groupBy=cue; else refused=true;
+  }
+  /* Filters: the field filter wins, an id list is intersected with it. */
+  let whereIds=null; try{ whereIds=graphWhereIds(res.where); }catch(_){ whereIds=null; }
+  let ids=Array.isArray(res.visibleIds)?res.visibleIds.filter(id=>known.has(id)):null;
+  if(whereIds){ ids=ids&&ids.length?whereIds.filter(id=>ids.includes(id)):whereIds; }
+  if(refused){
+    intel.history.push({ role:'assistant', text:igEsc(i18t('int_group_refused',{ list:GRAPH_GROUPINGS.map(g=>g.label.toLowerCase()).join(', ') })), cardIds:[] });
+    return { refused:true, groupBy:null, ids:null };
+  }
+  if(groupBy){ intel.groupBy=groupBy; intel.groups=groups; }
+  const action=res.action==='highlight'?'highlight':'filter';
+  if(ids&&ids.length)
+    addLens({ label:res.note||ids.length+' matches', ids, action, badges:res.badges||null });
+  /* Composed off the built model — counts, never a sentence the model wrote. */
+  const parts=[];
+  if(groupBy){
+    const model=buildGraphModel();
+    const hubs=model.nodes.filter(n=>n.kind==='hub');
+    parts.push(i18t('int_did_grouped',{ n:model.shown, m:hubs.length, by:graphGroupingWord(groupBy) }));
+    const g=graphGroupingOf(groupBy);
+    if(g&&g.none){ const k=model.nodes.filter(n=>n.kind==='contract'&&n.group===g.none).length; if(k) parts.push(i18t('int_did_in',{ n:k, label:g.none })); }
+  }
+  if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(res.note?' · '+String(res.note):''));
+  else if(ids&&!ids.length&&!groupBy) parts.push(i18t('int_did_nomatch'));
+  if(opts.capped&&opts.capped.total>opts.capped.sent) parts.push(i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }));
+  let line=parts.map(igEsc).join(' · ');
+  const own=String(res.answer||'').trim();
+  if(!line) line=igEsc(own||res.note||'Done.');
+  else if(graphSaysMore(own,res.note,parts[0])) line+='<br>'+igEsc(own);
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5) });
+  return { refused:false, groupBy, ids };
 }
 
 /* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
@@ -1217,20 +1499,30 @@ function igRender(){
 }
 function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
 
+/* C-1: THE CONTROL FOLLOWS THE MAP. The Group By dropdown is drawn by the
+   page header and was never told when a typed command regrouped the map, so
+   it went on saying "Value stream" over expiry hubs — the control and the
+   caption disagreeing about what the product had done. Painted on every
+   rebuild for a grouping the dropdown carries; a Copilot grouping has no
+   option and the caption is its one carrier. */
+function igPaintGroupSelect(){
+  const sel=document.getElementById('ig-group'); if(!sel) return;
+  if(GRAPH_GROUP_KEYS.includes(intel.groupBy) && sel.value!==intel.groupBy) sel.value=intel.groupBy;
+}
 function rebuildIntelGraph(){
   const model=buildGraphModel();
   IG=makeIntelGraph(model); if(!IG) return;
   // pre-settle
   for(let i=0;i<220;i++) igTick();
   igRender(); igFitView();   // land zoomed-out, framing the whole graph
-  updateIntelNote(); renderIntelLegend(model);
+  updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect();
   if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
 }
 function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
-  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',payterms:'payment terms',decision:'renewal decision',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
+  const gb=graphGroupingWord(intel.groupBy);   // C-1: the dropdown's own word, one list
   /* A-4: THE SCRUBBER lives on this line, beside the grouping it belongs to —
      a control on a strip that is already there, never a new one. Per sitting
      (intel.cliffDays), in memory; a stored cutoff would land a reader on a
@@ -1321,7 +1613,7 @@ function renderIntel(){
      nothing anywhere said why. f247 asserts the row and the guard hold the
      same names in the same order. */
   if(IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
-  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['payterms','Payment terms'],['decision','Renewal decision'],['risk','Risk'],['source','Origin']];
+  const groupOpts=GRAPH_GROUPINGS.map(g=>[g.k,g.label]);   // C-1: ONE list — the tool's enum mirrors it
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
      margin drops that rule onto the header's own hairline so the two share a
@@ -3100,4 +3392,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

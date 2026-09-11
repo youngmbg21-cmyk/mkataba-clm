@@ -4199,24 +4199,94 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') },
     limits: { dailySpendLimit: aiDailySpendLimit(), dailyLimit: aiDailyLimit() }, rates: aiRates() });
 });
+/* ---- C-1 · THE MAP COPILOT GETS EVERYTHING THE MAP KNOWS (11 Sep 2026) ----
+   GRAPH_GROUP_KEYS MIRRORS the browser's GRAPH_GROUPINGS in js/views/
+   intelligence.js — the Group By dropdown's own list. The tool's enum used
+   to name six groupings while the dropdown drew ten, and faced with "cluster
+   by expiration date" the model answered `custom` with an empty map, which
+   the page took on trust (every node stayed on its value-stream hub under a
+   caption saying otherwise). f299 pins the two lists equal as a SET. The
+   buckets are HaTi's, cut in the browser's groupLabelOf: the model names the
+   DIMENSION and never the buckets. A grouping is added in the browser's list
+   first and here second; a key here the browser cannot cut is a promise the
+   map cannot keep. */
+const GRAPH_GROUP_KEYS = ['folder', 'counterparty', 'status', 'valueBand', 'kind', 'expiry', 'payterms', 'decision', 'risk', 'source', 'signedYear', 'signedQuarter', 'expiryYear', 'createdMonth'];
+const GRAPH_GROUP_DESC = 'folder = value stream; counterparty = customer/party; status = lifecycle stage; valueBand = value band; kind = contract type; expiry = expiry window (Expired / Within 30 days / 31–90 days / 3–12 months / Beyond a year / No expiry set — HaTi cuts these off the expiry field, you only name the dimension); payterms = payment-terms band off payTermsDays; decision = renewal decision quarter off decisionDate; risk = risk band; source = origin (uploaded / from a template / drafted); signedYear and signedQuarter = off signedAt; expiryYear = off expiry; createdMonth = off createdAt.';
+const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap; said in the prompt and the answer
+/* The structured filter the tool may return. HaTi applies it in the browser
+   over its own cards (graphWhereIds), so the model never has to copy 159 ids
+   by hand. Only these keys pass; anything else is dropped here. */
+const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived'];
+function graphWhereClean(w) {
+  if (!w || typeof w !== 'object' || Array.isArray(w)) return null;
+  const out = {};
+  const str = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 80);
+  const strs = v => (Array.isArray(v) ? v : [v]).map(str).filter(Boolean).slice(0, 12);
+  const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+  for (const k of GRAPH_WHERE_KEYS) {
+    const v = w[k]; if (v == null || v === '') continue;
+    if (['status', 'folder', 'kind', 'counterparty'].includes(k)) { const a = strs(v); if (a.length) out[k] = a; }
+    else if (['valueAbove', 'valueBelow', 'expiringWithinDays'].includes(k)) { const n = num(v); if (n != null) out[k] = n; }
+    else if (k === 'signedFrom' || k === 'signedTo') { const d = str(v).slice(0, 10); if (/^\d{4}-\d{2}-\d{2}$/.test(d)) out[k] = d; }
+    else if (k === 'move') { const m = str(v).toLowerCase(); if (m) out[k] = m.slice(0, 12); }
+    else out[k] = !!v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+/* WHAT IS ON SCREEN (ruling 6): fields the browser sends beside the cards,
+   each clamped here, said to the model as facts — never a sentence the
+   browser wrote. */
+function graphScreenSays(sc, sent, total) {
+  if (!sc || typeof sc !== 'object') sc = {};
+  const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
+  const parts = [];
+  const gb = cut(sc.groupBy); if (gb) parts.push(`The map is currently grouped by "${gb}"${sc.custom ? ' (a Copilot grouping)' : ''}.`);
+  if (Array.isArray(sc.lenses) && sc.lenses.length)
+    parts.push(`Lenses in force: ${sc.lenses.slice(0, 6).map(l => `"${cut(l && l.label, 40)}" (${cut(l && l.action, 10)}, ${Number(l && l.count) || 0} contracts)`).join(', ')}.`);
+  if (Array.isArray(sc.crowded) && sc.crowded.length) parts.push(`Crowded renewal quarters: ${sc.crowded.slice(0, 6).map(x => cut(x, 20)).join(', ')}.`);
+  const lang = cut(sc.lang); if (lang) parts.push(`The reader's language is ${lang} — write the answer in it.`);
+  const cur = cut(sc.currency, 8); if (cur) parts.push(`Values are in ${cur} unless a card says otherwise.`);
+  if (Number(total) > Number(sent)) parts.push(`The list below is the first ${Number(sent)} of ${Number(total)} contracts — say so if the answer could depend on the rest.`);
+  return parts.join(' ');
+}
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
-  const { query, contracts, history, activeIds } = req.body || {};
+  const { query, contracts, history, activeIds, screen } = req.body || {};
   if (!query || !Array.isArray(contracts)) return res.status(400).json({ error: 'query and contracts are required' });
-  const list = contracts.slice(0, 600);
+  /* A CARD IS FIELDS, NEVER WORDING: a map command sends no text and none is
+     accepted — the full Copilot reads wording through get_contract. Money
+     has already been stripped for a caller without canViewValues
+     (scopeAiPortfolio, THE SERVER IS THE WALL); the same list of keys is
+     asked again here as a difference so a card shaped by an older browser
+     cannot carry one past. */
+  const money = canViewValues(req.user);
+  const list = contracts.slice(0, GRAPH_ASK_CAP).map(x => {
+    const y = (x && typeof x === 'object') ? { ...x } : {};
+    for (const k of ['text', 'body', 'wording', 'redlineText', 'extractedText', 'html']) delete y[k];
+    if (!money) for (const k of AI_VALUE_FIELDS) delete y[k];
+    return y;
+  });
+  const total = Math.max(Number(req.body && req.body.total) || 0, contracts.length);
   const tool = {
     name: 'render_graph',
-    description: 'Decide which contracts stay visible and how to cluster them.',
+    description: 'Decide which contracts stay visible and how to cluster them. Name a DIMENSION to group by; HaTi cuts the buckets itself. Prefer the structured `where` over listing ids.',
     input_schema: {
       type: 'object',
       properties: {
-        visibleIds: { type: 'array', items: { type: 'string' }, description: 'Contract ids that MATCH the request. Omit or leave empty to keep every contract visible (e.g. a pure grouping request).' },
+        visibleIds: { type: 'array', items: { type: 'string' }, description: 'Contract ids that MATCH the request where no `where` field can express the match (a name, a city). Omit or leave empty to keep every contract visible (e.g. a pure grouping request). Where both `where` and visibleIds are given HaTi intersects them.' },
+        where: { type: 'object', description: 'A structured filter HaTi applies itself over every contract card. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the card currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Copilot has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
+          properties: {
+            status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
+            valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
+            signedFrom: { type: 'string' }, signedTo: { type: 'string' },
+            overdueObligations: { type: 'boolean' }, offStandard: { type: 'boolean' }, notRead: { type: 'boolean' },
+            move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' } } },
         action: { type: 'string', enum: ['filter','highlight'], description: 'filter = remove non-matches from the graph (use for "show only X" style commands). highlight = keep everything visible but dim non-matches and emphasise matches (use for analytical questions like "which expire soon?"). Default filter.' },
-        badges: { type: 'object', additionalProperties: { type: 'string' }, description: 'Optional map of contract id -> very short annotation shown as a pill on the node, e.g. "ends in 143d" or "rank #1". Only for ids in visibleIds.' },
-        answer: { type: 'string', description: 'A 1-3 sentence natural-language answer to the user, shown in the chat panel. Mention counts and standout contracts by name.' },
-        groupBy: { type: 'string', enum: ['folder','counterparty','status','valueBand','kind','custom'], description: 'How to cluster. Use custom only when the dimension is not one of the others (e.g. by city).' },
-        groups: { type: 'object', additionalProperties: { type: 'string' }, description: 'Only for groupBy=custom: map each contract id to its group label (e.g. inferred city).' },
+        badges: { type: 'object', additionalProperties: { type: 'string' }, description: 'Optional map of contract id -> very short annotation shown as a pill on the node, e.g. "ends in 143d" or "rank #1". Only for matching ids.' },
+        answer: { type: 'string', description: 'A 1-3 sentence natural-language answer to the user, shown in the chat panel under HaTi\'s own line of counts. Say what the numbers cannot: name standout contracts.' },
+        groupBy: { type: 'string', enum: [...GRAPH_GROUP_KEYS, 'custom'], description: 'The DIMENSION to cluster by; HaTi cuts the buckets. ' + GRAPH_GROUP_DESC + ' Use custom ONLY for a dimension no key names (city, region, sector) — and then you MUST fill `groups` for every contract you can place, with at least two different labels. Never return custom with an empty groups map: if you cannot place the contracts, leave groupBy empty and say why in answer.' },
+        groups: { type: 'object', additionalProperties: { type: 'string' }, description: 'Only for groupBy=custom: map each contract id to its group label (e.g. inferred city). At least two labels, every contract you can place.' },
         note: { type: 'string', description: 'Short label of what was done, e.g. "Leases · grouped by city". Used to name the pinned lens chip.' }
       },
       required: ['note']
@@ -4224,8 +4294,9 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   };
   const today = new Date().toISOString().slice(0, 10);
   const hist = Array.isArray(history) ? history.slice(-8).map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${String(h.text || '').slice(0, 400)}`).join('\n') : '';
-  const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
-  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
+  const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, GRAPH_ASK_CAP) : null;
+  const onScreen = graphScreenSays(screen, list.length, total);
+  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -4233,11 +4304,18 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     const out = block.input || {};
-    res.json({ visibleIds: Array.isArray(out.visibleIds) && out.visibleIds.length ? out.visibleIds : null,
+    /* groupBy rides as the model wrote it (clamped, a string): the browser is
+       the judge of whether the map can cut it, and a name it cannot cut is
+       what lets the page REFUSE IN WORDS rather than print the model's
+       sentence over an unchanged map. */
+    res.json({ visibleIds: Array.isArray(out.visibleIds) && out.visibleIds.length ? out.visibleIds.slice(0, GRAPH_ASK_CAP).map(x => String(x).slice(0, 40)) : null,
+      where: graphWhereClean(out.where),
       action: out.action === 'highlight' ? 'highlight' : 'filter',
       badges: (out.badges && typeof out.badges === 'object') ? out.badges : null,
       answer: typeof out.answer === 'string' ? out.answer : '',
-      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiNotice(req, resp) });
+      groupBy: (typeof out.groupBy === 'string' && out.groupBy) ? out.groupBy.slice(0, 40) : null,
+      groups: (out.groupBy === 'custom' && out.groups && typeof out.groups === 'object') ? out.groups : null,
+      note: out.note || '', sent: list.length, total, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -6208,6 +6286,41 @@ function pageSays(p){
   t += '"This page", "this list" and "what I am looking at" mean that screen. ';
   return t;
 }
+/* C-1: WHAT THE CONTRACT GRAPH KNOWS — the server's twin of the browser's
+   aiGraphSays, line for line (f299 pins the two equal on one fixture). It
+   reads ctx.graph's streams, cliff, lenses and facts as FIELDS and clamps
+   every one; it computes nothing (the server has no family model, no fx
+   table of its own, no obligations reading). A cap is a fact. */
+function graphSays(g) {
+  if (!g || typeof g !== 'object') return '';
+  const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
+  const num = v => (typeof v === 'number' && isFinite(v)) ? Math.round(v) : null;
+  let t = '';
+  if (g.streams && typeof g.streams === 'object') {
+    const rows = Object.values(g.streams).filter(S => S && typeof S === 'object').slice(0, 12).map(S => {
+      const money = (num(S.in) != null && num(S.out) != null && (num(S.in) || num(S.out)));
+      const miss = S.missing && typeof S.missing === 'object' ? Object.values(S.missing).reduce((a, b) => a + (num(b) || 0), 0) : 0;
+      return `${cut(S.name)}: ${num(S.n) || 0} contracts${money ? `, in ${num(S.in)} / out ${num(S.out)} / net ${num(S.net)} on paper` : ''}${miss ? `, ${miss} with no rate` : ''}${num(S.unsided) ? `, ${num(S.unsided)} side unknown` : ''}`; });
+    if (rows.length) t += `Money through the value streams (on paper, converted to the workspace currency): ${rows.join('; ')}. `;
+  }
+  if (Array.isArray(g.cliff) && g.cliff.length)
+    t += `Renewal decisions by quarter: ${g.cliff.slice(0, 8).map(q => `${cut(q.label)} ${num(q.n) || 0}${q.crowded ? ' (crowded)' : ''}`).join(', ')}. `;
+  if (Array.isArray(g.lenses) && g.lenses.length)
+    t += `Lenses in force on the contract graph: ${g.lenses.slice(0, 6).map(l => `"${cut(l.label, 40)}" (${cut(l.action, 10)}, ${num(l.count) || 0})`).join(', ')} — "of those" means the contracts under them. `;
+  if (g.facts && typeof g.facts === 'object') {
+    const ids = Object.keys(g.facts).slice(0, 40);
+    const lines = ids.map(id => { const f = g.facts[id] || {}; const p = [];
+      if (num(f.decideDays) != null) p.push(f.decideDays < 0 ? `decision ${-num(f.decideDays)}d overdue` : `decide in ${num(f.decideDays)}d`);
+      if (f.whose) p.push(`move: ${cut(f.whose, 12)}`);
+      if (num(f.overdue)) p.push(`${num(f.overdue)} overdue obligation${num(f.overdue) === 1 ? '' : 's'}`);
+      if (num(f.offStandard) != null) p.push(num(f.offStandard) ? `${num(f.offStandard)} off standard` : 'on standard');
+      if (f.unread) p.push('not read by Copilot');
+      return p.length ? `${cut(id, 40)}: ${p.join(', ')}` : ''; }).filter(Boolean);
+    const more = Object.keys(g.facts).length - ids.length + (num(g.factsOmitted) || 0);
+    if (lines.length) t += `What the graph says about each contract: ${lines.join('; ')}${more > 0 ? `; and ${more} more not listed` : ''}. `;
+  }
+  return t;
+}
 function buildCopilotSystem(context, scopeCtx) {
   const ctx = context || {};
   // Live workspace facts so Copilot knows what exists without blind searching —
@@ -6223,6 +6336,8 @@ function buildCopilotSystem(context, scopeCtx) {
   const says = pageSays(ctx.page);
   if (says) view += says;
   else if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
+  const graphSaid = graphSays(ctx.graph);
+  if (graphSaid) view += graphSaid;
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
   /* WHICH INSIGHTS TAB. "intel" is three different pages, and a reader looking

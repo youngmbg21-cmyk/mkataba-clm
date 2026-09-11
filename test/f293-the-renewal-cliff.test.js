@@ -95,9 +95,15 @@ describe('f293 — the grouping is renewalDecisionDate\'s own', () => {
 
 describe('f293 — the surfaces', () => {
   test('the dropdown offers it, the note names it, the interpreter hears it', () => {
-    assert.match(IG, /\['decision','Renewal decision'\]/);
-    assert.ok(bodyOf(IG, 'updateIntelNote').includes("decision:'renewal decision'"));
-    assert.ok(bodyOf(IG, 'graphInterpret').includes("'by renewal decision'"));
+    /* Re-pointed 11 Sep 2026 (C-1): the dropdown pair, the note's word and
+       the interpreter's cue all read the ONE grouping list now — the claim is
+       that the list carries it and each surface reads the list. */
+    const w = stage();
+    assert.match(IG, /k:'decision',\s*label:'Renewal decision'/);
+    assert.ok(bodyOf(IG, 'updateIntelNote').includes('graphGroupingWord(intel.groupBy)'));
+    assert.equal(w.win.graphGroupingWord('decision'), 'renewal decision');
+    assert.ok(/\['decision',\s*\[[^\]]*'by renewal decision'/.test(IG), 'the cue table names it');
+    assert.equal(w.win.graphGroupCue('group by renewal decision'), 'decision');
   });
   test('the hubs seed on a line only for this grouping, the scrubber is on the note line, and it paints without a repaint', () => {
     const mk = bodyOf(IG, 'makeIntelGraph');
