@@ -12682,3 +12682,4 @@ Noticed, not fixed
 - `intel.history` message text is HTML by contract (`igMsgHTML` inserts it raw); every composed line here is escaped, but the convention is undocumented.
 - insights-panels-verify's fixture at section 18 has four populated expiry windows, not six; the check is a set equality against `groupLabelOf`, so it stays honest.
 - (C-2, found by the full suite) f106 (4) "the executed workbench says why" read the sentence off the drawn page; the sealed page is no longer drawn — re-pointed in place to the toast spoken and the workbench absent.
+- Proved for the whole of Part C on the merged branch: `npm run lint` 0 errors; full suite 6612/6612 on the second run (the first found f106 (4), above).
