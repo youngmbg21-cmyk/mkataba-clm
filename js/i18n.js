@@ -806,7 +806,7 @@ const STRINGS = {
     int_flow_in_word: 'Coming in — customers',
     int_flow_out_word: 'Going out — suppliers',
     int_flow_left_out: 'Left out: {m} with no rate on file, {u} whose side is not recorded',
-    int_flow_paper_note: 'What the paper says, not what was invoiced.',
+    int_flow_paper_note: 'What the paper says, not what was invoiced.',   // STALE 11 Sep 2026 — the legend no longer draws it; left inert in both books
     int_copilot_panel: 'Copilot panel',
     int_intelligence_panel: 'Intelligence panel',
     int_clear_all: 'Clear all',
@@ -822,6 +822,9 @@ const STRINGS = {
     int_clear_conversation: 'Clear conversation',
     int_collapse_panel: 'Collapse panel',
     int_remove_lens: 'Remove lens',
+    int_legend: 'Legend',
+    int_legend_hide: 'Fold the legend away',
+    int_legend_show: 'Show the legend',
     int_ask_portfolio: 'Ask about the portfolio…',
     int_basic_mode: 'Basic mode',
 
@@ -6853,7 +6856,7 @@ const STRINGS = {
     int_flow_in_word: 'Kommer in — kunder',
     int_flow_out_word: 'Går ut — leverantörer',
     int_flow_left_out: 'Utelämnat: {m} utan kurs på fil, {u} vars sida inte är angiven',
-    int_flow_paper_note: 'Vad avtalet säger, inte vad som fakturerats.',
+    int_flow_paper_note: 'Vad avtalet säger, inte vad som fakturerats.',   // STALE 11 Sep 2026 — inert
     int_copilot_panel: 'Copilot-panel',
     int_intelligence_panel: 'Insiktspanel',
     int_clear_all: 'Rensa alla',
@@ -6869,6 +6872,9 @@ const STRINGS = {
     int_clear_conversation: 'Rensa konversationen',
     int_collapse_panel: 'Fäll ihop panelen',
     int_remove_lens: 'Ta bort lins',
+    int_legend: 'Förklaring',
+    int_legend_hide: 'Fäll ihop förklaringen',
+    int_legend_show: 'Visa förklaringen',
     int_ask_portfolio: 'Fråga om portföljen…',
     int_basic_mode: 'Enkelt läge',
 

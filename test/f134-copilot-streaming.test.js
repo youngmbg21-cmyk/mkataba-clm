@@ -264,7 +264,11 @@ describe('the client half', () => {
       'the server branch tries the stream first');
     assert.match(AI_SRC, /fall through to the request\/response contract/,
       'and ANY stream failure falls back to the plain call');
-    assert.match(AI_SRC, /return await api\('ai\/chat','POST',\{ messages, context \}\);/,
+    /* The plain call is the contract — and since 11 Sep 2026 it forwards an
+       optional `opts` (api()'s own quiet flag, for a page that prints the
+       notice itself). The claim is that the fallback is ONE plain api() call
+       carrying messages and context, not the exact argument list. */
+    assert.match(AI_SRC, /return await api\('ai\/chat','POST',\{ messages, context \}(, opts)?\);/,
       'the plain call is still the contract');
     assert.match(AI_SRC, /return await aiLocalClaude\(messages, context\);/,
       'local mode keeps the non-streaming path, untouched');

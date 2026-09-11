@@ -18546,3 +18546,71 @@ parent, because the route does not exist there), f275 and f133 unchanged.
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.
+
+## THE INSIGHTS PAGE PRINTS COPILOT'S NOTICE, NEVER POPS IT (owner-asked 11 Sep 2026)
+
+*"remove such pops in this page"* — off a red pop-up reading *"One quoted
+excerpt could not be matched to the contract text and was removed — treat that
+point with care."* over an answer in the Insights dock.
+
+**THE POP-UP WAS ONE FACT SAID TWICE, AND THE LOUDER PRINTING READ AS AN
+ALARM.** `api()` surfaces every Copilot `notice` as a red toast for all its
+callers; the dock has printed the same sentence in amber under its answer since
+it was built. What the sentence means is not a fault — the server checked a
+quote the model offered against the contract's own text, found it absent,
+dropped the quote and said so — and the amber line under the answer is where
+that fact belongs on this page.
+
+- **`IG_QUIET` IS PASSED ON EVERY COPILOT CALL THE PAGE MAKES** — `api()`'s own
+  `opts.quiet`, which auto-triage already uses for the same reason, forwarded
+  through a new optional fourth argument on `copilotAsk`. f297 sweeps the file
+  for a call without it, so a fifth call added later cannot bring the pop-up
+  back.
+- **QUIET IS NEVER SILENT.** `igNoticeHtml` is the ONE line the four callers
+  print instead; the friction commentary did not go through
+  `intelPushChatResult` and gained the line, or it would have turned the notice
+  into a silent trim. A cap is a FACT.
+- **THE MAIN COPILOT PANEL IS UNTOUCHED AND IS THE CONTROL** — not in the ask,
+  still pops, and both f297 (5) and insights-panels-verify 16c assert it. The
+  streaming path is untouched too: no quiet caller streams, and f134's pin on
+  it holds unchanged. f134's pin on the PLAIN call was a literal where the claim
+  was a relation and is re-pointed in place.
+
+Tests: f297 (5 — **3 fail against the parent**, the two that pass are the named
+controls), insights-panels-verify section 16 (3, browser — the owner's own
+journey typed into the page's own box with a scripted quote the contract does
+not contain; **16b fails against the parent, reporting the pop-up verbatim**,
+16c is the control).
+
+## THE GRAPH'S LEGEND: ONE SENTENCE OFF, A FOLD ON, AND A LENS ADDED ONCE (owner-asked 11 Sep 2026)
+
+Three asks off two screenshots of the Contract graph.
+
+- **THE PAPER SENTENCE IS OFF THE LEGEND.** *"What the paper says, not what
+  was invoiced."* was the same fact the hub already carries — every stream hub
+  prints "on paper" on its own net line — and the owner rang it. The **"Left
+  out: N with no rate on file, N whose side is not recorded"** line STAYS: it
+  is the one place that omission is said, and a cap is a FACT.
+  `int_flow_paper_note` is STALE, left inert in both dictionaries; f298 (5)
+  fails if the legend draws it again.
+- **THE LEGEND FOLDS TO ITS HEAD.** A "Legend" head row with a chevron; a
+  press flips `intel.legendFolded` (per sitting, in memory — a legend that came
+  back folded a week later would hide the key to a graph the reader had not
+  seen) and re-renders the legend alone, never the graph. **The sheet does the
+  hiding** (`#ig-legend.is-folded > :not([data-ig-legend-head])`), so the rows
+  stay in the markup and the head is the way back. Measured as pixels: the
+  rows report a zero box folded, and the legend comes back to its own height.
+- **A LENS IS ADDED ONCE.** Seven presses on the legend's Drafting row put
+  seven "Drafting · 77" chips on the dock. The rule is in `addLens`, the ONE
+  funnel every lens goes through, so the legend, the Copilot answers and the
+  node-driven cuts inherit it: the same cut — same action, same label, same
+  SET of ids, order ignored — is not pushed twice; a second press turns a
+  switched-off twin back on and otherwise changes nothing. A different label,
+  set or action is still a second lens (f298 (3), the control).
+
+Tests: f298 (7 — **5 fail against the parent**; the two that pass are the
+control and the language check), f294's legend claim REVERSED IN PLACE,
+insights-panels-verify 15e reversed and section 17 (4, browser — three REAL
+presses leaving one chip, the fold measured as paint, and the way back; **5 of
+the file's checks fail against the parent, 17a reporting the three chips
+verbatim, and every driven half is guarded so it REPORTS**).

@@ -520,6 +520,7 @@ function igDependentsHtml(id){
   </div>`;
 }
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
+  legendFolded:false /*the graph's legend, folded to its head — per sitting, in memory*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
@@ -602,7 +603,19 @@ function intelActive(){
   return { ids, action: on.some(l=>l.action==='filter')?'filter':'highlight',
     badges: Object.keys(badges).length?badges:null };
 }
+/* ---- A LENS IS ADDED ONCE (owner-reported 11 Sep 2026, off a dock carrying
+   seven "Drafting · 77" chips: every press on a legend row pushed a fresh
+   lens, so a reader who pressed twice to see whether it had worked got the
+   same cut stacked). One filter says one thing however often it is asked
+   for. The reading is the SAME CUT — same action, same label, same set of
+   ids — and it lives here, in the one funnel every lens goes through, so the
+   legend, the Copilot answers and the node-driven cuts inherit it. A second
+   press on a cut that is already on the dock turns it back on if it was
+   switched off, and otherwise changes nothing. */
 function addLens(l){
+  const ids=[...(l.ids||[])], key=ids.slice().sort().join('|');
+  const same=intel.lenses.find(x=>x.action===(l.action||'filter') && x.label===(l.label||ids.length+' matches') && x.ids.slice().sort().join('|')===key);
+  if(same){ same.on=true; renderIntelDock(); return; }
   intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
     label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null });
   renderIntelDock();
@@ -800,6 +813,21 @@ function intelChatMessages(){
     .filter(m=>m.content).slice(-8);
 }
 
+/* ---- THE SERVER'S NOTICE IS A LINE UNDER THE ANSWER, NEVER A POP-UP ----
+   (owner-asked 11 Sep 2026: "remove such pops in this page", off a red toast
+   reading "One quoted excerpt could not be matched to the contract text…").
+   api() surfaces every Copilot notice as a toast for all its callers; this
+   page has printed the same sentence in amber under the answer since the dock
+   was built, so the toast was the one fact said twice, and the louder printing
+   was the one that read as an alarm. IG_QUIET is passed on EVERY Copilot call
+   this page makes, and igNoticeHtml is the ONE line they print instead — a
+   caller that goes quiet and prints nothing has turned a fact into a silent
+   trim, which this rulebook forbids by name. The main Copilot panel is
+   untouched: it was not in the ask. */
+const IG_QUIET={quiet:true};
+function igNoticeHtml(notice){
+  return notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(notice)}</div>`:'';
+}
 // Turn a chat response into a dock message + light the cited nodes.
 /* ---- RICH DOCK ANSWERS, CHARTS INCLUDED ----
    The main Copilot panel extracts ```hati-chart``` fences into live charts;
@@ -822,8 +850,7 @@ function igFmtRich(raw){
 function intelPushChatResult(res){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
   const rich=igFmtRich(res.answer||'');
-  const notice=res.notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(res.notice)}</div>`:'';
-  intel.history.push({ role:'assistant', text:rich.html+notice, compare:res.compare||null, cardIds, blocks:rich.blocks });
+  intel.history.push({ role:'assistant', text:rich.html+igNoticeHtml(res.notice), compare:res.compare||null, cardIds, blocks:rich.blocks });
   if(cardIds.length) igPaintIds(cardIds);
 }
 
@@ -842,7 +869,7 @@ async function intelChatAsk(q){
     return;
   }
   try{
-    const res=await copilotAsk(intelChatMessages(), { view:'intel' });
+    const res=await copilotAsk(intelChatMessages(), { view:'intel' }, null, IG_QUIET);
     intelPushChatResult(res);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -912,7 +939,7 @@ function intelAIExplain(id){
   intel.busy=true; renderIntelDock();
   copilotAsk(
     [{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
-    { view:'intel', activeContractId:id, activeContractName:c.name },
+    { view:'intel', activeContractId:id, activeContractName:c.name }, null, IG_QUIET,
   ).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
     .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
       text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
@@ -942,7 +969,7 @@ async function intelRunCompare(){
   };
   try{
     if(typeof copilotAvailable==='function' && copilotAvailable()){
-      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
+      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' }, null, IG_QUIET);
       intelPushChatResult(res);
     } else {
       localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
@@ -1220,19 +1247,30 @@ function updateIntelNote(){
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
-  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
+  /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
+     graph's own corner, and a reader who knows the colours wants the corner
+     back. A class flip and a per-sitting flag, never a repaint of the graph —
+     the head row is the control, the chevron says which way it goes, and the
+     sheet hides everything under it. Nothing is stored: a legend that came
+     back folded a week later would hide the key to a graph the reader had not
+     seen since. */
+  el.classList.toggle('is-folded', !!intel.legendFolded);
+  el.innerHTML=`<div data-ig-legend-head class="flex items-center justify-between gap-3 mb-1.5"><span class="text-[10px] uppercase tracking-wider text-ink/40">${i18t('int_legend')}</span><button type="button" data-ig-legend-fold aria-expanded="${intel.legendFolded?'false':'true'}" title="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" aria-label="${i18t(intel.legendFolded?'int_legend_show':'int_legend_hide')}" class="text-ink/50 hover:text-ink text-[11px] leading-none px-1">${intel.legendFolded?'▸':'▾'}</button></div>`+
+    `<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
     [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
       `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
   /* A-5: the money legend — teal in, amber out — and one sentence naming what
      the figures left out, drawn only where something was. Every hub already
-     says "on paper"; the legend says why: HaTi reads agreements, not invoices. */
+     says "on paper"; the legend's own sentence about it ("what the paper says,
+     not what was invoiced") was RETIRED 11 Sep 2026, owner-asked — the hub
+     carries the fact and the sentence was the same fact a second time.
+     Its dictionary key (the paper-note one) is inert in both books. */
   if(model&&model.flow){
     const F=Object.values(model.flow); const miss=F.reduce((a,S)=>a+Object.values(S.missing||{}).reduce((x,y)=>x+y,0),0), uns=F.reduce((a,S)=>a+(S.unsided||0),0);
     el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_flow_legend')}</div>
       <div data-ig-legend-flow="in" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--accent-solid)"></span>${i18t('int_flow_in_word')}</div>
       <div data-ig-legend-flow="out" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--st-amber-dot)"></span>${i18t('int_flow_out_word')}</div>
-      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}
-      <div class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_paper_note')}</div>`;
+      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}`;
   }
   /* THE LINK KINDS ON THIS PAGE, and only those: a row for a line that is not
      drawn is furniture. Each swatch is the line's own class, so the legend
@@ -1243,6 +1281,7 @@ function renderIntelLegend(model){
     el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_links')}</div>`+
       kinds.map(k=>`<div data-ig-legend-link="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><svg width="22" height="8" aria-hidden="true"><path class="ig-link ig-link-${k}" d="M1,4 L21,4" style="opacity:1"></path></svg>${i18t(word[k])}</div>`).join('');
   }
+  el.querySelector('[data-ig-legend-fold]')?.addEventListener('click',()=>{ intel.legendFolded=!intel.legendFolded; renderIntelLegend(model); });
   el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
     addLens({label:statusLabel(s), ids:state.contracts.filter(c=>c.status===s).map(c=>c.id), action:'filter'}); rebuildIntelGraph(); }));
 }
@@ -1885,9 +1924,9 @@ async function intelFrictionAsk(){
   ].filter(Boolean).join('\n');
   const prompt=`You are commenting on the Negotiation Friction report the reader is looking at. The figures below were COUNTED by the app from the tracked changes its negotiations recorded — treat them as ground truth.\n\n${facts}\n\nInterpret these figures: what pattern do they suggest about where deals get stuck, and what are the one or two most useful actions this week? Rules: never recalculate, extrapolate or invent a number — only repeat figures exactly as listed above. Write 2-3 short paragraphs separated by blank lines, each opening with a **bolded one-sentence takeaway**. Highlight the phrases the reader must not miss with tone markers, sparingly — at most two per paragraph, each wrapping a short plain phrase with no bold or other formatting inside it: {!…} around a recommended action or a figure that demands a decision, {-…} around a figure that is costing rounds or money, {+…} around a genuinely healthy figure. Never place a marker inside the bolded takeaway. No headings, no bullet lists, no preamble, no closing offer of further help.`;
   try{
-    const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
+    const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'}, null, IG_QUIET);
     const rich=igFmtRich(res.answer||'');
-    intel.frictionAI={busy:false,key,html:rich.html,
+    intel.frictionAI={busy:false,key,html:rich.html+igNoticeHtml(res.notice),
       at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,

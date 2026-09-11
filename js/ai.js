@@ -1955,7 +1955,12 @@ function updateAiBrainPill(){
     ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>✦ ${b.label}`
     : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;
 }
-async function copilotAsk(messages, context, onEvent){
+/* `opts.quiet` — passed straight to api(): the page asking already prints the
+   server's notice under the answer, so the toast would be the same sentence
+   twice (owner-asked 11 Sep 2026, off the Insights dock). The notice still
+   rides back on the answer; a quiet caller MUST print it where the reader is
+   looking. Not offered on the streaming path: no quiet caller streams. */
+async function copilotAsk(messages, context, onEvent, opts){
   if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured){
     /* Streamed when the caller can render it (onEvent) — progress + tokens as
        the answer is written, then the same verified final shape. ANY stream
@@ -1966,7 +1971,7 @@ async function copilotAsk(messages, context, onEvent){
       try{ return await apiStream('ai/chat/stream',{ messages, context }, onEvent); }
       catch(e){ /* fall through to the request/response contract */ }
     }
-    return await api('ai/chat','POST',{ messages, context });
+    return await api('ai/chat','POST',{ messages, context }, opts);
   }
   if(!(typeof API_MODE==='function' && API_MODE()) && _localAiKey())
     return await aiLocalClaude(messages, context);
