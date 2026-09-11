@@ -12723,3 +12723,25 @@ Defects found
 Proved: notes-two-rooms-verify 74/74 (two new checks measure the control's computed edge and ink against the head's `.ui-btn`: identical); six-fixes-verify 1g re-pointed (open vs shut told apart by edge and tint, not ink); f84, f89, f100, f246, f210, f152 353/353; lint 0 errors.
 Noticed, not fixed
 - six-fixes-verify 4a "a refresh returns you to the page you were on — redline→workspace" is red at the unmodified parent (proved by a stash run); not on KNOWN_RED.
+
+### Notes are one system — three doors, one drawer, and the thread goes out to Word (Young asked 11 Sep 2026)
+Defects found
+- Three composers for one act: a highlight went to Copilot's rail, the pencil raised its own receipt window, the card row raised the same window in a second shape. One drawer now: the highlight offers Ask Copilot and Comment (Simplify dropped from the paper's menu — owner's ruling), the pencil after a filing and the card's Notes row all open the notes drawer with a PIN naming the change (`rlNotesPin` / `rlNpPinHtml`); the receipt window is retired (`rlNoteDialogHtml` is a `return ''` stub, its keys inert in both books).
+- A note carried no anchor, no id and no reply: `id`, `anchor {clauseId, quote}`, `replyTo` and `done {at, by}` are fields on a MESSAGE (absent on every note on file, no migration); `negoNoteHomeFor` is the one reading of where a note lives, `negoAnchorState` says whether the quoted words still stand, `negoNoteThreads` folds replies under their root.
+- A reply was a new note with the change's name typed by hand; Reply is its own box under the thread (`rlNpReplyBoxHtml`), stamped and threaded; every note prints its full time (`negoWhenFull`).
+- Done was not a fact: `negoNoteDone` / `rlNpSetDone`, `PATCH` routes on both hosts, the channel's `meta` column carries anchor/reply/done across (allow-listed server-side, `msgMeta` / `msgMetaRead`).
+- The paper did not show where a note sat: `rlPaintNoteMarks` / `rlWrapWords` mark the quoted words after every canvas paint (negotiation page and clause editor); a marker press opens the drawer on that thread (`[data-rl-note-open]`).
+- The counterparty's page had no way to read or answer an anchored note: a notes aside behind the More menu (`#pt-notes-door`), posting through the existing `/api/shares/:token/messages` with meta; nothing else on their page moved.
+- Comments did not travel to Word: `docxExportTracked` writes `comments.xml` and `commentsExtended.xml` (paraId, parent, done) with ranges round the quoted runs and the CHG reference leading each comment; a re-imported file relinks by that prefix (`negoImportReturnedDocx`); an export with no comments is byte-identical to before.
+- The paper offered a comment where it could not be honest: silent on the front matter, on a selection across two clauses, and on a drag that started outside the clause (found by F96 on the full run).
+- Under a pin the external send asked twice (the pin's switch had already named the other side); the confirm stays on the composer's own crossing and on replies.
+- notes-two-rooms-verify D-6 hung the browser run for forty minutes on a pin promise that never resolved; the probe closes the drawer by hand and races a timeout.
+Proved: f303 38/38 (new; every claim fails at the parent by construction), f302 10/10 (rewritten against the drawer), f264 53, f266 29, f248 12, f246 78, f245 159, f265 21, f96 43, f173, f100, f130, f88, f288, f232, f48, f236, f148, f210, f278, f89, f84, f161 green; clause-editor-verify 257/257, clause-door-verify 118/118, notes-two-rooms-verify 73/73; lint 0 errors; the first full run 6656/6662 (F96 ×5 and f265, fixed above).
+Noticed, not fixed
+- The Document tab's own highlight menu still offers Simplify and Ask Copilot (DOC_SEL_ACTIONS); the owner ruled "you cannot ask copilot or comment whilst in the document page" — read as "leave that tab as it is", not "take its menu away"; the tab was not touched.
+- The counterparty's card composer (`rlCardNotesHtml`) is kept beside the new aside; two ways to write one note on their seat.
+- The Word export says how many comments it carried in the toast (`ct_word_comments_n`), with no dialog to choose which; a note marked done still travels.
+- window-drag-verify section 5 was rewritten (the window is gone) and not re-run.
+- Done on a note that lives only on the channel refuses in local mode (no server row to patch); the drawer says so.
+- After a filing the pin opens on Internal (D-6's ruling); the design page said External — the rulebook was followed, the page not corrected.
+- The Ask Copilot press on the paper costs one press more than before (the menu, then the rail); Comment is the same count.
