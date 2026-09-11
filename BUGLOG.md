@@ -12745,3 +12745,4 @@ Noticed, not fixed
 - Done on a note that lives only on the channel refuses in local mode (no server row to patch); the drawer says so.
 - After a filing the pin opens on Internal (D-6's ruling); the design page said External — the rulebook was followed, the page not corrected.
 - The Ask Copilot press on the paper costs one press more than before (the menu, then the rail); Comment is the same count.
+- Proved for the whole on the branch before the merge to main: full suite 6662/6662 in 5m01s; lint 0 errors.
