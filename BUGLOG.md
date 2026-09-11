@@ -12413,3 +12413,30 @@ it files nothing.
   way; named rather than resolved.
 - **The negotiation page's divider is still silent at its fraction limit** (the
   clause editor's was corrected on 25 Aug); unchanged, still logged.
+
+## Run — 11 Sep 2026 (later): no pop-ups on the Insights page
+
+Owner-asked, off a red toast reading "One quoted excerpt could not be matched
+to the contract text and was removed" over a dock answer that already carried
+the sentence in amber. The toast was one fact said twice. Every Copilot call
+the Insights page makes now passes api()'s own `quiet`, the four callers print
+the notice through one line (`igNoticeHtml`), and the main Copilot panel is
+untouched as the control. The streaming path is untouched.
+
+### What was measured, not asserted
+- `npm run lint` 0 errors.
+- f297 (5 — 3 fail against the parent; the two that pass are named controls).
+- insights-panels-verify 73/73; against the parent 72/73, 16b reporting the
+  owner's pop-up verbatim.
+- f134's plain-call pin was a literal where the claim was a relation;
+  re-pointed in place, 17/17.
+- Full node suite run once at the end (see the commit).
+
+### Noticed, not fixed
+- **The pop-up is red on every other page**, the colour for something that
+  failed, and nothing failed — the server dropped a quote it could not verify.
+  The owner asked only about this page; whether that tray should be amber
+  elsewhere is their call.
+- **The main Copilot panel says the notice twice as well** — inline under the
+  answer and as the toast — the same duplicate this fix removed here. Not in
+  the ask.

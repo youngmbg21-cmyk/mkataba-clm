@@ -13822,6 +13822,41 @@ name, the dedupe, a failure retried, the switch and the cap each proved to
 bite, and the source keeping the walls; the file cannot pass against the
 parent, because the route does not exist there), f275 and f133 unchanged.
 
+## THE INSIGHTS PAGE PRINTS COPILOT'S NOTICE, NEVER POPS IT (owner-asked 11 Sep 2026)
+
+*"remove such pops in this page"* — off a red pop-up reading *"One quoted
+excerpt could not be matched to the contract text and was removed — treat that
+point with care."* over an answer in the Insights dock.
+
+**THE POP-UP WAS ONE FACT SAID TWICE, AND THE LOUDER PRINTING READ AS AN
+ALARM.** `api()` surfaces every Copilot `notice` as a red toast for all its
+callers; the dock has printed the same sentence in amber under its answer since
+it was built. What the sentence means is not a fault — the server checked a
+quote the model offered against the contract's own text, found it absent,
+dropped the quote and said so — and the amber line under the answer is where
+that fact belongs on this page.
+
+- **`IG_QUIET` IS PASSED ON EVERY COPILOT CALL THE PAGE MAKES** — `api()`'s own
+  `opts.quiet`, which auto-triage already uses for the same reason, forwarded
+  through a new optional fourth argument on `copilotAsk`. f297 sweeps the file
+  for a call without it, so a fifth call added later cannot bring the pop-up
+  back.
+- **QUIET IS NEVER SILENT.** `igNoticeHtml` is the ONE line the four callers
+  print instead; the friction commentary did not go through
+  `intelPushChatResult` and gained the line, or it would have turned the notice
+  into a silent trim. A cap is a FACT.
+- **THE MAIN COPILOT PANEL IS UNTOUCHED AND IS THE CONTROL** — not in the ask,
+  still pops, and both f297 (5) and insights-panels-verify 16c assert it. The
+  streaming path is untouched too: no quiet caller streams, and f134's pin on
+  it holds unchanged. f134's pin on the PLAIN call was a literal where the claim
+  was a relation and is re-pointed in place.
+
+Tests: f297 (5 — **3 fail against the parent**, the two that pass are the named
+controls), insights-panels-verify section 16 (3, browser — the owner's own
+journey typed into the page's own box with a scripted quote the contract does
+not contain; **16b fails against the parent, reporting the pop-up verbatim**,
+16c is the control).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

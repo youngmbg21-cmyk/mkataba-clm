@@ -862,6 +862,48 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { window.canViewValues = window._igCvv; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(500);
 
+    /* ================= 16. NO POP-UPS ON THIS PAGE ========================= */
+    /* Owner-asked 11 Sep 2026 ("remove such pops in this page"), off a red
+       toast reading "One quoted excerpt could not be matched to the contract
+       text…" drawn over a dock answer that already carried the sentence. The
+       journey is the owner's own: a question typed into THIS page's box, an
+       answer citing a contract with a quote the contract does not contain, the
+       server dropping the quote and sending its notice. What is measured is
+       where that notice lands — under the answer, and NOT in the toast tray.
+       The main Copilot panel is the CONTROL: not in the ask, still pops. */
+    const BAD_QUOTE = 'these words appear nowhere in that agreement at all';
+    const scriptBadQuote = () => { ai.reset(); ai.script(
+      [{ type: 'tool_use', id: 'tu_q', name: 'deliver_answer',
+        input: { answer: 'MK-P1 is a supply agreement — the term is stated in clause 3.', citations: [{ id: 'MK-P1', quote: BAD_QUOTE }] } }]); };
+    await page.evaluate(() => { intelGoTab('map'); });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => { document.getElementById('toast-root').innerHTML = ''; intel.history = []; });
+    scriptBadQuote();
+    await page.evaluate(async () => { await intelAsk('what does MK-P1 say about the term?'); });
+    await page.waitForTimeout(1200);
+    const dockNotice = await page.evaluate(() => {
+      const last = intel.history[intel.history.length - 1] || {};
+      const dock = document.getElementById('ig-dock');
+      const toasts = [...document.querySelectorAll('#toast-root > *')].map(t => t.textContent.trim());
+      return { role: last.role, inHistory: /could not be matched to the contract text/.test(last.text || ''),
+        onScreen: !!dock && /could not be matched to the contract text/.test(dock.textContent),
+        answerOnScreen: !!dock && /supply agreement/.test(dock.textContent),
+        toasts, popped: toasts.some(t => /could not be matched/.test(t)) };
+    });
+    await page.screenshot({ path: path.join(OUT, '16-no-popup.png') });
+    check('16a the dock\'s own answer arrived and the server\'s notice is printed UNDER it, on screen',
+      dockNotice.role === 'assistant' && dockNotice.answerOnScreen && dockNotice.inHistory && dockNotice.onScreen, JSON.stringify(dockNotice));
+    check('16b and nothing about it is in the pop-up tray', dockNotice.popped === false && dockNotice.toasts.length === 0,
+      JSON.stringify(dockNotice.toasts));
+    /* CONTROL — the same answer through the main Copilot panel still pops. */
+    scriptBadQuote();
+    await page.evaluate(async () => { document.getElementById('toast-root').innerHTML = ''; openAI(); document.getElementById('ai-input').value = 'what does MK-P1 say about the term?'; await aiSubmit(); });
+    await page.waitForTimeout(1200);
+    const mainPop = await page.evaluate(() => [...document.querySelectorAll('#toast-root > *')].map(t => t.textContent.trim()));
+    check('16c CONTROL — the main Copilot panel was not in the ask and its pop-up still fires',
+      mainPop.some(t => /could not be matched/.test(t)), JSON.stringify(mainPop));
+    await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

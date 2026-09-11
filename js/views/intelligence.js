@@ -800,6 +800,21 @@ function intelChatMessages(){
     .filter(m=>m.content).slice(-8);
 }
 
+/* ---- THE SERVER'S NOTICE IS A LINE UNDER THE ANSWER, NEVER A POP-UP ----
+   (owner-asked 11 Sep 2026: "remove such pops in this page", off a red toast
+   reading "One quoted excerpt could not be matched to the contract text…").
+   api() surfaces every Copilot notice as a toast for all its callers; this
+   page has printed the same sentence in amber under the answer since the dock
+   was built, so the toast was the one fact said twice, and the louder printing
+   was the one that read as an alarm. IG_QUIET is passed on EVERY Copilot call
+   this page makes, and igNoticeHtml is the ONE line they print instead — a
+   caller that goes quiet and prints nothing has turned a fact into a silent
+   trim, which this rulebook forbids by name. The main Copilot panel is
+   untouched: it was not in the ask. */
+const IG_QUIET={quiet:true};
+function igNoticeHtml(notice){
+  return notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(notice)}</div>`:'';
+}
 // Turn a chat response into a dock message + light the cited nodes.
 /* ---- RICH DOCK ANSWERS, CHARTS INCLUDED ----
    The main Copilot panel extracts ```hati-chart``` fences into live charts;
@@ -822,8 +837,7 @@ function igFmtRich(raw){
 function intelPushChatResult(res){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
   const rich=igFmtRich(res.answer||'');
-  const notice=res.notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(res.notice)}</div>`:'';
-  intel.history.push({ role:'assistant', text:rich.html+notice, compare:res.compare||null, cardIds, blocks:rich.blocks });
+  intel.history.push({ role:'assistant', text:rich.html+igNoticeHtml(res.notice), compare:res.compare||null, cardIds, blocks:rich.blocks });
   if(cardIds.length) igPaintIds(cardIds);
 }
 
@@ -842,7 +856,7 @@ async function intelChatAsk(q){
     return;
   }
   try{
-    const res=await copilotAsk(intelChatMessages(), { view:'intel' });
+    const res=await copilotAsk(intelChatMessages(), { view:'intel' }, null, IG_QUIET);
     intelPushChatResult(res);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -912,7 +926,7 @@ function intelAIExplain(id){
   intel.busy=true; renderIntelDock();
   copilotAsk(
     [{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
-    { view:'intel', activeContractId:id, activeContractName:c.name },
+    { view:'intel', activeContractId:id, activeContractName:c.name }, null, IG_QUIET,
   ).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
     .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
       text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
@@ -942,7 +956,7 @@ async function intelRunCompare(){
   };
   try{
     if(typeof copilotAvailable==='function' && copilotAvailable()){
-      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
+      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' }, null, IG_QUIET);
       intelPushChatResult(res);
     } else {
       localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
@@ -1885,9 +1899,9 @@ async function intelFrictionAsk(){
   ].filter(Boolean).join('\n');
   const prompt=`You are commenting on the Negotiation Friction report the reader is looking at. The figures below were COUNTED by the app from the tracked changes its negotiations recorded — treat them as ground truth.\n\n${facts}\n\nInterpret these figures: what pattern do they suggest about where deals get stuck, and what are the one or two most useful actions this week? Rules: never recalculate, extrapolate or invent a number — only repeat figures exactly as listed above. Write 2-3 short paragraphs separated by blank lines, each opening with a **bolded one-sentence takeaway**. Highlight the phrases the reader must not miss with tone markers, sparingly — at most two per paragraph, each wrapping a short plain phrase with no bold or other formatting inside it: {!…} around a recommended action or a figure that demands a decision, {-…} around a figure that is costing rounds or money, {+…} around a genuinely healthy figure. Never place a marker inside the bolded takeaway. No headings, no bullet lists, no preamble, no closing offer of further help.`;
   try{
-    const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
+    const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'}, null, IG_QUIET);
     const rich=igFmtRich(res.answer||'');
-    intel.frictionAI={busy:false,key,html:rich.html,
+    intel.frictionAI={busy:false,key,html:rich.html+igNoticeHtml(res.notice),
       at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,
