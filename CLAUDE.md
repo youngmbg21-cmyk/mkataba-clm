@@ -13507,6 +13507,56 @@ opacity, a node with nothing to say still at two lines, and a real hover
 drawing the rows as pixels BESIDE the node and taking them away on leave).
 f148 gained `int_fr_read` on SAME_IN_BOTH: "Copilot" is the product's own name.
 
+## THE COUNTERPARTY HUB IS THE PARTY, READ ACROSS THE BOOK (A-3, owner-ruled 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md, the third of five. Under the counterparty
+grouping the hub used to be a name over a count. A party is the one thing on
+this graph a reader negotiates WITH rather than about, so the hub carries four
+lines and a share bar. **Ruled: share of the book by VALUE in home currency**,
+with the count printed beside it.
+
+- **EVERY LINE IS A BORROWED READING.** `graphPartyStats(name)` asks:
+  `fxHome` / `fxMissing` for the value and what a converted total left out;
+  `intelFrictionStats({counterparty})` for rounds a deal — the friction tab's
+  own figure, **picked out by EXACT folded name** from what that contains-match
+  filter returns rather than trusted whole; `obligationOnTime` for promises
+  met over ANSWERED (an open promise is not answered); and `payTermsData().rows`
+  for the payment terms — side, mean days, the standard where the rows share
+  one, how many over. **A second copy of any of them is how the hub comes to
+  disagree with the tab that owns the figure.**
+- **THE BOOK IS THE LIVE BOOK** — `graphLiveContract`, not Declined and not
+  archived — the population the graph's edges and `fxMissing` already read.
+  The work order's word for it was "negoIsLive", and that predicate answers a
+  different question (is a NEGOTIATION live); a share of the book over only
+  contracts being argued about would be a share of nothing on a quiet month.
+  Said out loud rather than followed to the letter.
+- **ON TIME IS A FRACTION BELOW THREE ANSWERED** (`GRAPH_ONTIME_MIN`) — "1 of
+  2 met on time", never "50%": a percentage of two is a coin toss dressed as a
+  rate. PRECEDENT_MIN's own reasoning.
+- **MONEY OBEYS `canViewValues`.** A viewer's hub reads the count alone — no
+  value, no share, no bar — never a dash.
+- **COUNTING IS NOT DRAWING.** `buildGraphModel` reads the party ONCE onto
+  the hub (`node.party`, `node.lines` via `graphPartyLines`); `makeIntelGraph`
+  prints the lines and draws the bar and computes nothing — f292 greps the
+  renderer for the reading. **Under a Copilot override grouping the hub is a
+  Copilot group, not a party**, and carries none of this.
+- **THE SHARE BAR IS A SECOND CARRIER, NEVER THE ONLY ONE**: its length is the
+  share and the percentage is printed on the line above it. The press is
+  unchanged — a hub still narrows the graph to its group through
+  `igFilterToGroup`.
+- **COPILOT'S `get_counterparty` IS A LOOKUP ON BOTH HOSTS**, the panels' own
+  arrangement: `graphPartyStatsAll()` rides every brief as `ctx.graph.parties`
+  (keyed by folded name, ids and per-contract money left off) and the server's
+  `copilotCounterparty` READS it with every field clamped; the description is
+  written twice and f292 pins the two identical.
+
+Tests: f292 (15 — **all 15 fail against the parent**), insights-panels-verify
+section 13 (3, browser — **2 fail against the parent**; the lines measured as
+painted text on the hub, the bar's length checked as a RATIO against the
+reading's own share, and a real press proved still to narrow — a party hub
+that grew four lines must not stop being a door). f148 gained `int_cp_pay_in`
+on SAME_IN_BOTH: "in" is "in".
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

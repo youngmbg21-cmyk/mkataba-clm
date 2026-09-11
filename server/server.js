@@ -6062,6 +6062,26 @@ function copilotDependents(clientCtx, id) {
     valueOnDependents: (typeof d.value === 'number' && isFinite(d.value)) ? d.value : null, valueLeftOut: miss, obligationsHeld: n(d.held),
     note: 'Direct dependents only, read off the record. Not a transitive walk; archived and declined contracts are never counted.' };
 }
+const COPILOT_COUNTERPARTY_DESC = 'One counterparty read across the whole live book — how many contracts, their converted value and share of the book, what that total left out for want of a rate, rounds per deal from the negotiation record, promises met on time (met over answered), and the payment terms on paper (side, days, standard, how many over). Use it for "how much do we do with X", "what share of the book is X", "how hard is X to negotiate with", "does X pay on time" — and say plainly that on-time is about our own obligations record and payment terms are what the paper says, never what was invoiced.';
+/* A LOOKUP on ctx.graph.parties, keyed by the folded name; the reading is the
+   browser's graphPartyStats and the server computes nothing. */
+function copilotCounterparty(clientCtx, name) {
+  const key = String(name || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
+  const g = clientCtx && typeof clientCtx === 'object' ? clientCtx.graph : null;
+  const parties = g && typeof g === 'object' ? g.parties : null;
+  if (!parties || typeof parties !== 'object')
+    return { name: key, found: false, note: 'This reader\'s counterparty table was not sent with the question — say the figures are not available from here rather than estimating them.' };
+  let p = parties[key];
+  if (!p) { const k = Object.keys(parties).find(x => x.includes(key) || key.includes(x)); if (k) p = parties[k]; }
+  if (!p || typeof p !== 'object') return { name: key, found: false, available: Object.keys(parties).slice(0, 40) };
+  const n = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const miss = {}; if (p.missing && typeof p.missing === 'object') Object.keys(p.missing).slice(0, 20).forEach(k => { miss[String(k).slice(0, 8)] = n(p.missing[k]) || 0; });
+  const ot = p.onTime && typeof p.onTime === 'object' ? { met: n(p.onTime.met) || 0, answered: n(p.onTime.answered) || 0 } : { met: 0, answered: 0 };
+  const rounds = p.rounds && typeof p.rounds === 'object' ? { deals: n(p.rounds.deals) || 0, avg: n(p.rounds.avg) } : null;
+  const pay = p.pay && typeof p.pay === 'object' ? { side: String(p.pay.side || '').slice(0, 12), days: n(p.pay.days), standard: n(p.pay.standard), over: n(p.pay.over) || 0, n: n(p.pay.n) || 0 } : null;
+  return { name: String(p.name || key).slice(0, 120), found: true, contracts: n(p.contracts) || 0, valueInHomeCurrency: n(p.value), shareOfBook: n(p.share), valueLeftOut: miss, roundsPerDeal: rounds, promisesOnTime: ot, paymentTerms: pay,
+    note: 'Counted over the live book (not declined, not archived). Share is by converted value; on-time is met over answered and is a fraction, not a rate, below three answered; payment terms are what the paper says, not what was invoiced.' };
+}
 function copilotInsightsPanel(clientCtx, name) {
   const key = String(name || '');
   if (COPILOT_PANEL_NAMES.indexOf(key) < 0)
@@ -6104,6 +6124,8 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { panel: { type: 'string', enum: COPILOT_PANEL_NAMES, description: 'Which panel. Stable English keys — never a translated title.' } }, required: ['panel'] } },
   { name: 'get_dependents', description: COPILOT_DEPENDENTS_DESC,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
+  { name: 'get_counterparty', description: COPILOT_COUNTERPARTY_DESC,
+    input_schema: { type: 'object', properties: { name: { type: 'string', description: 'The counterparty\'s name as it appears on the contracts.' } }, required: ['name'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -6133,6 +6155,7 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key, aux && aux.who);
     if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
     if (name === 'get_dependents') return copilotDependents(aux && aux.clientCtx, a.id);
+    if (name === 'get_counterparty') return copilotCounterparty(aux && aux.clientCtx, a.name);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
@@ -6624,6 +6647,7 @@ function copilotProgressLabel(name, input) {
   if (name === 'check_against_playbook') return 'Checking the playbook…';
   if (name === 'get_insights_panel') return 'Reading the Insights panel…';
   if (name === 'get_dependents') return 'Reading what depends on it…';
+  if (name === 'get_counterparty') return 'Reading the counterparty…';
   return 'Working…';
 }
 

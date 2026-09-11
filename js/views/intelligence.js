@@ -308,6 +308,73 @@ function igHoverShow(n){
   el.style.left=x+'px'; el.style.top=y+'px'; el.hidden=false;
 }
 function igHoverHide(){ const el=document.getElementById('ig-hover'); if(el) el.hidden=true; }
+/* ============================================================
+   A-3 · THE COUNTERPARTY NODE — one party, read across the book
+   ============================================================
+   Under the counterparty grouping the hub IS the party, and a party is the
+   one thing on this graph a reader negotiates with rather than about. So the
+   hub carries four lines, every one BORROWED: contracts and share of the book
+   by VALUE in home currency (owner-ruled — fxHome, fxMissing for what was left
+   out), rounds per deal from intelFrictionStats (the friction tab's own
+   figure), promises met on time from obligationOnTime (a FRACTION below three
+   answered — a percentage of two is a coin toss dressed as a rate), and the
+   payment terms from payTermsData's own rows (side, days, standard, over).
+   THE BOOK IS THE LIVE BOOK — not Declined, not archived, graphLiveContract —
+   the same population fxMissing and the graph's edges read. Money obeys
+   canViewValues: a viewer gets the name and the count. */
+const GRAPH_ONTIME_MIN = 3;
+function graphPartyStats(name){
+  const key=_gFold(name);
+  const out={ name:String(name||''), key, contracts:0, ids:[], value:null, missing:{}, share:null, rounds:null, onTime:{met:0,answered:0}, pay:null, found:false };
+  if(!key) return out;
+  const book=(state.contracts||[]).filter(graphLiveContract);
+  const mine=book.filter(c=>_gFold(c.counterparty)===key);
+  if(!mine.length) return out;
+  out.found=true; out.name=mine[0].counterparty; out.contracts=mine.length; out.ids=mine.map(c=>c.id);
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const sum=cs=>{ let v=0; cs.forEach(x=>{ if(!(typeof isMonetary==='function'?isMonetary(x):true)) return; if(!(Number(x.value||0)>0)) return;
+    const h=(typeof fxHome==='function')?fxHome(x):{v:Number(x.value||0),missing:false}; if(!h.missing) v+=h.v; }); return v; };
+  if(money){
+    out.value=sum(mine); out.missing=(typeof fxMissing==='function')?fxMissing(mine):{};
+    const all=sum(book); out.share=all>0?out.value/all:null;
+  }
+  /* Rounds per deal: the friction tab's own reading, asked for this party.
+     Its filter is a contains-match, so the exact name is picked out of what
+     comes back rather than trusted whole. */
+  try{ if(typeof intelFrictionStats==='function'){ const fs=intelFrictionStats({counterparty:out.name});
+    const row=(fs.counterparties||[]).find(cp=>_gFold(cp.name)===key);
+    if(row&&row.deals) out.rounds={ deals:row.deals, avg:Math.round(row.avgRounds*10)/10 }; } }catch(_){}
+  mine.forEach(c=>(c.obligations||[]).forEach(o=>{ const t=(typeof obligationOnTime==='function')?obligationOnTime(o):null; if(t===null) return; out.onTime.answered++; if(t) out.onTime.met++; }));
+  try{ if(typeof payTermsData==='function'){ const rows=(payTermsData().rows||[]).filter(r=>_gFold(r.counterparty)===key);
+    if(rows.length){ const sides=[...new Set(rows.map(r=>r.side))], stds=[...new Set(rows.map(r=>r.standard))];
+      out.pay={ side:sides.length===1?sides[0]:'mixed', days:Math.round(rows.reduce((a,r)=>a+r.days,0)/rows.length), standard:stds.length===1?stds[0]:null, over:rows.filter(r=>r.over).length, n:rows.length }; } } }catch(_){}
+  return out;
+}
+/* Every party on the live book, keyed by folded name — the table that rides
+   the brief as ctx.graph.parties, ids and money left off. */
+function graphPartyStatsAll(){
+  const out={}, seen=new Set();
+  (state.contracts||[]).filter(graphLiveContract).forEach(c=>{ const k=_gFold(c.counterparty); if(!k||seen.has(k)) return; seen.add(k);
+    const p=graphPartyStats(c.counterparty); if(!p.found) return;
+    out[k]={ name:p.name, contracts:p.contracts, value:p.value, missing:p.missing, share:p.share, rounds:p.rounds, onTime:p.onTime, pay:p.pay }; });
+  return out;
+}
+/* THE FOUR LINES ON THE HUB, as plain strings — the renderer prints them and
+   decides nothing. Line 1 is always there; a line with nothing behind it is
+   simply not drawn. On-time is a fraction below GRAPH_ONTIME_MIN answered. */
+function graphPartyLines(p){
+  if(!p||!p.found) return [];
+  const L=[];
+  const share=(p.share!=null)?` · ${Math.round(p.share*100)}% ${i18t('int_cp_of_book')}`:'';
+  L.push(i18tn('int_cp_contracts',p.contracts,{n:p.contracts})+share);
+  const mid=[];
+  if(p.rounds) mid.push(i18t('int_cp_rounds',{n:p.rounds.avg}));
+  if(p.onTime.answered) mid.push(p.onTime.answered>=GRAPH_ONTIME_MIN ? i18t('int_cp_ontime_pct',{n:Math.round(p.onTime.met/p.onTime.answered*100)}) : i18t('int_cp_ontime_frac',{m:p.onTime.met,a:p.onTime.answered}));
+  if(mid.length) L.push(mid.join(' · '));
+  if(p.pay){ const sideWord=p.pay.side==='customer'?i18t('int_cp_pay_in'):p.pay.side==='supplier'?i18t('int_cp_pay_out'):i18t('int_cp_pay_mixed');
+    L.push(i18t('int_cp_pay',{d:p.pay.days,side:sideWord})+(p.pay.over?` · ${i18tn('int_cp_pay_over',p.pay.over,{n:p.pay.over})}`:'')); }
+  return L;
+}
 /* THE "IF THIS ENDS" BLOCK on the dock's explain card. Drawn only where
    something depends on the contract — a block reading "nothing depends on
    this" on every card is furniture. Every figure is graphDependents' own; the
@@ -775,7 +842,13 @@ function buildGraphModel(){
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override); (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
   const hubs=Object.values(hubMap);
   const nodes=[], edges=[];
-  hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
+  hubs.forEach((h,i)=>{
+    const node={id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')};
+    /* A-3: under the counterparty grouping the hub is the party and carries
+       its four lines and its share of the book. The stats are read once here
+       so the renderer prints them and computes nothing. */
+    if(groupBy==='counterparty'&&!override){ const p=graphPartyStats(h.label); if(p.found){ node.party=p; node.lines=graphPartyLines(p); node.sub=null; } }
+    nodes.push(node); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
     nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
@@ -806,7 +879,7 @@ function makeIntelGraph(model){
   const hubs=nodes.filter(n=>n.kind==='hub');
   hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
-  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; } else {
+  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; if(n.lines&&n.lines.length){ n.w=Math.max(n.w,236); n.h=34+n.lines.length*13+(n.party&&n.party.share!=null?8:0); } } else {
     n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
     n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.facts.length?54:(n.sub?40:30); } });
   // svg build
@@ -843,6 +916,17 @@ function makeIntelGraph(model){
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
       sub.setAttribute('fill', n.kind==='hub'?'var(--color-accent-200)':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+    /* A-3: THE PARTY HUB — its lines under the name, and a share bar whose
+       length is the party's share of the book by value. The bar is a second
+       carrier beside the printed percentage, never the only one. */
+    if(n.kind==='hub'&&n.lines&&n.lines.length){
+      n.lines.forEach((t,i)=>{ const ln=document.createElementNS('http://www.w3.org/2000/svg','text');
+        ln.setAttribute('class','ig-sub ig-cp-line'); ln.setAttribute('data-ig-cp-line',i); ln.setAttribute('x',11); ln.setAttribute('y',31+i*13); ln.setAttribute('fill','var(--color-accent-200)'); ln.setAttribute('pointer-events','none');
+        ln.textContent=t.length>38?t.slice(0,37)+'…':t; g.appendChild(ln); });
+      if(n.party&&n.party.share!=null){ const y=31+n.lines.length*13-6, bw=n.w-22;
+        const tr=document.createElementNS('http://www.w3.org/2000/svg','rect'); tr.setAttribute('x',11); tr.setAttribute('y',y); tr.setAttribute('width',bw); tr.setAttribute('height',3); tr.setAttribute('rx',1.5); tr.setAttribute('fill','var(--color-accent-700)'); tr.setAttribute('pointer-events','none'); g.appendChild(tr);
+        const br=document.createElementNS('http://www.w3.org/2000/svg','rect'); br.setAttribute('class','ig-cp-share'); br.setAttribute('x',11); br.setAttribute('y',y); br.setAttribute('width',Math.max(2,Math.round(bw*Math.min(1,n.party.share)))); br.setAttribute('height',3); br.setAttribute('rx',1.5); br.setAttribute('fill','var(--color-accent-200)'); br.setAttribute('pointer-events','none'); g.appendChild(br); }
+    }
     /* A-1: THE THIRD LINE — at most three facts, each in its own tone, drawn
        as separate spans so a fact's colour is its own and never the line's. */
     if(n.facts&&n.facts.length){ const ft=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -2806,4 +2890,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

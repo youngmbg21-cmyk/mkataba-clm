@@ -679,6 +679,54 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(500);
 
+    /* ================= 13. THE COUNTERPARTY NODE (A-3, 11 Sep 2026) ========
+       Under the counterparty grouping the hub is the party and carries four
+       lines and a share bar. f292 holds the readings; what only a browser can
+       say is whether the lines are PAINTED on the hub, whether the bar's
+       length is the share, and whether the press still narrows the graph to
+       that party. Against the parent the hub is a name over a count. */
+    await page.evaluate(() => {
+      const by = id => state.contracts.find(c => c.id === id);
+      /* Naivas: two live contracts on paper that says 30 and 60 days, as a
+         supplier; one promise met on time, one missed. */
+      for (const id of ['MK-P1', 'MK-P6']) Object.assign(by(id).metadata = by(id).metadata || {}, { category: 'supplier' });
+      by('MK-P1').metadata.paymentTerms = '30 days'; by('MK-P6').metadata.paymentTerms = '60 days';
+      by('MK-P6').obligations = [
+        { id: 'ob_ok', desc: 'On time', due: '2026-01-10', status: 'done', completedAt: '2026-01-05' },
+        { id: 'ob_late', desc: 'Late', due: '2026-01-10', status: 'done', completedAt: '2026-02-01' } ];
+      intel.groupBy = 'counterparty'; intel.lenses = []; intel.groups = null; intel.history = []; intel.tab = 'map'; renderIntel();
+    });
+    await page.waitForTimeout(1600);
+    const hub = await page.evaluate(() => {
+      const n = IG.nodes.find(x => x.kind === 'hub' && /naivas/i.test(x.label)); if (!n) return { there: false };
+      const lines = [...n.g.querySelectorAll('[data-ig-cp-line]')].map(t => ({ text: t.textContent, w: Math.round(t.getBBox().width), fill: getComputedStyle(t).fill }));
+      const bar = n.g.querySelector('.ig-cp-share'); const track = bar && bar.previousSibling;
+      const p = (typeof graphPartyStats === 'function') ? graphPartyStats('Naivas') : { share: null, contracts: 0 };
+      return { there: true, h: n.h, lines, full: n.lines || [], bar: bar ? { w: Number(bar.getAttribute('width')), track: Number(track.getAttribute('width')) } : null,
+        share: p.share, contracts: p.contracts, pay: p.pay, onTime: p.onTime };
+    });
+    check('13a the Naivas hub carries its lines as painted text — contracts and share, on-time, and the payment terms',
+      hub.there && hub.lines.length === 3 && hub.lines.every((l, i) => l.w > 20 && hub.full[i].startsWith(l.text.replace(/…$/, ''))) && hub.h > 60
+        && new RegExp(hub.contracts + ' contracts · ' + Math.round(hub.share * 100) + '% of the book').test(hub.full[0])
+        && /1 of 2 met on time/.test(hub.full[1]) && /Pays 45 d out/.test(hub.full[2]),
+      JSON.stringify(hub.lines && hub.lines.map(l => l.text)));
+    check('13b the share bar\'s length IS the share — a second carrier beside the printed figure',
+      hub.there && hub.bar && hub.share > 0 && Math.abs(hub.bar.w / hub.bar.track - hub.share) < 0.03,
+      hub.bar && `${hub.bar.w}/${hub.bar.track} vs ${hub.share && hub.share.toFixed(3)}`);
+    /* A REAL PRESS on the party hub still narrows the graph to that party. */
+    const narrowed = await page.evaluate(() => {
+      const n = IG.nodes.find(x => x.kind === 'hub' && /naivas/i.test(x.label));
+      n.g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      return { lenses: intel.lenses.map(l => l.label), shown: IG.nodes.filter(x => x.kind === 'contract').map(x => x.id).sort() };
+    });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(OUT, '13-counterparty-hub.png') });
+    check('13c pressing the party hub narrows the graph to that party\'s contracts',
+      narrowed.lenses.some(l => /Naivas/.test(l)) && narrowed.shown.length >= 2 && narrowed.shown.includes('MK-P1') && narrowed.shown.includes('MK-P6'),
+      JSON.stringify(narrowed));
+    await page.evaluate(() => { intel.lenses = []; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
+    await page.waitForTimeout(500);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();
