@@ -232,6 +232,82 @@ function graphDependentsAll(){
     out[c.id]={ contracts:d.contracts.map(x=>({id:x.id,kind:x.kind})), amendments:d.amendments, calloffs:d.calloffs, party:d.party, value:d.value, missing:d.missing, held:d.held }; });
   return out;
 }
+/* ============================================================
+   A-1 · NODE FACTS — what a node says about itself
+   ============================================================
+   Six readings, every one BORROWED from the surface that already owns it, so
+   a node cannot disagree with the card, the calendar or the Home tile about
+   the same contract:
+     decideDays   renewalWindow — days to the renewal decision, only inside
+                  the window that card draws (RENEWAL_WINDOW_DAYS); past is
+                  negative and still said
+     whose        negoMoveSay — Mine · Theirs, the register's own word; null
+                  where nothing is outstanding
+     overdue      obligations obState()==='overdue' and NOT obligationBlocked —
+                  a step nobody could have done yet is not late by anybody's
+                  fault, the worklist's own band rule
+     overdueValue obligationAmount over those, only where money may be seen
+     offStandard  deviationSummary — deviations + missing, null where no
+                  review has ever run (an absence is not a clean sheet)
+     unread       !copilotRead — the Home tile's exact rule; null where the
+                  rule is not on this stage
+   COUNTING IS NOT DRAWING and it READS WITHOUT WRITING (c.changes and
+   c.obligations raw through the readings; never negoChanges). */
+function graphNodeFacts(c){
+  const out={ decideDays:null, missed:false, whose:null, whoseSay:'', overdue:0, overdueValue:null, offStandard:null, unread:null };
+  if(!c) return out;
+  try{ if(typeof renewalWindow==='function'){ const rw=renewalWindow(c); if(rw&&rw.inWindow){ out.decideDays=rw.days; out.missed=!!rw.missed; } } }catch(_){}
+  try{ if(typeof negoMoveSay==='function'){ const m=negoMoveSay(c); if(m&&m.k&&m.k!=='clear'){ out.whose=m.word; out.whoseSay=m.say||''; } } }catch(_){}
+  try{
+    const late=(c.obligations||[]).filter(o=>o&&(typeof obState==='function'?obState(o):o.status)==='overdue'&&!(typeof obligationBlocked==='function'&&obligationBlocked(o,c)));
+    out.overdue=late.length;
+    const money=(typeof canViewValues!=='function')||canViewValues();
+    if(money&&late.length){ let v=0,any=false; late.forEach(o=>{ const n=(typeof obligationAmount==='function')?obligationAmount(o):null; if(n!==null){ v+=n; any=true; } }); out.overdueValue=any?v:null; }
+  }catch(_){}
+  try{ if(typeof deviationSummary==='function'){ const sm=deviationSummary(c); if(sm&&sm.total) out.offStandard=sm.dev+sm.miss; } }catch(_){}
+  try{ if(typeof copilotRead==='function') out.unread=!copilotRead(c); }catch(_){}
+  return out;
+}
+/* THE THIRD LINE ON THE NODE: at most THREE facts, in the order a negotiator
+   scans — the decision clock (amber), whose move, then what is late (ruby).
+   "Not read" takes the last slot only where there is room. Each is
+   {text, tone}; the renderer prints them and decides nothing. */
+const GRAPH_NODE_FACTS_MAX = 3;
+function graphNodeFactLine(c){
+  const f=graphNodeFacts(c), out=[];
+  if(f.decideDays!=null) out.push({ k:'decide', text: f.decideDays<0 ? i18t('int_fact_decide_past',{n:-f.decideDays}) : i18t('int_fact_decide',{n:f.decideDays}), tone:'amber' });
+  if(f.whose) out.push({ k:'whose', text:f.whose, tone:f.whoseSay&&/mine/i.test(f.whose)?'amber':'ink', title:f.whoseSay });
+  if(f.overdue) out.push({ k:'overdue', text:i18tn('int_fact_overdue',f.overdue,{n:f.overdue}), tone:'ruby' });
+  if(f.unread) out.push({ k:'unread', text:i18t('int_fact_unread'), tone:'mute' });
+  return out.slice(0,GRAPH_NODE_FACTS_MAX);
+}
+/* THE FACT ROWS, ONE BUILDER FOR THE CARD AND THE HOVER — the hover is the
+   card's rows drawn beside the node, never a third rendering. */
+function igFactRowsHtml(c){
+  const f=graphNodeFacts(c);
+  const row=(k,v,tone)=>`<div class="flex justify-between gap-3 text-[11.5px] py-0.5" data-ig-fact="${k}"><span class="text-ink/45">${i18t('int_fr_'+k)}</span><span class="text-right font-medium truncate"${tone?` style="color:var(--st-${tone}-fg)"`:' style="color:var(--color-text)"'}>${v}</span></div>`;
+  const parts=[];
+  if(f.decideDays!=null) parts.push(row('decide', f.decideDays<0 ? i18t('int_fact_decide_past',{n:-f.decideDays}) : i18t('int_fact_decide',{n:f.decideDays}), 'amber'));
+  if(f.whose) parts.push(row('whose', igEsc(f.whose)+(f.whoseSay&&f.whoseSay!==f.whose?` <span class="text-ink/45 font-normal">· ${igEsc(f.whoseSay)}</span>`:''), null));
+  if(f.overdue) parts.push(row('overdue', i18tn('int_fact_overdue',f.overdue,{n:f.overdue})+(f.overdueValue!=null?` · ${fmtMoneyShort(f.overdueValue)}`:''), 'ruby'));
+  if(f.offStandard!=null) parts.push(row('standard', f.offStandard?i18tn('int_fact_offstd',f.offStandard,{n:f.offStandard}):i18t('int_fact_aligned'), f.offStandard?'amber':'green'));
+  if(f.unread!=null) parts.push(row('read', f.unread?i18t('int_fact_unread'):i18t('int_fact_read'), f.unread?null:'green'));
+  return parts.join('');
+}
+/* THE HOVER CARD — one element, moved to whichever node is under the pointer,
+   drawn only where the node has a fact to show. It is the explain card's own
+   rows; pressing the node still opens the full card in the dock. */
+function igHoverShow(n){
+  const host=document.getElementById('ig-svg'); if(!host||!n||n.kind!=='contract'||!n.c) return;
+  const rows=igFactRowsHtml(n.c); if(!rows){ igHoverHide(); return; }
+  let el=document.getElementById('ig-hover');
+  if(!el){ el=document.createElement('div'); el.id='ig-hover'; el.className='ig-hover'; host.parentElement.appendChild(el); }
+  el.innerHTML=`<div class="text-[12px] font-600 text-brand-900 truncate mb-0.5">${igEsc(n.c.name)}</div>${rows}`;
+  const r=n.g.getBoundingClientRect(), pr=host.parentElement.getBoundingClientRect();
+  const w=240, x=Math.max(8,Math.min(pr.width-w-8, r.right-pr.left+8)), y=Math.max(8,Math.min(pr.height-8-el.offsetHeight, r.top-pr.top));
+  el.style.left=x+'px'; el.style.top=y+'px'; el.hidden=false;
+}
+function igHoverHide(){ const el=document.getElementById('ig-hover'); if(el) el.hidden=true; }
 /* THE "IF THIS ENDS" BLOCK on the dock's explain card. Drawn only where
    something depends on the contract — a block reading "nothing depends on
    this" on every card is furniture. Every figure is graphDependents' own; the
@@ -730,7 +806,9 @@ function makeIntelGraph(model){
   const hubs=nodes.filter(n=>n.kind==='hub');
   hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
-  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; } else { n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.sub?40:30; } });
+  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; } else {
+    n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
+    n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.facts.length?54:(n.sub?40:30); } });
   // svg build
   /* A LINK SAYS WHAT KIND OF LINK IT IS, in its own dress: a family edge is
      the solid accent, a chain edge dashed, a group edge the quiet neutral it
@@ -741,7 +819,7 @@ function makeIntelGraph(model){
   const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
   nodes.forEach(n=>{
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
+    g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')+(n.unread?' unread':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
     /* A GROUP is not a contract, and in dark mode the old slate hub fill sat
@@ -765,6 +843,14 @@ function makeIntelGraph(model){
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
       sub.setAttribute('fill', n.kind==='hub'?'var(--color-accent-200)':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+    /* A-1: THE THIRD LINE — at most three facts, each in its own tone, drawn
+       as separate spans so a fact's colour is its own and never the line's. */
+    if(n.facts&&n.facts.length){ const ft=document.createElementNS('http://www.w3.org/2000/svg','text');
+      ft.setAttribute('class','ig-facts'); ft.setAttribute('x',13); ft.setAttribute('y',45); ft.setAttribute('pointer-events','none');
+      const tone={amber:'var(--st-amber-fg)',ruby:'var(--st-ruby-fg)',ink:'var(--color-text)',mute:'var(--color-neutral-600)'};
+      n.facts.forEach((f,i)=>{ if(i){ const dot=document.createElementNS('http://www.w3.org/2000/svg','tspan'); dot.setAttribute('fill','var(--color-neutral-400)'); dot.textContent=' · '; ft.appendChild(dot); }
+        const sp=document.createElementNS('http://www.w3.org/2000/svg','tspan'); sp.setAttribute('data-ig-fact',f.k); sp.setAttribute('fill',tone[f.tone]||tone.ink); if(f.tone==='amber'||f.tone==='ruby') sp.setAttribute('font-weight','700'); sp.textContent=f.text; ft.appendChild(sp); });
+      g.appendChild(ft); }
     if(n.badge){ // gold pill pinned to the chip's top-right corner (Copilot annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -775,8 +861,8 @@ function makeIntelGraph(model){
       bl.textContent=bt; g.appendChild(bl); }
     gNodes.appendChild(g);
     g.addEventListener('pointerdown',e=>igStartDrag(e,n));
-    g.addEventListener('pointerenter',()=>{ if(IG&&!IG.dragging) igPaint(n); });
-    g.addEventListener('pointerleave',()=>{ if(IG&&!IG.dragging) igPaint(null); });
+    g.addEventListener('pointerenter',()=>{ if(IG&&!IG.dragging){ igPaint(n); igHoverShow(n); } });
+    g.addEventListener('pointerleave',()=>{ if(IG&&!IG.dragging){ igPaint(null); igHoverHide(); } });
     g.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return;
       // contract -> explain it in the dock (workspace stays one click away in the card);
       // hub -> keep only its group
@@ -816,7 +902,7 @@ function igExplain(id){
   // Copilot engine isn't configured — the facts card still stands on its own).
   intelAIExplain(id);
 }
-function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
+function igStartDrag(e,n){ e.stopPropagation(); igHoverHide(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
   const p=igToWorld(e.clientX,e.clientY); IG.dragOff={x:n.x-p.x,y:n.y-p.y};
   const mv=ev=>{ if(!IG.dragging)return; const p=igToWorld(ev.clientX,ev.clientY); IG.dragging.x=p.x+IG.dragOff.x; IG.dragging.y=p.y+IG.dragOff.y; IG.dragging.vx=IG.dragging.vy=0; IG.dragMoved=true; };
   const up=()=>{ IG.dragging=null; window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); setTimeout(()=>{if(IG)IG.dragMoved=false;},50); };
@@ -2509,6 +2595,7 @@ function igExplainCard(id){
     ${row('Status',statusLabel(c.status))}
     ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
+    ${igFactRowsHtml(c)}
     ${igDependentsHtml(c.id)}
     <div class="mt-2 flex items-center gap-1.5">
       <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">${i18t('int_open_workspace')}</button>
@@ -2719,4 +2806,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

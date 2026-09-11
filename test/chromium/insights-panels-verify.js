@@ -576,7 +576,7 @@ const QUESTION = 'why do I have a big workload runway today?';
       /* The reading's own answer, so the card is checked AGAINST it rather
          than against a count typed here — an earlier section adds a Naivas
          contract to this book, and a party dependent is a fact, not noise. */
-      const d = graphDependents('MK-P1');
+      const d = (typeof graphDependents === 'function') ? graphDependents('MK-P1') : { contracts: [] };
       return { there: true, w: Math.round(r.width), h: Math.round(r.height), inDock: r.left >= dock.left && r.right <= dock.right + 1,
         text: (blk.textContent || '').replace(/\s+/g, ' ').trim(), btn: !!btn && btn.getBoundingClientRect().height > 0,
         n: d.contracts.length, ids: d.contracts.map(x => x.id).sort() };
@@ -599,10 +599,85 @@ const QUESTION = 'why do I have a big workload runway today?';
       rows: [...document.querySelectorAll('#content tr[data-row], #content tr[data-id]')].map(r => r.getAttribute('data-row') || r.getAttribute('data-id')).sort(),
     }));
     check('11g See the list lands on the Contracts page narrowed to exactly the dependents, and the chip says why',
-      list.view === 'register' && /MK-P1/.test(list.chip) && list.rows.join(',') === card.ids.join(',') && list.rows.includes('MK-P2') && list.rows.includes('MK-P6'),
-      JSON.stringify(list) + ' vs ' + card.ids.join(','));
+      list.view === 'register' && /MK-P1/.test(list.chip) && list.rows.join(',') === (card.ids || []).join(',') && list.rows.includes('MK-P2') && list.rows.includes('MK-P6'),
+      JSON.stringify(list) + ' vs ' + (card.ids || []).join(','));
     await page.evaluate(() => { const b = document.getElementById('reg-only-clear'); if (b) b.click(); intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(600);
+
+    /* ================= 12. NODE FACTS (A-1, 11 Sep 2026) ===================
+       The third line on a node and its hover card. f291 holds the readings;
+       what only a browser can say is whether the line is PAINTED — the right
+       fact in the right ink on the right node — and whether a real hover
+       brings the card's rows up beside the node without covering it. Against
+       the parent every node draws two lines and no hover card exists. */
+    await page.evaluate(() => {
+      const by = id => state.contracts.find(c => c.id === id);
+      const day = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      /* MK-P6: a late promise with money, and nothing read. (It is MK-P1's
+         amendment since section 11, so it can carry no renewal clock of its
+         own — an amendment never renews itself, renewalWindow's rule.) */
+      by('MK-P6').obligations = [{ id: 'ob_p6_rep', desc: 'Quarterly report', due: day(-4), status: 'open', amount: 120000 }];
+      delete by('MK-P6').scan; delete by('MK-P6').playbook; delete by('MK-P6')._brief; delete by('MK-P6')._hasBrief;
+      /* MK-P1: signed, read, its renewal decision 45 days out. The term is
+         FAMILY-AWARE (a signed amendment moves it), so the amendment's own
+         expiry has to say 45 too or the master reads MK-P6's later date. */
+      by('MK-P1').scan = { at: new Date().toISOString(), findings: [] }; by('MK-P1').obligations = []; by('MK-P1').expiry = day(45); by('MK-P6').expiry = day(45);
+      /* MK-P4: read, no dates, nothing outstanding — nothing to say. */
+      by('MK-P4').scan = { at: new Date().toISOString(), findings: [] };
+      intel.groupBy = 'folder'; intel.lenses = []; intel.groups = null; intel.history = []; intel.tab = 'map'; renderIntel();
+    });
+    await page.waitForTimeout(1600);
+    const facts = await page.evaluate(() => {
+      const read = id => { const n = IG.nodes.find(x => x.id === id); if (!n) return null;
+        const sp = [...n.g.querySelectorAll('[data-ig-fact]')].map(t => ({ k: t.getAttribute('data-ig-fact'), text: t.textContent, fill: getComputedStyle(t).fill, w: Math.round(t.getBBox().width) }));
+        const chip = n.g.querySelector('.ig-chip');
+        return { h: n.h, facts: sp, unread: n.g.classList.contains('unread'), chipOp: Number(getComputedStyle(chip).opacity), lines: n.g.querySelectorAll('text').length }; };
+      const amber = getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim();
+      const ruby = getComputedStyle(document.documentElement).getPropertyValue('--st-ruby-fg').trim();
+      const probe = document.createElement('span'); probe.style.color = amber; document.body.appendChild(probe); const amberRgb = getComputedStyle(probe).color;
+      probe.style.color = ruby; const rubyRgb = getComputedStyle(probe).color; probe.remove();
+      return { p6: read('MK-P6'), p1: read('MK-P1'), p4: read('MK-P4'), amberRgb, rubyRgb };
+    });
+    check('12a MK-P6 carries a third line — what is late, and not read; MK-P1 carries its renewal clock',
+      facts.p6 && facts.p1 && facts.p6.facts.map(f => f.k).join(',') === 'overdue,unread' && facts.p6.lines === 3 && facts.p6.h > 40
+        && facts.p1.facts.map(f => f.k).join(',') === 'decide' && /45 d/.test(facts.p1.facts[0].text),
+      JSON.stringify({ p6: facts.p6 && facts.p6.facts.map(f => f.k + ':' + f.text), p1: facts.p1 && facts.p1.facts.map(f => f.k + ':' + f.text) }));
+    check('12b the clock is painted amber and the late promise ruby — measured, not read off a class',
+      facts.p6 && facts.p1 && facts.p1.facts[0] && facts.p6.facts[0] && facts.p1.facts[0].fill === facts.amberRgb && facts.p6.facts[0].fill === facts.rubyRgb && facts.p6.facts.every(f => f.w > 10),
+      facts.p1 && facts.p6 && `${(facts.p1.facts[0] || {}).fill} vs amber ${facts.amberRgb} · ${(facts.p6.facts[0] || {}).fill} vs ruby ${facts.rubyRgb}`);
+    check('12c an unread node is faded, a read one is not, and a node with nothing to say keeps two lines',
+      facts.p6 && facts.p4 && facts.p6.unread && facts.p6.chipOp < 0.7 && !facts.p4.unread && facts.p4.chipOp === 1 && facts.p4.facts.length === 0 && facts.p4.lines === 2,
+      JSON.stringify({ p6: facts.p6 && { unread: facts.p6.unread, op: facts.p6.chipOp }, p4: facts.p4 && { unread: facts.p4.unread, op: facts.p4.chipOp, lines: facts.p4.lines } }));
+    /* A REAL HOVER brings the card's rows up beside the node, not over it. */
+    const hov = await page.evaluate(() => {
+      const n = IG.nodes.find(x => x.id === 'MK-P6');
+      n.g.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+      const el = document.getElementById('ig-hover'); if (!el || el.hidden) return { there: false };
+      const r = el.getBoundingClientRect(), g = n.g.getBoundingClientRect();
+      const rows = [...el.querySelectorAll('[data-ig-fact]')].map(e => e.getAttribute('data-ig-fact'));
+      /* Geometry, not elementFromPoint: an earlier section leaves the
+         Copilot scrim over this page, which is a probe artefact and not a
+         fact about the hover card. */
+      const beside = r.left >= g.right - 1;
+      const out = { there: true, w: Math.round(r.width), h: Math.round(r.height), rows, text: el.textContent.replace(/\s+/g, ' ').trim(),
+        overlaps: !(r.right <= g.left || r.left >= g.right || r.bottom <= g.top || r.top >= g.bottom),
+        beside };
+      n.g.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+      out.hiddenAfter = el.hidden;
+      return out;
+    });
+    await page.evaluate(() => { const n = IG.nodes.find(x => x.id === 'MK-P6'); n.g.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true })); });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(OUT, '12-node-facts.png') });
+    await page.evaluate(() => { const n = IG.nodes.find(x => x.id === 'MK-P6'); n.g.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true })); });
+    check('12d hovering a node draws the card\'s own rows as visible pixels',
+      hov.there && hov.w > 150 && hov.h > 40 && hov.rows.join(',') === 'overdue,read' && /120K|120,000/.test(hov.text),
+      JSON.stringify(hov));
+    check('12e and the card sits beside the node, never over it, and goes when the pointer leaves',
+      hov.there && !hov.overlaps && hov.beside && hov.hiddenAfter, JSON.stringify({ overlaps: hov.overlaps, beside: hov.beside, hidden: hov.hiddenAfter }));
+    await page.evaluate(() => { intel.tab = 'frame'; setView('intel'); });
+    await page.waitForTimeout(500);
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

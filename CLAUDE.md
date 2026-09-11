@@ -13453,6 +13453,60 @@ the reading's own answer — checked AGAINST `graphDependents` rather than a
 count typed in the file, because an earlier section adds a same-counterparty
 contract to that book and a party dependent is a fact).
 
+## A NODE SAYS WHAT IS HAPPENING TO IT (A-1, 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md, the second of five. A contract node on the
+Insights graph carried its name, its reference and its value — facts a
+register row already carries better. It carries a THIRD LINE now, and a hover
+card.
+
+- **EVERY FACT IS BORROWED, AND THAT IS THE WHOLE CLAIM.** `graphNodeFacts(c)`
+  asks six readings the product already owns: `renewalWindow` for the
+  decision clock (only inside the window the renewal card draws; past reads
+  negative and is still said), `negoMoveSay` for whose move (the register's
+  own word — Mine · Theirs), `obState` + `obligationBlocked` for what is late
+  (a step nobody could have done yet is not late by anybody's fault, the
+  worklist's own band rule), `obligationAmount` for its money (only where
+  `canViewValues`), `deviationSummary` for the standards (null where no review
+  ever ran — an absence is not a clean sheet), and `copilotRead` — **Home's
+  tile rule, PUBLISHED from js/views/home.js for this reading** rather than
+  rewritten; where that rule is not on the stage the answer is unknown, never
+  "unread". f291 sweeps the file for a second copy of the unread rule and
+  fails on `_hasBrief` appearing in it.
+- **AT MOST THREE FACTS, IN THE ORDER A NEGOTIATOR SCANS**: the clock
+  (amber), whose move, what is late (ruby), then "Not read yet" only where
+  there is room (`GRAPH_NODE_FACTS_MAX`). Each is its own `tspan` with its own
+  ink, so a fact's colour is its own and never the line's. **A node with
+  nothing to say keeps its two lines** — a third line reading nothing is
+  furniture. An unread node FADES ITS CHIP alone (`.ig-node.unread .ig-chip`),
+  so its facts still read.
+- **THE HOVER CARD IS THE EXPLAIN CARD'S OWN ROWS, NEVER A THIRD RENDERING.**
+  `igFactRowsHtml(c)` is one builder; `igExplainCard` prints it in the dock
+  and `igHoverShow` prints it beside the node — one element, moved to whichever
+  node is under the pointer, `pointer-events:none` so the node keeps its hover
+  and its press, hidden on leave and on a drag. Drawn only where the node has
+  a fact to show.
+- **COUNTING IS NOT DRAWING, AND IT READS WITHOUT WRITING**: `c.changes` and
+  `c.obligations` through the readings, never `negoChanges`.
+- **THE STAGE TAUGHT TWO THINGS, both facts about the product rather than the
+  test.** A contract that is an AMENDMENT carries no renewal clock — an
+  amendment never renews itself, `renewalWindow`'s own first line — so the
+  section 11 fixture that made MK-P6 an amendment took MK-P6's clock away, and
+  the check moved to the master. And the master's term is FAMILY-AWARE: a
+  signed amendment moves it, so the master read the amendment's later date
+  until the amendment's own expiry was set too. Both are the product being
+  right where the fixture was not.
+
+Tests: f291 (15 — every reading proved borrowed, the three-slot line with its
+order, the tones, the one builder, the published rule, both languages;
+**all 15 fail against the parent**), insights-panels-verify section 12 (5,
+browser — **all 5 fail against the parent**: the third line PAINTED on the
+right node with the clock measured amber and the late promise measured ruby
+against the resolved tokens, the unread node's chip faded as a computed
+opacity, a node with nothing to say still at two lines, and a real hover
+drawing the rows as pixels BESIDE the node and taking them away on leave).
+f148 gained `int_fr_read` on SAME_IN_BOTH: "Copilot" is the product's own name.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.
