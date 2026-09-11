@@ -7,7 +7,9 @@ how SAP would approach these issues when you are building them because in
 some cases they are nonsensical especially since I did not ask for those
 particular changes."*
 
-**THE GATE ON ALL OF IT: nothing here is coded until the owner says go.** When
+**BUILT the same night on the owner's "go, build all of them and merge to main."** Every item landed; the record is in CLAUDE.md (COMMENTS, ROUND THREE), docs/MAP-HISTORY.md and BUGLOG.md; the nets are f304 (8)(9) and round-two-comments-verify H1–H5. Named to the owner and not built: Edit with Copilot across two clauses or in the front matter (those highlights offer Ask and Comment); the blur in the clause editor.
+
+**THE GATE THAT STOOD BEFORE: nothing here is coded until the owner says go.** When
 they do, THE SIX QUESTIONS are run out loud on every item below — the owner has
 said some of what they are seeing was never asked for, so each change lands
 with one sentence on what serious contract software does with that shape and

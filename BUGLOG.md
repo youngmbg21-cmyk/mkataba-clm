@@ -12765,3 +12765,19 @@ Noticed, not fixed
 - Their page's card composer (`rlCardNotesHtml`) still stands beside the aside; not swept.
 - The Ask-mode answer keeps wording the model volunteered as `held` and shows it only on Edit with this; a model that answers with wording alone (no advice) is shown that wording as its answer text.
 - Proved for the whole on the branch before the merge to main: full suite 6679/6679 on the second run (the first found f148: `ce_prompt_question` is English in both books, as its two sibling prompts are, and joins their named exemption); lint 0 errors.
+
+### Comments, round three — eight reports off round two's first use (Young, 11 Sep 2026, late; WORKORDER-comments-round-three.md)
+Defects found
+- The FILED pin drew "CHG-006 filed · add a note" beside Skip, wrapped to a word a line over an empty body: one builder now draws one shape for both pins — reference · the change's own wording quoted (`rlNpChangeQuote`) · the switch; no lead line; Skip stays the way out.
+- The pin's Internal / External halves sized to their words (the lit half wider): `inline-grid` with `grid-auto-columns:1fr`, measured 153 / 153 whichever half is lit.
+- The notes drawer over the NEGOTIATION page: a slight blur (`#panel-scrim.is-blur`, transparent, 1.5px) and a press on the blurred page closes the drawer — reverses the 27 Aug ruling for that page only (`notesBlurs()`); the clause editor and every other page keep no shade and no outside-press close.
+- A Copilot card's Apply left the box in typing, so the marks were only seen after a second pencil press: measured which Apply (the passage card, `keepView:true` by the 30 Aug design); the card now passes `keepView:false` and the reader's own typing keeps it.
+- Under Ask Copilot the answer carried the three-row reading (playbook · precedent · wording): under a question the answer alone; under Edit the rows stay.
+- The clause editor's paper offered nothing on any clause but the one in the box: `rlPaperOfferFromRange` is the one reading for both papers; the editor's mouse-up hands a range outside the box to it, Ask/Edit re-open the page on THAT clause with the words in hand; a heading dragged along is left out. Found while pinning it: a drag from the recital into clause 1 has words in one clause but not that clause's OWN words — Edit is offered only where the whole highlight is one clause's share (F96 B8b).
+- The front matter and a drag across two clauses answered with silence (F96 B3/B8): Ask Copilot (the panel) and Comment are offered; Edit is not — named to the owner.
+Proved: f304 (8)(9) new, 277 claims green across f304/f245/f302/f303/F96/f232/f148 (nine claims re-pointed from the lead line and the silences); lint 0 errors; round-two-comments-verify 25/25 (H1–H5 new: equal halves measured, the filed pin quoting, a real drag over another clause in the editor with the heading, Apply ending typing, the blur's computed rule); notes-two-rooms-verify 74/74 (section 2 re-pointed to the blur and the press that closes); clause-door-verify 118/118; clause-editor-verify (25c, 25h re-pointed).
+Noticed, not fixed
+- Edit with Copilot across two clauses or in the front matter is not offered (the editor opens on one clause); the owner may rule otherwise.
+- The clause editor does not blur behind the drawer — "the negotiate page" was read as the negotiation page; the editor covers it.
+- `.nego-scroll` glides: a probe that assigns `scrollTop` and measures in the same evaluate reads the old place (learned twice in H3).
+- The Document tab's own highlight menu (Simplify · Ask Copilot) is still untouched.

@@ -382,10 +382,14 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
        from a Copilot card or a playbook standard still drops out of typing so
        the marks it made are the first thing seen. */
     const rep = CODE.match(/function ceReplacePassage\([\s\S]*?\n\}/)[0];
-    assert.match(rep, /\{ keepView: true, repaint: true \}/,
-      'keepView holds the reader in the wording; repaint is owed because the '
-      + 'WORDS moved and the box would otherwise still show the sentence that '
-      + 'has just gone');
+    /* RE-POINTED 11 Sep 2026 (round three, item 3): keepView is the caller's
+       — the reader's own typing keeps it (the default); a Copilot card's Apply
+       passes false so the clause drops out of typing and shows its marks. */
+    assert.match(rep, /const keepView = o\.keepView !== false;/,
+      'keepView holds the reader in the wording by default');
+    assert.match(rep, /\{ keepView, repaint: true \}/,
+      'repaint is owed because the WORDS moved and the box would otherwise '
+      + 'still show the sentence that has just gone');
     const apply = CODE.match(/function ceApply\([\s\S]*?\n\}/)[0];
     assert.match(apply, /if \(_ceEditing && !opts\.keepView\) _ceEditing = false;/,
       'and the two flags stay independent — one is about the caret, the other '
@@ -550,8 +554,8 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
     assert.match(CODE, /text: wording, passage: scope \|\| null/, 'and hands it to the card');
     assert.match(CODE, /card\.passage \? card\.passage\.text : _ceText/,
       'the preview is marked against what it really replaces');
-    assert.match(CODE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text\);\n\s+else ceApply\(/,
-      'and Apply routes by what the card is about');
+    assert.match(CODE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\n\s+else ceApply\(/,
+      'and Apply routes by what the card is about — and ends typing (round three, item 3)');
   });
 
   test('AND IT IS NOT A THIRD DOOR — the replacement files nothing of its own', () => {

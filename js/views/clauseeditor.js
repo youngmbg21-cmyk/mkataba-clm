@@ -3190,7 +3190,10 @@ async function ceAsk(question, opts = {}){
   const wording = String(res.proposedText || '').trim();
   if (asking){
     const advice = String(res.advice || '').trim();
-    _ceThread.push({ who: 'ai', text: advice || wording, read, asking: true, passage: scope,
+    /* NO READING LIST UNDER A QUESTION (Young, 11 Sep 2026, late: "not
+       necessary when I am simply asking a question. When I want to edit then
+       include it"): the three rows rest wording that is about to move. */
+    _ceThread.push({ who: 'ai', text: advice || wording, read: [], asking: true, passage: scope,
       /* Wording the model volunteered anyway is HELD, not offered: Edit with
          this turns it into a card with Apply; until then it is nowhere. */
       held: (wording && advice && wording !== scope.text) ? wording : '' });
@@ -3968,8 +3971,11 @@ function ceReopenHeld(held){
    carried across character for character. ONE reading, because the reader's own
    typing and a Copilot rewrite are the same act on the record and a second copy
    is how the two come to disagree about what a line break costs. */
-function ceReplacePassage(sel, wording){
+function ceReplacePassage(sel, wording, o = {}){
   const multi = !!(sel && sel.multi);
+  /* keepView holds the reader IN the wording — the reader's own hand; a card's
+     Apply passes false and the clause shows its marks (round three). */
+  const keepView = o.keepView !== false;
   const words = multi ? ceWordsKeepBreaks(wording)
     : String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
   /* ---- A REFUSAL IS SPOKEN WHERE EVERY OTHER REFUSAL ON THIS PAGE IS ----
@@ -3991,7 +3997,7 @@ function ceReplacePassage(sel, wording){
     const next = block.slice(0, at) + words + block.slice(at + sel.text.length);
     lines.splice(sel.line, le - sel.line + 1, ...next.split('\n'));
     ceDetachPassage();
-    ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView: true, repaint: true });
+    ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView, repaint: true });
     return true;
   }
   const ln = lines[sel.line];
@@ -4011,7 +4017,7 @@ function ceReplacePassage(sel, wording){
      repaint because the WORDS moved — keepView says nothing about the paper,
      and a passage replaced without a rebuild would leave the box showing the
      sentence that has just gone. */
-  ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView: true, repaint: true });
+  ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView, repaint: true });
   return true;
 }
 /* ---- STRIKE THE HIGHLIGHTED WORDS OUT ----
@@ -4417,7 +4423,12 @@ function ceWirePage(page){
          line break costs the same whoever wrote the wording. And it APPLIES
          rather than files, like every other card on this rail — the one act in
          the foot is still what puts it on the record. */
-      if (card.passage) ceReplacePassage(card.passage, card.text);
+      /* APPLY ENDS TYPING (Young, 11 Sep 2026, late: "when I click apply on
+         copilot edit, i should not have to go back and click the pencil again
+         to close the edit"): wording that arrives from a card drops out of
+         typing so its marks are the first thing seen — the whole-clause card's
+         own rule, now the passage card's too. */
+      if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
          changed it before filing. Stamped AFTER the apply and read off the
@@ -4678,6 +4689,16 @@ function ceWirePage(page){
     setTimeout(() => {
       const read = ceSelectionRead();
       if (read.sel){ ceOfferPassage(read.sel); return; }
+      /* ---- THE EDITOR'S PAPER OFFERS ON EVERY CLAUSE, NOT ONLY THE ONE IN
+         THE BOX (Young, 11 Sep 2026, late: "when i highlight several
+         sentences without click the pencil first, i do not get the drop down
+         options") ---- A drag on this canvas outside the typing box is read
+         exactly as the negotiation page reads its paper (rlPaperOfferFromRange,
+         through window): one clause offers the three verbs and the two Copilot
+         verbs MOVE this page to that clause with the words in hand (ceGoClause,
+         which asks before a draft is thrown away); wider than one clause, Ask
+         goes to the panel and Comment to the drawer. */
+      if (!read.why && ceOfferOnPaper()) return;
       ceDetachPassage();
       /* ---- AND A REFUSAL SAYS WHY (31 Aug 2026) ----
          This branch used to do nothing at all, so a passage the product had
@@ -4688,6 +4709,29 @@ function ceWirePage(page){
       if (read.why) ceSay(_cet(read.why));
     }, 0);
   });
+}
+function ceOfferOnPaper(){
+  if (typeof window.rlPaperOfferFromRange !== 'function' || typeof window.negoReadPassage !== 'function') return false;
+  const s = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+  const doc = _ceQ('#ce-doc');
+  if (!s || s.isCollapsed || !s.rangeCount || !doc) return false;
+  const r = s.getRangeAt(0);
+  const pane = doc.querySelector('.nego-doc') || doc;
+  const box = _ceQ('#ce-clausebody');
+  if (!pane.contains(r.commonAncestorContainer)) return false;
+  if (box && box.contains(r.commonAncestorContainer)) return false;
+  let rect = null;
+  try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
+  const passage = negoReadPassage(r, pane);
+  if (!passage || String(passage.text || '').trim().length < 3) return false;
+  ceDetachPassage();
+  return !!rlPaperOfferFromRange({ c: _ceC, opts: { by: _ceOpts && _ceOpts.by }, side: 'owner',
+    passage, text: passage.text, rect,
+    openEditor: (id, o) => {
+      if (String(id) === String(_ceClauseId)) return ceAttachWords(o && o.passage, o && o.passageMode);
+      ceGoClause(id, o);
+      return true;
+    } });
 }
 /* ---- EDIT WITH THIS (owner's "Yes", 11 Sep 2026, evening) ----
    A question can become an edit without re-highlighting: the same words are

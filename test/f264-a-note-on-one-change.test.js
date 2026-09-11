@@ -379,13 +379,16 @@ describe('f264 (5) — the drawer reads the record for its shape', () => {
     return host;
   };
 
-  test('after a filing: the pin names the change and says it was filed, and the way out says Skip', async () => {
+  test('after a filing: the pin names the change and quotes its wording, and the way out says Skip', async () => {
+    /* RE-POINTED 11 Sep 2026 (round three): no "filed" lead line — the pin
+       quotes the change's own wording, the highlight pin's shape. */
     const p = await bench();
     const host = await stage(p, true);
     const pin = host.querySelector('.rl-np-pin');
     assert.ok(pin);
     assert.match(pin.textContent, new RegExp(p.ch.id));
-    assert.match(pin.querySelector('.lead').textContent, /filed|registrerad/i);
+    assert.equal(pin.querySelector('.lead'), null);
+    assert.ok(pin.querySelector('q') && pin.querySelector('q').textContent.trim().length > 3);
     assert.match(pin.querySelector('[data-rl-np-unpin]').textContent, /Skip|Hoppa/i);
     assert.match(host.querySelector('[data-rl-np-send]').textContent, /Add note|Lägg till/i);
   });

@@ -1952,7 +1952,16 @@ function applyPanelLayout(){
      scrollable. THE SCRIM IS ALSO WHAT CLOSES THE PANEL ON AN OUTSIDE PRESS, so
      the notes face deliberately has no outside-press close either — the ✕ and
      Escape are its ways out, exactly as the clause panel's are. */
-  if(scrim&&scrim.classList) scrim.classList.toggle('open',show&&panelFace()!=='notes');
+  /* ---- REVERSED FOR ONE PAGE (Young, 11 Sep 2026, late): on the NEGOTIATION
+     page the notes drawer stands over a SLIGHT blur — the wording still
+     readable through it — and pressing the blurred page closes the drawer,
+     the alerts panel's own rule. Every other page keeps the 27 Aug ruling:
+     no shade, no outside-press close. The clause editor is not that page. */
+  const blur=show&&panelFace()==='notes'&&notesBlurs();
+  if(scrim&&scrim.classList){
+    scrim.classList.toggle('open',show&&(panelFace()!=='notes'||blur));
+    scrim.classList.toggle('is-blur',blur);
+  }
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
   /* ---- THE KEYBOARD STAYS IN THE PANEL WHILE IT IS UP ---- (25 Aug 2026)
@@ -1964,6 +1973,11 @@ function applyPanelLayout(){
      would be a trap the other three do not set. */
   if(show && !_panelTrap && typeof trapFocus==='function') _panelTrap=trapFocus(panel);
   else if(!show && _panelTrap){ try{ _panelTrap(); }catch(e){} _panelTrap=null; }
+}
+/* Does the notes drawer blur the page behind it here — the negotiation page
+   alone, and not while the clause editor covers it. */
+function notesBlurs(){
+  return state.view==='redline'&&!(typeof window.clauseEditorOpen==='function'&&clauseEditorOpen());
 }
 /* One value: one panel, two contents, never two layers. */
 let _panelTrap=null;

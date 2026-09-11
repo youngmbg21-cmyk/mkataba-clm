@@ -363,7 +363,9 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.equal(pin.changeId, p.ch.id);
     assert.equal(pin.filed, true);
     assert.equal(pin.room, 'internal');
-    assert.match(p.host.querySelector('.rl-np-pin .lead').textContent, /filed|registrerad/i);
+    /* RE-POINTED 11 Sep 2026 (round three): no lead line; the pin quotes the change. */
+    assert.equal(p.host.querySelector('.rl-np-pin .lead'), null);
+    assert.ok(p.host.querySelector('.rl-np-pin q'), 'the change\'s wording is quoted');
     /* Skip with nothing typed drops the pin and tells the caller nothing happened. */
     p.host.querySelector('[data-rl-np-unpin]').click();
     await tick();
@@ -378,7 +380,8 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.ok((p.ch.revisions || []).length, 'the fold happened');
     const done = p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
     await tick();
-    assert.match(p.host.querySelector('.rl-np-pin .lead').textContent, /revised|reviderad/i);
+    assert.equal(p.host.querySelector('.rl-np-pin .lead'), null, 'no lead (round three)');
+    assert.match(p.host.querySelector('.rl-np-pin q').textContent, /sixty/i, 'the revised wording is quoted');
     p.host.querySelector('.rl-np-in').value = 'Sixty is our fallback.';
     const send = p.host.querySelector('[data-rl-np-send]');
     await p.w.win.rlNotesSend(p.host, p.c, p.ch, { side: 'owner' }, send.getAttribute('data-room'));
@@ -458,7 +461,9 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.match(fn, /if \(opts && opts\.preview\) return false;/);
     assert.match(VIEW, /const onPaper = !inCpEditorPane && !!\(pane\.closest && pane\.closest\('\.rl-doc'\)\);/);
     assert.equal(/if \(!theirSeat && !inCpEditorPane && pane\.closest && pane\.closest\('\.rl-doc'\)\)\{\n\s*_negoKillSelMenu\(\);\n\s*return;/.test(VIEW), false);
-    assert.match(VIEW, /rlPaperSelOffer\(\{ c, opts, side, text: offered, clauseId, rect,/);
+    /* RE-POINTED 11 Sep 2026 (round three, item 8): the paper's handler goes
+       through rlPaperOfferFromRange — the one reading both papers share. */
+    assert.match(VIEW, /rlPaperOfferFromRange\(\{ c, opts, side, passage, text, rect,/);
   });
 
   test('the shell: force opens rather than toggles, and a closed drawer drops the pin', () => {

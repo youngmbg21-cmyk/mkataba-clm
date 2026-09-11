@@ -5204,8 +5204,11 @@
   .rl-np-pin .x{font:inherit;font-size:var(--t-micro);font-weight:var(--w-strong);
     color:var(--color-neutral-600);background:none;border:0;padding:0;cursor:pointer;margin-left:auto;}
   .rl-np-pin q{display:block;font-style:italic;color:var(--color-text);quotes:'\201C' '\201D';white-space:pre-line;}
-  .rl-np-pinroom{display:inline-flex;border:1px solid var(--color-divider);overflow:hidden;align-self:start;}
-  .rl-np-pinroom button{font:inherit;font-size:var(--t-micro);padding:3px 10px;border:0;
+  /* TWO EQUAL HALVES (Young, 11 Sep 2026, late): a grid of 1fr columns sizes
+     both to the wider word, so the lit half cannot outgrow the other. */
+  .rl-np-pinroom{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--color-divider);overflow:hidden;align-self:start;}
+  .rl-np-pin .x{margin-left:auto;}
+  .rl-np-pinroom button{font:inherit;font-size:var(--t-micro);padding:3px 10px;border:0;text-align:center;
     background:var(--color-surface);color:var(--color-text);cursor:pointer;}
   .rl-np-pinroom button.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title);}
   .rl-np-pinroom button.on.ext{background:var(--st-amber-fg);}
@@ -5448,6 +5451,9 @@
     opacity:0;pointer-events:none;transition:opacity var(--dur-3);
   }
   #panel-scrim.open{opacity:1;pointer-events:auto;}
+  /* The notes drawer over the negotiation page: a SLIGHT blur, no shade —
+     the contract stays readable through it (Young, 11 Sep 2026, late). */
+  #panel-scrim.is-blur{background:transparent;backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px);}
   /* Motion is a preference, not a decoration: with it reduced the panel still
      arrives, it simply stops sliding. */
   @media (prefers-reduced-motion:reduce){

@@ -2232,6 +2232,9 @@ const STRINGS = {
        (evening) — the highlight pin carries no caption and the switch says
        the tabs' own words (ng_np_tab_int / ng_np_tab_ext). Inert in both books. */
     ng_np_pin_on: 'Comment on these words',
+    /* ng_np_pin_filed, ng_np_pin_revised: STALE since 11 Sep 2026 (late,
+       round three) — a filed pin quotes the change's own wording and carries
+       no lead line. Inert in both books. */
     ng_np_pin_filed: '{id} filed \u00b7 add a note',
     ng_np_pin_revised: '{id} revised \u00b7 keep or change the note',
     ng_np_unpin: 'Unpin',
@@ -8162,6 +8165,7 @@ const STRINGS = {
     ng_np_done_failed: 'Kunde inte markera: {why}',
     ng_np_done_nowhere: 'anteckningen finns ingenstans den h\u00e4r sidan kan skriva till',
     ng_np_pin_on: 'Kommentar om de h\u00e4r orden',
+    /* ng_np_pin_filed, ng_np_pin_revised: STALE since 11 Sep 2026 (round three). */
     ng_np_pin_filed: '{id} registrerad \u00b7 l\u00e4gg till en anteckning',
     ng_np_pin_revised: '{id} reviderad \u00b7 beh\u00e5ll eller \u00e4ndra anteckningen',
     ng_np_unpin: 'Lossa',

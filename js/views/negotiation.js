@@ -4450,10 +4450,17 @@ function wireNegotiationTab(c, opts = {}){
         || ((anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentElement)?.closest('[data-clause]'));
       if (!clauseEl){
         _negoKillSelMenu();
-        /* On the negotiation paper the front matter is a read and says
-           nothing (F96 (B8)); the notice below belongs to the surfaces that
-           still promise a menu on every highlight. */
-        if (onPaper) return;
+        /* ---- THE FRONT MATTER OFFERS TOO (the owner's principle, 11 Sep 2026,
+           late: "a liberal approach to highlighting ... clicking a pencil
+           should be minimal") ---- Ask Copilot (the Copilot panel, which reads
+           any words) and Comment (anchored to the front region where the
+           paper has one). Never Edit: the editor opens on a clause. F96 (B8)'s
+           silence is re-pointed. */
+        if (onPaper){
+          if (text.length >= 3) rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
+            openEditor: (typeof openEditor === 'function') ? openEditor : null });
+          return;
+        }
         if (text.length >= 3) _negoSayAtSelection(rect,
           'Not a negotiable clause',
           'This wording is the document\'s front matter — its title, kicker or recital. '
@@ -4476,34 +4483,13 @@ function wireNegotiationTab(c, opts = {}){
       }
       if (onPaper){
         _negoKillSelMenu();
-        /* THE PAPER IS STILL A READ WHERE THE OFFER CANNOT BE HONEST: a drag
-           across two clauses, or one that begins outside the clause it reaches
-           into, is answered with silence (F96 (B3), (B8b)) — a comment sits on
-           words inside one clause, and the drag that started in the recital is
-           somebody copying. Nothing is said about a menu that is not coming. */
-        let startIn = false;
-        try { startIn = !!clauseEl.contains(range.startContainer); } catch (e){ startIn = false; }
-        /* ---- AN OVERSHOOT INTO THE NEXT CLAUSE'S HEADING IS NOT A SECOND
-           CLAUSE (11 Sep 2026, evening) ---- MEASURED: a drag down a whole
-           clause, released a line below its last words, takes the NEXT
-           clause's heading row along ("12. Governing Law") and read as a
-           selection across two clauses — the silence the owner met on
-           "multiple sentences". Where the second clause's share is nothing
-           but the start of its heading, the drag was over one clause and is
-           offered as one, with the heading left out of the words. */
-        let parts = passage.parts, offered = text;
-        if (parts.length === 2 && startIn){
-          const nextEl = passage.clauses[1];
-          const headEl = nextEl && nextEl.querySelector ? nextEl.querySelector('.rl-clause-top') : null;
-          const headTxt = headEl ? _negoNodeText(headEl, null).replace(/\s+/g, ' ').trim() : '';
-          const spill = String(parts[1].text || '').replace(/\s+/g, ' ').trim();
-          if (headTxt && spill && headTxt.startsWith(spill)){
-            parts = parts.slice(0, 1);
-            offered = String(parts[0].text || '').replace(/[ \t]+\n/g, '\n').trim();
-          }
-        }
-        if (parts.length !== 1 || !startIn) return;
-        rlPaperSelOffer({ c, opts, side, text: offered, clauseId, rect,
+        /* ---- EVERY HIGHLIGHT ON THE PAPER OFFERS (the owner's principle,
+           11 Sep 2026, late) ---- A drag across two clauses, or one that
+           began in the recital, used to be answered with silence (F96 (B3),
+           (B8b)); silence on a highlight is a fault now. ONE reading for both
+           papers — this one and the clause editor's — decides what is offered
+           on what: rlPaperOfferFromRange. */
+        rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
           openEditor: (typeof openEditor === 'function') ? openEditor : null });
         return;
       }
@@ -13581,6 +13567,17 @@ function rlNpListHtml(c, ch, notes, room, side, other, opts = {}){
       i18tn('ng_np_done_n', done.length, { n: done.length })}</button>
     ${_rlNpDoneOpen ? done.map(one).join('') : ''}` : '');
 }
+/* What a FILED change's pin quotes: the wording it proposes, as plain words,
+   bounded as a note's quote is; a change with no wording of its own (a
+   deletion) quotes its summary. */
+function rlNpChangeQuote(ch){
+  if (!ch) return '';
+  const html = String(ch.bodyHtml || ch.html || '');
+  let t = html ? (window.richToText ? richToText(html) : html.replace(/<[^>]+>/g, ' ')) : '';
+  t = String(t || '').replace(/\s+/g, ' ').trim() || String(ch.summary || '').trim();
+  const max = window.NOTE_QUOTE_MAX || 400;
+  return t.length > max ? t.slice(0, max - 1).trimEnd() + '\u2026' : t;
+}
 /* THE PIN, drawn above the box: what the drawer is holding, the room switch
    (our seat only — theirs has one room) and the way to drop it.
    ---- ROUND TWO (Young, 11 Sep 2026, evening) ----
@@ -13601,16 +13598,22 @@ function rlNpPinHtml(c, ch, opts, side){
   const ref = chOf
     ? `${chOf.id}${chOf.clauseLabel ? ' · ' + _neClause(chOf.clauseLabel) : ''}`
     : (rlNpClauseLabel(c, p.clauseId) || '');
-  const lead = p.filed
-    ? i18t(p.revised ? 'ng_np_pin_revised' : 'ng_np_pin_filed', { id: chOf ? chOf.id : '' })
-    : '';
+  /* ---- ROUND THREE (Young, 11 Sep 2026, late: "Image 3 is how the note
+     card should look like ... Currently I am getting image 4 which is just an
+     empty card") ---- ONE SHAPE FOR BOTH PINS: the reference, the quoted
+     words, the switch. A FILED pin quotes the wording the change proposes
+     (rlNpChangeQuote) where a highlight pin quotes the words dragged; the
+     "CHG-006 filed · add a note" line is gone — the reader's own act read
+     back to them is not a sentence (ng_np_pin_filed, ng_np_pin_revised
+     STALE). Skip stays the way out of a filed pin. */
+  const quote = p.quote || (p.filed && chOf ? rlNpChangeQuote(chOf) : '');
   const ext = p.room === 'external';
   const tabbed = side === 'owner';
   const off = i18t(p.filed ? 'ng_note_skip' : 'ng_np_unpin');
   return `<div class="rl-np-pin${ext ? ' out' : ''}" data-rl-np-pin="${_nea(p.changeId || p.clauseId || '')}">
-    <div class="l"><span class="ref">${_ne(ref)}</span>${lead ? `<span class="lead">${_ne(lead)}</span>` : '<span class="lead"></span>'}
+    <div class="l"><span class="ref">${_ne(ref)}</span>
       <button type="button" class="x" data-rl-np-unpin title="${_nea(off)}" aria-label="${_nea(off)}">${_ne(off)}</button></div>
-    ${p.quote ? `<q>${_ne(p.quote)}</q>` : ''}
+    ${quote ? `<q>${_ne(quote)}</q>` : ''}
     ${tabbed ? `<div class="rl-np-pinroom" role="group" aria-label="${_nea(i18t('ng_note_room_label'))}">${
       ['internal', 'external'].map(r => `<button type="button" class="${r === p.room ? 'on' : ''}${r === 'external' ? ' ext' : ''}"
         data-rl-np-pin-room="${r}" aria-pressed="${r === p.room ? 'true' : 'false'}">${
@@ -14498,26 +14501,94 @@ function rlNoteFromSelection(c, sel, opts = {}){
    editor takes the clause, and Comment where this reader may write. Their
    seat: Comment alone — they have no Copilot. A preview offers nothing, and a
    reader with nothing to press gets no menu at all. */
+/* ---- ONE READING OF A HIGHLIGHT ON A PAPER (the owner's principle, 11 Sep
+   2026, late: "a liberal approach to highlighting ... the dropdown with three
+   options. Clicking a pencil should be minimal as possible and mostly when
+   you really want to do manual typing") ----
+   Both papers — the negotiation page's and the clause editor's — arrive
+   here with the range already read (negoReadPassage) and leave with the
+   offer drawn. What is offered on what:
+     · words inside ONE clause: Ask Copilot · Edit with Copilot · Comment
+       (the two Copilot verbs open the editor on that clause with the words in
+       hand; a heading-only spill into the next clause is not a second
+       clause);
+     · words across TWO OR MORE clauses, or in the FRONT MATTER: Ask Copilot
+       (the Copilot panel, which reads any words) · Comment (anchored to the
+       first clause's share, or to the front region) — never Edit, because
+       the editor opens on one clause (said to the owner, who may rule
+       otherwise);
+     · their seat: Comment alone. */
+function rlPaperOfferFromRange(ctx){
+  const { c, opts, side, passage, text, rect, openEditor } = ctx;
+  if (!c || !passage || !rect) return false;
+  let ps = Array.isArray(passage.parts) ? passage.parts.slice() : [];
+  let spilt = '';
+  /* AN OVERSHOOT INTO THE NEXT CLAUSE'S HEADING IS NOT A SECOND CLAUSE
+     (11 Sep 2026, evening): a drag released a line below a clause's last
+     words takes the next heading along. Where the last clause's share is
+     nothing but the start of its heading, it is dropped. */
+  if (ps.length >= 2){
+    const lastEl = passage.clauses[ps.length - 1];
+    const headEl = lastEl && lastEl.querySelector ? lastEl.querySelector('.rl-clause-top') : null;
+    const headTxt = headEl ? _negoNodeText(headEl, null).replace(/\s+/g, ' ').trim() : '';
+    const spill = String(ps[ps.length - 1].text || '').replace(/\s+/g, ' ').trim();
+    if (headTxt && spill && headTxt.startsWith(spill)){ ps = ps.slice(0, -1); spilt = spill; }
+  }
+  /* ONE CLAUSE'S OWN WORDS, AND NOTHING ELSE: a drag that begins in the
+     recital and ends inside clause 1 has words in one clause, but the words
+     are not that clause's own — the editor could not find them in the box.
+     Edit is offered only where the whole highlight is one clause's share. */
+  const fold = t => String(t || '').replace(/\s+/g, ' ').trim();
+  let whole = fold(text);
+  if (spilt && whole.endsWith(fold(spilt))) whole = whole.slice(0, whole.length - fold(spilt).length).trim();
+  const single = ps.length === 1 && fold(ps[0].text) === whole;
+  const frontCl = (typeof negoFrontClause === 'function') ? negoFrontClause(c) : null;
+  const words = single ? String(ps[0].text || '').replace(/[ \t]+\n/g, '\n').trim() : String(text || '').trim();
+  if (words.length < 3) return false;
+  const commentClauseId = ps.length ? ps[0].clauseId : (frontCl ? frontCl.clauseId : null);
+  const commentQuote = ps.length ? String(ps[0].text || '').trim() : words;
+  return rlPaperSelOffer({ c, opts, side, text: words, clauseId: single ? ps[0].clauseId : null, rect,
+    openEditor: single ? openEditor : null, commentClauseId, commentQuote });
+}
+/* A QUESTION ABOUT ANY WORDS goes to the Copilot panel — the Document tab's
+   own door (docAiRead, through window), one composer, the passage on the
+   record two bubbles up. Used where the editor cannot take the words: across
+   clauses, or the front matter. */
+function rlAskCopilotPanel(c, text){
+  if (typeof window.docAiRead === 'function')
+    return docAiRead(c, { id: 'ask', label: i18t('ng_sel_ask') }, String(text || ''));
+  if (window.toast) toast(i18t('ce_not_connected'), 'warn');
+  return null;
+}
 function rlPaperSelOffer(ctx){
   const { c, opts, side, text, clauseId, rect } = ctx;
-  if (!c || !text || !clauseId || !rect) return false;
+  if (!c || !text || !rect) return false;
   if (opts && opts.preview) return false;
   const theirs = side === 'counterparty' || !!(window.PORTAL_MODE && PORTAL_MODE());
   const acts = [];
   /* THREE VERBS (Young, 11 Sep 2026, evening): Ask Copilot is a question and
      touches nothing; Edit with Copilot opens the editor with the words in
-     hand and Apply live; Comment is the drawer. Both Copilot verbs land in
-     the clause editor through its one door, the verb riding as passageMode. */
-  if (!theirs && typeof ctx.openEditor === 'function'
-    && window.rlEditorTakesIt && rlEditorTakesIt(side, opts || {})){
-    acts.push({ id: 'ask', label: i18t('ng_sel_ask') });
-    acts.push({ id: 'edit', label: i18t('ng_sel_edit') });
-  }
-  if (notesMayWrite(c, opts || {})) acts.push({ id: 'comment', label: i18t('ng_sel_comment') });
+     hand and Apply live; Comment is the drawer. Inside one clause both
+     Copilot verbs land in the clause editor through its one door, the verb
+     riding as passageMode; wider than one clause Ask goes to the panel and
+     Edit is not offered (rlPaperOfferFromRange says why). */
+  const single = !!(clauseId && typeof ctx.openEditor === 'function'
+    && window.rlEditorTakesIt && rlEditorTakesIt(side, opts || {}));
+  if (!theirs) acts.push({ id: 'ask', label: i18t('ng_sel_ask') });
+  if (!theirs && single) acts.push({ id: 'edit', label: i18t('ng_sel_edit') });
+  const cqId = ctx.commentClauseId || clauseId || null;
+  if (cqId && notesMayWrite(c, opts || {})) acts.push({ id: 'comment', label: i18t('ng_sel_comment') });
   if (!acts.length) return false;
-  rlSelMenu({ text, clauseId, rect, actions: acts, onPick: a => {
-    if (a.id === 'comment'){ rlNoteFromSelection(c, { clauseId, quote: text }, { ...(opts || {}), side }); return; }
-    ctx.openEditor(clauseId, { passage: text, passageMode: a.id === 'ask' ? 'ask' : 'edit' });
+  rlSelMenu({ text, clauseId: clauseId || cqId || '', rect, actions: acts, onPick: a => {
+    if (a.id === 'comment'){
+      rlNoteFromSelection(c, { clauseId: cqId, quote: ctx.commentQuote || text }, { ...(opts || {}), side });
+      return;
+    }
+    if (single && (a.id === 'edit' || a.id === 'ask')){
+      ctx.openEditor(clauseId, { passage: text, passageMode: a.id === 'ask' ? 'ask' : 'edit' });
+      return;
+    }
+    rlAskCopilotPanel(c, text);
   } });
   return true;
 }
@@ -17169,7 +17240,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,
-  rlNoteFromSelection, rlPaperSelOffer, rlPaintNoteMarks, rlWrapWords, negoNoteMeta,
+  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlAskCopilotPanel, rlPaintNoteMarks, rlWrapWords, negoNoteMeta,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,

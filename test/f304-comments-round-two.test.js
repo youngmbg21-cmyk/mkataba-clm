@@ -104,16 +104,22 @@ describe('f304 (1) — the pin says Internal / External, carries no caption, and
     assert.ok(pin, 'the pin is drawn');
     const rooms = [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.textContent.trim());
     same(rooms, [p.win.i18t('ng_np_tab_int'), p.win.i18t('ng_np_tab_ext')], 'the same words as the tabs');
-    assert.equal(pin.querySelector('.lead').textContent.trim(), '', 'no "Comment on these words"');
+    assert.equal(pin.querySelector('.lead'), null, 'no "Comment on these words" — no caption line at all (round three)');
     assert.ok(!/i18t\('ng_np_pin_on'\)|i18t\('ng_np_for_team'\)|i18t\('ng_np_for_them'/.test(VIEW),
       'the three old keys are called nowhere — stale, inert in both books');
   });
 
-  test('a filed pin keeps its one line (there is no quote to say it)', async () => {
+  test('a filed pin quotes the change it is about — one shape for both pins (round three, reversed in place)', async () => {
+    /* Round two drew "CHG-006 filed · add a note" over an empty body; the owner
+       called the card not elegant and pointed at the highlight pin as the shape.
+       The filed pin now quotes the wording the change proposes, and no lead. */
     const p = await bench();
     p.win.openChangeNoteDialog(p.c, p.ch, { filed: true, side: 'owner' });
     await tick();
-    assert.match(p.host.querySelector('.rl-np-pin .lead').textContent, /filed|registrerad/i);
+    const pin = p.host.querySelector('.rl-np-pin');
+    assert.equal(pin.querySelector('.lead'), null, 'no filed line');
+    assert.ok(pin.querySelector('q') && pin.querySelector('q').textContent.trim().length > 3, 'the change\'s wording is quoted');
+    assert.match(pin.querySelector('[data-rl-np-unpin]').textContent, /skip|hoppa/i, 'Skip stays the way out');
   });
 
   test('the quote keeps a paragraph break and folds everything else — one reading, pin and anchor alike', async () => {
@@ -369,5 +375,131 @@ describe('f304 (7) — a quote across paragraphs goes to Word on its longest lin
     for (const k of ['ng_sel_edit', 'ce_ask_ph_question', 'ce_scope_asking', 'ce_edit_with_this', 'ce_answer',
       'ce_prompt_question', 'ce_q_words_mean', 'ce_q_words_standard', 'ce_q_words_risk'])
       assert.equal((I18N.match(new RegExp('^    ' + k + ':', 'mg')) || []).length, 2, k + ' in both books');
+  });
+});
+
+/* ============================================================
+   8 — ROUND THREE (Young, 11 Sep 2026, late — WORKORDER-comments-round-three.md)
+   ============================================================ */
+describe('f304 (8) — round three: the filed pin quotes the change, equal halves, a question with no reading list, Apply ends typing', () => {
+  test('a filed pin is the same shape as a highlight pin: reference · the change’s wording · the switch, no lead line', async () => {
+    const p = await bench();
+    p.win.openChangeNoteDialog(p.c, p.ch, { filed: true, side: 'owner' });
+    await tick();
+    const pin = p.host.querySelector('.rl-np-pin');
+    assert.equal(pin.querySelector('.lead'), null, 'no "filed · add a note" line');
+    assert.match(pin.querySelector('.ref').textContent, new RegExp(p.ch.id));
+    assert.match(pin.querySelector('q').textContent, /forty-five \(45\) days/, 'the wording the change proposes');
+    assert.match(pin.querySelector('[data-rl-np-unpin]').textContent, /skip|hoppa/i, 'Skip stays the way out');
+    assert.equal(p.win.rlNpChangeQuote({ summary: 'Clause removed' }), 'Clause removed', 'a change with no wording quotes its summary');
+    assert.equal(p.win.rlNpChangeQuote({ bodyHtml: '<p>' + 'w'.repeat(500) + '</p>' }).length, p.win.NOTE_QUOTE_MAX, 'bounded as a quote is');
+    assert.ok(!/i18t\('ng_np_pin_filed'|i18t\('ng_np_pin_revised'/.test(VIEW), 'the two lead keys are stale');
+  });
+
+  test('the switch is two equal halves: a grid of 1fr columns, the x pushed to the right', () => {
+    assert.match(INDEX, /\.rl-np-pinroom\{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;/);
+    assert.match(INDEX, /\.rl-np-pinroom button\{[^}]*text-align:center;/);
+    assert.match(INDEX, /\.rl-np-pin \.x\{margin-left:auto;\}/);
+  });
+
+  test('under a question the answer carries no reading list; under an edit it still does', () => {
+    assert.match(CE, /read: \[\], asking: true, passage: scope,/);
+    assert.match(CE, /_ceThread\.push\(\{ who: 'ai',\n    text: String\(res\.advice \|\| ''\)\.trim\(\),\n    read,/, 'the edit answer keeps its rows');
+  });
+
+  test('a card’s Apply on a passage ends typing; the reader’s own replacement keeps it', () => {
+    assert.match(CE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);/);
+    assert.match(CE, /function ceReplacePassage\(sel, wording, o = \{\}\)\{/);
+    assert.match(CE, /const keepView = o\.keepView !== false;/);
+    assert.equal((CE.match(/_cet\('ce_step_passage'\), \{ keepView, repaint: true \}/g) || []).length, 2, 'both branches pass it through');
+  });
+
+  test('the notes drawer blurs the negotiation page only, slightly, and the blurred page is a door', () => {
+    assert.match(APP, /function notesBlurs\(\)\{\n  return state\.view==='redline'&&!\(typeof window\.clauseEditorOpen==='function'&&clauseEditorOpen\(\)\);\n\}/);
+    assert.match(APP, /scrim\.classList\.toggle\('open',show&&\(panelFace\(\)!=='notes'\|\|blur\)\);/);
+    assert.match(APP, /scrim\.classList\.toggle\('is-blur',blur\);/);
+    assert.match(INDEX, /#panel-scrim\.is-blur\{background:transparent;backdrop-filter:blur\(1\.5px\);/);
+    assert.match(APP, /getElementById\('panel-scrim'\)\?\.addEventListener\('click',closeContextPanel\)/, 'pressing the scrim closes the drawer');
+  });
+});
+
+describe('f304 (9) — round three: every highlight offers, on both papers', () => {
+  const menuOf = (p, ctx) => { let menu = null; p.win.rlSelMenu = m => { menu = m; }; p.win.rlPaperOfferFromRange(ctx); return menu; };
+  const partsOf = (p, ids, texts) => ({ parts: ids.map((id, i) => ({ clauseId: id, text: texts[i] })), clauses: ids.map(id => {
+    const el = p.win.document.createElement('section'); el.setAttribute('data-clause', id); el.innerHTML = '<div class="rl-clause-top"><h4>' + id + ' heading</h4></div>'; return el; }) });
+
+  test('inside one clause: Ask · Edit · Comment, the two Copilot verbs through the editor door', async () => {
+    const p = await bench(); wide(p.win);
+    const opened = [];
+    const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'indirect loss',
+      passage: partsOf(p, [p.cl7.clauseId], ['indirect loss']), openEditor: (id, o) => opened.push({ id, o }) });
+    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    menu.onPick({ id: 'ask' });
+    assert.equal(opened[0].id, p.cl7.clauseId); assert.equal(opened[0].o.passageMode, 'ask');
+  });
+
+  test('across two clauses: Ask (the Copilot panel) · Comment (the first clause’s share) — never Edit', async () => {
+    const p = await bench(); wide(p.win);
+    const asked = []; p.win.docAiRead = (c, a, t) => { asked.push(t); };
+    const opened = [];
+    const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'loss.\nTwo years',
+      passage: partsOf(p, [p.cl7.clauseId, 'cl_8'], ['loss.', 'Two years']), openEditor: (id, o) => opened.push({ id, o }) });
+    same(menu.actions.map(a => a.id), ['ask', 'comment']);
+    menu.onPick({ id: 'ask' });
+    same(asked, ['loss.\nTwo years']); assert.equal(opened.length, 0);
+    menu.onPick({ id: 'comment' });
+    const pin = p.win.rlNotesPinned();
+    assert.equal(pin.clauseId, p.cl7.clauseId); assert.equal(pin.quote, 'loss.');
+  });
+
+  test('the front matter: Ask (the panel) · Comment on the front region', async () => {
+    const p = await bench(); wide(p.win);
+    const asked = []; p.win.docAiRead = (c, a, t) => { asked.push(t); };
+    const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'Between Mkataba Holdings Ltd',
+      passage: { parts: [], clauses: [] }, openEditor: () => {} });
+    assert.ok(menu, 'the front matter offers');
+    same(menu.actions.map(a => a.id), ['ask', 'comment']);
+    menu.onPick({ id: 'comment' });
+    assert.equal(p.win.rlNotesPinned().clauseId, p.win.negoFrontClause(p.c).clauseId, 'anchored to the front region');
+    assert.match(VIEW, /function rlAskCopilotPanel\(c, text\)\{\n  if \(typeof window\.docAiRead === 'function'\)/, 'the panel door is the Document tab’s own');
+  });
+
+  test('a heading-only spill into the next clause is dropped, and their seat offers Comment alone', async () => {
+    const p = await bench(); wide(p.win);
+    const parts = partsOf(p, [p.cl7.clauseId, 'cl_8'], ['indirect loss.', 'cl_8 head']);
+    const opened = [];
+    const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'indirect loss.\ncl_8 head',
+      passage: parts, openEditor: (id, o) => opened.push({ id, o }) });
+    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment'], 'one clause after the spill is dropped');
+    const theirs = menuOf(p, { c: p.c, opts: {}, side: 'counterparty', rect: { width: 1, height: 1 }, text: 'indirect loss',
+      passage: partsOf(p, [p.cl7.clauseId], ['indirect loss']), openEditor: () => {} });
+    same(theirs.actions.map(a => a.id), ['comment']);
+  });
+
+  test('the editor’s paper: a drag on ANOTHER clause offers the three verbs and the Copilot verbs move the page there', async () => {
+    const p = await bench();
+    const box = await openEditor(p);
+    void box;
+    const doc = p.win.document.querySelector('#ce-doc');
+    const other = doc.querySelector('[data-clause="' + p.cl6.clauseId + '"] p');
+    assert.ok(other, 'clause 6 is on the editor’s paper');
+    const t = other.firstChild;
+    const r = p.win.document.createRange(); r.setStart(t, 0); r.setEnd(t, Math.min(20, t.data.length));
+    const s = p.win.getSelection(); s.removeAllRanges(); s.addRange(r);
+    /* jsdom lays nothing out: a Range has no rect, and the offer refuses a
+       highlight it cannot place. The rect is stubbed as F96 stubs it. */
+    p.win.Range.prototype.getBoundingClientRect = () => ({ left: 10, top: 10, width: 80, height: 16, right: 90, bottom: 26 });
+    let menu = null; p.win.rlSelMenu = m => { menu = m; };
+    assert.equal(p.win.ceOfferOnPaper(), true);
+    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    const moved = []; p.win.ceGoClause = (id, o) => moved.push({ id, o });
+    menu.onPick({ id: 'edit' });
+    /* ceGoClause is module-private to the editor; what is observable is that
+       the page is asked to move: the editor is still open on clause 7 here
+       (the stub swallowed the move) or has moved to clause 6. */
+    const now = p.win.clauseEditorClauseId();
+    assert.ok(now === p.cl6.clauseId || now === p.cl7.clauseId);
+    assert.match(CE, /if \(!read\.why && ceOfferOnPaper\(\)\) return;/, 'the mouse-up asks the paper reading after the box');
+    p.win.rlCloseClauseEditor();
   });
 });

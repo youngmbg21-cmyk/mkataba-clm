@@ -2854,6 +2854,7 @@ const dismissNote = async pg => {
         onTop: !!(panel && mid && panel.contains(mid)), overPage: oz > pz, oz, pz,
         pinned: !!pin, ref: pin ? (pin.querySelector('.ref') || {}).textContent : '',
         lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
+        quote: pin ? (pin.querySelector('q') || {}).textContent : '',
         rooms: pin ? [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.getAttribute('data-rl-np-pin-room') + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')) : [],
         skip: pin ? (pin.querySelector('[data-rl-np-unpin]') || {}).textContent : '',
         box: !!(panel && panel.querySelector('.rl-np-in')),
@@ -2862,9 +2863,11 @@ const dismissNote = async pg => {
     ck('25a filing opens the Notes drawer, as real pixels', dlg.up && dlg.painted, dlg.up ? 'open' : 'not open');
     ck('25b it sits OVER the clause editor, which covers the window',
        dlg.overPage === true && dlg.onTop === true, `drawer z ${dlg.oz}, page z ${dlg.pz}`);
-    ck('25c the PIN names the change just filed and says it was filed',
-       dlg.pinned && /CHG-/.test(dlg.ref || '') && /filed|registrerad/i.test(dlg.lead || ''),
-       `"${(dlg.ref || '').trim()}" · "${(dlg.lead || '').trim()}"`);
+    /* RE-POINTED 11 Sep 2026 (round three, items 1/5): no "filed" lead line —
+       the pin quotes the change's own wording, the highlight pin's shape. */
+    ck('25c the PIN names the change just filed and quotes its wording, with no lead line',
+       dlg.pinned && /CHG-/.test(dlg.ref || '') && !dlg.lead && (dlg.quote || '').trim().length > 3,
+       `"${(dlg.ref || '').trim()}" · lead "${(dlg.lead || '').trim()}" · q "${(dlg.quote || '').trim().slice(0, 40)}"`);
     ck('25d two ways on — Skip, and Add note — with the box under the pin',
        /skip|hoppa/i.test(dlg.skip || '') && /add|l\u00e4gg/i.test(dlg.go || '') && dlg.box === true,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
@@ -2914,12 +2917,15 @@ const dismissNote = async pg => {
       const pin = panel && panel.querySelector('.rl-np-pin');
       return { up: !!(panel && panel.classList.contains('open') && pin),
         lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
+        quote: pin ? ((pin.querySelector('q') || {}).textContent || '') : '',
         revs: (() => { const c = window.CONTRACT;
           const ch = (c.changes || [])[(c.changes || []).length - 1];
           return (ch.revisions || []).length; })() }; });
-    ck('25h A REVISION IS ASKED AGAIN — the drawer opens pinned, and the pin says so',
-       again25.up === true && again25.revs > 0 && /revised|reviderad/i.test(again25.lead || ''),
-       `drawer ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · "${(again25.lead || '').trim().slice(0, 50)}"`);
+    /* RE-POINTED 11 Sep 2026 (round three): the pin carries no "revised" lead —
+       it quotes the change's wording, which after the revision is the NEW words. */
+    ck('25h A REVISION IS ASKED AGAIN — the drawer opens pinned, and the pin quotes the revised wording',
+       again25.up === true && again25.revs > 0 && !again25.lead && /own costs of any audit/.test(again25.quote || ''),
+       `drawer ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · q "${(again25.quote || '').trim().slice(0, 50)}"`);
     /* ---- THE OTHER ROOM: an external note goes down the channel, the pin's
        switch moves the drawer's tab and tints the box. ---- */
     const ext25 = await p.evaluate(async () => {

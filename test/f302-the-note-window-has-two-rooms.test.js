@@ -129,7 +129,12 @@ describe('f302 (3) — on every filing', () => {
     assert.ok((p.ch.revisions || []).length, 'the fold happened');
     p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
     await tick();
-    assert.match(p.host.querySelector('.rl-np-pin .lead').textContent, /revised|reviderad/i);
+    /* RE-POINTED 11 Sep 2026 (round three): the pin carries no lead line —
+       it quotes the change's wording, revision or first filing alike. */
+    const pin = p.host.querySelector('.rl-np-pin');
+    assert.ok(pin, 'the drawer is pinned to the revised change');
+    assert.equal(pin.querySelector('.lead'), null);
+    assert.match(pin.querySelector('q').textContent, /sixty/i, 'the revised wording is what is quoted');
   });
 
   test('the other seat and a viewer are still not asked', async () => {

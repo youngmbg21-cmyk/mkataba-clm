@@ -245,6 +245,132 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        JSON.stringify(g2.rows) === JSON.stringify(['ask', 'edit', 'comment']) && !/Governing|Law/.test(g2.quote || ''), JSON.stringify(g2));
   } else ck('G2 the next clause’s heading row was found', false, 'none');
 
+  /* ---- H · ROUND THREE (Young, 11 Sep 2026, late) ---- */
+  await p.evaluate(() => { document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); window.getSelection().removeAllRanges(); const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
+  /* H1 · two equal halves, measured with Internal lit and then External lit. */
+  const h1 = await p.evaluate(async () => {
+    closeContextPanel();
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
+    rlNoteFromSelection(c, { clauseId: cl.clauseId, quote: 'Neither party may assign this Agreement' }, { side: 'owner' });
+    await new Promise(r => setTimeout(r, 200));
+    const read = () => [...document.querySelectorAll('#context-panel .rl-np-pin [data-rl-np-pin-room]')].map(b => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, on: b.getAttribute('aria-pressed') === 'true', room: b.getAttribute('data-rl-np-pin-room') }; });
+    const a = read();
+    const ext = document.querySelector('#context-panel .rl-np-pin [data-rl-np-pin-room="external"]'); ext && ext.click();
+    await new Promise(r => setTimeout(r, 200));
+    const b = read();
+    return { a, b };
+  });
+  const eq = xs => xs.length === 2 && Math.abs(xs[0].w - xs[1].w) <= 1;
+  ck('H1 Internal and External are two equal halves, whichever is lit', h1 && eq(h1.a) && eq(h1.b) && h1.a[0].on && h1.b[1].on, JSON.stringify(h1));
+  await p.evaluate(() => closeContextPanel());
+
+  /* H2 · the FILED pin quotes the change and carries no lead line — the
+     highlight pin's shape, one builder. */
+  const h2 = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    let ch = (negoAllChanges(c) || []).find(x => x.status === 'pending' && x.type !== 'deleteClause');
+    if (!ch){
+      const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
+      ch = await negoEditClause(c, cl.clauseId, '<p>Neither party may assign this Agreement without the prior written consent of the other party, such consent not to be unreasonably withheld.</p>', { side: 'owner' });
+    }
+    if (!ch) return { pin: false, why: 'no change to pin to' };
+    openChangeNoteDialog(c, ch, { filed: true, side: 'owner' });
+    await new Promise(r => setTimeout(r, 250));
+    const pin = document.querySelector('#context-panel .rl-np-pin');
+    if (!pin) return { pin: false };
+    const q = pin.querySelector('q');
+    const rows = [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.getAttribute('data-rl-np-pin-room'));
+    const out = { pin: true, ref: (pin.querySelector('.ref') || {}).textContent, lead: !!pin.querySelector('.lead'),
+      quote: q ? q.textContent.trim().slice(0, 60) : null, qPainted: !!(q && q.getBoundingClientRect().height > 0),
+      skip: (pin.querySelector('[data-rl-np-unpin]') || {}).textContent, rows };
+    pin.querySelector('[data-rl-np-unpin]').click();
+    await new Promise(r => setTimeout(r, 150));
+    out.gone = !document.querySelector('#context-panel .rl-np-pin');
+    return out;
+  });
+  ck('H2 the filed pin is reference · the change’s own wording · the switch, with no "filed · add a note" line, and Skip is the way out',
+     h2 && h2.pin && /CHG-/.test(h2.ref || '') && !h2.lead && h2.qPainted && (h2.quote || '').length > 3 && /skip/i.test(h2.skip || '') && h2.rows.length === 2 && h2.gone, JSON.stringify(h2));
+  await p.evaluate(() => closeContextPanel());
+
+  /* H3 · the editor's paper offers on ANOTHER clause — a real drag from the
+     clause's heading into its body, while the page is open on 8.2. */
+  await p.evaluate(() => { const c = window.CONTRACT; const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('8.2') === 0); rlOpenClauseEditor(c, cl.clauseId, { typing: true }); });
+  await pause(500);
+  /* The paper scrolls inside its own pane under the editor's foot bar, and
+     `.nego-scroll` GLIDES (a bare assignment animates): scroll first, wait,
+     then measure — and check the press really lands on the clause. */
+  await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('19.') === 0);
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + cl.clauseId + '"]');
+    const pane = sec && (sec.closest('.nego-scroll') || sec.closest('#ce-doc'));
+    if (pane){ const pr0 = pane.getBoundingClientRect(), sr0 = sec.getBoundingClientRect(); pane.scrollTop += (sr0.top - pr0.top - 60); }
+  });
+  await pause(700);
+  const h3g = await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('19.') === 0);
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + cl.clauseId + '"]');
+    if (!sec) return null;
+    const h = sec.querySelector('.rl-clause-top h4, .rl-clause-top');
+    const body = sec.querySelector('p, li');
+    if (!h || !body) return null;
+    const hr = h.getBoundingClientRect();
+    const r = document.createRange(); r.setStart(body.firstChild, 0); r.setEnd(body.firstChild, Math.min(40, body.firstChild.data.length));
+    const rr = r.getBoundingClientRect();
+    const a = [hr.left + 4, hr.top + hr.height / 2], b = [rr.right - 4, rr.bottom - 4];
+    const hitA = document.elementFromPoint(a[0], a[1]), hitB = document.elementFromPoint(b[0], b[1]);
+    return { id: cl.clauseId, a, b, head: h.textContent.trim().slice(0, 30), lands: !!(hitA && sec.contains(hitA) && hitB && sec.contains(hitB)) };
+  });
+  if (h3g){
+    await p.mouse.move(h3g.a[0], h3g.a[1]); await p.mouse.down(); await p.mouse.move(h3g.b[0], h3g.b[1], { steps: 10 }); await p.mouse.up(); await pause(400);
+    const h3 = await p.evaluate(() => {
+      const m = document.querySelector('.nego-selmenu');
+      return { rows: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [],
+        quote: m ? ((m.querySelector('.nego-selquote') || {}).textContent || '') : '', here: clauseEditorClauseId() };
+    });
+    ck('H3a in the editor a real drag over another clause, heading included, offers the three rows', h3g.lands && JSON.stringify(h3.rows) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify({ ...h3, lands: h3g.lands }));
+    ck('H3b and the heading is left out of the words offered', h3.quote && !h3.quote.includes(h3g.head.slice(0, 12)), JSON.stringify({ quote: h3.quote.slice(0, 60), head: h3g.head }));
+    const editBtn = await p.$('.nego-selmenu [data-nego-ai="edit"]');
+    if (editBtn) await editBtn.dispatchEvent('mousedown');
+    await pause(500);
+    const h3c = await p.evaluate(() => ({ here: clauseEditorClauseId(), cut: !!document.querySelector('#ce-scope .ce-scope .cut'), held: document.querySelectorAll('#ce-clausebody .ce-held').length }));
+    ck('H3c Edit with Copilot moves the page to THAT clause with the words in hand', h3c.here === h3g.id && h3c.cut && h3c.held >= 1, JSON.stringify(h3c));
+  } else { ck('H3a the other clause was found on the editor’s paper', false, 'none'); }
+
+  /* H4 · Apply on a Copilot card ends typing: the card's press goes through
+     ceReplacePassage with keepView:false (f245 pins the site); measured here
+     as the effect of that call — typing off, marks shown. */
+  const h4 = await p.evaluate(async () => {
+    const box = document.querySelector('#ce-clausebody'); if (!box) return null;
+    const typingBefore = ceIsTyping();
+    const s0 = ceSelection(); if (!s0) return { noSel: true, typingBefore };
+    const ok = ceReplacePassage(s0, s0.text.replace(/\b(\w+)\b/, 'REPLACED'), { keepView: false });
+    await new Promise(r => setTimeout(r, 300));
+    return { typingBefore, ok, typingAfter: ceIsTyping(), marks: !!document.querySelector('#clause-editor .rl-clause .nego-ins, #clause-editor .rl-clause ins, #clause-editor .redline-page .nego-ins') };
+  });
+  ck('H4 Apply drops the clause out of typing and the marks it made are shown', h4 && h4.typingBefore && h4.ok === true && !h4.typingAfter && h4.marks, JSON.stringify(h4));
+  await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
+
+  /* H5 · the blur is a SLIGHT one with no shade — measured as the sheet's own
+     computed rule (the harness has no app.js, so the shell's door is a source
+     claim in f304). */
+  const h5 = await p.evaluate(() => {
+    const d = document.createElement('div'); d.id = 'panel-scrim'; d.className = 'is-blur'; document.body.appendChild(d);
+    const cs = getComputedStyle(d);
+    const out = { bg: cs.backgroundColor, bf: cs.backdropFilter || cs.webkitBackdropFilter };
+    d.remove(); return out;
+  });
+  const blurPx = h5 && /blur\((\d+(?:\.\d+)?)px\)/.exec(h5.bf || '');
+  ck('H5 the negotiation page’s scrim is a slight blur (under 3px) and transparent', blurPx && Number(blurPx[1]) > 0 && Number(blurPx[1]) < 3 && /rgba\(0, 0, 0, 0\)|transparent/.test(h5.bg), JSON.stringify(h5));
+
   ck('no page errors along the way', errs.length === 0, errs.join(' | ') || 'none');
   } catch (e){ ck('the run completed', false, e && e.message); }
   await br.close(); srv.close();

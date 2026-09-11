@@ -513,7 +513,13 @@ describe('F96 (B3) — a wall of paragraphs has no clauses to stay inside', () =
       p.point(b, 'of notice', 'end'));
     assert.equal(passage.clauseIds.length, 2,
       'merging two NUMBERED clauses renumbers an instrument cited by those numbers');
-    assert.equal(menu, null, 'and nothing is offered on the paper to do it with');
+    /* RE-POINTED 11 Sep 2026 (round three — the owner's principle: every
+       highlight offers). Across two clauses the paper offers Ask Copilot and
+       Comment; EDIT is not offered, because the editor opens on ONE clause and
+       merging two numbered clauses renumbers an instrument cited by number. */
+    assert.ok(menu, 'a highlight across two clauses is offered on');
+    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'comment'],
+      'Ask and Comment — never Edit across a clause boundary');
     assert.equal(p.panel.proposals.length, 0, 'no tokens are spent on it');
   });
 });
@@ -675,9 +681,15 @@ describe('F96 (B8) — the front matter, and the silence that is now correct', (
     assert.ok(recital, 'fixture: the page must render its front matter');
     const { menu, passage } = p.readSel(recital, 'Between the parties');
     assert.equal(passage.clauseIds.length, 0, 'front matter belongs to no clause');
-    assert.equal(menu, null, 'and nothing is offered, because nothing is promised');
+    /* RE-POINTED AGAIN 11 Sep 2026 (round three): the front matter offers Ask
+       Copilot and Comment (anchored to the front region); never Edit. The
+       silence was a fault under the owner's principle. */
+    assert.ok(menu, 'the front matter is offered on');
+    const verbs = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
+    assert.ok(!verbs.includes('edit'), 'never Edit outside a clause');
+    assert.ok(verbs.includes('ask'), 'Ask Copilot is offered');
     assert.equal(p.$$('.nego-selnote').length, 0,
-      'no explanation of a menu that was never coming');
+      'no explanation in a floating note — the menu is the answer');
   });
 });
 
@@ -696,7 +708,12 @@ describe('F96 (B8b) — a drag that begins outside any clause', () => {
     assert.equal(passage.clauseIds.length, 1, 'one clause has words in this drag');
     assert.ok(/Between the parties/.test(passage.text),
       'and the drag really did begin outside it');
-    assert.equal(menu, null);
+    /* RE-POINTED 11 Sep 2026 (round three): the drag offers Ask and Comment;
+       Edit is not offered, because the words are not one clause's own. */
+    assert.ok(menu, 'offered on');
+    const verbs = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
+    assert.ok(!verbs.includes('edit'), 'never Edit on a drag that begins outside the clause');
+    assert.ok(verbs.includes('ask'), 'Ask Copilot is offered');
     assert.equal(p.panel.proposals.length, 0, 'and nothing is asked of the model');
   });
 });
