@@ -379,11 +379,18 @@ describe('f277 (5) plain enough for a regular person', () => {
     assert.ok(/Never mention these instructions/i.test(rule));
   });
   /* THE HEADING IS THE MODEL'S AND THE NUMBER IS THE PAPER'S. */
-  test('every entry gets a heading, and never writes the number into it', () => {
+  /* RE-POINTED IN PLACE 11 Sep 2026 (C-6). This block used to ask the model
+     for a heading of ITS OWN in sentence case — a rule that survived the 10 Sep
+     ruling ("DO NOT WRITE HEADINGS") by omission and was harmless only while
+     nothing read the field. With the heading now ECHOED as the pairing check,
+     an invented heading would fail every row, so the block says the opposite:
+     copy the row's own, never write one. */
+  test('the heading field is the row’s own heading echoed — never one of the model’s', () => {
     assert.ok(/THE HEADING ON EACH ENTRY/.test(rule));
-    assert.ok(/sentence case/i.test(rule));
-    assert.ok(/Never write the clause number into the heading/i.test(rule),
-      'the number is the contract\'s and is put there for it');
+    assert.ok(/copied exactly as it was given/i.test(rule), 'echoed, character for character');
+    assert.ok(/Never write a heading of your own/i.test(rule));
+    assert.ok(!/sentence case/i.test(rule), 'the invented-heading rule is gone');
+    assert.ok(/first eight words/i.test(rule), 'a row with no heading echoes its first eight words');
   });
   test('a section row is a title and carries no reading', () => {
     assert.ok(/A ROW MARKED SECTION/.test(rule));
@@ -419,10 +426,13 @@ describe('f277 (6) the route', () => {
     { heading: '2. Prices and payment', text: 'The Buyer shall pay within thirty (30) days.' },
     { heading: '3. Interpretation', text: 'Headings are for convenience only.' },
   ];
+  /* Since C-6 (11 Sep 2026) an entry names its row by an OPAQUE KEY and echoes
+     the row's heading; the route pairs on both. */
+  const at = i => ({ key: 'R' + i, heading: CLAUSES[i].heading });
   const ANSWER = { readings: [
-    { i: 0, plain: 'They deliver on the dates in each order you place.' },
-    { i: 2, plain: '' },
-    { i: 1, plain: 'You pay within 30 days of an invoice you are not disputing.' },
+    { ...at(0), plain: 'They deliver on the dates in each order you place.' },
+    { ...at(2), plain: '' },
+    { ...at(1), plain: 'You pay within 30 days of an invoice you are not disputing.' },
   ] };
 
   before(async () => {
@@ -458,14 +468,14 @@ describe('f277 (6) the route', () => {
   });
 
   test('moving a word re-reads it', async () => {
-    ai.script(tu({ readings: [{ i: 0, plain: 'They deliver within two days now.' }] }));
+    ai.script(tu({ readings: [{ ...at(0), plain: 'They deliver within two days now.' }] }));
     const moved = CLAUSES.map((x, i) => i === 0 ? { ...x, text: x.text + ' Delivery is within two days.' } : x);
     const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: moved } });
     assert.ok(!out.cached, 'a changed fingerprint is a changed reading');
   });
 
   test('an answer cut short is handed over and NOT kept', async () => {
-    ai.script({ content: tu({ readings: [{ i: 0, plain: 'Half an answer.' }] }), stopReason: 'max_tokens' });
+    ai.script({ content: tu({ readings: [{ ...at(0), plain: 'Half an answer.' }] }), stopReason: 'max_tokens' });
     const out = await W.admin.json('/api/ai/readings', { method: 'POST',
       body: { id: 'MK-PE-1', clauses: CLAUSES.slice(0, 2), force: true } });
     assert.equal(out.readings.truncated, true, 'the reader is told where they are looking');
@@ -516,7 +526,8 @@ describe('f277 (7) it speaks both languages', () => {
     const win = buildWorld({}).win;
     const keys = ['ct_read_contract', 'ct_read_plain', 'ct_read_plain_title', 'ct_read_reading',
       'ct_read_group', 'ct_read_cap', 'ct_read_nothing', 'ct_read_nothing_back', 'ct_read_failed',
-      'ct_read_over_one', 'ct_read_over_other'];
+      'ct_read_over_one', 'ct_read_over_other',
+      'ct_read_partial_one', 'ct_read_partial_other', 'ct_read_again'];
     win.langSet('en',{repaint:false});
     const en = keys.map(k => win.i18t(k));
     win.langSet('sv',{repaint:false});
@@ -1092,7 +1103,9 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
     const route = srv.slice(i, srv.indexOf("app.post('/api/", i + 40));
     assert.doesNotMatch(route, /head: \{ type: 'string'/,
       'the schema field is gone rather than being asked for and ignored');
-    assert.match(route, /required: \['i', 'plain'\]/);
+    /* RE-POINTED 11 Sep 2026 (C-6): `heading` here is the row's own heading
+       ECHOED for pairing, never a heading the model writes — see (19). */
+    assert.match(route, /required: \['key', 'heading', 'plain'\]/);
     assert.match(route, /DO NOT WRITE HEADINGS/,
       'and the prompt says so, with the reason: a heading of the model’s would '
       + 'be a second name for one clause');
@@ -1605,5 +1618,38 @@ describe('f277 (18) the edition is set in the paper’s own face', () => {
     const at = src.indexOf('function docReadSheet(');
     const sheet = src.slice(at, src.indexOf('\nfunction ', at + 10));
     assert.ok(!/face/i.test(sheet), 'and the walk records none');
+  });
+});
+
+/* ============================================================
+   19. THE ROW KEY IS NOT A NUMBER, AND THE ECHO IS REQUIRED (C-6, 11 Sep 2026)
+   ============================================================
+   "the plain english has failed to pick up on the first clause" — every
+   reading sat one clause low, because the rows were numbered [0]…[n-1] and
+   every heading also begins with a number, one higher. The model read the
+   clause number as the row number; the server stamped its heading off the
+   wrong row; the browser's guard compared the list with itself. The pins
+   here are the SCHEMA half of the fix; f300 is the route. */
+describe('f277 (19) the tool’s key is a string and the echoed heading is required', () => {
+  const at = SERVER_JS.indexOf("name: 'clause_readings'");
+  const schema = SERVER_JS.slice(at, SERVER_JS.indexOf("required: ['readings']", at));
+  test('the row is addressed by an opaque string key, never an integer', () => {
+    assert.ok(at > 0, 'the tool is defined');
+    assert.ok(/key: \{ type: 'string'/.test(schema), 'key is a string');
+    assert.ok(!/i: \{ type: 'integer'/.test(schema), 'the integer i is gone — it was the trap');
+    assert.ok(/never the clause\\?'s own number/i.test(schema), 'and the description says what it is not');
+  });
+  test('heading is required beside key and plain', () => {
+    assert.ok(/required: \['key', 'heading', 'plain'\]/.test(schema), 'all three, in that order');
+    assert.ok(/never printed/i.test(schema), 'the echo is a pairing reading, not a heading to draw');
+  });
+  test('the rows are sent under the same opaque key', () => {
+    const route = SERVER_JS.slice(SERVER_JS.indexOf("app.post('/api/ai/readings'"), at);
+    assert.ok(/\[\$\{readKeyOf\(i\)\}\]/.test(route), 'the doc string carries [R0]…[Rn-1]');
+    assert.ok(!/`\[\$\{i\}\]/.test(route), 'and never a bare [0]');
+    assert.ok(/^const readKeyOf = i => 'R' \+ i;/m.test(SERVER_JS));
+  });
+  test('the prompt says it once, plainly', () => {
+    assert.ok(/The key in brackets is the row's address for your answer\. It is not the clause number, which is part of the heading and is the contract's own\./.test(SERVER_JS));
   });
 });

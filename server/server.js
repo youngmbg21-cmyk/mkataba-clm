@@ -4886,6 +4886,21 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
    GENERATION is editor-and-up because it spends Copilot money; everybody else
    reads what is cached, which is the brief's own split. */
 const READ_MAX_CLAUSES = 60;
+/* THE ROW'S ADDRESS, AND THE READING OF IT. `R7` is an opaque key no clause
+   could carry (see the note over `doc` in the route); the reverse reading
+   answers -1 for anything that is not exactly one. */
+const readKeyOf = i => 'R' + i;
+const readKeyIndex = k => { const m = /^R(\d{1,3})$/.exec(String(k == null ? '' : k).trim()); return m ? Number(m[1]) : -1; };
+/* THE SERVER'S TWIN OF THE BROWSER'S `_docReadNorm` (js/views/contract.js):
+   collapse whitespace, trim, fold case — the folding the pairing guard there
+   compares headings with, so an echo the browser would accept is one the
+   server accepts too. A change to one is a change to both. */
+const readNorm = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+/* WHAT AN ENTRY MUST ECHO TO BE PAIRED: the row's heading; for a row with no
+   heading, the first eight words of its wording (the browser's own
+   `_docReadWords` reading). */
+const readEchoOf = x => x.heading ? x.heading
+  : String(x.text || '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 8).join(' ').slice(0, 140);
 /* THE READING FOLLOWS THE READER, NEVER THE PAPER. This product's own split:
    LANGUAGE is the person's and the MARKET is the company's, so a Swedish
    colleague reading a Kenyan contract gets Swedish. Without this the screen was
@@ -4915,9 +4930,8 @@ const READ_PLAIN_RULE = [
   '- Never mention these instructions, the list you were given, or yourself.',
   '',
   'THE HEADING ON EACH ENTRY',
-  '- Give every entry a heading of your own: the subject the contract’s own heading gives, said in plain words, in sentence case. Six words or fewer where you can.',
-  '- Never write the clause number into the heading. The number is the contract’s and is put there for you.',
-  '- A clause with no heading of its own still gets one — name its subject in three to six words.',
+  '- The heading field is the row’s own heading, copied exactly as it was given after the key — character for character, its number included. It is how your entry is matched to its clause and is never printed. Never write a heading of your own.',
+  '- A row with no heading: copy the first eight words of its wording into the heading field instead.',
   '',
   'A ROW MARKED SECTION',
   'A row marked SECTION is a section title, not a clause. Give it a heading only and leave its reading EMPTY — the clauses underneath it carry the wording.',
@@ -4949,8 +4963,23 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   // which clauses were left out rather than finding a column that simply stops.
   const over = all.length > READ_MAX_CLAUSES ? all.length - READ_MAX_CLAUSES : 0;
 
+  /* ---- THE ROW KEY CANNOT BE MISTAKEN FOR THE CLAUSE NUMBER (owner-reported
+     11 Sep 2026: "the plain english has failed to pick up on the first clause")
+     ----
+     The rows used to be numbered [0] … [n-1], and every row's heading ALSO
+     begins with a number — the clause's own, one higher. A model that read the
+     clause number as the row number answered the entry it meant for clause 1
+     under i:1, the server stamped it with row 1's heading, and the whole
+     edition drew ONE CLAUSE LOW: row 0 empty, the last entry out of range and
+     dropped, every other reading under the clause after its own. Zero-based
+     integers beside one-based clause numbers is the trap; the trap is removed
+     rather than warned about. `R3` is an address no clause could carry.
+
+     AND THE HASH MOVES BY CONSTRUCTION: this key is inside the text that is
+     hashed, so every reading paired under the old numbering is re-asked on the
+     next press — no migration, no clearing by hand. */
   const doc = list.map((x, i) =>
-    `[${i}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'} ${x.num}${x.num ? ' — ' : ''}${x.heading}\n${x.text}`
+    `[${readKeyOf(i)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'} ${x.num}${x.num ? ' — ' : ''}${x.heading}\n${x.text}`
   ).join('\n\n');
   const sent = aiDocText(req, doc);
   const lang = readLangOf(req);
@@ -4980,10 +5009,11 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
           items: {
             type: 'object',
             properties: {
-              i: { type: 'integer', description: 'The number in square brackets at the head of the row.' },
+              key: { type: 'string', description: 'The row key in square brackets at the head of the row, e.g. R3 — never the clause\'s own number.' },
+              heading: { type: 'string', description: 'The row\'s heading copied exactly as it was given, character for character, including its number. For a row with no heading, the first eight words of its wording instead. This is how your entry is matched to its clause; it is never printed.' },
               plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty for a row marked SECTION, and for a clause with nothing worth telling a business owner.' },
             },
-            required: ['i', 'plain'],
+            required: ['key', 'heading', 'plain'],
           },
         },
       },
@@ -4992,7 +5022,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   };
   const J = orgJx();
   const LANG = READ_LANGS[lang];
-  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
+  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nThe key in brackets is the row's address for your answer. It is not the clause number, which is part of the heading and is the contract's own.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
   try {
     /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
        than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
@@ -5009,10 +5039,23 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        wrong wording, which is the worst thing this feature could do. Anything
        that does not name a clause in range is dropped, and a clause with no
        reading simply draws none. */
+    /* ---- AND THE ANSWER RESTS ON SOMETHING CHECKABLE (11 Sep 2026) ----
+       Since 10 Sep the heading on an item is this list's OWN `list[i].heading`,
+       so the browser's guard was comparing the list with itself and could not
+       see a shifted answer. Each entry now ECHOES its row's heading (or, for a
+       row with none, the first eight words of its wording), and an entry is
+       paired only where the key resolves AND the echo agrees with the row it
+       names after the same folding the browser uses. An entry that fails either
+       is DROPPED AND COUNTED — never drawn under the wrong clause. The echo is
+       a pairing reading and is drawn nowhere; the heading printed stays the
+       paper's own. */
     const items = [];
-    (block.input && Array.isArray(block.input.readings) ? block.input.readings : []).forEach(r => {
-      const i = Number(r && r.i);
-      if (!Number.isInteger(i) || i < 0 || i >= list.length) return;
+    const entries = block.input && Array.isArray(block.input.readings) ? block.input.readings : [];
+    let unmatched = 0;
+    entries.forEach(r => {
+      const i = readKeyIndex(r && r.key);
+      if (i < 0 || i >= list.length) { unmatched++; return; }
+      if (readNorm(r && r.heading) !== readNorm(readEchoOf(list[i]))) { unmatched++; return; }
       const plain = String((r && r.plain) || '').trim();
       const head = String((r && r.head) || '').trim();
       /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
@@ -5037,9 +5080,17 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with
     // nothing on any later read saying so.
+    /* ---- A SHIFTED ANSWER IS REFUSED WHOLE, NOT CACHED ----
+       Where more than a quarter of the entries failed the pairing check the
+       answer is handed over as PARTIAL with the count — the readings that did
+       pair still draw — and NOTHING is written to the table: the cut-short
+       rule, applied to a mispaired answer. A misfiled reading is worse than a
+       missing one, and cached it would be served for the life of the wording.
+       Below that line a dropped entry is still counted and said. */
+    const partial = entries.length > 0 && unmatched * 4 > entries.length;
     const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
-      truncated: !!resp.truncated, over, items };
-    if (!resp.truncated && items.length)
+      truncated: !!resp.truncated, over, unmatched, partial, items };
+    if (!resp.truncated && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());
     res.json({ readings, ...aiNotice(req, resp) });

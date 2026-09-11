@@ -85,6 +85,15 @@ const drive = async (page, fn, arg, fallback) => {
 };
 
 const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readings', input: { readings } }];
+/* ---- SINCE C-6 (11 Sep 2026) AN ENTRY NAMES ITS ROW BY AN OPAQUE KEY AND ECHOES
+   THE ROW'S HEADING; the route pairs on both. `i` is kept on every scripted
+   entry so the same script still drives the PARENT commit (which pairs by
+   number) — that is what lets section 16 be run against it. */
+const headsOf = (page, id) => drive(page, id => {
+  const c = state.contracts.find(x => x.id === id);
+  try { return docReadClauses(c).map(x => x.heading); } catch (_) { return []; }
+}, id, []);
+const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, heading: heads[e.i] }));
 
 (async () => {
   const ai = await startScriptedAi();
@@ -266,10 +275,10 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
 
     /* ============ 3 · PRESSING PLAIN ENGLISH ============ */
     ai.reset();
-    ai.script(tool(cl.heads.map((_, i) => ({ i, plain: `PLAIN ${i}: you have to do the thing this clause says, by the date it names.` }))
+    ai.script(tool(withKeys(cl.heads.map((_, i) => ({ i, plain: `PLAIN ${i}: you have to do the thing this clause says, by the date it names.` }))
       .concat(cl.n > cl.heads.length
         ? Array.from({ length: cl.n - cl.heads.length }, (_, k) => ({ i: cl.heads.length + k, plain: `PLAIN ${cl.heads.length + k}: what this means for you.` }))
-        : [])));
+        : []), await headsOf(page, 'MK-A2'))));
     const pressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '3 Plain English');
     await pause(3000);
     const after = await cards();
@@ -504,12 +513,12 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       "8b and a clause's heading is its own bold lead-in", num.heads[1]);
 
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, head: 'What you are buying, and how orders are placed', plain: '' },
       { i: 1, head: 'How this agreement works', plain: 'This agreement does not order anything by itself. It sets the rules, and each actual order is placed separately as a purchase order.' },
       { i: 2, head: 'Placing an order', plain: 'You send a written order. The Supplier then has two working days to confirm it in writing.' },
       { i: 3, head: 'Which document wins', plain: 'If this agreement and an order say different things, this agreement wins.' },
-    ]));
+    ], await headsOf(page, 'MK-A2'))));
     await press(page, '.doc-read-seg button[data-doc-read="1"]', '8 Plain English on numbered paper');
     await pause(3000);
 
@@ -580,12 +589,12 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       '9a unchanged wording asks nothing — the reading it holds still fits', calls - callsBefore);
 
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, head: 'What you are buying, and how orders are placed', plain: '' },
       { i: 1, head: 'How this agreement works', plain: 'REDLINED READING for the clause that moved.' },
       { i: 2, head: 'Placing an order', plain: 'You send a written order. The Supplier then has five working days to confirm it.' },
       { i: 3, head: 'Which document wins', plain: 'If this agreement and an order say different things, this agreement wins.' },
-    ]));
+    ], await headsOf(page, 'MK-A2'))));
     await drive(page, html => {
       const c = state.contracts.find(x => x.id === 'MK-A2');
       c.redlineText = html; c.format = 'rich'; renderWorkspace(c.id);
@@ -695,9 +704,9 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
 
     const txtRows = txtSheet.rows;
     ai.reset();
-    ai.script(tool(Array.from({ length: txtRows }, (_, i) => (txtSheet.kinds[i] === 'section'
+    ai.script(tool(withKeys(Array.from({ length: txtRows }, (_, i) => (txtSheet.kinds[i] === 'section'
       ? { i, head: 'PART ' + (i + 1), plain: '' }
-      : { i, head: 'What this means', plain: `PLAIN ${txtSheet.nums[i]}: you must do what this clause says.` }))));
+      : { i, head: 'What this means', plain: `PLAIN ${txtSheet.nums[i]}: you must do what this clause says.` })), await headsOf(page, 'MK-B2'))));
     const txtPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '10 Plain English on a working text');
     await pause(3200);
     const txtOut = await drive(page, () => {
@@ -787,11 +796,11 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       `[${hSheet.sentNums.join('|')}] keys ${hSheet.sentKeys}`);
 
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, head: 'Scope of supply', plain: 'The Supplier provides the goods listed on each order you place.' },
       { i: 1, head: 'Obligations of the first party', plain: 'The first party moves the services across on the timetable in Schedule 1.' },
       { i: 2, head: 'Definitions', plain: 'This clause explains the defined words used everywhere else.' },
-    ]));
+    ], await headsOf(page, 'MK-B2'))));
     const hPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '11 Plain English on headed paper');
     await pause(3200);
     const hOut = await drive(page, () => Array.from(document.querySelectorAll('.doc-read-note')).map(n => ({
@@ -823,11 +832,11 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
        The model is scripted with headings NOTHING like the paper's, so a pass
        cannot be an accident of the two agreeing. */
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, head: 'ZZZ MODEL HEADING ONE', plain: 'The Supplier provides the goods listed on each order.' },
       { i: 1, head: 'ZZZ MODEL HEADING TWO', plain: 'The first party moves the services across on the timetable.' },
       { i: 2, head: 'ZZZ MODEL HEADING THREE', plain: 'This clause explains the defined words.' },
-    ]));
+    ], await headsOf(page, 'MK-B2'))));
     await drive(page, () => {
       const c = state.contracts.find(x => x.id === 'MK-B2');
       delete c._readings; delete c._readSig;
@@ -994,10 +1003,10 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
     await pause(900);
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, plain: 'The supplier brings each delivery to the plant.' },
       { i: 1, plain: 'You have three days to check each delivery.' },
-    ]));
+    ], await headsOf(page, 'MK-B2'))));
     const bareOn = await press(page, '.doc-read-seg button[data-doc-read="1"]', '13 Plain English on unheaded clauses');
     await pause(3000);
     const s13beside = await drive(page, () => {
@@ -1067,10 +1076,10 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     }, NUMHEAD, null);
     await pause(900);
     ai.reset();
-    ai.script(tool([
+    ai.script(tool(withKeys([
       { i: 0, plain: 'AIT works for itself, not as your employee, and runs its own people.' },
       { i: 1, plain: 'Neither of you can claim indirect losses from the other.' },
-    ]));
+    ], await headsOf(page, 'MK-B2'))));
     const gPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '14 Plain English on numbered headings');
     await pause(3200);
     const gap = await drive(page, () => {
@@ -1173,6 +1182,99 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       '15e and the size still follows the paper too',
       `contract ${face.contractPx} · edition ${face.editionPx}`);
     await page.screenshot({ path: path.join(OUT, '15-same-face.png') }).catch(() => {});
+
+    /* ============ 16 · ONE CLAUSE OUT ON THE COMPANY STANDARDS (C-6, 11 Sep 2026) ============
+       "In two different company standard contracts, the plain english has
+       failed to pick up on the first clause." Every reading sat one clause
+       low: the rows went out numbered [0]…[n-1] beside headings that begin
+       "1.", "2.", "3.", and the model read the clause number as the row
+       number. The browser's heading guard could not see it — since 10 Sep the
+       heading on an item is the server's own list[i].heading, so the guard
+       compared the list with itself.
+
+       THIS IS A GEOMETRY. The markup and the record can both look right while
+       the entry level with "2." is clause 1's reading; only a rendered page
+       knows which clause a painted entry sits beside. The script is the fault
+       as observed (keys one row high, each entry echoing the heading of the
+       clause it is really about); against the parent, 16b reports clause 1's
+       words level with clause 2. Every press is guarded, so the parent
+       REPORTS rather than timing out. */
+    const SHIFT = [
+      '<h2>1. Scope of Supply</h2>',
+      '<p>The Supplier shall manufacture and supply packaging that matches the approved artwork and the specification in Schedule 1.</p>',
+      '<h2>2. Price and Contract Value</h2>',
+      '<p>The estimated annual contract value is stated in Schedule 2 and reviewed each year by the parties.</p>',
+      '<h2>3. Approvals and Media</h2>',
+      '<p>Every artwork change shall be approved in writing by the Buyer before any print run begins.</p>',
+    ].join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = html; c.format = 'rich';
+      delete c.branding;
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace(c.id);
+    }, SHIFT, null);
+    await pause(1200);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    const sHeads = await headsOf(page, 'MK-B2');
+    check(sHeads.length === 3 && sHeads.every((h, k) => h.indexOf(String(k + 1) + '.') === 0),
+      '16a THE STAGE is the reported one — three clauses, each heading beginning with its own number, one higher than its row',
+      sHeads.join(' | '));
+    const ABOUT = k => `SHIFTED reading: this entry is about clause ${k + 1} and nothing else.`;
+    /* Not through withKeys: the key is the fault. Row k's entry goes out under
+       row k+1's key, echoing row k's own heading. */
+    ai.reset();
+    ai.script(tool(sHeads.map((h, k) => ({ i: k + 1, key: 'R' + (k + 1), heading: h, plain: ABOUT(k) }))));
+    const callsS = calls;
+    const sPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '16 Plain English with a shifted answer');
+    await pause(3000);
+    const readSheet = () => drive(page, () => {
+      const canvas = document.getElementById('doc-canvas');
+      const heads = Array.from(canvas.querySelectorAll('h1,h2,h3,h4'))
+        .map(h => ({ t: (h.textContent || '').trim(), top: h.getBoundingClientRect().top }))
+        .filter(h => /^\d\./.test(h.t));
+      const notes = Array.from(document.querySelectorAll('.doc-read-note')).map(n => ({
+        top: n.getBoundingClientRect().top,
+        text: ((n.querySelector('p') || {}).textContent || '').trim(),
+      }));
+      /* The entry LEVEL with a heading is the one the reader sees beside it. */
+      const beside = heads.map(h => ({ head: h.t, notes: notes.filter(n => Math.abs(n.top - h.top) < 40).map(n => n.text) }));
+      const foot = document.querySelector('.doc-read-partial');
+      const btn = document.querySelector('[data-doc-read-again]');
+      const layer = document.getElementById('doc-read');
+      return { notes: notes.length, beside, layerOn: !!layer && !layer.hidden,
+        foot: foot ? foot.textContent.replace(/\s+/g, ' ').trim() : '', btn: !!btn && !btn.disabled };
+    }, undefined, { notes: -1, beside: [], layerOn: false, foot: '', btn: false });
+    const shifted = await readSheet();
+    const underTwo = (shifted.beside.find(b => /^2\./.test(b.head)) || { notes: [] }).notes;
+    check(sPressed && underTwo.every(t => /clause 2\b/.test(t) && !/clause 1\b/.test(t)),
+      '16b THE HEADLINE: the entry level with clause 2 is about clause 2 or absent — never clause 1’s',
+      underTwo.length ? underTwo.map(t => t.slice(0, 60)).join(' | ') : 'absent');
+    check(shifted.notes === 0,
+      '16c a wholly shifted answer draws NOTHING — silence is the only safe failure here', shifted.notes);
+    check(shifted.layerOn && /3 clauses could not be matched to the contract/.test(shifted.foot) && shifted.btn,
+      '16d the column foot says how many could not be matched and carries the press',
+      shifted.foot || '(no foot)');
+    check(calls === callsS + 1, '16e one call was spent on the press', calls - callsS);
+    await page.screenshot({ path: path.join(OUT, '16-shifted-refused.png') }).catch(() => {});
+
+    /* THE WAY FORWARD IS THE FOOT'S OWN PRESS — the brief's rewrite, by name.
+       A right answer this time: every entry under its own key, echoing its own
+       heading. */
+    ai.reset();
+    ai.script(tool(withKeys(sHeads.map((h, k) => ({ i: k, plain: ABOUT(k) })), sHeads)));
+    const againPressed = await press(page, '[data-doc-read-again]', '16 try again');
+    await pause(3200);
+    const again = await readSheet();
+    check(againPressed && calls === callsS + 2, '16f the foot’s press asked the route again', calls - callsS);
+    const level = again.beside.map(b => ({ head: b.head, ok: b.notes.length === 1 && new RegExp('clause ' + b.head.charAt(0) + '\\b').test(b.notes[0]) }));
+    check(again.notes === 3 && level.length === 3 && level.every(l => l.ok),
+      '16g and a right answer draws every reading level with its own clause',
+      level.map(l => `${l.head.slice(0, 12)}:${l.ok ? 'ok' : 'WRONG'}`).join(' | '));
+    check(again.layerOn && !again.foot, '16h the foot stands down once every clause is matched', again.foot || 'gone');
+    await page.screenshot({ path: path.join(OUT, '16-right-answer.png') }).catch(() => {});
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

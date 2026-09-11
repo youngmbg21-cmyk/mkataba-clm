@@ -7230,6 +7230,12 @@ const docReadItems=c=>{
   const r=c&&c._readings;
   return (r&&Array.isArray(r.items)) ? r.items.slice().sort((a,b)=>(a.i||0)-(b.i||0)) : [];
 };
+/* ONE READING OF "IS THERE AN EDITION TO SHOW" (C-6, 11 Sep 2026): the entries
+   that paired, or a PARTIAL answer whose foot has something to say — how many
+   clauses could not be matched, and the press that asks again. The switch and
+   the painter both ask it, so the lit half and the layer cannot disagree. */
+const docReadUnmatched=c=>Number((c&&c._readings&&c._readings.partial&&c._readings.unmatched)||0);
+const docReadHeld=c=>docReadItems(c).length>0||docReadUnmatched(c)>0;
 /* WHAT COUNTS AS A CLAUSE HERE IS WHAT IS PAINTED ON THE SHEET, and that is
    the safety of the whole pairing rather than a shortcut.
 
@@ -7591,7 +7597,11 @@ function docReadSync(){
 function docReadPaint(c){
   const layer=document.getElementById('doc-read');
   if(!layer) return;
-  const on=docReadOn()&&_wsTab==='docs'&&docReadItems(c).length>0;
+  /* A PARTIAL EDITION DRAWS, even where nothing in it could be paired: its
+     foot is where the reader is told how many clauses could not be matched and
+     given the press that asks again. */
+  const partial=docReadUnmatched(c);
+  const on=docReadOn()&&_wsTab==='docs'&&docReadHeld(c);
   layer.hidden=!on;
   /* The cards keep their place and their own scroll position; they are covered,
      never rebuilt. visibility also takes them out of the way of the pointer. */
@@ -7692,7 +7702,26 @@ function docReadPaint(c){
         +`</div>`;
     }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
+      ${partial?`<div class="doc-read-over doc-read-partial">${esc(i18tn('ct_read_partial',partial,{n:partial}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></div>`:''}
     </div></div>`;
+  /* ---- THE FOOT'S PRESS IS THE BRIEF'S REWRITE (11 Sep 2026) ----
+     A route answer with more than a quarter of its entries unpairable is
+     handed over PARTIAL and never cached, so the only way forward is to ask
+     again by name. Armed once on the layer, because the foot is rebuilt with
+     every paint. */
+  layer._docReadC=c;
+  if(!layer.dataset.docReadAgain){
+    layer.dataset.docReadAgain='1';
+    layer.addEventListener('click',async e=>{
+      const b=e.target&&e.target.closest&&e.target.closest('[data-doc-read-again]');
+      if(!b||b.disabled) return;
+      /* The contract painted LAST, not the one this listener was armed on. */
+      const cc=layer._docReadC||c;
+      b.disabled=true;
+      try{ if(await docReadRun(cc,{force:true})){ wsPaintTabRowEnd(cc); docReadPaint(cc); } }
+      finally{ b.disabled=false; }
+    });
+  }
   const inner=document.getElementById('doc-read-inner');
   const sc=document.getElementById('doc-scroll');
   const clip=layer.querySelector('.doc-read-clip');
@@ -7719,9 +7748,12 @@ function docReadPaint(c){
   });
   const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
   const last=Math.max(lastEl,bottom);
-  const overEl=inner.querySelector('.doc-read-over');
+  const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
   if(overEl) overEl.style.top=Math.round(last+24)+'px';
-  inner.style.height=Math.round(last+140)+'px';
+  /* The partial line sits under the cap line where both are drawn. */
+  const partEl=inner.querySelector('.doc-read-partial');
+  if(partEl) partEl.style.top=Math.round(last+24+(overEl?overEl.offsetHeight+8:0))+'px';
+  inner.style.height=Math.round(last+140+(partEl?partEl.offsetHeight+8:0))+'px';
   docReadSync();
   if(!sc.dataset.docReadBound){
     sc.dataset.docReadBound='1';
@@ -7759,22 +7791,28 @@ function docReadSwitchHtml(c){
      amendment) and answers false for the case that actually matters here — a
      scan whose words never came out of the file. */
   if(!docReadClauses(c).length) return '';
-  const on=docReadOn()&&docReadItems(c).length>0;
+  const on=docReadOn()&&docReadHeld(c);
   return `<div class="doc-read-seg" role="group" aria-label="${esc(i18t('ct_read_group'))}">
     <button type="button" data-doc-read="0" aria-pressed="${!on}">${esc(i18t('ct_read_contract'))}</button>
     <button type="button" data-doc-read="1" aria-pressed="${on}"${_docReadBusy?' disabled':''}
       title="${esc(i18t('ct_read_plain_title'))}">${esc(_docReadBusy?i18t('ct_read_reading'):i18t('ct_read_plain'))}</button>
   </div>`;
 }
-async function docReadRun(c){
+async function docReadRun(c,opts){
   if(_docReadBusy) return false;
   const clauses=docReadClauses(c);
   if(!clauses.length){ toast(i18t('ct_read_nothing'),'warn'); return false; }
   const sig=docReadSig(c);
   _docReadBusy=true; wsPaintTabRowEnd(c);
   try{
-    const r=await api('ai/readings','POST',{id:c.id,clauses});
-    if(r&&r.readings&&Array.isArray(r.readings.items)&&r.readings.items.length){
+    /* `force` is the foot's "try again" on a PARTIAL edition — the brief's own
+       rewrite press: an answer the route could not pair was never cached, so
+       asking again is the only way forward, and it is asked for by name. */
+    const r=await api('ai/readings','POST',{id:c.id,clauses,force:!!(opts&&opts.force)});
+    /* A PARTIAL ANSWER STILL LANDS, even with nothing paired in it: the column
+       has to be able to say how many clauses could not be matched, and it can
+       only say that off a reading it holds. */
+    if(r&&r.readings&&Array.isArray(r.readings.items)&&(r.readings.items.length||r.readings.partial)){
       c._readings=r.readings;
       /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature
          of the walk that was SENT — taken before the await, because the paper
