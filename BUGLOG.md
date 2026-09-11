@@ -12764,3 +12764,4 @@ Noticed, not fixed
 - A drag RELEASED ON A PENCIL could not be driven in the browser file (the page's own click on the heading collided with the probe); the filter is pinned as a source claim in f304 (6) and the overshoot is driven as a built range with a real mouse-up.
 - Their page's card composer (`rlCardNotesHtml`) still stands beside the aside; not swept.
 - The Ask-mode answer keeps wording the model volunteered as `held` and shows it only on Edit with this; a model that answers with wording alone (no advice) is shown that wording as its answer text.
+- Proved for the whole on the branch before the merge to main: full suite 6679/6679 on the second run (the first found f148: `ce_prompt_question` is English in both books, as its two sibling prompts are, and joins their named exemption); lint 0 errors.
