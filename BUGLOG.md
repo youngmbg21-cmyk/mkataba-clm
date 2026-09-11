@@ -12328,3 +12328,88 @@ in the same gutter the contract uses, rather than on a line above it.
   and their seat has no clause editor, so the condition is false there too. It
   carries the lock marking anyway because it is the same one-line reading, but
   it cannot honestly be measured on a page that does not draw it.
+
+## Run — 11 Sep 2026: the contract graph's nodes (A-2, A-1, A-3, A-4, A-5) and Copilot pre-writing the redlines (A12)
+
+WORKORDER-contract-graph-nodes.md, both parts, on the owner's "Go but start
+from the latest main before you do anything". Rebased onto main first; main did
+not move while this ran.
+
+**PART A — FIVE THINGS ON THE CONTRACT GRAPH, EACH A READING THAT DRAWS
+NOTHING.** The graph's links are the record's own now (family, payment chain,
+shared counterparty — `buildGraphEdges`; the invented `REL_SEEDS` is empty and
+stale), and pressing a node says what depends on it and offers the list. A node
+carries at most three facts in its own tone, with the rest on hover. A
+counterparty hub is the party read across the book — contracts and share by
+converted value, rounds a deal, promises met on time, how they pay. A 'decision'
+grouping lays the book out by the quarter the renewal decision falls in with a
+scrubber that fades what has passed. And each value-stream hub says money in,
+money out and net — ON PAPER — with every link as wide as the value it carries
+on a bounded square-root scale.
+
+- **THE ORDER'S A-5 LINE HAD THE SIDES THE OTHER WAY ROUND** ("supplier = in,
+  customer = out"). The product's one reading (`paySide`, `home_pt_split`)
+  says a customer contract is money IN; following the order would have made
+  the graph disagree with the payment-terms tab about one contract. Followed
+  the product and said so in CLAUDE.md.
+- **THE A-3 SPEC NAMED `negoIsLive` for "live"** and the graph counts the live
+  BOOK (not Declined, not archived — `graphLiveContract`), which is the reading
+  every panel on that page shares; said so in CLAUDE.md.
+- **f292's folder-hub claim reversed in place** — a stream hub carries lines of
+  its own now, and the claim was always that they are not the PARTY's.
+
+**PART B — "PREPARE REDLINES", AND THE REVIEW RUN OVERNIGHT.** A third row in
+the negotiation page's More menu runs the existing playbook review and files
+every proposal through `rlFilePlaybookProposal` as an unsent draft of ours.
+Asks before it spends (one deep call, or "already on file, costs nothing"),
+never files a fallback, sends nothing, records each proposal, one toast with
+the counts. Overnight, `runPlaybookPrep` runs the same review server-side for
+incoming paper with an owner and no review, charged to the owner, under the
+renewal notes' own switch and cap, and stores the ordinary playbook record —
+it files nothing.
+
+- **THE ORDER ASSUMED A WALL THE FUNNEL DID NOT HAVE.** "The no-op guard
+  refuses a modify that changes nothing" measured against the clause AS IT
+  STANDS, so re-filing the very wording a pending draft already carried folded
+  as an identical revision. `negoFileChange` now answers null where the live
+  draft already proposes the same words — in the funnel, because the review
+  window and the clause editor's card reach the same fold.
+- **A LIGHT ROW IS NOT AN EMPTY ONE.** The list strips an upload's extracted
+  text and the negotiation page does not load the full record on arrival; a row
+  greyed off a light record refused a readable contract. The row draws live on
+  a light record and the press loads it first.
+- **THE SERVER CARRIES NO COPY OF THE BROWSER'S DEFAULT PLAYBOOK** — it cannot
+  require js/playbook.js (its default book reads the jurisdiction pack at
+  load). A workspace that has never saved its own standards is skipped by name
+  overnight; the morning press still runs the review itself.
+- **THE ONE OVERNIGHT SWITCH COVERS BOTH SWEEPS** and its row says so now
+  ("Prepare work overnight").
+
+### What was measured, not asserted
+- `npm run lint` **0 errors** throughout.
+- Node suite: Part A **6524/6524**, Part B **6543/6543** (one run each, at the end).
+- Every regression net was proved to FAIL against a worktree at unmodified
+  main before it was trusted: insights-panels-verify sections 11–15 (7/5/2/6/5
+  failing against the parent, the viewer check in 15 a named CONTROL),
+  prepare-redlines-verify (17 of 27 failing against the parent, every driven
+  half guarded so it REPORTS), f290–f296 (each cannot load or fails against the
+  parent, the controls named inside).
+- Browser files re-run green on this branch: insights-panels (70),
+  prepare-redlines (27), clause-editor (251), redline (216),
+  playbook-opens-read (23), settings-tabs (80).
+
+### Noticed, not fixed
+- **The Contract graph draws Declined contracts** (buildGraphModel reads
+  state.contracts unfiltered) while every reading on it — links, facts, party
+  stats, the flow — counts the live book. A dead node with live-book figures
+  round it is a question for the owner, not a fix made on the way past.
+- **`runPlaybookReview` on an UPLOAD reads only the extracted text**, even
+  where a stored structured body exists; on a light row that text is stripped,
+  so the existing Review vs Playbook row refuses "no readable clause" on the
+  negotiation page until something loads the full record. Prepare redlines
+  loads it first; the older row does not.
+- **The overnight sweeps share `aiRenewalPrepMax` per sweep**, so one night can
+  spend up to twice the cap across the two. Bounded by the daily ceiling either
+  way; named rather than resolved.
+- **The negotiation page's divider is still silent at its fraction limit** (the
+  clause editor's was corrected on 25 Aug); unchanged, still logged.
