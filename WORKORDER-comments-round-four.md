@@ -18,6 +18,30 @@ spend on it, before building, and add nothing the item did not ask for.
    to done."* (Image 2: the External room, two notes by Young Mbagaya on
    Clause 4 and Clause 7, each with Reply and Done and no way to remove it.)
 
+
+**Added later the same night** (*"ADD these too"*):
+
+3. *"Image one, remove the blurry background please (reversal of what i asked
+   before)."* (Image 1: the negotiation page with the Chat drawer open; the
+   contract behind it blurred.)
+4. *"Image 2, when i click on a number, it should take me to the note wherever
+   it is. Currently it just opens up the notes panel but does not take you
+   directly to the reference note."* (Image 2: the clause editor's paper, the
+   marker ② beside Clause 2, and the drawer open on Chat's Internal room
+   showing a Clause 1 note.)
+5. *"Image 3, something has broken because when i highlight and comment, the
+   number for the comment does not appear anymore."* (Image 3: the clause
+   editor; a new note on Clause 8 — *Okay then*, 22:43 — is on the drawer's
+   list with its quoted words, and the paper beside it shows no marker at
+   Clause 8 while ⑤ still sits at Clause 7.)
+6. *"iMAGE 4, suggest deleting does not work. You should be able to click and
+   it essential redlines the selected sentence or word."* (Image 4: the clause
+   editor's rail, a passage held under SELECTED · CLAUSE 3, the *Suggest
+   deleting* button under it.)
+7. *"Image 5, when i click apply, this is a redline and it should come with
+   the notes panel so i can enter my notes."* (Image 5: a Copilot card's
+   Apply; the paper beside it shows the struck and inserted wording.)
+
 ## WHAT EACH ONE LOOKS LIKE FROM HERE (to be MEASURED before a line moves)
 
 **1 — REPLY ON ANY NOTE.** Today the note row draws Reply and Done only where
@@ -61,16 +85,85 @@ Drawn as a third bare verb after Done in the note row's acts, both panels
 (the per-change panel and Chat), dressed by the same rule. `ng_np_delete` and
 its Swedish twin; the confirm's sentence beside it.
 
+**3 — THE BLUR COMES OFF.** Reverses round three's item 2 the same night. The
+scrim stops taking `is-blur` on the negotiation page (`notesBlurs()` answers
+false, or is retired); the 27 Aug ruling stands again everywhere: no shade,
+the contract stays lit. ONE QUESTION FOR THE OWNER: the press on the page
+that closes the drawer arrived WITH the blur (a blurred page reads as a door;
+an unblurred one does not) — does it stay? The general practice for a docked
+panel is that the page behind stays live and the panel's own ✕ closes it.
+The order proposes: no blur, no outside-press close, the round-three rule
+lines and notes-two-rooms-verify section 2 put back to the 27 Aug shape.
+
+**4 — THE MARKER LANDS ON ITS NOTE.** The press already carries the key
+(`_rlNpFocusKey`) and the drawer scrolls to it and lights it
+(`rlNpShowFocused`, consumed on the next paint). MEASURE which case misses:
+image 2 shows the drawer open on CHAT (the contract's face, no change in
+hand) listing a Clause 1 note while ② on Clause 2 was pressed — so either the
+note pressed lives on a CHANGE's thread and the marker opened the wrong home,
+or the focused key was consumed by a paint before the note was drawn (the
+round-two lesson: the focus key is spent by the paint that lands on it), or
+the drawer was already open on another thread and the toggle rule swapped
+without re-focusing. Whatever the cause: a marker press lands ON that note,
+in the room that holds it (switching the room where the note is external),
+scrolled into view and lit — measured in the browser file from both papers.
+
+**5 — A NEW COMMENT DRAWS ITS MARKER.** Image 3 is a regression from
+somewhere in rounds two or three: the note is on the list with its anchor,
+so the record is right and the PAINT is wrong. `rlPaintNoteMarks` runs after
+every paint of a canvas; the likely gap is that posting from the drawer
+repaints the drawer and not the paper beside it (the editor's canvas is
+painted by the editor, the negotiation page's by `negoAfterPaint`), or that
+the Clause 8 anchor's words were read as `moved`/`gone` by
+`negoAnchorState` on a canvas whose clause ids differ. Measure on both papers:
+highlight, Comment, Add note — a marker must appear beside that clause in the
+same breath, numbered after the others. A regression net goes into
+round-two-comments-verify as a real press.
+
+**6 — SUGGEST DELETING REDLINES THE PASSAGE.** The press is `scope-cut` →
+`ceCutPassage`: it takes the words out of the draft, applies, and FILES
+(`ceFile`) in one press. "Does not work" has to be measured: the guard
+`ceUnderDeletion`, `ceEditableReading`, a `moved` refusal (`ce_inline_moved`
+where the held words are no longer found verbatim — the likeliest, since the
+draft carries list markers as text and the round-two multi-line reading moved
+what `sel.text` holds), or `ce_inline_cut_all` (the cut would empty the
+clause). Whichever it is, the expected result is the one the owner names: the
+selected sentence or word struck through on the paper as a filed deletion —
+the strike drawn by the redline engine, nothing hand-written — and the
+refusal, where there is one, spoken in `#ce-say`, never silent.
+
+**7 — APPLY ON A COPILOT CARD, AND THE NOTE.** The rulebook is precise here
+and the owner should be told before a line moves: Apply is NOT a filing — it
+moves the wording into the box and (since round three) ends typing so the
+marks are seen; the ONE act that files is Save in the rail's foot, and the
+drawer comes up pinned to the change on that filing (`rlNoteAskAfterFile`).
+So today the note window arrives one press later than the owner expects.
+Two honest ways to give what image 5 asks, the owner's choice:
+- (a) APPLY FILES: a Copilot card's Apply goes on to `ceFile` in the same
+  press, exactly as *Suggest deleting* already does (one press, one filing,
+  the drawer pinned to the new change) — Apply becomes a second door onto
+  the filing act, which the six questions refuse without the owner's yes, and
+  Undo after Apply would then mean Withdraw.
+- (b) THE DRAWER COMES AT SAVE, as now, and Apply says so where the reader is
+  looking (the rail's foot reads "Save files this as CHG-0NN and opens the
+  note" — words on the control, no band).
+The general practice (Word's tracked changes, the redlining tools serious
+contract software follows) is (b): a suggestion is applied, reviewed, then
+committed with its comment. The order proposes (b) unless the owner says (a).
+
 ## ORDER WHEN THE OWNER SAYS GO
 
-1 (one gate widened, one key on the post), then 2 (one door on an act that
-exists, three refusals in words). Nets: f304 grows a section per item;
+3 (a reversal, one function), 5 (a regression — measure first), 4 (measure
+which case misses), 6 (measure the refusal), 1 (one gate widened, one key on
+the post), 2 (one door on an act that exists, three refusals in words), 7
+(after the owner's (a)/(b)). Nets: f304 grows a section per item;
 round-two-comments-verify gains a real press on a reply's Reply and on Delete
 (the greyed delivered case measured, not described); f264's three-acts claims
 re-pointed where the delete reaches the drawer.
 
 ## STILL WAITING FOR
 
-The owner's go — and their word on the two rulings under item 2: whether a
-root with replies may be deleted, and whether an admin may delete a
-colleague's note.
+The owner's go — and their word on: the two rulings under item 2 (whether a
+root with replies may be deleted; whether an admin may delete a colleague's
+note); under item 3 whether the press-on-the-page close goes with the blur;
+under item 7 whether Apply files (a) or the note comes at Save (b).
