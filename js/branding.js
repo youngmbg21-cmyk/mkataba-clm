@@ -603,9 +603,21 @@ function docDesignPaperStyle(b) {
    the screen, the portal, the print sheet, the PDF and the sealed copy without
    five separate edits and the drift that invites. No structure, no attribute,
    no CSS — the document renders exactly as it did before the feature. */
+/* THE DESIGN HALF ON ITS OWN, because one surface wants it WITHOUT the other.
+   A design says what the document WEARS — typeface, heading treatment,
+   justification — and a structure says how the page is BUILT. The negotiate
+   page takes the first and must never take the second: `two-column` would put
+   the agreement in two columns beside a change column that pairs with clauses
+   by position, `margin-numbers` runs a CSS counter that would fight the
+   negotiation's own numbering, and `contents-first` PREPENDS a contents page,
+   which on that page would be prepended to the baseline every change is filed
+   against. See redlineDocHtml, which is its one caller and says so again. */
+function docDesignBodyAttr(b) {
+  return b && b.designId ? ` data-doc-body="${b.designId}"` : '';
+}
 function docDesignPaperAttr(b) {
   if (!b) return '';
-  const design = b.designId ? ` data-doc-body="${b.designId}"` : '';
+  const design = docDesignBodyAttr(b);
   const structure = b.structureId && b.structureId !== DEFAULT_STRUCTURE && docStructureById(b.structureId)
     ? ` data-doc-structure="${b.structureId}"` : '';
   return design + structure;
@@ -699,10 +711,10 @@ function docDesignCoverPageHtml(b, c) {
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
-    docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml,
+    docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
-    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml,
+    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml });

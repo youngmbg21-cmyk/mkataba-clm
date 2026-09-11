@@ -724,8 +724,13 @@ describe('f277 (10) the edition is a facing page', () => {
     assert.ok(/font-size:var\(--dr-size,var\(--t-body\)\)/.test(css),
       'a measured value, with the body rung as the fallback');
     assert.ok(!/var\(--t-meta\)/.test(css), 'and it is no longer a size smaller than the contract');
-    assert.ok(/getComputedStyle\(paper\)\.fontSize/.test(CONTRACT_JS),
-      'measured off the sheet on every paint');
+    /* RE-POINTED 11 Sep 2026, when the face began to be measured beside the
+       size: this pinned the one EXPRESSION `getComputedStyle(paper).fontSize`
+       where the claim is a RELATION — the sheet's own computed style is what
+       the size is read from. Pin the relation, not the expression. */
+    assert.ok(/getComputedStyle\(paper\)/.test(CONTRACT_JS),
+      'the sheet\'s own computed style is read on every paint');
+    assert.ok(/cs\.fontSize/.test(CONTRACT_JS), 'and the size comes off it');
     assert.ok(/layer\.style\.setProperty\('--dr-size',px\)/.test(CONTRACT_JS));
   });
 
@@ -1114,8 +1119,14 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
 
   await t.test('the painter draws the PAPER’S heading', () => {
     const src = rd('js/views/contract.js');
-    const i = src.indexOf('const numHtml=num?');
-    const region = src.slice(Math.max(0, i - 900), i + 400);
+    /* THE REGION IS THE PAINTER, NOT A BYTE WINDOW. This sliced 900 characters
+       back from `numHtml` — which is an ANCHOR, not a boundary — so the first
+       comment written above that line pushed the claim out of its own window
+       and the check failed on code that was perfectly correct. Both landmarks
+       below are the painter's own first and last lines. */
+    const i = src.indexOf("const sec=p.row.kind==='section'");
+    const region = src.slice(i, src.indexOf('data-doc-read-note="', i));
+    assert.ok(i > 0 && region.length > 0, 'the painter was found');
     assert.match(region, /const head=String\(p\.row\.ownHead\|\|''\)\.trim\(\)/,
       'the sheet’s own heading, not p.it.head');
     assert.doesNotMatch(region, /p\.it\.head/,
@@ -1435,5 +1446,164 @@ describe('f277 (16) the number sits beside the reading', () => {
       'the number sits in a gutter of exactly the width the contract uses');
     assert.match(css, /\.doc-read-note\.dr-hang > p:not\(\.dr-lead\)\{ padding-left:2\.6em; \}/,
       'and the two rules do not double up on one paragraph');
+  });
+});
+
+/* ============================================================
+   f277 (17) — THE NUMBER IS NOT WELDED TO THE NAME
+   ============================================================
+   Young reported it 10 Sep 2026, off the two columns side by side: the
+   contract reading *"4. Independent Contractor"* and the edition reading
+   *"4Independent Contractor"*.
+
+   ONE CAUSE WITH TWO HALVES. The reading that cuts a number off a heading
+   discards the drafter's punctuation — correctly, because it captures a
+   CITATION and "4." and "4" cite the same clause — and nothing put it back for
+   the one place the number is PRINTED. And the rule that would have separated
+   them regardless gives the number a 2.6em box, which only fires where the
+   clause hangs its marker in a gutter; this contract's headings, and most
+   commercial paper's, do not.
+
+   THE WALL IS THAT NEITHER HALF REACHES THE ROUTE. `num` is what
+   docReadClauses SENDS, and /api/ai/readings hashes exactly what it was sent,
+   so a separator folded into it would make every contract already read pay for
+   one deep call returning an identical reading. 17d is that claim and it
+   passes before and after — its job is to fail the day somebody folds the
+   punctuation into the citation. */
+describe('f277 (17) the number is not welded to the name', () => {
+  const src = _f277rd('js/views/contract.js');
+
+  test('the separator is the paper’s own, taken off the source', () => {
+    assert.match(src, /const _docReadSepOf=\(src,num\)=>/,
+      'one reading of "what followed the number", with two callers');
+    const i = src.indexOf('const _docReadSepOf=');
+    const fn = src.slice(i, i + 420);
+    assert.match(fn, /indexOf\(n\)/, 'found in the string it was cut from');
+    assert.match(fn, /\/\[\.\):\]\/\.test\(ch\)/,
+      'and only the three a drafter uses — never a character invented here');
+    assert.match(fn, /if\(!n\) return '';/,
+      'no number, no separator');
+  });
+
+  test('the painter prints it beside the number', () => {
+    const i = src.indexOf('const numHtml=num?');
+    const line = src.slice(i, i + 160);
+    assert.match(line, /esc\(num\+String\(p\.row\.sep\|\|''\)\)/,
+      'the row’s separator, printed inside the citation span');
+  });
+
+  test('and the sheet carries it beside the number, never inside it', () => {
+    assert.match(src, /out\.push\(\{el:row\.el,heading,ownHead,text,num:row\.num,cite,sep,/,
+      'sep is its own field on the row');
+    assert.match(src, /const sep=row\.isHead\?_docReadSepOf\(heading,cite\):String\(row\.sep\|\|''\);/,
+      'a heading reads its own; a mark and a paragraph read theirs in the walk');
+    assert.match(src, /return n\?\{el,isHead:false,isMark:true,num:n,sep:_docReadSepOf\(raw,n\)\}:null;/,
+      'a mark IS its number, so the character after it is the whole of it');
+  });
+
+  /* THE WALL. Passes before and after; its job is to fail the day the
+     punctuation is folded into the citation and every contract already read
+     silently pays for a fresh deep call. */
+  test('WALL — what the route is sent does not move by a byte', () => {
+    assert.match(src,
+      /const docReadClauses=c=>docReadSheet\(c\)\.map\(r=>\(\{num:r\.num,heading:r\.heading,text:r\.text,kind:r\.kind\}\)\);/,
+      'the sent shape names num, heading, text and kind — and no separator');
+    const i = src.indexOf('const _docReadHeadCut=');
+    const cut = src.slice(i, i + 520);
+    assert.match(cut, /return \{num,rest:src\.slice/,
+      'the cut still answers a bare citation');
+  });
+
+  test('the gap is a guarantee, and the gutter takes it back', () => {
+    const css = _f277rd('index.html');
+    assert.match(css,
+      /\.doc-read-note \.dr-h \.dr-n,\.doc-read-note \.dr-s \.dr-n\{ margin-right:\.4em; \}/,
+      'a heading that carried no punctuation cannot weld either');
+    assert.match(css,
+      /\.doc-read-note\.dr-hang > \.dr-h \.dr-n,\.doc-read-note\.dr-hang > \.dr-s \.dr-n\{ margin-right:0; \}/,
+      'and where the number sits in its own 2.6em box the margin is given back');
+  });
+});
+
+/* ============================================================
+   18. THE EDITION IS SET IN THE CONTRACT'S OWN FACE
+   ------------------------------------------------------------
+   "please make the font in the plain english page the same as the contract
+   page" — Young, 11 Sep 2026.
+
+   MEASURED before a line was written, on a contract set to Formal legal: the
+   sheet drew Times New Roman and the edition beside it drew IBM Plex Sans.
+   The cause is structural — #doc-read is a SIBLING of the paper (it sits in
+   the grid's second track), so the `[data-doc-body]` hook every design rule
+   reads as an ancestor is not above it.
+
+   THE FACE IS MEASURED, exactly as the size beside it already is, and for the
+   same reason: widening the nine design rules to name this sheet is a list
+   that has to be kept in step for ever, and a design added tomorrow would
+   dress the contract and not its translation. A measurement is a RELATION.
+   ============================================================ */
+describe('f277 (18) the edition is set in the paper’s own face', () => {
+  test('the face is measured off the sheet, on every paint', () => {
+    const src = _f277rd('js/views/contract.js');
+    const at = src.indexOf('function docReadPaint(');
+    assert.ok(at > 0, 'the painter is there');
+    const body = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    assert.match(body, /getComputedStyle\(paper\)/, 'the paper’s own computed style');
+    assert.match(body, /cs\.fontFamily/, 'and the face is read off it');
+    assert.match(body, /layer\.style\.setProperty\('--dr-face',face\)/,
+      'written onto the layer as --dr-face');
+    assert.match(body, /layer\.style\.removeProperty\('--dr-face'\)/,
+      'and removed where there is nothing to measure, never left stale');
+  });
+
+  test('the entry reads it, with the document face as the fallback', () => {
+    const css = _f277rd('index.html');
+    const at = css.indexOf('.doc-read-note{');
+    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
+    assert.match(block, /font-family:var\(--dr-face,var\(--font-doc\)\)/,
+      'a measured value, with the document face as the fallback');
+  });
+
+  /* THE ENTRY'S HEADINGS ARE REAL h3/h4, and index.html sets a face on every
+     heading tag — a declaration at (0,0,1) that beats inheritance outright,
+     because inheritance is not a cascade contest. So the two had to be named,
+     and `inherit` is what names them: it says "whatever this entry is set in"
+     rather than repeating the token, so the two cannot drift. */
+  test('the entry’s own headings take the entry’s face', () => {
+    const css = _f277rd('index.html');
+    const at = css.indexOf('.doc-read-note .dr-h{');
+    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
+    assert.match(block, /\.doc-read-note \.dr-h\{[^}]*font-family:inherit/,
+      'the clause heading');
+    assert.match(block, /\.doc-read-note \.dr-s\{[^}]*font-family:inherit/,
+      'and the section heading');
+    assert.ok(!/--dr-face/.test(block),
+      'and neither names the measured token a second time');
+  });
+
+  /* THE CAPTION IS NOT IN IT — the column's own PLAIN ENGLISH label is
+     furniture ABOUT the reading rather than part of it, and keeps the
+     product's own face. This holds by construction: --dr-face is read by
+     .doc-read-note and by nothing else. */
+  test('the column’s own caption keeps the product’s face', () => {
+    const css = _f277rd('index.html');
+    const reads = (css.match(/var\(--dr-face/g) || []).length;
+    assert.equal(reads, 1, '--dr-face is read in exactly one rule');
+    const at = css.indexOf('.doc-read-head{');
+    const head = css.slice(at, css.indexOf('.doc-read-note{', at));
+    assert.ok(!/--dr-face/.test(head), 'and it is not that one');
+  });
+
+  /* THE WALL: what the route is sent does not move by a byte. The reading's
+     cache key is a hash of exactly what it was handed, so a face measured for
+     the screen may never reach it. */
+  test('the face is drawn and never sent', () => {
+    const src = _f277rd('js/views/contract.js');
+    assert.match(src,
+      /const docReadClauses=c=>docReadSheet\(c\)\.map\(r=>\(\{num:r\.num,heading:r\.heading,text:r\.text,kind:r\.kind\}\)\);/,
+      'the sent shape still names num, heading, text and kind — and no face');
+    const at = src.indexOf('function docReadSheet(');
+    const sheet = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    assert.ok(!/face/i.test(sheet), 'and the walk records none');
   });
 });

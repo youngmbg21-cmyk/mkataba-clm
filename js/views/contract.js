@@ -7340,6 +7340,35 @@ const _docReadHeadCut=t=>{
   return {num,rest:src.slice(Math.max(0,m[0].length-1)).trim()};
 };
 const _docReadHeadNum=t=>_docReadHeadCut(t).num;
+/* ---- THE PUNCTUATION IS THE PAPER'S OWN (Young reported it 10 Sep 2026: "in
+   plain english theres duplication of clause numbers ... it also does not have
+   clause headers", then off a screenshot of the two columns side by side — the
+   contract reading "4. Independent Contractor" and the edition "4Independent
+   Contractor") ----
+   BOTH number readings above drop the separator, and both are RIGHT to: they
+   capture a CITATION, and "4." and "4" cite the same clause. What was missing
+   is that nothing put it back for the one place the number is PRINTED, so the
+   drafter's full stop was discarded and nothing stood in its place.
+
+   IT IS TAKEN OFF THE SOURCE, NEVER INVENTED — the one character that follows
+   the number, and only where it is one of the three a drafter uses. A heading
+   set "4 Independent Contractor" carries none and is given none; what
+   separates it there is the gap below, which is a GUARANTEE rather than a
+   guess at what the drafter meant.
+
+   AND IT MAY NOT JOIN `num`, which is the load-bearing part: `num` is what
+   docReadClauses SENDS to /api/ai/readings, and that route's cache key is a
+   hash of exactly what it was sent. Fold the dot into it and every contract
+   already read pays for one deep call that returns an identical reading. So it
+   travels as its own field and the sent shape does not move by a byte. */
+const _docReadSepOf=(src,num)=>{
+  const s=String(src==null?'':src), n=String(num==null?'':num);
+  if(!n) return '';
+  const i=s.indexOf(n);
+  if(i<0) return '';
+  const ch=s.charAt(i+n.length);
+  return /[.):]/.test(ch)?ch:'';
+};
 /* THE CLAUSE'S OWN LEAD-IN IS ITS HEADING — "1.1 Master Agreement Structure."
    — because that is what the drafter wrote as its name, and because it is what
    the pairing guard compares. Real paper sets that lead-in bold, so the bold
@@ -7410,12 +7439,16 @@ function docReadSheet(c){
          IS the number — so it is read off the mark rather than out of a line
          that has not started yet. */
       if(isMark(el)){
-        const n=String(el.textContent||'').replace(/\s+/g,' ').trim().replace(/[.)]\s*$/,'');
-        return n?{el,isHead:false,isMark:true,num:n}:null;
+        const raw=String(el.textContent||'').replace(/\s+/g,' ').trim();
+        const n=raw.replace(/[.)]\s*$/,'');
+        /* The separator this mark's own text carried — see _docReadSepOf. A
+           mark IS its number, so the character after it is the whole of it. */
+        return n?{el,isHead:false,isMark:true,num:n,sep:_docReadSepOf(raw,n)}:null;
       }
       const num=head?'':_docReadNumOf(el);
       if(!head&&!num) return null;
-      return {el,isHead:head,isMark:false,num};
+      return {el,isHead:head,isMark:false,num,
+        sep:num?_docReadSepOf(String(el.textContent||''),num):''};
     })
     .filter(Boolean);
   /* A WRAPPER THAT MERELY CONTAINS the numbered paragraph is not the clause —
@@ -7478,7 +7511,12 @@ function docReadSheet(c){
        move by a byte, docReadSig does not move, and the painter reads this as
        its last fallback. */
     const cite=row.isHead?_docReadHeadNum(heading):'';
-    if(heading||text) out.push({el:row.el,heading,ownHead,text,num:row.num,cite,
+    /* WHAT IS PRINTED AFTER THE NUMBER, and it rides beside `cite` for `cite`'s
+       own reason: neither is sent to the route, so neither can move its cache
+       key. A heading's separator is read off the heading; a paragraph's and a
+       mark's were read in the walk above. */
+    const sep=row.isHead?_docReadSepOf(heading,cite):String(row.sep||'');
+    if(heading||text) out.push({el:row.el,heading,ownHead,text,num:row.num,cite,sep,
       kind:row.isHead?'section':'clause'});
   });
   return out;
@@ -7548,16 +7586,41 @@ function docReadPaint(c){
   if(right) right.style.visibility=on?'hidden':'';
   if(!on){ layer.innerHTML=''; return; }
   const canvas=document.getElementById('doc-canvas');
-  /* THE SIZE IS MEASURED OFF THE PAPER, never computed from a token here. The
-     reader's A⁻/A⁺ choice is written as --doc-scale on the paper's own zoom
-     wrapper, which is in the OTHER column and does not reach this one, and a
-     document style can multiply the size again on top of it. Asking the sheet
-     what it actually resolves to follows both, and follows the next one. */
+  /* THE SIZE AND THE FACE ARE BOTH MEASURED OFF THE PAPER, never computed from
+     a token here. The reader's A⁻/A⁺ choice is written as --doc-scale on the
+     paper's own zoom wrapper, which is in the OTHER column and does not reach
+     this one, and a document style can multiply the size again on top of it.
+     Asking the sheet what it actually resolves to follows both, and follows the
+     next one.
+
+     ---- AND THE FACE RIDES THE SAME ROAD (Young asked 11 Sep 2026: "please
+     make the font in the plain english page the same as the contract page") ----
+     MEASURED before it was written: a contract in Formal legal drew Times New
+     Roman on the sheet and IBM Plex Sans in the edition beside it, because this
+     layer is a SIBLING of the paper rather than a descendant — it sits in the
+     grid's second track, so the `[data-doc-body]` hook the design rules read as
+     an ancestor is not above it.
+
+     WIDENING THOSE RULES TO NAME THIS SHEET WAS THE OTHER ANSWER AND IS THE
+     WORSE ONE: it is a list of nine designs that would have to be kept in step
+     for ever, and a design added later would dress the contract and not its
+     translation. Measuring is a RELATION — it is right for every design, for
+     one added tomorrow, and for a face that arrives from somewhere else
+     entirely. It is also what this element already does for its size, which is
+     the argument for not inventing a second mechanism beside it.
+
+     THE CAPTION IS NOT IN IT. `--dr-face` is read by .doc-read-note and by
+     nothing else, so the column's own "PLAIN ENGLISH" label keeps the product's
+     face: it is furniture about the reading rather than part of it. */
   try{
     const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
-    const px=paper?getComputedStyle(paper).fontSize:'';
+    const cs=paper?getComputedStyle(paper):null;
+    const px=cs?cs.fontSize:'';
     if(px&&parseFloat(px)>0) layer.style.setProperty('--dr-size',px);
     else layer.style.removeProperty('--dr-size');
+    const face=cs?cs.fontFamily:'';
+    if(face) layer.style.setProperty('--dr-face',face);
+    else layer.style.removeProperty('--dr-face');
   }catch(_){}
   const pairs=docReadAnchors(c, docReadItems(c));
   const over=Number((c._readings&&c._readings.over)||0);
@@ -7585,7 +7648,21 @@ function docReadPaint(c){
          faces — so the two columns are genuinely parallel rather than two lists
          that happen to line up at the top. */
       const shape=docReadShape(p.el);
-      const numHtml=num?`<span class="dr-n">${esc(num)}</span>`:'';
+      /* ---- THE NUMBER IS NOT WELDED TO THE NAME (Young reported it 10 Sep
+         2026, off the two columns side by side: "fix how the Clause header in
+         the plain english contract is merged with the clause number") ----
+         The paper read "4. Independent Contractor" and the edition read
+         "4Independent Contractor", because the reading that cuts the number off
+         a heading drops the drafter's punctuation with it and NOTHING was put
+         in its place: the rule that would have separated them gives the number
+         a 2.6em box, and it only fires where the clause hangs its marker in a
+         gutter — which this contract's headings, and most commercial paper's,
+         do not.
+         TWO HALVES AND BOTH ARE NEEDED. The separator is the PAPER'S (see
+         _docReadSepOf), so the citation reads as the drafter wrote it; and the
+         gap is in the stylesheet, so a heading that carried no punctuation
+         cannot weld either. Neither is invented and neither is sent. */
+      const numHtml=num?`<span class="dr-n">${esc(num+String(p.row.sep||''))}</span>`:'';
       /* ---- THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT (Young, 10 Sep
          2026: "the numbers are above the clause as opposed to next to the
          clause like in the contract") ----
