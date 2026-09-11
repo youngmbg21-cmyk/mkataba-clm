@@ -42,6 +42,13 @@ what SAP's design would spend on it, BEFORE it is built.
    by the three-row reading — OUR PLAYBOOK · WHAT WE SETTLED BEFORE · THE
    WORDING — and then "Copilot's answer" card with the quoted words.)
 
+8. *"Image 1, when i highlight several sentences without click the pencil
+   first, i do not get the drop down options to choose from. This should be
+   fixed."* (The clause editor page — Exit at the top right, the three
+   reading tabs — open on some other clause; the reader has dragged over
+   clause *9. Counterparts and Electronic Signatures*, heading and body, on
+   the editor's own paper. No menu.)
+
 ## WHAT EACH ONE LOOKS LIKE FROM HERE (to be MEASURED before a line moves)
 
 **1 and 5 — THE FILED PIN SHOULD LOOK LIKE THE HIGHLIGHT PIN.** Today
@@ -110,11 +117,32 @@ Q2: the rows answer "what does this rest on" — a question about wording rests
 on the answer's own words; the playbook and precedent rows matter where
 wording is about to move.
 
+**8 — THE EDITOR'S PAPER OFFERS ON EVERY CLAUSE, NOT ONLY THE ONE IN THE
+BOX.** In the clause editor the highlight reading (`ceSelectionRead`) answers
+only for a range inside `#ce-clausebody` — the typing box of the clause the
+page is open on — and the mouse-up handler asks nothing else; so a drag over
+ANY OTHER clause on that canvas (image 1: clause 9, while the page is open on
+another) draws nothing and says nothing. The negotiation page's paper offers
+the three verbs on any clause; the editor's paper should too, and both should
+read the same way. Two things to build: the editor's mouse-up hands a drag
+outside the box to the PAPER'S offer (`rlPaperSelOffer`, through the editor's
+own door — Ask / Edit re-open the page on THAT clause with the words in hand,
+as the negotiation page does; Comment opens the drawer on those words); and a
+selection that takes the clause's HEADING along (the owner's drag began on
+"9. Counterparts…") is read as the clause's words with the heading left out,
+on both papers (the round-two overshoot reading, `_negoNodeText` on
+`.rl-clause-top`, is the same question one clause earlier). Q5: one offer, one
+reading, two papers — the editor's canvas already mounts `redlineDocHtml`, so
+the negotiation page's handler is the model and the editor must not grow a
+second one. Measured with a real drag over a non-edited clause, heading
+included, in round-two-comments-verify's own shape.
+
 ## ORDER WHEN THE OWNER SAYS GO
 
 7 (one line), 4 (one rule, measured), 1/5 (one builder, the filed pin quotes
-the change), 3 (measure which Apply first), 2 (needs the owner's answer:
-which page, and whether the blur may close the drawer on an outside press).
+the change), 8 (the editor's paper offers on every clause, heading tolerated),
+3 (measure which Apply first), 2 (needs the owner's answer: which page, and
+whether the blur may close the drawer on an outside press).
 
 ## STILL WAITING FOR
 
