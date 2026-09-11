@@ -591,7 +591,11 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const turned = !!pin() && lit();
       const held = box() ? box().value : '';
       if (pin()){ panel().querySelector('[data-rl-np-send]').click(); await new Promise(r => setTimeout(r, 400)); }
-      const out = await p;
+      /* NEVER WAIT FOREVER: the door's promise resolves when the pin is spent
+         or dropped; if neither happened the drawer is closed by hand, which
+         drops it, and the value says what happened. */
+      if (pin()) closeContextPanel();
+      const out = await Promise.race([p, new Promise(r => setTimeout(() => r('timeout'), 1500))]);
       const posted = (ch.thread || []).slice(before);
       return { atRest, extEmpty, turned, held, out,
         n: posted.length, vis: posted.map(m => m.visibility || 'internal'), texts: posted.map(m => m.text) };

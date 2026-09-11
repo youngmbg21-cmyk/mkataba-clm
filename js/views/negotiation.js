@@ -14069,7 +14069,13 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
   let home = ch || null;
   if (reply) home = extra.home || null;
   else if (pin && pin.changeId && window.negoChangeById) home = negoChangeById(c, pin.changeId) || ch || null;
-  if (ext && window.confirmDialog){
+  /* THE CONFIRM IS ON THE CROSSING, where the room is a SETTING a reader may
+     have forgotten. Under a PIN the room was chosen on the pin's own switch a
+     moment ago, with the other side named on it and the box tinted — the
+     receipt window's reasoning ("no second confirmation: the window names the
+     counterparty on its own face") carried over. A reply crosses on the root's
+     room and asks as the composer does. */
+  if (ext && !pin && window.confirmDialog){
     const ok = await confirmDialog({
       title: i18t('ng_np_confirm_title', { who: other }),
       message: home ? i18t('ng_np_confirm_msg', { id: home.id }) : i18t('ng_chat_confirm_msg'),
