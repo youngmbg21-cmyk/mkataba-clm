@@ -96,7 +96,11 @@ describe('f302 (2) — one writer, the room\'s own answer', () => {
     const o = ov(p.w);
     o.querySelector('[data-rl-note-room="internal"]').click(); await tick();
     const o2 = ov(p.w);
+    /* A keystroke, not a bare assignment: since D-6 Add note is greyed until a
+       room holds words, and it is the input event that a real keystroke fires
+       which wakes it. */
     o2.querySelector('#rl-note-in').value = 'For us only: we can go to sixty.';
+    o2.querySelector('#rl-note-in').dispatchEvent(new p.w.win.Event('input', { bubbles: true }));
     o2.querySelector('#rl-note-ok').click();
     assert.equal(await done, 'added');
     const m = p.ch.thread[p.ch.thread.length - 1];
@@ -112,8 +116,11 @@ describe('f302 (2) — one writer, the room\'s own answer', () => {
     const done = p.w.win.openChangeNoteDialog(p.c, p.ch, { filed: true, side: 'owner' });
     await tick();
     const o = ov(p.w);
-    o.querySelector('#rl-note-in').value = 'Forty-five is our standard.';
-    o.querySelector('#rl-note-ok').click();
+    o.querySelector('[data-rl-note-room="external"]').click(); await tick();
+    const o2 = ov(p.w);
+    o2.querySelector('#rl-note-in').value = 'Forty-five is our standard.';
+    o2.querySelector('#rl-note-in').dispatchEvent(new p.w.win.Event('input', { bubbles: true }));
+    o2.querySelector('#rl-note-ok').click();
     assert.equal(await done, 'added');
     const m = p.ch.thread[p.ch.thread.length - 1];
     assert.equal(m.visibility, 'shared');
