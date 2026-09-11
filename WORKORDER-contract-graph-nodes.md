@@ -1079,3 +1079,91 @@ has been measured yet).**
   to name if the block goes: `ct_external_received` (both books, left
   inert); `ct_received_read_below`, `ct_on_their_paper`,
   `ct_executed_outside` are ALREADY stale (THE UPLOAD NAMES OUR ENTITY).
+
+## C-8 THE WORD EXPORT WRITES NO PARAGRAPH FOR THE CODE'S OWN INDENTATION
+
+**The owner's brief, 11 Sep 2026, verbatim and whole:**
+
+> When I export a redlined contract to Word there are massive blank gaps
+> between the clauses. It has already been measured, so you do not need to
+> rediscover it — here is what was found:
+>
+> - A real export of an ordinary contract produced 32 paragraphs, 21 of them
+>   EMPTY: two or three blank ones before every heading, two after it, and
+>   more after each clause.
+> - The cause is the page's own code layout. The contract on screen is built
+>   from indented markup; a browser ignores the whitespace between the blocks
+>   and the Word writer does not — it reads each gap as content, so every one
+>   becomes a real empty paragraph in the file.
+> - Proved in isolation: two paragraphs with no whitespace between the tags
+>   export as 2 paragraphs; the SAME two, pretty-printed, export as 7.
+> - Each empty paragraph costs a full line plus the normal 8pt after-space,
+>   about a third of an inch, so three in a row is nearly an inch of white.
+> - The spacing in the styles is NOT the fault and must not be touched. It is
+>   correct; it is simply being applied to paragraphs that should not exist.
+>
+> Fix it: a paragraph whose only content is whitespace is not a paragraph and
+> must not be written.
+>
+> Conditions:
+> - Do it in the WRITER, in one place. Do not reformat the markup the page is
+>   built from, and do not change the spacing in the styles.
+> - A blank line somebody deliberately typed INTO the contract is different
+>   from the code's own indentation. Tell me in plain English whether your
+>   fix can tell them apart, and if it cannot, tell me what that costs before
+>   you build it.
+> - Prove the loop, not just the paragraph count: export, read the file back
+>   through our own reader, and show the wording, the headings, the
+>   numbering, the tables and the tracked changes all still come out.
+> - Write the check so it FAILS on today's code first, and say by how much
+>   (the before and after paragraph counts).
+>
+> Do not fix anything else. While you were in there you would notice that
+> the small line under the title exports the middle dot as the literal text
+> "&middot;" — that is a separate fault: put one line in BUGLOG under
+> "Noticed, not fixed" and leave it alone.
+>
+> Then give me the usual short plain-English summary.
+
+**Where the one place is (read on 11 Sep; not yet changed).** The writer's
+tokeniser is `docxRunsFromHtml` (js/docx.js). Text between tags goes through
+`_dxSpace` (which keeps a tab and collapses the rest to one space — see THE
+DOCX WRITER) and `push()`, so the newline-and-indent between two blocks
+becomes a run whose text is a single space; `close()` then keeps any
+paragraph with `runs.some(r => r.text)`, and a lone space is text. That is
+the whole fault, and `close()` is the one place: a paragraph is written
+only where some run carries a NON-WHITESPACE character, or where it is
+`forced`. `docxHtmlBlocks` already drops a whitespace-only block between
+tables (`.trim()`), so the table seam is not the case. Nothing else moves —
+not `_dxSpace` (the tab it keeps is a hanging indent's, f288), not the
+styles' `after="160"`, not the markup the paper is built from.
+
+**The question the owner asked, and what the code says the answer should
+be — to be PROVED in a browser, not asserted.** A blank line a person types
+in the clause editor is a `<br>`, and `<br>` sets `forced` on the paragraph
+it opens, which `close()` keeps regardless — so a deliberate blank line
+survives and the indentation does not, by the reading of the code. What the
+fix cannot tell apart is a paragraph somebody typed that contains ONLY
+spaces or tabs and no `<br>`: that one would be dropped. Measure what the
+clause editor actually writes for an empty line (Enter twice) and for a line
+of spaces before answering the owner; if the editor writes an empty `<p>`
+with no `<br>` for a blank line, that is a real cost and must be said before
+building, with the fix then reading an EMPTY block element as deliberate
+(no runs at all is not the same as one whitespace run).
+
+**The nets, as the owner set them.** f288 gains: (1) the isolation claim —
+two `<p>` with no whitespace export as 2 paragraphs and the same two
+pretty-printed ALSO export as 2 (on today's code, 7), the before and after
+counts printed; (2) the loop on a real contract body from the harness's own
+`renderDocHtml` — export through `docxExportTracked`, read back through
+`docxExtractRich`, and assert the wording byte-for-byte, the headings by
+level, the numbering markers, a table's rows and cells, and the `<ins>` /
+`<del>` runs all come back, with the paragraph count before and after named
+in the summary (the owner's own figure was 32 → 11 on one contract); (3) a
+deliberate `<br>` blank line still exports as a paragraph. Run the file
+against the parent first and record the count it fails at.
+
+**BUGLOG, one line, not a fix**: the small line under the title exports the
+middle dot as the literal text `&middot;` (the writer decodes a fixed set of
+entities and that one is not on it — `decodeXmlEntities`). Under "Noticed,
+not fixed".
