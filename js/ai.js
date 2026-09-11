@@ -1632,6 +1632,11 @@ function aiChatContext(){
      unless the model calls that tool. */
   if(typeof graphDependentsAll==='function'){ try{ const links=graphDependentsAll(); if(links&&Object.keys(links).length) ctx.graph={ links }; }catch(_){} }
   if(typeof graphPartyStatsAll==='function'){ try{ const parties=graphPartyStatsAll(); if(parties&&Object.keys(parties).length){ ctx.graph=ctx.graph||{}; ctx.graph.parties=parties; } }catch(_){} }
+  /* C-1 (ruling 7): the graph's other readings — the stream flow, the
+     renewal cliff's quarters, each node's facts and the lenses in force —
+     built by the graph's own functions and read by aiGraphSays / the server's
+     graphSays as clamped FIELDS, never a sentence. */
+  if(typeof graphCopilotContext==='function'){ try{ const g=graphCopilotContext(); if(g){ ctx.graph=ctx.graph||{}; Object.assign(ctx.graph,g); } }catch(_){} }
   if(state.view==='intel'){
     /* A tab this map does not know is SAID NOTHING ABOUT. It used to fall back
        to 'portfolio', which made Copilot describe a chart the reader was not
@@ -1813,6 +1818,41 @@ function aiPageSays(p){
   t+='"This page", "this list" and "what I am looking at" mean that screen. ';
   return t;
 }
+/* C-1: WHAT THE CONTRACT GRAPH KNOWS, said as clamped fields — the browser's
+   twin of the server's graphSays, kept line for line (f299 pins the two
+   sentences equal on one fixture). Streams, the cliff, the lenses and the
+   node facts arrive from graphCopilotContext; nothing here computes. A cap
+   is a fact: what was left out is counted and said. */
+function aiGraphSays(g){
+  if(!g || typeof g!=='object') return '';
+  const cut=(v,n)=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,n||40);
+  const num=v=>(typeof v==='number'&&isFinite(v))?Math.round(v):null;
+  let t='';
+  if(g.streams && typeof g.streams==='object'){
+    const rows=Object.values(g.streams).filter(S=>S&&typeof S==='object').slice(0,12).map(S=>{
+      const money=(num(S.in)!=null&&num(S.out)!=null&&(num(S.in)||num(S.out)));
+      const miss=S.missing&&typeof S.missing==='object'?Object.values(S.missing).reduce((a,b)=>a+(num(b)||0),0):0;
+      return `${cut(S.name)}: ${num(S.n)||0} contracts${money?`, in ${num(S.in)} / out ${num(S.out)} / net ${num(S.net)} on paper`:''}${miss?`, ${miss} with no rate`:''}${num(S.unsided)?`, ${num(S.unsided)} side unknown`:''}`; });
+    if(rows.length) t+=`Money through the value streams (on paper, converted to the workspace currency): ${rows.join('; ')}. `;
+  }
+  if(Array.isArray(g.cliff) && g.cliff.length)
+    t+=`Renewal decisions by quarter: ${g.cliff.slice(0,8).map(q=>`${cut(q.label)} ${num(q.n)||0}${q.crowded?' (crowded)':''}`).join(', ')}. `;
+  if(Array.isArray(g.lenses) && g.lenses.length)
+    t+=`Lenses in force on the contract graph: ${g.lenses.slice(0,6).map(l=>`"${cut(l.label,40)}" (${cut(l.action,10)}, ${num(l.count)||0})`).join(', ')} — "of those" means the contracts under them. `;
+  if(g.facts && typeof g.facts==='object'){
+    const ids=Object.keys(g.facts).slice(0,40);
+    const lines=ids.map(id=>{ const f=g.facts[id]||{}; const p=[];
+      if(num(f.decideDays)!=null) p.push(f.decideDays<0?`decision ${-num(f.decideDays)}d overdue`:`decide in ${num(f.decideDays)}d`);
+      if(f.whose) p.push(`move: ${cut(f.whose,12)}`);
+      if(num(f.overdue)) p.push(`${num(f.overdue)} overdue obligation${num(f.overdue)===1?'':'s'}`);
+      if(num(f.offStandard)!=null) p.push(num(f.offStandard)?`${num(f.offStandard)} off standard`:'on standard');
+      if(f.unread) p.push('not read by Copilot');
+      return p.length?`${cut(id,40)}: ${p.join(', ')}`:''; }).filter(Boolean);
+    const more=Object.keys(g.facts).length-ids.length+(num(g.factsOmitted)||0);
+    if(lines.length) t+=`What the graph says about each contract: ${lines.join('; ')}${more>0?`; and ${more} more not listed`:''}. `;
+  }
+  return t;
+}
 function _localSystem(context){
   const cs=state.contracts||[]; const ctx=context||{};
   const byStatus={}; cs.forEach(c=>{ byStatus[c.status||'Unknown']=(byStatus[c.status||'Unknown']||0)+1; });
@@ -1820,6 +1860,8 @@ function _localSystem(context){
   const says=aiPageSays(ctx.page);
   if(says) view+=says;
   else if(ctx.view) view+=`The user is on the "${ctx.view}" screen. `;
+  const graphSaid=aiGraphSays(ctx.graph);
+  if(graphSaid) view+=graphSaid;
   /* WHICH INSIGHTS TAB, following the negotiation room's own pattern: "intel"
      does not say what is on the screen, and three different pages answer to
      it. A reader looking at the Portfolio charts asking "why is this so big"
@@ -1896,7 +1938,7 @@ async function aiLocalGraph(qRaw){
 Value streams (return the id on the left): ${folders}.
 Statuses: Draft, Under Review, Signed, Declined. Contract types present: ${kinds}.
 All keys optional; omit any that isn't implied:
-{"folder":"<value-stream id>","status":"<status>","kind":"<type substring>","counterparty":"<party name substring>","expiryDays":<int: expiring within N days>,"valueMin":<number, contract currency>,"groupBy":"folder|counterparty|status|valueBand|kind","action":"filter|highlight","note":"<short human label>"}
+{"folder":"<value-stream id>","status":"<status>","kind":"<type substring>","counterparty":"<party name substring>","expiryDays":<int: expiring within N days>,"valueMin":<number, contract currency>,"groupBy":"${(typeof GRAPH_GROUP_KEYS!=='undefined'&&Array.isArray(GRAPH_GROUP_KEYS))?GRAPH_GROUP_KEYS.join('|'):'folder|counterparty|status|valueBand|kind'}","action":"filter|highlight","note":"<short human label>"}
 Guidance: "customer/client/sales" → folder sales; "supplier/sourcing/procurement" → folder proc; "logistics/3PL/warehousing/distribution" → folder dist; "manufacturing/production/co-packing" → folder mfg; "marketing/brand/agency/media" → folder mktg; "corporate/legal/compliance/NDA/lease" → folder corp. "highlight" → action highlight; "only/just/filter" → action filter.
 Examples: "highlight the customer contracts" → {"folder":"sales","action":"highlight","note":"Sales & Route-to-Market"}. "show me the supplier nodes" → {"folder":"proc","action":"filter","note":"Procurement & Raw Materials"}. "group by customer" → {"groupBy":"counterparty","note":"Grouped by customer"}.`;
   const r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -3890,4 +3932,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

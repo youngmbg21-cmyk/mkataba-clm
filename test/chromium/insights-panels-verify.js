@@ -942,6 +942,74 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('17d and a second press brings it back whole, with the lens untouched', Math.abs(back.h - lgBefore) < 2 && back.expanded === 'true' && back.chips === 1, JSON.stringify({ before: lgBefore, ...back }));
     await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); renderIntelDock(); });
 
+    /* ================= 18. THE MAP COPILOT KNOWS THE MAP (C-1, 11 Sep 2026) == */
+    /* The owner's own journey: "cluster by expiration date" typed into this
+       page's panel, and the scripted provider answering EXACTLY what the real
+       model answered that day — groupBy "custom" with an EMPTY map and a
+       sentence claiming the clustering. What is measured is the hubs on
+       screen: they must be the six expiry windows, not the value streams the
+       caption used to sit over. Every driven half is guarded so a build
+       without the feature REPORTS at the hubs rather than timing out. */
+    const drive18 = async (fn, fallback) => { try { return await page.evaluate(fn); } catch (e) { return fallback; } };
+    await drive18(() => { intelGoTab('map'); }, null);
+    await page.waitForTimeout(600);
+    await drive18(() => { intel.lenses = []; intel.groups = null; intel.groupBy = 'folder'; intel.history = []; rebuildIntelGraph(); renderIntelDock(); }, null);
+    await page.waitForTimeout(400);
+    const expiryBuckets = await drive18(() => [...new Set(state.contracts.map(c => groupLabelOf(c, 'expiry', null)))].sort(), []);
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_g', name: 'render_graph',
+      input: { groupBy: 'custom', groups: {}, note: 'All contracts · clustered by expiration date', answer: 'Clustered by expiration date.' } }]);
+    await drive18(async () => { await intelAsk('cluster by expiration date'); }, null);
+    await page.waitForTimeout(1500);
+    const g18 = await drive18(() => {
+      const hubs = window.IG ? IG.nodes.filter(n => n.kind === 'hub') : [];
+      const note = document.getElementById('ig-note');
+      const sel = document.getElementById('ig-group');
+      const last = intel.history[intel.history.length - 1] || {};
+      const dock = document.getElementById('ig-dock');
+      return { hubs: hubs.map(n => n.label).sort(), painted: hubs.map(n => n.g && n.g.querySelector('.ig-lab') ? n.g.querySelector('.ig-lab').getBoundingClientRect().width : 0),
+        note: note ? note.textContent.replace(/\s+/g, ' ').trim() : '', select: sel ? sel.value : null, groupBy: intel.groupBy, groups: intel.groups,
+        last: last.text || '', onScreen: !!dock && /Grouped \d+ contracts/.test(dock.textContent), lenses: intel.lenses.length };
+    }, { hubs: [], painted: [], note: '', select: null, groupBy: null, groups: null, last: '', onScreen: false, lenses: -1 });
+    check('18a THE REPORTED FAULT: the hubs on screen ARE the expiry windows — every node moved off its value-stream hub',
+      expiryBuckets.length >= 3 && JSON.stringify(g18.hubs) === JSON.stringify(expiryBuckets) && g18.painted.length && g18.painted.every(w => w > 0),
+      JSON.stringify({ hubs: g18.hubs, want: expiryBuckets }));
+    check('18b the caption says "expiry window", the dropdown agrees, and no Copilot override or lens rides along',
+      /expiry window/.test(g18.note) && g18.select === 'expiry' && g18.groupBy === 'expiry' && g18.groups === null && g18.lenses === 0,
+      JSON.stringify({ note: g18.note, select: g18.select, groupBy: g18.groupBy, lenses: g18.lenses }));
+    check('18c the chat line is composed off what the map DID, as visible pixels in the dock — never the model\'s own claim',
+      g18.onScreen && /^Grouped \d+ contracts into \d+ groups by expiry window/.test(g18.last) && !/Clustered by expiration date/.test(g18.last), g18.last);
+    /* What reached the model: the whole dropdown as the enum, the card with its
+       dates and facts, the screen block, and no wording. */
+    const sent18 = ai.calls.length ? ai.calls[ai.calls.length - 1].body : null;
+    const enum18 = (sent18 && sent18.tools && sent18.tools[0] && sent18.tools[0].input_schema && sent18.tools[0].input_schema.properties.groupBy.enum) || [];
+    const dropdown18 = await drive18(() => [...document.querySelectorAll('#ig-group option')].map(o => o.value), []);
+    check('18d the tool offered the model every grouping the dropdown draws, plus custom',
+      dropdown18.length >= 10 && dropdown18.every(k => enum18.includes(k)) && enum18.includes('custom'), JSON.stringify({ dropdown: dropdown18, enum: enum18 }));
+    const prompt18 = (sent18 && Array.isArray(sent18.messages) && sent18.messages[0]) ? String(sent18.messages[0].content || '') : '';
+    check('18e every card carried the dates and facts the map draws, the screen block travelled, and no wording did',
+      /signedAt/.test(prompt18) && /decisionDate/.test(prompt18) && /payTermsDays/.test(prompt18) && /"overdue":\d/.test(prompt18) && /On screen now/.test(prompt18) && !/redlineText|extractedText/.test(prompt18),
+      prompt18.slice(0, 160));
+    /* THE REFUSAL: a dimension nothing can cut, answered as the model did — the
+       map is left exactly as it was, and the words say what it can do. */
+    await drive18(() => { intel.groupBy = 'folder'; intel.groups = null; intel.lenses = []; rebuildIntelGraph(); renderIntelDock(); }, null);
+    await page.waitForTimeout(400);
+    const folderHubs = await drive18(() => [...new Set(state.contracts.map(c => groupLabelOf(c, 'folder', null)))].sort(), []);
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_g2', name: 'render_graph',
+      input: { groupBy: 'custom', groups: {}, note: 'All contracts · clustered by moon phase', answer: 'Clustered by moon phase.' } }]);
+    await drive18(async () => { await intelAsk('cluster by moon phase'); }, null);
+    await page.waitForTimeout(1200);
+    const r18 = await drive18(() => ({ hubs: window.IG ? IG.nodes.filter(n => n.kind === 'hub').map(n => n.label).sort() : [],
+      note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), groupBy: intel.groupBy, groups: intel.groups,
+      last: (intel.history[intel.history.length - 1] || {}).text || '', dock: /could not group by that/.test(document.getElementById('ig-dock').textContent), lenses: intel.lenses.length }),
+      { hubs: [], note: '', groupBy: null, groups: null, last: '', dock: false, lenses: -1 });
+    check('18f a grouping the map cannot cut is refused in words, on screen, naming what the map can do',
+      r18.dock && /expiry window/.test(r18.last) && /signed quarter/.test(r18.last) && !/moon phase/.test(r18.last), r18.last);
+    check('18g and the map is left exactly as it was — value-stream hubs, the caption unmoved, no lens, no "Copilot grouping"',
+      JSON.stringify(r18.hubs) === JSON.stringify(folderHubs) && /value stream/.test(r18.note) && !/Copilot grouping/.test(r18.note) && r18.groupBy === 'folder' && r18.groups === null && r18.lenses === 0,
+      JSON.stringify({ hubs: r18.hubs, note: r18.note, groupBy: r18.groupBy, lenses: r18.lenses }));
+    await page.screenshot({ path: path.join(OUT, '18-map-copilot.png') });
+    await drive18(() => { intel.lenses = []; intel.groups = null; intel.groupBy = 'folder'; intel.history = []; rebuildIntelGraph(); renderIntelDock(); }, null);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();
