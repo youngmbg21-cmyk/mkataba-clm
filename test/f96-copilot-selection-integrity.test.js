@@ -280,7 +280,11 @@ describe('F96 (B1) — a highlight that starts on the clause heading', () => {
     const cl = p.clauseWith(/payable within thirty/);
     /* The natural "grab the whole clause" gesture: start on the number. */
     const { menu, passage } = p.readSel(cl, '2. PAYMENT TERMS', 'date of issue.');
-    assert.equal(menu, null, 'and the paper offers nothing to press — it is a read now');
+    /* RE-POINTED 11 Sep 2026 (Young: "you only have ask copilot and comment"):
+       the paper OFFERS two things on a highlight inside one clause — Ask
+       Copilot and Comment — and nothing else. Neither edits from the paper. */
+    assert.ok(menu, 'the paper offers two things to press');
+    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'comment']);
     assert.equal(passage.clauseIds.length, 1, 'one clause, found despite the heading');
     assert.match(passage.text, /All invoices are payable/,
       'THE FIX: this used to be unmatchable');
@@ -809,7 +813,7 @@ describe('F96 (B13) — a clause the record holds and the canvas did not draw', 
     const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
     const { menu, passage } = p.readSel(sec, 'keep the other party', 'information confidential');
     assert.match(passage.text, /keep the other party/, 'the wording reads');
-    assert.equal(menu, null);
+    assert.ok(menu, 'the paper offers Ask Copilot and Comment on a proposed clause too (11 Sep 2026)');
     assert.equal(p.panel.proposals.length, 0);
   });
 });

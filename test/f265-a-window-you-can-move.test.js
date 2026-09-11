@@ -304,8 +304,9 @@ describe('f265 · a move is not an act', () => {
       ['js/core.js', core, /_modalDrag = \(typeof dragDialog==='function'\) \? dragDialog\(panel\)/],
       ['js/core.js — confirmDialog', core, /alertdialog"\]'\)\) : null;\s*\n\s*const done=val=>/],
       ['js/core.js — promptDialog', core, /dragDialog\(ov\.querySelector\('\[role="dialog"\]'\)\) : null;\s*\n\s*const done=val=>/],
-      ['js/views/negotiation.js — the redline note window', read('js/views/negotiation.js'),
-        /undrag = window\.dragDialog\(panel, \{ frame: ov \}\)/],
+      /* The redline note window was the fourth family and is RETIRED (11 Sep
+         2026): the note after a filing lives in the docked Notes drawer,
+         which is not in the drag families by design. Seven families now. */
       ['js/signature.js — the signature pad', read('js/signature.js'),
         /window\.dragDialog\(ov\.querySelector\('\.modal-in'\)\)/],
       ['js/templates.js — the new-stream box', read('js/templates.js'),

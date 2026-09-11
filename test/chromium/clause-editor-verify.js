@@ -2239,7 +2239,7 @@ const dismissNote = async pg => {
   await skipNote(p);
   ck('18j STRIKING WORDS OUT really strikes them out on the paper',
      cutRun.ok && cutRun.struck > 0,
-     cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…"` : 'no passage taken on ' + cutClause + ' ' + cutRun.why);
+     cutRun.ok ? `${cutRun.struck} struck runs after cutting "${cutRun.picked.slice(0, 34)}…" · card found ${cutRun.found}, open ${cutRun.openBefore}, say "${(cutRun.say || '').slice(0, 60)}"` : 'no passage taken on ' + cutClause + ' ' + cutRun.why);
   /* REVERSED IN PLACE with 18i above, and for the same reason: the cut is the
      one act on this page that still files in a single press, because it is the
      one with nothing to type beside it. */
@@ -3479,12 +3479,13 @@ const dismissNote = async pg => {
         row: row ? row.getBoundingClientRect().height : -1 }; });
     await p.mouse.up(); await pause(600);
   }
+  /* RE-POINTED 11 Sep 2026: the window is retired; the DRAWER opens pinned. */
   const after31 = await p.evaluate(() => ({
     n: (window.CONTRACT.changes || []).length,
-    note: !!document.getElementById('rl-note-overlay') }));
+    note: !!(window.state && state.panelOpen && document.querySelector('#context-panel .rl-np-pin')) }));
   ck('31a ONE real press on the pencil files the redline — the reported gesture',
      !!box31 && after31.n === n31 + 1 && after31.note,
-     `changes ${n31} → ${after31.n} · note window ${after31.note}`);
+     `changes ${n31} → ${after31.n} · drawer pinned ${after31.note}`);
   ck('31b and the pencil did not move while the button was held',
      !!box31 && !!held31 && Math.abs(held31.top - box31.y) < 1,
      `top before ${box31 && box31.y.toFixed(1)} · held ${held31 && held31.top.toFixed(1)}`);

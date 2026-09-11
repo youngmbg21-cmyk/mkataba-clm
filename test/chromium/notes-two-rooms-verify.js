@@ -94,7 +94,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       const ch = negoChangeById(c, chId);
       const m = negoMyNote(c, ch, currentUser());
+      const mineRoom = m ? negoNoteRoom(m) : null;
       return { up: open && !!panel.querySelector(`[data-rl-np="${chId}"]`),
+        roomShown: rlNpRoom(), mineRoom,
         window: !!document.getElementById('rl-note-overlay'),
         head: (panel && panel.querySelector('.rl-np-which .id') || {}).textContent,
         mine: m && m.text,
@@ -106,9 +108,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     }, set.ch);
     check('THE PRESS OPENS THE DRAWER ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
     check('and it names the change it belongs to', /CHG-/.test(dlg.head || ''), (dlg.head || '').trim());
-    check('what you wrote is on the list, with Reply and Done under it',
-      !!dlg.mine && dlg.list.includes(String(dlg.mine).trim()) && dlg.reply && dlg.done,
-      `"${String(dlg.mine || '').slice(0, 34)}" · reply ${dlg.reply} · done ${dlg.done}`);
+    check('what you wrote is on the list of its room, with Reply and Done under the notes',
+      !!dlg.mine && (dlg.mineRoom !== dlg.roomShown || dlg.list.includes(String(dlg.mine).trim())) && dlg.reply && dlg.done,
+      `"${String(dlg.mine || '').slice(0, 34)}" in ${dlg.mineRoom}, showing ${dlg.roomShown} · reply ${dlg.reply} · done ${dlg.done}`);
     check('every note carries its full date and time', dlg.clock === true);
     check('opened from the row, nothing is pinned — the box is the change’s own', dlg.pin === false);
     check('the other notes on this change are on the list',
@@ -561,44 +563,47 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);
 
-    /* ============ D-5 / D-6 (11 Sep 2026): ONE HEIGHT IN BOTH ROOMS, INTERNAL
-       AT REST, A DRAFT PER ROOM ============ */
+    /* ============ D-6 (11 Sep 2026), IN THE DRAWER: INTERNAL AT REST, A DRAFT
+       PER ROOM, AND BOTH POST — one per press ============
+       RE-POINTED the same evening: the window is retired and the pin carries
+       its rulings. D-5 (one height in both rooms) was about the window's lead
+       line and has no counterpart on the pin. */
     const d6 = await page.evaluate(async () => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       const cl = negoClauseList(c)[2] || negoClauseList(c)[0];
       const ch = await negoEditClause(c, cl.clauseId, '<p>Deliver within ten (10) days.</p>', { side: 'owner' });
       const before = (ch.thread || []).length;
       const p = openChangeNoteDialog(c, ch, { filed: true, side: 'owner' });
-      await new Promise(r => setTimeout(r, 80));
-      const ov = () => document.getElementById('rl-note-overlay');
-      const dlg = () => ov().querySelector('.rl-note-dlg');
-      const lead = () => ov().querySelector('.rl-note-lead');
-      const lit = () => [...ov().querySelectorAll('[data-rl-note-room]')].find(b => b.getAttribute('aria-selected') === 'true').getAttribute('data-rl-note-room');
+      await new Promise(r => setTimeout(r, 200));
+      const panel = () => document.getElementById('context-panel');
+      const pin = () => panel().querySelector('.rl-np-pin');
+      const lit = () => [...pin().querySelectorAll('[data-rl-np-pin-room]')].find(b => b.getAttribute('aria-pressed') === 'true').getAttribute('data-rl-np-pin-room');
       const atRest = lit();
-      const hInt = dlg().getBoundingClientRect().height, leadInt = lead().getBoundingClientRect().height;
-      const lh = parseFloat(getComputedStyle(lead()).lineHeight);
-      const box = () => ov().querySelector('#rl-note-in');
+      const box = () => panel().querySelector('.rl-np-in');
       box().value = 'For us: hold at ten.'; box().dispatchEvent(new Event('input', { bubbles: true }));
-      ov().querySelector('[data-rl-note-room="external"]').click();
-      await new Promise(r => setTimeout(r, 80));
-      const hExt = dlg().getBoundingClientRect().height, leadExt = lead().getBoundingClientRect().height;
+      pin().querySelector('[data-rl-np-pin-room="external"]').click();
+      await new Promise(r => setTimeout(r, 120));
       const extEmpty = box().value === '';
-      const dot = !!ov().querySelector('[data-rl-note-room="internal"] .rl-note-dot');
       box().value = 'Ten days is what your own order form says.'; box().dispatchEvent(new Event('input', { bubbles: true }));
-      ov().querySelector('#rl-note-ok').click();
+      panel().querySelector('[data-rl-np-send]').click();
+      await new Promise(r => setTimeout(r, 600));
+      /* the pin turned to the room that still held words */
+      const turned = !!pin() && lit();
+      const held = box() ? box().value : '';
+      if (pin()){ panel().querySelector('[data-rl-np-send]').click(); await new Promise(r => setTimeout(r, 400)); }
       const out = await p;
       const posted = (ch.thread || []).slice(before);
-      return { atRest, hInt, hExt, leadInt, leadExt, lh, extEmpty, dot, out,
+      return { atRest, extEmpty, turned, held, out,
         n: posted.length, vis: posted.map(m => m.visibility || 'internal'), texts: posted.map(m => m.text) };
     });
-    check('D-6 the window opens on Internal', d6.atRest === 'internal', d6.atRest);
-    check('D-5 the window is ONE height in both rooms', Math.abs(d6.hInt - d6.hExt) < 0.5, `${d6.hInt} vs ${d6.hExt}`);
-    check('D-5 and the lead is exactly one line in both', Math.abs(d6.leadInt - d6.lh) < 1 && Math.abs(d6.leadExt - d6.lh) < 1,
-      `${d6.leadInt} / ${d6.leadExt} against a line of ${d6.lh}`);
-    check('D-6 External opens on its own empty draft, and the Internal tab says it holds words', d6.extEmpty && d6.dot,
-      `empty ${d6.extEmpty} · dot ${d6.dot}`);
-    check('D-6 Add note posts BOTH, each to its own room', d6.out === 'added' && d6.n === 2
-      && d6.vis.includes('internal') && d6.vis.includes('shared'), `${d6.n} posted: ${d6.vis.join(', ')}`);
+    check('D-6 the pin opens on Internal', d6.atRest === 'internal', d6.atRest);
+    check('D-6 External opens on its own empty draft', d6.extEmpty === true, `empty ${d6.extEmpty}`);
+    check('D-6 after the first Add note the pin turns to the room still holding words, with its draft in the box',
+      d6.turned === 'internal' && /hold at ten/.test(d6.held), `${d6.turned} · "${d6.held}"`);
+    check('D-6 both drafts post, each to its own room, and the door answers added', d6.out === 'added' && d6.n === 2
+      && d6.vis.includes('internal') && d6.vis.includes('shared'), `${d6.n} posted: ${d6.vis.join(', ')} · ${d6.out}`);
+    await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
+    await page.waitForTimeout(200);
 
     /* ---- THE OPEN CONTROL WEARS THE HEAD BUTTONS' EDGE (owner-asked 11 Sep
        2026: "the outline of the open are too faint") — measured as computed

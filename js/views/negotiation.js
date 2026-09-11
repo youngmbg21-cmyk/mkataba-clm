@@ -4450,6 +4450,10 @@ function wireNegotiationTab(c, opts = {}){
         || ((anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentElement)?.closest('[data-clause]'));
       if (!clauseEl){
         _negoKillSelMenu();
+        /* On the negotiation paper the front matter is a read and says
+           nothing (F96 (B8)); the notice below belongs to the surfaces that
+           still promise a menu on every highlight. */
+        if (onPaper) return;
         if (text.length >= 3) _negoSayAtSelection(rect,
           'Not a negotiable clause',
           'This wording is the document\'s front matter — its title, kicker or recital. '
@@ -4472,10 +4476,14 @@ function wireNegotiationTab(c, opts = {}){
       }
       if (onPaper){
         _negoKillSelMenu();
-        if (passage.clauses.length > 1){
-          _negoSayAtSelection(rect, i18t('ng_sel_one_clause_t'), i18t('ng_sel_one_clause'));
-          return;
-        }
+        /* THE PAPER IS STILL A READ WHERE THE OFFER CANNOT BE HONEST: a drag
+           across two clauses, or one that begins outside the clause it reaches
+           into, is answered with silence (F96 (B3), (B8b)) — a comment sits on
+           words inside one clause, and the drag that started in the recital is
+           somebody copying. Nothing is said about a menu that is not coming. */
+        let startIn = false;
+        try { startIn = !!clauseEl.contains(range.startContainer); } catch (e){ startIn = false; }
+        if (passage.clauses.length !== 1 || !startIn) return;
         rlPaperSelOffer({ c, opts, side, text, clauseId, rect,
           openEditor: (typeof openEditor === 'function') ? openEditor : null });
         return;
@@ -13294,7 +13302,8 @@ function rlNotesPin(pin){
 function rlNotesUnpin(out){
   const p = _rlNpPin;
   _rlNpPin = null;
-  if (p && typeof p.resolve === 'function') p.resolve(out == null ? null : out);
+  /* A pin that already delivered a note answers 'added' however it ends. */
+  if (p && typeof p.resolve === 'function') p.resolve(out == null ? (p.added ? 'added' : null) : out);
   return p;
 }
 const rlNotesPinned = () => _rlNpPin;
@@ -14073,8 +14082,17 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     anchor: (pin && pin.quote) ? { clauseId: pin.clauseId, quote: pin.quote } : undefined,
     replyTo: reply ? extra.replyTo : undefined });
   if (!msg) return false;
-  /* The pin is spent by the note it was holding; the reply box shuts. */
-  if (pin) rlNotesUnpin('added');
+  /* The pin is spent by the note it was holding — unless the OTHER room still
+     holds a draft (D-6: two drafts, one place), in which case the pin turns to
+     that room with its draft in the box and waits for the second press. */
+  if (pin){
+    const other = pin.room === 'external' ? 'internal' : 'external';
+    pin.added = true;
+    pin.drafts[pin.room] = '';
+    if (String(pin.drafts[other] || '').trim()){
+      pin.room = other; rlNpSetRoom(other);
+    } else rlNotesUnpin('added');
+  }
   if (reply) _rlNpReplyTo = null;
   /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
      — there is no thread of its own for anybody to be behind on. */
