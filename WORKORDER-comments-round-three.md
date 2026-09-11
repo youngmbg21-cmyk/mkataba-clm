@@ -13,6 +13,23 @@ said some of what they are seeing was never asked for, so each change lands
 with one sentence on what serious contract software does with that shape and
 what SAP's design would spend on it, BEFORE it is built.
 
+## THE PRINCIPLE THAT GOVERNS EVERY ITEM (the owner, later the same evening)
+
+*"There should be a liberal approach to highlighting anywhere [in] a clause to
+have the dropdown with three options. Clicking a pencil should be minimal as
+possible and mostly when you really want to do manual typing / editing of a
+clause."*
+
+READ BACK AND CONFIRMED: highlighting is THE way in. Wherever contract wording
+is highlighted — the negotiation page or the clause editor, any clause, one
+sentence or many — the three verbs are offered, no pencil first. The pencil is
+for typing in a clause yourself and nothing else. SILENCE ON A HIGHLIGHT IS A
+FAULT: the front matter, a drag across two clauses, and the editor's other
+clauses (item 8) all offer. The one edge, named to the owner: Edit with
+Copilot opens the editor on ONE clause, so a highlight across two clauses or
+in the front matter offers Ask Copilot and Comment and leaves Edit out of that
+menu — unless the owner says otherwise.
+
 ## THE REPORTS, VERBATIM
 
 1. *"Image 1, highlighted areas show what happened after I made an edit. The
