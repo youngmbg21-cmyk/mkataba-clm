@@ -1,6 +1,6 @@
 # PLAIN ENGLISH — FOUR REPORTS OFF FOUR SCREENSHOTS (Part D)
 
-**WRITTEN 11 Sep 2026. REVIEWED, NOT BUILT.** The owner's instruction, in their
+**WRITTEN 11 Sep 2026. BUILT the same day (D-1 to D-7), on the owner's "go, build all of them autonomously and merge to main."** The owner's instruction, in their
 own words: *"review but do not code yet … review and Create work orders."*
 
 **THE GATE ON ALL OF IT: nothing here is coded until the owner says go.** When
@@ -301,7 +301,7 @@ one note the heading's bottom is at or above the reading's top.
 
 ---
 
-# PART D, CONTINUED — THE NOTE WINDOW AND THE CHANGE BARS (added 11 Sep 2026, same day; NOT BUILT)
+# PART D, CONTINUED — THE NOTE WINDOW AND THE CHANGE BARS (added 11 Sep 2026, same day; BUILT)
 
 The owner's second message, off three screenshots, verbatim: *"In both
 internal and external, make sure the note above is always one line so there

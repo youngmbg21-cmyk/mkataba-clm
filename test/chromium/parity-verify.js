@@ -297,6 +297,20 @@ const CARD_EDIT = async () => {
   await pause(400);
   const cp = await page.evaluate(MEASURE);
   await page.screenshot({ path: path.join(OUT, '02-counterparty.png'), fullPage: true });
+  /* D-7 (11 Sep 2026): the change bar is in the LEFT margin on THEIR seat too
+     — measured on their page, not read off the sheet. A relation, no pixel. */
+  const cpBar = await page.evaluate(() => {
+    const cl = document.querySelector('.rl-clause.is-changed');
+    if (!cl) return null;
+    const paper = cl.closest('.rl-paper');
+    const cs = getComputedStyle(cl, '::after');
+    const r = cl.getBoundingClientRect();
+    const left = parseFloat(cs.left), w = parseFloat(cs.width);
+    return { paperX: paper ? paper.getBoundingClientRect().left : null, barX: r.left + left, barRight: r.left + left + w, wordX: r.left, w };
+  });
+  check('D-7 the counterparty’s change bar is inside the sheet and left of the wording',
+    !!cpBar && cpBar.w > 0 && cpBar.paperX != null && cpBar.paperX < cpBar.barX && cpBar.barRight <= cpBar.wordX,
+    cpBar ? `sheet ${Math.round(cpBar.paperX)} < bar ${Math.round(cpBar.barX)} ≤ wording ${Math.round(cpBar.wordX)}` : 'no marked clause on their page');
 
   /* ---- 9. the reported edit route, driven on BOTH seats ----
      Everything above measures the page AT REST. This drives it: press Edit on a

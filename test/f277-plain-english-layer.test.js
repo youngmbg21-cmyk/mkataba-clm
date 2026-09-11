@@ -246,10 +246,20 @@ describe('f277 (2) one walk, and a note that cannot land on the wrong clause', (
     ]).length, 0, 'the number still resolves, and the words no longer match');
   });
 
-  test('an empty reading is not drawn', () => {
+  /* RE-POINTED 11 Sep 2026 (D-1, Young chose option A): a row that was sent
+     draws the PAPER's own heading whether or not the model wrote under it. The
+     one silence left is a row with neither a name of its own nor a reading. */
+  test('an empty reading still draws the paper’s own heading; a nameless row over nothing is silence', () => {
     sheet(win, '<h2>3. Interpretation</h2><p>z</p>');
     const c = { id: 'MK-1', name: 'Supply', changes: [], audit: [] };
-    assert.equal(win.docReadAnchors(c, [{ i: 0, heading: '3. Interpretation', plain: '   ' }]).length, 0);
+    assert.equal(win.docReadAnchors(c, [{ i: 0, heading: '3. Interpretation', plain: '   ' }]).length, 1,
+      'the heading is the paper’s and is drawn (D-1)');
+    sheet(win, '<h2>Terms</h2><p>1.1 wording with no bold lead-in of its own.</p>');
+    const rows = win.docReadClauses(c);
+    const nameless = rows.findIndex(r => r.num === '1.1');
+    assert.ok(nameless >= 0);
+    assert.equal(win.docReadAnchors(c, [{ i: nameless, heading: rows[nameless].heading, plain: '' }]).length, 0,
+      'no name, no reading — nothing to draw');
   });
 
   /* THE FRONT MATTER IS NOT A CLAUSE, and this tab draws it two ways. */
@@ -387,7 +397,8 @@ describe('f277 (5) plain enough for a regular person', () => {
      copy the row's own, never write one. */
   test('the heading field is the row’s own heading echoed — never one of the model’s', () => {
     assert.ok(/THE HEADING ON EACH ENTRY/.test(rule));
-    assert.ok(/copied exactly as it was given/i.test(rule), 'echoed, character for character');
+    assert.ok(/copied exactly, character for character/i.test(rule), 'echoed, character for character');
+    assert.ok(/begins "heading:"/i.test(rule), 'and the heading is named as the line the route puts it on (D-2c)');
     assert.ok(/Never write a heading of your own/i.test(rule));
     assert.ok(!/sentence case/i.test(rule), 'the invented-heading rule is gone');
     assert.ok(/first eight words/i.test(rule), 'a row with no heading echoes its first eight words');
@@ -451,7 +462,10 @@ describe('f277 (6) the route', () => {
     ai.script(tu(ANSWER));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: CLAUSES } });
     const items = out.readings.items;
-    assert.equal(items.length, 2, 'the empty one is dropped rather than drawn blank');
+    /* RE-POINTED 11 Sep 2026 (D-1, option A): the empty one is KEPT with an
+       empty reading, so the browser can draw the paper's heading over it. */
+    assert.equal(items.length, 3, 'the empty one is kept, its reading empty');
+    assert.equal(items.find(x => x.i === 2).plain, '', 'nothing invented under it');
     assert.equal(items[0].i, 0);
     assert.equal(items[0].heading, '1. Supply and delivery',
       'the heading comes from OUR list, never from the answer');
@@ -621,10 +635,18 @@ describe('f277 (8) a numbered clause is a row of its own', () => {
     assert.ok(!/thirty \(30\) days/.test(rows[1].text));
   });
 
-  test('and every row on that paper is a section', () => {
+  /* RE-POINTED 11 Sep 2026 (D-2a): a heading WITH wording under it is a
+     clause with a name, not a section title — the route tells the model a
+     SECTION's reading must be empty, which on this shape of paper (every
+     clause an h2 over a p — every template contract, and every contract sealed
+     from one) emptied the whole edition. */
+  test('and every row on that paper is a headed clause, none a section title', () => {
     sheet(win, BODY);
     const rows = win.docReadClauses({ id: 'MK-1', name: 'Supply', changes: [], audit: [] });
-    assert.ok(rows.every(r => r.kind === 'section'), 'nothing there is a numbered clause');
+    assert.ok(rows.every(r => r.kind === 'clause' && r.num === ''),
+      'each heading carries its wording, so each is a clause; none is a numbered paragraph');
+    const sheetRows = win.docReadSheet({ id: 'MK-1', name: 'Supply', changes: [], audit: [] });
+    assert.ok(sheetRows.every(r => r.headed === true), 'and the drawing question is kept apart: every one is a heading on the paper');
   });
 
   test('a bare "1." is not a sub-clause — a dot is required', () => {
@@ -646,15 +668,18 @@ describe('f277 (8) a numbered clause is a row of its own', () => {
   /* A SECTION TITLE CARRIES NO WORDING BY DESIGN, so it is the one row that
      may stand on a heading alone. A CLAUSE with only a heading would draw a
      title over nothing. */
-  test('a section stands on its heading alone; a clause may not', () => {
+  /* RE-POINTED 11 Sep 2026 (D-1, option A): every sent row with a name of
+     its own draws it — the section title AND the clause the model had nothing
+     to say about. */
+  test('a section stands on its heading alone, and so does a named clause', () => {
     sheet(win, PAPER);
     const pairs = win.docReadAnchors(C, [
-      { i: 0, heading: '1. Scope of supply & purchase orders', head: 'What you are buying', plain: '' },
-      { i: 1, heading: '1.1 Master Agreement Structure.', head: 'How this agreement works', plain: '' },
-      { i: 2, heading: '1.2 Issuance of Purchase Orders.', head: 'Placing an order', plain: 'You send a written order.' },
+      { i: 0, heading: '1. Scope of supply & purchase orders', plain: '' },
+      { i: 1, heading: '1.1 Master Agreement Structure.', plain: '' },
+      { i: 2, heading: '1.2 Issuance of Purchase Orders.', plain: 'You send a written order.' },
     ]);
-    assert.deepEqual(Array.from(pairs, p => p.it.i), [0, 2],
-      'the section keeps its title, the empty clause draws nothing');
+    assert.deepEqual(Array.from(pairs, p => p.it.i), [0, 1, 2],
+      'the section keeps its title, the named clause keeps its name, the read clause keeps both');
   });
 });
 
@@ -900,8 +925,11 @@ describe('f277 (12) the walk reads the plain-text sheet too', () => {
     assert.deepEqual(Array.from(rows, r => r.num),
       ['', '', '1.1', '1.2', '', '2.1', '2.2'],
       'every clause carries the number the paper gives it, in document order');
+    /* RE-POINTED 11 Sep 2026 (D-2a): the title heading carries the "made
+       between" line as its wording, so it is a headed CLAUSE; the two section
+       titles carry nothing of their own and stay sections. */
     assert.deepEqual(Array.from(rows, r => r.kind),
-      ['section', 'section', 'clause', 'clause', 'section', 'clause', 'clause']);
+      ['clause', 'section', 'clause', 'clause', 'section', 'clause', 'clause']);
   });
 
   test("a clause's wording runs to the next clause and no further", () => {
@@ -1111,12 +1139,16 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
       + 'be a second name for one clause');
   });
 
-  await t.test('a SECTION row survives without one', () => {
+  await t.test('every paired row survives, reading or not', () => {
     /* It used to be kept only where the model had written a heading. With
        headings no longer asked for, that test would have dropped every section
-       title out of the edition. */
+       title out of the edition. RE-POINTED 11 Sep 2026 (D-1, option A): the
+       clause-only drop is gone too — a clause with an empty reading keeps its
+       row so the browser can draw the paper's heading over it. */
     const srv = rd('server/server.js');
-    assert.match(srv, /if \(!plain && list\[i\]\.kind !== 'section'\) return;/);
+    assert.doesNotMatch(srv, /if \(!plain && list\[i\]\.kind !== 'section'\) return;/,
+      'the drop is gone');
+    assert.match(srv, /EVERY PAIRED ROW IS KEPT, READING OR NOT/);
   });
 
   await t.test('nothing already read has to be paid for again', () => {
@@ -1137,7 +1169,8 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
        comment written above that line pushed the claim out of its own window
        and the check failed on code that was perfectly correct. Both landmarks
        below are the painter's own first and last lines. */
-    const i = src.indexOf("const sec=p.row.kind==='section'");
+    /* `headed` since D-2a: the tag follows the paper's shape, not the route's kind. */
+    const i = src.indexOf("const sec=!!p.row.headed");
     const region = src.slice(i, src.indexOf('data-doc-read-note="', i));
     assert.ok(i > 0 && region.length > 0, 'the painter was found');
     assert.match(region, /const head=String\(p\.row\.ownHead\|\|''\)\.trim\(\)/,
@@ -1418,7 +1451,8 @@ describe('f277 (15) the heading printed is the drafter’s own', () => {
   test('a section keeps its own name, cut from its own number', () => {
     const r = rows('<div class="hati-doc"><h2>3. Quality &amp; Rejection</h2>'
       + '<p>Consignments failing specification may be rejected.</p></div>');
-    const sec = r.find(x => x.kind === 'section');
+    /* `headed` since D-2a — this h2 carries wording, so it is a headed clause. */
+    const sec = r.find(x => x.headed);
     assert.equal(sec.ownHead, 'Quality & Rejection');
     assert.equal(sec.cite, '3', 'and its number rides as the citation');
   });
@@ -1440,8 +1474,10 @@ describe('f277 (15) the heading printed is the drafter’s own', () => {
 describe('f277 (16) the number sits beside the reading', () => {
   test('a clause with no heading puts its number in the reading’s own line', () => {
     const src = _f277rd('js/views/contract.js');
+    /* PIN THE REGION, NOT A BYTE COUNT: from the number's own line to the
+       note's opening tag. */
     const i = src.indexOf('const numHtml=num?');
-    const region = src.slice(i, i + 1400);
+    const region = src.slice(i, src.indexOf("}).join('')}", i));
     assert.match(region, /const lead=!head&&!!num&&!sec;/,
       'the state is named: a number, no heading of its own, not a section');
     assert.match(region, /<p\$\{lead\?' class="dr-lead"':''\}>\$\{lead\?numHtml:''\}/,
@@ -1651,5 +1687,77 @@ describe('f277 (19) the tool’s key is a string and the echoed heading is requi
   });
   test('the prompt says it once, plainly', () => {
     assert.ok(/The key in brackets is the row's address for your answer\. It is not the clause number, which is part of the heading and is the contract's own\./.test(SERVER_JS));
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   f277 (20) — PART D (11 Sep 2026): THE EXECUTED PAPER IS READ, THE HEADINGS
+   ARE DRAWN, THE SIZES ARE MEASURED
+   --------------------------------------------------------------------------- */
+describe('f277 (20) Part D', () => {
+  let win;
+  before(() => { win = buildWorld({ contractView: true }).win; win.innerWidth = 1440; });
+  const C = { id: 'MK-1', name: 'Supply', changes: [], audit: [] };
+
+  test('D-2a a heading WITH wording under it is a clause; a heading over its own clauses is a section', () => {
+    sheet(win, '<h2>1. Purpose</h2><p>This agreement governs the exchange of information.</p>'
+      + '<h2>2. Obligations</h2><p><strong>2.1 Care.</strong> Each party takes care.</p>');
+    const rows = win.docReadClauses(C);
+    assert.deepEqual(Array.from(rows, r => r.kind), ['clause', 'section', 'clause']);
+    assert.deepEqual(Array.from(win.docReadSheet(C), r => !!r.headed), [true, true, false],
+      'the drawing question — is it a heading on the paper — is kept apart');
+  });
+
+  test('D-2b the seal card is furniture: its words never reach a row', () => {
+    sheet(win, '<h2>4. Governing Law</h2><p>Kenyan law applies.</p>'
+      + '<div class="seal-in"><div>Executed &amp; Sealed</div><div>youngmbg21@example.com · SHA-256 abc123</div></div>');
+    const rows = win.docReadClauses(C);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].text, 'Kenyan law applies.', 'the last clause stops at the card');
+    assert.ok(!/SHA-256|example\.com|Sealed/.test(JSON.stringify(rows)), 'not a byte of the card is sent');
+    const src = _f277rd('js/views/contract.js');
+    assert.match(src, /const DOC_READ_FURNITURE='\.rl-paper-head,\.rl-paper-foot,header,\.seal-in';/);
+  });
+
+  test('D-3a the sealed paper’s flat classes follow the sheet on screen — a screen rule, the markup untouched', () => {
+    const css = _f277rd('index.html');
+    assert.match(css, /#doc-zoom \.doc-surface \.text-\\\[13\\\.5px\\\],#doc-zoom \.doc-surface \.text-\\\[13px\\\]\{font-size:inherit;\}/);
+    assert.ok(!/text-\\\[13\\\.5px\\\][^}]*!important/.test(css), 'never !important');
+    assert.match(css, /\.text-\\\[13\\\.5px\\\]\{font-size:15px\}/, 'CONTROL: the blob still resolves the class to a flat 15px, which is the fault');
+  });
+
+  test('D-3b the entry’s heading size is measured off the heading it faces, and written per note', () => {
+    const src = _f277rd('js/views/contract.js');
+    const i = src.indexOf('const numHtml=num?');
+    const region = src.slice(i, src.indexOf("}).join('')}", i));
+    assert.match(region, /getComputedStyle\(face\)\.fontSize/);
+    assert.match(region, /style="--dr-hsize:\$\{hsize\}"/);
+    const css = _f277rd('index.html');
+    assert.match(css, /\.doc-read-note \.dr-h\{ font-size:var\(--dr-hsize,1em\); \}/);
+    assert.match(css, /\.doc-read-note \.dr-s\{[^}]*font-size:var\(--dr-hsize,1\.13em\)/);
+  });
+
+  test('D-3c the size press repaints the edition itself, not by way of a resize', () => {
+    const src = _f277rd('js/views/negotiation.js');
+    const i = src.indexOf('function rlSetDocType(');
+    const fn = src.slice(i, src.indexOf('\n}\n', i));
+    assert.match(fn, /applyDocZoom\(\)/);
+    assert.match(fn, /docReadPaint\(/, 'the edition is repainted in the same press');
+  });
+
+  test('D-4 the heading wraps as the paper wraps — no balancing', () => {
+    const css = _f277rd('index.html');
+    const at = css.indexOf('.doc-read-note .dr-s{');
+    const rule = css.slice(at, css.indexOf('}', at));
+    assert.ok(!/text-wrap\s*:\s*balance/.test(rule), 'balance is gone');
+  });
+
+  test('D-1 every sent row with a name draws — the guard is written where the anchors are made', () => {
+    const src = _f277rd('js/views/contract.js');
+    const i = src.indexOf('function docReadAnchors(');
+    const fn = src.slice(i, src.indexOf('\n}\n', i));
+    assert.match(fn, /const hasName=row\.kind==='section'\|\|!!String\(row\.ownHead\|\|''\)\.trim\(\);/);
+    assert.match(fn, /if\(!hasBody&&!hasName\) return;/);
+    assert.ok(!/it\.head\b/.test(fn), 'the model’s heading decides nothing');
   });
 });

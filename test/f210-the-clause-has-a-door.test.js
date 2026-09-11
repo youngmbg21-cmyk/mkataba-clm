@@ -1185,7 +1185,9 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
     /* background:var(--danger) since 21 Aug 2026 — the literal #dc2626 IS that
        token, so this rule did not move, only its spelling. See the note at the
        margin-bar test below, and f89's "THE COLOUR IS NAMED, NOT TYPED". */
-    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:var\(--danger\)\}/);
+    /* left:-18px since D-7, 11 Sep 2026 — the owner asked for Word's own
+       change bar, which sits in the LEFT margin. Same bar, other gutter. */
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;left:-18px;width:3px;border-radius:0;background:var\(--danger\)\}/);
     /* REVERSED IN PLACE, 19 Aug 2026 — and this one was reversed because the
        claim in the comment was NOT TRUE of the code beneath it. "The padding
        is kept so the wording does not shift" described an older arrangement
@@ -1200,8 +1202,8 @@ describe('f210 (17) — the pills come off the paper, and the marker moves to th
        vertical air — which moves nothing sideways. */
     assert.match(SRC, /\.rl-clause\.is-changed\{background:none;border:0;border-radius:0;padding:0\}/,
       'a marked clause has exactly the box an unmarked one has');
-    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;right:-18px/,
-      'and the mark is a bar in the sheet\'s own margin, outside the text column');
+    assert.match(SRC, /\.rl-clause\.is-changed::after\{content:'';position:absolute;\s*\n\s*top:0;bottom:0;left:-18px/,
+      'and the mark is a bar in the sheet\'s own LEFT margin, outside the text column (D-7)');
     assert.match(SRC, /\.redline-page \.rl-clause\{margin:0 0 var\(--s-4\);padding:0\}/,
       'so nothing about the wording moves when a change lands');
   });
@@ -1432,7 +1434,7 @@ describe('F210 — the clause rail', () => {
   test('the mark is a bar in the margin, not a border on the text', () => {
     const bar = rule('.redline-page .rl-clause.is-changed::after');
     assert.match(bar, /position:absolute/);
-    assert.match(bar, /right:-18px/, 'outside the text column, in the white the sheet already has');
+    assert.match(bar, /left:-18px/, 'outside the text column, in the LEFT margin the sheet already has — as Word draws it (D-7, 11 Sep 2026)');
     /* NAMED, NOT TYPED (21 Aug 2026, the same move f89 records above it): the
        literal #dc2626 IS --danger, so the rule is unchanged and only its
        spelling moved. The hand-written dark override below is untouched and

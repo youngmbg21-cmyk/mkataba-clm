@@ -10186,6 +10186,18 @@ function rlSetDocType(px){
      zoom (each multiplies by rlDocType()/default), so stepping here re-sizes
      the contract on all three screens. */
   if (window.applyDocZoom) applyDocZoom();
+  /* ---- ONE PRESS MOVES BOTH COLUMNS (D-3c, 11 Sep 2026) ----
+     The Plain English edition beside the Document tab's paper was repainted
+     only by a ResizeObserver on the canvas — so it followed only when the
+     PAPER changed height, which a paper at a flat size never does, and a frame
+     late otherwise. Repainted here, in the same press, on the contract the
+     layer holds; the observer stays for the paper's own reflows. */
+  try {
+    const layer = document.getElementById('doc-read');
+    const held = layer && layer._docReadC;
+    if (held && window.docReadPaint)
+      docReadPaint((window.state && state.contracts.find(x => x.id === held.id)) || held);
+  } catch (e) {}
   if (window.dsApplyZoom) dsApplyZoom();
   return v;
 }
@@ -13901,8 +13913,19 @@ function rlNoteDialogHtml(c, ch, mine, opts){
      this adds the choice without moving the default. A note's room is fixed
      at posting, exactly as in the drawer, so on a note already on file the
      control is SET to its room and disabled — it states a fact. */
-  const room = (opts.room === 'internal' || opts.room === 'external') ? opts.room : 'external';
+  /* ---- INTERNAL IS LIT AT REST, AND THE WINDOW HOLDS A DRAFT PER ROOM
+     (D-6, Young ruled 11 Sep 2026: "the pop up should always start with
+     internal. Also, you should be able to enter different notes between
+     internal and external on the same pop up.") ----
+     THIS REVERSES TWO RULINGS AND SAYS SO: the 1 Sep ruling made this window
+     the explanation the other side reads, and C-3 (built the morning of 11
+     Sep) put the tabs in with External lit at rest to keep that default. The
+     owner's later word on the same day rules Internal first. A note on file
+     still opens on ITS room, disabled — a room is fixed at posting. */
+  const room = (opts.room === 'internal' || opts.room === 'external') ? opts.room : 'internal';
   const ext = room === 'external';
+  const drafts = opts.drafts || { internal: '', external: '' };
+  const wordsIn = r => !!String(drafts[r] || '').trim();
   const revised = filed && (ch.revisions || []).length > 0;
   /* WHAT HAS ALREADY BEEN SAID ON THIS CHANGE, quietly, above the box — so a
      reader coming back to a change does not write the same sentence twice, and
@@ -13922,7 +13945,7 @@ function rlNoteDialogHtml(c, ch, mine, opts){
     ? `<textarea id="rl-note-in" rows="2" wrap="soft"${ext ? ' class="out"' : ''}
         placeholder="${_nea(ext ? i18t('ng_note_ph') : i18t('ng_note_ph_int'))}"
         aria-label="${_nea(i18t('ng_note_head', { id: ch.id }))}"
-        >${_ne(mine ? (mine.text || '') : '')}</textarea>`
+        >${_ne(mine ? (mine.text || '') : (drafts[room] || ''))}</textarea>`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   /* THE VERBS. Delete draws only where there is something of yours still to
      delete — a note the other side is already holding is not one. The quiet way
@@ -13932,8 +13955,13 @@ function rlNoteDialogHtml(c, ch, mine, opts){
     ? `<button type="button" id="rl-note-del" class="rl-note-del"
         title="${_nea(i18t('ng_note_delete'))}">${i18t('ng_note_delete')}</button>`
     : '';
+  /* A VERB THAT CANNOT ACT SAYS WHY: with nothing written in either room Add
+     note is greyed, and its hover says so. Save on a note already on file
+     keeps its own rule (an empty box is a delete, not a save). */
+  const nothing = !mine && !wordsIn('internal') && !wordsIn('external');
   const go = mayWrite
-    ? `<button type="button" id="rl-note-ok" class="ui-btn ui-btn-primary">${
+    ? `<button type="button" id="rl-note-ok" class="ui-btn ui-btn-primary"${nothing ? ' disabled' : ''}${
+        nothing ? ` title="${_nea(i18t('ng_note_none_yet'))}"` : ''}>${
         i18t(mine ? 'ng_note_save' : 'ng_note_add')}</button>`
     : '';
   return `<div class="rl-note-dlg" role="dialog" aria-modal="true"
@@ -13958,7 +13986,12 @@ function rlNoteDialogHtml(c, ch, mine, opts){
           class="rl-np-tab${r === room ? ' on' : ''}" data-rl-note-room="${r}"
           aria-selected="${r === room}"${mine ? ' disabled' : ''}
           title="${_nea(r === 'external' ? i18t('ng_note_who', { who: them }) : i18t('ng_note_who_int'))}"
-          >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</button>`).join('')}
+          >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}${''
+            /* THE TAB SAYS WHICH ROOM HOLDS WORDS: a dot on the OTHER room's
+               tab while its draft is non-empty, so a reader on Internal can see
+               they also wrote something for External before pressing Skip. An
+               inline state on the control — not a band. */
+          }${(!mine && r !== room && wordsIn(r)) ? `<i class="rl-note-dot" title="${_nea(i18t('ng_note_has_draft'))}" aria-label="${_nea(i18t('ng_note_has_draft'))}"></i>` : ''}</button>`).join('')}
       </div>
       ${del}
       <button type="button" id="rl-note-skip" class="ui-btn">${
@@ -14022,16 +14055,24 @@ function openChangeNoteDialog(c, ch, opts = {}){
        or the room of the note being edited. A press on the control repaints
        the window and keeps what was typed. */
     let room = null;
+    /* ONE WINDOW, TWO DRAFTS (D-6): what was typed in each room, kept in
+       memory for this sitting. A press on a room tab stores the box against
+       the room it was typed in and shows the other room's draft; nothing is
+       posted by switching. */
+    const drafts = { internal: '', external: '' };
+    const store = () => { const b = ov.querySelector('#rl-note-in'); if (b && room && !editing) drafts[room] = b.value; };
+    let editing = false;
     const paint = () => {
       let mine = window.negoMyNote ? negoMyNote(c, ch) : null;
       /* A NOTE ALREADY DELIVERED IS A RECORD, NOT A DRAFT (C-5): the other side
          is holding it, so a second filing opens an EMPTY box for a further
          note and prints the delivered one in the "already said" list above. */
       if (mine && window.negoNoteDelivered && negoNoteDelivered(mine)) mine = null;
-      if (!room) room = mine ? negoNoteRoom(mine) : 'external';
+      editing = !!mine;
+      if (!room) room = mine ? negoNoteRoom(mine) : 'internal';
       const typed = ov.querySelector('#rl-note-in');
-      const keep = typed ? typed.value : null;
-      ov.innerHTML = `<div class="rl-note-scrim"></div>${rlNoteDialogHtml(c, ch, mine, { ...opts, room })}`;
+      const keep = (typed && editing) ? typed.value : null;
+      ov.innerHTML = `<div class="rl-note-scrim"></div>${rlNoteDialogHtml(c, ch, mine, { ...opts, room, drafts })}`;
       if (keep != null){ const b = ov.querySelector('#rl-note-in'); if (b) b.value = keep; }
       wire(mine);
     };
@@ -14049,12 +14090,32 @@ function openChangeNoteDialog(c, ch, opts = {}){
       document.removeEventListener('keydown', onKey, true);
       resolve(out);
     };
+    /* SKIP DISCARDS BOTH DRAFTS, AND WHERE EITHER HOLDS WORDS IT ASKS FIRST
+       (D-6) — one question, through confirmDialog, for Skip, the scrim and
+       Escape alike. A note being EDITED keeps the old quiet way out: its words
+       are on the record already. */
+    let asking = false;
+    const quit = async () => {
+      if (asking) return;
+      store();
+      const held = !editing && (String(drafts.internal).trim() || String(drafts.external).trim());
+      if (held && window.confirmDialog){
+        asking = true;
+        let yes = false;
+        try {
+          yes = await confirmDialog({ title: i18t('ng_note_skip_title'),
+            message: i18t('ng_note_skip_msg', { id: ch.id }), confirmLabel: i18t('ng_note_skip_go') });
+        } finally { asking = false; }
+        if (!yes){ const b = ov.querySelector('#rl-note-in'); if (b && b.focus) b.focus(); return; }
+      }
+      done(null);
+    };
     function onKey(e){
       if (e.key !== 'Escape') return;
       /* A confirm raised BY this dialog sits on top of it and owns Escape
          while it is up — the same deferral openModal makes to us. */
       if (document.getElementById('confirm-overlay')) return;
-      e.preventDefault(); e.stopPropagation(); done(null);
+      e.preventDefault(); e.stopPropagation(); quit();
     }
     function wire(mine){
       if (release){ try { release(); } catch (_){} release = null; }
@@ -14071,13 +14132,14 @@ function openChangeNoteDialog(c, ch, opts = {}){
          for the same reason; see dragDialog in js/core.js. */
       if (panel && window.dragDialog) undrag = window.dragDialog(panel, { frame: ov });
       const scrim = ov.querySelector('.rl-note-scrim');
-      if (scrim) scrim.addEventListener('click', () => done(null));
+      if (scrim) scrim.addEventListener('click', () => quit());
       const skip = ov.querySelector('#rl-note-skip');
-      if (skip) skip.addEventListener('click', () => done(null));
+      if (skip) skip.addEventListener('click', () => quit());
       ov.querySelectorAll('[data-rl-note-room]').forEach(b => b.addEventListener('click', () => {
         if (b.disabled) return;
         const r = b.getAttribute('data-rl-note-room');
         if (r === room) return;
+        store();
         room = r; paint();
         const bx = ov.querySelector('#rl-note-in'); if (bx && bx.focus) bx.focus();
       }));
@@ -14090,10 +14152,44 @@ function openChangeNoteDialog(c, ch, opts = {}){
          any mention; both keys are left inert in both dictionaries. */
       const box = ov.querySelector('#rl-note-in');
       const ok = ov.querySelector('#rl-note-ok');
+      /* THE BUTTON FOLLOWS THE WORDS: greyed while neither room holds any,
+         live from the first character in either. */
+      if (box && ok && !mine) box.addEventListener('input', () => {
+        const any = !!(box.value.trim() || String(drafts[room === 'internal' ? 'external' : 'internal']).trim());
+        ok.disabled = !any;
+        if (any) ok.removeAttribute('title'); else ok.setAttribute('title', i18t('ng_note_none_yet'));
+      });
       if (ok) ok.addEventListener('click', async () => {
-        const text = String((box && box.value) || '').trim();
-        if (!text){ if (box && box.focus) box.focus(); return; }
+        if (ok.disabled) return;
+        store();
+        /* ---- ADD NOTE POSTS WHAT WAS WRITTEN, TO WHERE IT WAS WRITTEN (D-6)
+           ----
+           An Internal draft goes to the colleagues' room; an External draft
+           goes 'shared' and down the channel; both where both are filled. Two
+           notes are two messages on the change's own thread — exactly what two
+           presses in the drawer would make — through the ONE writer,
+           negoPostComment, called once per room. A note being EDITED is one
+           note in one room, as before. */
+        const intText = mine ? '' : String(drafts.internal || '').trim();
+        const extText = mine ? '' : String(drafts.external || '').trim();
+        const text = mine ? String((box && box.value) || '').trim() : (room === 'external' ? extText : intText);
+        if (!mine && !intText && !extText){ if (box && box.focus) box.focus(); return; }
+        if (mine && !text){ if (box && box.focus) box.focus(); return; }
         let out = null, msg = mine;
+        let intMsg = null;
+        if (!mine && intText){
+          intMsg = negoPostComment(c, ch.id, intText, { side: 'owner', author: opts.author });
+          if (!intMsg) return;
+          out = 'added';
+        }
+        if (!mine && !extText){
+          /* Internal only: reaches nobody by not being posted (below). */
+          if (opts.persist !== false && window.persist) persist(c);
+          if (window.toast) toast(i18t('ng_note_added_int', { id: ch.id }), 'ok');
+          if (typeof opts.onDone === 'function') opts.onDone(out);
+          done(out);
+          return;
+        }
         /* ---- IT IS THE EXPLANATION, AND IT GOES TO THEM (owner-ruled 1 Sep
            2026: "Make them external so that when you suggest an edit, you give
            an explanation as to why you want to change the contract. That is the
@@ -14116,17 +14212,17 @@ function openChangeNoteDialog(c, ch, opts = {}){
            names the counterparty on its own face and exists for no other
            purpose, so a dialog on top of a dialog is exactly the furniture that
            rule warns about. */
-        const toThem = room === 'external';
+        const toThem = mine ? room === 'external' : true;
         if (mine && window.negoEditNote){
-          if (!negoEditNote(c, ch, mine, text)) return;
+          if (!negoEditNote(c, ch, mine, extText || text)) return;
           out = 'updated';
         } else {
           /* THE ROOM'S OWN ANSWER (C-3): 'shared' on External, nothing on
              Internal — the writer's safe default is what keeps an internal
-             note at home; there is no third value to get wrong. */
-          msg = negoPostComment(c, ch.id, text,
-            toThem ? { side: 'owner', author: opts.author, visibility: 'shared' }
-                   : { side: 'owner', author: opts.author });
+             note at home; there is no third value to get wrong. Reached here
+             only for an EXTERNAL draft (the internal-only case returned above). */
+          msg = negoPostComment(c, ch.id, extText || text,
+            { side: 'owner', author: opts.author, visibility: 'shared' });
           if (!msg) return;
           out = 'added';
         }
@@ -14163,7 +14259,10 @@ function openChangeNoteDialog(c, ch, opts = {}){
            send uses — a second copy of who gets an email is how the two would
            come to disagree. It rides this window's own confirmation. */
         const atLine = negoMentionLine(await negoNotifyMentions(c, ch, msg));
-        if (window.toast) toast((gone
+        /* The toast names what was posted: both rooms, or the one. */
+        if (window.toast) toast((intMsg
+          ? i18t('ng_note_added_both', { id: ch.id, who: them })
+          : gone
           ? i18t('ng_np_sent', { who: them, id: ch.id })
           : i18t(out === 'updated' ? 'ng_note_updated' : 'ng_note_added', { id: ch.id })) + atLine, 'ok');
         if (typeof opts.onDone === 'function') opts.onDone(out);

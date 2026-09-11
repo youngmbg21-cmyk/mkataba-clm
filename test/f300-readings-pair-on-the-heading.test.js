@@ -158,3 +158,63 @@ describe('f300 the readings pair on the heading, never on a number a clause coul
     assert.equal(out.readings.partial, true);
   });
 });
+
+/* ---------------------------------------------------------------------------
+   D-2c (11 Sep 2026) — A LABEL THE ROUTE ITSELF WROTE DOES NOT COUNT AGAINST
+   THE MODEL, AND A REFUSED PAIRING SAYS WHY
+   The doc line read `[R0] SECTION 1. Purpose` while the prompt said "copied
+   exactly as it was given after the key": a model that took that literally
+   echoed `SECTION 1. Purpose` and failed EVERY row on a contract whose rows
+   are all headings — an executed template contract ("8 clauses could not be
+   matched"). The heading is on its own `heading:` line now, the comparison
+   folds the label on both sides, and each refused entry is NAMED.
+   --------------------------------------------------------------------------- */
+describe('f300 (6) the row label is folded, and a refusal is named', () => {
+  let h, ai, W;
+  const put = id => W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { baseVersion: 0, contract: {
+    id, name: 'Packaging Supply Agreement', counterparty: 'Nordkust', folder: FOLDER_A,
+    status: 'Draft', redlineText: '<h1>Packaging Supply Agreement</h1><h2>1. Scope of Supply</h2><p>The Supplier shall manufacture.</p>',
+    fields: {}, obligations: [], audit: [], rounds: [], versions: [], signatures: [], comments: [], searchText: 'packaging',
+  } } });
+  before(async () => {
+    ai = await startScriptedAi();
+    h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
+    W = await seedWorkspace(h, { contracts: [] });
+    await put('MK-F300-6'); await put('MK-F300-7'); await put('MK-F300-8');
+  });
+  after(async () => { await h.stop(); await ai.stop(); });
+
+  test('(6) an echo carrying the row label — SECTION, CLAUSE 1.1 —, heading: — still pairs', async () => {
+    ai.script(tu({ readings: [
+      { ...right(0), heading: 'SECTION ' + CLAUSES[0].heading },
+      { ...right(1), heading: 'CLAUSE 2 — ' + CLAUSES[1].heading },
+      { ...right(2), heading: 'heading: ' + CLAUSES[2].heading },
+      right(3),
+    ] }));
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-6', clauses: CLAUSES } });
+    assert.deepEqual(out.readings.items.map(x => x.i).sort(), [0, 1, 2, 3], 'all four pair');
+    assert.equal(out.readings.unmatched, 0);
+    assert.deepEqual(out.readings.failed, [], 'and nothing is named as refused');
+  });
+
+  test('(6b) the wall stands: a shifted echo still fails, and the refusal names the key, the echo and what was wanted', async () => {
+    ai.script(tu({ readings: [right(0), right(1), shifted(2), shifted(3)] }));
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-7', clauses: CLAUSES } });
+    assert.equal(out.readings.partial, true);
+    assert.equal(out.readings.failed.length, 2);
+    const f = out.readings.failed.find(x => x.key === 'R3');
+    assert.ok(f, 'the refused entry is named by its key');
+    assert.equal(f.echo, CLAUSES[2].heading, 'what the model echoed');
+    assert.equal(f.want, CLAUSES[3].heading, 'and what the row it named actually carries');
+    const c = await W.admin.json('/api/contracts/MK-F300-7');
+    assert.ok(!c._readings, 'a partial answer is still cached nowhere');
+  });
+
+  test('(6c) the heading the model is asked to copy sits on its own line, so "copy it" has one reading', async () => {
+    ai.script(tu({ readings: [right(0), right(1), right(2), right(3)] }));
+    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-8', clauses: CLAUSES } });
+    const sent = ai.calls[ai.calls.length - 1].body.messages[0].content;
+    assert.match(String(sent), /\[R0\] CLAUSE\nheading: 1\. Scope of Supply\n/, 'the label on one line, the heading on the next');
+    assert.match(sent, /the line that begins "heading:"/, 'and the rule names that line');
+  });
+});

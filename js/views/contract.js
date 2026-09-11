@@ -7293,7 +7293,15 @@ const docReadHeld=c=>docReadItems(c).length>0||docReadUnmatched(c)>0;
    have asked the model to explain a title. */
 const _docReadNorm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
 const DOC_READ_HEADS='h1,h2,h3,h4';
-const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header';
+/* ---- THE SEAL CARD IS FURNITURE (D-2b, 11 Sep 2026) ----
+   A sealed record's signatureBlock is `.seal-in`, not `.rl-paper-foot`, so the
+   last clause's range ran to the end of the canvas and read the whole card —
+   the hash, the signers' names and e-mail addresses, the assurance line — as
+   that clause's wording. MEASURED on an executed template contract: clause 4
+   carried 743 characters ending "…IPRS identity and CAK-accredited PKI are on
+   the roadmap", and the edition printed it back as the reading of Governing
+   Law. Both execution blocks wear `.seal-in`. */
+const DOC_READ_FURNITURE='.rl-paper-head,.rl-paper-foot,header,.seal-in';
 /* ---- THE OTHER SHAPE OF PAPER, AND IT IS THE COMMONER ONE ----
    A contract drawn from PLAIN TEXT — every received document, and every
    working text a negotiation has stored — is laid out by documentTextHtml,
@@ -7461,7 +7469,11 @@ function docReadSheet(c){
   const canvas=document.getElementById('doc-canvas');
   if(!canvas) return [];
   const name=_docReadNorm(c&&c.name);
-  const foot=canvas.querySelector('.rl-paper-foot');
+  /* WHERE THE LAST ROW STOPS: the first piece of furniture that FOLLOWS it in
+     document order (the foot, or a sealed record's seal card), never the end
+     of the canvas — see DOC_READ_FURNITURE. */
+  const furniture=Array.from(canvas.querySelectorAll(DOC_READ_FURNITURE));
+  const furnitureAfter=el=>furniture.find(f=>!f.contains(el)&&!!(el.compareDocumentPosition(f)&Node.DOCUMENT_POSITION_FOLLOWING))||null;
   /* ONE WALK OF THE PAINTED SHEET, in document order, so the list sent to the
      model and the anchors the entries hang on cannot disagree by construction. */
   let seenName=false;
@@ -7505,8 +7517,8 @@ function docReadSheet(c){
     try{
       const r=document.createRange();
       r.setStartAfter(row.el);
-      if(rows[i+1]) r.setEndBefore(rows[i+1].el);
-      else if(foot) r.setEndBefore(foot);
+      const stop=rows[i+1]?rows[i+1].el:furnitureAfter(row.el);
+      if(stop) r.setEndBefore(stop);
       else r.setEnd(canvas, canvas.childNodes.length);
       after=String(r.toString()||'').replace(/\s+/g,' ').trim();
       /* A COPY, never the live nodes: this is only read for a lead-in, and
@@ -7559,8 +7571,21 @@ function docReadSheet(c){
        key. A heading's separator is read off the heading; a paragraph's and a
        mark's were read in the walk above. */
     const sep=row.isHead?_docReadSepOf(heading,cite):String(row.sep||'');
+    /* ---- THE ROW'S KIND IS A FACT ABOUT THE ROW, NOT ABOUT ITS TAG (D-2a,
+       11 Sep 2026) ----
+       Every heading row was a `section`, and the route tells the model in
+       capitals that a SECTION's reading must be EMPTY. On template paper — and
+       so on every contract sealed from one — a clause is an <h4> over a <p>,
+       so EVERY clause arrived as a section carrying its whole wording, and a
+       model that obeyed returned nothing under any of them: "executed
+       contracts come back with no reading". A heading is a section title only
+       where it carries NO wording of its own — a title over its own clauses;
+       a heading WITH wording under it is a clause with a name. `headed` keeps
+       the drawing question (which tag, which class) apart from the reading
+       question the route is asked. THIS MOVES THE SENT SHAPE and therefore
+       the cache key, once, on purpose. */
     if(heading||text) out.push({el:row.el,heading,ownHead,text,num:row.num,cite,sep,
-      kind:row.isHead?'section':'clause'});
+      headed:row.isHead, kind:(row.isHead&&!text)?'section':'clause'});
   });
   return out;
 }
@@ -7604,11 +7629,23 @@ function docReadAnchors(c, items){
     const i=Number(it&&it.i);
     const row=(Number.isInteger(i)&&i>=0)?list[i]:null;
     if(!row) return;
-    /* A SECTION TITLE STANDS ON ITS HEADING ALONE — it carries no wording by
-       design. Everything else needs a reading, or the edition would draw a
-       title over nothing. */
+    /* ---- THE PAPER'S OWN HEADING IS DRAWN, WHETHER OR NOT THE MODEL WROTE
+       UNDER IT (D-1, 11 Sep 2026: "headers are missing from the plain english
+       section") ----
+       This guard kept a section only where the reading had a body OR the item
+       carried a model-written `head`. Since 10 Sep headings are not asked of
+       the model, so `head` is empty on every new reading, and the prompt tells
+       the model to leave a section's reading EMPTY — both halves false on
+       every section title, every one dropped. The server kept them all along
+       ("a section row is kept on its heading alone"); the two hosts disagreed
+       about the same row. MEASURED: 8 items stored, 5 drawn.
+       Every row that was sent draws its heading now (Young chose option A):
+       a section title, or a clause the model had nothing to say about, still
+       has its name in the edition. Only a row with NEITHER a heading of its
+       own nor a reading is silence — a bare number over nothing. */
     const hasBody=!!String(it.plain||'').trim();
-    if(!hasBody&&!(row.kind==='section'&&String(it.head||'').trim())) return;
+    const hasName=row.kind==='section'||!!String(row.ownHead||'').trim();
+    if(!hasBody&&!hasName) return;
     if(_docReadNorm(row.heading)!==_docReadNorm(it.heading)) return;
     out.push({el:row.el,row,it});
   });
@@ -7679,7 +7716,9 @@ function docReadPaint(c){
   layer.innerHTML=`
     <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
     <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>{
-      const sec=p.row.kind==='section';
+      /* The TAG follows the paper's own shape — a heading row draws a heading,
+         whether or not it is a section title in the route's terms (D-2a). */
+      const sec=!!p.row.headed;
       /* The stored number first, the live walk second, and the heading's own
          number last — a heading carries no `num` by design (see _docReadHeadNum). */
       const num=String(p.it.num||p.row.num||p.row.cite||'').trim();
@@ -7720,7 +7759,22 @@ function docReadPaint(c){
          column over. What it is never again is a line of its own with the
          reading underneath, which is what was reported. */
       const lead=!head&&!!num&&!sec;
-      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}" data-doc-read-note="${n}">`
+      /* ---- THE HEADING IS THE SIZE OF THE HEADING IT FACES (D-3b, 11 Sep
+         2026: "the headers should the same size in both sides") ----
+         The body is already measured off the sheet (--dr-size); the headings
+         were typed ratios — 1.13em and 1em against a paper whose h2 is
+         1.16em, h3 1.04em and template h4 1.05em: four numbers for "the same
+         size". So each entry reads the computed size of the element it faces —
+         the heading itself, or a clause's bold lead-in — and writes it on the
+         note. A RELATION: right for every design and for one added tomorrow.
+         Size only; weight and case are the edition's own. */
+      let hsize='';
+      try{
+        const face=sec?p.el:(p.el.querySelector&&p.el.querySelector('strong,b'))||p.el;
+        const fs=face&&getComputedStyle(face).fontSize;
+        if(fs&&parseFloat(fs)>0) hsize=fs;
+      }catch(_){}
+      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}" data-doc-read-note="${n}"${hsize?` style="--dr-hsize:${hsize}"`:''}>`
         +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')
         +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${esc(body)}</p>`:'')
         +`</div>`;

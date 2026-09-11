@@ -2172,8 +2172,13 @@ function redlineLayoutCss(){
      whether or not anything is on the table, and the mark costs the wording
      nothing. Which is what "marked in the margin" said all along. */
   .redline-page .rl-clause.is-changed{background:none;border:0;border-radius:0;padding:0}
+  /* ---- THE CHANGE BAR SITS IN THE LEFT MARGIN, AS WORD DRAWS IT (D-7,
+     owner-asked 11 Sep 2026: "move the redline vertical makers to the left
+     hand side just like microsoft word"). The sheet's gutter is 56px on both
+     sides, so the bar has the same room on the left; the pencil and the lock
+     monogram sit at the right and are untouched. */
   .redline-page .rl-clause.is-changed::after{content:'';position:absolute;
-    top:0;bottom:0;right:-18px;width:3px;border-radius:0;background:var(--danger)}
+    top:0;bottom:0;left:-18px;width:3px;border-radius:0;background:var(--danger)}
   html.dark .redline-page .rl-clause.is-changed::after{background:#f87171}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
@@ -3985,7 +3990,7 @@ function redlineLayoutCss(){
   .redline-page .rl-front{position:relative}
   .redline-page .rl-front-top{line-height:0}
   .redline-page .rl-front.is-changed::after{content:''; position:absolute;
-    top:0; bottom:0; right:-18px; width:3px; border-radius:0; background:var(--danger)}
+    top:0; bottom:0; left:-18px; width:3px; border-radius:0; background:var(--danger)}
   html.dark .redline-page .rl-front.is-changed::after{background:#f87171}
   .redline-page .rl-cp-clname{margin:0 0 var(--s-3);font-family:var(--font-heading);
     font-size:16px;font-weight:var(--w-title);color:var(--color-text)}

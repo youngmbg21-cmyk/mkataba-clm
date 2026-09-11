@@ -410,7 +410,9 @@ describe('f264 (5) — the dialog reads the record for its shape', () => {
     const p = await bench();
     const h = dlg(p, null, { filed: true });
     assert.match(h, /rl-note-room/, 'the room control is drawn');
-    assert.match(h, /data-rl-note-room="external"[^>]*aria-selected="true"/, 'External is lit at rest');
+    /* RE-POINTED AGAIN 11 Sep 2026 (D-6): Internal is lit at rest — the
+       owner's later ruling the same day; External is a press away. */
+    assert.match(h, /data-rl-note-room="internal"[^>]*aria-selected="true"/, 'Internal is lit at rest (D-6)');
     assert.match(h, /Saw Sawa Ltd/, 'the counterparty by name');
     assert.equal(/rl-note-keep/.test(h), false,
       'and no promise of privacy over something that goes to them');

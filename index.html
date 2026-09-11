@@ -2857,10 +2857,21 @@
      the paragraph beside them was already right, so nothing in the source
      looked wrong. The paper's own headings escape it because the design rules
      name h1/h2 by tag; this column has no such rule and never will. */
-  .doc-read-note .dr-h{ margin:0 0 3px; font-size:1em; line-height:1.4;
+  .doc-read-note .dr-h{ margin:0 0 3px; line-height:1.4;
     font-family:inherit; font-weight:var(--w-strong); color:var(--color-text); }
-  .doc-read-note .dr-s{ margin:0; font-size:1.13em; line-height:1.35;
-    font-family:inherit; font-weight:var(--w-title); color:var(--color-text); text-wrap:balance; }
+  /* ---- ONE SIZE ON BOTH SIDES (D-3b, 11 Sep 2026) ----
+     --dr-hsize is MEASURED off the heading this entry faces — the h2/h3/h4 on
+     the paper, or a clause's bold lead-in — by docReadPaint, and written per
+     note; the ratios here are only the fallback for a note that could not be
+     measured. The same road the measured size and face travel, for the same
+     reason: a typed ratio is a second opinion about the paper's own size.
+     ---- AND A HEADING FILLS ITS LINE BEFORE IT WRAPS (D-4) ----
+     `text-wrap:balance` evened a wrapped title's lines by breaking the first
+     one early — "the sentence does not cover the whole line". The paper wraps
+     at its edge; the edition wraps as the paper does. */
+  .doc-read-note .dr-h{ font-size:var(--dr-hsize,1em); }
+  .doc-read-note .dr-s{ margin:0; font-size:var(--dr-hsize,1.13em); line-height:1.35;
+    font-family:inherit; font-weight:var(--w-title); color:var(--color-text); }
   .doc-read-over{ position:absolute; left:0; right:0; padding-right:4px;
     font-size:var(--t-label); color:var(--color-neutral-600); }
 
@@ -5213,7 +5224,15 @@
     font-size:var(--t-card);color:var(--color-text);margin:0;line-height:1.3;}
   /* INDENTED UNDER THE TICK, so the lead reads as belonging to the headline
      rather than as a second block beginning again at the wall. */
-  .rl-note-lead{font-size:var(--t-meta);line-height:1.5;
+  /* ---- ONE LINE BY CONSTRUCTION (D-5, 11 Sep 2026: "make sure the note
+     above is always one line so there is not wrapping which makes the pop up
+     size different between internal and external view") ----
+     The height is one line-height whichever room is lit, so the window cannot
+     change height on the room press. The sentences are written to FIT the
+     line (f302 measures them); the ellipsis is the net under a counterparty
+     name longer than the window, never the way the sentence ends. */
+  .rl-note-lead{font-size:var(--t-meta);line-height:1.5;height:1.5em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
     color:var(--color-neutral-600);margin:0 0 12px 24px;}
   .rl-note-dlg:not(:has(.tick)) .rl-note-lead{margin-left:0;}
   /* What has already been said on this change — a record above the box, so the
@@ -5240,6 +5259,9 @@
      disabled pair states a note's room as a fact. */
   .rl-note-room{flex:1;min-width:0;padding:0;gap:14px;}
   .rl-note-room .rl-np-tab:disabled{cursor:default;opacity:.7;}
+  /* The dot on the OTHER room's tab while its draft holds words (D-6). */
+  .rl-note-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--accent-fill);margin-left:6px;vertical-align:middle;}
   /* the external box wears the drawer's external tint, so the two composers
      say "this leaves the building" the same way */
   .rl-note-dlg #rl-note-in.out{background:var(--st-steel-bg);box-shadow:inset 2px 0 0 var(--color-accent);}
@@ -5638,6 +5660,20 @@
      that stepper — the fault the clause tools, the ask tags and the editor
      furniture each had to be corrected for. --doc-scale is 1 on every surface
      that sets no preference, so an export and a print take the plain size. */
+  /* ---- A PAPER SEALED BEFORE 22 AUG FOLLOWS THE READER ON SCREEN (D-3a,
+     11 Sep 2026) ----
+     A contract frozen before the size sweep carries `text-[13.5px]` /
+     `text-[13px]` on its clause paragraphs, and the compiled blob resolves
+     those to a FLAT 15px / 14px that ignores --doc-scale — MEASURED: at the
+     10 setting the sheet went to 9.34px and the sealed paragraph stayed at
+     15, while the Plain English edition beside it followed the sheet. The
+     sealed markup is kept byte for byte (the rule); this is a SCREEN rule on
+     the Document tab's paper only — equal specificity to the blob's, later in
+     source, never !important — so the frozen paragraph inherits the sheet's
+     own 14px × --doc-scale exactly as today's paper does. The export, the PDF
+     and the counterparty copy do not carry #doc-zoom and are untouched; the
+     hash reads no stylesheet. */
+  #doc-zoom .doc-surface .text-\[13\.5px\],#doc-zoom .doc-surface .text-\[13px\]{font-size:inherit;}
   .hati-fs-9 {font-size:calc(9px  * var(--doc-scale,1));}
   .hati-fs-10{font-size:calc(10px * var(--doc-scale,1));}
   .hati-fs-11{font-size:calc(11px * var(--doc-scale,1));}

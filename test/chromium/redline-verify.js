@@ -2540,6 +2540,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   }
   await page.screenshot({ path: path.join(OUT, '25b-the-other-doors.png') });
 
+  /* ============ 26 · THE CHANGE BAR IS IN THE LEFT MARGIN, AS WORD DRAWS IT
+     (D-7, owner-asked 11 Sep 2026) ============
+     PIN THE RELATION, NEVER A PIXEL: inside the sheet, left of the wording. */
+  const bar26 = await page.evaluate(() => {
+    const cl = document.querySelector('#rl-doc .rl-clause.is-changed');
+    if (!cl) return null;
+    const paper = cl.closest('.rl-paper');
+    const cs = getComputedStyle(cl, '::after');
+    const r = cl.getBoundingClientRect();
+    const left = parseFloat(cs.left), w = parseFloat(cs.width);
+    return { paperX: paper ? paper.getBoundingClientRect().left : null, barX: r.left + left, barRight: r.left + left + w,
+      wordX: r.left, w, drawn: cs.content !== 'none' && w > 0 };
+  });
+  check('26a a redlined clause carries its bar, drawn', !!bar26 && bar26.drawn, JSON.stringify(bar26));
+  check('26b the bar sits INSIDE the sheet and LEFT of the wording — the left margin, as Word draws it',
+    !!bar26 && bar26.paperX != null && bar26.paperX < bar26.barX && bar26.barRight <= bar26.wordX,
+    bar26 && `sheet ${Math.round(bar26.paperX)} < bar ${Math.round(bar26.barX)}–${Math.round(bar26.barRight)} ≤ wording ${Math.round(bar26.wordX)}`);
 
   await browser.close();
   srv.close();

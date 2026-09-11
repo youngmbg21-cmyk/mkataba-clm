@@ -566,8 +566,8 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
        fault of the two. */
     assert.match(p.rule('.redline-page .rl-clause.is-changed') || '', /padding:0/,
       'a marked clause has exactly the box an unmarked one has');
-    assert.match(p.css(), /\.rl-clause\.is-changed::after\{content:'';position:absolute;[\s\S]{0,40}right:-18px/,
-      'and the mark sits outside the text column, in the margin the sheet already has');
+    assert.match(p.css(), /\.rl-clause\.is-changed::after\{content:'';position:absolute;[\s\S]{0,40}left:-18px/,
+      'and the mark sits outside the text column, in the LEFT margin the sheet already has (D-7, 11 Sep 2026: as Word)');
   });
 
   test('a repaint does not lose the reader\'s place in the contract', async () => {

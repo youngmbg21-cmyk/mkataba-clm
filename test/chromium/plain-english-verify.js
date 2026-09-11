@@ -457,7 +457,10 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
     }, undefined, null);
     /* THE SHEET PAINTS THE CONTRACT'S NAME AND NOTHING ELSE — so the honest
        claim is that the reading finds no clause, not that the canvas is bare. */
-    check(!!bare && bare.clauses === 0 && bare.painted === 1,
+    /* `painted <= 1` since C-7 (11 Sep 2026): the upload's own header block —
+       the one h-tag this bare stage painted — is gone, so the sheet may paint
+       nothing at all. The claim that matters is unchanged: no clause is read. */
+    check(!!bare && bare.clauses === 0 && bare.painted <= 1,
       '6c the stage really is a document with nothing to read but its own title',
       bare && `${bare.painted} painted · ${bare.clauses} clauses`);
     check(!!bare && bare.seg === false && bare.step === true,
@@ -785,7 +788,10 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
        it up to the next anchor, and an unnumbered paragraph is not an anchor of
        its own. That is the walk working as designed, and it is the shape the
        owner's screenshot is in — every reading a SECTION with no number. */
-    check(hSheet.rows === 3 && hSheet.kinds.filter(k => k === 'section').length === 3,
+    /* RE-POINTED 11 Sep 2026 (D-2a): a heading WITH wording under it is a
+       headed CLAUSE, not a section title — the route tells the model a SECTION
+       reads empty. Three rows still; every one a heading on the paper. */
+    check(hSheet.rows === 3 && hSheet.kinds.filter(k => k === 'clause').length === 3,
       '11a the stage is the reported one — clause numbers inside the headings',
       `${hSheet.rows} rows: ${hSheet.kinds.join('|')}`);
     /* CONTROL, and the claim that keeps this job free of spend: the route's
@@ -1275,6 +1281,196 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       level.map(l => `${l.head.slice(0, 12)}:${l.ok ? 'ok' : 'WRONG'}`).join(' | '));
     check(again.layerOn && !again.foot, '16h the foot stands down once every clause is matched', again.foot || 'gone');
     await page.screenshot({ path: path.join(OUT, '16-right-answer.png') }).catch(() => {});
+
+    /* ============ 17 · PART D (11 Sep 2026) — THE EXECUTED PAPER IS READ, THE
+       HEADINGS ARE DRAWN, THE SIZES ARE MEASURED, THE WRAP IS THE PAPER'S ============
+       Four screenshots, four reports; the work order is
+       WORKORDER-plain-english-four-reports.md. Every claim here is a
+       MEASUREMENT on a rendered page — the parent draws each of these faults
+       with nothing in the source looking wrong. */
+
+    /* ---- D-2 / D-3a: AN EXECUTED TEMPLATE CONTRACT, then an August-shaped
+       seal (the classes the paper carried when MK-329 and MK-346 were sealed) */
+    const staged17 = await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      window.__peD = { status: c.status, execution: c.execution, signatures: c.signatures, hash: c.hash,
+        r: c.redlineText, f: c.format };
+      delete c.redlineText; delete c.format; delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      c.signatures = [
+        { name: 'Young Mbagaya', email: 'young@example.com', party: 'counterparty', role: 'COO', method: 'typed', at: '2026-08-09T22:06:00Z' },
+        { name: 'Amina Otieno', email: 'admin@example.co.ke', party: 'first', role: 'CEO', method: 'session', at: '2026-08-09T22:07:00Z' } ];
+      c.status = 'Signed';
+      c.execution = { html: freezeContractHtml(c), format: '', at: '2026-08-09T22:07:00Z', textHash: 'abc123', hash: 'def456' };
+      c.hash = 'def456';
+      /* The August shape: the paragraph classes of the day, resolved by the
+         compiled blob to a FLAT 15px. */
+      c.execution.html = c.execution.html.replace(/<p style="margin:0;color:var\(--color-doc-text\);line-height:var\(--lh-doc\)">/g,
+        '<p class="text-[13.5px] text-brand-800/85" style="margin:0">');
+      /* Another contract is on screen after section 16: the door first, then
+         the repaint (renderWorkspace alone repaints whatever is open). */
+      openWorkspace(c.id); renderWorkspace(c.id);
+      return { status: c.status, html: c.execution.html.length, flat: (c.execution.html.match(/text-\[13\.5px\]/g) || []).length };
+    }, undefined, null);
+    await pause(1500);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    const exec = await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      const rows = docReadClauses(c);
+      const canvas = document.getElementById('doc-canvas');
+      return { n: rows.length, kinds: rows.map(r => r.kind), text: rows.map(r => r.text).join(' '),
+        seal: !!canvas.querySelector('.seal-in'), august: canvas.querySelectorAll('p.text-\\[13\\.5px\\]').length,
+        status: c.status, frozen: !!(c.execution && c.execution.html) };
+    }, undefined, { n: 0, kinds: [], text: '', seal: false, august: 0 });
+    check(exec.n >= 3 && exec.seal && exec.august >= 3,
+      '17a the stage is an executed template contract with an August-shaped seal card under it',
+      `${exec.n} rows · seal ${exec.seal} · ${exec.august} flat paragraphs · staged ${JSON.stringify(staged17)} · now ${exec.status}/${exec.frozen}` + (blocked.length ? ' · blocked: ' + blocked.join(' / ') : ''));
+    check(exec.n >= 3 && exec.kinds.every(k => k === 'clause'),
+      '17b D-2a every clause of a template contract is a CLAUSE to the route — none a SECTION the model is told to leave empty',
+      exec.kinds.join('|'));
+    check(exec.n >= 3 && !/SHA-256|@example|Sealed|Executed/.test(exec.text),
+      '17c D-2b the seal card — hash, signers, e-mail addresses — is never sent as clause wording',
+      /SHA-256|@example|Sealed|Executed/.test(exec.text) ? 'the card leaked into the last clause' : 'clean');
+    const sizes = await drive(page, () => {
+      const canvas = document.getElementById('doc-canvas');
+      const out = {};
+      [15, 10].forEach(px => {
+        rlSetDocType(px);
+        const p = canvas.querySelector('p.text-\\[13\\.5px\\]');
+        out['at' + px] = { sheet: parseFloat(getComputedStyle(canvas).fontSize), p: p ? parseFloat(getComputedStyle(p).fontSize) : null };
+      });
+      rlSetDocType(15);
+      return out;
+    }, undefined, null);
+    check(!!sizes && sizes.at10.p != null && Math.abs(sizes.at10.p - sizes.at10.sheet) < 0.05 && sizes.at10.p < sizes.at15.p,
+      '17d D-3a the sealed paper’s paragraphs follow the reader’s size on screen — measured, not declared',
+      sizes && `15: sheet ${sizes.at15.sheet} p ${sizes.at15.p} · 10: sheet ${sizes.at10.sheet} p ${sizes.at10.p}`);
+    /* And the executed paper READS: a scripted answer under every clause. */
+    ai.reset();
+    ai.script(tool(withKeys((await headsOf(page, 'MK-A2')).map((hd, i) => ({ i, head: '', plain: 'Plain reading of clause ' + (i + 1) + '.' })), await headsOf(page, 'MK-A2'))));
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '17 Plain English on executed paper');
+    await pause(3000);
+    const execEd = await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      return { rows: docReadClauses(c).length, notes: document.querySelectorAll('.doc-read-note p').length,
+        partial: !!(c._readings && c._readings.partial) };
+    }, undefined, { rows: 0, notes: 0, partial: true });
+    check(execEd.rows >= 3 && execEd.notes === execEd.rows && !execEd.partial,
+      '17e D-2 an executed contract comes back with a reading under EVERY clause',
+      `${execEd.notes} readings for ${execEd.rows} clauses`);
+    await page.screenshot({ path: path.join(OUT, '17-executed.png') });
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      const s = window.__peD || {};
+      c.status = s.status; c.execution = s.execution; c.signatures = s.signatures; c.hash = s.hash;
+      c.redlineText = s.r; c.format = s.f;
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+    }, undefined, null);
+
+    /* ---- D-1 / D-3b / D-4: RICH PAPER with section titles over numbered
+       clauses, and one long heading in the front matter (MK-243's shape) */
+    const PARTD = [
+      '<h2>1. DEFINITIONS</h2>',
+      '<p><strong>1.1 Terms.</strong> Capitalised terms have the meaning given to them in this clause and nowhere else in this Agreement.</p>',
+      '<h3>(The Buyer and the Supplier are individually referred to as a "Party" and collectively as the "Parties").</h3>',
+      '<h2>2. REPRESENTATIONS, WARRANTIES &amp; COMPLIANCE</h2>',
+      '<p><strong>2.1 Supplier Warranties.</strong> Supplier represents and warrants that it has full legal authority to enter into and perform its obligations under this Agreement.</p>',
+      '<p><strong>2.2 Regulatory Compliance.</strong> Supplier shall maintain all necessary licenses, permits, and regulatory authorizations required for the manufacture, export, and transport of the Materials.</p>',
+      '<h2>3. INDEMNIFICATION &amp; LIABILITY</h2>',
+      '<p><strong>3.1 Indemnification by Supplier.</strong> Supplier shall defend, indemnify, and hold harmless Buyer, its affiliates, directors, officers, employees, and agents from and against any third-party claims.</p>',
+    ].join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      c.redlineText = html; c.format = 'rich';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      openWorkspace(c.id); renderWorkspace(c.id);
+    }, PARTD, null);
+    await pause(1500);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    const dHeads = await headsOf(page, 'MK-A2');
+    const dKinds = await drive(page, () => docReadClauses(state.contracts.find(x => x.id === 'MK-A2')).map(r => r.kind), undefined, []);
+    ai.reset();
+    ai.script(tool(withKeys(dHeads.map((hd, i) => ({ i, head: '',
+      plain: dKinds[i] === 'section' ? '' : (i === 2
+        ? 'Buyer and Supplier are each called a "Party" on their own, and together the "Parties".'
+        : 'Plain reading of this clause: you must do what it says, and the Supplier must keep every licence it needs for as long as this agreement runs.') })), dHeads)));
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '17 Plain English on sectioned paper');
+    await pause(3000);
+    const dEd = await drive(page, () => {
+      const canvas = document.getElementById('doc-canvas');
+      const paperH2 = Array.from(canvas.querySelectorAll('h2'));
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      const secs = notes.filter(n => n.querySelector('.dr-s'));
+      const level = paperH2.map(h => {
+        const t = h.textContent.trim();
+        const n = secs.find(x => x.querySelector('.dr-s').textContent.trim().replace(/^[\d.]+\s*/, '') === t.replace(/^[\d.]+\s*/, ''));
+        return n ? Math.abs(n.getBoundingClientRect().top - h.getBoundingClientRect().top) : null;
+      });
+      const long = secs.find(n => /Parties/.test(n.querySelector('.dr-s').textContent));
+      let first = null, lines = 0;
+      if (long){
+        const h = long.querySelector('.dr-s');
+        const tn = Array.from(h.childNodes).find(x => x.nodeType === 3 && x.textContent.trim());
+        const r = document.createRange(); r.setStart(tn, 0); r.setEnd(tn, tn.textContent.length);
+        const rects = Array.from(r.getClientRects()).filter(x => x.width > 0);
+        lines = new Set(rects.map(x => Math.round(x.top))).size;
+        const firstTop = Math.min(...rects.map(x => Math.round(x.top)));
+        first = rects.filter(x => Math.round(x.top) === firstTop).reduce((a, x) => a + x.width, 0) / h.getBoundingClientRect().width;
+      }
+      const boxes = notes.map(n => n.getBoundingClientRect());
+      let overlap = false;
+      for (let i = 1; i < boxes.length; i++) if (boxes[i].top < boxes[i - 1].bottom - 0.5) overlap = true;
+      let inside = true;
+      notes.forEach(n => { const h = n.querySelector('.dr-s,.dr-h'), p = n.querySelector('p');
+        if (h && p && p.getBoundingClientRect().top < h.getBoundingClientRect().bottom - 0.5) inside = false; });
+      const sizeOf = el => el ? parseFloat(getComputedStyle(el).fontSize) : null;
+      const h2Note = secs.find(n => /DEFINITIONS/i.test(n.querySelector('.dr-s').textContent));
+      const leadNote = notes.find(n => n.querySelector('.dr-h'));
+      const leadPaper = canvas.querySelector('p strong,p b');
+      return { h2: paperH2.length, secs: secs.length, level, lines, first,
+        dump: notes.map(n => n.className.replace('doc-read-note', '').trim() + '|' + n.textContent.trim().slice(0, 24)),
+        overlap, inside,
+        h2Paper: sizeOf(paperH2[0]), h2Note: sizeOf(h2Note && h2Note.querySelector('.dr-s')),
+        leadPaper: sizeOf(leadPaper), leadNote: sizeOf(leadNote && leadNote.querySelector('.dr-h')),
+        pPaper: sizeOf(canvas.querySelector('p')), pNote: sizeOf(notes.find(n => n.querySelector('p')).querySelector('p')) };
+    }, undefined, null);
+    /* Level with its own title — or stepped DOWN by a long reading above it
+       (the layer's own promise), never above it, and the first one exactly level. */
+    check(!!dEd && dEd.h2 === 3 && dEd.secs >= 3 && dEd.level.every(d => d != null && d > -1) && dEd.level[0] < 4,
+      '17f D-1 the three section titles are DRAWN in the edition, each level with (or stepped below) its own on the paper',
+      dEd && `${dEd.secs} of ${dEd.h2}, offsets ${JSON.stringify(dEd.level)}`);
+    check(!!dEd && dEd.lines >= 2 && dEd.first > 0.9,
+      '17g D-4 a wrapped heading fills its first line before it breaks — no balancing',
+      dEd && `${dEd.lines} lines, first line ${Math.round((dEd.first || 0) * 100)}% of the column · ${JSON.stringify(dEd.dump)}`);
+    check(!!dEd && dEd.overlap === false && dEd.inside === true,
+      '17h D-4 no two entries overlap, and inside one the heading sits above its reading',
+      dEd && `overlap ${dEd.overlap} · inside ${dEd.inside}`);
+    check(!!dEd && dEd.h2Paper != null && dEd.h2Note === dEd.h2Paper && dEd.leadNote === dEd.leadPaper && dEd.pNote === dEd.pPaper,
+      '17i D-3b the edition’s headings, lead-ins and body are the SIZE of what they face — measured',
+      dEd && `h2 ${dEd.h2Paper} vs ${dEd.h2Note} · lead ${dEd.leadPaper} vs ${dEd.leadNote} · body ${dEd.pPaper} vs ${dEd.pNote}`);
+    /* D-3c: one press, both columns, in the same frame — read synchronously
+       after the setter, before any ResizeObserver could have run. */
+    const press10 = await drive(page, () => {
+      const canvas = document.getElementById('doc-canvas');
+      const note = () => document.querySelector('.doc-read-note p');
+      const before = parseFloat(getComputedStyle(note()).fontSize);
+      rlSetDocType(10);
+      const paper = parseFloat(getComputedStyle(canvas.querySelector('p')).fontSize);
+      const after = parseFloat(getComputedStyle(note()).fontSize);
+      const h2 = parseFloat(getComputedStyle(canvas.querySelector('h2')).fontSize);
+      const s = document.querySelector('.doc-read-note .dr-s');
+      const h2Note = s ? parseFloat(getComputedStyle(s).fontSize) : null;
+      rlSetDocType(15);
+      return { before, paper, after, h2, h2Note };
+    }, undefined, null);
+    check(!!press10 && press10.after < press10.before && Math.abs(press10.after - press10.paper) < 0.05 && press10.h2Note === press10.h2,
+      '17j D-3c one press on the size control moves both columns together, in the same frame',
+      press10 && `note ${press10.before} → ${press10.after}, paper ${press10.paper}; h2 ${press10.h2} vs ${press10.h2Note}`);
+    await page.screenshot({ path: path.join(OUT, '17-sections.png') });
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

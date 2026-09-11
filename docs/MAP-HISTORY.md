@@ -18891,3 +18891,73 @@ Tests: f299 (13 — **all thirteen fail against the parent**); insights-panels-v
 ## THE UPLOAD IS ITS OWN PAPER — THE HEADER BLOCK IS GONE (C-7, Young ruled 11 Sep 2026)
 
 The brief asked for three measurements before a line was written, and a proposal to wait on: *"the block above the wording does not look like the rest of the product … measure and advise … nothing comes off that page without my word."* Filed through the product's own store, three contracts with the same wording where a like-for-like was needed: an ordinary contract with stored wording, an upload with its structure stored, and a text-only upload. **The header block** — *EXTERNAL DOCUMENT · RECEIVED · MK-U2* in mono capitals over the name in the platform's face, on its own ruled line — measured 78 px plus a 24 px margin; the first line of the same wording sat at 372 on the ordinary contract and 563 on the structured upload. What it said that the room header twelve pixels above did not: nothing. The reference and the name are the room header's; "received" is what the file strip says, with the file, who filed it, Download original and Re-read document. **Whether it travelled**: yes, both ways. `docBody` dispatches to `uploadDocBody` FIRST for anything with `source:'upload'`, and `docBody` is what a share's `viewBody` is built from where there is no stored wording — the payload of a text-only upload was measured carrying the caption, the reading caption and the strip's markup — while an upload with stored wording carries `source` and `upload` on the payload, so the counterparty's page ran `uploadDocBody` ITSELF. Two real review links were minted and opened: both pages printed our filing language, in our typeface, over their paper. The same builder feeds `exportPDF` and the phone's document. **The wording size**: the text-only branch named 13 px against the sheet's `calc(14px × --doc-scale)`. The owner said *"Go with your proposal"*, which had recommended nothing at the top of an upload (the other side's paper carries its own title; the paper head says *Between us and them* and names OUR market) and keeping the reading caption. **Built**: the block removed from `uploadDocBody` with nothing in its place; because it is the one builder, the counterparty's page, the PDF export and the phone follow with the same edit — the two links were re-minted and re-opened, the phrase gone, the wording still there; `ct_external_received` left inert in both books and swept for a CALL (the builder's own comment names it, so a bare-mention sweep would have failed on the record of the removal); `documentTextHtml` learned `size:null` — the wrapper names no pixel size and inherits the sheet's, the heading and the ruled block take ratios of it (1.07em, .89em — the +1 / −1.5 relations as fractions of 14), and every other caller keeps its pixels. Measured after: 563 → 461 and 483 → 381, exactly the block; the text-only wording 14 px against the sheet's 14. A record already sealed keeps whatever copy it froze; records sealed after the change freeze the paper without the block. The file strip stays by the owner's word. Tests: f303 (the block absent on both shapes of upload, nothing drawn in its place, the strip and caption kept, the inherited shape, the key inert and unread — the node stage supplies `ocrBannerHtml`, which that builder reads unguarded); upload-party-verify C7a–C7e (a real link opened; against the parent C7a reports the caption, C7c 13px against 14, C7d the block first in the list above the wording, C7e the phrase on their page).
+
+## THE EXECUTED PAPER IS READ, THE HEADINGS ARE DRAWN, THE SIZES ARE MEASURED (Part D, 11 Sep 2026)
+
+The owner sent four screenshots of the Plain English edition and then three
+more of the note window and the negotiation page, and asked for a review
+before any code. The review is `WORKORDER-plain-english-four-reports.md`;
+this is the story behind the rules that landed.
+
+**Image 2 — the headings.** The section titles were in the answer HaTi stored
+(8 items) and the screen drew 5. `docReadAnchors` kept a section only where
+the reading had a body OR the item carried a model-written `head`; the 10
+Sep ruling stopped asking the model for headings and the prompt tells it to
+leave a section's reading empty, so both halves were false on every section
+title. The server had kept them all along — two hosts disagreeing about one
+row. Young chose option A: every row that was sent draws its heading, a
+clause the model had nothing to say about included; the server's own drop of
+an empty clause row went with it.
+
+**Image 3 — "executed contracts come back with no reading".** Three faults on
+one page, each measured on an executed template contract staged in a real
+browser. Every clause of template paper is an `<h4>` over a `<p>`, so the walk
+called every one a SECTION and the prompt told the model, in capitals, that a
+SECTION reads EMPTY. The last clause's range ran to the end of the canvas
+because a sealed record's signature card is `.seal-in`, not `.rl-paper-foot`:
+743 characters ending "IPRS identity and CAK-accredited PKI are on the
+roadmap" were sent as clause 4, e-mail addresses included, and image 4's own
+reading printed them back. And when eight of eight echoes failed the route
+only counted, so nobody could read why; the leading hypothesis — the doc line
+read `[R0] SECTION 1. Purpose` while the prompt said "copied exactly as it was
+given after the key", so a literal model echoed the label — is now tolerated
+on both sides of the comparison, and every refusal is named on the record and
+in the log so the next one can be read rather than guessed.
+
+**Image 4 — the sizes.** A contract sealed before the 22 Aug size sweep carries
+`text-[13.5px]` on its paragraphs and the compiled blob resolves that to a
+flat 15px: at the 10 setting the sheet went to 9.34px, the sealed paragraph
+stayed at 15, and the edition — which measures the SHEET — followed the sheet.
+The fix is a screen rule in HaTi's own sheet scoped to the Document tab's
+paper; the sealed markup, the hash, the export and the counterparty copy do
+not move. The edition's headings were typed ratios (1.13em, 1em) against a
+paper whose headings are 1.16, 1.04 and 1.05em; each entry now measures the
+heading it faces, the way the body and the face already were. And one press on
+the size control repaints both columns in the same frame, rather than waiting
+for the canvas to change height.
+
+**Image 1 — the wrap.** `text-wrap:balance` evened a wrapped title's lines by
+breaking the first one early. Off. The two lines sitting on each other in the
+owner's screenshot did not reproduce on the h3 shape staged here (17h measures
+no overlap and every heading above its reading); it is said in the run log
+and not called fixed.
+
+**The note window (D-5, D-6).** Two lead sentences of different lengths made
+the window jump on the room press; the lead now reserves one line and the six
+sentences are written to fit it in both books, and the window's height is
+measured equal across the rooms. Young then ruled Internal first — reversing
+the 1 Sep ruling and C-3's default from the same morning, and both are written
+beside the reading — and asked for a note per room in one window: a draft per
+room, a dot on the other tab while it holds words, Add note posting each to
+its own room through the one writer, Skip asking where either holds words.
+
+**The change bars (D-7).** "Just like Microsoft Word": `right:-18px` became
+`left:-18px` on the clause rule and its front-matter twin, one stylesheet
+reaching the negotiation page, the clause editor, the counterparty's page and
+the phone; redline-verify and parity-verify pin the relation — inside the
+sheet, left of the wording — never a pixel.
+
+**Already red at the parent, proved in a worktree-equivalent stash run:**
+clause-door-verify 16d4/16d5, paper-grows-verify 5d/6, settled-ask-reopen-verify
+"the adopted change has no card"; plain-english-verify 6c, which C-7 left red
+by taking the upload's one painted h-tag, re-pointed to `painted <= 1`.

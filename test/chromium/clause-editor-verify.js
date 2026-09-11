@@ -2814,14 +2814,16 @@ const dismissNote = async pg => {
        /skip/i.test(dlg.skip || '') && /add/i.test(dlg.go || '') && dlg.del === false,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
     /* RE-POINTED 11 Sep 2026 (C-3): the line that read the choice back is the
-       CHOICE now — two tabs, External lit at rest, the counterparty named on
-       the external tab's hover. */
-    ck('25e it names WHO reads it, before you type — on the room control, External lit at rest',
+       CHOICE now — two tabs, the counterparty named on the external tab's
+       hover. RE-POINTED AGAIN the same day (D-6): INTERNAL lit at rest, by the
+       owner's later word; External is a press away. */
+    ck('25e it names WHO reads it, before you type — on the room control, Internal lit at rest',
        /reads this|l\u00e4ser detta/i.test(dlg.who || '') && dlg.keep === false
-       && JSON.stringify(dlg.rooms) === JSON.stringify(['internal', 'external*']),
+       && JSON.stringify(dlg.rooms) === JSON.stringify(['internal*', 'external']),
        `"${(dlg.who || '').trim().slice(0, 60)}" · ${JSON.stringify(dlg.rooms)}`);
-    ck('25e2 and the lead asks for the explanation, naming the side that will read it',
-       /why|varf\u00f6r/i.test(dlg.lead || ''), (dlg.lead || '').trim().slice(0, 60));
+    ck('25e2 and the lead names the room that is lit — the colleagues, and that the other side never sees it',
+       /colleagues|kollegor/i.test(dlg.lead || '') && /never sees|ser den aldrig/i.test(dlg.lead || ''),
+       (dlg.lead || '').trim().slice(0, 60));
 
     /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
     await p.evaluate(() => {
@@ -2838,8 +2840,11 @@ const dismissNote = async pg => {
       return { gone: !document.getElementById('rl-note-overlay'),
         text: t.text, vis: t.visibility, who: t.who };
     });
-    ck('25f Add note files it as the EXPLANATION the other side reads, onto the change it named',
-       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'shared',
+    /* RE-POINTED 11 Sep 2026 (D-6): the window opens on Internal, so a note
+       typed and added without touching the tabs is an INTERNAL note — at
+       home, on the change it named. The external half is driven below. */
+    ck('25f Add note files it onto the change it named, in the room that was lit — Internal at rest',
+       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',
        `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
     ck('25g and the dialog goes', wrote.gone === true);
 

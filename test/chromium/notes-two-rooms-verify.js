@@ -582,6 +582,45 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);
 
+    /* ============ D-5 / D-6 (11 Sep 2026): ONE HEIGHT IN BOTH ROOMS, INTERNAL
+       AT REST, A DRAFT PER ROOM ============ */
+    const d6 = await page.evaluate(async () => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const cl = negoClauseList(c)[2] || negoClauseList(c)[0];
+      const ch = await negoEditClause(c, cl.clauseId, '<p>Deliver within ten (10) days.</p>', { side: 'owner' });
+      const before = (ch.thread || []).length;
+      const p = openChangeNoteDialog(c, ch, { filed: true, side: 'owner' });
+      await new Promise(r => setTimeout(r, 80));
+      const ov = () => document.getElementById('rl-note-overlay');
+      const dlg = () => ov().querySelector('.rl-note-dlg');
+      const lead = () => ov().querySelector('.rl-note-lead');
+      const lit = () => [...ov().querySelectorAll('[data-rl-note-room]')].find(b => b.getAttribute('aria-selected') === 'true').getAttribute('data-rl-note-room');
+      const atRest = lit();
+      const hInt = dlg().getBoundingClientRect().height, leadInt = lead().getBoundingClientRect().height;
+      const lh = parseFloat(getComputedStyle(lead()).lineHeight);
+      const box = () => ov().querySelector('#rl-note-in');
+      box().value = 'For us: hold at ten.'; box().dispatchEvent(new Event('input', { bubbles: true }));
+      ov().querySelector('[data-rl-note-room="external"]').click();
+      await new Promise(r => setTimeout(r, 80));
+      const hExt = dlg().getBoundingClientRect().height, leadExt = lead().getBoundingClientRect().height;
+      const extEmpty = box().value === '';
+      const dot = !!ov().querySelector('[data-rl-note-room="internal"] .rl-note-dot');
+      box().value = 'Ten days is what your own order form says.'; box().dispatchEvent(new Event('input', { bubbles: true }));
+      ov().querySelector('#rl-note-ok').click();
+      const out = await p;
+      const posted = (ch.thread || []).slice(before);
+      return { atRest, hInt, hExt, leadInt, leadExt, lh, extEmpty, dot, out,
+        n: posted.length, vis: posted.map(m => m.visibility || 'internal'), texts: posted.map(m => m.text) };
+    });
+    check('D-6 the window opens on Internal', d6.atRest === 'internal', d6.atRest);
+    check('D-5 the window is ONE height in both rooms', Math.abs(d6.hInt - d6.hExt) < 0.5, `${d6.hInt} vs ${d6.hExt}`);
+    check('D-5 and the lead is exactly one line in both', Math.abs(d6.leadInt - d6.lh) < 1 && Math.abs(d6.leadExt - d6.lh) < 1,
+      `${d6.leadInt} / ${d6.leadExt} against a line of ${d6.lh}`);
+    check('D-6 External opens on its own empty draft, and the Internal tab says it holds words', d6.extEmpty && d6.dot,
+      `empty ${d6.extEmpty} · dot ${d6.dot}`);
+    check('D-6 Add note posts BOTH, each to its own room', d6.out === 'added' && d6.n === 2
+      && d6.vis.includes('internal') && d6.vis.includes('shared'), `${d6.n} posted: ${d6.vis.join(', ')}`);
+
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {
     check('the run completed', false, e && e.message);

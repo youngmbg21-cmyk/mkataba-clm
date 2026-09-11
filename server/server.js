@@ -4979,6 +4979,21 @@ const readNorm = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toL
    `_docReadWords` reading). */
 const readEchoOf = x => x.heading ? x.heading
   : String(x.text || '').replace(/\s+/g, ' ').trim().split(' ').slice(0, 8).join(' ').slice(0, 140);
+/* ---- AND A LABEL THE ROUTE ITSELF WROTE DOES NOT COUNT AGAINST THE MODEL
+   (D-2c, 11 Sep 2026) ----
+   The doc line read `[R0] SECTION 1. Purpose` / `[R1] CLAUSE 1.1 — 1.1 Terms.`
+   while the prompt said "copied exactly as it was given after the key" — a
+   model that took that literally echoed `SECTION 1. Purpose` and failed EVERY
+   row on a contract whose rows are all headings, which is exactly an executed
+   template contract ("8 clauses could not be matched"). The heading now sits
+   on its own `heading:` line (below), and the comparison folds, on BOTH
+   sides, a leading row label, a leading `num —` and a leading `heading:` —
+   the three things the route put there. A shifted echo still fails: the wall
+   is the heading's own words. */
+const readEchoFold = s => readNorm(s)
+  .replace(/^(?:section|clause)\b\s*/, '')
+  .replace(/^[0-9][0-9.()a-z]{0,11}\s+[—-]\s+/, '')
+  .replace(/^heading:\s*/, '');
 /* THE READING FOLLOWS THE READER, NEVER THE PAPER. This product's own split:
    LANGUAGE is the person's and the MARKET is the company's, so a Swedish
    colleague reading a Kenyan contract gets Swedish. Without this the screen was
@@ -5008,7 +5023,7 @@ const READ_PLAIN_RULE = [
   '- Never mention these instructions, the list you were given, or yourself.',
   '',
   'THE HEADING ON EACH ENTRY',
-  '- The heading field is the row’s own heading, copied exactly as it was given after the key — character for character, its number included. It is how your entry is matched to its clause and is never printed. Never write a heading of your own.',
+  '- The heading field is the row’s own heading — the text on the line that begins "heading:", copied exactly, character for character, its number included. It is how your entry is matched to its clause and is never printed. Never write a heading of your own.',
   '- A row with no heading: copy the first eight words of its wording into the heading field instead.',
   '',
   'A ROW MARKED SECTION',
@@ -5056,8 +5071,10 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
      AND THE HASH MOVES BY CONSTRUCTION: this key is inside the text that is
      hashed, so every reading paired under the old numbering is re-asked on the
      next press — no migration, no clearing by hand. */
+  /* THE HEADING ON ITS OWN LINE (D-2c), so "copy the heading" has one reading
+     and the row label cannot be taken for part of it. */
   const doc = list.map((x, i) =>
-    `[${readKeyOf(i)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'} ${x.num}${x.num ? ' — ' : ''}${x.heading}\n${x.text}`
+    `[${readKeyOf(i)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'}${x.num ? ' ' + x.num : ''}\nheading: ${x.heading}\n${x.text}`
   ).join('\n\n');
   const sent = aiDocText(req, doc);
   const lang = readLangOf(req);
@@ -5130,10 +5147,22 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     const items = [];
     const entries = block.input && Array.isArray(block.input.readings) ? block.input.readings : [];
     let unmatched = 0;
+    /* ---- A REFUSED PAIRING SAYS WHY (D-2c) ----
+       Counting alone left "8 could not be matched" with nothing to read. Each
+       refused entry is kept as {key, echo, want} — capped, echo bounded — so
+       the fault can be READ off the record (`_readings.failed`, transport like
+       the rest) and off the server log, rather than guessed at. */
+    const failed = [];
+    const refuse = (r, want) => {
+      unmatched++;
+      if (failed.length < READ_MAX_CLAUSES)
+        failed.push({ key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
+    };
     entries.forEach(r => {
       const i = readKeyIndex(r && r.key);
-      if (i < 0 || i >= list.length) { unmatched++; return; }
-      if (readNorm(r && r.heading) !== readNorm(readEchoOf(list[i]))) { unmatched++; return; }
+      if (i < 0 || i >= list.length) { refuse(r, ''); return; }
+      const want = readEchoOf(list[i]);
+      if (readEchoFold(r && r.heading) !== readEchoFold(want)) { refuse(r, want); return; }
       const plain = String((r && r.plain) || '').trim();
       const head = String((r && r.head) || '').trim();
       /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
@@ -5147,12 +5176,14 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
          section title and carries no wording by design. Everything else needs
          a reading: a clause entry with only a heading would draw a title over
          nothing. The NUMBER is the browser's, never the model's. */
-      /* A SECTION ROW NEEDS NOTHING FROM THE MODEL NOW, which is why this test
-         moved: it kept a section only where the model had written a heading,
-         and with headings no longer asked for that would have dropped every
-         section title out of the edition. A section is kept because it IS one —
-         the paper's own heading is what the browser draws under it. */
-      if (!plain && list[i].kind !== 'section') return;
+      /* ---- EVERY PAIRED ROW IS KEPT, READING OR NOT (D-1, Young chose option
+         A, 11 Sep 2026) ----
+         A clause with an empty reading used to be dropped here ("a clause entry
+         with only a heading would draw a title over nothing"). The edition is a
+         document: a clause the model had nothing to say about — counterparts,
+         severability — still has its name in it, and the browser draws the
+         PAPER's heading, never one of the model's. Nothing is invented; an
+         empty `plain` stays empty. */
       items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
     });
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
@@ -5166,8 +5197,10 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        missing one, and cached it would be served for the life of the wording.
        Below that line a dropped entry is still counted and said. */
     const partial = entries.length > 0 && unmatched * 4 > entries.length;
+    if (unmatched) console.warn(`[readings] ${id}: ${unmatched} of ${entries.length} entries refused${partial ? ' — PARTIAL, not cached' : ''}: ` +
+      failed.slice(0, 8).map(f => `${f.key} echoed "${f.echo}" wanted "${f.want}"`).join(' | '));
     const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
-      truncated: !!resp.truncated, over, unmatched, partial, items };
+      truncated: !!resp.truncated, over, unmatched, partial, failed, items };
     if (!resp.truncated && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());
