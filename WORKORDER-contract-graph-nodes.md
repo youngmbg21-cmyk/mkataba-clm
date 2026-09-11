@@ -833,3 +833,67 @@ height without, at 1500 and at 1024. Re-point the 30 Aug section's claim
 the room's editor have no `#ce-say` and were not measured; if the same
 sentence is spoken on a strip there, it is a line in BUGLOG.md, not a fix
 on the way past.
+
+## C-5 THE NOTE WINDOW COMES UP ON EVERY FILING ON A CLAUSE, NOT ONLY THE FIRST
+
+**The owner's report, 11 Sep 2026, verbatim:** *"when i redline Clause A and
+close, I get the pop up note window to give a reason. If i go back later to
+Clause A and make another redline, this time when i close i do not get a pop
+up to add a note. This should not be the case."*
+
+**What stands today, and what this reverses.** On 31 Aug 2026 the owner
+ruled decision D — *asked once, on the first filing; revisions file
+silently* — and `rlNoteAskAfterFile` (js/views/negotiation.js) keeps it
+with one line: `if ((ch.revisions || []).length) return`. A second redline
+on a clause that already carries our pending ask FOLDS into the same change
+through the funnel's revision fold (ONE PROPOSAL ON THE TABLE), `revisions`
+grows by one, and the window is not raised. From the reader's chair the
+second filing is as much a filing as the first, and the explanation they
+would give may have changed with the wording. **This section reverses
+decision D:** the window is raised on every filing that moves the wording
+on our seat. The earlier ruling's reason — a revision is the same ask, so
+the same note stands — survives as what the window SHOWS, not as a reason
+to stay shut.
+
+**The ruling to build.**
+
+1. **THE GATE GOES.** `rlNoteAskAfterFile` drops the `revisions` test and
+   asks on every filing on our seat where `notesMayWrite` says yes — a new
+   change, a revision folded into our pending one, an insertion, a
+   deletion. Both callers inherit it (the funnel wrapper in
+   js/views/negotiation.js and the clause editor's pencil/File in
+   js/views/clauseeditor.js); no third caller is added.
+2. **A REVISION OPENS ON THE NOTE ALREADY GIVEN.** Where the reader already
+   wrote a note on this change (`negoMyNote`), the window opens with that
+   note IN THE BOX and its verb reads *Save* (`ng_note_save`), exactly as it
+   does when opened from the change's own Notes row today — so a second
+   filing lets the reader keep, amend or delete the reason rather than write
+   it twice. Where a note was given but has already been DELIVERED
+   (`negoNoteDelivered` — `sentAt` stamped, the other side is holding it),
+   the box opens EMPTY for a further note and the delivered one is printed
+   above it in the "already said" list the window already draws (`past`):
+   a delivered note is a record, not a draft. The headline stays the
+   filing's (*CHG-002 filed*, the tick); the lead sentence says it is a
+   revision where it is one (one new key, both books, e.g. *"You changed
+   the wording again — update the reason, or skip."*).
+3. **C-3's ROOM CONTROL RIDES ALONG**: where C-3 has landed, the control on
+   a revision's window is SET to the existing note's room and disabled (a
+   fact), and live only for a fresh note.
+4. **NOTHING ELSE MOVES.** The window still never blocks the filing (every
+   caller has filed, persisted and repainted before it opens); Skip still
+   costs nothing; the counterparty's seat is untouched (`side !== 'owner'`
+   still returns); Edit and Delete from the Notes row are unchanged.
+
+**The nets.** A model test that `rlNoteAskAfterFile` opens the window on a
+change with one revision on our seat (against the parent it resolves null),
+and still resolves null on the counterparty's side and for a viewer. A
+browser section on clause-editor-verify (beside section 23, which drives
+the window) that files on a clause, skips, files a second redline on the
+SAME clause through the pencil, and measures the window up with the lead
+naming a revision; then adds a note, files a third time, and measures the
+box pre-filled with that note and the verb reading Save. Against the parent
+the second window never comes up and the section reports it.
+
+**The comment above `rlNoteAskAfterFile` is rewritten** to record both
+rulings and their dates — the 31 Aug reason for once, and the 11 Sep reason
+for every time — so the next reader does not put the gate back as a fix.
