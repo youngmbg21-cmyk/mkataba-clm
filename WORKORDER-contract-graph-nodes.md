@@ -1167,3 +1167,88 @@ against the parent first and record the count it fails at.
 middle dot as the literal text `&middot;` (the writer decodes a fixed set of
 entities and that one is not on it — `decodeXmlEntities`). Under "Noticed,
 not fixed".
+
+### C-7 — MEASURED 11 Sep 2026, on a real HaTi in a real browser (1500×1000). Nothing changed. THE PROPOSAL WAITS FOR THE OWNER'S YES.
+
+Three contracts were filed through the product's own store with the SAME
+wording where a like-for-like was needed (`test/helpers` `startHati`, the
+admin signed in, the Document tab): an ordinary contract with stored wording,
+an upload with its structure stored (same wording), and a text-only upload
+(the Word text read out, no structure).
+
+**1. THE HEADER BLOCK, side by side.**
+
+| | ordinary contract | upload (structure stored) | upload (text only) |
+|---|---|---|---|
+| above the wording | nothing but the paper's own top (the wording's own title) | *EXTERNAL DOCUMENT · RECEIVED · MK-U2* over the name in the platform's face, on its own ruled line — **78 px + 24 px margin**; then the file strip (38 + 16); then *Text read out of the Word file* (21 + 14) | the same block **78 + 24**; the strip; the same caption |
+| first line of wording, from the window top | **372 px** | **563 px** (+191) | 483 px |
+| wording size (sheet is 14 px × the reader's scale) | 14 px | 14 px | **13 px** |
+
+What the block says that the room header 12 px above it does not: **nothing.**
+The room header already prints *Contracts / MK-U2*, the name, *In Review*,
+the stream, the round, the value and the date; "received" is what the file
+strip says with the file's name, who filed it, Download original and Re-read
+document. The block is the id and the name printed a second time, plus the
+word "received" printed a second time. It costs **102 px** of paper.
+
+**2. WHETHER IT TRAVELS — yes, both ways, proved on a real link.** The block
+is drawn by `uploadDocBody`, which `docBody` dispatches to FIRST for any
+record with `source:'upload'`, and `docBody` is what the share payload's
+`viewBody` is built from (text-only uploads: `contract.viewBody` was measured
+carrying *External Document · received · MK-U1*, the *Text read out of the
+Word file* caption AND the file strip's markup) — and, for an upload with
+stored wording, the payload carries `source` and `upload`, so the
+counterparty's page runs `uploadDocBody` ITSELF. A real review link was
+minted for each and opened: **both counterparty pages print "EXTERNAL DOCUMENT
+· RECEIVED · MK-U1/U2" over our name in our typeface** (the strip's acts do
+not travel; the caption does). The same builder feeds `exportPDF`
+(js/views/portal.js, `holder.innerHTML = docBody(c)`) and the phone's document
+(js/mobile-contract.js, `docBody(c)`). The sealed copy: see the note below.
+
+**3. THE WORDING SIZE — confirmed.** A text-only upload is set at **13 px**
+(`documentTextHtml(u.extractedText, {size:'13px'})` in the text branch of
+`uploadDocBody`), against the sheet's own `calc(14px × --doc-scale)`; the
+heading in that branch is size + 1, the ruled blocks size − 1.5. It should be
+the sheet's own size — 14 px × the reader's scale, the same line-height —
+which is what every other wording on that tab is set in; the branch should
+stop naming a size and let `.hati-doc` govern (the +1 / −1.5 relations then
+follow from the sheet's size).
+
+**THE SIX QUESTIONS, run.** Q1 the general practice: the agreement is drawn
+as the agreement; provenance is a fact in the record's header and file
+metadata, never a caption on the paper. Q2 the cheapest channel is NOTHING —
+every fact in the block is already on screen in the room header or on the
+file strip. Q3 the paper gains 102 px; nothing grows. Q4/Q5 not engaged. Q6
+the reader lands on the same tab with the wording 102 px higher; the
+counterparty's copy stops carrying our filing language; the PDF export and
+the phone follow by construction (one builder).
+
+**THE PROPOSAL (nothing comes off without the owner's word).**
+(a) Remove the *External Document · received · MK-000* caption and the
+platform-face name block from `uploadDocBody`; leave `ct_external_received`
+inert in both books and record it stale. In its place draw NOTHING: an
+uploaded document is the other side's paper and carries its own title in its
+wording (measured — the stored structure's h1, or the text's first line), and
+the room header carries the name and the reference. Where the wording carries
+no top at all, `docPaperHeadHtml` is NOT drawn either — that head says
+"Between us and them" and names OUR market, which is not what a received
+document says; say this out loud as the one judgement in the proposal.
+(b) Because the block is drawn by the one builder, it leaves the
+counterparty's page, the PDF export and the phone with the same change — no
+second edit, and the counterparty page is re-measured byte-for-byte after.
+(c) The text-only branch takes the sheet's own size (14 px × scale).
+(d) Keep, untouched: the file strip (owner's word), and the *Text read out of
+the Word file* caption (a fact about the reading the strip does not say —
+the owner may rule on it separately).
+(e) NOT DONE by this: a record already SEALED keeps whatever copy it froze
+(`execution.html` is never rewritten); the seal's hash is over the canonical
+text and is not disturbed. Records sealed after the change freeze the paper
+without the block.
+(f) Nets: a browser file measuring the first line of wording on the three
+fixtures before and after (a RELATION: the upload's first line minus the
+ordinary's equals the strip and caption alone), the counterparty page for the
+text-only upload not containing the phrase, `ct_external_received` read by no
+builder, and the text-only wording's computed size equal to the sheet's.
+
+Standing question for the owner, with the yes: (a)'s judgement — nothing at
+the top of an upload versus the paper head — and whether (d)'s caption stays.
