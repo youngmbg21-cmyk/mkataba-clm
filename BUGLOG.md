@@ -12692,3 +12692,4 @@ Proved: f303 4/4; upload-party-verify 25/25 (C7a, C7c, C7d, C7e-0, C7e fail at t
 Noticed, not fixed
 - The file strip on a fixture with `textSource:'docx'` and no read report says "Text not machine-readable"; the strip's reading of a docx with no report is the strip's own subject, untouched.
 - The "Text read out of the Word file" caption draws on a STRUCTURED upload too (one with stored wording), where the wording drawn is the stored structure, not text read out; kept by the owner's ruling, the wording of the caption on that shape is a separate question.
+- Proved for C-7 on the branch: full suite 6616/6616; lint 0 errors.
