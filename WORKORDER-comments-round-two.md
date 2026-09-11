@@ -155,6 +155,29 @@ verb decides whether Copilot may touch the wording.* Refusal 5 (one door):
 Edit with Copilot is not a second door onto the editor — it is the pencil's
 door pressed with a passage in hand, through the same `rlOpenClauseEditor`.
 
+## THE OWNER'S ANSWERS (later the same evening)
+
+- **9**: *"negotiation page, if you highlight multiple sentences it does not
+  offer you comment or ask copilot."* — so 9 IS item 1 on the paper: a
+  selection spanning more than one paragraph gets no offer at all. A defect
+  in `rlPaperSelOffer`'s silence cases, not a change of ruling; the Document
+  tab stays as it is.
+- **10 (a)**: *"Yes."* — after Ask Copilot answers, the answer card carries a
+  way into editing (*Edit with this*): it opens the clause editor with the
+  passage attached and Copilot's answer as the proposal, Apply live. No need
+  to re-highlight.
+- **1**: *"Yes it should."* — Comment accepts a quote spanning several
+  paragraphs. The anchor's `quote` holds the whole selection (paragraph
+  breaks kept as newlines); the marker sits beside the first paragraph; the
+  highlight on the paper covers every selected paragraph; the Word comment
+  range runs from the first quoted run to the last.
+
+**The rule that follows for every highlight on the negotiation paper and in
+the editor**: a selection is offered the three verbs whenever it lies inside
+ONE clause, however many paragraphs it spans; silence is kept only for the
+front matter, a drag across two clauses, and a drag that starts outside the
+clause.
+
 ## ORDER WHEN THE OWNER SAYS GO
 
 3/6 (two words), 8 (one caption off), 7 (the pin spends on Add note), 5
