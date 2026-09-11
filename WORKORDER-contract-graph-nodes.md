@@ -460,3 +460,223 @@ overnight half. Each lands with its own tests. One branch, merged to `main`
 when the last lands, on the owner's standing instruction. A part that turns
 out blocked is finished as far as it goes and the block is named in the
 summary; the rest still lands.
+
+---
+
+# PART C — ADDED 11 Sep 2026, AFTER PARTS A AND B LANDED. NOT BUILT.
+
+Two jobs appended by the owner on the day Parts A and B merged. Both wait
+for the owner's go, exactly as the parts above did, and start from the
+latest `main`.
+
+## C-1 THE MAP COPILOT GETS EVERYTHING THE MAP KNOWS
+
+**What the owner saw (11 Sep 2026).** They typed *"cluster by expiration
+date"* into the Contract Graph's panel. The panel answered *"All contracts ·
+clustered by expiration date"*, the caption switched to *Grouped by Copilot
+grouping*, and every node stayed on its value-stream hub. Two turns earlier,
+*"cluster by timeline of when they were signed"* and *"cluster them by month
+they were created"* had both been excused with *"I don't have those dates"*
+and silently regrouped by status. The owner's words: *"it gave me an answer
+but as you can see from the nodes, it was not correct."* Then: *"what can we
+do to give copilot maximum information including what we just discussed
+above?"* — and this section is the answer, written down.
+
+**The cause, found on 11 Sep.** Map commands go through `POST /api/ai/graph`
+(server/server.js), whose `render_graph` tool allows `groupBy` to be only
+`folder · counterparty · status · valueBand · kind · custom` — no `expiry`,
+no `decision`, no `payterms`, no `risk`, no `source`, though every one of
+those is on the Group By dropdown (`groupOpts` in js/views/intelligence.js)
+and drawn by `groupLabelOf`. The card each contract travels as carries only
+`id · name · counterparty · folder · kind · value · status · expiry`
+(`intelGraphAsk`'s payload) — no signed date, no created date, no renewal
+decision date. Faced with a dimension it may not name, the model answered
+`custom` with an empty `groups` map and a label; `intelGraphAsk` took
+`res.groupBy` on trust, set `intel.groups` to nothing, and `groupLabelOf`'s
+`default` branch drew the folder. Nothing checks that a grouping Copilot
+returns contains a single contract, and the chat line is Copilot's own
+sentence, never a reading of what the map did.
+
+**The rulings to build, in this order.**
+
+1. **THE GROUPING MENU IS THE DROPDOWN'S.** The tool's `groupBy` enum becomes
+   the SAME list `groupOpts` carries (`folder · counterparty · status ·
+   valueBand · kind · expiry · payterms · decision · risk · source`) plus
+   `custom` — ONE list, published from the client and mirrored on the server
+   with a test pinning the two equal (the `IG_TABS` rule applied to
+   groupings). The buckets are HaTi's (`groupLabelOf`), never Copilot's:
+   *Expired · Within 30 days · 31–90 days · 3–12 months · Beyond a year · No
+   expiry set* for expiry, the quarters for decision, `payBucketOf` for
+   payment terms. Copilot names the dimension; the product cuts it.
+2. **THREE TIME GROUPINGS THE DROPDOWN DOES NOT HAVE YET**: *signed year*,
+   *signed quarter*, *expiry year* (a fourth, *created month*, only if
+   `created_at` rides the light list — check). Each reads ONE existing
+   reading — `contractSignedAt` (js/negotiation.js, the one reading of when),
+   `effectiveExpiry` — and lands in `groupLabelOf` beside `expiry`, and on
+   the dropdown too, so the typed command and the control cannot disagree.
+   A contract with no such date is its own bucket, named ("Not signed",
+   "No expiry set"), never folded in.
+3. **THE CARD CARRIES EVERY FACT THE MAP DRAWS.** The per-contract card sent
+   to `/api/ai/graph` gains: `signedAt` (`contractSignedAt`), `createdAt`,
+   `decisionDate` (`renewalDecisionDate`), `noticeDays`, `effDate`,
+   `payTermsDays` (`metadata.paymentTerms`, the record, never the wording),
+   `parentId` and `relation` (the family), `currency` (`contractCurrency`),
+   `move` (`negWhoseMove`), `live` (`negoIsLive`), `overdue` and `nextDue`
+   (`obState` / `obligationDue` over the list), `offStandard`
+   (`deviationSummary`), `risk` (`riskScore`), `read` (`copilotRead`),
+   `archived`, `source`. **Every value is borrowed from the reading the
+   graph already draws** — A-1's `graphNodeFacts`, A-3's `graphPartyStats`,
+   A-5's `graphStreamFlow` — never a second arithmetic (the COUNTING IS NOT
+   DRAWING rule, and f291/f292/f294's "every figure borrowed"). Money obeys
+   `canViewValues`: a reader who may not see values sends none, and the
+   server strips `value` again on its own reading (THE SERVER IS THE WALL).
+   Wording is NOT sent for a map command — grouping never needs it, and the
+   full Copilot reads wording on demand through `get_contract` as it does
+   now. The 600-contract cap on the payload stays and is said (A CAP IS A
+   FACT).
+4. **FILTERS ARE FIELDS, NOT ID LISTS.** The tool gains a structured `where`
+   (status, folder, kind, counterparty, value above/below, expiring within N
+   days, signed between two dates, overdue obligations, off standard, not
+   read yet, whose move, archived). HaTi applies it over `state.contracts`
+   and builds `visibleIds` itself; the model may still return `visibleIds`
+   for a match no field expresses (a name, a city), and where BOTH come back
+   the field filter wins and the list is intersected. This is where a
+   159-contract book stops depending on the model copying ids by hand.
+5. **THE ANSWER IS WRITTEN FROM WHAT THE MAP DID.** After `intelGraphAsk`
+   applies the result it composes the chat line from the model it built
+   (*"Grouped 159 contracts into 6 expiry windows · 14 have no expiry
+   set"*, *"Showing 23 of 159 · Leases"*) and prints Copilot's own sentence
+   only as a second line where it says something the numbers do not. A
+   `custom` grouping that places no contract, or fewer than two groups, is
+   REFUSED in words — *"I could not group by that. The map can group by
+   value stream, customer, status, value, type, expiry window, payment
+   terms, renewal decision, risk, origin, signed year, signed quarter,
+   expiry year."* — and the map is left exactly as it was (no caption flip
+   to *Copilot grouping*, no lens). The built-in fallback `graphInterpret`
+   learns the same list of dimensions so an unconfigured workspace gets the
+   same behaviour minus the prose.
+6. **WHAT IS ON SCREEN TRAVELS TOO**: the current `groupBy`, the lenses in
+   force (label, action, count), the crowded quarters (`graphCliffCrowded`),
+   the reader's language and workspace currency, beside the `activeIds` and
+   the eight turns of history already sent. Today's date already travels.
+7. **THE FULL COPILOT GETS THE GRAPH'S OTHER READINGS.** `ctx.graph` (built
+   in `aiChatContext`, js/ai.js) already carries `links` (A-2) and
+   `parties` (A-3). It gains `streams` (`graphStreamFlow`'s per-folder
+   in/out/net/missing), `cliff` (the decision quarters and their counts),
+   `facts` (each node's ≤3 facts from `graphNodeFacts`), and `lenses` (the
+   same list as 6, so *"of those"* works in a typed question). Each rides
+   as fields clamped on the server exactly as `pageSays` does (f283's rule);
+   the server never recomputes any of it and has no family model.
+
+**The nets.** A test pinning the server's enum to the client's `groupOpts`
+by SET (the two lists cannot drift); a test that a `custom` grouping with no
+placed contract is refused and the caption does not move; a test that the
+card's every field is a name published from the reading it borrows (f232's
+rule); a test that a reader without `canViewValues` sends no `value`, and
+that the server strips it for such a caller; a browser section on
+insights-panels-verify that types *"cluster by expiration date"* against the
+scripted AI (`startScriptedAi`) and measures the hubs on screen equal the
+six expiry buckets — and that the same file, run against the parent, fails
+at the hubs rather than timing out.
+
+**The order.** 1, 2, 5 first (they close the failure the owner saw); then 3
+and 4 (the reach); then 6 and 7 (small once the others are in). The map
+Copilot stays on the `fast` tier; one press is still one call.
+
+**Standing questions for the owner, none blocking**: whether *created month*
+is wanted (the created stamp may not ride the light list); whether a
+`custom` grouping should be allowed at all once the named list is this long
+(it is what lets *"by city"* work, and it is what produced the wrong answer).
+
+## C-2 AN EXECUTED CONTRACT CANNOT START A NEGOTIATION
+
+**The owner's instruction, 11 Sep 2026, verbatim:** *"If a contract has been
+executed, the start negotiating button should be greyed out and therefore
+locked out from the negotiate page."* Their screenshot: MK-243, the
+Document tab, status word **Closed** in ruby, the counterparty's signature
+on the trail, and *Start negotiating* drawn live at the right of the tab row.
+
+**What stands today.** The wording already FREEZES at the first signature
+(`negoWordingFrozen = negoExecuted || negoAnySignature`, asked at the
+funnel), so a negotiation on executed paper could never file a change — but
+every DOOR onto the negotiate page is still drawn live, and a reader who
+presses one lands on a page whose every verb then refuses. That is the
+product saying yes with a button and no with the page: the fault class THE
+SIX QUESTIONS name as the most expensive (two screens disagreeing about what
+the product does). The button's label is chosen by whether a negotiation
+exists (`started`), never by whether the paper is executed.
+
+**The ruling to build.**
+
+1. **ONE READING: `negoMayStart(c)`** (js/negotiation.js, beside
+   `negoExecuted` and `negoWordingFrozen`) answers whether a negotiation may
+   be opened or started on this contract: false where `negoWordingFrozen(c)`
+   is true (executed, or any signature on either store — the same line the
+   funnel already draws; a contract half-signed is as shut as a sealed one),
+   false where the record is archived, true otherwise. It returns the
+   REASON as well as the answer (`{ok, why}`) so every door can print the
+   same sentence. READING MUST NOT WRITE: it reads `c.changes` and
+   `c.negotiation` raw, never through `negoChanges`.
+2. **EVERY DOOR ASKS IT AT DRAW TIME, and a door that cannot work is drawn
+   dead, not hidden** (the rule the desk and the clause lock already keep:
+   `disabled`, the reason on the hover and the aria-label, the control kept
+   in its slot so the row does not reflow). The doors, found on 11 Sep —
+   Rule 2 says find every one; account for each:
+   - the Document tab's `#ws-to-nego` (js/views/contract.js, the tab-row
+     slot builder — the one in the screenshot);
+   - the blank-paper note's button (`docNothingWrittenHtml`);
+   - the seven other `openRedlineWorkbench(c.id)` presses in
+     js/views/contract.js (the ⋯ menu's row, the head's act, the Key terms
+     and History doors);
+   - the phone's two (`js/mobile-contract.js`, `js/mobile-screens.js` — a
+     dimmed row keeps its tap and TALKS, per the overnight-run rule);
+   - the Negotiations list's row (renderRegister on the negotiations
+     scope) and the register's row door;
+   - the Home decision rows and the alerts panel's `negotiation` kind, where
+     they lead to the page.
+   The label on a dead door stays what it is ("Start negotiating"); the
+   hover says *"This agreement is executed — its wording is sealed"* (one
+   new key, both books; `ng_closed_no_start` or the like).
+3. **THE WALL IS `openRedlineWorkbench`**, the funnel every named door goes
+   through (NEGOTIATE IS A PLACE). It asks `negoMayStart` FIRST and, where
+   the answer is no, does not navigate: it says the reason on the screen the
+   reader is standing on (a 'warn' toast through i18t, the same sentence as
+   the hover) and returns false. The list door (`openNegotiations({list})`)
+   is untouched — the list is not a negotiation. A hash arrival
+   (`#contract=<id>&tab=redline`, `openFromHash`) lands on the CONTRACT's
+   Document tab instead, so a stale link is not a way round.
+4. **THE PAGE ITSELF, where it is already open** when the last signature
+   lands (the twelve-second state probe brings the fact): `renderRedline`
+   asks the same reading on its next paint and, where the answer has turned
+   to no, draws the way back to the contract in place of the working area —
+   nothing else changes on that paint, and nothing is written.
+5. **THE SERVER IS THE WALL FOR CHANGES ALREADY** (SIGNED_WORDING_FROZEN,
+   EXECUTED_IMMUTABLE on PUT). C-2 adds no route: a negotiation is a fact on
+   the record, and the record already refuses to move. Nothing new to guard.
+
+**What this is NOT.** It does not touch the History tab, which is where the
+negotiation's record is read once the paper is sealed (`negoTimeline`); the
+counterparty's page (told apart by PORTAL_MODE, and their link's own rules
+govern it); the Signing tab; or the label logic for a LIVE contract
+(`ct_start_negotiating` / `ct_open_negotiate_n` / `ct_open_negotiate` stay
+as they are).
+
+**The nets.** A test that `negoMayStart` answers no on each of: status
+Signed; `c.hash`; `execution.at`; one signature row on either store; and
+yes on a Draft with none (f-numbered, model only). A test sweeping
+js/views/contract.js and the two phone files for every
+`openRedlineWorkbench(` press and requiring `negoMayStart` asked in the same
+builder (a name sweep, f232's shape). A browser section on the room's own
+verify file that opens an executed fixture on the Document tab and measures
+`#ws-to-nego` `disabled` with the sentence on its title, presses it and
+measures the view did NOT change — and, run against the parent, reports a
+live button rather than timing out.
+
+**A question to put back before building, not blocking the rest.** The
+screenshot's contract reads **Closed**, which is the status word for
+*Declined*, not *Signed* — the trail shows a counterparty signature, so the
+freeze already bites on it through `negoAnySignature`. Does the owner want a
+Declined contract WITHOUT a signature locked too? The reading above says no
+(nothing is sealed on it); one word from the owner adds `Declined` to the
+reading, and the sentence gains a second branch ("This agreement was
+closed").
