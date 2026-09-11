@@ -12619,3 +12619,66 @@ page."*
   block above an uploaded contract on the Document tab, its file strip, and the
   smaller type an upload's wording is set in there (13px against an ordinary
   contract's 13.5). Unchanged from the run before this one.
+
+## 11 Sep 2026 — Part C of WORKORDER-contract-graph-nodes.md: eight items, seven built, one measured (branch claude/contract-graph-node-analytics-6harkf)
+
+The owner said go on C-1 to C-8 and to merge to main. C-1 (the map Copilot), C-6 (Plain English pairing) and C-8 (Word export) were built by three agents in their own worktrees and merged; C-2, C-3, C-4, C-5 built here; C-7 measured and proposed, nothing removed. Full suite, lint and the browser files named per part are recorded below. Two pre-existing red browser claims are proved red at unmodified main (worktree at origin/main): negotiations-door-verify "the room shows four tabs" (×2, the Obligations tab of 29 Aug) and room-order-and-notices-verify "nothing still awaiting an answer sits under a decided change" / "the All / Mine / Theirs cuts are untouched" (the retired three-way cut). Left red.
+
+### C-2 — an executed contract cannot start a negotiation
+Defects found
+- Every door onto the negotiate page was drawn live on sealed paper; the page then refused every verb (the wording froze at the first signature but no door said so). One reading `negoMayStart`; the two drawn doors greyed with the reason; the funnel refuses; the Negotiations row lands on the contract; the stale page draws the way back.
+- f184 (2) went red on a 900-byte window from the funnel's start; re-pointed to the function's boundary.
+Noticed, not fixed
+- negotiations-door-verify carries two pre-existing red claims ("the room shows four tabs — Key terms | Document | Signing | Obligations | History") — the Obligations tab was added 29 Aug and the claim was never re-pointed. Left red.
+- A Declined contract with no signature is still open to a negotiation under this reading; the owner's screenshot read Closed (Declined) with a signature, which the reading shuts. Question put back.
+### C-3 / C-5 — the note window
+Defects found
+- The window offered no room (posted 'shared' unasked); the globe line read a choice back that did not exist.
+- The window stayed shut on a revision (decision D); reversed on the owner's word.
+Noticed, not fixed
+- `ng_note_who` is now read only as the external tab's hover; `RL_NP_GLOBE` has no reader in this window (still used by the drawer). Left as is.
+### C-4 — the pencil
+Defects found
+- The say line grew the toolbar row under the pointer (45→81 px at 1500, 81→117 at 1024 when forced); the blur pull spoke "Applied to the wording below" for the reader's own typing.
+Noticed, not fixed
+- At 1200 in the harness (deviceScaleFactor 2) the tools bar is already two lines at rest; the say line then measures ~0 and the toast carries the sentence. A narrower tool set at that width would be a design change, not taken.
+### C-7 — measured, not built (the proposal waits for the owner's yes)
+- Recorded in WORKORDER-contract-graph-nodes.md under C-7 — MEASURED: block 78+24 px, first line of wording 372 (ordinary) vs 563 (structured upload, same wording) vs 483 (text-only); text-only wording 13 px against the sheet's 14; the block travels to the counterparty's page (proved on two real links), the PDF export and the phone through the one builder.
+
+### C-6 — the Plain English edition one clause out
+Defects found
+- /api/ai/readings paired the model's answer on a zero-based integer beside one-based clause numbers; a model numbering from one shifted every reading one clause low, the server stamped the wrong row's heading, and the pairing was cached for the life of the wording.
+- The browser's heading guard (docReadAnchors) compared the server's own stamped heading with the same list — a check that could never fail since 10 Sep.
+- READ_PLAIN_RULE still told the model to write a heading of its own in sentence case, contradicting the 10 Sep "DO NOT WRITE HEADINGS" prompt; harmless while nothing read the field, fatal once the heading is the pairing echo.
+- The switch's lit state and the painter read "is there an edition to show" separately; a partial answer with nothing paired would have shown the layer under a Contract View switch (one reading, docReadHeld).
+Proved: f300 7/7 (0/7 at the parent); f277 116/116; plain-english-verify section 16 (6 of 8 fail at the parent); full suite 6582/6582; lint 0 errors.
+Noticed, not fixed
+- The readings column prints nothing for a `truncated` route answer (the brief has its partial pill and rewrite; the readings column only gained the partial foot this run).
+- A dropped entry below the quarter line is counted on the record (`unmatched`) but not said on screen — the ruling ties the foot to the partial case; the owner may want the count printed regardless.
+- Duplicate keys in one answer (two entries naming R2) both pair and both draw; pre-existing with `i`, unchanged.
+- The heading block in READ_PLAIN_RULE and the "DO NOT WRITE HEADINGS" sentence in the prompt now say the same thing twice in different words; one could go.
+
+### C-8 — the Word export writes no paragraph for the code's own indentation
+Defects found
+- The Word writer kept a paragraph for every newline-and-indent between the paper's blocks: a run of one space was enough for `close()` to write it. Measured on the parent: two paragraphs pretty-printed exported as 7; a realistic body exported 34 paragraphs, 26 empty; a typed blank line pretty-printed exported as 6 paragraphs. Fixed in `close()` alone (a visible character or `forced`): 2, 8 with 0 empty, and 3.
+- (Net, not product) f288's new "empty paragraph" counter first counted run-less `<w:p>`s and passed against the parent — the junk paragraphs each held a one-space run. Re-pointed to count what Word DRAWS.
+Proved: f288 16/16 (3 of the 4 new checks fail against the parent); loop reads back wording, headings by level, markers, table rows/cells and tracked counts through docxExtractRich. lint 0 errors. Full suite 6574/6574 in 450 s.
+Noticed, not fixed
+- The small line under the title exports the middle dot as the literal text `&middot;` — `decodeXmlEntities` decodes only amp/lt/gt/quot/apos and numeric entities, so that named entity passes through as text.
+
+### C-1 — the map Copilot gets everything the map knows
+Defects found
+- The map Copilot's tool could name six groupings while the Group By dropdown drew ten; "cluster by expiration date" produced `custom` with an empty map, which the page applied — caption "Copilot grouping" over value-stream hubs.
+- The per-contract card sent to `/api/ai/graph` carried no signed, created or decision date, so "by when they were signed" was answered "I don't have those dates".
+- The graph's chat line was Copilot's own sentence, never a reading of what the map did.
+- The Group By dropdown never followed a typed grouping (pre-existing on `group by customer` too) — found on screen in section 18b.
+- `graphInterpret` treated a pure grouping ask containing "expir" as the expiring-soon filter as well.
+- Three f267 pins, one f293 pin and one f294 count pinned literals where the claim was a relation; re-pointed in place.
+Proved: f299 13/13 (0/13 at the parent); insights-panels-verify 84/84 (77/84 at the parent); f232, f283, f290–f298 green; full suite 6584/6584; lint 0 errors.
+Noticed, not fixed
+- `aiLocalGraph` (browser-direct local mode) still builds its own narrow filter spec and sends no card; only the grouping list was shared with it.
+- `graphInterpret`'s expiring filter and the badge read `c.expiry`, not `effectiveExpiry` (the grouping does).
+- A `custom` grouping leaves the dropdown showing its previous option (the select has no "Copilot grouping" entry); the caption is the only carrier.
+- `intel.history` message text is HTML by contract (`igMsgHTML` inserts it raw); every composed line here is escaped, but the convention is undocumented.
+- insights-panels-verify's fixture at section 18 has four populated expiry windows, not six; the check is a set equality against `groupLabelOf`, so it stays honest.
+- (C-2, found by the full suite) f106 (4) "the executed workbench says why" read the sentence off the drawn page; the sealed page is no longer drawn — re-pointed in place to the toast spoken and the workbench absent.

@@ -288,10 +288,30 @@ describe('the executed workbench offers nothing to press', () => {
         `#${id} must not render on a sealed contract whose status still reads Under Review`);
   });
 
+  /* RE-POINTED IN PLACE 11 Sep 2026 (C-2): an executed contract's negotiate
+     page is no longer DRAWN at all — negoMayStart refuses on the paint, the
+     way back is taken and the reason is spoken where the reader stands (the
+     toast; see AN EXECUTED CONTRACT CANNOT START A NEGOTIATION). The claim
+     survives as what it always was — the reader is told the contract is
+     sealed rather than met by silence — measured on the sentence spoken and
+     on the workbench NOT being on the page. */
   test('the executed workbench says why, rather than going silent', async () => {
-    const { html } = await render({ status: 'Signed', execution: { at: '2026-07-31T10:00:00.000Z' } });
-    assert.ok(/executed|sealed/i.test(html),
+    const w = buildWorld({ negotiationView: true });
+    const { win } = w;
+    const c = protoContract({ status: 'Signed', execution: { at: '2026-07-31T10:00:00.000Z' } });
+    win.cachedShares = () => [];
+    win.openShareModal = () => {};
+    win.counterpartyContact = () => null;
+    const said = [];
+    win.toast = (m, k) => { said.push({ m, k }); };
+    win.negoInit(c);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const html = win.document.getElementById('content').innerHTML;
+    assert.ok(said.some(x => /executed|sealed/i.test(x.m)),
       'a reader who expected to edit must be told the contract is sealed');
+    assert.ok(!/rl-shell|nego-doc/.test(html), 'and the workbench is not drawn on sealed paper');
   });
 });
 
