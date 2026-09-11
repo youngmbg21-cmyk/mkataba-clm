@@ -298,3 +298,167 @@ one note the heading's bottom is at or above the reading's top.
   is why it wraps early. That comes off. The two lines sitting on each other
   could not be reproduced on the test paper and will be measured on paper
   shaped like yours before it is called fixed.
+
+---
+
+# PART D, CONTINUED — THE NOTE WINDOW AND THE CHANGE BARS (added 11 Sep 2026, same day; NOT BUILT)
+
+The owner's second message, off three screenshots, verbatim: *"In both
+internal and external, make sure the note above is always one line so there
+is not wrapping which makes the pop up size different between internal and
+external view. Image 2, the pop up should always start with internal. Also,
+you should be able to enter different notes between internal and external on
+the same pop up. Image 3, move the redline vertical makers to the left hand
+side just like microsoft word."* Then: *"do not code just add to work order."*
+
+These are D-5 to D-7. Same gate, same rules as above. They build AFTER D-1 to
+D-4 or beside them — none depends on the other four.
+
+## D-5 THE NOTE WINDOW IS ONE HEIGHT IN BOTH ROOMS (image 1 and image 2)
+
+**What the screenshots show.** On Internal the lead reads *"Add a note for
+your colleagues, or skip — Juno Limited never sees it."* and wraps to two
+lines; on External it reads *"Tell Juno Limited why, or skip."* on one. The
+window is therefore taller on Internal than on External, and pressing the
+room tab makes the whole window jump. The two sentences live in
+`rlNoteDialogHtml` (js/views/negotiation.js) and the dictionary
+(`ng_note_*` leads in js/i18n.js, one per room, plus the `_revised_` pair).
+
+**The ruling to build.**
+
+1. **The lead is one line by construction, not by luck.** `.rl-note-lead`
+   reserves exactly one line (a fixed `height` of one `line-height`,
+   `white-space:nowrap`, `overflow:hidden`), so the window's height cannot
+   depend on which room is lit. Both rooms, both languages, the revised
+   variants too.
+2. **And the sentence FITS the line, in every language** — an ellipsis
+   that hides the end of *"Juno Limited never sees it"* would be a cut said
+   nowhere. Each lead is rewritten to one short shape per room, measured to
+   fit at the window's narrowest width (`DLG_MIN_W` 768, less the window's
+   own padding) with the longest counterparty name the record allows
+   (elide the NAME, never the sentence: the name is the one variable part).
+   Proposed: Internal *"For your colleagues — {who} never sees it."*;
+   External *"For {who} — the reason they read beside the change."*;
+   the two revised leads to the same shape. English and Swedish both.
+3. The window's height is measured across the two rooms and asserted
+   EQUAL, not merely "one line".
+
+**The nets.** notes-two-rooms-verify gains: the window's `getBoundingClientRect().height`
+on Internal equals its height on External (parent: differs by one line);
+the lead's rect is one line tall in both rooms and in `sv`; no lead is
+clipped (the sentence's `scrollWidth` ≤ its `clientWidth` at 768).
+f302 sweeps the four lead keys for a character count under the measured
+ceiling in both dictionaries.
+
+## D-6 THE WINDOW OPENS ON INTERNAL, AND HOLDS A NOTE FOR EACH ROOM (image 2)
+
+**This reverses two rulings and says so.** The 1 Sep ruling made this window
+*the explanation the other side reads*, and C-3 (11 Sep, built this morning)
+put the room tabs in with **External lit at rest** precisely to keep that
+default. The owner now rules **Internal first**. THE MAP's section *THE NOTE
+WINDOW HAS TWO ROOMS* and the comment over `rlNoteDialogHtml` are rewritten
+to the new default, with both dates, so the next reader does not "correct"
+it back.
+
+**The ruling to build.**
+
+1. **INTERNAL IS LIT AT REST** on a fresh filing (`opts.room` default
+   `'internal'`). On a note already on file the pair is still SET to the
+   note's room and disabled — a room is fixed at posting; unchanged.
+2. **ONE WINDOW, TWO DRAFTS.** The box holds a draft PER ROOM in memory:
+   pressing a room tab stores the box's current text against the room it
+   was typed in and shows the other room's draft (empty at first). Nothing
+   is posted by switching. The placeholder and the external tint follow the
+   room as today.
+3. **ADD NOTE POSTS WHAT WAS WRITTEN, TO WHERE IT WAS WRITTEN.** An
+   Internal draft goes through `negoPostComment` as an internal note; an
+   External draft as `'shared'`; both where both are filled; neither where
+   both are empty (the button greys with the reason — a verb that cannot
+   act says why). Two notes are two messages on the change's thread, each
+   in its own room, exactly as two presses in the drawer would make them;
+   the channel is asked for the external one only; the toast names what was
+   posted (*"Note added for your colleagues"*, *"Note added for Juno
+   Limited"*, or both). The crossing confirm, where one exists for the
+   external room, is asked once, for the external half only.
+4. **THE TAB SAYS WHICH ROOM HOLDS WORDS.** While a room's draft is
+   non-empty its tab carries a small mark (the drawer's own dot, or the
+   count "1"), so a reader on Internal can see they also wrote something
+   for External before pressing Skip. Skip discards both drafts; where
+   either is non-empty Skip asks (`confirmDialog`, one question).
+5. On a note already on file (opened from the change's Notes row) the
+   window keeps its one-room shape: Save and Delete act on that note only.
+   No second draft there.
+6. **SIX QUESTIONS.** Question 5 (one door): posting two notes from one
+   window is still the one writer, `negoPostComment`, called twice — no
+   second path. Question 2: the dot on the tab is an inline state on the
+   control, not a band.
+
+**The nets.** notes-two-rooms-verify and clause-editor-verify 25 gain:
+a fresh filing opens with Internal `aria-selected` (parent: External);
+type on Internal, switch, type on External, switch back — the first text
+is still there (parent: one box, overwritten); Add note with both filled
+→ two messages on `ch.thread`, one `'shared'` and one not, in that order
+(parent: one); Add note with neither → nothing posted, the button greyed;
+Skip with a draft asks. f302 re-points its "External lit at rest" pin to
+Internal and keeps the fixed-room-on-file pin.
+
+## D-7 THE CHANGE BARS SIT IN THE LEFT MARGIN, AS WORD DRAWS THEM (image 3)
+
+**What the screenshot shows.** On the negotiation page a clause carrying a
+change is marked by a 3px ruby bar OUTSIDE the paper's right edge. Word's
+change bars sit in the LEFT margin.
+
+**Where the rule lives.** `.redline-page .rl-clause.is-changed::after` and
+its twin `.redline-page .rl-front.is-changed::after` (js/views/negotiation-css.js),
+both `right:-18px; width:3px`. The paper's gutter is 56px on both sides
+(`.rl-paper` padding), so the bar has the same room on the left. One
+stylesheet reaches every home that mounts `redlineDocHtml`: the negotiation
+page, the clause editor's middle column, the counterparty's page (it loads
+`redlineLayoutCss`) and the phone.
+
+**The ruling to build.**
+
+1. Both rules move from `right:-18px` to `left:-18px`. Nothing else in
+   them changes (3px, top-to-bottom of the clause, ruby, the dark answer).
+2. **Find every home** (Bug Fix Rule 2): every `is-changed` rule in the
+   product is listed and each one either moves or is said to stay and why —
+   the ruby bar the clause editor keeps (*"the red changed-clause bar
+   stays"*) is the same rule and moves with it; the room's `.nego-clause`
+   marks, if any, are checked; the Document tab's paper draws no bar.
+3. **Nothing on the left may collide with it.** The paper's left gutter
+   holds the hanging marker (`rl-marker`, inside the padding) and, on a
+   narrowed reviewer's page, nothing else; the pencil and the lock monogram
+   sit at the RIGHT (`.rl-clause-top`, `right:0`) and are untouched.
+   Measured after the move at 1500 and at the fold ladder's narrowest rung:
+   the bar's rect is wholly inside the sheet's left padding, overlapping no
+   text and no control.
+4. The counterparty's page must draw the bar on the same side — proved by
+   measuring their page, not by reading the sheet.
+
+**The nets.** redline-verify (the clause-bar claim) re-pointed: the bar's
+`left` edge is between the sheet's left edge and the wording's left edge,
+and its `right` edge is left of the wording (parent: right of the wording);
+parity-verify measures the same on the counterparty's seat; clause-editor-verify
+measures it in the editor's middle column. PIN THE RELATION: "left of the
+wording, inside the sheet" — never a pixel.
+
+## RECORD KEEPING, D-5 TO D-7
+
+- THE MAP: *THE NOTE WINDOW HAS TWO ROOMS* rewritten (Internal at rest, two
+  drafts, one line); *THE NEGOTIATION PAGE TAKES THE MOCK-UP* gains "the
+  ruby bar is in the LEFT margin (owner-asked 11 Sep, as Word)"; the story
+  in docs/MAP-HISTORY.md.
+- BUGLOG.md: one run section per item.
+- The summary to the owner names the two reversals (1 Sep and C-3) in one
+  sentence each.
+
+## SUMMARY FOR THE OWNER, D-5 TO D-7 (plain English)
+
+- The note window will be the same height whichever room is lit: the
+  sentence under the title gets one reserved line and is reworded to fit it.
+- The window will open on Internal (this reverses the choice made this
+  morning and on 1 September, on your say-so), and you can write one note for
+  colleagues and a different one for the other side in the same window;
+  Add note posts each to its own room.
+- The red change bars beside a redlined clause move to the left margin, as
+  Word draws them, on every screen that shows the redlined paper.
