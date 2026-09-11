@@ -13763,6 +13763,65 @@ before and after and proved unchanged, and the second press proved to file
 nothing and spend nothing; 17 of the 27 fail against the parent, and every
 driven half is guarded so it REPORTS rather than timing out).** f279 unchanged.
 
+## THE STANDARDS REVIEW IS RUN BEFORE ANYBODY ARRIVES (A12, the overnight half, 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md Part B, scoped down on purpose: **the change
+funnel lives in the browser and the server must not grow a copy of it**, so
+overnight HaTi does the READING and none of the filing. `runPlaybookPrep`
+(server/server.js, beside `runRenewalPrep`) runs the same deep-tier review the
+Playbook review panel runs — `aiPlaybookVerdicts`, the route's own function —
+for a contract that arrived from the other side and has never been checked,
+and stores the verdicts as the ordinary playbook record. The next morning
+"Prepare redlines" finds the review on file and costs nothing; the review
+panel and Copilot's `check_against_playbook` read the same record.
+
+- **WHO QUALIFIES, and each refusal is counted by name.** `source:'upload'`
+  with a counterparty named (paper the other side sent — our own paper is not
+  incoming), not executed and not on the shelf, no review on file, wording at
+  or above the browser's own floor (`COPILOT_PB_TEXT_MIN` mirrors
+  `PB_TEXT_MIN`, read through `copilotContractWording` exactly as the chat's
+  check reads it), **and a workspace playbook to check against**.
+- **THE SERVER CARRIES NO COPY OF THE BROWSER'S DEFAULT BOOK, said out loud.**
+  js/playbook.js cannot be required by node — its default book reads the
+  jurisdiction pack at load — and a second copy of that table is the recorded
+  defect class. So a workspace that has never saved its own standards is
+  skipped (`noPlaybook`) rather than checked against a book the server
+  invented; that workspace's morning press still runs the review itself, at
+  the price the dialog names. f296's first claim is that control.
+- **THE OWNER PAYS** — the renewal prep's own rule, for its reason: the call
+  is metered against `c.owner`, never a request, and a contract with no owner
+  is not prepared because that would be the unattributed spend Young's ruling
+  exists to prevent.
+- **THE SAME SWITCH AND THE SAME CAP AS THE RENEWAL NOTES, rather than a
+  mirror.** `aiRenewalPrep` is the one "HaTi spends while nobody is watching"
+  switch, and a second one would be two stops for one kind of money; its row
+  on the Copilot engine panel now says it covers both (`set_renewal_prep`,
+  both languages). `aiRenewalPrepMax` bounds THIS sweep on its own — each of
+  the two sweeps may prepare up to the cap in one run — and the workspace's
+  daily ceiling is asked by hand before every call, because `aiBudgetGuard`
+  is middleware and this has no request.
+- **THE RECORD IS THE DEDUPE.** A review on file is what stops a second run,
+  so a failed or cut-short call writes nothing and is retried next time
+  rather than marking anything done. The row is RE-READ before it is written,
+  so a save made while the model was thinking is not overwritten; an executed
+  record is refused a second time at that moment.
+- **IT WRITES THE ORDINARY RECORD AND NOTHING ELSE**: `c.playbook` in the
+  shape the review window leaves, marked `overnight:true`, plus one
+  `'Playbook'` audit line naming who paid — which is the line
+  `copilotStoredPlaybook` reads for "when it was run". No change, no
+  negotiation, no share, no send. f296 asserts `changes` stays empty and no
+  negotiation is started.
+- **IT RIDES THE SAME TIMER UNDER ITS OWN CATCH** with its own admin-visible
+  outbox note — the fourth application of the M-6 lesson — and
+  `POST /api/playbook-prep/run` (admin) runs it on demand, which is what the
+  test drives.
+
+Tests: f296 (7 — the no-playbook control first, the one qualifying contract
+prepared and booked to its owner with the record read back, every refusal by
+name, the dedupe, a failure retried, the switch and the cap each proved to
+bite, and the source keeping the walls; the file cannot pass against the
+parent, because the route does not exist there), f275 and f133 unchanged.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

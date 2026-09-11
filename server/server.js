@@ -10618,6 +10618,91 @@ async function runRenewalPrep() {
   return out;
 }
 app.post('/api/renewal-prep/run', auth, admin, async (req, res) => res.json(await runRenewalPrep()));
+/* ============================================================================
+   A12 — THE OVERNIGHT HALF: THE STANDARDS REVIEW IS RUN BEFORE ANYBODY ARRIVES
+   (WORKORDER-contract-graph-nodes.md Part B, 11 Sep 2026)
+   ============================================================================
+   The change funnel lives in the browser and this server must not grow a copy
+   of it, so overnight HaTi does the READING and none of the filing: for a
+   contract that arrived from the other side and has never been checked, it
+   runs the same deep-tier review the Playbook review panel runs
+   (aiPlaybookVerdicts — the route's own function, lifted for the same reason
+   the renewal advice was) and stores the verdicts as the ordinary playbook
+   record. The next morning "Prepare redlines" finds the review on file and
+   costs nothing; the review panel and Copilot's check_against_playbook read
+   the same record.
+
+   WHO QUALIFIES, and each refusal is counted by name: source 'upload' with a
+   counterparty named (paper the other side sent), not executed and not on the
+   shelf, no review on file, wording above the browser's own floor
+   (COPILOT_PB_TEXT_MIN mirrors PB_TEXT_MIN), and a workspace playbook to check
+   against — the server carries no copy of the browser's default book, so a
+   workspace that has never saved one is skipped and says so.
+
+   THE OWNER PAYS — the renewal prep's own rule, for its reason: a contract
+   with no owner is not prepared, because that would be exactly the
+   unattributed spend Young's ruling exists to prevent.
+
+   THE SAME SWITCH AND THE SAME CAP AS THE RENEWAL NOTES, said out loud rather
+   than mirrored: `aiRenewalPrep` is the one "HaTi spends while nobody is
+   watching" switch, and a second one would be two stops for one kind of
+   money. The cap bounds THIS sweep on its own — each of the two sweeps may
+   prepare up to the cap in one run — and the workspace's daily ceiling is
+   asked by hand before every call, because aiBudgetGuard is middleware and
+   this has no request.
+
+   THE RECORD IS THE DEDUPE. A review on file is what stops a second run, so a
+   failed call is retried tomorrow rather than marking anything done. It writes
+   the ordinary record fields through the row's json — c.playbook and one
+   'Playbook' audit line, which is what the review panel reads for "when" —
+   and never on an executed record, which is not a candidate anyway. */
+async function runPlaybookPrep() {
+  const out = { looked: 0, prepared: 0, skipped: {} };
+  if (!renewalPrepOn()) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const cap = renewalPrepMax();
+  const pb = workspacePlaybook();
+  const rows = db.prepare("SELECT id,json FROM contracts WHERE status!='Declined' AND is_upload=1").all();
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  for (const r of rows) {
+    if (out.prepared >= cap) { out.cap = true; break; }
+    let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
+    if (c.source !== 'upload' || !String(c.counterparty || '').trim()) continue;
+    if (c.archived) continue;
+    if (isExecutedRow(c)) { bump('executed'); continue; }
+    if (c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length) { bump('done'); continue; }
+    out.looked++;
+    const owner = c.owner && c.owner.id ? c.owner : null;
+    if (!owner) { bump('noOwner'); continue; }
+    const wording = copilotContractWording(c);
+    if (wording.length < COPILOT_PB_TEXT_MIN) { bump('noText'); continue; }
+    const pkey = pb ? copilotPlaybookKey(pb, c) : null;
+    const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
+    if (!resolved) { bump('noPlaybook'); continue; }
+    const ceiling = aiDailySpendLimit();
+    if (ceiling > 0 && aiSpendToday().cost >= ceiling) { out.ceiling = true; break; }
+    try {
+      const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) },
+        { feature: 'playbook', who: { id: String(owner.id), name: owner.name || String(owner.id) } });
+      if (!res.ok || res.resp.truncated || !Array.isArray(res.verdicts)) { bump('failed'); continue; }
+      /* The record the review panel leaves, in the same shape, marked as
+         HaTi's own unattended work; re-read the row first so a save made
+         while the model was thinking is not overwritten. */
+      const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(r.id);
+      if (!fresh) { bump('failed'); continue; }
+      let cur = {}; try { cur = JSON.parse(fresh.json) || {}; } catch (_) { bump('failed'); continue; }
+      if (isExecutedRow(cur)) { bump('executed'); continue; }
+      cur.playbook = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
+      cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
+        detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
+      db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cur), r.id);
+      out.prepared++;
+    } catch (e) { bump('failed'); }
+  }
+  return out;
+}
+app.post('/api/playbook-prep/run', auth, admin, async (req, res) => res.json(await runPlaybookPrep()));
 /* Twice daily. The catch is deliberate — a sweep that throws must not take the
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
@@ -10678,6 +10763,20 @@ function reminderSweep() {
         .run('rp_' + rid(6), 'admin', 'Renewal notes were not prepared',
           `HaTi could not prepare renewal notes this cycle, so any agreement coming up for renewal will have no note waiting on it.\n\nReason: ${msg}`,
           'system', 'renewal prep failure', now());
+    } catch (_) {}
+  });
+  /* THE STANDARDS REVIEW ON INCOMING PAPER rides the same timer, under its OWN
+     catch and its own note — the fourth application of the M-6 lesson. Async
+     like the renewal prep, started and left to finish; its dedupe is the
+     record itself, so a second run on the same day costs nothing. */
+  Promise.resolve().then(runPlaybookPrep).catch(e => {
+    const msg = (e && e.message) || String(e);
+    console.warn('[playbook-prep] sweep failed, no standards reviews were prepared this cycle:', msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('pp_' + rid(6), 'admin', 'Standards reviews were not prepared',
+          `HaTi could not check incoming contracts against Our standards this cycle, so "Prepare redlines" will run the review itself when pressed.\n\nReason: ${msg}`,
+          'system', 'playbook prep failure', now());
     } catch (_) {}
   });
 }
