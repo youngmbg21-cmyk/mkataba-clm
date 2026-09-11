@@ -173,8 +173,10 @@ door pressed with a passage in hand, through the same `rlOpenClauseEditor`.
   range runs from the first quoted run to the last.
 
 **The rule that follows for every highlight on the negotiation paper and in
-the editor**: a selection is offered the three verbs whenever it lies inside
-ONE clause, however many paragraphs it spans; silence is kept only for the
+the editor**: a selection is offered the three verbs (Ask Copilot · Edit with
+Copilot · Comment) whenever it lies inside ONE clause, however many paragraphs
+it spans, WITH NO PENCIL PRESS FIRST — the pencil stays as the second door, for
+the whole clause; silence is kept only for the
 front matter, a drag across two clauses, and a drag that starts outside the
 clause.
 
