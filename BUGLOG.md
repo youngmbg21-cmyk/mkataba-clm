@@ -12194,3 +12194,137 @@ headings, numbers and gutter, and Copilot writes only the readings.
   dropdown all refuse in words naming the holder, but none of them draws the
   initials. That is the ask answered exactly and no wider; putting a monogram
   into the card's fixed verb column would move a layout nobody asked to move.
+
+---
+
+## Run — 10 Sep 2026 (evening): the wording entries, the clause lock, and a working text that reads like a document
+
+Four things, asked in two messages.
+
+**THE FOUR DUPLICATE WORDING ENTRIES.** They were the only four lint errors in
+the product and they turned out not to need a ruling at all. `act_next` was word
+for word ITSELF, twice in each book — a stray beside the one in the `act_*`
+block where it belongs — so the stray went and nothing on screen moved.
+`co_password_updated` was TWO DIFFERENT MESSAGES that had collided on one name:
+a duplicate key in an object literal is won by whichever is written last, so the
+product said *"Password updated — please sign in"* at BOTH sites — the password
+RESET, which ends on the sign-in form and where it is exactly right, and the
+reader CHANGING THEIR OWN password, where `startApp()` takes them straight into
+the workspace and telling them to go and sign in is untrue. Each sentence now
+sits in its own site's block. The reset keeps the key and does not move by a
+byte, so the only screen that changed is the one that was saying something
+false. `npm run lint`: **4 errors → 0**.
+
+**THE CLAUSE LOCK IS PUSHED NOW, AND THE HEARTBEAT WAS DANGEROUS.** The last
+run recorded this as needing "a channel this product does not have" — and the
+channel was already there: `GET /api/contracts/:id/state`, the twelve-second
+version probe the negotiation bench has polled since it was built. It carries
+the live map now, so a colleague's lock appears within twelve seconds at no
+extra cost — no second timer, no second route, no whole-contract fetch. What was
+actually broken is that the heartbeat rode the WHOLE-CONTRACT SAVE, three ways
+at once: that save carries an optimistic `baseVersion`, so a refresh landing
+after a colleague's save came back 409 and put a blocking "keep yours or discard
+yours?" dialog over somebody's typing every forty-five seconds; the map
+travelled whole, so a browser whose record predated a colleague taking a lock
+WIPED it on the next ordinary save; and it moved the version, so every other
+browser watching fetched the record and toasted about a clause somebody had
+merely opened. `POST /api/contracts/:id/lock` owns the map alone — it MERGES one
+clause on the stored record, so a wipe is unrepresentable rather than unlikely;
+it takes no `baseVersion`, so it cannot conflict; and it moves neither `version`
+nor `updated_at`, because presence is not an edit.
+
+**EVERY DOOR CARRIES THE MONOGRAM.** The last run answered the ask exactly and
+no wider — only the pencil drew the initials and the rest refused in words after
+the press, which is the dead press this product's own rule exists to prevent.
+`clauseLockSign` is the ONE reading and all of them ask it at DRAW time; the
+DRAWING differs and must — the pencil becomes the sign because it has a corner
+to itself, while the card's Edit and the clause panel's Copilot button keep
+their size, go genuinely dead and swap the mark that says Copilot for the mark
+that says held. **A dead door may not keep Copilot's colour**, and the override
+had to be written as SCOPE rather than weight: the general rule scored (0,2,1)
+against their (0,4,1) and lost the cascade while looking perfectly correct in
+the source.
+
+**A WORKING TEXT IS A DOCUMENT** (Young, off three screenshots: *"top of the
+contract is a mess ... does not resemble image 3 which is in the negotiate page
+and looks more structured. So plain english is not set like a contract and the
+main contract is unstructured unlike the negotiate page which is clean."*).
+
+Two reports, one cause, and it was MEASURED on one contract on both surfaces
+before a line was written. The negotiation lifts a plain body into a document —
+`negoBodyOf` calls `negoRichFromLines`, which is `docRichFromText` — so it draws
+real headings, real paragraphs and each marker in its own gutter. The Document
+tab threw the same lines into pre-wrap divs: several clauses to a box, blank
+lines kept as literal newlines, every clause number a bold span with no gutter,
+and above the lot a header carrying the RECORD's name that the wording's own
+first lines were about to say again. One document, two shapes, and the shape
+that reads as raw text was the one on the tab a contract is READ on. The plain
+branch of `docBodyHtml` now lifts through the SAME function the negotiation uses
+and goes down the SAME `renderDocHtml` path the rich branch takes. It lifts for
+the SCREEN and never for the record: the stored wording is untouched, no
+fingerprint moves, nothing is migrated.
+
+**AND THE HEAD IS STILL DRAWN WHERE THE WORDING CARRIES NO TOP**, which
+`amendment-journey-verify` caught and which is what that file is for. Standing
+the header down unconditionally was wrong: an AMENDMENT'S skeleton is four
+English paragraphs — the two recitals, the "amended as follows" line and the
+survival clause — with no title of its own, so the draft came out with no name
+on its paper at all. `docBodyCarriesTop` reads two signals, because a working
+text says its own name two ways: a real `<h1>` where the lift makes one, or the
+contract's NAME as one of the opening BLOCKS where docPlainText wrote the front
+matter out as text. Matched on a block being the name, never on the name being
+mentioned in a sentence.
+
+The Plain English half followed from it, plus one reading of its own:
+`_docReadLead` was answering two questions and only one of them can take the
+eight-word fallback. As the pairing guard's reading and as what the route is
+sent, eight words is a fingerprint and is right. As a name to PRINT it is a
+fragment of the clause's first sentence, cut mid-phrase — which is the
+duplication that was reported, and where the drafter set only the NUMBER bold it
+was the number printed twice. The heading printed is the drafter's own lead-in
+or nothing, and a clause with no heading carries its number BESIDE the reading,
+in the same gutter the contract uses, rather than on a line above it.
+
+### What was measured, not asserted
+- Node suite **6448/6448** clean — TWO runs, because the amendment catch below
+  meant the fix had to be proven as well as the work.
+- `npm run lint` **0 errors** (was 4).
+- The reported faults were reproduced on a rendered page before anything was
+  touched, and each fix re-measured on the same contract.
+- Every regression test written this run was proved to FAIL against its parent
+  before it was trusted: f289 (48 — 21 failing), f277 (14)-(16) (24 — 11
+  failing), plain-english-verify section 13 (10 — 6 failing) and redline-verify
+  sections 25k-25r (8 — 5 failing). The checks that pass either way are named
+  CONTROLS.
+- Browser set **87 of 100 green**. The 13 red are the IDENTICAL 13 the last run
+  recorded, and each was attributed rather than assumed: theme-tokens' failing
+  screens and values diff BYTE FOR BYTE across a worktree at unmodified
+  `a37e4c6`, and the four files that measure the document paper — paper-grows,
+  standard-paper, room-order-and-notices, pages-read-alike — report the same
+  3/8/3/3 on both trees. **Not one of the 13 is this run's.**
+- `amendment-journey-verify` DID break on this work and is fixed, not excused:
+  53/53.
+- Every other browser file that measures the Document tab's paper re-run and
+  green: plain-english (91), signing-on-paper (30), upload-structure (18),
+  pdf-structure (24), scan (12), auto-triage (47), term-and-fields (25),
+  nda-carries-no-money (21), upload-party (19), redline (216).
+
+### Noticed, not fixed
+- **A working text's front matter is four ordinary paragraphs, not a title
+  block** (on a template-derived contract, where the head now stands down). The negotiate page sets a title there because it takes the RECORD's
+  name for it; guessing which of a text's own first lines is the title would be
+  a change to `docLineKind`, which builds the negotiation's STORED baseline and
+  would change what every contract on file segments into. Reported rather than
+  built.
+- **A plain-text contract already read pays for one fresh Plain English
+  reading.** The paper genuinely changed shape, so what the route is sent
+  changes slightly and its cache key moves with it. Once, per contract, and only
+  when somebody presses the switch.
+- **`data-ce-goclause` is a handler with no emitter** in js/views/clauseeditor.js
+  — the same shape as `rlPaperFootHtml`, one file along. The dropdown it was
+  written for (`#ce-sel`) is already recorded as stale.
+- **`.rl-cp-editor-btn` is dead markup on our seat.** The sparkle it dresses
+  survives on the receipt and full card shapes, which are the counterparty's —
+  and their seat has no clause editor, so the condition is false there too. It
+  carries the lock marking anyway because it is the same one-line reading, but
+  it cannot honestly be measured on a page that does not draw it.

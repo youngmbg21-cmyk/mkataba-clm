@@ -1263,13 +1263,76 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   return `<div style="font-size:${scaled(parseFloat(size))};line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
 }
 
-/* The contract's working-text body, in whichever format it carries. Rich
-   content goes through renderDocHtml (which sanitises AGAIN, at render); plain
-   text keeps the reflow repair and the original escaped path, byte for byte. */
+/* ---- A WORKING TEXT IS A DOCUMENT, NOT A COLUMN OF LINES (Young reported it
+   10 Sep 2026: "the main contract is unstructured unlike the negotiate page
+   which is clean") ----
+
+   MEASURED on one contract, both surfaces, before anything was written. The
+   NEGOTIATION lifts a plain body into a document — negoBodyOf calls
+   negoRichFromLines, which is docRichFromText — so it draws real headings,
+   real paragraphs and the marker in its own gutter. The DOCUMENT TAB threw the
+   same lines into `white-space:pre-wrap` divs: several clauses to a box, the
+   blank lines between them kept as literal newlines, and every clause number a
+   bold span with no gutter under it. One document, two shapes, and the shape
+   that reads as raw text is the one on the tab a contract is READ on.
+
+   THE FIX IS THE READING, NOT A SECOND RENDERER. The plain branch lifts through
+   the SAME function the negotiation already uses and then goes down the SAME
+   renderDocHtml path the rich branch takes — which is what puts the gutter on
+   (redlineHangHtml, one reading, four surfaces). So the two pages cannot come
+   to disagree about the document's shape, which is the thing that was reported.
+
+   IT LIFTS FOR THE SCREEN AND NEVER FOR THE RECORD. docBodyHtml is a renderer:
+   `c.redlineText` is untouched, no fingerprint moves, and the negotiation's own
+   stored baseline is built where it always was. Nothing is migrated. */
+function docPlainToRich(text){
+  const src=String(text==null?'':text);
+  if(!src.trim()) return '';
+  if(!window.docRichFromText) return '';
+  /* ONE lift for the WHOLE text, never one per run: docRichFromText decides
+     h1-vs-h2 from whether it has seen a title yet, so lifting run by run would
+     promote the first heading after every table back to the document's title. */
+  const lifted=docRichFromText(src);
+  /* ---- AND THE RULED BLOCK KEEPS ITS COLUMNS ----
+     documentTextHtml had one thing this lift does not: a run of ruled lines — a
+     rate card, a two-column signature block — drawn in monospace with its
+     spacing preserved. HTML collapses runs of spaces, so lifted alone those
+     columns close up and the card becomes three sentences. It is repaired HERE,
+     in the render, rather than in docBlocksFromText: that reading builds the
+     negotiation's STORED baseline, and widening it would change what every
+     existing contract's baseline segments into. */
+  let host=null;
+  try{ host=document.createElement('div'); host.innerHTML=lifted; }catch(_){ return lifted; }
+  const ruled=el=>{
+    if(!el||el.tagName!=='P') return false;
+    const t=String(el.textContent||'');
+    return /^\s*[|+]/.test(t)||/[|+]\s*$/.test(t)||/\S\s{4,}\S/.test(t);
+  };
+  let run=[];
+  const flush=()=>{
+    if(run.length<2){ run=[]; return; }   // one stray wide line is a sentence
+    const pre=document.createElement('pre');
+    pre.textContent=run.map(el=>String(el.textContent||'')).join('\n');
+    run[0].parentNode.insertBefore(pre, run[0]);
+    run.forEach(el=>el.remove());
+    run=[];
+  };
+  Array.from(host.children).forEach(el=>{ if(ruled(el)) run.push(el); else flush(); });
+  flush();
+  return host.innerHTML;
+}
+/* The contract's working-text body, in whichever format it carries. Both
+   branches end at renderDocHtml, which sanitises AGAIN at render — so the
+   allow-list governs a lifted body exactly as it governs a stored one. */
 function docBodyHtml(c, opts={}){
   const body=c.redlineText;
   if(window.isRich && isRich(c.format)) return renderDocHtml(body, RICH_FORMAT, opts);
-  return documentTextHtml(window.reflowWorkingText?reflowWorkingText(body):body, opts);
+  const rich=docPlainToRich(window.reflowWorkingText?reflowWorkingText(body):body);
+  /* NO LIFT, NO CHANGE. A stage without js/docx.js gets exactly the paper it
+     got before rather than an empty sheet — the fallback is the old path, never
+     silence. */
+  return rich ? renderDocHtml(rich, RICH_FORMAT, opts)
+    : documentTextHtml(window.reflowWorkingText?reflowWorkingText(body):body, opts);
 }
 
 // Heuristic clause analysis over the REAL extracted text — quotes verbatim.
@@ -1911,10 +1974,51 @@ function docPaperHeadHtml(c, opts={}){
    alert. Get rid of it") — same sentence, different corner. A stub, not a
    deletion: published on window and still called by wsNoticesHtml. */
 function docWorkingTextNoteHtml(){ return ''; }
+/* Does this wording already carry the top of the paper? TWO signals, because a
+   working text says its own name two different ways: lifted as a real title
+   (renderDocHtml sets a leading title as the sheet's own h1 — centred at
+   1.42em, which IS a title block), or as the plain lines docPlainText built
+   from the paper's own front matter, where the contract's NAME is one of the
+   opening blocks. Either way the reader has already been told. */
+const _docTopNorm=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
+const DOC_TOP_BLOCKS=4;
+function docBodyCarriesTop(html, c){
+  try{
+    const d=document.createElement('div'); d.innerHTML=String(html||'');
+    const doc=d.querySelector('.hati-doc')||d;
+    const first=doc.firstElementChild;
+    if(first&&first.tagName==='H1') return true;
+    const name=_docTopNorm(c&&c.name);
+    if(!name) return false;
+    return Array.from(doc.children).slice(0,DOC_TOP_BLOCKS)
+      .some(el=>_docTopNorm(el.textContent)===name);
+  }catch(_){ return false; }
+}
+/* ---- THE TOP OF THE PAPER IS SAID ONCE (Young reported it 10 Sep 2026: "top
+   of the contract is a mess ... does not resemble image 3 which is in the
+   negotiate page and looks more structured") ----
+
+   MEASURED on one contract, both surfaces. The Document tab drew a header —
+   the market kicker, the RECORD's name, a "Between A and B" line — and then the
+   wording began with those same three facts again, because a working text built
+   from a template contract IS the paper's own front matter followed by its
+   clauses: docPlainText writes that header out as text, and the editor is
+   seeded from it. So a header above it is not a header, it is the same three
+   facts printed twice — which is what "the top is a mess" is. The negotiate
+   page prints one title and no second copy, and it is the page Young named as
+   the one that reads right.
+
+   AND THE HEAD IS STILL DRAWN WHERE THE WORDING CARRIES NO TOP, which is a
+   real document and not a hypothetical: an AMENDMENT'S skeleton is four
+   English paragraphs — the two recitals, the "amended as follows" line and the
+   survival clause — with no title of its own, so standing the header down
+   unconditionally left that draft with no name on its paper at all.
+   amendment-journey-verify caught it, which is what that file is for. */
 function redlineDocBody(c){
+  const body=docBodyHtml(c,{size:'13.5px', lh:'1.85'});
   return `
-    ${docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
-    <div style="color:var(--color-doc-text)" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
+    ${docBodyCarriesTop(body,c)?'':docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
+    <div style="color:var(--color-doc-text)" data-anchor="redline">${body}</div>
     ${signatureBlock(c)}`;
 }
 
@@ -7247,16 +7351,40 @@ const _docReadHeadNum=t=>_docReadHeadCut(t).num;
    the same clause differently. */
 const _docReadWords=t=>String(t||'').replace(/\s+/g,' ').trim()
   .split(' ').slice(0,8).join(' ').slice(0,140);
+/* ---- THE DRAFTER'S OWN LEAD-IN, OR NOTHING (Young reported it 10 Sep 2026:
+   "in plain english theres duplication of clause numbers ... it also does not
+   have clause headers") ----
+
+   `_docReadLead` below answers TWO different questions and only one of them can
+   take the 8-word fallback. As the pairing guard's READING and as what the
+   route is sent, eight words is a fingerprint and is exactly right. As a name
+   to PRINT it is a fragment of the clause's first sentence, cut mid-phrase —
+   drawn as a heading it says the same thing the reading under it is about to
+   say, which is the duplication that was reported; and where the drafter set
+   only the NUMBER bold it is the number, printed a second time beside the one
+   in the gutter.
+
+   So the name to print is the bold lead-in where there IS one, and nothing
+   otherwise. A clause with no heading on the paper has none in the edition
+   either, which is honest — and the number then goes beside the reading rather
+   than on a line of its own (see docReadPaint). */
+const _docReadBoldLead=el=>{
+  let b=null;
+  try{ b=el&&el.querySelector&&el.querySelector('strong,b'); }catch(_){}
+  if(!b) return '';
+  const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
+  const bt=String(b.textContent||'').replace(/\s+/g,' ').trim();
+  return (bt&&t.indexOf(bt)>=0&&t.indexOf(bt)<=2)?bt.slice(0,140):'';
+};
 const _docReadLead=el=>{
   const t=String(el&&el.textContent||'').replace(/\s+/g,' ').trim();
-  let b=null;
-  try{ b=el.querySelector&&el.querySelector('strong,b'); }catch(_){}
-  if(b){
-    const bt=String(b.textContent||'').replace(/\s+/g,' ').trim();
-    if(bt&&t.indexOf(bt)>=0&&t.indexOf(bt)<=2) return bt.slice(0,140);
-  }
-  return _docReadWords(t);
+  const b=_docReadBoldLead(el);
+  return b||_docReadWords(t);
 };
+/* A NAME HAS A WORD IN IT. What is left after the number is cut off a lead-in
+   that was nothing but a number is the number again — printed, that is the
+   reported duplication. */
+const _docReadName=t=>{ const s=String(t||'').trim(); return /[A-Za-zÀ-ÿ]/.test(s)?s:''; };
 function docReadSheet(c){
   const canvas=document.getElementById('doc-canvas');
   if(!canvas) return [];
@@ -7332,12 +7460,14 @@ function docReadSheet(c){
        none the entry simply carries no heading, which is honest: that clause
        has none on the paper either. */
     let ownHead='';
-    if(row.isHead) ownHead=_docReadHeadCut(own).rest;
-    else if(row.isMark){
-      const b=leadEl&&leadEl.querySelector?leadEl.querySelector('strong,b'):null;
-      const bt=b?String(b.textContent||'').replace(/\s+/g,' ').trim():'';
-      if(bt&&after.indexOf(bt)>=0&&after.indexOf(bt)<=2) ownHead=bt.slice(0,140);
-    } else ownHead=_docReadHeadCut(_docReadLead(row.el)).rest;
+    if(row.isHead) ownHead=_docReadName(_docReadHeadCut(own).rest);
+    else {
+      /* A mark's own text IS the number, so its lead-in is looked for at the
+         start of what FOLLOWS it; a paragraph anchor carries its own. Either
+         way it is the BOLD lead-in or nothing — never the eight-word reading. */
+      const lead=row.isMark?_docReadBoldLead(leadEl):_docReadBoldLead(row.el);
+      ownHead=lead?_docReadName(_docReadHeadCut(lead).rest):'';
+    }
     const text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
     /* `cite` IS THE NUMBER TO SHOW, AND IT IS NOT `num` — DELIBERATELY.
        `num` is what docReadClauses sends to /api/ai/readings, and that route's
@@ -7456,10 +7586,19 @@ function docReadPaint(c){
          that happen to line up at the top. */
       const shape=docReadShape(p.el);
       const numHtml=num?`<span class="dr-n">${esc(num)}</span>`:'';
+      /* ---- THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT (Young, 10 Sep
+         2026: "the numbers are above the clause as opposed to next to the
+         clause like in the contract") ----
+         Where the clause has a heading of its own the number is that heading's
+         marker, in its gutter. Where it has none — which is most commercial
+         paper, whose clauses run straight into their wording — the number is
+         the READING's own marker, which is exactly what the contract does one
+         column over. What it is never again is a line of its own with the
+         reading underneath, which is what was reported. */
+      const lead=!head&&!!num&&!sec;
       return `<div class="doc-read-note${sec?' dr-sec':''}${shape}" data-doc-read-note="${n}">`
-        +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`
-              :(num&&!sec?`<h4 class="dr-h">${numHtml}</h4>`:''))
-        +(body?`<p>${esc(body)}</p>`:'')
+        +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')
+        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${esc(body)}</p>`:'')
         +`</div>`;
     }).join('')}
       ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
@@ -9424,7 +9563,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

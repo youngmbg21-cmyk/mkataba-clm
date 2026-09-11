@@ -699,11 +699,20 @@ describe('f245 (17) — the four faults reported off the screenshots', () => {
 
 describe('f245 (9) — the counterparty\'s seat is untouched', () => {
   test('the row door is never drawn on their page', () => {
-    const m = NEGO.match(/const ceBtn = \([\s\S]{0,220}/);
-    assert.ok(m, 'the row door has a guard');
-    assert.ok(/side === 'owner'/.test(m[0]), 'our own seat only');
-    assert.ok(/!previewSeat/.test(m[0]), 'and not in the preview of theirs');
-    assert.ok(/editable/.test(m[0]), 'and only where this reader may redline');
+    /* REVERSED IN PLACE 10 Sep 2026 and STRONGER for it: this anchored on
+       `const ceBtn = (`, which was the expression rather than the claim. The
+       control has TWO branches now — the live door and the one a colleague's
+       lock marks (Young's "put the initials on those too") — and BOTH have to
+       carry the same seat guard, or the marking draws on a page the door never
+       did. So the claim is that every branch is guarded, not that one is. */
+    const i = NEGO.indexOf('const ceLock = (');
+    assert.ok(i > 0, 'the row door has a guard');
+    const region = NEGO.slice(i, NEGO.indexOf("      : '';", i));
+    const guards = region.match(/openBtn && !previewSeat && side === 'owner' && editable/g) || [];
+    assert.equal(guards.length, 2,
+      'the live door AND the marked one — a rule kept at one of two is not a rule');
+    assert.ok(/window\.rlOpenClauseEditor/.test(region),
+      'and a door claiming a page nothing can open is the dead press the draw-time decision exists to prevent');
   });
 
   test('the page refuses a counterparty seat outright', async () => {

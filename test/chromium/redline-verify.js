@@ -2391,6 +2391,155 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('25j and your own clauses are untouched',
     lock.mineHasPencil === true, `pencil on your own clause: ${lock.mineHasPencil}`);
   await page.screenshot({ path: path.join(OUT, '25-one-pair-of-hands.png') });
+  /* ---- AND THE OTHER DOORS INTO THE EDITOR (Young, 10 Sep 2026) ----
+     *"put the initials on those too."* Four controls open that page and only
+     the pencil carried the monogram; the rest refused in words AFTER the press,
+     which is the dead press this product's own rule exists to prevent.
+
+     TWO OF THE FOUR ARE MEASURED HERE and the other two are not, for reasons
+     worth writing down rather than leaving to be discovered:
+       · the PENCIL is section 25 above;
+       · the CARD'S EDIT and the CLAUSE PANEL'S Copilot button are below;
+       · the SPARKLE on a tracked change (.rl-cp-editor-btn) is marked in the
+         builder and is NOT DRAWN ON OUR SEAT AT ALL. Measured: our cards are
+         the flat disclosure row of 25 Aug 2026, which draws Open and never
+         that control; it survives on the receipt and full shapes, which are
+         the counterparty's — and their seat has no clause editor, so the
+         condition is false there too. Its marking is asserted in f289 (44)
+         and cannot honestly be measured on a page that does not draw it.
+
+     Whether a monogram is really in the button, whether the verb column still
+     lines up and whether the browser actually declines the press are all
+     measurements; the source says none of them. GUARDED throughout, so a build
+     without the marking REPORTS its failures rather than throwing. */
+  /* STAGED IN THE PAGE, PRESSED FOR REAL. Opening a card repaints the column
+     and re-arms its listeners, so an in-page .click() straight after a bare
+     renderRedline() lands on a button the next paint detaches — measured, it
+     reported a correctly drawn control as 0x0 in a tree nothing lays out. The
+     press is Playwright's, like every other driven half in this file. */
+  const stage = await page.evaluate(() => {
+    const c = CONTRACT;
+    const drawn = (window.negoClauseList ? negoClauseList(c) : []).map(x => x.clauseId);
+    const live = (c.changes || []).filter(x => x && x.status === 'pending' && x.clauseId);
+    const ch = live[0], other = live[1];
+    if (!ch || !other || drawn.length < 2)
+      return { skip: 'this stage has no pair of pending changes, or no paper' };
+    /* ONTO CLAUSES THE PAPER REALLY DRAWS. This fixture's changes carry
+       synthetic ids (cl_a), and a change whose clause is not on the paper has
+       no panel body at all — which is how this probe first reported a
+       correctly-marked page as having no panel. The record is the stage's to
+       set; what is measured is the drawing. */
+    ch.clauseId = drawn[0]; other.clauseId = drawn[1];
+    delete c.locks;
+    renderRedline();
+    return { held: ch.id, heldClause: ch.clauseId, free: other.id, freeClause: other.clauseId };
+  });
+  const openFor = async id => {
+    const sel = '[data-rl-card-open="' + id + '"]';
+    const el = await page.$(sel);
+    if (el && (await el.getAttribute('aria-expanded')) !== 'true') await page.click(sel);
+  };
+  const readDoors = () => page.evaluate(o => {
+    const seen = el => { if (!el) return null; const r = el.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height) }; };
+    /* The panel holds every clause's body at once and flips which is on, so a
+       bare .rl-cp-act-ai reads whichever comes FIRST in the markup — a
+       different clause's button, which is how this check first reported a
+       correctly-marked page as unmarked. Scoped by the clause it is for. */
+    const panelFor = id => document.querySelector('.rl-cp-src[data-rl-cp-for="' + id + '"]');
+    const editIn = id => { const b = document.querySelector('[data-rl-card-open="' + id + '"]');
+      const card = b ? b.closest('[data-nego-card]') : null;
+      return card ? card.querySelector('.rl-edit.rl-verb-ai') : null; };
+    const e = editIn(o.held), p = panelFor(o.heldClause);
+    const pb = p ? p.querySelector('.rl-cp-act-ai') : null;
+    const mono = e ? e.querySelector('.rl-lock-mono') : null;
+    const cs = e ? getComputedStyle(e) : null;
+    const fe = editIn(o.free), fp = panelFor(o.freeClause);
+    return {
+      edit: e ? { mono: mono ? mono.textContent.trim() : null, monoBox: seen(mono),
+        disabled: e.disabled === true, text: e.textContent.replace(/\s+/g, ' ').trim(),
+        box: seen(e), way: e.hasAttribute('data-rl-cp-editor-row'),
+        title: e.getAttribute('title'), label: e.getAttribute('aria-label'),
+        ink: cs ? cs.color : null } : null,
+      panel: pb ? { mono: (pb.querySelector('.rl-lock-mono') || {}).textContent,
+        monoBox: seen(pb.querySelector('.rl-lock-mono')),
+        disabled: pb.disabled === true, way: pb.hasAttribute('data-rl-cp-editor'),
+        title: pb.getAttribute('title') } : null,
+      freeEdit: !!(fe && fe.hasAttribute('data-rl-cp-editor-row')),
+      freePanel: !!(fp && fp.querySelector('.rl-cp-act-ai[data-rl-cp-editor]')),
+      /* RESOLVED FROM THE TOKENS RATHER THAN TYPED, so a later palette pass
+         costs no edit here. */
+      amber: (() => { const i = document.createElement('i');
+        i.style.color = 'var(--st-amber-fg, #b45309)'; document.body.appendChild(i);
+        const v = getComputedStyle(i).color; i.remove(); return v; })(),
+      label: (() => { const i = document.createElement('i');
+        i.style.color = 'var(--color-neutral-600)'; document.body.appendChild(i);
+        const v = getComputedStyle(i).color; i.remove(); return v; })(),
+    };
+  }, stage);
+
+  if (stage.skip){
+    check('25k the other doors', false, stage.skip);
+  } else {
+    /* THE CONTROL FIRST. With nothing held both are live doors carrying a way
+       in, or "it went dead" is satisfied by a page that never drew them. */
+    await openFor(stage.held);
+    const before = await readDoors();
+
+    await page.evaluate(o => { CONTRACT.locks = { [o.heldClause]:
+      { by: { id: 'u_other', name: 'Ruth Chege' }, at: new Date().toISOString() } };
+      renderRedline(); }, stage);
+    /* ONE CARD IS OPEN AT A TIME, so the unheld card's own door is read while
+       IT is open and the held one is read after. A single pass would report
+       the free card's Edit as absent because its body is simply shut. */
+    await openFor(stage.free);
+    const free = await readDoors();
+    await openFor(stage.held);
+    /* AND THE PANEL IS OPENED FOR REAL on the held clause, or its monogram is
+       measured inside a body nothing lays out. */
+    await page.evaluate(o => { if (window.rlCpSetShown) rlCpSetShown(document, o.heldClause); }, stage);
+    const after = await readDoors();
+    await page.evaluate(() => { delete CONTRACT.locks; });
+
+    check('25k THE CONTROL: with nothing held both are live doors carrying a way in',
+      !!before.edit && before.edit.way === true && before.freePanel === true,
+      JSON.stringify({ edit: before.edit && before.edit.way, box: before.edit && before.edit.box,
+        panel: before.freePanel }));
+    check('25l the card\'s Edit wears the monogram as VISIBLE PIXELS',
+      !!after.edit && after.edit.mono === 'RC' && !!after.edit.monoBox &&
+      after.edit.monoBox.w > 0 && after.edit.monoBox.h > 0,
+      JSON.stringify(after.edit && { mono: after.edit.mono, box: after.edit.monoBox }));
+    check('25m and keeps its verb, so the shared verb column does not move',
+      !!after.edit && /Copilot/i.test(after.edit.text || '') && !!before.edit &&
+      Math.abs(after.edit.box.w - before.edit.box.w) < 24,
+      JSON.stringify({ text: after.edit && after.edit.text,
+        was: before.edit && before.edit.box, now: after.edit && after.edit.box }));
+    check('25n the browser itself refuses the press — the way in is GONE',
+      !!after.edit && after.edit.disabled === true && after.edit.way === false,
+      JSON.stringify(after.edit && { disabled: after.edit.disabled, wayIn: after.edit.way }));
+    check('25o the sentence is on the hover AND on the label, for a reader with no hover',
+      !!after.edit && /Ruth Chege/.test(after.edit.title || '') &&
+      /Ruth Chege/.test(after.edit.label || ''),
+      JSON.stringify(after.edit && { title: after.edit.title, label: after.edit.label }));
+    /* IT IS THE LABEL SHADE, not merely "not amber": these two doors wear
+       Copilot's violet when live, and violet on a button nobody can press
+       reads as live. Measured as a computed value against the resolved token,
+       because the rule that carries it has to WIN A CASCADE — and one that
+       loses looks perfectly correct in the source. */
+    check('25p the dead door takes the label shade — not Copilot\'s violet, not amber',
+      !!after.edit && after.edit.ink === after.label && after.edit.ink !== after.amber,
+      `${after.edit && after.edit.ink} · label ${after.label} · amber ${after.amber}`);
+    check('25q the clause panel\'s Copilot button is marked the same way',
+      !!after.panel && String(after.panel.mono).trim() === 'RC' &&
+      after.panel.disabled === true && after.panel.way === false &&
+      !!after.panel.monoBox && after.panel.monoBox.w > 0 &&
+      /Ruth Chege/.test(after.panel.title || ''), JSON.stringify(after.panel));
+    check('25r a change on an UNHELD clause keeps BOTH of its live doors',
+      free.freeEdit === true && free.freePanel === true,
+      `edit ${free.freeEdit} · panel ${free.freePanel}`);
+  }
+  await page.screenshot({ path: path.join(OUT, '25b-the-other-doors.png') });
+
 
   await browser.close();
   srv.close();

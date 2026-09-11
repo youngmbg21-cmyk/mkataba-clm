@@ -2364,7 +2364,16 @@ const STRINGS = {
     co_temp_password_body: 'Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.',
     co_password_too_short: 'The new password must be at least 8 characters.',
     co_passwords_differ: 'The two new passwords do not match.',
-    co_password_updated: 'Password updated — karibu',
+    /* TWO DOORS, TWO SENTENCES, AND THEY COLLIDED ON ONE KEY NAME UNTIL
+       10 Sep 2026. Both were written correctly and only one of them ever
+       drew, because a duplicate key in an object literal is won by whichever
+       is written LAST — so the reset path's sentence was being said on this
+       screen too, telling somebody who is about to be taken straight into
+       the workspace to go and sign in. THIS one is the reader changing their
+       own password: they stay signed in and startApp() puts them in, so the
+       welcome is the true half. `co_password_updated` is the OTHER door — a
+       reset link, which ends on the sign-in form — and it is unchanged. */
+    co_password_changed: 'Password updated — karibu',
     co_set_my_password: 'Set my password',
     co_audit_trail: 'Audit trail',
     co_no_events: 'No events recorded yet.',
@@ -3498,7 +3507,6 @@ const STRINGS = {
     co_share_kind_history: 'The negotiation history',
     co_share_kind_history_sub: 'The Negotiation history screen, opened by somebody with no account — every change, who asked, and what was decided. Read-only: the agreement itself does not travel and there is nothing on it to sign.',
     co_share_kind_history_none: 'Nothing has been proposed on this contract yet, so there is no record to send.',
-    act_next: 'Next',
     co_send_signing_q: 'Send the signing link to this address?',
     co_responded: 'Responded',
     co_revoke_share_q: 'Revoke this share link?',
@@ -8110,7 +8118,7 @@ const STRINGS = {
     co_temp_password_body: 'Ditt konto skapades med ett tillfälligt lösenord som någon annan valde. Ange ditt eget innan du fortsätter — allt du undertecknar måste kunna hänföras till dig ensam.',
     co_password_too_short: 'Det nya lösenordet måste vara minst 8 tecken.',
     co_passwords_differ: 'De två nya lösenorden stämmer inte överens.',
-    co_password_updated: 'Lösenordet är uppdaterat — karibu',
+    co_password_changed: 'Lösenordet är uppdaterat — karibu',
     co_set_my_password: 'Ange mitt lösenord',
     co_audit_trail: 'Granskningslogg',
     co_no_events: 'Inga händelser registrerade ännu.',
@@ -9091,7 +9099,6 @@ const STRINGS = {
     co_share_kind_history: 'Förhandlingshistoriken',
     co_share_kind_history_sub: 'Skärmen Förhandlingshistorik, öppnad av någon utan konto — varje ändring, vem som bad om den och vad som beslutades. Skrivskyddad: själva avtalet följer inte med och det finns inget att underteckna.',
     co_share_kind_history_none: 'Inget har föreslagits på det här avtalet ännu, så det finns ingen historik att skicka.',
-    act_next: 'Nästa',
     co_send_signing_q: 'Skicka signeringslänken till den här adressen?',
     co_responded: 'Svarat',
     co_revoke_share_q: 'Återkalla delningslänken?',

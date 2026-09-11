@@ -1154,3 +1154,286 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
       'it asks the DOM and nothing else');
   });
 });
+
+/* ---------------------------------------------------------------------------
+   f277 (14) — A WORKING TEXT IS A DOCUMENT, AND ITS TOP IS SAID ONCE
+   (Young reported it 10 Sep 2026, off two screenshots of one contract: "top of
+   the contract is a mess ... does not resemble image 3 which is in the
+   negotiate page and looks more structured. So plain english is not set like a
+   contract and the main contract is unstructured unlike the negotiate page
+   which is clean.")
+
+   MEASURED on one contract, both surfaces, before a line was written. The
+   NEGOTIATION lifts a plain body into a document — negoBodyOf calls
+   negoRichFromLines, which is docRichFromText — so it draws real headings, real
+   paragraphs and each marker in its own gutter. The DOCUMENT TAB threw the same
+   lines into `white-space:pre-wrap` divs, and then printed a header above them
+   carrying the RECORD's name, which the wording's own first lines were about to
+   say again.
+
+   THE FIX IS THE READING, NOT A SECOND RENDERER: the plain branch lifts through
+   the SAME function the negotiation already uses and goes down the SAME
+   renderDocHtml path the rich branch takes — which is what puts the gutter on.
+   So the two pages cannot come to disagree about the document's shape, which is
+   what was reported.
+
+   WHAT THE BROWSER FILE ANSWERS INSTEAD: whether the paper really paints those
+   headings, whether the top is said once as PIXELS, and whether the number sits
+   beside the reading rather than above it — three geometries, and none of them
+   is a claim this stage can make. plain-english-verify section 13.
+   --------------------------------------------------------------------------- */
+/* Read a source file — the same helper f277 (13) declares for its own block. */
+const _f277rd = f => require('node:fs').readFileSync(
+  require('node:path').join(__dirname, '..', f), 'utf8');
+
+describe('f277 (14) a working text is a document', () => {
+  let win;
+  before(() => { win = buildWorld({ contractView: true }).win; win.innerWidth = 1440; });
+
+  const TEXT = [
+    'SUPPLY AGREEMENT',
+    '',
+    'This Agreement is made between Highland Corporate Ltd and Naivas Supermarkets.',
+    '',
+    '1. SCOPE OF SUPPLY',
+    '',
+    '1.1 Master Agreement Structure. This Agreement establishes the framework for purchases.',
+    '',
+    '2. CHARGES AND PAYMENT',
+    '',
+    '2.1 The Buyer shall pay each undisputed invoice within thirty (30) days of receipt.',
+  ].join('\n');
+  const C = () => ({ id: 'MK-1', name: 'Retail Supply — Coast', counterparty: 'Naivas Supermarkets',
+    redlineText: TEXT, format: 'text', changes: [], audit: [] });
+
+  test('ONE READING, BOTH SURFACES — the lift is the negotiation’s own', () => {
+    /* Not "a lift that happens to agree today": the SAME function, so the two
+       pages cannot come apart. */
+    const src = _f277rd('js/views/contract.js');
+    assert.match(src, /function docPlainToRich\(text\)\{[\s\S]{0,900}docRichFromText\(src\)/,
+      'docPlainToRich lifts through docRichFromText');
+    assert.match(src, /function docBodyHtml\(c, opts=\{\}\)\{[\s\S]{0,600}docPlainToRich\(/,
+      'and the plain branch of docBodyHtml is what asks it');
+    const neg = _f277rd('js/negotiation.js');
+    assert.match(neg, /function negoBodyOf\(c\)\{[\s\S]{0,400}negoRichFromLines\(text\)/,
+      'which is the reading the negotiation already runs on');
+  });
+
+  test('the reported fault: the same lines come out as a document', () => {
+    const html = win.docBodyHtml(C(), { size: '13.5px', lh: '1.85' });
+    assert.ok(/<h1[\s>]/.test(html), 'the document names itself');
+    assert.ok((html.match(/<h2[\s>]/g) || []).length >= 2, 'and its clauses are headings');
+    assert.ok(/class="rl-hang"/.test(html) && /class="rl-marker"/.test(html),
+      'each numbered clause carries its marker in the gutter — the paper’s own vocabulary');
+    /* THE FAULT, pinned as an absence: against the parent every one of these
+       lines was a run inside one pre-wrap box. */
+    assert.ok(!/pre-wrap/.test(html), 'and not one pre-wrap run survives');
+  });
+
+  test('IT LIFTS FOR THE SCREEN AND NEVER FOR THE RECORD', () => {
+    /* docBodyHtml is a renderer. Nothing here may move the stored wording, or a
+       fingerprint moves with it and every contract on file is accused of
+       having changed. */
+    const c = C();
+    const before = c.redlineText;
+    win.docBodyHtml(c, {});
+    assert.equal(c.redlineText, before, 'the stored wording is untouched');
+    assert.equal(c.format, 'text', 'and so is its format');
+  });
+
+  test('NO LIFT, NO CHANGE — the fallback is the old paper, never silence', () => {
+    /* A stage without js/docx.js must get exactly the sheet it got before,
+       rather than an empty one: the rlPaperFootHtml family, where a name that
+       cannot be reached takes the else branch in silence. */
+    const src = _f277rd('js/views/contract.js');
+    const i = src.indexOf('function docBodyHtml(c, opts={})');
+    const fn = src.slice(i, src.indexOf('\n}', i));
+    assert.match(fn, /rich \? renderDocHtml[\s\S]{0,200}: documentTextHtml\(/,
+      'no lift falls back to documentTextHtml');
+    const keep = win.docRichFromText;
+    try {
+      win.docRichFromText = undefined;
+      const html = win.docBodyHtml(C(), { size: '13.5px', lh: '1.85' });
+      assert.ok(/pre-wrap/.test(html), 'and that really is the old builder');
+    } finally { win.docRichFromText = keep; }
+  });
+
+  test('a ruled block keeps its columns', () => {
+    /* documentTextHtml had one thing the lift does not: a run of ruled lines —
+       a rate card, a two-column signature block — set in monospace with its
+       spacing preserved. HTML collapses runs of spaces, so lifted alone the
+       card becomes three sentences. */
+    const RATE = ['SCHEDULE A', '',
+      'Service                     Rate        Unit',
+      'Collection                  1,200       per tonne',
+      'Chilling                      450       per tonne'].join('\n');
+    const html = win.docBodyHtml({ id: 'MK-2', name: 'Rate card', redlineText: RATE,
+      format: 'text', changes: [], audit: [] }, {});
+    assert.ok(/<pre/.test(html), 'the ruled run is set as a block that keeps its spacing');
+    assert.ok(/Collection {2,}1,200/.test(html), 'and the columns really survive');
+    const css = _f277rd('index.html');
+    assert.match(css, /\.hati-doc pre\{[^}]*white-space:pre[^}]*\}/);
+    assert.match(css, /\.hati-doc pre\{[^}]*overflow-x:auto/,
+      'a wide card scrolls inside itself — the page never scrolls sideways');
+  });
+
+  test('ONE STRAY WIDE LINE IS A SENTENCE, not a table', () => {
+    const ONE = ['1. SCOPE', '', 'The Supplier shall    deliver each consignment promptly.'].join('\n');
+    const html = win.docBodyHtml({ id: 'MK-3', name: 'x', redlineText: ONE, format: 'text',
+      changes: [], audit: [] }, {});
+    assert.ok(!/<pre/.test(html), 'a single ruled-looking line is left as wording');
+  });
+
+  test('THE TOP IS SAID ONCE — no header above wording that already carries it', () => {
+    /* A working text built from a template contract IS the paper's own front
+       matter followed by its clauses: docPlainText writes that header out as
+       text and the editor is seeded from it. A header above it is the same
+       facts printed twice, which is what "the top is a mess" is. */
+    const html = win.redlineDocBody(C());
+    assert.ok(!/rl-paper-head/.test(html), 'redlineDocBody draws no paper head');
+    assert.equal((html.match(/Retail Supply — Coast/g) || []).length, 0,
+      'and the RECORD’s name is not printed over the document’s own title');
+  });
+
+  test('AND IT IS STILL DRAWN where the wording carries no top', () => {
+    /* An AMENDMENT'S skeleton is four English paragraphs — the two recitals,
+       the "amended as follows" line and the survival clause — with no title of
+       its own. Standing the header down unconditionally left that draft with no
+       name on its paper at all; amendment-journey-verify caught it. */
+    const skeleton = ['The parties entered into the Supply Agreement dated 31 July 2026.',
+      'The parties wish to amend it as set out below.',
+      'The Agreement is amended as follows.',
+      'All other terms remain in full force and effect.'].join('\n\n');
+    const c = { id: 'MK-4', name: 'Amendment No. 1 — extended term',
+      counterparty: 'Naivas Supermarkets', redlineText: skeleton, format: 'text',
+      changes: [], audit: [] };
+    const html = win.redlineDocBody(c);
+    assert.ok(/rl-paper-head/.test(html), 'the header is drawn');
+    assert.ok(/Amendment No\. 1/.test(html), 'and the draft has a name on its paper');
+  });
+
+  test('the name is matched on a BLOCK, never anywhere in the wording', () => {
+    /* A contract whose NAME happens to appear in a recital must still get its
+       header — the signal is the opening block BEING the name, not the name
+       being mentioned. */
+    const c = { id: 'MK-5', name: 'Retail Supply — Coast', counterparty: 'Naivas',
+      redlineText: ['This deed varies the Retail Supply — Coast agreement in part.',
+        'The parties agree as follows.'].join('\n\n'),
+      format: 'text', changes: [], audit: [] };
+    assert.ok(/rl-paper-head/.test(win.redlineDocBody(c)),
+      'a mention inside a sentence is not the top of the paper');
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   f277 (15) — THE HEADING PRINTED IS THE DRAFTER'S OWN, OR NOTHING
+   (Young, the same report: "in plain english theres duplication of clause
+   numbers and the numbers are above the clause as opposed to next to the
+   clause like in the contract. it also does not have clause headers.")
+
+   `_docReadLead` answers TWO questions and only one of them can take the
+   eight-word fallback. As the pairing guard's READING and as what the route is
+   sent, eight words is a fingerprint and is exactly right. As a name to PRINT
+   it is a fragment of the clause's first sentence, cut mid-phrase — drawn as a
+   heading it says what the reading under it is about to say; and where the
+   drafter set only the NUMBER bold it is the number, printed a second time
+   beside the one in the gutter.
+   --------------------------------------------------------------------------- */
+describe('f277 (15) the heading printed is the drafter’s own', () => {
+  let win;
+  before(() => { win = buildWorld({ contractView: true }).win; win.innerWidth = 1440; });
+
+  const C = { id: 'MK-1', name: 'Supply', changes: [], audit: [] };
+  const rows = html => { sheet(win, html); return win.docReadSheet(C); };
+
+  test('a real bold lead-in is the name, with its number cut off once', () => {
+    const r = rows('<div class="hati-doc"><h2>1. Scope</h2>'
+      + '<p><strong>1.1 Master Agreement Structure.</strong> This sets out the framework.</p></div>');
+    const cl = r.find(x => x.num === '1.1');
+    assert.ok(cl, 'the clause is a row of its own');
+    assert.equal(cl.ownHead, 'Master Agreement Structure.',
+      'the drafter’s own name, without the number that is already in the gutter');
+  });
+
+  test('THE REPORTED DUPLICATION: a lead-in that is only a number prints no name', () => {
+    /* What is left after the number is cut off a lead-in that was nothing but a
+       number is the number again. Printed, that is the duplication. */
+    const r = rows('<div class="hati-doc"><h2>1. Scope</h2>'
+      + '<p><strong>1.1</strong> This Agreement establishes the framework for purchases.</p></div>');
+    const cl = r.find(x => x.num === '1.1');
+    assert.ok(cl, 'the clause is still a row');
+    assert.equal(cl.ownHead, '', 'and it carries no heading rather than the number twice');
+  });
+
+  test('and a clause with no lead-in at all carries none', () => {
+    /* Most commercial paper: the clause number runs straight into the wording.
+       An eight-word fragment of that sentence is not a heading. */
+    const r = rows('<div class="hati-doc"><h2>2. Charges</h2>'
+      + '<p class="rl-hang"><span class="rl-marker">2.1 </span>The Buyer shall pay each undisputed '
+      + 'invoice within thirty (30) days of receipt.</p></div>');
+    const cl = r.find(x => x.num === '2.1');
+    assert.ok(cl, 'the clause is a row of its own');
+    assert.equal(cl.ownHead, '', 'no heading is invented out of its first words');
+  });
+
+  test('THE WALL: what the ROUTE is sent does not move by a byte', () => {
+    /* The route's cache key is a hash of exactly what it was sent, so the
+       eight-word reading stays exactly where it was — this changes what is
+       PRINTED and nothing about what is asked. */
+    const r = rows('<div class="hati-doc"><h2>2. Charges</h2>'
+      + '<p class="rl-hang"><span class="rl-marker">2.1 </span>The Buyer shall pay each undisputed '
+      + 'invoice within thirty (30) days of receipt.</p></div>');
+    const cl = r.find(x => x.num === '2.1');
+    assert.match(cl.heading, /^2\.1 The Buyer shall pay each undisputed/,
+      'the reading is still the first few words, number included');
+    const sent = win.docReadClauses(C).find(x => x.num === '2.1');
+    assert.equal(sent.heading, cl.heading, 'and it is what docReadClauses hands over');
+    assert.ok(!('ownHead' in sent), 'the name to print never travels — it is not asked about');
+  });
+
+  test('a section keeps its own name, cut from its own number', () => {
+    const r = rows('<div class="hati-doc"><h2>3. Quality &amp; Rejection</h2>'
+      + '<p>Consignments failing specification may be rejected.</p></div>');
+    const sec = r.find(x => x.kind === 'section');
+    assert.equal(sec.ownHead, 'Quality & Rejection');
+    assert.equal(sec.cite, '3', 'and its number rides as the citation');
+  });
+
+  test('A NAME HAS A WORD IN IT', () => {
+    const src = _f277rd('js/views/contract.js');
+    assert.match(src, /const _docReadName=t=>\{[^}]*\[A-Za-zÀ-ÿ\]/,
+      'a heading of nothing but digits and punctuation is the number again');
+    assert.match(src, /const _docReadBoldLead=el=>\{/,
+      'and the name to print is read by its own function');
+    /* The eight-word fallback survives in _docReadLead, which is the READING. */
+    assert.match(src, /const _docReadLead=el=>\{[\s\S]{0,300}_docReadWords\(t\)/);
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   f277 (16) — THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT
+   --------------------------------------------------------------------------- */
+describe('f277 (16) the number sits beside the reading', () => {
+  test('a clause with no heading puts its number in the reading’s own line', () => {
+    const src = _f277rd('js/views/contract.js');
+    const i = src.indexOf('const numHtml=num?');
+    const region = src.slice(i, i + 1400);
+    assert.match(region, /const lead=!head&&!!num&&!sec;/,
+      'the state is named: a number, no heading of its own, not a section');
+    assert.match(region, /<p\$\{lead\?' class="dr-lead"':''\}>\$\{lead\?numHtml:''\}/,
+      'and the number is drawn INSIDE the reading’s paragraph');
+    /* THE REPORTED FAULT, pinned as an absence: an <h4> holding nothing but
+       the number, with the reading underneath it. */
+    assert.ok(!/<h4 class="dr-h">\$\{numHtml\}<\/h4>/.test(region),
+      'never a heading element holding only the number');
+  });
+
+  test('and the gutter is the paper’s own measure', () => {
+    const css = _f277rd('index.html');
+    assert.match(css, /\.doc-read-note > p\.dr-lead\{[^}]*padding-left:2\.6em[^}]*text-indent:-2\.6em/);
+    assert.match(css, /\.doc-read-note > p\.dr-lead \.dr-n\{[^}]*min-width:2\.6em/,
+      'the number sits in a gutter of exactly the width the contract uses');
+    assert.match(css, /\.doc-read-note\.dr-hang > p:not\(\.dr-lead\)\{ padding-left:2\.6em; \}/,
+      'and the two rules do not double up on one paragraph');
+  });
+});

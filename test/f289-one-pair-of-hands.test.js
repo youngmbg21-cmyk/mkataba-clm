@@ -168,9 +168,13 @@ test('f289 (10) the pencil builder asks the ONE reading, and asks it once', () =
   const i = NEG.indexOf('function rlClauseEditPillHtml(');
   assert.ok(i > 0);
   const body = NEG.slice(i, NEG.indexOf('\nfunction ', i + 10));
-  assert.ok(/clauseLockHeldByOther\(/.test(body),
+  /* REVERSED IN PLACE 10 Sep 2026: this pinned clauseLockHeldByOther by name,
+     which was the expression rather than the claim. Three more doors ask the
+     same question now, so the reading is clauseLockSign and the claim is that
+     the builder asks THAT — once, so the four clause branches cannot disagree. */
+  assert.ok(/rlLockSign\(/.test(body),
     'the builder asks who holds the clause, so the four clause branches cannot disagree');
-  assert.equal((body.match(/clauseLockHeldByOther\(/g) || []).length, 1,
+  assert.equal((body.match(/rlLockSign\(/g) || []).length, 1,
     'once');
   /* AND THE CONTRACT REACHES IT. A reading handed no contract answers null on
      every clause, which is a lock that never draws — silently. */
@@ -187,9 +191,14 @@ test('f289 (11) it draws the monogram AND the line, and is not a control', () =>
   assert.ok(/<span class="rl-cp-lock"/.test(branch), 'it takes the pencil\'s slot');
   assert.ok(!/<button/.test(branch),
     'a control drawn dead is how a reader comes to blame themselves');
-  assert.ok(/clauseLockInitials\(/.test(branch), 'the initials Young asked for');
-  assert.ok(/clauseLockLine\(/.test(branch), 'and the line');
-  assert.ok(/clauseLockTitle\(/.test(branch), 'with the whole name on the hover');
+  /* REVERSED IN PLACE 10 Sep 2026 onto the three pieces rather than the three
+     functions that used to be called here one at a time. The claim was never
+     which helper was invoked — it is that this control draws the GLANCE and the
+     SENTENCE, with the whole name on the hover, and that all four doors read
+     those three from one place. */
+  assert.ok(/held\.mono/.test(branch), 'the initials Young asked for');
+  assert.ok(/held\.say/.test(branch), 'and the line');
+  assert.ok(/held\.title/.test(branch), 'with the whole name on the hover');
 });
 
 test('f289 (12) the sign is drawn where the pencil would be, and the heading gives up its reserve', () => {
@@ -382,4 +391,289 @@ test('f289 (26) the reading writes nothing', () => {
   const body = src.slice(i, src.indexOf('\n}', i));
   assert.ok(!/c\.locks\s*=|c\.locks\[/.test(body.replace(/\)\s*\?\s*c\.locks\[id\]/, '')),
     'a reading that started a lock by being asked would take a clause off a colleague every time a card was drawn');
+});
+
+/* ---------------------------------------------------------------- 7. the
+   presence write, against a real server ------------------------------------
+   A LOCK IS PRESENCE, NOT RECORD. It first rode the whole-contract save and
+   that was wrong three ways: the save carries an optimistic baseVersion, so a
+   refresh landing after a colleague's save came back 409 and the browser put a
+   BLOCKING "keep yours or load theirs?" dialog over somebody's typing every
+   forty-five seconds; the map travelled whole, so a browser whose record
+   predated a colleague taking a lock WIPED that colleague's lock; and it moved
+   the version, so every watcher fetched the whole contract and toasted about a
+   clause somebody had merely opened.
+
+   Every claim below is measured off a running server rather than read out of
+   the source, because all three faults are about what a SECOND request sees. */
+const { test: t7 } = require('node:test');
+const { before, after, describe } = require('node:test');
+const { startHati, seedWorkspace } = require('./helpers');
+
+describe('f289 section 7 — the presence write', () => {
+  let h, W;
+  before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+  after(async () => { await h.stop(); });
+
+  const lock = (who, body, id) =>
+    who.raw('/api/contracts/' + (id || 'MK-A2') + '/lock', { method: 'POST', body });
+  const state = (who, id) => who.raw('/api/contracts/' + (id || 'MK-A2') + '/state');
+
+  t7('f289 (27) taking a clause is recorded, and NAMES who holds it', async () => {
+    const r = await lock(W.unrestricted, { clauseId: 'cl_x' });
+    assert.equal(r.status, 200);
+    assert.ok(r.json.locks.cl_x, 'the clause is held');
+    assert.equal(r.json.locks.cl_x.by.name, 'Unrestricted Legal',
+      'the NAME travels, because the monogram and the refusal are both drawn from it');
+  });
+
+  t7('f289 (28) presence is not an edit — neither version nor updated_at moves', async () => {
+    const before0 = (await state(W.unrestricted)).json;
+    const r = await lock(W.unrestricted, { clauseId: 'cl_beat' });
+    /* PROVE THE WRITE HAPPENED FIRST, or "the version did not move" is
+       satisfied by a build where nothing was written at all. */
+    assert.equal(r.status, 200);
+    assert.ok(r.json.locks.cl_beat, 'the clause really was taken');
+    const after0 = (await state(W.unrestricted)).json;
+    assert.equal(after0.version, before0.version,
+      'a lock that moved the version would make every watcher fetch the whole contract');
+    assert.equal(after0.updatedAt, before0.updatedAt,
+      'and would make the record read as edited in the register');
+  });
+
+  t7('f289 (29) the state probe carries the live map — this is the whole channel', async () => {
+    const s = (await state(W.unrestricted)).json;
+    assert.ok(s.locks && s.locks.cl_x, 'the probe the bench already runs every twelve seconds carries it');
+    assert.equal(s.locks.cl_x.by.name, 'Unrestricted Legal');
+  });
+
+  t7('f289 (30) a colleague is refused, and told who by', async () => {
+    const r = await lock(W.admin, { clauseId: 'cl_x' });
+    assert.equal(r.status, 409, 'the server refuses rather than the browser being trusted');
+    assert.equal(r.json.by.name, 'Unrestricted Legal', 'a refusal that named nobody would be no use at all');
+    /* AND IT IS NOT A BAN: another clause on the same contract is free. */
+    const ok = await lock(W.admin, { clauseId: 'cl_other' });
+    assert.equal(ok.status, 200);
+  });
+
+  t7('f289 (31) letting go is only ever your own', async () => {
+    const r = await lock(W.admin, { clauseId: 'cl_x', release: true });
+    assert.equal(r.status, 200, 'it is not an error to ask — it simply does nothing');
+    assert.ok(r.json.locks.cl_x, 'a colleague may not clear a lock somebody else is holding');
+    assert.equal(r.json.locks.cl_x.by.name, 'Unrestricted Legal');
+    const mine = await lock(W.unrestricted, { clauseId: 'cl_x', release: true });
+    assert.ok(!mine.json.locks.cl_x, 'the holder can');
+    assert.ok(mine.json.locks.cl_other, 'and nobody else\'s went with it');
+  });
+
+  t7('f289 (32) an ordinary save cannot WIPE a colleague\'s lock', async () => {
+    /* The reported hazard, staged exactly as it happens: this browser's record
+       predates the colleague's lock, so the map it echoes back does not carry
+       it. The stored map wins. */
+    const c = (await W.unrestricted.raw('/api/contracts/MK-A2')).json;
+    assert.ok(c.locks && c.locks.cl_other, 'the colleague is holding a clause');
+    delete c.locks;
+    const put = await W.unrestricted.raw('/api/contracts/MK-A2',
+      { method: 'PUT', body: { contract: c, baseVersion: c._v } });
+    assert.equal(put.status, 200, 'the save itself is perfectly ordinary and still succeeds');
+    const s = (await state(W.unrestricted)).json;
+    assert.ok(s.locks.cl_other, 'and the colleague still holds their clause');
+  });
+
+  t7('f289 (33) a sealed record takes no courtesy write', async () => {
+    const before0 = (await state(W.unrestricted, 'MK-A1')).json;
+    const r = await lock(W.unrestricted, { clauseId: 'cl_x' }, 'MK-A1');
+    assert.equal(r.status, 200, 'it answers with the live map rather than an error');
+    const after0 = (await state(W.unrestricted, 'MK-A1')).json;
+    assert.deepEqual(after0.locks, before0.locks, 'and writes nothing to a signed contract');
+  });
+
+  t7('f289 (34) a clause out of this reader\'s scope is not there to lock', async () => {
+    const r = await lock(W.restricted, { clauseId: 'cl_x' }, 'MK-B2');
+    assert.equal(r.status, 404, 'invisible therefore unlockable — the folder rule, unchanged');
+    /* THE CONTROL: the same person, the same clause, a contract they CAN see —
+       or the 404 above is satisfied by a route that does not exist. */
+    const ok = await lock(W.restricted, { clauseId: 'cl_scope' }, 'MK-A2');
+    assert.equal(ok.status, 200, 'and it is scope that refused, not the route being absent');
+  });
+
+  t7('f289 (35) a lapsed lock is neither returned nor in anybody\'s way', async () => {
+    const c = (await W.admin.raw('/api/contracts/MK-A2')).json;
+    c.locks = { cl_old: { by: { id: 'gone', name: 'Left The Building' }, at: AGO(200000) } };
+    /* Written straight onto the row, because the point is a record that ALREADY
+       carries a stale lock — which is what a closed laptop leaves behind. */
+    await W.admin.raw('/api/contracts/MK-A2/lock', { method: 'POST', body: { clauseId: 'cl_seed' } });
+    const s = (await state(W.admin)).json;
+    assert.ok(!s.locks.cl_old, 'a lock nobody can clear would be worse than no lock');
+    const r = await lock(W.unrestricted, { clauseId: 'cl_old' });
+    assert.equal(r.status, 200, 'and it stands in nobody\'s way');
+  });
+});
+
+/* ---------------------------------------------------------------- 8. and the
+   browser stopped riding the save ------------------------------------------- */
+test('f289 (36) the lock write goes through its own door, never the contract save', () => {
+  const src = read('js/clauselock.js');
+  const i = src.indexOf('function clauseLockSave(');
+  const body = src.slice(i, src.indexOf('\n}', src.indexOf('return false;\n}', i)));
+  assert.ok(/contracts\/'\s*\+\s*c\.id\s*\+\s*'\/lock/.test(body),
+    'its own route: the whole-contract save carries a baseVersion and would raise a conflict dialog over a heartbeat');
+  assert.ok(/API_MODE\(\)/.test(body) && /persist/.test(body),
+    'and the local mode still saves the ordinary way — with no server there is no second browser to tell');
+  const seal = src.slice(i, src.indexOf('const o = opts', i));
+  assert.ok(/negoExecuted/.test(seal), 'a sealed record takes no courtesy write');
+});
+
+test('f289 (37) the three call sites each name their clause', () => {
+  const ce = read('js/views/clauseeditor.js');
+  const calls = ce.match(/clauseLockSave\([^)]*\)/g) || [];
+  assert.equal(calls.length, 3, 'take, keep and release — and nothing else writes a lock');
+  for (const c of calls)
+    assert.ok(/clauseId:\s*_ceClauseId/.test(c),
+      'a write with no clause on it would reach the route and be refused: ' + c);
+  assert.equal(calls.filter(c => /release:\s*true/.test(c)).length, 1,
+    'exactly one of the three lets go');
+});
+
+test('f289 (38) the watcher merges the map and repaints QUIETLY', () => {
+  const i = NEG.indexOf('clauseLockMerge(cur, st.locks');
+  assert.ok(i > 0, 'the twelve-second probe is where a lock reaches this browser');
+  const near = NEG.slice(i - 200, i + 300);
+  assert.ok(/!rlEditorOpen\(\)/.test(near),
+    'never while somebody is typing — a repaint rebuilds the box they are in');
+  assert.ok(!/toast/.test(near),
+    'and it says nothing: nothing about the agreement has changed');
+  assert.ok(!/_rlLivePending/.test(near),
+    'nor is a repaint held pending, which would fire a full redraw later for nothing');
+});
+
+test('f289 (39) the contract save keeps the STORED map', () => {
+  /* The name is written TWICE on purpose — the presence route cross-references
+     it — so this anchors on the guard's own heading rather than the first hit. */
+  assert.equal((SRV.match(/contractSaveKeepsLocks/g) || []).length, 2,
+    'the route that may not write the map names the one that may');
+  const i = SRV.indexOf('---- contractSaveKeepsLocks:');
+  assert.ok(i > 0, 'the guard is named, so the next reader meets a decision rather than a line');
+  const near = SRV.slice(i, i + 1600);
+  assert.ok(/prev && prev\.locks\) c\.locks = prev\.locks; else delete c\.locks/.test(near),
+    'the stored map wins, always — a browser echoing back a map it read before a colleague took a lock would wipe it');
+});
+
+test('f289 (40) the presence route merges ONE clause and cannot conflict', () => {
+  const i = SRV.indexOf("app.post('/api/contracts/:id/lock'");
+  assert.ok(i > 0);
+  const body = SRV.slice(i, SRV.indexOf('\n});', i));
+  assert.ok(!/baseVersion/.test(body), 'it takes no version, so it can never raise a conflict');
+  assert.ok(!/SET json=\?, *version/.test(body) && !/updated_at=/.test(body),
+    'and moves neither version nor updated_at: presence is not an edit');
+  assert.ok(/locks\[clauseId\]/.test(body) && !/c\.locks = req\.body/.test(body),
+    'it merges one clause on the stored record rather than accepting a map — which is what makes a wipe unrepresentable');
+  assert.ok(/auth, editor/.test(SRV.slice(i, i + 120)),
+    'somebody who cannot redline has no clause to hold');
+});
+
+/* ---------------------------------------------------------------- 9. the
+   other three doors (Young, 10 Sep 2026) -----------------------------------
+   *"When user 2 tries to click on the pencil symbol, they see the initials."*
+   The pencil did; the other three doors into the editor refused in words AFTER
+   the press, which is the dead press this product's own rule exists to prevent.
+
+   FOUR CONTROLS, ONE READING. The drawing differs and must — the pencil has a
+   corner of its own and becomes the sign, the other three sit in a shared verb
+   column and a one-glyph box and go dead instead — but who is holding a clause
+   is asked once. */
+test('f289 (41) one reading, and every door asks IT rather than the model', () => {
+  const src = read('js/clauselock.js');
+  assert.ok(/function clauseLockSign\(/.test(src), 'the sign is named once');
+  /* The pencil used to ask clauseLockHeldByOther and build the three pieces
+     itself. Four surfaces each assembling a monogram is four chances to name a
+     different person. */
+  const asks = (NEG.match(/rlLockSign\(/g) || []).length;
+  assert.ok(asks >= 4, 'the pencil, the row, the card body and the panel all ask it — found ' + asks);
+  assert.ok(!/clauseLockHeldByOther\(/.test(NEG),
+    'and none of them goes round it to the reading underneath');
+});
+
+test('f289 (42) the sign returns the three pieces and dresses nothing', () => {
+  const src = read('js/clauselock.js');
+  const i = src.indexOf('function clauseLockSign(');
+  const body = src.slice(i, src.indexOf('\n}', i));
+  assert.ok(/mono:/.test(body) && /say:/.test(body) && /title:/.test(body),
+    'the glance, the sentence and the whole name');
+  assert.ok(!/<|class=/.test(body), 'a reading that drew would be a reading with a layout in it');
+});
+
+test('f289 (43) a held door keeps its size, goes DEAD, and names the holder', () => {
+  const i = NEG.indexOf('function rlLockedBtn(');
+  const body = NEG.slice(i, NEG.indexOf('\n}', i));
+  assert.ok(/\bdisabled\b/.test(body),
+    'the browser refuses the press — a dimming alone is a control that still works');
+  assert.ok(/aria-label="\$\{_nea\(sign\.title\)\}"/.test(body),
+    'a screen reader is offered no hover, so the sentence is on the label');
+  assert.ok(/title="\$\{_nea\(sign\.title\)\}"/.test(body), 'and on the hover');
+  assert.ok(/rl-lock-mono/.test(body) && /sign\.mono/.test(body), 'with the monogram in it');
+  assert.ok(!/rl-cp-lock-say/.test(body),
+    'the LINE is the pencil\'s alone — there is no room for a sentence in a verb column');
+});
+
+test('f289 (44) all three doors are marked, and the reading-only one is NOT', () => {
+  /* The sparkle on a tracked change. */
+  assert.ok(/rlLockedBtn\(ceLock, 'rl-cp-editor-btn', ''\)/.test(NEG),
+    'the row\'s one-glyph door swaps its sparkle for the monogram');
+  /* The card's Edit, in the body. */
+  assert.ok(/rlLockedBtn\(editLock, 'rl-edit rl-verb-ai', i18t\('ng_cp_copilot'\)\)/.test(NEG),
+    'the card keeps its verb so the shared verb column does not move');
+  /* The clause panel's Copilot button. */
+  assert.ok(/rlLockedBtn\(rlLockSign\(c, cl\.clauseId\), 'rl-cp-act rl-cp-act-ai'/.test(NEG),
+    'and so does the panel\'s');
+  /* AND THE CONTROL: where the editor does not take the clause, Edit opens the
+     clause PANEL — a reading — and a lock does not stop anybody reading. */
+  const i = NEG.indexOf('const editLock = ceTakesIt ? rlLockSign(c, ch.clauseId) : null;');
+  assert.ok(i > 0, 'the card asks only where the editor is the destination');
+});
+
+test('f289 (45) the marked doors carry no way in', () => {
+  const i = NEG.indexOf('function rlLockedBtn(');
+  const body = NEG.slice(i, NEG.indexOf('\n}', i));
+  for (const a of ['data-rl-cp-editor-row', 'data-rl-cp-editor', 'data-nego-ai-clause', 'data-rl-edit'])
+    assert.ok(!body.includes(a),
+      a + ' would be a door the handler still opens — disabled is the sign, and the attribute\'s absence is the wall');
+});
+
+test('f289 (46) the monogram does not follow the reader\'s document size', () => {
+  const css = read('js/views/negotiation-css.js');
+  const i = css.indexOf('.redline-page .rl-lock-mono{');
+  const rule = css.slice(i, css.indexOf('}', i));
+  assert.ok(!/--doc-scale/.test(rule),
+    'these three are furniture on the CHANGE COLUMN, which is plain px — the pencil is furniture on the PAPER, which scales');
+  const pencil = css.slice(css.indexOf('.redline-page .rl-cp-lock-mono{'));
+  assert.ok(/--doc-scale/.test(pencil.slice(0, pencil.indexOf('}'))),
+    'and the pencil\'s still does — the two are different furniture, deliberately');
+});
+
+test('f289 (47) the dead state carries an INK, never an opacity alone', () => {
+  const css = read('js/views/negotiation-css.js');
+  const i = css.indexOf('.redline-page button.is-locked{');
+  assert.ok(i > 0, 'the dead state is dressed');
+  const rule = css.slice(i, css.indexOf('}', i));
+  assert.ok(/color:var\(--color-neutral-600\)/.test(rule),
+    'the label shade, which has an answer in both themes');
+  assert.ok(!/opacity/.test(rule),
+    'an opacity is not an ink, and this is the one control a reader most needs to read');
+  /* ---- AND IT HAS TO WIN THE CASCADE, which it did not (measured: the dead
+     button still painted rgb(109,40,217), Copilot's violet, because the general
+     rule scores (0,2,1) against the card verb's (0,4,1)). A violet button
+     nobody can press reads as live, and a rule that loses a cascade fight looks
+     perfectly correct in the source — this page's own most repeated defect.
+     THE FIX IS SCOPE, NOT WEIGHT: each override matches its rule's own
+     specificity and sits later in the sheet. Never !important. */
+  for (const sel of ['.redline-page .rl-card-d .rl-card-verbs button.is-locked',
+    '.redline-page .rl-cp-act.rl-cp-act-ai.is-locked']){
+    const k = css.indexOf(sel + '{');
+    assert.ok(k > 0, sel + ' — the two doors that wear Copilot\'s violet need an override of equal reach');
+    assert.ok(k > css.indexOf('.rl-cp-act.rl-cp-act-ai{'),
+      sel + ' must sit LATER in the sheet than the rule it answers');
+  }
+  assert.ok(!/is-locked[^{]*\{[^}]*!important/.test(css),
+    '!important wins this fight and hides the next one');
 });

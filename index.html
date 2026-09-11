@@ -2817,7 +2817,12 @@
     padding-left:2.6em; text-indent:-2.6em; }
   .doc-read-note.dr-hang > .dr-h .dr-n,.doc-read-note.dr-hang > .dr-s .dr-n{
     display:inline-block; min-width:2.6em; text-indent:0; }
-  .doc-read-note.dr-hang > p{ padding-left:2.6em; }
+  .doc-read-note.dr-hang > p:not(.dr-lead){ padding-left:2.6em; }
+  /* A clause with no heading of its own carries its number in the READING's
+     first line, in the same gutter the paper puts it in — never on a line
+     above it. */
+  .doc-read-note > p.dr-lead{ padding-left:2.6em; text-indent:-2.6em; }
+  .doc-read-note > p.dr-lead .dr-n{ display:inline-block; min-width:2.6em; text-indent:0; }
   .doc-read-note.hati-lv-1{ margin-left:2.6em; }
   .doc-read-note.hati-lv-2{ margin-left:5.2em; }
   .doc-read-note.hati-lv-3{ margin-left:7.8em; }
@@ -5468,6 +5473,15 @@
   .hati-doc h4{font-size:1em;}
   .hati-doc strong{font-weight:var(--w-strong);}
   .hati-doc u{text-underline-offset:2px;}
+  /* ---- A RULED BLOCK KEEPS ITS COLUMNS ----
+     A rate card or a two-column signature block is written with the spacing
+     doing the work, and HTML collapses runs of spaces — so it is set in the
+     document's own monospace with the spacing preserved. It SCROLLS INSIDE
+     ITSELF: a wide card must never make the page scroll sideways, which is a
+     standing rule here. PRE has been on richdoc's allow-list all along, so this
+     dresses a pasted one as well as the one docPlainToRich repairs. */
+  .hati-doc pre{font-family:var(--font-doc-mono),var(--font-mono);font-size:.9em;
+    line-height:1.5;white-space:pre;overflow-x:auto;margin:var(--s-2) 0;}
   /* ---- THE MARKER'S GUTTER, THE SAME ONE THE NEGOTIATION PAGE DRAWS ----
      (Young asked 10 Sep 2026.) A contract's number or lettered limb sits in a
      gutter of ONE width whatever the marker is, and its wrapped lines start

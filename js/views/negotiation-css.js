@@ -2329,6 +2329,31 @@ function redlineLayoutCss(){
        padding would only push the heading's own words into a needless second
        line. One rule, on the row that knows which of the two it holds. */}
   .redline-page .rl-clause-top:has(.rl-cp-lock) .rl-clause-h{padding-right:0}
+  ${''/* ---- AND THE THREE OTHER DOORS WEAR THE SAME MONOGRAM (Young, 10 Sep
+       2026) ---- The card's Edit, the sparkle on a tracked change and the
+       clause panel's Copilot button cannot become the sign the way the pencil
+       does: two of them sit in a verb column whose width every row in this
+       list shares, and the third is one glyph wide. So they keep their size,
+       go dead, and swap the mark that says Copilot for the mark that says
+       held. THE WHOLE SENTENCE IS ON THE HOVER, and on aria-label, because a
+       monogram is a glance and two colleagues can share one.
+
+       IT DOES NOT SCALE WITH THE PAPER. The pencil is furniture ON the sheet
+       and follows the reader's document size; these three are furniture on the
+       CHANGE COLUMN, which is plain px and does not move — the rule this page
+       has now learned four times. */}
+  .redline-page .rl-lock-mono{display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;border-radius:9999px;background:var(--color-neutral-100,#f1f5f9);
+    color:var(--color-text);font-size:9px;font-weight:var(--w-title);
+    letter-spacing:.02em;flex:none}
+  ${''/* NOT OPACITY ALONE. An opacity is not an ink — this rulebook's own rule,
+       paid for once on .text-ink/40 — and a control the reader most needs to
+       read is the one telling them why nothing is happening. The INK is the
+       label shade, which has an answer in both themes, and the disabled attribute is what
+       actually refuses the press. */}
+  .redline-page button.is-locked{color:var(--color-neutral-600);cursor:default;
+    background:transparent;box-shadow:none}
+  .redline-page button.is-locked:hover{background:transparent}
   /* Every clause's panel body is in the panel already; opening flips which one
      is on. ONE AT A TIME — the same single-value rule as the card pop-out and
      the ask reveal — so the panel can never show two clauses at once, and
@@ -4087,6 +4112,24 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-act.rl-cp-act-ai:hover{background:#ede9fe;border-color:#7c3aed}
   html.dark .redline-page .rl-cp-act.rl-cp-act-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
   html.dark .redline-page .rl-cp-act.rl-cp-act-ai{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#ddd6fe}
+  ${''/* ---- A DEAD DOOR MAY NOT KEEP COPILOT'S COLOUR ----
+       The two doors this marks are the loudest controls in their rows — the
+       card's verb and the panel's act both wear the violet this product uses
+       for Copilot — and violet on a button nobody can press reads as live.
+       MEASURED: the general .redline-page button.is-locked rule scores (0,2,1)
+       and both of theirs score (0,4,1) and (0,3,1), so it lost the cascade and
+       looked perfectly correct in the source — this page's own most repeated
+       visual defect.
+
+       THE FIX IS SCOPE, NOT WEIGHT: each override matches its own rule's
+       specificity and sits later in the sheet, so it wins with nothing
+       shouted. Never !important, which wins this fight and hides the next. */}
+  .redline-page .rl-card-d .rl-card-verbs button.is-locked{color:var(--color-neutral-600)}
+  html.dark .redline-page .rl-card-d .rl-card-verbs button.is-locked{color:var(--color-neutral-600)}
+  .redline-page .rl-cp-act.rl-cp-act-ai.is-locked{background:transparent;
+    border-color:var(--color-divider);color:var(--color-neutral-600)}
+  html.dark .redline-page .rl-cp-act.rl-cp-act-ai.is-locked{background:transparent;
+    border-color:var(--color-divider);color:var(--color-neutral-600)}
   /* ---- AND THE SCORE SURVIVES THE CLOSE ----
      The folded rail's whole justification was that "2 of 7 decided" stayed
      legible at 34px, so reopening was never a guess. An overlay that simply

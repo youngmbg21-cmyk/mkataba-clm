@@ -1681,7 +1681,7 @@ function renderMustChangePassword(){
     try{
       await api('password/change','POST',{ current:cur, password:nw });
       if(REMOTE&&REMOTE.me&&REMOTE.me.prefs) delete REMOTE.me.prefs.mustChangePassword;
-      toast(i18t('co_password_updated'));
+      toast(i18t('co_password_changed'));
       startApp();
     }catch(e){ fail(e.message); }
   });

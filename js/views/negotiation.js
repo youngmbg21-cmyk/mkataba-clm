@@ -5894,6 +5894,29 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    byte for byte the control it has always been. `hasPanel` still gates the
    default door, because that door needs a panel to open; a caller supplying
    its own attribute is supplying its own room and is not asked for one. */
+/* ---- WHO IS HOLDING THIS CLAUSE — ONE READING, FOUR DOORS ----
+   The pencil, the card's Edit, the sparkle on a tracked change and the clause
+   panel's Copilot button all open the SAME page, so they all ask the same
+   question at draw time. Read through `window` because js/clauselock.js is its
+   own module, and answering null where it is absent is what keeps a stage that
+   does not load it behaving exactly as it did. */
+const rlLockSign = (c, clauseId) => (typeof window !== 'undefined' && window.clauseLockSign)
+  ? clauseLockSign(c, clauseId) : null;
+/* ---- AND A CONTROL THAT CANNOT WORK SAYS SO BEFORE THE PRESS ----
+   Three of those four sit somewhere that has no room for a sentence: the card's
+   verb column is a fixed width shared by every row, and the sparkle is a single
+   glyph. So they keep their size, go DEAD, and swap the mark that says Copilot
+   for the mark that says held. `disabled` is what actually refuses the press —
+   the browser declines it and a keyboard reader is told — where a dimming alone
+   is a control that still works and merely looks as though it does not.
+
+   THE NAME IS ON THE HOVER because two colleagues can share a monogram, and on
+   aria-label because a screen reader is offered no hover at all. */
+function rlLockedBtn(sign, cls, label){
+  return `<button type="button" class="${cls} is-locked" disabled
+    title="${_nea(sign.title)}" aria-label="${_nea(sign.title)}"><b class="rl-lock-mono"
+    aria-hidden="true">${_ne(sign.mono)}</b>${label ? ' ' + _ne(label) : ''}</button>`;
+}
 function rlClauseEditPillHtml(cl, opts = {}){
   const pill = opts.pill || null;
   if (!cl || opts.editable === false || (!opts.hasPanel && !pill)) return '';
@@ -5956,16 +5979,20 @@ function rlClauseEditPillHtml(cl, opts = {}){
      focus and hover-only would hide it from a keyboard reader entirely; and it
      is rare and short-lived by construction — one clause, two minutes — so it
      cannot become the furniture the hover rule was written against. */
-  const held = (typeof window !== 'undefined' && window.clauseLockHeldByOther)
-    ? clauseLockHeldByOther(opts.c, cl.clauseId) : null;
+  const held = rlLockSign(opts.c, cl.clauseId);
   if (held){
     /* THE MONOGRAM AND THE LINE, both, because Young asked for both by name.
        The initials are the glance and the line is the sentence; the WHOLE name
        is on the hover, because two colleagues can share a monogram and the
-       record of who holds a clause must be readable rather than guessed at. */
-    return `<span class="rl-cp-lock" title="${_nea(clauseLockTitle(held))}">
-      <b class="rl-cp-lock-mono" aria-hidden="true">${_ne(clauseLockInitials((held.by && held.by.name) || ''))}</b>
-      <span class="rl-cp-lock-say">${_ne(clauseLockLine(held))}</span>
+       record of who holds a clause must be readable rather than guessed at.
+
+       THIS IS THE ONE CONTROL THAT BECOMES THE SIGN, because the pencil has a
+       corner of its own and nothing else is in it. The three other doors into
+       the editor sit in fixed columns and one-glyph boxes, so they keep their
+       size and go dead instead — see rlLockedBtn. */
+    return `<span class="rl-cp-lock" title="${_nea(held.title)}">
+      <b class="rl-cp-lock-mono" aria-hidden="true">${_ne(held.mono)}</b>
+      <span class="rl-cp-lock-say">${_ne(held.say)}</span>
     </span>`;
   }
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
@@ -6327,9 +6354,15 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              tidying: it is handled in the CAPTURE phase, so the panel would
              shut before the page opened and closing the page would land the
              reader on a shut panel. The fall-through closes it by hand. */}
-      ${opts.noAi ? '' : `<button type="button" class="rl-cp-act rl-cp-act-ai"
+      ${opts.noAi ? '' : (rlLockSign(c, cl.clauseId)
+        /* THE THIRD DOOR, AND IT ASKS THE SAME READING AS THE OTHER THREE. It
+           keeps its width, goes dead, and wears the monogram where the sparkle
+           was — see rlLockedBtn. The panel's other acts are untouched: reading
+           a clause, its history and its notes is not something a lock refuses. */
+        ? rlLockedBtn(rlLockSign(c, cl.clauseId), 'rl-cp-act rl-cp-act-ai', i18t('ng_cp_copilot'))
+        : `<button type="button" class="rl-cp-act rl-cp-act-ai"
         data-nego-ai-clause="${id}" data-rl-cp-ai="1" data-rl-cp-editor="1"
-        title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`}
+        title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`)}
       ${''/* THEY ARE NOT .rl-tool, AND THAT IS A RULE RATHER THAN A STYLE
              CHOICE. The first build wore the sheet's tool-pill class, and the
              panel is written EARLIER in the grid than the document, so the
@@ -8708,6 +8741,19 @@ function rlStartLivePoll(c){
     try{
       const st = await api('contracts/' + id + '/state');
       const cur = window.getContract ? getContract(id) : null;
+      /* ---- WHO IS HOLDING A CLAUSE ARRIVES ON THE PROBE THAT IS ALREADY HERE ----
+         A lock does not move the version — it is presence, not record, and it
+         is written by its own route — so it would never reach this browser
+         through the branch below, and making it move the version would fetch
+         the whole contract and toast "new activity" every forty-five seconds
+         about a clause somebody had merely opened.
+         So it rides the probe. The repaint is what puts the monogram in the
+         pencil's place, and it is QUIET: no toast, and nothing held pending,
+         because nothing about the agreement has changed. Never while an editor
+         is open — a repaint rebuilds the box somebody is typing into, and the
+         next tick draws it the moment they stop. */
+      if (st && cur && window.clauseLockMerge && clauseLockMerge(cur, st.locks || {})
+          && !rlEditorOpen() && state.view === 'redline' && state.activeId === id) renderRedline();
       /* Our own saves move the version too — but persist writes the new
          version back onto the record (c._v), so only SOMEBODY ELSE's write
          leaves the two numbers apart. */
@@ -14504,7 +14550,15 @@ function redlineChangeCardsHtml(c, opts = {}){
          back rather than being lost with the menu: "Edit" alone said nothing
          about which of the two editors it opened, and the violet is how every
          other Copilot control in this product marks itself. */
-      verbs.push(ceTakesIt
+      /* HELD BY A COLLEAGUE: dead, the monogram where the sparkle was, the verb
+         kept so the shared verb column does not move, and the whole sentence on
+         the hover. The OTHER branch is deliberately never marked — it opens the
+         clause PANEL, which is a reading, and a lock does not stop anybody
+         reading a clause. */
+      const editLock = ceTakesIt ? rlLockSign(c, ch.clauseId) : null;
+      verbs.push(editLock
+        ? rlLockedBtn(editLock, 'rl-edit rl-verb-ai', i18t('ng_cp_copilot'))
+        : ceTakesIt
         ? `<button class="rl-edit rl-verb-ai" data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
         title="${_nea(i18t('ng_cp_edit_title'))}">&#10022; ${i18t('ng_cp_copilot')}</button>`
         : `<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
@@ -14795,7 +14849,14 @@ function redlineChangeCardsHtml(c, opts = {}){
        alone — and a second element answering to it makes every one of them
        pick whichever comes first in the markup. It takes the same dressing
        from the same rule instead, which is where a shared look belongs. */
-    const ceBtn = (openBtn && !previewSeat && side === 'owner' && editable && window.rlOpenClauseEditor)
+    /* A CLAUSE A COLLEAGUE IS HOLDING SAYS SO HERE TOO (Young, 10 Sep 2026).
+       The box is one glyph wide, so the monogram takes the sparkle's place
+       rather than sitting beside it, and the sentence is on the hover. */
+    const ceLock = (openBtn && !previewSeat && side === 'owner' && editable && window.rlOpenClauseEditor)
+      ? rlLockSign(c, ch.clauseId) : null;
+    const ceBtn = ceLock
+      ? rlLockedBtn(ceLock, 'rl-cp-editor-btn', '')
+      : (openBtn && !previewSeat && side === 'owner' && editable && window.rlOpenClauseEditor)
       ? `<button type="button" class="rl-cp-editor-btn"
           data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
           title="${_nea(i18t('ng_cp_copilot'))}"

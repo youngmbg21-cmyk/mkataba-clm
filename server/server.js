@@ -2750,9 +2750,92 @@ app.get('/api/contracts/:id', auth, (req, res) => {
    the note where presenceMap used to be declared. This route answers about the
    RECORD, and now only about the record. */
 app.get('/api/contracts/:id/state', auth, (req, res) => {
-  const r = db.prepare('SELECT version, updated_at, folder FROM contracts WHERE id=?').get(req.params.id);
+  const r = db.prepare('SELECT json, version, updated_at, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
-  res.json({ version: r.version, updatedAt: r.updated_at || null });
+  /* ---- WHO IS HOLDING A CLAUSE RIDES THE PROBE THAT IS ALREADY RUNNING ----
+     The bench asks this every twelve seconds, so a lock taken by a colleague
+     reaches every other browser within twelve seconds at no extra cost: no
+     second timer, no second route, and — because a lock does not move the
+     VERSION (see the lock route below) — no whole-contract fetch and no
+     "new activity" toast for a clause somebody merely opened.
+
+     It is the presence half of what this route answers, so it is read the
+     same way: off the stored record, never off the request. Lapsed locks are
+     not returned at all — the browser's own reading discards them too, and
+     two readings that disagreed about whether a lock is alive would be a page
+     drawing a lock somebody can walk straight through. */
+  res.json({ version: r.version, updatedAt: r.updated_at || null, locks: srvLocksLive(r.json) });
+});
+
+/* ---------- ONE CLAUSE, ONE PAIR OF HANDS: the presence write ----------
+   A LOCK IS PRESENCE, NOT RECORD, AND IT MAY NOT RIDE THE CONTRACT SAVE.
+   It first did, and that was wrong three ways at once, each worse than the
+   last: the whole-contract PUT carries an optimistic `baseVersion`, so a
+   lock refresh landing after a colleague's save came back 409 and the browser
+   put a BLOCKING "keep yours or load theirs?" dialog over somebody's typing —
+   every forty-five seconds, about a heartbeat that changed nothing but a
+   timestamp; a save whose record predated a colleague taking a lock WIPED that
+   colleague's lock, because the map travelled whole; and every heartbeat moved
+   the version, which made every other browser fetch the entire contract and
+   toast "new activity" about it.
+
+   So this route owns the map alone. It MERGES one clause on the stored record
+   rather than accepting a map, which is what makes a wipe unrepresentable; it
+   takes no baseVersion, so it cannot conflict with anything; and it does not
+   move `version` or `updated_at`, so the record does not read as edited and
+   nothing downstream churns. THE PUT KEEPS THE STORED MAP for the same reason
+   (see contractSaveKeepsLocks, below) — nothing else in the product may write
+   it.
+
+   IT IS STILL AN ADVISORY. The refusal names the holder and the lock lapses on
+   its own, so nobody is ever shut out of a clause for good. What the server
+   adds is that the refusal cannot be argued with by a browser. */
+const SRV_CLAUSE_LOCK_MS = 120000;
+const srvLockAlive = l => !!(l && l.at && (Date.now() - Date.parse(l.at)) < SRV_CLAUSE_LOCK_MS);
+/* The live locks on a stored json blob, as a plain object. Never throws on a
+   damaged record: a contract whose json will not parse has no locks, which is
+   the safe answer — a lock that cannot be read is a clause nobody is holding. */
+function srvLocksLive(json) {
+  let c = {}; try { c = JSON.parse(json) || {}; } catch (_) { return {}; }
+  const out = {};
+  Object.keys(c.locks || {}).forEach(k => { if (srvLockAlive(c.locks[k])) out[k] = c.locks[k]; });
+  return out;
+}
+app.post('/api/contracts/:id/lock', auth, editor, (req, res) => {
+  const b = req.body || {};
+  const clauseId = String(b.clauseId || '');
+  if (!clauseId) return res.status(400).json({ error: 'Which clause?' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  /* A SEALED RECORD TAKES NO COURTESY WRITE — aiNoteRead's own lesson, one
+     field along, and the browser refuses the editor on an executed contract
+     anyway. Answering with the live map rather than an error keeps the reading
+     honest on a screen that asks about a signed contract. */
+  if (isExecutedRow(c)) return res.json({ locks: srvLocksLive(row.json) });
+  const locks = {};
+  Object.keys(c.locks || {}).forEach(k => { if (srvLockAlive(c.locks[k])) locks[k] = c.locks[k]; });
+  const me = { id: req.user.id, name: req.user.name || '' };
+  const held = locks[clauseId];
+  const mine = held && String((held.by || {}).id || '') === String(me.id);
+  if (b.release) {
+    /* LETTING GO IS ONLY EVER YOUR OWN. An editor closing must not clear a lock
+       a colleague took in the meantime, which is exactly what happens when two
+       browsers race. */
+    if (mine) delete locks[clauseId];
+  } else if (held && !mine) {
+    return res.status(409).json({ error: 'A colleague is editing this clause right now.',
+      locks, by: held.by || null });
+  } else {
+    locks[clauseId] = { by: me, at: new Date().toISOString() };
+  }
+  const next = { ...c };
+  if (Object.keys(locks).length) next.locks = locks; else delete next.locks;
+  /* JSON ONLY. Not `version`, not `updated_at`: presence is not an edit, and a
+     record that read as edited every forty-five seconds would churn the
+     register's own "updated" column and every watcher in the workspace. */
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json({ locks });
 });
 
 /* ---------- executed records are immutable ----------
@@ -2897,6 +2980,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
+
+  /* ---- contractSaveKeepsLocks: WHO IS HOLDING A CLAUSE IS NOT THIS ROUTE'S ----
+     `locks` is written by POST /api/contracts/:id/lock and by nothing else, and
+     that is what makes a wipe unrepresentable rather than merely unlikely. The
+     map travels out on a GET, so an ordinary save echoes it back — and a browser
+     whose record predated a colleague taking a lock would echo back a map
+     without it, taking a clause off somebody who is holding it correctly. The
+     STORED map wins, always: same reasoning as the money guard below, and as the
+     audit-trail guard further down. A brand-new contract has no stored map and
+     starts with none. */
+  if (prev && prev.locks) c.locks = prev.locks; else delete c.locks;
 
   /* A member without can_view_values was sent a record with the money stripped
      out. Saving it back must not write those holes over the stored contract, so

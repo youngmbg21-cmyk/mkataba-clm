@@ -630,17 +630,35 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       const cv = document.getElementById('doc-canvas');
       const c = state.contracts.find(x => x.id === 'MK-B2');
       let rows = []; try { rows = docReadClauses(c); } catch (_) { rows = []; }
+      let sheet = []; try { sheet = docReadSheet(c); } catch (_) { sheet = []; }
       /* The WORDING's own headings, never the paper head's title — that one
          is furniture and the walk has always stepped over it. */
       const heads = cv ? Array.from(cv.querySelectorAll('h1,h2,h3,h4'))
         .filter(el => !el.closest('.rl-paper-head,.rl-paper-foot,header')).length : -1;
-      return { h: heads,
-        rows: rows.length, nums: rows.map(r => r.num),
+      return { h: heads, rich: !!(window.isRich && isRich(c.format)),
+        rows: rows.length,
+        /* The number the ENTRY shows, which is the painter's own reading:
+           the stored one, the live walk's, then the heading's own. */
+        nums: sheet.map(r => String(r.num || r.cite || '')),
         kinds: rows.map(r => r.kind),
         width: cv ? Math.round(cv.getBoundingClientRect().width) : -1 };
-    }, undefined, { h: -1, rows: 0, nums: [], kinds: [], width: -1 });
-    check(txtSheet.h === 0,
-      '10a the stage is the reported one — this paper\'s wording carries no <h*>', txtSheet.h);
+    }, undefined, { h: -1, rich: true, rows: 0, nums: [], kinds: [], width: -1 });
+    /* REVERSED IN PLACE (Young reported it 10 Sep 2026: "the main contract is
+       unstructured unlike the negotiate page which is clean"). This pinned that
+       a working text's wording carries NOT ONE <h*> — which was the stage AND
+       the fault: documentTextHtml drew a heading as a styled <div> and a clause
+       number as a styled <span>, so the tab a contract is READ on drew it as a
+       column of lines while the negotiate page drew the same words as a
+       document. WHAT THE CLAIM IS ABOUT is unchanged — this stage is a plain
+       working text and not a rich upload — and the second half is now the fix:
+       the same lines are lifted through the reading the NEGOTIATION already
+       uses, so the paper carries real headings. */
+    check(!txtSheet.rich,
+      '10a the stage is the reported one — a plain working text, not a rich upload',
+      txtSheet.rich ? 'rich' : 'text');
+    check(txtSheet.h >= 4,
+      '10a2 and its wording now carries real headings — against the parent, none',
+      txtSheet.h);
     check(await visible(page, '.doc-read-seg'),
       '10b the switch is VISIBLE PIXELS on it — against the parent it is not drawn at all');
     check(txtSheet.rows >= 4 && txtSheet.nums.filter(Boolean).join(',') === '1,2,3,4',
@@ -673,8 +691,16 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     await pause(3200);
     const txtOut = await drive(page, () => {
       const cv = document.getElementById('doc-canvas');
+      /* RE-POINTED, not deleted. The claim is that an entry sits LEVEL with the
+         clause it reads; what carries a clause's number on this paper moved
+         from a `.doc-t-n` span to the clause's own heading, so the anchor is
+         read the way docReadSheet reads it. */
       const marks = {};
-      cv.querySelectorAll('.doc-t-n').forEach(m => { marks[m.textContent.trim()] = Math.round(m.getBoundingClientRect().top); });
+      cv.querySelectorAll('.hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4').forEach(el => {
+        const m = /^\s*(\d+(?:\.\d+)*)[.)]?\s+\S/.exec(String(el.textContent || ''));
+        if (m) marks[m[1]] = Math.round(el.getBoundingClientRect().top);
+      });
+      cv.querySelectorAll('.doc-t-n').forEach(m => { marks[m.textContent.trim().replace(/[.)]$/, '')] = Math.round(m.getBoundingClientRect().top); });
       const notes = Array.from(document.querySelectorAll('.doc-read-note')).map(n => ({
         num: ((n.querySelector('.dr-n') || {}).textContent || '').trim(),
         top: Math.round(n.getBoundingClientRect().top),
@@ -689,9 +715,9 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       '10f and each numbered entry cites the paper\'s own clause number',
       txtOut.notes.map(n => n.num || '·').join(' '));
     const first = txtOut.notes.find(n => n.num === '1');
-    check(!!first && Math.abs(first.top - txtOut.marks['1.']) <= 6,
+    check(!!first && txtOut.marks['1'] != null && Math.abs(first.top - txtOut.marks['1']) <= 6,
       '10g the first entry is LEVEL with the clause it reads',
-      first && `note ${first.top} · clause ${txtOut.marks['1.']}`);
+      first && `note ${first.top} · clause ${txtOut.marks['1']}`);
     check(txtOut.width === txtSheet.width,
       '10h and the contract did not narrow by a pixel', `${txtSheet.width} → ${txtOut.width}`);
     await page.screenshot({ path: path.join(OUT, '10-working-text.png') }).catch(() => {});
@@ -852,6 +878,145 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
     check(shaped.any > 0 && shaped.stepped > 0 && shaped.hung > 0,
       '12e an entry facing an indented clause is indented, and one facing a gutter hangs',
       JSON.stringify(shaped));
+
+    /* ============ 13 · ONE SHAPE OF PAPER, AND THE TOP SAID ONCE ============
+       (Young, 10 Sep 2026: "top of the contract is a mess ... does not resemble
+       image 3 which is in the negotiate page and looks more structured. So
+       plain english is not set like a contract and the main contract is
+       unstructured unlike the negotiate page which is clean.")
+
+       MEASURED on ONE contract, on BOTH surfaces, and that is the whole point
+       of doing it here: "these two pages draw the same document the same way"
+       is a claim about two rendered pages and can be asked nowhere else. The
+       fixture is the product's own working text — docPlainText of MK-B2's own
+       paper, which is the state a template contract is in the first time
+       somebody redlines it — never a body typed out in this file. */
+    await drive(page, () => { openWorkspace('MK-B2'); }, undefined, null);
+    await pause(1600);
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      /* ITS OWN GROUND. Sections 10-12 stage bodies on this contract, so the
+         working text is derived from the TEMPLATE again — clear the stored
+         wording first and docPlainText answers with the contract's own paper,
+         which is the state this section is about. A check that inherits the
+         section above it is describing that section, not this one. */
+      delete c.redlineText; delete c.format;
+      c.redlineText = docPlainText(c); c.format = 'text';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace();
+    }, undefined, null);
+    await pause(1400);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+
+    const s13shape = await drive(page, () => {
+      const cv = document.getElementById('doc-canvas');
+      const sheet = cv && (cv.querySelector('.hati-doc') || cv);
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      return {
+        /* THE BODY IS A DOCUMENT, not a column of lines. */
+        heads: sheet ? sheet.querySelectorAll('h1,h2,h3,h4').length : -1,
+        paras: sheet ? sheet.querySelectorAll('p').length : -1,
+        prewrap: cv ? Array.from(cv.querySelectorAll('div'))
+          .filter(el => /pre-wrap/.test(getComputedStyle(el).whiteSpace)).length : -1,
+        /* THE TOP IS SAID ONCE: no header above wording that already opens
+           with the document's own front matter. */
+        headEls: cv ? cv.querySelectorAll('.rl-paper-head').length : -1,
+        nameTwice: (() => {
+          if (!cv) return -1;
+          const n = norm(c && c.name);
+          if (!n) return 0;
+          return Array.from(cv.querySelectorAll('.rl-paper-title, .hati-doc > *'))
+            .filter(el => norm(el.textContent) === n).length;
+        })(),
+      };
+    }, undefined, { heads: -1, paras: -1, prewrap: -1, headEls: -1, nameTwice: -1 });
+    check(s13shape.heads >= 4 && s13shape.paras >= 4,
+      '13a the working text is drawn as a DOCUMENT — real headings, real paragraphs',
+      `${s13shape.heads} headings · ${s13shape.paras} paragraphs`);
+    check(s13shape.prewrap === 0,
+      '13b and not as a column of pre-wrap lines — the reported fault',
+      s13shape.prewrap);
+    check(s13shape.headEls === 0 && s13shape.nameTwice <= 1,
+      '13c the top is said ONCE — no header above wording that already carries it',
+      `${s13shape.headEls} header(s) · the name appears ${s13shape.nameTwice}×`);
+
+    /* THE SAME DOCUMENT ON THE PAGE YOUNG NAMED AS THE ONE THAT READS RIGHT.
+       Compared as a RELATION between the two surfaces, never against a typed
+       count, so a later change to the fixture costs this nothing. */
+    const s13nego = await drive(page, () => {
+      openRedlineWorkbench('MK-B2');
+      return true;
+    }, undefined, null);
+    await pause(2400);
+    const s13negoShape = await drive(page, () => {
+      const paper = document.querySelector('.rl-paper');
+      if (!paper) return null;
+      return { heads: paper.querySelectorAll('h1,h2,h3,h4').length,
+               titles: paper.querySelectorAll('.rl-paper-title').length };
+    }, undefined, null);
+    check(!!s13nego && !!s13negoShape && s13negoShape.heads >= s13shape.heads,
+      '13d the negotiate page reads the same document with at least as many headings',
+      s13negoShape && `negotiate ${s13negoShape.heads} · document tab ${s13shape.heads}`);
+    check(!!s13negoShape && s13negoShape.titles <= 1,
+      '13e and it prints ONE title — the reference the report names', s13negoShape && s13negoShape.titles);
+
+    /* ---- THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT ----
+       "the numbers are above the clause as opposed to next to the clause like
+       in the contract. it also does not have clause headers." Staged on paper
+       whose clauses run straight into their wording with no heading of their
+       own, which is the s13shape that produced it. */
+    await drive(page, () => { openWorkspace('MK-B2'); }, undefined, null);
+    await pause(1600);
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = ['2.1 The Supplier shall deliver each consignment to the plant.',
+        '2.2 The Buyer shall inspect each consignment within three days.'].join('\n\n');
+      c.format = 'text';
+      delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace();
+    }, undefined, null);
+    await pause(1400);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    ai.reset();
+    ai.script(tool([
+      { i: 0, plain: 'The supplier brings each delivery to the plant.' },
+      { i: 1, plain: 'You have three days to check each delivery.' },
+    ]));
+    const bareOn = await press(page, '.doc-read-seg button[data-doc-read="1"]', '13 Plain English on unheaded clauses');
+    await pause(3000);
+    const s13beside = await drive(page, () => {
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      return notes.map(n => {
+        const num = n.querySelector('.dr-n');
+        const p = n.querySelector('p');
+        const h = n.querySelector('.dr-h,.dr-s');
+        return { n: num ? num.textContent.trim() : '',
+          /* ABOVE or BESIDE is a GEOMETRY, which is the whole of the report. */
+          sameLine: !!(num && p && Math.abs(num.getBoundingClientRect().top
+            - p.getBoundingClientRect().top) <= 4),
+          numInP: !!(num && p && p.contains(num)),
+          headOnlyNum: !!(h && num && h.contains(num)
+            && h.textContent.trim() === num.textContent.trim()),
+          body: (p ? p.textContent : '').trim().slice(0, 30) };
+      });
+    }, undefined, []);
+    check(bareOn && s13beside.length === 2 && s13beside.every(x => x.n),
+      '13f each unheaded clause still cites its own number', s13beside.map(x => x.n || '·').join(' '));
+    check(s13beside.length > 0 && s13beside.every(x => !x.headOnlyNum),
+      '13g not one entry draws a number on a line of its own — the reported fault',
+      s13beside.filter(x => x.headOnlyNum).length + ' such');
+    check(s13beside.length > 0 && s13beside.every(x => x.numInP && x.sameLine),
+      '13h the number sits BESIDE the reading, in the gutter, as the contract sets it',
+      JSON.stringify(s13beside.map(x => ({ n: x.n, s13beside: x.sameLine }))));
+    check(s13beside.length > 0 && s13beside.every(x => !/^\s*\d+(\.\d+)*\s/.test(x.body)),
+      '13i and the number is not printed a second time in the reading itself',
+      s13beside.map(x => x.body).join(' | '));
+    await page.screenshot({ path: path.join(OUT, '13-s13beside.png') }).catch(() => {});
 
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));

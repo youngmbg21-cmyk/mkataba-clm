@@ -1846,6 +1846,32 @@ fail against the parent; sections 8 and 9 stage the reported shape through the
 REAL builder and drive the whole journey, and 8f measures the reading and the
 paper against EACH OTHER rather than against a typed size)**.
 
+## TWO DOORS, TWO SENTENCES, ONE KEY (Young asked 10 Sep 2026)
+
+*"Let's fix the three things then"* — and the first was four duplicate wording
+entries that `npm run lint` had been reporting throughout. They were the only
+four errors in the product; there are none now.
+
+- **`act_next` WAS WORD FOR WORD ITSELF**, twice in each book — 'Next' and
+  'Nästa' — a stray inside the share-dialog block beside the one in the `act_*`
+  block where it belongs. The stray went and nothing on screen moved.
+- **`co_password_updated` WAS TWO DIFFERENT MESSAGES, and only one of them ever
+  drew.** A duplicate key in an object literal is won by whichever is written
+  LAST, so the product said *"Password updated — please sign in"* at BOTH sites:
+  the password RESET (which ends on the sign-in form, where it is exactly right)
+  and the reader CHANGING THEIR OWN password (where `startApp()` takes them
+  straight into the workspace, so telling them to go and sign in is untrue).
+  Each sentence sits in its own site's block with its own site's neighbours —
+  the karibu one beside `co_password_too_short`, `co_passwords_differ` and
+  `co_set_my_password`, all read at that very screen. **They were never rivals
+  for one slot; they were two doors that collided on one name.**
+- **THE RESET KEEPS THE NAME AND DOES NOT MOVE BY A BYTE** — it is the value
+  JavaScript was already honouring, so the only screen that changes is the one
+  that was saying something untrue. `co_password_changed` is the other.
+- **THE READING IS WRITTEN BESIDE THE KEY**, so nobody merges them again.
+
+Tests: f148 (54, the language net, unchanged), `npm run lint` at **0 errors**.
+
 ## ONE CLAUSE, ONE PAIR OF HANDS (Young asked 10 Sep 2026)
 
 *"to avoid collisions as far as multiple people editing the same clause, could
@@ -1864,22 +1890,76 @@ was still writing, and neither was told.
   into each other by accident. That is why it EXPIRES after two minutes, why
   every refusal NAMES who holds it, and why a holder always lets go on the way
   out.
-- **IT ADDS NO ROUTE AND NO TABLE.** `c.locks` is an ordinary field, **absent on
-  every record already on file — the whole migration story** — so it rides the
-  ordinary save every other act on this page already makes. A route of its own
-  would be a second way for two browsers to disagree about one contract.
+- **IT ADDS NO TABLE, AND ITS ONE ROUTE IS THE PRESENCE WRITE — REVERSED IN
+  PLACE 10 Sep 2026.** `c.locks` is an ordinary field, **absent on every record
+  already on file, which is the whole migration story**. What stood here was
+  that it rides the whole-contract save and that a route of its own would be a
+  second way for two browsers to disagree — and that was wrong THREE ways at
+  once, each worse than the last:
+  - **THE SAVE CARRIES AN OPTIMISTIC `baseVersion`**, so a lock refresh landing
+    after a colleague's save came back 409 and `saveContract` put a BLOCKING
+    "keep yours and overwrite theirs, or discard yours?" dialog in front of the
+    reader — **every forty-five seconds, over somebody's typing, about a
+    heartbeat that changed nothing but a timestamp.**
+  - **THE MAP TRAVELLED WHOLE**, so a browser whose record predated a colleague
+    taking a lock WIPED that colleague's lock on its next ordinary save.
+  - **AND IT MOVED THE VERSION**, so every other browser watching the contract
+    fetched the whole record and toasted "new activity" about a clause somebody
+    had merely opened.
+
+  `POST /api/contracts/:id/lock` owns the map alone. It **MERGES one clause on
+  the stored record** rather than accepting a map, which is what makes a wipe
+  unrepresentable rather than merely unlikely; it takes **no baseVersion**, so
+  it cannot conflict with anything; and it moves **neither `version` nor
+  `updated_at`** — presence is not an edit, and a record that read as edited
+  every forty-five seconds would churn the register's own column and every
+  watcher in the workspace. **THE PUT KEEPS THE STORED MAP** (contractSaveKeepsLocks),
+  so nothing else in the product may write it. Refused for a folder out of
+  scope, and `editor`-gated: somebody who cannot redline has no clause to hold.
 - **AND IT NEVER TRAVELS.** Who on our side is typing is the most internal fact
   there is. `buildSharePayload` is an allow-list builder and does not carry it,
   so their page holds none **by construction**; the reading refuses `PORTAL_MODE`
   outright besides, so a payload hand-built by somebody else still could not put
   a colleague's initials in front of the counterparty. f289 asserts both.
 - **THE PENCIL IS THE SIGN AND THE EDITOR'S DOOR IS THE WALL**, and that split is
-  what makes it a rule rather than a decoration: **FOUR other doors reach the
-  editing page without passing the pencil** — the card's Edit, the sparkle on a
-  tracked change, the clause panel's Copilot button, and the clause dropdown at
-  the top of the editor. A rule kept at one of five is not a rule. Said out loud:
-  **only the pencil carries the monogram**; the other four refuse in words naming
-  the holder, which is the ask answered exactly and no wider.
+  what makes it a rule rather than a decoration: other doors reach the editing
+  page without passing the pencil, and a rule kept at one of them is not a rule.
+- **EVERY DOOR NOW CARRIES THE MONOGRAM — REVERSED IN PLACE 10 Sep 2026** (Young:
+  *"put the initials on those too."*). What stood here was that only the pencil
+  drew it and the rest refused in words AFTER the press, which is the dead press
+  this product's own rule exists to prevent. **`clauseLockSign` is the ONE
+  READING and every door asks it at DRAW time**, so the four cannot come to
+  disagree about who holds a clause; the DRAWING differs and must:
+  - **the PENCIL becomes the sign** — it has a corner of its own and nothing
+    else is in it;
+  - **the card's EDIT and the clause panel's COPILOT button keep their size, go
+    DEAD, and swap the mark that says Copilot for the mark that says held.**
+    They sit in a verb column whose width every row in the list shares and a
+    monogram forced into it would move a layout nobody asked to move.
+    `disabled` is what actually refuses the press — the browser declines it and
+    a keyboard reader is told — where a dimming alone is a control that still
+    works and merely looks as though it does not. **The way in is gone from the
+    markup**, so the sign and the wall cannot disagree.
+  - **the whole sentence is on the hover AND on `aria-label`**, because a
+    monogram is a glance, two colleagues share one, and a screen reader is
+    offered no hover at all.
+- **AND A DEAD DOOR MAY NOT KEEP COPILOT'S COLOUR.** Both of those wear the
+  violet this product uses for Copilot, and violet on a button nobody can press
+  reads as live. MEASURED: the general `button.is-locked` rule scores (0,2,1)
+  against their (0,4,1) and (0,3,1), **so it lost the cascade and looked
+  perfectly correct in the source** — this page's own most repeated visual
+  defect. **The fix is SCOPE, not weight**: each override matches its own rule's
+  specificity and sits later in the sheet. Never `!important`.
+- **THE `.rl-cp-editor-btn` SPARKLE IS MARKED AND IS NOT DRAWN ON OUR SEAT AT
+  ALL**, said out loud rather than left to be discovered. Measured: our cards are
+  the flat disclosure row of 25 Aug 2026, which draws Open and never that
+  control; it survives on the receipt and full shapes, which are the
+  counterparty's — and their seat has no clause editor, so the condition is false
+  there too. It carries the marking because it is the same one-line reading and
+  costs nothing; it cannot honestly be measured on a page that does not draw it.
+  **`data-ce-goclause` is the same shape one file along** — a handler with no
+  emitter — and the dropdown it was written for (`#ce-sel`) is already recorded
+  as stale.
 - **THE SIGN TAKES THE PENCIL'S OWN CORNER AND IS NOT A BUTTON.** Two controls in
   one corner would mean a pencil that looks pressable over a sentence saying it
   is not — the dead press this builder already refuses one line up — and Young's
@@ -1918,32 +1998,50 @@ was still writing, and neither was told.
 - **A HEARTBEAT, BECAUSE A READER CAN WRITE FOR TWENTY MINUTES WITHOUT
   BLURRING.** One interval at well under half the window, started at the door and
   stopped at the door out. It costs one small save a minute while an editor is
-  open, **and that is what makes the lock visible to anybody but its holder** — a
-  lock held in one tab is a note to yourself. A pull refreshes the stamp in
-  memory only, which is free.
+  open — **its own tiny write, never the contract save** — and that is what makes
+  the lock visible to anybody but its holder: a lock held in one tab is a note to
+  yourself. A pull refreshes the stamp in memory only, which is free.
 - **A SEALED RECORD TAKES NO COURTESY WRITE** — `aiNoteRead`'s own lesson, one
   field along. Unreachable in practice, because the editor refuses an executed
   contract outright, and one line to close rather than a fault waiting for the
   day another door reaches this.
 
-**WHAT IT DOES NOT DO, said out loud: it is not pushed.** A colleague sees the
-lock when their browser next reads the contract, so two people who open the same
-clause within a few seconds of each other can still both get in. That is why the
-SERVER refuses the second one's filing rather than the browser being trusted, and
-it is why this is an advisory rather than a promise. **The refusal happens before
-anything is written, so the loser's draft is still in the box they are looking
-at.**
+**AND IT REACHES THE OTHER BROWSER ON THE PROBE THAT WAS ALREADY RUNNING.**
+`GET /api/contracts/:id/state` is the twelve-second version check the bench has
+polled since it was built, and it carries the live map now — so a lock taken by
+a colleague appears within twelve seconds at **no extra cost: no second timer, no
+second route, and no whole-contract fetch**, because presence does not move the
+version. `clauseLockMerge` replaces our map with the server's whole (a merge that
+kept a local entry the server did not return would be this browser insisting on a
+lock somebody else already has), and the repaint that puts the monogram in the
+pencil's place is **QUIET** — no toast, nothing held pending, and never while an
+editor is open, because a repaint rebuilds the box somebody is typing into.
 
-Tests: f289 (26 — **25 of them fail against the parent**; the one that passes
-is the share payload, a named CONTROL whose job is to fail the day somebody
-puts a colleague's initials on the wire), redline-verify section 25 (11,
-browser — **8 fail against the parent, the headline one reporting Young's own
-report as a fact: the editor OPENS on a clause a colleague is holding**. It is
-the only place three of these can be asked at all — whether the monogram is
-VISIBLE PIXELS where the pencil would be, whether the pencil is really gone
-rather than merely covered, and whether the ink is the label shade rather than
-amber. Every driven half is guarded, so a build without the feature REPORTS
+**WHAT IT STILL DOES NOT DO, said out loud: it is not PUSHED.** A colleague
+learns of a lock on their next probe, so two people who open the same clause
+inside the same few seconds can still both get in. That is why the SERVER refuses
+the second one's filing rather than the browser being trusted, and why this is an
+advisory rather than a promise. **The refusal happens before anything is written,
+so the loser's draft is still in the box they are looking at.**
+
+Tests: f289 (48 — the model both ways, the presence write **against a running
+server** (taken, refused by name, released only by its holder, the version and
+`updated_at` proved unmoved, and an ordinary save proved unable to WIPE a
+colleague's lock), the four doors, the cascade, and both dictionaries), and
+redline-verify sections 25 and 25k-25r (19, browser — **the only place the
+claims that matter can be asked at all**: whether the monogram is VISIBLE PIXELS
+where the pencil would be, whether the pencil is really gone rather than merely
+covered, whether the verb column still lines up, and whether the ink wins its
+cascade. Every driven half is guarded, so a build without the feature REPORTS
 its failures rather than throwing on the first line).
+
+**TWO PROBE FAULTS COST AN HOUR EACH AND ARE WORTH CARRYING FORWARD.** Opening a
+card REPAINTS the column, so a button held across the click is detached and every
+element reached through it measures 0x0 in a tree nothing lays out — **re-query
+after the press**, or drive it with a real one. And this fixture's changes carry
+synthetic clause ids, so a change whose clause is not on the paper has no panel
+body at all: **a probe that finds nothing has to say whether the thing or the
+staging is missing.**
 
 ## THE PLAIN ENGLISH EDITION IS SET LIKE THE CONTRACT (Young ruled 10 Sep 2026)
 
@@ -1973,7 +2071,10 @@ one clause, and the two disagree the moment it is renamed.
   no element of its own to read a bold lead-in out of, so the lead-in is looked
   for at the start of what FOLLOWS it, in a COPY of that range — and where there
   is none the entry carries no heading, which is honest: that clause has none on
-  the paper either.
+  the paper either. **WIDENED IN PLACE 10 Sep 2026 to EVERY row, which is what
+  that last sentence was always arguing for**: an ordinary numbered paragraph
+  took the eight-word fallback instead, so a fragment of its first sentence was
+  drawn as its name — see A WORKING TEXT IS A DOCUMENT.
 - **`_docReadHeadCut` CUTS THE NUMBER AND THE NAME ONCE.** They are printed in
   different places — the number as a citation in its own gutter, the name beside
   it — and cutting the string twice is how one heading comes to be printed with
@@ -2296,6 +2397,14 @@ CONTRACT.**
   paper. MEASURED on a template contract's own working text: **0 rows**, so
   `docReadSwitchHtml` correctly stood down and the reader was offered nothing —
   on exactly the paper a plain-English reading is worth most on.
+  **REVERSED IN PLACE THE SAME DAY, AND THE CAPABILITY IS KEPT RATHER THAN
+  UNDONE — see A WORKING TEXT IS A DOCUMENT.** The Document tab no longer lays a
+  working text out that way at all: it lifts the same lines through the
+  negotiation's own reading, so the sheet carries real `<h*>` and the walk's
+  RICH branch reads it. **The marked shape is still read and must stay**: it is
+  what `documentTextHtml` produces, and that builder still draws the
+  counterparty's copy, both template-library previews and richdoc's own
+  fallback.
 - **THE BUILDER NOW NAMES WHAT IT ALREADY DECIDED.** It asked `docLineKind`
   which lines are headings and `docClausePrefix` which carry a number, and then
   threw both answers away. `doc-t-h` and `doc-t-n` are those two decisions
@@ -2340,6 +2449,119 @@ of these can be asked: whether the switch is VISIBLE PIXELS on a real contract,
 whether a real press brings back a note beside the clause it reads, and whether
 the paper moved. **6 fail against the parent, reporting Young's own screenshot
 verbatim — the switch not drawn and 0 rows**).
+
+## A WORKING TEXT IS A DOCUMENT (Young reported it 10 Sep 2026)
+
+*"top of the contract is a mess ... which does not resemble image 3 which is in
+the negotiate page and looks more structured. So plain english is not set like a
+contract and the main contract is unstructured unlike the negotiate page which
+is clean. fix them"*
+
+**TWO REPORTS, ONE CAUSE, AND IT WAS MEASURED ON ONE CONTRACT ON BOTH SURFACES
+BEFORE A LINE WAS WRITTEN.** The NEGOTIATION lifts a plain body into a document
+— `negoBodyOf` calls `negoRichFromLines`, which is `docRichFromText` — so it
+draws real headings, real paragraphs and each marker in its own gutter. The
+DOCUMENT TAB threw the same lines into `white-space:pre-wrap` divs: several
+clauses to a box, the blank lines between them kept as literal newlines, every
+clause number a bold span with no gutter under it, and above the lot a header
+carrying the RECORD's name that the wording's own first lines were about to say
+again. **One document, two shapes, and the shape that reads as raw text was the
+one on the tab a contract is READ on.**
+
+- **THE FIX IS THE READING, NOT A SECOND RENDERER.** `docBodyHtml`'s plain
+  branch lifts through the SAME function the negotiation already uses and then
+  goes down the SAME `renderDocHtml` path the rich branch takes — which is what
+  puts the gutter on (`redlineHangHtml`, one reading, four surfaces). So the two
+  pages cannot come to disagree about the document's shape, which is the thing
+  that was reported.
+- **IT LIFTS FOR THE SCREEN AND NEVER FOR THE RECORD.** `docBodyHtml` is a
+  renderer: `c.redlineText` is untouched, no fingerprint moves, and the
+  negotiation's stored baseline is built where it always was. **Nothing is
+  migrated.**
+- **NO LIFT, NO CHANGE.** A stage without js/docx.js falls back to
+  `documentTextHtml` and gets exactly the paper it got before — never an empty
+  sheet, which is the rlPaperFootHtml family's own failure mode.
+- **A RULED BLOCK KEEPS ITS COLUMNS.** `documentTextHtml` had one thing the lift
+  does not: a run of ruled lines — a rate card, a two-column signature block —
+  set in monospace with its spacing preserved, which HTML otherwise collapses.
+  It is repaired in `docPlainToRich`, in the RENDER, and deliberately **not** in
+  `docBlocksFromText`: that reading builds the negotiation's STORED baseline and
+  widening it would change what every contract on file segments into. **ONE lift
+  for the whole text, never one per run** — `docRichFromText` decides h1-vs-h2
+  from whether it has seen a title yet, so lifting run by run would promote the
+  first heading after every table back to the document's own title. **A single
+  wide line is a sentence, not a table.** `.hati-doc pre` scrolls inside itself:
+  a wide card may never make the page scroll sideways.
+- **THE TOP IS SAID ONCE.** A working text built from a template contract IS the
+  paper's own front matter followed by its clauses — `docPlainText` writes that
+  header out as text and the editor is seeded from it — so a header above it is
+  the same three facts printed twice. `docBodyCarriesTop` is that reading and it
+  has **TWO SIGNALS, because a working text says its own name two ways**: a real
+  `<h1>` where the lift makes one, or the contract's NAME as one of the opening
+  BLOCKS where the front matter came through as plain lines. Matched on a block
+  BEING the name, never on the name being mentioned inside a sentence.
+- **AND THE HEAD IS STILL DRAWN WHERE THE WORDING CARRIES NO TOP.** A first
+  build stood it down unconditionally, on the reasoning that a working text
+  always opens with the document's own words. **AN AMENDMENT'S SKELETON DOES
+  NOT**: it is four English paragraphs — the two recitals, the "amended as
+  follows" line and the survival clause — with no title, so that draft came out
+  with no name on its paper at all. `amendment-journey-verify` caught it, which
+  is what that file is for.
+- **AND THE PLAIN-ENGLISH HALF FOLLOWS FROM IT.** The walk reads the sheet, so
+  with the sheet lifted there are no `.doc-t-n` marks left on it: the anchor is
+  a real `<p class="rl-hang">`, `docReadShape` gives the entry `dr-hang`, and the
+  edition is set beside a contract that is set like a contract.
+
+**AND THE HEADING PRINTED IS THE DRAFTER'S OWN, OR NOTHING.** *"in plain english
+theres duplication of clause numbers and the numbers are above the clause as
+opposed to next to the clause like in the contract. it also does not have clause
+headers."*
+
+- **`_docReadLead` ANSWERED TWO QUESTIONS AND ONLY ONE OF THEM CAN TAKE THE
+  EIGHT-WORD FALLBACK.** As the pairing guard's READING and as what the route is
+  sent, eight words is a fingerprint and is exactly right. As a name to PRINT it
+  is a fragment of the clause's first sentence, cut mid-phrase — drawn as a
+  heading it says what the reading under it is about to say, which is the
+  duplication; and where the drafter set only the NUMBER bold it is the number,
+  printed a second time beside the one in the gutter. `_docReadBoldLead` is the
+  name to print — the bold lead-in or **nothing** — and `_docReadLead` is
+  unchanged.
+- **A NAME HAS A WORD IN IT** (`_docReadName`). What is left after the number is
+  cut off a lead-in that was nothing but a number is the number again.
+- **THE WALL: WHAT THE ROUTE IS SENT DOES NOT MOVE BY A BYTE.** That route's
+  cache key is a hash of exactly what it was sent, so `heading` keeps the
+  eight-word reading. This changes what is PRINTED and nothing about what is
+  asked.
+- **THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT.** Where the clause has a
+  heading of its own the number is that heading's marker, in its gutter. Where it
+  has none — most commercial paper, whose clauses run straight into their wording
+  — the number is the READING's own marker, in the same 2.6em gutter the contract
+  uses one column over. What it is never again is a line of its own with the
+  reading underneath, which is what was reported.
+
+**WHAT THIS COSTS, SAID OUT LOUD.** A plain-text contract already read pays for
+ONE fresh reading the next time somebody presses Plain English: the paper really
+has changed shape, so `heading` and `text` differ slightly and the route's cache
+key moves with them. Once, per contract, and only on a press. **And a working
+text's front matter is now four ordinary paragraphs rather than the styled title
+block the negotiate page draws** — that page takes the RECORD's name for its
+title, and guessing which of a text's first lines is the title is a change to
+`docLineKind`, which builds the negotiation's stored baseline. Reported rather
+than built.
+
+Tests: f277 (14)-(16) (26 — **11 fail against the parent**; the ones that pass
+either way are named CONTROLS: the lift writes nothing to the record, a single
+wide line is not a table, a real bold lead-in is still the name, a section keeps
+its own name, and the route's own reading is unmoved), **plain-english-verify
+section 13 (10, browser — the only place three of these can be asked at all:
+whether the paper really PAINTS those headings, whether the top is said once as
+pixels, and whether the number sits BESIDE the reading, which is a geometry and
+is the whole of the report. 6 of the new checks fail against the parent, the
+headline ones reporting the report verbatim — `13b … [1]` pre-wrap run, `13g not
+one entry draws a number on a line of its own [2 such]`, and `13c … 1
+header(s)`)**, plus three claims in section 10 REVERSED IN PLACE — one of them
+pinned that a working text's wording carries NOT ONE `<h*>`, which was the stage
+AND the fault.
 
 ## PLAIN ENGLISH BESIDE THE CONTRACT — THE FIRST BUILD (Young ruled 9 Sep 2026)
 

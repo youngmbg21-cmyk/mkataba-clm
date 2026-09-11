@@ -1667,7 +1667,7 @@ function ceLockBeat(stop){
   _ceLockBeat = setInterval(() => {
     if (!clauseEditorOpen()){ ceLockBeat(true); return; }
     try{
-      if (window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+      if (window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
     }catch(_){}
   }, CE_LOCK_BEAT_MS);
 }
@@ -1722,7 +1722,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      clause this page then refuses to open would be held by nobody who could
      let it go. It is refreshed on every pull and released at every door out. */
   try{
-    if (window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+    if (window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
   }catch(_){}
   ceLockBeat();
   ceSeedDraft(opts.changeId);
@@ -1844,7 +1844,7 @@ function rlCloseClauseEditor(opts = {}){
      state is cleared, because the release needs to know which clause. */
   ceLockBeat(true);
   try{
-    if (window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC);
+    if (window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page) page.remove();

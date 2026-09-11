@@ -128,28 +128,71 @@ function clauseLockSweep(c){
   return moved;
 }
 /* ---- AND IT HAS TO REACH THE OTHER BROWSER, OR IT IS A NOTE TO YOURSELF ----
-   A lock held only in this tab tells a colleague nothing, so taking one and
-   letting one go each ride the ordinary save every other act on this page
-   already makes. There is no route of its own: a second way for two browsers
-   to disagree about a contract is the last thing this needs.
+   A lock held only in this tab tells a colleague nothing. It reaches them by
+   its OWN tiny write — POST /api/contracts/:id/lock — and never by the
+   whole-contract save, which is where it first rode and where it did three
+   things wrong at once:
 
-   A SEALED RECORD TAKES NO COURTESY WRITE — aiNoteRead's own lesson, one field
-   along. Unreachable in practice (the editor refuses an executed contract
-   outright, because the wording is frozen), and one line to close rather than
-   a fault waiting for the day some other door reaches this.
+     · THE SAVE CARRIES AN OPTIMISTIC VERSION, so a refresh landing after a
+       colleague's save came back 409 and saveContract put a BLOCKING dialog in
+       front of the reader — "keep yours and overwrite theirs, or discard
+       yours?" — over a heartbeat that changed nothing but a timestamp, every
+       forty-five seconds, while they were typing.
+     · THE MAP TRAVELLED WHOLE, so a browser whose record predated a colleague
+       taking a lock wiped that colleague's lock on its next ordinary save.
+     · AND IT MOVED THE VERSION, so every other browser watching the contract
+       fetched the entire record and toasted "new activity" about a clause
+       somebody had merely opened.
 
-   WHAT IT DOES NOT DO, said out loud: it is not pushed. A colleague sees the
-   lock when their browser next reads the contract — opening it, or the beat
-   that refreshes an open one — so two people who open the same clause in the
-   same few seconds can still both get in. That is why the SERVER refuses the
-   second one's filing, and why this is an advisory rather than a promise. */
-function clauseLockSave(c){
+   The route MERGES one clause on the stored record, takes no baseVersion, and
+   moves neither `version` nor `updated_at` — presence is not an edit. The
+   reader learns of it from the twelve-second probe the bench already runs,
+   which carries the live map (see rlStartLivePoll).
+
+   THE LOCAL FALLBACK IS THE ORDINARY SAVE, because with no server there is no
+   second browser to tell and nothing to conflict with.
+
+   A SEALED RECORD TAKES NO COURTESY WRITE — aiNoteRead's own lesson. The editor
+   refuses an executed contract outright, so this is unreachable in practice and
+   is one line rather than a fault waiting for the day another door reaches it.
+
+   WHAT IT STILL DOES NOT DO, said out loud: it is not PUSHED. A colleague
+   learns of a lock on their next probe, so two people who open the same clause
+   inside the same few seconds can still both get in. That is why the SERVER
+   refuses the second one's filing rather than the browser being trusted, and
+   why this is an advisory rather than a promise. */
+function clauseLockSave(c, opts){
   if (!c) return false;
-  const sealed = (typeof window !== 'undefined' && typeof window.negoExecuted === 'function')
-    ? window.negoExecuted(c) : (c.status === 'Signed');
+  const W = (typeof window !== 'undefined') ? window : null;
+  if (!W) return false;
+  const sealed = (typeof W.negoExecuted === 'function') ? W.negoExecuted(c) : (c.status === 'Signed');
   if (sealed) return false;
-  if (typeof window !== 'undefined' && typeof window.persist === 'function'){ window.persist(c); return true; }
+  const o = opts || {};
+  if (o.clauseId && W.API_MODE && W.API_MODE() && typeof W.api === 'function'){
+    /* Fire and forget. The reader is typing; a lock is a courtesy to somebody
+       else and may never make them wait, and a refusal is already drawn by the
+       door that asked (rlOpenClauseEditor) rather than by a background write. */
+    try{
+      W.api('contracts/' + c.id + '/lock', 'POST', { clauseId: String(o.clauseId), release: !!o.release })
+        .then(r => { if (r && r.locks) clauseLockMerge(c, r.locks); })
+        .catch(() => {});
+    }catch(_){ }
+    return true;
+  }
+  if (typeof W.persist === 'function'){ W.persist(c); return true; }
   return false;
+}
+/* THE SERVER'S MAP IS THE ONE THAT COUNTS, so an answer replaces ours whole
+   rather than being folded into it: a merge that kept a local entry the server
+   did not return would be this browser insisting on a lock the server has
+   already given to somebody else. */
+function clauseLockMerge(c, locks){
+  if (!c) return false;
+  const live = {};
+  Object.keys(locks || {}).forEach(k => { if (clauseLockLive(locks[k])) live[k] = locks[k]; });
+  const before = JSON.stringify(c.locks || {});
+  if (Object.keys(live).length) c.locks = live; else delete c.locks;
+  return JSON.stringify(c.locks || {}) !== before;
 }
 /* THE ONE SENTENCE, in the reader's own language, naming who holds it. Young
    asked for the monogram; the whole name is on the control's own title, because
@@ -167,11 +210,37 @@ function clauseLockTitle(l){
   return _clT('cl_locked_title', { who: name });
 }
 
+/* ---- THE SIGN, ASKED ONCE AND DRESSED FOUR WAYS (Young asked 10 Sep 2026) ----
+   *"When user 2 tries to click on the pencil symbol, they see the initials of
+   User 1."* — and then, of the rest of them: put the initials on those too.
+
+   FOUR CONTROLS OPEN THE CLAUSE EDITOR and only the pencil carried the
+   monogram; the other three refused in words AFTER the press, which is the
+   dead press this product's own rule exists to prevent. They ask this, once,
+   at DRAW time, so the pencil, the card's Edit, the sparkle on a tracked
+   change and the clause panel's Copilot button cannot come to disagree about
+   who is holding a clause — the drawing may differ between them and does, the
+   READING never may.
+
+   IT RETURNS THE THREE PIECES AND DRESSES NOTHING. The pencil has a slot of
+   its own and becomes the sign; the other three sit in fixed columns and in
+   one-glyph boxes, so they stay exactly the size they were, go dead, and swap
+   their leading mark for the monogram with the whole sentence on the hover.
+   A monogram forced into the card's verb column would move a layout nobody
+   asked to move. */
+function clauseLockSign(c, clauseId){
+  const l = clauseLockHeldByOther(c, clauseId);
+  if (!l) return null;
+  const name = String((l.by && l.by.name) || '').trim();
+  return { mono: clauseLockInitials(name), say: clauseLockLine(l), title: clauseLockTitle(l), name };
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_LOCK_MS, clauseLockLive, clauseLockMe, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
-  clauseLockRelease, clauseLockSweep, clauseLockLine, clauseLockTitle, clauseLockSave });
+  clauseLockRelease, clauseLockSweep, clauseLockLine, clauseLockTitle, clauseLockSave,
+  clauseLockMerge, clauseLockSign });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   CLAUSE_LOCK_MS, clauseLockLive, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
-  clauseLockRelease, clauseLockSweep, clauseLockSave };
+  clauseLockRelease, clauseLockSweep, clauseLockSave, clauseLockMerge, clauseLockSign };
