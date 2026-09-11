@@ -117,7 +117,10 @@ describe('f292 — the four lines and the hub', () => {
     assert.ok(hub && hub.party && hub.lines && hub.lines.length === 3 && hub.sub === null);
     w.win.intel.groupBy = 'folder';
     const hub2 = w.win.buildGraphModel().nodes.find(n => n.kind === 'hub');
-    assert.ok(hub2 && !hub2.party && !hub2.lines);
+    /* REVERSED IN PLACE for A-5 (f294): a value-stream hub now carries lines
+       of its OWN — money in, out and net — so the claim is that they are not
+       the PARTY's: no party, and any line there is the flow's. */
+    assert.ok(hub2 && !hub2.party && (!hub2.lines || hub2.flow));
     /* And a Copilot override grouping is not a party grouping. */
     w.win.intel.groupBy = 'counterparty'; w.win.intel.groups = { 'MK-1': 'Naivas' };
     const hub3 = w.win.buildGraphModel().nodes.find(n => n.id === 'hub:Naivas');

@@ -13605,6 +13605,74 @@ resolved amber, and a real drag fading a node as a computed opacity — read
 after its transition has run — and rewriting the hub line without replacing
 the node).
 
+## MONEY FLOWING THROUGH THE VALUE STREAM (A-5, 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md, the fifth and last of Part A. Under the
+value-stream grouping each hub says what money the paper in that stream brings
+in, sends out, and the net — **on paper**, which is what HaTi holds — and every
+hub→contract link is as wide as the value it carries.
+
+- **`graphStreamFlow()` IS THE ONE READING**: per folder `{n, in, out, net,
+  missing:{code:n}, unsided, sided}` over the live book (`graphLiveContract`).
+  Counting is not drawing — it returns plain data, `graphStreamLines` turns one
+  stream into two strings with their inks, and the renderer prints what it is
+  handed and computes nothing.
+- **THE SIDE IS `paySide`'s OWN, AND THE WORK ORDER HAD IT THE OTHER WAY
+  ROUND — said out loud rather than absorbed.** The order's A-5 line reads
+  *"supplier = in, customer = out"*. The product's one reading of the same
+  fact says the opposite in its own words — `home_pt_split` prints *"where
+  you wait · where you make them wait"* and js/payterms.js calls the customer
+  side *money coming in* — so a CUSTOMER contract is money IN and a SUPPLIER
+  contract is money OUT. Following the order's sentence would have made the
+  graph disagree with the payment-terms tab about which way one contract's
+  money runs, which is the drift this file opens by warning about. **No second
+  side reading**: f294 greps that the flow reads `paySide(c)` and never the
+  category for itself.
+- **WHAT IS LEFT OUT IS COUNTED AND NAMED, NEVER SUMMED.** A foreign contract
+  with no rate on file goes under `missing` by code (`fxHome`'s own answer); a
+  monetary contract whose side is not recorded is `unsided`; a contract where
+  no money passes (`isMonetary` false) is in no column; a dead one is not
+  counted at all. The legend prints missing and unsided as ONE sentence, drawn
+  only where either is non-zero — a caveat that is always there is unread.
+- **"ON PAPER" IS ON THE HUB ITSELF**, on the net line, not only in the legend
+  — the reader looking at the figure is the one who must be told what it is.
+  The legend's own sentence says why: *what the paper says, not what was
+  invoiced*. HaTi reads agreements, not a bank.
+- **NET CARRIES ITS SIGN AND ITS INK**: green for money in over money out,
+  ruby the other way, the hub's light teal at zero with no sign. Colour is
+  never the only carrier — the sign is printed.
+- **LINK WIDTH IS VALUE ON A BOUNDED SQUARE-ROOT SCALE** — `graphLinkWidth`,
+  1.5px to 9px, sqrt of the share of the largest — so one giant contract does
+  not make every other link a hairline. The widest link is the largest
+  contract's; a contract with no rate or no money carries none and draws at
+  the base width. **It has no legend entry on purpose**: the node's own
+  sub-line prints the value, which is the carrier. Widths are drawn for every
+  contract on the page, the declined one included — its link exists and its
+  value is a fact; only the FLOW leaves it out.
+- **MONEY OBEYS `canViewValues`, AND THE VIEWER IS ASKED ONCE IN THE MODEL.**
+  A reader without money rights gets the hub's name and count, no lines, no
+  money legend, and links all one width — nothing drawn, never dashes. The
+  hub keeps its count line and the money sits UNDER it (the party hub, which
+  replaces its count, is a different shape for a different question).
+- **THE FLOW IS THE FOLDER GROUPING'S OWN.** Grouped any other way, or under a
+  Copilot override grouping, no hub carries it and the legend draws no money
+  block — a flow printed on a quarter hub or a counterparty hub would be
+  answering a question nobody asked of that page.
+- **AND ONE f292 CLAIM WAS REVERSED IN PLACE**: it pinned that a folder hub
+  carries no `lines` at all, which was true while only the party hub had any.
+  The claim was always that those lines are not the PARTY's, and it says so
+  now.
+
+Tests: f294 (17 — the reading's arithmetic, the side proved to be `paySide`'s,
+missing and unsided counted and never summed, the viewer, the lines and their
+inks, the model, the width's bounds and its sqrt, and both languages; the file
+cannot load against the parent, because the reading does not exist there),
+insights-panels-verify section 15 (6, browser — **5 fail against the parent**;
+the hub's lines measured as PAINTED text against the reading, the net's ink
+as a computed colour, every link's width as a COMPUTED stroke, the legend's
+sentence with the reading's own counts, and 15f the viewer — a CONTROL that
+passes either way, because a page with no feature draws no money either).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

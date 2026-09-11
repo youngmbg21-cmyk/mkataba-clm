@@ -796,6 +796,72 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { intel.cliffDays = 0; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(500);
 
+    /* ================= 15. MONEY THROUGH THE VALUE STREAM (A-5, 11 Sep 2026) =
+       f294 holds the reading; what only a browser can say is whether the hub
+       PAINTS In / Out / Net with "on paper" on it, whether the net's ink is
+       the sign's, whether the links are really drawn at the width the value
+       gives them (bounded 1.5–9px as a COMPUTED stroke), whether the legend
+       says what was left out, and whether a reader without money rights gets
+       a hub with a name and a count and nothing else. */
+    await page.evaluate(() => {
+      const by = id => state.contracts.find(c => c.id === id);
+      const side = (id, s, f) => { const c = by(id); if (!c) return; c.metadata = c.metadata || {}; c.metadata.category = s; if (f) c.folder = f; };
+      side('MK-P1', 'customer'); side('MK-P6', 'customer'); side('MK-P2', 'supplier');   // procurement: in 13M, out 5M
+      side('MK-P3', 'supplier', 'sales');                                                 // sales: out 3M, nothing in
+      side('MK-P4', 'works');                                                             // side not recorded: unsided, said in the legend
+      intel.groupBy = 'folder'; intel.lenses = []; intel.groups = null; intel.history = []; intel.tab = 'map'; renderIntel();
+    });
+    await page.waitForTimeout(1500);
+    const flow = await page.evaluate(() => {
+      const F = (typeof graphStreamFlow === 'function') ? graphStreamFlow() : null;
+      const hubs = IG.nodes.filter(n => n.kind === 'hub').map(h => {
+        const lines = [...h.g.querySelectorAll('[data-ig-flow]')].map(t => ({ text: t.textContent, w: Math.round(t.getBBox().width), fill: getComputedStyle(t).fill }));
+        const S = F && Object.values(F).find(x => (FOLDERS[x.folder]?.name || 'Other') === h.label);
+        return { label: h.label, sub: h.g.querySelector('.ig-sub') ? h.g.querySelector('.ig-sub').textContent : '', lines, want: (S && typeof graphStreamLines === 'function') ? graphStreamLines(S).map(l => l.text) : [], net: S ? S.net : null, h: h.h };
+      });
+      const links = IG.edges.filter(e => String(e.from).startsWith('hub:')).map(e => ({ to: e.to, w: parseFloat(getComputedStyle(e.el).strokeWidth), attr: e.el.getAttribute('data-ig-w') }));
+      const vOf = id => { const c = state.contracts.find(x => x.id === id); const h = (typeof fxHome === 'function') ? fxHome(c) : { v: c.value, missing: false }; return h.missing ? 0 : h.v; };
+      const biggest = links.slice().sort((a, b) => vOf(b.to) - vOf(a.to))[0];
+      const leg = document.getElementById('ig-legend'); const q = k => leg && leg.querySelector(`[data-ig-legend-flow="${k}"]`);
+      const miss = F ? Object.values(F).reduce((a, S) => a + Object.values(S.missing || {}).reduce((x, y) => x + y, 0), 0) : 0, uns = F ? Object.values(F).reduce((a, S) => a + (S.unsided || 0), 0) : 0;
+      const g = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+      return { F: !!F, hubs, links, biggest: biggest && { to: biggest.to, w: biggest.w }, legend: { head: leg ? leg.textContent : '', in: !!q('in') && q('in').getBoundingClientRect().height > 0, out: !!q('out'), left: q('left') ? q('left').textContent : null, miss, uns },
+        green: g('--st-green-dot'), ruby: g('--st-ruby-dot') };
+    });
+    const paint = async v => page.evaluate(a => { const p = document.createElement('span'); p.style.color = a; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }, v);
+    const green = await paint(flow.green), ruby = await paint(flow.ruby);
+    const proc = flow.hubs.find(h => /procurement/i.test(h.label)), sales = flow.hubs.find(h => /sales/i.test(h.label));
+    check('15a every stream hub paints In / Out / Net as text under its count, and every one says "on paper" on the hub itself',
+      flow.F && flow.hubs.length >= 2 && flow.hubs.every(h => h.lines.length === 2 && h.lines.every((l, i) => l.w > 20 && h.want[i].startsWith(l.text.replace(/…$/, ''))) && /on paper/.test(h.want[1]) && /contracts?/.test(h.sub) && h.h > 60),
+      JSON.stringify(flow.hubs.map(h => ({ label: h.label, sub: h.sub, lines: h.lines.map(l => l.text), want: h.want }))));
+    check('15b the figures are the reading\'s: procurement is money in (customers) over money out (suppliers), sales is out alone',
+      proc && sales && proc.net > 0 && sales.net < 0 && /^In KES 13M · Out KES 5M/.test(proc.want[0] || '') && /^Net \+KES 8M/.test(proc.want[1] || '') && /^Net −KES 3M/.test(sales.want[1] || ''),
+      JSON.stringify({ proc: proc && proc.want, sales: sales && sales.want }));
+    check('15c the net line\'s ink IS the sign: green on the stream that takes money in, ruby on the one that pays out',
+      proc && sales && proc.lines[1] && proc.lines[1].fill === green && sales.lines[1] && sales.lines[1].fill === ruby,
+      JSON.stringify({ proc: proc && proc.lines[1] && proc.lines[1].fill, sales: sales && sales.lines[1] && sales.lines[1].fill, green, ruby }));
+    check('15d every hub link is drawn at a computed width between 1.5 and 9px, the biggest contract\'s link is the widest at 9, and the width is the edge\'s own',
+      flow.links.length >= 5 && flow.links.every(l => l.w >= 1.5 && l.w <= 9 && (l.attr === null || Math.abs(parseFloat(l.attr) - l.w) < 0.05)) && flow.biggest && flow.biggest.w === 9 && flow.links.some(l => l.w < 9),
+      JSON.stringify({ links: flow.links, biggest: flow.biggest }));
+    check('15e the legend names in and out, prints what was left out as one sentence whose counts are the reading\'s, and says the money is what the paper says',
+      flow.legend.in && flow.legend.out && /Money on paper/.test(flow.legend.head) && flow.legend.uns >= 1 && flow.legend.left === `Left out: ${flow.legend.miss} with no rate on file, ${flow.legend.uns} whose side is not recorded` && /what the paper says, not what was invoiced/i.test(flow.legend.head),
+      JSON.stringify(flow.legend));
+    await page.screenshot({ path: path.join(OUT, '15-money-flow.png') });
+    /* A READER WITHOUT MONEY RIGHTS: the same page, the same grouping. */
+    await page.evaluate(() => { window._igCvv = window.canViewValues; window.canViewValues = () => false; intel.history = []; renderIntel(); });
+    await page.waitForTimeout(1200);
+    const viewer = await page.evaluate(() => {
+      const hubs = IG.nodes.filter(n => n.kind === 'hub');
+      const leg = document.getElementById('ig-legend');
+      return { flowLines: hubs.reduce((a, h) => a + h.g.querySelectorAll('[data-ig-flow]').length, 0), subs: hubs.map(h => h.g.querySelector('.ig-sub') ? h.g.querySelector('.ig-sub').textContent : ''),
+        legend: leg ? /Money on paper/.test(leg.textContent) : null, widths: [...new Set(IG.edges.filter(e => String(e.from).startsWith('hub:')).map(e => getComputedStyle(e.el).strokeWidth))] };
+    });
+    check('15f a reader without money rights gets a hub with its name and count, no money lines, no money legend, and links all one width',
+      viewer.flowLines === 0 && viewer.subs.every(s => /contracts?/.test(s)) && viewer.legend === false && viewer.widths.length === 1,
+      JSON.stringify(viewer));
+    await page.evaluate(() => { window.canViewValues = window._igCvv; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
+    await page.waitForTimeout(500);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

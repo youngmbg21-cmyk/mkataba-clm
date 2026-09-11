@@ -445,6 +445,57 @@ function igApplyCliff(days){
   const out=document.getElementById('ig-cliff-out'); if(out){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+days);
     out.textContent=days?i18t('int_cliff_by',{d:d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'})}):i18t('int_cliff_today'); }
 }
+/* ============================================================
+   A-5 · MONEY FLOWING THROUGH THE VALUE STREAM
+   ============================================================
+   Each value-stream hub says what money comes IN, goes OUT and nets, ON
+   PAPER. The side is the payment terms tab's own reading — paySide, which
+   reads the contract's category: a CUSTOMER is who pays us (in), a SUPPLIER
+   is who we pay (out) — never a second reading beside it. Value through
+   fxHome; a foreign contract with no rate is COUNTED under `missing` and
+   never summed; a monetary contract whose side cannot be read is `unsided`,
+   counted and named, never assumed; a non-monetary contract is in no column.
+   Money obeys canViewValues: a viewer's hub is the stream's name and count.
+   NOTHING HERE READS AN INVOICE — HaTi holds none — and every figure is
+   labelled "on paper" wherever it is printed. */
+function graphStreamFlow(cs){
+  const list=(Array.isArray(cs)?cs:(state.contracts||[])).filter(graphLiveContract);
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const out={};
+  list.forEach(c=>{
+    const f=c.folder||'other';
+    const S=out[f]||(out[f]={ folder:f, n:0, in:0, out:0, net:0, missing:{}, unsided:0, sided:0 });
+    S.n++;
+    if(!money) return;
+    if(typeof isMonetary==='function'&&!isMonetary(c)) return;
+    if(!(Number(c.value||0)>0)) return;
+    const side=(typeof paySide==='function')?paySide(c):null;
+    if(!side){ S.unsided++; return; }
+    const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false,code:''};
+    if(h.missing){ S.missing[h.code]=(S.missing[h.code]||0)+1; return; }
+    S.sided++;
+    if(side==='customer') S.in+=h.v; else S.out+=h.v;
+    S.net=S.in-S.out;
+  });
+  return out;
+}
+/* The hub's lines — In / Out on one, Net with its sign on the next — each
+   with its own ink: in takes the hub's light teal, out amber, net green or
+   ruby by sign. Strings and inks only; the renderer prints them. */
+function graphStreamLines(S){
+  if(!S) return [];
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  if(!money) return [];
+  const L=[];
+  L.push({ text:`${i18t('int_flow_in')} ${fmtMoneyShort(S.in)} · ${i18t('int_flow_out')} ${fmtMoneyShort(S.out)}`, fill:'var(--color-accent-100)' });
+  const sign=S.net>0?'+':S.net<0?'−':'';
+  L.push({ text:`${i18t('int_flow_net')} ${sign}${fmtMoneyShort(Math.abs(S.net))} · ${i18t('int_flow_on_paper')}`, fill:S.net>0?'var(--st-green-dot)':S.net<0?'var(--st-ruby-dot)':'var(--color-accent-200)' });
+  return L;
+}
+/* Link width from value: bounded, sqrt of the share of the largest, so one
+   giant contract does not make every other link a hairline. */
+const GRAPH_LINK_W_MIN=1.5, GRAPH_LINK_W_MAX=9;
+function graphLinkWidth(v, vmax){ if(!(v>0)||!(vmax>0)) return null; return Math.round((GRAPH_LINK_W_MIN+(GRAPH_LINK_W_MAX-GRAPH_LINK_W_MIN)*Math.sqrt(Math.min(1,v/vmax)))*10)/10; }
 /* THE "IF THIS ENDS" BLOCK on the dock's explain card. Drawn only where
    something depends on the contract — a block reading "nothing depends on
    this" on every card is furniture. Every figure is graphDependents' own; the
@@ -918,6 +969,12 @@ function buildGraphModel(){
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override); (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
   const hubs=Object.values(hubMap);
   const crowded=(groupBy==='decision'&&!override)?graphCliffCrowded(hubs):new Set();
+  const moneyOk=(typeof canViewValues!=='function')||canViewValues();
+  const flow=(groupBy==='folder'&&!override&&moneyOk)?graphStreamFlow(cs):null;
+  /* A-5: the value each hub→contract link carries, for its width. Only where
+     money may be seen; a viewer's links are all one width. */
+  let vmax=0; const linkV={};
+  if(moneyOk) cs.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return; const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false}; if(h.missing) return; linkV[c.id]=h.v; vmax=Math.max(vmax,h.v); });
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{
     const node={id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')};
@@ -925,6 +982,8 @@ function buildGraphModel(){
        its four lines and its share of the book. The stats are read once here
        so the renderer prints them and computes nothing. */
     if(groupBy==='counterparty'&&!override){ const p=graphPartyStats(h.label); if(p.found){ node.party=p; node.lines=graphPartyLines(p); node.sub=null; } }
+    /* A-5: a value-stream hub carries money in, out and net, on paper. */
+    if(groupBy==='folder'&&!override&&flow){ const S=Object.values(flow).find(x=>(FOLDERS[x.folder]?.name||'Other')===h.label); if(S){ const L=graphStreamLines(S); if(L.length){ node.flow=S; node.lines=L; } } }
     /* A-4: a quarter hub knows its place in time and whether it is crowded. */
     if(groupBy==='decision'&&!override){ node.order=graphDecisionOrder(h.label); node.crowded=crowded.has(h.label);
       if(node.crowded) node.sub+=' · '+i18t('int_cliff_crowded'); }
@@ -932,7 +991,7 @@ function buildGraphModel(){
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
     nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
-    edges.push({from:'hub:'+g, to:c.id, kind:groupBy==='counterparty'?'party':'group'});   // hub -> contract: arrows fan outward
+    edges.push({from:'hub:'+g, to:c.id, kind:groupBy==='counterparty'?'party':'group', w:graphLinkWidth(linkV[c.id],vmax)});   // hub -> contract: arrows fan outward; width is value
   });
   /* THE RECORD'S OWN LINKS, on top of the grouping. A party edge is already
      the hub→contract line when the graph is grouped by counterparty (tagged
@@ -943,7 +1002,7 @@ function buildGraphModel(){
   const kinds=new Set(edges.filter(e=>e.kind==='party').length?['party']:[]);
   buildGraphEdges(cs).forEach(e=>{ if(e.kind==='party') return; if(!onPage.has(e.from)||!onPage.has(e.to)) return;
     kinds.add(e.kind); edges.push({from:e.from, to:e.to, kind:e.kind, label:e.label}); });
-  return { nodes, edges, capped, shown:cs.length, total:cs.length, edgeKinds:GRAPH_EDGE_KINDS.filter(k=>kinds.has(k)), linear:groupBy==='decision'&&!override };
+  return { nodes, edges, capped, shown:cs.length, total:cs.length, edgeKinds:GRAPH_EDGE_KINDS.filter(k=>kinds.has(k)), linear:groupBy==='decision'&&!override, flow };
 }
 
 /* ---- physics + svg (adapted, light theme) ---- */
@@ -964,7 +1023,7 @@ function makeIntelGraph(model){
     sorted.forEach((h,i)=>{ h.x=W*(0.12+0.76*(sorted.length>1?i/(sorted.length-1):0.5)); h.y=H/2; h.vx=h.vy=0; h.timeline=true; }); }
   else hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
-  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; if(n.lines&&n.lines.length){ n.w=Math.max(n.w,236); n.h=34+n.lines.length*13+(n.party&&n.party.share!=null?8:0); } } else {
+  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; if(n.lines&&n.lines.length){ n.w=Math.max(n.w,236); n.h=(n.flow?47:34)+n.lines.length*13+(n.party&&n.party.share!=null?8:0); } } else {
     n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
     n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.facts.length?54:(n.sub?40:30); } });
   // svg build
@@ -972,7 +1031,7 @@ function makeIntelGraph(model){
      the solid accent, a chain edge dashed, a group edge the quiet neutral it
      always was. The class is the only carrier of the kind, so the legend and
      the line read the same rule. */
-  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); e.el.setAttribute('marker-end','url(#ig-arrow)'); gLinks.appendChild(e.el); });
+  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); if(e.w){ e.el.style.strokeWidth=e.w+'px'; e.el.setAttribute('data-ig-w',e.w); } e.el.setAttribute('marker-end','url(#ig-arrow)'); gLinks.appendChild(e.el); });
   // adjacency (undirected) for the hover-focus highlight
   const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
   nodes.forEach(n=>{
@@ -1006,8 +1065,10 @@ function makeIntelGraph(model){
        length is the party's share of the book by value. The bar is a second
        carrier beside the printed percentage, never the only one. */
     if(n.kind==='hub'&&n.lines&&n.lines.length){
-      n.lines.forEach((t,i)=>{ const ln=document.createElementNS('http://www.w3.org/2000/svg','text');
-        ln.setAttribute('class','ig-sub ig-cp-line'); ln.setAttribute('data-ig-cp-line',i); ln.setAttribute('x',11); ln.setAttribute('y',31+i*13); ln.setAttribute('fill','var(--color-accent-200)'); ln.setAttribute('pointer-events','none');
+      const y0=n.flow?44:31;   // a stream hub keeps its count line and puts the money under it
+      n.lines.forEach((l,i)=>{ const t=typeof l==='string'?l:l.text, fill=(typeof l==='string'?null:l.fill)||'var(--color-accent-200)';
+        const ln=document.createElementNS('http://www.w3.org/2000/svg','text');
+        ln.setAttribute('class','ig-sub ig-cp-line'); ln.setAttribute('data-ig-cp-line',i); if(n.flow) ln.setAttribute('data-ig-flow',i); ln.setAttribute('x',11); ln.setAttribute('y',y0+i*13); ln.setAttribute('fill',fill); ln.setAttribute('pointer-events','none');
         ln.textContent=t.length>38?t.slice(0,37)+'…':t; g.appendChild(ln); });
       if(n.party&&n.party.share!=null){ const y=31+n.lines.length*13-6, bw=n.w-22;
         const tr=document.createElementNS('http://www.w3.org/2000/svg','rect'); tr.setAttribute('x',11); tr.setAttribute('y',y); tr.setAttribute('width',bw); tr.setAttribute('height',3); tr.setAttribute('rx',1.5); tr.setAttribute('fill','var(--color-accent-700)'); tr.setAttribute('pointer-events','none'); g.appendChild(tr);
@@ -1162,6 +1223,17 @@ function renderIntelLegend(model){
   el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
     [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
       `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
+  /* A-5: the money legend — teal in, amber out — and one sentence naming what
+     the figures left out, drawn only where something was. Every hub already
+     says "on paper"; the legend says why: HaTi reads agreements, not invoices. */
+  if(model&&model.flow){
+    const F=Object.values(model.flow); const miss=F.reduce((a,S)=>a+Object.values(S.missing||{}).reduce((x,y)=>x+y,0),0), uns=F.reduce((a,S)=>a+(S.unsided||0),0);
+    el.innerHTML+=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mt-2 mb-1.5">${i18t('int_flow_legend')}</div>
+      <div data-ig-legend-flow="in" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--accent-solid)"></span>${i18t('int_flow_in_word')}</div>
+      <div data-ig-legend-flow="out" class="flex items-center gap-2 text-[11.5px] text-ink/70 py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:var(--st-amber-dot)"></span>${i18t('int_flow_out_word')}</div>
+      ${(miss||uns)?`<div data-ig-legend-flow="left" class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}
+      <div class="text-[10.5px] text-ink/50 py-0.5" style="max-width:190px">${i18t('int_flow_paper_note')}</div>`;
+  }
   /* THE LINK KINDS ON THIS PAGE, and only those: a row for a line that is not
      drawn is furniture. Each swatch is the line's own class, so the legend
      cannot describe a dress the graph does not wear. */
@@ -2989,4 +3061,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
