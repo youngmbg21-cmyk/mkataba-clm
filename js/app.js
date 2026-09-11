@@ -4,6 +4,7 @@ import './i18n.js';        // what language this PERSON reads the app in — the
 import './components.js';
 import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
+import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
 import './core.js';
 import './docx.js';
 import './richdoc.js';

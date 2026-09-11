@@ -109,7 +109,7 @@ function loadViews(files, overrides = {}) {
      visible label reads through t() and every money formatter and governing-law
      sentence reads from the market pack, so a view evaluated without the pair
      throws — or worse, renders dictionary keys — on the first thing it draws. */
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js'].concat(files)) {
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js'].concat(files)) {
     // compiled once per process, see test/vmcache.js
     runFileInContext(path.join(__dirname, '..', f), sandbox, f);
   }

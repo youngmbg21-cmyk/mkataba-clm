@@ -16,6 +16,8 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
    drift from js/i18n.js without anything noticing, which is the fault the
    jurisdiction module above was written to avoid. */
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
+/* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
+const { graphWhereHit } = require('../js/graphwhere.js');
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -4227,6 +4229,15 @@ const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap
    over its own cards (graphWhereIds), so the model never has to copy 159 ids
    by hand. Only these keys pass; anything else is dropped here. */
 const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived'];
+/* ONE SCHEMA for the vocabulary, read by the graph tool and by list_portfolio
+   (Copilot audit phase 4); its keys ARE GRAPH_WHERE_KEYS (f305 pins the set). */
+const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Copilot has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
+  properties: {
+    status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
+    valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
+    signedFrom: { type: 'string' }, signedTo: { type: 'string' },
+    overdueObligations: { type: 'boolean' }, offStandard: { type: 'boolean' }, notRead: { type: 'boolean' },
+    move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' } } };
 function graphWhereClean(w) {
   if (!w || typeof w !== 'object' || Array.isArray(w)) return null;
   const out = {};
@@ -4285,13 +4296,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       type: 'object',
       properties: {
         visibleIds: { type: 'array', items: { type: 'string' }, description: 'Contract ids that MATCH the request where no `where` field can express the match (a name, a city). Omit or leave empty to keep every contract visible (e.g. a pure grouping request). Where both `where` and visibleIds are given HaTi intersects them.' },
-        where: { type: 'object', description: 'A structured filter HaTi applies itself over every contract card. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the card currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Copilot has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
-          properties: {
-            status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
-            valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
-            signedFrom: { type: 'string' }, signedTo: { type: 'string' },
-            overdueObligations: { type: 'boolean' }, offStandard: { type: 'boolean' }, notRead: { type: 'boolean' },
-            move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' } } },
+        where: GRAPH_WHERE_SCHEMA,
         action: { type: 'string', enum: ['filter','highlight'], description: 'filter = remove non-matches from the graph (use for "show only X" style commands). highlight = keep everything visible but dim non-matches and emphasise matches (use for analytical questions like "which expire soon?"). Default filter.' },
         badges: { type: 'object', additionalProperties: { type: 'string' }, description: 'Optional map of contract id -> very short annotation shown as a pill on the node, e.g. "ends in 143d" or "rank #1". Only for matching ids.' },
         answer: { type: 'string', description: 'A 1-3 sentence natural-language answer to the user, shown in the chat panel under HaTi\'s own line of counts. Say what the numbers cannot: name standout contracts.' },
@@ -5980,24 +5985,40 @@ function copilotNegotiation(c) {
 }
 
 // FTS search, then re-scope the ids to the caller's org.
+/* ---- SEARCH (Copilot audit phase 6, 11 Sep 2026) ----
+   This was hard-capped at 8 and applied folder scope AFTER taking limit*2
+   rows from FTS, so a scoped reader silently got fewer than 8 even when more
+   matched. Now: a bounded `limit` (1..COPILOT_SEARCH_MAX), the FTS query
+   paged until the limit is filled or matches run out, scope applied to every
+   page, and the TRUE in-scope match count stated (`total`), bounded by
+   COPILOT_SEARCH_SCAN pages of rows so a one-word query over a huge book
+   cannot run away. */
+const COPILOT_SEARCH_MAX = 40, COPILOT_SEARCH_PAGE = 40, COPILOT_SEARCH_SCAN = 1000;
 function copilotSearch(ctx, query, limit = 8) {
   const q = String(query || '').trim();
-  if (!q || !ftsOk) return [];
+  const want = Math.max(1, Math.min(COPILOT_SEARCH_MAX, Number(limit) || 8));
+  const none = { results: [], total: 0, shown: 0, truncated: false };
+  if (!q || !ftsOk) return none;
   const match = q.replace(/["]/g, ' ').split(/\s+/).filter(Boolean).map(w => '"' + w + '"').join(' OR ');
-  if (!match) return [];
-  let rows = [];
-  try {
-    rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
-      FROM contracts_fts f WHERE contracts_fts MATCH ? ORDER BY rank LIMIT ?`).all(match, limit * 2);
-  } catch (_) { return []; }
+  if (!match) return none;
+  const own = db.prepare('SELECT folder FROM contracts WHERE id=? AND org_id=?');
+  const page = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
+      FROM contracts_fts f WHERE contracts_fts MATCH ? ORDER BY rank LIMIT ? OFFSET ?`);
   const out = [];
-  for (const r of rows) {
-    const owned = db.prepare('SELECT folder FROM contracts WHERE id=? AND org_id=?').get(r.id, ctx.org);
-    if (owned && inScope(ctx.scope, owned.folder))
-      out.push({ id: r.id, name: r.name, counterparty: r.counterparty || '', snippet: r.snippet || '' });
-    if (out.length >= limit) break;
+  let total = 0, scanned = 0, off = 0, more = true;
+  while (more && scanned < COPILOT_SEARCH_SCAN) {
+    let rows = [];
+    try { rows = page.all(match, COPILOT_SEARCH_PAGE, off); } catch (_) { return none; }
+    for (const r of rows) {
+      const owned = own.get(r.id, ctx.org);
+      if (!owned || !inScope(ctx.scope, owned.folder)) continue;
+      total++;
+      if (out.length < want) out.push({ id: r.id, name: r.name, counterparty: r.counterparty || '', snippet: r.snippet || '' });
+    }
+    scanned += rows.length; off += rows.length;
+    more = rows.length === COPILOT_SEARCH_PAGE;
   }
-  return out;
+  return { results: out, total, shown: out.length, truncated: total > out.length, scanCapped: more && scanned >= COPILOT_SEARCH_SCAN };
 }
 // List/filter the portfolio by status / folder / expiry horizon / min value.
 function copilotList(ctx, filter = {}) {
@@ -6011,7 +6032,12 @@ function copilotList(ctx, filter = {}) {
      Copilot's totals could disagree with the register head. The same
      reading — `c.archived` set — off the record, as the screens read it;
      `archived:true` includes the shelf deliberately. */
-  if (!filter.archived) cs = cs.filter(c => !c.archived);
+  /* THE GRAPH'S VOCABULARY (phase 4): the same fourteen keys, the same
+     predicate (js/graphwhere.js), over the server's reading of each record. */
+  const w = graphWhereClean(filter.where);
+  const wantShelf = !!filter.archived || !!(w && w.archived === true);
+  if (!wantShelf) cs = cs.filter(c => !c.archived);
+  if (w) { const briefs = copilotBriefIds(ctx); cs = cs.filter(c => graphWhereHit(copilotCardOf(c, briefs), w, { daysUntil: copilotDaysUntil, folderIdOf: () => '' })); }
   if (filter.status) cs = cs.filter(c => (c.status || '') === filter.status);
   if (filter.folder) cs = cs.filter(c => (c.folder || '') === filter.folder);
   // A minimum-value filter is itself a way to read values by binary search, so
@@ -6025,13 +6051,17 @@ function copilotList(ctx, filter = {}) {
      with no total reads as "forty contracts", and the model reported the cap
      as the portfolio. `total` is the real filtered count; `truncated` tells
      the model to say the row list is partial. */
-  const shown = cs.slice(0, 40).map(c => {
+  /* PAGING (phase 5): `offset` reaches rows past the cap; the 40-per-call cap
+     STAYS (it is what makes the model quote the total rather than dump the
+     book). nextOffset is null on the last page. */
+  const off = Math.max(0, Math.floor(Number(filter.offset) || 0));
+  const shown = cs.slice(off, off + 40).map(c => {
     const d = copilotDaysUntil(c.expiry);
     const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
     if (!ctx.money) copilotStripMoney(row);
     return row;
   });
-  const out = { total: cs.length, shown: shown.length, truncated: cs.length > shown.length, contracts: shown };
+  const out = { total: cs.length, offset: off, shown: shown.length, nextOffset: off + shown.length < cs.length ? off + shown.length : null, truncated: off + shown.length < cs.length, contracts: shown };
   /* THE TOTAL IS CONVERTED HERE, over the WHOLE filtered set (not the 40
      shown), so the model never adds anything itself; what had no rate is
      counted per currency and said. The wall holds: neither key travels to a
@@ -6044,6 +6074,92 @@ function copilotList(ctx, filter = {}) {
   return out;
 }
 
+/* ---- THE SERVER'S READING OF ONE RECORD AS A CARD (phase 4) ----
+   The keys the shared predicate reads, each answered off the stored record by
+   the server's own readings (whose move from the negotiation record, signed
+   day from contractSignedOn, overdue from the obligations' own dates, off
+   standard from the stored review, read from the briefs table / review /
+   scan). Folder is the ID here (the server holds no names). */
+function copilotBriefIds(ctx) {
+  try { return new Set(db.prepare('SELECT contract_id FROM briefs').all().map(x => String(x.contract_id))); } catch (_) { return new Set(); }
+}
+function copilotObState(o) {
+  if (!o) return 'open';
+  if (o.status === 'done') return 'done';
+  const d = dateOnly(o.due);
+  const n = d ? copilotDaysUntil(d) : null;
+  return (n != null && n < 0) ? 'overdue' : 'open';
+}
+function copilotCardOf(c, briefIds) {
+  const obs = Array.isArray(c.obligations) ? c.obligations : [];
+  const overdue = obs.filter(o => copilotObState(o) === 'overdue').length;
+  const rv = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
+  const offStandard = rv ? rv.filter(v => v && (v.status === 'deviation' || v.status === 'missing')).length : null;
+  const read = !!((briefIds && briefIds.has(String(c.id))) || rv || (c.scan && Array.isArray(c.scan.findings)));
+  let move = null;
+  try { const n = copilotNegotiation(c); if (n && n.active) move = n.turn === 'counterparty' ? 'them' : 'you'; } catch (_) {}
+  return { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
+    status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', signedAt: contractSignedOn(c) || '',
+    overdue, offStandard, read, move, archived: !!c.archived };
+}
+/* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
+   Read-only. Every row is a READING of the stored record — the band and the
+   state are the browser's obligationBand / obState answered here off the
+   same dates (waiting outranks overdue, a dateless duty is `later`); the
+   owner is the counterparty for theirs and the assignee for ours; the amount
+   obeys the money wall; the chain's hold is srvObligationBlocked. Folder scope
+   applies through copilotGetJson / scopeFrag. */
+const COPILOT_OB_CAP = 60, COPILOT_HIST_CAP = 60;
+function copilotObligationRow(c, o, ctx) {
+  const st = copilotObState(o);
+  const due = dateOnly(o.due);
+  const blocked = st !== 'done' && !!srvObligationBlocked(c, o);
+  let band = st === 'done' ? 'done' : blocked ? 'waiting' : st === 'overdue' ? 'overdue' : 'later';
+  if (band === 'later' && due) { const now = new Date(); const m = now.toISOString().slice(0, 7); if (due.slice(0, 7) === m) band = 'thisMonth'; }
+  const theirs = (o && o.party) === 'theirs';
+  const row = { contractId: c.id, contractName: c.name || c.id, id: o.id || null, description: String(o.desc || o.description || '').slice(0, 300),
+    due, daysUntilDue: due ? copilotDaysUntil(due) : null, state: st, band,
+    whose: theirs ? 'theirs' : 'ours', owner: theirs ? (String(c.counterparty || '').trim() || 'the counterparty') : (String(o.assignee || '').trim() || 'unassigned'),
+    heldBehind: blocked ? (o.after || null) : null,
+    completedAt: o.completedAt || null, completedBy: o.completedBy || null, chasedAt: o.chasedAt || null, chasedBy: o.chasedBy || null };
+  if (ctx.money) { const n = Number(o.amount); if (o.amount != null && o.amount !== '' && isFinite(n)) { row.amount = n; row.currency = contractCurrency({ metadata: c.metadata || {} }); } }
+  return row;
+}
+function copilotObligations(ctx, filter = {}) {
+  const fs = scopeFrag(ctx.scope);
+  let cs;
+  if (filter.id) { const one = copilotGetJson(ctx, filter.id); if (!one) return { id: filter.id, found: false }; cs = [one]; }
+  else cs = db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`).all(ctx.org, ...fs.args)
+    .map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(c => c && !c.archived && c.status !== 'Declined');
+  let rows = [];
+  for (const c of cs) for (const o of (Array.isArray(c.obligations) ? c.obligations : [])) rows.push(copilotObligationRow(c, o, ctx));
+  if (filter.state) rows = rows.filter(r => r.state === filter.state || r.band === filter.state);
+  if (filter.whose) rows = rows.filter(r => r.whose === filter.whose);
+  const order = { overdue: 0, waiting: 1, thisMonth: 2, later: 3, done: 4 };
+  rows.sort((a, b) => (order[a.band] - order[b.band]) || String(a.due || '9999').localeCompare(String(b.due || '9999')));
+  const counts = rows.reduce((m, r) => { m[r.band] = (m[r.band] || 0) + 1; return m; }, {});
+  const shown = rows.slice(0, COPILOT_OB_CAP);
+  return { found: true, total: rows.length, shown: shown.length, truncated: rows.length > shown.length, byBand: counts, obligations: shown,
+    note: 'Read off the record: the state is by the due date, "waiting" is a step held behind another in a payment chain, "thisMonth"/"later" are by due date. Archived and declined contracts are left out. Nothing here was written.' };
+}
+function copilotHistory(ctx, id) {
+  const c = copilotGetJson(ctx, id);
+  if (!c) return { id, found: false };
+  const trail = Array.isArray(c.audit) ? c.audit : [];
+  const clip = (s, k) => { const t = String(s || ''); return t.length > k ? t.slice(0, k) + '…' : t; };
+  let redacted = 0;
+  const rows = trail.slice().reverse().filter(e => e && (e.at || e.action)).filter(e => {
+    /* THE MONEY WALL ON PROSE: a reader without can_view_values gets no line
+       that restates a value. Coarse on purpose — a line about money is dropped
+       whole and counted, never trimmed to a number-shaped hole. */
+    if (ctx.money) return true;
+    const t = String(e.detail || '') + ' ' + String(e.action || '');
+    if (/\b(value|amount|price|fee|worth|kes|usd|eur|gbp|sek|nok)\b/i.test(t)) { redacted++; return false; }
+    return true;
+  }).slice(0, COPILOT_HIST_CAP).map(e => ({ at: e.at || null, by: e.user || '', action: e.action || '', detail: clip(e.detail, 300) }));
+  return { id: c.id, name: c.name || c.id, found: true, total: trail.length, shown: rows.length, omitted: Math.max(0, trail.length - redacted - rows.length), redacted, events: rows,
+    note: 'The stored audit trail, newest first: who did what and when. "omitted" is the cap; "redacted" are lines about money withheld from a reader who may not see values.' };
+}
 /* ---- the workspace playbook, read where the server stands ----
    The playbook the org actually SAVED (Playbook editor → saveSettings →
    appSettings.playbook). The browser also carries a built-in default playbook
@@ -6315,16 +6431,22 @@ function copilotInsightsPanel(clientCtx, name) {
 
 /* Said on every tool that carries money, both hosts (js/ai.js mirrors it). */
 const COPILOT_MONEY_NOTE = 'MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated.';
+/* Phase 8: the two things a contracts team works on daily, and the two things
+   Copilot could not see. Both are READS of the stored record; both hosts. */
+const COPILOT_OBLIGATIONS_DESC = 'The obligations (promises, deliverables, payments) on one contract or across the whole book, read off the record: description, due date, state (open / overdue / done), band (overdue / waiting = held behind another step in a payment chain / thisMonth / later / done), whose (ours / theirs), the owner to chase, when it was completed or chased, and the amount where the reader may see values. Use for "what is overdue", "what do we owe", "what does X still have to deliver", "which payments are waiting", "what is due this month". Counts by band come back as "byBand"; the list is capped at 60 with "total" stated.';
+const COPILOT_HISTORY_DESC = 'The audit trail of one contract, newest first: who did what and when — filed, edited, shared, decided, signed, reviewed, re-filed. Use for "who changed this", "when was it sent", "what happened to X last week". Capped at 60 events with the total stated; lines about money are withheld from a reader who may not see values and counted as "redacted".';
 const COPILOT_TOOLS = [
-  { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet. Use when the user names a party or topic rather than an exact id.',
-    input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
+  { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
+    input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
-  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace by status, folder, expiry horizon, or minimum value. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals"). Returns at most 40 rows plus the TRUE total — when "truncated" is true, quote "total" as the count and say the row list was capped. ' + COPILOT_MONEY_NOTE,
+  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals", "everything with Naivas", "what is waiting on us", "signed this year"). "where" carries the full filter vocabulary — the same fourteen keys the contract graph uses. Returns at most 40 rows per call plus the TRUE total: when "truncated" is true, quote "total" as the count, and pass "offset" = "nextOffset" to read the next page rather than guessing what lies past the cap. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: {
-      status: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'Optional status filter.' },
+      where: GRAPH_WHERE_SCHEMA,
+      offset: { type: 'number', description: 'Row to start from (0-based); pass the previous call\'s "nextOffset" to page.' },
+      status: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'Optional status filter (the same as where.status).' },
       folder: { type: 'string', description: 'Optional value-stream folder id.' },
       archived: { type: 'boolean', description: 'Archived (shelved) contracts are left out by default, as every screen leaves them out; true includes them.' },
       expiringWithinDays: { type: 'number', description: 'Optional: only contracts expiring within this many days.' },
@@ -6337,6 +6459,12 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_counterparty', description: COPILOT_COUNTERPARTY_DESC,
     input_schema: { type: 'object', properties: { name: { type: 'string', description: 'The counterparty\'s name as it appears on the contracts.' } }, required: ['name'] } },
+  { name: 'get_obligations', description: COPILOT_OBLIGATIONS_DESC,
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Optional contract id — one contract\'s obligations; omit for the whole book.' },
+      state: { type: 'string', enum: ['overdue', 'waiting', 'thisMonth', 'later', 'open', 'done'], description: 'Optional: only this state/band.' },
+      whose: { type: 'string', enum: ['ours', 'theirs'], description: 'Optional: our duties or the counterparty\'s.' } } } },
+  { name: 'get_contract_history', description: COPILOT_HISTORY_DESC,
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -6358,7 +6486,9 @@ const COPILOT_TOOLS = [
 async function runCopilotTool(ctx, name, input, aux) {
   const a = input || {};
   try {
-    if (name === 'search_contracts') return { results: copilotSearch(ctx, a.query) };
+    if (name === 'search_contracts') return copilotSearch(ctx, a.query, a.limit);
+    if (name === 'get_obligations') return copilotObligations(ctx, a);
+    if (name === 'get_contract_history') return copilotHistory(ctx, a.id);
     if (name === 'get_contract') return copilotDetail(ctx, a.id);
     if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
     if (name === 'list_portfolio') return copilotList(ctx, a);
@@ -6507,6 +6637,7 @@ HOW TO WORK:
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
 - If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document. A truncated record is not a reason to refuse an edit: when the request itself quotes the passage to work on, that quoted passage is the authoritative text — draft from it, and note the truncation in your reasoning rather than asking for the document again.
 - QUESTIONS ABOUT A CHART ON INSIGHTS → PORTFOLIO — the workload runway, the renewal runway, money held back, promises still live, won and lost — are answered from get_insights_panel. Quote its figures rather than recomputing them from list_portfolio, and when the question is WHY a bar is big, name that bucket's drivers (the two or three contracts carrying it) and its "why" counts — a start date defaulted to the signature date, or work whose start and end fall in one month. Reading the total back to somebody who is looking at the chart is not an answer. Say what the panel excludes whenever its "excluded" block is not empty.
+- QUESTIONS ABOUT OBLIGATIONS, PROMISES, DELIVERABLES OR PAYMENTS DUE are answered from get_obligations (one contract, or the whole book, with "byBand" counts); QUESTIONS ABOUT WHO DID WHAT AND WHEN on a contract are answered from get_contract_history. Never infer either from the wording alone.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
 - Contract ids look like MK-103. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.

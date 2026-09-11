@@ -890,29 +890,15 @@ function graphCopilotCard(c){
    nothing in `where` narrows. */
 const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived'];
 function graphWhereIds(where){
-  if(!where||typeof where!=='object') return null;
-  const w={}; GRAPH_WHERE_KEYS.forEach(k=>{ const v=where[k]; if(v==null||v===''||(Array.isArray(v)&&!v.length)) return; w[k]=v; });
-  if(!Object.keys(w).length) return null;
+  /* THE PREDICATE IS SHARED (js/graphwhere.js, Copilot audit phase 4): the
+     chat's list_portfolio applies the same one on the server over its own
+     reading of the record. This host reads folder NAMES on its cards, so it
+     hands the id lookup in. */
+  const w=graphWhereNarrow(where, GRAPH_WHERE_KEYS);
+  if(!w) return null;
   const fold=s=>String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
-  const list=v=>(Array.isArray(v)?v:[v]).map(fold).filter(Boolean);
-  const hit=k=>{
-    if(w.status!=null && !list(w.status).includes(fold(k.status))) return false;
-    if(w.folder!=null){ const want=list(w.folder); const f=fold(k.folder); const id=fold((Object.values(FOLDERS).find(x=>fold(x.name)===f)||{}).id); if(!want.some(x=>x===f||x===id||f.includes(x))) return false; }
-    if(w.kind!=null && !list(w.kind).some(x=>fold(k.kind).includes(x))) return false;
-    if(w.counterparty!=null && !list(w.counterparty).some(x=>fold(k.counterparty).includes(x))) return false;
-    if(w.valueAbove!=null){ if(typeof k.value!=='number'||!(k.value>=Number(w.valueAbove))) return false; }
-    if(w.valueBelow!=null){ if(typeof k.value!=='number'||!(k.value<=Number(w.valueBelow))) return false; }
-    if(w.expiringWithinDays!=null){ if(!k.expiry) return false; const d=daysUntil(k.expiry); if(isNaN(d)||d<0||d>Number(w.expiringWithinDays)) return false; }
-    if(w.signedFrom!=null){ if(!k.signedAt||k.signedAt<String(w.signedFrom).slice(0,10)) return false; }
-    if(w.signedTo!=null){ if(!k.signedAt||k.signedAt>String(w.signedTo).slice(0,10)) return false; }
-    if(w.overdueObligations!=null){ if(!!w.overdueObligations!==(k.overdue>0)) return false; }
-    if(w.offStandard!=null){ if(!!w.offStandard!==(k.offStandard>0)) return false; }
-    if(w.notRead!=null){ if(!!w.notRead!==(k.read===false)) return false; }
-    if(w.move!=null){ const want=fold(w.move); const mv=want==='mine'||want==='you'||want==='us'?'you':want==='theirs'||want==='them'?'them':want; if(k.move!==mv) return false; }
-    if(w.archived!=null){ if(!!w.archived!==!!k.archived) return false; }
-    return true;
-  };
-  return (state.contracts||[]).filter(c=>hit(graphCopilotCard(c))).map(c=>c.id);
+  const reads={ daysUntil, folderIdOf:name=>{ const f=fold(name); return String((Object.values(FOLDERS).find(x=>fold(x.name)===f)||{}).id||''); } };
+  return (state.contracts||[]).filter(c=>graphWhereHit(graphCopilotCard(c), w, reads)).map(c=>c.id);
 }
 /* WHAT IS ON SCREEN TRAVELS TOO (ruling 6): the grouping in force, the lenses
    (label, action, count), the crowded quarters, the reader's language and the
