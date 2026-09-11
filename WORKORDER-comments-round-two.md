@@ -32,6 +32,25 @@ and each item lands with its nets and one plain-English summary.
 6. *"Image 5 should also be internal vs external."* (Image 5: the same pin
    with External lit; the same two labels.)
 
+### The second batch (same evening)
+
+7. *"Image 1, when you click add note, these cards should disappear."*
+   (Image 1: the pin — *Clause 4 · Independent Contractor*, the quoted words,
+   the room switch — stays above the box after Add note has posted.)
+8. *"Image 2, remove this area."* (Image 2: the three-line caption *Comment
+   on these words* at the pin's right, between the clause name and Unpin.)
+9. *"Another feature, when i simply want to comment, i do not need to click on
+   the pencil first. I can simply highlight a word and the drop down of ask
+   copilot appears along with comment."*
+10. *"The other new rule would be ask copilot simply allows you to ask a
+    question but not edit. To edit, there should be a third option saying Edit
+    with copilot which will then give the option to edit with copilot at which
+    point after you edit you can apply."*
+11. *"I also want to change another process. When you click the pencil, it
+    allows you to edit manually or with copilot but you can still edit with
+    copilot without having to click the pencil. You simply highlight what you
+    want and it gives you the 3 options and you can click edit with copilot."*
+
 ## WHAT EACH ONE LOOKS LIKE FROM HERE (to be MEASURED before a line moves)
 
 **1 — A selection across paragraphs is refused.** Two readings refuse it
@@ -86,10 +105,62 @@ the drawer, never for a door a person presses.* Sweep the other openers
 More, the queue tab, the clause panel's pencil) and make each answer the same
 question; say which ones already did.
 
+**7 — Add note spends the pin.** Today the pin is dropped only on Unpin, on a
+filing door's resolve, or when the drawer closes; a plain Add note under a
+highlight pin posts and leaves the pin standing. The change: a successful
+Add note (either room) calls `rlNotesUnpin` — the posted note now carries
+the words, so the pin has nothing left to say. The pin raised by the PENCIL
+already resolves on Add note (f302 (2)); this makes the highlight's pin do
+the same. The drawer then shows the new note in the list with the box
+cleared.
+
+**8 — The caption goes.** `ng_np_pin_words` (*Comment on these words*) is
+drawn between the clause name and Unpin on a highlight pin and wraps to three
+lines in the drawer's width. Remove it from `rlNpPinHtml`; the quoted words
+underneath say what the pin is. Both books keep the key inert. Refusal 2 in
+reverse: this is a caption coming OFF, said here rather than done on the way
+past.
+
+**9 — Comment without the pencil.** On the NEGOTIATION page's paper a
+highlight already offers Ask Copilot · Comment (`rlPaperSelOffer`, built
+today). Find out which screen the owner was on when it did not: the clause
+EDITOR offers the pair on its own canvas; the DOCUMENT tab offers Simplify ·
+Ask Copilot and was left alone by the 11 Sep ruling ("you cannot ask copilot
+or comment whilst in the document page"). If the offer failed on the
+negotiation page it is a defect (measure the silence cases: front matter, a
+drag that starts outside the clause, a selection across two clauses — item 1
+again). If the owner means the Document tab, that is a change to the ruling
+and needs their word.
+
+**10 and 11 — THREE OPTIONS ON A HIGHLIGHT, and the pencil is no longer the
+only way into Copilot's editing.** The offer becomes *Ask Copilot · Comment ·
+Edit with Copilot*, on the negotiation paper and in the editor:
+- *Ask Copilot* is a QUESTION about the words — the rail answers, the
+  passage is recorded on the answer card, and NOTHING offers Apply (no
+  softer/firmer chips that rewrite, no Replace). Today the Copilot path and
+  the edit path are one and the same (attach, ask, Apply into the box); this
+  splits them by the verb the reader pressed.
+- *Edit with Copilot* is what today's Ask Copilot does: opens the clause
+  editor with the words attached (`opts.passage` → `ceAttachWords`), typing
+  on, the rewrite chips drawn, Apply live. Reached from a highlight with no
+  pencil press — the pencil stays as the door that opens the editor on the
+  whole clause for manual or Copilot editing.
+- *Comment* is unchanged.
+Questions for the owner before building: (a) in *Ask Copilot* mode, may the
+reader still switch to editing from the rail (a button on the answer card,
+"Edit with this"), or must they re-highlight and choose the third option?
+(b) On the counterparty's page the offer stays Comment alone (they have no
+Copilot). (c) The rule for CLAUDE.md: *a highlight offers three verbs; the
+verb decides whether Copilot may touch the wording.* Refusal 5 (one door):
+Edit with Copilot is not a second door onto the editor — it is the pencil's
+door pressed with a passage in hand, through the same `rlOpenClauseEditor`.
+
 ## ORDER WHEN THE OWNER SAYS GO
 
-3/6 (two words), 5 (one door and a sweep), 4 (one rule, measured), 2 (find
-the cause first), 1 (needs the owner's ruling on Comment).
+3/6 (two words), 8 (one caption off), 7 (the pin spends on Add note), 5
+(one door and a sweep), 4 (one rule, measured), 2 (find the cause first),
+9 (find the screen first), 10/11 (the three verbs — needs the owner's answer
+to (a)), 1 (needs the owner's ruling on Comment across paragraphs).
 
 ## STILL WAITING FOR
 
