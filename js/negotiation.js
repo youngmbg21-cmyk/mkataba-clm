@@ -3113,8 +3113,12 @@ const negoNoteDelivered = m => !!(m && m.sentAt);
    STILL IS — an external note the channel never carried is a sentence nobody
    else has read, and refusing to let its writer correct it would be a rule
    protecting nothing. */
-function negoNoteIsMine(msg, user){
-  if (!msg || negoNoteDelivered(msg)) return false;
+/* Did this reader WRITE the note — id first, name second — whether or not it
+   has since been delivered. The drawer asks it to decide where Delete is
+   drawn (greyed with the reason once delivered); negoNoteIsMine is the wall
+   that also refuses a delivered one. */
+function negoNoteAuthoredBy(msg, user){
+  if (!msg) return false;
   if ((msg.side || 'owner') !== 'owner') return false;
   const u = user || (window.currentUser && window.currentUser()) || null;
   if (!u) return false;
@@ -3122,6 +3126,10 @@ function negoNoteIsMine(msg, user){
   const a = String(msg.who || '').trim().toLowerCase();
   const b = String(u.name || '').trim().toLowerCase();
   return !!a && a === b;
+}
+function negoNoteIsMine(msg, user){
+  if (!msg || negoNoteDelivered(msg)) return false;
+  return negoNoteAuthoredBy(msg, user);
 }
 /* The note this reader wrote on this change, or null. NEWEST wins, because the
    dialog asks one question — "is there a note here to change?" — and a reader
@@ -3172,10 +3180,17 @@ function negoEditNote(c, ch, msg, text){
     + ` — the contract is unchanged and nothing was sent`);
   return m;
 }
+/* ROUND FOUR (11 Sep 2026): the home may be null — the contract's own thread
+   (negoNoteHome) — and a ROOT WITH REPLIES UNDER IT IS REFUSED: the answers
+   would be orphaned; mark it done instead. The two older walls stay: not yet
+   delivered, and your own. */
 function negoDeleteNote(c, ch, msg){
-  const i = _negoNoteAt(ch, msg);
+  const home = ch || null;
+  const thread = negoNoteHome(c, home);
+  let i = _negoNoteAt({ thread }, msg);
+  if (i < 0 && msg){ const k = negoNoteKey(msg); i = thread.findIndex(x => negoNoteKey(x) === k); }
   if (i < 0) return false;
-  const m = ch.thread[i];
+  const m = thread[i];
   if (negoNoteDelivered(m)){
     if (window.toast) toast(i18t('ng_note_sent'), 'err');
     return false;
@@ -3184,9 +3199,14 @@ function negoDeleteNote(c, ch, msg){
     if (window.toast) toast(i18t('ng_note_not_yours'), 'err');
     return false;
   }
-  ch.thread.splice(i, 1);
+  const k = negoNoteKey(m);
+  if (k && thread.some(x => x && x !== m && String(x.replyTo || '') === k)){
+    if (window.toast) toast(i18t('ng_np_delete_replies'), 'warn');
+    return false;
+  }
+  thread.splice(i, 1);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `${m.visibility === 'shared' ? 'Note' : 'Internal note'} on #${ch.id} removed by ${m.who}`
+    `${m.visibility === 'shared' ? 'Note' : 'Internal note'} on ${home ? '#' + home.id : 'the contract'} removed by ${m.who}`
     + ` — the contract is unchanged and nothing was sent`);
   return true;
 }
@@ -4621,7 +4641,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
-  negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
+  negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

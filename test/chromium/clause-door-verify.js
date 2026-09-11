@@ -1474,8 +1474,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        31 Aug (M-1): there is no box on the paper to move the caret TO, so
        attaching never touches focus at all — the reader carries on typing
        where they were, and the sentence stays visible through the held mark. */
-    ck('16d5 …without taking the caret out of the clause',
-       strip.focus === 'ce-clausebody', `focus ${strip.focus}`);
+    /* THE FOURTH ANSWER (round four, 11 Sep 2026): the owner asked for the
+       caret IN the box after any verb — "You should not have to click into
+       them". The held mark still keeps the sentence visible on the paper. */
+    ck('16d5 …and the caret goes to the ask box (round four)',
+       strip.focus === 'ce-ask', `focus ${strip.focus}`);
   }
 
   /* THE SMOOTH SCROLL HAS TO SETTLE BEFORE ANY POINT IS MEASURED. #ce-doc is

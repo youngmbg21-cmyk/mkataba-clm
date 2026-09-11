@@ -1952,15 +1952,16 @@ function applyPanelLayout(){
      scrollable. THE SCRIM IS ALSO WHAT CLOSES THE PANEL ON AN OUTSIDE PRESS, so
      the notes face deliberately has no outside-press close either — the ✕ and
      Escape are its ways out, exactly as the clause panel's are. */
-  /* ---- REVERSED FOR ONE PAGE (Young, 11 Sep 2026, late): on the NEGOTIATION
-     page the notes drawer stands over a SLIGHT blur — the wording still
-     readable through it — and pressing the blurred page closes the drawer,
-     the alerts panel's own rule. Every other page keeps the 27 Aug ruling:
-     no shade, no outside-press close. The clause editor is not that page. */
-  const blur=show&&panelFace()==='notes'&&notesBlurs();
+  /* ---- THE BLUR CAME AND WENT IN ONE NIGHT (11 Sep 2026): round three put a
+     slight blur behind the drawer on the negotiation page at the owner's
+     word, and round four took it off at the owner's word ("remove the blurry
+     background please (reversal of what i asked before)"). The 27 Aug ruling
+     stands on every page again: no shade, no outside-press close; the ✕ and
+     Escape are the notes face's ways out. `notesBlurs` and `is-blur` are
+     GONE, not stubbed. */
   if(scrim&&scrim.classList){
-    scrim.classList.toggle('open',show&&(panelFace()!=='notes'||blur));
-    scrim.classList.toggle('is-blur',blur);
+    scrim.classList.toggle('open',show&&panelFace()!=='notes');
+    scrim.classList.remove('is-blur');
   }
   const btn=document.getElementById('cmd-panel');
   if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
@@ -1973,11 +1974,6 @@ function applyPanelLayout(){
      would be a trap the other three do not set. */
   if(show && !_panelTrap && typeof trapFocus==='function') _panelTrap=trapFocus(panel);
   else if(!show && _panelTrap){ try{ _panelTrap(); }catch(e){} _panelTrap=null; }
-}
-/* Does the notes drawer blur the page behind it here — the negotiation page
-   alone, and not while the clause editor covers it. */
-function notesBlurs(){
-  return state.view==='redline'&&!(typeof window.clauseEditorOpen==='function'&&clauseEditorOpen());
 }
 /* One value: one panel, two contents, never two layers. */
 let _panelTrap=null;

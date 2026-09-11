@@ -13310,6 +13310,8 @@ function rlNpSetRoom(r){ _rlNpRoom = r === 'external' ? 'external' : 'internal';
    under "Done (n)" at the foot of the list, unfolded per sitting. */
 let _rlNpPin = null;
 let _rlNpReplyTo = null;
+/* Under which note the reply box is drawn (round four: Reply on any note). */
+let _rlNpReplyUnder = null;
 let _rlNpDoneOpen = false;
 let _rlNpFocusKey = null;
 /* The thread a MARKER opened the drawer on — kept until the drawer goes, so
@@ -13331,7 +13333,8 @@ function rlNotesPin(pin){
     p.quote = negoNoteQuote ? negoNoteQuote(p.quote) : String(p.quote || '').replace(/\s+/g, ' ').trim().slice(0, window.NOTE_QUOTE_MAX || 400);
   }
   _rlNpPin = p;
-  _rlNpReplyTo = null;
+  if (p) p.fresh = true;   /* the next paint puts the caret in the box (round four, item 8) */
+  _rlNpReplyTo = null; _rlNpReplyUnder = null;
   if (prev && typeof prev.resolve === 'function') prev.resolve(null);
   if (p) rlNpSetRoom(p.room);
   return p;
@@ -13346,7 +13349,7 @@ function rlNotesUnpin(out){
 const rlNotesPinned = () => _rlNpPin;
 /* The shell tells us the drawer went: whatever was pinned is dropped and its
    waiter told nothing happened. */
-function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpOpenKey = null; }
+function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; }
 /* The pin, where it belongs to the panel being drawn: the contract's own
    drawer shows any pin on that contract; a change's panel shows only a pin on
    that change. */
@@ -13513,13 +13516,30 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
         : st === 'gone' ? `<em>${i18t('ng_np_clause_gone')}</em>` : ''}
     </div>` : '';
   const root = !!(ctx && ctx.root);
+  /* ---- REPLY ON ANY NOTE (round four, 11 Sep 2026: "you should be able to
+     reply on any comment not just the original one") ---- Every note the
+     reader may write under carries Reply; the box opens under THAT note and
+     the answer joins the thread under its ROOT (`data-rl-np-reply` is the
+     root's key, `-under` is where the box draws) — a thread is FLAT, as Word's
+     and Google Docs' are, so nothing nests and the Word export's threading is
+     untouched. Done stays on the root: it settles the thread, not one line.
+     ---- DELETE BESIDE DONE (the same night: "you should have the option to
+     delete a note") ---- Drawn on the reader's OWN notes only; greyed with
+     the reason where the model would refuse (delivered to the other side; a
+     root with replies under it), so the press is never dead. */
+  const rootKey = (ctx && ctx.rootKey) || key;
+  const authored = !!(window.negoNoteAuthoredBy && negoNoteAuthoredBy(m));
+  const delivered = !!(window.negoNoteDelivered && negoNoteDelivered(m));
+  const hasReplies = !!(root && ctx && ctx.replyCount);
+  const delWhy = delivered ? i18t('ng_note_sent') : hasReplies ? i18t('ng_np_delete_replies') : '';
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
-      ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
+      ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
       ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${
         i18t(m.done ? 'ng_np_reopen' : 'ng_np_done')}</button>` : ''}
+      ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}"` : ''}>${i18t('ng_np_delete')}</button>` : ''}
       ${(root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''}
     </div>` : '';
-  const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml(m, ctx) : '';
+  const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
   return `<div class="rl-np-note${theirs ? ' is-them' : ''}${(ctx && !root) ? ' is-reply' : ''}" data-rl-np-key="${_nea(key)}">
     <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhenFull(m.at))}</span></div>
     ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
@@ -13551,9 +13571,10 @@ function rlNpThreadHtml(c, ch, th, room, side, other, opts = {}){
   const mayWrite = notesMayWrite(c, opts);
   const key = negoNoteKey(th.root);
   const ctx = { c, ch, acts: true, mayWrite, ext: room === 'external' };
+  const under = k => _rlNpReplyTo === key && (_rlNpReplyUnder || key) === k;
   return `<div class="rl-np-thread${th.done ? ' is-done' : ''}" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
-    ${rlNpNoteHtml(th.root, room, side, other, { ...ctx, root: true, replyOpen: _rlNpReplyTo === key })}
-    ${th.replies.map(r => rlNpNoteHtml(r, room, side, other, { ...ctx, root: false })).join('')}
+    ${rlNpNoteHtml(th.root, room, side, other, { ...ctx, root: true, rootKey: key, replyRoot: th.root, replyCount: th.replies.length, replyOpen: under(key) })}
+    ${th.replies.map(r => rlNpNoteHtml(r, room, side, other, { ...ctx, root: false, rootKey: key, replyRoot: th.root, replyOpen: under(negoNoteKey(r)) })).join('')}
   </div>`;
 }
 /* The list: open threads first, then the Done fold. An empty room draws the
@@ -13996,6 +14017,7 @@ function rlChatPanelPaint(host, c, opts = {}){
   }));
   rlNpWireActs(host, c, null, opts, () => rlChatPanelPaint(host, c, opts));
   rlNpShowFocused(host);
+  rlNpFocusFreshPin(host);
   /* ---- READING CHAT IS READING IT, AND THE MARK GOES ---- (2 Sep 2026)
      AFTER the rows are on screen, never before: the panel is built from the
      state the reader is about to see, and marking first would clear the very
@@ -14174,7 +14196,7 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     rlNotesUnpin('added');
     if (held) second = { room: other, text: held };
   }
-  if (reply) _rlNpReplyTo = null;
+  if (reply){ _rlNpReplyTo = null; _rlNpReplyUnder = null; }
   /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
      — there is no thread of its own for anybody to be behind on. */
   if (home) negoMarkThreadSeen(negoSeenScope(c, opts), home.id);
@@ -14213,6 +14235,8 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
   /* THE OTHER ROOM'S DRAFT, same words, same change, its own room and its own
      confirmation — and it repaints the panel itself, so this half returns. */
   if (second) return rlNotesSend(host, c, ch, opts, second.room, { box: { value: second.text }, pin });
+  /* THE PAPER'S MARKS FOLLOW IN THE SAME BREATH (round four). */
+  rlRepaintNoteMarks(c, opts);
   /* EACH SURFACE REPAINTS ITSELF. One send, two panels: the per-change panel
      redraws that change's thread and Chat redraws the whole contract's, and
      which one this is is exactly whether a change was named. */
@@ -14239,6 +14263,7 @@ function rlWireNotesPanel(host, c, ch, opts = {}){
   if (box && typeof rlNpTagWire === 'function') rlNpTagWire(host, box);
   rlNpWireActs(host, c, ch, opts, () => rlNotesPanelPaint(host, c, ch, opts));
   rlNpShowFocused(host);
+  rlNpFocusFreshPin(host);
   /* THE FOLD IS NOT WIRED HERE. One delegated listener on document has owned
      [data-rl-note-more] since the card carried notes, and it owns this one too —
      the markup is the same three attributes. A copy here fired BESIDE it and
@@ -14265,7 +14290,10 @@ const _rlNpCssKey = k => (typeof CSS !== 'undefined' && CSS && typeof CSS.escape
 function rlNpWireActs(host, c, ch, opts = {}, repaint){
   if (!host || !host.querySelectorAll || !c) return;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const again = () => { try { if (typeof repaint === 'function') repaint(); } catch (e){} };
+  const again = () => {
+    try { rlRepaintNoteMarks(c, opts); } catch (e){}
+    try { if (typeof repaint === 'function') repaint(); } catch (e){}
+  };
   const homeOf = el => {
     const t = el && el.closest ? el.closest('[data-rl-np-home]') : null;
     const id = t ? t.getAttribute('data-rl-np-home') : '';
@@ -14276,14 +14304,37 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
   host.querySelectorAll('[data-rl-np-reply]').forEach(b => b.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const key = b.getAttribute('data-rl-np-reply');
-    _rlNpReplyTo = (_rlNpReplyTo === key) ? null : key;
+    const under = b.getAttribute('data-rl-np-reply-under') || key;
+    const same = _rlNpReplyTo === key && (_rlNpReplyUnder || key) === under;
+    _rlNpReplyTo = same ? null : key;
+    _rlNpReplyUnder = same ? null : under;
     again();
     const bx = host.querySelector(`[data-rl-np-rin="${_rlNpCssKey(key)}"]`);
     if (bx && bx.focus) bx.focus();
   }));
   host.querySelectorAll('[data-rl-np-reply-cancel]').forEach(b => b.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
-    _rlNpReplyTo = null; again();
+    _rlNpReplyTo = null; _rlNpReplyUnder = null; again();
+  }));
+  /* DELETE: asked once, naming the words; the model is the wall (its own
+     note, not yet delivered, no replies under it); nothing else changes. */
+  host.querySelectorAll('[data-rl-np-delete]').forEach(b => b.addEventListener('click', async ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (b.disabled) return;
+    const key = b.getAttribute('data-rl-np-delete');
+    const home = homeOf(b);
+    const m = noteOf(home, key);
+    if (!m || !window.negoDeleteNote) return;
+    const words = String(m.text || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (window.confirmDialog){
+      const ok = await confirmDialog({ title: i18t('ng_np_delete_confirm_title'),
+        message: i18t('ng_np_delete_confirm_msg', { words }), confirmLabel: i18t('ng_np_delete'), danger: true });
+      if (!ok) return;
+    }
+    if (!negoDeleteNote(c, home, m)) return;
+    if (opts.persist !== false && window.persist) persist(c);
+    if (window.toast) toast(i18t('ng_np_deleted'), 'ok');
+    again();
   }));
   const sendReply = async b => {
     const key = b.getAttribute('data-rl-np-reply-send') || b.getAttribute('data-rl-np-rin');
@@ -14373,6 +14424,22 @@ async function rlNpSetDone(c, home, key, on, opts = {}, side = 'owner'){
   }
   if (local && opts.persist !== false && window.persist) persist(c);
   return true;
+}
+/* ---- THE VERB PUTS THE CARET IN THE BOX (round four, 11 Sep 2026: "when
+   you click on any of the option on the drop down, the cursor should take you
+   to the entry field ... You should not have to click into them") ----
+   Comment pins the words and opens the drawer; on the first paint under a
+   fresh pin the caret goes into the note box. After the shell's own focus
+   trap has had its say (a tick later), so the box wins. Consumed once. */
+function rlNpFocusFreshPin(host){
+  const p = _rlNpPin;
+  if (!p || !p.fresh || !host || !host.querySelector) return;
+  p.fresh = false;
+  const box = host.querySelector('.rl-np-in');
+  if (!box || !box.focus) return;
+  const go = () => { try { box.focus({ preventScroll: true }); } catch (e){ try { box.focus(); } catch (_){} } };
+  go();
+  setTimeout(go, 0);
 }
 /* A marker on the paper was pressed: the drawer lands on that note. Consumed
    on the next paint of whichever panel holds it. */
@@ -14659,6 +14726,40 @@ function rlPaintNoteMarks(root, c, opts = {}){
   });
   return n;
 }
+/* ---- THE MARKS FOLLOW THE RECORD IN THE SAME BREATH (round four, 11 Sep
+   2026: "there is a delay before it appears or you have to refresh the page.
+   It should appear immediately") ----
+   Posting, answering, settling or removing a note repaints the DRAWER; the
+   paper beside it used to catch up on its next paint for some other reason.
+   This repaints the marks on every canvas that is mounted — the negotiation
+   page's, the clause editor's, their page's — off the record as it now is.
+   Every `.rl-doc` on the page is a canvas; its parent is the root the painter
+   asks (the same root negoAfterPaint hands it). */
+function rlRepaintNoteMarks(c, opts = {}){
+  if (!c || typeof document === 'undefined') return 0;
+  const roots = new Set();
+  document.querySelectorAll('.rl-doc').forEach(d => { if (d.parentElement) roots.add(d.parentElement); });
+  let n = 0;
+  roots.forEach(root => { try { n += rlPaintNoteMarks(root, c, opts) || 0; } catch (e){} });
+  return n;
+}
+/* One note by its key, wherever it lives — the contract's own thread or any
+   change's — with the change it was found on (null for the contract). */
+function rlNpNoteByKey(c, key, opts = {}, side = 'owner'){
+  if (!c || !key) return null;
+  const k = String(key);
+  const hit = (home, list) => { const m = list.find(x => negoNoteKey(x) === k); return m ? { m, home } : null; };
+  try {
+    let r = hit(null, negoRoomNotes(c, null, null, opts, side));
+    if (r) return r;
+    for (const ch of (Array.isArray(c.changes) ? c.changes : [])){
+      if (!ch || !ch.id) continue;
+      r = hit(ch, negoRoomNotes(c, ch, null, opts, side));
+      if (r) return r;
+    }
+  } catch (e){ return null; }
+  return null;
+}
 /* Find the quote's words inside an element and wrap each text-node piece of
    them in a span. Whitespace-tolerant, case-insensitive, first occurrence.
    Controls inside the clause (the pencil, a marker) are not searched. */
@@ -14728,6 +14829,17 @@ if (typeof document !== 'undefined' && !document._rlNoteMarksWired){
       return;
     }
     _rlNpFocusKey = key; _rlNpOpenKey = key;
+    /* ---- THE PRESS LANDS ON THE NOTE, IN ITS OWN ROOM (round four, 11 Sep
+       2026: "when i click on a number, it should take me to the note wherever
+       it is") ---- The drawer opens on the room it last showed; a note in the
+       OTHER room was listed nowhere, so the focus key found nothing and the
+       reader was left on the wrong tab. The room is read off the note before
+       the drawer paints. */
+    try {
+      const c0 = (window.getContract && getContract(cid)) || ((window.state && state.contracts) || []).find(x => x && String(x.id) === String(cid)) || null;
+      const found = c0 ? rlNpNoteByKey(c0, key) : null;
+      if (found && found.m) rlNpSetRoom(negoNoteRoom(found.m));
+    } catch (e){}
     if (typeof window.openNotesPanel === 'function') openNotesPanel(cid, home, { force: true });
   });
 }
@@ -17240,7 +17352,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,
-  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlAskCopilotPanel, rlPaintNoteMarks, rlWrapWords, negoNoteMeta,
+  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,

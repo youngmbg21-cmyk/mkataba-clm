@@ -1897,8 +1897,11 @@ const dismissNote = async pg => {
      when the reader was not already typing. With the box in the rail there is
      nothing on the paper to move the caret to, so attaching never touches focus
      at all — which is the same promise with the condition gone. */
-  ck('18c attaching NEVER takes the caret — the reader stays where they were',
-     scope.focused === false, scope.focused ? 'the ask box stole focus' : 'focus not taken');
+  /* REVERSED IN PLACE 11 Sep 2026 (round four, the owner: "the cursor should
+     take you to the entry field ... You should not have to click into them"):
+     the verb PUTS the caret in the ask box; the held mark keeps the sentence. */
+  ck('18c the verb puts the caret in the ask box (round four)',
+     scope.focused === true, scope.focused ? 'caret in the ask box' : 'focus not taken');
   ck('18d the ask box says what it is for — a narrowed control states its narrowing',
      /passage|stycket/i.test(scope.ph || ''), `"${(scope.ph || '').slice(0, 46)}"`);
   ck('18e Copilot is one press away — the three rewrite questions are the chips now',
@@ -2446,13 +2449,18 @@ const dismissNote = async pg => {
      took the caret and the selection necessarily moved into the box; with the
      box in the rail nothing moves the caret, so the browser's own selection
      stands again and this is once more the honest reading. */
-  ck('21d …the selection survived the gesture, which is what the rail reads',
-     afterDrag.selected === true, `selected ${afterDrag.selected}`);
+  /* RE-POINTED 11 Sep 2026 (round four): the caret goes to the ask box, so
+     the browser's selection is let go; the HELD pieces are what the rail
+     reads (ceHeldPassage) — pinned in the round-two file as D3/D5. */
+  ck('21d …the held passage is what the rail reads once the caret has moved (round four)',
+     afterDrag.focus === 'ce-ask', `focus ${afterDrag.focus}`);
   ck('21e …the reader is still typing in the clause, not switched out of it',
      afterDrag.typing === true, `typing ${afterDrag.typing}`);
   /* REVERSED IN PLACE TWICE; see clause-door 16d5 for the three answers. */
-  ck('21f ATTACHING NEVER TAKES THE CARET — the reader stays in the clause',
-     afterDrag.focus === 'ce-clausebody', `focus ${afterDrag.focus}`);
+  /* REVERSED IN PLACE A THIRD TIME (round four, 11 Sep 2026): the verb takes
+     the caret to the ask box, by the owner's word. */
+  ck('21f THE VERB TAKES THE CARET TO THE ASK BOX (round four)',
+     afterDrag.focus === 'ce-ask', `focus ${afterDrag.focus}`);
   /* KEPT FROM 30 Aug: the mark is what pays Option A's one named cost, so it
      matters more now than it did when the strip drew beside the sentence. */
   ck('21f2 and the sentence stays marked in the contract while the rail holds it',

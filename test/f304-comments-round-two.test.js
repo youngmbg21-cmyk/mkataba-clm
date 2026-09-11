@@ -209,8 +209,8 @@ describe('f304 (3) — the press that opens the drawer closes it', () => {
     assert.match(APP, /closeContextPanel,notesPanelShowing,/, 'published');
     assert.match(VIEW, /if \(_rlNpOpenKey === key && typeof window\.notesPanelShowing === 'function'/,
       'the marker asks before it presses');
-    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpOpenKey = null; \}/,
-      'and the key is dropped with the drawer');
+    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; \}/,
+      'and the key is dropped with the drawer (round four: the reply-under key too)');
     assert.match(PORTAL, /if\(open&&String\(_ptNotesKey\|\|''\)===String\(key\|\|''\)\)\{ portalNotesClose\(\); return false; \}/,
       'their aside closes on the press that opened it');
     /* The card's row toggles (f303 pins the absence of `force` there); the
@@ -315,7 +315,10 @@ describe('f304 (5) — a selection across two sub-paragraphs is one passage', ()
     const box = await openEditor(p);
     selectAcross(p, box);
     p.win.ceAttachPassage(p.win.ceSelection(), 'ask');
-    const passage = p.win.ceSelection();
+    /* RE-POINTED (round four): the verb puts the caret in the ask box, so the
+       live selection is gone; the HELD passage is the record. */
+    const passage = p.win.ceHeldPassage();
+    assert.ok(passage, 'the passage is held');
     assert.ok(p.win.document.querySelector('#ce-scope .ce-scope.is-asking'), 'asking first');
     const ok = p.win.ceEditWith({ who: 'ai', asking: true, passage, held: 'liable for consequential loss.\nEach side keeps its own' });
     assert.equal(ok, true);
@@ -414,12 +417,13 @@ describe('f304 (8) — round three: the filed pin quotes the change, equal halve
     assert.equal((CE.match(/_cet\('ce_step_passage'\), \{ keepView, repaint: true \}/g) || []).length, 2, 'both branches pass it through');
   });
 
-  test('the notes drawer blurs the negotiation page only, slightly, and the blurred page is a door', () => {
-    assert.match(APP, /function notesBlurs\(\)\{\n  return state\.view==='redline'&&!\(typeof window\.clauseEditorOpen==='function'&&clauseEditorOpen\(\)\);\n\}/);
-    assert.match(APP, /scrim\.classList\.toggle\('open',show&&\(panelFace\(\)!=='notes'\|\|blur\)\);/);
-    assert.match(APP, /scrim\.classList\.toggle\('is-blur',blur\);/);
-    assert.match(INDEX, /#panel-scrim\.is-blur\{background:transparent;backdrop-filter:blur\(1\.5px\);/);
-    assert.match(APP, /getElementById\('panel-scrim'\)\?\.addEventListener\('click',closeContextPanel\)/, 'pressing the scrim closes the drawer');
+  test('REVERSED IN PLACE (round four, the same night): the blur is gone and the 27 Aug ruling stands on every page', () => {
+    /* Round three put a slight blur behind the drawer on the negotiation page;
+       the owner asked for it off within the hour. Gone, not stubbed. */
+    assert.ok(!/function notesBlurs\(/.test(APP), 'notesBlurs is gone');
+    assert.ok(!/is-blur/.test(INDEX), 'no blur rule in the sheet');
+    assert.match(APP, /scrim\.classList\.toggle\('open',show&&panelFace\(\)!=='notes'\);/, 'the notes face draws no scrim');
+    assert.match(APP, /scrim\.classList\.remove\('is-blur'\);/, 'and takes the class off a page that still carries it');
   });
 });
 
@@ -501,5 +505,118 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     assert.ok(now === p.cl6.clauseId || now === p.cl7.clauseId);
     assert.match(CE, /if \(!read\.why && ceOfferOnPaper\(\)\) return;/, 'the mouse-up asks the paper reading after the box');
     p.win.rlCloseClauseEditor();
+  });
+});
+
+
+/* ============================================================
+   10 — ROUND FOUR (Young, 11 Sep 2026, late night; WORKORDER-comments-round-four.md)
+   ============================================================ */
+describe('f304 (10) — round four: reply on any note, Delete beside Done, marks at once, the marker lands, the cut, the caret', () => {
+  test('REPLY ON ANY NOTE: every note draws Reply carrying the ROOT key; the box opens under the note pressed; the answer joins the root', async () => {
+    const p = await bench();
+    const root = p.win.negoPostComment(p.c, p.ch.id, 'root note', { side: 'owner' });
+    const reply = p.win.negoPostComment(p.c, p.ch.id, 'first answer', { side: 'owner', replyTo: p.win.negoNoteKey(root) });
+    p.win.openNotesPanel(p.c.id, p.ch.id, { force: true });
+    await tick();
+    const rk = p.win.negoNoteKey(root), ak = p.win.negoNoteKey(reply);
+    const onReply = p.host.querySelector(`.rl-np-note[data-rl-np-key="${ak}"] [data-rl-np-reply]`);
+    assert.ok(onReply, 'the reply row carries Reply');
+    assert.equal(onReply.getAttribute('data-rl-np-reply'), rk, 'pointing at the root');
+    assert.equal(onReply.getAttribute('data-rl-np-reply-under'), ak, 'and drawn under itself');
+    onReply.click();
+    await tick();
+    const bx = p.host.querySelector(`.rl-np-note[data-rl-np-key="${ak}"] [data-rl-np-rin]`);
+    assert.ok(bx, 'the reply box opens under the reply, not under the root');
+    assert.equal(p.host.querySelector(`.rl-np-note[data-rl-np-key="${rk}"] > .rl-np-rbox`), null);
+    bx.value = 'second answer';
+    p.host.querySelector(`[data-rl-np-reply-send="${rk}"]`).click();
+    await tick(); await tick();
+    const last = p.ch.thread[p.ch.thread.length - 1];
+    assert.equal(last.text, 'second answer');
+    assert.equal(last.replyTo, rk, 'threaded flat under the root');
+    const th = p.win.negoNoteThreads(p.ch.thread).find(t => p.win.negoNoteKey(t.root) === rk);
+    assert.equal(th.replies.length, 2, 'one root, two replies, nothing nested');
+  });
+
+  test('DELETE: drawn on your own notes only; the model refuses a delivered note and a root with replies; a contract-thread note deletes too', async () => {
+    const p = await bench();
+    const mine = p.win.negoPostComment(p.c, null, 'my contract note', { side: 'owner' });
+    const withReplies = p.win.negoPostComment(p.c, p.ch.id, 'a root', { side: 'owner' });
+    p.win.negoPostComment(p.c, p.ch.id, 'an answer', { side: 'owner', replyTo: p.win.negoNoteKey(withReplies) });
+    const sent = p.win.negoPostComment(p.c, p.ch.id, 'already sent', { side: 'owner', visibility: 'shared' });
+    sent.sentAt = '2026-09-11T20:00:00.000Z';
+    const theirs = p.win.negoPostComment(p.c, p.ch.id, 'their note', { side: 'counterparty', visibility: 'shared', author: 'Them' });
+    assert.equal(p.win.negoDeleteNote(p.c, p.ch, withReplies), false, 'a root with replies stays');
+    assert.equal(p.win.negoDeleteNote(p.c, p.ch, sent), false, 'a delivered note stays');
+    assert.equal(p.win.negoDeleteNote(p.c, p.ch, theirs), false, 'somebody else\'s stays');
+    assert.equal(p.win.negoDeleteNote(p.c, null, mine), true, 'the contract\'s own thread is a home too');
+    assert.ok(!(p.c.thread || []).includes(mine));
+    p.win.openNotesPanel(p.c.id, p.ch.id, { force: true });
+    await tick();
+    const rk = p.win.negoNoteKey(withReplies), sk = p.win.negoNoteKey(sent), tk = p.win.negoNoteKey(theirs);
+    const del = k => p.host.querySelector(`.rl-np-note[data-rl-np-key="${k}"] [data-rl-np-delete]`);
+    assert.ok(del(rk) && del(rk).disabled && /replies|svar/i.test(del(rk).title), 'greyed with the reason on a root with replies');
+    p.win.rlNpSetRoom('external');
+    p.win.openNotesPanel(p.c.id, p.ch.id, { force: true });
+    await tick();
+    assert.ok(del(sk) && del(sk).disabled && del(sk).title.length > 5, 'greyed with the reason once delivered');
+    assert.equal(del(tk), null, 'not drawn on somebody else\'s note');
+    assert.match(VIEW, /confirmDialog\(\{ title: i18t\('ng_np_delete_confirm_title'\)/, 'asked once, naming the words');
+  });
+
+  test('THE MARKS FOLLOW THE RECORD IN THE SAME BREATH: rlRepaintNoteMarks paints every mounted canvas and runs at the post and at every act', () => {
+    assert.match(VIEW, /function rlRepaintNoteMarks\(c, opts = \{\}\)\{[\s\S]{0,600}?querySelectorAll\('\.rl-doc'\)/);
+    assert.match(VIEW, /rlRepaintNoteMarks\(c, opts\);\n  \/\* EACH SURFACE REPAINTS ITSELF/, 'at the post, before the panel');
+    assert.match(VIEW, /const again = \(\) => \{\n    try \{ rlRepaintNoteMarks\(c, opts\); \}/, 'and on Reply, Done, Delete');
+  });
+
+  test('THE MARKER LANDS IN THE NOTE\'S OWN ROOM: the press reads the room off the note before the drawer paints', async () => {
+    const p = await bench();
+    const ext = p.win.negoPostComment(p.c, null, 'external words', { side: 'owner', visibility: 'shared',
+      anchor: { clauseId: p.cl7.clauseId, quote: 'indirect loss' } });
+    p.win.rlNpSetRoom('internal');
+    const found = p.win.rlNpNoteByKey(p.c, p.win.negoNoteKey(ext));
+    assert.ok(found && found.m === ext && found.home === null, 'found on the contract\'s own thread');
+    assert.match(VIEW, /const found = c0 \? rlNpNoteByKey\(c0, key\) : null;\n\s+if \(found && found\.m\) rlNpSetRoom\(negoNoteRoom\(found\.m\)\);/);
+  });
+
+  test('SUGGEST DELETING a whole line: the line goes and the deletion files; only an empty clause is refused', async () => {
+    const p = await bench();
+    const box = await openEditor(p);
+    const ps = box.querySelectorAll('p');
+    assert.equal(ps.length, 2);
+    const t = ps[1].firstChild;
+    const r = p.win.document.createRange(); r.setStart(t, 0); r.setEnd(t, t.data.length);
+    const s = p.win.getSelection(); s.removeAllRanges(); s.addRange(r);
+    p.win.ceAttachPassage(p.win.ceSelection(), 'edit');
+    const before = (p.c.changes || []).length;
+    const n0 = p.win.ceLines().length;
+    assert.equal(p.win.ceCutPassage(), true, 'the whole line is cut');
+    await tick(); await tick();
+    assert.equal(p.win.ceLines().length, n0 - 1, 'one line fewer');
+    assert.equal((p.c.changes || []).length, before + 1, 'filed as a change');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('THE VERB PUTS THE CARET IN THE BOX: Ask/Edit → the ask box; Comment → the note box', async () => {
+    const p = await bench();
+    const box = await openEditor(p);
+    selectAcross(p, box);
+    p.win.ceAttachPassage(p.win.ceSelection(), 'ask');
+    assert.equal(p.win.document.activeElement && p.win.document.activeElement.id, 'ce-ask', 'the caret is in the ask box');
+    p.win.rlCloseClauseEditor();
+    p.win.rlNoteFromSelection(p.c, { clauseId: p.cl7.clauseId, quote: 'indirect loss' }, { side: 'owner' });
+    await tick();
+    const nb = p.host.querySelector('.rl-np-in');
+    assert.ok(nb, 'the note box is drawn under the pin');
+    assert.equal(p.win.document.activeElement, nb, 'and the caret is in it');
+    assert.match(CE, /\n  ceFocusAsk\(\);\n\}\nfunction ceFocusAsk\(\)\{/, 'one focus, at the end of the one attach');
+  });
+
+  test('THE NOTE COMES AT SAVE, and the control says so; a Copilot card\'s Apply files nothing', () => {
+    assert.match(CE, /else if \(b === save\) b\.setAttribute\('title', _cet\('ce_save_opens_note'\)\);/);
+    assert.match(CE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);/);
+    assert.ok(!/ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\s*ceFile\(/.test(CE), 'Apply is not a second door onto the filing');
   });
 });

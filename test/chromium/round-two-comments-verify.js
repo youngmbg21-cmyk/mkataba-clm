@@ -151,15 +151,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const held = document.querySelectorAll('#ce-clausebody .ce-held').length;
     const cut = !!document.querySelector('#ce-scope .ce-scope .cut');
     const chips = [...document.querySelectorAll('#ce-chips button')].map(b => b.textContent);
-    const sel = window.getSelection(); const selected = !!(sel && !sel.isCollapsed && String(sel.toString()).length > 20);
+    const active = document.activeElement && document.activeElement.id;
     const lines0 = ceLines().slice();
-    const s0 = ceSelection();
+    const s0 = ceHeldPassage();
     const ok = s0 ? ceReplacePassage(s0, s0.text.replace('sixty (60)', 'ninety (90)')) : 'no passage';
     await new Promise(r => setTimeout(r, 300));
-    return { held, cut, chips, selected, ok, lines0, lines1: ceLines() };
+    return { held, cut, chips, active, ok, lines0, lines1: ceLines() };
   });
   ck('D3 Edit with Copilot holds a piece in each sub-paragraph, offers the cut and the rewrite chips', d2.held === 2 && d2.cut && d2.chips.length === 3, JSON.stringify({ held: d2.held, cut: d2.cut, chips: d2.chips }));
-  ck('D4 the browser’s selection survives the mark', d2.selected, String(d2.selected));
+  /* RE-POINTED (round four, 11 Sep 2026): the verb puts the caret in the ask box,
+     so the live selection is let go; the held pieces are what the rail keeps. */
+  ck('D4 the verb puts the caret in the ask box (round four)', d2.active === 'ce-ask', String(d2.active));
   ck('D5 the one replacement splices the run and keeps the break: two lines in, two lines out', d2.ok === true && d2.lines1.length === d2.lines0.length && /ninety \(90\)/.test(d2.lines1[0]) && d2.lines1[1] === d2.lines0[1],
      JSON.stringify(d2.lines1));
 
@@ -348,7 +350,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const h4 = await p.evaluate(async () => {
     const box = document.querySelector('#ce-clausebody'); if (!box) return null;
     const typingBefore = ceIsTyping();
-    const s0 = ceSelection(); if (!s0) return { noSel: true, typingBefore };
+    const s0 = ceHeldPassage(); if (!s0) return { noSel: true, typingBefore };
     const ok = ceReplacePassage(s0, s0.text.replace(/\b(\w+)\b/, 'REPLACED'), { keepView: false });
     await new Promise(r => setTimeout(r, 300));
     return { typingBefore, ok, typingAfter: ceIsTyping(), marks: !!document.querySelector('#clause-editor .rl-clause .nego-ins, #clause-editor .rl-clause ins, #clause-editor .redline-page .nego-ins') };
@@ -359,17 +361,176 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
   await pause(200);
 
-  /* H5 · the blur is a SLIGHT one with no shade — measured as the sheet's own
-     computed rule (the harness has no app.js, so the shell's door is a source
-     claim in f304). */
+  /* H5 · REVERSED (round four, the same night): the blur is gone — the sheet
+     carries no rule for it, measured as a computed style. */
   const h5 = await p.evaluate(() => {
     const d = document.createElement('div'); d.id = 'panel-scrim'; d.className = 'is-blur'; document.body.appendChild(d);
     const cs = getComputedStyle(d);
-    const out = { bg: cs.backgroundColor, bf: cs.backdropFilter || cs.webkitBackdropFilter };
+    const out = { bf: cs.backdropFilter || cs.webkitBackdropFilter };
     d.remove(); return out;
   });
-  const blurPx = h5 && /blur\((\d+(?:\.\d+)?)px\)/.exec(h5.bf || '');
-  ck('H5 the negotiation page’s scrim is a slight blur (under 3px) and transparent', blurPx && Number(blurPx[1]) > 0 && Number(blurPx[1]) < 3 && /rgba\(0, 0, 0, 0\)|transparent/.test(h5.bg), JSON.stringify(h5));
+  ck('H5 no blur rule survives in the sheet (round four reversal)', !h5 || !/blur\(/.test(h5.bf || ''), JSON.stringify(h5));
+
+  /* ---- I · ROUND FOUR (Young, 11 Sep 2026, late night) ---- */
+  await p.evaluate(() => { document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); window.getSelection().removeAllRanges(); closeContextPanel(); const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
+  await p.evaluate(async () => { window.confirmDialog = async () => true; });
+
+  /* I1 · a comment from a real drag: the caret lands in the note box, and the
+     marker is on the paper the moment Add note is pressed. */
+  await p.evaluate(() => { const c = window.CONTRACT; const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('8.2') === 0); rlOpenClauseEditor(c, cl.clauseId, { typing: true }); });
+  await pause(500);
+  await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + cl.clauseId + '"]');
+    const pane = sec && (sec.closest('.nego-scroll') || sec.closest('#ce-doc'));
+    if (pane){ const pr0 = pane.getBoundingClientRect(), sr0 = sec.getBoundingClientRect(); pane.scrollTop += (sr0.top - pr0.top - 60); }
+  });
+  await pause(700);
+  const i1g = await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + cl.clauseId + '"]');
+    const body = sec && sec.querySelector('p, li'); if (!body) return null;
+    const w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT); let tn = null;
+    while ((tn = w.nextNode())) if (tn.data.trim().length > 30 && !tn.parentElement.closest('.rl-marker, button')) break;
+    if (!tn) return null;
+    const r = document.createRange(); r.setStart(tn, 0); r.setEnd(tn, Math.min(30, tn.data.length));
+    const rr = r.getBoundingClientRect(); const r0 = document.createRange(); r0.setStart(tn, 0); r0.setEnd(tn, 1); const a0 = r0.getBoundingClientRect();
+    return { id: cl.clauseId, a: [a0.left + 1, a0.top + a0.height / 2], b: [rr.right - 2, rr.bottom - 3], marks: document.querySelectorAll('#ce-doc .rl-note-mk').length };
+  });
+  let i1 = null;
+  if (i1g){
+    await p.mouse.move(i1g.a[0], i1g.a[1]); await p.mouse.down(); await p.mouse.move(i1g.b[0], i1g.b[1], { steps: 8 }); await p.mouse.up(); await pause(400);
+    const cm = await p.$('.nego-selmenu [data-nego-ai="comment"]');
+    if (cm) await cm.dispatchEvent('mousedown');
+    await pause(400);
+    i1 = await p.evaluate(async id => {
+      const box = document.querySelector('#context-panel .rl-np-in');
+      const focused = !!(box && document.activeElement === box);
+      const pinned = !!document.querySelector('#context-panel .rl-np-pin');
+      if (!box) return { focused, pinned };
+      box.value = 'A comment from the paper.'; box.dispatchEvent(new Event('input', { bubbles: true }));
+      const before = document.querySelectorAll('#ce-doc .rl-note-mk').length;
+      document.querySelector('#context-panel [data-rl-np-send], #context-panel [data-rl-chat-send]').click();
+      await new Promise(r => setTimeout(r, 60));
+      const after = document.querySelectorAll('#ce-doc .rl-note-mk').length;
+      const onClause = !!document.querySelector('#ce-doc .rl-clause[data-clause="' + id + '"] .rl-note-mk');
+      return { focused, pinned, before, after, onClause };
+    }, i1g.id);
+  }
+  ck('I1a Comment from a real drag pins the words and puts the caret in the note box', !!(i1 && i1.pinned && i1.focused), JSON.stringify(i1));
+  ck('I1b the marker is on the paper the moment Add note is pressed (60 ms, no repaint, no refresh)', !!(i1 && i1.after === i1.before + 1 && i1.onClause), JSON.stringify(i1));
+
+  /* I2 · a marker for an EXTERNAL note pressed while the drawer shows Internal
+     lands on the note, in its own room, lit. */
+  const i2 = await p.evaluate(async () => {
+    closeContextPanel();
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('19.') === 0);
+    const m = negoPostComment(c, null, 'External words on nineteen', { side: 'owner', visibility: 'shared',
+      anchor: { clauseId: cl.clauseId, quote: 'entire agreement' } });
+    rlRepaintNoteMarks(c, { side: 'owner' });
+    rlNpSetRoom('internal');
+    const key = negoNoteKey(m);
+    const b = document.querySelector('#ce-doc .rl-note-mk[data-rl-note-open="' + key + '"]');
+    if (!b) return { noMark: true };
+    b.click();
+    await new Promise(r => setTimeout(r, 300));
+    const el = document.querySelector('#context-panel [data-rl-np-key="' + key + '"]');
+    return { room: rlNpRoom(), shown: !!el, lit: !!(el && el.classList.contains('is-lit')), open: state.panelOpen };
+  });
+  ck('I2 pressing a marker lands on that note in its own room, lit', !!(i2 && i2.open && i2.room === 'external' && i2.shown && i2.lit), JSON.stringify(i2));
+
+  /* I3 · Reply on a reply: the box opens under it; the answer joins the root. */
+  const i3 = await p.evaluate(async () => {
+    closeContextPanel();
+    const c = window.CONTRACT;
+    const ch = negoAllChanges(c).find(x => x.status === 'pending');
+    const root = negoPostComment(c, ch.id, 'root of a thread', { side: 'owner' });
+    const first = negoPostComment(c, ch.id, 'first answer', { side: 'owner', replyTo: negoNoteKey(root) });
+    rlNpSetRoom('internal');
+    openNotesPanel(c.id, ch.id, { force: true });
+    await new Promise(r => setTimeout(r, 200));
+    const rk = negoNoteKey(root), ak = negoNoteKey(first);
+    const btn = document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + ak + '"] [data-rl-np-reply]');
+    if (!btn) return { noReply: true };
+    btn.click();
+    await new Promise(r => setTimeout(r, 200));
+    const bx = document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + ak + '"] [data-rl-np-rin]');
+    if (!bx) return { noBox: true };
+    const underRoot = !!document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + rk + '"] > .rl-np-rbox');
+    bx.value = 'second answer';
+    document.querySelector('#context-panel [data-rl-np-reply-send="' + rk + '"]').click();
+    await new Promise(r => setTimeout(r, 300));
+    const th = negoNoteThreads(ch.thread).find(t => negoNoteKey(t.root) === rk);
+    return { underRoot, replies: th ? th.replies.length : -1, last: ch.thread[ch.thread.length - 1].replyTo === rk };
+  });
+  ck('I3 Reply on a reply opens the box under it and the answer joins the root, flat', !!(i3 && !i3.underRoot && i3.replies === 2 && i3.last), JSON.stringify(i3));
+
+  /* I4 · Delete beside Done: your own note goes after one confirm, and its
+     marker goes with it in the same breath. */
+  const i4 = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const ch = negoAllChanges(c).find(x => x.status === 'pending');
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('19.') === 0);
+    const m = negoPostComment(c, ch.id, 'delete me', { side: 'owner', anchor: { clauseId: cl.clauseId, quote: 'supersedes all prior' } });
+    rlRepaintNoteMarks(c, { side: 'owner' });
+    const before = document.querySelectorAll('#ce-doc .rl-note-mk').length;
+    openNotesPanel(c.id, ch.id, { force: true });
+    await new Promise(r => setTimeout(r, 200));
+    const k = negoNoteKey(m);
+    const btn = document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + k + '"] [data-rl-np-delete]');
+    if (!btn) return { noDelete: true };
+    const done = !!document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + k + '"] [data-rl-np-done]');
+    btn.click();
+    await new Promise(r => setTimeout(r, 300));
+    const gone = !ch.thread.some(x => negoNoteKey(x) === k);
+    const after = document.querySelectorAll('#ce-doc .rl-note-mk').length;
+    return { done, gone, before, after, row: !!document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + k + '"]') };
+  });
+  ck('I4 Delete sits beside Done, removes your own note after one confirm, and the marker goes in the same breath', !!(i4 && i4.done && i4.gone && i4.after === i4.before - 1 && !i4.row), JSON.stringify(i4));
+
+  /* I5 · Suggest deleting a whole paragraph files a deletion. */
+  const i5 = await p.evaluate(async () => {
+    closeContextPanel();
+    const box = document.querySelector('#ce-clausebody');
+    const ps = [...box.querySelectorAll('p, li')];
+    if (ps.length < 2) return { fewLines: ps.length };
+    const last = ps[ps.length - 1];
+    const w = document.createTreeWalker(last, NodeFilter.SHOW_TEXT); const tns = []; let tn; while ((tn = w.nextNode())) tns.push(tn);
+    if (!tns.length) return { noText: true };
+    const r = document.createRange(); r.setStart(tns[0], 0); r.setEnd(tns[tns.length - 1], tns[tns.length - 1].data.length);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    ceAttachPassage(ceSelection(), 'edit');
+    if (!ceHeldPassage()) return { notHeld: true, why: ceSelectionRead().why || null };
+    const before = (window.CONTRACT.changes || []).length, n0 = ceLines().length;
+    const btn = document.querySelector('#ce-scope [data-ce-act="scope-cut"]');
+    if (!btn) return { noButton: true };
+    btn.click();
+    await new Promise(r => setTimeout(r, 900));
+    const chs = window.CONTRACT.changes || [];
+    const ch = chs[chs.length - 1];
+    const words = tns.map(x => x.data).join('').replace(/\s+/g, ' ').trim().slice(0, 24);
+    const kept = String((ch && (ch.bodyHtml || ch.html)) || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    return { before, after: chs.length, n0, words, cutFromFiling: !kept.includes(words),
+      struck: document.querySelectorAll('#clause-editor .rl-clause .nego-del, #clause-editor .rl-clause del').length };
+  });
+  /* After the filing the box shows the clause as it STANDS with the change's
+     marks on it (the editor's standing posture), so the proof is the filed
+     change's own body lacking the paragraph, and the strike on the paper. */
+  ck('I5 Suggest deleting on a whole paragraph strikes it out as a filed deletion', !!(i5 && i5.after === i5.before + 1 && i5.cutFromFiling && i5.struck > 0), JSON.stringify(i5));
+
+  /* I6 · the Save control says the note comes with it. */
+  const i6 = await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="save"]'); return b ? b.title : null; });
+  ck('I6 Save says it files and opens the note drawer', /note|anteckning/i.test(i6 || ''), JSON.stringify(i6));
+  await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
 
   ck('no page errors along the way', errs.length === 0, errs.join(' | ') || 'none');
   } catch (e){ ck('the run completed', false, e && e.message); }

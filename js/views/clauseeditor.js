@@ -2715,7 +2715,13 @@ function ceRenderFoot(){
   [[discard, _cet('ce_discard'), moved], [save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
-    if (live) b.removeAttribute('title'); else b.setAttribute('title', _cet('ce_reading_only'));
+    /* THE NOTE COMES AT SAVE, and the control says so (round four, item 7,
+       the owner's (b)): a Copilot card's Apply moves wording into the box;
+       Save is the one act that files, and the note drawer opens on the
+       filing. Said on the control's hover, no band. */
+    if (!live) b.setAttribute('title', _cet('ce_reading_only'));
+    else if (b === save) b.setAttribute('title', _cet('ce_save_opens_note'));
+    else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });
 }
@@ -3512,6 +3518,10 @@ function ceSelectionRead(){
   return { sel: { text, rect, line: li, at, range: r } };
 }
 function ceSelection(){ return ceSelectionRead().sel || null; }
+/* The passage the rail is HOLDING (null where none) — distinct from the live
+   selection, which the caret leaves behind once a verb puts it in the ask box
+   (round four). Tests and the Apply path read the held one. */
+function ceHeldPassage(){ return _ceSel || null; }
 /* Wording with its paragraph breaks kept and everything else folded — the one
    shape a multi-line passage and its replacement are read in. */
 /* The pattern that finds a passage in the box's text: words joined by any
@@ -3783,6 +3793,18 @@ function ceAttachPassage(sel, mode){
      collapse it. */
   if (sel.range) ceMarkHeld(sel.range);
   ceRenderScope(); ceRenderChips();
+  /* ---- THE VERB PUTS THE CARET IN THE ASK BOX (round four, 11 Sep 2026:
+     "the cursor should take you to the entry field in copilot ... You should
+     not have to click into them") ---- Reverses round two's "attaching never
+     takes the caret": the words are held on the paper by the mark, so the
+     selection has nothing left to protect. The writing bar still acts on the
+     held sentence wherever the caret is. */
+  ceFocusAsk();
+}
+function ceFocusAsk(){
+  const box = _ceQ('#ce-ask');
+  if (!box || !box.focus) return;
+  try { box.focus({ preventScroll: true }); } catch (e){ try { box.focus(); } catch (_){} }
 }
 function ceDetachPassage(){
   if (!_ceSel) return;
@@ -4064,8 +4086,14 @@ function ceCutPassage(){
   const at = (ln == null) ? -1 : ln.indexOf(sel.text);
   if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
   const cut = tidy(ln.slice(0, at) + ln.slice(at + sel.text.length));
-  if (!cut){ ceSay(_cet('ce_inline_cut_all')); return false; }
-  lines[sel.line] = cut;
+  /* ---- A WHOLE SENTENCE THAT IS ITS OWN LINE GOES AS A LINE (round four,
+     11 Sep 2026: "suggest deleting does not work") ---- MEASURED: the owner
+     selected one paragraph whole; the line emptied, and the refusal written
+     for "you have struck the whole clause" fired on a clause with eight other
+     lines. The refusal is right only where nothing would be left. */
+  if (!cut && lines.length <= 1){ ceSay(_cet('ce_inline_cut_all')); return false; }
+  if (!cut) lines.splice(sel.line, 1);
+  else lines[sel.line] = cut;
   ceDetachPassage();
   if (!ceApply(lines.join('\n'), _cet('ce_step_cut'), { keepView: true, repaint: true })) return false;
   ceFile();
@@ -4811,7 +4839,7 @@ Object.assign(window, {
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
   ceBoxDirty,
-  ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
+  ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,

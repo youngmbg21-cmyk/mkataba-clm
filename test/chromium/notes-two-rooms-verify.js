@@ -140,33 +140,20 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       opened.rooms.join(' | ') + '  live=' + (opened.live || '').trim());
     check('with a box to type in', opened.box);
 
-    /* ---- 2. THE PAGE BEHIND IS BLURRED, NOT SHADED — and pressing it closes the drawer ----
-       REVERSED IN PLACE 11 Sep 2026 (round three; Young: "Slight blur the
-       negotiate background so that you can still see the writing in the
-       contract. And pressing the blurred area should close the drawer.") —
-       on the NEGOTIATION PAGE only. The 27 Aug rule (no scrim, the contract
-       stays lit) holds on every other page; section 2b below keeps it. */
+    /* ---- 2. THE PAGE BEHIND IS NOT DIMMED (the owner's own clause-panel rule) ----
+       Round three (11 Sep 2026) put a slight blur here at the owner's word and
+       round four took it off at the owner's word the same night ("remove the
+       blurry background please (reversal of what i asked before)"). The 27 Aug
+       ruling stands: no scrim, no blur, the contract stays lit. */
     const scrim = await page.evaluate(() => {
       const s = document.getElementById('panel-scrim');
       const cs = s && getComputedStyle(s);
-      const bf = cs && (cs.backdropFilter || cs.webkitBackdropFilter);
-      const paper = document.querySelector('.redline-page .rl-paper, #rl-doc');
-      const pr = paper && paper.getBoundingClientRect();
       return { open: !!(s && s.classList.contains('open')), blur: !!(s && s.classList.contains('is-blur')),
-        opacity: cs && cs.opacity, pe: cs && cs.pointerEvents, bg: cs && cs.backgroundColor, bf,
-        paperPainted: !!(pr && pr.width > 0 && pr.height > 0), view: state.view };
+        opacity: cs && cs.opacity, pe: cs && cs.pointerEvents, bf: cs && (cs.backdropFilter || cs.webkitBackdropFilter) };
     });
-    const blurPx = /blur\((\d+(?:\.\d+)?)px\)/.exec(scrim.bf || '');
-    check('on the negotiation page the scrim comes up as a SLIGHT blur with no shade — the contract stays readable',
-      scrim.view === 'redline' && scrim.open && scrim.blur && Number(scrim.opacity) === 1 && !!blurPx && Number(blurPx[1]) < 3
-      && /rgba\(0, 0, 0, 0\)|transparent/.test(scrim.bg || '') && scrim.paperPainted,
-      `open ${scrim.open} blur ${scrim.bf} bg ${scrim.bg} opacity ${scrim.opacity}`);
-    await page.evaluate(() => { const s = document.getElementById('panel-scrim'); const r = s.getBoundingClientRect(); s.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + 40, clientY: r.top + 300 })); });
-    await page.waitForTimeout(400);
-    const pressed = await page.evaluate(() => ({ open: !!document.querySelector('#context-panel.open'), scrim: !!document.getElementById('panel-scrim').classList.contains('open') }));
-    check('and pressing the blurred page closes the drawer', !pressed.open && !pressed.scrim, JSON.stringify(pressed));
-    await page.evaluate(id => openNotesPanel(state.activeId, id, { force: true }), set.ch);
-    await page.waitForTimeout(500);
+    check('the scrim does not come up — the contract stays lit, and nothing blurs it',
+      !scrim.open && !scrim.blur && Number(scrim.opacity) === 0 && !/blur\(/.test(scrim.bf || ''),
+      `open ${scrim.open} blur ${scrim.blur} opacity ${scrim.opacity} filter ${scrim.bf}`);
 
     /* ---- 3. THE ROOMS REALLY HOLD DIFFERENT NOTES ---- */
     const roomA = await page.evaluate(() => document.querySelector('.rl-np-list').textContent.replace(/\s+/g, ' '));
