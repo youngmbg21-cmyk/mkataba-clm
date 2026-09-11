@@ -1223,8 +1223,18 @@ function docxRunsFromHtml(html){
       tight: /\bhati-tight\b/.test(cls), pageBreak: /\bhati-pb\b/.test(cls),
       toc: /\bhati-toc\b/.test(cls) };
   };
+  /* ---- THE WRITER WRITES NO PARAGRAPH FOR WHITESPACE (owner-reported 11 Sep 2026) ----
+     *"massive blank gaps between the clauses"* — 32 paragraphs exported, 21 of
+     them empty. The paper is built from INDENTED markup; a browser ignores the
+     newline-and-indent between two blocks, and this scanner did not: _dxSpace
+     collapsed each gap to one space, push() made that space a run, and a run
+     was enough to keep the paragraph. So a paragraph is written only where a
+     run carries a VISIBLE character, or where it was `forced` — a <br>, which
+     is how a blank line somebody typed is stored (sanitizeRich keeps no empty
+     block without one), or a page break. The styles' spacing is not touched:
+     it was right, and was being applied to paragraphs that should not exist. */
   const close = () => {
-    if (cur && (cur.runs.some(r => r.text) || cur.forced)) paras.push(cur);
+    if (cur && (cur.runs.some(r => /\S/.test(r.text)) || cur.forced)) paras.push(cur);
     cur = null;
   };
   const push = text => {
