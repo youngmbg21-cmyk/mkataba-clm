@@ -897,3 +897,100 @@ the second window never comes up and the section reports it.
 **The comment above `rlNoteAskAfterFile` is rewritten** to record both
 rulings and their dates — the 31 Aug reason for once, and the 11 Sep reason
 for every time — so the next reader does not put the gate back as a fix.
+
+## C-6 THE PLAIN ENGLISH EDITION IS ONE CLAUSE OUT ON THE COMPANY STANDARDS
+
+**The owner's report, 11 Sep 2026, verbatim:** *"In two different company
+standard contracts, the plain english has failed to pick up on the first
+clause. This was previously not an issue."* Two screenshots, both Drafting
+contracts made from built-in templates with their blanks still editable —
+the Packaging Supply Agreement (MK-395's sibling) and Marketing & Trade
+Promotion Services (MK-395) — the Document tab on Plain English.
+
+**What the screenshots actually show, read closely.** It is not that the
+first clause is missing; it is that EVERY reading sits one clause too low.
+Under *2. Price & Contract Value* the edition prints the reading of clause 1
+(*"You (the Supplier) must manufacture and supply packaging that matches the
+artwork…"*); under *3. Approvals & Media* it prints the reading of clause 2
+(*"The annual retainer or working budget amount is left blank…"*). The slot
+under clause 1 is empty, and the last clause's reading has nowhere to go.
+
+**MEASURED on 11 Sep, before anything was touched.** A scratch run against
+a real HaTi (test/helpers' `startHati`, the scripted AI, a real browser):
+create a draft from `PK` and from `MK` through `createFromTemplate`, open
+the Document tab, ask `docReadClauses`. Both walks are RIGHT: four rows,
+each `section` row carrying its own heading and its own wording (*1. Scope
+of Supply → "The Supplier shall manufacture…"*, *2. Price & Contract Value
+→ "The estimated annual contract value is…"*). The template title is taken
+as the name and not sent; the front paragraph is not a row. So what the
+route was sent was correct, and the fault is in how the answer is paired.
+
+**The cause, by the shape of the fault.** `/api/ai/readings`
+(server/server.js) numbers the rows it sends `[0] … [n-1]` and asks the
+model for `i` = *"the number in square brackets at the head of the row"*.
+Every row's heading ALSO starts with a number — the clause's own, one
+higher (*"1. Scope of Supply"* is row `[0]`). An answer that numbers from
+one instead of zero — the model reading the clause number as the row
+number — produces exactly the screenshot: the entry the model meant for
+clause 1 arrives as `i:1`, the server stamps it with `list[1]`'s heading
+(*2. Price…*), the browser's guard compares that stamped heading with the
+same list's row 1 and is satisfied by construction, and the reading draws
+under the wrong clause; row 0 gets no entry; the entry `i:n` is out of
+range and dropped. **The heading guard cannot catch this**: since 10 Sep
+(headings no longer asked of the model) the heading on an item is the
+SERVER's own `list[i].heading`, so the guard compares the list with itself.
+That is the "previously not an issue" — before 10 Sep a heading the model
+echoed could disagree with the row and the guard drew nothing; now nothing
+the model writes is checked against anything. And a wrong pairing is CACHED
+in `clause_readings` for the life of the wording (the input hash has not
+moved), so the two contracts will stay wrong until forced.
+
+**The ruling to build.**
+
+1. **THE ROW KEY CANNOT BE MISTAKEN FOR THE CLAUSE NUMBER.** Rows are sent
+   under an opaque key that no clause could carry — `[R0] … [Rn-1]` (or a
+   letter key) — and the tool's `i` field becomes `key` (string), described
+   as *"the row key in square brackets, e.g. R3 — never the clause's own
+   number"*. Zero-based integers beside one-based clause numbers is the
+   trap; remove the trap rather than warn about it.
+2. **THE ANSWER RESTS ON SOMETHING CHECKABLE.** Each entry echoes the row's
+   heading verbatim (`heading`, required — the pairing reading, never
+   printed; Young's 10 Sep ruling was about headings DRAWN, and this one is
+   drawn nowhere). The server pairs an entry only where the key resolves AND
+   the echoed heading equals `list[key].heading` after `_docReadNorm`'s
+   folding; an entry that fails either is DROPPED and COUNTED. A row with
+   no heading (a marked number with no lead-in) is paired on the key plus
+   the first eight words of its wording echoed instead. The browser's guard
+   stays as the second wall.
+3. **A SHIFTED ANSWER IS REFUSED WHOLE, NOT CACHED.** Where more than a
+   quarter of the entries fail the pairing check, the route answers with
+   the readings it could pair, `partial:true`, and a count of how many it
+   could not — and writes NOTHING to `clause_readings` (the cut-short rule,
+   applied to a mispaired answer). The column says so in its foot: *"N
+   clauses could not be matched to the contract — try again"* with the
+   force press the truncated brief already has. A CAP IS A FACT, NEVER A
+   SILENT TRIM; a misfiled reading is worse than a missing one.
+4. **THE TWO CONTRACTS ON FILE ARE MADE RIGHT.** The input hash changes by
+   construction (the sent text carries the new keys), so the next press on
+   Plain English asks the route again and the stale pairing is never served;
+   no migration, no manual clearing. Say so in the summary.
+5. **THE PROMPT SAYS IT ONCE, PLAINLY**: *"The key in brackets is the row's
+   address for your answer. It is not the clause number, which is part of
+   the heading and is the contract's own."*
+
+**The nets.** A test on the route against the scripted AI that answers
+with keys one row high (the fault as observed): asserts nothing is drawn
+under the wrong clause, the mismatched entries are counted, `partial` is
+set and the cache table stays empty — and, run against the parent, the
+same script produces the shifted pairing. A second script answering the
+right keys with a wrong echoed heading on one row: that one row is dropped
+and counted, the rest pair. plain-english-verify gains the shifted script as
+a section and measures on screen that the reading under *2.* is about
+clause 2 or absent, never clause 1's. f277 pins that the tool's key field
+is not an integer and that `heading` is required in the schema.
+
+**Out of scope.** The walk (`docReadSheet`) is untouched — measured right.
+The prompt's translation rules are untouched. Readings cached for other
+contracts stay served until their wording moves (their pairing was made
+under the same fault only if the model numbered from one that day; the new
+hash re-asks them on the next press either way).
