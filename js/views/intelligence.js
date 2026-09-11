@@ -375,6 +375,76 @@ function graphPartyLines(p){
     L.push(i18t('int_cp_pay',{d:p.pay.days,side:sideWord})+(p.pay.over?` · ${i18tn('int_cp_pay_over',p.pay.over,{n:p.pay.over})}`:'')); }
   return L;
 }
+/* ============================================================
+   A-4 · THE RENEWAL CLIFF — the book laid out by decision date
+   ============================================================
+   A grouping ('decision') whose hubs are QUARTERS, in order, and a scrubber
+   that walks the reader forward through them. The date is renewalDecisionDate
+   — the effective expiry less the notice period, family-aware, the same
+   reading the renewal card and the reminder sweep use — never a second
+   arithmetic. A contract with no readable date is its own group rather than
+   pushed in with the nearest. Labels are English literals like every other
+   group on this graph. */
+const GRAPH_CLIFF_QUARTERS = 4;            // this quarter plus the next four are named; beyond is "Later"
+const GRAPH_CLIFF_MAX_DAYS = 540;          // the scrubber walks eighteen months ahead
+const _gQ = d => ({ y:d.getFullYear(), q:Math.floor(d.getMonth()/3) });
+const _gQIdx = d => { const q=_gQ(d); return q.y*4+q.q; };
+const _gQLabel = idx => `Q${(idx%4)+1} ${Math.floor(idx/4)}`;
+/* {date, days, label, order} for one contract. order is the quarter's index
+   from THIS quarter (0), negative for a quarter already gone, so hubs can be
+   laid out left to right in time; 'Later' sorts after the named quarters and
+   'No decision date' last of all. */
+function graphDecisionOf(c){
+  const date=(typeof renewalDecisionDate==='function')?renewalDecisionDate(c):null;
+  if(!date) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+2 };
+  const d=new Date(String(date).slice(0,10)+'T00:00:00'); if(isNaN(d.getTime())) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+2 };
+  const now=new Date(); now.setHours(0,0,0,0);
+  const rel=_gQIdx(d)-_gQIdx(now);
+  const days=Math.round((d-now)/86400000);
+  if(rel<0) return { date, days, label:'Passed', order:-1 };
+  if(rel===0) return { date, days, label:'This quarter', order:0 };
+  if(rel<=GRAPH_CLIFF_QUARTERS) return { date, days, label:_gQLabel(_gQIdx(d)), order:rel };
+  return { date, days, label:'Later', order:GRAPH_CLIFF_QUARTERS+1 };
+}
+const graphDecisionOrder = label => { if(label==='Passed') return -1; if(label==='This quarter') return 0; if(label==='Later') return GRAPH_CLIFF_QUARTERS+1; if(label==='No decision date') return GRAPH_CLIFF_QUARTERS+2;
+  const m=/^Q([1-4]) (\d{4})$/.exec(label||''); if(!m) return 99; const now=new Date(); return (Number(m[2])*4+Number(m[1])-1)-_gQIdx(now); };
+/* A CROWDED QUARTER IS SAID IN WORDS, AND ONLY WHERE IT IS ONE: a named
+   quarter holding more than one and a half times the average over the named
+   quarters that hold anything, and at least three. Amber only there — an
+   amber count on every hub is a warning nobody reads. */
+function graphCliffCrowded(hubs){
+  const q=hubs.filter(h=>graphDecisionOrder(h.label)>=0&&graphDecisionOrder(h.label)<=GRAPH_CLIFF_QUARTERS);
+  if(!q.length) return new Set();
+  const avg=q.reduce((a,h)=>a+h.ids.length,0)/q.length;
+  return new Set(q.filter(h=>h.ids.length>=3&&h.ids.length>avg*1.5).map(h=>h.label));
+}
+/* THE SCRUBBER'S ANSWER for a cutoff N days ahead: which contracts are
+   passed (decision on or before the cutoff) and which are ahead. Per hub.
+   READ, never drawn — igApplyCliff paints it. */
+function graphCliffAt(days, cs){
+  const list=(cs||state.contracts||[]);
+  const passed=[], ahead=[], undated=[];
+  /* AT TODAY a decision due today is still ahead — it has not passed. At a
+     cutoff further on, "look ahead to that date" includes a decision falling
+     on it. */
+  list.forEach(c=>{ const d=graphDecisionOf(c); if(d.days==null) undated.push(c.id); else if(days>0?d.days<=days:d.days<0) passed.push(c.id); else ahead.push(c.id); });
+  return { days, passed, ahead, undated };
+}
+/* Paint the cutoff onto the live graph: a class on every contract node whose
+   decision is on or before it, and "N passed · N ahead" on every quarter
+   hub's own line. A class flip and a text write, never a repaint. */
+function igApplyCliff(days){
+  if(!IG||intel.groupBy!=='decision') return;
+  const at=graphCliffAt(days);
+  const passed=new Set(at.passed);
+  IG.nodes.forEach(n=>{ if(n.kind==='contract') n.g.classList.toggle('passed',passed.has(n.id)); });
+  IG.nodes.filter(n=>n.kind==='hub').forEach(h=>{ const ids=[...(IG.adj[h.id]||[])].filter(id=>IG.byId[id]&&IG.byId[id].kind==='contract');
+    if(!ids.length||h.label==='No decision date') return;
+    const p=ids.filter(id=>passed.has(id)).length;
+    const el=h.g.querySelector('.ig-sub'); if(el) el.textContent=i18t('int_cliff_hub',{p, a:ids.length-p})+(h.crowded?' · '+i18t('int_cliff_crowded'):''); });
+  const out=document.getElementById('ig-cliff-out'); if(out){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+days);
+    out.textContent=days?i18t('int_cliff_by',{d:d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'})}):i18t('int_cliff_today'); }
+}
 /* THE "IF THIS ENDS" BLOCK on the dock's explain card. Drawn only where
    something depends on the contract — a block reading "nothing depends on
    this" on every card is furniture. Every figure is graphDependents' own; the
@@ -410,6 +480,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
      later with nothing on screen saying why. It cannot be quietly on — the
      table says what it is showing and carries the way back. */
   ptCut:{ side:null, bucket:null }, ptPage:1,
+  cliffDays:0 /*A-4: the renewal cliff's scrubber, days ahead of today; per sitting*/,
   busy:false, dockOpen:true,
   // Horizon-style leftward expand; the preference sticks per device.
   dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
@@ -459,6 +530,10 @@ function groupLabelOf(c, groupBy, override){
       if(dd==null) return 'No payment terms';
       return (typeof payBucketOf==='function'?payBucketOf(dd):String(dd))+' days';
     }
+    /* THE RENEWAL CLIFF (A-4). The quarter the renewal decision falls in,
+       off renewalDecisionDate — the renewal card's and the reminder sweep's
+       own reading. A contract with no readable date is its own group. */
+    case 'decision': return graphDecisionOf(c).label;
     case 'source': return c.source==='upload'?'Uploaded paper'
       :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
@@ -507,6 +582,7 @@ function graphInterpret(qRaw){
   else if(has('by value','by size','by amount','by exposure')) groupBy='valueBand';
   else if(has('by type','by kind','by contract type')) groupBy='kind';
   else if(has('by payment terms','by payment term','by terms of payment','by credit terms')) groupBy='payterms';
+  else if(has('by renewal decision','by decision date','by renewal date','renewal cliff','by quarter')) groupBy='decision';
   // filter intent
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
   if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
@@ -841,6 +917,7 @@ function buildGraphModel(){
   const hubMap={};
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override); (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
   const hubs=Object.values(hubMap);
+  const crowded=(groupBy==='decision'&&!override)?graphCliffCrowded(hubs):new Set();
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{
     const node={id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')};
@@ -848,6 +925,9 @@ function buildGraphModel(){
        its four lines and its share of the book. The stats are read once here
        so the renderer prints them and computes nothing. */
     if(groupBy==='counterparty'&&!override){ const p=graphPartyStats(h.label); if(p.found){ node.party=p; node.lines=graphPartyLines(p); node.sub=null; } }
+    /* A-4: a quarter hub knows its place in time and whether it is crowded. */
+    if(groupBy==='decision'&&!override){ node.order=graphDecisionOrder(h.label); node.crowded=crowded.has(h.label);
+      if(node.crowded) node.sub+=' · '+i18t('int_cliff_crowded'); }
     nodes.push(node); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
     nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
@@ -863,7 +943,7 @@ function buildGraphModel(){
   const kinds=new Set(edges.filter(e=>e.kind==='party').length?['party']:[]);
   buildGraphEdges(cs).forEach(e=>{ if(e.kind==='party') return; if(!onPage.has(e.from)||!onPage.has(e.to)) return;
     kinds.add(e.kind); edges.push({from:e.from, to:e.to, kind:e.kind, label:e.label}); });
-  return { nodes, edges, capped, shown:cs.length, total:cs.length, edgeKinds:GRAPH_EDGE_KINDS.filter(k=>kinds.has(k)) };
+  return { nodes, edges, capped, shown:cs.length, total:cs.length, edgeKinds:GRAPH_EDGE_KINDS.filter(k=>kinds.has(k)), linear:groupBy==='decision'&&!override };
 }
 
 /* ---- physics + svg (adapted, light theme) ---- */
@@ -877,7 +957,12 @@ function makeIntelGraph(model){
   // seed positions: hubs on a ring, contracts near their hub
   let seed=42; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
   const hubs=nodes.filter(n=>n.kind==='hub');
-  hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
+  /* A-4: the renewal cliff is a TIMELINE, so its hubs seed on a line, in
+     time order, left to right — a ring would put next year beside last
+     quarter. Every other grouping keeps the ring. */
+  if(model.linear){ const sorted=hubs.slice().sort((a,b)=>(a.order??99)-(b.order??99));
+    sorted.forEach((h,i)=>{ h.x=W*(0.12+0.76*(sorted.length>1?i/(sorted.length-1):0.5)); h.y=H/2; h.vx=h.vy=0; h.timeline=true; }); }
+  else hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
   nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; if(n.lines&&n.lines.length){ n.w=Math.max(n.w,236); n.h=34+n.lines.length*13+(n.party&&n.party.share!=null?8:0); } } else {
     n.facts=n.c?graphNodeFactLine(n.c):[]; n.unread=!!(n.c&&graphNodeFacts(n.c).unread);
@@ -903,6 +988,7 @@ function makeIntelGraph(model){
     rect.style.fill = n.kind==='hub'?'var(--color-accent-800, #134e4a)':'var(--color-surface)';
     if(n.kind==='hub'){ rect.style.stroke='var(--accent-solid, #14b8a6)'; rect.setAttribute('stroke-width','1.5'); }
     g.appendChild(rect);
+    if(n.kind==='contract'&&n.c&&model.linear){ const d=graphDecisionOf(n.c); if(d.date) g.setAttribute('data-ig-decision',d.date); }
     if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
     const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -915,7 +1001,7 @@ function makeIntelGraph(model){
     lab.textContent = labText.length>24?labText.slice(0,23)+'…':labText; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?'var(--color-accent-200)':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+      sub.setAttribute('fill', n.kind==='hub'?(n.crowded?'var(--st-amber-dot)':'var(--color-accent-200)'):'#7a7a7d'); if(n.crowded) sub.setAttribute('font-weight','700'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     /* A-3: THE PARTY HUB — its lines under the name, and a share bar whose
        length is the party's share of the book by value. The bar is a second
        carrier beside the printed percentage, never the only one. */
@@ -1026,6 +1112,9 @@ function igTick(){
   edges.forEach(e=>{ let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1; const f=(d-120)*0.02; dx/=d;dy/=d; e.s.vx+=dx*f;e.s.vy+=dy*f; e.t.vx-=dx*f;e.t.vy-=dy*f; });
   nodes.forEach((n,idx)=>{ n.vx+=(W/2-n.x)*0.0016; n.vy+=(H/2-n.y)*0.0016;
     if(n===IG.dragging)return;
+    /* A-4: a timeline hub keeps its place in time — the physics may not shuffle
+       next year to the left of this quarter. */
+    if(n.timeline){ n.vx=0; n.vy=(H/2-n.y)*0.08; n.y+=n.vy; return; }
     // stable per-node phase (hash of id) → each node drifts on its own gentle orbit
     if(n._ph==null){ let h=0; const s=String(n.id||idx); for(let k=0;k<s.length;k++) h=(h*31+s.charCodeAt(k))>>>0; n._ph=(h%628)/100; }
     n.vx+=Math.cos(t+n._ph)*0.05; n.vy+=Math.sin(t*1.07+n._ph*1.3)*0.05;
@@ -1047,16 +1136,26 @@ function rebuildIntelGraph(){
   for(let i=0;i<220;i++) igTick();
   igRender(); igFitView();   // land zoomed-out, framing the whole graph
   updateIntelNote(); renderIntelLegend(model);
+  if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
 }
 function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
-  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',payterms:'payment terms',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
+  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',payterms:'payment terms',decision:'renewal decision',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
+  /* A-4: THE SCRUBBER lives on this line, beside the grouping it belongs to —
+     a control on a strip that is already there, never a new one. Per sitting
+     (intel.cliffDays), in memory; a stored cutoff would land a reader on a
+     faded graph a week later with nothing saying why. */
+  const cliff=(intel.groupBy==='decision'&&!intel.groups)?` <label class="ig-cliff" style="display:inline-flex;align-items:center;gap:8px;margin-left:14px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('int_cliff_label')}
+      <input id="ig-cliff" type="range" min="0" max="${GRAPH_CLIFF_MAX_DAYS}" step="30" value="${Number(intel.cliffDays)||0}" aria-label="${i18t('int_cliff_label')}" style="width:160px;accent-color:var(--accent-solid)">
+      <span id="ig-cliff-out" style="min-width:90px;color:var(--color-text)"></span></label>`:'';
   el.innerHTML = intel.busy ? `<span class="text-brand-700">${i18t('int_thinking')}</span>`
     : `<span class="text-ink/60">${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
-      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18t('int_clear_all_x')}</button>`:'');
+      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18t('int_clear_all_x')}</button>`:'')
+      + cliff;
   document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
+  document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
@@ -1111,7 +1210,7 @@ function renderIntel(){
      nothing anywhere said why. f247 asserts the row and the guard hold the
      same names in the same order. */
   if(IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
-  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['payterms','Payment terms'],['risk','Risk'],['source','Origin']];
+  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['payterms','Payment terms'],['decision','Renewal decision'],['risk','Risk'],['source','Origin']];
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
      margin drops that rule onto the header's own hairline so the two share a
@@ -2890,4 +2989,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

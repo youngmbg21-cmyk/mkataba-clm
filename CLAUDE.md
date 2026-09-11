@@ -13557,6 +13557,54 @@ reading's own share, and a real press proved still to narrow — a party hub
 that grew four lines must not stop being a door). f148 gained `int_cp_pay_in`
 on SAME_IN_BOTH: "in" is "in".
 
+## THE RENEWAL CLIFF — THE BOOK LAID OUT BY DECISION DATE (A-4, 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md, the fourth of five. A 'decision' grouping
+on the Insights graph whose hubs are QUARTERS in order, and a scrubber that
+walks the reader forward through them.
+
+- **THE DATE IS `renewalDecisionDate`'S OWN** — the effective expiry less the
+  notice period, family-aware, the reading the renewal card and the reminder
+  sweep already use. `graphDecisionOf(c)` names the quarter it falls in: This
+  quarter, then the next four by name (`Q1 2027`), then Later; a decision
+  already gone is Passed; **a contract with no readable date is its own group**
+  rather than being pushed in with the nearest. Labels are English literals
+  like every other group on this graph.
+- **IT IS A TIMELINE, SO THE HUBS SEED ON A LINE, IN TIME ORDER, LEFT TO
+  RIGHT** — a ring puts next year beside last quarter. `model.linear` says
+  so, `graphDecisionOrder` is the order, and a timeline hub keeps its place
+  through the physics (`h.timeline`) so the settle cannot shuffle it. Every
+  other grouping keeps the ring, and **a Copilot override grouping is not a
+  timeline** even under this key.
+- **THE SCRUBBER IS A CONTROL ON THE NOTE LINE**, beside the grouping it
+  belongs to — a control on a strip that is already there, never a new one.
+  A range from today to eighteen months out (`GRAPH_CLIFF_MAX_DAYS`), per
+  sitting and in memory (`intel.cliffDays`): a stored cutoff would land a
+  reader on a faded graph a week later with nothing saying why. It never
+  travels.
+- **A DRAG IS A CLASS FLIP AND A TEXT WRITE, NEVER A REPAINT.** `igApplyCliff`
+  toggles `passed` on the contract nodes whose decision is on or before the
+  cutoff (**at today a decision due today is still ahead**) and rewrites each
+  quarter hub's own line to "N passed · N ahead"; the readout names the date.
+  A rebuild re-applies the sitting's cutoff.
+- **A CROWDED QUARTER IS SAID IN WORDS, AND ONLY WHERE IT IS ONE**: a named
+  quarter holding more than one and a half times the average over the named
+  quarters that hold anything, and at least three. **Amber only there** — an
+  amber count on every hub is a warning nobody reads.
+- **THE FIXTURE DATES ARE QUARTER BOUNDARIES, NEVER DAYS COUNTED FROM
+  TODAY** — the f183 rule. The first draft used the 15th of the quarter's
+  middle month for "this quarter", which on 11 September had already passed;
+  the last day of the quarter is what makes the claim a claim about the code.
+- **COUNTING IS NOT DRAWING, AND IT READS WITHOUT WRITING.**
+
+Tests: f293 (9 — **8 fail against the parent**), insights-panels-verify
+section 14 (6, browser — **all 6 fail against the parent**: the hubs measured
+left to right, the scrubber as pixels on the note line, the hub lines checked
+AGAINST `graphCliffAt`'s own answer, the crowded ink measured against the
+resolved amber, and a real drag fading a node as a computed opacity — read
+after its transition has run — and rewriting the hub line without replacing
+the node).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

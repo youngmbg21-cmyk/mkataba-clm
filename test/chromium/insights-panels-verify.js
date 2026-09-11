@@ -727,6 +727,75 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.evaluate(() => { intel.lenses = []; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(500);
 
+    /* ================= 14. THE RENEWAL CLIFF (A-4, 11 Sep 2026) =============
+       f293 holds the grouping; what only a browser can say is whether the
+       quarter hubs are laid out LEFT TO RIGHT IN TIME, whether the scrubber
+       is a control on the note line that fades the passed nodes as a
+       computed opacity and rewrites the hub lines without a repaint, and
+       whether a crowded quarter is painted amber. Dates are built from
+       quarter boundaries, never by counting days (the f183 rule). */
+    await page.evaluate(() => {
+      const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      /* The LAST day of the quarter, so this quarter's decision is never
+         already behind today. */
+      const qMid = off => { const d = new Date(); d.setHours(0, 0, 0, 0); const q = Math.floor(d.getMonth() / 3) + off;
+        return iso(new Date(d.getFullYear() + Math.floor(q / 4), ((q % 4) + 4) % 4 * 3 + 3, 0)); };
+      const by = id => state.contracts.find(c => c.id === id);
+      /* Four signed contracts across three quarters, one of them crowded. */
+      by('MK-P1').expiry = qMid(0); delete by('MK-P6').parentId; by('MK-P6').expiry = qMid(1); by('MK-P6').status = 'Signed';
+      by('MK-P2').status = 'Signed'; by('MK-P2').expiry = qMid(1); by('MK-P3').status = 'Signed'; by('MK-P3').expiry = qMid(1);
+      by('MK-P4').status = 'Signed'; by('MK-P4').expiry = qMid(2);
+      intel.groupBy = 'decision'; intel.lenses = []; intel.groups = null; intel.history = []; intel.cliffDays = 0; intel.tab = 'map'; renderIntel();
+    });
+    await page.waitForTimeout(1800);
+    const cliff = await page.evaluate(() => {
+      const hubs = IG.nodes.filter(n => n.kind === 'hub').slice().sort((a, b) => a.order - b.order);
+      const xs = hubs.map(h => Math.round(h.x));
+      const sub = h => ({ text: h.g.querySelector('.ig-sub').textContent, fill: getComputedStyle(h.g.querySelector('.ig-sub')).fill });
+      const q1 = hubs.find(h => h.order === 1), q0 = hubs.find(h => h.order === 0);
+      const ctl = document.getElementById('ig-cliff'), note = document.getElementById('ig-note');
+      const r = ctl && ctl.getBoundingClientRect();
+      /* Guarded, so a build without the grouping REPORTS rather than throws. */
+      if (!q0) return { labels: hubs.map(h => h.label), xs, inOrder: false, q1: null, thisQ: { text: '', fill: '' }, wantQ1: '', wantQ0: '', ctl: !!ctl, inNote: false, out: '' };
+      /* The counts are checked AGAINST the reading rather than typed here:
+         an earlier section adds a signed contract to this book. */
+      const at = (typeof graphCliffAt === 'function') ? graphCliffAt(0) : { passed: [] };
+      const want = h => { const ids = [...(IG.adj[h.id] || [])].filter(id => IG.byId[id] && IG.byId[id].kind === 'contract'); const p = ids.filter(id => at.passed.includes(id)).length; return `${p} passed · ${ids.length - p} ahead`; };
+      return { labels: hubs.map(h => h.label), xs, inOrder: xs.every((x, i) => i === 0 || x > xs[i - 1]),
+        q1: q1 && sub(q1), thisQ: sub(q0), wantQ1: q1 && want(q1), wantQ0: want(q0), amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-dot').trim(),
+        ctl: !!ctl && r.width > 100 && r.height > 0, inNote: !!ctl && !!note && note.contains(ctl), out: (document.getElementById('ig-cliff-out') || {}).textContent };
+    });
+    check('14a the quarter hubs sit left to right in time order',
+      cliff.labels.length >= 3 && cliff.inOrder && cliff.labels[0] === 'This quarter', JSON.stringify({ labels: cliff.labels, xs: cliff.xs }));
+    check('14b the scrubber is a control on the note line, starting at today',
+      cliff.ctl && cliff.inNote && /today/i.test(cliff.out || ''), JSON.stringify({ ctl: cliff.ctl, inNote: cliff.inNote, out: cliff.out }));
+    check('14c every quarter hub says how many are passed and how many ahead, and the crowded one says so in amber',
+      cliff.q1 && cliff.q1.text === cliff.wantQ1 + ' · crowded' && cliff.thisQ.text === cliff.wantQ0 && /3 ahead|4 ahead/.test(cliff.q1.text) && /0 passed · 1 ahead/.test(cliff.thisQ.text),
+      JSON.stringify({ q1: cliff.q1, thisQ: cliff.thisQ, wantQ1: cliff.wantQ1, wantQ0: cliff.wantQ0 }));
+    const amberProbe = await page.evaluate(a => { const p = document.createElement('span'); p.style.color = a; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }, cliff.amber);
+    check('14d the crowded hub\'s line is painted amber; the quiet one is not',
+      cliff.q1 && cliff.q1.fill === amberProbe && cliff.thisQ.fill !== amberProbe, `${cliff.q1 && cliff.q1.fill} vs amber ${amberProbe}; quiet ${cliff.thisQ && cliff.thisQ.fill}`);
+    /* A REAL DRAG of the scrubber: the passed nodes fade, the hub lines
+       move, and nothing is repainted (the same node elements survive). */
+    await page.evaluate(() => { window._igBefore = IG.nodes.find(n => n.id === 'MK-P1').g;
+      const ctl = document.getElementById('ig-cliff'); if (ctl){ ctl.value = '180'; ctl.dispatchEvent(new Event('input', { bubbles: true })); } });
+    await page.waitForTimeout(400);   // the fade is a transition; read it once it has run
+    const moved = await page.evaluate(() => {
+      const before = window._igBefore;
+      const op = id => Number(getComputedStyle(IG.nodes.find(n => n.id === id).g).opacity);
+      const hubs = IG.nodes.filter(n => n.kind === 'hub'); const q0 = hubs.find(h => h.order === 0);
+      return { p1: op('MK-P1'), p4: op('MK-P4'), sameEl: IG.nodes.find(n => n.id === 'MK-P1').g === before,
+        thisQ: q0 ? q0.g.querySelector('.ig-sub').textContent : '', out: (document.getElementById('ig-cliff-out') || {}).textContent || '', days: intel.cliffDays };
+    });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(OUT, '14-renewal-cliff.png') });
+    check('14e dragging the scrubber six months on fades this quarter\'s decision as a computed opacity and leaves a later one lit',
+      moved.p1 < 0.5 && moved.p4 === 1, `p1 ${moved.p1} · p4 ${moved.p4}`);
+    check('14f and the hub line follows, the readout names the date, and nothing was repainted',
+      /1 passed · 0 ahead/.test(moved.thisQ) && /to /.test(moved.out) && moved.sameEl && moved.days === 180, JSON.stringify(moved));
+    await page.evaluate(() => { intel.cliffDays = 0; intel.groupBy = 'folder'; intel.tab = 'frame'; setView('intel'); });
+    await page.waitForTimeout(500);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();
