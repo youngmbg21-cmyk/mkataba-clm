@@ -994,3 +994,88 @@ The prompt's translation rules are untouched. Readings cached for other
 contracts stay served until their wording moves (their pairing was made
 under the same fault only if the model numbered from one that day; the new
 hash re-asks them on the next press either way).
+
+## C-7 THE UPLOADED CONTRACT'S HEADER BLOCK — MEASURE AND ADVISE FIRST, NOTHING COMES OFF WITHOUT A YES
+
+**The owner's brief, 11 Sep 2026, verbatim and whole. It is an instruction to
+MEASURE and PROPOSE, not to build; the proposal goes back to the owner and
+waits for their yes before a line of code:**
+
+> On the Document tab of a contract that was UPLOADED (not drafted from a
+> template), the block above the wording does not look like the rest of the
+> product. It reads "External Document · received · MK-000" in small mono
+> capitals, with the contract's name under it in the platform's typeface, on
+> its own ruled line. An ordinary contract draws the paper's own header there
+> instead — the market, the name set in the document's own typeface, and
+> "Between us and them" — so the same tab looks like two different products
+> depending on where the contract came from.
+>
+> Measure and advise before you write any code. Three things:
+>
+> 1. THE HEADER BLOCK. Tell me what an ordinary contract draws there and what
+>    an upload draws there, side by side. Then tell me what the upload's block
+>    says that the room header twelve pixels above it does not already say —
+>    it already shows the name and the reference — and how many pixels it
+>    costs above the first line of the agreement.
+>
+> 2. WHETHER IT TRAVELS. I believe that block sits outside the owner-only
+>    guard, so it goes into the counterparty's copy and into the exports as
+>    well — meaning the other side reads our own filing language about their
+>    own paper. Check it and tell me either way.
+>
+> 3. THE WORDING SIZE. Where a Word file's text was read out but no structure
+>    was stored, the wording is set one pixel smaller than an ordinary
+>    contract's. Confirm it and tell me what it should be.
+>
+> The FILE STRIP (the quiet line naming the file, who filed it, how well it
+> was read, Download original, Re-read document) is a different thing and I
+> want it to stay — it is a fact about the file. Do not touch it.
+>
+> Then propose what you would do, in plain English, and wait for me to say
+> yes. Removing a block is as much a change as adding one, so nothing comes
+> off that page without my word. Measure it on a real uploaded contract in a
+> browser before you tell me anything, run the six questions, and remember
+> the contract may not lose pixels.
+
+**Where to look when the go comes (pointers, not findings — nothing below
+has been measured yet).**
+
+- The block is written in `uploadDocBody` (js/views/contract.js): a
+  `mb-6 pb-5 border-b` wrapper holding a `text-[10px] font-mono uppercase
+  tracking-[0.2em]` caption from `ct_external_received` (*"External Document
+  · received · {id}"*, both books) and an `<h3 class="font-display …">` of
+  `c.name`. The gold band under it was removed on 26 Aug and its comment
+  records what went and why; the same comment records `OURS` and the crash
+  it fixed — read it before touching the builder.
+- An ordinary contract's head is `docPaperHeadHtml` (the ONE builder for the
+  paper's head — TWO BUILDERS every document body goes through; see THE NEW
+  DESIGN) — market, the name in the document's own face, *"Between us and
+  them"*. `docBody` is the dispatcher (`isUpload → uploadDocBody`,
+  executed → `frozenDocBody`, stored wording → `redlineDocBody`, else
+  template): check what `frozenDocBody` draws for an EXECUTED upload too,
+  and `renderShareViewer` / `viewBody` for the read-only copy.
+- Question 2 is answered by reading, then proving: which builders the share
+  payload's `viewBody` and the two exporters (`exportWordTracked`, the PDF)
+  call, and whether `PORTAL_MODE` or `opts.readonly` ever reaches
+  `uploadDocBody`. The owner's belief is a hypothesis; the answer is the
+  counterparty's page opened in a browser off a real share of an uploaded
+  contract, byte-compared as clause-editor-verify section 11 does.
+- Question 3: `uploadDocBody`'s plain branch and `documentTextHtml`
+  (`doc-t-*`), the `scaled()` helper, and `.doc-pre` at
+  `parseFloat(size)-1.5` — measure the computed `font-size` of the first
+  paragraph of the wording on (a) a template draft, (b) an upload with
+  structure stored (`docxHasStructure` true), (c) an upload with text only.
+  The contract's own size is the sheet's (THE READER'S TEXT SIZE, base 15
+  × `--doc-scale`); a branch that sets its own is the fault if so.
+- Question 1's pixel count is THE SIX QUESTIONS' refusal 3: window top to
+  the first line of the wording, on the same upload, before and after any
+  proposal — the contract may not lose pixels, and whatever chrome comes off
+  is not put anywhere else on the paper.
+- The file strip (`ct_file_strip*`, the acts `flex:none`, facts elide; see
+  THE FILE'S OWN SHAPE and THE AUDIT OF J-1 TO J-3) is out of scope by the
+  owner's word.
+- The proposal, when written, is one plain-English page: the three answers
+  with their numbers, then what would be done, then the yes/no. Stale keys
+  to name if the block goes: `ct_external_received` (both books, left
+  inert); `ct_received_read_below`, `ct_on_their_paper`,
+  `ct_executed_outside` are ALREADY stale (THE UPLOAD NAMES OUR ENTITY).
