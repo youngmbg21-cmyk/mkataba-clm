@@ -1526,7 +1526,9 @@ function capAiInput(req, res, next) {
    so; the count is deliberately NOT surfaced per-contract — telling someone
    "4 contracts were withheld" is a smaller leak than naming them, but it is
    still a leak, so nothing about the dropped rows travels. */
-const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'feeMin', 'feeMax'];
+const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'feeMin', 'feeMax',
+  /* audit phase 1: the converted figures Copilot's tools carry are money too */
+  'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut', 'monetary'];
 function scopeAiPortfolio(req, res, next) {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
@@ -5847,6 +5849,7 @@ function copilotDetail(ctx, id) {
     found: true, id: c.id, name: c.name || c.id, counterparty: c.counterparty || 'none',
     folder: c.folder || '', template: c.template || '', isUpload: c.source === 'upload',
     value: Number(c.value) || 0, monetary: c.valueType !== 'none', valueType: c.valueType || 'standard',
+    ...copilotMoneyOf(c),
     status: c.status || '', effectiveDate: (c.fields && c.fields.effDate) || '',
     expiry: c.expiry || '', daysUntilExpiry: d,
     openFindings: open.map(f => ({ severity: f.sev, kind: f.kind, title: f.title, why: f.why })),
@@ -5869,9 +5872,27 @@ function copilotDetail(ctx, id) {
        It was not refusing and it was not inventing; it was blind. */
     standardsReview: copilotStoredPlaybook(c),
   };
-  if (!ctx.money) { delete detail.value; delete detail.valueType; delete detail.monetary; }
+  if (!ctx.money) copilotStripMoney(detail);
   return detail;
 }
+/* ---- MONEY IN ITS OWN CURRENCY, FOR COPILOT (audit phase 1, 11 Sep 2026) ----
+   `value` is the figure AS WRITTEN on the contract, in the contract's OWN
+   currency; the model was handed it with no code and no conversion, added
+   kronor to euros and printed the workspace code over the sum (918M against a
+   true 833M, twice). Beside it now: the code, the converted figure through
+   fxHome — the ONE arithmetic every screen uses — the home code, and
+   `valueRateMissing` where no rate is on file (left out and SAID, never
+   guessed; fxHome answers 0 there, so the converted figure is null rather than
+   a zero that would be read as a value). */
+const COPILOT_MONEY_KEYS = ['value', 'valueType', 'monetary', 'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut'];
+function copilotMoneyOf(c) {
+  const h = fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} });
+  return { currency: contractCurrency({ metadata: c.metadata || {} }), homeCurrency: orgJx().currency,
+    valueInHomeCurrency: h.missing ? null : h.v, valueRateMissing: !!h.missing };
+}
+/* THE WALL: a reader without can_view_values receives money through no key,
+   old or new. One list, asked here and by scopeAiPortfolio. */
+function copilotStripMoney(o) { for (const k of COPILOT_MONEY_KEYS) delete o[k]; return o; }
 /* ---- THE STORED STANDARDS REVIEW, REDUCED TO WHAT AN ANSWER RESTS ON ----
    SCOPE AND MONEY HOLD BY CONSTRUCTION, and it is worth saying out loud: this
    is the workspace's own standards and its own verdicts on its own contract,
@@ -5984,6 +6005,13 @@ function copilotList(ctx, filter = {}) {
   const rows = db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
     .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
   let cs = rows;
+  /* ARCHIVED IS OFF EVERY OTHER LIST AND COUNT (audit phase 2, 11 Sep 2026):
+     the register, the Home cards, the calendar, the sweeps all leave the
+     shelf out (the archive section of the rulebook); this list did not, so
+     Copilot's totals could disagree with the register head. The same
+     reading — `c.archived` set — off the record, as the screens read it;
+     `archived:true` includes the shelf deliberately. */
+  if (!filter.archived) cs = cs.filter(c => !c.archived);
   if (filter.status) cs = cs.filter(c => (c.status || '') === filter.status);
   if (filter.folder) cs = cs.filter(c => (c.folder || '') === filter.folder);
   // A minimum-value filter is itself a way to read values by binary search, so
@@ -5999,11 +6027,21 @@ function copilotList(ctx, filter = {}) {
      the model to say the row list is partial. */
   const shown = cs.slice(0, 40).map(c => {
     const d = copilotDaysUntil(c.expiry);
-    const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
-    if (!ctx.money) delete row.value;
+    const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, ...copilotMoneyOf(c), expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
+    if (!ctx.money) copilotStripMoney(row);
     return row;
   });
-  return { total: cs.length, shown: shown.length, truncated: cs.length > shown.length, contracts: shown };
+  const out = { total: cs.length, shown: shown.length, truncated: cs.length > shown.length, contracts: shown };
+  /* THE TOTAL IS CONVERTED HERE, over the WHOLE filtered set (not the 40
+     shown), so the model never adds anything itself; what had no rate is
+     counted per currency and said. The wall holds: neither key travels to a
+     reader without can_view_values. */
+  if (ctx.money) {
+    out.homeCurrency = orgJx().currency;
+    out.valueTotalInHomeCurrency = cs.reduce((s, c) => s + fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} }).v, 0);
+    out.valueLeftOut = fxMissing(cs.map(c => ({ ...c, status: c.status })));
+  }
+  return out;
 }
 
 /* ---- the workspace playbook, read where the server stands ----
@@ -6275,17 +6313,20 @@ function copilotInsightsPanel(clientCtx, name) {
   return Object.assign({ found: true }, d);
 }
 
+/* Said on every tool that carries money, both hosts (js/ai.js mirrors it). */
+const COPILOT_MONEY_NOTE = 'MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated.';
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet. Use when the user names a party or topic rather than an exact id.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
-  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions.',
+  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
-  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace by status, folder, expiry horizon, or minimum value. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals"). Returns at most 40 rows plus the TRUE total — when "truncated" is true, quote "total" as the count and say the row list was capped.',
+  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace by status, folder, expiry horizon, or minimum value. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals"). Returns at most 40 rows plus the TRUE total — when "truncated" is true, quote "total" as the count and say the row list was capped. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: {
       status: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'Optional status filter.' },
       folder: { type: 'string', description: 'Optional value-stream folder id.' },
+      archived: { type: 'boolean', description: 'Archived (shelved) contracts are left out by default, as every screen leaves them out; true includes them.' },
       expiringWithinDays: { type: 'number', description: 'Optional: only contracts expiring within this many days.' },
       minValue: { type: 'number', description: 'Optional: only contracts worth at least this much, in the workspace currency.' } } } },
   { name: 'compare_contracts', description: 'Fetch two or more contracts in full at once for a side-by-side comparison. Prefer this over multiple get_contract calls when comparing.',
@@ -6419,7 +6460,9 @@ function buildCopilotSystem(context, scopeCtx) {
   // counted over the caller's own scope, so the opening line of every Copilot
   // conversation is not itself a disclosure of the wider portfolio's size.
   const fs = scopeFrag(scopeCtx.scope);
-  const counts = db.prepare(`SELECT status, COUNT(*) n FROM contracts ${whereOf('org_id=?', fs.sql)} GROUP BY status`).all(scopeCtx.org, ...fs.args);
+  /* NOT_ARCH: the shelf is off the workspace line, as it is off /api/stats
+     and every screen (audit phase 2). */
+  const counts = db.prepare(`SELECT status, COUNT(*) n FROM contracts ${whereOf('org_id=?', NOT_ARCH, fs.sql)} GROUP BY status`).all(scopeCtx.org, ...fs.args);
   const total = counts.reduce((s, r) => s + r.n, 0);
   const byStatus = counts.map(r => `${r.status || 'Unknown'}: ${r.n}`).join(', ') || 'none';
   const folders = db.prepare(`SELECT DISTINCT folder FROM contracts ${whereOf('org_id=?', "folder<>''", fs.sql)}`).all(scopeCtx.org, ...fs.args).map(r => r.folder).filter(Boolean);
@@ -6466,7 +6509,8 @@ HOW TO WORK:
 - QUESTIONS ABOUT A CHART ON INSIGHTS → PORTFOLIO — the workload runway, the renewal runway, money held back, promises still live, won and lost — are answered from get_insights_panel. Quote its figures rather than recomputing them from list_portfolio, and when the question is WHY a bar is big, name that bucket's drivers (the two or three contracts carrying it) and its "why" counts — a start date defaulted to the signature date, or work whose start and end fall in one month. Reading the total back to somebody who is looking at the chart is not an answer. Say what the panel excludes whenever its "excluded" block is not empty.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
-- Contract ids look like MK-103. Money is in ${orgJx().currency}.
+- Contract ids look like MK-103. THE NUMBER IN AN ID IS A COUNTER, NOT A COUNT: it only ever goes up, is never reused or rewound, and is spent by deleted contracts and abandoned drafts alike — so MK-397 says nothing about how many contracts exist. Count contracts from list_portfolio's "total", never from the highest id.
+- MONEY: the workspace currency is ${orgJx().currency}; each contract states its OWN currency and its "value" is in that currency. Never add values across currencies and never convert by yourself — the tools carry converted figures ("valueInHomeCurrency", "valueTotalInHomeCurrency") and say what was left out for want of a rate ("valueLeftOut"); quote those, and say what was left out.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
 
