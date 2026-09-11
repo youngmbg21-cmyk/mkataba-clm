@@ -137,6 +137,19 @@ the negotiation page's handler is the model and the editor must not grow a
 second one. Measured with a real drag over a non-edited clause, heading
 included, in round-two-comments-verify's own shape.
 
+## THE OWNER'S ANSWER ON ITEM 2 (later the same evening)
+
+*"Slight blur the negotiate background so that you can still see the writing
+in the contract. And pressing the blurred area should close the drawer."*
+- A SLIGHT blur — the contract stays readable through it (measure: a small
+  `backdrop-filter: blur(...)` with no darkening that would fail the wording's
+  contrast; the wording must still be legible in the browser file).
+- The blurred area is a door: pressing it closes the drawer, the alerts panel's
+  own rule. The 27 Aug ruling (no scrim, no outside-press close on the notes
+  face) is REVERSED for this page and stays for every other.
+- "The negotiate background" is read as the NEGOTIATION PAGE. The clause
+  editor is not included unless the owner says so.
+
 ## ORDER WHEN THE OWNER SAYS GO
 
 7 (one line), 4 (one rule, measured), 1/5 (one builder, the filed pin quotes
@@ -146,5 +159,5 @@ whether the blur may close the drawer on an outside press).
 
 ## STILL WAITING FOR
 
-The owner's go, and their word on item 2 (the negotiation page alone, or the
-clause editor too; and whether pressing the blurred page closes the drawer).
+The owner's go. Item 2 is answered (above); whether the clause editor gets
+the blur too is still theirs to say.
