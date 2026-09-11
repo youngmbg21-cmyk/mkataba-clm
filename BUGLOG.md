@@ -12781,3 +12781,24 @@ Noticed, not fixed
 - The clause editor does not blur behind the drawer — "the negotiate page" was read as the negotiation page; the editor covers it.
 - `.nego-scroll` glides: a probe that assigns `scrollTop` and measures in the same evaluate reads the old place (learned twice in H3).
 - The Document tab's own highlight menu (Simplify · Ask Copilot) is still untouched.
+
+### Overnight run: comments round four and the Copilot audit (Young, 11–12 Sep 2026; WORKORDER-comments-round-four.md, WORKORDER-copilot-audit.md)
+Defects found
+- The notes drawer's blur on the negotiation page (round three) is gone at the owner's word; the 27 Aug ruling stands everywhere.
+- A new comment's marker arrived only on a later paint or a refresh: posting repainted the drawer, not the paper. `rlRepaintNoteMarks` repaints every mounted canvas at the post and at every act; measured on the paper within 60 ms of Add note.
+- A marker press opened the drawer on the room it last showed, so a note in the other room was never found: the room is read off the note before the paint; measured landing lit in the external room.
+- Suggest deleting a whole paragraph was refused as "the whole clause" (the line emptied); only an empty clause refuses now; measured as a filed deletion with the strike on the paper.
+- Reply was drawn on roots only; every note draws it, the box opens under the note pressed, the answer joins the root flat.
+- No door onto deleting a note: Delete beside Done on the reader's own notes, greyed with the reason once delivered or on a root with replies; the model refuses both and takes the contract's own thread as a home.
+- After a verb the reader had to click into the box: the caret goes to the ask box after Ask/Edit and to the note box after Comment (reverses round two's rule at the owner's word; four browser checks re-pointed).
+- Copilot added values across currencies (918M vs 833M): every tool row carries its code, the converted figure and "no rate" as a fact; totals are converted server-side over the whole filtered set; the wall strips every new key (asserted both ways); both brains' rulebooks say so; the browser snapshot's stream half converts.
+- Archived contracts were on Copilot's list and counts while off every screen: off by default, `archived:true` includes them.
+- Copilot read MK-397 as 397 contracts: both stable blocks say the id is a counter.
+- list_portfolio offered four filters against the graph's fourteen: one predicate (js/graphwhere.js) on both hosts; paging with offset; search paged with scope on every page and the true count stated; the browser's brain gains check_against_playbook and the tool-name sets are pinned equal; get_obligations and get_contract_history on both hosts.
+Proved: f304 (10) and f305 (33) new; f245, f264, f302, f303, F96, f232, f148, f218, f216, f151, f202, f203, f230, f299, f133, f48, f290 green; lint 0 errors; round-two-comments-verify 32/32, notes-two-rooms-verify 73/73, clause-editor-verify 257/257, clause-door-verify 118/118, insights-panels-verify (see the run line below); full suite once at the end.
+Noticed, not fixed
+- Cutting the START of a paragraph in the clause editor leaves a lowercase remainder that the text→rich lift re-flows into the paragraph above (measured in the parity harness: two lines became one). The whole-paragraph case the owner reported is fixed; the partial-start case is not.
+- `AI_CHAT_TURNS` went 8 → 14 as the order allowed; the owner may want a different number.
+- The server's card for the where-filter reads `notRead` off the briefs table, the stored review and the scan; the browser's `copilotRead` may count differently at the edges (a risk scan against the CURRENT wording) — the two answer the same question from their own readings.
+- The audit trail's money redaction for a no-values reader is by words (value, amount, price, fee, worth, currency codes) — coarse on purpose; a line about money written in other words would pass.
+- The Document tab's own highlight menu (Simplify · Ask Copilot) is still untouched.

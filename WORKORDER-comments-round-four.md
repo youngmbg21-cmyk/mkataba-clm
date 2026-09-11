@@ -3,7 +3,9 @@
 **WRITTEN 11 Sep 2026, late night, after round three went to main.** The
 owner's instruction, in their own words: *"ADD THESE TO A WORK ORDER."*
 
-**THE GATE ON ALL OF IT: nothing here is coded until the owner says go.** When
+**BUILT overnight on the owner's "Start from the latest main. Fix all of them in an autonomous overnight work session."** All eight items landed; the three open choices were taken as this order proposed (blur off with no outside-press close; no delete of a root with replies, admin not widened; the note comes at Save) and said in the summary. Record: CLAUDE.md (COMMENTS, ROUND FOUR), docs/MAP-HISTORY.md, BUGLOG.md; nets f304 (10), round-two-comments-verify I1–I6.
+
+**THE GATE THAT STOOD BEFORE: nothing here is coded until the owner says go.** When
 they do, the standing instruction of round three applies: for each item, say
 what the general practice in contract software is and what SAP's design would
 spend on it, before building, and add nothing the item did not ask for.

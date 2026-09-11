@@ -4,7 +4,9 @@
 work order as well but do not code yet."* Recorded verbatim below; nothing is
 coded until the owner says go.**
 
-**THE GATE: nothing here is coded until the owner says go.** When they do, the
+**BUILT overnight, all eight phases, each in its own commit (phases 1–3 together, phases 4–8 together), on the owner's go.** Record: CLAUDE.md (THE COPILOT AUDIT), docs/MAP-HISTORY.md, BUGLOG.md; net f305.
+
+**THE GATE THAT STOOD BEFORE: nothing here is coded until the owner says go.** When they do, the
 order runs phase by phase exactly as written; each phase is a complete change
 on its own, committed with a message naming the phase.
 
