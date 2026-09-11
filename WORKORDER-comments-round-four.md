@@ -44,6 +44,13 @@ spend on it, before building, and add nothing the item did not ask for.
    the notes panel so i can enter my notes."* (Image 5: a Copilot card's
    Apply; the paper beside it shows the struck and inserted wording.)
 
+8. *"the last one, when you click on any of the option on the drop down, the
+   cursor should take you to the entry field in copilot or notes entry
+   section. You should not have to click into them"* (Image: the clause
+   editor; a highlight on Clause 9 with the three-row menu open beside it;
+   the rail on the right holds the words under ASKING ABOUT · CLAUSE 9 and
+   the empty box *Ask about these words…* below, with no caret in it.)
+
 ## WHAT EACH ONE LOOKS LIKE FROM HERE (to be MEASURED before a line moves)
 
 **1 — REPLY ON ANY NOTE.** Today the note row draws Reply and Done only where
@@ -155,12 +162,27 @@ The general practice (Word's tracked changes, the redlining tools serious
 contract software follows) is (b): a suggestion is applied, reviewed, then
 committed with its comment. The order proposes (b) unless the owner says (a).
 
+**8 — THE VERB PUTS THE CARET IN THE BOX.** Today the three verbs deliberately
+leave the caret where it was (round two's *attaching never takes the caret*,
+written so the paper's own selection survived the press). The owner rules
+the other way: after Ask Copilot or Edit with Copilot the caret goes into
+the rail's ask box (`#ce-ask`), and after Comment into the drawer's note box
+(`.rl-np-in`, the room the pin opens on) — on both papers, the negotiation
+page's and the editor's, and on their page's aside for Comment. The
+selection on the paper may go with it: the words are already held (the pin,
+or the held passage in the rail), so nothing is lost. `focus()` with
+`preventScroll` where the box is already on screen; where the drawer or the
+editor is still sliding in, focus after its paint (the drawer's own
+`trapFocus` already moves focus into the panel — check it lands on the BOX,
+not the first control). Measured in the browser file: `document.activeElement`
+is the box after each of the three presses, on both papers.
+
 ## ORDER WHEN THE OWNER SAYS GO
 
 3 (a reversal, one function), 5 (a late paint — repaint the marks at the post), 4 (measure
 which case misses), 6 (measure the refusal), 1 (one gate widened, one key on
 the post), 2 (one door on an act that exists, three refusals in words), 7
-(after the owner's (a)/(b)). Nets: f304 grows a section per item;
+(after the owner's (a)/(b)), 8 (focus on the three verbs, both papers). Nets: f304 grows a section per item;
 round-two-comments-verify gains a real press on a reply's Reply and on Delete
 (the greyed delivered case measured, not described); f264's three-acts claims
 re-pointed where the delete reaches the drawer.
