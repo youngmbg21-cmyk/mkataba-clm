@@ -3333,6 +3333,100 @@ const dismissNote = async pg => {
      seen30.chips.length === 4 && !seen30.chips.some(t => /softer/i.test(t)),
      JSON.stringify(seen30.chips));
 
+  /* ---- 31. THE PENCIL FILES ON ONE PRESS (Young reported it 11 Sep 2026) ----
+     "after i make a redline then try to click on the pencil sign, the first
+     time it does not work and then i have to click on it a second time."
+     A REAL PRESS, NOT .click(): the fault lives between mousedown and mouseup —
+     the mousedown blurred the box, the blur spoke a sentence into the toolbar
+     row, the sentence took width from the tools, the tools wrapped, the row
+     grew 36px and the pencil moved out from under the pointer, so the mouseup
+     landed on a paragraph and no click was ever fired. .click() dispatches the
+     event on the element and cannot see any of that. Every claim below is a
+     RELATION (the pencil's top with the button held equals its top before; the
+     row's height with the line on equals its height with it off), never a
+     number. AGAINST THE PARENT: 31a reports the pencil ~36px lower and nothing
+     filed; 31c reports the row taller with the line on. */
+  await answerLeave(p); await skipNote(p);
+  await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+  await pause(300);
+  const cl31 = await p.evaluate(() => {
+    const list = negoClauseList(window.CONTRACT);
+    const cl = list.find(x => (x.text || '').length > 60
+      && !(window.CONTRACT.changes || []).some(ch => ch.clauseId === x.clauseId)) || list[0];
+    return cl ? cl.clauseId : null; });
+  await p.evaluate(cid => rlOpenClauseEditor(window.CONTRACT, cid, { typing: true }), cl31);
+  await pause(700);
+  await p.evaluate(() => {
+    const b = document.getElementById('ce-clausebody'); b.focus();
+    const r = document.createRange(); r.selectNodeContents(b); r.collapse(true);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); });
+  await p.keyboard.type('Notwithstanding the above, ');
+  await pause(300);
+  const pen31 = await p.$('#clause-editor .rl-clause-live [data-ce-pencil]');
+  const box31 = pen31 ? await pen31.boundingBox() : null;
+  const n31 = await p.evaluate(() => (window.CONTRACT.changes || []).length);
+  let held31 = null;
+  if (box31){
+    await p.mouse.move(box31.x + box31.width / 2, box31.y + box31.height / 2);
+    await p.mouse.down(); await pause(150);
+    held31 = await p.evaluate(() => {
+      const n = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
+      const row = document.querySelector('.ce-barrow');
+      return { top: n ? n.getBoundingClientRect().top : -1,
+        row: row ? row.getBoundingClientRect().height : -1 }; });
+    await p.mouse.up(); await pause(600);
+  }
+  const after31 = await p.evaluate(() => ({
+    n: (window.CONTRACT.changes || []).length,
+    note: !!document.getElementById('rl-note-overlay') }));
+  ck('31a ONE real press on the pencil files the redline — the reported gesture',
+     !!box31 && after31.n === n31 + 1 && after31.note,
+     `changes ${n31} → ${after31.n} · note window ${after31.note}`);
+  ck('31b and the pencil did not move while the button was held',
+     !!box31 && !!held31 && Math.abs(held31.top - box31.y) < 1,
+     `top before ${box31 && box31.y.toFixed(1)} · held ${held31 && held31.top.toFixed(1)}`);
+  await skipNote(p);
+  /* THE ROW'S HEIGHT IS THE SAME WITH THE LINE ON AND OFF, at the width where
+     the tools fill one line with little slack (the reported window) and at the
+     page's floor, 1024. Measured, and the sentence is forced through the page's
+     own speaker so the claim does not depend on which sentence the blur spoke. */
+  const rowAt = async w => {
+    await p.setViewportSize({ width: w, height: 1000 }); await pause(400);
+    return p.evaluate(() => {
+      const row = document.querySelector('.ce-barrow'); if (!row) return null;
+      const el = document.getElementById('ce-say');
+      el.classList.remove('is-on'); el.textContent = '';
+      const off = row.getBoundingClientRect().height;
+      window.ceSay('A refusal sentence long enough to need some room on the row');
+      const on = row.getBoundingClientRect().height;
+      const sayW = el.getBoundingClientRect().width;
+      el.classList.remove('is-on');
+      return { off, on, sayW }; });
+  };
+  const r1500 = await rowAt(1500), r1200 = await rowAt(1200), r1024 = await rowAt(1024);
+  ck('31c the toolbar row is the same height with the sentence on and off, at 1500 / 1200 / 1024',
+     !!r1500 && !!r1200 && !!r1024 && r1500.on === r1500.off && r1200.on === r1200.off && r1024.on === r1024.off,
+     `1500 ${r1500 && r1500.off}→${r1500 && r1500.on} · 1200 ${r1200 && r1200.off}→${r1200 && r1200.on} · 1024 ${r1024 && r1024.off}→${r1024 && r1024.on}`);
+  ck('31d and where the row has room the sentence is drawn on it',
+     !!r1500 && r1500.sayW > 60, `say width at 1500: ${r1500 && r1500.sayW.toFixed(0)}px`);
+  /* WHERE THE ROW HAS NO ROOM THE SENTENCE STILL REACHES THE READER, through
+     the toast — this harness page carries no toast root, so the call itself is
+     what is measured. */
+  const toasted31 = await p.evaluate(() => {
+    const seen = [];
+    const real = window.toast;
+    window.toast = (m, k) => { seen.push({ m, k }); };
+    try{ window.ceSay('A refusal sentence long enough to need some room on the row'); }
+    finally { window.toast = real; }
+    const el = document.getElementById('ce-say'); el.classList.remove('is-on');
+    return seen; });
+  ck('31e at 1024 the sentence goes out through the toast as well, so a refusal is never a dead press',
+     toasted31.length === 1 && /refusal sentence/.test(toasted31[0].m) && toasted31[0].k === 'warn',
+     JSON.stringify(toasted31));
+  await p.setViewportSize({ width: 1500, height: 1000 }); await pause(300);
+  await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+  await answerLeave(p); await pause(200);
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

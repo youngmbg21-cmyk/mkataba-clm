@@ -350,8 +350,24 @@ function clauseEditorCss(){
     min-height:44px; padding:5px 12px; border-bottom:1px solid var(--color-divider)}
   .ce-barg{flex:1; min-width:0}
   .ce-barrow .ce-bar{border:0; padding:0; min-height:0}
-  .ce-barrow .ce-say{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+  /* ---- THE SAY LINE MAY ONLY TAKE FREE SPACE (Young reported it 11 Sep 2026:
+     "the first time it does not work and then i have to click on it a second
+     time") ----
+     MEASURED with the mouse button HELD on the pencil: the row was 45px before
+     the press and 81px during it, and the pencil sat 36px lower than where the
+     button went down. The mousedown blurs the box; the blur spoke into this
+     span; the span took up to 300px from the tools beside it; the tools wrapped
+     onto a second line and pushed the paper down under the reader's hand, so
+     the mouseup landed on a paragraph and the browser never called it a click.
+     A basis of ZERO is the guarantee: a flex item with no basis can only grow
+     into space nobody else is using, so this line can never take width from
+     the tools, and the row's height with the line on is its height with the
+     line off, by construction. Where there is no free space the sentence goes
+     out through the toast instead — see ceSay. */
+  .ce-barrow .ce-say{flex:999 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap}
+  /* the spacer yields to the sentence: 999 against 1 leaves the way-out at the
+     wall and gives the line every free pixel up to its cap */
   /* ---- THE WAY OUT WEARS ITS WORD ----
      It was a 28px square holding the symbol alone. The box grows to fit the
      word rather than the word being squeezed into the box, so nothing else on
@@ -2611,8 +2627,14 @@ function cePullText(opts){
   const headMoved = nextHead !== _ceHead;
   if (next === _ceText && !headMoved) return;
   _ceHead = nextHead;
+  /* QUIET (11 Sep 2026): the reader typed these words themselves, and
+     "Applied to the wording below" was their own act read back to them — and
+     it was spoken on the BLUR a mousedown causes, which is what grew the
+     toolbar row under the pencil (see .ce-say). Every other speaker of that
+     sentence — a card's Apply, a playbook standard, a passage rewritten in
+     place — is untouched. */
   ceApply(next, (headMoved && next === _ceText) ? _cet('ce_step_named') : _cet('ce_step_typed'),
-    { keepView: true, headMoved, repaint: corrected || !!(opts && opts.repaint) });
+    { keepView: true, headMoved, repaint: corrected || !!(opts && opts.repaint), quiet: true });
 }
 
 function ceRenderFoot(){
@@ -2687,12 +2709,31 @@ function ceRenderFoot(){
   });
 }
 
+/* Below this the say span is showing an ellipsis and a letter or two, which is
+   not a sentence — about eight characters of the label size. See ceSay. */
+const CE_SAY_MIN_W = 60;
 function ceSay(msg){
   const el = _ceQ('#ce-say'); if (!el) return;
   clearTimeout(_ceSayTimer);
   el.textContent = msg; el.classList.add('is-on');
   _ceSayTimer = setTimeout(() => { try{ el.classList.remove('is-on'); }catch(_){} }, 3200);
+  /* ---- AND WHERE THE ROW HAS NO ROOM, THE SENTENCE STILL REACHES THE READER
+     (11 Sep 2026) ----
+     The span may only take FREE space on the toolbar row (see .ce-say in the
+     sheet), so on a window where the tools already fill the row it measures
+     nothing at all — and a refusal spoken into a zero-width span is a dead
+     press, which is the fault this page's own rule exists to refuse. The order
+     asked for a reserved row under the toolbar there; that row would stand
+     between the toolbar and the wording at every width where it is drawn,
+     which is exactly the growth refusal 3 forbids. The TOAST is the rung that
+     moves nothing: a transient line, gone by itself, the same words. Chosen by
+     MEASUREMENT of this span rather than by a breakpoint, so a font, a zoom or
+     a longer word set cannot put the sentence in the wrong place. */
+  let w = 0;
+  try{ w = el.getBoundingClientRect().width; }catch(_){ w = 0; }
+  if (w < CE_SAY_MIN_W && typeof toast === 'function') toast(msg, 'warn');
 }
+
 
 /* ============================================================================
    APPLY — THE ONE WAY WORDING MOVES
