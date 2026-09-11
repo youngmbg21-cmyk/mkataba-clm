@@ -763,6 +763,8 @@ function clauseEditorCss(){
     font:inherit; font-size:var(--t-label); background:none; border:0;
     color:var(--color-neutral-600); cursor:pointer}
   .ce-scope .x:hover{color:var(--color-text)}
+  .ce-card.ce-ans q.aq{display:block; margin:6px 0 2px; padding-left:8px; quotes:none; white-space:pre-line;
+    border-left:2px solid var(--accent-fill); font-style:italic; color:var(--color-text)}
   .ce-scope q{display:block; margin-top:5px; padding-left:8px; quotes:none;
     border-left:2px solid var(--accent-solid);
     font-size:var(--t-label); line-height:1.55; color:var(--color-text);
@@ -1838,7 +1840,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   ceRenderAll();
   /* The paper's Ask Copilot names the words it was pressed on; they go to
      the rail once the page is drawn. */
-  if (opts && opts.passage) setTimeout(() => { try { ceAttachWords(opts.passage); } catch (e){} }, 0);
+  if (opts && opts.passage) setTimeout(() => { try { ceAttachWords(opts.passage, opts.passageMode); } catch (e){} }, 0);
   /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
@@ -2456,6 +2458,9 @@ function ceRenderPaper(){
       canEdit: true,
       noAi: true,
       live: { clauseId: _ceClauseId, html: body,
+        /* Whether the draft has moved off what stands — the canvas draws the
+           ruby bar only then (11 Sep 2026). */
+        moved: _ceText !== _ceBase || _ceHead !== _ceHeadBase,
         ...(headBox == null ? {} : { head: headBox }) },
       /* THE PENCIL IS THE PRODUCT'S OWN and this page only says what its own
          one does: here it turns typing on and off, and on another clause it
@@ -2921,6 +2926,19 @@ function ceRenderLane(){
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
   if (t.greeting) return ceGreetingHtml();
+  /* AN ANSWER, NOT A PROPOSAL: the words it was about, the reading, and the
+     one way on — Edit with this. No Apply, no Refine, no vote on wording. */
+  if (t.asking) return `<div class="ce-ai">${
+    t.text ? `<p class="t">${_cee(t.text)}</p>` : ''}${
+    (t.read && t.read.length) ? `<ul class="ce-read">${t.read.map(r =>
+      `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}
+    <div class="ce-card ce-ans">
+      <div class="n"><span>${_cee(_cet('ce_answer'))}</span><span class="g"></span></div>
+      ${t.passage ? `<q class="aq" title="${_ceea(t.passage.text)}">${_cee(t.passage.text)}</q>` : ''}
+      <div class="av"><span class="g"></span>
+        ${ceUnderDeletion() ? '' : `<button type="button" class="p" data-ce-edit-with="${i}">${_cet('ce_edit_with_this')}</button>`}
+      </div>
+    </div></div>`;
   return `<div class="ce-ai">${
     t.text ? `<p class="t">${_cee(t.text)}</p>` : ''}${
     (t.read && t.read.length) ? `<ul class="ce-read">${t.read.map(r =>
@@ -2950,7 +2968,7 @@ function ceCardHtml(card, i, j){
      Apply is refused. So the two verbs that would put it there are not drawn:
      a verb that cannot work is not drawn, and a card offering Refine over an
      Apply that refuses is the same dead press one step further away. */
-  const offerWording = !!card.text && !ceUnderDeletion();
+  const offerWording = !!card.text && !ceUnderDeletion() && card.mode !== 'ask';
   return `<div class="ce-card">
     <div class="n"><span>${_cee(card.name || _cet('ce_suggestion'))}</span><span class="g"></span>${
       card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
@@ -2984,7 +3002,10 @@ function ceRenderChips(){
      box and pressed through the same ceAsk, so what narrows the ask is the
      PASSAGE rather than which chip was pressed. One attribute, one row, one
      line that draws it either way. */
-  if (_ceSel){
+  if (_ceSel && _ceSel.mode === 'ask'){
+    /* ASK: questions, not rewrites — nothing here can end in an Apply. */
+    qs.push(_cet('ce_q_words_mean'), _cet('ce_q_words_standard'), _cet('ce_q_words_risk'));
+  } else if (_ceSel){
     qs.push(_cet('ce_inline_shorten'), _cet('ce_inline_firmer'), _cet('ce_inline_plain'));
   } else {
     const on = ceOnTable(), theirs = on.find(x => x.authorSide === 'counterparty');
@@ -3120,6 +3141,12 @@ async function ceAsk(question, opts = {}){
      pressed minutes later, and a card that asked about one sentence may never
      replace another. */
   const scope = _ceSel;
+  /* ASK IS A QUESTION (Young, 11 Sep 2026, evening: "ask copilot simply
+     allows you to ask a question but not edit"). Under an 'ask' passage the
+     prompt asks for an explanation, the answer is drawn as a reading with no
+     Apply anywhere, nothing is recorded as proposed, and the one way on is
+     Edit with this on the answer card (ceEditWith). */
+  const asking = !!(scope && scope.mode === 'ask');
   if (!opts.silent) _ceThread.push({ who: 'you', text: q });
   _ceBusy = true;
   ceRenderLane();
@@ -3142,7 +3169,7 @@ async function ceAsk(question, opts = {}){
     res = await copilotPropose({
       /* ONE CALL, TWO SCOPES. The prompt says which, so an answer meant to
          replace one sentence is never written as a whole clause. */
-      ask: _cet(scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
+      ask: _cet(asking ? 'ce_prompt_question' : scope ? 'ce_prompt_passage' : 'ce_prompt_ask'),
       passage: scope ? scope.text : (_ceText || _ceBase),
       instruction: q,
       clauseLabel: ceClauseLabel(cl),
@@ -3161,6 +3188,15 @@ async function ceAsk(question, opts = {}){
     return;
   }
   const wording = String(res.proposedText || '').trim();
+  if (asking){
+    const advice = String(res.advice || '').trim();
+    _ceThread.push({ who: 'ai', text: advice || wording, read, asking: true, passage: scope,
+      /* Wording the model volunteered anyway is HELD, not offered: Edit with
+         this turns it into a card with Apply; until then it is nowhere. */
+      held: (wording && advice && wording !== scope.text) ? wording : '' });
+    ceRenderLane();
+    return;
+  }
   const rests = [cePlaybookLine(), cePrecedentLine()].filter(Boolean)[0] || '';
   /* ---- THE PROPOSAL GOES ON THE RECORD THE MOMENT IT IS MADE (idea 22) ----
      RECORDED AT ARRIVAL, NOT AT THE PRESS, and that is the whole reason this
@@ -3403,18 +3439,55 @@ function ceSelectionRead(){
   if (!sel || sel.isCollapsed || !sel.rangeCount) return { why: null };
   const r = sel.getRangeAt(0);
   if (!box.contains(r.commonAncestorContainer)) return { why: null };
-  const text = String(sel.toString() || '').replace(/[^\S\n]+/g, ' ').replace(/\n+/g, ' ').trim();
+  /* ---- READ THE RANGE WITH ITS BREAKS, NOT THE STRING IT PRINTS TO ----
+     (Young, 11 Sep 2026, evening: "When i highlight the whole area or
+     multiple lines, I am unable to edit with copilot.") The paper's own
+     reader (_negoNodeText, through window) puts a newline at every block, in
+     every browser alike; Selection.toString does so only in some. Runs of
+     spaces fold to one, a break stays a break. */
+  let raw = '';
+  try{ raw = (typeof window._negoNodeText === 'function') ? _negoNodeText(r.cloneContents(), null) : String(sel.toString() || ''); }
+  catch(_){ raw = String(sel.toString() || ''); }
+  const text = ceWordsKeepBreaks(raw);
   /* A CLICK IS NOT A REFUSAL. Below this there is nothing a reader could have
      meant, so it answers null rather than naming a reason nobody needs. */
   if (text.length < 3) return { why: null };
-  /* ---- IT HAS TO SIT INSIDE ONE SUB-PARAGRAPH ----
-     A clause's text carries one sub-paragraph per LINE and those line breaks
-     are what the document builder reads back into real numbering. A passage
-     dragged across two of them cannot be replaced without deciding what
-     happens to the break between, so it is refused here rather than silently
-     run together — the same reasoning that refuses a highlight across two
-     clauses on the paper. */
   const lines = ceLines();
+  /* ---- SEVERAL SUB-PARAGRAPHS ARE ONE PASSAGE (reverses the 31 Aug rule) ----
+     A clause's text carries one sub-paragraph per LINE. A selection across
+     two or more of them is found as a run of consecutive lines — the tail of
+     the first, whole middles, the head of the last — and carried with its
+     first and last line, so the ONE replacement (ceReplacePassage) splices the
+     run and keeps every break the reader did not touch. The 31 Aug refusal
+     ("that runs across two sub-paragraphs") is gone; ce_sel_two_paras is
+     inert in both books. */
+  const parts = text.split('\n');
+  if (parts.length > 1){
+    /* THE DRAFT CARRIES A LIST'S NUMBERS AS TEXT ("2. Termination…") where the
+       box draws them as list styling, so a line may begin with a short marker
+       the range never contained: a middle line ENDS with its part, and the
+       last part is found within a marker's width of its line's start. The
+       passage is then carried in the DRAFT'S OWN FORM (markers included) —
+       what the one replacement will find verbatim. */
+    const last = parts.length - 1;
+    const MARK = 8;
+    let li = -1, kEnd = -1;
+    for (let i = 0; i + last < lines.length; i++){
+      if (!lines[i].endsWith(parts[0])) continue;
+      let ok = true;
+      for (let k = 1; k < last; k++) if (!lines[i + k].endsWith(parts[k])){ ok = false; break; }
+      if (!ok) continue;
+      const k0 = lines[i + last].indexOf(parts[last]);
+      if (k0 >= 0 && k0 <= MARK){ li = i; kEnd = k0 + parts[last].length; break; }
+    }
+    if (li < 0) return { why: 'ce_sel_not_in_draft' };
+    const le = li + last;
+    const at = lines[li].length - parts[0].length;
+    const canon = [lines[li].slice(at)].concat(lines.slice(li + 1, le), [lines[le].slice(0, kEnd)]).join('\n');
+    let mrect = null;
+    try{ mrect = r.getBoundingClientRect(); }catch(_){ mrect = null; }
+    return { sel: { text: canon, rect: mrect, line: li, at, lineEnd: le, multi: true, range: r } };
+  }
   let li = -1, at = -1, seen = 0;
   lines.forEach((ln, i) => {
     const k = ln.indexOf(text);
@@ -3427,7 +3500,7 @@ function ceSelectionRead(){
      the passage runs across a line break (the sub-paragraph rule above), or it
      takes in wording that is on the paper and not in the draft — struck-out
      words in the redlined reading are exactly that. */
-  if (li < 0) return { why: /\s/.test(text) && lines.length > 1 ? 'ce_sel_two_paras' : 'ce_sel_not_in_draft' };
+  if (li < 0) return { why: 'ce_sel_not_in_draft' };
   if (seen > 1 && text.length < 40) return { why: 'ce_sel_twice' };   /* ambiguous */
   let rect = null;
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
@@ -3436,6 +3509,22 @@ function ceSelectionRead(){
   return { sel: { text, rect, line: li, at, range: r } };
 }
 function ceSelection(){ return ceSelectionRead().sel || null; }
+/* Wording with its paragraph breaks kept and everything else folded — the one
+   shape a multi-line passage and its replacement are read in. */
+/* The pattern that finds a passage in the box's text: words joined by any
+   whitespace or none (two sub-paragraphs' text nodes touch), and a token that
+   looks like a list marker ("2.", "(b)", "iii)") made optional, because the
+   draft carries it as text where the box draws it as list styling. */
+function ceWordsPattern(text){
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(text || '').split(/\s+/).filter(Boolean)
+    .map(t => /^\(?[0-9a-z]{1,4}[.)]$/i.test(t) ? '(?:' + esc(t) + '\\s*)?' : esc(t))
+    .join('\\s*');
+}
+function ceWordsKeepBreaks(w){
+  return String(w == null ? '' : w).replace(/\r/g, '').replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+}
 /* ---- NOTICED WHILE FIXING THE STRIP, AND DELIBERATELY NOT FIXED ----
    (29 Aug 2026.) With typing OFF, a DRAG in the wording is read as a press in
    the wording: click-to-type runs on the `click` that follows mouseup, starts
@@ -3481,16 +3570,56 @@ function ceMarkHeld(range){
   const box = _ceQ('#ce-clausebody');
   if (!box || !range || !document.createElement) return false;
   ceClearHeld(box);
-  const span = document.createElement('span');
-  span.className = CE_HELD_CLASS;
-  try{ range.surroundContents(span); }
-  catch(_){
-    /* surroundContents throws where the range crosses an element boundary —
-       half a bold run, say. Extract and re-insert handles it, which is the same
-       fallback richMarkSelection has carried since it was written. */
-    try{ span.appendChild(range.extractContents()); range.insertNode(span); }
-    catch(e){ return false; }
+  /* ---- ONE MARK PER TEXT PIECE, NEVER ONE SPAN ROUND THE LOT (11 Sep 2026)
+     ---- A passage across two sub-paragraphs cannot be surrounded by one span
+     (surroundContents throws, and extract-and-reinsert would pull the second
+     paragraph's words INTO the first), so each text node the range touches is
+     wrapped on its own. The wording does not move by a character; the marks
+     come off exactly as before (ceClearHeld unwraps every one). */
+  const pieces = [];
+  try{
+    const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+    let nd;
+    while ((nd = walker.nextNode())){
+      if (!range.intersectsNode(nd)) continue;
+      const a = nd === range.startContainer ? range.startOffset : 0;
+      const b = nd === range.endContainer ? range.endOffset : nd.data.length;
+      if (a < b) pieces.push({ nd, a, b });
+    }
+  }catch(_){ pieces.length = 0; }
+  if (!pieces.length){
+    const span = document.createElement('span');
+    span.className = CE_HELD_CLASS;
+    try{ range.surroundContents(span); }
+    catch(_){
+      try{ span.appendChild(range.extractContents()); range.insertNode(span); }
+      catch(e){ return false; }
+    }
+    return true;
   }
+  const spans = [];
+  for (const { nd, a, b } of pieces){
+    let n = nd;
+    if (b < n.data.length) n.splitText(b);
+    if (a > 0) n = n.splitText(a);
+    const span = document.createElement('span');
+    span.className = CE_HELD_CLASS;
+    n.parentNode.insertBefore(span, n);
+    span.appendChild(n);
+    spans.push(span);
+  }
+  /* THE SELECTION SURVIVES THE MARK. Splitting the text nodes the reader's
+     range sits in can collapse the browser's own selection; it is put back
+     over exactly the held pieces, which is what the rail reads and what the
+     writing bar acts on. */
+  try{
+    const s = window.getSelection && window.getSelection();
+    if (s && spans.length){
+      const r2 = document.createRange();
+      r2.setStartBefore(spans[0]); r2.setEndAfter(spans[spans.length - 1]);
+      s.removeAllRanges(); s.addRange(r2);
+    }
+  }catch(_){}
   return true;
 }
 function ceClearHeld(scope){
@@ -3572,8 +3701,13 @@ function ceOfferPassage(sel){
   const c = _ceC, cid = _ceClauseId;
   const mayNote = !!(c && window.rlNoteFromSelection
     && (typeof window.notesMayWrite !== 'function' || notesMayWrite(c, {})));
-  if (typeof menu !== 'function' || !sel.rect){ ceAttachPassage(sel); return; }
-  const acts = [{ id: 'ask', label: _cet('ng_sel_ask') }];
+  if (typeof menu !== 'function' || !sel.rect){ ceAttachPassage(sel, 'edit'); return; }
+  /* ---- THREE VERBS (Young, 11 Sep 2026, evening) ----
+     Ask Copilot is a QUESTION about the words and touches nothing; Edit with
+     Copilot is what Ask used to be — the words in the rail with the rewrite
+     chips and Apply live; Comment is the drawer. The verb decides whether
+     Copilot may touch the wording (see ceAsk's `asking`). */
+  const acts = [{ id: 'ask', label: _cet('ng_sel_ask') }, { id: 'edit', label: _cet('ng_sel_edit') }];
   if (mayNote) acts.push({ id: 'comment', label: _cet('ng_sel_comment') });
   const kill = () => document.querySelectorAll('.nego-selmenu').forEach(n => n.remove());
   kill();
@@ -3585,7 +3719,7 @@ function ceOfferPassage(sel){
         { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined });
       return;
     }
-    ceAttachPassage(sel);
+    ceAttachPassage(sel, a.id === 'ask' ? 'ask' : 'edit');
   } });
   /* Shut by the next press anywhere else — the page has no room to arm it. */
   const shut = ev => {
@@ -3599,7 +3733,7 @@ function ceOfferPassage(sel){
    gone. The words are found in the box, selected, and read back through the
    ONE selection reading — so the rail holds exactly what a drag would have
    given it, refusals included. Nothing where the words are not in the draft. */
-function ceAttachWords(text){
+function ceAttachWords(text, mode){
   const box = _ceQ('#ce-clausebody');
   const q = String(text || '').replace(/\s+/g, ' ').trim();
   if (!box || !q || !document.createTreeWalker || !window.getSelection) return false;
@@ -3608,8 +3742,9 @@ function ceAttachWords(text){
   while ((nd = walker.nextNode())) nodes.push(nd);
   let full = ''; const starts = [];
   for (const t of nodes){ starts.push(full.length); full += t.data; }
-  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  let re; try { re = new RegExp(q.split(' ').map(esc).join('\\s+'), 'i'); } catch (e){ return false; }
+  /* Whitespace-blind across a break, and a list marker the box does not
+     draw is optional — see ceWordsPattern (11 Sep 2026). */
+  let re; try { re = new RegExp(ceWordsPattern(q), 'i'); } catch (e){ return false; }
   const m = re.exec(full);
   if (!m) return false;
   const at = (pos) => {
@@ -3629,12 +3764,17 @@ function ceAttachWords(text){
   } catch (e){ return false; }
   const read = ceSelectionRead();
   if (!read.sel) return false;
-  ceAttachPassage(read.sel);
+  ceAttachPassage(read.sel, mode);
   return true;
 }
-function ceAttachPassage(sel){
+/* `mode` is the verb the passage arrived under: 'ask' (a question, Copilot
+   touches nothing) or 'edit' (the rewrite chips and Apply). Absent reads as
+   'edit', which is what every older caller meant. */
+function ceAttachPassage(sel, mode){
   if (!sel) return;
-  if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line) return;
+  const m = mode === 'ask' ? 'ask' : 'edit';
+  if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line && (_ceSel.mode || 'edit') === m) return;
+  sel.mode = m;
   _ceSel = sel;
   /* MARKED FROM THE RANGE THE READER JUST MADE, before anything else can
      collapse it. */
@@ -3691,12 +3831,13 @@ function ceRenderScope(){
   const box = _ceQ('#ce-scope');
   const ask = _ceQ('#ce-ask');
   const sel = _ceSel;
-  if (ask) ask.placeholder = _cet(sel ? 'ce_ask_ph_passage' : 'ce_ask_ph');
+  const asking = !!(sel && sel.mode === 'ask');
+  if (ask) ask.placeholder = _cet(sel ? (asking ? 'ce_ask_ph_question' : 'ce_ask_ph_passage') : 'ce_ask_ph');
   if (!box) return;
   if (!sel){ box.innerHTML = ''; return; }
   const where = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
-  box.innerHTML = `<div class="ce-scope">
-    <div class="eb"><b>&#9998; ${_cee(_cet('ce_scope_in', { where }))}</b><span class="g"></span>
+  box.innerHTML = `<div class="ce-scope${asking ? ' is-asking' : ''}">
+    <div class="eb"><b>${asking ? '&#10024;' : '&#9998;'} ${_cee(_cet(asking ? 'ce_scope_asking' : 'ce_scope_in', { where }))}</b><span class="g"></span>
       <button type="button" class="x" data-ce-act="scope-off"
         title="${_ceea(_cet('ce_scope_off'))}" aria-label="${_ceea(_cet('ce_scope_off'))}">&#10005;</button></div>
     <q title="${_ceea(sel.text)}">${_cee(sel.text)}</q>
@@ -3707,9 +3848,9 @@ function ceRenderScope(){
            DEPARTURE FROM THE APPROVED RENDER and is named here: that row holds
            questions that spend money on Copilot, and an act that reaches the
            record is a different kind of thing. */}
-    <button type="button" class="cut" data-ce-act="scope-cut"
+    ${asking ? '' : `<button type="button" class="cut" data-ce-act="scope-cut"
       aria-label="${_ceea(_cet('ce_inline_cut'))}"
-      title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>
+      title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>`}
   </div>`;
 }
 /* ---- THE BAR ACTS ON THE SENTENCE YOU HIGHLIGHTED, WHEREVER THE CARET IS ----
@@ -3735,9 +3876,9 @@ function ceRenderScope(){
 const ceBarMovesShape = k => !!(window.RICH_SHAPE_KEYS && window.RICH_SHAPE_KEYS.has(k));
 function ceBarOnHeld(k){
   const box = _ceQ('#ce-clausebody');
-  const span = box && box.querySelector ? box.querySelector('.' + CE_HELD_CLASS) : null;
+  const spans = box && box.querySelectorAll ? box.querySelectorAll('.' + CE_HELD_CLASS) : [];
   const sel = (typeof window !== 'undefined' && window.getSelection) ? window.getSelection() : null;
-  if (!box || !span || !sel || !window.richBarPress) return false;
+  if (!box || !spans.length || !sel || !window.richBarPress) return false;
   /* THIS OUTLIVES THE PRESS ON PURPOSE. The pull below can rebuild the paper,
      which clears _ceSel — so what the reader was holding is taken now and
      handed back afterwards. (The typed text used to be carried with it; there
@@ -3747,7 +3888,8 @@ function ceBarOnHeld(k){
   let ran = false;
   try{
     const r = document.createRange();
-    r.selectNodeContents(span);
+    /* From the first held piece to the last — one span or several. */
+    r.setStartBefore(spans[0]); r.setEndAfter(spans[spans.length - 1]);
     try{ box.focus({ preventScroll: true }); }catch(_){ box.focus(); }
     sel.removeAllRanges(); sel.addRange(r);
     ran = !!richBarPress(k);
@@ -3782,15 +3924,19 @@ function ceRangeForText(text){
     let n;
     while ((n = walk.nextNode())){ nodes.push({ n, at: flat.length }); flat += n.nodeValue || ''; }
   }catch(_){ return null; }
-  const at = flat.indexOf(want);
-  if (at < 0) return null;
+  /* Whitespace-blind, so a passage that spans two sub-paragraphs (whose text
+     nodes touch with no space between) is found exactly as a one-line one. */
+  let m = null;
+  try{ m = new RegExp(ceWordsPattern(want)).exec(flat); }catch(_){ m = null; }
+  if (!m) return null;
+  const at = m.index, len = m[0].length;
   const find = pos => {
     for (let i = nodes.length - 1; i >= 0; i--){
       if (nodes[i].at <= pos) return { node: nodes[i].n, off: pos - nodes[i].at };
     }
     return null;
   };
-  const s = find(at), e = find(at + want.length);
+  const s = find(at), e = find(at + len);
   if (!s || !e) return null;
   try{
     const r = document.createRange();
@@ -3815,7 +3961,7 @@ function ceReopenHeld(held){
   let rect = null;
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = held.rect || null; }
   _ceSel = null;
-  ceAttachPassage({ text: held.text, line: held.line, at: held.at, rect, range: r });
+  ceAttachPassage({ ...held, rect, range: r }, held.mode);
 }
 /* ---- THE ONE REPLACEMENT ----
    The passage goes, the wording arrives, and every other line of the clause is
@@ -3823,7 +3969,9 @@ function ceReopenHeld(held){
    typing and a Copilot rewrite are the same act on the record and a second copy
    is how the two come to disagree about what a line break costs. */
 function ceReplacePassage(sel, wording){
-  const words = String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
+  const multi = !!(sel && sel.multi);
+  const words = multi ? ceWordsKeepBreaks(wording)
+    : String(wording == null ? '' : wording).replace(/\s+/g, ' ').trim();
   /* ---- A REFUSAL IS SPOKEN WHERE EVERY OTHER REFUSAL ON THIS PAGE IS ----
      These two used to write into the strip's own note line, which was the only
      place a reader looking at a strip would see them. With the strip gone there
@@ -3831,6 +3979,21 @@ function ceReplacePassage(sel, wording){
      line and the writing bar, Apply and Discard all already speak through it. */
   if (!words){ ceSay(_cet('ce_inline_say_what')); return false; }
   const lines = ceLines();
+  if (multi){
+    /* THE RUN OF LINES IS SPLICED AS ONE BLOCK: the passage is found across
+       its breaks, replaced, and the block is put back as lines — every break
+       the reader did not touch is carried across untouched (11 Sep 2026). */
+    const le = Math.min(Number(sel.lineEnd), lines.length - 1);
+    const block = lines.slice(sel.line, le + 1).join('\n');
+    const at = block.indexOf(sel.text);
+    if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
+    if (words === sel.text){ ceDetachPassage(); return false; }
+    const next = block.slice(0, at) + words + block.slice(at + sel.text.length);
+    lines.splice(sel.line, le - sel.line + 1, ...next.split('\n'));
+    ceDetachPassage();
+    ceApply(lines.join('\n'), _cet('ce_step_passage'), { keepView: true, repaint: true });
+    return true;
+  }
   const ln = lines[sel.line];
   const at = (ln == null) ? -1 : ln.indexOf(sel.text);
   if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
@@ -3877,11 +4040,24 @@ function ceCutPassage(){
   const sel = _ceSel;
   if (!sel) return false;
   const lines = ceLines();
+  const tidy = s => s.replace(/[^\S\n]{2,}/g, ' ').replace(/[^\S\n]+([.,;:])/g, '$1').trim();
+  if (sel.multi){
+    const le = Math.min(Number(sel.lineEnd), lines.length - 1);
+    const block = lines.slice(sel.line, le + 1).join('\n');
+    const at = block.indexOf(sel.text);
+    if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
+    const left = (block.slice(0, at) + block.slice(at + sel.text.length)).split('\n').map(tidy).filter(Boolean);
+    if (!left.length && lines.length === le - sel.line + 1){ ceSay(_cet('ce_inline_cut_all')); return false; }
+    lines.splice(sel.line, le - sel.line + 1, ...left);
+    ceDetachPassage();
+    if (!ceApply(lines.join('\n'), _cet('ce_step_cut'), { keepView: true, repaint: true })) return false;
+    ceFile();
+    return true;
+  }
   const ln = lines[sel.line];
   const at = (ln == null) ? -1 : ln.indexOf(sel.text);
   if (at < 0){ ceSay(_cet('ce_inline_moved')); return false; }
-  const cut = (ln.slice(0, at) + ln.slice(at + sel.text.length))
-    .replace(/\s{2,}/g, ' ').replace(/\s+([.,;:])/g, '$1').trim();
+  const cut = tidy(ln.slice(0, at) + ln.slice(at + sel.text.length));
   if (!cut){ ceSay(_cet('ce_inline_cut_all')); return false; }
   lines[sel.line] = cut;
   ceDetachPassage();
@@ -4227,6 +4403,9 @@ function ceWirePage(page){
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); ceAsk(chip.getAttribute('data-ce-chip')); return; }
 
+    const ew = hit('[data-ce-edit-with]');
+    if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
+
     const apply = hit('[data-ce-apply]');
     if (apply){ ev.preventDefault();
       const card = ceCardAt(apply.getAttribute('data-ce-apply'));
@@ -4509,6 +4688,39 @@ function ceWirePage(page){
       if (read.why) ceSay(_cet(read.why));
     }, 0);
   });
+}
+/* ---- EDIT WITH THIS (owner's "Yes", 11 Sep 2026, evening) ----
+   A question can become an edit without re-highlighting: the same words are
+   re-attached under the 'edit' verb (found again in the box, since the rail
+   may have let them go), the chips and the scope turn into the editing shape,
+   and wording the model volunteered with its answer becomes a card with Apply
+   — recorded as proposed only now, because only now is it offered. */
+function ceEditWith(t){
+  if (!clauseEditorOpen() || !t || !t.passage) return false;
+  if (ceUnderDeletion()){ ceSay(_cet('ce_under_deletion')); return false; }
+  const want = String(t.passage.text || '');
+  if (_ceSel && _ceSel.text === want){
+    _ceSel.mode = 'edit'; ceRenderScope(); ceRenderChips();
+  } else if (!ceAttachWords(want, 'edit')){
+    ceSay(_cet('ce_inline_moved')); return false;
+  }
+  if (t.held){
+    let trace = null;
+    try{
+      if (window.aiTraceNote){
+        trace = aiTraceNote(_ceC, { feature: 'redline', kind: 'wording',
+          clauseId: _ceClauseId, clauseLabel: ceClauseLabel(ceClause()), what: t.held, rested: '' });
+        if (window.aiTraceSave) aiTraceSave(_ceC);
+      }
+    }catch(_){ trace = null; }
+    _ceThread.push({ who: 'ai', text: '', cards: [{ name: _cet('ce_suggestion_passage'),
+      chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '', rests: '',
+      text: t.held, passage: _ceSel, mode: 'edit', trace }] });
+  }
+  ceRenderLane();
+  const box = _ceQ('#ce-ask');
+  if (box){ try{ box.focus(); }catch(_){} }
+  return true;
 }
 function ceCardAt(key){
   const parts = String(key || '').split(':');

@@ -3227,6 +3227,16 @@ const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash &&
    READING MUST NOT WRITE: it reads c.negotiation raw and answers 'unknown'
    where there is none rather than calling into negoInit. */
 const NOTE_QUOTE_MAX = 400;
+/* THE ONE READING OF A QUOTE'S SHAPE (owner ruled 11 Sep 2026, evening: a
+   comment may take several paragraphs). Runs of spaces fold to one, a
+   paragraph break is KEPT as one newline, and the cap is the note's. The pin,
+   the anchor and the marks all read it, so a quote cannot be one shape on the
+   pin and another on the record. Matching is whitespace-blind either way
+   (_negoNorm, rlWrapWords), so an older one-line quote still finds its words. */
+function negoNoteQuote(q){
+  return String(q || '').replace(/\r/g, '').replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim().slice(0, NOTE_QUOTE_MAX);
+}
 function negoNoteId(){
   return 'nt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -3234,7 +3244,7 @@ const negoNoteKey = m => String((m && (m.id || m.at)) || '');
 function negoNoteAnchor(a){
   if (!a || typeof a !== 'object') return null;
   const clauseId = String(a.clauseId || '').trim().slice(0, 80);
-  const quote = String(a.quote || '').replace(/\s+/g, ' ').trim().slice(0, NOTE_QUOTE_MAX);
+  const quote = negoNoteQuote(a.quote);
   if (!clauseId || !quote) return null;
   return { clauseId, quote };
 }
@@ -4612,7 +4622,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
-  negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
+  negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,

@@ -4,8 +4,8 @@
 owner's instruction, in their own words: *"Add these to a work order and wait
 for more."*
 
-**THE GATE ON ALL OF IT: nothing here is coded until the owner says go.** More
-reports are expected; they are appended below as they arrive. When the owner
+**BUILT the same evening on the owner's "go, build all of them and merge to main. Do not build the multi party signing yet."** Every item below landed; the record is in CLAUDE.md (COMMENTS, ROUND TWO), docs/MAP-HISTORY.md and BUGLOG.md; the nets are f304 and round-two-comments-verify. The gate that stood before: nothing here is coded until the owner says go. More
+reports were appended below as they arrived. When the owner
 says go, the build starts from the latest `main`, runs in the order set below,
 and each item lands with its nets and one plain-English summary.
 

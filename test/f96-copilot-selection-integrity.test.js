@@ -280,11 +280,14 @@ describe('F96 (B1) — a highlight that starts on the clause heading', () => {
     const cl = p.clauseWith(/payable within thirty/);
     /* The natural "grab the whole clause" gesture: start on the number. */
     const { menu, passage } = p.readSel(cl, '2. PAYMENT TERMS', 'date of issue.');
-    /* RE-POINTED 11 Sep 2026 (Young: "you only have ask copilot and comment"):
-       the paper OFFERS two things on a highlight inside one clause — Ask
-       Copilot and Comment — and nothing else. Neither edits from the paper. */
-    assert.ok(menu, 'the paper offers two things to press');
-    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'comment']);
+    /* RE-POINTED 11 Sep 2026 (Young: "you only have ask copilot and comment"),
+       and AGAIN the same evening (Young: "a third option saying Edit with
+       copilot"): the paper OFFERS three things on a highlight inside one
+       clause — Ask Copilot, Edit with Copilot, Comment — and nothing else.
+       None of them edits FROM the paper: the two Copilot verbs land in the
+       clause editor. */
+    assert.ok(menu, 'the paper offers three things to press');
+    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'edit', 'comment']);
     assert.equal(passage.clauseIds.length, 1, 'one clause, found despite the heading');
     assert.match(passage.text, /All invoices are payable/,
       'THE FIX: this used to be unmatchable');

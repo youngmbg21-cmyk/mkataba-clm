@@ -2086,6 +2086,17 @@ function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; 
    that just filed, a marker on the paper, a highlight's Comment — opens the
    drawer and repaints it even where it is already open on the same thread;
    the toggle stays for the doors a reader presses to look. */
+/* IS THE DRAWER SHOWING THIS THREAD — the one reading the paper's marker, the
+   card's row and their page's door ask before they press, so the press that
+   opened it can close it (owner's rule, 11 Sep 2026: "If you click an area
+   that makes a panel appear, then the same location should also be able to
+   collapse the appearance"). */
+function notesPanelShowing(contractId, changeId){
+  const was=state.notesFor||{};
+  return !!(state.panelOpen&&panelFace()==='notes'
+    &&String(was.contractId||'')===String(contractId||'')
+    &&String(was.changeId==null?'':was.changeId)===String(changeId==null?'':changeId));
+}
 function openNotesPanel(contractId, changeId, o){
   if(!contractId) return;
   const force=!!(o&&o.force);
@@ -2868,6 +2879,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

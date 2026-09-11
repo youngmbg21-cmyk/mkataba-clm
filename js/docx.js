@@ -1380,7 +1380,12 @@ function docxTrackedParagraphXml(p, state){
     const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     for (const cm of state.comments){
       if (cm.placed) continue;
-      const q = String(cm.quote || '').replace(/\s+/g, ' ').trim();
+      /* A QUOTE ACROSS PARAGRAPHS (11 Sep 2026): a Word comment range is opened
+         and closed inside one paragraph here, so the range goes on the longest
+         of the quote's lines — the words the note is most about — and the
+         comment still carries the whole quote in its own text. */
+      const q = String(cm.quote || '').split('\n').map(l => l.replace(/\s+/g, ' ').trim())
+        .sort((a, b) => b.length - a.length)[0] || '';
       if (!q) continue;
       let re; try { re = new RegExp(q.split(' ').map(esc).join('\\s+'), 'i'); } catch (e){ continue; }
       const m = re.exec(full);

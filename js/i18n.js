@@ -1873,6 +1873,15 @@ const STRINGS = {
     ce_tab_scan: 'Playbook scan',
     ce_ask_label: 'Ask Copilot',
     ce_ask_ph: 'Ask for different wording, or a scenario…',
+    /* ASK IS A QUESTION, EDIT IS AN EDIT (Young, 11 Sep 2026, evening). */
+    ce_ask_ph_question: 'Ask about these words…',
+    ce_scope_asking: 'Asking about · {where}',
+    ce_edit_with_this: '\u270e Edit with this',
+    ce_answer: 'Copilot\u2019s answer',
+    ce_prompt_question: 'Answer the drafter\u2019s question about this passage of a contract clause. Explain, do not rewrite it; return no proposed wording unless the drafter asks for wording.',
+    ce_q_words_mean: 'Say what these words mean',
+    ce_q_words_standard: 'What does our playbook say about this?',
+    ce_q_words_risk: 'What is the risk in these words?',
     /* ---- THE HIGHLIGHTED PASSAGE, IN THE RAIL (M-1) ---- */
     ce_ask_ph_passage: 'What should this passage say?',
     ce_scope_in: 'Selected · {where}',
@@ -2219,6 +2228,9 @@ const STRINGS = {
     ng_np_done_n_other: 'Done ({n})',
     ng_np_done_failed: 'Could not mark it: {why}',
     ng_np_done_nowhere: 'this note is held nowhere this page can write to',
+    /* ng_np_pin_on, ng_np_for_team, ng_np_for_them: STALE since 11 Sep 2026
+       (evening) — the highlight pin carries no caption and the switch says
+       the tabs' own words (ng_np_tab_int / ng_np_tab_ext). Inert in both books. */
     ng_np_pin_on: 'Comment on these words',
     ng_np_pin_filed: '{id} filed \u00b7 add a note',
     ng_np_pin_revised: '{id} revised \u00b7 keep or change the note',
@@ -2226,7 +2238,10 @@ const STRINGS = {
     ng_np_for_team: 'For your team',
     ng_np_for_them: 'For {who}',
     ng_np_mark_title: 'Note {n} \u00b7 {who}',
+    /* THREE VERBS ON A HIGHLIGHT (Young, 11 Sep 2026, evening): a question
+       that touches nothing, an edit with Apply, a comment. */
     ng_sel_ask: '\u2728 Ask Copilot',
+    ng_sel_edit: '\u270e Edit with Copilot',
     ng_sel_comment: '\ud83d\udcac Comment',
     ng_sel_one_clause_t: 'One clause at a time',
     ng_sel_one_clause: 'A comment sits on words inside one clause. Select within a single clause.',
@@ -7863,6 +7878,14 @@ const STRINGS = {
     ce_tab_scan: 'Spelbokskontroll',
     ce_ask_label: 'Fråga Copilot',
     ce_ask_ph: 'Be om en annan lydelse, eller om ett scenario…',
+    ce_ask_ph_question: 'Fr\u00e5ga om de h\u00e4r orden…',
+    ce_scope_asking: 'Fr\u00e5gar om · {where}',
+    ce_edit_with_this: '\u270e Redigera med detta',
+    ce_answer: 'Copilots svar',
+    ce_prompt_question: 'Answer the drafter\u2019s question about this passage of a contract clause. Explain, do not rewrite it; return no proposed wording unless the drafter asks for wording.',
+    ce_q_words_mean: 'S\u00e4g vad de h\u00e4r orden betyder',
+    ce_q_words_standard: 'Vad s\u00e4ger v\u00e5r spelbok om detta?',
+    ce_q_words_risk: 'Vilken risk finns i de h\u00e4r orden?',
     ce_ask_ph_passage: 'Vad ska det här stycket säga?',
     ce_scope_in: 'Markerat · {where}',
     ce_scope_off: 'Släpp det här stycket',
@@ -8146,6 +8169,7 @@ const STRINGS = {
     ng_np_for_them: 'F\u00f6r {who}',
     ng_np_mark_title: 'Anteckning {n} \u00b7 {who}',
     ng_sel_ask: '\u2728 Fr\u00e5ga Copilot',
+    ng_sel_edit: '\u270e Redigera med Copilot',
     ng_sel_comment: '\ud83d\udcac Kommentera',
     ng_sel_one_clause_t: 'En klausul i taget',
     ng_sel_one_clause: 'En kommentar g\u00e4ller ord i en klausul. Markera inom en enda klausul.',

@@ -1450,13 +1450,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const offer = await p.evaluate(() => {
       const m = document.querySelector('.nego-selmenu');
       const rows = m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [];
-      const ask = m && m.querySelector('[data-nego-ai="ask"]');
+      const ask = m && m.querySelector('[data-nego-ai="edit"]'); /* the EDIT verb since 11 Sep 2026 (evening): this journey applies wording */
       if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
       return rows;
     });
     await pause(250);
-    ck('16d4a the drag OFFERS two things — Ask Copilot and Comment — and nothing else',
-       JSON.stringify(offer) === JSON.stringify(['ask', 'comment']), JSON.stringify(offer));
+    ck('16d4a the drag OFFERS three things — Ask Copilot, Edit with Copilot and Comment — and nothing else (re-pointed 11 Sep 2026, evening)',
+       JSON.stringify(offer) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify(offer));
     const strip = await p.evaluate(() => {
       const el = document.querySelector('#ce-scope .ce-scope');
       const r = el ? el.getBoundingClientRect() : null;

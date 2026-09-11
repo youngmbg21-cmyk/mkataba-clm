@@ -2187,9 +2187,18 @@ function redlineLayoutCss(){
      no longer in the clause. Furniture: it does not scale with the reader's
      text size, and it never reaches the record (painted after every paint,
      never inside the typing box). Both seats draw it. */
-  .rl-clause .rl-note-mk{position:absolute;left:-48px;width:18px;height:18px;padding:0;
+  .rl-clause .rl-note-mk{position:absolute;left:-48px;width:18px;height:18px;padding:0;margin:0;
+    box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
     border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--accent-fill);color:#fff;
-    font:var(--w-title) 10px/16px var(--n-font-ui);text-align:center;cursor:pointer;z-index:2}
+    /* LONGHANDS WITH FALLBACKS, NEVER THE font SHORTHAND (Young, 11 Sep 2026:
+       "the number is outside the edges of the circle"). MEASURED: the shorthand
+       font:var(--w-title) 10px/16px var(--n-font-ui) is thrown away whole
+       wherever one of its tokens is not defined — the clause editor's paper
+       does not sit under the element that defines --n-font-ui — and every
+       longhand then INHERITS the paper's 15px/1.75, which is a 26px line in an
+       18px disc. A guard that is always false, in its CSS costume. */
+    font-family:var(--n-font-ui,var(--font-body,system-ui,sans-serif));font-size:10px;line-height:1;
+    font-weight:var(--w-title,700);text-align:center;cursor:pointer;z-index:2}
   .rl-clause .rl-note-mk.out{background:var(--st-amber-fg);border-color:var(--st-amber-fg)}
   .rl-clause .rl-note-mk.is-gone{background:var(--n-paper);color:var(--n-ink-soft);border-color:var(--n-ink-soft)}
   .rl-clause .rl-note-mk:hover,.rl-clause .rl-note-mk:focus-visible{filter:brightness(1.08)}

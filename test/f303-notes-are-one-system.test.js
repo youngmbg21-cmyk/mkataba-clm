@@ -422,7 +422,9 @@ describe('f303 (5) — three doors and the retired window', () => {
     const out = await p.w.win.openChangeNoteDialog(p.c, p.ch, { side: 'owner' });
     assert.equal(out, null);
     assert.equal(p.w.win.rlNotesPinned(), null, 'an old pin is dropped');
-    same(p.opened[0], { cid: p.c.id, chId: p.ch.id, force: true });
+    /* RE-POINTED 11 Sep 2026 (evening): the row is a door a person presses,
+       so it TOGGLES — no `force`. Force is the filing's, which delivers a pin. */
+    same(p.opened[0], { cid: p.c.id, chId: p.ch.id, force: false });
   });
 
   test('the receipt window is a stub, and nothing draws it', () => {
@@ -436,13 +438,16 @@ describe('f303 (5) — three doors and the retired window', () => {
       'the one reading of the ask is kept');
   });
 
-  test('the clause editor offers Ask Copilot and Comment, and its confirmation is brief and always', () => {
+  test('the clause editor offers Ask Copilot, Edit with Copilot and Comment, and its confirmation is brief and always', () => {
     assert.match(CE, /if \(read\.sel\)\{ ceOfferPassage\(read\.sel\); return; \}/);
     assert.match(CE, /ng_sel_ask/);
+    assert.match(CE, /ng_sel_edit/);
     assert.match(CE, /ng_sel_comment/);
     assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ch\.id \}\), 'ok'\);/);
-    assert.match(CE, /if \(opts && opts\.passage\) setTimeout\(\(\) => \{ try \{ ceAttachWords\(opts\.passage\)/,
-      'the paper’s Ask Copilot arrives with words');
+    /* RE-POINTED 11 Sep 2026 (evening): the paper's Ask and Edit both arrive
+       with words AND the verb they were pressed under. */
+    assert.match(CE, /if \(opts && opts\.passage\) setTimeout\(\(\) => \{ try \{ ceAttachWords\(opts\.passage, opts\.passageMode\)/,
+      'the paper’s Ask Copilot arrives with words and its verb');
     assert.match(CE, /rlPaintNoteMarks\(host, _ceC/, 'and the canvas paints the marks');
   });
 
@@ -453,7 +458,7 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.match(fn, /if \(opts && opts\.preview\) return false;/);
     assert.match(VIEW, /const onPaper = !inCpEditorPane && !!\(pane\.closest && pane\.closest\('\.rl-doc'\)\);/);
     assert.equal(/if \(!theirSeat && !inCpEditorPane && pane\.closest && pane\.closest\('\.rl-doc'\)\)\{\n\s*_negoKillSelMenu\(\);\n\s*return;/.test(VIEW), false);
-    assert.match(VIEW, /rlPaperSelOffer\(\{ c, opts, side, text, clauseId, rect,/);
+    assert.match(VIEW, /rlPaperSelOffer\(\{ c, opts, side, text: offered, clauseId, rect,/);
   });
 
   test('the shell: force opens rather than toggles, and a closed drawer drops the pin', () => {

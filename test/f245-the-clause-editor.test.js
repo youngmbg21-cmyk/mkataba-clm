@@ -279,11 +279,19 @@ describe('f245 (6) — one sentence at a time', () => {
     p.win.rlCloseClauseEditor();
   });
 
-  test('a selection spanning two limbs is refused rather than run together', () => {
-    assert.ok(/IT HAS TO SIT INSIDE ONE SUB-PARAGRAPH/.test(SRC),
+  test('a selection spanning two limbs is ONE passage, carried with its lines (reversed 11 Sep 2026, evening)', () => {
+    /* Young: "When i highlight the whole area or multiple lines, I am unable
+       to edit with copilot." The 31 Aug refusal is gone; the reading carries
+       the run of lines and the one replacement splices it. */
+    assert.ok(/SEVERAL SUB-PARAGRAPHS ARE ONE PASSAGE/.test(SRC),
       'the rule is stated where the reading is made');
+    assert.ok(!/ce_sel_two_paras/.test(CODE), 'and the old refusal is no longer answered by the reading');
+    assert.ok(/lineEnd: le, multi: true/.test(CODE), 'the passage carries its first and last line');
     assert.ok(/lines\.forEach/.test(CODE),
-      'and the selection is resolved per line, not against a flattened text');
+      'and a one-line selection is still resolved per line, not against a flattened text');
+    const rep = CODE.match(/function ceReplacePassage\([\s\S]*?\n\}/)[0];
+    assert.match(rep, /lines\.splice\(sel\.line, le - sel\.line \+ 1, \.\.\.next\.split\('\\n'\)\)/,
+      'a multi-line passage is spliced back as lines, every untouched break kept');
   });
 });
 
@@ -493,12 +501,14 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
     assert.match(r[0], /box\.innerHTML = ''/, 'and it draws nothing when nothing is attached');
     /* THE ASK BOX STATES THE NARROWING BY BEING SET TO IT — the WHOSE ASKS
        rule, on a placeholder. */
-    assert.match(r[0], /ask\.placeholder = _cet\(sel \? 'ce_ask_ph_passage' : 'ce_ask_ph'\)/,
+    /* RE-POINTED 11 Sep 2026 (evening): the placeholder also says which VERB
+       the passage is held under — a question or an edit. */
+    assert.match(r[0], /ask\.placeholder = _cet\(sel \? \(asking \? 'ce_ask_ph_question' : 'ce_ask_ph_passage'\) : 'ce_ask_ph'\)/,
       'and the box says what it is for');
   });
 
   test('ONE reading of the replacement, shared by the hand and by Copilot', () => {
-    const m = CODE.match(/function ceReplacePassage\([\s\S]{0,900}?\n\}/);
+    const m = CODE.match(/function ceReplacePassage\([\s\S]{0,2400}?\n\}/);
     assert.ok(m, 'there is one replacement');
     assert.ok(/lines\[sel\.line\] = ln\.slice\(0, at\)/.test(m[0]),
       'inside ONE line, with every other line carried across');
@@ -1930,7 +1940,7 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     /* RE-POINTED 11 Sep 2026: a drag OFFERS (Ask Copilot · Comment) and the
        first offer attaches — ceOfferPassage ends in ceAttachPassage. */
     assert.match(up[0], /ceOfferPassage\(read\.sel\)/, 'and it still offers the passage to the rail');
-    assert.match(CODE, /function ceOfferPassage\(sel\)\{[\s\S]*?ceAttachPassage\(sel\);/, 'and the offer attaches');
+    assert.match(CODE, /function ceOfferPassage\(sel\)\{[\s\S]*?ceAttachPassage\(sel, 'edit'\);/, 'and the offer attaches');
     /* ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
        THE LINE THAT MAKES OPTION A WORK. With the box on the paper, a press
        elsewhere that made no selection meant "the reader has moved on" and
@@ -1972,7 +1982,7 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
     const at = CODE.match(/function ceAttachPassage\([\s\S]*?\n\}/)[0];
     assert.ok(!/focus\(\)/.test(at),
       'a drag mid-sentence must not move the reader out of the clause they are writing in');
-    assert.match(at, /if \(_ceSel && _ceSel\.text === sel\.text && _ceSel\.line === sel\.line\) return;/,
+    assert.match(at, /if \(_ceSel && _ceSel\.text === sel\.text && _ceSel\.line === sel\.line && \(_ceSel\.mode \|\| 'edit'\) === m\) return;/,
       'and the same passage twice repaints nothing, so a stray double-click '
       + 'does not clear a half-typed ask');
   });
@@ -2334,13 +2344,15 @@ describe('f245 (22) — the selection goes with the passage', () => {
     /* NEVER TWO COPIES OF THE READING: a second function working out "why not"
        beside one working out "what" is how the two come to disagree about which
        passages are allowed. */
-    const reads = (CODE.match(/const lines = ceLines\(\);\n\s+let li = -1/g) || []).length;
+    /* RE-POINTED 11 Sep 2026 (evening): the multi-line branch sits between the
+       lines reading and the single-line search; still one function decides. */
+    const reads = (CODE.match(/const lines = ceLines\(\);[\s\S]{0,2000}?let li = -1, at = -1, seen = 0;/g) || []).length;
     assert.equal(reads, 1, 'there is exactly one place that decides');
   });
 
-  test('and the three refusals are real, distinct reasons', () => {
+  test('and the two refusals are real, distinct reasons (two-paragraphs is no longer one — 11 Sep 2026)', () => {
     const read = CODE.match(/function ceSelectionRead\([\s\S]*?\n\}/)[0];
-    for (const k of ['ce_sel_two_paras', 'ce_sel_twice', 'ce_sel_not_in_draft'])
+    for (const k of ['ce_sel_twice', 'ce_sel_not_in_draft'])
       assert.ok(read.includes(k), k + ' is answered by the reading itself');
     assert.match(read, /if \(text\.length < 3\) return \{ why: null \};/,
       'A CLICK IS NOT A REFUSAL — below this there is nothing a reader could '

@@ -4483,8 +4483,27 @@ function wireNegotiationTab(c, opts = {}){
            somebody copying. Nothing is said about a menu that is not coming. */
         let startIn = false;
         try { startIn = !!clauseEl.contains(range.startContainer); } catch (e){ startIn = false; }
-        if (passage.clauses.length !== 1 || !startIn) return;
-        rlPaperSelOffer({ c, opts, side, text, clauseId, rect,
+        /* ---- AN OVERSHOOT INTO THE NEXT CLAUSE'S HEADING IS NOT A SECOND
+           CLAUSE (11 Sep 2026, evening) ---- MEASURED: a drag down a whole
+           clause, released a line below its last words, takes the NEXT
+           clause's heading row along ("12. Governing Law") and read as a
+           selection across two clauses — the silence the owner met on
+           "multiple sentences". Where the second clause's share is nothing
+           but the start of its heading, the drag was over one clause and is
+           offered as one, with the heading left out of the words. */
+        let parts = passage.parts, offered = text;
+        if (parts.length === 2 && startIn){
+          const nextEl = passage.clauses[1];
+          const headEl = nextEl && nextEl.querySelector ? nextEl.querySelector('.rl-clause-top') : null;
+          const headTxt = headEl ? _negoNodeText(headEl, null).replace(/\s+/g, ' ').trim() : '';
+          const spill = String(parts[1].text || '').replace(/\s+/g, ' ').trim();
+          if (headTxt && spill && headTxt.startsWith(spill)){
+            parts = parts.slice(0, 1);
+            offered = String(parts[0].text || '').replace(/[ \t]+\n/g, '\n').trim();
+          }
+        }
+        if (parts.length !== 1 || !startIn) return;
+        rlPaperSelOffer({ c, opts, side, text: offered, clauseId, rect,
           openEditor: (typeof openEditor === 'function') ? openEditor : null });
         return;
       }
@@ -4709,8 +4728,23 @@ function wireNegotiationTab(c, opts = {}){
         '.nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
         '[data-nego-editor], button, a, input, textarea, select');
     };
+    /* ---- A DRAG THAT ENDS ON THE PENCIL IS STILL A DRAG (11 Sep 2026) ----
+       MEASURED: a real drag across a whole clause released a pixel past the
+       last line lands its mouseup on the pencil (a button), and the control
+       filter above read that as a press on a control and offered nothing —
+       the owner's "if you highlight multiple sentences it does not offer you
+       comment or ask copilot". Where a real selection stands OUTSIDE the
+       control the release landed on, the selection is what was meant. The
+       panel's editor, the menus and the form controls keep their silence. */
+    const selOutside = t => {
+      const s = window.getSelection && window.getSelection();
+      if (!s || s.isCollapsed || !s.rangeCount) return false;
+      if (t.closest('.rl-cp-src, [data-nego-editor], .nego-selmenu, .nego-aipop, #ai-panel, input, textarea, select')) return false;
+      const ctl = t.closest('button, a, .nego-tool');
+      return !!(ctl && !ctl.contains(s.anchorNode) && !ctl.contains(s.focusNode));
+    };
     host.addEventListener('mouseup', e => {
-      if (fromControl(e.target)) return;
+      if (fromControl(e.target) && !selOutside(e.target)) return;
       setTimeout(openSelMenu, 0);
     });
     host.addEventListener('keyup', e => {
@@ -10557,6 +10591,16 @@ function redlineDocHtml(c, opts = {}){
      neither passes it nor can reach the page that does. Absent, the canvas
      draws the heading it always drew. */
   const liveHead = (liveId && opts.live.head != null) ? String(opts.live.head) : null;
+  /* ---- CHANGED MEANS CHANGED (Young, 11 Sep 2026, evening: "i get a red
+     vertical line even though all i did was go into the clause but did not
+     edit anything") ----
+     The live clause was drawn `is-changed` unconditionally — "there is a draft
+     on it" — but a draft that equals what stands is not a change, and the
+     ruby bar it drew said one. The editor says whether its draft has MOVED
+     (`live.moved`; absent reads as moved, so an older caller draws as before),
+     and a clause carrying a FILED change is changed whatever the draft says. */
+  const liveMoved = !!(liveId && opts.live.moved !== false);
+  const liveChanged = (chs) => (liveMoved || (Array.isArray(chs) && chs.length)) ? ' is-changed' : '';
   /* ONE PENCIL FOR THE WHOLE CANVAS, so the four clause branches cannot come to
      disagree about which door it opens. */
   /* ---- AND ON OUR SEAT IT OPENS THE EDITOR (owner-ruled 29 Aug 2026) ----
@@ -10744,7 +10788,7 @@ function redlineDocHtml(c, opts = {}){
        wording under a reader who is changing it. */
     if (liveId && String(ch.clauseId) === liveId){
       const liveLabel = String(ch.headingText || '').trim();
-      return `<section class="nego-clause rl-clause is-changed rl-clause-new rl-clause-live" data-clause="${_ne(ch.clauseId)}" data-nego-working="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+      return `<section class="nego-clause rl-clause${liveChanged([ch])} rl-clause-new rl-clause-live" data-clause="${_ne(ch.clauseId)}" data-nego-working="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
           ${liveHead != null ? liveHead
             : liveLabel ? `<h4 class="rl-clause-h">${_ne(liveLabel)}</h4>` : ''}
@@ -10831,7 +10875,7 @@ function redlineDocHtml(c, opts = {}){
        other clause. */
     if (liveId && String(cl.clauseId) === liveId){
       const liveAnchor = _ne(chs.map(x => x.id).reverse().join(' '));
-      return `<section class="nego-clause rl-clause is-changed rl-clause-live" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}"${
+      return `<section class="nego-clause rl-clause${liveChanged(chs)} rl-clause-live" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}"${
         liveAnchor ? ` data-nego-card-anchor="${liveAnchor}"` : ''}>
         <div class="rl-clause-top">
           ${liveHead == null ? heading(cl) : liveHead}
@@ -13282,6 +13326,10 @@ let _rlNpPin = null;
 let _rlNpReplyTo = null;
 let _rlNpDoneOpen = false;
 let _rlNpFocusKey = null;
+/* The thread a MARKER opened the drawer on — kept until the drawer goes, so
+   the same marker pressed again can close it (the focus key above is spent
+   by the paint that lands on the note). */
+let _rlNpOpenKey = null;
 function rlNotesPin(pin){
   const prev = _rlNpPin;
   const p = pin ? { ...pin } : null;
@@ -13291,7 +13339,10 @@ function rlNotesPin(pin){
     p.contractId = String(p.contractId || '');
     p.changeId = p.changeId ? String(p.changeId) : null;
     p.clauseId = p.clauseId ? String(p.clauseId) : '';
-    p.quote = String(p.quote || '').replace(/\s+/g, ' ').trim().slice(0, window.NOTE_QUOTE_MAX || 400);
+    /* THE QUOTE KEEPS ITS PARAGRAPH BREAKS (owner ruled 11 Sep 2026, evening:
+       Comment "should" take a selection across several paragraphs): runs of
+       spaces fold to one, a break stays a break, and the cap is the note's. */
+    p.quote = negoNoteQuote ? negoNoteQuote(p.quote) : String(p.quote || '').replace(/\s+/g, ' ').trim().slice(0, window.NOTE_QUOTE_MAX || 400);
   }
   _rlNpPin = p;
   _rlNpReplyTo = null;
@@ -13309,7 +13360,7 @@ function rlNotesUnpin(out){
 const rlNotesPinned = () => _rlNpPin;
 /* The shell tells us the drawer went: whatever was pinned is dropped and its
    waiter told nothing happened. */
-function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; }
+function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpOpenKey = null; }
 /* The pin, where it belongs to the panel being drawn: the contract's own
    drawer shows any pin on that contract; a change's panel shows only a pin on
    that change. */
@@ -13531,7 +13582,18 @@ function rlNpListHtml(c, ch, notes, room, side, other, opts = {}){
     ${_rlNpDoneOpen ? done.map(one).join('') : ''}` : '');
 }
 /* THE PIN, drawn above the box: what the drawer is holding, the room switch
-   (our seat only — theirs has one room) and the way to drop it. */
+   (our seat only — theirs has one room) and the way to drop it.
+   ---- ROUND TWO (Young, 11 Sep 2026, evening) ----
+   "Image 2, remove this area": the caption *Comment on these words* is GONE
+   from a highlight pin — the quoted words under the reference say what the
+   pin is, and the caption wrapped to three lines beside them. A FILED pin
+   keeps its one line ("CHG-013 filed · add a note"): there is no quote to
+   say it. "Change to simply internal vs external": the switch says the same
+   two words as the drawer's tabs above it (ng_np_tab_int / ng_np_tab_ext),
+   so the switch and the tabs cannot disagree; the other side's NAME stays
+   where the box already says it — the placeholder ("Add a note for {who}…")
+   and the tint. `ng_np_pin_on`, `ng_np_for_team`, `ng_np_for_them` are
+   STALE, inert in both books. */
 function rlNpPinHtml(c, ch, opts, side){
   const p = rlNpPinFor(c, ch);
   if (!p) return '';
@@ -13541,19 +13603,18 @@ function rlNpPinHtml(c, ch, opts, side){
     : (rlNpClauseLabel(c, p.clauseId) || '');
   const lead = p.filed
     ? i18t(p.revised ? 'ng_np_pin_revised' : 'ng_np_pin_filed', { id: chOf ? chOf.id : '' })
-    : i18t('ng_np_pin_on');
+    : '';
   const ext = p.room === 'external';
-  const them = c.counterparty || i18t('ng_the_counterparty');
   const tabbed = side === 'owner';
   const off = i18t(p.filed ? 'ng_note_skip' : 'ng_np_unpin');
   return `<div class="rl-np-pin${ext ? ' out' : ''}" data-rl-np-pin="${_nea(p.changeId || p.clauseId || '')}">
-    <div class="l"><span class="ref">${_ne(ref)}</span><span class="lead">${_ne(lead)}</span>
+    <div class="l"><span class="ref">${_ne(ref)}</span>${lead ? `<span class="lead">${_ne(lead)}</span>` : '<span class="lead"></span>'}
       <button type="button" class="x" data-rl-np-unpin title="${_nea(off)}" aria-label="${_nea(off)}">${_ne(off)}</button></div>
     ${p.quote ? `<q>${_ne(p.quote)}</q>` : ''}
     ${tabbed ? `<div class="rl-np-pinroom" role="group" aria-label="${_nea(i18t('ng_note_room_label'))}">${
       ['internal', 'external'].map(r => `<button type="button" class="${r === p.room ? 'on' : ''}${r === 'external' ? ' ext' : ''}"
         data-rl-np-pin-room="${r}" aria-pressed="${r === p.room ? 'true' : 'false'}">${
-        r === 'external' ? _ne(i18t('ng_np_for_them', { who: them })) : i18t('ng_np_for_team')}</button>`).join('')
+        i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</button>`).join('')
     }</div>` : ''}
   </div>`;
 }
@@ -14065,7 +14126,10 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
   const other = side === 'counterparty' ? us : them;
   /* WHERE IT LANDS: a reply on the thread it answers; a pinned note on the
      change the pin names, else on the panel's own change or the contract. */
-  const pin = reply ? null : rlNpPinFor(c, ch);
+  /* `extra.pin` is the SECOND half of one press (below): the pin has already
+     been spent and is handed in by hand so the other room's draft still lands
+     on the same words and the same change. */
+  const pin = reply ? null : (extra.pin || rlNpPinFor(c, ch));
   let home = ch || null;
   if (reply) home = extra.home || null;
   else if (pin && pin.changeId && window.negoChangeById) home = negoChangeById(c, pin.changeId) || ch || null;
@@ -14088,16 +14152,24 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     anchor: (pin && pin.quote) ? { clauseId: pin.clauseId, quote: pin.quote } : undefined,
     replyTo: reply ? extra.replyTo : undefined });
   if (!msg) return false;
-  /* The pin is spent by the note it was holding — unless the OTHER room still
-     holds a draft (D-6: two drafts, one place), in which case the pin turns to
-     that room with its draft in the box and waits for the second press. */
-  if (pin){
+  /* ---- ADD NOTE SPENDS THE PIN (Young, 11 Sep 2026, evening: "when you
+     click add note, these cards should disappear") ----
+     ONE PRESS, and the pin is gone: the note it was holding now carries the
+     words, so the pin has nothing left to say. D-6 still holds — a draft
+     typed in the OTHER room is not thrown away and is not left waiting for a
+     second press either: it is posted to ITS room in the same breath, through
+     this same writer, with the pin handed in so it lands on the same words.
+     The retired window did exactly this ("Add note posts each non-empty draft
+     to its own room"); the drawer used to flip the pin to the other room and
+     wait, which is the pin the owner saw standing after Add note. */
+  let second = null;
+  if (pin && !extra.pin){
     const other = pin.room === 'external' ? 'internal' : 'external';
+    const held = String(pin.drafts[other] || '').trim();
     pin.added = true;
-    pin.drafts[pin.room] = '';
-    if (String(pin.drafts[other] || '').trim()){
-      pin.room = other; rlNpSetRoom(other);
-    } else rlNotesUnpin('added');
+    pin.drafts[pin.room] = ''; pin.drafts[other] = '';
+    rlNotesUnpin('added');
+    if (held) second = { room: other, text: held };
   }
   if (reply) _rlNpReplyTo = null;
   /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
@@ -14135,6 +14207,9 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     toast((home ? i18t('ng_np_filed', { org: us, id: home.id })
       : i18t('ng_chat_filed', { org: us })) + atLine, 'ok');
   }
+  /* THE OTHER ROOM'S DRAFT, same words, same change, its own room and its own
+     confirmation — and it repaints the panel itself, so this half returns. */
+  if (second) return rlNotesSend(host, c, ch, opts, second.room, { box: { value: second.text }, pin });
   /* EACH SURFACE REPAINTS ITSELF. One send, two panels: the per-change panel
      redraws that change's thread and Chat redraws the whole contract's, and
      which one this is is exactly whether a change was named. */
@@ -14380,12 +14455,16 @@ function openChangeNoteDialog(c, ch, opts = {}){
     if (opts.filed){
       rlNotesPin({ contractId: c.id, changeId: ch.id, clauseId: ch.clauseId || '', quote: '',
         room: 'internal', filed: true, revised: (ch.revisions || []).length > 0, resolve });
+      openNotesPanel(c.id, ch.id, { force: true });
     } else {
       rlNotesUnpin(null);
       /* Nothing to wait for: the panel's own box is the change's. */
       setTimeout(() => resolve(null), 0);
+      /* THE ROW IS A DOOR A PERSON PRESSES, so it toggles: pressed while the
+         drawer already shows this change's thread it closes it (owner's rule,
+         11 Sep 2026). `force` is for the filing, which is DELIVERING a pin. */
+      openNotesPanel(c.id, ch.id);
     }
-    openNotesPanel(c.id, ch.id, { force: true });
   });
 }
 
@@ -14425,14 +14504,20 @@ function rlPaperSelOffer(ctx){
   if (opts && opts.preview) return false;
   const theirs = side === 'counterparty' || !!(window.PORTAL_MODE && PORTAL_MODE());
   const acts = [];
+  /* THREE VERBS (Young, 11 Sep 2026, evening): Ask Copilot is a question and
+     touches nothing; Edit with Copilot opens the editor with the words in
+     hand and Apply live; Comment is the drawer. Both Copilot verbs land in
+     the clause editor through its one door, the verb riding as passageMode. */
   if (!theirs && typeof ctx.openEditor === 'function'
-    && window.rlEditorTakesIt && rlEditorTakesIt(side, opts || {}))
+    && window.rlEditorTakesIt && rlEditorTakesIt(side, opts || {})){
     acts.push({ id: 'ask', label: i18t('ng_sel_ask') });
+    acts.push({ id: 'edit', label: i18t('ng_sel_edit') });
+  }
   if (notesMayWrite(c, opts || {})) acts.push({ id: 'comment', label: i18t('ng_sel_comment') });
   if (!acts.length) return false;
   rlSelMenu({ text, clauseId, rect, actions: acts, onPick: a => {
     if (a.id === 'comment'){ rlNoteFromSelection(c, { clauseId, quote: text }, { ...(opts || {}), side }); return; }
-    ctx.openEditor(clauseId, { passage: text });
+    ctx.openEditor(clauseId, { passage: text, passageMode: a.id === 'ask' ? 'ask' : 'edit' });
   } });
   return true;
 }
@@ -14522,7 +14607,10 @@ function rlWrapWords(el, quote, cls){
   for (const t of nodes){ starts.push(full.length); full += t.data; }
   const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   let re;
-  try { re = new RegExp(q.split(' ').map(esc).join('\\s+'), 'i'); } catch (e){ return false; }
+  /* `\\s*`, not `\\s+`: two paragraphs' text nodes sit back to back in `full`
+     with no whitespace between them, and a quote spanning the break still has
+     to find its words (owner ruled 11 Sep 2026, evening). */
+  try { re = new RegExp(q.split(' ').map(esc).join('\\s*'), 'i'); } catch (e){ return false; }
   const m = re.exec(full);
   if (!m) return false;
   const s = m.index, e = s + m[0].length;
@@ -14552,11 +14640,23 @@ if (typeof document !== 'undefined' && !document._rlNoteMarksWired){
     const key = b.getAttribute('data-rl-note-open');
     const home = b.getAttribute('data-rl-note-home') || null;
     const cid = b.getAttribute('data-rl-note-c');
-    _rlNpFocusKey = key;
+    /* ---- THE PRESS THAT OPENED IT CLOSES IT (owner's rule, 11 Sep 2026) ----
+       Pressed while the drawer is already showing this very thread, the marker
+       takes the drawer down; pressed on another thread it swaps, which is what
+       a reader asking to see that note means. Their page answers the same
+       question through its own aside (portalOpenNotes toggles on the key). */
     if (window.PORTAL_MODE && PORTAL_MODE()){
-      if (typeof window.portalOpenNotes === 'function') portalOpenNotes({ key, changeId: home });
+      _rlNpFocusKey = key;
+      if (typeof window.portalOpenNotes === 'function' && !portalOpenNotes({ key, changeId: home })) _rlNpFocusKey = null;
       return;
     }
+    if (_rlNpOpenKey === key && typeof window.notesPanelShowing === 'function'
+      && notesPanelShowing(cid, home) && typeof window.closeContextPanel === 'function'){
+      _rlNpFocusKey = null; _rlNpOpenKey = null;
+      closeContextPanel();
+      return;
+    }
+    _rlNpFocusKey = key; _rlNpOpenKey = key;
     if (typeof window.openNotesPanel === 'function') openNotesPanel(cid, home, { force: true });
   });
 }

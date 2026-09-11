@@ -586,24 +586,23 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const extEmpty = box().value === '';
       box().value = 'Ten days is what your own order form says.'; box().dispatchEvent(new Event('input', { bubbles: true }));
       panel().querySelector('[data-rl-np-send]').click();
-      await new Promise(r => setTimeout(r, 600));
-      /* the pin turned to the room that still held words */
-      const turned = !!pin() && lit();
-      const held = box() ? box().value : '';
-      if (pin()){ panel().querySelector('[data-rl-np-send]').click(); await new Promise(r => setTimeout(r, 400)); }
+      await new Promise(r => setTimeout(r, 800));
+      /* RE-POINTED 11 Sep 2026 (evening, Young: "when you click add note,
+         these cards should disappear"): ONE press posts both drafts, each to
+         its own room, and the pin is gone. */
+      const gone = !pin();
       /* NEVER WAIT FOREVER: the door's promise resolves when the pin is spent
          or dropped; if neither happened the drawer is closed by hand, which
          drops it, and the value says what happened. */
       if (pin()) closeContextPanel();
       const out = await Promise.race([p, new Promise(r => setTimeout(() => r('timeout'), 1500))]);
       const posted = (ch.thread || []).slice(before);
-      return { atRest, extEmpty, turned, held, out,
+      return { atRest, extEmpty, gone, out,
         n: posted.length, vis: posted.map(m => m.visibility || 'internal'), texts: posted.map(m => m.text) };
     });
     check('D-6 the pin opens on Internal', d6.atRest === 'internal', d6.atRest);
     check('D-6 External opens on its own empty draft', d6.extEmpty === true, `empty ${d6.extEmpty}`);
-    check('D-6 after the first Add note the pin turns to the room still holding words, with its draft in the box',
-      d6.turned === 'internal' && /hold at ten/.test(d6.held), `${d6.turned} · "${d6.held}"`);
+    check('D-6 one Add note and the pin is gone (round two)', d6.gone === true, String(d6.gone));
     check('D-6 both drafts post, each to its own room, and the door answers added', d6.out === 'added' && d6.n === 2
       && d6.vis.includes('internal') && d6.vis.includes('shared'), `${d6.n} posted: ${d6.vis.join(', ')} · ${d6.out}`);
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });

@@ -1969,9 +1969,18 @@ function portalNotesPaint(){
   if(!body||!x||!x.c||!window.rlChatPanelPaint) return;
   rlChatPanelPaint(body, x.c, portalNotesOpts());
 }
+/* THE PRESS THAT OPENED IT CLOSES IT (owner's rule, 11 Sep 2026): the More
+   menu's Notes row pressed over an open aside takes it down, and a marker
+   pressed while the aside is showing its own thread does the same; a marker
+   for ANOTHER thread swaps. `_ptNotesKey` is what the aside is showing. */
+let _ptNotesKey=null;
 function portalOpenNotes(o){
   const panel=document.getElementById('pt-notes'), scrim=document.getElementById('pt-notes-scrim');
   if(!panel) return false;
+  const key=(o&&o.key)||null;
+  const open=panel.classList.contains('open');
+  if(open&&String(_ptNotesKey||'')===String(key||'')){ portalNotesClose(); return false; }
+  _ptNotesKey=key;
   portalNotesPaint();
   panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
   if(scrim) scrim.hidden=false;
@@ -1982,6 +1991,7 @@ function portalNotesClose(){
   if(!panel||!panel.classList.contains('open')) return;
   panel.classList.remove('open'); panel.setAttribute('aria-hidden','true');
   if(scrim) scrim.hidden=true;
+  _ptNotesKey=null;
   /* Whatever the drawer was holding is dropped, as the shell's own does. */
   try{ if(window.rlNotesPanelClosed) rlNotesPanelClosed(); }catch(_){}
 }

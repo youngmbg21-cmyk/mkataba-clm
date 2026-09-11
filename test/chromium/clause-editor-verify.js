@@ -1845,13 +1845,13 @@ const dismissNote = async pg => {
   const offer18 = await p.evaluate(() => {
     const m = document.querySelector('.nego-selmenu');
     const rows = m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [];
-    const ask = m && m.querySelector('[data-nego-ai="ask"]');
+    const ask = m && m.querySelector('[data-nego-ai="edit"]'); /* the EDIT verb since 11 Sep 2026 (evening): this journey applies wording */
     if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     return rows;
   });
   await pause(250);
-  ck('18a0 a drag OFFERS two things — Ask Copilot and Comment — and nothing else',
-     JSON.stringify(offer18) === JSON.stringify(['ask', 'comment']), JSON.stringify(offer18));
+  ck('18a0 a drag OFFERS three things — Ask Copilot, Edit with Copilot and Comment — and nothing else (re-pointed 11 Sep 2026, evening)',
+     JSON.stringify(offer18) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify(offer18));
   /* ---- REVERSED IN PLACE 31 Aug 2026 (M-1) ----
      Owner-asked, off three drawn options: "when I highlight the sentence, it
      appears in the Copilot screen on the right and I can then ask Copilot for
@@ -2212,7 +2212,7 @@ const dismissNote = async pg => {
     await new Promise(r => setTimeout(r, 400));
     /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
     await new Promise(r => setTimeout(r, 120));
-    { const ask = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+    { const ask = document.querySelector('.nego-selmenu [data-nego-ai="edit"]'); /* the EDIT verb (11 Sep 2026, evening) */
       if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); }
     await new Promise(r => setTimeout(r, 250));
     const before = (window.CONTRACT.changes || []).length;
@@ -2412,7 +2412,7 @@ const dismissNote = async pg => {
     await p.mouse.up();
     await pause(450);
     /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
-    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="edit"]'); /* the EDIT verb (11 Sep 2026, evening) */
       if (a) a.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); });
     await pause(250);
   }
@@ -2635,7 +2635,7 @@ const dismissNote = async pg => {
     await p.mouse.move(r.x2, r.y2, { steps: 6 }); await p.mouse.up();
     await pause(400);
     /* 11 Sep 2026: the drag OFFERS; Ask Copilot is the press that attaches. */
-    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+    await p.evaluate(() => { const a = document.querySelector('.nego-selmenu [data-nego-ai="edit"]'); /* the EDIT verb (11 Sep 2026, evening) */
       if (a) a.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); });
     await pause(250); return true;
   };
