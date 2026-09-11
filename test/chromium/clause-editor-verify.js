@@ -34,9 +34,13 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
    properly; everywhere else, the journey being tested is not about the note. */
 async function skipNote(p){
   try{
-    const up = await p.evaluate(() => !!document.getElementById('rl-note-overlay'));
+    /* RE-POINTED 11 Sep 2026: the window is retired; the Notes DRAWER opens
+       after a filing, pinned to the change. A reader with nothing to add
+       closes it. */
+    const up = await p.evaluate(() => !!(window.state && state.panelOpen && document.getElementById('context-panel')
+      && document.getElementById('context-panel').classList.contains('open')));
     if (!up) return false;
-    await p.evaluate(() => { const b = document.getElementById('rl-note-skip'); if (b) b.click(); });
+    await p.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await pause(200);
     return true;
   }catch(_){ return false; }
@@ -69,8 +73,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
    not ABOUT that window, it is answered and the walk goes on — skipNote's own
    shape, for skipNote's own reason. */
 const dismissNote = async pg => {
-  const b = await pg.$('#rl-note-skip');
-  if (b) { await b.click(); await pause(350); }
+  const up = await pg.evaluate(() => !!(window.state && state.panelOpen)).catch(() => false);
+  if (up) { await pg.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); }); await pause(350); }
 };
 
 (async()=>{
@@ -79,6 +83,35 @@ const dismissNote = async pg => {
   const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
+  /* ---- THE STAGE HAS NO SHELL (11 Sep 2026) ----
+     parity.html loads neither js/app.js nor the shell's drawer, and since the
+     receipt window was retired the note after a filing lives IN that drawer.
+     The two shell doors are stood in for here on the shell's own contract —
+     openNotesPanel paints the product's real panels into a real aside,
+     closeContextPanel takes it down — so what is driven below is the
+     product's own markup and wiring, never a description of it. */
+  await p.evaluate(() => {
+    if (typeof window.openNotesPanel === 'function') return;
+    window.state = window.state || {};
+    let aside = document.getElementById('context-panel');
+    if (!aside){
+      aside = document.createElement('aside'); aside.id = 'context-panel';
+      aside.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:365px;z-index:46;background:#fff;border-left:1px solid #ddd;display:none;flex-direction:column;overflow:hidden';
+      aside.innerHTML = '<div id="panel-body" class="pb-flow" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>';
+      document.body.appendChild(aside);
+    }
+    window.openNotesPanel = (cid, chId) => {
+      const c = window.CONTRACT; const body = document.getElementById('panel-body');
+      window.state.panelOpen = true; aside.classList.add('open'); aside.style.display = 'flex';
+      const opts = { side: 'owner', author: ((window.currentUser && currentUser()) || {}).name };
+      const ch = (chId && window.negoChangeById) ? negoChangeById(c, chId) : null;
+      if (ch) rlNotesPanelPaint(body, c, ch, opts); else rlChatPanelPaint(body, c, opts);
+    };
+    window.closeContextPanel = () => {
+      window.state.panelOpen = false; aside.classList.remove('open'); aside.style.display = 'none';
+      if (window.rlNotesPanelClosed) rlNotesPanelClosed();
+    };
+  });
   await p.evaluate(()=>window.READY); await pause(500);
 
   /* One ask on one clause, through the product's own funnel — nothing
@@ -1806,6 +1839,19 @@ const dismissNote = async pg => {
     return { ok: false, why: `no candidate the page accepts (${nodes.length} tried)` };
   });
   await pause(400);
+  /* ---- 11 Sep 2026: A DRAG OFFERS FIRST (Young: "you only have ask copilot
+     and comment"), and Ask Copilot is the press that puts the passage on the
+     rail. One press more on the Copilot path, bought the comment door. */
+  const offer18 = await p.evaluate(() => {
+    const m = document.querySelector('.nego-selmenu');
+    const rows = m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [];
+    const ask = m && m.querySelector('[data-nego-ai="ask"]');
+    if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    return rows;
+  });
+  await pause(250);
+  ck('18a0 a drag OFFERS two things — Ask Copilot and Comment — and nothing else',
+     JSON.stringify(offer18) === JSON.stringify(['ask', 'comment']), JSON.stringify(offer18));
   /* ---- REVERSED IN PLACE 31 Aug 2026 (M-1) ----
      Owner-asked, off three drawn options: "when I highlight the sentence, it
      appears in the Copilot screen on the right and I can then ask Copilot for
@@ -1839,7 +1885,7 @@ const dismissNote = async pg => {
       cut: !!box.querySelector('[data-ce-act="scope-cut"]'),
       off: !!box.querySelector('[data-ce-act="scope-off"]') };
   });
-  ck('18a highlighting a sentence puts it on the RAIL, as visible pixels',
+  ck('18a highlighting a sentence, then Ask Copilot, puts it on the RAIL, as visible pixels',
      sel18.ok && scope.on, sel18.ok ? `${scope.w}x${scope.h}` : sel18.why);
   ck('18a2 …and NOTHING opens over the contract — the strip is gone',
      scope.over === false && scope.clear === true,
@@ -2778,79 +2824,65 @@ const dismissNote = async pg => {
     await pause(400);
     await p.click('#clause-editor [data-ce-act="save"]');
     await pause(1100);
+    /* RE-POINTED 11 Sep 2026 (Young: "whenever you want to comment, the
+       comments / chat slide panel slides in and you comment there instead").
+       The window is retired; the DRAWER opens, pinned to the change just
+       filed, over the clause editor. */
     const dlg = await p.evaluate(() => {
-      const ov = document.getElementById('rl-note-overlay');
-      if (!ov) return { up: false };
-      const panel = ov.querySelector('[role="dialog"]');
+      const panel = document.getElementById('context-panel');
+      const open = !!(panel && panel.classList.contains('open'));
+      const pin = panel && panel.querySelector('.rl-np-pin');
       const r = panel && panel.getBoundingClientRect();
-      const scrim = ov.querySelector('.rl-note-scrim');
       const page = document.getElementById('clause-editor');
       const pz = page ? Number(getComputedStyle(page).zIndex) : null;
-      const oz = Number(getComputedStyle(ov).zIndex);
-      const mid = panel && document.elementFromPoint(r.left + r.width / 2, r.top + 12);
-      return { up: true,
-        painted: !!(r && r.width > 0 && r.height > 0),
-        onTop: !!(panel && mid && panel.contains(mid)),
-        overPage: oz > pz, oz, pz,
-        head: (ov.querySelector('.rl-note-h') || {}).textContent,
-        lead: (ov.querySelector('.rl-note-lead') || {}).textContent,
-        scrim: !!(scrim && scrim.getBoundingClientRect().width > 0),
-        box: !!ov.querySelector('#rl-note-in'),
-        skip: (ov.querySelector('#rl-note-skip') || {}).textContent,
-        go: (ov.querySelector('#rl-note-ok') || {}).textContent,
-        del: !!ov.querySelector('#rl-note-del'),
-        who: (ov.querySelector('[data-rl-note-room="external"]') || {}).title,
-        rooms: [...ov.querySelectorAll('[data-rl-note-room]')].map(b => b.getAttribute('data-rl-note-room') + (b.getAttribute('aria-selected') === 'true' ? '*' : '')),
-        keep: !!ov.querySelector('.rl-note-keep') };
+      const oz = panel ? Number(getComputedStyle(panel).zIndex) : null;
+      const mid = r && document.elementFromPoint(r.left + r.width / 2, r.top + 40);
+      return { up: open, painted: !!(r && r.width > 0 && r.height > 0),
+        onTop: !!(panel && mid && panel.contains(mid)), overPage: oz > pz, oz, pz,
+        pinned: !!pin, ref: pin ? (pin.querySelector('.ref') || {}).textContent : '',
+        lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
+        rooms: pin ? [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.getAttribute('data-rl-np-pin-room') + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')) : [],
+        skip: pin ? (pin.querySelector('[data-rl-np-unpin]') || {}).textContent : '',
+        box: !!(panel && panel.querySelector('.rl-np-in')),
+        go: panel ? (panel.querySelector('[data-rl-np-send]') || {}).textContent : '' };
     });
-    ck('25a filing raises the note dialog, as real pixels', dlg.up && dlg.painted,
-       dlg.up ? 'drawn' : 'no dialog');
+    ck('25a filing opens the Notes drawer, as real pixels', dlg.up && dlg.painted, dlg.up ? 'open' : 'not open');
     ck('25b it sits OVER the clause editor, which covers the window',
-       dlg.overPage === true && dlg.onTop === true, `dialog z ${dlg.oz}, page z ${dlg.pz}`);
-    ck('25c the HEADLINE carries the fact the toast stood down for, naming the change',
-       /CHG-/.test(dlg.head || '') && /filed|sparad/i.test(dlg.head || ''),
-       `"${(dlg.head || '').trim()}"`);
-    ck('25d two ways on — Skip, and Add note — and no Delete on a change with no note',
-       /skip/i.test(dlg.skip || '') && /add/i.test(dlg.go || '') && dlg.del === false,
+       dlg.overPage === true && dlg.onTop === true, `drawer z ${dlg.oz}, page z ${dlg.pz}`);
+    ck('25c the PIN names the change just filed and says it was filed',
+       dlg.pinned && /CHG-/.test(dlg.ref || '') && /filed|registrerad/i.test(dlg.lead || ''),
+       `"${(dlg.ref || '').trim()}" · "${(dlg.lead || '').trim()}"`);
+    ck('25d two ways on — Skip, and Add note — with the box under the pin',
+       /skip|hoppa/i.test(dlg.skip || '') && /add|l\u00e4gg/i.test(dlg.go || '') && dlg.box === true,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
-    /* RE-POINTED 11 Sep 2026 (C-3): the line that read the choice back is the
-       CHOICE now — two tabs, the counterparty named on the external tab's
-       hover. RE-POINTED AGAIN the same day (D-6): INTERNAL lit at rest, by the
-       owner's later word; External is a press away. */
-    ck('25e it names WHO reads it, before you type — on the room control, Internal lit at rest',
-       /reads this|l\u00e4ser detta/i.test(dlg.who || '') && dlg.keep === false
-       && JSON.stringify(dlg.rooms) === JSON.stringify(['internal*', 'external']),
-       `"${(dlg.who || '').trim().slice(0, 60)}" · ${JSON.stringify(dlg.rooms)}`);
-    ck('25e2 and the lead names the room that is lit — the colleagues, and that the other side never sees it',
-       /colleagues|kollegor/i.test(dlg.lead || '') && /never sees|ser den aldrig/i.test(dlg.lead || ''),
-       (dlg.lead || '').trim().slice(0, 60));
+    ck('25e the room is chosen on the pin, Internal lit at rest (D-6)',
+       JSON.stringify(dlg.rooms) === JSON.stringify(['internal*', 'external']), JSON.stringify(dlg.rooms));
 
     /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
     await p.evaluate(() => {
-      const b = document.getElementById('rl-note-in');
+      const panel = document.getElementById('context-panel');
+      const b = panel.querySelector('.rl-np-in');
       b.value = 'Audit costs: we have never paid theirs.';
       b.dispatchEvent(new Event('input', { bubbles: true }));
-      document.getElementById('rl-note-ok').click();
+      panel.querySelector('[data-rl-np-send]').click();
     });
     await pause(700);
     const wrote = await p.evaluate(() => {
       const c = window.CONTRACT;
       const ch = (c.changes || [])[(c.changes || []).length - 1];
       const t = (ch.thread || [])[0] || {};
-      return { gone: !document.getElementById('rl-note-overlay'),
-        text: t.text, vis: t.visibility, who: t.who };
+      const panel = document.getElementById('context-panel');
+      return { pinGone: !(panel && panel.querySelector('.rl-np-pin')),
+        text: t.text, vis: t.visibility, who: t.who, at: t.at,
+        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))) };
     });
-    /* RE-POINTED 11 Sep 2026 (D-6): the window opens on Internal, so a note
-       typed and added without touching the tabs is an INTERNAL note — at
-       home, on the change it named. The external half is driven below. */
     ck('25f Add note files it onto the change it named, in the room that was lit — Internal at rest',
        /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',
        `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
-    ck('25g and the dialog goes', wrote.gone === true);
+    ck('25g the pin is spent and the note prints its full date and time', wrote.pinGone === true && wrote.clock === true);
+    await skipNote(p);
 
-    /* ---- C-5 (11 Sep 2026, reversing D): A REVISION IS ASKED AGAIN, and the
-       window opens on the reason already given, saying it is a revision.
-       (Against the parent 25h reports the window did not come up.) ---- */
+    /* ---- A REVISION IS ASKED AGAIN, and the pin says it is one ---- */
     await p.evaluate(() => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
       if (b.getAttribute('contenteditable') !== 'true')
@@ -2865,71 +2897,31 @@ const dismissNote = async pg => {
     await p.click('#clause-editor [data-ce-act="save"]');
     await pause(1100);
     const again25 = await p.evaluate(() => {
-      const ov = document.getElementById('rl-note-overlay');
-      return { up: !!ov,
-        lead: ov ? (ov.querySelector('.rl-note-lead') || {}).textContent : '',
-        value: ov ? (ov.querySelector('#rl-note-in') || {}).value : '',
-        go: ov ? (ov.querySelector('#rl-note-ok') || {}).textContent : '',
-        set: ov ? [...ov.querySelectorAll('[data-rl-note-room]')].every(b => b.disabled) : null,
+      const panel = document.getElementById('context-panel');
+      const pin = panel && panel.querySelector('.rl-np-pin');
+      return { up: !!(panel && panel.classList.contains('open') && pin),
+        lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
         revs: (() => { const c = window.CONTRACT;
           const ch = (c.changes || [])[(c.changes || []).length - 1];
           return (ch.revisions || []).length; })() }; });
-    ck('25h A REVISION IS ASKED AGAIN — the window comes up, says so, and opens on the reason already given',
-       again25.up === true && again25.revs > 0 && /again|igen/i.test(again25.lead || '')
-       && /never paid theirs/.test(again25.value || '') && /save|spara/i.test(again25.go || '') && again25.set === true,
-       `dialog ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · "${(again25.lead || '').trim().slice(0, 50)}" · ${(again25.go || '').trim()}`);
+    ck('25h A REVISION IS ASKED AGAIN — the drawer opens pinned, and the pin says so',
+       again25.up === true && again25.revs > 0 && /revised|reviderad/i.test(again25.lead || ''),
+       `drawer ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · "${(again25.lead || '').trim().slice(0, 50)}"`);
+    /* ---- THE OTHER ROOM: an external note goes down the channel, the pin's
+       switch moves the drawer's tab and tints the box. ---- */
+    const ext25 = await p.evaluate(async () => {
+      const panel = document.getElementById('context-panel');
+      panel.querySelector('[data-rl-np-pin-room="external"]').click();
+      await new Promise(r => setTimeout(r, 150));
+      const box = panel.querySelector('.rl-np-in');
+      const foot = panel.querySelector('.rl-np-foot');
+      return { tab: (panel.querySelector('.rl-np-tab.on') || {}).textContent,
+        tinted: !!(foot && foot.classList.contains('out')),
+        ph: box ? box.getAttribute('placeholder') : '' };
+    });
+    ck('25i the pin\'s switch moves the drawer to External and the box wears the crossing',
+       /external|extern/i.test(ext25.tab || '') && ext25.tinted === true, `${(ext25.tab || '').trim()} · tinted ${ext25.tinted}`);
     await skipNote(p);
-    /* ---- C-3: THE READER MAY CHOOSE INTERNAL, and an internal note stays at
-       home — on the change's own thread, never delivered, its room said in
-       the confirmation. Driven on a THIRD filing so it is a fresh note (the
-       first one is a record now). ---- */
-    await p.evaluate(() => {
-      const c = window.CONTRACT;
-      const ch = (c.changes || [])[(c.changes || []).length - 1];
-      const mine = (ch.thread || []).find(m => /never paid theirs/.test(m.text || ''));
-      if (mine) mine.sentAt = new Date().toISOString();   /* delivered: a record, not a draft */
-      const b = document.querySelector('#clause-editor #ce-clausebody');
-      if (b.getAttribute('contenteditable') !== 'true')
-        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
-    });
-    await pause(400);
-    await p.evaluate(() => {
-      const b = document.querySelector('#clause-editor #ce-clausebody');
-      b.focus(); b.innerHTML = '<p>Each party shall bear its own costs of any such audit.</p>'; b.blur();
-    });
-    await pause(400);
-    await p.click('#clause-editor [data-ce-act="save"]');
-    await pause(1100);
-    const int25 = await p.evaluate(async () => {
-      const ov = document.getElementById('rl-note-overlay');
-      if (!ov) return { up: false };
-      const tab = ov.querySelector('[data-rl-note-room="internal"]');
-      const live = !!tab && !tab.disabled;
-      if (tab) tab.click();
-      await new Promise(r => setTimeout(r, 120));
-      const ov2 = document.getElementById('rl-note-overlay');
-      const lead = (ov2.querySelector('.rl-note-lead') || {}).textContent || '';
-      const box = ov2.querySelector('#rl-note-in');
-      const tinted = box ? getComputedStyle(box).boxShadow : '';
-      box.value = 'Colleagues: they never paid, do not concede.';
-      box.dispatchEvent(new Event('input', { bubbles: true }));
-      ov2.querySelector('#rl-note-ok').click();
-      await new Promise(r => setTimeout(r, 500));
-      const c = window.CONTRACT;
-      const ch = (c.changes || [])[(c.changes || []).length - 1];
-      const m = (ch.thread || [])[(ch.thread || []).length - 1] || {};
-      return { up: true, live, lead, tinted,
-        gone: !document.getElementById('rl-note-overlay'),
-        vis: m.visibility, sent: !!m.sentAt, text: m.text };
-    });
-    ck('25i the window offers Internal live on a fresh note, and the lead names the colleagues',
-       int25.up && int25.live === true && /colleagues|kollegor/i.test(int25.lead),
-       int25.up ? `"${(int25.lead || '').trim().slice(0, 60)}"` : 'no window');
-    ck('25j an INTERNAL note lands on the change\'s own thread, never delivered, and the window goes',
-       int25.vis === 'internal' && int25.sent === false && /never paid/.test(int25.text || '') && int25.gone === true,
-       `${int25.vis} · sent ${int25.sent}`);
-    ck('25k and the internal box drops the external tint — the two rooms are told apart on the box itself',
-       int25.tinted === 'none' || !/inset/.test(int25.tinted || ''), int25.tinted);
     await p.evaluate(() => rlCloseClauseEditor({}));
     await pause(300);
   } else {
@@ -3122,6 +3114,35 @@ const dismissNote = async pg => {
      everything between the model's reply and the record is the product's own
      code. */
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`, { waitUntil: 'load' });
+  /* ---- THE STAGE HAS NO SHELL (11 Sep 2026) ----
+     parity.html loads neither js/app.js nor the shell's drawer, and since the
+     receipt window was retired the note after a filing lives IN that drawer.
+     The two shell doors are stood in for here on the shell's own contract —
+     openNotesPanel paints the product's real panels into a real aside,
+     closeContextPanel takes it down — so what is driven below is the
+     product's own markup and wiring, never a description of it. */
+  await p.evaluate(() => {
+    if (typeof window.openNotesPanel === 'function') return;
+    window.state = window.state || {};
+    let aside = document.getElementById('context-panel');
+    if (!aside){
+      aside = document.createElement('aside'); aside.id = 'context-panel';
+      aside.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:365px;z-index:46;background:#fff;border-left:1px solid #ddd;display:none;flex-direction:column;overflow:hidden';
+      aside.innerHTML = '<div id="panel-body" class="pb-flow" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>';
+      document.body.appendChild(aside);
+    }
+    window.openNotesPanel = (cid, chId) => {
+      const c = window.CONTRACT; const body = document.getElementById('panel-body');
+      window.state.panelOpen = true; aside.classList.add('open'); aside.style.display = 'flex';
+      const opts = { side: 'owner', author: ((window.currentUser && currentUser()) || {}).name };
+      const ch = (chId && window.negoChangeById) ? negoChangeById(c, chId) : null;
+      if (ch) rlNotesPanelPaint(body, c, ch, opts); else rlChatPanelPaint(body, c, opts);
+    };
+    window.closeContextPanel = () => {
+      window.state.panelOpen = false; aside.classList.remove('open'); aside.style.display = 'none';
+      if (window.rlNotesPanelClosed) rlNotesPanelClosed();
+    };
+  });
   await p.evaluate(() => window.READY); await pause(500);
 
   const TRACE_WORDS = 'This Agreement shall continue for four (4) years from the '

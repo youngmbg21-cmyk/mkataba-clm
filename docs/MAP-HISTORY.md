@@ -18961,3 +18961,27 @@ sheet, left of the wording — never a pixel.
 clause-door-verify 16d4/16d5, paper-grows-verify 5d/6, settled-ask-reopen-verify
 "the adopted change has no card"; plain-english-verify 6c, which C-7 left red
 by taking the upload's one painted h-tag, re-pointed to `painted <= 1`.
+
+
+## NOTES ARE ONE SYSTEM — THREE DOORS, ONE DRAWER, AND THE THREAD GOES OUT TO WORD (Young asked 11 Sep 2026)
+
+THE OWNER'S WORDS, in the afternoon of 11 Sep 2026, off the clause editor with a passage held in Copilot's rail and the Document tab's highlight menu:
+
+> *"I need to reconcile something with your help. This is mostly related to the notes. I need your solution in how we can implement the comments ecosystem to be one. Maybe whenever you want to comment, the comments / chat slide panel slides in and you comment there instead. This for both commenting when you highlight a contract sentence and you want to comment or when you click on a pencil indicating you have finished you redlining. Currently when you highlight a sentence, it takes you to the copilot to redline ... Maybe it should be that when you highlight, you get a pop ... but you only have ask copilot and comment. If you choose ask copilot it brings you to copilot as it does today, if you choose comment, you are brought to the sliding comments / chat panel and you enter your comments there tagged to the CHG number. I want to go even further, the comments that are related to a CHG number can then be also exported to microsoft word document."*
+
+And, off the design page: *"lets make sure when we implement it is clear that we also add the ability to reply to a comment vs just entering a comment which would be a different step. All comments to be time stamped as well."* And on the Document tab: *"you cannot ask copilot or comment whilst in the document page."*
+
+WHAT STOOD BEFORE: three places a note could be written — the drawer (two rooms), the receipt window that came up after every filing (built 31 Aug, given two rooms and two drafts the same morning, D-5/D-6), and the card body's own composer — and no way at all to say something about words nobody had touched. The counterparty's notes sat on their card. The Word export carried redlines and no comments; the import read comments and pinned them to a clause by guessing the wording.
+
+WHAT WAS BUILT, and the rulings inside it:
+- THE MODEL grew four optional fields on a message (id, anchor, replyTo, done) and three readings (home, anchor state, threads) plus one writer (done). No migration: absent on every note on file. The home of an anchored note is a READING, so a note on words that a later change covers is drawn under that CHG without being moved.
+- THE DRAWER took the window's job. Every ruling the window had survives on the pin: Internal lit at rest (D-6), a draft per room, Skip asks over a draft, the lead says "revised" where the fold happened. The design page had recommended External after a filing; the owner's explicit D-6 ruling ("always start with internal") was kept instead and said so in the summary.
+- REPLY is a box under the note it answers with its own Send reply; the foot box never replies. DONE folds; the marker leaves the paper. The clock prints the day and the time on every row; the day goes through langLocale (the month follows the language rule).
+- THE PAPER offers Ask Copilot · Comment on the negotiation page and in the clause editor; the Document tab was left untouched (the owner's sentence was a ruling that the Document tab offers neither; its existing Simplify / Ask Copilot menu was neither widened nor removed — reported, not fixed). In the clause editor a drag used to attach the passage to Copilot's rail by itself; it offers first now, which costs one press on the Copilot path and buys the comment door. f245's three attach claims were re-pointed.
+- THEIR PAGE gained a notes aside of its own (the alerts panel's shape) drawing the same Chat panel with one room, a Notes row in More, Comment on highlight, and their channel post carries the note's meta. Their card composer was NOT retired (their seat's byte-identical rule; a follow-up).
+- WORD: comments.xml and commentsExtended.xml are written only where there is a comment (the no-comment file is byte-identical, pinned); a note on a change sits on the change's inserted words (else struck words) with the CHG first; replies thread through paraIdParent; done is w15:done. The reader (docxComments) reads them back — proved in-process, and the import honours the CHG prefix before guessing by wording. No export dialog was added (cheapest channel: the toast counts the comments).
+- THE SERVER: a `meta` JSON column on share_messages behind an allow-list; both post routes take it; two PATCH routes set done. `now()`/rlShare/scope as their neighbours.
+
+WHAT WAS DELIBERATELY NOT DONE: the Document tab's highlight menu (untouched, see above); the counterparty's card composer (kept); an export dialog with a tick (the toast counts instead); Done on a channel-only note in local mode (says it cannot); marker placement inside the typing box (marker only, no wash — the wash could reach the record on the next pull).
+
+Tests: f303 (38 claims across model, channel, drawer, doors, marks, Word, server), f302 rewritten against the drawer, f264 (4)(5) re-pointed, f266 caller count re-pointed, f245 attach claims re-pointed, clause-editor-verify 25 re-driven against the drawer, window-drag-verify 5 re-pointed, clause-door-verify helper re-pointed.

@@ -1836,6 +1836,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
   ceRenderAll();
+  /* The paper's Ask Copilot names the words it was pressed on; they go to
+     the rail once the page is drawn. */
+  if (opts && opts.passage) setTimeout(() => { try { ceAttachWords(opts.passage); } catch (e){} }, 0);
   /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
@@ -2481,6 +2484,9 @@ function ceRenderPaper(){
   _ceRendering = true;
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
+    /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
+       inside the typing box (rlPaintNoteMarks skips the clause being typed). */
+    try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: 'owner' }); } catch (e){}
     ceRestoreScroll(host, keep);
   } finally { _ceRendering = false; }
   ceApplyZoom();
@@ -3548,6 +3554,84 @@ function ceBoxHtml(box){
 
    THE SAME PASSAGE TWICE IS NOT A NEW ATTACHMENT: re-selecting identical words
    repaints nothing, so a stray double-click does not clear a half-typed ask. */
+/* ---- THE HIGHLIGHT OFFERS TWO THINGS (Young ruled 11 Sep 2026) ----
+   *"when you highlight, you get a pop like image 2, but you only have ask
+   copilot and comment. If you choose ask copilot it brings you to copilot as
+   it does today ... if you choose comment, you are brought to the sliding
+   comments / chat panel."*
+
+   THIS COSTS ONE PRESS on the way to Copilot — a drag used to attach the
+   passage to the rail by itself — and buys the second door, which a selection
+   meant for a comment never had. The menu is the product's own (rlSelMenu,
+   through window), pressed on mousedown so the browser's selection stands;
+   nothing here takes the caret, so the writing bar still acts on the held
+   sentence. Where the menu is not on this stage the drag attaches as before. */
+function ceOfferPassage(sel){
+  if (!sel) return;
+  const menu = (typeof window !== 'undefined') ? window.rlSelMenu : null;
+  const c = _ceC, cid = _ceClauseId;
+  const mayNote = !!(c && window.rlNoteFromSelection
+    && (typeof window.notesMayWrite !== 'function' || notesMayWrite(c, {})));
+  if (typeof menu !== 'function' || !sel.rect){ ceAttachPassage(sel); return; }
+  const acts = [{ id: 'ask', label: _cet('ng_sel_ask') }];
+  if (mayNote) acts.push({ id: 'comment', label: _cet('ng_sel_comment') });
+  const kill = () => document.querySelectorAll('.nego-selmenu').forEach(n => n.remove());
+  kill();
+  menu({ text: sel.text, clauseId: cid, rect: sel.rect, actions: acts, onPick: a => {
+    kill();
+    if (a.id === 'comment'){
+      ceDetachPassage();
+      rlNoteFromSelection(c, { clauseId: cid, quote: sel.text },
+        { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined });
+      return;
+    }
+    ceAttachPassage(sel);
+  } });
+  /* Shut by the next press anywhere else — the page has no room to arm it. */
+  const shut = ev => {
+    if (ev.target && ev.target.closest && ev.target.closest('.nego-selmenu')) return;
+    kill(); document.removeEventListener('mousedown', shut, true);
+  };
+  document.addEventListener('mousedown', shut, true);
+}
+/* The paper's own Ask Copilot arrives here with WORDS rather than a range:
+   the editor has just opened on the clause and the reader's selection is
+   gone. The words are found in the box, selected, and read back through the
+   ONE selection reading — so the rail holds exactly what a drag would have
+   given it, refusals included. Nothing where the words are not in the draft. */
+function ceAttachWords(text){
+  const box = _ceQ('#ce-clausebody');
+  const q = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!box || !q || !document.createTreeWalker || !window.getSelection) return false;
+  const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+  const nodes = []; let nd;
+  while ((nd = walker.nextNode())) nodes.push(nd);
+  let full = ''; const starts = [];
+  for (const t of nodes){ starts.push(full.length); full += t.data; }
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let re; try { re = new RegExp(q.split(' ').map(esc).join('\\s+'), 'i'); } catch (e){ return false; }
+  const m = re.exec(full);
+  if (!m) return false;
+  const at = (pos) => {
+    for (let i = 0; i < nodes.length; i++){
+      const ns = starts[i], ne = ns + nodes[i].data.length;
+      if (pos >= ns && (pos < ne || (pos === ne && i === nodes.length - 1))) return { node: nodes[i], off: pos - ns };
+    }
+    return null;
+  };
+  const a = at(m.index), b = at(m.index + m[0].length);
+  if (!a || !b) return false;
+  try {
+    const r = document.createRange();
+    r.setStart(a.node, a.off); r.setEnd(b.node, b.off);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+  } catch (e){ return false; }
+  const read = ceSelectionRead();
+  if (!read.sel) return false;
+  ceAttachPassage(read.sel);
+  return true;
+}
 function ceAttachPassage(sel){
   if (!sel) return;
   if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line) return;
@@ -3944,7 +4028,10 @@ async function ceFile(why){
     ? rlNoteAskAfterFile(c, ch, { side: 'owner', author: (_ceOpts && _ceOpts.by) || undefined,
         persist: (_ceOpts && _ceOpts.persist) })
     : null;
-  if (!_noteAsk && window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+  /* THE CONFIRMATION IS BRIEF AND ALWAYS (11 Sep 2026): the receipt window
+     that carried "filed" as its headline is retired; the drawer that opens
+     instead pins the change and asks for the note. */
+  if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
   /* ---- FILING NEVER CLOSES THE PAGE (owner-ruled 30 Aug 2026) ----
      THIS REVERSES "BACK WHERE YOU STARTED", which closed the editor and put the
      reader back on the negotiation page with the change on it. That was right
@@ -4411,7 +4498,7 @@ function ceWirePage(page){
     if (!t || !t.closest || !t.closest('#ce-doc')) return;
     setTimeout(() => {
       const read = ceSelectionRead();
-      if (read.sel){ ceAttachPassage(read.sel); return; }
+      if (read.sel){ ceOfferPassage(read.sel); return; }
       ceDetachPassage();
       /* ---- AND A REFUSAL SAYS WHY (31 Aug 2026) ----
          This branch used to do nothing at all, so a passage the product had
@@ -4468,7 +4555,7 @@ Object.assign(window, {
   rlOpenClauseEditor, rlCloseClauseEditor,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
   ceBoxDirty,
-  ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceRenderScope, ceRenderChips,
+  ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,
   ceClauseDeviations, cePlaybookLine,
   ceCostLine, ceWordCount, ceLines,

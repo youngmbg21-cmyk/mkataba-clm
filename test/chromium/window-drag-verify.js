@@ -193,7 +193,11 @@ const PANEL = `(() => {
       `${reopened.left}..${reopened.left + reopened.w}`);
     await page.evaluate(() => closeModal());
 
-    /* ---------- 5 — THE WINDOW THE OWNER NAMED ---------- */
+    /* ---------- 5 — THE WINDOW THE OWNER NAMED IS RETIRED (11 Sep 2026) ----------
+       The note after a filing lives in the Notes DRAWER now (Young: "the
+       comments / chat slide panel slides in and you comment there instead").
+       A docked panel is not in the drag families, so this proves the old
+       overlay no longer exists and the drawer opens instead. */
     const staged = await page.evaluate(async () => {
       const c = (state.contracts || []).find(x => x && x.status !== 'Signed');
       if (!c) return 'no contract';
@@ -209,34 +213,14 @@ const PANEL = `(() => {
       return 'ok';
     });
     await page.waitForTimeout(500);
-    const note = await panel();
-    check('the redline note window opens', staged === 'ok' && !!note, staged);
-    if (note){
-      await page.screenshot({ path: path.join(OUT, 'note-window.png') });
-      await page.mouse.move(note.left + 40, note.top + 12);
-      await page.waitForTimeout(60);
-      const noteCursor = (await panel()).cursor;
-      await drag({ x: note.left + 40, y: note.top + 12 }, 220, 140);
-      const noteMoved = await panel();
-      check('THE NOTE WINDOW MOVES — the one the owner asked for',
-        noteMoved.left - note.left > 180 && noteMoved.top - note.top > 100,
-        `cursor "${noteCursor}" · moved ${noteMoved.left - note.left},${noteMoved.top - note.top}`);
-      /* Its own box still takes typing after the window has been carried across
-         the screen — a drag that broke the field would be worse than no drag. */
-      const typed = await page.evaluate(() => {
-        const b = document.getElementById('rl-note-in');
-        if (!b) return null; b.focus(); return document.activeElement === b;
-      });
-      if (typed !== null){
-        await page.keyboard.type('Market standard is 45 days.');
-        const got = await page.evaluate(() => (document.getElementById('rl-note-in') || {}).value || '');
-        check('and its box still takes typing where the reader put the window',
-          got.includes('45 days'), JSON.stringify(got.slice(0, 40)));
-      }
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(200);
-      check('and Escape still closes it', (await panel()) === null);
-    }
+    const noteState = await page.evaluate(() => ({
+      overlay: !!document.getElementById('rl-note-overlay'),
+      drawer: !!(window.state && state.panelOpen && document.getElementById('context-panel').classList.contains('open')),
+      pinned: !!document.querySelector('#context-panel .rl-np-pin') }));
+    check('the redline note window is gone, and the drawer opens pinned instead',
+      staged === 'ok' && !noteState.overlay && noteState.drawer && noteState.pinned, `${staged} · ${JSON.stringify(noteState)}`);
+    await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
+    await page.waitForTimeout(200);
 
     /* ---------- 6 — NOT ON A NARROW WINDOW ---------- */
     await page.setViewportSize({ width: 700, height: 900 });

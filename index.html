@@ -5187,6 +5187,57 @@
     border-top:1px solid var(--color-divider);
     font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);}
   .rl-np-no .rl-np-i{width:12px;height:12px;flex:none;margin-top:2px;}
+  /* ---- NOTES ARE ONE SYSTEM (Young asked 11 Sep 2026) ----
+     The PIN above the box (what the drawer is holding and which room it is
+     for), the ANCHOR line on a note (the clause and the words), the REPLY box
+     under the note it answers, the acts row, and the Done fold. The external
+     room keeps its own colour throughout; a note whose words have moved says
+     so in amber. Every rule is unscoped, like the rest of .rl-np-*: the same
+     builder draws in the shell's drawer and on the counterparty's aside. */
+  .rl-np-pin{flex:none;margin:0 var(--s-4);padding:8px 10px;
+    border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);
+    background:var(--surface-2);display:grid;gap:5px;font-size:var(--t-meta);}
+  .rl-np-pin.out{border-left-color:var(--st-amber-fg);background:var(--st-amber-bg);}
+  .rl-np-pin .l{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .rl-np-pin .ref{font-weight:var(--w-title);color:var(--color-text);}
+  .rl-np-pin .lead{font-size:var(--t-micro);color:var(--color-neutral-600);flex:1;min-width:0;}
+  .rl-np-pin .x{font:inherit;font-size:var(--t-micro);font-weight:var(--w-strong);
+    color:var(--color-neutral-600);background:none;border:0;padding:0;cursor:pointer;margin-left:auto;}
+  .rl-np-pin q{display:block;font-style:italic;color:var(--color-text);quotes:'\201C' '\201D';}
+  .rl-np-pinroom{display:inline-flex;border:1px solid var(--color-divider);overflow:hidden;align-self:start;}
+  .rl-np-pinroom button{font:inherit;font-size:var(--t-micro);padding:3px 10px;border:0;
+    background:var(--color-surface);color:var(--color-text);cursor:pointer;}
+  .rl-np-pinroom button.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title);}
+  .rl-np-pinroom button.on.ext{background:var(--st-amber-fg);}
+  .rl-np-anchor{display:grid;gap:1px;margin-top:4px;font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .rl-np-anchor .w{font-weight:var(--w-strong);}
+  .rl-np-anchor q{font-style:italic;color:var(--color-text);quotes:'\201C' '\201D';}
+  .rl-np-anchor em{font-style:normal;color:var(--st-amber-fg);}
+  .rl-np-anchor.is-moved q{text-decoration:line-through;text-decoration-color:var(--color-neutral-400);}
+  .rl-np-note.is-reply{margin-left:12px;padding-left:9px;border-left:2px solid var(--color-divider);
+    border-bottom:0;}
+  .rl-np-thread{border-bottom:1px solid var(--rule-faint);}
+  .rl-np-thread .rl-np-note{border-bottom:0;}
+  .rl-np-thread.is-done .rl-np-note p,.rl-np-thread.is-done .rl-np-top b{color:var(--color-neutral-600);}
+  .rl-np-acts{display:flex;align-items:baseline;gap:12px;margin-top:6px;font-size:var(--t-label);}
+  .rl-np-act-b{font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
+    color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;}
+  .rl-np-act-b.g{color:var(--color-neutral-600);}
+  .rl-np-doneby{font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .rl-np-rbox{margin:6px 0 4px 12px;padding-left:9px;border-left:2px solid var(--color-accent);display:grid;gap:6px;}
+  .rl-np-rbox.out{border-left-color:var(--st-amber-fg);}
+  .rl-np-rin{width:100%;min-height:44px;border:1px solid var(--color-divider);
+    background:var(--color-surface);padding:var(--s-2) 10px;font:inherit;
+    font-size:var(--t-meta);line-height:1.5;color:var(--color-text);resize:vertical;}
+  .rl-np-rbox .rl-np-act{justify-content:flex-end;gap:12px;align-items:center;margin:0;}
+  .rl-np-donefold{display:block;width:100%;text-align:left;font:inherit;font-size:var(--t-label);
+    font-weight:var(--w-strong);color:var(--color-neutral-600);background:none;border:0;
+    border-top:1px solid var(--rule-faint);padding:10px 0 6px;cursor:pointer;}
+  .rl-np-donefold::after{content:' \25B8';}
+  .rl-np-donefold[aria-expanded="true"]::after{content:' \25BE';}
+  .rl-np-note.is-lit{background:color-mix(in srgb,var(--color-accent) 10%,transparent);
+    transition:background var(--dur-3) ease;}
+  .rl-chat-on.is-static{cursor:default;}
   /* ---- THE NOTE ON ONE CHANGE — OPTION A, "THE RECEIPT" ----
      (owner-chose it off four drawn windows, 1 Sep 2026.)
 

@@ -1931,6 +1931,11 @@ function navHeaderTight(){
 function applyPanelLayout(){
   const panel=document.getElementById('context-panel');
   const scrim=document.getElementById('panel-scrim');
+  /* A DRAWER THAT WENT DROPS WHAT IT WAS HOLDING: whatever the Notes face had
+     pinned (the words a comment was about, the change just filed) is let go
+     and its waiter told nothing happened. Asked through window — the reading
+     lives with the notes. */
+  if(!state.panelOpen){ try{ if(window.rlNotesPanelClosed) rlNotesPanelClosed(); }catch(_){} }
   if(!panel||!panel.classList) return;
   /* THE SUPPRESSION IS ASKED, NOT REPEATED. This line carried its own copy of
      `state.view!=='intel'` — the same rule panelSuppressed answers — so the
@@ -2077,10 +2082,15 @@ function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; 
    drawer comes back to the conversation it was showing, exactly as the bell
    comes back to alerts. And the render is skipped on the way out, which is
    openPanel's own shape — there is nothing to draw into a shut drawer. */
-function openNotesPanel(contractId, changeId){
+/* `o.force` (11 Sep 2026): a door that is DELIVERING something — the pencil
+   that just filed, a marker on the paper, a highlight's Comment — opens the
+   drawer and repaints it even where it is already open on the same thread;
+   the toggle stays for the doors a reader presses to look. */
+function openNotesPanel(contractId, changeId, o){
   if(!contractId) return;
+  const force=!!(o&&o.force);
   const was=state.notesFor||{};
-  const same=state.panelOpen&&panelFace()==='notes'
+  const same=!force&&state.panelOpen&&panelFace()==='notes'
     &&String(was.contractId||'')===String(contractId)
     &&String(was.changeId==null?'':was.changeId)===String(changeId==null?'':changeId);
   state.notesFor={contractId:String(contractId),

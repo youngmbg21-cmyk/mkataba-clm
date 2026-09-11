@@ -5820,7 +5820,15 @@ function exportWordTracked(c,opts){
   try{
     const html=redlineDocHtml(c,{side});
     const me=(window.currentUser&&currentUser())||null;
-    out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi'});
+    /* ---- THE EXTERNAL NOTES GO WITH IT, AS WORD COMMENTS (Young asked 11 Sep
+       2026) ---- Every note in the EXTERNAL room, on a change or pinned to
+       words, becomes a real Word comment on the words it is about; a note on
+       a change leads with the change's reference ("CHG-012: …") so a reader
+       in Word sees what it is about and the import re-links it when the file
+       comes back. Replies thread; Done is resolved. INTERNAL NOTES NEVER
+       LEAVE: wordCommentsOf reads the external room only. */
+    out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
+      comments:wordCommentsOf(c,side)});
   }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return; }
   const name=`${c.id}-redline.docx`;
   try{
@@ -5840,9 +5848,40 @@ function exportWordTracked(c,opts){
       :' (no redlines — clean wording)'));
     persist(c);
   }
-  toast(out.tracked&&(out.tracked.ins||out.tracked.del)
+  const nc=(out.comments&&out.comments.placed)||0;
+  const cLine=nc?i18tn('ct_word_comments_n',nc,{n:nc}):'';
+  toast((out.tracked&&(out.tracked.ins||out.tracked.del)
     ? `${name} — ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'}, as Word tracked changes`
-    : `${name} — no redlines on this document, so it exports as clean wording`);
+    : `${name} — no redlines on this document, so it exports as clean wording`)+cLine);
+}
+/* The external room's threads, shaped for the Word writer. The quote a
+   comment sits on is the note's own anchor, or — for a note on a change with
+   no anchor — the change's inserted words, else its struck words. A thread
+   with nothing to sit on is left out and counted by the writer. */
+function wordCommentsOf(c,side){
+  if(!window.negoRoomNotes||!window.negoNoteThreads) return [];
+  const opts={side,messages:(c&&c._messages)||(window.PORTAL_OPTS&&PORTAL_OPTS.messages)||null};
+  const out=[];
+  const quoteOf=ch=>{
+    const ops=Array.isArray(ch&&ch.ops)?ch.ops:[];
+    const pick=k=>{ const o=ops.find(x=>x&&x.op===k&&String(x.text||'').replace(/\s+/g,' ').trim().length>=3); return o?String(o.text).replace(/\s+/g,' ').trim().slice(0,200):''; };
+    return pick('ins')||pick('del')||String(ch&&(ch.proposedText||ch.newText||ch.oldText)||'').replace(/\s+/g,' ').trim().slice(0,200);
+  };
+  const take=(ch,notes)=>{
+    for(const th of negoNoteThreads(notes)){
+      const root=th.root; if(!root) continue;
+      const q=root.anchor?root.anchor.quote:(ch?quoteOf(ch):'');
+      if(!q) continue;
+      const key='n'+out.length;
+      out.push({ key, author:root.who||'', date:root.at||'', text:(ch?ch.id+': ':'')+String(root.text||''), quote:q, done:!!root.done });
+      for(const r of th.replies) out.push({ key:'n'+out.length, author:r.who||'', date:r.at||'', text:String(r.text||''), quote:q, replyTo:key });
+    }
+  };
+  try{
+    take(null,negoRoomNotes(c,null,'external',opts,side));
+    for(const ch of (Array.isArray(c&&c.changes)?c.changes:[])) if(ch&&ch.id&&ch.status!=='superseded') take(ch,negoRoomNotes(c,ch,'external',opts,side));
+  }catch(_){ return out; }
+  return out;
 }
 
 /* ---- FOCUS MODE, THE DOC PAGE'S OWN ----

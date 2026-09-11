@@ -1927,7 +1927,10 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'it must not refuse a drag because the reader is typing — that refusal IS '
       + 'the report, and with it in place the pencil is one switch pointing at '
       + 'one of two jobs');
-    assert.match(up[0], /ceAttachPassage\(read\.sel\)/, 'and it still attaches the passage');
+    /* RE-POINTED 11 Sep 2026: a drag OFFERS (Ask Copilot · Comment) and the
+       first offer attaches — ceOfferPassage ends in ceAttachPassage. */
+    assert.match(up[0], /ceOfferPassage\(read\.sel\)/, 'and it still offers the passage to the rail');
+    assert.match(CODE, /function ceOfferPassage\(sel\)\{[\s\S]*?ceAttachPassage\(sel\);/, 'and the offer attaches');
     /* ---- AND IT ONLY EVER ANSWERS FOR A PRESS ON THE PAPER (M-1) ----
        THE LINE THAT MAKES OPTION A WORK. With the box on the paper, a press
        elsewhere that made no selection meant "the reader has moved on" and
@@ -2026,8 +2029,8 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
       'the press has to have landed inside the paper');
     assert.ok(!/\[data-ce-act\], #ce-inline/.test(up),
       'and the old control exclusion is gone with the strip it was written for');
-    assert.match(up, /if \(read\.sel\)\{ ceAttachPassage\(read\.sel\); return; \}/,
-      'a real selection attaches');
+    assert.match(up, /if \(read\.sel\)\{ ceOfferPassage\(read\.sel\); return; \}/,
+      'a real selection is offered (11 Sep 2026: Ask Copilot · Comment)');
     assert.match(up, /ceDetachPassage\(\);\n/, 'and none lets the passage go');
   });
 
@@ -2349,8 +2352,8 @@ describe('f245 (22) — the selection goes with the passage', () => {
   test('the handler speaks it, through the page\'s one refusal line', () => {
     const up = CODE.match(/addEventListener\('mouseup'[\s\S]*?\n  \}\);/)[0];
     assert.match(up, /const read = ceSelectionRead\(\);/, 'it asks the one reading');
-    assert.match(up, /if \(read\.sel\)\{ ceAttachPassage\(read\.sel\); return; \}/,
-      'a placeable passage attaches exactly as it did');
+    assert.match(up, /if \(read\.sel\)\{ ceOfferPassage\(read\.sel\); return; \}/,
+      'a placeable passage is offered exactly as it did (the offer attaches)');
     assert.match(up, /if \(read\.why\) ceSay\(_cet\(read\.why\)\);/,
       'and a refusal names itself — ceSay is the line the writing bar, Apply '
       + 'and Discard already speak through');

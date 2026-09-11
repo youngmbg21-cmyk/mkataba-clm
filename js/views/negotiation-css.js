@@ -2180,6 +2180,23 @@ function redlineLayoutCss(){
   .redline-page .rl-clause.is-changed::after{content:'';position:absolute;
     top:0;bottom:0;left:-18px;width:3px;border-radius:0;background:var(--danger)}
   html.dark .redline-page .rl-clause.is-changed::after{background:#f87171}
+  /* ---- THE NOTE MARKS (Young asked 11 Sep 2026) ----
+     A numbered marker in the sheet's left gutter beside the clause an open
+     note is pinned to, and a light wash on the words. The rooms' own colours:
+     the accent for internal, amber for external. Hollow where the words are
+     no longer in the clause. Furniture: it does not scale with the reader's
+     text size, and it never reaches the record (painted after every paint,
+     never inside the typing box). Both seats draw it. */
+  .rl-clause .rl-note-mk{position:absolute;left:-48px;width:18px;height:18px;padding:0;
+    border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--accent-fill);color:#fff;
+    font:var(--w-title) 10px/16px var(--n-font-ui);text-align:center;cursor:pointer;z-index:2}
+  .rl-clause .rl-note-mk.out{background:var(--st-amber-fg);border-color:var(--st-amber-fg)}
+  .rl-clause .rl-note-mk.is-gone{background:var(--n-paper);color:var(--n-ink-soft);border-color:var(--n-ink-soft)}
+  .rl-clause .rl-note-mk:hover,.rl-clause .rl-note-mk:focus-visible{filter:brightness(1.08)}
+  .rl-note-hl{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);
+    box-shadow:inset 0 -1.5px 0 var(--accent-fill)}
+  .rl-note-hl.out{background:color-mix(in srgb,var(--st-amber-fg) 16%,transparent);
+    box-shadow:inset 0 -1.5px 0 var(--st-amber-fg)}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the

@@ -332,8 +332,11 @@ describe('f266 (6) — somebody named you, and the door says so', () => {
 describe('f266 (7) — the person tagged is told', () => {
   test('ONE door, both callers — a third note path joins it', () => {
     assert.match(NEG, /async function negoNotifyMentions\(c, ch, msg\)/);
-    assert.equal((NEG.match(/negoNotifyMentions\(c, ch, msg\)\)/g) || []).length, 2,
-      'the panel’s send and the note dialog’s');
+    /* RE-POINTED 11 Sep 2026: the note window was the second caller and is
+       retired — every note, pinned or replied, lands through the drawer's one
+       send, so there is one caller and it is that send. */
+    assert.equal((NEG.match(/negoNotifyMentions\(c, ch, msg\)\)/g) || []).length, 1,
+      'the drawer’s one send');
     const fn = NEG.match(/async function negoNotifyMentions\([\s\S]*?\n\}/)[0];
     assert.ok(!/email|address/i.test(fn.replace(/\/\*[\s\S]*?\*\//g, '')),
       'it sends KEYS, never addresses');

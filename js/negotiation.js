@@ -2125,6 +2125,17 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
   const filed = await negoFileProposal(c, text, { side: 'counterparty', author,
     via: 'a returned Word file' });
   const comments = (window.docxComments ? await docxComments(bytes) : []).map(cm => {
+    /* ---- A COMMENT THAT NAMES ITS CHG COMES HOME TO IT (11 Sep 2026) ----
+       The Word export writes every note on a change with the change's own
+       reference first ("CHG-012: …"), so a lawyer in Word sees what it is
+       about and, when the file comes back, the reference is read before the
+       words are guessed at. Only a change that is on this record is honoured;
+       an unknown reference falls through to the quote exactly as before. */
+    const tag = /^(CHG-\d+)\s*[:：]\s*/i.exec(String(cm.text || ''));
+    const ch = tag ? negoChangeById(c, tag[1].toUpperCase()) : null;
+    if (ch) return { ...cm, text: String(cm.text).slice(tag[0].length),
+      topic: negoTopicFor(ch), topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`,
+      changeId: ch.id };
     const t = negoTopicForQuote(c, cm.quote || cm.text);
     return { ...cm, topic: t.topic, topicLabel: t.label };
   });
@@ -3020,10 +3031,19 @@ function negoPostComment(c, id, text, opts = {}){
     ? negoTagPeople(c, visibility === 'shared' ? 'external' : 'internal', opts) : [];
   const mentions = (typeof negoMentionsIn === 'function')
     ? negoMentionsIn(body, people) : [];
-  const msg = { who, byId, side, visibility,
+  const msg = { id: negoNoteId(), who, byId, side, visibility,
     at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: (ch && ch.hash) || null };
   if (mentions.length) msg.mentions = mentions;
+  /* ---- ONE SYSTEM (Young asked 11 Sep 2026): a note may be ANCHORED to
+     exact words in a clause, and may be a REPLY to another note. Both are
+     optional fields, absent on every note already on file. The anchor is
+     read back through negoNoteAnchor so a caller cannot store a malformed
+     one; a reply names the note it answers by negoNoteKey. */
+  const anchor = negoNoteAnchor(opts.anchor);
+  if (anchor) msg.anchor = anchor;
+  const replyTo = String(opts.replyTo == null ? '' : opts.replyTo).trim();
+  if (replyTo) msg.replyTo = replyTo.slice(0, 80);
   thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
     `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on `
@@ -3173,6 +3193,115 @@ function negoDeleteNote(c, ch, msg){
 /* Is this comment about wording that has since been revised? A read, never a
    stored flag, so it cannot disagree with the change it describes. */
 const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash && msg.atHash !== ch.hash);
+
+/* ---------- NOTES ARE ONE SYSTEM (Young asked 11 Sep 2026) ----------
+
+   *"I need your solution in how we can implement the comments ecosystem to be
+   one ... whenever you want to comment, the comments / chat slide panel slides
+   in and you comment there instead ... tagged to the CHG number."*
+
+   A NOTE IS ONE THING: a message on a thread. It always knows its HOME — a
+   change's own thread, or the contract's — and its ROOM, internal or external.
+   Four small facts were added to the message, every one optional and absent on
+   every note already on file, so nothing needs migrating and no older reading
+   answers differently:
+
+     id       minted at posting (negoNoteId); a reply names its parent by it.
+              negoNoteKey answers the id, or the timestamp for an older note.
+     anchor   { clauseId, quote } — the exact words the note is about, read
+              back through negoNoteAnchor so a malformed one is never stored.
+     replyTo  the key of the note this one answers. A reply is its OWN ACT in
+              the drawer (its own box under the note it answers); the box at
+              the foot only ever writes a new note.
+     done     { at, by } — the thread is finished. Written by negoNoteDone and
+              nothing else; absent means open.
+
+   WHERE AN ANCHORED NOTE LIVES is a READING, not a second store: if the clause
+   carries a pending change of ours or theirs, the note goes on that change's
+   thread (so it is "tagged to the CHG number"); otherwise it goes on the
+   contract's thread carrying its clause. negoNoteHomeFor is the one answer.
+
+   WHETHER THE WORDS ARE STILL THERE is also a reading (negoAnchorState): the
+   quote is looked for in the clause AS IT NOW STANDS. Absent, the marker on
+   the paper turns hollow and says so; the note is never moved to a guess.
+   READING MUST NOT WRITE: it reads c.negotiation raw and answers 'unknown'
+   where there is none rather than calling into negoInit. */
+const NOTE_QUOTE_MAX = 400;
+function negoNoteId(){
+  return 'nt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+const negoNoteKey = m => String((m && (m.id || m.at)) || '');
+function negoNoteAnchor(a){
+  if (!a || typeof a !== 'object') return null;
+  const clauseId = String(a.clauseId || '').trim().slice(0, 80);
+  const quote = String(a.quote || '').replace(/\s+/g, ' ').trim().slice(0, NOTE_QUOTE_MAX);
+  if (!clauseId || !quote) return null;
+  return { clauseId, quote };
+}
+/* The pending change on this clause, newest first, or null — the CHG a note
+   on these words is tagged to. Reads c.changes raw. */
+function negoNoteHomeFor(c, clauseId){
+  const id = String(clauseId || '');
+  if (!c || !id) return null;
+  const live = (Array.isArray(c.changes) ? c.changes : []).filter(x => x
+    && String(x.clauseId) === id && x.status === 'pending' && !x.withdrawn);
+  return live.length ? live[live.length - 1] : null;
+}
+const _negoNorm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+/* 'live' — the words are in the clause as it stands; 'moved' — the clause is
+   there and the words are not; 'gone' — the clause itself is not; 'unknown' —
+   this record carries no negotiation to read against; null — no anchor. */
+function negoAnchorState(c, m){
+  const a = m && m.anchor;
+  if (!a) return null;
+  if (!c || !c.negotiation) return 'unknown';
+  let cl = null;
+  try { cl = negoClauseNowById(c, a.clauseId); } catch (e){ cl = null; }
+  if (!cl) return 'gone';
+  const text = _negoNorm(cl.text || (window.richToText ? richToText(cl.bodyHtml || cl.html || '') : ''));
+  return text.includes(_negoNorm(a.quote)) ? 'live' : 'moved';
+}
+/* THE ONE WRITER OF `done`. `host` is the change the note lives on, or null
+   for the contract's own thread. Finds the note by key on the REAL thread, so
+   a caller holding a merged copy still marks the record. Writes an audit line
+   either way; never travels on its own — the channel copy is patched by the
+   caller that has a channel. */
+function negoNoteDone(c, host, m, on, user){
+  const thread = negoNoteHome(c, host || null);
+  const key = negoNoteKey(m);
+  const real = thread.find(x => negoNoteKey(x) === key) || null;
+  if (!real) return null;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (on){
+    real.done = { at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
+      by: String((u && u.name) || (m && m.who) || '') };
+  } else {
+    delete real.done;
+  }
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `Note on ${host ? '#' + host.id : 'the contract'} marked ${on ? 'done' : 'open again'} by ${
+      (u && u.name) || 'somebody'} — the contract is unchanged`);
+  return real;
+}
+/* Roots and their replies, oldest first, replies under the note they answer.
+   A reply whose parent is not on the list reads as a root, so nothing is
+   ever hidden by a missing parent. */
+function negoNoteThreads(list){
+  const all = Array.isArray(list) ? list : [];
+  const keys = new Set(all.map(negoNoteKey));
+  const replies = new Map();
+  const roots = [];
+  for (const m of all){
+    const to = (m && m.replyTo && keys.has(String(m.replyTo))) ? String(m.replyTo) : null;
+    if (!to){ roots.push(m); continue; }
+    if (!replies.has(to)) replies.set(to, []);
+    replies.get(to).push(m);
+  }
+  const byAt = (a, b) => String(a.at || '').localeCompare(String(b.at || ''));
+  return roots.sort(byAt).map(root => ({ root,
+    replies: (replies.get(negoNoteKey(root)) || []).sort(byAt),
+    done: !!root.done }));
+}
 /* The topic key a change's thread shares with js/discuss.js. */
 /* ---- WHICH CONVERSATION A NOTE BELONGS TO ----
    A note on a change has that change's own topic. A note on the CONTRACT joins
@@ -3235,19 +3364,42 @@ function negoMergedThread(c, ch, extra){
   const key = m => `${m.side || ''}|${String(m.who || '').trim()}|${String(m.text || '').replace(/\s+/g, ' ').trim()}`;
   const have = new Set(own.map(key));
   const extras = [];
+  /* ---- THE CHANNEL CARRIES THE NOTE'S OWN FACTS (11 Sep 2026) ----
+     A channel message may ride a `meta` — the id, anchor, replyTo and done
+     the writer's own record holds — so a note the other side pinned to words,
+     or a reply of theirs, reads on our seat exactly as one of ours does.
+     `done` is the one fact that can move on the channel copy AFTER our own
+     copy was written (the other side marked our note done), so where a twin
+     of a local note carries it and the local one does not, the DRAWING takes
+     it from the twin. The record is untouched: this is a read. */
+  const twins = new Map();
   for (const m of all){
     if (!m || String(m.topic || '') !== topic) continue;
     /* A message from the discussion channel is SHARED by definition: it
        travelled. Stamping it here means the badge on a merged thread is right
        for both stores rather than only for the half written locally. */
+    const meta = (m.meta && typeof m.meta === 'object') ? m.meta : null;
     const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null,
-      visibility: 'shared' };
-    if (have.has(key(one))) continue;
-    have.add(key(one));
+      visibility: 'shared', channelId: m.id };
+    if (meta){
+      if (meta.id) one.id = String(meta.id).slice(0, 80);
+      const a = negoNoteAnchor(meta.anchor); if (a) one.anchor = a;
+      if (meta.replyTo) one.replyTo = String(meta.replyTo).slice(0, 80);
+      if (meta.done && typeof meta.done === 'object') one.done = { at: String(meta.done.at || ''), by: String(meta.done.by || '') };
+    }
+    const k = key(one);
+    if (have.has(k)){ twins.set(k, one); continue; }
+    have.add(k);
     extras.push(one);
   }
-  if (!extras.length) return own;
-  return own.concat(extras)
+  const ownRead = twins.size ? own.map(m => {
+    const t = twins.get(key(m));
+    if (!t) return m;
+    const out = (t.done && !m.done) ? { ...m, done: t.done } : m;
+    return (t.channelId != null && out.channelId == null) ? { ...out, channelId: t.channelId } : out;
+  }) : own;
+  if (!extras.length) return ownRead;
+  return ownRead.concat(extras)
     .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
 }
 /* The name this was introduced under, kept: it reads better at the call sites
@@ -4460,6 +4612,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
+  negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,

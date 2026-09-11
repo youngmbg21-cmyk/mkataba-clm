@@ -435,6 +435,8 @@ function portalMoreMenuHtml(){
           icon('file','w-3.5 h-3.5')}Word<span class="mnote">${i18t('po_tracked_changes')}</span></button>`:''}
         <hr>
         <div class="mgroup">${i18t('ct_view')}</div>
+        <button type="button" id="pt-notes-door" title="${i18t('po_notes')}">${
+          icon('msg','w-3.5 h-3.5')}${i18t('po_notes')}</button>
         <button type="button" id="pt-focus" data-rl-focus aria-pressed="false"
           title="${i18t('ct_focus_mode')}">${icon('scan','w-3.5 h-3.5')}${
           i18t('po_focus_mode')}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
@@ -1909,18 +1911,98 @@ function openDerivedLinkDialog(d, org){
    reported "comment posted" and posted it nowhere, onto a record thrown away on
    the next repaint. */
 const portalNegoComment = p => async (_c, ch, msg) => {
-  if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return; }
+  if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return { ok:false }; }
   const author=await portalEnsureResponderName();
-  if(!author){ toast(i18t('po_enter_full_name'),'err'); return; }
+  if(!author){ toast(i18t('po_enter_full_name'),'err'); return { ok:false }; }
   try{
+    /* A NOTE ON THE CONTRACT ITSELF (no change) joins the general topic, and
+       the note's own facts — its anchor, what it answers — ride as meta so
+       the owner's seat draws it exactly as one of theirs (11 Sep 2026). */
     const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
-      { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
-        topicLabel:`Change #${ch&&ch.id}${ch&&ch.clauseLabel?' · '+ch.clauseLabel:''}`,
-        body:msg.text });
+      { author, topic:(window.negoTopicFor?negoTopicFor(ch):(ch?'change:'+ch.id:'general')),
+        topicLabel: ch ? `Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}` : i18t('di_contract_generally'),
+        body:msg.text, meta:(window.negoNoteMeta?negoNoteMeta(msg):undefined) });
     PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
     toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
-  }catch(e){ toast(e.message||'Could not send your comment','err'); }
+    portalNotesAfterPost();
+    return { ok:true };
+  }catch(e){ toast(e.message||'Could not send your comment','err'); return { ok:false }; }
 };
+/* Done, from their seat, on the same link. */
+const portalNoteDone = () => async (_c, m, on) => {
+  if(!PORTAL_OPTS.token || m==null || m.channelId==null) return false;
+  const author=portalResponderName()||'';
+  const res=await api('shares/'+PORTAL_OPTS.token+'/messages/'+m.channelId,'PATCH',{ done:!!on, author });
+  PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
+  return true;
+};
+/* ---------- THEIR NOTES DRAWER (Young asked 11 Sep 2026) ----------
+   Their page has no shell, so it has no #context-panel; this is the same
+   panel — rlChatPanelPaint, one room, the same pin, reply and Done — drawn in
+   an aside of this page's own, the alerts panel's shape. Opened by Comment on
+   a highlight, by a marker on the paper, and by the Notes row in More. */
+let _ptNotes=null;   /* { c, p, who } — what the page last mounted */
+function portalNotesShellHtml(){
+  return `<div id="pt-notes-scrim" class="pt-alerts-scrim" hidden></div>
+  <aside id="pt-notes" class="pt-alerts pt-notes" role="dialog" aria-modal="false"
+    aria-label="${esc(i18t('po_notes'))}" aria-hidden="true">
+    <header class="pt-alerts-head">
+      <span class="pt-alerts-title">${esc(i18t('po_notes'))}</span>
+      <button id="pt-notes-close" class="pt-alerts-x" type="button"
+        title="${esc(i18t('act_close'))}" aria-label="${esc(i18t('act_close'))}">&times;</button>
+    </header>
+    <div id="pt-notes-body" class="pt-notes-body"></div>
+  </aside>`;
+}
+function portalNotesOpts(){
+  const x=_ptNotes||{};
+  return { side:'counterparty', readonly:false,
+    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
+    seenScope:PORTAL_OPTS.token||'', messages:PORTAL_OPTS.messages||[],
+    persist:false, by:x.who, author:x.who,
+    onComment:portalNegoComment(x.p), onDone:portalNoteDone(x.p),
+    openNotes:(_c,pin)=>portalOpenNotes({ pin }) };
+}
+function portalNotesPaint(){
+  const body=document.getElementById('pt-notes-body');
+  const x=_ptNotes;
+  if(!body||!x||!x.c||!window.rlChatPanelPaint) return;
+  rlChatPanelPaint(body, x.c, portalNotesOpts());
+}
+function portalOpenNotes(o){
+  const panel=document.getElementById('pt-notes'), scrim=document.getElementById('pt-notes-scrim');
+  if(!panel) return false;
+  portalNotesPaint();
+  panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  if(scrim) scrim.hidden=false;
+  return true;
+}
+function portalNotesClose(){
+  const panel=document.getElementById('pt-notes'), scrim=document.getElementById('pt-notes-scrim');
+  if(!panel||!panel.classList.contains('open')) return;
+  panel.classList.remove('open'); panel.setAttribute('aria-hidden','true');
+  if(scrim) scrim.hidden=true;
+  /* Whatever the drawer was holding is dropped, as the shell's own does. */
+  try{ if(window.rlNotesPanelClosed) rlNotesPanelClosed(); }catch(_){}
+}
+/* After a note of theirs lands: the marks on the paper follow the channel,
+   which is where their note now lives. */
+function portalNotesAfterPost(){
+  const x=_ptNotes; const host=document.getElementById('pt-nego');
+  try{ if(x&&x.c&&host&&window.rlPaintNoteMarks) rlPaintNoteMarks(host, x.c, portalNotesOpts()); }catch(_){}
+}
+let _ptNotesWired=false;
+function wirePortalNotes(){
+  if(_ptNotesWired) return;
+  _ptNotesWired=true;
+  document.addEventListener('click', ev => {
+    const t=ev.target;
+    if(!t||!t.closest) return;
+    if(t.closest('#pt-notes-close')||t.closest('#pt-notes-scrim')){ portalNotesClose(); return; }
+    if(t.closest('#pt-notes-door')){ ev.preventDefault(); portalOpenNotes({}); }
+  });
+  document.addEventListener('keydown', ev => { if(ev.key==='Escape') portalNotesClose(); });
+}
 function wirePortalNego(c, p){
   /* ---- THE COUNTERPARTY'S PAGE IS THE WORKBENCH ----
      One negotiation surface, both sides of the table. This used to open the
@@ -1943,6 +2025,8 @@ function wirePortalNego(c, p){
   const host=document.getElementById('pt-nego');
   if(!host) return;
   const who=portalResponderLabel(c);
+  _ptNotes={ c, p, who };
+  wirePortalNotes();
   /* ---- A SIGNING LINK SHOWS WHAT WAS SETTLED; IT DOES NOT REOPEN IT ----
      W6/D4. Signing on trust with no account of what was agreed is the thing
      this product exists to remove, so a signing link has always been able to
@@ -2123,6 +2207,8 @@ function wirePortalNego(c, p){
        only the page can do. */
     onRetract(_c, id){ delete PORTAL_NEGO_PROPOSED[id]; portalSaveHeld(); },
     onComment:portalNegoComment(p),
+    onDone:portalNoteDone(p),
+    openNotes:(_c,pin)=>portalOpenNotes({ pin }),
     onSendDecisions(){ portalRespond(p,'decisions'); },
     rerender(){ wirePortalNego(portalNegoContract(p), p); },
   });
@@ -2915,6 +3001,8 @@ function portalAlertsStyle(){
     .pt-alerts-x{border:0;background:none;font:inherit;font-size:var(--t-page);line-height:1;cursor:pointer;
       color:var(--color-neutral-600);padding:0 var(--s-1);}
     .pt-alerts-body{flex:1;min-height:0;overflow-y:auto;padding:10px var(--s-3);}
+    .pt-notes-body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:0;}
+    .pt-notes-body .rl-np{display:flex;flex-direction:column;min-height:0;flex:1;}
     /* The workbench's own notice cards, printed here instead of folded behind
        a second bell. They are built for a floating stack about 320px wide, so
        they need nothing but room to be a block. */
@@ -3246,7 +3334,7 @@ function renderShareWorkbench(p, opts={}){
          than inside the workbench mount — the embed rebuilds that mount on
          every change, and a panel inside it would close under a reader who
          had it open. */}
-  ${portalAlertsShellHtml()}`;
+  ${portalAlertsShellHtml()}${portalNotesShellHtml()}`;
   portalAlertsStyle();
   /* The reading control: the stepper presses the shared rlSetDocType, which
      updates every mounted workbench root, this embed included. */
@@ -4698,6 +4786,6 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalDeliveryState,portalReadySpent,portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

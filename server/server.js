@@ -763,6 +763,14 @@ db.exec(`
     body TEXT NOT NULL, at TEXT NOT NULL);
   CREATE INDEX IF NOT EXISTS idx_share_messages_contract ON share_messages(contract_id);
 `);
+/* ---- A MESSAGE MAY CARRY ITS OWN FACTS (Young asked 11 Sep 2026) ----
+   Notes are one system on both seats now: a note can be pinned to exact words
+   in a clause, can be a reply to another note, and can be marked done. Those
+   ride as a small JSON `meta` beside the body — the same four keys the browser
+   keeps on its own thread — so a note the counterparty pins on their page
+   reads on ours exactly as one of ours does. Validated on the way in
+   (msgMeta), absent on every row already on file. */
+addColumnIfMissing('share_messages', 'meta', 'TEXT');
 addColumnIfMissing('shares', 'contract_id', 'TEXT');
 addColumnIfMissing('shares', 'recipient_name', 'TEXT');
 addColumnIfMissing('shares', 'recipient_email', 'TEXT');
@@ -9562,20 +9570,51 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
    optimistic-concurrency version column for what is, in the end, a sentence.
    Its own table also means the thread outlives any single link — a durable link
    refreshed six times still shows one conversation. */
-const MSG_TOPIC_MAX = 160, MSG_BODY_MAX = 4000;
+const MSG_TOPIC_MAX = 160, MSG_BODY_MAX = 4000, MSG_META_MAX = 80, MSG_QUOTE_MAX = 400;
+/* The allow-list of what a message's meta may say. Anything else is dropped. */
+function msgMeta(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  if (raw.id) out.id = String(raw.id).slice(0, MSG_META_MAX);
+  if (raw.replyTo) out.replyTo = String(raw.replyTo).slice(0, MSG_META_MAX);
+  if (raw.anchor && typeof raw.anchor === 'object') {
+    const clauseId = String(raw.anchor.clauseId || '').trim().slice(0, MSG_META_MAX);
+    const quote = String(raw.anchor.quote || '').replace(/\s+/g, ' ').trim().slice(0, MSG_QUOTE_MAX);
+    if (clauseId && quote) out.anchor = { clauseId, quote };
+  }
+  if (raw.done && typeof raw.done === 'object')
+    out.done = { at: String(raw.done.at || '').slice(0, 40), by: String(raw.done.by || '').slice(0, 120) };
+  return Object.keys(out).length ? out : null;
+}
+const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(s)); } catch (_) { return null; } };
 function contractMessages(contractId) {
   return db.prepare(
-    `SELECT id, side, author, topic, topic_label AS topicLabel, body, at
-       FROM share_messages WHERE contract_id=? ORDER BY id ASC LIMIT 500`).all(contractId);
+    `SELECT id, side, author, topic, topic_label AS topicLabel, body, at, meta
+       FROM share_messages WHERE contract_id=? ORDER BY id ASC LIMIT 500`).all(contractId)
+    .map(m => ({ ...m, meta: msgMetaRead(m.meta) }));
 }
-function addMessage({ contractId, token, side, author, topic, topicLabel, body }) {
+function addMessage({ contractId, token, side, author, topic, topicLabel, body, meta }) {
   const at = now();
+  const clean = msgMeta(meta);
   const info = db.prepare(
-    `INSERT INTO share_messages (contract_id,token,side,author,topic,topic_label,body,at)
-     VALUES (?,?,?,?,?,?,?,?)`).run(contractId, token || null, side, author,
+    `INSERT INTO share_messages (contract_id,token,side,author,topic,topic_label,body,at,meta)
+     VALUES (?,?,?,?,?,?,?,?,?)`).run(contractId, token || null, side, author,
       String(topic).slice(0, MSG_TOPIC_MAX), topicLabel ? String(topicLabel).slice(0, 400) : null,
-      String(body).slice(0, MSG_BODY_MAX), at);
-  return { id: info.lastInsertRowid, side, author, topic, topicLabel: topicLabel || null, body, at };
+      String(body).slice(0, MSG_BODY_MAX), at, clean ? JSON.stringify(clean) : null);
+  return { id: info.lastInsertRowid, side, author, topic, topicLabel: topicLabel || null, body, at, meta: clean };
+}
+/* ---- DONE IS A FACT ON THE ROW, AND EITHER SIDE MAY SET IT ----
+   Marking a thread done (or open again) writes onto the channel copy so both
+   seats read the same answer. Only `done` moves; the words never do. */
+function setMessageDone(contractId, mid, on, by) {
+  const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(mid), contractId);
+  if (!row) return null;
+  const meta = msgMetaRead(row.meta) || {};
+  if (on) meta.done = { at: now(), by: String(by || '').slice(0, 120) };
+  else delete meta.done;
+  const clean = msgMeta(meta);
+  db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
+  return { ...row, topicLabel: row.topic_label, meta: clean };
 }
 const msgValid = b => b && typeof b.body === 'string' && b.body.trim()
   && typeof b.topic === 'string' && b.topic.trim();
@@ -9596,7 +9635,7 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   const author = String(b.author || s.recipient_name || '').trim();
   if (!msgValid(b) || !author) return res.status(400).json({ error: 'A name and a message are required' });
   const m = addMessage({ contractId: s.contract_id, token: s.token, side: 'counterparty',
-    author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
+    author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   notifyMessage(s, m);
   res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
 });
@@ -9654,10 +9693,31 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
   const m = addMessage({ contractId: req.params.id, token: null,
     side: viaWord ? 'counterparty' : 'owner',
     author: viaWord ? wordAuthor : req.user.name,
-    topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
+    topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   const sent = await notifyCounterpartyMessage(req.params.id, m);
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id),
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
+});
+/* Done, from our seat: the same scope and the same gate as posting. */
+app.patch('/api/contracts/:id/messages/:mid', auth, editor, (req, res) => {
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
+  const b = req.body || {};
+  const m = setMessageDone(req.params.id, req.params.mid, b.done !== false, req.user.name);
+  if (!m) return res.status(404).json({ error: 'Message not found' });
+  res.json({ ok: true, message: m, messages: contractMessages(req.params.id) });
+});
+/* Done, from theirs: the same checks as their post, on the same link. */
+app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (!s.contract_id) return res.status(409).json({ error: 'This link cannot carry a discussion' });
+  const b = req.body || {};
+  const by = String(b.author || s.recipient_name || 'Counterparty').trim();
+  const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by);
+  if (!m) return res.status(404).json({ error: 'Message not found' });
+  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
 });
 
 /* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------

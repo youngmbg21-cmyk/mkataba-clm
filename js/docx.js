@@ -1365,11 +1365,50 @@ function docxTrackedParagraphXml(p, state){
   if (runs.length && runs.every(r => r.mark === 'del'))
     props.push(`<w:rPr><w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}"/></w:rPr>`);
   const brk = p.pageBreak ? '<w:r><w:br w:type="page"/></w:r>' : '';
+  /* ---- THE NOTES GO OUT AS WORD COMMENTS, ON THE WORDS THEY ARE ABOUT ----
+     (Young asked 11 Sep 2026.) A comment whose quoted words sit in this
+     paragraph gets its range opened before the first run holding them and
+     closed, with its reference, after the last. Found once, first paragraph
+     wins; a reply takes its parent's range. The match is whitespace-tolerant
+     and case-blind, the same reading the paper's own marks use. Nothing here
+     touches the wording. */
+  const runs2 = (p.runs || []).filter(r => r.text);
+  const pre = [], post = [];
+  if (state.comments && state.comments.length && runs2.length){
+    let full = ''; const starts = [];
+    for (const r of runs2){ starts.push(full.length); full += String(r.text); }
+    const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const cm of state.comments){
+      if (cm.placed) continue;
+      const q = String(cm.quote || '').replace(/\s+/g, ' ').trim();
+      if (!q) continue;
+      let re; try { re = new RegExp(q.split(' ').map(esc).join('\\s+'), 'i'); } catch (e){ continue; }
+      const m = re.exec(full);
+      if (!m) continue;
+      const a = m.index, b = a + m[0].length;
+      let i0 = -1, i1 = -1;
+      for (let i = 0; i < runs2.length; i++){
+        const ns = starts[i], ne = ns + String(runs2[i].text).length;
+        if (ne <= a || ns >= b) continue;
+        if (i0 < 0) i0 = i;
+        i1 = i;
+      }
+      if (i0 < 0) continue;
+      cm.placed = true;
+      (pre[i0] = pre[i0] || []).push(`<w:commentRangeStart w:id="${cm.wid}"/>`);
+      (post[i1] = post[i1] || []).push(`<w:commentRangeEnd w:id="${cm.wid}"/><w:r><w:commentReference w:id="${cm.wid}"/></w:r>`);
+    }
+  }
+  let ri = -1;
   const body = brk + (p.runs || []).map(r => {
     if (!r.text) return '';
-    if (r.mark === 'ins') return `<w:ins w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:ins>`;
-    if (r.mark === 'del') return `<w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:del>`;
-    return _dxRun(r);
+    ri += 1;
+    const one = r.mark === 'ins'
+      ? `<w:ins w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:ins>`
+      : r.mark === 'del'
+      ? `<w:del w:id="${state.id++}" w:author="${_dxX(state.author)}" w:date="${state.date}">${_dxRun(r)}</w:del>`
+      : _dxRun(r);
+    return (pre[ri] ? pre[ri].join('') : '') + one + (post[ri] ? post[ri].join('') : '');
   }).join('');
   return `<w:p>${props.length ? `<w:pPr>${props.join('')}</w:pPr>` : ''}${body}</w:p>`;
 }
@@ -1446,10 +1485,11 @@ function docxTrackedXml(html, opts = {}){
     id: 1,
     author: opts.author || 'HaTi',
     /* Word wants a second-resolution timestamp with no milliseconds. */
-    date: String(opts.date || new Date().toISOString()).replace(/\.\d+Z$/, 'Z')
+    date: String(opts.date || new Date().toISOString()).replace(/\.\d+Z$/, 'Z'),
+    comments: docxCommentsPrepare(opts.comments)
   };
   let count = 0;
-  const xml = docxHtmlBlocks(html).map(b => {
+  let xml = docxHtmlBlocks(html).map(b => {
     if(b.kind === 'table'){
       const rows = docxHtmlTableRows(b.html);
       /* A "table" with no rows we can read is not smuggled through as an
@@ -1462,9 +1502,65 @@ function docxTrackedXml(html, opts = {}){
     const paras = docxRunsFromHtml(b.html); count += paras.length;
     return paras.map(pp => docxTrackedParagraphXml(pp, state)).join('');
   }).join('');
+  /* A reply is placed wherever its parent was placed; an unplaced comment
+     is COUNTED and left out, never pinned to a guess. */
+  for (const cm of state.comments){
+    if (cm.placed || !cm.parent) continue;
+    const par = state.comments.find(x => x.key === cm.parent);
+    if (par && par.placed){
+      /* The reply's range sits inside its parent's: rewrite the parent's
+         end into parent-end + reply-start/end so Word threads them. */
+      const endTag = `<w:commentRangeEnd w:id="${par.wid}"/><w:r><w:commentReference w:id="${par.wid}"/></w:r>`;
+      const startTag = `<w:commentRangeStart w:id="${par.wid}"/>`;
+      if (xml.includes(endTag) && xml.includes(startTag)){
+        xml = xml.replace(startTag, startTag + `<w:commentRangeStart w:id="${cm.wid}"/>`)
+          .replace(endTag, endTag + `<w:commentRangeEnd w:id="${cm.wid}"/><w:r><w:commentReference w:id="${cm.wid}"/></w:r>`);
+        cm.placed = true;
+      }
+    }
+  }
+  const placed = state.comments.filter(x => x.placed);
   return { xml, paragraphs: count,
     tracked: { ins: (xml.match(/<w:ins /g) || []).length,
-               del: (xml.match(/<w:del /g) || []).length } };
+               del: (xml.match(/<w:del /g) || []).length },
+    comments: { placed, left: state.comments.length - placed.length } };
+}
+/* What the caller hands in, made safe: a Word id per comment, a parent by
+   key, dates to the second, text bounded. */
+function docxCommentsPrepare(list){
+  if (!Array.isArray(list) || !list.length) return [];
+  const out = [];
+  list.forEach((cm, i) => {
+    if (!cm) return;
+    const key = String(cm.key != null ? cm.key : i);
+    out.push({ key, wid: i, author: String(cm.author || 'HaTi').slice(0, 120),
+      date: String(cm.date || new Date().toISOString()).replace(/\.\d+Z$/, 'Z'),
+      text: String(cm.text || '').slice(0, 4000), quote: String(cm.quote || ''),
+      parent: cm.replyTo != null ? String(cm.replyTo) : null, done: !!cm.done, placed: false });
+  });
+  return out;
+}
+/* ---- word/comments.xml AND word/commentsExtended.xml ----
+   The comment's words, author and date live in comments.xml; that a comment
+   is a reply (paraIdParent) or resolved (done) lives in commentsExtended.xml,
+   keyed on the paragraph id each comment's paragraph carries. Both are
+   ordinary Word since 2013. */
+const DOCX_NS_W14 = 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"';
+const DOCX_NS_W15 = 'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"';
+const _dxParaId = i => ('1A' + (0x100000 + i).toString(16).toUpperCase()).slice(0, 8).padEnd(8, '0');
+function docxCommentsXml(placed){
+  const initials = a => String(a || '').split(/\s+/).map(w => w[0] || '').join('').slice(0, 3).toUpperCase();
+  const body = placed.map(cm => `<w:comment w:id="${cm.wid}" w:author="${_dxX(cm.author)}" w:date="${_dxX(cm.date)}" w:initials="${_dxX(initials(cm.author))}">`
+    + `<w:p w14:paraId="${_dxParaId(cm.wid)}"><w:r><w:t xml:space="preserve">${_dxX(cm.text)}</w:t></w:r></w:p></w:comment>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:comments ${DOCX_NS} ${DOCX_NS_W14}>${body}</w:comments>`;
+}
+function docxCommentsExtendedXml(placed){
+  const byKey = new Map(placed.map(cm => [cm.key, cm]));
+  const body = placed.map(cm => {
+    const par = cm.parent ? byKey.get(cm.parent) : null;
+    return `<w15:commentEx w15:paraId="${_dxParaId(cm.wid)}"${par ? ` w15:paraIdParent="${_dxParaId(par.wid)}"` : ''}${cm.done ? ' w15:done="1"' : ''}/>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w15:commentsEx ${DOCX_NS_W15}>${body}</w15:commentsEx>`;
 }
 
 const DOCX_SECT = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
@@ -1650,24 +1746,44 @@ async function docxComments(bytes){
    handing over a file and hoping. */
 function docxExportTracked(html, opts = {}){
   const built = docxDocumentXml(html, opts);
-  const bytes = docxZip([
-    { name: '[Content_Types].xml', data: DOCX_CONTENT_TYPES },
+  const placed = (built.comments && built.comments.placed) || [];
+  /* WITH NO COMMENTS THE FILE IS BYTE-IDENTICAL TO WHAT IT WAS: the two extra
+     parts, their content types and their relationships are written only
+     where there is a comment to carry. */
+  const types = placed.length
+    ? DOCX_CONTENT_TYPES.replace('</Types>',
+      '<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>'
+      + '<Override PartName="/word/commentsExtended.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml"/></Types>')
+    : DOCX_CONTENT_TYPES;
+  const rels = placed.length
+    ? DOCX_DOC_RELS.replace('</Relationships>',
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>'
+      + '<Relationship Id="rId4" Type="http://schemas.microsoft.com/office/2011/relationships/commentsExtended" Target="commentsExtended.xml"/></Relationships>')
+    : DOCX_DOC_RELS;
+  const parts = [
+    { name: '[Content_Types].xml', data: types },
     { name: '_rels/.rels', data: DOCX_ROOT_RELS },
     { name: 'word/document.xml', data: built.document },
-    { name: 'word/_rels/document.xml.rels', data: DOCX_DOC_RELS },
+    { name: 'word/_rels/document.xml.rels', data: rels },
     { name: 'word/styles.xml', data: DOCX_STYLES },
     { name: 'word/numbering.xml', data: DOCX_NUMBERING },
-  ]);
-  return { bytes, xml: built.document, paragraphs: built.paragraphs, tracked: built.tracked };
+  ];
+  if (placed.length){
+    parts.push({ name: 'word/comments.xml', data: docxCommentsXml(placed) });
+    parts.push({ name: 'word/commentsExtended.xml', data: docxCommentsExtendedXml(placed) });
+  }
+  const bytes = docxZip(parts);
+  return { bytes, xml: built.document, paragraphs: built.paragraphs, tracked: built.tracked,
+    comments: { placed: placed.length, left: (built.comments && built.comments.left) || 0 } };
 }
 
 if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
-  docxComments,docxCommentQuote,
+  docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID});
 if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
-  docxComments,docxCommentQuote,
+  docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID};

@@ -352,117 +352,74 @@ describe('f264 (4) — the ask is one reading of the record', () => {
       + 'existing and not');
   });
 
-  test('the toast stands down where the dialog opens', () => {
-    assert.match(CE, /if \(!_noteAsk && window\.toast\) toast\(_cet\('ce_filed'/,
-      'the dialog’s lead begins "Filed." and its heading names the change, '
-      + 'so two boxes twelve pixels apart saying one thing is exactly the '
-      + 'furniture this rulebook keeps warning about');
+  /* RE-POINTED 11 Sep 2026: the receipt window is retired and the DRAWER opens
+     instead, pinned to the change. The drawer carries no "filed" headline, so
+     the brief confirmation is always given. */
+  test('the confirmation is brief and always, because the drawer says the rest', () => {
+    assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ch\.id \}\), 'ok'\);/);
+    assert.equal(/if \(!_noteAsk && window\.toast\)/.test(CE), false);
   });
 });
 
 /* ============================================================
-   5 — ONE DIALOG, TWO SHAPES
-   ============================================================ */
-describe('f264 (5) — the dialog reads the record for its shape', () => {
-  const dlg = (p, mine, opts = {}) =>
-    p.w.win.rlNoteDialogHtml(p.c, p.ch, mine, Object.assign({ side: 'owner' }, opts));
+   5 — ONE DRAWER, TWO SHAPES (re-pointed 11 Sep 2026)
+   ============================================================
+   The window this section pinned is retired; what it read off the record the
+   drawer's PIN reads now. f303 (5) drives the pin end to end; these are the
+   shape claims that survive. */
+describe('f264 (5) — the drawer reads the record for its shape', () => {
+  const stage = async (p, filed) => {
+    const host = p.w.win.document.createElement('div');
+    p.w.win.openNotesPanel = (cid, chId) => {
+      const x = p.w.win.negoChangeById(p.c, chId);
+      p.w.win.rlNotesPanelPaint(host, p.c, x, { side: 'owner', author: ME.name });
+    };
+    p.w.win.openChangeNoteDialog(p.c, p.ch, { side: 'owner', filed });
+    await new Promise(r => setTimeout(r, 20));
+    return host;
+  };
 
-  /* REVERSED IN PLACE 1 Sep 2026 — Option A, chosen off four drawn windows.
-     The FILING is the headline now ("CHG-004 filed", with the tick this product
-     uses for something that has just gone right) and the lead is the ask. */
-  test('no note yet: the filing leads, and the way out says Skip', async () => {
+  test('after a filing: the pin names the change and says it was filed, and the way out says Skip', async () => {
     const p = await bench();
-    const h = dlg(p, null, { filed: true });
-    assert.match(h, /ng_note_add|Add note/);
-    assert.equal(/ng_note_delete|>Delete</.test(h), false,
-      'Delete draws only where there is something of yours to delete');
-    assert.match(h, new RegExp(`${p.ch.id} filed`),
-      'the act is the headline and the note is the small thing under it');
-    assert.match(h, /class="tick"/, 'in the tone for something that went right');
-    assert.match(h, /Skip/);
+    const host = await stage(p, true);
+    const pin = host.querySelector('.rl-np-pin');
+    assert.ok(pin);
+    assert.match(pin.textContent, new RegExp(p.ch.id));
+    assert.match(pin.querySelector('.lead').textContent, /filed|registrerad/i);
+    assert.match(pin.querySelector('[data-rl-np-unpin]').textContent, /Skip|Hoppa/i);
+    assert.match(host.querySelector('[data-rl-np-send]').textContent, /Add note|Lägg till/i);
   });
 
-  test('a note of yours: Save and Delete, and the way out says Close', async () => {
+  test('from the row: no pin, the change’s own panel and box', async () => {
     const p = await bench();
-    const m = noteOf(p.w, p.c, p.ch, 'Thirty is our fallback.');
-    const h = dlg(p, m);
-    assert.match(h, /ng_note_save|>Save</);
-    assert.match(h, /rl-note-del/);
-    assert.match(h, /Thirty is our fallback\./, 'prefilled with what you wrote');
-    assert.equal(/Filed\./.test(h), false,
-      'it did not arrive by itself, so it does not claim to have just filed');
+    const host = await stage(p, false);
+    assert.equal(host.querySelector('.rl-np-pin'), null);
+    assert.ok(host.querySelector('[data-rl-np="' + p.ch.id + '"]'));
+    assert.ok(host.querySelector('.rl-np-in'));
   });
 
-  test('it names the change in its heading', async () => {
-    const p = await bench();
-    assert.match(dlg(p, null, { filed: true }), new RegExp(p.ch.id),
-      'the owner’s own example was "Note on CHG-004"');
-  });
-
-  /* REVERSED IN PLACE 1 Sep 2026. It pinned "stays inside", which was true
-     while the note was private; the owner has ruled it is the explanation the
-     other side reads, so the window has to say THAT — and a lock over a note
-     that travels would be the worst kind of wrong. */
-  /* RE-POINTED 11 Sep 2026 (C-3): the globe line that read the choice back is
-     the CHOICE now — the drawer's own two tabs, External lit at rest — and the
-     counterparty is named on the external tab's hover and in the lead. */
-  test('it names who reads it, on the face, before anything is typed — and the reader may choose', async () => {
-    const p = await bench();
-    const h = dlg(p, null, { filed: true });
-    assert.match(h, /rl-note-room/, 'the room control is drawn');
-    /* RE-POINTED AGAIN 11 Sep 2026 (D-6): Internal is lit at rest — the
-       owner's later ruling the same day; External is a press away. */
-    assert.match(h, /data-rl-note-room="internal"[^>]*aria-selected="true"/, 'Internal is lit at rest (D-6)');
-    assert.match(h, /Saw Sawa Ltd/, 'the counterparty by name');
-    assert.equal(/rl-note-keep/.test(h), false,
-      'and no promise of privacy over something that goes to them');
-  });
-
-  /* REVERSED IN PLACE 1 Sep 2026. It pinned a COUNT of the other notes and a
-     door to Chat. The window prints them now, above the box — the fact on
-     screen rather than counted and pointed at — which is what that claim was
-     really about: a reader whose colleagues have written three must not open an
-     empty box and be told nothing. */
-  test('what has already been said is printed above the box', async () => {
+  test('what has already been said is on screen above the box', async () => {
     const p = await bench();
     noteOf(p.w, p.c, p.ch, 'Wanjiru’s aside.', { author: MATE.name });
-    noteOf(p.w, p.c, p.ch, 'And another.', { author: MATE.name });
-    const h = dlg(p, null);
-    assert.match(h, /rl-note-past/);
-    assert.match(h, /Wanjiru/);
-    assert.match(h, /And another/);
-    const mine = noteOf(p.w, p.c, p.ch, 'Mine.');
-    const h2 = dlg(p, mine);
-    assert.match(h2, /Wanjiru/, 'the others are still there');
-    assert.equal((h2.match(/Mine\./g) || []).length, 1,
-      'and the one IN the box is not printed above it as well');
-  });
-
-  test('with nothing else on the change there is no record block at all', async () => {
-    const p = await bench();
-    assert.equal(/rl-note-past/.test(dlg(p, null, { filed: true })), false);
+    const host = await stage(p, true);
+    assert.match(host.querySelector('.rl-np-list').textContent, /Wanjiru/);
   });
 
   test('a viewer reads it and writes nothing', async () => {
     const p = await bench(VIEWER);
-    const h = dlg(p, null);
-    assert.equal(/rl-note-in/.test(h), false, 'no box');
-    assert.equal(/rl-note-ok/.test(h), false, 'no verb');
-    assert.match(h, /rl-np-no/,
-      'and the refusal is the sentence the Document tab’s own discussion '
-      + 'has printed for viewers since long before this dialog');
+    const host = p.w.win.document.createElement('div');
+    p.w.win.rlNotesPanelPaint(host, p.c, p.ch, { side: 'owner', readonly: true });
+    assert.equal(host.querySelector('.rl-np-in'), null, 'no box');
+    assert.match(host.innerHTML, /rl-np-no/, 'and the refusal is the sentence the discussion has always printed');
   });
 
-  test('it writes a note and nothing else — no second filing path', () => {
+  test('the door writes a note and nothing else — no second filing path', () => {
     const one = VIEW.match(/function openChangeNoteDialog[\s\S]*?\n\}\n/)[0];
-    for (const bad of ['negoFileChange(', 'negoEditClause(', 'negoResolve(',
-      'changes.push', 'negoReviseInsert(']){
-      assert.equal(one.includes(bad), false,
-        `the dialog must not touch the change itself: found ${bad}`);
-    }
-    assert.match(one, /negoPostComment\(/, 'the one writer');
-    assert.match(one, /negoEditNote\(/);
-    assert.match(one, /negoDeleteNote\(/);
+    for (const bad of ['negoFileChange(', 'negoEditClause(', 'negoResolve(', 'changes.push', 'negoReviseInsert('])
+      assert.equal(one.includes(bad), false, `the door must not touch the change itself: found ${bad}`);
+    assert.match(one, /rlNotesPin\(/, 'it pins; the drawer’s one send writes');
+    const send = VIEW.match(/async function rlNotesSend\([\s\S]*?\n\}/)[0];
+    assert.match(send, /negoPostComment\(/, 'the one writer');
   });
 });
 
@@ -635,8 +592,8 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
        that an absent change id names the contract rather than failing to
        resolve — see negoNoteHome. */
     const send = VIEW.match(/async function rlNotesSend\([\s\S]*?\n\}/)[0];
-    assert.match(send, /negoPostComment\(c, ch \? ch\.id : null, text, \{/,
-      'one send, two scopes, and no second filing path');
+    assert.match(send, /negoPostComment\(c, home \? home\.id : null, text, \{/,
+      'one send, two scopes (and the pin’s and a reply’s home), no second filing path');
     const model = read('js/negotiation.js');
     assert.match(model, /function negoNoteHome\(c, ch\)\{/,
       'the one reading of where a note lives');
@@ -702,7 +659,7 @@ describe('f264 (9) — the door, and where it is dead', () => {
   });
 
   test('the change is optional, and a contract is not', () => {
-    assert.match(APP, /function openNotesPanel\(contractId, changeId\)\{\s*\n\s*if\(!contractId\) return;/);
+    assert.match(APP, /function openNotesPanel\(contractId, changeId, o\)\{\s*\n\s*if\(!contractId\) return;/);
     assert.match(APP, /changeId: changeId==null\?null:String\(changeId\)/);
     assert.match(APP, /if\(c&&!nf\.changeId&&window\.rlChatPanelPaint\)\{ rlChatPanelPaint/,
       'no change named is the whole contract, not an error');

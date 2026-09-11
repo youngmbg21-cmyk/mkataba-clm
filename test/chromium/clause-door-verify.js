@@ -43,8 +43,10 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
    section 25, and none of the journeys in this file is about the note. */
 async function skipNote(p){
   try{
-    if (!await p.evaluate(() => !!document.getElementById('rl-note-overlay'))) return false;
-    await p.evaluate(() => { const b = document.getElementById('rl-note-skip'); if (b) b.click(); });
+    /* RE-POINTED 11 Sep 2026: the window is retired; the Notes drawer opens
+       after a filing and a reader with nothing to add closes it. */
+    if (!await p.evaluate(() => !!(window.state && state.panelOpen))) return false;
+    await p.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await pause(200);
     return true;
   }catch(_){ return false; }
@@ -69,6 +71,35 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
+  /* ---- THE STAGE HAS NO SHELL (11 Sep 2026) ----
+     parity.html loads neither js/app.js nor the shell's drawer, and since the
+     receipt window was retired the note after a filing lives IN that drawer.
+     The two shell doors are stood in for here on the shell's own contract —
+     openNotesPanel paints the product's real panels into a real aside,
+     closeContextPanel takes it down — so what is driven below is the
+     product's own markup and wiring, never a description of it. */
+  await p.evaluate(() => {
+    if (typeof window.openNotesPanel === 'function') return;
+    window.state = window.state || {};
+    let aside = document.getElementById('context-panel');
+    if (!aside){
+      aside = document.createElement('aside'); aside.id = 'context-panel';
+      aside.style.cssText = 'position:fixed;top:0;right:0;bottom:0;width:365px;z-index:46;background:#fff;border-left:1px solid #ddd;display:none;flex-direction:column;overflow:hidden';
+      aside.innerHTML = '<div id="panel-body" class="pb-flow" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>';
+      document.body.appendChild(aside);
+    }
+    window.openNotesPanel = (cid, chId) => {
+      const c = window.CONTRACT; const body = document.getElementById('panel-body');
+      window.state.panelOpen = true; aside.classList.add('open'); aside.style.display = 'flex';
+      const opts = { side: 'owner', author: ((window.currentUser && currentUser()) || {}).name };
+      const ch = (chId && window.negoChangeById) ? negoChangeById(c, chId) : null;
+      if (ch) rlNotesPanelPaint(body, c, ch, opts); else rlChatPanelPaint(body, c, opts);
+    };
+    window.closeContextPanel = () => {
+      window.state.panelOpen = false; aside.classList.remove('open'); aside.style.display = 'none';
+      if (window.rlNotesPanelClosed) rlNotesPanelClosed();
+    };
+  });
   await p.evaluate(()=>window.READY); await pause(500);
 
   /* Put one ask on one clause, so the panel has something to say beyond "as it
@@ -1413,7 +1444,19 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        to the Copilot rail rather than opening a box over the paper. The CLAIM
        is exactly what it always was — one press on the contract must reach
        BOTH the typing and the highlight — and only the control it reaches
-       moved. */
+       moved. RE-POINTED AGAIN 11 Sep 2026 (Young: "you only have ask copilot
+       and comment"): the drag OFFERS first, and Ask Copilot is the press that
+       attaches. One press more on the Copilot path, bought the comment door. */
+    const offer = await p.evaluate(() => {
+      const m = document.querySelector('.nego-selmenu');
+      const rows = m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [];
+      const ask = m && m.querySelector('[data-nego-ai="ask"]');
+      if (ask) ask.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+      return rows;
+    });
+    await pause(250);
+    ck('16d4a the drag OFFERS two things — Ask Copilot and Comment — and nothing else',
+       JSON.stringify(offer) === JSON.stringify(['ask', 'comment']), JSON.stringify(offer));
     const strip = await p.evaluate(() => {
       const el = document.querySelector('#ce-scope .ce-scope');
       const r = el ? el.getBoundingClientRect() : null;
@@ -1422,7 +1465,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         over: !!document.getElementById('ce-inline'),
         focus: act ? (act.id || act.tagName) : 'none' };
     });
-    ck('16d4 …and highlighting then attaches the passage to the rail, on that same one press',
+    ck('16d4 …and Ask Copilot attaches the passage to the rail',
        strip.on === true && strip.over === false, `attached ${strip.on}, box over the paper ${strip.over}`);
     /* REVERSED IN PLACE TWICE, and the third answer is the one with no
        condition in it. 29 Aug: the strip WAITS, caret stays in the wording.

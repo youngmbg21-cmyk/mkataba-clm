@@ -82,59 +82,38 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const before = await page.evaluate(() => !!document.querySelector('#context-panel.open'));
     await page.click(`#rl-changes [data-rl-notes="${set.ch}"]`);
     await page.waitForTimeout(500);
+    /* ---- RE-POINTED 11 Sep 2026 (Young: "whenever you want to comment, the
+       comments / chat slide panel slides in and you comment there instead").
+       The window this block drove is retired: the Notes row opens the DRAWER
+       on the change, with what was already said on the list — Reply and Done
+       under each note — and the box at the foot. */
     const dlg = await page.evaluate(chId => {
-      const ov = document.getElementById('rl-note-overlay');
-      if (!ov) return { up: false };
-      const panel = ov.querySelector('[role="dialog"]');
-      const r = panel && panel.getBoundingClientRect();
-      return { up: true, painted: !!(r && r.width > 0 && r.height > 0),
-        head: (ov.querySelector('.rl-note-h') || {}).textContent,
-        value: (ov.querySelector('#rl-note-in') || {}).value,
-        go: (ov.querySelector('#rl-note-ok') || {}).textContent,
-        del: !!ov.querySelector('#rl-note-del'),
-        past: (ov.querySelector('.rl-note-past') || {}).textContent,
-        chat: !!ov.querySelector('#rl-note-chat'),
-        mine: (() => { const c = (state.contracts || [])
-            .find(x => String(x.id) === String(state.activeId));
-          const ch = negoChangeById(c, chId);
-          const m = negoMyNote(c, ch, currentUser());
-          return m && m.text; })(),
-        drawer: !!document.querySelector('#context-panel.open'),
-        lead: (ov.querySelector('.rl-note-lead') || {}).textContent };
+      const panel = document.querySelector('#context-panel');
+      const open = !!(panel && panel.classList.contains('open'));
+      const list = panel && panel.querySelector('.rl-np-list');
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const ch = negoChangeById(c, chId);
+      const m = negoMyNote(c, ch, currentUser());
+      return { up: open && !!panel.querySelector(`[data-rl-np="${chId}"]`),
+        window: !!document.getElementById('rl-note-overlay'),
+        head: (panel && panel.querySelector('.rl-np-which .id') || {}).textContent,
+        mine: m && m.text,
+        list: list ? list.textContent.replace(/\s+/g, ' ') : '',
+        reply: !!(panel && panel.querySelector('[data-rl-np-reply]')),
+        done: !!(panel && panel.querySelector('[data-rl-np-done]')),
+        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))),
+        pin: !!(panel && panel.querySelector('.rl-np-pin')) };
     }, set.ch);
-    check('THE PRESS RAISES THE NOTE — not a dead press', dlg.up && dlg.painted);
+    check('THE PRESS OPENS THE DRAWER ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
     check('and it names the change it belongs to', /CHG-/.test(dlg.head || ''), (dlg.head || '').trim());
-    /* PINNED AS THE RELATION, NOT THE SENTENCE: the box holds the last note of
-       this reader's own that has not reached anybody yet, which is exactly what
-       negoMyNote answers. A literal here would be a fact about the fixture's
-       staging rather than about the window. */
-    check('prefilled with what you wrote, and offering Save and Delete',
-      !!dlg.mine && (dlg.value || '').trim() === String(dlg.mine).trim()
-        && /save|spara/i.test(dlg.go || '') && dlg.del === true,
-      `"${(dlg.value || '').slice(0, 34)}" · ${(dlg.go || '').trim()} · delete ${dlg.del}`);
-    check('it does not claim to have just filed — the reader opened it',
-      !/^Filed\./.test((dlg.lead || '').trim()), (dlg.lead || '').trim().slice(0, 40));
-    check('THE DRAWER DOES NOT OPEN — it is Chat now, with a door of its own',
-      dlg.drawer === false);
-    /* ---- REVERSED IN PLACE 1 Sep 2026 (owner-asked: Option A) ----
-       It pinned a COUNT of the other notes on the change plus a line pressing
-       through to the drawer to read them. Option A prints them instead, quietly
-       above the box — so a reader coming back to a change does not write the
-       same sentence twice, and so an explanation that has already gone is
-       visible as a record rather than as something to correct. The claim is the
-       stronger of the two: the words are on screen rather than counted. */
-    check('the other notes on this change are PRINTED above the box, not counted',
-      /fallback is thirty/.test(dlg.past || '') && dlg.chat === false,
-      (dlg.past || '').replace(/\s+/g, ' ').trim().slice(0, 60));
-
-    /* ---- THE PER-CHANGE PANEL IS STAGED BY ITS ONE DOOR ----
-       On OUR seat that panel no longer has a press of its own: the Notes row
-       raises the window above, which is the whole of decision C. It is still
-       what the COUNTERPARTY's page draws and what the shell's own openNotesPanel
-       opens with a change named, so the rooms below are staged through that one
-       function rather than through a control this seat does not carry. Section
-       6 drives the door this seat DOES carry, with a real press. */
-    await page.click('#rl-note-skip');
+    check('what you wrote is on the list, with Reply and Done under it',
+      !!dlg.mine && dlg.list.includes(String(dlg.mine).trim()) && dlg.reply && dlg.done,
+      `"${String(dlg.mine || '').slice(0, 34)}" · reply ${dlg.reply} · done ${dlg.done}`);
+    check('every note carries its full date and time', dlg.clock === true);
+    check('opened from the row, nothing is pinned — the box is the change’s own', dlg.pin === false);
+    check('the other notes on this change are on the list',
+      /fallback is thirty/.test(dlg.list || ''), (dlg.list || '').slice(0, 60));
+    await page.evaluate(() => closeContextPanel());
     await page.waitForTimeout(300);
     await page.evaluate(id => openNotesPanel(state.activeId, id), set.ch);
     await page.waitForTimeout(500);
