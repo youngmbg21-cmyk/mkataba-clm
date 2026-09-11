@@ -18711,6 +18711,83 @@ what is pinned is that they agree; and 0a/0b are CONTROLS that pass either way,
 because "the two pages agree" is otherwise satisfied by a change that dressed
 every contract in the workspace)**.
 
+## THE EDITION IS SET IN THE CONTRACT'S OWN FACE (Young asked 11 Sep 2026)
+
+*"please make the font in the plain english page the same as the contract
+page."*
+
+**MEASURED BEFORE A LINE WAS WRITTEN, on a contract set to Formal legal: the
+sheet drew Times New Roman and the edition beside it drew IBM Plex Sans.** The
+size already matched — 14px both sides — which is what made this a font
+complaint rather than a layout one.
+
+**THE CAUSE IS STRUCTURAL RATHER THAN A MISSING DECLARATION.** `#doc-read` is
+mounted as a SIBLING of the paper, not a descendant: it sits in the grid's
+second track at `position:absolute;inset:0`, which is what lets it COVER the
+Document tab's three cards without rebuilding them. Every one of the design
+rules is scoped to a `[data-doc-body]` ANCESTOR — correct for the sheet, and
+structurally unable to reach a sibling.
+
+- **SO THE FACE IS MEASURED OFF THE SHEET, in the same two lines that already
+  measure the SIZE.** `docReadPaint` asks the paper for its computed style once
+  and writes both `--dr-size` and `--dr-face` onto the layer. That element has
+  read a measured size since the edition was built, for a reason that applies
+  word for word here: `--doc-scale` is written on the paper's own zoom wrapper
+  in the OTHER column and never reaches this one, and a document style can
+  multiply the size again on top of it (compact-executive takes .94). **Asking
+  what the sheet actually resolves to follows both, and follows the next one.**
+- **WIDENING THE DESIGN RULES TO NAME THIS SHEET WAS THE OTHER ANSWER AND IS
+  THE WORSE ONE.** It is a list of nine designs that has to be kept in step for
+  ever, and **a design added tomorrow would dress the contract and not its
+  translation** — the exact failure this product has paid for twice, where a
+  builder with two homes is dressed by a rule scoped to one of them. A
+  measurement is a RELATION: it is right for every design there is, for one
+  added later, and for a face that arrives from somewhere else entirely. It is
+  also what this element already does for its size, which is the argument
+  against inventing a second mechanism beside it.
+- **THE ENTRY'S OWN HEADINGS HAD TO BE NAMED, AND THAT WAS FOUND BY MEASURING A
+  RENDERED PAGE.** The paragraph took the measured face straight away and the
+  heading did not, because `.dr-h` / `.dr-s` are real `h3`/`h4` elements and
+  index.html sets a face on every heading tag — a declaration at (0,0,1).
+  **INHERITANCE IS NOT A CASCADE CONTEST**: any matching declaration beats it
+  outright, so the measured face never reached those two. **Nothing in the
+  source looked wrong** — the rules named no font-family at all, which reads
+  like "it inherits". Only `plain-english-verify` 15c, comparing painted
+  headings against painted paragraphs, could see it.
+- **`inherit` IS WHAT NAMES THEM, never `var(--dr-face)` a second time.** It
+  says *whatever this entry is set in*, so the heading and the paragraph cannot
+  come to disagree about the entry's own face. **The paper's own headings escape
+  the same trap only because the design rules name h1/h2 BY TAG**; this column
+  has no such rule and never will, which is why the two halves of the fix are
+  not the same shape.
+- **THE COLUMN'S OWN "PLAIN ENGLISH" CAPTION KEEPS THE PRODUCT'S FACE.** It is
+  furniture ABOUT the reading rather than part of it, and the exclusion holds by
+  construction rather than by care: `--dr-face` is read by `.doc-read-note` and
+  by nothing else, which f277 (18) asserts by COUNTING the readers at one.
+- **THE WALL: what the route is sent does not move by a byte.** The reading's
+  cache key is a hash of exactly what it was handed, so a face measured for the
+  screen may never reach it — and `docReadSheet` records none. That claim
+  passes before and after; its job is to fail the day somebody tries to send it.
+
+**WHAT IT COSTS, said out loud: nothing.** No reading is re-asked, no cache key
+moves, no stored record changes, and a contract with no design set draws
+`--font-doc` on both sides exactly as it did.
+
+Tests: f277 (18) (5 — **4 fail against the parent**, the fifth being the wall),
+f277 (10)'s size claim RE-POINTED IN PLACE (it pinned the one expression
+`getComputedStyle(paper).fontSize`, which the second measurement rewrote; what
+it is about is that the sheet's own computed style is what the size is read
+from — **pin the relation, not the expression**), **plain-english-verify
+section 15 (5, browser — the only place this claim can be asked at all: a
+source check sees the measurement written down, and whether it REACHES the
+entry is a computed style on a rendered page. It STAGES A DESIGN, or the claim
+is vacuous — a contract with no design draws one face on both sides and "they
+match" is satisfied by a product that never measured anything. 2 fail against
+the parent, the headline one reporting the report verbatim:
+`contract Times New Roman · edition IBM Plex Sans`. 15a is the CONTROL that
+proves the stage bites, and 15d/15e are what prove the change is narrow — the
+caption did not follow and the size did not move)**.
+
 ## THE CLAUSE NUMBER IS NOT WELDED TO ITS NAME (Young reported it 11 Sep 2026)
 
 *"fix how the Clause header in the plain english contract is merged with the

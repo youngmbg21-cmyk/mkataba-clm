@@ -724,8 +724,13 @@ describe('f277 (10) the edition is a facing page', () => {
     assert.ok(/font-size:var\(--dr-size,var\(--t-body\)\)/.test(css),
       'a measured value, with the body rung as the fallback');
     assert.ok(!/var\(--t-meta\)/.test(css), 'and it is no longer a size smaller than the contract');
-    assert.ok(/getComputedStyle\(paper\)\.fontSize/.test(CONTRACT_JS),
-      'measured off the sheet on every paint');
+    /* RE-POINTED 11 Sep 2026, when the face began to be measured beside the
+       size: this pinned the one EXPRESSION `getComputedStyle(paper).fontSize`
+       where the claim is a RELATION — the sheet's own computed style is what
+       the size is read from. Pin the relation, not the expression. */
+    assert.ok(/getComputedStyle\(paper\)/.test(CONTRACT_JS),
+      'the sheet\'s own computed style is read on every paint');
+    assert.ok(/cs\.fontSize/.test(CONTRACT_JS), 'and the size comes off it');
     assert.ok(/layer\.style\.setProperty\('--dr-size',px\)/.test(CONTRACT_JS));
   });
 
@@ -1517,5 +1522,88 @@ describe('f277 (17) the number is not welded to the name', () => {
     assert.match(css,
       /\.doc-read-note\.dr-hang > \.dr-h \.dr-n,\.doc-read-note\.dr-hang > \.dr-s \.dr-n\{ margin-right:0; \}/,
       'and where the number sits in its own 2.6em box the margin is given back');
+  });
+});
+
+/* ============================================================
+   18. THE EDITION IS SET IN THE CONTRACT'S OWN FACE
+   ------------------------------------------------------------
+   "please make the font in the plain english page the same as the contract
+   page" — Young, 11 Sep 2026.
+
+   MEASURED before a line was written, on a contract set to Formal legal: the
+   sheet drew Times New Roman and the edition beside it drew IBM Plex Sans.
+   The cause is structural — #doc-read is a SIBLING of the paper (it sits in
+   the grid's second track), so the `[data-doc-body]` hook every design rule
+   reads as an ancestor is not above it.
+
+   THE FACE IS MEASURED, exactly as the size beside it already is, and for the
+   same reason: widening the nine design rules to name this sheet is a list
+   that has to be kept in step for ever, and a design added tomorrow would
+   dress the contract and not its translation. A measurement is a RELATION.
+   ============================================================ */
+describe('f277 (18) the edition is set in the paper’s own face', () => {
+  test('the face is measured off the sheet, on every paint', () => {
+    const src = _f277rd('js/views/contract.js');
+    const at = src.indexOf('function docReadPaint(');
+    assert.ok(at > 0, 'the painter is there');
+    const body = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    assert.match(body, /getComputedStyle\(paper\)/, 'the paper’s own computed style');
+    assert.match(body, /cs\.fontFamily/, 'and the face is read off it');
+    assert.match(body, /layer\.style\.setProperty\('--dr-face',face\)/,
+      'written onto the layer as --dr-face');
+    assert.match(body, /layer\.style\.removeProperty\('--dr-face'\)/,
+      'and removed where there is nothing to measure, never left stale');
+  });
+
+  test('the entry reads it, with the document face as the fallback', () => {
+    const css = _f277rd('index.html');
+    const at = css.indexOf('.doc-read-note{');
+    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
+    assert.match(block, /font-family:var\(--dr-face,var\(--font-doc\)\)/,
+      'a measured value, with the document face as the fallback');
+  });
+
+  /* THE ENTRY'S HEADINGS ARE REAL h3/h4, and index.html sets a face on every
+     heading tag — a declaration at (0,0,1) that beats inheritance outright,
+     because inheritance is not a cascade contest. So the two had to be named,
+     and `inherit` is what names them: it says "whatever this entry is set in"
+     rather than repeating the token, so the two cannot drift. */
+  test('the entry’s own headings take the entry’s face', () => {
+    const css = _f277rd('index.html');
+    const at = css.indexOf('.doc-read-note .dr-h{');
+    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
+    assert.match(block, /\.doc-read-note \.dr-h\{[^}]*font-family:inherit/,
+      'the clause heading');
+    assert.match(block, /\.doc-read-note \.dr-s\{[^}]*font-family:inherit/,
+      'and the section heading');
+    assert.ok(!/--dr-face/.test(block),
+      'and neither names the measured token a second time');
+  });
+
+  /* THE CAPTION IS NOT IN IT — the column's own PLAIN ENGLISH label is
+     furniture ABOUT the reading rather than part of it, and keeps the
+     product's own face. This holds by construction: --dr-face is read by
+     .doc-read-note and by nothing else. */
+  test('the column’s own caption keeps the product’s face', () => {
+    const css = _f277rd('index.html');
+    const reads = (css.match(/var\(--dr-face/g) || []).length;
+    assert.equal(reads, 1, '--dr-face is read in exactly one rule');
+    const at = css.indexOf('.doc-read-head{');
+    const head = css.slice(at, css.indexOf('.doc-read-note{', at));
+    assert.ok(!/--dr-face/.test(head), 'and it is not that one');
+  });
+
+  /* THE WALL: what the route is sent does not move by a byte. The reading's
+     cache key is a hash of exactly what it was handed, so a face measured for
+     the screen may never reach it. */
+  test('the face is drawn and never sent', () => {
+    const src = _f277rd('js/views/contract.js');
+    assert.match(src,
+      /const docReadClauses=c=>docReadSheet\(c\)\.map\(r=>\(\{num:r\.num,heading:r\.heading,text:r\.text,kind:r\.kind\}\)\);/,
+      'the sent shape still names num, heading, text and kind — and no face');
+    const at = src.indexOf('function docReadSheet(');
+    const sheet = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    assert.ok(!/face/i.test(sheet), 'and the walk records none');
   });
 });

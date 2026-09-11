@@ -7586,16 +7586,41 @@ function docReadPaint(c){
   if(right) right.style.visibility=on?'hidden':'';
   if(!on){ layer.innerHTML=''; return; }
   const canvas=document.getElementById('doc-canvas');
-  /* THE SIZE IS MEASURED OFF THE PAPER, never computed from a token here. The
-     reader's A⁻/A⁺ choice is written as --doc-scale on the paper's own zoom
-     wrapper, which is in the OTHER column and does not reach this one, and a
-     document style can multiply the size again on top of it. Asking the sheet
-     what it actually resolves to follows both, and follows the next one. */
+  /* THE SIZE AND THE FACE ARE BOTH MEASURED OFF THE PAPER, never computed from
+     a token here. The reader's A⁻/A⁺ choice is written as --doc-scale on the
+     paper's own zoom wrapper, which is in the OTHER column and does not reach
+     this one, and a document style can multiply the size again on top of it.
+     Asking the sheet what it actually resolves to follows both, and follows the
+     next one.
+
+     ---- AND THE FACE RIDES THE SAME ROAD (Young asked 11 Sep 2026: "please
+     make the font in the plain english page the same as the contract page") ----
+     MEASURED before it was written: a contract in Formal legal drew Times New
+     Roman on the sheet and IBM Plex Sans in the edition beside it, because this
+     layer is a SIBLING of the paper rather than a descendant — it sits in the
+     grid's second track, so the `[data-doc-body]` hook the design rules read as
+     an ancestor is not above it.
+
+     WIDENING THOSE RULES TO NAME THIS SHEET WAS THE OTHER ANSWER AND IS THE
+     WORSE ONE: it is a list of nine designs that would have to be kept in step
+     for ever, and a design added later would dress the contract and not its
+     translation. Measuring is a RELATION — it is right for every design, for
+     one added tomorrow, and for a face that arrives from somewhere else
+     entirely. It is also what this element already does for its size, which is
+     the argument for not inventing a second mechanism beside it.
+
+     THE CAPTION IS NOT IN IT. `--dr-face` is read by .doc-read-note and by
+     nothing else, so the column's own "PLAIN ENGLISH" label keeps the product's
+     face: it is furniture about the reading rather than part of it. */
   try{
     const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
-    const px=paper?getComputedStyle(paper).fontSize:'';
+    const cs=paper?getComputedStyle(paper):null;
+    const px=cs?cs.fontSize:'';
     if(px&&parseFloat(px)>0) layer.style.setProperty('--dr-size',px);
     else layer.style.removeProperty('--dr-size');
+    const face=cs?cs.fontFamily:'';
+    if(face) layer.style.setProperty('--dr-face',face);
+    else layer.style.removeProperty('--dr-face');
   }catch(_){}
   const pairs=docReadAnchors(c, docReadItems(c));
   const over=Number((c._readings&&c._readings.over)||0);

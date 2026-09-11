@@ -12556,3 +12556,66 @@ route is sent and whose cache key is a hash of exactly that.
   its own window and it failed on correct code. f129's body-typography claim
   pinned a literal selector where the claim is that every design is dressed. Both
   re-pointed onto the relation.
+
+## Run — 11 Sep 2026 (later): the Plain English edition takes the contract's face
+
+Young: *"please make the font in the plain english page the same as the contract
+page."*
+
+### Found
+- **THE EDITION WAS SET IN THE PRODUCT'S FACE AND THE CONTRACT IN ITS DESIGN'S.**
+  MEASURED on a contract set to Formal legal before a line was written: the sheet
+  drew **Times New Roman** and the edition beside it drew **IBM Plex Sans**. The
+  SIZE already matched (14px both sides), which is what made this a font
+  complaint rather than a layout one.
+- **THE CAUSE IS STRUCTURAL.** `#doc-read` is mounted as a SIBLING of the paper
+  rather than a descendant — it sits in the grid's second track at
+  `position:absolute;inset:0`, which is what lets it cover the Document tab's
+  three cards without rebuilding them. Every design rule is scoped to a
+  `[data-doc-body]` ANCESTOR, so not one of them could ever have reached it.
+
+### Fixed
+- **THE FACE IS MEASURED OFF THE SHEET, in the same two lines that already
+  measure the SIZE.** `docReadPaint` asks the paper for its computed style once
+  and writes both `--dr-size` and `--dr-face` onto the layer. That element has
+  read a measured size since the edition was built, for a reason that applies
+  here word for word: `--doc-scale` lives on the paper's own zoom wrapper in the
+  OTHER column, and a document style can multiply the size again on top of it.
+- **WIDENING THE NINE DESIGN RULES TO NAME THIS SHEET WAS THE OTHER ANSWER AND
+  IS THE WORSE ONE** — a list that must be kept in step for ever, where a design
+  added tomorrow would dress the contract and not its translation. A measurement
+  is a RELATION.
+- **THE ENTRY'S OWN HEADINGS HAD TO BE NAMED, and only a rendered page could
+  see it.** `.dr-h` / `.dr-s` are real `h3`/`h4` and index.html sets a face on
+  every heading tag at (0,0,1); **inheritance is not a cascade contest**, so any
+  matching declaration beats it and the measured face never reached those two.
+  The rules named no font-family at all, which reads like "it inherits" —
+  nothing in the source looked wrong. `inherit` is what names them, never
+  `var(--dr-face)` a second time, so the heading and the paragraph cannot drift.
+- **THE COLUMN'S OWN "PLAIN ENGLISH" CAPTION KEEPS THE PRODUCT'S FACE**, and the
+  exclusion holds by construction: `--dr-face` is read by `.doc-read-note` and by
+  nothing else, which the test asserts by COUNTING the readers at one.
+- **THE WALL: what the route is sent does not move by a byte**, so no reading is
+  re-asked and no cache key moves. A contract with no design set draws
+  `--font-doc` on both sides exactly as it did.
+
+### Proved
+- f277 (18) — 5 claims, **4 fail against the parent**; the fifth is the named
+  WALL. f277 (10)'s size claim RE-POINTED IN PLACE: it pinned the expression
+  `getComputedStyle(paper).fontSize`, which the second measurement rewrote, where
+  the claim is that the sheet's own computed style is what the size comes from.
+  **Pin the relation, not the expression.**
+- plain-english-verify section 15 — 5 checks, **2 fail against the parent**, the
+  headline one reporting the report verbatim:
+  `contract Times New Roman · edition IBM Plex Sans`. It STAGES A DESIGN, or the
+  claim is vacuous — a contract with none draws one face on both sides and "they
+  match" passes against a product that never measured anything. **15a is the
+  CONTROL that proves the stage bites; 15d and 15e are what prove the change is
+  narrow** (the caption did not follow, the size did not move).
+- pdf-structure-verify 24/24, `npm run lint` 0 errors.
+
+### Noticed, not fixed
+- **The rest of the 10 Sep upload work order is still not built** — the header
+  block above an uploaded contract on the Document tab, its file strip, and the
+  smaller type an upload's wording is set in there (13px against an ordinary
+  contract's 13.5). Unchanged from the run before this one.

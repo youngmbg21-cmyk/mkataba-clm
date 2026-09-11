@@ -1111,6 +1111,69 @@ const tool = readings => [{ type: 'tool_use', id: 'tu_read', name: 'clause_readi
       gap.map(g => g.rest || '·').join(' | '));
     await page.screenshot({ path: path.join(OUT, '14-number-and-name.png') }).catch(() => {});
 
+    /* ============ 15 · THE EDITION IS SET IN THE CONTRACT'S OWN FACE ============
+       "please make the font in the plain english page the same as the contract
+       page" — Young, 11 Sep 2026.
+
+       THIS IS THE ONLY PLACE THE CLAIM CAN BE ASKED. A source check sees the
+       measurement written down; whether it actually REACHES the entry is a
+       computed style on a rendered page — and the whole fault was structural:
+       #doc-read is a SIBLING of the paper, so the [data-doc-body] hook the
+       design rules read as an ancestor is not above it.
+
+       IT STAGES A DESIGN, or the claim is vacuous: a contract with no design
+       set draws --font-doc on both sides and "they match" is satisfied by a
+       product that never measured anything. 15a is the CONTROL that proves the
+       stage really bites. */
+    await drive(page, () => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.branding = Object.assign({}, c.branding || {}, { designId: 'formal-legal' });
+      if (typeof docReadSet === 'function') docReadSet(false);
+      renderWorkspace(c.id);
+    }, undefined, null);
+    await pause(800);
+    const fPressed = await press(page, '.doc-read-seg button[data-doc-read="1"]', '15 Plain English on a designed contract');
+    await pause(2200);
+    const face = await drive(page, () => {
+      const one = el => el ? String(getComputedStyle(el).fontFamily || '').split(',')[0].replace(/['"]/g, '').trim() : null;
+      const px = el => el ? getComputedStyle(el).fontSize : null;
+      const canvas = document.getElementById('doc-canvas');
+      const para = canvas && Array.from(canvas.querySelectorAll('p'))
+        .find(x => (x.textContent || '').trim().length > 40);
+      const note = document.querySelector('.doc-read-note');
+      const noteP = note && note.querySelector('p');
+      const noteH = note && note.querySelector('.dr-h,.dr-s');
+      const head = document.querySelector('.doc-read-head');
+      const body = one(document.body);
+      return { notes: document.querySelectorAll('.doc-read-note').length,
+        contract: one(para), edition: one(noteP), heading: one(noteH),
+        caption: one(head), body,
+        contractPx: px(para), editionPx: px(noteP) };
+    }, undefined, {});
+    /* THE CONTROL: the design really is on the paper, and it is not the face
+       the rest of the product is set in — so "they match" is a claim. */
+    check(fPressed && face.notes >= 1 && !!face.contract && face.contract !== face.body,
+      '15a THE CONTROL: the contract is set in its design’s own face, not the product’s',
+      `contract ${face.contract} · product ${face.body}`);
+    /* THE HEADLINE. Against the parent this reports the report itself. */
+    check(!!face.edition && face.edition === face.contract,
+      '15b the reading beside it is set in the SAME face — the reported fault',
+      `contract ${face.contract} · edition ${face.edition}`);
+    check(!!face.heading && face.heading === face.contract,
+      '15c and so is the entry’s own heading — the whole entry, not just its paragraph',
+      `heading ${face.heading}`);
+    /* THE DELIBERATE EXCLUSION: the column's own label is furniture ABOUT the
+       reading rather than part of it, and keeps the product's face. */
+    check(!!face.caption && face.caption === face.body && face.caption !== face.contract,
+      '15d the column’s own caption keeps the product’s face',
+      `caption ${face.caption}`);
+    /* AND MEASURING THE FACE DID NOT COST THE SIZE, which is measured off the
+       same sheet by the same lines. */
+    check(!!face.editionPx && face.editionPx === face.contractPx,
+      '15e and the size still follows the paper too',
+      `contract ${face.contractPx} · edition ${face.editionPx}`);
+    await page.screenshot({ path: path.join(OUT, '15-same-face.png') }).catch(() => {});
+
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));
   } catch (e) {

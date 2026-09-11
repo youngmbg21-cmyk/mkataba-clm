@@ -2800,6 +2800,18 @@
        style can multiply the size again on top of it (compact-executive takes
        .94). Reading what the paper actually resolves to follows both. */
     font-size:var(--dr-size,var(--t-body)); line-height:1.75;
+    /* AND SET IN THE FACE THE CONTRACT IS SET IN (Young asked 11 Sep 2026:
+       "please make the font in the plain english page the same as the contract
+       page"). --dr-face is MEASURED off the paper by docReadPaint, exactly as
+       --dr-size beside it and for the same reason: this layer is a SIBLING of
+       the sheet, so the design's own rules — which read a [data-doc-body]
+       ancestor — cannot reach it, and a list of designs named here would have
+       to be kept in step for ever. The fallback is the document face, which is
+       what every contract with no design set already draws.
+       IT IS ON THE ENTRY, NOT ON #doc-read: the column's own PLAIN ENGLISH
+       caption is furniture ABOUT the reading rather than part of it, and keeps
+       the product's face. */
+    font-family:var(--dr-face,var(--font-doc));
     color:var(--color-neutral-700); }
   .doc-read-note p{ margin:0; }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
@@ -2836,10 +2848,19 @@
   .doc-read-note.hati-lv-1{ margin-left:2.6em; }
   .doc-read-note.hati-lv-2{ margin-left:5.2em; }
   .doc-read-note.hati-lv-3{ margin-left:7.8em; }
+  /* THE ENTRY'S HEADINGS TAKE THE ENTRY'S OWN FACE, and `inherit` is what says
+     so rather than naming --dr-face a second time — two statements of one fact
+     drift. They are real h3/h4 elements, and index.html sets a face on every
+     heading tag at (0,0,1); INHERITANCE IS NOT A CASCADE CONTEST, so any
+     matching declaration beats it and the entry's measured face never reached
+     these two. Caught by measuring a rendered page (plain-english-verify 15c) —
+     the paragraph beside them was already right, so nothing in the source
+     looked wrong. The paper's own headings escape it because the design rules
+     name h1/h2 by tag; this column has no such rule and never will. */
   .doc-read-note .dr-h{ margin:0 0 3px; font-size:1em; line-height:1.4;
-    font-weight:var(--w-strong); color:var(--color-text); }
+    font-family:inherit; font-weight:var(--w-strong); color:var(--color-text); }
   .doc-read-note .dr-s{ margin:0; font-size:1.13em; line-height:1.35;
-    font-weight:var(--w-title); color:var(--color-text); text-wrap:balance; }
+    font-family:inherit; font-weight:var(--w-title); color:var(--color-text); text-wrap:balance; }
   .doc-read-over{ position:absolute; left:0; right:0; padding-right:4px;
     font-size:var(--t-label); color:var(--color-neutral-600); }
 
