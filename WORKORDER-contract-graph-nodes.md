@@ -680,3 +680,74 @@ Declined contract WITHOUT a signature locked too? The reading above says no
 (nothing is sealed on it); one word from the owner adds `Declined` to the
 reading, and the sentence gains a second branch ("This agreement was
 closed").
+
+## C-3 THE NOTE ON A FILED REDLINE ASKS WHICH ROOM IT IS FOR
+
+**The owner's instruction, 11 Sep 2026, verbatim:** *"you should be able to
+choose whether the note is internal or external."* Their screenshot: the
+receipt window after filing (tick, *CHG-002 filed*, *Tell the counterparty
+why, or skip*, the box, the globe line *the counterparty reads this beside
+the change*, Skip, Add note).
+
+**What stands today, and what this reverses.** On 1 Sep the owner ruled the
+note filed from this window EXTERNAL (A NOTE ON ONE REDLINE, AND CHAT IS
+WHERE THEY ARE READ — *"THE NOTE IS EXTERNAL — the explanation the other side
+reads (reversed 1 Sep)"*), and the window has posted `visibility:'shared'`
+without asking ever since. The Notes drawer already has the two rooms as
+TABS with their own box (NOTES ARE TWO ROOMS). This window is the one
+composer on our seat that offers no choice. This section gives it the
+choice; the default stays what the 1 Sep ruling made it.
+
+**The ruling to build.**
+
+1. **A TWO-WAY CONTROL ON THE WINDOW, Internal · External**, drawn where the
+   globe line sits today (that line is the CHOICE read back, so it becomes
+   the control — THE READER'S OWN CHOICE, READ BACK TO THEM, IS NEVER A
+   BAND). Same clothes as the drawer's two tabs (`ng_np_tab_int` /
+   `ng_np_tab_ext` — the keys already exist in both books; `.rl-segwrap` /
+   `.rl-seg`, the one segmented control this page draws). **External is
+   lit at rest** (the 1 Sep default, unchanged). The box's placeholder and
+   the external tint follow the live half exactly as the drawer's box does
+   (`ng_np_ph_ext` for external; `ng_note_ph` for internal — check whether
+   the internal wording needs its own key: "A note for your colleagues…").
+   The lead sentence follows too: *"Tell {who} why, or skip"* on external;
+   on internal a sentence that names the colleagues (one new key, both
+   books).
+2. **ONE WRITER, THE ROOM'S OWN ANSWER.** Add note posts through
+   `negoPostComment` with `visibility` read off the control — `'shared'` on
+   External, absent on Internal (anything not exactly `'shared'` is internal
+   by the writer's own safe default; never a third value). Edit and Delete
+   from the change's Notes row (`negoEditNote` / `negoDeleteNote`) are
+   unchanged: a note's room is fixed at posting, as it is in the drawer; a
+   note cannot be moved between rooms (the confirm on the CROSSING in the
+   drawer is the precedent for how seriously a room is taken). Where the
+   window is opened from the Notes row on a note already on file, the
+   control is drawn SET to that note's room and disabled — it states a fact.
+3. **THE TAG PICKER FOLLOWS THE ROOM** (`negoTagPeople` — colleagues in the
+   internal room, the other side's named people in the external), and the
+   wall in `negoPostComment` resolves mentions against the room chosen, so
+   a colleague tagged in an external note is dropped rather than published.
+4. **THE RECEIPT TOAST NAMES THE ROOM** (`ng_note_added` gains the room in
+   its sentence, or a second key), so the reader knows where it went without
+   opening the drawer. The drawer's live tab is not moved by this window.
+5. **WHAT TRAVELS IS UNCHANGED**: an external note goes out through
+   `negoPostToChannel` exactly as now, and is marked delivered on the same
+   `sentAt` rule; an internal note reaches nobody by not being posted
+   (`ch.thread` is not on the share payload). The counterparty's page is
+   untouched (PORTAL_MODE has one room and no such window).
+
+**THE SIX QUESTIONS, where they bit.** Q2: the globe line already spends the
+attention; it becomes the control, so nothing new is added to the window.
+Q5: this is the same door (the same window), taught the same choice the
+drawer already carries — not a second composer. Q6: a reader who picks
+Internal and presses Add note lands back where they were with a toast that
+says *internal*; the drawer's Internal tab shows it.
+
+**The nets.** A model test that the window's Add note posts `'shared'` on
+External and nothing on Internal (the writer's default), and that the
+control opened on an existing note is set and disabled. A browser section on
+notes-two-rooms-verify that files a change, picks Internal, adds a note, and
+measures the drawer's Internal tab holding it and the External tab not; then
+the same with External; and that the page's own placeholder follows the
+half pressed. Against the parent the file reports no control rather than
+timing out.
