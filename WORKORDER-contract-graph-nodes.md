@@ -751,3 +751,85 @@ measures the drawer's Internal tab holding it and the External tab not; then
 the same with External; and that the page's own placeholder follows the
 half pressed. Against the parent the file reports no control rather than
 timing out.
+
+## C-4 THE PENCIL FILES ON ONE PRESS, NOT TWO
+
+**The owner's report, 11 Sep 2026, verbatim:** *"after i make a redline then
+try to click on the pencil sign, the first time it does not work and then i
+have to click on it a second time to log it. Make it one click on the
+pencil."* Their screenshot: the clause editor's paper, a struck line above,
+the pencil at the top right of the clause being worked on.
+
+**REPRODUCED in a real browser on 11 Sep, before anything was touched**
+(a scratch Playwright run against test/chromium/parity.html: open the
+editor on a clause with `typing:true`, type in the box, ONE real mouse
+press on the live clause's pencil):
+
+- Before the press the pencil sits at y = 116.75. With the mouse button
+  HELD DOWN it sits at y = 152.75 — 36 px lower. The mousedown landed on
+  the pencil; the mouseup landed on a `<p>` of the wording; the browser
+  fired the click on their common ancestor (`ARTICLE`), so the pencil
+  handler never ran. A second press found the pencil where it now was and
+  filed (`changes` 6 → 7, the note window came up). Instrumented as
+  `mousedown:pen · mouseup:P · click:ARTICLE`, then
+  `mousedown:pen · mouseup:pen · click:pen`. The same on a redline made by
+  selecting and deleting words.
+- **The cause is the toolbar row growing by one line under the reader's
+  hand.** The mousedown on the pencil takes focus off the box; the box's
+  blur handler pulls the text (`cePullText` → `ceApply` with `keepView`),
+  and `ceApply` speaks `ce_applied` — *"Applied to the wording below."* —
+  into `#ce-say`. The say line sits ON THE TOOLBAR ROW (`.ce-barrow`,
+  `flex-wrap` off) between the tools and the Exit button; it takes up to
+  300 px when it is on (`.ce-say.is-on`; `max-width:0` when off). The
+  tools bar `.ce-bar` is `flex-wrap:wrap` and has no `flex` of its own, so
+  when the say line takes its width the tools wrap onto a second line, the
+  row grows 36 px, and the paper — and the pencil — move down by exactly
+  that. It is the 30 Aug File-button fault (the rail foot rewritten on the
+  blur its own mousedown caused) in a second costume: nothing is rebuilt
+  this time, the control is simply pushed out from under the pointer.
+
+**The ruling to build.**
+
+1. **THE SAY LINE MAY ONLY TAKE FREE SPACE.** `.ce-barrow .ce-say` becomes
+   `flex:1 1 0; min-width:0; max-width:300px` (basis zero, so it can never
+   force a sibling to shrink) and `.ce-barrow .ce-bar` becomes `flex:none`
+   (the tools keep their own width on this row). The faded state keeps
+   `max-width:0`. The row's height is then the same with the line on and
+   off, by construction — measure it, as a RELATION (row height with the
+   line on equals the row height with it off), never a number.
+2. **AND WHERE THERE IS NO FREE SPACE THE SENTENCE STILL APPEARS.** Below
+   the width where the tools and the Exit fill the row (measure at 1024,
+   the page's floor), a refusal spoken into a zero-width span is a dead
+   press — the rule this page already keeps. If the measurement shows the
+   line squeezed to nothing at 1024, the say line takes a second home on
+   that rung only: its own row UNDER the toolbar, reserved at one line's
+   height whether or not it is on (`min-height`), so it still cannot move
+   the paper. Not a band: it is the same status line the strip already
+   carries, in the place the strip has room for it.
+3. **THE BLUR SAYS NOTHING.** `cePullText`'s call into `ceApply` passes
+   `quiet:true`: the reader typed the words themselves and *"Applied to the
+   wording below"* is their own act read back to them (THE READER'S OWN
+   CHOICE, READ BACK TO THEM, IS NEVER A BAND). Every other speaker of
+   `ce_applied` — a Copilot card's Apply, a playbook standard, a passage
+   rewritten in place — is untouched. This alone would make the reported
+   press work; it is second, not first, because 1 is what stops the NEXT
+   sentence spoken on a mousedown from doing the same thing.
+4. **NOTHING ELSE MOVES.** No change to the pencil handler, `ceFile`, the
+   note window, or the blur handler's pull (which is what lets the pencil
+   file what was typed).
+
+**The nets.** A browser section on clause-editor-verify that opens the
+editor typing, types, and presses the pencil ONCE with a real mouse
+(`page.mouse.down` / `up`, never `.click()` on the element, which is not a
+press), then measures `changes` grew by one and the note window is up; and
+that measures the pencil's `getBoundingClientRect().top` with the button
+held equal to its top before the press. Against the parent the section
+reports the pencil 36 px lower and no filing, rather than timing out. A
+second claim that the toolbar row's height with `#ce-say.is-on` equals its
+height without, at 1500 and at 1024. Re-point the 30 Aug section's claim
+(the rail foot) only if it reaches for the same fixture.
+
+**Out of scope, said out loud.** The clause panel's own inline editor and
+the room's editor have no `#ce-say` and were not measured; if the same
+sentence is spoken on a strip there, it is a line in BUGLOG.md, not a fix
+on the way past.
