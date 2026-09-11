@@ -144,9 +144,17 @@ function playbookReviewHeuristic(c, text){
    ONE — the heuristic below, which is a real check against the standards — a
    quiet caller falls through to it exactly as a loud one does, or it would be
    quieter AND worse. Every existing caller passes nothing. */
+/* ---- WHAT THE REVIEW READS, AND THE FLOOR UNDER IT — named once ----
+   (A12, 11 Sep 2026.) runPlaybookReview refused a document under 120
+   characters inline; "Prepare redlines" greys its row on the SAME rule, and a
+   second copy of "is there anything readable here" is how the row and the
+   runner come to disagree about one document. The server mirrors the floor as
+   COPILOT_PB_TEXT_MIN. */
+const PB_TEXT_MIN=120;
+function playbookText(c){ return isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.docPlainText?docPlainText(c):''); }
 async function runPlaybookReview(c,opts={}){
-  const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.docPlainText?docPlainText(c):'');
-  if(!text || text.length<120){
+  const text = playbookText(c);
+  if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }
   if(API_MODE() && state.aiConfigured){
@@ -763,4 +771,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

@@ -13673,6 +13673,96 @@ as a computed colour, every link's width as a COMPUTED stroke, the legend's
 sentence with the reading's own counts, and 15f the viewer — a CONTROL that
 passes either way, because a page with no feature draws no money either).
 
+## "PREPARE REDLINES" — COPILOT PRE-WRITES THE REDLINES ON INCOMING PAPER (A12, 11 Sep 2026)
+
+WORKORDER-contract-graph-nodes.md Part B, the one-button half. One press on
+the negotiation page runs the playbook review HaTi already has and files every
+proposed wording as a draft of OURS, unsent, one card each under *Your drafts*.
+The person then sends, edits or retracts each draft exactly as they do today.
+
+- **ONE DOOR — a third row in the More menu, through `opts.menuRow`**, beside
+  the playbook pass and the memo, on their gate (`mayMenu`: our seat, canEdit,
+  not a narrowed reviewer), dead in the counterparty preview through the same
+  `data-rl-dead` treatment, **and NOT DRAWN on an executed contract** — a verb
+  that cannot work is not drawn. It greys with the reason on hover where that
+  can be known before the press: wording frozen by a signature, or nothing
+  readable to check. `rlPrepareRowHtml` builds it; `rlPrepareRedlines` runs it.
+- **THE FLOOR IS THE RUNNER'S OWN, NAMED ONCE.** `PB_TEXT_MIN` (120) and
+  `playbookText(c)` in js/playbook.js are what `runPlaybookReview` has always
+  read inline; the row asks the same two names, so the row and the runner
+  cannot disagree about whether a document is readable. **A LIGHT ROW IS NOT
+  AN EMPTY ONE**: the list strips an upload's extracted text and this page does
+  not load the full record on arrival, so a row greyed off a light record
+  would refuse a perfectly readable contract. Unknown draws live; the press
+  loads the record (`ensureFull`) and the runner refuses in words if it really
+  is empty.
+- **IT ASKS BEFORE IT SPENDS.** `confirmDialog`, with the sentence naming the
+  cost — one deep Copilot call — or, where the review is already on file,
+  saying so and that the press costs nothing. Refusing writes nothing: no
+  review, no draft, no toast.
+- **THE REVIEW IS THE EXISTING ONE AND THE FILING IS THE EXISTING ONE.**
+  `runPlaybookReview` → `rlPlaybookProposals` → `rlFilePlaybookProposal`,
+  which is the door the review window and the clause editor's scan rail
+  already share: an `edit` landing goes through `negoEditClause`, an `add`
+  through `negoAddNamedClause` (the wall against a clause already on the
+  table or in the agreement), and `unplaced` is refused. So the desk rule, the
+  review gate, the frozen-wording rule, the duplicate wall and the no-op guard
+  all apply without being repeated. f295 greps the runner for `negoFileChange`,
+  `changes.push`, `negoInsertClause`, `negoEditClause` and `negoAddNamedClause`
+  and fails on any of them.
+- **WHICH WORDING: the review window's own lead choice** — the library's
+  preferred wording where the position has one, otherwise Copilot's fitted
+  draft. **NEVER THE FALLBACK**: a fallback is a line the company retreats to
+  on purpose, and filing it unasked would concede a position nobody had decided
+  to concede. A proposal carrying only a fallback is counted and left for the
+  reader.
+- **NOTHING IS SENT.** `turnAt` is not touched, the postbox is not pressed, no
+  round is published; every draft still waits on its own Send. The browser file
+  mints a real negotiate link before the press and proves their page serves the
+  same payload afterwards.
+- **A SECOND PRESS FILES NOTHING NEW — BECAUSE THE WALLS REFUSE, NOT BECAUSE
+  THIS CODE PRE-FILTERED.** The duplicate wall refuses the add; **and the
+  funnel gained the guard the order assumed it had**: the no-op guard measured
+  against the clause AS IT STANDS, so filing the very wording a pending draft
+  of ours already carries used to fold as a revision — a revisions[] entry
+  identical to the draft it revises and a new fingerprint over the same words.
+  `negoFileChange` now answers null where the live draft already proposes the
+  same words, the same markup where any was supplied, and a heading that does
+  not move. It is in the funnel because the review window's own button and the
+  clause editor's Copilot card reach the same fold.
+- **THE PRESS COUNTS WHY, AFTER THE WALL ANSWERED.** A refused add is *already
+  here* (the wall's own refusal on the options bag — `rlFilePlaybookProposal`
+  gained an ADDITIVE `opts` so a batch can pass `quiet` and read `refused`
+  back; every caller written before passes nothing and behaves as it did); an
+  edit the clause or a pending draft already carries is *already here*;
+  `unplaced` is counted; anything else is a rule refusing.
+- **RECORDED, AT THE PRESS.** Every proposal carrying a Copilot draft gets an
+  `aiTraceNote` as a `playbook` proposal, **hashed before the filing** — this
+  press files straight through the funnel, so the settle that marks the draft
+  as-is or edited has to find a hash already on the entry (the scan rail fills
+  a box first and hashes at apply). Where the library's own wording is filed
+  the draft is recorded as not taken. An unplaced proposal is not recorded: the
+  rail never draws one, and recording it would count a proposal no person was
+  shown.
+- **SAY WHAT HAPPENED, ONCE.** One `ok` toast with the counts — filed, and any
+  non-zero of already here / could not be placed / refused / fallback only —
+  and a `warn` that says why when nothing was filed. Zero counts are left off
+  the line. One English audit line names the counts. No band, strip or notice:
+  the column repainting is the confirmation.
+- **THE WORDS ARE IN BOTH LANGUAGES** (`ng_prepare_*`); the audit line stays
+  English.
+
+Tests: f295 (12 — the door and its gate, the floor named once, the dialog and
+the refusal, one press filing an edit and an add as unsent drafts of ours, the
+second press refused by the walls, the trace, never a fallback / never a second
+path / never anything sent, both languages), **prepare-redlines-verify (27,
+browser — the row as VISIBLE PIXELS once the menu is open, a real press raising
+the confirm with the cost in it, the cards counted under "Your drafts" on the
+real column, exactly one provider call, their page opened from a real link
+before and after and proved unchanged, and the second press proved to file
+nothing and spend nothing; 17 of the 27 fail against the parent, and every
+driven half is guarded so it REPORTS rather than timing out).** f279 unchanged.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.
