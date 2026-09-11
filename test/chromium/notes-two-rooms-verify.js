@@ -621,6 +621,20 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('D-6 Add note posts BOTH, each to its own room', d6.out === 'added' && d6.n === 2
       && d6.vis.includes('internal') && d6.vis.includes('shared'), `${d6.n} posted: ${d6.vis.join(', ')}`);
 
+    /* ---- THE OPEN CONTROL WEARS THE HEAD BUTTONS' EDGE (owner-asked 11 Sep
+       2026: "the outline of the open are too faint") — measured as computed
+       colours on the real page, against the head's own .ui-btn. ---- */
+    const openEdge = await page.evaluate(() => {
+      const open = document.querySelector('#rl-changes .rl-card-open:not([aria-expanded="true"])');
+      const head = document.querySelector('#ws-head .ui-btn:not(.ui-btn-primary)');
+      if (!open || !head) return { open: !!open, head: !!head };
+      const o = getComputedStyle(open), h = getComputedStyle(head);
+      return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor, ink: o.color, headInk: h.color };
+    });
+    check('the card’s Open control carries the same edge as Internal review / Share / More',
+      openEdge.open && openEdge.head && openEdge.edge === openEdge.headEdge, JSON.stringify(openEdge));
+    check('and the same ink', openEdge.open && openEdge.head && openEdge.ink === openEdge.headInk, `${openEdge.ink} vs ${openEdge.headInk}`);
+
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {
     check('the run completed', false, e && e.message);

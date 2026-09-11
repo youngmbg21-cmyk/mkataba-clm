@@ -2742,10 +2742,21 @@ function redlineLayoutCss(){
      the reading surface). A word rather than a glyph, because the glyph was
      added to fix a caret nobody recognised as a control and a bare mark is the
      same fault one size up. */
+  ${''/* ---- THE OPEN CONTROL WEARS THE HEAD BUTTONS' OWN EDGE (owner-asked
+         11 Sep 2026: "the outline of the open are too faint. Make them similar
+         to the buttons highlighted above") ----
+         It sat on the hairline (--color-divider) in the secondary grey, which
+         beside a row of bare words read as furniture. It takes the platform's
+         own button edge and ink now — --btn-edge and --accent-ink, the two
+         tokens .ui-btn reads — so it and Internal review / Share / More are
+         one weight of outline by construction, and follow a navy workspace
+         and the dark theme together. The open (green) state below and the
+         hover are untouched; the counterparty's Open borrows this rule and
+         moves with it. */}
   .redline-page .rl-open-btn{flex:none;margin-left:2px;padding:0 var(--s-3);display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-body);line-height:1.6;
-    border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
-    color:var(--color-neutral-600);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);
+    border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);
+    color:var(--accent-ink);transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1);
     height:30px}
   .redline-page .rl-open-btn:hover{border-color:var(--color-accent);color:var(--st-steel-fg);
     background:var(--st-steel-bg)}

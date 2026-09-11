@@ -12716,3 +12716,10 @@ Noticed, not fixed
 - The ceremonial cover (`data-doc-design`) is a bare div, not `<header>`, and is stepped over only because its lines carry no heading tag or dotted number; a design that drew its cover lines as headings would send them to the model.
 - `--dr-hsize` copies size only; a design whose headings are uppercase or letter-spaced still faces an edition heading in the edition's own weight and case (the owner asked for size).
 - The Document tab's older seal card classes `text-[10px]`/`[11px]` (furniture) stay flat by design; only the two paragraph classes inherit.
+
+### The card's Open control wears the head buttons' edge (owner-asked 11 Sep 2026)
+Defects found
+- `.rl-open-btn` sat on the hairline (`--color-divider`) in the secondary grey beside a row of bare words, and read as furniture next to Internal review / Share / More. It takes `--btn-edge` and `--accent-ink` — the two tokens `.ui-btn` reads — so the outline is one weight by construction; the open (green) state, the hover and the counterparty's Open (which borrows the rule) untouched.
+Proved: notes-two-rooms-verify 74/74 (two new checks measure the control's computed edge and ink against the head's `.ui-btn`: identical); six-fixes-verify 1g re-pointed (open vs shut told apart by edge and tint, not ink); f84, f89, f100, f246, f210, f152 353/353; lint 0 errors.
+Noticed, not fixed
+- six-fixes-verify 4a "a refresh returns you to the page you were on — redline→workspace" is red at the unmodified parent (proved by a stash run); not on KNOWN_RED.

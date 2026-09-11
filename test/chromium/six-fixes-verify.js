@@ -291,7 +291,8 @@ for (let i = 1; i <= 12; i++)
       const card = o.closest('[data-nego-card]');
       return { label: o.textContent.trim(), shutLabel: sh ? sh.textContent.trim() : null,
         ink: os.color, edge: os.borderTopColor, fill: os.backgroundColor,
-        shutInk: ss ? ss.color : null, accent: accentRgb,
+        shutInk: ss ? ss.color : null, shutEdge: ss ? ss.borderTopColor : null, shutFill: ss ? ss.backgroundColor : null,
+        accent: accentRgb,
         countOnOpen: !!card.querySelector('.rl-card-notes'),
         roomsBelow: !!card.querySelector('[data-rl-np-room]'),
         countOnShut: sh ? !!sh.closest('[data-nego-card]').querySelector('.rl-card-notes') : null };
@@ -306,9 +307,13 @@ for (let i = 1; i <= 12; i++)
       check('1g and it is GREEN — the workspace accent, not a typed colour',
         openState.ink === openState.accent && openState.edge === openState.accent,
         `ink ${openState.ink}, edge ${openState.edge}, --accent-ink ${openState.accent}`);
-      check('1g which a shut one is not',
-        !openState.shutLabel || openState.shutInk !== openState.ink,
-        `open ${openState.ink} vs shut ${openState.shutInk}`);
+      /* RE-POINTED 11 Sep 2026: the shut control wears the head buttons' own
+         ink and edge now (owner: "the outline of the open are too faint"), so
+         the two are told apart by the EDGE at full accent and the tinted FILL
+         on the open one — never by the ink alone. */
+      check('1g which a shut one is not — its edge is the platform\'s 45% mix and it carries no tint',
+        !openState.shutLabel || (openState.shutEdge !== openState.edge && openState.shutFill !== openState.fill),
+        `open edge ${openState.edge} fill ${openState.fill} vs shut edge ${openState.shutEdge} fill ${openState.shutFill}`);
       /* NOT FILLED: every other verb on this card is a bare coloured word, and
          a solid button here would be the loudest object on the column. */
       check('1g and it is not filled — the card\'s own rule',
