@@ -36,6 +36,7 @@ const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const results = [];
+const pause = ms => new Promise(r => setTimeout(r, ms));
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
@@ -655,6 +656,67 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       cbox.found === false && cbox.shell === true, JSON.stringify(cbox));
     check('11 …and the filter controls beside it still read as one row',
       cbox.neighbours.length === 1, JSON.stringify(cbox));
+
+    /* ---- 9. AN EXECUTED CONTRACT CANNOT START A NEGOTIATION (Young ruled
+       11 Sep 2026: "If a contract has been executed, the start negotiating
+       button should be greyed out and therefore locked out from the
+       negotiate page.") ----
+       MK-A1 is the seeded SIGNED contract; MK-A2 is Under Review and is the
+       control. The door is measured as a control (disabled, the reason on its
+       hover), pressed with a real mouse, and the view measured not to move;
+       then the funnel every named door goes through is called straight and
+       measured to refuse. AGAINST THE PARENT: 9a reports a live button, 9b/9c
+       report the view on the negotiate page. */
+    await page.evaluate(() => { openWorkspace('MK-A1'); });
+    await pause(1200);
+    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); });
+    await pause(700);
+    const sealed = await page.evaluate(() => {
+      const b = document.getElementById('ws-to-nego');
+      return b ? { disabled: b.disabled, title: b.title, on: !!b.offsetParent, label: b.textContent.trim() } : null; });
+    check('9a on a SIGNED contract the Document tab\'s door is drawn, greyed, with the reason on the hover',
+      !!sealed && sealed.on && sealed.disabled && /executed|sealed/i.test(sealed.title),
+      sealed ? `${sealed.label} · disabled ${sealed.disabled} · "${sealed.title}"` : 'no door');
+    const doorBox = await page.$('#ws-to-nego');
+    const bb = doorBox ? await doorBox.boundingBox() : null;
+    if (bb) await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    await pause(600);
+    const after9b = await page.evaluate(() => ({ view: state.view, editor: !!document.getElementById('clause-editor') }));
+    check('9b a real press on it goes nowhere — the contract page stays',
+      after9b.view === 'workspace', `view ${after9b.view}`);
+    const wall = await page.evaluate(() => {
+      const r = openRedlineWorkbench('MK-A1');
+      const t = [...document.querySelectorAll('#toast-root *')].map(e => e.textContent.trim()).filter(Boolean);
+      return { r, view: state.view, toast: t.join(' | ') }; });
+    await pause(300);
+    check('9c the funnel every named door goes through refuses too, in words, where the reader stands',
+      wall.r === false && wall.view === 'workspace' && /executed|sealed/i.test(wall.toast),
+      `returned ${wall.r} · view ${wall.view} · "${wall.toast.slice(0, 80)}"`);
+    const stale = await page.evaluate(() => {
+      location.hash = '#contract=MK-A1&tab=redline';
+      if (window.openFromHash) openFromHash();
+      return state.view; });
+    await pause(600);
+    const after9d = await page.evaluate(() => state.view);
+    check('9d a stale link onto the negotiate page lands on the contract instead',
+      stale !== 'redline' && after9d === 'workspace', `view ${after9d}`);
+    await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2'); });
+    await pause(1200);
+    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); });
+    await pause(700);
+    const live9 = await page.evaluate(() => {
+      const b = document.getElementById('ws-to-nego');
+      return b ? { disabled: b.disabled, title: b.title } : null; });
+    check('9e CONTROL — on a contract under review the same door is live',
+      !!live9 && !live9.disabled && !/executed|sealed/i.test(live9.title),
+      live9 ? `disabled ${live9.disabled}` : 'no door');
+    const model9 = await page.evaluate(() => {
+      const c = state.contracts.find(x => x.id === 'MK-A2');
+      const half = { ...c, signatures: [{ by: 'Somebody', at: new Date().toISOString() }] };
+      return { live: negoMayStart(c).ok, half: negoMayStart(half), archived: negoMayStart({ ...c, archived: { at: 'x' } }) }; });
+    check('9f the reading shuts on ONE signature and on an archived record, and is open on live paper',
+      model9.live === true && model9.half.ok === false && model9.half.why === 'sealed' && model9.archived.ok === false && model9.archived.why === 'archived',
+      JSON.stringify(model9));
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

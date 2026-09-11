@@ -311,7 +311,11 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
   test('every door names itself — none is left to be inferred', () => {
     const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
     const at = s.indexOf('function openRedlineWorkbench');
-    const fn = s.slice(at, at + 900);
+    /* THE REGION, NOT A BYTE COUNT (11 Sep 2026): this read 900 characters from
+       the function's start and went red the day a comment above the door's
+       stamp grew — the wall on sealed paper (negoMayStart, C-2). It reads to
+       the function's own closing brace now, which is the claim it was making. */
+    const fn = s.slice(at, s.indexOf('\n}\n', at));
     assert.match(fn, /_rlDoorAsked = 'named'/,
       'openRedlineWorkbench must SAY it named one — inferring it from state.activeId '
       + 'is what made a repaint look like a navigation');

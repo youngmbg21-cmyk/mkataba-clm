@@ -1369,6 +1369,10 @@ const STRINGS = {
     ct_open_negotiate_n: 'Open Negotiate &middot; {n} waiting',
     ct_open_negotiate_title: 'Argue the wording of this agreement — its own screen',
     ct_round_needs_title: 'Open the negotiation — these are waiting on your answer',
+    /* A SHUT DOOR SAYS WHY (11 Sep 2026): every door onto the negotiate page
+       prints one of these on its hover and in the toast where it is pressed. */
+    ng_start_sealed: 'This agreement is executed — its wording is sealed',
+    ng_start_archived: 'This agreement is archived',
     ct_back_to_agreement: 'Back to this agreement',
     ct_between_parties: 'Between {us} and {them}',
     ct_working_text_short: 'working text',
@@ -7394,6 +7398,8 @@ const STRINGS = {
     ct_open_negotiate_n: 'Öppna Förhandla &middot; {n} väntar',
     ct_open_negotiate_title: 'Förhandla avtalets formuleringar — på en egen skärm',
     ct_round_needs_title: 'Öppna förhandlingen — de här väntar på ditt svar',
+    ng_start_sealed: 'Avtalet är verkställt — dess formulering är förseglad',
+    ng_start_archived: 'Avtalet är arkiverat',
     ct_back_to_agreement: 'Tillbaka till avtalet',
     ct_between_parties: 'Mellan {us} och {them}',
     ct_working_text_short: 'arbetstext',

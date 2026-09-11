@@ -1409,7 +1409,14 @@ function wireRegRows(){
      the scope flag so a row can never disagree with the page that drew it. */
   const openRow=el=>{
     const id=el.getAttribute('data-row');
-    if(el.getAttribute('data-nego-row')&&window.openRedlineWorkbench) openRedlineWorkbench(id);
+    /* A ROW IS NOT GREYED — a table row that cannot open the negotiation
+       (sealed or archived paper, per negoMayStart) opens the CONTRACT instead,
+       which is where that row lands on the Contracts page; the negotiation's
+       record is on its History tab. The funnel would refuse anyway; this is
+       the row landing somewhere true rather than pressing a wall. */
+    const cRow=(typeof getContract==='function')?getContract(id):null;
+    const mayNego=!cRow||!window.negoMayStart||negoMayStart(cRow).ok;
+    if(el.getAttribute('data-nego-row')&&mayNego&&window.openRedlineWorkbench) openRedlineWorkbench(id);
     else selectContract(id);
   };
   document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>openRow(el)));

@@ -6745,6 +6745,18 @@ function redlineEvict(){ return null; }
 function openRedlineWorkbench(id, opts = {}){
   const target = String(id == null ? '' : id) || (window.state && state.activeId);
   if (!target) return false;
+  /* ---- THE WALL (Young ruled 11 Sep 2026) ----
+     Every named door onto this page funnels through here, so this is where an
+     executed contract is refused ONCE rather than at fourteen presses: the
+     answer is negoMayStart's, the same reading the doors grey on, and the
+     sentence is the door's own hover said where the reader is standing. A
+     stale link (#contract=…&tab=redline) arrives through roomGoTab and meets
+     the same wall, landing on the contract it named. Nothing navigates. */
+  const held = (typeof getContract === 'function') ? getContract(target) : null;
+  if (held && window.negoMayStart && !negoMayStart(held).ok){
+    if (typeof toast === 'function') toast(negoMayStartLine(held), 'warn');
+    return false;
+  }
   redlineEvict(target, opts);
   if (window.state) state.activeId = target;
   /* IT SAYS THAT IT NAMED ONE, rather than leaving the next paint to infer it
@@ -7735,6 +7747,20 @@ function renderRedline(){
      door falls through to the list. */
   if (doorAsked && !c){
     _redlineHeldId = null; _rlShowingList = true;
+    renderNegotiationsList(host);
+    return;
+  }
+  /* ---- THE PAGE ITSELF, WHERE IT IS ALREADY OPEN when the last signature
+     lands (11 Sep 2026) ----
+     The twelve-second state probe brings the fact and repaints; this paint
+     asks the same reading the doors ask and, where the answer has turned to
+     no, draws the way back — the contract's own room — and says why. Nothing
+     is written. The wall in openRedlineWorkbench is what keeps a NAMED door
+     from arriving here at all, so this branch is only ever the stale page. */
+  if (c && window.negoMayStart && !negoMayStart(c).ok){
+    _redlineHeldId = null; _rlShowingList = true;
+    if (typeof toast === 'function') toast(negoMayStartLine(c), 'warn');
+    if (typeof selectContract === 'function'){ selectContract(c.id); return; }
     renderNegotiationsList(host);
     return;
   }

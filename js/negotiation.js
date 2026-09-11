@@ -319,6 +319,33 @@ function negoAnySignature(c){
   return (Array.isArray(c.signerPlan) ? c.signerPlan : []).some(s => s && s.signed);
 }
 const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c);
+/* ---- MAY A NEGOTIATION BE OPENED OR STARTED ON THIS CONTRACT (Young ruled
+   11 Sep 2026: "If a contract has been executed, the start negotiating button
+   should be greyed out and therefore locked out from the negotiate page.") ----
+   ONE READING, asked by every door at draw time and by the funnel that opens
+   the page (openRedlineWorkbench). The wording already freezes at the first
+   signature — negoWordingFrozen, asked at the filing funnel — so a negotiation
+   on sealed paper could never file a change; what was missing was the door
+   saying so before the press, instead of the page refusing every verb after
+   it. The line drawn here is the funnel's own: executed, or any signature on
+   either store, is shut (a half-signed contract is as shut as a sealed one),
+   and an archived record is shut too. The REASON travels with the answer so
+   every door prints the same sentence. Reads the record raw — never through
+   negoChanges, which would create a negotiation on the way to saying no. */
+function negoMayStart(c){
+  if (!c) return { ok: false, why: 'none' };
+  if (negoWordingFrozen(c)) return { ok: false, why: 'sealed' };
+  if (c.archived) return { ok: false, why: 'archived' };
+  return { ok: true, why: '' };
+}
+/* The one sentence a shut door prints, by reason — the hover, the aria-label
+   and the toast all read it, so they cannot drift. */
+function negoMayStartLine(c){
+  const r = negoMayStart(c);
+  if (r.ok) return '';
+  const t = (typeof i18t === 'function') ? i18t : k => k;
+  return r.why === 'archived' ? t('ng_start_archived') : t('ng_start_sealed');
+}
 
 /* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
    The same predicate under the name that says WHY it is being asked, because
@@ -4418,7 +4445,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
-  negoAnySignature, negoWordingFrozen, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
+  negoAnySignature, negoWordingFrozen, negoMayStart, negoMayStartLine, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,

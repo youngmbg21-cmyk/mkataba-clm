@@ -3681,8 +3681,12 @@ function negoRoundNeedsHtml(c){
   let n=0;
   try{ n=negoNeedsYouIds(c).length; }catch(_){ return ''; }
   if(!n) return '';
-  return ` &middot; <button type="button" id="ws-round-needs" class="room-sub-needs"
-    title="${esc(i18t('ct_round_needs_title'))}">${i18tn('ng_needs_you',n,{n})}</button>`;
+  /* Dead on sealed paper, with the reason — the same reading and the same
+     sentence as the Document tab's door (negoMayStart). */
+  const may = window.negoMayStart ? negoMayStart(c) : { ok: true };
+  const why = may.ok ? '' : (window.negoMayStartLine ? negoMayStartLine(c) : '');
+  return ` &middot; <button type="button" id="ws-round-needs" class="room-sub-needs"${may.ok?'':' disabled'}
+    title="${esc(may.ok?i18t('ct_round_needs_title'):why)}">${i18tn('ng_needs_you',n,{n})}</button>`;
 }
 /* ---- WHAT RIDES AT THE RIGHT-HAND END OF THE TAB ROW ----
    The text-size stepper, and — at the far right — the one door off the Document
@@ -3761,8 +3765,17 @@ function wsTabRowEndHtml(c){
      the row that set its own size. It is gone, and #ws-tabrow-end pins the
      height for everything in the slot — the head-row rule this product already
      keeps on the negotiation page, applied to the tab row. */
+  /* ---- DEAD ON SEALED PAPER, NOT HIDDEN (Young ruled 11 Sep 2026) ----
+     The wording freezes at the first signature, so this door led to a page
+     whose every verb then refused — the product saying yes with a button and
+     no with the page. negoMayStart is the one reading (the funnel that opens
+     the page asks it too); the control keeps its slot and its word, goes
+     disabled, and carries the reason on the hover and the aria-label. */
+  const may = window.negoMayStart ? negoMayStart(c) : { ok: true };
+  const why = may.ok ? '' : (window.negoMayStartLine ? negoMayStartLine(c) : '');
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
-    style="flex:none;font-size:var(--t-body)" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
+    style="flex:none;font-size:var(--t-body)"${may.ok?'':' disabled'}
+    title="${esc(may.ok?i18t('ct_open_negotiate_title'):why)}"${may.ok?'':` aria-label="${esc(label+' — '+why)}"`}>${label}</button>`;
   return docReadSwitchHtml(c)+step+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
