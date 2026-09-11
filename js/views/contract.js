@@ -1215,17 +1215,28 @@ const trackedNote=t=>(t&&(t.ins||t.del))
    that breaks in silence. */
 function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  /* One helper so the three sizes below cannot drift apart. */
+  /* One helper so the three sizes below cannot drift apart.
+     ---- A NULL SIZE IS THE SHEET'S OWN (C-7, Young ruled 11 Sep 2026) ----
+     The Word-text branch of an upload used to name 13px here against the
+     sheet's 14px × the reader's scale — the "one pixel smaller" the owner
+     saw. Passed `size:null` the wrapper names NO size and inherits the
+     sheet's (`.hati-doc`), and the heading and the ruled block take a RATIO
+     of it (the same +1 / −1.5 relations, as fractions of 14) — so the
+     branch cannot drift from the paper it sits on. Every other caller still
+     names its own pixels and is untouched. */
+  const inherit=(size==null);
   const scaled=px=>`calc(${px}px * var(--doc-scale,1))`;
+  const bodyFs=inherit?'':`font-size:${scaled(parseFloat(size))};`;
+  const headFs=inherit?'font-size:1.07em':`font-size:${scaled((parseFloat(size)+1).toFixed(1))}`;
+  const preFs=inherit?'font-size:.89em':`font-size:${scaled((parseFloat(size)-1.5).toFixed(2))}`;
   const kind=window.docLineKind||(()=> 'text');
   const lines=String(text||'').split('\n');
   const isRuled=l=>/^\s*[|+]/.test(l)||/[|+]\s*$/.test(l)||/\S\s{4,}\S/.test(l);
-  const hSize=(parseFloat(size)+1).toFixed(1);
   const out=[]; let buf=[], bufRuled=false;
   const flush=()=>{
     if(!buf.length) return;
     if(bufRuled){
-      out.push(`<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${scaled((parseFloat(size)-1.5).toFixed(2))};line-height:1.5;white-space:pre;overflow-x:auto;margin:var(--s-2) 0">${esc(buf.join('\n'))}</div>`);
+      out.push(`<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);${preFs};line-height:1.5;white-space:pre;overflow-x:auto;margin:var(--s-2) 0">${esc(buf.join('\n'))}</div>`);
       buf=[]; return;
     }
     // one pre-wrap block per run of body lines; headings break the run and
@@ -1237,7 +1248,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
       if(k==='heading'){
         if(para.length&&kind(para[para.length-1].replace(/<[^>]*>/g,''))==='blank') para.pop();
         endPara();
-        paras.push(`<div class="doc-t-h" style="font-weight:var(--w-title);font-size:${scaled(hSize)};letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
+        paras.push(`<div class="doc-t-h" style="font-weight:var(--w-title);${headFs};letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
         if(i+1<buf.length&&kind(buf[i+1])==='blank') i++;
         continue;
       }
@@ -1260,7 +1271,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   flush();
   // --color-doc-text is the app's ONE reading-ink (see index.html tokens) —
   // stated here so every caller, portal included, reads black, not grey
-  return `<div style="font-size:${scaled(parseFloat(size))};line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
+  return `<div style="${bodyFs}line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
 }
 
 /* ---- A WORKING TEXT IS A DOCUMENT, NOT A COLUMN OF LINES (Young reported it
@@ -2230,7 +2241,7 @@ function uploadDocBody(c){
        there is no text to lay out, so a frame is the honest rendering. */
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
     ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>
-       ${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}`
+       ${documentTextHtml(u.extractedText,{size:null,lh:'1.85'})}`
     /* ---- A CONTRACT ON SCREEN IS NOT A FILE THAT CANNOT BE PREVIEWED ----
        This chain ends in a dashed card saying the file cannot be shown and to
        download the original, which was right while a .docx's only rendering
@@ -2248,10 +2259,23 @@ function uploadDocBody(c){
        </div>`);
   const sizeKB = u.size?Math.round(u.size/1024):0;
   return `
-    <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${i18t('ct_external_received',{id:c.id})}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
-    </div>
+    ${''/* ---- THE HEADER BLOCK IS GONE (C-7, Young ruled 11 Sep 2026: "Go with
+         your proposal") ----
+         A caption "EXTERNAL DOCUMENT · RECEIVED · MK-000" in mono capitals over
+         the contract's name in the platform's face stood here, on its own
+         ruled line. MEASURED before it went: 78px + 24px margin above the
+         first line of the agreement, and it said nothing the screen did not
+         already say — the room header twelve pixels above prints the reference
+         and the name; "received" is what the file strip below says, with the
+         file, who filed it and the two acts. And because this builder feeds
+         docBody, it TRAVELLED: the counterparty's page printed our filing
+         language in our typeface over their own paper (proved on two real
+         links), and the PDF export and the phone drew it too. Nothing is drawn
+         in its place, by the owner's word: an uploaded document is the other
+         side's paper and carries its own title in its wording, and the paper
+         head (`docPaperHeadHtml`) names OUR market and "Between us and them",
+         which is not what a received document says. `ct_external_received` is
+         STALE, inert in both books. The file strip STAYS (owner's word). */}
     ${''/* ---- THE GOLD BAND IS GONE TOO (owner-asked 26 Aug 2026: "nothing
          should stay except for the contract", then "simply remove the gold
          band as well") ----

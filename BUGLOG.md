@@ -12683,3 +12683,12 @@ Noticed, not fixed
 - insights-panels-verify's fixture at section 18 has four populated expiry windows, not six; the check is a set equality against `groupLabelOf`, so it stays honest.
 - (C-2, found by the full suite) f106 (4) "the executed workbench says why" read the sentence off the drawn page; the sealed page is no longer drawn — re-pointed in place to the toast spoken and the workbench absent.
 - Proved for the whole of Part C on the merged branch: `npm run lint` 0 errors; full suite 6612/6612 on the second run (the first found f106 (4), above).
+
+### C-7 — built on the owner's "Go with your proposal" (the same day)
+Defects found
+- The "External Document · received · MK-000" block over an uploaded contract cost 102 px of paper, said nothing the room header and the file strip did not, and travelled to the counterparty's page (two real links), the PDF export and the phone through `docBody → uploadDocBody`. Removed; nothing drawn in its place; `ct_external_received` inert in both books.
+- The text-only upload's wording was set at 13 px against the sheet's 14 × scale; `documentTextHtml` takes `size:null` and inherits the sheet's, headings and ruled blocks as ratios.
+Proved: f303 4/4; upload-party-verify 25/25 (C7a, C7c, C7d, C7e-0, C7e fail at the parent); f225, f257, f277, f148, f232 green; lint 0 errors.
+Noticed, not fixed
+- The file strip on a fixture with `textSource:'docx'` and no read report says "Text not machine-readable"; the strip's reading of a docx with no report is the strip's own subject, untouched.
+- The "Text read out of the Word file" caption draws on a STRUCTURED upload too (one with stored wording), where the wording drawn is the stored structure, not text read out; kept by the owner's ruling, the wording of the caption on that shape is a separate question.

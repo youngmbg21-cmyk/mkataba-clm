@@ -119,6 +119,72 @@ const check = (name, pass, detail) => {
     check('an entity on the record is the name the banner prints',
       body.includes('Highland Juice Kenya Ltd') && !/could not be drawn/i.test(body));
     await page.screenshot({ path: path.join(OUT, '1-upload-room-draws.png') });
+    /* ---- C-7 (Young ruled 11 Sep 2026, "Go with your proposal"): THE HEADER
+       BLOCK IS GONE, THE STRIP STAYS, THE WORDING IS THE SHEET'S SIZE ----
+       MEASURED before it went: "EXTERNAL DOCUMENT · RECEIVED · MK-000" over the
+       name cost 78 + 24 px above the first line of the agreement, said nothing
+       the room header and the strip did not, and travelled to the counterparty's
+       page through docBody. Every claim is a RELATION on the rendered page —
+       what stands above the wording, the wording's size against the sheet's —
+       and the counterparty's page is a REAL link, opened. Against the parent
+       C7a reports the caption, C7c reports 13px against 14, C7e reports the
+       phrase on their page. */
+    const c7 = await page.evaluate(() => {
+      const canvas = document.getElementById('doc-canvas');
+      if (!canvas) return null;
+      const t = document.getElementById('content').innerText;
+      const first = [...canvas.querySelectorAll('div,p')].find(el => /THIRD PARTY SERVICES AGREEMENT/.test(el.textContent) && !el.querySelector('div,p'));
+      const fr = first ? first.getBoundingClientRect() : null;
+      const above = fr ? [...canvas.children].filter(el => el.getBoundingClientRect().bottom <= fr.top + 1)
+        .map(el => el.innerText.replace(/\s+/g, ' ').trim().slice(0, 60)) : null;
+      const sheet = canvas.querySelector('.hati-doc') || canvas;
+      return { caption: /external document|externt dokument/i.test(t),
+        strip: /Download original/i.test(t) && /Re-read document/i.test(t),
+        reading: /Text read out of the Word file/.test(t),
+        above, wordingPx: first ? getComputedStyle(first).fontSize : null,
+        sheetPx: getComputedStyle(sheet).fontSize,
+        head: !!canvas.querySelector('.rl-paper-head') };
+    });
+    check('C7a the "External Document · received" block is gone from the Document tab',
+      !!c7 && c7.caption === false, c7 ? `caption ${c7.caption}` : 'no canvas');
+    check('C7b the file strip and the reading caption stay — the two facts about the file',
+      !!c7 && c7.strip && c7.reading, c7 ? `strip ${c7.strip} · caption ${c7.reading}` : '');
+    check('C7c the text-only wording is set at the sheet\'s own size, no longer a pixel smaller',
+      !!c7 && c7.wordingPx === c7.sheetPx, c7 ? `wording ${c7.wordingPx} · sheet ${c7.sheetPx}` : '');
+    check('C7d what stands above the first line of the agreement is the strip and the caption, nothing else',
+      !!c7 && Array.isArray(c7.above) && c7.above.length === 2 && /AIT|3rd_Party/.test(c7.above[0]) && /read out/.test(c7.above[1]) && c7.head === false,
+      c7 ? JSON.stringify(c7.above) : '');
+    /* THE COUNTERPARTY'S PAGE, on a real link: signers named on the record so
+       a link can be issued (the product's own wall), the payload built by the
+       product, the link opened in a second page. */
+    const tok7 = await page.evaluate(async () => {
+      const c = state.contracts.find(x => x.id === 'UPX-1');
+      c.signerPlan = [{ id: 'sg-cp-1', party: 'counterparty', order: 1, name: 'Ola Nord', email: 'ola@nordfrakt.se', role: 'Director', signed: false },
+        { id: 'sg-in-1', party: 'internal', order: 2, name: 'Admin User', email: 'admin@example.co.ke', role: 'CEO', signed: false }];
+      persist(c); if (window.flushSaves) await flushSaves(); await new Promise(r => setTimeout(r, 600));
+      const payload = buildSharePayload(c, { purpose: 'negotiate' });
+      const vb = (payload.contract && payload.contract.viewBody) || '';
+      const r = await fetch('/api/shares', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload, recipient: { name: 'Ola', email: 'ola@nordfrakt.se' }, channel: 'link', purpose: 'negotiate', durable: true }) });
+      const j = await r.json();
+      return { token: j.token || null, err: j.error || null, viewBodyExt: /External Document/i.test(vb), viewBodyHas: !!vb };
+    });
+    check('C7e-0 the payload the link carries no longer holds the filing caption',
+      !!tok7 && tok7.viewBodyHas && tok7.viewBodyExt === false, JSON.stringify(tok7));
+    if (tok7 && tok7.token){
+      const q = await ctx.newPage();
+      await q.goto(h.base + '/#share=t:' + tok7.token, { waitUntil: 'networkidle' });
+      await q.waitForTimeout(2500);
+      const theirs = await q.evaluate(() => { const t = document.body.innerText; return {
+        ext: /external document|externt dokument/i.test(t), received: /received · /i.test(t),
+        words: /THIRD PARTY SERVICES AGREEMENT/.test(t) }; });
+      check('C7e the counterparty\'s page no longer prints our filing language over their paper — and still shows the wording',
+        theirs.ext === false && theirs.received === false && theirs.words === true, JSON.stringify(theirs));
+      await q.close();
+    } else {
+      check('C7e the counterparty\'s page (a link could be minted)', false, tok7 && tok7.err);
+    }
+
 
     /* ============ 2. THE POPUP ASKS WHO WE ARE — with a real Word file ==== */
     const docxBytes = mkDocx([

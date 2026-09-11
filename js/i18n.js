@@ -4557,6 +4557,8 @@ const STRINGS = {
     ct_edit_document: 'Edit document — {id}',
     ct_changes_came_from: 'These changes came from {who} (received outside HaTi).',
     ct_not_adopted: 'Changes {who} asked for that were not adopted. The contract reads as it did; answering here changes nothing in it.',
+    /* STALE since 11 Sep 2026 (C-7): the header block over an uploaded contract
+       is gone; left inert in both books. */
     ct_external_received: 'External Document · received · {id}',
     ct_a_counterparty: 'a counterparty',
     ct_received_from: 'This is a contract <strong>received from {who}</strong>',
