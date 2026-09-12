@@ -449,7 +449,10 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.match(CE, /if \(window\.toast\) toast\(_cet\('ce_filed', \{ id: ch\.id \}\), 'ok'\);/);
     /* RE-POINTED 11 Sep 2026 (evening): the paper's Ask and Edit both arrive
        with words AND the verb they were pressed under. */
-    assert.match(CE, /if \(opts && opts\.passage\) setTimeout\(\(\) => \{ try \{ ceAttachWords\(opts\.passage, opts\.passageMode\)/,
+    /* RE-POINTED 12 Sep 2026: the open STAMPS the pick before the deferred
+       attach (the mouse-up that ends the negotiate page's menu press lands on
+       this paper first — f304 (11)); the words and the verb still arrive. */
+    assert.match(CE, /if \(opts && opts\.passage\)\{ ceStampPick\(\); setTimeout\(\(\) => \{ try \{ ceAttachWords\(opts\.passage, opts\.passageMode\)/,
       'the paper’s Ask Copilot arrives with words and its verb');
     assert.match(CE, /rlPaintNoteMarks\(host, _ceC/, 'and the canvas paints the marks');
   });

@@ -1840,7 +1840,12 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   ceRenderAll();
   /* The paper's Ask Copilot names the words it was pressed on; they go to
      the rail once the page is drawn. */
-  if (opts && opts.passage) setTimeout(() => { try { ceAttachWords(opts.passage, opts.passageMode); } catch (e){} }, 0);
+  /* THE NEGOTIATE PAGE'S HIGHLIGHT IS THE THIRD PICK DOOR (12 Sep 2026): its
+     menu picks on mousedown and opens this page with the words in hand; the
+     mouse-up then lands on THIS paper before the deferred attach below has
+     run. Stamped at the open, so that mouse-up ends the press that opened
+     the page rather than clearing what the attach is about to hold. */
+  if (opts && opts.passage){ ceStampPick(); setTimeout(() => { try { ceAttachWords(opts.passage, opts.passageMode); } catch (e){} }, 0); }
   /* THE CLAUSE YOU CAME IN ON IS WHAT THIS PAGE IS ABOUT, and on a long
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
@@ -3708,10 +3713,15 @@ function ceBoxHtml(box){
    through window), pressed on mousedown so the browser's selection stands;
    nothing here takes the caret, so the writing bar still acts on the held
    sentence. Where the menu is not on this stage the drag attaches as before. */
-/* When the selection menu last picked a verb (ms since epoch), and how long a
-   mouse-up after it still counts as ending that press. */
+/* When the rail last TOOK a passage or a menu last picked a verb (ms since
+   epoch), and how long a mouse-up after that still counts as ending the press
+   that did it rather than a new drag. Stamped at the ONE attach and at BOTH
+   pick doors — the editor's own menu and the paper's offer (shared with the
+   negotiate page), whose hand-over across clauses re-mounts the page and
+   attaches a tick later, so the mouse-up can land before the attach. */
 let _ceMenuPickAt = 0;
 const CE_MENU_PICK_MS = 600;
+function ceStampPick(){ _ceMenuPickAt = Date.now(); }
 function ceOfferPassage(sel){
   if (!sel) return;
   const menu = (typeof window !== 'undefined') ? window.rlSelMenu : null;
@@ -3741,7 +3751,7 @@ function ceOfferPassage(sel){
        back as a whole-clause suggestion. Stamped as a TIME, not a flag, so a
        pick made by keyboard (no mouse-up follows) cannot swallow the next
        real drag. */
-    _ceMenuPickAt = Date.now();
+    ceStampPick();
     if (a.id === 'comment'){
       ceDetachPassage();
       rlNoteFromSelection(c, { clauseId: cid, quote: sel.text },
@@ -3805,6 +3815,7 @@ function ceAttachPassage(sel, mode){
   if (_ceSel && _ceSel.text === sel.text && _ceSel.line === sel.line && (_ceSel.mode || 'edit') === m) return;
   sel.mode = m;
   _ceSel = sel;
+  ceStampPick();
   /* MARKED FROM THE RANGE THE READER JUST MADE, before anything else can
      collapse it. */
   if (sel.range) ceMarkHeld(sel.range);
@@ -4776,6 +4787,11 @@ function ceOfferOnPaper(){
   return !!rlPaperOfferFromRange({ c: _ceC, opts: { by: _ceOpts && _ceOpts.by }, side: 'owner',
     passage, text: passage.text, rect,
     openEditor: (id, o) => {
+      /* THE PAPER'S OWN OFFER IS THE SECOND PICK DOOR (12 Sep 2026, the owner:
+         "if i simply highlight without clicking on the pencil first, it
+         flashes and disappears"): same mousedown pick, same mouse-up on the
+         paper a moment later, same tear-down — see ceOfferPassage. */
+      ceStampPick();
       if (String(id) === String(_ceClauseId)) return ceAttachWords(o && o.passage, o && o.passageMode);
       ceGoClause(id, o);
       return true;

@@ -571,6 +571,44 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('J1a a real press on Edit with Copilot leaves the words on the rail, under the edit verb, with the caret in the ask box', !!(j1 && j1.held && j1.scope && !j1.asking && j1.focused), JSON.stringify(j1));
   ck('J1b …and the answer is Suggested wording FOR THE PASSAGE, with Apply', !!(j1 && j1.name === j1.want && j1.apply), JSON.stringify(j1));
 
+  /* J1c · the NEGOTIATE PAGE's own highlight, no pencil: its menu opens the
+     editor with the words and attaches a tick later; the mouse-up that ends
+     the pick lands on the new paper first and must not clear them. */
+  await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(300);
+  const j1cg = await p.evaluate(() => {
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
+    const sec = document.querySelector('.redline-page .rl-clause[data-clause="' + cl.clauseId + '"]'); if (!sec) return null;
+    const pane = sec.closest('.nego-scroll'); if (pane){ const pr0 = pane.getBoundingClientRect(), sr0 = sec.getBoundingClientRect(); pane.scrollTop += (sr0.top - pr0.top - 60); }
+    return { id: cl.clauseId };
+  });
+  await pause(700);
+  const j1cg2 = await p.evaluate(id => {
+    const sec = document.querySelector('.redline-page .rl-clause[data-clause="' + id + '"]');
+    const body = sec && sec.querySelector('p, li'); if (!body) return null;
+    const w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT); let tn = null;
+    while ((tn = w.nextNode())) if (tn.data.trim().length > 30 && !tn.parentElement.closest('.rl-marker, button')) break;
+    if (!tn) return null;
+    const r = document.createRange(); r.setStart(tn, 0); r.setEnd(tn, 30); const rr = r.getBoundingClientRect();
+    const r0 = document.createRange(); r0.setStart(tn, 0); r0.setEnd(tn, 1); const a0 = r0.getBoundingClientRect();
+    return { a: [a0.left + 1, a0.top + a0.height / 2], b: [rr.right - 2, rr.bottom - 3], text: r.toString() };
+  }, j1cg && j1cg.id);
+  let j1c = null;
+  if (j1cg2){
+    await p.mouse.move(j1cg2.a[0], j1cg2.a[1]); await p.mouse.down(); await p.mouse.move(j1cg2.b[0], j1cg2.b[1], { steps: 8 }); await p.mouse.up(); await pause(400);
+    const eb = await p.$('.nego-selmenu [data-nego-ai="edit"]'); const bb = eb ? await eb.boundingBox() : null;
+    if (bb){
+      await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.mouse.up();
+      await pause(850);
+      j1c = await p.evaluate(want => ({ editor: !!document.getElementById('clause-editor'), held: !!(window.ceHeldPassage && ceHeldPassage()),
+        quote: (document.querySelector('#ce-scope .ce-scope q') || {}).textContent || '', want, focused: document.activeElement === document.getElementById('ce-ask') }), j1cg2.text);
+    }
+  }
+  ck('J1c a highlight on the negotiate page with no pencil opens the editor HOLDING those words, caret in the ask box', !!(j1c && j1c.editor && j1c.held && j1c.quote.trim() === j1c.want.trim() && j1c.focused), JSON.stringify(j1c));
+
   /* J2 · Reply in the external room posts with no pop-up: the room is the
      thread's own, chosen by pressing Reply under a note already in it. */
   const j2 = await p.evaluate(async () => {

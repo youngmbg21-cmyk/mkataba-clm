@@ -12812,3 +12812,9 @@ Proved: f304 (11-13) new; round-two-comments-verify 36/36 (J1a/J1b red against t
 Noticed, not fixed
 - An external note posted on a standing link is delivered at once, so its Delete is greyed the moment it is added; there is no "undo within a minute" — the owner may want one.
 - The paper's mouse-up still clears a held passage on a bare click in the wording (the reader's own way of letting go); a press on the rail does not.
+
+### The morning after, second report (Young, 12 Sep 2026: "if i simply highlight without clicking on the pencil first, it flashes and disappears")
+Defects found
+- The first fix stamped only the editor's own selection menu. A highlight on the negotiate page (no pencil) opens the editor with the words and attaches them a tick later, so the mouse-up landed on the new paper first and its deferred read cleared the passage; the same on a drag over another clause inside the editor. One stamp at the one attach and at all three doors. Measured with a real mouse on the negotiate page: held at 150 ms and 850 ms; lost at the parent.
+Proved: f304 (11) widened; round-two-comments-verify J1c new (red at the parent); lint 0 errors; full suite once at the end.
+- f303 (5) quoted the exact old attach-at-open line and went red on the stamp; re-pointed to the stamped shape (the claim, words and verb arriving, is unchanged). Second full run after it.

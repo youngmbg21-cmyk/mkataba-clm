@@ -623,8 +623,12 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
   /* ---- THE MORNING AFTER ROUND FOUR (Young, 12 Sep 2026) ---- three walls,
      each pinned where the fault was: the mouse-up that ends a menu press is not
      a drag; a reply never asks the crossing question; a refused act is greyed. */
-  test('a menu pick stamps a time, and the paper\'s mouse-up stands down inside that window', () => {
-    assert.match(CE, /onPick: a => \{\n    kill\(\);[\s\S]{0,1200}?_ceMenuPickAt = Date\.now\(\);/, 'the pick stamps the time before any verb runs');
+  test('a pick stamps a time at all three doors and the one attach, and the paper\'s mouse-up stands down inside that window', () => {
+    assert.match(CE, /onPick: a => \{\n    kill\(\);[\s\S]{0,1200}?ceStampPick\(\);/, 'the editor\'s own menu stamps before any verb runs');
+    assert.match(CE, /openEditor: \(id, o\) => \{[\s\S]{0,600}?ceStampPick\(\);\n      if \(String\(id\) === String\(_ceClauseId\)\) return ceAttachWords/, 'the paper\'s offer stamps before it hands over');
+    assert.match(CE, /if \(opts && opts\.passage\)\{ ceStampPick\(\); setTimeout\(\(\) => \{ try \{ ceAttachWords\(opts\.passage, opts\.passageMode\);/, 'the negotiate page\'s hand-over stamps at the open, before the deferred attach');
+    assert.match(CE, /_ceSel = sel;\n  ceStampPick\(\);/, 'and the one attach stamps too');
+    assert.match(CE, /function ceStampPick\(\)\{ _ceMenuPickAt = Date\.now\(\); \}/, 'one stamp');
     assert.match(CE, /if \(!t \|\| !t\.closest \|\| !t\.closest\('#ce-doc'\)\) return;\n[\s\S]{0,400}?if \(Date\.now\(\) - _ceMenuPickAt < CE_MENU_PICK_MS\) return;\n    setTimeout\(\(\) => \{\n      const read = ceSelectionRead\(\);/, 'the mouse-up handler asks the stamp BEFORE it defers the read');
     assert.match(CE, /const CE_MENU_PICK_MS = 600;/);
   });
