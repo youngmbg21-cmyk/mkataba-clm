@@ -12802,3 +12802,13 @@ Noticed, not fixed
 - The server's card for the where-filter reads `notRead` off the briefs table, the stored review and the scan; the browser's `copilotRead` may count differently at the edges (a risk scan against the CURRENT wording) — the two answer the same question from their own readings.
 - The audit trail's money redaction for a no-values reader is by words (value, amount, price, fee, worth, currency codes) — coarse on purpose; a line about money written in other words would pass.
 - The Document tab's own highlight menu (Simplify · Ask Copilot) is still untouched.
+
+### The morning after round four (Young, 12 Sep 2026: "A lot is wrong")
+Defects found
+- Edit with Copilot lost the highlighted passage: the selection menu picks on mousedown, the mouse-up lands on the paper, and the editor's deferred read (finding the caret now in the ask box) cleared what the rail had just taken; the answer came back for the whole clause. A pick stamps a time and a mouse-up inside 600 ms ends that press. Measured with a real mouse: the words stay on the rail and the card reads "Suggested wording for the passage" with Apply.
+- Reply in the external room raised "Send this to …?": a reply crosses on its thread's own room, chosen by the press under the note. It no longer asks; the new-note box still does.
+- A refused Delete (the note had already reached the other side; or a root with replies) was disabled with the reason on the hover and had no greyed look, so it read as a live button that did nothing. Dressed at 45% with a not-allowed cursor.
+Proved: f304 (11-13) new; round-two-comments-verify 36/36 (J1a/J1b red against the parent); clause-editor-verify 257/257; notes-two-rooms-verify 73/73; f245/f264/f302/f303 green; lint 0 errors; full suite once at the end.
+Noticed, not fixed
+- An external note posted on a standing link is delivered at once, so its Delete is greyed the moment it is added; there is no "undo within a minute" — the owner may want one.
+- The paper's mouse-up still clears a held passage on a bare click in the wording (the reader's own way of letting go); a press on the rail does not.

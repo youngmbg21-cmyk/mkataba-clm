@@ -619,4 +619,20 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
     assert.match(CE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);/);
     assert.ok(!/ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\s*ceFile\(/.test(CE), 'Apply is not a second door onto the filing');
   });
+
+  /* ---- THE MORNING AFTER ROUND FOUR (Young, 12 Sep 2026) ---- three walls,
+     each pinned where the fault was: the mouse-up that ends a menu press is not
+     a drag; a reply never asks the crossing question; a refused act is greyed. */
+  test('a menu pick stamps a time, and the paper\'s mouse-up stands down inside that window', () => {
+    assert.match(CE, /onPick: a => \{\n    kill\(\);[\s\S]{0,1200}?_ceMenuPickAt = Date\.now\(\);/, 'the pick stamps the time before any verb runs');
+    assert.match(CE, /if \(!t \|\| !t\.closest \|\| !t\.closest\('#ce-doc'\)\) return;\n[\s\S]{0,400}?if \(Date\.now\(\) - _ceMenuPickAt < CE_MENU_PICK_MS\) return;\n    setTimeout\(\(\) => \{\n      const read = ceSelectionRead\(\);/, 'the mouse-up handler asks the stamp BEFORE it defers the read');
+    assert.match(CE, /const CE_MENU_PICK_MS = 600;/);
+  });
+  test('a reply never asks the crossing question; the new-note box still does', () => {
+    assert.match(VIEW, /if \(ext && !pin && !reply && window\.confirmDialog\)\{/, 'the confirm guard names the reply');
+  });
+  test('a refused note act is drawn greyed, with the reason it already carries', () => {
+    assert.match(INDEX, /\.rl-np-act-b:disabled\{opacity:\.45;cursor:not-allowed;\}/);
+    assert.match(VIEW, /data-rl-np-delete="\$\{_nea\(key\)\}"\$\{delWhy \? ` disabled title="\$\{_nea\(delWhy\)\}"` : ''\}/, 'the reason rides the hover');
+  });
 });

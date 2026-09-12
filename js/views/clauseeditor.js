@@ -3708,6 +3708,10 @@ function ceBoxHtml(box){
    through window), pressed on mousedown so the browser's selection stands;
    nothing here takes the caret, so the writing bar still acts on the held
    sentence. Where the menu is not on this stage the drag attaches as before. */
+/* When the selection menu last picked a verb (ms since epoch), and how long a
+   mouse-up after it still counts as ending that press. */
+let _ceMenuPickAt = 0;
+const CE_MENU_PICK_MS = 600;
 function ceOfferPassage(sel){
   if (!sel) return;
   const menu = (typeof window !== 'undefined') ? window.rlSelMenu : null;
@@ -3726,6 +3730,18 @@ function ceOfferPassage(sel){
   kill();
   menu({ text: sel.text, clauseId: cid, rect: sel.rect, actions: acts, onPick: a => {
     kill();
+    /* ---- THE MOUSE-UP THAT ENDS A MENU PRESS IS NOT A DRAG ON THE WORDING
+       (12 Sep 2026, the owner: "edit with copilot is now missing the feature
+       with apply") ---- The menu picks on MOUSEDOWN and is gone by the
+       mouse-up, which therefore lands on the paper underneath, inside #ce-doc.
+       The paper's handler (below) reads the selection a tick later — and the
+       verb has just moved the caret into the ask box, so it finds nothing and
+       clears the passage the rail took a moment ago. MEASURED: the rail held
+       the words at mouse-up and had lost them 300ms later; the answer came
+       back as a whole-clause suggestion. Stamped as a TIME, not a flag, so a
+       pick made by keyboard (no mouse-up follows) cannot swallow the next
+       real drag. */
+    _ceMenuPickAt = Date.now();
     if (a.id === 'comment'){
       ceDetachPassage();
       rlNoteFromSelection(c, { clauseId: cid, quote: sel.text },
@@ -4714,6 +4730,10 @@ function ceWirePage(page){
        press that never touched the paper at all. */
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-doc')) return;
+    /* A menu pick a moment ago: this mouse-up ends THAT press, not a drag
+       (see ceOfferPassage). Without it the deferred read below tears down the
+       passage the verb just attached. */
+    if (Date.now() - _ceMenuPickAt < CE_MENU_PICK_MS) return;
     setTimeout(() => {
       const read = ceSelectionRead();
       if (read.sel){ ceOfferPassage(read.sel); return; }

@@ -14162,9 +14162,12 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
      have forgotten. Under a PIN the room was chosen on the pin's own switch a
      moment ago, with the other side named on it and the box tinted — the
      receipt window's reasoning ("no second confirmation: the window names the
-     counterparty on its own face") carried over. A reply crosses on the root's
-     room and asks as the composer does. */
-  if (ext && !pin && window.confirmDialog){
+     counterparty on its own face") carried over. A REPLY NEVER ASKS (12 Sep
+     2026, the owner: "when i click reply it now brings up a pop up when it
+     should simply reply"): its room is the thread's own, chosen by pressing
+     Reply under a note that already sits in that room with the other side
+     named on the tab — the same reasoning as the pin's. */
+  if (ext && !pin && !reply && window.confirmDialog){
     const ok = await confirmDialog({
       title: i18t('ng_np_confirm_title', { who: other }),
       message: home ? i18t('ng_np_confirm_msg', { id: home.id }) : i18t('ng_chat_confirm_msg'),

@@ -5226,6 +5226,11 @@
   .rl-np-act-b{font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
     color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;}
   .rl-np-act-b.g{color:var(--color-neutral-600);}
+  /* A refused act GREYS (12 Sep 2026, the owner: "the delete button is not
+     working"): Delete on a note that has reached the other side, or that has
+     replies under it, is drawn disabled with the reason on its hover — but
+     nothing dressed it, so it read as a live button that did nothing. */
+  .rl-np-act-b:disabled{opacity:.45;cursor:not-allowed;}
   .rl-np-doneby{font-size:var(--t-micro);color:var(--color-neutral-600);}
   .rl-np-rbox{margin:6px 0 4px 12px;padding-left:9px;border-left:2px solid var(--color-accent);display:grid;gap:6px;}
   .rl-np-rbox.out{border-left-color:var(--st-amber-fg);}

@@ -19030,6 +19030,18 @@ Two reports after round three, then five, then a correction, then an eighth; the
 
 Tests: f304 (10) (seven claims), round-two-comments-verify I1–I6 (a real drag, Comment, Add note, the marker within 60 ms; a marker press landing in the external room lit; Reply on a reply; Delete with the marker going; the whole-paragraph cut; the Save hover), and the re-points named in the rulebook.
 
+### The morning after (Young, 12 Sep 2026: "A lot is wrong")
+
+Three reports off the first morning with round four, with two screenshots.
+
+**"Edit with Copilot is now missing the feature with apply."** MEASURED with a real mouse: after the pick the rail held the words at mouse-up and had lost them 300 ms later; the answer came back as *Suggested wording* for the whole clause. The cause was two rules meeting: the selection menu picks on MOUSEDOWN (it always has — a click would collapse the selection first) and is gone by the mouse-up, which therefore lands on the paper underneath, inside `#ce-doc`; the paper's mouse-up handler reads the selection a tick later — and round four's `ceFocusAsk` had just moved the caret into the ask box, so it found nothing, no refusal reason, and cleared the passage (the "a plain click lets go" branch). Before round four the caret stayed on the paper and `ceMarkHeld` put the selection back, so the deferred read found the words and did no harm. The fix is at the cause: the pick stamps a time (`_ceMenuPickAt`) and a mouse-up inside `CE_MENU_PICK_MS` (600) ends that press, not a drag. A TIME rather than a flag, because a pick made by keyboard has no mouse-up to consume the flag and would have swallowed the next real drag. Not chosen: "never clear a held passage on a bare click" — that branch is the reader's own way of letting go and is asserted as such.
+
+**"When I click reply it now brings up a pop-up when it should simply reply."** Round four routed a reply through `rlNotesSend`, whose confirm sits on the CROSSING (`ext && !pin`), so a reply under an external note asked "Send this to …?". A reply's room is the thread's own, chosen by pressing Reply under a note already sitting in that room with the other side named on the tab — the pin's reasoning exactly. `!reply` joins the guard; the new-note box still asks.
+
+**"The delete button is not working."** The owner's note had already gone to the other side (an external note posts on a standing link the moment it is added), so the model refused and the button was drawn `disabled` with the reason on its hover — and NOTHING DRESSED IT: `.rl-np-act-b` had a `.g` shade and no `:disabled` rule, so a refused Delete looked exactly like a live one and did nothing when pressed. One rule in HaTi's sheet (`opacity:.45; cursor:not-allowed`). Delete on an undelivered note, on a reply, and on a root once its replies are gone was measured working; a root with replies greys with its own reason.
+
+Proved: f304 (11–13); round-two-comments-verify J1–J3 with a real mouse (J1a/J1b red against the parent, 34/36); clause-editor-verify 257/257, notes-two-rooms-verify 73/73; the eight round-four items re-run green (I1–I6).
+
 ## THE COPILOT AUDIT — HONEST NUMBERS, REACH, PARITY, THE BLIND SPOTS (owner's order, 11 Sep 2026)
 
 The owner measured Copilot against the code and wrote an eight-phase order (WORKORDER-copilot-audit.md, verbatim). What was found and what was done, phase by phase:

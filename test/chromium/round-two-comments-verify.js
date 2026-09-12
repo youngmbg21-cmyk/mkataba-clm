@@ -532,6 +532,92 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
   await pause(200);
 
+  /* ---- J · THE MORNING AFTER ROUND FOUR (Young, 12 Sep 2026: "edit with
+     copilot is now missing the feature with apply", "when i click reply it
+     now brings up a pop up", "the delete button is not working") ---- */
+
+  /* J1 · a REAL menu press. The menu picks on mousedown and is gone by the
+     mouse-up, which lands on the paper: the passage the rail just took must
+     survive that mouse-up, and the answer must be for THE PASSAGE, with Apply. */
+  await p.evaluate(() => { const c = window.CONTRACT; const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('8.2') === 0); rlOpenClauseEditor(c, cl.clauseId, { typing: true }); });
+  await pause(500);
+  const j1g = await p.evaluate(() => {
+    const box = document.querySelector('#ce-clausebody'); if (!box) return null;
+    const w = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); let tn = null;
+    while ((tn = w.nextNode())) if (tn.data.trim().length > 30 && !tn.parentElement.closest('.rl-marker, button')) break;
+    if (!tn) return null;
+    const r = document.createRange(); r.setStart(tn, 0); r.setEnd(tn, Math.min(30, tn.data.length));
+    const rr = r.getBoundingClientRect(); const r0 = document.createRange(); r0.setStart(tn, 0); r0.setEnd(tn, 1); const a0 = r0.getBoundingClientRect();
+    window.copilotPropose = async o => ({ advice: 'Firmer.', proposedText: 'Firmer wording for the words held.' });
+    window.copilotAvailable = () => true;
+    return { a: [a0.left + 1, a0.top + a0.height / 2], b: [rr.right - 2, rr.bottom - 3] };
+  });
+  let j1 = null;
+  if (j1g){
+    await p.mouse.move(j1g.a[0], j1g.a[1]); await p.mouse.down(); await p.mouse.move(j1g.b[0], j1g.b[1], { steps: 8 }); await p.mouse.up(); await pause(400);
+    const eb = await p.$('.nego-selmenu [data-nego-ai="edit"]');
+    const bb = eb ? await eb.boundingBox() : null;
+    if (bb){
+      await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+      await p.mouse.down(); await p.mouse.up();
+      await pause(400);
+      const held = await p.evaluate(() => ({ held: !!(window.ceHeldPassage && ceHeldPassage()), scope: !!document.querySelector('#ce-scope .ce-scope'), asking: !!document.querySelector('#ce-scope .ce-scope.is-asking'), focused: document.activeElement === document.getElementById('ce-ask') }));
+      await p.keyboard.type('make it firmer'); await p.keyboard.press('Enter');
+      await pause(900);
+      const card = await p.evaluate(() => { const c = document.querySelector('#clause-editor .ce-card'); return { name: c ? (c.querySelector('.n span') || {}).textContent : '', apply: !!(c && c.querySelector('[data-ce-apply]')), want: i18t('ce_suggestion_passage') }; });
+      j1 = { ...held, ...card };
+    }
+  }
+  ck('J1a a real press on Edit with Copilot leaves the words on the rail, under the edit verb, with the caret in the ask box', !!(j1 && j1.held && j1.scope && !j1.asking && j1.focused), JSON.stringify(j1));
+  ck('J1b …and the answer is Suggested wording FOR THE PASSAGE, with Apply', !!(j1 && j1.name === j1.want && j1.apply), JSON.stringify(j1));
+
+  /* J2 · Reply in the external room posts with no pop-up: the room is the
+     thread's own, chosen by pressing Reply under a note already in it. */
+  const j2 = await p.evaluate(async () => {
+    closeContextPanel();
+    const c = window.CONTRACT;
+    const ch = negoAllChanges(c).find(x => x.status === 'pending');
+    const root = negoPostComment(c, ch.id, 'their room, our root', { side: 'owner', visibility: 'shared' });
+    rlNpSetRoom('external');
+    openNotesPanel(c.id, ch.id, { force: true });
+    await new Promise(r => setTimeout(r, 200));
+    const rk = negoNoteKey(root);
+    const btn = document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + rk + '"] [data-rl-np-reply]');
+    if (!btn) return { noReply: true };
+    btn.click(); await new Promise(r => setTimeout(r, 200));
+    const bx = document.querySelector('#context-panel [data-rl-np-rin="' + rk + '"]'); if (!bx) return { noBox: true };
+    bx.value = 'Okay';
+    document.querySelector('#context-panel [data-rl-np-reply-send="' + rk + '"]').click();
+    await new Promise(r => setTimeout(r, 400));
+    const popup = !!document.getElementById('cf-ok');
+    const last = ch.thread[ch.thread.length - 1];
+    return { popup, posted: !!(last && last.replyTo === rk && last.text === 'Okay' && last.visibility === 'shared') };
+  });
+  ck('J2 Reply in the external room simply posts the reply — no "Send this to…?" pop-up', !!(j2 && !j2.popup && j2.posted), JSON.stringify(j2));
+
+  /* J3 · a Delete the model refuses is GREYED, with the reason on it — as
+     pixels, not only as an attribute. */
+  const j3 = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const ch = negoAllChanges(c).find(x => x.status === 'pending');
+    const m = negoPostComment(c, ch.id, 'already with them', { side: 'owner', visibility: 'shared' });
+    m.sentAt = new Date().toISOString();
+    rlNpSetRoom('external');
+    openNotesPanel(c.id, ch.id, { force: true });
+    await new Promise(r => setTimeout(r, 200));
+    const k = negoNoteKey(m);
+    const b = document.querySelector('#context-panel .rl-np-note[data-rl-np-key="' + k + '"] [data-rl-np-delete]');
+    if (!b) return { noDelete: true };
+    const live = document.querySelector('#context-panel [data-rl-np-delete]:not([disabled])');
+    return { disabled: b.disabled, why: b.title, opacity: parseFloat(getComputedStyle(b).opacity), cursor: getComputedStyle(b).cursor,
+      liveOpacity: live ? parseFloat(getComputedStyle(live).opacity) : null };
+  });
+  ck('J3 Delete on a note that has reached the other side is greyed, says why on the hover, and a live Delete is not', !!(j3 && j3.disabled && j3.why && j3.opacity < 0.6 && j3.cursor === 'not-allowed' && (j3.liveOpacity === null || j3.liveOpacity === 1)), JSON.stringify(j3));
+  await p.evaluate(() => { closeContextPanel(); const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
+
   ck('no page errors along the way', errs.length === 0, errs.join(' | ') || 'none');
   } catch (e){ ck('the run completed', false, e && e.message); }
   await br.close(); srv.close();
