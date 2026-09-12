@@ -12818,3 +12818,11 @@ Defects found
 - The first fix stamped only the editor's own selection menu. A highlight on the negotiate page (no pencil) opens the editor with the words and attaches them a tick later, so the mouse-up landed on the new paper first and its deferred read cleared the passage; the same on a drag over another clause inside the editor. One stamp at the one attach and at all three doors. Measured with a real mouse on the negotiate page: held at 150 ms and 850 ms; lost at the parent.
 Proved: f304 (11) widened; round-two-comments-verify J1c new (red at the parent); lint 0 errors; full suite once at the end.
 - f303 (5) quoted the exact old attach-at-open line and went red on the stamp; re-pointed to the stamped shape (the claim, words and verb arriving, is unchanged). Second full run after it.
+
+### The map's Copilot did its own arithmetic (Young, 12 Sep 2026)
+Defects found
+- "How much money is under management" on the contract graph answered 333 contracts and 1.15 billion SEK; the Home tile and the main Copilot say 159 live and SEK 833M. The map's route handed the model 600 own-currency cards and a two-sided stream table and it added them up. The route now carries HaTi's own figures — the same rows, the same conversion, the same live rule as the Home tile, what has no rate counted — above the cards, with the rule to quote and never add. Money only with canViewValues; a folder-scoped reader gets their own count. copilotRows is the one loader behind list_portfolio and these figures.
+Proved: f299 (11a-c) new against a live server; f305, f2, f1 green; lint 0 errors; full suite once at the end.
+Noticed, not fixed
+- The map's own printed line ("Grouped N contracts …") says nothing about money; a money question's number is still spoken by the model, now from HaTi's figure. A printed HaTi line for a money ask would be a band-shaped change and is the owner's call.
+- The main Copilot's answer in the screenshot names "2 contracts in KES … not converted" while the Home tile prints no left-out line beside its figure; the tile has the fact (fx_left_out_*) and draws it only above zero — worth a look at whether the seed's two KES contracts are on the tile's list.

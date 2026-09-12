@@ -4257,6 +4257,43 @@ function graphWhereClean(w) {
 /* WHAT IS ON SCREEN (ruling 6): fields the browser sends beside the cards,
    each clamped here, said to the model as facts — never a sentence the
    browser wrote. */
+/* ---- HATI'S OWN FIGURES, HANDED TO THE GRAPH'S COPILOT (12 Sep 2026) ----
+   The owner asked the map's Copilot "how much money is under management" and
+   got 333 contracts and 1.15 billion, while the Home tile and the main
+   Copilot both said SEK 833M over 159 live agreements. The map's Copilot was
+   handed up to 600 cards, each valued in its OWN currency, plus a per-stream
+   in/out/net table, and ADDED THEM UP ITSELF — mixed currencies, both sides
+   of the same money, and a count it invented. The main Copilot never adds:
+   its list tool carries a converted total. So this route now carries the
+   same fact, computed here from the same rows (copilotRows), the same
+   conversion (fxHome) and the same "live" rule the Home tile draws (not
+   archived, not Declined); what has no rate is counted and said, never
+   estimated. The model is told to QUOTE it. Money only with canViewValues —
+   THE SERVER IS THE WALL. */
+function graphPortfolioFigures(ctx) {
+  const rows = copilotRows(ctx).filter(c => !c.archived);
+  const live = rows.filter(c => (c.status || '') !== 'Declined');
+  const byStatus = {};
+  live.forEach(c => { const k = c.status || 'Draft'; byStatus[k] = (byStatus[k] || 0) + 1; });
+  const out = { total: rows.length, live: live.length, byStatus };
+  if (ctx.money) {
+    out.homeCurrency = orgJx().currency;
+    out.valueTotalInHomeCurrency = live.reduce((s, c) => s + fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} }).v, 0);
+    out.valueLeftOut = fxMissing(live.map(c => ({ ...c, status: c.status })));
+  }
+  return out;
+}
+function graphPortfolioSays(f) {
+  if (!f) return '';
+  const stages = Object.keys(f.byStatus || {}).map(k => `${f.byStatus[k]} ${k.toLowerCase()}`).join(', ');
+  let t = `HaTi's own figures for this workspace (quote these for any count or total; never add up the cards — their values are in each contract's own currency — and never add the value streams' in and out figures, which are two sides of the same money): ${f.live} live agreement${f.live === 1 ? '' : 's'} (not declined, not archived${stages ? `: ${stages}` : ''}) of ${f.total} on file.`;
+  if (f.homeCurrency) {
+    const left = Object.keys(f.valueLeftOut || {});
+    t += ` Value on paper across the live agreements, converted to ${f.homeCurrency}: ${f.homeCurrency} ${Math.round(Number(f.valueTotalInHomeCurrency) || 0).toLocaleString('en-US')}.`;
+    t += left.length ? ` Left out for want of a rate: ${left.map(k => `${f.valueLeftOut[k]} in ${k}`).join(', ')} — say so.` : ' Nothing left out.';
+  }
+  return t;
+}
 function graphScreenSays(sc, sent, total) {
   if (!sc || typeof sc !== 'object') sc = {};
   const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
@@ -4311,7 +4348,8 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const hist = Array.isArray(history) ? history.slice(-8).map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${String(h.text || '').slice(0, 400)}`).join('\n') : '';
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, GRAPH_ASK_CAP) : null;
   const onScreen = graphScreenSays(screen, list.length, total);
-  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- Always return via the render_graph tool.`;
+  const figures = graphPortfolioSays(graphPortfolioFigures(copilotCtx(req)));
+  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -6021,10 +6059,16 @@ function copilotSearch(ctx, query, limit = 8) {
   return { results: out, total, shown: out.length, truncated: total > out.length, scanCapped: more && scanned >= COPILOT_SEARCH_SCAN };
 }
 // List/filter the portfolio by status / folder / expiry horizon / min value.
-function copilotList(ctx, filter = {}) {
+/* THE ROWS COPILOT MAY READ, in the caller's scope — the one loader behind
+   list_portfolio and the graph's own figures (graphPortfolioSays), so the two
+   cannot count a different book. */
+function copilotRows(ctx) {
   const fs = scopeFrag(ctx.scope);
-  const rows = db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
+  return db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
     .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
+}
+function copilotList(ctx, filter = {}) {
+  const rows = copilotRows(ctx);
   let cs = rows;
   /* ARCHIVED IS OFF EVERY OTHER LIST AND COUNT (audit phase 2, 11 Sep 2026):
      the register, the Home cards, the calendar, the sweeps all leave the

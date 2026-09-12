@@ -344,3 +344,56 @@ test('f299 (10) the seven keys are in both dictionaries', () => {
   ['int_group_refused', 'int_did_grouped', 'int_did_in', 'int_did_showing', 'int_did_highlighted', 'int_did_capped', 'int_did_nomatch']
     .forEach(k => assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k + ' is in both books'));
 });
+
+/* ---------- (11) THE MAP'S COPILOT QUOTES HATI'S OWN FIGURES (owner-reported 12 Sep 2026) ----------
+   "how much money is under management" on the map answered 333 contracts and
+   1.15 billion; the Home tile and the main Copilot said 833M over 159 live.
+   The map's Copilot added up 600 own-currency cards and a two-sided stream
+   table. Now the route hands it the one figure the Home tile draws — same
+   rows, same conversion, same live rule — and tells it to quote, not add. */
+test('f299 (11a) the graph prompt carries HaTi\'s own live count and converted total, and they are the Home tile\'s reading', async () => {
+  const h = await startHati();
+  try {
+    const W = await seedWorkspace(h);
+    const all = (await W.admin.json('/api/contracts?limit=1000')).rows;
+    const live = all.filter(c => !c.archived && (c.status || '') !== 'Declined');
+    h.ai.reset();
+    await W.admin.json('/api/ai/graph', { method: 'POST', body: { query: 'how much money is under management', contracts: [], total: 0 } });
+    const sent = h.ai.lastPayloadText();
+    assert.ok(sent.includes("HaTi's own figures"), 'the figures block travels');
+    assert.ok(sent.includes(`${live.length} live agreement`), `the live count is the Home tile's (${live.length}): ` + sent.slice(sent.indexOf("HaTi's own"), sent.indexOf("HaTi's own") + 300));
+    assert.ok(sent.includes(`of ${all.length} on file`), 'and the book\'s size beside it');
+    /* Every seed contract states the workspace currency, so the converted
+       total is the plain sum — the same number the Home tile prints. */
+    const sum = live.reduce((s, c) => s + (Number(c.value) || 0), 0);
+    assert.ok(sent.includes(sum.toLocaleString('en-US')), `the converted total ${sum.toLocaleString('en-US')} is in the prompt`);
+    assert.ok(sent.includes('never add up the cards'), 'and the model is told to quote, not add');
+    assert.ok(sent.indexOf("HaTi's own figures") < sent.indexOf('Contracts (JSON'), 'the fact comes before the cards');
+  } finally { await h.stop(); }
+});
+test('f299 (11b) THE SERVER IS THE WALL: a no-values reader\'s prompt carries the count and no money; a folder-scoped reader\'s count is their own', async () => {
+  const h = await startHati();
+  try {
+    const W = await seedWorkspace(h);
+    h.ai.reset();
+    await W.novalues.json('/api/ai/graph', { method: 'POST', body: { query: 'how much money is under management', contracts: [], total: 0 } });
+    const nv = h.ai.lastPayloadText();
+    assert.ok(nv.includes("HaTi's own figures") && nv.includes('live agreement'), 'the count travels');
+    assert.ok(!nv.includes('Value on paper'), 'no total for a reader who may not see values');
+    h.ai.reset();
+    const mine = (await W.restricted.json('/api/contracts?limit=1000')).rows;
+    const myLive = mine.filter(c => !c.archived && (c.status || '') !== 'Declined').length;
+    const all = (await W.admin.json('/api/contracts?limit=1000')).rows.filter(c => !c.archived && (c.status || '') !== 'Declined').length;
+    await W.restricted.json('/api/ai/graph', { method: 'POST', body: { query: 'how many contracts', contracts: [], total: 0 } });
+    const rs = h.ai.lastPayloadText();
+    assert.ok(myLive < all, 'the fixture narrows this reader');
+    assert.ok(rs.includes(`${myLive} live agreement`) && !rs.includes(`${all} live agreement`), 'the scoped reader is handed their own book, not the workspace\'s');
+  } finally { await h.stop(); }
+});
+test('f299 (11c) one loader behind both readings, and the rule is written beside the ask', () => {
+  assert.ok(bodyOf(SERVER, 'copilotList').includes('copilotRows(ctx)'), 'list_portfolio reads the rows through copilotRows');
+  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes('copilotRows(ctx)'), 'and so do the graph\'s figures');
+  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes("!== 'Declined'") && bodyOf(SERVER, 'graphPortfolioFigures').includes('!c.archived'), 'live = not declined, not archived — the Home tile\'s rule');
+  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes('fxHome(') && bodyOf(SERVER, 'graphPortfolioFigures').includes('fxMissing('), 'the one conversion, and what is left out is counted');
+  assert.ok(/quote HaTi's own figures above; never add up the cards/.test(SERVER), 'the rule sits in the prompt\'s rules');
+});
