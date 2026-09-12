@@ -4667,15 +4667,44 @@ function redlineLayoutCss(){
      vertical as every other page's title — see "ONE HEADER TOP" in
      index.html. Derived from the tokens, so a change to the control height
      carries the head with it rather than leaving a typed number behind. */
-  .redline-page #ws-head{background:var(--color-surface);padding:calc(var(--page-pad-t) - ((var(--ctl-h) - 18px) / 2)) 24px 9px;margin:0;
-    flex:none;flex-wrap:wrap;box-shadow:inset 0 -1px var(--color-divider);gap:0 var(--s-3);
+  ${''/* ---- THE SAME SIZED CARD AS THE CONTRACT WORKSPACE'S (Young ruled
+         12 Sep 2026) ----
+         *"The should the same sized card."* The two heads carry the same rows
+         now — crumb, title with its quiet line, acts, facts — so all that was
+         left between them was this box's own padding: MEASURED at 135.8 here
+         against 129.8 in the room.
+
+         THE TOP IS THE ROOM'S OWN NOW, and that is the ONE HEADER TOP rule
+         being kept rather than broken. The calculation that used to sit here
+         subtracted half a control's overshoot because the FIRST PAINTED GLYPH
+         on this card was the title, riding a 28px acts row. The first glyph is
+         the crumb now — the same first row, in the same place, as the room's —
+         so the compensation is wrong by exactly the amount it used to correct,
+         and pages-read-alike-verify caught it: 10px against Home's 14px.
+         Plain --page-pad-t, exactly as .room-band spends it.
+
+         THE BOTTOM IS WHAT MAKES THE TWO CARDS ONE HEIGHT, and it is tuned by
+         MEASUREMENT against the room's card, not derived: this box pads where
+         the room's band does not. Pinned as a RELATION — the browser file
+         measures the two heads against each other and fails if either moves. */}
+  .redline-page #ws-head{background:var(--color-surface);padding:var(--page-pad-t) 24px 0;margin:0;
+    ${''/* THE ROW GAP IS THE ROOM'S OWN 6px. It was 0 while this head was one
+           line and had no rows to space; with the crumb and the quiet line it
+           has three, and zero here left the card 14px shorter than the room's
+           — the last of the difference between them. */}
+    flex:none;flex-wrap:wrap;box-shadow:inset 0 -1px var(--color-divider);gap:6px var(--s-3);
     align-items:center}
   .redline-page #ws-head .room-facts{flex-basis:100%}
   ${''/* ---- THE COMPANY, THE KIND AND THE ROUND, UNDER THE TITLE ----
          Its own line, so the title line carries the agreement and the buttons
          and nothing else. Full width, so it can never be drawn into the title
          row however short it is. */}
-  .redline-page #ws-head .room-headsub{flex-basis:100%;order:1;margin:1px 0 0;
+  ${''/* Its top margin is the room's own .room-sub margin (3px) — the pair sit
+         in the same place inside .room-id now, and 1px here was the last two
+         pixels between two cards the owner asked to be one size. flex-basis
+         and order are inert where it stands (it is no longer a flex child of
+         the head) and are kept so nothing depends on their absence. */}
+  .redline-page #ws-head .room-headsub{flex-basis:100%;order:1;margin:3px 0 0;
     font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis}
   .redline-page #ws-head .room-facts{order:2}
@@ -4712,7 +4741,13 @@ function redlineLayoutCss(){
   .redline-page #ws-head .room-name-id i{font-style:normal;color:var(--color-neutral-400)}
   .redline-page #ws-head .room-name h1{font-size:var(--t-card);font-weight:var(--w-strong);letter-spacing:0;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .redline-page #ws-head .room-name h1 .room-title-back{font-size:var(--t-card);font-weight:var(--w-strong)}
+  ${''/* The title line is a BUTTON on this card and plain text on the room's,
+         and a button's own line box came out 2px shorter — the last two pixels
+         between two cards the owner asked to be one size. It takes the h1's
+         line-height, so the row matches by construction rather than by a nudge;
+         the door itself is untouched. */}
+  .redline-page #ws-head .room-name h1 .room-title-back{font-size:var(--t-card);font-weight:var(--w-strong);
+    line-height:inherit}
   .redline-page #ws-head .room-stat{font-size:var(--t-body);font-weight:var(--w-title)}
   .redline-page #ws-head .room-round{font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);
     background:none;border:0;padding:0;letter-spacing:0}

@@ -6262,10 +6262,27 @@ function roomHeadHtml(c,opts={}){
            id, same title, same data-back, same handler in wireRoomHead — the
            crumb's own trick of restyling the control rather than replacing it,
            played once more. On every other page the crumb is untouched. */}
-    ${backC?'':`<nav class="room-crumb" aria-label="Breadcrumb">
-      <button id="ws-back" type="button" title="${esc(backTitle)}">${esc(i18t('ct_back_register'))}</button>
+    ${''/* ---- THE CRUMB IS ON BOTH HEADS NOW (Young ruled 12 Sep 2026) ----
+           *"When you are in contract workspace and you open negotiate page,
+           should feel like nothing has changed at the top bar card apart from
+           the words."* So the two cards carry the SAME ROWS and the words are
+           the only difference: the contract room's crumb says Contracts and
+           lands on the list; the negotiation's says Contract Workspace and
+           lands on the room — which is where its way back already went.
+
+           THE NOTE BELOW THIS ONE IS HISTORY AND IS KEPT ON PURPOSE: the
+           workbench dropped this row on 22 Aug because its head was one line
+           and a crumb would have said the reference twice. That is no longer
+           true — the reference LEFT the title line in the same breath as this
+           came back, so it is still said exactly once, in the crumb.
+
+           #ws-back IS STILL ONE BUTTON with one id and one handler; what moved
+           is which row it sits in and which word it carries. */}
+    <nav class="room-crumb" aria-label="Breadcrumb">
+      <button id="ws-back" type="button"${backC ? ' data-back="contract"' : ''}
+        title="${esc(backTitle)}">${esc(i18t(backC ? 'pg_workspace' : 'ct_back_register'))}</button>
       <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
-    </nav>`}
+    </nav>
     <div class="room-id">
       <div class="room-name">
         ${''/* THE NAME IS PART OF THE WAY BACK on the negotiation screen. It is
@@ -6304,10 +6321,13 @@ function roomHeadHtml(c,opts={}){
                the middot is punctuation between the reference and the title;
                underlining either would say the separator is part of the link.
                So the id carries its own span and the rule is scoped to it. */}
-        ${backC ? `<button type="button" id="ws-back" class="room-name-id" data-back="contract"
-          title="${esc(backTitle)}"><svg class="rn-arrow" width="13" height="13" viewBox="0 0 16 16"
-          fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg
-          ><span class="rn-id">${esc(c.id)}</span><i aria-hidden="true">&middot;</i></button>` : ''}
+        ${''/* ---- THE REFERENCE IS IN THE CRUMB, NOT ON THE TITLE LINE ----
+               (Young ruled 12 Sep 2026.) It rode here from 22 Aug because this
+               head carried no crumb; now that both heads carry one, saying it
+               in both places would be the reference printed twice — which is
+               the very reason it was moved here in the first place, pointing
+               the other way. `.room-name-id`, `.rn-arrow` and `.rn-id` are
+               STALE as things this builder emits. */}
         ${''/* ---- THE NAME SPLITS: TYPE ON TOP, COMPANY BENEATH (owner-asked
                24 Aug 2026, off the design's own object head) ----
                A real contract name is "Mutual Non-Disclosure and
@@ -6319,9 +6339,23 @@ function roomHeadHtml(c,opts={}){
                name carries it, so the company is said once, below, and never
                twice. THE FULL NAME IS NEVER LOST — it is the title attribute,
                so an ellipsised head still hovers to the whole thing. */}
+        ${''/* ---- ONE TITLE READING FOR BOTH HEADS (Young ruled 12 Sep 2026:
+               "drop from title") ----
+               The room printed `c.name` whole, so a contract named
+               "Warehousing and Transportation Services — AIT Worldwide
+               Logistics Norway AS" said the counterparty in the title AND in
+               the Counterparty fact thirty pixels below. roomHeadTitle is the
+               reading the workbench already used; both heads ask it now, so
+               the fact is said once and the two titles cannot drift apart.
+               THE WHOLE NAME IS NEVER LOST — it is the title attribute.
+
+               THE TITLE STAYS A DOOR ON THE WORKBENCH and is not made one on
+               the room: nothing was asked about that, it is invisible on the
+               screen, and deleting an affordance the owner asked for in August
+               is not part of matching two cards. */}
         ${backC
           ? `<h1 title="${esc(c.name)}"><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(roomHeadTitle(c))}</button></h1>`
-          : `<h1>${esc(c.name)}</h1>`}
+          : `<h1 title="${esc(c.name)}">${esc(roomHeadTitle(c))}</h1>`}
         ${''/* COLOURED TEXT, NOT A BADGE — see contractStatusTextHtml. The chip
                survives everywhere it is scanned in a column; a head row is read,
                not scanned, and a block of colour here competes with the one
@@ -6354,6 +6388,13 @@ function roomHeadHtml(c,opts={}){
              contract page a press away (stream, value, updated), and a second
              grey line under a one-row head is the height the mock-up spends on
              the agreement instead. */}
+      ${''/* ---- BOTH QUIET LINES LIVE HERE (Young ruled 12 Sep 2026) ----
+             The room says stream · round · value · updated; the workbench says
+             who it is with · what kind of paper · which round. Different words,
+             SAME ROW, inside .room-id where the acts can sit beside the pair —
+             which is what makes the two cards one height. Drawn from here and
+             nowhere else. */}
+      ${backC ? roomHeadSubHtml(c) : ''}
       ${backC?'':`<div class="room-sub">${F[c.folder]?esc(F[c.folder].name):''}${
         c.archived?' · '+i18t('ct_archived_tag'):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
@@ -6529,7 +6570,10 @@ function roomHeadHtml(c,opts={}){
            ONE BUILDER, TWO HOMES — the workbench draws this same row rather
            than a second one, so the two heads cannot come to disagree about
            what a fact is. */}
-    ${backC ? roomHeadSubHtml(c) : ''}
+    ${''/* The workbench's quiet line is INSIDE .room-id now, beside the room's
+           own (see the note there): a sibling row here made the card a whole
+           row taller than the room's, MEASURED at 144.2 against 129.8, and the
+           owner asked for one size. */}
     ${roomFactsHtml(c,{checks:backC})}
   </section>`;
 }

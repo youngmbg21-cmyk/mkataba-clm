@@ -120,9 +120,19 @@ const SEED = async () => {
       const tabs = [...document.querySelectorAll('#ws-tabs .room-tab')];
       const rest = tabs.find(t => !t.classList.contains('on'));
       const on = tabs.find(t => t.classList.contains('on'));
+      /* THE CARD, and it is the pair of numbers the two pages are compared on
+         since 12 Sep 2026: from under the shell bar to the bottom of the facts
+         row. Not #ws-head's own height — the room spends 16px of the card in
+         its band and the workbench in its own padding, so those two boxes are
+         not the same box. */
+      const fb = document.querySelector('#ws-head .room-facts');
+      const cr = document.querySelector('#ws-head .room-crumb');
       return { h1: h1 && { fs: g(h1).fontSize, fw: g(h1).fontWeight },
         rest: rest && { fs: g(rest).fontSize, fw: g(rest).fontWeight, c: g(rest).color },
         on: on && { fs: g(on).fontSize, fw: g(on).fontWeight, c: g(on).color },
+        card: fb ? Math.round((fb.getBoundingClientRect().bottom - 44) * 10) / 10 : null,
+        crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
+        crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
         tabs: tabs.length };
     });
 
@@ -138,19 +148,50 @@ const SEED = async () => {
       const head = document.querySelector('#view-redline #ws-head');
       const acts = document.querySelector('#view-redline #ws-head .room-acts');
       const hr = head && head.getBoundingClientRect(), ar = acts && acts.getBoundingClientRect();
+      const fb = document.querySelector('#view-redline #ws-head .room-facts');
+      const cr = document.querySelector('#view-redline #ws-head .room-crumb');
+      const nm = document.querySelector('#view-redline #ws-head .room-name');
+      const nr = nm && nm.getBoundingClientRect();
       return { h1: h1 && { fs: g(h1).fontSize, fw: g(h1).fontWeight },
         rest: rest && { fs: g(rest).fontSize, fw: g(rest).fontWeight, c: g(rest).color },
         on: on && { fs: g(on).fontSize, fw: g(on).fontWeight, c: g(on).color },
         wrap: head && g(head).flexWrap, headH: hr && Math.round(hr.height),
+        card: fb ? Math.round((fb.getBoundingClientRect().bottom - 44) * 10) / 10 : null,
+        crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
+        crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
+        /* The acts share the TITLE's line — the question the old "one line"
+           check was really asking, now that there is a crumb above it. */
+        actsOnTitle: (ar && nr) ? Math.abs(ar.top - nr.top) < 14 : null,
         dTop: (ar && hr) ? Math.round(ar.top - hr.top) : null,
         gapRight: (ar && hr) ? Math.round(hr.right - ar.right) : null,
         segs: segs.length };
     });
 
-    /* ---- 1 · THE ACTS ARE AT THE HEAD'S RIGHT, ON ITS OWN LINE ---- */
-    check('1 the negotiation head does not wrap', nego.wrap === 'nowrap', nego.wrap);
-    check('1 it is ONE line', nego.headH <= 60, nego.headH);
-    check('1 the acts start at the head\'s own top', nego.dTop !== null && nego.dTop < 26, nego.dTop);
+    /* ---- 1 · THE NEGOTIATION CARD IS THE CONTRACT WORKSPACE'S CARD ----
+       RE-POINTED 12 Sep 2026, IN PLACE. Three claims here pinned a head that
+       was ONE LINE and did not wrap — the 22 Aug design, and right for it. The
+       owner has since ruled the opposite in his own words: *"When you are in
+       contract workspace and you open negotiate page, should feel like nothing
+       has changed at the top bar card apart from the words. The should the same
+       sized card."* So the head carries the room's rows now — crumb, title with
+       its quiet line, acts, facts — and what is pinned is the RELATION the
+       owner asked for: the two cards measure the same, and the crumb starts at
+       the same height on both. A number typed here would pass the day either
+       card was retuned; a comparison cannot.
+
+       WHAT SURVIVES UNCHANGED is the half these checks were really about: the
+       acts sit at the RIGHT, on the TITLE's line rather than a row of their
+       own, and a long name does not grow the card. */
+    check('1 the negotiation card measures the contract workspace\'s, to the pixel',
+      nego.card !== null && room.card !== null && Math.abs(nego.card - room.card) < 1,
+      `negotiate ${nego.card} vs room ${room.card}`);
+    check('1 and its crumb starts where the room\'s does',
+      nego.crumbTop !== null && room.crumbTop !== null && Math.abs(nego.crumbTop - room.crumbTop) < 1,
+      `negotiate ${nego.crumbTop} vs room ${room.crumbTop}`);
+    check('1 the crumb says which place the way back is',
+      /contract workspace/i.test(nego.crumb || '') && /contracts/i.test(room.crumb || ''),
+      `negotiate "${nego.crumb}" · room "${room.crumb}"`);
+    check('1 the acts share the title\'s line, not a row of their own', nego.actsOnTitle === true, nego.dTop);
     check('1 and they end at its right edge', nego.gapRight !== null && nego.gapRight < 40, nego.gapRight);
     /* THE REPORTED NAME WAS LONG — the seeded book's longest is 21 characters
        and a heavy record is re-read from the server on open, so the name is
@@ -169,8 +210,11 @@ const SEED = async () => {
     });
     await page.screenshot({ path: path.join(OUT, '03-long-name.png') });
     check('1 the name under it is genuinely long', longName.len >= 60, longName.len);
-    check('1 the head is STILL one line under it',
-      longName.headH <= 60 && longName.dTop < 26, longName);
+    check('1 the card does not grow under it',
+      /* The claim is that a long name COSTS THE CARD NOTHING — the title
+         gives (ellipsis), the rows do not. Measured against the card the head
+         drew a moment ago rather than against a typed ceiling. */
+      longName.headH === nego.headH, JSON.stringify({ long: longName.headH, was: nego.headH }));
     check('1 and the acts are still at its right, neither dropped nor pushed off',
       longName.gapRight >= 0 && longName.gapRight < 40 && !longName.overflows, longName);
 

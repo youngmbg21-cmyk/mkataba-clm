@@ -894,3 +894,77 @@ describe('F184 — the whose-move column is words, not pills', () => {
       'the phone draws the same span and inherits the same rule');
   });
 });
+
+/* ---- THE NEGOTIATION IS THE CONTRACT'S WORKSPACE (Young ruled 12 Sep 2026) ----
+   *"When you are in contract workspace and you open negotiate page, should feel
+   like nothing has changed at the top bar card apart from the words."* One
+   builder drew both heads already; what differed was which rows it drew. Every
+   claim here is a way of the two cards drifting apart again. WHAT THEY MEASURE
+   on a real page — one card height, one crumb top — is pages-read-alike's. */
+describe('f184 — the negotiation card is the contract workspace\'s', () => {
+  const CT = read('js/views/contract.js');
+  const APP = read('js/app.js');
+  const NCSS = read('js/views/negotiation-css.js');
+  const I18N = read('js/i18n.js');
+  test('the crumb is drawn on BOTH heads, and only its word and destination differ', () => {
+    /* Drawn unconditionally — the `backC?'':` that used to withhold it is gone. */
+    assert.ok(!/\$\{backC\?'':`<nav class="room-crumb"/.test(CT),
+      'the workbench no longer drops the crumb row');
+    assert.match(CT, /<nav class="room-crumb" aria-label="Breadcrumb">/, 'one crumb, one markup');
+    assert.equal((CT.match(/class="room-crumb"/g) || []).length, 1, 'and exactly one builder emits it');
+    assert.match(CT, /i18t\(backC \? 'pg_workspace' : 'ct_back_register'\)/,
+      'the negotiation says Contract Workspace, the room says Contracts');
+    assert.match(CT, /\$\{backC \? ' data-back="contract"' : ''\}/,
+      'and the negotiation\'s lands on the room, which is where its way back already went');
+  });
+  test('#ws-back is still ONE button, and the reference left the title line', () => {
+    assert.equal((CT.match(/id="ws-back"/g) || []).length, 1,
+      'one id, one handler — the crumb is where it sits now');
+    assert.ok(!/class="room-name-id"/.test(CT),
+      'the inline reference is gone: the crumb says it, and twice is the fault it was moved for');
+    assert.ok(!/class="rn-arrow"/.test(CT) && !/class="rn-id"/.test(CT),
+      'and its two marks with it');
+  });
+  test('ONE title reading on both heads, and the counterparty is not in it', () => {
+    assert.ok(!/<h1>\$\{esc\(c\.name\)\}<\/h1>/.test(CT),
+      'the room no longer prints the whole name — it said the counterparty twice');
+    /* The declaration reads the same as a call, so it is excluded by name. */
+    assert.equal((CT.match(/(?<!function )roomHeadTitle\(c\)/g) || []).length, 2,
+      'both heads ask the same reading');
+    assert.match(CT, /<h1 title="\$\{esc\(c\.name\)\}">\$\{esc\(roomHeadTitle\(c\)\)\}<\/h1>/,
+      'and the whole name is never lost — it is the hover');
+    /* THE TITLE STAYS A DOOR ON THE WORKBENCH. Nothing was asked about that,
+       and deleting an affordance on the way past is the rule this file's own
+       owner wrote down. */
+    assert.match(CT, /id="ws-back-title"/, 'the workbench title is still the way back too');
+  });
+  test('the quiet line sits in the title block on both, which is what makes one height', () => {
+    const id = CT.slice(CT.indexOf('<div class="room-id">'), CT.indexOf('<div class="room-acts'));
+    assert.match(id, /\$\{backC \? roomHeadSubHtml\(c\) : ''\}/, 'the workbench\'s is inside .room-id');
+    assert.match(id, /class="room-sub"/, 'beside the room\'s own');
+    assert.equal((CT.match(/roomHeadSubHtml\(c\)/g) || []).length, 2, 'one builder, one call site');
+  });
+  test('the card is spaced like the room\'s, by the room\'s own tokens', () => {
+    /* NOT sliced to the first closing brace: this file returns its CSS from a
+       template literal and the rule carries comment blocks whose terminator is
+       followed by a brace, so a lazy slice stopped inside the note above the
+       declaration and the check failed on a comment. The house rule about
+       never writing a comment terminator inside a comment applies here too —
+       the first draft of THIS note broke the test file itself. */
+    assert.match(NCSS, /\.redline-page #ws-head\{background:var\(--color-surface\);padding:var\(--page-pad-t\) 24px 0/,
+      'the top is the room\'s own — the calc() that used to compensate for a one-line head put the first glyph 4px high');
+    assert.match(NCSS, /box-shadow:inset 0 -1px var\(--color-divider\);gap:6px var\(--s-3\)/,
+      'and the row gap is the room\'s 6px, not zero');
+    assert.match(NCSS, /\.redline-page #ws-head \.room-headsub\{[^}]*margin:3px 0 0/,
+      'the quiet line takes .room-sub\'s own 3px');
+  });
+  test('the dark bar says which place this is, and the LIST is still Negotiations', () => {
+    const m = APP.slice(APP.indexOf("case 'redline': {"), APP.indexOf("default: return ['HaTi'"));
+    assert.match(m, /redlineHeldId\(\)/, 'it asks the page which of the two is on screen');
+    assert.match(m, /i18t\(one \? 'pg_workspace' : 'pg_negotiate'\)/,
+      'one contract is the workspace; the list is still Negotiations');
+    assert.match(m, /try\{/, 'and it is guarded — this runs on stages that never load that page');
+    for (const k of ['pg_workspace', 'pg_negotiate'])
+      assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k + ' in both books');
+  });
+});
