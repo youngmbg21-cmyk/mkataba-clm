@@ -36,8 +36,16 @@ const check = (ok, what, detail) => {
   if (!ok) failures++;
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
-/* A PRESS THAT REPORTS: a dead row is a finding, never a timeout. */
-const pressRow = page => page.evaluate(() => { const b = document.querySelector('[data-rl-prepare]'); if (!b || b.disabled) return false; b.click(); return true; });
+/* A PRESS THAT REPORTS: a dead row is a finding, never a timeout.
+   SCOPED TO A DOOR BY NAME since 12 Sep 2026: the act has two of them — the
+   More menu's row and the empty change column's button — and a bare
+   querySelector would press whichever the markup happened to put first, which
+   is exactly the ambiguity that made the column's button dead in the first
+   place. MENU is what sections 1 to 5 are about; COLUMN is section 6's. */
+const MENU = '#ws-more-menu [data-rl-prepare]';
+const COLUMN = '.rl-empty-acts [data-rl-prepare]';
+const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.click(); return true; }, sel);
+const pressRow = page => pressIn(page, MENU);
 /* ON SCREEN, not merely in the markup — f180's rule. */
 const visible = (page, sel) => page.evaluate(s => {
   const el = document.querySelector(s);
@@ -127,12 +135,23 @@ const VERDICTS = [
   await pause(1800);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
-  const hasRow = await page.locator('[data-rl-prepare]').count() === 1;
-  check(hasRow, '1a the negotiation page puts exactly one "Prepare redlines" row in the More menu');
+  /* RE-POINTED 12 Sep 2026. This asked for exactly ONE button on the page,
+     which was right while the menu row was the only door. The owner then asked
+     for the empty change column to offer the same act AND for the menu row to
+     stay, so the true claim is one door in each place and nothing anywhere
+     else — still a count, still falsifiable, and it now also catches a third
+     copy appearing. */
+  const doors = await page.evaluate(() => ({
+    all: document.querySelectorAll('[data-rl-prepare]').length,
+    menu: document.querySelectorAll('#ws-more-menu [data-rl-prepare]').length,
+    column: document.querySelectorAll('.rl-empty-acts [data-rl-prepare]').length }));
+  const hasRow = doors.menu === 1;
+  check(hasRow && doors.column === 1 && doors.all === 2,
+    '1a one row in the More menu and one button in the empty column — two doors, no third', JSON.stringify(doors));
   await page.click('#ws-more');
   await pause(400);
-  check(hasRow && await visible(page, '[data-rl-prepare]'), '1b and once the menu is open the row is VISIBLE PIXELS');
-  const row = hasRow ? await page.evaluate(() => { const b = document.querySelector('[data-rl-prepare]'); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }) : { text: '', dead: true, title: '' };
+  check(hasRow && await visible(page, MENU), '1b and once the menu is open the row is VISIBLE PIXELS');
+  const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
   check(/prepare redlines/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
   check(hasRow && await visible(page, '[data-rl-memo]') && await visible(page, '[data-rl-pbreview]'), '1e beside the memo and the playbook pass');
@@ -216,6 +235,90 @@ const VERDICTS = [
   check(/No drafts were filed — \d+ already here/.test(again.toast), '5c and the toast says why', again.toast.trim().slice(0, 120));
   check(ai.calls.length === calls1, '5d and the second press spent nothing — the review on file was used', String(ai.calls.length));
   await page.screenshot({ path: path.join(OUT, '05-second-press.png') });
+
+  /* ============ 6. THE EMPTY COLUMN IS A DOOR (Young asked 12 Sep 2026) ============
+     The audit's first finding: the one screen with nothing to read described
+     the work instead of offering it. Both acts existed already, so what is
+     asked here is whether a reader can now PRESS them — which is the half no
+     amount of grepping answers, and the half that was broken the moment the
+     act had two doors and one singular query.
+
+     STAGED BY EMPTYING THE COLUMN, the state this is entirely about: the
+     drafts filed above are cleared off the record so the page draws the state
+     a reader meets on a freshly received contract. */
+  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); c.changes = []; renderRedline(); }, ID);
+  await pause(900);
+  const emptyDoors = await page.evaluate(() => {
+    const box = document.querySelector('.rl-cards-empty');
+    const acts = document.querySelector('.rl-empty-acts');
+    const seen = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const btns = acts ? [...acts.querySelectorAll('button')] : [];
+    return { box: !!box, acts: !!acts, n: btns.length,
+      labels: btns.map(b => b.textContent.trim()), dead: btns.map(b => !!b.disabled),
+      onScreen: btns.map(seen), lead: (document.querySelector('.rl-empty-lead') || {}).textContent || '',
+      /* THE SENTENCE THE BUTTONS REPLACE must be gone from this state — a door
+         AND a paragraph describing the door is the fault printed twice. */
+      blurb: /Press the .{0,3} Edit/i.test(box ? box.textContent : '') };
+  });
+  check(emptyDoors.box && emptyDoors.acts && emptyDoors.n === 2,
+    '6a the empty column draws two buttons', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
+  check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
+    '6b both are VISIBLE PIXELS and neither is dead on a readable draft', JSON.stringify(emptyDoors));
+  check(/prepare redlines/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
+    '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
+  check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),
+    '6d the how-to paragraph is gone and one line says what the press spends', emptyDoors.lead.slice(0, 120));
+  await page.screenshot({ path: path.join(OUT, '06-empty-column.png') });
+
+  /* THE COLUMN'S OWN PREPARE BUTTON IS WIRED — the whole point of the
+     querySelectorAll fix, and unprovable anywhere but a real press. */
+  const pressedCol = await pressIn(page, COLUMN); await pause(800);
+  const colAsk = await page.evaluate(() => { const ok = document.getElementById('cf-ok');
+    return { there: !!ok, text: ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : '' }; });
+  check(pressedCol && colAsk.there,
+    '6e pressing the COLUMN button raises the same confirm the menu row does — one act, two doors', colAsk.text.slice(0, 90));
+  if (colAsk.there){ await page.click('#cf-cancel'); await pause(500); }
+
+  /* "EDIT A CLAUSE" OPENS THE CLAUSE EDITOR ON THE FIRST CLAUSE. */
+  const pressedEdit = await page.evaluate(() => { const b = document.querySelector('[data-rl-edit-first]'); if (!b || b.disabled) return null;
+    const to = b.getAttribute('data-rl-edit-first'); b.click(); return to; });
+  await pause(1600);
+  const edit = await page.evaluate(() => ({
+    open: typeof clauseEditorOpen === 'function' ? clauseEditorOpen() : null,
+    doc: !!document.getElementById('ce-doc'),
+    clause: typeof window.rlFirstClauseId === 'function' ? 'read' : 'absent' }));
+  check(pressedEdit === 'editor', '6f at this width the button promises the clause editor', String(pressedEdit));
+  check(!!edit.open && edit.doc, '6g and the press opens it on the first clause', JSON.stringify(edit));
+  await page.screenshot({ path: path.join(OUT, '07-edit-a-clause.png') });
+  /* OUT AGAIN, so the last checks read the page and not the layer over it. */
+  await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); });
+  await pause(900);
+
+  /* THEIR SEAT KEEPS THE SENTENCE. The preview draws the counterparty's own
+     column, and neither act is theirs — Prepare redlines reads OUR standards
+     and the editor refuses their seat by construction. */
+  /* MEASURED, NOT ASSUMED. The first cut of this read a global the page does
+     not have, so the evaluate threw, the guard swallowed it and both checks
+     passed on null — a description, exactly what this file's own preamble
+     forbids. The id comes in as an argument now and `ours` is the CONTROL:
+     if our own seat stopped drawing the buttons the comparison would be
+     satisfied by both seats having nothing, and this says so. */
+  const theirs = await page.evaluate(id => {
+    const c = state.contracts.find(x => x.id === id);
+    c.changes = [];
+    const read = side => {
+      const html = redlineChangeCardsHtml(c, side === 'counterparty'
+        ? { side: 'counterparty', readonly: true } : { side: 'owner' });
+      return { acts: /rl-empty-acts/.test(html), edit: /data-rl-edit-first/.test(html),
+        prepare: /data-rl-prepare/.test(html), blurb: /Press the/.test(html) };
+    };
+    return { ours: read('owner'), theirs: read('counterparty') };
+  }, ID);
+  check(theirs.ours.acts && theirs.ours.edit && theirs.ours.prepare,
+    '6h- the control: our own seat really does draw both buttons', JSON.stringify(theirs.ours));
+  check(!theirs.theirs.acts && !theirs.theirs.edit && !theirs.theirs.prepare,
+    '6h the counterparty column draws neither button', JSON.stringify(theirs.theirs));
+  check(theirs.theirs.blurb, '6i and keeps the sentence rather than an empty box', JSON.stringify(theirs.theirs));
 
   check(errors.length === 0, 'no page errors', errors.join(' | ') || 'clean');
   await browser.close(); await h.stop(); await ai.stop();
