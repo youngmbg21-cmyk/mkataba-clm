@@ -76,7 +76,7 @@ THE OWNER'S OWN WORDS, 24 Aug 2026. They sit ABOVE the Bug Fix Rules because the
 
 **"Do not run the full test suite during incremental edits. Only run the specific test file directly related to the changed code."** Every edit before you believe you are finished is incremental, including fixes to a test you just broke. Run the affected files together in ONE command (`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`) until they pass; the full suite runs ONCE when you believe you are finished, and again only if that run found something.
 
-- Full suite: **5m17s**, ~4,100 tests (measured 21 Aug 2026). A browser file starts a real Chrome and costs 11–40 SECONDS.
+- Full suite: **5m05s**, 6,729 tests in 1,355 suites, 0 red (re-measured 12 Sep 2026; it read ~4,100 on 21 Aug — the runner is the authority, re-measure before quoting it). A browser file starts a real Chrome and costs 11–40 SECONDS.
 - `npm run lint` FIRST — seconds, zero errors is the bar (the ~137 warnings are unused locals; eslint.config.js explains every rule and holds KNOWN_ABSENT). It is the only check that asks "is every name being called a name that exists".
 - While working: only the test files the feature's section names. One browser file per screen changed; re-run only after a change to what it measures.
 - `node test/chromium/run-all.js` runs the whole browser set (four at a time) — what CI runs, not what you run while working. A file expected to fail is named in KNOWN_RED **with its reason**, printed on every run. **Take a file off that list the day it goes green.**
