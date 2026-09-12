@@ -2640,6 +2640,52 @@ function redlineLayoutCss(){
   .redline-page .rl-cards-empty{padding:6px var(--s-4);font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
+  ${''/* ---- THE EMPTY COLUMN'S OWN TWO DOORS (Young asked 12 Sep 2026) ----
+         THE CLOTHES FOLLOW THE BUILDER, and this is that rule being paid
+         rather than re-learned: the Prepare redlines button is rlPrepareRowHtml
+         in its SECOND home, and its first home's rule is scoped to
+         .rl-more-menu, which does not reach a column. Undressed, it would have
+         arrived here as a bare browser button beside a styled one.
+
+         THE METRICS ARE SEND ALL'S, by relation and not by number: the same
+         fill token, the same radius, the same label size, one rung taller
+         because these two sit alone on an empty column rather than in a packed
+         head row. The second button is the platform's outline face — accent
+         edge, accent ink, transparent — so the pair reads as one act offered
+         and one alternative, never as two commands.
+
+         THE FILLED ONE IS THE PAGE'S ONLY FILLED CONTROL WHILE IT IS DRAWN:
+         this state has no unsent changes, so Send all is not on the screen, and
+         Close Round is greyed until something is settled. --accent-fill, never
+         amber and never --accent-solid, which is the nav's own brand ground.
+
+         A DEAD CONTROL MUST NOT LOOK ALIVE — the same disabled face the send
+         pair carries, stated once for both buttons here. */}
+  .redline-page .rl-empty-acts{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 2px}
+  .redline-page .rl-empty-acts button{flex:none;border-radius:var(--radius);cursor:pointer;
+    font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);
+    padding:0 11px;white-space:nowrap;height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px}
+  .redline-page .rl-empty-acts button[data-rl-prepare]{border:0;background:var(--accent-fill);color:#fff}
+  ${''/* ---- ONE PENCIL BETWEEN THE TWO, AND IT IS ON THE RIGHT ONE ----
+         Photographed before this rule existed: both buttons carried the pencil,
+         because the shared builder writes one and the pencil is ALSO the
+         product's own sign for "edit a clause" — so the pair read as two of the
+         same act sitting side by side. The mark is dropped from the filled
+         button HERE ONLY; the More menu's row keeps it, untouched, and the
+         filled face is what tells the two apart. Presentation, in the second
+         home, exactly as the dressing above it is. */}
+  .redline-page .rl-empty-acts button[data-rl-prepare] > span[aria-hidden]{display:none}
+  .redline-page .rl-empty-acts button[data-rl-prepare]:hover:not(:disabled){filter:brightness(1.08)}
+  .redline-page .rl-empty-acts .rl-empty-edit{border:1px solid var(--btn-edge);
+    background:transparent;color:var(--accent-ink)}
+  .redline-page .rl-empty-acts .rl-empty-edit:hover:not(:disabled){background:var(--surface-2)}
+  .redline-page .rl-empty-acts button:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .redline-page .rl-empty-acts button:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  ${''/* The line under the pair explains the control it sits under — what the
+         first button spends and that nothing travels — and says the paper's own
+         way in is still there. Label size and the secondary ink: it is the
+         quietest thing in this state, which is the SAP rung this fact earns. */}
+  .redline-page .rl-empty-lead{font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)}
   /* ---- AN INDEX CARD, WITH A SPINE THAT SAYS WHOSE IT IS ----
      The cards were a plain bordered box each, so a column of six read as six
      identical rectangles and whose ask a change was could only be learned by
