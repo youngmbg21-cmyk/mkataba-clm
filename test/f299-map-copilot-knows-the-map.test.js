@@ -360,15 +360,15 @@ test('f299 (11a) the graph prompt carries HaTi\'s own live count and converted t
     h.ai.reset();
     await W.admin.json('/api/ai/graph', { method: 'POST', body: { query: 'how much money is under management', contracts: [], total: 0 } });
     const sent = h.ai.lastPayloadText();
-    assert.ok(sent.includes("HaTi's own figures"), 'the figures block travels');
-    assert.ok(sent.includes(`${live.length} live agreement`), `the live count is the Home tile's (${live.length}): ` + sent.slice(sent.indexOf("HaTi's own"), sent.indexOf("HaTi's own") + 300));
+    assert.ok(sent.includes('VALUE UNDER MANAGEMENT'), 'the figure travels, with its definition');
+    assert.ok(sent.includes(`${live.length} live agreement`), `the live count is the Home tile's (${live.length}): ` + sent.slice(sent.indexOf('VALUE UNDER'), sent.indexOf('VALUE UNDER') + 300));
     assert.ok(sent.includes(`of ${all.length} on file`), 'and the book\'s size beside it');
     /* Every seed contract states the workspace currency, so the converted
        total is the plain sum — the same number the Home tile prints. */
     const sum = live.reduce((s, c) => s + (Number(c.value) || 0), 0);
     assert.ok(sent.includes(sum.toLocaleString('en-US')), `the converted total ${sum.toLocaleString('en-US')} is in the prompt`);
     assert.ok(sent.includes('never add up the cards'), 'and the model is told to quote, not add');
-    assert.ok(sent.indexOf("HaTi's own figures") < sent.indexOf('Contracts (JSON'), 'the fact comes before the cards');
+    assert.ok(sent.indexOf('VALUE UNDER MANAGEMENT') < sent.indexOf('Contracts (JSON'), 'the fact comes before the cards');
   } finally { await h.stop(); }
 });
 test('f299 (11b) THE SERVER IS THE WALL: a no-values reader\'s prompt carries the count and no money; a folder-scoped reader\'s count is their own', async () => {
@@ -378,7 +378,7 @@ test('f299 (11b) THE SERVER IS THE WALL: a no-values reader\'s prompt carries th
     h.ai.reset();
     await W.novalues.json('/api/ai/graph', { method: 'POST', body: { query: 'how much money is under management', contracts: [], total: 0 } });
     const nv = h.ai.lastPayloadText();
-    assert.ok(nv.includes("HaTi's own figures") && nv.includes('live agreement'), 'the count travels');
+    assert.ok(nv.includes('VALUE UNDER MANAGEMENT') && nv.includes('live agreement'), 'the count travels');
     assert.ok(!nv.includes('Value on paper'), 'no total for a reader who may not see values');
     h.ai.reset();
     const mine = (await W.restricted.json('/api/contracts?limit=1000')).rows;
@@ -390,10 +390,30 @@ test('f299 (11b) THE SERVER IS THE WALL: a no-values reader\'s prompt carries th
     assert.ok(rs.includes(`${myLive} live agreement`) && !rs.includes(`${all} live agreement`), 'the scoped reader is handed their own book, not the workspace\'s');
   } finally { await h.stop(); }
 });
+test('f299 (11d) THE CHAT BRAIN CARRIES THE SAME FIGURE: the system block of /api/ai/chat names it, with the Home tile\'s numbers', async () => {
+  const h = await startHati();
+  try {
+    const W = await seedWorkspace(h);
+    const all = (await W.admin.json('/api/contracts?limit=1000')).rows;
+    const live = all.filter(c => !c.archived && (c.status || '') !== 'Declined');
+    const sum = live.reduce((s, c) => s + (Number(c.value) || 0), 0);
+    h.ai.reset();
+    const r = await W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: 'what is the value of all the contracts under management?' }], context: {} } });
+    assert.equal(r.wholeBook, false, 'the whole-book flag rides back as a boolean (the built-in stub sets none; answer-worklist-verify 6 drives a true one)');
+    const sent = h.ai.lastPayloadText();
+    assert.ok(sent.includes('VALUE UNDER MANAGEMENT'), 'the chat brain is handed the figure');
+    assert.ok(sent.includes(`${live.length} live agreement`) && sent.includes(sum.toLocaleString('en-US')), 'and it is the Home tile\'s reading');
+    assert.ok(sent.includes('A REQUEST FOR THE WHOLE BOOK'), 'and the whole-book rule');
+  } finally { await h.stop(); }
+});
 test('f299 (11c) one loader behind both readings, and the rule is written beside the ask', () => {
   assert.ok(bodyOf(SERVER, 'copilotList').includes('copilotRows(ctx)'), 'list_portfolio reads the rows through copilotRows');
-  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes('copilotRows(ctx)'), 'and so do the graph\'s figures');
-  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes("!== 'Declined'") && bodyOf(SERVER, 'graphPortfolioFigures').includes('!c.archived'), 'live = not declined, not archived — the Home tile\'s rule');
-  assert.ok(bodyOf(SERVER, 'graphPortfolioFigures').includes('fxHome(') && bodyOf(SERVER, 'graphPortfolioFigures').includes('fxMissing('), 'the one conversion, and what is left out is counted');
+  assert.ok(bodyOf(SERVER, 'portfolioFigures').includes('copilotRows(ctx)'), 'and so do the graph\'s figures');
+  assert.ok(bodyOf(SERVER, 'portfolioFigures').includes("!== 'Declined'") && bodyOf(SERVER, 'portfolioFigures').includes('!c.archived'), 'live = not declined, not archived — the Home tile\'s rule');
+  assert.ok(bodyOf(SERVER, 'portfolioFigures').includes('fxHome(') && bodyOf(SERVER, 'portfolioFigures').includes('fxMissing('), 'the one conversion, and what is left out is counted');
   assert.ok(/quote HaTi's own figures above; never add up the cards/.test(SERVER), 'the rule sits in the prompt\'s rules');
+  /* PHASE 5 of the one-figure order: the map command and the chat brain read ONE function. */
+  assert.ok(bodyOf(SERVER, 'buildCopilotSystem').includes('portfolioSays(portfolioFigures(scopeCtx))'), 'the chat brain');
+  assert.ok(SERVER.includes("const figures = portfolioSays(portfolioFigures(copilotCtx(req)));"), 'the graph route');
+  assert.equal((SERVER.match(/function portfolioSays\(/g) || []).length, 1, 'one sentence builder');
 });

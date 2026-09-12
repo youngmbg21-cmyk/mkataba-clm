@@ -451,3 +451,70 @@ describe('f305 phase 8 — get_obligations and get_contract_history, read-only, 
     assert.match(AI, /AI_SNAPSHOT_CAP ?= ?40/);
   });
 });
+
+/* ============================================================
+   ONE COPILOT, ONE FIGURE (owner's go, 12 Sep 2026 — WORKORDER-copilot-one-figure.md)
+   The Home tile's reading of "value under management" handed to every brain
+   as a defined sentence; a whole-book ask is a count and a door; eight turns;
+   the stand-in answer says why.
+   ============================================================ */
+describe('one figure, both hosts', () => {
+  const vm = require('vm');
+  const bodyOf = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i > 0, name + ' is defined'); return src.slice(i, src.indexOf('\n}\n', i) + 2); };
+  const fixture = { total: 161, live: 159, byStatus: { Signed: 47, 'Under Review': 33, Draft: 79 }, homeCurrency: 'SEK', valueTotalInHomeCurrency: 833005893, valueLeftOut: { KES: 2 } };
+  const run = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i > 0, name); const body = src.slice(i, src.indexOf('\n}\n', i) + 2); return vm.runInNewContext(body + '\n' + name + '(F);', { F: fixture }); };
+  test('the server\'s portfolioSays and the browser\'s aiPortfolioSays write the same sentence, and it defines the term', () => {
+    const a = run(SERVER, 'portfolioSays'), b = run(AI, 'aiPortfolioSays');
+    assert.equal(a, b);
+    assert.ok(/^VALUE UNDER MANAGEMENT/.test(a) && a.includes('159 live agreements') && a.includes('of 161 on file') && a.includes('SEK 833,005,893') && a.includes('2 in KES'), a);
+    assert.ok(a.includes('never add up cards'), 'the model is told to quote, not add');
+    assert.equal(run(SERVER, 'portfolioSays').length, run(AI, 'aiPortfolioSays').length);
+  });
+  test('both brains carry it in their system block, the Home tile\'s way (live = not declined, not archived; fxHome; fxMissing)', () => {
+    assert.ok(bodyOf(SERVER, 'buildCopilotSystem').includes('portfolioSays(portfolioFigures(scopeCtx))'));
+    assert.ok(bodyOf(AI, '_localSystem').includes('aiPortfolioSays(aiPortfolioFigures())'));
+    const f = bodyOf(AI, 'aiPortfolioFigures');
+    assert.ok(f.includes("!=='Declined'") && f.includes('!c.archived') && f.includes('fxHomeValue') && f.includes('fxMissing'), f);
+    const contracts = [
+      { id: 'MK-1', name: 'a', status: 'Signed', value: 100 }, { id: 'MK-2', name: 'b', status: 'Draft', value: 50 },
+      { id: 'MK-3', name: 'c', status: 'Declined', value: 999 }, { id: 'MK-4', name: 'd', status: 'Signed', value: 7, archived: { at: 'x' } }];
+    const win = brain(contracts, { fxHomeValue: c => Number(c.value) || 0, fxMissing: () => ({}) });
+    const g = win.aiPortfolioFigures();
+    assert.deepEqual(JSON.parse(JSON.stringify(g)), { total: 3, live: 2, byStatus: { Signed: 1, Draft: 1 }, homeCurrency: 'KES', valueTotalInHomeCurrency: 150, valueLeftOut: {} });
+    win.canViewValues = () => false;
+    assert.ok(!('homeCurrency' in win.aiPortfolioFigures()), 'no money for a reader who may not see values');
+  });
+  test('a whole-book ask is a count and a door, on both hosts: the rule, the flag on deliver_answer, the door onto the full register', () => {
+    assert.ok(SERVER.includes('- A REQUEST FOR THE WHOLE BOOK') && AI.includes('A REQUEST FOR THE WHOLE BOOK'), 'the rule on both hosts');
+    assert.ok(/wholeBook: \{ type: 'boolean'/.test(SERVER) && /wholeBook:\{type:'boolean'/.test(AI), 'the flag in both schemas');
+    assert.ok(bodyOf(SERVER, 'normalizeDeliver').includes('const wholeBook = inp.wholeBook === true;') && SERVER.includes('wholeBook: !!final.wholeBook, cards'), 'carried on the server\'s answer');
+    assert.ok(AI.includes('wholeBook:inp.wholeBook===true'), 'and on the local brain\'s');
+    const win = brain([{ id: 'MK-1', name: 'a', status: 'Signed', value: 1 }, { id: 'MK-2', name: 'b', status: 'Signed', value: 1 }], { regShowOnly: () => {} });
+    const html = win.aiWorklistHtml([], { wholeBook: true });
+    const word = (html.match(/>([^<]*)<\/button>/) || [])[1] || '';
+    assert.ok(html.includes('data-ai-worklist-all="1"') && word && !/\d/.test(word), 'the whole-book door, no figure on it: ' + word);
+    assert.ok(win.aiRenderServerAnswer({ answer: 'x', cards: [], wholeBook: true }).cards.includes('data-ai-worklist-all'), 'a server answer with the flag draws it');
+    assert.ok(!win.aiRenderServerAnswer({ answer: 'x', cards: [] }).cards.includes('data-ai-worklist-all'), 'and one without does not');
+  });
+  test('eight turns per question, mirrored', () => {
+    assert.ok(/const AI_CHAT_STEPS = 8;/.test(SERVER) && /const AI_CHAT_STEPS=8;/.test(AI));
+    assert.equal((SERVER.match(/step < AI_CHAT_STEPS/g) || []).length, 2, 'both chat routes');
+    assert.equal((AI.match(/step<AI_CHAT_STEPS/g) || []).length, 1, 'the local loop');
+    assert.ok(!/step < 5;/.test(SERVER) && !/step<5;/.test(AI), 'the literal five is gone');
+  });
+  test('the stand-in answer says why — provider, rate limit, spend cap — and a whole-book ask gets the count and the Contracts door', () => {
+    const API = read('js/api.js');
+    assert.ok(API.includes("err.kind=(typeof data.kind==='string')?data.kind:'';"), 'api() carries the kind');
+    assert.ok(/kind: 'rateLimit', retryAfter/.test(SERVER) && (SERVER.match(/kind: 'spendCap'/g) || []).length === 2 && /error: err, kind: 'provider'/.test(SERVER), 'the server names every kind');
+    const win = brain([{ id: 'MK-1', name: 'a', status: 'Signed', value: 1 }, { id: 'MK-2', name: 'b', status: 'Draft', value: 1 }, { id: 'MK-3', name: 'c', status: 'Declined', value: 1 }],
+      { regShowOnly: () => {}, fxHomeValue: c => Number(c.value) || 0, fxMissing: () => ({}) });
+    const kinds = ['rateLimit', 'spendCap', 'provider'].map(k => win.aiDegrade('what expires soon', Object.assign(new Error('x'), { kind: k }), true).text);
+    assert.equal(new Set(kinds).size, 3, 'three different sentences for three different causes');
+    assert.ok(!kinds.some(t => /could not be reached/.test(t)), 'none of them is the outage sentence');
+    const book = win.aiDegrade('list all the contracts inside hati', Object.assign(new Error('x'), { kind: 'provider' }), true);
+    assert.ok(/<strong>2<\/strong>/.test(book.text) && /of 3 on file/.test(book.text), 'the count is HaTi\'s own: 2 live of 3');
+    assert.ok(book.cards.includes('data-ai-worklist-all'), 'and the door onto the Contracts page');
+    assert.ok(!/matching/.test(book.text), 'no keyword match dressed as an answer');
+    assert.ok(win.aiWholeBookAsk('how many contracts do we have') && win.aiWholeBookAsk('lista alla avtal') && !win.aiWholeBookAsk('what expires soon') && !win.aiWholeBookAsk('list the payment terms of MK-101'));
+  });
+});

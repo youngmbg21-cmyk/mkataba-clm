@@ -216,6 +216,49 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     '5a one contract draws its card and no worklist door',
     `${single.cards} card(s), ${single.door} door(s)`);
 
+  /* ============ 6. A WHOLE-BOOK ANSWER OPENS THE FULL CONTRACTS PAGE ============
+     (owner's go, 12 Sep 2026 — WORKORDER-copilot-one-figure.md, phase 2) */
+  ai.script([{ type: 'tool_use', id: 'tu_wb', name: 'deliver_answer',
+    input: { answer: 'You have every contract on the Contracts page.', citations: [], wholeBook: true } }]);
+  await page.evaluate(() => { window.ai.history = []; window.openAI(); });
+  await page.waitForTimeout(500);
+  await page.fill('#ai-input', 'list all the contracts inside hati');
+  await page.evaluate(() => window.aiSubmit && window.aiSubmit());
+  await page.waitForTimeout(4000);
+  const wb = await page.evaluate(() => {
+    const b = document.querySelector('#ai-feed [data-ai-worklist-all]');
+    return { door: !!b, text: b ? b.textContent.trim() : '', narrowDoor: !!document.querySelector('#ai-feed [data-ai-worklist]') };
+  });
+  check(wb.door && !wb.narrowDoor, '6a a whole-book answer draws the door onto the full Contracts page, not a narrowed set', JSON.stringify(wb));
+  check(wb.door && !/\d/.test(wb.text), '6b and it prints no figure', wb.text);
+  if (wb.door){
+    await page.click('#ai-feed [data-ai-worklist-all]');
+    await page.waitForTimeout(900);
+    const landed = await page.evaluate(() => ({ view: window.state.view, narrowed: !!(window.regNarrowed && window.regNarrowed(window.regState())), rows: document.querySelectorAll('#reg-table tbody tr, .reg-table tbody tr').length, book: (window.state.contracts || []).filter(c => c && !c.archived).length }));
+    check(landed.view === 'register' && landed.narrowed === false, '6c pressing it lands on the Contracts page with nothing narrowing it', JSON.stringify(landed));
+  }
+
+  /* ============ 7. THE STAND-IN SAYS WHY, AND A WHOLE-BOOK ASK GETS THE COUNT ============
+     (phase 4) The provider fails → the server answers 502 with kind:'provider'
+     → the browser's stand-in names the cause and, for a whole-book ask, gives
+     HaTi's own count and the Contracts door instead of a keyword match. */
+  /* TWO failures: the browser streams first and, when the stream reports an
+     error, retries once on the plain route — each is a provider call. */
+  ai.script(500, 500);
+  await page.evaluate(() => { window.ai.history = []; window.openAI(); });
+  await page.waitForTimeout(500);
+  await page.fill('#ai-input', 'list all the contracts in hati so i can see how many we have');
+  await page.evaluate(() => window.aiSubmit && window.aiSubmit());
+  await page.waitForTimeout(5000);
+  const deg = await page.evaluate(() => {
+    const feed = document.getElementById('ai-feed');
+    const live = (window.state.contracts || []).filter(c => c && !c.archived && (c.status || '') !== 'Declined').length;
+    return { text: feed.innerText.slice(-600), live, door: !!feed.querySelector('[data-ai-worklist-all]') };
+  });
+  check(/provider returned an error/i.test(deg.text) && !/could not be reached/i.test(deg.text), '7a the stand-in names the cause (a provider error), not an outage', deg.text.slice(-200));
+  check(new RegExp('\\b' + deg.live + '\\b').test(deg.text) && /Contracts page holds the full list/i.test(deg.text) && !/matching/i.test(deg.text), '7b and a whole-book ask gets HaTi\'s own live count and the way to the list, not a keyword match', deg.text.slice(-300));
+  check(deg.door, '7c with the door onto the Contracts page');
+
   console.log(failures ? `\n${failures} FAILED` : '\nall checks passed');
   await browser.close();
   await h.stop();

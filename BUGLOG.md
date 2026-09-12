@@ -12826,3 +12826,14 @@ Proved: f299 (11a-c) new against a live server; f305, f2, f1 green; lint 0 error
 Noticed, not fixed
 - The map's own printed line ("Grouped N contracts …") says nothing about money; a money question's number is still spoken by the model, now from HaTi's figure. A printed HaTi line for a money ask would be a band-shaped change and is the owner's call.
 - The main Copilot's answer in the screenshot names "2 contracts in KES … not converted" while the Home tile prints no left-out line beside its figure; the tile has the fact (fx_left_out_*) and draws it only above zero — worth a look at whether the seed's two KES contracts are on the tile's list.
+
+### One Copilot, one figure (Young, 12 Sep 2026: "Go and then merge to main")
+Defects found
+- "Value under management" was never defined for the model: the main Copilot and the Insights panel (the same brain) answered 833M/159 and 851M/161 for one question. One sentence, computed the Home tile's way, now rides every brain's system block with the rule to quote and never add; the server and the browser write it with one body.
+- A whole-book listing gave up at five model turns: the rule now answers with the count and a door onto the full Contracts page (wholeBook on deliver_answer, both hosts); the loop allows eight turns; the 40-row page stays.
+- The stand-in answer reported every failure as "could not be reached" and answered a listing with a keyword match: the server's error carries its kind, the browser names it, and a whole-book ask gets HaTi's own count and the Contracts door.
+Proved: f299 (11a-d), f305 (one figure, both hosts), answer-worklist-verify 6-7; f151, f283, f2, f1, f203 green; lint 0 errors; full suite once at the end.
+Noticed, not fixed
+- The basis line under an aggregate answer (which contracts, converted how, what was left out) is still spoken by the model; a HaTi-printed line is the owner's call.
+- "MK-101 to MK-397" has no filter it can express; a reference-range where key would be a widening.
+- f132 (the gave-up row) and f268 (2)(3) quoted the five-turn loop and the worklist builder's old signature and went red; re-pointed (f132 now reads AI_CHAT_STEPS off the server — a relation, not a number). Second full run after them.

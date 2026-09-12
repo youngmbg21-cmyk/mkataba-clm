@@ -38,7 +38,7 @@ async function api(path, method='GET', body, opts){
     // (spendLimit / allowanceExhausted) and degrade accordingly.
     const err=new Error(_sm(data?.error)||('Request failed ('+res.status+')'));
     err.status=res.status; err.data=data||null;
-    if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; }
+    if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; err.kind=(typeof data.kind==='string')?data.kind:''; }
     throw err;
   }
   // The server folds a `notice` into an Copilot response when the input was

@@ -305,12 +305,16 @@ describe('F-C — every Copilot exchange leaves a record', () => {
   test('the gave-up fallback writes a row too', async () => {
     ai.reset();
     const q = 'log-test: never finishes';
-    for (let i = 0; i < 5; i++) ai.script(toolCall('search_contracts', { query: 'anything' }));
+    /* RE-POINTED 12 Sep 2026: the ceiling is AI_CHAT_STEPS (8, was 5) — read
+       off the server so this test pins the RELATION, not the number. */
+    const STEPS = Number((/const AI_CHAT_STEPS = (\d+);/.exec(require('fs').readFileSync(require('path').join(__dirname, '..', 'server', 'server.js'), 'utf8')) || [])[1]);
+    assert.ok(STEPS >= 5, 'the ceiling is declared on the server');
+    for (let i = 0; i < STEPS; i++) ai.script(toolCall('search_contracts', { query: 'anything' }));
     await ask(W.admin, q);
     const rows = await entriesFor(q);
     assert.equal(rows.length, 1);
     assert.match(rows[0].answer, /wasn't able to finish/);
-    assert.equal(rows[0].steps, 5);
+    assert.equal(rows[0].steps, STEPS);
     assert.deepEqual(rows[0].toolsUsed, ['search_contracts']);
   });
 

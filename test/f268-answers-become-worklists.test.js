@@ -222,7 +222,7 @@ describe('f268 (5) ONE DOOR, and it spends nothing', () => {
      asking the model something, it stops being free and starts being a second
      question the reader did not ask. */
   test('the builder calls no model and no route', () => {
-    const body = /function aiWorklistHtml\(list\)\{[\s\S]*?\n\}/.exec(src);
+    const body = /function aiWorklistHtml\(list, opts\)\{[\s\S]*?\n\}/.exec(src);
     assert.ok(body, 'aiWorklistHtml not found');
     for (const forbidden of ['copilotAsk', 'api(', 'fetch(', 'aiSubmit', 'ai/'])
       assert.equal(body[0].includes(forbidden), false,
@@ -237,9 +237,9 @@ describe('f268 (5) ONE DOOR, and it spends nothing', () => {
     const calls = (src.match(/aiWorklistHtml\(/g) || []).length;
     assert.equal(calls, 2,
       `expected the definition and the one aiCards call — found ${calls}`);
-    const cards = /const aiCards = list => \{[\s\S]*?\n\};/.exec(src);
+    const cards = /const aiCards = \(list, opts\) => \{[\s\S]*?\n\};/.exec(src);
     assert.ok(cards, 'aiCards not found');
-    assert.match(cards[0], /aiWorklistHtml\(list\)/);
+    assert.match(cards[0], /aiWorklistHtml\(list, opts\)/);
   });
 
   /* Published, or every guarded read of it elsewhere is silence — this
