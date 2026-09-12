@@ -81,8 +81,31 @@ describe('f295 — the one door and its gate', () => {
     assert.ok(/async function runPlaybookReview\(c,opts=\{\}\)\{\s*const text = playbookText\(c\);\s*if\(!text \|\| text\.length<PB_TEXT_MIN\)/.test(PB), 'one reading, two readers');
     assert.ok(/PB_TEXT_MIN,playbookText,/.test(PB), 'both published');
   });
-  test('the row is wired where its neighbours are and the press repaints the column', () => {
-    assert.ok(/\[data-rl-prepare\]'\)\?\.addEventListener\('click', \(\) =>\s*rlPrepareRedlines\(c, \(\) => renderRedline\(\)\)\)/.test(VIEW));
+  /* RE-POINTED 12 Sep 2026, IN PLACE. This pinned the SINGULAR query, which
+     was right while the menu row was the only door. The owner then asked for
+     the empty change column to offer the same act and said the menu row must
+     stay — two doors — and a querySelector binds whichever comes first in the
+     markup, which is the menu's, leaving the column's button dead. The claim
+     it was really making survives and is stronger: ONE handler answers every
+     door, and the press repaints the column. See "two doors, one act" below. */
+  test('every door is wired by ONE handler, AFTER the column is painted, and the press repaints', () => {
+    assert.match(VIEW, /\[data-rl-prepare\]'\)\.forEach\(b => b\.addEventListener\('click', \(\) =>\s*rlPrepareRedlines\(c, again\)\)\)/);
+    /* The declaration reads the same as the call, so it is excluded by name
+       rather than by counting two and calling it right. */
+    assert.equal((VIEW.match(/(?<!function )rlPrepareRedlines\(c, again\)/g) || []).length, 1,
+      'one call site: two handlers on one act is the drift the one-door rule is about');
+    /* WHERE it is bound is the load-bearing half. The cards column is painted
+       into its mount partway down renderRedline, so a query run in the head
+       block above that paint cannot see the column's button — it was drawn,
+       live-looking and dead, found by a real press. rlWireClauseTools runs
+       after the mount and holds the contract and the repaint. */
+    const head = VIEW.indexOf("host.querySelector('[data-rl-pbreview]')");
+    const paint = VIEW.indexOf('mount.innerHTML = redlinePanesHtml(c, opts)');
+    const wired = VIEW.indexOf("querySelectorAll('[data-rl-prepare]')");
+    assert.ok(head > 0 && paint > 0 && wired > 0, 'all three landmarks are there');
+    assert.ok(wired > paint, 'the handler is bound after the column is painted, not in the head block');
+    assert.ok(VIEW.slice(head, paint).indexOf("querySelectorAll('[data-rl-prepare]')") === -1,
+      'and nothing binds it before that paint');
   });
   test('the row draws dead where the reader cannot press it, and not at all on an executed contract', () => {
     const w = world(); const win = w.win;
@@ -189,5 +212,120 @@ describe('f295 — the words', () => {
       'ng_prepare_go', 'ng_prepare_filed_one', 'ng_prepare_filed_other', 'ng_prepare_here', 'ng_prepare_unplaced', 'ng_prepare_refused', 'ng_prepare_fallback', 'ng_prepare_none'])
       assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k);
     assert.ok(/Nothing is sent until you send it/.test(I18N) && /Inget skickas förrän du skickar det/.test(I18N));
+  });
+});
+
+/* ---- THE EMPTY CHANGE COLUMN IS THE SECOND DOOR (Young asked 12 Sep 2026) ----
+   The owner lifted the one-door refusal BY NAME — "do not delete the feature
+   in image 2" — so this act now has two ways in. That is only safe while they
+   are ONE act: one builder draws both buttons, one handler answers both, one
+   set of words. Each test here is a way of that coming apart. */
+describe('f295 — two doors, one act', () => {
+  /* bodyOf() above counts braces from the first one it meets, which on a
+     signature carrying `opts = {}` is the DEFAULT, not the body — it answered
+     '{}' and four checks passed on nothing. Slice to the next top-level
+     declaration instead: it is the shape of the file, not of the arguments. */
+  /* AN ABSENCE IS AN EMPTY STRING, NEVER A THROW. Run against the commit
+     before this feature the first version asserted here, the describe body
+     threw, and the whole section reported as ONE setup failure instead of nine
+     claims each saying what it could not find. A net has to say which strand
+     broke. */
+  const sliceFn = name => {
+    const i = VIEW.indexOf('\nfunction ' + name + '(');
+    if (i < 0) return '';
+    const rest = VIEW.slice(i + 1);
+    const j = rest.search(/\n(?:async )?function [A-Za-z_$]/);
+    return j > 0 ? rest.slice(0, j) : rest;
+  };
+  const CARDS = sliceFn('redlineChangeCardsHtml');
+  const ACTS = strip(sliceFn('rlEmptyColumnActsHtml'));
+  test('both builders are declared', () => {
+    assert.ok(sliceFn('rlEmptyColumnActsHtml'), 'rlEmptyColumnActsHtml');
+    assert.ok(sliceFn('rlFirstClauseId'), 'rlFirstClauseId');
+    assert.match(VIEW, /rlEmptyColumnActsHtml, rlFirstClauseId,/, 'and both are published on window');
+  });
+  test('the More menu\'s row is still drawn — the owner asked for it by name', () => {
+    assert.match(VIEW, /mayMenu && !\(window\.negoExecuted && negoExecuted\(c\)\) \? rlPrepareRowHtml\(c, preview\) : ''/,
+      'the row the owner pointed at is untouched');
+  });
+  test('the column\'s button is the SAME builder, not a second copy', () => {
+    assert.match(ACTS, /rlPrepareRowHtml\(c, preview\)/,
+      'one builder, so the greying and the words cannot drift between the doors');
+    assert.ok(!/data-rl-prepare/.test(ACTS),
+      'the attribute is the builder\'s to write — writing it here would be the copy');
+    /* The whole point of one builder: exactly one place emits this. */
+    assert.equal((VIEW.match(/data-rl-prepare\b/g) || []).length, 2,
+      'one emitter and one handler name it, and nothing else');
+  });
+  test('ONE HANDLER ANSWERS BOTH — querySelectorAll, never querySelector', () => {
+    assert.match(VIEW, /querySelectorAll\('\[data-rl-prepare\]'\)\.forEach/,
+      'the singular query bound the menu row only and left the column button dead');
+    assert.ok(!/querySelector\('\[data-rl-prepare\]'\)/.test(VIEW),
+      'the singular form is gone, not left beside the plural one');
+  });
+  test('not on an executed contract, at either door', () => {
+    assert.match(ACTS, /negoExecuted\(c\)/, 'the column asks the same question the menu row does');
+    assert.match(ACTS, /executed \? '' : rlPrepareRowHtml/, 'and draws nothing rather than a dead button');
+  });
+  test('the buttons draw on OUR seat only, and never over a reading', () => {
+    const gate = /const mayStart = ([^;]+);/.exec(CARDS);
+    assert.ok(gate, 'the gate is one named reading');
+    for (const must of ["side === 'owner'", '!previewSeat', '!opts.preview', 'editable', 'canAct', '!rlReadOnlyReading()'])
+      assert.ok(gate[1].includes(must), 'the gate asks ' + must);
+    /* THE SENTENCE SURVIVES FOR EVERY SEAT THE BUTTONS DO NOT REACH: the
+       counterparty's column is not left with an empty box where prose was. */
+    assert.match(CARDS, /\$\{acts \|\| `<span>/,
+      'no buttons means the old blurb, never nothing');
+  });
+  test('"Edit a clause" decides its destination at the DRAW, like the pencil', () => {
+    assert.match(ACTS, /const toEditor = rlEditorTakesIt\(side, opts\)/,
+      'the same reading the paper\'s pencil asks');
+    assert.match(ACTS, /data-rl-edit-first="\$\{toEditor \? 'editor' : 'panel'\}"/,
+      'the answer travels on the attribute so the press cannot re-decide it');
+    /* The handler sits beside the paper's pencil, in wireNegotiationTab, and
+       the slice runs from its own attribute to the end of its listener. */
+    const at = VIEW.indexOf("querySelectorAll('[data-rl-edit-first]')");
+    assert.ok(at > 0, 'the door is wired');
+    const wire = VIEW.slice(at, at + 900);
+    assert.ok(!/rlEditorTakesIt/.test(wire), 'and the handler never asks again');
+    /* IT GOES THROUGH openEditor, the ONE named reading of what a press onto
+       that page means — not rlOpenClauseEditor itself. Written the other way
+       first and f245 (1) and (19) went red: three doors shared that reading and
+       a fourth answering for itself is the drift they exist to catch. */
+    assert.match(wire, /openEditor\(first\)/, 'the editor branch goes through the shared reading');
+    assert.ok(!/rlOpenClauseEditor\(c,/.test(wire),
+      'and never calls the page\'s door itself — that is openEditor\'s one job');
+    assert.match(wire, /rlCpSetShown\(btn\.closest\('\.redline-page'\) \|\| document, first\)/,
+      'the panel branch is the pill\'s own door, never a second implementation');
+    assert.equal((VIEW.match(/rlOpenClauseEditor\(c,/g) || []).length, 1,
+      'exactly one place in this file opens that page');
+  });
+  test('READING MUST NOT WRITE: the clause is resolved at the press, not the draw', () => {
+    assert.ok(!/negoClauseList/.test(ACTS),
+      'the builder must not initialise the negotiation — that is what a renderer may never do');
+    const first = strip(sliceFn('rlFirstClauseId'));
+    assert.match(first, /negoClauseList\(c\)/, 'the press asks the engine\'s own list');
+    assert.match(first, /find\(x => x && x\.clauseId\)/, 'the first clause that carries an id');
+    assert.match(first, /return cl \? String\(cl\.clauseId\) : ''/, 'and an absence is an absence');
+  });
+  test('nothing files, sends or decides from the empty column', () => {
+    for (const bad of ['negoFileChange', 'changes.push', 'negoInsertClause', 'negoEditClause',
+      'nego-send', 'buildSharePayload', 'persist('])
+      assert.ok(!ACTS.includes(bad), 'the empty column never ' + bad);
+  });
+  test('the clothes follow the builder — this home dresses the button itself', () => {
+    const CSS = read('js/views/negotiation-css.js');
+    assert.match(CSS, /\.redline-page \.rl-empty-acts button\[data-rl-prepare\]\{[^}]*var\(--accent-fill\)/,
+      'the second home dresses rlPrepareRowHtml\'s button; the menu\'s rule cannot reach it');
+    assert.match(CSS, /\.redline-page \.rl-empty-acts button:disabled\{[^}]*cursor:not-allowed/,
+      'a dead control does not look alive');
+    assert.ok(!/\.rl-empty-acts[^}]*--accent-solid/.test(CSS),
+      'never the nav\'s brand ground');
+  });
+  test('the words are in both books', () => {
+    for (const k of ['ng_empty_edit', 'ng_empty_edit_title', 'ng_empty_lead', 'ng_empty_none'])
+      assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k);
+    assert.ok(/nothing is sent until you press Send/i.test(I18N),
+      'the line under the buttons says nothing travels');
   });
 });

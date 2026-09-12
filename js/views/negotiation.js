@@ -4684,6 +4684,34 @@ function wireNegotiationTab(c, opts = {}){
         ev.preventDefault(); ev.stopPropagation();
         openEditor(btn.getAttribute('data-rl-cp-editor'));
       }));
+    /* ---- "EDIT A CLAUSE", THE EMPTY COLUMN'S DOOR (12 Sep 2026) ----
+       THE FOURTH CALLER OF openEditor, and that is exactly why it is here: the
+       ask "the reader pressed edit" is written once, in that helper, and a door
+       that called rlOpenClauseEditor itself would be a second answer to what a
+       press onto that page means. Written in rlWireClauseTools first, where the
+       contract was equally to hand, and f245 (1) and (19) turned red the same
+       minute — the rule is a net, not a preference.
+
+       THE DESTINATION WAS DECIDED AT THE DRAW and travels on the attribute, so
+       a window resized between the paint and the press cannot send the reader
+       somewhere the button did not promise. Under 1024px, or with the editor
+       module off the stage, the panel is the destination — rlCpSetShown, the
+       pill's own door, never a second implementation of it.
+
+       WHICH CLAUSE IS RESOLVED AT THE PRESS (rlFirstClauseId): resolving it
+       stamps the ids, and a renderer may not write. Nothing to open is said in
+       a 'warn' — nothing failed and nothing was refused. */
+    host.querySelectorAll('[data-rl-edit-first]').forEach(btn =>
+      btn.addEventListener('click', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        const first = window.rlFirstClauseId ? rlFirstClauseId(c) : '';
+        if (!first){ if (window.toast) toast(i18t('ng_empty_none'), 'warn'); return; }
+        if (btn.getAttribute('data-rl-edit-first') === 'editor' && window.rlOpenClauseEditor){
+          openEditor(first);
+          return;
+        }
+        if (window.rlCpSetShown) rlCpSetShown(btn.closest('.redline-page') || document, first);
+      }));
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
        made the Redline workbench's AI Assist flash and vanish. The clause
        toolbar sits inside this host, so pressing it fires this handler too;
@@ -8420,10 +8448,16 @@ function renderRedline(){
      so every row is bound by the page that owns it. It takes no callback: the
      memo changes nothing, so there is nothing for the page to repaint after. */
   host.querySelector('[data-rl-memo]')?.addEventListener('click', () => openNegoMemo(c));
-  /* "Prepare redlines" repaints the column on the same beat the playbook pass
-     does — the cards arriving under Your drafts ARE the confirmation. */
-  host.querySelector('[data-rl-prepare]')?.addEventListener('click', () =>
-    rlPrepareRedlines(c, () => renderRedline()));
+  /* "Prepare redlines" IS WIRED IN rlWireClauseTools, NOT HERE (12 Sep 2026).
+     It was bound on this line while the More menu was its only door. The owner
+     then asked the empty change column to offer the same act, and the column
+     is painted into its mount FURTHER DOWN THIS FUNCTION — so a query run here
+     could not see the column's button, and that button was drawn, live-looking
+     and DEAD. Measured with a real press, not read off the source: the button
+     was there, it was not disabled, and pressing it raised nothing at all.
+
+     So the handler moved to the one place that runs AFTER the mount is painted
+     and still holds the contract and the repaint. One handler, both doors. */
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -9726,6 +9760,25 @@ function rlWireClauseTools(c, host, opts){
      scroll the column out from under the hand that pressed it. It DOES light
      the clause first, so opening a card still shows you what it is about —
      rlLinkFocus, the row's own act, never a second implementation. */
+  /* ---- "PREPARE REDLINES", AT EVERY DOOR, WIRED ONCE (12 Sep 2026) ----
+     querySelectorAll, never querySelector: the act has two doors — the More
+     menu's row and the empty change column's button — and the owner asked for
+     both to stay. A singular query binds whichever the markup puts first and
+     leaves the other dead, which is exactly what happened when this lived in
+     the head block above. ONE handler over both is what makes two doors one
+     act; a second handler would be the drift the one-door rule is about.
+
+     `again` rather than a bare renderRedline: this function is the one place
+     that knows how its host repaints, which is the rule stated at its top. */
+  host.querySelectorAll('[data-rl-prepare]').forEach(b => b.addEventListener('click', () =>
+    rlPrepareRedlines(c, again)));
+  /* "Edit a clause", the empty column's other door, is wired in
+     wireNegotiationTab beside the paper's pencil — NOT here. It has to reach
+     the editor through `openEditor`, the one named reading of what a press
+     onto that page means, and that reading lives in that function. Three doors
+     shared it; a fourth calling rlOpenClauseEditor itself would be a second
+     answer to the same question (f245 (1) and (19) both say so, and both went
+     red the first time this was written here). */
   host.querySelectorAll('[data-rl-card-open]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const id = btn.getAttribute('data-rl-card-open');
@@ -12046,6 +12099,60 @@ function rlPrepareRowHtml(c, preview){
   return `<button type="button" data-rl-prepare${dead ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(i18t(dead || 'ng_prepare_title'))}"
       ><span aria-hidden="true">&#9998;</span>${i18t('ng_prepare')}</button>`;
+}
+/* ---------- THE EMPTY CHANGE COLUMN'S TWO DOORS (Young asked 12 Sep 2026) ----------
+   Drawn only where redlineChangeCardsHtml has already decided this reader may
+   start work — our seat, not a preview, not a reading, hands not narrowed by
+   an open review. Everything it offers exists already; this builder mints
+   nothing and files nothing.
+
+   PREPARE REDLINES IS THE SAME BUTTON THE MORE MENU DRAWS, from the same
+   builder, with the same greying and the same words — so the two doors cannot
+   come to disagree about whether the act can work or what it will cost. Not
+   drawn at all on an executed contract, the rule its menu row already keeps:
+   a verb that cannot work is not drawn.
+
+   THE CLOTHES FOLLOW THE BUILDER. rlPrepareRowHtml's button is dressed by a
+   rule scoped to .rl-more-menu, which does not reach here, so this home
+   dresses it itself — .rl-empty-acts in negotiation-css.js. That is this
+   codebase's most-repeated fault written down, not a guess.
+
+   THE DESTINATION OF "EDIT A CLAUSE" IS CHOSEN AT DRAW TIME, exactly as the
+   paper's pencil chooses its own: the clause editor where rlEditorTakesIt says
+   so, the clause panel where it does not (a narrow window, or the module
+   absent). The attribute carries the answer so the handler never re-decides
+   it — the drift that would let the pencil and this button open two different
+   things on the same contract.
+
+   WHICH CLAUSE IS NOT ASKED HERE. Reading the clause list initialises the
+   negotiation, and READING MUST NOT WRITE: the press asks (rlFirstClauseId),
+   the draw does not. A contract with no clause to open is therefore not known
+   here, and the press says so in words rather than the button lying about it —
+   the same choice rlPrepareRowHtml already makes for a light record. */
+function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
+  const preview = !!(opts && opts.preview);
+  const executed = !!(window.negoExecuted && negoExecuted(c));
+  const prepare = executed ? '' : rlPrepareRowHtml(c, preview);
+  const toEditor = rlEditorTakesIt(side, opts);
+  const edit = `<button type="button" class="rl-empty-edit" data-rl-edit-first="${toEditor ? 'editor' : 'panel'}"
+      title="${_nea(i18t('ng_empty_edit_title'))}"
+    ><span aria-hidden="true">&#9998;</span>${i18t('ng_empty_edit')}</button>`;
+  /* ONE LINE, UNDER THE BUTTONS, SAYING WHAT THE FIRST ONE SPENDS AND THAT
+     NOTHING TRAVELS. It is not a band: it explains the control it sits under
+     and it is drawn only on the one screen that has nothing else on it. */
+  return `<div class="rl-empty-acts">${prepare}${edit}</div>
+    <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
+}
+/* THE FIRST CLAUSE OF THE AGREEMENT, asked at the press and never at the draw.
+   negoClauseList initialises the negotiation and stamps the ids, which is
+   exactly what makes the answer openable — and exactly why no renderer may
+   call it. A body with no clause carrying an id answers '' and the caller
+   speaks. The front matter is deliberately not offered: it is not in the
+   clause list and a reader asked to "edit a clause" means clause 1. */
+function rlFirstClauseId(c){
+  const list = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+  const cl = (list || []).find(x => x && x.clauseId);
+  return cl ? String(cl.clauseId) : '';
 }
 async function rlPrepareRedlines(c, again){
   if (!window.runPlaybookReview || !window.confirmDialog || !window.rlPlaybookProposals){
@@ -15039,16 +15146,42 @@ function redlineChangeCardsHtml(c, opts = {}){
         <span>${_ne(i18t('ng_filter_none_sub'))}</span>
         <span><button type="button" class="rl-cnote-more" data-rl-cardfilter="all">${_ne(i18t('ng_filter_show_all'))}</button></span>
       </div>`;
+    /* ---- THE EMPTY COLUMN IS A DOOR (Young asked 12 Sep 2026) ----
+       It described the work instead of offering it: a sentence naming a pencil
+       that is twelve pixels away on the paper, over the one moment in the
+       whole page where the reader has nothing to read and no card to press.
+       The audit's first finding, and the cheapest: both acts already exist, so
+       nothing new is built here — two doors are drawn where the work starts.
+
+       THE OWNER LIFTED THE ONE-DOOR REFUSAL BY NAME (*"do not delete the
+       feature in image 2"*), so Prepare redlines now has two ways in: this
+       button and the More menu's row. They are ONE ACT — rlPrepareRowHtml
+       builds both buttons and one handler answers both — which is the only
+       shape in which two doors are safe. The refusal was stated before this
+       was built and the owner ruled; that is written here so the next reader
+       does not read it as the rule being forgotten.
+
+       NOT ON EVERY SEAT. The counterparty's column, the owner's preview of it,
+       a narrowed reviewer and a reading all keep the sentence: a button that
+       cannot act is worse than a line of prose, and their seats were proved
+       untouched. Where the buttons do not draw, nothing about this state
+       changed. */
+    const mayStart = side === 'owner' && !previewSeat && !opts.preview
+      && editable && canAct && !rlReadOnlyReading();
+    const acts = mayStart ? rlEmptyColumnActsHtml(c, opts, side) : '';
     return `<div class="rl-cards-empty">
       <b>${i18t('ng_no_changes')}</b>
       ${''/* THE WAY IN IS THE EDIT PILL NOW (16 Aug 2026). This blurb pointed
              at Direct Edit under the clause, and that row is retired — all
              writing happens in the clause panel, whose door is the Edit pill
              on every clause. Since 20 Aug 2026 the pill is the pencil icon,
-             so the blurb names the symbol beside the word. */}
-      <span>${opts.noAi
+             so the blurb names the symbol beside the word.
+
+             IT SURVIVES AS THE ANSWER FOR EVERY SEAT THE BUTTONS DO NOT
+             REACH, which is why it is a branch and not a deletion. */}
+      ${acts || `<span>${opts.noAi
         ? `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel, then <b>&#43;</b> to propose new wording.`
-        : `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>
+        : `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>`}
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
@@ -17307,7 +17440,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
-  rlPrepareRedlines, rlPrepareRowHtml,
+  rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,
