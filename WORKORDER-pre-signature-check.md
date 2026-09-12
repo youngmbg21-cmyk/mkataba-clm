@@ -1,0 +1,63 @@
+# THE PRE-SIGNATURE CHECK, AND A TEMPLATE IS READ ONCE — one work order, five phases, in order
+
+**WRITTEN 12 Sep 2026, midday, off the owner's brainstorm: *"When loading a standard company contract, there should be a reading of the contract just like loading an external contract so you can have a brief, obligations, risks and so forth just in case. Also, once any contract is ready for signing, it should have another sweep to see where it stands against company policy and any new obligations."* Recorded; nothing here is coded until the owner says go.**
+
+Measured against the code, not guessed. Line numbers are starting points; re-verify with grep.
+
+## What stands today
+
+- **Only a received document is read on arrival.** `triageApplies = c.source === 'upload'` (js/triage.js) — by design: a contract HaTi drafted was written from this workspace's own wording, and reading it back would be paying to be told what we already said. The four readings (`TRIAGE_STEPS` = risk · brief · playbook · oblig) land as tiles on Key terms (`#kt-triage`, `paintKtTriage`); found obligations are HELD on `c.triage` and offered at `runFindObligations`, never filed for the reader.
+- **The standards review has no memory of which wording it read.** `c.playbook` is written at three sites (js/playbook.js ~431, js/views/negotiation.js ~12076 and ~12259) and by the overnight `runPlaybookPrep` (server), with `label`, `verdicts`, `source` — and NO wording hash. "When" is read off the trail's last `Playbook` line. So nothing can say whether the review on file is about the wording that is about to be signed.
+- **Obligations do remember**: `obligationsReadAt` / `obligationsReadHash` on the contract (J-2.2), stamped by `obligationsReadStamp` at the scan and at auto-triage. Rounds of redlines can add a promise nobody recorded; nothing re-reads at the end.
+- **Signing is gated by `signBlockers(c)`** (js/views/contract.js ~9268): intent, approval chain, whose turn, the negotiation, the readiness blanks (`contractReadiness`, js/core.js), the template form, the cap, the folder, spots to fill. The route opens on `signingRouteOpen(c)` (js/approvals.js); the table is clear when `negoOpenPoints(c)` is empty. There is no check of the FINAL wording against the playbook, the record or the obligations at that moment.
+- **Templates carry structured facts** — `TEMPLATE_PAY` per template (js/templates.js), `DOC_TERM_IN_CLAUSE`, `builtinTemplateFields`, the wizard's answers — but NO obligation schema: a template-born contract's obligations are typed by hand or found by a model reading text HaTi itself wrote.
+- **The template library** (`tplLibPublished`, `templateUsage`, versions) holds no brief, no standards baseline and no risk profile per template.
+
+## The ruling this order follows
+
+Read once per template version; per contract, read only what is new. The pre-signature check is where the delta is read, because the delta is what will be signed. Nothing here is a band: every reading lands as a fact on the tab that owns it, with its act beside it. A verb that cannot work is not drawn. Money only with canViewValues; the scope the reader's own; nothing filed on the reader's behalf.
+
+════════ PART A — THE PRE-SIGNATURE CHECK (do these first) ════════
+
+**PHASE 1 — THE STANDARDS REVIEW REMEMBERS WHAT IT READ.** Every writer of `c.playbook` (the three browser sites and the server's overnight sweep) stamps `wordingHash` (the hash of exactly the wording it was sent — `playbookText(c)`, the same `hashV` the funnel uses) and `checkedAt`. `playbookStale(c)` is the ONE reading of "the review on file is about older wording" (hash differs from the current `playbookText(c)`; null where there is no review). `copilotDetail.standardsReview` carries `stale`; the Playbook panel's head says "reviewed against earlier wording" in its own words where it is. No migration: an older review without a hash reads as `stale: null` (unknown), never as fresh. Net: f133 widened; a fixture with a review, then a filed change, then `playbookStale` true.
+
+**PHASE 2 — `signCheck(c)` IS THE ONE READING OF WHERE THE CONTRACT STANDS AT THE DOOR.** A deterministic function (js/signcheck.js, its own file, no route, no store) returning `{ ready, standards, obligations, record }`:
+- `ready`: `signingRouteOpen(c)` and `negoOpenPoints(c).length === 0` and not executed — the moment the check is about.
+- `standards`: from `c.playbook` — deviations by verdict (`deviation` / `missing` / `aligned`), which are ACCEPTED (a reason recorded on the verdict — see phase 3) and which are not; `stale` from phase 1; `none` where no playbook is saved (`resolvePlaybook` null) — an absence stated, never guessed.
+- `obligations`: what the record holds (`c.obligations`), what the last read saw (`obligationsReadHash` against the current text), how many are dateless or ownerless (`obligationReminderTo` null), and `unread` where the wording moved since the last read.
+- `record`: Key terms against the paper, all deterministic and all already readable — value (`c.value` / `contractCurrency`) against a figure in the wording where `metadata.sourceSpans` names one; term (`docTermSpan`, both directions); parties (`contractParty`, `c.counterparty`) against the signature block; each a `{ field, record, paper, agrees }` row, `unknown` where the paper carries no figure.
+Nothing in `signCheck` spends. f-new pins: reads `c.changes` and `c.negotiation` RAW (READING MUST NOT WRITE), no `negoInit`, no fetch, no `api(`.
+
+**PHASE 3 — THE CARD ON THE SIGNING TAB.** `signCheckCardHtml(c)` drawn in the signing column above the route (the column `#doc-grid`'s right track, `data-ws-pane="docs sign"`), in the four-tile shape of Key terms' triage strip (`triageTiles` is the reference — reuse its classes, do not fork them): **Standards** · **Obligations** · **Record** · **Checked**. Three states per tile as the triage tiles have (not yet · busy · done), every figure from `signCheck`; the card draws nothing before `ready`. Each finding carries its act, and every act is a door that already exists:
+- a deviation → *Accept with a reason* (writes `accepted: { by, at, why }` on that verdict of `c.playbook`, one audit line `'Playbook'`; the reason is required, `SIGN_ACCEPT_MAX` 240) or *Open the clause* (`rlOpenClauseEditor` where the desk allows, else the clause panel);
+- a new obligation → the same review dialog `runFindObligations` opens (proposals UNTICKED, `obligationAlreadyOn` asked, nothing filed until the reader ticks);
+- a record mismatch → *Fix on Key terms* (`focusKeyTerms` on that field) or *Keep the record* (a stamp `recordAccepted[field] = { by, at }`, no edit);
+- *Run the check* → phase 4.
+The card computes nothing (`signCheck` does). Not on the phone, not on the counterparty's page (the check names our playbook). Contract pixels: the Signing tab shows the Document canvas; the card sits in the signing COLUMN and takes no pixel from the paper — measured before and after (refusal 3).
+
+**PHASE 4 — THE SWEEP, ONCE PER WORDING.** `runSignCheck(c, opts)` (browser) presses, in order, exactly the readings that exist: the standards review (`runPlaybookReview` — only where `playbookStale(c)` is true or there is none; the SAME route, the same `c.playbook` writer, so phase 1's hash lands), then obligations (`runFindObligations` — only where `obligationsReadHash` differs from the current text; proposals held, offered unticked), then the record rows (free). One confirm before it spends, naming what will be sent and the cost line the brief uses; nothing runs without a press. `c.signCheck = { at, by, wordingHash }` is stamped only where every reading it pressed came back (a cut-short answer is not a check); the *Checked* tile reads it; a wording that has not moved is not read twice (`wordingHash` equal → the tiles say "checked against this wording"). THE OWNER PAYS as on the overnight sweeps (`meter.who`). Spend named `signcheck` in the ledger. Nothing is sent, nothing is filed, nothing is signed.
+
+**PHASE 5 — THE GATE, OFF BY DEFAULT.** An admin setting on the Platform settings tab beside the review gate (`signCheckGate`: off · advise · require), read by ONE predicate `signCheckApplies(c, u)` in the review gate's shape (`reviewGateApplies` is the reference). *advise* draws the card and blocks nothing. *require* adds ONE blocker to `signBlockers` — `sign_check_open` — drawn only where `signCheck(c)` reports an unaccepted deviation, an unread obligation scan on moved wording, or a record mismatch neither fixed nor kept; the blocker's sentence names which. THE SERVER IS THE WALL: the same three questions asked at `POST /api/shares/:token/respond` (`action: 'sign'`) and at the internal signing route, as a DIFFERENCE against the STORED record, only where the org setting is `require`. Never desk, never review (the rulebook's line: the desk gates redlining and sending, the approval chain gates signing — this gate is a second row in that chain, not a fourth kind). Tests: the gate on `require` refuses a sign request on a contract with an unaccepted deviation and permits it once accepted; on `off` nothing changes byte for byte.
+
+════════ PART B — A TEMPLATE IS READ ONCE ════════
+
+**PHASE 6 — THE TEMPLATE BASELINE.** A published library template (`tplLibPublished`, per version) carries `baseline: { brief, standards, risk, wordingHash, at }`, read ONCE when it is published or its wording changes (the same three routes the upload triage uses, sent the template's wording with its blanks as `[…]`), stored on the template record, never on a contract. The Templates overview card shows "Read on {date}" and the library's template page shows the brief. A contract born from a template inherits the baseline as `_templateBaseline` transport (stripped on save), and Key terms' Brief card offers "Read this contract" only where the wording has departed from the template (hash of the contract's wording against the template's, blanks folded). Built-in templates (`TEMPLATES`) are NOT read by a model: their baseline is written by hand in the code, as their `valueType` and `TEMPLATE_PAY` are.
+
+**PHASE 7 — OBLIGATIONS ARE MINTED FROM STRUCTURE.** `TEMPLATE_OBLIGATIONS` per built-in template (js/templates.js, beside `TEMPLATE_PAY`) and an `obligations` schema on a library template: each entry names the obligation's description, whose (ours/theirs), how the due date is derived (`from: 'effective' | 'expiry' | 'signed'`, `offsetDays`, or `field: 'paymentTermsDays'`), the amount field where one applies, and `recur`. `mintTemplateObligations(c)` writes them ONCE at the moment the contract's facts exist to derive from (`createFromTemplate` where effective/expiry are answered, else the first save that fills them), through `obligationAlreadyOn` (never twice), each stamped `origin: 'template'`; the reader edits or deletes them as any obligation. No model is called for a template-born contract's obligations unless the pre-signature check (phase 4) finds the wording moved.
+
+## Walls
+
+- Nothing here files a change, sends a round, or signs; every act on the card is a door that already exists.
+- No band: the card is on the Signing tab in the triage tiles' shape; the blocker is one row in `signBlockers` like the others.
+- The server is the wall for the gate; the browser card is information.
+- Money only with `canViewValues` (the record rows about value are not drawn without it); folder scope on every route.
+- A cut-short answer is not a check; an absence (no playbook, no figure in the paper) is stated, never guessed.
+- Templates carry structure; contracts inherit; only the delta is read.
+
+## Tests, in the house style
+
+f-new (signcheck): `signCheck` on fixtures — no review → `standards.none`; review then a filed change → `stale`; obligations read then moved wording → `unread`; record rows agree/disagree/unknown; READING MUST NOT WRITE pinned byte-for-byte. f133 widened for the hash. Browser: signing-check-verify — the card draws only at ready; the tiles' three states; Accept with a reason writes the stamp and the blocker goes; the gate on `require` greys Sign with the reason on the hover and the server refuses the respond route; measured: the first line of the agreement does not move by a pixel with the card drawn. templates-tabs-verify: the baseline date on the card. f-new (templates): `mintTemplateObligations` derives dates from the fields, once, never twice, `origin: 'template'`.
+
+## Not in scope
+
+Reading every template-born contract on creation (ruled out above). A fifth Insights tab for signing readiness. The counterparty's view of any of it. Multi-party signing.
