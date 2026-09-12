@@ -2,7 +2,7 @@
 
 Owner asked, 12 Sep 2026. **NOT BUILT. Waiting on the owner's go**, and on the three rulings at the foot.
 
-Prototype and full reasoning: the **Prompt & Build** artifact (published 12 Sep 2026).
+Prototype and full reasoning: the **Section by Section** artifact — twelve steps, two of them live.
 
 ---
 
@@ -43,6 +43,26 @@ you are on your own.
 **REFUSED: the whole template in one press.** It walks past the playbook, the clause library and
 every guard this product has, and it is the one shape that cannot fail honestly — cut off
 halfway, it looks finished.
+
+## THE JOURNEY IT SITS IN — unchanged at both ends
+
+The feature is steps 3-8 of a twelve-step journey. Both ends are HaTi as it stands,
+and neither moves:
+
+- **BEFORE.** `tplLibCreateModal` asks Name · Category · **Value stream** · Description and
+  creates a DRAFT only template managers see. The stream is the filing: the Templates page
+  groups the shelf by it and `openWizard`'s picker opens on the streams, so a template
+  created with no stream lands in *Other*.
+- **AFTER.** `tbPublish` goes THROUGH `openDesignStep` (mode `publish`) — never around it
+  (decision 2 in DESIGN-contract-designer.md). It carries the change note and the publish
+  call, previews the REAL draft, and with a company default saved opens pre-dressed.
+  Publishing turns the card green on the shelf, under the stream chosen at the start.
+  `tplLibNewContract` then draws from it, and contracts already created from an earlier
+  version are untouched.
+
+Nothing in this proposal edits either end. They are recorded here because "publish it to
+the right folder" is one of the owner's stated requirements and the folder is decided at
+creation, not at publish.
 
 ## WHAT IT IS BUILT OUT OF — one new route, three reuses, one free reading
 
