@@ -170,7 +170,23 @@ function commandMeta(view){
     }
     case 'redline': {
       const c=getContract(state.activeId);
-      return [i18t('pg_negotiate'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
+      /* ---- THE DARK BAR SAYS WHICH PLACE THIS IS (Young ruled 12 Sep 2026) ----
+         With a contract open, the negotiation IS that contract's workspace —
+         the owner's own words: opening it "should feel like nothing has changed
+         at the top bar card apart from the words". So the bar says Contract
+         Workspace there, exactly as the room does, and the reader is not told
+         they have left.
+
+         THE LIST IS STILL NEGOTIATIONS. The same view name draws the list of
+         live negotiations, which is a list and not one contract's workspace —
+         `redlineHeldId` is the page's own reading of which of the two is on
+         screen, guarded because this runs on stages that never load that
+         page. */
+      let held = null;
+      try{ held = (typeof window !== 'undefined' && window.redlineHeldId) ? redlineHeldId() : null; }catch(_){ held = null; }
+      const one = !!(c && held && String(held) === String(c.id));
+      return [i18t(one ? 'pg_workspace' : 'pg_negotiate'),
+        c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
   }

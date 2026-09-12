@@ -742,6 +742,17 @@ One new field `after` (absent = not in a chain; no migration). BLOCKED IS THE DI
 - A-5 MONEY FLOWING THROUGH THE VALUE STREAM: `graphStreamFlow()` per folder `{n, in, out, net, missing, unsided, sided}` over the live book; THE SIDE IS `paySide`'s OWN (customer = money IN, supplier = OUT — the work order had it the other way); missing and unsided counted and named, never summed; "on paper" on the hub's net line; net carries sign and ink; link width is value on a bounded sqrt scale (`graphLinkWidth`, 1.5–9px); money obeys `canViewValues` (asked once in the model); the flow is the folder grouping's own. f294.
 Tests: insights-panels-verify sections 11–15.
 
+## THE NEGOTIATION IS THE CONTRACT'S WORKSPACE (Young ruled 12 Sep 2026)
+
+*"When you are in contract workspace and you open negotiate page, should feel like nothing has changed at the top bar card apart from the words. The should the same sized card."* `roomHeadHtml` already drew both heads; what differed was which rows it drew for each.
+- **THE SAME ROWS ON BOTH**: crumb · title with its quiet line · acts · facts. The crumb is drawn unconditionally and only its WORD and DESTINATION differ (`pg_workspace` + `data-back="contract"` on the workbench, `ct_back_register` on the room). `#ws-back` is still ONE button with one handler; `.room-name-id` / `.rn-arrow` / `.rn-id` are STALE — the reference is in the crumb, and saying it twice is what moved it there in the first place.
+- **ONE TITLE READING**: both heads ask `roomHeadTitle(c)` (the counterparty stripped, the whole name on the hover). The workbench title stays a door (`#ws-back-title`); the room's is plain, as it was.
+- **THE QUIET LINE IS INSIDE `.room-id`** on both — a sibling row made the card a whole row taller (measured 144.2 against 129.8).
+- **THE CARD IS THE BAR TO THE BOTTOM OF THE FACTS ROW**, never `#ws-head`'s own height: the room spends 16px of it in `.room-band` and the workbench in its own padding, so those are two different boxes. **MEASURED EQUAL AT 145.8**, crumbs at one top. The workbench's head takes `padding:var(--page-pad-t) 24px 0` (the calculation that compensated for a ONE-LINE head put the first glyph 4px high — pages-read-alike 8 caught it) and the room's `gap:6px`; `.room-headsub` takes `.room-sub`'s own 3px.
+- **THE DARK BAR** says Contract Workspace where one contract is open (`redlineHeldId`, guarded) and Negotiations for the LIST.
+- IT COST THE CONTRACT 19.6px on that page (first ink 286.2 → 305.8), the owner's ruling on refusal 3, and it still gives the paper 40px more than the room does.
+Tests: f184 (six claims, all six red at the parent), pages-read-alike-verify 1 (the two cards compared, never a typed ceiling), room-head-fold-verify.
+
 ## THE EMPTY CHANGE COLUMN IS A DOOR, AND PREPARE REDLINES HAS TWO (Young ruled 12 Sep 2026)
 
 The audit's first finding: the one screen with nothing to read described the work instead of offering it. **THE OWNER LIFTED THE ONE-DOOR REFUSAL BY NAME** — *"do not delete the feature in image 2"* — so the act keeps its More-menu row AND gains a button in the empty column.
