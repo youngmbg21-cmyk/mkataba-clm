@@ -13174,3 +13174,24 @@ NOTICED, NOT FIXED
 VERIFIED
   f311 34/34, f308, signing-flow-verify 18/18; lint 0 errors; full suite —
   see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (later still) — "NOTHING NEW TO ADD" IS A LIVE PRESS
+Owner: "nothing new to add button is not working."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The proposed-obligations window's primary button was greyed whenever
+    nothing was ticked; over a list of duplicates that left a filled button
+    that did nothing and no way out but Cancel. Where the scan found nothing
+    new the button is live and closes the window (nothing added, said in
+    the toast). "Tick one to add" over fresh proposals stays greyed.
+
+NOTICED, NOT FIXED
+  · A press on "Nothing new to add" still writes the existing "Added 0
+    obligations … already on the contract" audit line — a true record of
+    the read, but an odd sentence.
+
+VERIFIED
+  f260, f263 green; a real press in Chromium closed the window with no
+  obligation added; lint 0 errors.

@@ -914,7 +914,14 @@ function openObligationsReview(c, found){
     btn.textContent = n
       ? i18tn('ob_add_n', n, { n })
       : i18t(fresh ? 'ob_add_pick' : 'ob_add_none');
-    btn.disabled = !n;
+    /* "NOTHING NEW TO ADD" IS A LIVE PRESS (owner-reported 13 Sep 2026:
+       "nothing new to add button is not working"). Where the scan found
+       nothing new there is nothing to tick, so a greyed primary was a dead end
+       dressed as the main act. It is the window's Done now: the press goes
+       down the same path (nothing added, the fact said in the toast, the
+       read recorded). "Tick one to add" over fresh proposals stays greyed —
+       its label says what to do. */
+    btn.disabled = !n && fresh;
   }
   obPaintAdd();
   /* ONE DELEGATED LISTENER on the window rather than one per row: the list runs

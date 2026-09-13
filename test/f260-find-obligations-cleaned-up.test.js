@@ -141,9 +141,11 @@ describe('f260 (2b) — the count follows the ticks', () => {
        proposals would be the window arguing with itself. */
     assert.match(body, /i18t\(fresh \? 'ob_add_pick' : 'ob_add_none'\)/,
       'the state is read, not the number alone');
-    assert.match(body, /btn\.disabled = !n;/,
-      'and either way the press is refused BEFORE it happens — this product\'s '
-      + 'own rule: grey where it can be known, never a refusal afterwards');
+    /* RE-POINTED 13 Sep 2026: "Nothing new to add" is a live press that closes
+       the window (nothing added, said in the toast); only "Tick one to add"
+       over fresh proposals stays greyed. */
+    assert.match(body, /btn\.disabled = !n && fresh;/,
+      'greyed only where the label tells the reader what to do; a scan with nothing new offers Done');
   });
 
   test('the new sentence is in both languages', () => {

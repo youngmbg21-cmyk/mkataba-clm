@@ -19335,3 +19335,15 @@ all the other requirements but before i run check which is nonsensical."*
   off the empty `c.expiry` — "364 days to NaN.NaN.NaN". One end date now,
   the span's own fallback; `regDotDate` is never handed an empty string.
 Tests: f311 (7)(8), f308 (3) and (5) re-pointed, signing-flow-verify step 0.
+
+### "Nothing new to add" is a live press (13 Sep 2026)
+
+Owner, with a screenshot of the proposed-obligations window over two
+duplicates: *"nothing new to add button is not working."* It was greyed on
+purpose (1 Sep: grey where it can be known before the press) — but as the
+filled primary with nothing tickable beside it, it was a dead end dressed as
+the main act, and Cancel was the only way out. Where the scan found nothing
+new, the button is Done: the press goes down the add path with nothing to
+add, the toast says "nothing new — N already on the contract", the window
+closes. "Tick one to add" over fresh proposals stays greyed — its label says
+what to do. f260 re-pointed.
