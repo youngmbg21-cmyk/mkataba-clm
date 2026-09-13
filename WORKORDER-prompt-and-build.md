@@ -1,6 +1,8 @@
 # WORKORDER — PROMPT & BUILD: a Copilot ask box on every section of the template builder
 
-Owner asked, 12 Sep 2026. **NOT BUILT. Waiting on the owner's go**, and on the three rulings at the foot.
+Owner asked, 12 Sep 2026. **BUILT 13 Sep 2026** on the owner's go ("go ahead and build it"),
+to the three proposals at the foot as written — the owner did not rule on them one by one, so each
+is recorded in BUGLOG.md and was said out loud in the summary. Net: `test/f306-prompt-and-build.test.js`.
 
 Prototype and full reasoning: the **Section by Section** artifact — twelve steps, two of them live.
 
