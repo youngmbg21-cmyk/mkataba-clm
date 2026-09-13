@@ -491,6 +491,26 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     assert.doesNotMatch(fn, /let ch=pre\.channel/, 'the remembered channel is the round send\'s, not this dialog\'s');
   });
 
+  test('the contract\'s checks stand down on the record (Young, 13 Sep 2026)', async () => {
+    const { win } = buildWorld();
+    const m = await openShare(await negotiated(win), undefined, w => {
+      w.contractReadiness = () => [{ severity: 'warn', text: 'No effective date' }];
+    });
+    const hidden = () => String(m.$('#share-readiness-wrap').className || '').split(/\s+/).includes('hidden');
+    assert.ok(m.$('#share-readiness'), 'a warning is on the contract, so the fold is drawn');
+    assert.equal(hidden(), false, 'and shown on the contract kind');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="history"]').click();
+    m.$('#share-kind-next').click();
+    assert.equal(hidden(), true, 'the record carries no agreement — the checks say nothing about it');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="contract"]').click();
+    m.$('#share-kind-next').click();
+    assert.equal(hidden(), false, 'and they come back with the contract');
+    const fn = /const doSend=async\(\)=>\{[\s\S]*?const wantDurable=/.exec(CORE)[0];
+    assert.match(fn, /if\(ack && !ack\.checked && purposeSel!=='history'\)/, 'the tick is never asked for on the record');
+  });
+
   test('the dialog says what the Word file is, by kind', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));

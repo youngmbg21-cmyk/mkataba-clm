@@ -4731,7 +4731,12 @@ async function openShareModal(c, opts={}){
                is the fact printed twice. Repainted by setCh. */}
         <div id="sh-msg-where" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"></div>
       </div>
-      ${readinessPanelHtml(c, { fold:true })}
+      ${''/* THE CHECKS ARE THE CONTRACT'S (Young, 13 Sep 2026: "what does the
+             highlighted area have to do with sending negotiation history").
+             The readiness list reads the agreement's own blanks and stage; a
+             history send carries the record and no agreement, so the fold and
+             its tick stand down on the record kind (setKind). */}
+      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true })}</div>
       ${''/* EMAIL OFF: one line and the way forward. The four-line version said
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}
@@ -4927,6 +4932,7 @@ async function openShareModal(c, opts={}){
        never told the kind had moved). The purpose painter toggles it for the
        three contract purposes; a record is none of them. */
     document.getElementById('share-signers')?.classList.toggle('hidden', hist || purposeSel!=='sign');
+    document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', hist);
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
     if(lab) lab.textContent = hist
@@ -5240,7 +5246,9 @@ async function openShareModal(c, opts={}){
     // A share cannot be recalled, so an incomplete contract needs an explicit
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
-    if(ack && !ack.checked){
+    /* The tick belongs to the contract's checks; on the record kind the fold
+       is hidden and the tick is not asked for. */
+    if(ack && !ack.checked && purposeSel!=='history'){
       toast(i18t('co_not_ready_to_send'),'err');
       const panel=document.getElementById('share-readiness');
       if(panel){ panel.style.outline='2px solid var(--st-ruby-dot)'; setTimeout(()=>{ panel.style.outline=''; },1600);

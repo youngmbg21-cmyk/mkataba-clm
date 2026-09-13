@@ -285,6 +285,12 @@ const ROUTE = [
         preview: vis('#share-hist-preview'), text: root.innerText.replace(/\s+/g, ' ') };
     });
     await page.screenshot({ path: path.join(OUT, '05-history-send.png') });
+    const rdy = await page.evaluate(() => {
+      const w = document.getElementById('share-readiness-wrap'), p = document.getElementById('share-readiness');
+      const r = p ? p.getBoundingClientRect() : null;
+      return { drawn: !!p, visible: !!r && r.width > 0 && r.height > 0, wrap: !!w };
+    });
+    check('4b. the contract\'s "worth checking" fold is off the history screen', rdy.wrap && !rdy.visible, JSON.stringify(rdy));
     check('4b. the history screen draws no signing route', hist.signers === false && !/WHO SIGNS/i.test(hist.text));
     check('4b. and says it is the record', hist.note === true && hist.purpose === false);
     const before = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares

@@ -13283,3 +13283,23 @@ VERIFIED
   f307 (6) new claim red at the parent; share-recipient-verify 35/35
   (reopened after a real Word send: Email lit); lint 0 errors; full
   suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (late night, 2) — THE CONTRACT'S CHECKS STAND DOWN ON
+THE RECORD
+Owner: "what does the highlighted area have to do with sending negotiation
+history. Fix this because it is not necessary"
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The "N things worth checking before you send" fold (the contract's
+    readiness list) was drawn on the history send too. It is hidden on
+    the record kind, back on the contract, and the send no longer asks
+    for its tick on the record. Removed at the owner's word.
+
+NOTICED, NOT FIXED
+  · The history send's title still says "Send round N to …".
+
+VERIFIED
+  f307 (6) claim red at the parent; share-recipient-verify 36/36; lint 0
+  errors; full suite — see the commit.
