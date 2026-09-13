@@ -511,6 +511,23 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     assert.match(fn, /if\(ack && !ack\.checked && purposeSel!=='history'\)/, 'the tick is never asked for on the record');
   });
 
+  test('the title says the history is being sent (Young, 13 Sep 2026)', async () => {
+    const { win } = buildWorld();
+    const m = await openShare(await negotiated(win));
+    const title = () => m.$('#share-lead-title').textContent.replace(/\s+/g, ' ').trim();
+    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB', 'the contract: the round');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="history"]').click();
+    m.$('#share-kind-next').click();
+    assert.equal(title(), 'Send the negotiation history to Nordfrakt Logistik AB', 'the record: the history');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="contract"]').click();
+    m.$('#share-kind-next').click();
+    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB', 'and back');
+    assert.equal((I18N.match(/co_send_history_to:/g) || []).length, 2, 'both books');
+    assert.match(CORE, /function shareLeadTitle\(c, s, purposeSel\)/, 'one reading for the builder and the switch');
+  });
+
   test('the dialog says what the Word file is, by kind', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));

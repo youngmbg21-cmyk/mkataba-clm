@@ -13303,3 +13303,22 @@ NOTICED, NOT FIXED
 VERIFIED
   f307 (6) claim red at the parent; share-recipient-verify 36/36; lint 0
   errors; full suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (late night, 3) — THE TITLE SAYS THE HISTORY IS SENT
+Owner: "fix the title so it says the history is being sent"
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The send dialog's heading was built once at the open and never told
+    the kind had moved; a history send still read "Send round N to …".
+    One title reading now, asked at the paint and at every kind switch:
+    "Send the negotiation history to …" on the record.
+
+NOTICED, NOT FIXED
+  · none new.
+
+VERIFIED
+  f307 (6) claim red at the parent; share-recipient-verify 37/37 (the
+  painted heading read on the history screen); f148; lint 0 errors; full
+  suite — see the commit.

@@ -291,6 +291,8 @@ const ROUTE = [
       return { drawn: !!p, visible: !!r && r.width > 0 && r.height > 0, wrap: !!w };
     });
     check('4b. the contract\'s "worth checking" fold is off the history screen', rdy.wrap && !rdy.visible, JSON.stringify(rdy));
+    const leadTitle = await page.evaluate(() => (document.getElementById('share-lead-title') || {}).textContent || '');
+    check('4b. the title says the history is being sent', /negotiation history to Juno Limited/.test(leadTitle) && !/round/i.test(leadTitle), leadTitle.trim());
     check('4b. the history screen draws no signing route', hist.signers === false && !/WHO SIGNS/i.test(hist.text));
     check('4b. and says it is the record', hist.note === true && hist.purpose === false);
     const before = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares

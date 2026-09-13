@@ -2445,6 +2445,7 @@ const STRINGS = {
        the line that says what it does and what it costs. */
     co_send_round_to: 'Send round {n} to {who}',
     co_send_to_who: 'Send to {who}',
+    co_send_history_to: 'Send the negotiation history to {who}',
     co_send_something_else: 'Send something else',
     co_see_the_changes_one: 'See the change',
     co_see_the_changes_other: 'See all {n} changes',
@@ -8622,6 +8623,7 @@ const STRINGS = {
     po_copy: 'Kopiera',
     co_send_round_to: 'Skicka runda {n} till {who}',
     co_send_to_who: 'Skicka till {who}',
+    co_send_history_to: 'Skicka förhandlingshistoriken till {who}',
     co_send_something_else: 'Skicka något annat',
     co_see_the_changes_one: 'Visa ändringen',
     co_see_the_changes_other: 'Visa alla {n} ändringar',

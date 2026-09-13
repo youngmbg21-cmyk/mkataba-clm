@@ -3272,6 +3272,16 @@ function shareNoteBoxHtml(c, hist){
           hist?'e.g. The full record of our negotiation, for your file.'
              :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>`;
 }
+/* THE TITLE SAYS WHAT IS GOING OUT (Young, 13 Sep 2026: "fix the title so it
+   says the history is being sent"). One reading for the builder and for the
+   kind switch, so the heading and the screen under it cannot disagree. */
+function shareLeadTitle(c, s, purposeSel){
+  const who = esc(c.counterparty||i18t('co_them'));
+  if (purposeSel==='history') return i18t('co_send_history_to', { who });
+  return (s && s.lines.length)
+    ? i18t('co_send_round_to', { n:s.round, who })
+    : i18t('co_send_to_who', { who });
+}
 function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
   const rows = s && s.lines.length ? s.lines.map(x=>`
@@ -3312,11 +3322,7 @@ function shareSummaryStepHtml(c, opts={}){
              is a question the screen below answers by itself. */}
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 id="share-lead-title" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${
-          opts.oneScreen
-            ? (s && s.lines.length
-                ? i18t('co_send_round_to', { n:s.round, who:esc(c.counterparty||i18t('co_them')) })
-                : i18t('co_send_to_who', { who:esc(c.counterparty||i18t('co_them')) }))
-            : i18t('co_what_you_sending')}</h2></div>
+          opts.oneScreen ? shareLeadTitle(c, s, opts.purposeSel) : i18t('co_what_you_sending')}</h2></div>
       ${''/* THE PURPOSE QUESTION DOES NOT APPLY TO A RECORD. Sign, Negotiate
              and View only are things somebody does to a contract; a history
              link opens read-only on the timeline and there is nothing on it to
@@ -4933,6 +4939,8 @@ async function openShareModal(c, opts={}){
        three contract purposes; a record is none of them. */
     document.getElementById('share-signers')?.classList.toggle('hidden', hist || purposeSel!=='sign');
     document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', hist);
+    const lead=document.getElementById('share-lead-title');
+    if(lead) lead.innerHTML=shareLeadTitle(c, (typeof negoChangeSummary==='function')?negoChangeSummary(c):null, purposeSel);
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
     if(lab) lab.textContent = hist
