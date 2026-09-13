@@ -165,9 +165,14 @@ describe('f103 — template library screens', () => {
     const { sandbox, content } = stage();
     await sandbox.openTemplateBuilder('tpl_1', 'tv_3');
     await settle(); // branding panel paints after its own fetch
-    const html = content();
+    /* Since 13 Sep 2026 the builder is the paper and the rail: the page is
+       painted once and the paper and the rail into their own slots, so the
+       slots are read beside the page. The fields live on the rail's Blanks tab. */
+    sandbox.tbSetTab('blanks');
+    const slot = id => sandbox.document.getElementById(id).innerHTML;
+    const html = content() + slot('tb-paperslot') + slot('tb-railslot');
     assert.ok(html.includes('Company information'), 'heading block');
-    assert.ok(html.includes('KRA PIN: {{kra_pin}}'), 'field-group wording with its placeholder');
+    assert.ok(html.includes('KRA PIN: ') && html.includes('data-tb-blank="kra_pin"'), 'field-group wording with its placeholder drawn as a chip');
     assert.ok(html.includes('Invoices are payable'), 'fixed wording block');
     assert.ok(html.includes('Director'), 'signature block party');
     assert.ok(html.includes('low confidence'), 'an unreviewed detected field is flagged');

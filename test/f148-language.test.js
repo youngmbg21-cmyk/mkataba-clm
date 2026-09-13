@@ -46,6 +46,7 @@ const SAME_IN_BOTH = new Set([
                           // no translating in either language
   'nav_administration',   // identical spelling in Swedish
   'int_fr_read',          // 'Copilot' — the product's own name, on the graph node's fact row (A-1)
+  'tb_copilot',           // 'Copilot' — the product's own name, on the template builder's rail (13 Sep 2026)
   'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
   'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)
   'reg_col_status',       // ditto
