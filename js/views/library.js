@@ -1462,14 +1462,26 @@ function tplNewMenu(){
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
   const companyOk=API_MODE()&&lib.canManage;
   if(!companyOk){ openCreateTemplateModal('paste'); return; }
-  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:var(--s-2)">
-    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title)">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
-  openModal(`<div style="padding:20px 22px;max-width:380px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 10px">${i18t('lib_what_kind')}</h3>
-    ${opt('tn-company',i18t('lib_grp_company'),i18t('lib_published_whole_team'))}
-    ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
-    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_cancel')}</button></div>
-  </div>`);
+  /* ---- TWO EQUALS, SIDE BY SIDE (owner-reported 13 Sep 2026) ----
+     "This card is poorly designed with space not utilised well." It was a
+     380px box in a 512px frame, with the leftover blank down the right. One
+     question with two answers of the same weight: the answers are two tiles of
+     the same size that fill the frame edge to edge, the whole tile is the
+     button, and Cancel keeps the foot at the right edge the tiles reach. The
+     frame is the M rung (DLG_W in core.js) and the box states no width of its
+     own; the tiles stack under about 430px. The tile's hover is one rule in
+     index.html (.tn-tile) because an inline style cannot say :hover. */
+  const opt=(id,sym,label,sub)=>`<button id="${id}" class="tn-tile" style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:132px;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px 15px 15px;cursor:pointer;font:inherit;color:var(--color-text)">
+    <span aria-hidden="true" style="width:28px;height:28px;border:1.5px solid var(--accent-ink);border-radius:var(--radius);display:inline-grid;place-items:center;color:var(--accent-ink)"><svg width="16" height="16" viewBox="0 0 16 16"><use href="#i-${sym}"/></svg></span>
+    <span style="display:block;font-size:var(--t-body);font-weight:var(--w-title);line-height:1.3">${label}</span><span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${sub}</span></button>`;
+  openModal(`<div style="padding:24px">
+    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0">${i18t('lib_what_kind')}</h3>
+    <div class="tn-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px">
+      ${opt('tn-company','tpl',i18t('lib_grp_company'),i18t('lib_published_whole_team'))}
+      ${opt('tn-cp','import','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px"><button id="tn-close" class="ui-btn">${i18t('act_cancel')}</button></div>
+  </div>`,{label:i18t('lib_what_kind')});
   document.getElementById('tn-close')?.addEventListener('click',closeModal);
   document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
   document.getElementById('tn-cp')?.addEventListener('click',()=>{ closeModal(); openCreateTemplateModal('paste'); });

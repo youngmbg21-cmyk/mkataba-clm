@@ -751,7 +751,7 @@ function tbFieldModal(index) {
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
-    <div style="padding:20px 22px;max-width:520px">
+    <div style="padding:24px">
       <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${index != null ? 'Edit field' : 'Add field'}</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_label')}</span>

@@ -1368,6 +1368,9 @@
      rules at all and cannot see either the fault or the fix — the proof lives
      in the browser verifies. */
   .ui-btn[hidden]{display:none!important;}
+  /* The two tiles of "What kind of template?" (13 Sep 2026): the whole tile is the
+     button, so the whole tile answers the pointer. Inline styles cannot say :hover. */
+  .tn-tile:hover,.tn-tile:focus-visible{border-color:var(--accent-solid)!important;box-shadow:inset 0 0 0 1px var(--accent-solid)}
   /* The one filled act. Its glow came off with the tint above — a filled
      accent face is already the strongest thing on any of these pages, and the
      14px halo was what made two of them side by side read as equals. */

@@ -99,7 +99,7 @@ function openIntakeForm(){
      module and a bare cross-module read throws. */
   const FLD=window.HATI_FLD;
   const LBL=window.HATI_LBL;
-  openModal(`<div style="padding:20px 22px;max-width:520px">
+  openModal(`<div style="padding:24px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_ask_title')}</h3>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_title')}</span>
       <input id="ik-title" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
@@ -161,7 +161,7 @@ async function intakeDraft(id){
   const pick=await intakeSuggestTemplate(r);
   const ids=Object.keys(TEMPLATES||{});
   const FLD=window.HATI_FLD;
-  openModal(`<div style="padding:20px 22px;max-width:520px">
+  openModal(`<div style="padding:24px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_draft_title')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${esc(r.title)}</p>
     ${pick?`<p style="font-size:var(--t-meta);line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius)">

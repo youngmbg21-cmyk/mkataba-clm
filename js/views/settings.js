@@ -80,7 +80,7 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
       <span style="width:9px;height:9px;border-radius:var(--radius);background:${f.color};flex:none"></span>
       <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
-  openModal(`<div class="p-6" style="max-width:460px">
+  openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('set_folder_access_for',{who:(u.name||u.email).replace(/</g,'&lt;')})}</h3>
     <p class="text-xs text-ink/60 mb-3">${i18t('set_grant_streams')}</p>
     <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:10px">
@@ -1338,13 +1338,13 @@ async function stHooksAdd(){
     /* THE SECRET IS SHOWN ONCE. It is what proves a delivery came from HaTi;
        a screen that could re-read it would hand it to anybody who reaches the
        screen. Said plainly rather than left for somebody to discover. */
-    openModal(`<div style="padding:20px 22px;max-width:470px">
+    openModal(`<div style="padding:24px">
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 6px">${i18t('st_hooks_secret_title')}</h3>
       <p class="st-note" style="margin:0 0 10px">${esc(i18t('st_hooks_secret_msg'))}</p>
       <div style="font-family:var(--font-mono);font-size:var(--t-body);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px var(--s-3);word-break:break-all;user-select:all">${esc(r.secret)}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:var(--s-3)">
         <button id="wh-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
-      </div></div>`,{maxWidth:'490px'});
+      </div></div>`,{ maxWidth: DLG_W.m });
     document.getElementById('wh-done')?.addEventListener('click',()=>closeModal());
   }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
 }
@@ -1440,7 +1440,7 @@ async function stTwoStepToggle(){
   let start;
   try{ start=await api('me/totp/start','POST',{}); }
   catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
-  openModal(`<div style="padding:22px;max-width:470px">
+  openModal(`<div style="padding:24px">
     <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
     <p class="st-note" style="margin:0 0 var(--s-1)">${esc(i18t('ts_enrol_msg'))}</p>
     <div style="font-family:var(--font-mono);font-size:var(--t-card);letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px var(--s-3);margin:var(--s-2) 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
@@ -1451,7 +1451,7 @@ async function stTwoStepToggle(){
       <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
       <button id="ts-confirm" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_confirm')}</button>
     </div>
-  </div>`,{maxWidth:'490px'});
+  </div>`,{ maxWidth: DLG_W.m });
   document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('ts-confirm')?.addEventListener('click',async()=>{
     const code=(document.getElementById('ts-code')?.value||'').trim();
@@ -1461,7 +1461,7 @@ async function stTwoStepToggle(){
       const u2=currentUser(); if(u2) u2.twoStep=true;
       closeModal();
       // the ten one-time codes, shown exactly ONCE — the server keeps hashes
-      openModal(`<div style="padding:22px;max-width:470px">
+      openModal(`<div style="padding:24px">
         <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
         <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
@@ -1470,7 +1470,7 @@ async function stTwoStepToggle(){
         <div style="display:flex;justify-content:flex-end;margin-top:14px">
           <button id="ts-done" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:7px 14px">${i18t('ts_done')}</button>
         </div>
-      </div>`,{maxWidth:'490px'});
+      </div>`,{ maxWidth: DLG_W.m });
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); openMyAccount(); });
     }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
   });
