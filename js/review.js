@@ -681,6 +681,70 @@ function reviewDeliveryState(rv){
   return { kind: n.kind, tone: d.tone, at: n.at, to: n.to, why: n.why,
     text: i18t(d.k, { who: (rv.reviewer && rv.reviewer.name) || '', to: n.to || '' }) };
 }
+/* ---- HOW LONG THEY HAVE HAD IT ---- (owner-approved 13 Sep 2026, group 1)
+   The record has always known when a review was asked; the banner printed the
+   DATE and the reader did the subtraction. Whole days, from the review's own
+   `at`, in the reader's own clock. Null where the review carries no date (an
+   older record) — an absence is stated, never guessed, and the row simply
+   prints no age. */
+function reviewDaysWaiting(rv){
+  const at = rv && rv.at;
+  if (!at) return null;
+  const t = Date.parse(at);
+  if (!Number.isFinite(t)) return null;
+  const days = Math.floor((Date.now() - t) / 86400000);
+  return days >= 0 ? days : null;
+}
+/* ---- REMIND, AND SAY HONESTLY WHETHER IT WENT ---- (13 Sep 2026)
+   The same route the ask uses, with `reminder` on it, so there is ONE place
+   that decides who is written to and it looks the person up by id — a
+   body-supplied address is not read there at all.
+
+   IT REPORTS WHAT REALLY HAPPENED, through the same three answers the ask
+   already distinguishes: a provider took it, this server has no provider and
+   the message is in the outbox, or it was refused. `rv.reminded` is stamped
+   only where something actually left (or was queued), so the row's "reminded"
+   line can never claim a send that did not happen. Absent on every review on
+   file; no migration. */
+async function reviewRemind(c, o = {}){
+  const open = reviewOpenList(c);
+  const rv = o.reviewId ? open.find(r => r.id === o.reviewId) : (open.length === 1 ? open[0] : null);
+  if (!rv) return null;
+  if (!reviewMaySee(rv)) return null;
+  const me = _rvMe();
+  let out = { sent: false, outbox: false, to: (rv.reviewer && rv.reviewer.email) || null, why: null };
+  if (window.API_MODE && API_MODE() && window.api){
+    try{
+      const r = await window.api('contracts/' + c.id + '/review-request', 'POST', {
+        reviewerId: (rv.reviewer && rv.reviewer.id) || null,
+        reviewerEmail: (rv.reviewer && rv.reviewer.email) || null,
+        note: rv.note || '', due: rv.due || '', reviewId: rv.id,
+        reminder: true, days: reviewDaysWaiting(rv) });
+      out = { sent: !!(r && r.emailSent), outbox: !!(r && r.outbox),
+        to: (r && r.to) || out.to, why: (r && r.emailError) || null };
+    }catch(e){
+      out.why = String((e && (e.message || e.error)) || e || '').slice(0, 300) || null;
+    }
+  } else {
+    /* Local mode has no server to send from, and "it is in their inbox" there
+       is the cheerful lie the delivery record exists to remove. */
+    out.outbox = true;
+  }
+  if (out.sent || out.outbox){
+    rv.reminded = { at: _rvNow(), by: (me && me.name) || null, kind: out.sent ? 'sent' : 'outbox' };
+  }
+  _rvAudit(c, 'Internal review', out.sent
+    ? `Reminder sent to ${rv.reviewer.name}${out.to ? ` at ${out.to}` : ''} about ${rv.id}`
+    : out.outbox
+      ? `A reminder for ${rv.reviewer.name} about ${rv.id} is in the internal outbox — email is not configured here`
+      : `The reminder to ${rv.reviewer.name} about ${rv.id} was not delivered${out.why ? ` — ${out.why}` : ''}`);
+  _rvSave(c);
+  _rvSay(out.sent ? i18t('rv_reminded_toast', { who: rv.reviewer.name })
+    : out.outbox ? i18t('rv_reminded_outbox', { who: rv.reviewer.name })
+    : i18t('rv_reminded_failed', { who: rv.reviewer.name }),
+    out.sent ? 'ok' : out.outbox ? 'warn' : 'err');
+  return out;
+}
 /* Cancel a NAMED review. With several open, "cancel the review" is ambiguous
    and picking the latest would quietly kill the wrong person's. */
 function reviewCancel(c, o = {}){
@@ -1311,11 +1375,24 @@ function reviewBannerHtml(c, opts = {}){
     const dline = d ? `<span style="display:block;margin-top:2px;opacity:.9">${
       d.kind === 'sent' ? '&#9993;' : '&#9888;'} ${_rvE(d.text)}${
       d.why ? ` <span style="opacity:.8">&mdash; ${_rvE(d.why)}</span>` : ''}</span>` : '';
+    /* ---- HOW LONG, AND A NUDGE, ON THE ROW ITSELF ---- (13 Sep 2026)
+       The date was already here and the age was the reader's own arithmetic.
+       Nothing new is recorded to print it. Remind is the new half, and it is
+       offered only to somebody who could raise the review in the first place —
+       the same test that decides whether Cancel is drawn, because both are the
+       requester's (or an admin's) act, not a bystander's. */
+    const age = reviewDaysWaiting(rv);
+    const aline = age == null ? ''
+      : ` <b>${_rvE(i18tn('rv_waiting_days', age, { n: age }))}</b>`;
+    const rline = rv.reminded ? `<span style="display:block;margin-top:2px;opacity:.9">${
+      _rvE(i18t('rv_reminded_on', { when: reviewWhen(rv.reminded.at) }))}</span>` : '';
     rows.push(line(`<b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
       <span style="font-family:var(--font-mono);font-size:var(--t-label);opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
-      ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
-      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}${dline}`,
-      reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''));
+      ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}${aline}
+      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}${dline}${rline}`,
+      reviewMayCancel(rv)
+        ? act('rv-remind:' + rv.id, i18t('rv_remind_btn')) + act('rv-cancel:' + rv.id, i18t('rv_cancel_btn'))
+        : ''));
   }
   /* 3. WHAT CAME BACK, or was taken off me. The most recent closed review this
      reader is actually in — a colleague outside it is told nothing, which is
@@ -1997,6 +2074,12 @@ function reviewWireCards(c, host, opts = {}){
       if (what === 'rv-clear'){ reviewClearBanner(c); again(); }
       else if (what === 'rv-ask') openReviewAskModal(c, { after: again });
       else if (what === 'rv-return') openReviewReturnPicker(c, { reviewId, after: again });
+      else if (what === 'rv-remind'){
+        /* The press goes dead while it is in flight: an act that leaves the
+           building must not be pressable twice because the network is slow. */
+        act.disabled = true;
+        Promise.resolve(reviewRemind(c, { reviewId })).then(() => again(), () => { act.disabled = false; });
+      }
       else if (what === 'rv-cancel'){
         if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
       }
@@ -2016,7 +2099,7 @@ Object.assign(window, {
   reviewInPlay, reviewSpent,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
-  reviewNoteDelivery, reviewDeliveryState,
+  reviewNoteDelivery, reviewDeliveryState, reviewDaysWaiting, reviewRemind,
   reviewCardCancelHtml, reviewCancelCost, reviewWantsAttention,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
   reviewChecked, reviewStandingReviewerFor, reviewUncheckedPeople,

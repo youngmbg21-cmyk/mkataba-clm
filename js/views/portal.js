@@ -2079,14 +2079,31 @@ function wirePortalNego(c, p){
   const reachable=!!PORTAL_OPTS.token;
   const live=!portalReadOnly() && !signing;
   const org=(p&&p.org)||'the sender';
-  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
   const facts=`Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
+  /* ---- ONE LINE, AND THE COUNT WHERE THE ACT IS ---- (owner-approved 13 Sep
+     2026, group 1 of the build plan.)
+
+     THE BAND STAYS — it is the one this page keeps, by the owner's own word,
+     and the promise it makes is the reason the reader can decide freely. What
+     went is the SECOND printing of two facts it was making the reader read on
+     every visit:
+
+     · the held-answers count, which was the Send button's own label twelve
+       pixels away (it says how many decisions the press will send, on both of
+       this seat's Sends, and the held-decisions card repeats the promise under
+       its own). A count printed twice reads as an alarm the second time.
+     · a clause about replies travelling only when a visibility switch is set,
+       which described a control this seat does not have: the counterparty has
+       ONE note room and everything written in it is for the sender. It was
+       true when their seat carried that switch and has not been true since.
+
+     The promise itself is unchanged and is now a KEY rather than a literal, so
+     it reads in both languages like the no-channel branch beside it. */
   const banner = live
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>${i18t('po_your_table')}</b> ${
-        held?`<b>${held} answer${held===1?'':'s'}</b> held here — nothing has reached ${esc(org)} yet. `:''
-      }${reachable
-        ? 'Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared.'
+        reachable
+        ? esc(i18t('po_wall_live'))
         /* THE PROMISE IS THE SAME; WHAT SEND DOES IS DIFFERENT, and the reader
            has to know that before they start rather than after they press it. */
         : esc(i18t('po_wall_no_channel'))

@@ -1043,6 +1043,13 @@ function ceScanItems(){
   const g = ceScanGroups();
   return g.here.concat(g.missing);
 }
+/* HOW MANY FINDINGS THIS CLAUSE HAS OF ITS OWN — the one reading behind the
+   opening tab. It reads the review already on the record and spends nothing;
+   a contract with no review answers 0 and the rail opens on the greeting, as
+   it always did. */
+function ceClauseFindings(){
+  try{ return ceScanGroups().here.length; }catch(_){ return 0; }
+}
 /* Whose wording, named by the negotiation page's own helper so the rail and the
    Playbook review modal cannot come to call the same thing by two names. Read
    through window (the ES-module rule) with the plainest possible fallback. */
@@ -1793,9 +1800,36 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      words, and a card carries no Apply. */
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
-  _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null;
   _ceScan = null; _ceScanFiled = {};
+  /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
+     (owner-approved 13 Sep 2026, group 1 of the build plan.)
+
+     It opened on an empty greeting box even where its OWN Playbook tab, two
+     inches away, already listed this clause's standards with a verb on each.
+     The reader had to know to press a tab to be shown a finding the page had
+     in its hand.
+
+     THIS IS A DEFAULT AND NOTHING ELSE. No new reading, no second telling of
+     the playbook (Prepare redlines files one redline per gap across the whole
+     contract, and this tab states the position per clause — a third statement
+     is the duplication this codebase pays most for), and NO SPEND: the groups
+     are read off the review already on the record.
+
+     SCOPED TO `here`, NEVER `missing`. `here` is this clause's own located
+     findings; `missing` is a standard found nowhere in the document, which is
+     true of every clause at once — opening the tab on that would open it on
+     every clause of a contract that is short one standard, which is not "this
+     clause has findings".
+
+     AN EXPLICIT ASK WINS EITHER WAY: a caller naming a tab gets that tab, so
+     the four doors that open this page can still say where to land.
+
+     ORDER MATTERS: the reset above has to run first, or the groups are read
+     through the PREVIOUS sitting's scan. */
+  _ceTab = opts.tab === 'scan' ? 'scan'
+    : opts.tab === 'chat' ? 'chat'
+    : (ceClauseFindings() ? 'scan' : 'chat');
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -2956,10 +2990,31 @@ function ceTurnHtml(t, i){
       `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}${
     (t.cards || []).map((card, j) => ceCardHtml(card, i, j)).join('')}</div>`;
 }
+/* ---- THE GREETING CARRIES WHAT NOTHING ELSE ON THE PAGE SAYS ----
+   (owner-approved 13 Sep 2026, group 1 of the build plan.)
+
+   TWO FACTS, AND DELIBERATELY NOT A THIRD. The playbook's position is stated
+   twice already — by Prepare redlines, which files a redline for every gap,
+   and by this rail's own Playbook tab — so printing it here would be the third
+   telling. What NOTHING states until you ask a question is what we settled
+   with this counterparty before, and what they have asked for on this clause.
+   Both were already computed and handed to the model; they were simply never
+   shown to the reader.
+
+   IT SPENDS NOTHING and adds no element: the rows are ceReadList's own markup,
+   in the lane the greeting already occupies. A clause with neither fact draws
+   exactly the sentence it drew before. */
 function ceGreetingHtml(){
   const cl = ceClause();
+  const rows = [];
+  const pc = cePrecedentLine();
+  if (pc) rows.push([_cet('ce_read_precedent'), pc]);
+  const ta = ceTheirAsk();
+  if (ta) rows.push([_cet('ce_read_theirs'), ta]);
   return `<div class="ce-ai"><p class="t">${_cee(_cet('ce_greeting',
-    { clause: ceClauseLabel(cl) || _cet('ce_this_clause') }))}</p></div>`;
+    { clause: ceClauseLabel(cl) || _cet('ce_this_clause') }))}</p>${
+    rows.length ? `<ul class="ce-read">${rows.map(r =>
+      `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}</div>`;
 }
 /* ONE CARD SHAPE, whether it comes from the chat or from the scan, because
    both hand wording to the same Apply. What a card must always carry: what it
@@ -4873,7 +4928,7 @@ Object.assign(window, {
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceAddMissingClause,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,

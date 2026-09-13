@@ -8461,16 +8461,32 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
   const url = contractUrl(req, req.params.id, 'redline');
   const note = clean(b.note).slice(0, 1000);
   const due = clean(b.due).slice(0, 40);
+  /* ---- A REMINDER IS THIS ROUTE, NOT A SECOND ONE ---- (13 Sep 2026)
+     "Remind" on the review row is the same act as asking: one named colleague,
+     looked up HERE by id, written to at their STORED address — the open-relay
+     rule this route already states. A second route would be a second door onto
+     one act and a second place for the address rule to be got wrong, so the
+     flag changes the WORDS and nothing else. `days` is the browser's own count
+     of how long they have had it, printed only when it is a real number. */
+  const reminder = b.reminder === true;
+  const days = Number.isFinite(Number(b.days)) ? Math.max(0, Math.round(Number(b.days))) : null;
+  const held = reminder && days != null
+    ? (days === 1 ? ' It has been with you for a day.' : ` It has been with you for ${days} days.`)
+    : '';
   const sent = await sendEmail(u.email,
-    `${req.user.name} asked you to review "${cName}"`,
+    reminder
+      ? `Reminder: ${req.user.name} is waiting on your review of "${cName}"`
+      : `${req.user.name} asked you to review "${cName}"`,
     `Hello ${u.name},\n\n`
-    + `${req.user.name} has proposed changes on "${cName}" and would like you to look at them `
-    + `before they go to the counterparty.\n`
+    + (reminder
+      ? `${req.user.name} is still waiting on your review of the proposed changes to "${cName}".${held}\n`
+      : `${req.user.name} has proposed changes on "${cName}" and would like you to look at them `
+        + `before they go to the counterparty.\n`)
     + (note ? `\nWhat they want you to look at:\n"${note}"\n` : '')
     + (due ? `\nNeeded by: ${due}\n` : '')
     + `\nOpen the agreement and clear or hold each change:\n${url}\n\n`
     + `Nothing you hold back will reach the counterparty.\n\nThis is an automated message from HaTi.`,
-    `review request: ${req.params.id} -> ${u.email}`);
+    `${reminder ? 'review reminder' : 'review request'}: ${req.params.id} -> ${u.email}`);
   /* `sent` is sendEmail's own verdict — 1 only when a provider actually took
      it. Reported honestly rather than as "ok", because the requester is owed
      the answer and a cheerful lie there is how the review sits unopened for two

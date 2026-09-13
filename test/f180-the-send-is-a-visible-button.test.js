@@ -165,13 +165,20 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
       'the button says what the press will do');
     assert.equal(send.getAttribute('data-redline-proxy'), 'nego-send-decisions',
       'and it is a PROXY onto the one postbox — never a second transport');
-    /* The count that used to sit beside the buttons now rides on the button's
-       own label above, and the "nothing has travelled yet" half is on the wall
-       line — which counts the held answers itself. */
-    assert.match(v.$('#rl-banner').textContent, /nothing has reached/i,
-      'and the reader is told the answer has not travelled yet');
-    assert.match(v.$('#rl-banner').textContent, /1 answer/i,
-      'counted, so the sentence is about what they actually did');
+    /* ---- THE COUNT RIDES THE ACT; THE WALL KEEPS THE PROMISE ---- (re-pointed
+       13 Sep 2026, group 1 of the build plan.)
+       The wall line used to carry BOTH: "N answers held here — nothing has
+       reached X yet", printed twelve pixels from a Send button whose own label
+       already said "Send 1". A count printed twice reads as an alarm the second
+       time, so the wall was cut to the one thing only it says — the promise
+       that deciding is safe — and the count stayed where the act is.
+       THE CLAIM IS UNCHANGED: the reader must be told, on visible pixels, that
+       their answer has not travelled. It is asked of the button above and of
+       the promise below, and the wall is asked NOT to say it twice. */
+    assert.match(v.$('#rl-banner').textContent, /until you press Send/i,
+      'the wall keeps the promise that deciding is safe');
+    assert.doesNotMatch(v.$('#rl-banner').textContent, /nothing has reached/i,
+      'and no longer prints the Send button\'s own count a second time');
   });
 
   /* THE ROLL CALL. The bug this file is named for was one verb losing its
