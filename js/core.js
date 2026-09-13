@@ -3804,6 +3804,14 @@ function buildSharePayload(c, docHash, who, opts){
          say "counters #CHG-001" instead of showing an unexplained replacement.
          The superseded change itself never travels (filtered above). */
       counterOf:x.counterOf||null,
+      /* THE STACK TRAVELS (13 Sep 2026). A parked ask keeps its status,
+         says which counter parks it, and the counter carries what it stands on
+         and whether it is a wholesale replacement — so their page draws the
+         same layered picture, seats reversed, and their refusal of our counter
+         brings their own ask back on both records alike. */
+      counteredBy:x.counteredBy||null,
+      bundle:Array.isArray(x.bundle)?x.bundle.map(b=>({ id:b.id, was:b.was||'pending', counteredBy:b.counteredBy||null })):undefined,
+      replacement:x.replacement?true:undefined,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read
@@ -6536,10 +6544,19 @@ async function applyNegoProposals(c, r, who){
     if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===clauseId
         && x.status==='pending' && String(x.newText||'')===newText
         && (!p.bodyHtml || canonB(x.bodyHtml)===canonB(p.bodyHtml)))) continue;
+    /* ---- A COUNTER WRITTEN ON OUR ASK ARRIVES AS ONE (13 Sep 2026) ----
+       Their counter was measured against OUR proposal's wording. Filed against
+       the standing clause it would read as a rival and supersede our ask; filed
+       against the text it was really written on, the funnel stacks it and our
+       ask is parked under it, which is what happened on their page. Only where
+       a live ask of ours carries exactly that wording — otherwise the standing
+       clause is what it always was. */
+    const stacksOn = (c.changes||[]).find(x=>x && x.status==='pending' && x.clauseId===clauseId
+      && x.changeType!=='insertClause' && String(x.newText||'')!=='' && String(x.newText||'')===String(p.oldText||''));
     let ch=null;
     try{
       ch=await negoFileChange(c, { clauseId, changeType:type,
-        oldText: cl?cl.text:String(p.oldText||''), newText,
+        oldText: stacksOn?String(p.oldText||''):(cl?cl.text:String(p.oldText||'')), newText,
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },

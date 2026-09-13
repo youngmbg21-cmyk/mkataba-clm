@@ -796,8 +796,21 @@ function negoRenumberOpen(cId){
    mark drawn from a fresh diff would not be the mark the other side verified.
    This picks between changes already on the record; it never rewrites one. */
 function negoLeadChange(c, cl, chs){
-  const list = Array.isArray(chs) ? chs : (chs ? [chs] : []);
-  if (!list.length) return null;
+  const all = Array.isArray(chs) ? chs : (chs ? [chs] : []);
+  if (!all.length) return null;
+  /* ---- THE TOP OF A STACK LEADS (13 Sep 2026) ----
+     A counter written on a parked ask is measured against THAT ask's wording,
+     not against what stands, so the rule below would pass it over for the ask
+     underneath. The stack is drawn from its top: the newest change that
+     stands on an ask still parked under it is the one whose picture the
+     clause shows (layered — see rlLayeredHtml), and a parked ask never leads. */
+  for (let i = all.length - 1; i >= 0; i--){
+    const x = all[i];
+    if (x && x.counterOf && x.status !== 'countered'
+      && all.some(u => u && u.id === x.counterOf && u.status === 'countered' && u.counteredBy === x.id)) return x;
+  }
+  const list = all.filter(x => x && x.status !== 'countered');
+  if (!list.length) return all[all.length - 1];
   const standing = (typeof negoClauseNowById === 'function')
     ? (negoClauseNowById(c, cl.clauseId) || cl) : cl;
   const stands = String(standing.text == null ? '' : standing.text);
@@ -808,6 +821,37 @@ function negoLeadChange(c, cl, chs){
   for (let i = list.length - 1; i >= 0; i--)
     if (list[i] && list[i].status === 'accepted' && list[i].changeType !== 'insertClause') return list[i];
   return list[list.length - 1];
+}
+
+/* ---- THE LAYERED PICTURE (13 Sep 2026) — one reading for both canvases ----
+   The ask a counter stands on, still parked under it; and the two changes
+   drawn as ONE marked-up clause, composed from their STORED ops (never
+   re-diffed): the lower layer's marks in the colour of its author, the upper
+   layer's in the colour of its author — relative to whoever is reading, so
+   their page shows the same picture with the seats reversed. A wholesale
+   replacement draws as one struck block, one inserted block and the line
+   saying what it stands on. Null where the change stands on nothing, and the
+   caller draws what it always drew. */
+function rlStackUnder(c, ch){
+  if (!ch || !ch.counterOf || !c) return null;
+  return (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === ch.counterOf
+    && x.status === 'countered' && x.counteredBy === ch.id) || null;
+}
+function rlReplStands(ch){
+  const ids = (Array.isArray(ch.bundle) ? ch.bundle : []).map(b => '#' + b.id);
+  if (!ids.length) return '';
+  return i18t('ng_repl_stands', { ids: ids.length > 3 ? ids.slice(0, 3).join(', ') + ' ' + i18t('ng_repl_more', { n: ids.length - 3 }) : ids.join(', ') });
+}
+function rlLayeredHtml(c, ch, viewerSide, opts = {}){
+  const under = rlStackUnder(c, ch); if (!under) return null;
+  const me = viewerSide === 'counterparty' ? 'counterparty' : 'owner';
+  const whoOf = x => (x.authorSide === me ? 'us' : 'them');
+  if (ch.replacement && window.redlineReplacementHtml)
+    return redlineReplacementHtml(String(under.newText == null ? '' : under.newText), String(ch.newText == null ? '' : ch.newText),
+      { ...opts, over: whoOf(ch), stands: rlReplStands(ch) });
+  if (!window.redlineLayerOps || !window.redlineOpsBlocksHtml) return null;
+  const ops = redlineLayerOps(under.ops, ch.ops, { under: whoOf(under), over: whoOf(ch) });
+  return ops ? redlineOpsBlocksHtml(ops, opts) : null;
 }
 
 function negoDocHtml(c, opts){
@@ -906,6 +950,10 @@ function negoDocHtml(c, opts){
      Same predicate, same ops transform — THE MAP's rule that both renderers
      draw a pending change the same way. */
   const redline = ch => {
+    if (rlReadSideOf(ch, rlReadMode()) === 'marks'){
+      const stacked = rlLayeredHtml(c, ch, 'owner');
+      if (stacked) return stacked;
+    }
     const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
     return (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
       ? redlineOpsBlocksHtml(ops)
@@ -10875,6 +10923,13 @@ function redlineDocHtml(c, opts = {}){
     const who = String((ch && (ch.author || ch.by)) || '').trim();
     const when = (ch && (ch.updatedAt || ch.createdAt)) ? negoWhen(ch.updatedAt || ch.createdAt) : '';
     const tip = who ? `Last updated by ${who}${when ? ` at ${when}` : ''}` : '';
+    /* THE STACK, on the redlined reading: their marks and ours on one clause,
+       or the replacement block. The clean readings show one side's words and
+       need no layers. */
+    if (which === 'marks'){
+      const stacked = rlLayeredHtml(c, ch, side, { title: tip });
+      if (stacked) return `<div class="nego-body nego-stack">${stacked}</div>`;
+    }
     /* A FORMATTING-ONLY ask has all-keep ops — drawn from them this clause
        would show the baseline with no marks, a proposal invisible on the page
        it is proposed on. The proposed rich body is the redline: the new
@@ -11310,6 +11365,11 @@ function rlPaperFootHtml(c){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+/* A PARKED ASK IS ON THE TABLE (13 Sep 2026): parked under a counter written
+   on it, answered through that counter, not pending in its own right — and
+   still a row on the column, because its wording is what the counter was
+   written on and the reader may want to read it. It takes no verbs. */
+const _rlIsParked = ch => !!ch && ch.status === 'countered' && !ch.withdrawn;
 /* ---- AND SETTLED WORK STAYS ON THE COLUMN (owner-asked 26 Aug 2026) ----
    The owner asked for Refused, Accepted and Withdrawn to be piles of their
    own, so that no row has to print its own state at the end of its sentence.
@@ -11865,8 +11925,22 @@ function rlCardBand(ch, side, unsent, held, c){
      the same direction the fallthrough below takes, and for the same reason. */
   if (!ch) return 'awaiting';
   const theirs = ch.authorSide !== (side === 'counterparty' ? 'counterparty' : 'owner');
-  const live = !ch.withdrawn && ch.status === 'pending';
   if (held && held.has && held.has(ch.id)) return theirs ? 'awaiting' : 'drafts';
+  /* A PARKED ASK SITS WITH THE COUNTER THAT PARKS IT (13 Sep 2026): it is
+     neither work for us nor waiting on them in its own right — the counter
+     above it is, and the pair is decided together. Where the counter has not
+     reached this seat yet (our unsent counter, read from their chair) the ask
+     still reads as the live thing it is over there. */
+  let parkedOpen = false;
+  if (ch.status === 'countered' && ch.counteredBy && c){
+    const top = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === ch.counteredBy);
+    if (top && top !== ch){
+      const hid = (typeof rlHiddenFrom === 'function') ? rlHiddenFrom(c, side) : new Set();
+      if (!hid.has(top.id)) return rlCardBand(top, side, unsent, held, c);
+      parkedOpen = true;
+    }
+  }
+  const live = !ch.withdrawn && (ch.status === 'pending' || parkedOpen);
   if (!live){
     /* WITHDRAWN IS ASKED FIRST because it is a fact about the ask rather than
        about the answer: a withdrawn change can carry any status underneath,
@@ -12676,7 +12750,7 @@ function redlineCardIds(c, opts = {}){
   /* READ ONCE AND SHARED WITH THE CARDS, so the pill above the column and the
      column itself cannot disagree about either the population or the order. */
   const bandOpts = rlBandOpts(c, opts, side);
-  const kept = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+  const kept = all.filter(x => (_rlIsLive(x) || _rlIsParked(x) || heldIds.has(x.id) || contestedAny(x)
     || (bandOpts.banded && _rlSettledCard(x)) || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* The reader's own cut, applied HERE as well as in the card list — this
@@ -15212,7 +15286,7 @@ function redlineChangeCardsHtml(c, opts = {}){
   const sentIds = new Set(opts.sentDecisionIds || []);
   const redeciding = id => _negoRedeciding[id];
   const mineOnly = rlMyCardIds(c, opts);
-  const changes = rlCardSort(all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+  const changes = rlCardSort(all.filter(x => (_rlIsLive(x) || _rlIsParked(x) || heldIds.has(x.id) || contestedAny(x)
     || (bandOpts.banded && _rlSettledCard(x)) || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* Whose asks the reader asked to see. The SAME predicate redlineCardIds
@@ -15427,7 +15501,9 @@ function redlineChangeCardsHtml(c, opts = {}){
        two states that share a word: ⏹ for a hold and ⌛ for out with somebody.
 
        [tone, word, hover] — the third slot is new. */
-    const badge = heldHere ? (ch.status === 'accepted'
+    const badge = ch.status === 'countered'
+        ? ['draft', i18t('ng_badge_countered', { id: ch.counteredBy || '' }), i18t('ng_badge_countered_title', { id: ch.counteredBy || '' })]
+      : heldHere ? (ch.status === 'accepted'
         ? ['ok', i18t('ng_badge_accepted_held'), i18t('ng_badge_held_title')]
         : ['no', i18t('ng_badge_rejected_held'), i18t('ng_badge_held_title')])
       : sentHere ? (ch.status === 'accepted'
@@ -17605,7 +17681,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoMentionsMe, negoMentionsWaiting, negoMarkChatSeen, NEGO_CONTRACT_THREAD,
   rlCardNotesCountHtml,
   rlNpRoom, rlNpSetRoom,
-  negoEnsureStyle, negoDocHtml, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
+  negoEnsureStyle, negoDocHtml, rlStackUnder, rlLayeredHtml, rlReplStands, negoLeadChange, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,

@@ -899,6 +899,17 @@ function ceLeadChange(named){
   }catch(_){}
   return on.length ? on[on.length - 1] : null;
 }
+/* ---- WHICH ASK THIS PAGE IS WRITING ON (13 Sep 2026) ----
+   The lead change where it is the OTHER side's live proposal on this clause:
+   the box was seeded from its wording, so a filing is a counter written on it
+   and files `onTop`. Null where the lead is ours (a revision of our own ask),
+   an insertion (revised through negoReviseInsert), or absent. */
+function ceStacksOn(){
+  const on = _ceLead;
+  if (!on || on.status !== 'pending' || on.withdrawn || on.changeType === 'insertClause') return null;
+  if (on.authorSide === 'owner') return null;
+  return on;
+}
 /* The plain wording a change proposes. A change stores its own newText, which
    is exactly what was filed; falling back to the standing wording means "this
    change proposes nothing new", which the redline then shows as no marks. */
@@ -4286,6 +4297,14 @@ async function ceFile(why){
        reader who types the original back clears the record's own rename rather
        than leaving a stale one standing. */
     if (ceHeadEditable()) o.headingText = _ceHead;
+    /* ---- THE COUNTER IS WRITTEN ON THEIR ASK (Young ruled 13 Sep 2026) ----
+       The box was seeded from the lead change; where that is THEIR pending
+       proposal, this filing is measured against it, and the funnel stacks the
+       two — their marks stay on the paper under ours and the pair is decided
+       together. ceStacksOn is the one reading of "which ask is this written
+       on", asked here and by the layered picture above the box. */
+    const on = ceStacksOn();
+    if (on) o.onTop = on.id;
     ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html, ...(ceHeadEditable() ? { headingText: _ceHead } : {}) }, o)
       : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
@@ -4929,6 +4948,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
+  ceStacksOn,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,

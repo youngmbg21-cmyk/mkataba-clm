@@ -387,3 +387,366 @@ describe('f207 — the record survives', () => {
       'naming the ask it answered — an id the other side already knows');
   });
 });
+
+/* ============================================================
+   f207-D — THE LAYERED REDLINE (Young ruled 13 Sep 2026 — "the Large option")
+
+   The 15 Aug rule above treated every filing on a contested clause as a rival.
+   Two of the three things a filing can meet are not:
+
+   · WRITTEN ON TOP — a counter measured against THEIR ask (its oldText IS
+     their newText; negoMeasuredAlike already tells this apart from a rival).
+     It STACKS: their ask is parked (`countered`, `counteredBy`), keeps its
+     wording and its fingerprint, travels, and the pair is decided together —
+     accepting ours answers theirs, refusing ours puts theirs back as it stood.
+   · A WHOLESALE REPLACEMENT written on top — when the marks would outnumber
+     the words (redlineWholesale, a comparison of two lengths) the filing is a
+     BUNDLE: every live ask on the clause, both sides' and however deep it was
+     parked, goes under it at once; accept answers them all, refuse puts every
+     one back exactly where it was.
+   · A RIVAL — measured against the standing text — still supersedes. The
+     playbook pass, Prepare redlines, Copilot's batch and the Word round trip
+     all file that way and the brief's own wall is that they keep doing so.
+
+   Every claim marked (parent: red) fails against the commit before this work,
+   where `onTop` is unknown to negoEditClause and every filing is a rival.
+   ============================================================ */
+/* Values built inside the vm carry that realm's prototypes; deepEqual is strict about them. */
+const J = x => JSON.parse(JSON.stringify(x === undefined ? null : x));
+describe('f207-D — the layered redline: a counter written on their ask stacks', () => {
+  const THEIRS = '<p>Payment shall be made within ninety (90) days of invoice.</p>';
+  const OURS = '<p>Payment shall be made within sixty (60) days of invoice.</p>';
+  async function stacked(){
+    const s = stage();
+    s.theirs = await s.win.negoEditClause(s.c, s.cl, THEIRS,
+      { side: 'counterparty', author: 'Nordkust Legal', via: 'their link' });
+    s.theirsHash = s.theirs.hash;
+    s.ours = await s.win.negoEditClause(s.c, s.cl, OURS,
+      { side: 'owner', author: 'Amina Otieno', onTop: s.theirs.id });
+    return s;
+  }
+
+  test('(parent: red) written on their ask, ours is measured against THEIR wording and theirs is PARKED, not superseded', async () => {
+    const { win, c, theirs, ours, theirsHash, w } = await stacked();
+    assert.ok(ours, 'the counter files');
+    assert.equal(ours.oldText, theirs.newText, 'measured against their proposal — oldText records it');
+    assert.equal(win.negoMeasuredAlike(ours, theirs), false, 'the two are NOT rivals');
+    assert.equal(theirs.status, 'countered', 'their ask is parked under ours');
+    assert.equal(theirs.counteredBy, ours.id);
+    assert.equal(ours.counterOf, theirs.id, 'ours names the ask it stands on');
+    assert.deepEqual(J(ours.bundle), [{ id: theirs.id, was: 'pending', counteredBy: null }],
+      'and records what it parked, as it stood');
+    assert.equal(theirs.supersededBy, undefined, 'nothing superseded');
+    assert.equal(theirs.newText, plain(THEIRS), 'their wording is untouched');
+    assert.equal(theirs.hash, theirsHash, 'and so is their fingerprint');
+    assert.deepEqual(J(win.negoPending(c).map(x => x.id)), [ours.id], 'one question on the table: the counter');
+    const line = w.log.audit.map(a => `${a.action}: ${a.detail}`).join('\n');
+    assert.match(line, /written on/i, 'the trail says the pair is a stack: ' + line.split('\n').pop());
+  });
+
+  test('(control) measured against the standing text, the same filing is a rival and supersedes as it has since 15 Aug', async () => {
+    const s = stage();
+    const theirs = await s.win.negoEditClause(s.c, s.cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await s.win.negoEditClause(s.c, s.cl, OURS, { side: 'owner', author: 'Amina Otieno' });
+    assert.equal(theirs.status, 'superseded');
+    assert.equal(theirs.supersededBy, ours.id);
+    assert.equal(ours.bundle, undefined, 'a rival parks nothing');
+  });
+
+  test('(control) an `onTop` that names no live ask on the clause measures against the standing text', async () => {
+    const s = stage();
+    const ours = await s.win.negoEditClause(s.c, s.cl, OURS, { side: 'owner', author: 'Amina Otieno', onTop: 'CHG-999' });
+    assert.ok(ours);
+    assert.equal(ours.oldText, s.win.negoClauseNowById(s.c, s.cl).text, 'a stale id changes nothing');
+    assert.equal(ours.counterOf, undefined);
+  });
+
+  test('(parent: red) a parked ask takes no decision of its own — the refusal names the counter to decide', async () => {
+    const { win, c, theirs, ours, w } = await stacked();
+    for (const verdict of ['accepted', 'rejected', 'pending']){
+      w.log.toasts.length = 0;
+      assert.equal(win.negoResolve(c, theirs.id, verdict, { side: 'owner', by: 'Amina Otieno' }), null, verdict);
+      assert.equal(theirs.status, 'countered', 'still parked after ' + verdict);
+      const said = w.log.toasts.map(t => t.msg).join(' | ');
+      assert.ok(said.includes(ours.id), 'the refusal names the counter: ' + (said || 'NOTHING SAID'));
+    }
+  });
+
+  test('(parent: red) THE PAIR RULE — accepting the counter answers the ask underneath', async () => {
+    const { win, c, theirs, ours } = await stacked();
+    assert.equal(theirs.status, 'countered', 'parked before the decision — the press decides a PAIR');
+    const ok = win.negoResolve(c, ours.id, 'accepted', { side: 'counterparty', by: 'Nordkust Legal' });
+    assert.ok(ok, 'their side may accept our counter');
+    assert.equal(theirs.status, 'superseded', 'the ask under it is answered by that one press');
+    assert.equal(theirs.supersededBy, ours.id);
+    assert.equal(theirs.counteredBy, undefined, 'and is no longer parked');
+    const p = win.negoProgress(c);
+    assert.deepEqual(J([p.total, p.done, p.pending]), [1, 1, 0], 'progress counts the question, not the ask beneath it');
+    assert.ok(win.negoReadyToSign(c), 'nothing outstanding');
+  });
+
+  test('(parent: red) THE PAIR RULE — refusing the counter puts the ask back exactly as it stood; reopening re-parks it', async () => {
+    const { win, c, theirs, ours, theirsHash } = await stacked();
+    assert.ok(win.negoResolve(c, ours.id, 'rejected', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.equal(theirs.status, 'pending', 'their ask is live again');
+    assert.equal(theirs.counteredBy, undefined);
+    assert.equal(theirs.counteredAt, undefined);
+    assert.equal(theirs.newText, plain(THEIRS), 'with its wording');
+    assert.equal(theirs.hash, theirsHash, 'and its fingerprint');
+    assert.deepEqual(J(win.negoPending(c).map(x => x.id)), [theirs.id], 'the table is where it was before the counter');
+    /* Reopen the refused counter: the pair is a pair again. */
+    assert.ok(win.negoResolve(c, ours.id, 'pending', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.equal(theirs.status, 'countered');
+    assert.equal(theirs.counteredBy, ours.id);
+  });
+
+  test('(parent: red) a counter held back from the round — never sent — releases their ask when it is retracted', async () => {
+    const { win, c, theirs, ours } = await stacked();
+    const gone = win.negoRetractDraft(c, ours.id, { side: 'owner', by: 'Amina Otieno', unsentIds: [ours.id] });
+    assert.ok(gone, 'the unsent counter is retracted');
+    assert.ok(!c.changes.some(x => x.id === ours.id), 'and is off the record');
+    assert.equal(theirs.status, 'pending', 'their ask comes back onto the table');
+    assert.equal(theirs.counteredBy, undefined);
+  });
+
+  test('(parent: red) THE TRAP — a round cannot close over a parked ask, so a refusal always has something to bring back', async () => {
+    const { win, c, theirs, ours } = await stacked();
+    assert.equal(win.negoAdvanceRound(c, { by: 'Amina Otieno' }), null, 'the counter is undecided');
+    /* The wall itself, with the ordinary gate out of the way: a record where
+       something is still parked cannot archive. At the parent this CLOSED and
+       the parked ask fell out of the record — neither decided nor superseded,
+       it was not archived and c.changes was emptied. */
+    ours.status = 'accepted';
+    assert.equal(theirs.status, 'countered');
+    assert.equal(win.negoAdvanceRound(c, { by: 'Amina Otieno' }), null, 'a parked ask is not history');
+    assert.ok(c.changes.some(x => x.id === theirs.id), 'and it is still on the record');
+    /* Decided properly, the round closes and the archive carries both. */
+    ours.status = 'pending';
+    win.negoResolve(c, ours.id, 'accepted', { side: 'counterparty', by: 'Nordkust Legal' });
+    const closed = win.negoAdvanceRound(c, { by: 'Amina Otieno' });
+    assert.ok(closed, 'the round closes once the pair is decided');
+    const archived = closed.changes.map(x => `${x.id}:${x.status}`);
+    assert.ok(archived.includes(`${ours.id}:accepted`), archived.join(' · '));
+    assert.ok(archived.includes(`${theirs.id}:superseded`), 'the answered ask is history beside it: ' + archived.join(' · '));
+  });
+});
+
+describe('f207-D — the wholesale replacement is a BUNDLE', () => {
+  const X = '<p>Payment shall be made within ninety (90) days of invoice.</p>';
+  const R = '<p>Payment shall be made within sixty (60) days of invoice.</p>';
+  const Y = '<p>Payment shall be made within seventy-five (75) days of invoice.</p>';
+  const Z = '<p>All invoices fall due on the last banking day of the month following delivery, with no set-off of any kind.</p>';
+  /* Three rounds of layering on one clause — their ask, our counter on it,
+     their counter on ours — then OUR wholesale rewrite on top of the lot. */
+  async function layered(){
+    const s = stage();
+    s.x = await s.win.negoEditClause(s.c, s.cl, X, { side: 'counterparty', author: 'Nordkust Legal' });
+    s.r = await s.win.negoEditClause(s.c, s.cl, R, { side: 'owner', author: 'Amina Otieno', onTop: s.x.id });
+    s.y = await s.win.negoEditClause(s.c, s.cl, Y, { side: 'counterparty', author: 'Nordkust Legal', onTop: s.r.id });
+    s.hashes = { x: s.x.hash, r: s.r.hash, y: s.y.hash };
+    return s;
+  }
+  const shape = s => ({
+    x: [s.x.status, s.x.counteredBy || null], r: [s.r.status, s.r.counteredBy || null], y: [s.y.status, s.y.counteredBy || null] });
+
+  test('(parent: red) three layers park one under the next, and the top of the stack is the one live question', async () => {
+    const s = await layered();
+    assert.deepEqual(shape(s), { x: ['countered', s.r.id], r: ['countered', s.y.id], y: ['pending', null] });
+    assert.deepEqual(J(s.win.negoPending(s.c).map(c => c.id)), [s.y.id]);
+    assert.equal(s.win.redlineWholesale(s.r.newText, s.y.newText), false, 'a two-word move is layered, not a replacement');
+  });
+
+  test('(parent: red) a rewrite whose marks outnumber its words is a REPLACEMENT that parks every live ask, both sides\', however deep', async () => {
+    const s = await layered();
+    assert.equal(s.win.redlineWholesale(s.y.newText, plain(Z)), true, 'measured: marks > words');
+    const z = await s.win.negoEditClause(s.c, s.cl, Z, { side: 'owner', author: 'Amina Otieno', onTop: s.y.id });
+    assert.ok(z);
+    assert.equal(z.replacement, true);
+    assert.equal(z.counterOf, s.y.id, 'it names the ask it was written on');
+    assert.deepEqual(shape(s), { x: ['countered', z.id], r: ['countered', z.id], y: ['countered', z.id] }, 'all three parked under it');
+    const by = Object.fromEntries((z.bundle || []).map(b => [b.id, [b.was, b.counteredBy]]));
+    assert.deepEqual(J(by), { [s.x.id]: ['countered', s.r.id], [s.r.id]: ['countered', s.y.id], [s.y.id]: ['pending', null] },
+      'the bundle records where each one stood');
+    assert.deepEqual(J(s.win.negoPending(s.c).map(c => c.id)), [z.id]);
+    assert.ok(s.c.audit.some(a => /replaces the clause/.test(a.detail || '')), 'said in the trail');
+  });
+
+  test('(parent: red) REFUSED — every ask comes back exactly where it was, including the ones that were parked under an earlier counter', async () => {
+    const s = await layered();
+    const z = await s.win.negoEditClause(s.c, s.cl, Z, { side: 'owner', author: 'Amina Otieno', onTop: s.y.id });
+    assert.ok(s.win.negoResolve(s.c, z.id, 'rejected', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.deepEqual(shape(s), { x: ['countered', s.r.id], r: ['countered', s.y.id], y: ['pending', null] },
+      'the stack stands as it did before the rewrite');
+    assert.deepEqual(J([s.x.newText, s.r.newText, s.y.newText]), [plain(X), plain(R), plain(Y)], 'wording untouched');
+    assert.deepEqual(J([s.x.hash, s.r.hash, s.y.hash]), [s.hashes.x, s.hashes.r, s.hashes.y], 'fingerprints untouched');
+    assert.deepEqual(J(s.win.negoPending(s.c).map(c => c.id)), [s.y.id], 'their counter is the live question again');
+  });
+
+  test('(parent: red) ACCEPTED — one press answers all of them; REOPENED — they come back under it as they were', async () => {
+    const s = await layered();
+    const z = await s.win.negoEditClause(s.c, s.cl, Z, { side: 'owner', author: 'Amina Otieno', onTop: s.y.id });
+    assert.ok(s.win.negoResolve(s.c, z.id, 'accepted', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.deepEqual(J([s.x.status, s.r.status, s.y.status]), ['superseded', 'superseded', 'superseded']);
+    assert.deepEqual(J([s.x.supersededBy, s.r.supersededBy, s.y.supersededBy]), [z.id, z.id, z.id]);
+    assert.equal(s.win.negoProgress(s.c).pending, 0);
+    /* The way back is the same press in reverse. */
+    assert.ok(s.win.negoResolve(s.c, z.id, 'pending', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.deepEqual(shape(s), { x: ['countered', s.r.id], r: ['countered', s.y.id], y: ['countered', z.id] },
+      'the bundle is parked under the reopened replacement, each under its own counter');
+    assert.equal(s.x.supersededBy, undefined);
+  });
+
+  test('(parent: red) a replacement cannot cross a round boundary undecided — the round refuses to close, so a later refusal always finds its asks', async () => {
+    const s = await layered();
+    const z = await s.win.negoEditClause(s.c, s.cl, Z, { side: 'owner', author: 'Amina Otieno', onTop: s.y.id });
+    assert.equal(s.win.negoAdvanceRound(s.c, { by: 'Amina Otieno' }), null, 'undecided');
+    /* Decided in the next sitting, whatever the calendar says: refusing it
+       restores round-one asks that never left the record. */
+    assert.ok(s.win.negoResolve(s.c, z.id, 'rejected', { side: 'counterparty', by: 'Nordkust Legal' }));
+    assert.equal(s.x.newText, plain(X));
+    assert.equal(s.x.status, 'countered');
+    assert.equal(s.y.status, 'pending');
+  });
+
+  test('(parent: red) our own earlier ask from another round still steps down under a stack (the 15 Aug rule keeps that case)', async () => {
+    const s = stage();
+    const stale = await s.win.negoEditClause(s.c, s.cl, R, { side: 'owner', author: 'Amina Otieno', roundN: 1 });
+    s.c.negotiation.round = 2;
+    const theirs = await s.win.negoEditClause(s.c, s.cl, X, { side: 'counterparty', author: 'Nordkust Legal' });
+    /* Their round-two ask is a rival to our stale one and supersedes it (the control half). */
+    assert.equal(stale.status, 'superseded');
+    const ours = await s.win.negoEditClause(s.c, s.cl, '<p>Payment shall be made within eighty (80) days of invoice.</p>',
+      { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    assert.equal(theirs.status, 'countered', 'a counter written on theirs stacks');
+    assert.equal(ours.counterOf, theirs.id);
+  });
+});
+
+describe('f207-D — the stack travels, arrives as a stack, and is drawn as two layers', () => {
+  const THEIRS = '<p>Payment shall be made within ninety (90) days of invoice.</p>';
+  const OURS = '<p>Payment shall be made within sixty (60) days of invoice.</p>';
+
+  test('(parent: red) the share payload carries the parked ask AND the counter, with what parks what', async () => {
+    const { buildPortal } = require('./portalworld');
+    const { win } = buildPortal();
+    const c = supplyContract({ redlineText: RICH, format: 'rich' });
+    win.negoInit(c);
+    const cl = win.negoClauseList(c)[0].clauseId;
+    const theirs = await win.negoEditClause(c, cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await win.negoEditClause(c, cl, OURS, { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    c.negotiation.turn = 'counterparty';
+    c.negotiation.turnAt = '2099-01-01T00:00:00.000Z';
+    const payload = win.buildSharePayload(c, 'hash', { sharedBy: 'Amina Otieno' }, { purpose: 'negotiate' });
+    const chs = payload.contract.changes || [];
+    const t = chs.find(x => x.id === theirs.id), o = chs.find(x => x.id === ours.id);
+    assert.ok(t, 'the parked ask travels — the other side must see their own marks under ours');
+    assert.equal(t.status, 'countered');
+    assert.equal(t.counteredBy, ours.id);
+    assert.ok(o, 'the counter travels');
+    assert.equal(o.counterOf, theirs.id);
+    assert.deepEqual(J(o.bundle), [{ id: theirs.id, was: 'pending', counteredBy: null }]);
+    assert.equal(o.replacement, undefined, 'a layered counter is not a replacement');
+  });
+
+  test('(parent: red) a replacement travels with its bundle and its flag', async () => {
+    const { buildPortal } = require('./portalworld');
+    const { win } = buildPortal();
+    const c = supplyContract({ redlineText: RICH, format: 'rich' });
+    win.negoInit(c);
+    const cl = win.negoClauseList(c)[0].clauseId;
+    const theirs = await win.negoEditClause(c, cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await win.negoEditClause(c, cl,
+      '<p>All invoices fall due on the last banking day of the month following delivery, with no set-off of any kind.</p>',
+      { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    assert.equal(ours.replacement, true);
+    c.negotiation.turn = 'counterparty'; c.negotiation.turnAt = '2099-01-01T00:00:00.000Z';
+    const payload = win.buildSharePayload(c, 'hash', { sharedBy: 'Amina Otieno' }, { purpose: 'negotiate' });
+    const o = (payload.contract.changes || []).find(x => x.id === ours.id);
+    assert.equal(o.replacement, true);
+    assert.equal(o.bundle.length, 1);
+  });
+
+  test('(parent: red) a counter ARRIVING measured on our ask stacks on arrival instead of superseding it', async () => {
+    const { buildPortal } = require('./portalworld');
+    const { win } = buildPortal();
+    win.persist = () => {}; win.saveContract = () => {};
+    const c = supplyContract({ redlineText: RICH, format: 'rich' });
+    win.negoInit(c);
+    const cl = win.negoClauseList(c)[0].clauseId;
+    const ours = await win.negoEditClause(c, cl, OURS, { side: 'owner', author: 'Amina Otieno' });
+    /* What their page sends back: measured against OUR wording, as their own
+       editor was seeded from it. */
+    const filed = await win.applyNegoProposals(c, { negoProposed: [{
+      id: 'CHG-777', clauseId: cl, changeType: 'modify',
+      oldText: ours.newText, newText: plain(THEIRS), clauseLabel: ours.clauseLabel }] }, 'Nordkust Legal');
+    assert.equal(filed.length, 1, 'their counter files');
+    const theirs = win.negoChangeById(c, filed[0]);
+    assert.equal(theirs.oldText, ours.newText, 'measured against what they really wrote on');
+    assert.equal(ours.status, 'countered', 'our ask is parked under their counter, not superseded');
+    assert.equal(ours.counteredBy, theirs.id);
+    assert.equal(theirs.counterOf, ours.id);
+  });
+
+  test('(parent: red) the paper leads with the top of the stack and draws both layers in their authors\' colours, seats reversed on their page', async () => {
+    const s = stage();
+    const theirs = await s.win.negoEditClause(s.c, s.cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await s.win.negoEditClause(s.c, s.cl, OURS, { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    const cl = s.win.negoClauseList(s.c)[0];
+    assert.equal(s.win.negoLeadChange(s.c, cl, [theirs, ours]), ours, 'the counter leads');
+    assert.equal(s.win.negoLeadChange(s.c, cl, [ours, theirs]), ours, 'whatever the order handed in');
+    /* Our seat: their marks amber (them), ours accent (us). */
+    const mine = s.win.redlineDocHtml(s.c, { side: 'owner' });
+    const clause = mine.split('data-clause-id=').find(x => x.includes(s.cl)) || mine;
+    assert.match(clause, /class="[^"]*\brl-them\b/, 'their layer is drawn');
+    assert.match(clause, /class="[^"]*\brl-us\b/, 'and ours');
+    assert.match(clause, /ninety/, 'their words are still on the paper');
+    assert.match(clause, /sixty/, 'beside ours');
+    /* Their seat, once the round has gone over (an unsent counter is walled
+       off their preview): the same picture with the colours swapped — their
+       own ask is "us". */
+    s.c.negotiation.turn = 'counterparty'; s.c.negotiation.turnAt = '2099-01-01T00:00:00.000Z';
+    const yours = s.win.redlineDocHtml(s.c, { side: 'counterparty' });
+    const ins = [...yours.matchAll(/<ins class="([^"]*)"[^>]*>([^<]*)/g)].map(m => [m[1], m[2]]);
+    const sixty = ins.find(x => /sixty/.test(x[1]));
+    assert.ok(sixty && /\brl-them\b/.test(sixty[0]), 'from their chair OUR insertion is the other side\'s: ' + JSON.stringify(ins));
+    /* The contract tab's own canvas is the second renderer, and it agrees. */
+    const room = s.win.negoDocHtml(s.c, {});
+    assert.match(room, /\brl-them\b/, 'the room draws their layer'); assert.match(room, /\brl-us\b/, 'and ours');
+    assert.match(room, /ninety[\s\S]*sixty/, 'both wordings, theirs under ours');
+  });
+
+  test('(parent: red) a replacement draws as one struck block, one inserted block and the line saying what it stands on', async () => {
+    const s = stage();
+    const theirs = await s.win.negoEditClause(s.c, s.cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await s.win.negoEditClause(s.c, s.cl,
+      '<p>All invoices fall due on the last banking day of the month following delivery, with no set-off of any kind.</p>',
+      { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    assert.equal(ours.replacement, true);
+    const doc = s.win.redlineDocHtml(s.c, { side: 'owner' });
+    assert.match(doc, /class="rl-repl"/, 'the replacement block');
+    assert.match(doc, /rl-repl-on/, 'the stands line');
+    assert.ok(doc.includes('#' + theirs.id), 'naming what it stands on');
+    /* The struck block carries their whole wording, the inserted block ours. */
+    assert.match(doc, /<del[^>]*>[^<]*ninety \(90\) days[^<]*<\/del>/);
+    assert.match(doc, /<ins[^>]*>[^<]*last banking day[^<]*<\/ins>/);
+  });
+
+  test('(parent: red) the card column: a parked ask sits in its counter\'s pile and offers no Accept or Reject', async () => {
+    const s = stage();
+    const theirs = await s.win.negoEditClause(s.c, s.cl, THEIRS, { side: 'counterparty', author: 'Nordkust Legal' });
+    const ours = await s.win.negoEditClause(s.c, s.cl, OURS, { side: 'owner', author: 'Amina Otieno', onTop: theirs.id });
+    assert.equal(s.win.rlCardBand(theirs, 'owner', new Set(), null, s.c), s.win.rlCardBand(ours, 'owner', new Set(), null, s.c),
+      'the pair sits together');
+    const cards = s.win.redlineChangeCardsHtml(s.c, { side: 'owner', canAct: true });
+    const card = cards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
+    assert.ok(card, 'the parked ask is still on the column');
+    assert.ok(!/data-nego-accept|data-nego-reject/.test(card), 'and takes no decision of its own');
+    /* Their seat, once sent: our counter is the live question and carries the verbs; their parked ask does not. */
+    s.c.negotiation.turn = 'counterparty'; s.c.negotiation.turnAt = '2099-01-01T00:00:00.000Z';
+    const theirCards = s.win.redlineChangeCardsHtml(s.c, { side: 'counterparty', canAct: true });
+    const oursThere = theirCards.split('data-nego-card=').find(x => x.includes(ours.id)) || '';
+    assert.match(oursThere, /data-nego-accept/, 'they may accept our counter');
+    const theirsThere = theirCards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
+    assert.ok(theirsThere && !/data-nego-accept/.test(theirsThere));
+  });
+});

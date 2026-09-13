@@ -318,10 +318,123 @@ function redlineOpsHtml(ops, opts = {}){
      copy) and f36 pins that. The visible seam is opened by CSS instead:
      `del[class]+ins[class]{margin-inline-start}` in index.html and in the
      standalone history export — a gap the eye gets and the text never has. */
+  /* ---- WHO MADE THIS MARK (the layered redline, 13 Sep 2026) ----
+     An op composed by redlineLayerOps carries `who` — 'them' or 'us', relative
+     to the reader — and a deletion of ours inside an insertion of theirs
+     carries `under`, so it is drawn NESTED: their tint, our strike. Colour says
+     who, the line says what. An op carrying neither is drawn exactly as it
+     always was, byte for byte, which is what keeps every stored change and
+     every fingerprinted picture unchanged. */
+  const who = o => (o && o.who) ? ` rl-${o.who}` : '';
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
-    : o.op === 'ins' ? `<${tagIns} class="${insCls}"${sIns ? ` style="${attr(sIns)}"` : ''}${tip}>${e(o.text)}</${tagIns}>`
-    : `<${tagDel} class="${delCls}"${sDel ? ` style="${attr(sDel)}"` : ''}${tip}>${e(o.text)}</${tagDel}>`).join('');
+    : o.op === 'ins' ? `<${tagIns} class="${insCls}${who(o)}"${sIns ? ` style="${attr(sIns)}"` : ''}${tip}>${e(o.text)}</${tagIns}>`
+    : o.under ? `<${tagIns} class="${insCls} rl-${o.under}"${sIns ? ` style="${attr(sIns)}"` : ''}><${tagDel} class="${delCls}${who(o)}"${sDel ? ` style="${attr(sDel)}"` : ''}${tip}>${e(o.text)}</${tagDel}></${tagIns}>`
+    : `<${tagDel} class="${delCls}${who(o)}"${sDel ? ` style="${attr(sDel)}"` : ''}${tip}>${e(o.text)}</${tagDel}>`).join('');
+}
+
+/* ============================================================
+   THE LAYERED REDLINE (Young ruled 13 Sep 2026 — "the Large option")
+   ============================================================
+   Two changes on one clause, written one on top of the other: theirs measured
+   against what stands, ours measured against THEIRS. Drawn as ONE marked-up
+   paragraph — their marks and ours at once, coloured by author — so a counter
+   is read as what it is: their redraft, accepted in shape and moved in parts.
+
+   COMPOSED FROM THE TWO STORED OP ARRAYS, NEVER RE-DIFFED. The lower layer's
+   new text is the upper layer's old text (that is what "written on top" means,
+   and negoMeasuredAlike is the reading that tells it from a rival); where the
+   two do not meet, null comes back and the caller draws what it always drew.
+
+   The walk is over the SHARED text, in character offsets: the lower layer says
+   which runs of it are insertions and where deletions were taken out; the
+   upper layer says which runs we struck and where we inserted. Every boundary
+   is a cut, so a run is wholly inside or wholly outside each interval. At one
+   offset their deletion is emitted before our insertion — the old goes before
+   the new, which is the order redlineOps itself keeps. */
+function redlineLayerOps(underOps, overOps, opts = {}){
+  const under = Array.isArray(underOps) ? underOps : [];
+  const over = Array.isArray(overOps) ? overOps : [];
+  const whoU = opts.under || 'them', whoO = opts.over || 'us';
+  const mid = redlineNewText(under);
+  if (mid !== redlineOldText(over)) return null;
+  const insU = [], delU = [];
+  let t = 0;
+  for (const o of under){
+    if (o.op === 'keep') t += o.text.length;
+    else if (o.op === 'ins'){ insU.push([t, t + o.text.length]); t += o.text.length; }
+    else delU.push({ at: t, text: o.text });
+  }
+  const delO = [], insO = [];
+  t = 0;
+  for (const o of over){
+    if (o.op === 'keep') t += o.text.length;
+    else if (o.op === 'del'){ delO.push([t, t + o.text.length]); t += o.text.length; }
+    else insO.push({ at: t, text: o.text });
+  }
+  const cuts = new Set([0, mid.length]);
+  for (const [s, e] of insU){ cuts.add(s); cuts.add(e); }
+  for (const [s, e] of delO){ cuts.add(s); cuts.add(e); }
+  for (const d of delU) cuts.add(d.at);
+  for (const d of insO) cuts.add(d.at);
+  const pts = [...cuts].sort((a, b) => a - b);
+  const within = (ivs, s, e) => ivs.some(([a, b]) => a <= s && e <= b);
+  const out = [];
+  const push = (op, text, who, underWho) => {
+    if (!text) return;
+    const p = out[out.length - 1];
+    if (p && p.op === op && p.who === who && p.under === underWho) p.text += text;
+    else out.push(underWho ? { op, text, who, under: underWho } : (who ? { op, text, who } : { op, text }));
+  };
+  for (let i = 0; i < pts.length; i++){
+    const at = pts[i];
+    for (const d of delU) if (d.at === at) push('del', d.text, whoU);
+    for (const d of insO) if (d.at === at) push('ins', d.text, whoO);
+    if (i + 1 < pts.length){
+      const s = at, e = pts[i + 1], txt = mid.slice(s, e);
+      const tIns = within(insU, s, e), oDel = within(delO, s, e);
+      if (oDel) push('del', txt, whoO, tIns ? whoU : undefined);
+      else if (tIns) push('ins', txt, whoU);
+      else push('keep', txt);
+    }
+  }
+  return out;
+}
+
+/* ---- THE WHOLESALE REPLACEMENT RULE — keyed on SIZE, never on authorship ----
+   A change that replaces nearly the whole clause must not draw as a layered
+   redline: drawn that way it strikes every layer and appends a paragraph —
+   truthful, unreadable, twice the length. Copilot writing into the box and a
+   person selecting the paragraph and retyping it produce the same thing, so
+   there is one rule for both.
+
+   THE THRESHOLD IS A COMPARISON OF TWO LENGTHS, not a typed percentage: the
+   picture is drawn as a replacement when THE MARKS OUTNUMBER THE WORDS — when
+   the words carrying a strike or an underline exceed the words of the clause
+   as proposed, the picture is more mark than text. MEASURED on the proof
+   paragraphs of 13 Sep 2026: a five-point edit of a 92-word clause carries 31
+   marked words against 94 (layered, readable); a rewrite of the same clause
+   carries 151 against 80 (replacement). A clause proposed where nothing stood
+   is one insertion and never a replacement. */
+const redlineWords = s => String(s == null ? '' : s).trim().split(/\s+/).filter(Boolean).length;
+function redlineWholesale(before, after){
+  const b = String(before == null ? '' : before).trim(), a = String(after == null ? '' : after).trim();
+  if (!b || !a) return false;
+  const s = redlineStats(redlineOpsStructured(b, a));
+  return (s.ins + s.del) > redlineWords(a);
+}
+/* The replacement, drawn: the current wording as one struck block, the
+   proposed wording as one inserted block, and a line saying what it stands
+   on — ON the block, never a band. Both blocks wear the author's colour. */
+function redlineReplacementHtml(before, after, opts = {}){
+  const whoO = opts.over || 'us';
+  const e = (typeof window !== 'undefined' && window.esc)
+    || (s => String(s == null ? '' : s).replace(/[&<>]/g,
+      ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
+  const old = redlineOpsBlocksHtml([{ op: 'del', text: String(before == null ? '' : before), who: whoO }], opts);
+  const neu = redlineOpsBlocksHtml([{ op: 'ins', text: String(after == null ? '' : after), who: whoO }], opts);
+  const on = opts.stands ? `<p class="rl-repl-on">${e(opts.stands)}</p>` : '';
+  return `<div class="rl-repl">${old}${neu}${on}</div>`;
 }
 
 /* ============================================================
@@ -741,7 +854,10 @@ function redlineOpsBlocks(ops){
     const parts = String(o.text == null ? '' : o.text).split('\n');
     for (let k = 0; k < parts.length; k++){
       if (k) out.push([]);
-      if (parts[k] !== '') out[out.length - 1].push({ op: o.op, text: parts[k] });
+      /* The op's other fields ride with each part — `who` and `under` on a
+         layered op (13 Sep 2026) — so a line split cannot silently strip the
+         colour off a mark. An op carrying only op and text is unchanged. */
+      if (parts[k] !== '') out[out.length - 1].push({ ...o, text: parts[k] });
     }
   }
   return out;
@@ -1189,9 +1305,11 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, redlineMarkerDepth, redlineHangHtml,
+  redlineLayerOps, redlineWholesale, redlineReplacementHtml, redlineWords,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
+  redlineLayerOps, redlineWholesale, redlineReplacementHtml, redlineWords,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
