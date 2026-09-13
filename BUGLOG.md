@@ -13261,3 +13261,25 @@ VERIFIED
   f307 (6) five claims red at the parent; share-recipient-verify 34/34
   (the record sent by Word file through the real dialog, the outbox read
   back); lint 0 errors; full suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (late night) — THE SHARE DIALOG OPENS ON EMAIL
+Owner: "when i click share the blue highlight starts at email and then
+glitches and jumps to word. fix it so it stays at email and I can move
+to word if i want"
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The dialog drew Email lit, then moved the highlight to the channel of
+    the LAST send once the share list arrived (a Word send made every
+    later open jump to Word). It opens on Email now and the reader moves
+    it; the round send still remembers its channel.
+
+NOTICED, NOT FIXED
+  · A WhatsApp number on file still prefills the phone box but no longer
+    pre-selects the WhatsApp tab — the reader switches to it.
+
+VERIFIED
+  f307 (6) new claim red at the parent; share-recipient-verify 35/35
+  (reopened after a real Word send: Email lit); lint 0 errors; full
+  suite — see the commit.

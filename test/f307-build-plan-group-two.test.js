@@ -477,6 +477,20 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     assert.equal((I18N.match(/co_ch_word_hist_note:/g) || []).length, 2, 'both books');
   });
 
+  test('the dialog opens on Email whatever the last send used, and the reader moves it', async () => {
+    const { win } = buildWorld();
+    const lit = m => m.$$('[data-share-ch]').find(b => /var\(--color-accent\)/.test(b.style.background)).getAttribute('data-share-ch');
+    const m = await openShare(await negotiated(win), undefined, w => {
+      w.contractShares = async () => [{ token: 't1', channel: 'word', durable: false, recipientName: 'Priya', recipientEmail: 'p@nandi.example', createdAt: '2026-09-13T10:00:00Z', state: 'sent' }];
+    });
+    assert.equal(lit(m), 'email', 'the last send was a Word file and the dialog still opens on Email');
+    m.$('[data-share-ch="word"]').click();
+    assert.equal(lit(m), 'word', 'and the reader can move it');
+    const fn = /async function openShareModal\([\s\S]*?\n\}/.exec(CORE)[0];
+    assert.match(fn, /let ch='email';/, 'the opening channel is a constant, not the share list\'s');
+    assert.doesNotMatch(fn, /let ch=pre\.channel/, 'the remembered channel is the round send\'s, not this dialog\'s');
+  });
+
   test('the dialog says what the Word file is, by kind', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));

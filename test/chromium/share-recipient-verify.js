@@ -333,6 +333,17 @@ const ROUTE = [
       const m = items[0] || null;
       return m ? { subject: m.subject, detail: m.detail, body: String(m.body || '').slice(0, 400) } : null;
     });
+    /* ---- and the NEXT open still starts on Email (Young, 13 Sep 2026: the
+       highlight "starts at email and then glitches and jumps to word") ---- */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(300);
+    await page.evaluate(id => openShareModal(getContract(id)), cid);
+    await page.waitForTimeout(1500);
+    const litCh = await page.evaluate(() => {
+      const lit = Array.from(document.querySelectorAll('[data-share-ch]')).find(b => /var\(--color-accent\)/.test(b.style.background));
+      return lit ? lit.getAttribute('data-share-ch') : null;
+    });
+    check('4b. after a Word send the dialog still opens on Email, and stays there', litCh === 'email', litCh);
     check('4b. the Word send of the record attaches the history report, not the redline',
       !!mail && new RegExp(cid + '-negotiation-history\\.docx').test(String(mail.detail)) && /negotiation history/i.test(mail.subject) && !/mark it up/i.test(mail.body),
       JSON.stringify(mail));

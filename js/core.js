@@ -4844,7 +4844,15 @@ async function openShareModal(c, opts={}){
      needs the full panel and its explicit acknowledgement, never a shortcut
      past it. Non-blocking warnings ride along as one quiet line. */
   const qsWarns=contractReadiness(c).filter(x=>x.severity!=='block');
-  let ch=pre.channel||'email';
+  /* ---- THE DIALOG OPENS ON EMAIL, EVERY TIME (Young, 13 Sep 2026: "the blue
+     highlight starts at email and then glitches and jumps to word. fix it so
+     it stays at email and I can move to word if i want") ---- The first frame
+     draws Email lit; the fill then read the LAST send's channel off the share
+     list and moved the highlight under the reader's eyes. A remembered channel
+     is the round send's business (reshareToLastRecipient reads it there); a
+     dialog the reader opened by hand starts where it drew, and the reader
+     moves it. `pre.channel` is deliberately not read here. */
+  let ch='email';
   /* The opening handler stands down the instant the real one is about to go
      in — both live long enough to overlap otherwise. */
   if (_openAbort) _openAbort.abort();
