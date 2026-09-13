@@ -314,10 +314,15 @@ describe('F17 — the round refreshes the link they already hold', () => {
        one open would be a worse bug than the one the ordering fixes. */
     const fs = require('node:fs'), path = require('node:path');
     const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
-    const dlg = src.slice(src.indexOf('const wantDurable='), src.indexOf('const wantDurable=') + 700);
+    /* The region, not a byte count (13 Sep 2026): the predicate gained a
+       comment and a kind test, and a 700-byte window stopped short of it. */
+    const dlg = src.slice(src.indexOf('const wantDurable='), src.indexOf('      try{', src.indexOf('const wantDurable=')));
     assert.match(dlg, /standingShares\(priorShares\)/, 'it shares the predicate');
     assert.ok(!/standingShareFor/.test(dlg), 'but not the round send\'s fallback');
     assert.match(dlg, /recipientEmail/, 'the typed address is the match');
+    /* AND THE SAME KIND OF LINK (Young, 13 Sep 2026): a history payload written
+       onto a standing contract link left the counterparty opening the contract. */
+    assert.match(dlg, /payloadObj\.purpose!=='history' && email/, 'the record always gets its own link — a history link takes no refresh, and a contract link must not become one');
   });
 });
 

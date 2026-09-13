@@ -314,3 +314,109 @@ describe('f307 (4) — what came back, in one line', () => {
       assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
   });
 });
+
+/* ============================================================
+   f307 (5) — THE RECORD IS ITS OWN LINK, AND THE FIRST FRAME IS THE SEND
+   ============================================================
+   Young, 13 Sep 2026, three screenshots: "when I ask to send negotiation
+   history i get the contract instead. When i click the share button, image 2
+   flashes quickly before image 3 appears."
+
+   Two faults. The signer card (WHO SIGNS) was drawn at the open for the Sign
+   default and never told the kind had moved to the record, so the history
+   screen led with a signing route. And a history send to an address that
+   already held a standing contract link REFRESHED that link — the server
+   serves a link by the row's own purpose, so the counterparty opened the
+   contract while the sender believed they had sent the record. The flash was
+   the opening frame still drawing the kind question after it had become a door.
+   The first is asserted on the dialog, the second on the server (the wall) and
+   in the dialog's own reuse predicate (f17), the third in f178. */
+describe('f307 (5) — the record is its own link', () => {
+  async function openShare(c, opts){
+    const p = buildPortal({ url: 'http://localhost/hati/' });
+    const win = p.win;
+    win.API_MODE = () => false;
+    const user = { id: 'u_w', name: 'Wanjiru Kamau', role: 'legal', email: 'w@co.ke' };
+    win.localStorage.setItem('hati.v1.users', JSON.stringify([user]));
+    win.localStorage.setItem('hati.v1.session', JSON.stringify({ userId: user.id }));
+    win.persist = () => {};
+    win.renderAuditSection = () => {};
+    win.renderSharesSection = () => {};
+    win.refreshShareOverview = () => {};
+    await win.openShareModal(c, opts);
+    const root = win.document.getElementById('modal-root');
+    return { win, root, $: sel => root.querySelector(sel),
+      hidden: sel => { const el = root.querySelector(sel); return !el || String(el.className || '').split(/\s+/).includes('hidden'); } };
+  }
+  const signable = () => ({ id: 'MK-191', name: 'Warehousing and Logistics Services Agreement',
+    counterparty: 'Nordfrakt Logistik AB', template: 'WH', status: 'Under Review',
+    folder: 'dist', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+    signatures: [], comments: [], redlineText: F.protoRich(), format: 'rich',
+    changes: [{ id: 'CHG-001', clauseId: 'cl_1', status: 'accepted', authorSide: 'counterparty', summary: 'x' }],
+    signerPlan: [
+      { id: 'sg_cp', party: 'counterparty', name: 'Erik Lindqvist', role: 'CEO', email: 'erik@nordfrakt.se', order: 1, signed: false },
+      { id: 'sg_us', party: 'internal', name: 'Wanjiru Kamau', role: 'Director', email: 'w@co.ke', order: 2, signed: false } ] });
+
+  test('the signer card follows the kind: drawn on Sign, gone on the record, back on the contract', async () => {
+    const m = await openShare(signable(), { purpose: 'sign' });
+    assert.ok(!m.hidden('#share-signers'), 'a signing link opens on WHO SIGNS');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="history"]').click();
+    m.$('#share-kind-next').click();
+    assert.ok(m.hidden('#share-signers'), 'the record has nobody to sign it');
+    assert.ok(!m.hidden('#share-hist-note'), 'and says what the link is');
+    assert.ok(m.hidden('#share-purpose-wrap'), 'no purpose to choose on a record');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="contract"]').click();
+    m.$('#share-kind-next').click();
+    assert.ok(!m.hidden('#share-signers'), 'choosing the contract again brings the route back');
+  });
+
+  test('the first frame is the one screen, folded like the settled one (no flash)', async () => {
+    const m = await openShare(signable(), undefined);
+    assert.ok(m.hidden('#share-step-kind'), 'the kind question is behind its door');
+    assert.ok(!m.hidden('#share-step-1') && !m.hidden('#share-step-2'), 'the send is the screen');
+    assert.ok(m.$('#share-other'), 'and the door is on it');
+    assert.equal(m.$('#share-send').disabled, false, 'Send is live once the dialog is wired');
+  });
+
+  describe('the server keeps a link to the kind it was made with', () => {
+    let h, W;
+    before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+    after(async () => { await h.stop(); });
+    const payloadFor = (id, purpose) => ({ kind: 'hati-share', org: 'Highland Corporate Ltd',
+      sharedBy: 'Wanjiru Kamau', at: new Date().toISOString(), ...(purpose ? { purpose } : {}),
+      contract: { id, name: 'Raw Milk Collection', counterparty: 'Nandi Dairy',
+        docText: 'The Buyer shall pay within thirty (30) days.', changes: [], negotiation: { round: 1, rounds: [] } } });
+    const mk = purpose => W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: payloadFor('MK-A2', purpose), channel: 'link', durable: true, purpose,
+      recipient: { name: 'Priya Nair', email: 'priya@nandi.example' } } });
+    const put = (token, purpose) => W.admin.raw('/api/shares/' + token + '/payload', { method: 'PUT',
+      body: { payload: payloadFor('MK-A2', purpose) } });
+
+    test('a history payload cannot be written onto a contract link', async () => {
+      const link = await mk('negotiate');
+      const r = await put(link.token, 'history');
+      assert.equal(r.status, 409, 'refused');
+      assert.match(String(r.json.error), /own link/i, 'with the way forward');
+      const got = await W.admin.json('/api/shares/' + link.token);
+      assert.equal(got.historyOnly, undefined, 'and the link still opens as the contract');
+      assert.ok(got.payload && got.payload.contract && got.payload.contract.docText, 'wording served');
+    });
+    test('a history link takes no refresh at all — it was already a read-only pass', async () => {
+      const link = await mk('history');
+      assert.equal((await put(link.token, 'negotiate')).status, 403, 'the read-only guard, unchanged');
+      assert.equal((await put(link.token, 'history')).status, 403, 'even with its own kind — which is why the dialog never reuses one');
+      const got = await W.admin.json('/api/shares/' + link.token);
+      assert.equal(got.historyOnly, true);
+      assert.equal(got.purpose, 'history');
+      assert.equal(got.payload.contract.docText, undefined, 'a history link carries no wording');
+    });
+    test('the round send is untouched: no purpose, or a contract purpose, still refreshes a contract link', async () => {
+      const link = await mk('negotiate');
+      assert.equal((await put(link.token, null)).status, 200, 'the round send names no purpose');
+      assert.equal((await put(link.token, 'sign')).status, 200, 'the book may have moved on to signing');
+      assert.equal((await put(link.token, 'view')).status, 200);
+    });
+  });
+});

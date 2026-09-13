@@ -10329,6 +10329,19 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
     return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  /* ---- A LINK KEEPS THE KIND IT WAS MADE WITH ---- (Young, 13 Sep 2026.)
+     What this route serves is decided by the ROW's purpose, never by the
+     payload's — a history link hands out historyPayload, a contract link the
+     contract. So a payload that says it is the record, written onto a link
+     the counterparty opens as the contract, is a link that lies to whoever
+     sent it: the browser stopped reusing a contract link for the record the
+     same day, and this is the wall behind it. (The other direction is already
+     refused above: a history link is read-only and takes no refresh at all.)
+     Payloads that state no purpose, and the three contract purposes among
+     themselves, pass as before — the round send refreshes a negotiate link
+     with whatever the book's state says. */
+  if (payload.purpose === 'history')
+    return res.status(409).json({ error: 'This link carries the contract and cannot be turned into a history link. Send the negotiation history on its own link.' });
   /* ---- A SILENT REFRESH IS A DIFFERENT ACT FROM SENDING A ROUND ----
 
      Two things want to write a payload, and only one of them is a message to

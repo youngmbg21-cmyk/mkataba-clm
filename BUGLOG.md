@@ -13195,3 +13195,41 @@ NOTICED, NOT FIXED
 VERIFIED
   f260, f263 green; a real press in Chromium closed the window with no
   obligation added; lint 0 errors.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (evening) — THE SEND OPENS ON THE SEND, THE RECORD IS
+ITS OWN LINK
+Owner: "image 1, when I ask to send negotiation history i get the contract
+instead. When i click the share button, image 2 flashes quickly before
+image 3 appears. Fix this."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The share dialog's first frame was still the "What are you sharing?"
+    question, swapped for the one-screen send when the share list landed.
+    One builder now draws both paints; the kind question is folded from
+    the first frame; typed words survive the fill.
+  · The settled dialog had been 32rem wide since 22 Aug (the width passed
+    to the fill was ignored); the opening frame sets 46rem now.
+  · WHO SIGNS stayed on the history screen (the kind switch never hid it).
+  · A history send to an address holding a standing contract link
+    REFRESHED that link, whose row still said "negotiate" — so the
+    recipient opened the contract. The record always gets its own link;
+    the server refuses a history payload onto a contract link (409).
+
+NOTICED, NOT FIXED
+  · The history screen still folds the CONTRACT's readiness warnings
+    ("N things worth checking before you send") and titles itself
+    "Send round N to …".
+  · A `view` payload can still refresh a `negotiate` row through the same
+    reuse path (contract-to-contract; the row's purpose is what is served).
+  · sign-links-verify section 5 ("once nothing blocks, it is live") went
+    red with the unrun-check hold of the earlier run today (Sign — 2 to
+    settle · signcheck): its fixture never runs the check. Re-pointed in
+    this run since this session broke it.
+
+VERIFIED
+  f307 (5) 3 of 4 red at the parent; f178, f17, n4 re-pointed; share-
+  recipient-verify 32/32 (4b: first frame measured with the fetch held,
+  the record sent by a real press and opened as history); lint 0 errors;
+  full suite — see the commit.

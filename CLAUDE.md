@@ -861,6 +861,10 @@ Six pieces, one idea each. Group 6 (the Word round-trip and BankID) is NOT built
 
 **NOT BUILT, and named so nobody assumes otherwise**: G5.2 (a one-time code before a guest's first Send) and Part B phase 6 (the template baseline read once per version).
 
+## THE SEND OPENS ON THE SEND, AND THE RECORD IS ITS OWN LINK (Young reported it 13 Sep 2026)
+
+Two faults off the one-screen send's first day. **THE FIRST FRAME IS THE ONE SCREEN**: `oneScreenHtml(pre, o)` inside `openShareModal` is the ONE builder for the opening paint (`_noPre`, `opening:true` greys Send) and the settled paint (`shareFillModal(oneScreenHtml(pre))`); `shareKindStepHtml(c, sel, {hidden})` is folded from the first frame; the width is the OPENING's to set (46rem — the fill keeps the frame); `shareWireOpening` holds purpose presses, the quiet door and the kind cards, and what was typed into the first frame WINS over the prefill (`_held`). `shareOpeningHtml` is GONE. **THE SIGNER CARD FOLLOWS THE KIND**: `setKind` hides `#share-signers` on the record. **A HISTORY SEND NEVER REUSES A LINK**: the dialog's reuse predicate refuses `purpose==='history'` (a history link is a read-only pass the PUT refuses anyway), and the server's `PUT /api/shares/:token/payload` refuses a `purpose:'history'` payload onto a contract link (409) — the row's purpose is what is served. Tests: f307 (5), f178, f17, n4 re-pointed; share-recipient-verify 4b (the first frame measured with the fetch held; the record sent by a real press and opened).
+
 ## THE CHECK BEFORE A CONTRACT IS SIGNED (owner-approved 13 Sep 2026 — WORKORDER-pre-signature-check.md Part A)
 
 A contract is read when it ARRIVES and never again, but the wording that gets signed is not the wording that arrived.

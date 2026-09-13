@@ -214,6 +214,101 @@ const ROUTE = [
     }, [cid, YAHOO]);
     check('and it is absent when the two records agree', agreed);
 
+    /* ================= 4b. THE FIRST FRAME IS THE SEND, AND THE RECORD IS
+       ITS OWN LINK ================= (Young, 13 Sep 2026: "when I ask to send
+       negotiation history i get the contract instead. When i click the share
+       button, image 2 flashes quickly before image 3 appears.")
+       The share list fetch is held for 700ms so the first frame can be
+       measured while it is still the only thing on screen. */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(300);
+    /* A record to send: one change filed through the product's own funnel, so
+       the history card is a live choice. */
+    await page.evaluate(async id => {
+      const c = getContract(id); await ensureFull(c);
+      if (!c.redlineText){ c.redlineText = '<h4>1. Payment</h4><p>The Buyer pays within thirty days.</p><h4>2. Term</h4><p>One year from signing.</p>'; c.format = 'rich'; }
+      negoInit(c); const cl = negoClauseList(c)[0];
+      await negoEditClause(c, cl.clauseId, '<p>The Buyer pays within forty-five days.</p>',
+        { side: 'counterparty', author: 'Erik Lindqvist · Juno Limited', summary: 'Net-45' });
+      persist(c); await flushSaves();
+    }, cid);
+    await page.route('**/api/contracts/*/shares', async route => {
+      await new Promise(r => setTimeout(r, 700)); await route.continue(); });
+    const frames = await page.evaluate(async id => {
+      const root = document.getElementById('modal-root');
+      const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
+        const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      const read = () => ({ kind: vis('#share-step-kind'), send: vis('#share-step-1'), form: vis('#share-step-2'),
+        email: vis('#sh-email'), other: vis('#share-other'), signers: vis('#share-signers'),
+        sendDisabled: !!(root.querySelector('#share-send') || {}).disabled,
+        width: Math.round((root.querySelector('.modal-in') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width) });
+      const p = openShareModal(getContract(id));          // the plain Share button: no options
+      await new Promise(r => setTimeout(r, 150));
+      const first = read();
+      const typed = document.getElementById('sh-name'); if (typed) typed.value = 'Typed while loading';
+      await p;
+      await new Promise(r => setTimeout(r, 250));
+      const settled = read();
+      settled.name = (document.getElementById('sh-name') || {}).value;
+      return { first, settled };
+    }, cid);
+    await page.unroute('**/api/contracts/*/shares');
+    check('4b. the first frame is the send, not the kind question',
+      frames.first.send === true && frames.first.form === true && frames.first.kind === false,
+      JSON.stringify(frames.first));
+    check('4b. the address box and the quiet door are on it from the first frame',
+      frames.first.email === true && frames.first.other === true);
+    check('4b. Send is greyed until the dialog is wired, then live',
+      frames.first.sendDisabled === true && frames.settled.sendDisabled === false);
+    check('4b. the frame does not change width when the fetch lands',
+      frames.first.width > 600 && frames.first.width === frames.settled.width,
+      `${frames.first.width} → ${frames.settled.width}`);
+    check('4b. the settled screen is the same screen',
+      frames.settled.send === true && frames.settled.kind === false, JSON.stringify(frames.settled));
+    check('4b. what was typed into the first frame survives the fill',
+      frames.settled.name === 'Typed while loading', frames.settled.name);
+
+    /* The history journey, pressed for real, on a contract whose address
+       already holds a standing negotiate link (built in the set-up above). */
+    await page.click('#share-other');
+    await page.waitForTimeout(200);
+    const cardLive = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]'); return !!b && !b.disabled; });
+    check('4b. the history card is a live choice on a contract with a record', cardLive);
+    if (cardLive) await page.click('[data-share-kind="history"]');
+    await page.click('#share-kind-next');
+    await page.waitForTimeout(300);
+    const hist = await page.evaluate(() => {
+      const root = document.getElementById('modal-root');
+      const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
+        const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      return { signers: vis('#share-signers'), note: vis('#share-hist-note'), purpose: vis('#share-purpose-wrap'),
+        preview: vis('#share-hist-preview'), text: root.innerText.replace(/\s+/g, ' ') };
+    });
+    await page.screenshot({ path: path.join(OUT, '05-history-send.png') });
+    check('4b. the history screen draws no signing route', hist.signers === false && !/WHO SIGNS/i.test(hist.text));
+    check('4b. and says it is the record', hist.note === true && hist.purpose === false);
+    const before = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
+      .map(s => ({ token: s.token, purpose: s.purpose, email: s.recipientEmail })), cid);
+    await page.evaluate(gmail => { document.getElementById('sh-email').value = gmail; }, GMAIL);
+    await page.click('[data-share-ch="link"]');
+    await page.click('#share-send');
+    await page.waitForTimeout(1500);
+    const after = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
+      .map(s => ({ token: s.token, purpose: s.purpose, email: s.recipientEmail })), cid);
+    const nego = before.find(s => s.purpose === 'negotiate' && s.email === GMAIL);
+    const made = after.find(s => s.purpose === 'history');
+    check('4b. the record went out on its own link, the contract link untouched',
+      !!made && !!nego && made.token !== nego.token && after.some(s => s.token === nego.token && s.purpose === 'negotiate'),
+      JSON.stringify({ before: before.map(s => s.purpose), after: after.map(s => s.purpose) }));
+    const opened = made ? await page.evaluate(async t => {
+      const r = await fetch('/api/shares/' + t); const j = await r.json();
+      return { status: r.status, historyOnly: j.historyOnly, purpose: j.purpose,
+        wording: !!(j.payload && j.payload.contract && (j.payload.contract.docText || j.payload.contract.redlineText)) };
+    }, made.token) : null;
+    check('4b. and what that link serves is the history, not the contract',
+      !!opened && opened.status === 200 && opened.historyOnly === true && opened.purpose === 'history' && opened.wording === false,
+      JSON.stringify(opened));
+
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');
 

@@ -87,18 +87,30 @@ describe('F178 — the tab row re-fits when the ROW changes width, not the windo
 });
 
 describe('F178 — the share dialog arrives once, at its final size', () => {
-  test('the first paint is the real first question, not a skeleton', () => {
-    assert.match(CORE, /function shareOpeningHtml\(c, purposeSel\)\{\s*return `<div style="padding:22px var\(--s-6\);">\$\{shareKindStepHtml\(c, purposeSel\)\}<\/div>`;/,
-      'the opening markup IS the step the settled dialog shows');
+  test('the first paint is the screen the dialog settles on, not a skeleton and not a question', () => {
+    /* Re-pointed 13 Sep 2026 (Young: "image 2 flashes quickly before image 3
+       appears"). The opening frame was the kind question because that was
+       the first step; once the one-screen send made it a door, the frame
+       became a screen the reader would never otherwise see. ONE builder now
+       draws both paints, so they cannot differ in shape. */
+    const fn = /async function openShareModal\([\s\S]*?\n\}/.exec(CORE)[0];
+    assert.ok(!/function shareOpeningHtml/.test(CORE), 'the separate opening markup is gone');
+    assert.match(fn, /const oneScreenHtml=\(pre, o=\{\}\)=>/, 'one builder for the one screen');
+    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'46rem' \}\)/,
+      'the first frame IS the one screen, at the width the settled dialog keeps');
+    assert.match(fn, /shareFillModal\(oneScreenHtml\(pre\)\)/, 'and the fill draws the same builder with the prefill');
+    assert.match(fn, /shareKindStepHtml\(c, purposeSel, \{ hidden:true \}\)/, 'the kind question is folded from the first frame');
+    assert.match(CORE, /id="share-step-kind"\$\{o\.hidden\?' class="hidden"':''\}/, 'the step builder takes the fold');
+    assert.match(fn, /\$\{o\.opening\?' disabled':''\}/, 'Send is greyed until the dialog is wired');
     assert.ok(!/aria-hidden="true" style="display:grid;gap:9px"/.test(CORE),
       'the grey placeholder boxes are gone — they were the flicker');
   });
 
   test('the purpose is settled before that paint, because the paint draws it', () => {
     const fn = /async function openShareModal\([\s\S]*?\n\}/.exec(CORE)[0];
-    assert.ok(fn.indexOf('let purposeSel') < fn.indexOf('openModal(shareOpeningHtml'),
+    assert.ok(fn.indexOf('let purposeSel') < fn.indexOf('openModal(oneScreenHtml'),
       'or the first screen could not be drawn at all');
-    assert.ok(fn.indexOf('openModal(shareOpeningHtml') < fn.indexOf('await ensureFull'),
+    assert.ok(fn.indexOf('openModal(oneScreenHtml') < fn.indexOf('await ensureFull'),
       'and the paint must come before the fetches, which is the whole point');
   });
 
@@ -111,13 +123,20 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
        it simply lands on the one screen. The CLAIM is unchanged: a press made
        while the fetches were in flight is honoured rather than lost. */
     assert.match(CORE, /if \(_pending\.next\) step\(1\);/, 'and replayed once wired');
+    /* The one screen's own controls are live too (13 Sep 2026): the purpose
+       row repaints in place, the quiet door folds the screens, typed words
+       survive the fill. */
+    assert.match(CORE, /pending\.purpose = seg\.getAttribute\('data-share-purpose'\)/, 'a purpose press is held');
+    assert.match(CORE, /pending\.other = true/, 'so is the quiet door');
+    assert.match(CORE, /if \(_pending\.other && !_pending\.next\) step\('kind'\);/, 'and replayed');
+    assert.match(CORE, /const _held=\{ 'sh-name':fval\('sh-name'\)/, 'what was typed into the first frame is read before the fill');
   });
 
   test('and the opening handler is aborted before the real one goes in', () => {
     /* It sits on #modal-root, which the fill does not replace — a survivor
        would handle every later press twice, alongside the real handlers. */
     assert.match(CORE, /new AbortController\(\)/);
-    assert.match(CORE, /if \(_openAbort\) _openAbort\.abort\(\);[\s\S]{0,80}shareFillModal\(/,
+    assert.match(CORE, /if \(_openAbort\) _openAbort\.abort\(\);[\s\S]{0,700}shareFillModal\(/,
       'aborted immediately before the fill, not later and not never');
   });
 

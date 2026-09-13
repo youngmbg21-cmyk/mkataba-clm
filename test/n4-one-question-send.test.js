@@ -64,10 +64,14 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
        the record of the argument — with "what is this link for?" one Next
        behind it. Both are still asked before anything can be sent, which is
        what this test has always been protecting. */
-    assert.match(h, /id="share-step-kind"(?! class="hidden")/, 'the sharing question leads');
+    /* Since 13 Sep 2026 the sharing question is a door on the one screen
+       (#share-other), folded from the first frame; the purpose is asked ON
+       that screen. Both are still asked before anything can be sent. */
+    assert.match(h, /id="share-step-kind" class="hidden"/, 'the sharing question is behind its door');
+    assert.match(h, /id="share-other"/, 'and the door is drawn');
     assert.match(h, /What are you sharing\?/);
     assert.match(h, /What this round is for/, 'and the purpose is still asked');
-    assert.match(h, /id="share-step-1" class="hidden"/, 'one step at a time');
+    assert.match(h, /id="share-step-1">/, 'the send is the screen');
   });
 
   test('Sign is the first option the sender reads', async () => {
@@ -108,7 +112,8 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
     const { s, html } = modalWorld([]);
     await s.openShareModal(contract());
     assert.ok(!/share-step-0/.test(html()), 'nothing known means nothing to shortcut');
-    assert.match(html(), /id="share-step-kind"(?! class="hidden")/, 'the full flow starts at its first question');
+    assert.match(html(), /id="share-step-kind" class="hidden"/, 'the full flow starts on the send, the rare question behind its door');
+    assert.match(html(), /id="share-other"/);
   });
 
   test('static mode never shortcuts — email cannot actually be sent', async () => {

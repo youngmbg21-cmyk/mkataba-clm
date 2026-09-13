@@ -339,6 +339,11 @@ const ROUTE = [
          real blocker and correctly on the list. Cleared here so the last claim
          is about the EMPTY list rather than about approvals. */
       state.settings = { ...(state.settings || {}), approvalRules: [] };
+      /* Since 13 Sep 2026 an UNRUN check holds under the default gate (the
+         owner: signing before the check ran was "nonsensical"). This claim
+         is about the EMPTY list, so the check is stamped as run against this
+         wording, exactly as the sweep stamps it. */
+      c.signCheck = { at: new Date().toISOString(), by: 'test', wordingHash: playbookHashOf(playbookText(c)) };
       renderSignButton(c);
       await new Promise(r => setTimeout(r, 200));
       const b = document.getElementById('sign-btn');

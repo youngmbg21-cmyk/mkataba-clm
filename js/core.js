@@ -3174,9 +3174,12 @@ function shareKindOptionsHtml(c, sel){
         sel==='history', !hasHistory)}
     </div>`;
 }
-function shareKindStepHtml(c, sel){
+function shareKindStepHtml(c, sel, o={}){
+  /* `hidden` since 13 Sep 2026: the question is behind its own door, so both
+     paints of the dialog draw it folded from the first frame — a step drawn
+     open and then folded by the wiring is exactly the flash the owner saw. */
   return `
-    <div id="share-step-kind">
+    <div id="share-step-kind"${o.hidden?' class="hidden"':''}>
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_what_sharing')}</h2></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_one_question')}</p>
@@ -4562,14 +4565,23 @@ let _shareOpenSeq = 0;
    corrects itself from "nothing proposed yet" to offered. That is a correction
    the reader should see, and it is one card's state rather than the whole
    dialog changing shape. */
-function shareOpeningHtml(c, purposeSel){
-  return `<div style="padding:22px var(--s-6);">${shareKindStepHtml(c, purposeSel)}</div>`;
-}
+/* ---- THE FIRST FRAME IS THE SCREEN THE DIALOG SETTLES ON ---- (Young,
+   13 Sep 2026: "image 2 flashes quickly before image 3 appears".)
+   The opening frame used to be the kind question, because that WAS the first
+   step. Since the one-screen send it is a door on that screen, so the frame
+   that arrived first was a screen the reader would never otherwise see, drawn
+   for as long as the share list took to fetch and then swapped out. The frame
+   is the one screen now, built inside openShareModal by the same builder the
+   settled paint uses (oneScreenHtml), so the two cannot differ in shape: what
+   the fetches add is the recipient's name and address in boxes that are
+   already there. shareOpeningHtml is gone with the frame it drew. */
 /* AND IT IS LIVE FROM THAT FIRST FRAME. The real wiring cannot be attached
-   until the full markup is in, so without this the cards and Next would be
-   drawn, look pressable and do nothing for as long as the fetches take —
-   which is the fault the skeleton was introduced to fix, moved rather than
-   removed. Presses are held and replayed once the dialog settles.
+   until the full markup is in, so without this the controls would be drawn,
+   look pressable and do nothing for as long as the fetches take — which is
+   the fault the skeleton was introduced to fix, moved rather than removed.
+   Presses are held and replayed once the dialog settles: the purpose row and
+   the kind cards repaint in place, the quiet door folds the screens as the
+   settled wiring would, and Send is greyed until the dialog is wired.
 
    ABORTED BEFORE THE FILL, never left behind: the listener sits on #modal-root
    and the fill only replaces the panel's contents, so a surviving copy would
@@ -4577,6 +4589,11 @@ function shareOpeningHtml(c, purposeSel){
 function shareWireOpening(pending, c, get, set, signal){
   const root = document.getElementById('modal-root');
   if (!root || !root.addEventListener) return;
+  const fold = kind => {
+    root.querySelector('#share-step-kind')?.classList.toggle('hidden', !kind);
+    root.querySelector('#share-step-1')?.classList.toggle('hidden', kind);
+    root.querySelector('#share-step-2')?.classList.toggle('hidden', kind);
+  };
   root.addEventListener('click', e => {
     const t = e.target;
     if (!t || !t.closest) return;
@@ -4588,8 +4605,17 @@ function shareWireOpening(pending, c, get, set, signal){
       if (wrap) wrap.outerHTML = shareKindOptionsHtml(c, get());
       return;
     }
-    if (t.closest('#share-kind-next')){ pending.next = true; return; }
-    if (t.closest('#share-close-kind')) closeModal();
+    const seg = t.closest('[data-share-purpose]');
+    if (seg && !seg.disabled){
+      pending.purpose = seg.getAttribute('data-share-purpose');
+      set(pending.purpose);
+      const wrap = root.querySelector('#share-purpose-wrap');
+      if (wrap) wrap.innerHTML = sharePurposePickerHtml(c, get(), { compact:true });
+      return;
+    }
+    if (t.closest('#share-other')){ pending.other = true; pending.next = false; fold(true); return; }
+    if (t.closest('#share-kind-next')){ pending.next = true; pending.other = false; fold(false); return; }
+    if (t.closest('#share-close-kind') || t.closest('#share-close')) closeModal();
   }, signal ? { signal } : false);
 }
 /* Into the frame that is already up, rather than a second dialog. openModal
@@ -4633,104 +4659,32 @@ async function openShareModal(c, opts={}){
   const _openSeq = ++_shareOpenSeq;
   const _superseded = () => _openSeq !== _shareOpenSeq || !document.getElementById('modal-scrim');
   /* The purpose is settled before the first paint because the first screen
-     draws it — see the note on shareOpeningHtml. It stays a live value: the
+     draws it — see the note above shareWireOpening. It stays a live value: the
      placeholder's own handler moves it, and the payload below is built from
      wherever it has got to by then. */
   let purposeSel = SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c);
-  const _pending = { kind: null, next: false };
+  const _pending = { kind: null, next: false, other: false, purpose: null };
   const _openAbort = (typeof AbortController === 'function') ? new AbortController() : null;
-  openModal(shareOpeningHtml(c, purposeSel));
-  shareWireOpening(_pending, c, () => purposeSel,
-    k => { purposeSel = k === 'history' ? 'history'
-      : (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
-    _openAbort ? _openAbort.signal : null);
-  // A share copies the contract out of the building, so it must be copied
-  // whole: a record loaded for a list view carries neither its uploaded file's
-  // bytes nor its round history, and both are things the payload publishes.
-  try{ await ensureFull(c); }catch(_){}
-  if(_superseded()) return;
-  const docHash=await sha256(canonicalDoc(c));
-  // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
-  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
-  /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
-     In server mode it sits in the shares table and is served to anyone holding
-     the link; in static mode the whole thing travels inside the URL. Either
-     way it is read by a party outside the organisation, so it carries ONLY
-     what js/views/portal.js renders or needs to send a response back. Anything
-     added here is published — audit it against the portal before adding it.
-
-       id, name, counterparty  — the header and the response envelope
-       template, fields        — so a built-in template can be re-rendered
-       redlineText, format     — the working text, and the marker without which
-                                 a rich document renders as literal markup
-       source, upload          — an uploaded document's own file
-       value, valueType        — the counter-proposal field ("propose a
-                                 different value") and the certificate row
-       org, sharedBy, at       — who sent it and when, shown in the header
-       docHash                 — echoed in the response so the owner can tell
-                                 the document changed after the link was made
-
-     `folder` was in here and is not: which internal value stream a contract is
-     filed under is the organisation's own filing structure, and the portal has
-     never rendered it — it derives one from the template, falling back to
-     'corp'. The upload is trimmed to the file itself; the near-duplicate
-     signals (textFingerprint, simhash) and OCR bookkeeping are
-     portfolio-analysis data with no meaning to a counterparty.
-
-     Built by buildSharePayload() below rather than inline: the allow-list is the
-     thing that decides what a counterparty can be shown, so it needs to be
-     reachable by a test. It was inline when the returned-changes banner shipped,
-     which is exactly how that banner came to be verified against a payload the
-     application never actually produces. */
-  /* The purpose the dialog opens on: what the caller asked for if it had an
-     opinion, otherwise what the contract's own state says. It is a live value —
-     the picker on step 1 changes it, and everything downstream reads it from
-     here rather than from the payload built a moment ago. */
-  /* purposeSel was settled before the first paint and may have MOVED since —
-     the reader can answer the first question while the fetches are in flight.
-     The payload is built from where it has got to, not from the default. */
-  const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
-  const server=API_MODE();
-  // Who this went to last time. Fetched before the dialog is built so the
-  // fields open already filled rather than filling themselves a moment later
-  // under the user's cursor.
-  const priorShares=await contractShares(c);
-  if(_superseded()) return;
-  const pre=shareModalPrefill(priorShares, c);
-  /* THE BOX AND THE ROW ARE ONE ANSWER. Where the prefill came off the signing
-     route, the row it came from opens already chosen, so the link is bound to
-     that signer from the first frame rather than only when somebody thinks to
-     press it. Pressing it again still takes the binding off. */
-  const preNote=sharePrefillNote(pre);
-  /* WO N4 — the one-question send. Offered only when nothing needs asking:
-     the email channel works end to end (server mode), somebody to send to is
-     already on the record, and nothing on the readiness list BLOCKS — a block
-     needs the full panel and its explicit acknowledgement, never a shortcut
-     past it. Non-blocking warnings ride along as one quiet line. */
-  const qsWarns=contractReadiness(c).filter(x=>x.severity!=='block');
   /* WO N4's one-question quick send is RETIRED (Young, 02 Aug 2026): it let a
      contract go out without the sender ever consciously choosing negotiate vs
      sign — the one decision that changes what the recipient can DO with the
-     link. The dialog now always opens on "What is this link for?". The
-     machinery stays (quickSendStepHtml et al.) in case a safer shortcut is
-     wanted later. */
+     link. The machinery stays (quickSendStepHtml et al.) in case a safer
+     shortcut is wanted later. */
   const quickOk = false;
   let qsActive=quickOk;
   const FLD=HATI_FLD;
   const LBL=HATI_LBL;
+  const server=API_MODE();
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px var(--s-1);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${label}</button>`;
-  let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
-  /* The opening handler stands down the instant the real one is about to go
-     in — both live long enough to overlap otherwise. */
-  if (_openAbort) _openAbort.abort();
-  shareFillModal(`
-    <div style="padding:22px var(--s-6);">
-      ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
-      ${shareKindStepHtml(c, purposeSel)}
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true,
-        signerSel:(pre.source==='route'?pre.signerId:null), hiddenStart:true })}
-      <div id="share-step-2" class="hidden">
+  /* ---- ONE BUILDER, TWO PAINTS ---- (13 Sep 2026). The send form is built
+     here, before anything is fetched, so the frame that opens at once and the
+     dialog that settles a moment later are the same markup: the first is drawn
+     with empty boxes and a greyed Send (`opening`), the second with the
+     recipient filled in. A second copy of this form is how the opening frame
+     came to be a screen of its own. */
+  const sendFormHtml=(pre, o={})=>`
+      <div id="share-step-2">
       ${''/* ---- ON ONE SCREEN THE PAGE HAS ONE HEADING ---- (13 Sep 2026)
              This step's own title and its two standing blurbs are drawn and
              hidden rather than deleted: the dialog still has a two-step shape
@@ -4804,16 +4758,104 @@ async function openShareModal(c, opts={}){
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="share-back" class="ui-btn hidden">← Back</button>
         <button id="share-close" class="ui-btn">${i18t('act_close')}</button>
-        <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
+        <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
       </div>
-    </div>`,
-    /* WIDER THAN THE 32rem DEFAULT. This dialog carries a scrolling change
-       manifest and a five-row textarea, and then asks for a decision
-       underneath both — at the default width the buttons sat below the fold
-       and the sender had to scroll a modal to reach Next, on the screen whose
-       whole job is "choose, then send". */
-    { maxWidth:'46rem' });
+`;
+  const oneScreenHtml=(pre, o={})=>`
+    <div style="padding:22px var(--s-6);">
+      ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
+      ${shareKindStepHtml(c, purposeSel, { hidden:true })}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true,
+        signerSel:(pre.source==='route'?pre.signerId:null) })}
+      ${sendFormHtml(pre, o)}
+    </div>`;
+  const _noPre={ name:'', email:'', phone:'', source:'', channel:'', signerId:null };
+  /* WIDER THAN THE 32rem DEFAULT, and said HERE: the fill below replaces the
+     panel's contents and keeps the frame, so the width is the opening's to
+     set. This dialog carries a scrolling change manifest and a five-row
+     textarea, and then asks for a decision underneath both — at the default
+     width the buttons sat below the fold. */
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'46rem' });
+  shareWireOpening(_pending, c, () => purposeSel,
+    k => { purposeSel = k === 'history' ? 'history'
+      : SHARE_PURPOSE(k) || (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
+    _openAbort ? _openAbort.signal : null);
+  // A share copies the contract out of the building, so it must be copied
+  // whole: a record loaded for a list view carries neither its uploaded file's
+  // bytes nor its round history, and both are things the payload publishes.
+  try{ await ensureFull(c); }catch(_){}
+  if(_superseded()) return;
+  const docHash=await sha256(canonicalDoc(c));
+  // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
+  /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
+     In server mode it sits in the shares table and is served to anyone holding
+     the link; in static mode the whole thing travels inside the URL. Either
+     way it is read by a party outside the organisation, so it carries ONLY
+     what js/views/portal.js renders or needs to send a response back. Anything
+     added here is published — audit it against the portal before adding it.
+
+       id, name, counterparty  — the header and the response envelope
+       template, fields        — so a built-in template can be re-rendered
+       redlineText, format     — the working text, and the marker without which
+                                 a rich document renders as literal markup
+       source, upload          — an uploaded document's own file
+       value, valueType        — the counter-proposal field ("propose a
+                                 different value") and the certificate row
+       org, sharedBy, at       — who sent it and when, shown in the header
+       docHash                 — echoed in the response so the owner can tell
+                                 the document changed after the link was made
+
+     `folder` was in here and is not: which internal value stream a contract is
+     filed under is the organisation's own filing structure, and the portal has
+     never rendered it — it derives one from the template, falling back to
+     'corp'. The upload is trimmed to the file itself; the near-duplicate
+     signals (textFingerprint, simhash) and OCR bookkeeping are
+     portfolio-analysis data with no meaning to a counterparty.
+
+     Built by buildSharePayload() below rather than inline: the allow-list is the
+     thing that decides what a counterparty can be shown, so it needs to be
+     reachable by a test. It was inline when the returned-changes banner shipped,
+     which is exactly how that banner came to be verified against a payload the
+     application never actually produces. */
+  /* The purpose the dialog opens on: what the caller asked for if it had an
+     opinion, otherwise what the contract's own state says. It is a live value —
+     the picker on step 1 changes it, and everything downstream reads it from
+     here rather than from the payload built a moment ago. */
+  /* purposeSel was settled before the first paint and may have MOVED since —
+     the reader can answer the first question while the fetches are in flight.
+     The payload is built from where it has got to, not from the default. */
+  const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
+  // Who this went to last time. Fetched before the dialog is built so the
+  // fields open already filled rather than filling themselves a moment later
+  // under the user's cursor.
+  const priorShares=await contractShares(c);
+  if(_superseded()) return;
+  const pre=shareModalPrefill(priorShares, c);
+  /* THE BOX AND THE ROW ARE ONE ANSWER. Where the prefill came off the signing
+     route, the row it came from opens already chosen, so the link is bound to
+     that signer from the first frame rather than only when somebody thinks to
+     press it. Pressing it again still takes the binding off. */
+  const preNote=sharePrefillNote(pre);
+  /* WO N4 — the one-question send. Offered only when nothing needs asking:
+     the email channel works end to end (server mode), somebody to send to is
+     already on the record, and nothing on the readiness list BLOCKS — a block
+     needs the full panel and its explicit acknowledgement, never a shortcut
+     past it. Non-blocking warnings ride along as one quiet line. */
+  const qsWarns=contractReadiness(c).filter(x=>x.severity!=='block');
+  let ch=pre.channel||'email';
+  /* The opening handler stands down the instant the real one is about to go
+     in — both live long enough to overlap otherwise. */
+  if (_openAbort) _openAbort.abort();
+  /* WHAT WAS TYPED INTO THE OPENING FRAME is carried into the settled one: the
+     boxes are the same boxes, and a name typed while the share list was still
+     loading is not the fill's to throw away. The reader's words win over the
+     prefill — the prefill is HaTi's guess at who this goes to, and a person
+     who has already typed a name has answered that question. */
+  const _held={ 'sh-name':fval('sh-name'), 'sh-email':fval('sh-email'), 'sh-phone':fval('sh-phone'), 'sh-summary':fval('sh-summary') };
+  shareFillModal(oneScreenHtml(pre));
+  Object.keys(_held).forEach(id=>{ const el=document.getElementById(id); if(el && _held[id]) el.value=_held[id]; });
   /* Both steps are built once and toggled, rather than re-rendered. The send
      form wires a dozen listeners to elements it looks up by id; rebuilding it
      on Next would mean wiring them all a second time, and the first one to be
@@ -4862,6 +4904,12 @@ async function openShareModal(c, opts={}){
        summary already, and rebuilding would take their words with it. */
     const hist = purposeSel==='history';
     document.getElementById('share-purpose-wrap')?.classList.toggle('hidden', hist);
+    /* THE SIGNER CARD FOLLOWS THE KIND (Young, 13 Sep 2026: "when I ask to
+       send negotiation history i get the contract instead" — the first thing
+       on that screen was WHO SIGNS, drawn at the open for the Sign default and
+       never told the kind had moved). The purpose painter toggles it for the
+       three contract purposes; a record is none of them. */
+    document.getElementById('share-signers')?.classList.toggle('hidden', hist || purposeSel!=='sign');
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
     if(lab) lab.textContent = hist
@@ -5025,6 +5073,8 @@ async function openShareModal(c, opts={}){
      repaint the cards; the press of Next is replayed last so it lands on a
      dialog that is fully wired. */
   if (_pending.kind) setKind(_pending.kind);
+  if (_pending.purpose && purposeSel!=='history') paintPurpose();
+  if (_pending.other && !_pending.next) step('kind');
   if (_pending.next) step(1);
   const setCh=k=>{ ch=k;
     const word=k==='word';
@@ -5256,7 +5306,16 @@ async function openShareModal(c, opts={}){
          it must not be durable — otherwise every reading of "do they hold a
          live copy" would answer yes about a page they have never seen. */
       const wantDurable=ch==='word'?false:(durableEl?!!durableEl.checked:false);
-      const reuse=(wantDurable && payloadObj.purpose!=='sign' && email)
+      /* ---- AND ONLY A LINK OF THE SAME KIND ---- (Young, 13 Sep 2026.)
+         A history link is the RECORD, served by the server off the row's own
+         purpose; refreshing a standing contract link with a history payload
+         left the row saying "negotiate", so the counterparty opened the
+         contract and the sender believed they had sent the record. The
+         record ALWAYS gets its own link: a history link is a read-only pass the
+         server refuses to refresh at all (refuseIfViewOnly on the PUT), so
+         there is nothing of its own kind to reuse either. The server refuses
+         the other direction too — see PUT /api/shares/:token/payload. */
+      const reuse=(wantDurable && payloadObj.purpose!=='sign' && payloadObj.purpose!=='history' && email)
         ? standingShares(priorShares).find(s=>
             String(s.recipientEmail||'').trim().toLowerCase()===String(email).trim().toLowerCase())
         : null;
