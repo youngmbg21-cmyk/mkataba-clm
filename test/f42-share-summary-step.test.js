@@ -157,22 +157,47 @@ describe('Share is two steps, and the summary travels', () => {
      first and on its own, and the summary step is one Next behind it. The
      guarantee these tests were written for is unchanged and still checked: the
      send form is never what opens. */
-  test('it opens on what you are sharing, with the rest behind Next', async () => {
+  /* ---- RE-POINTED 13 SEP 2026: ONE SCREEN ---- (owner-approved off the build
+     plan.) THE CLAIM THIS FILE IS NAMED FOR IS UNCHANGED and is asserted here:
+     nobody dispatches a contract without being shown what is going out. What
+     changed is that they are shown it ON THE SAME SCREEN as the address rather
+     than on a screen they have to press Next out of. Three screens stood
+     between a plain Share press and the recipient; the rarest of the three
+     questions — the contract or the record of the negotiation — is now a quiet
+     door rather than a toll gate. */
+  test('it opens on the send, with what you are sending above it', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c);
 
     const sk = m.$('#share-step-kind'), s1 = m.$('#share-step-1'), s2 = m.$('#share-step-2');
-    assert.ok(sk, 'the sharing question must exist');
-    assert.ok(s1, 'step 1 must exist');
-    assert.ok(s2, 'step 2 must exist');
-    assert.ok(!sk.className.includes('hidden'), 'the sharing question is what opens');
-    assert.ok(s1.className.includes('hidden'), 'the summary waits behind it');
-    assert.ok(s2.className.includes('hidden'), 'the send form is not what opens');
-    assert.match(sk.textContent, /What are you sharing\?/);
-    assert.match(s1.textContent, /What you are sending/);
-    assert.ok(m.$('#share-kind-next'), 'and there is a Next out of the first question');
-    assert.ok(m.$('#share-next'), 'and a Next out of the second');
+    assert.ok(sk && s1 && s2, 'all three markups still exist');
+    assert.ok(sk.className.includes('hidden'), 'the sharing question is not a toll gate any more');
+    assert.ok(!s1.className.includes('hidden'), 'what you are sending is on screen');
+    assert.ok(!s2.className.includes('hidden'), 'and so is who it goes to');
+    assert.ok(m.$('#share-send'), 'the send button is reachable without a press');
+    assert.ok(m.$('#sh-email'), 'and so is the address');
+    assert.equal(m.$('#share-next'), null, 'nothing on the screen needs a Next');
+    assert.ok(m.$('#share-other'), 'the rarer question has its own quiet door');
+    /* AND THE SCREEN HAS ONE HEADING, which says what the press will do. */
+    assert.match(m.$('#share-lead-title').textContent, /Send/);
+    assert.ok(m.$('#share-step2-head').className.includes('hidden'),
+      'the second step\'s own title stands down — one screen, one heading');
+  });
+
+  /* THE 2 AUGUST 2026 RULING, KEPT RATHER THAN WORKED AROUND. The one-press
+     send was switched off that day because it let a contract go out without
+     the sender consciously choosing negotiate or sign. On one screen the
+     purpose is a row you can see and change, above the recipient. */
+  test('what the link is for is on the screen, never guessed', async () => {
+    const { win } = buildWorld();
+    const c = await negotiated(win);
+    const m = await openShare(c);
+    const picks = Array.from(m.root.querySelectorAll('#share-purpose [data-share-purpose]'))
+      .map(b => b.getAttribute('data-share-purpose'));
+    assert.deepEqual(picks, ['sign', 'negotiate', 'view']);
+    assert.ok(m.$('#share-step-1').contains(m.$('#share-purpose')),
+      'and it is above the recipient, not behind a press');
   });
 
   test('the first question offers the contract and the record, and nothing else', async () => {
@@ -213,19 +238,23 @@ describe('Share is two steps, and the summary travels', () => {
     assert.match(txt, /3 changes on the table/);
   });
 
-  test('Next reveals the send form; Back returns to the summary', async () => {
+  /* Re-pointed 13 Sep 2026 with the one screen: there is nothing to reveal and
+     nothing to go back to. What the old claim protected — that the recipient
+     fields and the send button are reachable from where the reader lands — is
+     asserted above without a press. The rarer question is the one thing that
+     still has a there-and-back. */
+  test('the rarer question is a door, and it comes back', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c);
 
-    m.$('#share-next').click();
-    assert.ok(m.$('#share-step-1').className.includes('hidden'), 'the summary steps aside');
-    assert.ok(!m.$('#share-step-2').className.includes('hidden'), 'the send form appears');
-    assert.ok(m.$('#sh-email'), 'with the recipient fields on it');
-    assert.ok(m.$('#share-send'), 'and the send button');
+    m.$('#share-other').click();
+    assert.ok(!m.$('#share-step-kind').className.includes('hidden'), 'it opens the question');
+    assert.ok(m.$('#share-step-1').className.includes('hidden'), 'and the send stands aside');
 
-    m.$('#share-back').click();
-    assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'Back returns to the summary');
+    m.$('#share-kind-next').click();
+    assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'and Next brings the send back');
+    assert.ok(!m.$('#share-step-2').className.includes('hidden'), 'whole');
   });
 
   test('the readiness warnings stay on the send step, where they were', async () => {
@@ -272,7 +301,7 @@ describe('Share is two steps, and the summary travels', () => {
     const m = await openShare(c);
     assert.ok(m.$('#share-step-1'));
     assert.match(m.$('#share-step-1').textContent, /No changes have been proposed/i);
-    assert.ok(m.$('#share-next'), 'and Next still works — sending a clean document is allowed');
+    assert.ok(m.$('#share-send'), 'and the send still works — a clean document may be sent');
   });
 
   /* ---- CLAIMS REVERSED, 13 Aug 2026, OWNER-ASKED ----

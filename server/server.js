@@ -9237,7 +9237,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
     delete payload.contract._renewalAdvice;
     delete payload.contract._readings; }        // idea 7: our plain-English reading of their paper is ours
-  const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
+  /* 'word' joined the list on 13 Sep 2026: the round travels as an attached
+     .docx instead of a link. An unknown channel still falls back to 'link',
+     which mints the URL and mails nothing. */
+  const ch = ['email', 'whatsapp', 'link', 'word'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();
   const phone = String(rec.phone || '').replace(/[^\d+]/g, '');
@@ -9419,6 +9422,53 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     if (emailSent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
       .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
+  } else if (ch === 'word' && !heldForTurn) {
+    /* ============================================================
+       THE ROUND TRAVELS AS A FILE (owner-approved 13 Sep 2026)
+       ============================================================
+       A counterparty who will only work in Word used to get nothing from this
+       route at all: the sender exported a .docx, attached it to their own mail,
+       and HaTi never learned the round had gone out. The trail broke at exactly
+       the moment it matters.
+
+       IT IS A CHANNEL, NOT A SECOND ROUTE. Everything that makes a send a send
+       — the share row, the round, the audit line, the version capture, the
+       hand-over, the status leaving Draft — happens above and below this branch
+       untouched, because the only thing that differs is what lands in the
+       recipient's inbox.
+
+       AND NO LINK GOES WITH IT. The row exists (it is the record that a round
+       left the building) but its URL is not put in the email, and the browser
+       sends the file as NOT DURABLE — so nothing on our side claims they hold a
+       live page. They hold a file, and their answer comes back as a file.
+
+       THE FILE IS THE BROWSER'S OWN. The .docx writer lives there and is the one
+       the download already uses, so the bytes arrive base64 on the body. A send
+       with no file is a refusal in words, never a mail with nothing attached. */
+    const cName = (payload.contract && payload.contract.name) || 'a contract';
+    const f = (req.body || {}).file || {};
+    const b64 = typeof f.content === 'string' ? f.content : '';
+    const fname = (clean(f.filename) || `${shareId || 'contract'}-redline.docx`).slice(0, 120);
+    if (!b64) {
+      emailError = 'No file was supplied, so nothing was sent.';
+      db.prepare('UPDATE shares SET send_error=? WHERE token=?').run(emailError, token);
+    } else {
+      const body = [
+        `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
+        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
+        `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
+        `\nMark it up in Word and reply to this email with the file — ${req.user.name} will read your changes straight back into HaTi.`,
+        `\nReplies to this email reach ${req.user.name} directly.`,
+      ].filter(Boolean).join('\n');
+      const r = await sendEmail(email,
+        `${req.user.name} sent you "${cName}" to mark up`,
+        body, `share as word: ${fname}`,
+        { attachments: [{ filename: fname, content: b64 }] });
+      emailSent = !!r.sent; emailError = r.detail || null;
+      if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
+      else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+        .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
+    }
   } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const body = [

@@ -166,14 +166,18 @@ describe('the dialog it opens is the share dialog', () => {
       'sharing a copy is not the same act as handing the round over');
   });
 
-  test('it is the same two-step dialog either way', async () => {
+  /* Re-pointed 13 Sep 2026: the dialog is ONE SCREEN now (see f42). What this
+     test is really about is unchanged — both routes show the sender the same
+     manifest of what is going out — so it asks for the screen rather than for
+     the press that used to reveal half of it. */
+  test('it is the same one screen either way', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     for (const opts of [{ handOver: true }, {}]){
       const m = await openShare(c, opts);
-      assert.ok(m.$('#share-step-1'), 'the summary step');
-      assert.ok(m.$('#share-next'), 'the Next button');
-      assert.ok(m.$('#share-step-2'), 'and the send form behind it');
+      assert.ok(m.$('#share-step-1'), 'what is going out');
+      assert.ok(m.$('#share-send'), 'the send button, without a press to reach it');
+      assert.ok(m.$('#share-step-2'), 'and the recipient beside it');
       /* The note box is empty on both routes now — it stopped being pre-filled
          with the generated change list (see f42). What must match between the
          two routes is that the sender is shown the same manifest of what is
@@ -226,11 +230,18 @@ describe('the dialog opens where the caller was going', () => {
     assert.equal(m.shown('share-step-1'), true);
   });
 
-  test('but the plain Share button still asks', async () => {
+  /* ---- AND SINCE 13 SEP 2026 THE PLAIN SHARE BUTTON DOES NOT ASK EITHER ----
+     The question was right and its PLACE was wrong: almost every share is the
+     contract, so making everybody answer "the contract, or the record?" before
+     reaching the address cost three screens to serve the rare case. The
+     question is kept, as a quiet door on the send screen (#share-other, driven
+     in f42), and the dialog opens where all three callers were going. */
+  test('and so does the plain Share button', async () => {
     const { win } = buildWorld();
     const m = await open(await negotiated(win), undefined);
-    assert.equal(m.shown('share-step-kind'), true,
-      'this is the one caller with no intent yet');
-    assert.equal(m.shown('share-step-1'), false);
+    assert.equal(m.shown('share-step-kind'), false,
+      'nobody is stopped at a question about the rare case');
+    assert.equal(m.shown('share-step-1'), true);
+    assert.equal(m.shown('share-step-2'), true, 'and the address is on the same screen');
   });
 });

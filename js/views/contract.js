@@ -5803,6 +5803,42 @@ function wireChangesStrip(){ }
    counterparty can accept and reject in their own copy of Word. The whole
    document, not one clause — a tracked-changes file with three clauses in it
    is not the agreement. */
+/* ---- ONE BUILDER FOR THE WORD FILE, TWO CONSUMERS ---- (13 Sep 2026)
+   The download below and the send that attaches the file to an email are the
+   SAME file: the same seat, the same tracked changes, the same external notes
+   as Word comments. Two builders would drift, and the one that drifted would
+   be the one the counterparty actually receives.
+
+   It returns the bytes and says nothing to the reader — every sentence, every
+   audit line and every toast belongs to whoever asked for it, because the
+   download and the send report different things. It THROWS rather than toasts
+   for the same reason. */
+function wordTrackedFile(c,opts){
+  if(!window.docxExportTracked||!window.redlineDocHtml) throw new Error(i18t('ct_word_writer_missing'));
+  const side=(opts&&opts.side)==='counterparty'?'counterparty':'owner';
+  const html=redlineDocHtml(c,{side});
+  const me=(window.currentUser&&currentUser())||null;
+  /* ---- THE EXTERNAL NOTES GO WITH IT, AS WORD COMMENTS (Young asked 11 Sep
+     2026) ---- Every note in the EXTERNAL room, on a change or pinned to
+     words, becomes a real Word comment on the words it is about; a note on
+     a change leads with the change's reference ("CHG-012: …") so a reader
+     in Word sees what it is about and the import re-links it when the file
+     comes back. Replies thread; Done is resolved. INTERNAL NOTES NEVER
+     LEAVE: wordCommentsOf reads the external room only. */
+  const out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
+    comments:wordCommentsOf(c,side)});
+  return { bytes:out.bytes, tracked:out.tracked, comments:out.comments,
+    name:`${c.id}-redline.docx` };
+}
+/* Bytes to base64, for the one caller that has to hand the file to the server
+   (the Word channel on the send). Chunked because a spread over a whole file
+   overflows the argument list on a real contract. */
+function bytesToBase64(bytes){
+  const b=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes||[]);
+  let s='';
+  for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null, b.subarray(i,i+0x8000));
+  return btoa(s);
+}
 function exportWordTracked(c,opts){
   if(!window.docxExportTracked||!window.redlineDocHtml){ toast(i18t('ct_word_writer_missing'),'err'); return; }
   /* ---- THE SEAT IS AN ARGUMENT NOW (15 Aug 2026) ----
@@ -5815,22 +5851,10 @@ function exportWordTracked(c,opts){
      their page already draws from, so an export can carry nothing their screen
      does not already show — the internal review and who ruled on a change are
      absent from that renderer and stay absent here. */
-  const side=(opts&&opts.side)==='counterparty'?'counterparty':'owner';
   let out;
-  try{
-    const html=redlineDocHtml(c,{side});
-    const me=(window.currentUser&&currentUser())||null;
-    /* ---- THE EXTERNAL NOTES GO WITH IT, AS WORD COMMENTS (Young asked 11 Sep
-       2026) ---- Every note in the EXTERNAL room, on a change or pinned to
-       words, becomes a real Word comment on the words it is about; a note on
-       a change leads with the change's reference ("CHG-012: …") so a reader
-       in Word sees what it is about and the import re-links it when the file
-       comes back. Replies thread; Done is resolved. INTERNAL NOTES NEVER
-       LEAVE: wordCommentsOf reads the external room only. */
-    out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
-      comments:wordCommentsOf(c,side)});
-  }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return; }
-  const name=`${c.id}-redline.docx`;
+  try{ out=wordTrackedFile(c,opts); }
+  catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return; }
+  const name=out.name;
   try{
     const blob=new Blob([out.bytes],{type:window.DOCX_MIME||'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     const url=URL.createObjectURL(blob);
@@ -9852,7 +9876,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wordTrackedFile,bytesToBase64,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
