@@ -6102,13 +6102,19 @@ function roomFactsHtml(c,opts={}){
      typo rather than a term) the expiry alone is still worth saying, printed in
      the register's own dotted form so a date reads the same in both places
      rather than as a raw ISO string. */
-  const dot=iso=>(window.regDotDate?regDotDate(iso):String(iso||''));
+  const dot=iso=>iso?(window.regDotDate?regDotDate(iso):String(iso||'')):'';
+  /* THE DATE PRINTED IS THE DATE THE TERM WAS READ FROM (owner-reported
+     13 Sep 2026: "364 days to NaN.NaN.NaN"). docTermSpan falls back to the
+     wording's own metadata.expiryDate where the record carries no expiry,
+     so the length was right and the end date was formatted off an EMPTY
+     record field. One reading of the end date, the span's own. */
+  const expIso=String((c&&c.expiry)||(c&&c.metadata&&c.metadata.expiryDate)||'').trim();
   const term=(()=>{ try{
       const t=window.docTermSpan?docTermSpan(c):null;
-      if(t&&t.len&&t.to) return esc(i18t('ct_term_span',{len:t.len,to:dot(c.expiry||'')}));
-      if(t&&t.to) return esc(dot(c.expiry||''));
+      if(t&&t.len&&t.to&&expIso) return esc(i18t('ct_term_span',{len:t.len,to:dot(expIso)}));
+      if(t&&t.to&&expIso) return esc(dot(expIso));
     }catch(_){}
-    return c.expiry?esc(dot(c.expiry)):dash; })();
+    return expIso?esc(dot(expIso)):dash; })();
   /* The register's own builder, markup and all — it already carries the four
      answers (needs you / with them / nothing outstanding / no live copy) and
      the colour each of them wears. */
@@ -8820,7 +8826,7 @@ async function signCheckAccept(c,i,after){
   if(window.signCheckMayAccept&&!signCheckMayAccept(c,v)){ toast(i18t('sc_accept_not_you'),'warn'); return false; }
   const why=window.promptDialog
     ? await promptDialog({ title:i18t('sc_accept_title',{what:v.category||i18t('sc_a_standard')}),
-        message:i18t('sc_accept_msg'), placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_accept_ok') })
+        message:i18t('sc_accept_msg'), placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_accept_ok'), multiline:true })
     : null;
   const text=String(why==null?'':why).trim().slice(0,window.SIGN_ACCEPT_MAX||240);
   if(!text){ if(why!=null) toast(i18t('sc_accept_needs_reason'),'warn'); return false; }
@@ -8932,7 +8938,7 @@ function signRowTitle(c,r){
   switch(r.kind){
     case 'standard': return r.category||t('sc_a_standard');
     case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
-    case 'obligations': return t('sc_ob_head');
+    case 'obligations': return t(r.never?'sc_ob_unread':'sc_ob_head');
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
     case 'risk': return String(r.title||'');
     case 'approval': return t('sc_row_approval');
@@ -9007,7 +9013,9 @@ function signCheckCardHtml(c){
       case 'standards-read':
         why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
       case 'obligations':
-        why=i18t('sc_ob_moved_w'); acts.push(verb('data-sc-oblig','1','sc_ob_btn')); break;
+        if(r.never){ why=i18t('sc_ob_never_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); }
+        else { why=i18t('sc_ob_moved_w'); acts.push(verb('data-sc-oblig','1','sc_ob_btn')); }
+        break;
       case 'record':
         if(r.settled) why=i18t('sc_kept_by',{who:r.kept.by||i18t('sc_somebody'),when:day(r.kept.at)});
         else { why=i18t('sc_rec_w',{record:shown(r,r.record)||i18t('sc_blank'),paper:shown(r,r.paper)});
@@ -9039,7 +9047,7 @@ function signCheckCardHtml(c){
     settledN?i18tn('sc_n_settled',settledN,{n:settledN}):'' ].filter(Boolean).join(' · ');
   const openRows=rd.open.map(row).join('');
   const settledRows=settledN?`<div class="sc-settled">
-      <button type="button" class="sc-fold" data-sc-fold="1" aria-expanded="${_scSettledOpen?'true':'false'}">${esc(i18tn('sc_n_settled',settledN,{n:settledN}))} — ${esc(rd.settled.map(r=>signRowTitle(c,r)).join(' · '))}</button>
+      <button type="button" class="sc-fold" data-sc-fold="1" aria-expanded="${_scSettledOpen?'true':'false'}" title="${esc(i18t('sc_fold_title'))}">${esc(i18tn('sc_n_settled',settledN,{n:settledN}))} — ${esc(rd.settled.map(r=>signRowTitle(c,r)).join(' · '))} <span class="sc-fold-x">${esc(i18t(_scSettledOpen?'sc_fold_hide':'sc_fold_show'))}</span></button>
       ${_scSettledOpen?rd.settled.map(row).join(''):''}
     </div>`:'';
   /* THE RUN CONTROL stays in the head: it is the door onto the two readings
@@ -9157,7 +9165,7 @@ async function signRiskDismiss(c,id,after){
   if(!f){ toast(i18t('sc_gone'),'err'); return false; }
   const why=window.promptDialog
     ? await promptDialog({ title:i18t('sc_dismiss_title',{what:f.title||''}), message:i18t('sc_dismiss_msg'),
-        placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_dismiss_ok') })
+        placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_dismiss_ok'), multiline:true })
     : null;
   const text=String(why==null?'':why).trim().slice(0,window.SIGN_ACCEPT_MAX||240);
   if(!text){ if(why!=null) toast(i18t('sc_accept_needs_reason'),'warn'); return false; }
@@ -10406,7 +10414,7 @@ Object.assign(window,{wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckA
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,

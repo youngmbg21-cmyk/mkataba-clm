@@ -218,10 +218,12 @@ describe('f308 (3) — the card, and its acts', () => {
     const { win, c } = bench();
     win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
     const html = win.signCheckCardHtml(c);
-    const row = /<div class="sc-find" data-sc-row="standards-read">[\s\S]*?<\/div>\s*<\/div>/.exec(html);
+    const row = /<div class="sc-find[^"]*" data-sc-row="standards-read">[\s\S]*?<\/div>\s*<\/div>/.exec(html);
     assert.ok(row, 'the unread row is drawn');
-    assert.match(row[0], /sc-mark is-note/, 'neutral — nobody has read it, which is neither wrong nor fine');
-    assert.doesNotMatch(row[0], /is-esc|is-hold/);
+    /* It HOLDS since the owner's ruling of 13 Sep 2026 (the check has to have
+       been run before signing) — amber, never the escalation's ruby. */
+    assert.match(row[0], /sc-mark is-hold/, 'held until the check runs — neither wrong nor fine, but not signable');
+    assert.doesNotMatch(row[0], /is-esc/);
     assert.match(row[0], /data-sc-run="1"/, 'and it carries the run control');
   });
 
@@ -263,11 +265,17 @@ describe('f308 (4) — the sweep runs only what is out of date', () => {
 describe('f308 (5) — the gate, advise by default (re-pointed 13 Sep 2026)', () => {
   /* The default moved from off to advise when the signing flow was rebuilt:
      an ESCALATED departure holds; an ordinary one is shown and acceptable. */
-  test('advise is the default, and an ordinary departure holds nothing', () => {
+  test('advise is the default, and an ordinary departure holds nothing once the check has run', () => {
     const { win, c } = bench();
     assert.equal(win.signCheckGate(), 'advise');
     win.resolvePlaybook = () => ({ label: 'D', positions: [{ category: 'Payment terms' }] });
-    c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    const hash = win.playbookHashOf(win.playbookText(c));
+    c.playbook = { label: 'D', wordingHash: hash, verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    /* The sweep has run against this wording (13 Sep 2026: an unrun check
+       holds) — so what it FOUND is the only question, and an ordinary
+       departure is shown, not held. */
+    c.obligationsReadHash = hash;
+    c.signCheck = { at: new Date().toISOString(), by: 'W', wordingHash: hash };
     assert.equal(win.signCheckBlocker(c), null);
   });
   test('off holds nothing, even an escalated departure', () => {

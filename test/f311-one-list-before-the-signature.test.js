@@ -356,3 +356,60 @@ describe('f311 (6) — the server is the wall', () => {
     assert.equal(far.status, 403);
   });
 });
+
+describe('f311 (7) — the check has to have been run (owner-reported 13 Sep 2026)', () => {
+  /* "the platform allows me to sign if i meet all the other requirements but
+     before i run check which is nonsensical." A row that says nothing has read
+     this wording holds until the sweep has run against THIS wording. */
+  test('an unread playbook and a never-read obligations list each hold on the default gate', () => {
+    const { win, c } = bench();
+    c.playbook = undefined; c.obligationsReadHash = undefined;
+    const rd = win.signReadiness(c);
+    const kinds = rd.holds.map(r => r.kind);
+    assert.ok(kinds.includes('standards-read'), 'nothing has read it against the playbook: holds');
+    assert.ok(kinds.includes('obligations'), 'nothing has read it for promises: holds');
+    assert.equal(rd.holds.find(r => r.kind === 'obligations').never, true);
+    assert.match(win.signCheckCardHtml(c), /data-sc-run="1"/, 'the row carries Run the check');
+  });
+  test('once the sweep has run against this wording, those rows stop holding', () => {
+    const { win, c } = bench();
+    c.playbook = undefined; c.obligationsReadHash = undefined;
+    c.signCheck = { at: new Date().toISOString(), by: 'W', wordingHash: win.playbookHashOf(win.playbookText(c)) };
+    const rd = win.signReadiness(c);
+    assert.equal(rd.holds.length, 0, 'the check ran: what it found follows the gate; what it did not read no longer holds');
+    assert.ok(rd.noted.some(r => r.kind === 'standards-read'), 'but the row is still shown');
+  });
+  test('a review that read older wording holds too, and off holds nothing', () => {
+    const { win, c } = bench();
+    withBook(win, c, []);
+    c.playbook.wordingHash = 'stale-hash';
+    assert.ok(win.signReadiness(c).holds.some(r => r.kind === 'standards-read' && r.stale), 'stale: holds');
+    win.state.settings.signCheckGate = 'off';
+    assert.equal(win.signReadiness(c).n, 0);
+  });
+  test('the reason boxes wrap, and say where the reason lives', () => {
+    const m = /async function signCheckAccept\([\s\S]*?\n\}/.exec(strip(CONTRACT));
+    assert.match(m[0], /multiline:true/);
+    const d = /async function signRiskDismiss\([\s\S]*?\n\}/.exec(strip(CONTRACT));
+    assert.match(d[0], /multiline:true/);
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(STRINGS.en.sc_accept_msg, /History tab/);
+    assert.match(STRINGS.sv.sc_accept_msg, /Historik/);
+  });
+});
+
+describe('f311 (8) — the Term fact prints the date the term was read from', () => {
+  /* Owner-reported: "Term · 364 days to NaN.NaN.NaN". The length came from
+     the wording's own expiry (metadata) and the date from an EMPTY record
+     field. */
+  test('a term read from the wording alone prints its end date, never NaN', () => {
+    const { win, c } = bench();
+    if (typeof win.roomFactsHtml !== 'function') return;   /* not on this stage */
+    c.expiry = ''; c.fields = { effDate: '2026-08-01' }; c.metadata = { effectiveDate: '2026-08-01', expiryDate: '2027-07-31' };
+    win.regDotDate = iso => { const d = new Date(iso + 'T00:00:00');
+      return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`; };
+    const html = win.roomFactsHtml(c);
+    assert.doesNotMatch(html, /NaN/);
+    assert.match(html, /31\.07\.2027/);
+  });
+});

@@ -53,7 +53,8 @@ const check = (name, pass, detail) => {
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [
         { category: 'Governing law', status: 'deviation', escalate: true, position: 'Kenyan law', quote: '' },
         { category: 'Payment terms', status: 'deviation', escalate: false, position: '<= 45 days', quote: '' } ] };
-      c.obligationsReadHash = hash;
+      /* STEP 0 — THE CHECK HAS NOT RUN FOR PROMISES: the row holds and the
+         button counts it (owner-reported 13 Sep 2026). */
       c.compliance = {};
       state.settings = { ...(state.settings || {}), approvalRules: [] };
       persist(c); await flushSaves();
@@ -61,6 +62,14 @@ const check = (name, pass, detail) => {
       await new Promise(r => setTimeout(r, 500));
       roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 500));
+      const b0 = document.getElementById('sign-btn');
+      const card0 = document.getElementById('sign-check');
+      window.__step0 = { label: b0 && b0.textContent.replace(/\s+/g, ' ').trim(),
+        row: !!(card0 && Array.from(card0.querySelectorAll('.sc-find.is-hold')).some(r => /promises/.test(r.textContent) && r.querySelector('[data-sc-run]'))) };
+      c.obligationsReadHash = hash;
+      persist(c); await flushSaves();
+      renderSignSide(c); renderSignButton(c);
+      await new Promise(r => setTimeout(r, 300));
       const b = document.getElementById('sign-btn');
       const card = document.getElementById('sign-check');
       const head = document.getElementById('ws-next-action');
@@ -71,8 +80,10 @@ const check = (name, pass, detail) => {
         accept: card ? card.querySelectorAll('[data-sc-accept]').length : 0,
         headLabel: head ? head.textContent.replace(/\s+/g, ' ').trim() : '',
         tick: !!document.querySelector('[data-comp="consent"]'),
-        n: signReadiness(c).n };
+        n: signReadiness(c).n, step0: window.__step0 };
     }, W.users.unrestricted.id);
+    check('0   before the check has read the wording for promises, that row holds and the button counts it',
+      setup.step0 && /^Sign — 2 to settle/.test(setup.step0.label || '') && setup.step0.row, JSON.stringify(setup.step0));
     check('1a  the button reads "Sign — 1 to settle", live, wearing the count',
       /^Sign — 1 to settle/.test(setup.label || '') && setup.disabled === false && setup.holds === '1',
       `${setup.label} · disabled=${setup.disabled}`);

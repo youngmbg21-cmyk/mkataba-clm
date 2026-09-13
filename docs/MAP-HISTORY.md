@@ -19311,3 +19311,27 @@ it the signature lands and consent is on the record and the trail.
 
 Tests: f311 (28 claims, 27 red at the parent), signing-flow-verify; f308 (3)
 and (5), f256 (4), f167, sign-links-verify section 5 re-pointed in place.
+
+### The same evening: the check has to have been run, the reason wraps, the term date (13 Sep 2026)
+
+Three reports off the first use, with two screenshots. *"fix the Term fact
+row showing NaN.NaN.NaN. Image one should allow for wrap texting and it is
+also not clear to me where and how you can find the reason code for
+acceptance. Also a big flaw or bug, the platform allows me to sign if i meet
+all the other requirements but before i run check which is nonsensical."*
+- THE CHECK HAS TO HAVE BEEN RUN. The first build let the unread-playbook row
+  and the obligations row stand as "shown" on advise, so a contract nobody
+  had read against anything could be signed. `signCheckRowHolds` now holds
+  the two reading rows until `signCheck.current` is true — the sweep has run
+  against this wording — on advise as on require; what the sweep FINDS then
+  follows the gate. A never-read obligations list (`unread` null) is its own
+  row (`never`), with Run the check as its verb. Browser-side only: the
+  server cannot hash the wording, which the rulebook already states.
+- THE REASON WRAPS: both reason boxes take `multiline`. WHERE IT LIVES is
+  said in the dialog's own sentence (the settled fold on the card, and the
+  History tab) and the fold's button says show/hide.
+- THE TERM FACT: `docTermSpan` falls back to `metadata.expiryDate` where the
+  record has no expiry, so the LENGTH was right and the DATE was formatted
+  off the empty `c.expiry` — "364 days to NaN.NaN.NaN". One end date now,
+  the span's own fallback; `regDotDate` is never handed an empty string.
+Tests: f311 (7)(8), f308 (3) and (5) re-pointed, signing-flow-verify step 0.

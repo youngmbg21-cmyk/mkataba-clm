@@ -252,6 +252,13 @@ function signCheckRowHolds(row, gate){
   if (row.settled) return false;
   if (g === 'off') return false;
   if (g === 'require') return true;
+  /* THE CHECK HAS TO HAVE BEEN RUN (owner-reported 13 Sep 2026: "the
+     platform allows me to sign if I meet all the other requirements but
+     before I run the check, which is nonsensical"). A row that says nothing
+     has read this wording — against the playbook, or for promises — holds
+     until the sweep has run against THIS wording (`current`), on advise as
+     on require. What the reading then FINDS follows the gate as before. */
+  if (row.kind === 'standards-read' || row.kind === 'obligations') return !row.current;
   return row.kind === 'standard' && !!row.escalate;      /* advise */
 }
 function signCheckRows(c, r){
@@ -271,13 +278,16 @@ function signCheckRows(c, r){
       /* accepted, but by somebody who may not: shown as open, said in words */
       badAccept: !!f.accepted && !properly });
   });
-  if (rd.obligations.unread === true)
-    rows.push({ kind: 'obligations', key: 'obligations', settled: false, escalate: false });
+  /* Never read is its own row: `unread` null is "nothing has ever read this
+     wording for promises", which is not "fine" — an absence, stated. */
+  if (rd.obligations.unread === true || rd.obligations.unread == null)
+    rows.push({ kind: 'obligations', key: 'obligations', never: rd.obligations.unread == null,
+      settled: false, escalate: false });
   rd.record.rows.filter(x => x.agrees === false).forEach(x => rows.push({
     kind: 'record', key: 'rec:' + x.field, field: x.field, record: x.record, paper: x.paper,
     kept: x.kept, settled: !!x.kept, escalate: false }));
   const gate = signCheckGate();
-  rows.forEach(row => { row.holds = signCheckRowHolds(row, gate); });
+  rows.forEach(row => { row.current = rd.current === true; row.holds = signCheckRowHolds(row, gate); });
   return rows;
 }
 /* The check rows that hold a signature RIGHT NOW. The one count signBlockers'

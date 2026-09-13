@@ -13146,3 +13146,31 @@ VERIFIED
   f311 28/28 (1 of 28 at the parent); signing-flow-verify 17/17;
   sign-links-verify 38/38; f308, f256, f167, f232, f48, f148 green;
   lint 0 errors; full suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (later) — THE CHECK HAS TO HAVE RUN; THE REASON WRAPS; THE TERM DATE
+Owner: "fix the Term fact row showing NaN.NaN.NaN ... allow for wrap
+texting ... not clear where you can find the reason code ... the platform
+allows me to sign ... before i run check which is nonsensical."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · An unrun check now holds the Sign button on the default gate (the
+    unread-playbook row and the obligations row, until the sweep has run
+    against this wording); a never-read obligations list is its own row.
+  · The accept / dismiss reason boxes wrap; the dialog says where the reason
+    is kept (the settled fold on the card, the History tab); the fold says
+    show/hide.
+  · The Term fact printed "N days to NaN.NaN.NaN" where the record had no
+    expiry and the term was read from the wording's own date: the date now
+    comes from the same reading the length did.
+
+NOTICED, NOT FIXED
+  · The "check has run" hold is browser-side only: the server cannot hash
+    the wording (already stated in the rulebook), so a request sent by hand
+    could still sign over an unrun check. The escalation hold IS on the
+    server.
+
+VERIFIED
+  f311 34/34, f308, signing-flow-verify 18/18; lint 0 errors; full suite —
+  see the commit.
