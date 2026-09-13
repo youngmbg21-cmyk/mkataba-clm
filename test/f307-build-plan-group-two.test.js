@@ -242,3 +242,73 @@ describe('f307 (3) — the server attaches the file and writes no link', () => {
       'one branch, on the route that already records a round');
   });
 });
+
+describe('f307 (4) — what came back, in one line', () => {
+  /* THE ROUND SUMMARY THE BUILD PLAN ASKED FOR, built where it costs nothing
+     and adds no band: the alert row that already says the round arrived. */
+  test('it reads the record and names what they did', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    const list = win.negoClauseList(c);
+    /* one of ours they accepted, one of ours they refused, and one counter */
+    const a = await win.negoEditClause(c, list[0].clauseId, '<p>Net-45 applies.</p>',
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    const b = await win.negoEditClause(c, list[1].clauseId, '<p>Cap at EUR 250,000.</p>',
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    win.negoResolve(c, a.id, 'accepted', { by: 'Erik Lindqvist' });
+    win.negoResolve(c, b.id, 'rejected', { by: 'Erik Lindqvist' });
+    const cl = win.negoClauseList(c).find(x => x.num === '6') || list[2];
+    await win.negoEditClause(c, cl.clauseId, '<p>Ninety (90) days.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+
+    const r = win.negoRoundRead(c);
+    assert.ok(r, 'there is something to say');
+    assert.equal(r.accepted, 1);
+    assert.equal(r.refused, 1);
+    assert.ok(r.awaiting >= 1, 'and something waiting on you');
+    const line = win.negoRoundLine(c);
+    assert.match(line, /accepted 1/i);
+    assert.match(line, /refused 1/i);
+    assert.match(line, /Start with/i, 'and where to begin');
+  });
+
+  test('a contract with nothing on it says nothing', () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    assert.equal(win.negoRoundRead(c), null);
+    assert.equal(win.negoRoundLine(c), '');
+  });
+
+  /* READING MUST NOT WRITE. The alerts panel asks this of every live contract
+     on every repaint; negoRound() would run negoInit and start a negotiation on
+     each one. */
+  test('reading it starts no negotiation', () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    const before = JSON.stringify(c);
+    win.negoRoundRead(c);
+    win.negoRoundLine(c);
+    assert.equal(JSON.stringify(c), before, 'the record is byte-identical');
+  });
+
+  /* AND IT SPENDS NOTHING. The plan offered one Copilot call per round; every
+     figure in the sentence turned out to be on the record already. */
+  test('no model is asked', () => {
+    const m = /function negoRoundRead\(c\)\{[\s\S]*?\n\}/.exec(strip(read('js/views/negotiation.js')));
+    assert.ok(m);
+    assert.doesNotMatch(m[0], /api\(|fetch|copilot|anthropic/i);
+  });
+
+  test('it rides the alert row, and adds no band', () => {
+    const app = strip(read('js/app.js'));
+    assert.match(app, /negoRoundLine\(c\)/, 'the panel asks it');
+    assert.match(app, /a\.sub\?/, 'and the row draws it as its own second line');
+  });
+
+  test('the keys are in both books', () => {
+    for (const k of ['ng_round_accepted_one', 'ng_round_refused_one', 'ng_round_countered',
+      'ng_round_added_one', 'ng_round_asks_one', 'ng_round_start'])
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});

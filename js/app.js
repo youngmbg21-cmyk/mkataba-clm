@@ -1412,7 +1412,15 @@ function buildAlerts(){
   if(window.negoNeedsYouIds && window.negoIsLive){
     cs.filter(c=>{ try{ return negoIsLive(c); }catch(_){ return false; } }).forEach(c=>{
       let n=0; try{ n=negoNeedsYouIds(c).length; }catch(_){ n=0; }
-      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+      /* ---- AND WHAT CAME BACK, IN ONE LINE ---- (owner-approved 13 Sep 2026)
+         The row already says how many changes are waiting on you; what it never
+         said is what the other side actually DID. negoRoundLine reads the record
+         raw and costs nothing, and it rides the row that already exists rather
+         than becoming a strip on a page — the cheapest channel that carries the
+         fact, and no band. */
+      let sub=''; try{ sub = window.negoRoundLine ? negoRoundLine(c) : ''; }catch(_){ sub=''; }
+      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); },
+        sub?{ sub }:null);
     });
   }
   /* 3. Reviews: what I owe a verdict on, and what I am waiting on. Both from
@@ -2265,6 +2273,7 @@ function alertsPanelHtml(){
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
               <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
+              ${a.sub?`<span class="al-sub" style="display:block;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);margin-top:2px;">${esc(a.sub)}</span>`:''}
               ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
               <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
             </span>

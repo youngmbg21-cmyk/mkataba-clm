@@ -7012,6 +7012,77 @@ function negoNeedsYouIds(c, opts = {}){
     && x.authorSide !== side && !wall.has(x.id)
     && (!mine || mine.has(String(x.id)))).map(x => x.id);
 }
+/* ============================================================
+   WHAT CAME BACK, IN ONE SENTENCE (owner-approved 13 Sep 2026, build plan 2.2)
+   ============================================================
+   When their answers arrive you get a pile of cards and no sentence saying what
+   happened. The counts are on the piles; what was missing was the READING of
+   them in one line, where the reader is first told the round landed.
+
+   IT COSTS NOTHING. The build plan offered one Copilot call per round, cached.
+   On writing it out, every part of the example sentence turned out to be in the
+   record already — what they accepted, what they refused, which clauses they
+   countered, and which change is first in the queue — so the line is computed
+   and no model is asked. What a model could add on top is a judgement, and that
+   is a separate decision to make with its cost in front of you.
+
+   READING MUST NOT WRITE: c.changes and c.negotiation are read RAW. negoRound()
+   would run negoInit and start a negotiation on every contract the alerts panel
+   asks about, on every repaint.
+
+   IT LIVES ON THE ROW THAT ALREADY EXISTS. The plan's picture put it at the head
+   of the change column, which is a new strip — the owner's rule makes a strip
+   theirs to approve, and the cheapest channel that carries this fact is the
+   alert that already tells you the round arrived. So it is a second line on
+   that row and nothing on any page grew. */
+function negoRoundRead(c){
+  const all = Array.isArray(c && c.changes) ? c.changes : [];
+  if (!all.length) return null;
+  const round = Number((c.negotiation && c.negotiation.round) || 0) || null;
+  /* A change filed before rounds were stamped carries none; it is counted, not
+     dropped — an absent round is "we do not know which", never "not this one". */
+  const inRound = x => !round || !x.round || x.round === round;
+  const live = x => x.status === 'pending' && !x.withdrawn;
+  const ours = all.filter(x => x && x.authorSide !== 'counterparty' && inRound(x));
+  const theirs = all.filter(x => x && x.authorSide === 'counterparty' && inRound(x));
+  /* OUR asks are not ours to accept or refuse, so a decision on one of them is
+     theirs by construction — no reading of who decided is needed, and
+     resolvedBy is walled from them anyway. */
+  const accepted = ours.filter(x => x.status === 'accepted').length;
+  const refused = ours.filter(x => x.status === 'rejected').length;
+  const countered = theirs.filter(x => live(x) && x.counterOf);
+  const added = theirs.filter(x => live(x) && x.kind === 'insertClause');
+  const other = theirs.filter(x => live(x) && !x.counterOf && x.kind !== 'insertClause');
+  if (!accepted && !refused && !countered.length && !added.length && !other.length) return null;
+  let awaiting = [];
+  try{ awaiting = negoNeedsYouIds(c); }catch(_){ awaiting = []; }
+  const nameOf = x => {
+    const raw = String((x && x.clauseLabel) || '');
+    try{ return window.clauseNameShown ? clauseNameShown(raw) : raw; }catch(_){ return raw; }
+  };
+  const first = awaiting.length ? all.find(x => x && x.id === awaiting[0]) : null;
+  return { round, accepted, refused,
+    countered: countered.map(nameOf).filter(Boolean),
+    added: added.length, otherAsks: other.length, awaiting: awaiting.length,
+    startAt: first ? { id: first.id, clause: nameOf(first) } : null };
+}
+/* The sentence a screen prints. Fragments rather than one template: a sentence
+   with four optional halves cannot be written once in two languages without
+   one of them reading like a form. */
+function negoRoundLine(c){
+  const r = negoRoundRead(c);
+  if (!r) return '';
+  const parts = [];
+  if (r.accepted) parts.push(i18tn('ng_round_accepted', r.accepted, { n: r.accepted }));
+  if (r.refused) parts.push(i18tn('ng_round_refused', r.refused, { n: r.refused }));
+  if (r.countered.length) parts.push(i18t('ng_round_countered', { list: r.countered.slice(0, 2).join(', ') }));
+  if (r.added) parts.push(i18tn('ng_round_added', r.added, { n: r.added }));
+  if (!parts.length && r.otherAsks) parts.push(i18tn('ng_round_asks', r.otherAsks, { n: r.otherAsks }));
+  if (!parts.length) return '';
+  let line = parts.join(', ') + '.';
+  if (r.startAt && r.startAt.clause) line += ' ' + i18t('ng_round_start', { clause: r.startAt.clause });
+  return line;
+}
 /* IS THERE A NEGOTIATION ON THIS AGREEMENT AT ALL — the predicate the door, the
    list and the Document tab's button all ask, so "live" means one thing.
 
@@ -17463,7 +17534,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      so a top-level function in one is invisible to the next; see the note below
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
-  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
+  negoNeedsYouIds, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,negoMemoRichHtml,MEMO_DOC,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
