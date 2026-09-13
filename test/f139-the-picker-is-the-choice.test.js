@@ -98,7 +98,9 @@ async function shareDialog(c, over = {}) {
       b.dispatchEvent(new win.Event('click', { bubbles: true }));
     },
     async send(email = 'erik@juno.example') {
-      $('#share-next').dispatchEvent(new win.Event('click', { bubbles: true }));
+      /* NO NEXT TO PRESS since 13 Sep 2026: the dialog is one screen, so the
+         address and the send button are on it from the first frame. What this
+         file is about — which purpose the payload carries — is untouched. */
       $('#sh-email').value = email;
       $('#share-send').dispatchEvent(new win.Event('click', { bubbles: true }));
       for (let i = 0; i < 12; i++) await Promise.resolve();

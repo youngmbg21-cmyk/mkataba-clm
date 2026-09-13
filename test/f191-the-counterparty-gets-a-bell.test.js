@@ -170,7 +170,10 @@ describe('f191 (4) — one bell on their page, and the owner keeps theirs', () =
     /* "Decisions stay on this page until you press Send" is read before they
        start, and hiding it behind a bell produces exactly the mistake it
        exists to prevent. */
-    assert.match(PORTAL, /Decisions and counter-proposals stay on this page until you press Send/);
+    /* Re-pointed 13 Sep 2026: the promise is a KEY now (po_wall_live), so it
+       reads in both languages like the no-channel branch beside it. The claim
+       is unchanged — the wall line is not an alert and never folds. */
+    assert.match(PORTAL, /i18t\('po_wall_live'\)/);
     assert.ok(!/rl-wall/.test(CODE), 'the alerts feature does not touch it');
   });
 });

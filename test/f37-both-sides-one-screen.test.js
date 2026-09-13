@@ -528,8 +528,13 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
        stands down there so the reader is never offered two send buttons with
        two different counts. The signing screen still draws #pt-nego-send. */
     assert.match(v.$('.rl-unsent-go').textContent, /Send all 1|Send 1/);
-    assert.match(v.$('#rl-banner').textContent,
-      /1 answer.*nothing has reached .* yet/is);
+    /* ---- AND BOTH HALVES MOVED ONTO THE ACT, 13 Sep 2026 ---- The wall line
+       was printing the count the Send button above it already carried, which is
+       a count printed twice; it keeps the one thing only it says. BOTH HALVES
+       ARE STILL READ BEFORE ANYTHING IS SENT, which is this test's claim: the
+       button says how many, and the wall says they have not gone. */
+    assert.match(v.$('#rl-banner').textContent, /until you press Send/i);
+    assert.doesNotMatch(v.$('#rl-banner').textContent, /nothing has reached/i);
     assert.equal(v.p.lastSent(), null, 'and nothing has actually been sent');
   });
 

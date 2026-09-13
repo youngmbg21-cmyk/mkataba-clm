@@ -843,6 +843,34 @@ Four screenshots, each measured on a real page before a line moved.
 - plain-english-verify 6c re-pointed (`painted <= 1`): C-7 took the upload's one h-tag and left it red — proved at the parent.
 Tests: f277 (20), f300 (6), plain-english-verify 17, and the re-points named in each.
 
+## THE BUILD PLAN — GROUPS 1 TO 5 (owner-approved 13 Sep 2026; the plan is the artifact "HaTi Build Plan")
+
+Six pieces, one idea each. Group 6 (the Word round-trip and BankID) is NOT built, by the owner's word.
+
+**G1 · THREE FACTS MOVE TO WHERE THE WORK IS.** `ceClauseFindings` (this clause's OWN located findings, `ceScanGroups().here`, never the contract-wide `missing`) opens the clause editor's rail on the Playbook tab; a caller naming a tab still wins. `ceGreetingHtml` prints precedent + their ask and DELIBERATELY NOT the playbook (Prepare redlines and the scan tab each say it already). `reviewDaysWaiting` (null on a review with no stamp) and `reviewRemind` — the ASK'S OWN ROUTE with `reminder:true`, so one place decides who is written to; `rv.reminded` stamped only where something left. The counterparty's wall is ONE line (`po_wall_live`): the held count was the Send button's own label, and "marked shared" described a switch that seat does not have. f306, f180 re-pointed.
+
+**G2 · THE SEND IS ONE SCREEN, AND WORD IS A CHANNEL.** `step(1)` and `step(2)` are one state; the kind question is a quiet door (`#share-other`), not a toll gate. `shareSummaryStepHtml` takes `oneScreen` — lead title, folded manifest, no footer; step 2's head hides. **THE 2 AUG 2026 RULING IS KEPT**: the purpose is a row ON the screen (`sharePurposePickerHtml(c, sel, {compact})`, ONE painter for both shapes, the chosen answer's sentence under the row). **`ch === 'word'`** posts the .docx (base64) on `POST /api/shares` — one branch, never a second route: the share row, the round, the audit line and the version capture all happen as for a link. `wordTrackedFile` is ONE builder for the download and the attachment. A file is NEVER durable and its URL never travels; Sign greys with the reason; the link settings hide. f307, f42 and f45 re-pointed.
+
+**G2.2 · WHAT CAME BACK, IN ONE LINE.** `negoRoundRead` / `negoRoundLine` (js/views/negotiation.js, beside negoNeedsYouIds) read `c.changes` and `c.negotiation` RAW. TWO DEPARTURES FROM THE PLAN, both toward its own rules: it SPENDS NOTHING (every figure was already on the record, "start with clause 4" included) and it ADDS NO BAND — it rides the alert row that already says the round arrived (`a.sub`). f307 (4).
+
+**G3 · THE CHECK BEFORE A CONTRACT IS SIGNED** — see its own section below.
+
+**G4 · A TEMPLATE'S OWN PROMISES** — `TEMPLATE_OBLIGATIONS` beside `TEMPLATE_PAY` (js/templates.js), hand-written, every entry quoting its own template's clause. `templateObligationDue` REFUSES rather than guesses (no date it counts from, no number of days, no words → nothing minted); `mintTemplateObligations` asks `obligationAlreadyOn` and stamps `origin:'template'`; called from the Key terms edit. Said out loud in the code: the built-ins' rejection windows and per-invoice terms are counted from an event HaTi holds no date for, so they get no entry. f308 (7).
+
+**G5.1 · WHICH NOTES ARE NEW TO THIS READER.** `c.notesRead` (reader id → when they last had the drawer open; absent on file). `negoNotesReadAt` / `negoNoteUnread` / `negoMarkNotesRead` (moves only forwards, writes nothing when it has not moved, stamped AFTER the paint). Never travels (not on the payload) and never drawn on their seat. The bell is NOT this: it counts only notes that name you, per browser. f309.
+
+**NOT BUILT, and named so nobody assumes otherwise**: G5.2 (a one-time code before a guest's first Send) and Part B phase 6 (the template baseline read once per version).
+
+## THE CHECK BEFORE A CONTRACT IS SIGNED (owner-approved 13 Sep 2026 — WORKORDER-pre-signature-check.md Part A)
+
+A contract is read when it ARRIVES and never again, but the wording that gets signed is not the wording that arrived.
+- **THE REVIEW REMEMBERS WHAT IT READ.** `runPlaybookReview` stamps `wordingHash` (`playbookHashOf` = the obligations scan's own simhash) + `checkedAt` at the ONE place the review is BUILT, both branches. `playbookStale(c)` has THREE answers — true / false / **null = we do not know** (no hash on file). The server's overnight sweep deliberately does NOT stamp (it has no copy of the hasher; a drifted twin would say "stale" for ever), so its reviews read as unknown and unknown is offered a re-read.
+- **`js/signcheck.js` IS THE ONE READING**: `signCheck(c)` → ready · standards · obligations · record · open · anyOpen · checked · current. It spends nothing, writes nothing, decides nothing. READING MUST NOT WRITE: `negoOpenPoints` is asked ONLY where `c.negotiation` already exists. Money only with `canViewValues` — the row is not drawn at all rather than drawn as dashes.
+- **THE CARD** (`signCheckCardHtml`, js/views/contract.js) is in the signing COLUMN, in the arrival strip's `.kt-tri` shape BORROWED BY ID, drawn only once `ready`. `is-unknown` is a NEW chip tone: a ruby dash on an unread contract reads as an accusation. Acts: `signCheckAccept` (reason REQUIRED, `SIGN_ACCEPT_MAX` 240, index taken BEFORE the filter), `signCheckOpenClause` (`rlPbFindClause`, refuses rather than guesses), `signCheckKeep` (`c.recordAccepted[field]`), `runFindObligations`, `focusKeyTerms`.
+- **THE SWEEP** `runSignCheck` runs only what is out of date (`stale !== false`, `unread !== false`), asks once naming the cost, and stamps `c.signCheck` ONLY where everything came back — a cut-short answer is not a check.
+- **THE GATE** `signCheckGate()` off · advise · require (admin, OFF by default); `signCheckBlocker` is ONE row in `signBlockers`. **THE SERVER IS THE WALL**: `signCheckRefusal(stored)` at BOTH doors (the in-app save as a difference, and the respond route). It enforces two of the three questions and SAYS SO: the obligations-moved question rests on a browser-side hash, and a server twin that drifted would refuse real signatures.
+Tests: f308 (38 claims).
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.

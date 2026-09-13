@@ -106,7 +106,11 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
     assert.match(CORE, /function shareWireOpening\(pending, c, get, set, signal\)\{/,
       'the cards and Next respond while the fetches are still in flight');
     assert.match(CORE, /pending\.next = true/, 'a press of Next is held');
-    assert.match(CORE, /if \(_pending\.next && askKind\) step\(1\);/, 'and replayed once wired');
+    /* Re-pointed 13 Sep 2026: the kind question stopped being the screen every
+       send passes through, so the replay no longer asks whether it was shown —
+       it simply lands on the one screen. The CLAIM is unchanged: a press made
+       while the fetches were in flight is honoured rather than lost. */
+    assert.match(CORE, /if \(_pending\.next\) step\(1\);/, 'and replayed once wired');
   });
 
   test('and the opening handler is aborted before the real one goes in', () => {

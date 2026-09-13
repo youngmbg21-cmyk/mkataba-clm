@@ -19077,3 +19077,65 @@ The owner measured Copilot against the code and wrote an eight-phase order (WORK
 
 Tests: f305 (33 claims). Walls kept: no writing tool, no scope widened, fxHome/fxMissing/contractCurrency untouched, no screen changed, the named caps untouched.
 
+
+## THE BUILD PLAN — GROUPS 1 TO 5 (13 Sep 2026)
+
+The owner asked, on 13 September, for the whole HaTi Build Plan artifact to be
+implemented, then narrowed it: *"continue building but do not build step 6"*.
+Groups 1 to 5 were built in the plan's own order, one commit each, on a branch
+started from the latest main.
+
+**Why the order was cheapest-first.** Group 1 is three changes that need
+nothing underneath them — no new store, no spend, no decision from the owner.
+Group 2 is the send, which the owner had just redesigned with the Word channel
+on it. Group 3 is the biggest coherent piece and rests on group 3's own phase 1
+(the review's memory of what it read). Group 4 is the half that makes group 3
+cheap to run. Group 5 is two items each with something new underneath.
+
+**Three departures from the plan, each toward one of its own rules, each said
+out loud rather than done quietly:**
+
+1. *The round summary spends nothing.* The plan offered one Copilot call per
+   round, cached on it. Writing the sentence out showed that every part of the
+   worked example — what they accepted, what they refused, which clauses they
+   countered, and even "start with clause 4" — is already on the record. A
+   deterministic reading gives the whole sentence for nothing, and what a model
+   could add on top is a judgement, which is a separate decision to take with
+   its cost in view.
+
+2. *The round summary adds no band.* The plan's picture put the line at the
+   head of the change column. That is a new strip, and the owner's own rule
+   makes a strip theirs to approve. The cheapest channel that carries the fact
+   is the alert row that already says the round arrived, so the line rides
+   there as a second line and nothing on any page grew.
+
+3. *The template obligations refuse rather than guess.* Phase 7 asks for a
+   hand-written table of what each built-in template promises. Reading the
+   templates' own clauses showed their payment and rejection windows are
+   counted from events HaTi holds no date for ("within 30 days of receipt",
+   "within 3 days of delivery"). A single due date for those would be a date
+   the product invented. So the table takes its first date from the contract's
+   own start date and recurs, and a contract with no start date gets nothing.
+
+**Two pieces were not built and are named as such**: the one-time code before a
+guest's first Send (group 5.2) and the template baseline read once per version
+(Part B phase 6). The guest code was stopped deliberately: the existing code
+component is written into the signing screen, and shipping the server wall
+without a prompt on the counterparty's workbench would have produced a refusal
+with no way forward on the same screen — which is the one thing this codebase's
+rules forbid above almost everything else.
+
+**The server's half of the signing gate enforces two of three questions.** The
+third — has the wording moved since the obligations were read — rests on
+simhash64, which lives in the browser. A second implementation on the server
+would have to agree byte for byte or it would answer "unread" for ever, and a
+hash that drifts on that side refuses real signatures. So the card reports all
+three and the wall enforces two, and the code says so in the place somebody
+would otherwise discover it.
+
+**What was re-pointed rather than deleted.** f180's claim that the counterparty
+is told their answer has not travelled is unchanged; it is asked of the control
+that carries the count now instead of the wall line that was printing it twice.
+f42 and f45 described the send as two steps with a Next between them; their
+real claims — you are shown what is going out before you send, and both routes
+show the same manifest — are asked of the one screen.

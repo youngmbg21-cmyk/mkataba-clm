@@ -529,9 +529,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
     await pause(300);
     await owner.click('#ws-next-action[data-na="issue-signing"]');
-    // the share dialog's two steps: the summary, then the send form
-    await owner.waitForSelector('#share-next', { timeout: 10000 });
-    await owner.click('#share-next');
+    /* ONE SCREEN since 13 Sep 2026: what is going out and who it goes to are
+       drawn together, so there is no Next between the dialog opening and the
+       address being on screen. */
     await owner.waitForSelector('#share-send', { timeout: 10000 });
     const prefill = await owner.evaluate(() =>
       (document.getElementById('sh-email') || {}).value || '');

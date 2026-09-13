@@ -98,9 +98,15 @@ describe('F62 — an answer that has not gone is marked on the card', () => {
        held, the foot names the act that moves it — because the held answers go
        as one round, not one card at a time. */
     const page = v.win.document.body.textContent.replace(/\s+/g, ' ');
-    assert.match(page, /1 answer held here/,
+    /* ---- RE-POINTED 13 SEP 2026 ---- The wall line used to carry BOTH the
+       count and the promise, twelve pixels from a Send button whose own label
+       already said how many. A count printed twice reads as an alarm the second
+       time, so the wall was cut to the one thing only it says and the count
+       stayed where the act is. THE CLAIM IS UNCHANGED: the page says in words
+       what to do about an answer that has not gone. */
+    assert.match(page, /until you press Send/i,
       'a badge alone tells you a state, not a next step');
-    assert.match(page, /nothing has reached .* yet/i);
+    assert.match(page, /1 decision/i, 'and the count rides the act');
     assert.ok(v.$('#nego-send-decisions') || v.$('#pt-nego-send'), 'and Send is offered beside it');
   });
 

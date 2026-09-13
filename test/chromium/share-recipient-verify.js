@@ -94,6 +94,10 @@ const ROUTE = [
       await page.evaluate(() => { const b = document.getElementById('share-kind-next'); if (b) b.click(); });
       await page.waitForTimeout(900);
     };
+    /* ONE SCREEN since 13 Sep 2026 — the send form is already on it. Kept as a
+       named step so every caller below still reads as a journey, and still
+       presses the button where the two-screen shape survives behind the quiet
+       door. */
     const toSendForm = async () => {
       await page.evaluate(() => { const b = document.getElementById('share-next'); if (b) b.click(); });
       await page.waitForTimeout(700);

@@ -12919,3 +12919,85 @@ beside no box to write in. It now names the control that makes one
 - TB_PB_KEY maps only nda and procurement to a playbook book. A template filed
   as employment or sales counts against the baseline, which is honest but
   coarse — the card prints the book's own label so it is never a silent guess.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 — THE BUILD PLAN, GROUPS 1 TO 5
+Owner: "Implement all accordingly. Start from the latest main before you do
+anything", then "continue building but do not build step 6".
+Branch started from main at 854177e.
+════════════════════════════════════════════════════════════════════════
+
+BUILT
+  G1.1  the clause editor's rail opens on the Playbook tab where the clause has
+        findings of its own; the greeting carries precedent and their ask
+  G1.2  a review row says how long it has waited, and offers Remind (the ask's
+        own route with a flag, so one place decides who is written to)
+  G1.3  the counterparty's wall line is one line; the held count was already on
+        the Send button and a sentence described a switch that seat has not
+  G2.1  the send is ONE screen, with the purpose on it (the 2 Aug 2026 ruling
+        kept, not worked around), and WORD as a third channel
+  G2.2  what came back, in one line, on the alert row
+  G3    the check before a contract is signed — phases 1 to 5
+  G4    a template's own promises are written from its structure (phase 7)
+  G5.1  which notes are new to this reader
+
+DEFECTS FOUND AND FIXED ON THE WAY
+  · signCheckStandards took the finding's index AFTER filtering the verdicts,
+    so "accept this one" would have stamped a reason onto whichever verdict
+    happened to sit at that position in the whole list. Caught while writing
+    the net, before it shipped. The index is taken before the filter now and
+    f308 pins it.
+  · The first cut of the card printed the money rows with fmtMoneyOf, which
+    formats the CONTRACT'S OWN value and ignores a number — so both halves of
+    a disagreement would have read as the same figure, which is the one thing
+    that row must never do. Found by photographing the real page.
+  · Two of my own edits to server/server.js were written by a script whose
+    backslash-n escapes were interpreted by Python rather than kept for
+    JavaScript, and one of them rewrote the top of the file. node --check
+    passed on the damaged file because it was still valid JavaScript. The file
+    was restored from the commit and the block re-inserted from a here-doc.
+    LESSON, and it is not a new one: a syntax check is not a check that the
+    edit landed where it was aimed.
+
+NOTICED, NOT FIXED
+  · js/views/portal.js's signing-screen foot still prints "N decisions ready to
+    send. Nothing has reached X yet" when PORTAL_FOOT_COMPACT is off. That is
+    correct there — the signing screen has no change column and no band — but
+    it means the same sentence exists in two builders. One reading would be
+    better.
+  · The share dialog's two-screen shape is kept in the markup behind the quiet
+    door, so shareSummaryStepHtml now has two footers and two headings and
+    draws one of each. If the two-screen shape is never coming back, the dead
+    branch is worth deleting rather than carrying.
+  · quickSendStepHtml and the whole retired one-press send (quickOk = false)
+    are still in js/core.js. The one screen now does what it did, with the
+    purpose visible, so that machinery has no future caller.
+  · TEMPLATE_OBLIGATIONS covers the payment duty of nine built-in templates and
+    nothing else. EQ, ND and LE have empty entries on purpose. The rejection
+    windows and per-delivery duties those templates state cannot be dated from
+    the record and are deliberately absent.
+
+NOT BUILT, AND WHY
+  · G5.2, a one-time code before a guest's first Send. The machinery exists
+    (share_otp, the request and verify routes, and the respond route already
+    records verified for non-sign actions), but the guest-side component is
+    written into the SIGNING screen. Shipping the server wall without a prompt
+    on the counterparty's workbench would be a refusal with no way forward on
+    the same screen.
+  · Part B phase 6, the template baseline read once per published version. It
+    needs storage on the template record and three readings at publish time;
+    it is the larger half of Part B and was left rather than half-built.
+  · counterparty-reading-and-more-verify check 6 ("exactly three rows") is red
+    and was red at main before this run, proved in a worktree at 854177e: the
+    More menu now draws four rows because the notes door joined it on 11 Sep.
+    The check, not the menu, is what is out of date. Left alone — it was
+    failing before this work started.
+
+VERIFIED
+  npm run lint — 0 errors.
+  npm test — 6,895 tests, 1,386 suites, 0 failures, 6m14s.
+  Browser: clause-editor-verify 257/257, notes-two-rooms-verify 73/73,
+  share-recipient-verify 21/21, counterparty-reading-and-more-verify 62/63
+  (the one red named above, red at main too).
+  Photographed on the real product: the one-screen send (link and Word), the
+  check card on the Signing tab, and the built empty change column.
