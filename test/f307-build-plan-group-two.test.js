@@ -420,3 +420,96 @@ describe('f307 (5) — the record is its own link', () => {
     });
   });
 });
+
+/* ============================================================
+   f307 (6) — THE WORD FILE IS WHAT THE SENDER CHOSE
+   ============================================================
+   Young, 13 Sep 2026, three screenshots: "this is what i get in word format
+   for negotiation history. It should be image 2. When i click on print or
+   export history in the image 3 screen i get the right information."
+   The Word channel had one file builder — the tracked-changes contract — and
+   handed it out on a history send. The record's file is the report Export
+   history and Print history already give, read through the same builder. */
+describe('f307 (6) — the Word file is what the sender chose', () => {
+  test('the history report in Word\'s terms is the export, less its furniture', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = await negotiated(win);
+    const r = await win.negoIntegrityReport(c);
+    const page = win.negoHistoryExportHtml(c, r);
+    const word = win.negoHistoryWordHtml(c, r);
+    assert.match(page, /<style>/, 'the export is a whole page');
+    assert.doesNotMatch(word, /<style|<head|<body|<html/, 'the Word half is the body alone');
+    assert.doesNotMatch(word, /ht-mark/, 'the event glyphs are furniture');
+    assert.doesNotMatch(word, /ht-key/, 'Word draws its own marks, so the colour legend goes');
+    assert.match(word, /Negotiation history/, 'the heading is the report\'s own');
+    assert.match(word, /CHG-001/, 'every event rides');
+    assert.match(word, /round 1 · still pending/, 'with its meta line');
+    assert.match(word, /Record verified|Integrity check/, 'and the integrity line');
+  });
+
+  test('the .docx carries the record, not the agreement', async () => {
+    const { win } = buildWorld({ negotiationView: true, contractView: true });
+    const c = await negotiated(win);
+    const f = await win.wordHistoryFile(c, { author: 'Wanjiru Kamau' });
+    assert.equal(f.name, 'MK-307-negotiation-history.docx');
+    const out = win.docxExportTracked(win.negoHistoryWordHtml(c, await win.negoIntegrityReport(c)), { author: 'x' });
+    const read = win.docxXmlToText(out.xml);
+    const text = read.text;
+    assert.match(text, /^Negotiation history — Warehousing/, 'the report\'s heading opens the file');
+    assert.match(text, /CHG-001/, 'the change is in it');
+    assert.match(text, /round 1 · still pending · Clause 4/);
+    assert.match(text, /forty-five \(45\) days/, 'the proposed wording');
+    assert.doesNotMatch(text, /Scope of Services|Storage Conditions|Governing Law/,
+      'clauses the negotiation never touched are the CONTRACT, and the contract is not this file');
+    assert.ok(read.tracked.ins > 0 && read.tracked.del > 0, 'the redline is Word tracked changes, as on the contract file');
+  });
+
+  test('the send builds the record\'s file on the record, and the contract\'s otherwise', () => {
+    const fn = /const doSend=async\(\)=>\{[\s\S]*?const wantDurable=/.exec(CORE)[0];
+    assert.match(fn, /const hist=purposeSel==='history';/);
+    assert.match(fn, /hist \? await wordHistoryFile\(c\) : wordTrackedFile\(c,\{ side:'owner' \}\)/,
+      'one branch, the kind decides the builder');
+    assert.match(CONTRACT, /async function wordHistoryFile\(c,opts\)\{[\s\S]*?negoIntegrityReport\(c\)[\s\S]*?negoHistoryWordHtml\(c,r\)/,
+      'the file is verified first, as Export and Print verify it');
+    /* the channel line follows the kind */
+    assert.match(CORE, /i18t\(purposeSel==='history'\?'co_ch_word_hist_note':'co_ch_word_note'\)/);
+    assert.match(I18N, /co_ch_word_hist_note:/);
+    assert.equal((I18N.match(/co_ch_word_hist_note:/g) || []).length, 2, 'both books');
+  });
+
+  test('the dialog says what the Word file is, by kind', async () => {
+    const { win } = buildWorld();
+    const m = await openShare(await negotiated(win));
+    m.$('[data-share-ch="word"]').click();
+    assert.match(m.$('#sh-ch-note').textContent, /changes tracked/, 'on the contract: the tracked copy');
+    m.$('#share-other').click();
+    m.$('[data-share-kind="history"]').click();
+    m.$('#share-kind-next').click();
+    assert.match(m.$('#sh-ch-note').textContent, /negotiation history/, 'on the record: the report');
+    assert.doesNotMatch(m.$('#sh-ch-note').textContent, /file you import|answer comes back/, 'nothing comes back');
+  });
+
+  describe('the email says it is the record', () => {
+    let h, W;
+    before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+    after(async () => { await h.stop(); });
+    const payloadFor = (id, purpose) => ({ kind: 'hati-share', org: 'Highland Corporate Ltd',
+      sharedBy: 'Wanjiru Kamau', at: new Date().toISOString(), purpose,
+      contract: { id, name: 'Raw Milk Collection', counterparty: 'Nandi Dairy',
+        docText: 'The Buyer shall pay within thirty (30) days.', changes: [], negotiation: { round: 1, rounds: [] } } });
+    test('a history send by Word file is described as the record, with the report attached', async () => {
+      await W.admin.json('/api/shares', { method: 'POST', body: {
+        payload: payloadFor('MK-A2', 'history'), channel: 'word', durable: false, purpose: 'history',
+        recipient: { name: 'Priya Nair', email: 'record@nandi.example' },
+        file: { filename: 'MK-A2-negotiation-history.docx', content: Buffer.from('PK-not-really').toString('base64') } } });
+      const ob = await W.admin.json('/api/outbox');
+      const mail = (ob.items || []).find(m => String(m.to_addr) === 'record@nandi.example');
+      assert.ok(mail, 'it went');
+      assert.match(String(mail.subject), /negotiation history/i);
+      assert.doesNotMatch(String(mail.subject), /to mark up/i);
+      assert.match(String(mail.body), /record of the negotiation/i);
+      assert.doesNotMatch(String(mail.body), /mark it up|reply to this email with the file/i, 'nothing comes back');
+      assert.match(String(mail.detail || ''), /attachments: MK-A2-negotiation-history\.docx/);
+    });
+  });
+});

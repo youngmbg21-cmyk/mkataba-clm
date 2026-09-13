@@ -9619,12 +9619,22 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const f = (req.body || {}).file || {};
     const b64 = typeof f.content === 'string' ? f.content : '';
-    const fname = (clean(f.filename) || `${shareId || 'contract'}-redline.docx`).slice(0, 120);
+    /* A HISTORY SEND IS THE RECORD, NOT A ROUND (13 Sep 2026): the file is the
+       negotiation history report, and the mail must not ask for it back
+       marked up — there is nothing on it to mark up. The purpose is the
+       share row's own, stored above. */
+    const histFile = purpose === 'history';
+    const fname = (clean(f.filename) || `${shareId || 'contract'}-${histFile ? 'negotiation-history' : 'redline'}.docx`).slice(0, 120);
     if (!b64) {
       emailError = 'No file was supplied, so nothing was sent.';
       db.prepare('UPDATE shares SET send_error=? WHERE token=?').run(emailError, token);
     } else {
-      const body = [
+      const body = histFile ? [
+        `${req.user.name} at ${payload.org || 'HaTi'} has sent you the negotiation history of "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
+        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
+        `\nThe attached document is the record of the negotiation — every change proposed, by whom, and what was decided, with its own integrity check. There is nothing on it to mark up or sign.`,
+        `\nReplies to this email reach ${req.user.name} directly.`,
+      ].filter(Boolean).join('\n') : [
         `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
         message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
         `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
@@ -9632,7 +9642,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         `\nReplies to this email reach ${req.user.name} directly.`,
       ].filter(Boolean).join('\n');
       const r = await sendEmail(email,
-        `${req.user.name} sent you "${cName}" to mark up`,
+        histFile ? `${req.user.name} sent you the negotiation history of "${cName}"` : `${req.user.name} sent you "${cName}" to mark up`,
         body, `share as word: ${fname}`,
         { attachments: [{ filename: fname, content: b64 }] });
       emailSent = !!r.sent; emailError = r.detail || null;

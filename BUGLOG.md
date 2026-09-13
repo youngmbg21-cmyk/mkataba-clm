@@ -13233,3 +13233,31 @@ VERIFIED
   recipient-verify 32/32 (4b: first frame measured with the fetch held,
   the record sent by a real press and opened as history); lint 0 errors;
   full suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 (night) — THE WORD FILE IS WHAT THE SENDER CHOSE
+Owner: "this is what i get in word format for negotiation history. It
+should be image 2. When i click on print or export history in the image 3
+screen i get the right information. Fix this"
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The Word channel had one file builder (the tracked-changes contract)
+    and used it on a history send. The record now has its own file: the
+    Export/Print history report handed to the .docx writer (tracked
+    changes for the redlines, the integrity line inside).
+  · The email for a Word-file history send described the contract and
+    asked for it back marked up; it now says it is the record.
+  · The dialog's channel line under "Word file" follows the kind.
+
+NOTICED, NOT FIXED
+  · The Word history file attributes every tracked change to the sender
+    (the writer's one author), not to whoever proposed it; the report's
+    own lines name the proposer.
+  · The report's "Why they asked" lines ride only where a change carries a
+    reason; a plain redline has none.
+
+VERIFIED
+  f307 (6) five claims red at the parent; share-recipient-verify 34/34
+  (the record sent by Word file through the real dialog, the outbox read
+  back); lint 0 errors; full suite — see the commit.

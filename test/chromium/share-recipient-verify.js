@@ -309,6 +309,34 @@ const ROUTE = [
       !!opened && opened.status === 200 && opened.historyOnly === true && opened.purpose === 'history' && opened.wording === false,
       JSON.stringify(opened));
 
+    /* ---- and by WORD FILE the record is the report (Young, 13 Sep 2026) ---- */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(300);
+    await page.evaluate(id => openShareModal(getContract(id)), cid);
+    await page.waitForTimeout(1500);
+    await page.click('#share-other');
+    await page.waitForTimeout(200);
+    await page.click('[data-share-kind="history"]');
+    await page.click('#share-kind-next');
+    await page.waitForTimeout(300);
+    await page.click('[data-share-ch="word"]');
+    await page.waitForTimeout(200);
+    const wordNote = await page.evaluate(() => (document.getElementById('sh-ch-note') || {}).textContent || '');
+    check('4b. on the record the Word line says it is the history report', /negotiation history/i.test(wordNote) && !/changes tracked|answer comes back/i.test(wordNote), wordNote);
+    await page.evaluate(gmail => { document.getElementById('sh-email').value = gmail; }, GMAIL);
+    await page.screenshot({ path: path.join(OUT, '06-history-word.png') });
+    await page.click('#share-send');
+    await page.waitForTimeout(2500);
+    const mail = await page.evaluate(async () => {
+      const ob = await api('outbox');
+      const items = (ob.items || []).filter(m => /docx/.test(String(m.detail || '')));
+      const m = items[0] || null;
+      return m ? { subject: m.subject, detail: m.detail, body: String(m.body || '').slice(0, 400) } : null;
+    });
+    check('4b. the Word send of the record attaches the history report, not the redline',
+      !!mail && new RegExp(cid + '-negotiation-history\\.docx').test(String(mail.detail)) && /negotiation history/i.test(mail.subject) && !/mark it up/i.test(mail.body),
+      JSON.stringify(mail));
+
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');
 

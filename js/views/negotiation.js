@@ -661,6 +661,26 @@ generation time shown. HaTi retains the master copy.</p>
 </body></html>`;
 }
 
+/* ---- THE SAME REPORT, IN WORD'S TERMS (Young reported it 13 Sep 2026) ----
+   "this is what i get in word format for negotiation history. It should be
+   image 2." The Word channel had ONE file builder — the tracked-changes
+   contract — and handed it out whatever the send was, so choosing the record
+   and the Word file delivered the agreement. The record's own file is the
+   report Export history and Print history already give, and this is that
+   report handed to the .docx writer rather than to the disk or the printer:
+   the SAME builder (negoHistoryExportHtml) read the same way, so the three
+   cannot say different things. What is taken off on the way: the page's
+   head and stylesheet (the writer reads markup, not CSS), the event glyphs
+   (a circled pencil is furniture) and the colour legend (Word draws its own
+   marks for tracked changes, which is what <ins>/<del> become). */
+function negoHistoryWordHtml(c, report){
+  const page = negoHistoryExportHtml(c, report);
+  const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(page);
+  return (body ? body[1] : page)
+    .replace(/<span class="ht-mark"[^>]*>[\s\S]*?<\/span>/g, '')
+    .replace(/<p class="ht-key">[\s\S]*?<\/p>/g, '');
+}
+
 /* ---------- THE RENUMBER PREVIEW (N2-T3) ----------
    Everything that would move, shown before anything is written: every heading
    old → new, every cross-reference old → new, and — just as deliberately —
@@ -17593,7 +17613,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
   negoTimelineScreenHtml, negoTimelineEventHtml, negoTimelineSeatIsTheirs, openHistoryTimeline,
-  negoVerifyResultHtml, negoHistoryExportHtml, negoHistoryExportRun, negoHistoryPrintRun,
+  negoVerifyResultHtml, negoHistoryWordHtml, negoHistoryExportHtml, negoHistoryExportRun, negoHistoryPrintRun,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

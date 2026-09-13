@@ -4886,6 +4886,15 @@ async function openShareModal(c, opts={}){
      the record here replaces the sign/negotiate choice rather than sitting
      beside it — and choosing the contract again restores whatever the contract's
      own state says the default should be. */
+  /* WHAT THIS CHANNEL IS, in one line under the row — and it follows the KIND
+     as well as the channel (13 Sep 2026): on the record, the Word file is the
+     history report, and nothing comes back to import. */
+  const paintChNote=()=>{
+    const note=document.getElementById('sh-ch-note');
+    if(!note) return;
+    note.innerHTML=ch==='word'?i18t(purposeSel==='history'?'co_ch_word_hist_note':'co_ch_word_note')
+      :ch==='link'?esc(i18t('co_ch_link_note')):'';
+  };
   const setKind = k => {
     purposeSel = k==='history' ? 'history' : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
     payloadObj.purpose = purposeSel; payloadObj.purposeChosen = purposeSel;
@@ -4931,6 +4940,7 @@ async function openShareModal(c, opts={}){
     if(blurb) blurb.classList.toggle('hidden', hist);
     const hblurb=document.getElementById('share-send-blurb-hist');
     if(hblurb) hblurb.classList.toggle('hidden', !hist);
+    paintChNote();
   };
   /* THE PURPOSE PICKER. Repainting the two buttons in place rather than
      re-rendering step 1: the summary textarea sits in that step and the sender
@@ -5111,9 +5121,7 @@ async function openShareModal(c, opts={}){
     /* WHAT THIS CHANNEL IS, in one line under the row. The Word line says what
        is lost as well as what is gained: no page for them means no record of
        them opening it, and their answer comes back as a file to import. */
-    const note=document.getElementById('sh-ch-note');
-    if(note) note.innerHTML=word?i18t('co_ch_word_note')
-      :k==='link'?esc(i18t('co_ch_link_note')):'';
+    paintChNote();
     /* WHERE THE NOTE GOES, said under the box it is typed into. A copied link
        carries no message at all now that the counterparty's page has stopped
        reproducing it, so that branch is a WARNING and wears the warning
@@ -5295,9 +5303,15 @@ async function openShareModal(c, opts={}){
          than a share with an empty envelope. */
       let wordFile=null;
       if(ch==='word'){
-        if(!window.wordTrackedFile){ toast(i18t('ct_word_writer_missing'),'err'); return false; }
+        /* ---- THE FILE IS WHAT THE SENDER CHOSE (Young reported it 13 Sep 2026:
+           "this is what i get in word format for negotiation history. It
+           should be image 2.") The channel had one builder, the tracked
+           contract, and handed it out on a history send. The record has its
+           own: the report Export history and Print history already give. */
+        const hist=purposeSel==='history';
+        if(!(hist?window.wordHistoryFile:window.wordTrackedFile)){ toast(i18t('ct_word_writer_missing'),'err'); return false; }
         try{
-          const f=wordTrackedFile(c,{ side:'owner' });
+          const f=hist ? await wordHistoryFile(c) : wordTrackedFile(c,{ side:'owner' });
           wordFile={ filename:f.name, content:bytesToBase64(f.bytes) };
         }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return false; }
       }
