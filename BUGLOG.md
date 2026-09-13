@@ -12879,3 +12879,43 @@ Noticed, not fixed
 - negotiations-door-verify has two red checks ("the room shows four tabs") and they were red before this session — proved by running the file in a worktree at unmodified main, the same two, same output. They predate the Obligations tab of 29 Aug; the room has five.
 - The workbench title is still a door (`#ws-back-title`) where the room's is plain text. Nothing was asked about it, it is invisible on the screen, and deleting an affordance the owner asked for in August is not part of matching two cards.
 - The room's own title now drops the counterparty too — that is a change to what the CONTRACT page says, made so the two titles cannot drift; the whole name is still the hover.
+
+## 13 Sep 2026 — PROMPT & BUILD: an ask box on every section of the template builder
+
+Built on the owner's go, to the three proposals in WORKORDER-prompt-and-build.md
+(metered to the person building the template, under the existing daily ceiling;
+the sentence box drawn on an EMPTY template only; a deviation recorded, never a
+block). The owner did not rule on them one by one — "go ahead and build it" was
+taken as a go on the proposal as written, and each is said out loud in the
+summary.
+
+What was added: POST /api/ai/outline (the one new route — headings and intent,
+no wording, editor-gated, metered); a `template` branch inside copilotPropose
+sharing AI_PROPOSAL_FORMAT; an ask box on every heading block; the blanks reader
+pointed at one section; deterministic playbook coverage in the card head and in
+a card of its own. pbRangeRead is a new one-reading lifted out of
+playbookReviewHeuristic so the builder and the contract review cannot disagree
+about what "45 days" means. 49 new strings, both dictionaries. Net: f306,
+51 claims, 45 of them red at the parent.
+
+One defect found by the net and fixed before the commit: with no Copilot key, a
+section with no wording block under it was told to "write this section yourself"
+beside no box to write in. It now names the control that makes one
+(tb_pb_nokey_empty).
+
+### Noticed, not fixed
+
+- The payment-terms range reader only reads a FIGURE ("within 45 days of the
+  invoice", "net 30 days"). Commercial drafting almost always writes "within
+  thirty (30) days", and the leading word defeats the digit pattern — so a
+  clause in the commonest form reads as covered with no figure rather than as
+  aligned or deviating. Pre-existing in playbookReviewHeuristic; carried
+  unchanged into pbRangeRead on purpose (one reading, one behaviour). Widening
+  it would move every existing verdict, which is its own job.
+- The Template Builder is a mix of i18t keys and hardcoded English hints
+  ('Section title', 'no {{placeholder}} yet', the block tips in TB_BLOCK_META).
+  Everything added today goes through i18t in both books; the older hints were
+  left alone.
+- TB_PB_KEY maps only nda and procurement to a playbook book. A template filed
+  as employment or sales counts against the baseline, which is honest but
+  coarse — the card prints the book's own label so it is never a silent guess.
