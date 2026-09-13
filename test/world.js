@@ -146,6 +146,10 @@ const DESKNIGHT = 'js/desknight.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
 const SIGNCHECK = 'js/signcheck.js';
+/* The built-in papers and what each of them promises (build plan phase 7).
+   It defines FOLDERS and TEMPLATES, which other modules read, so it goes on
+   the FRONT of the list rather than the end. */
+const TEMPLATES_FILE = 'js/templates.js';
 /* The text hasher the signing door's two "has the wording moved" questions
    share with the obligations scan. Without it both answer null — "we do not
    know" — which is the honest fallback and not what these tests are about. */
@@ -388,6 +392,7 @@ function buildWorld(opts = {}) {
      written before they existed asserts. family.js loads FIRST because
      obligations.js reads effectiveExpiry through `window` and answers correctly
      when it is absent, which is the order js/app.js uses too. */
+  if (opts.templates) files.unshift(TEMPLATES_FILE);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
   /* THE SIGNING DOOR'S OWN READING (buildWorld({signcheck:true}), 13 Sep 2026).

@@ -8414,6 +8414,23 @@ function wireKeyTerms(c){
       keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${LABEL[key]||key}`);
+      /* ---- THE TEMPLATE'S OWN PROMISES, THE MOMENT THEIR FACTS EXIST ----
+         (13 Sep 2026, build plan phase 7.) A contract drafted from our own
+         paper knows what it promises; it just could not say WHEN until somebody
+         filled in the dates. mintTemplateObligations refuses every entry whose
+         inputs are not really there and asks the same duplicate test every
+         other door asks, so this is safe to call on every Key terms edit and
+         writes nothing the second time. An uploaded contract has no template
+         and gets nothing. */
+      try{
+        if(window.mintTemplateObligations){
+          const minted=mintTemplateObligations(c);
+          if(minted){
+            logAudit(c,'Obligations',`${minted} obligation${minted===1?'':'s'} written from the ${c.template} template`);
+            if(window.obligationSurfacesChanged) obligationSurfacesChanged(c);
+          }
+        }
+      }catch(_){}
       persist(c); renderAuditSection(c);
     });
   });

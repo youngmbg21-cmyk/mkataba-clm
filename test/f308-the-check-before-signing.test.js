@@ -344,3 +344,70 @@ describe('f308 (5b) — the server is the wall', () => {
     assert.match(SERVER, /it is advisory:\s*\n\s*the card reports it, the wall does not/);
   });
 });
+
+describe('f308 (7) — a template’s own promises are written, not read', () => {
+  /* Build plan group 4 / work order phase 7. No model, no guesswork, no cost:
+     the template knows what it promises and the record knows when. */
+  const { buildWorld: bw } = require('./world');
+  function tplBench(over = {}){
+    const w = bw({ obligations: true, templates: true });
+    const { win } = w;
+    const c = { id: 'MK-T1', name: 'Raw Material Supply Agreement (Draft)', template: 'RM',
+      counterparty: 'Nordkust Industri AB', status: 'Draft', folder: 'proc',
+      fields: { effDate: '2026-01-01', payDays: '45' }, metadata: {}, audit: [],
+      obligations: [], ...over };
+    return { win, c };
+  }
+  test('it derives the date from the contract’s own fields', () => {
+    const { win, c } = tplBench();
+    assert.equal(win.mintTemplateObligations(c), 1);
+    const o = c.obligations[0];
+    assert.equal(o.due, '2026-02-15', '1 January plus the template’s own 45 days');
+    assert.match(o.desc, /45 days/, 'and the number is in the words');
+    assert.equal(o.party, 'ours', 'we are the Buyer on this paper');
+    assert.equal(o.origin, 'template', 'and the reader can see where it came from');
+  });
+
+  /* IT REFUSES RATHER THAN GUESSES — the whole reason this is cheap and safe. */
+  test('no start date, nothing minted', () => {
+    const { win, c } = tplBench({ fields: { payDays: '45' } });
+    assert.equal(win.mintTemplateObligations(c), 0);
+    assert.equal(c.obligations.length, 0);
+  });
+  test('no payment days, nothing minted', () => {
+    const { win, c } = tplBench({ fields: { effDate: '2026-01-01' } });
+    assert.equal(win.mintTemplateObligations(c), 0);
+  });
+  test('a template with nothing to promise mints nothing', () => {
+    const { win, c } = tplBench({ template: 'ND', fields: { effDate: '2026-01-01', payDays: '45' } });
+    assert.equal(win.mintTemplateObligations(c), 0);
+  });
+  test('an uploaded contract has no template and gets nothing', () => {
+    const { win, c } = tplBench({ template: null });
+    assert.equal(win.mintTemplateObligations(c), 0);
+  });
+
+  /* ONCE, NEVER TWICE — through the same duplicate test every other door asks,
+     so a duty typed by hand and one written from the template cannot both land. */
+  test('it mints once however often it is asked', () => {
+    const { win, c } = tplBench();
+    assert.equal(win.mintTemplateObligations(c), 1);
+    assert.equal(win.mintTemplateObligations(c), 0);
+    assert.equal(win.mintTemplateObligations(c), 0);
+    assert.equal(c.obligations.length, 1);
+  });
+
+  test('a distribution agreement’s credit terms run the other way', () => {
+    const { win, c } = tplBench({ template: 'DA', fields: { effDate: '2026-01-01', creditDays: '30' } });
+    assert.equal(win.mintTemplateObligations(c), 1);
+    assert.equal(c.obligations[0].party, 'theirs', 'they owe us');
+  });
+
+  /* AND NO MODEL IS INVOLVED, which is the point of the whole phase. */
+  test('nothing here asks a route', () => {
+    const code = strip(read('js/templates.js'));
+    const m = /function mintTemplateObligations\(c\)\{[\s\S]*?\n\}/.exec(code);
+    assert.ok(m);
+    assert.doesNotMatch(m[0], /api\(|fetch|ai\/|copilot/i);
+  });
+});

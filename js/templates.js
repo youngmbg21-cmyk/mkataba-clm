@@ -221,6 +221,105 @@ const TEMPLATE_PAY = {
   ND:null,
   LE:null,
 };
+/* ============================================================
+   WHAT A TEMPLATE'S OWN PAPER PROMISES (13 Sep 2026, build plan phase 7)
+   ============================================================
+   WORKORDER-pre-signature-check.md Part B. A template knows where its dates
+   and amounts live, so a contract drafted from it can have its obligations
+   WRITTEN rather than READ — no model, no guesswork, and no cost. This is the
+   piece that makes the whole pre-signature idea cheap: nothing pays to read a
+   contract HaTi wrote unless the check at the door finds the wording moved.
+
+   WRITTEN BY HAND, LIKE valueType AND TEMPLATE_PAY BESIDE IT. Each entry
+   QUOTES ITS OWN TEMPLATE'S CLAUSE — there is no entry here that the paper
+   above it does not say — and names how the date is derived:
+     from      'effective' | 'expiry' | 'signed'  — which of the record's dates
+     offset    days after (or, negative, before) it
+     field     a numbered field on the contract used as the offset instead
+     party     'ours' | 'theirs', from who the template makes the payer
+     recurring the cadence the clause states, or 'none'
+
+   WHAT IS DELIBERATELY NOT HERE. The built-ins' rejection windows ("within 3
+   days of delivery") and their per-invoice terms are counted from an event
+   HaTi does not hold a date for. A single due date for those would be a date
+   the product invented, so the payment duties below take their FIRST date from
+   the contract's own start date and recur from there — and a contract with no
+   start date gets nothing at all. HaTi does not invent dates. */
+const TEMPLATE_OBLIGATIONS = {
+  /* We are the Buyer on both supply papers: "invoices fall due within N days
+     of receipt" is ours to meet. */
+  RM:[{ key:'pay', desc:'Pay the supplier’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  PK:[{ key:'pay', desc:'Pay the supplier’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  /* The Brand Owner pays the Co-Packer. */
+  CM:[{ key:'pay', desc:'Pay the co-packer’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  WH:[{ key:'pay', desc:'Pay the provider’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  FF:[{ key:'pay', desc:'Pay the carrier’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  MK:[{ key:'pay', desc:'Pay the agency’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  PS:[{ key:'pay', desc:'Pay the provider’s invoices within {n} days of receipt',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  /* A lease is rent we pay, on the template's own 60-day clause. */
+  RL:[{ key:'pay', desc:'Pay the rent and charges within {n} days of the invoice',
+        party:'ours', from:'effective', field:'payDays', recurring:'monthly' }],
+  /* A distribution agreement's credit terms run the other way: they owe us. */
+  DA:[{ key:'pay', desc:'Collect payment from the distributor within {n} days',
+        party:'theirs', from:'effective', field:'creditDays', recurring:'monthly' }],
+  ND:[], LE:[], EQ:[],
+};
+/* THE DERIVATION, AND IT REFUSES RATHER THAN GUESSES. Every input has to be
+   really there: the date it counts from, the number of days, and a description.
+   Anything missing and that entry is simply not minted — an absence is stated
+   by there being nothing, never by a date nobody chose. */
+function templateObligationDue(c, spec){
+  const f=(c&&c.fields)||{}, m=(c&&c.metadata)||{};
+  const base=spec.from==='expiry' ? String((c&&c.expiry)||f.expiry||m.expiryDate||'')
+    : spec.from==='signed' ? String((window.contractSignedAt?contractSignedAt(c):'')||'')
+    : String(f.effDate||m.effectiveDate||'');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(base)) return null;
+  let days=Number(spec.offset||0);
+  if(spec.field){
+    const raw=f[spec.field];
+    const n=Number(String(raw==null?'':raw).replace(/[^\d.-]/g,''));
+    if(!Number.isFinite(n)||!String(raw==null?'':raw).trim()) return null;
+    days=n;
+  }
+  const d=new Date(base+'T00:00:00Z');
+  if(!Number.isFinite(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate()+days);
+  return d.toISOString().slice(0,10);
+}
+/* MINTED ONCE, AND NEVER TWICE. obligationAlreadyOn is the same duplicate test
+   every other door asks, so a duty typed by hand and one written from the
+   template cannot both end up on the list. Each carries origin:'template', so
+   a reader can see where it came from — and edits or deletes it like any
+   other obligation. */
+function mintTemplateObligations(c){
+  if(!c||!c.template) return 0;
+  const specs=TEMPLATE_OBLIGATIONS[c.template];
+  if(!Array.isArray(specs)||!specs.length) return 0;
+  c.obligations=Array.isArray(c.obligations)?c.obligations:[];
+  let n=0;
+  for(const spec of specs){
+    const due=templateObligationDue(c,spec);
+    if(!due) continue;
+    const f=(c&&c.fields)||{};
+    const days=spec.field?String(f[spec.field]||'').trim():String(spec.offset||'');
+    const desc=String(spec.desc||'').replace('{n}',days);
+    if(!desc||desc.includes('{n}')) continue;
+    const o={ id:'ob_t'+Math.random().toString(36).slice(2,8), desc, due,
+      recurring:spec.recurring||'none', party:spec.party==='theirs'?'theirs':'ours',
+      assignee:'', status:'open', quote:'', origin:'template' };
+    if(window.obligationAlreadyOn&&obligationAlreadyOn(c,o)) continue;
+    c.obligations.push(o); n++;
+  }
+  return n;
+}
+
 /* Copied by DESCRIPTOR, not spread. `value`'s label is a getter that names the
    workspace's currency, and `{...f}` reads it once and freezes the answer — so
    a workspace switched to Sweden went on asking for KES until the page was
@@ -245,4 +344,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
