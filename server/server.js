@@ -1691,6 +1691,12 @@ const AI_FEATURE_LABEL = {
   // spending never lands in the Other bucket the way conversion's once did.
   brief: 'Contract brief',
   renewal: 'Renewal adviser',   // W2-4
+  /* The template builder's outline (Prompt & Build). Named on arrival for
+     the reason conversion's absence taught: an unnamed feature spends into
+     the Other bucket, where the one figure an admin wants is unreadable.
+     The per-section drafting it leads to is metered as `chat`, because it
+     goes through copilotPropose like every other drafting press. */
+  outline: 'Template outline',
   /* Draft from a sentence. Named on arrival, for the reason conversion's
      omission records above: recordAiCall files an unknown feature under
      'other', and this is one an admin will look for by name. */
@@ -4802,6 +4808,90 @@ ${String(text)}`;
       .filter(f => f && typeof f.find === 'string' && f.find.length > 0 && f.find.length < 200 && String(text).includes(f.find));
     res.json({ fields, note: typeof out.note === 'string' ? out.note : '',
       dropped: (Array.isArray(out.fields) ? out.fields.length : 0) - fields.length, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- Copilot: the section list for a template being written ----------
+   THE ONLY NEW QUESTION IN PROMPT & BUILD, and the cheapest half of it: what
+   SECTIONS does this kind of agreement need? Nothing else in HaTi answers it —
+   /api/ai/template ranks existing CONTRACTS to copy, /api/ai/draft picks a
+   TEMPLATE this workspace already holds. Both start from paper that exists.
+   This one starts from a sentence and an empty template.
+
+   IT WRITES NO WORDING, DELIBERATELY. Headings and one line of intent each,
+   and the schema has no slot for anything else. An outline is a cheap call, it
+   is read in ten seconds and a wrong heading costs one click — wording is
+   asked for a section at a time afterwards, through copilotPropose, where the
+   playbook and the clause library are in the room. A model handed the whole
+   template in one breath walks around both.
+
+   THE MANDATORY SECTIONS ARE NOT ITS TO PROPOSE. `required` comes in as the
+   playbook's own position categories; the model is told not to repeat them and
+   the BROWSER appends them itself, marked as coming from the playbook. That
+   keeps "your playbook requires this" a fact HaTi asserts off its own record
+   rather than a claim the model makes. */
+const OUTLINE_SENTENCE_MAX = 2000;
+const OUTLINE_SECTIONS_MAX = 20;
+app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { sentence, kind, required } = req.body || {};
+  if (!sentence || typeof sentence !== 'string' || !sentence.trim())
+    return res.status(400).json({ error: 'sentence is required' });
+  const said = String(sentence).slice(0, OUTLINE_SENTENCE_MAX);
+  const skip = (Array.isArray(required) ? required : [])
+    .filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 80)).slice(0, 20);
+  const J = orgJx();
+  const tool = {
+    name: 'propose_sections',
+    description: 'Propose the section headings a reusable contract template of this kind needs.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        sections: {
+          type: 'array', maxItems: OUTLINE_SECTIONS_MAX,
+          description: 'In the order they should appear in the document. Best judgement, not an exhaustive list.',
+          items: {
+            type: 'object',
+            properties: {
+              heading: { type: 'string', description: 'The section heading as it would be printed — Title Case, no number, under 70 characters.' },
+              intent: { type: 'string', description: 'ONE plain sentence saying what this section has to settle. Not the wording, and never a draft clause.' },
+            },
+            required: ['heading', 'intent'],
+          },
+        },
+        note: { type: 'string', description: 'One sentence for the person reading this: anything you were unsure about, or left out.' },
+      },
+      required: ['sections'],
+    },
+  };
+  const prompt = `A drafter is writing a reusable contract TEMPLATE for their company, governed by ${J.adjective} law. `
+    + `They described it as: "${said}"\n\n`
+    + (kind ? `The template is filed as: ${String(kind).slice(0, 80)}\n\n` : '')
+    + `Propose the SECTION HEADINGS it needs, in document order, each with one plain sentence of intent.\n\n`
+    + `Rules:\n`
+    + `- HEADINGS AND INTENT ONLY. Write no clause wording of any kind. The intent line says what the section has to settle, never how it is worded.\n`
+    + `- Prefer 8 to 14 sections. A template with thirty headings is an index, not a contract.\n`
+    + `- Order them the way this kind of agreement is normally laid out: parties and definitions first, boilerplate and law last.\n`
+    + `- Name each section the way the drafter would — "Prices and payment terms", not "Clause 4".\n`
+    + (skip.length ? `- These are already required by the company's own playbook and will be added separately. DO NOT propose them: ${skip.join('; ')}.\n` : '')
+    + `\nReturn via the propose_sections tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1600, tools: [tool], tool_choice: { type: 'tool', name: 'propose_sections' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'outline', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = block.input || {};
+    /* A heading that came back empty is dropped rather than drawn as a blank
+       row, and the count of what was dropped is not worth a sentence — what
+       matters is that nothing unnamed reaches the tick list. */
+    const sections = (Array.isArray(out.sections) ? out.sections : [])
+      .filter(x => x && typeof x.heading === 'string' && x.heading.trim())
+      .slice(0, OUTLINE_SECTIONS_MAX)
+      .map(x => ({ heading: String(x.heading).trim().slice(0, 120),
+                   intent: String(x.intent || '').trim().slice(0, 300) }));
+    if (!sections.length) return res.status(502).json({ error: 'Copilot proposed no sections' });
+    res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

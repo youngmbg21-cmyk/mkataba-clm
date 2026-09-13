@@ -2997,10 +2997,87 @@ function aiParseProposal(raw){
    carries its own instruction and a shortening that inserts is not a
    shortening. Offering the field where it has no meaning would only invite the
    model to use it. */
+/* ---------- Prompt & Build: wording for ONE section of a template ----------
+   Called only by the template builder. It writes the section a person named,
+   with a blank wherever a value belongs to one deal rather than to the paper.
+
+   WHAT IT IS SHOWN IS WHAT IT MAY REST ON. `library` is the workspace's own
+   approved wording for this category (js/playbook.js), `standard` is the
+   playbook's position or range, and `precedent` is a figure this workspace has
+   actually agreed. Each is passed only where HaTi has one, and the answer is
+   asked to SAY which it kept — that sentence is what the card prints under the
+   wording, so a reader can check the edit rather than only the clause. */
+const AI_TEMPLATE_RULE = () =>
+  'This wording goes into a reusable TEMPLATE, not into one signed contract. '
+  + 'Wherever a value changes from one deal to the next — a party name, a date, an amount, '
+  + 'a period, a territory, a percentage — write a BLANK in the form {{lower_snake_case}} '
+  + 'instead of a specific value, and use a name a person would recognise ({{counterparty}}, '
+  + '{{notice_days}}, {{eff_date}}). Do not invent figures that were not asked for: where a '
+  + 'number is genuinely part of the position (a statutory period, an agreed cap), write it '
+  + 'out in words and figures as a contract would. Prefer five to ten blanks in a section, '
+  + 'never one in every sentence.';
+
+async function copilotProposeTemplate(o){
+  const head = String(o.heading || '').trim();
+  const existing = String(o.passage == null ? '' : o.passage).trim();
+  const lines = [
+    'Write the wording for ONE section of a reusable contract template.',
+    '',
+    `The template is governed by ${o.law || jxLaw()} law${o.kind ? ` and is a ${o.kind} agreement` : ''}.`
+      + (o.party ? ` The company it belongs to is ${o.party}.` : ''),
+    head ? `The section is headed "${head}". The heading is already on the page: return the wording only, `
+      + 'and do not restate it, number it, or add a new one.' : '',
+    o.intent ? `What it has to settle: ${o.intent}` : '',
+    '',
+    o.instruction ? `The drafter has asked for: "${o.instruction}"` : '',
+    /* The workspace's own wording leads, because adapting it is cheaper to
+       check than replacing it — and because a company that wrote a clause down
+       has already decided how it wants to say this. */
+    o.library ? `\nYOUR COMPANY'S OWN WORDING for this category — keep it wherever it fits, and change `
+      + `only what this template needs (a defined term, a party name):\n"""\n${o.library}\n"""` : '',
+    o.standard ? `\nTHE COMPANY PLAYBOOK on this point: ${o.standard}` : '',
+    o.precedent ? `\nWHAT THIS COMPANY HAS ACTUALLY AGREED BEFORE: ${o.precedent}` : '',
+    existing ? `\nThe section already reads:\n"""\n${existing}\n"""\nRewrite it.` : '',
+    '',
+    AI_TEMPLATE_RULE(),
+    '',
+    'In "advice", say in one plain sentence WHAT YOU KEPT and what you changed — for example '
+      + 'which of the company\'s own wording you carried over and what you renamed. Never a '
+      + 'question, and never a description of the section.',
+    '',
+    AI_PROPOSAL_FORMAT()
+  ];
+  const ask = (typeof window !== 'undefined' && window.copilotAsk) || copilotAsk;
+  const res = await ask([{ role: 'user', content: lines.filter(x => x !== '').join('\n') }], o.context || null);
+  const raw = typeof res === 'string' ? res
+    : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
+  const parsed = aiParseProposal(raw);
+  if (!parsed) return null;
+  /* The typography repair measures the answer against the passage it replaces,
+     and a section being written for the first time has no passage to measure
+     against — so only the restated heading is taken off, which is the one
+     correction this room needs. */
+  return { ...parsed, placement: 'replace',
+    proposedText: aiDropRestatedHeading(String(parsed.proposedText || ''), head, existing) };
+}
+
 async function copilotPropose(opts){
   const o = opts || {};
   const passage = String(o.passage == null ? '' : o.passage);
   const placements = o.placements === true;
+  /* ---- TEMPLATE MODE (Prompt & Build) ----
+     One drafting call, two rooms. Everything below this branch is written for a
+     NEGOTIATION: a passage the reader highlighted, a party being acted for, an
+     exchange so far. A section of a reusable TEMPLATE has none of those — there
+     is often no wording at all yet, nobody is on the other side, and the one
+     thing that matters is the opposite of a negotiation's: where a value would
+     be specific to one deal it must be a BLANK, because this paper is drafted
+     from for years.
+     It reuses the tail deliberately — the same AI_PROPOSAL_FORMAT, so the answer
+     parses identically and "I cannot draft this" comes back as advice with an
+     empty proposedText rather than as a sentence where wording goes. A second
+     drafting function would be a second set of those rules to keep in step. */
+  if (o.template) return copilotProposeTemplate(o);
   const shape = aiStructureOf(passage);
   /* ---- WHAT SHAPE THE ANSWER SHOULD BE IN ----
      For a replacement this is a description of the passage, because the answer
@@ -4112,6 +4189,6 @@ Object.assign(window,{
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,
   AI_SESSION_TURNS,aiRephraseRemember,aiRephraseHistory,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
-  aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
+  aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
   AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,runContractBrief,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

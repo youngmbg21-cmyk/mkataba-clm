@@ -99,6 +99,28 @@ function resolvePlaybook(key){
 }
 function clauseById(id){ return clauseLibrary().find(c=>c.id===id); }
 
+/* ---- WHAT A RANGE READS OUT OF WORDING — one reading, two callers ----
+   These two patterns were written inline inside playbookReviewHeuristic and are
+   now asked for by name, because the template builder counts the SAME ranges
+   while a company standard is being written (Prompt & Build) and a second copy
+   of "what counts as 45 days" is how a template and the contracts drawn from it
+   come to disagree about whether they are aligned.
+   It returns the match object the heuristic already used — [0] is the quote and
+   [1] the figure — so its callers are unchanged, and null where the wording says
+   nothing, which is not the same as saying zero. */
+const PB_RANGE_READERS = {
+  paymentDays: t => t.match(/within\s+(\d{1,3})\s+days?\b[^.]*\b(?:invoice|payment|delivery)/i)
+                 || t.match(/\b(?:net|payment terms?)\s*[:\-]?\s*(\d{1,3})\s*days/i),
+  liabilityMonths: t => t.match(/(\d{1,3})\s+months?[^.]*\b(?:fees|liabilit)/i)
+                     || t.match(/liab[^.]*?(\d{1,3})\s+months/i),
+};
+function pbRangeRead(key, text){
+  const f = PB_RANGE_READERS[key]; if(!f) return null;
+  /* Read ACROSS the line wrapping, exactly as the heuristic does — a clause
+     split over three lines in a textarea is one sentence on paper. */
+  return f(String(text||'').replace(/\s+/g,' ')) || null;
+}
+
 /* ---- heuristic playbook review (no key): deterministic clause checks ---- */
 function playbookReviewHeuristic(c, text){
   const t=String(text||'').replace(/\s+/g,' '); const T=t.toLowerCase();   // read across the document's line wrapping
@@ -128,10 +150,10 @@ function playbookReviewHeuristic(c, text){
   });
   // ranges
   pb.ranges.forEach(r=>{
-    if(r.key==='paymentDays'){ const m=t.match(/within\s+(\d{1,3})\s+days?\b[^.]*\b(?:invoice|payment|delivery)/i)||t.match(/\b(?:net|payment terms?)\s*[:\-]?\s*(\d{1,3})\s*days/i);
+    if(r.key==='paymentDays'){ const m=pbRangeRead(r.key,t);
       if(m){ const d=Number(m[1]); const ok=r.op==='<='?d<=r.value:d>=r.value; V(r.label, ok?'aligned':'deviation', m[0].trim(), r.note||`${r.op} ${r.value} days`, ok?'':clauseById('cl-pay')?.preferred||'', !ok&&r.escalate); }
       else V(r.label,'missing','',r.note||'Payment terms', clauseById('cl-pay')?.preferred||'', r.escalate); }
-    else if(r.key==='liabilityMonths'){ const m=t.match(/(\d{1,3})\s+months?[^.]*\b(?:fees|liabilit)/i)||t.match(/liab[^.]*?(\d{1,3})\s+months/i);
+    else if(r.key==='liabilityMonths'){ const m=pbRangeRead(r.key,t);
       if(m){ const d=Number(m[1]); const ok=d>=r.value; V(r.label, ok?'aligned':'deviation', m[0].trim(), r.note||`≥ ${r.value} months`, ok?'':clauseById('cl-liab')?.preferred||'', !ok&&r.escalate); }
       // if no explicit months, the 'Liability cap' position check already covers presence
     }
@@ -771,4 +793,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
