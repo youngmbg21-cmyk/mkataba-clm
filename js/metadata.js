@@ -456,7 +456,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
     : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
     : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
-  const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
+  const src = (meta._source==='ai' ? 'Read with Copilot' : 'Read without Copilot') + coverage;
   /* A QUEUE NEEDS A DOOR. Opened one at a time from a backfill, this dialog had
      Cancel — which meant "next", not "stop" — so the only way out of a run of
      forty was to dismiss forty. Escape did end it, but silently, which is worse
@@ -507,7 +507,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     <div class="p-6 max-w-lg">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
-      <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> ${i18t('me_fields_highlighted')}</p>
+      <p class="text-xs text-ink/60 mb-4">${src}. <span class="text-amber font-600">${i18t('me_low_confidence')}</span> ${i18t('me_fields_highlighted')}</p>
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}

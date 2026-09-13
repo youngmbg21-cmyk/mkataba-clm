@@ -354,8 +354,7 @@ function pasteConversionReport(richHtml, plainText){
    which would defeat the whole exercise. Every paste is intercepted and
    converted; nothing the browser would have inserted by default gets in. */
 const RICH_EDITOR_NOTE =
-  'Typeface, point size and colour are not carried over — HaTi styles every document the same way. ' +
-  'Bold, italics, underline, capitalisation, headings, numbered and bulleted lists, indentation and tables are kept.';
+  'Fonts, sizes and colours are not kept; bold, headings, lists and tables are.';
 
 /* Wire a rich editor onto an element. Returns { get, set, focus, isEmpty }. */
 function richEditor(el, opts={}){

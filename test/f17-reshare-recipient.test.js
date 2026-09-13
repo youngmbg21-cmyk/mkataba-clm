@@ -120,8 +120,11 @@ describe('F17 — the dialog opens already filled in', () => {
 
     assert.match(modalHtml, /value="Erik Lindqvist"/, "the recipient's name must be filled in");
     assert.match(modalHtml, /value="erik@nordkust\.se"/, 'their email must be filled in');
-    assert.match(modalHtml, /Filled in from the last time you shared/,
-      'a prefilled field must say where it came from, or it reads as a mistake');
+    /* Where it came from is a fact ON the box since the pop-up diet (13 Sep
+       2026) — the sentence above the address is gone by the owner's word, and
+       a filled box reads as filled. */
+    assert.match(modalHtml, /id="sh-email" type="email" data-prefill-src="last"/,
+      'a prefilled field must carry where it came from');
   });
 
   test('a quote in a stored name cannot break out of the input attribute', async () => {

@@ -75,7 +75,9 @@ describe('N2 (1) — the dialog opens on a drop zone', () => {
     const html = modals[0];
     assert.match(html, /id="up-drop"/, 'the drop zone IS the first screen');
     assert.match(html, /Drop the contract here/);
-    assert.match(html, /HaTi reads the rest/);
+    /* "That's all — HaTi reads the rest" left the drop zone with the pop-up
+       diet (13 Sep 2026): the next screen shows what was read. */
+    assert.ok(!/HaTi reads the rest/.test(html));
     assert.match(html, /id="up-step-2" class="hidden"/, 'the fields exist but wait their turn');
     assert.match(html, /up-cpemail/, 'every field the flow offers is present from the first render');
   });

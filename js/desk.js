@@ -1121,7 +1121,7 @@ function deskSheetHtml(c){
         max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
         border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
     </div>
-    <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+    <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
     <input type="hidden" id="dk-who-id" value=""/>
     <div style="display:flex;justify-content:flex-end;margin-top:var(--s-2)">
       <button id="dk-add" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_add_btn'))}</button>
@@ -1229,7 +1229,7 @@ function openDeskHandover(c, opts = {}){
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
           border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
       </div>
-      <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
+      <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
       <input type="hidden" id="dk-who-id" value=""/>
       ${''/* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK BOX ----
              Internally a handover is instant, logged and announced. Externally
@@ -1246,7 +1246,6 @@ function openDeskHandover(c, opts = {}){
         <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
         <span style="display:block;font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
       </label>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:var(--s-3) 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
     </div>
     <div class="rvd-foot">
       <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>

@@ -294,7 +294,7 @@ function openLinkModal(c, onDone, opts={}){
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${mode==='child'
-        ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
+        ? i18t('fa_link_parent_sub')
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
       ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3)">
         <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
@@ -672,7 +672,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
              same handler that renames the document. */}
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_end_q')}</span>
         <input id="am-expiry" type="date" placeholder="${_famAttr(i18t('fa_end_unchanged'))}" style="${FLD}"/>
-        <span style="${HINT}" id="am-end-hint">${i18t('fa_end_unchanged')}. ${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
+        <span style="${HINT}" id="am-end-hint">${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
         <input id="am-note" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
@@ -704,7 +704,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
   const paintEndHint=()=>{
     const h=$('am-end-hint'); if(!h) return;
     const moves = TERM_CHANGING.has($('am-rel').value);
-    h.textContent = `${i18t('fa_end_unchanged')}. ${i18t(moves?'fa_end_hint':'fa_end_hint_kept')}`;
+    h.textContent = i18t(moves?'fa_end_hint':'fa_end_hint_kept');
   };
   paintEndHint();
   $('am-rel')?.addEventListener('change',()=>{

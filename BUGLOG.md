@@ -13001,3 +13001,58 @@ VERIFIED
   (the one red named above, red at main too).
   Photographed on the real product: the one-screen send (link and Word), the
   check card on the Signing tab, and the built empty change column.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 — THE POP-UP DIET (26 pop-ups)
+Owner: "the pop ups have too many words which are unnecessary and makes the
+card overwhelming" → "strip the unnecessary wording ... show real renders of
+before and proposed" → "Build all 26 as shown".
+Branch started from main at 9b1f662.
+════════════════════════════════════════════════════════════════════════
+
+BUILT
+  · 40 pop-ups probed on the real product, 35 opened and photographed, 26
+    put on the diet: 2,626 words on their faces → about 1,400. The proposal
+    was rendered INSIDE the real product (DOM edits, photographed) before a
+    line of the product changed, and the owner approved all 26.
+  · The send pop-up re-laid to the owner's drawing (what travels → purpose →
+    channel → who → note → folded checks → email-off line → link settings →
+    Send), one note box instead of two, 724px tall instead of 1,254px.
+  · The other 25: the sentences that repeated a control or explained the
+    machinery are not drawn; one helpful line stays where it earns it; keys
+    left inert in both books; shortened keys changed in both books.
+  · f310 (60 claims) is the net; f182, f307, f42, n4 and
+    share-recipient-verify re-pointed keeping their real claims.
+
+DEFECTS FOUND AND FIXED ON THE WAY
+  · The review picker painted the "start typing to search" hint AFTER the
+    pop-up opened (its own tell() on an empty box), so removing it from the
+    markup alone left it on screen — found by re-measuring the built product
+    against the proposal (106 words where 92 were expected), not by reading.
+  · The edit-document window repainted its character count on every
+    keystroke after the count left the markup; the handler writes nothing now.
+
+NOTICED, NOT FIXED
+  · openReviewEntryChooser hands reviewDialogHeadHtml an empty sub-line, and
+    openNegoMemoShare draws an empty .rvd-sub; the head builder draws the
+    empty element rather than skipping it. Harmless, a few pixels.
+  · The two-screen shape of the send dialog (the cards with title + blurb,
+    Back/Next, the step-2 head) is still built and hidden. It has had no
+    caller since 13 Sep; the pop-up diet makes it a third description of the
+    same screen. Worth deleting rather than carrying.
+  · The Compare, Negotiation history and Pick-a-template windows each carry
+    one line under the title that could go on the same rule; they were not on
+    the owner's 26 and were left alone.
+  · Five pop-ups the probe could not open (calendar Share, the signing
+    window, the playbook and webhook editors, the note window that is now a
+    drawer) and the phone's sheets were not measured.
+
+VERIFIED
+  npm run lint — 0 errors.
+  npm test — see the line below this entry.
+  Browser: share-recipient-verify 21/21 after the re-point.
+  The 26 re-photographed on the built product; counts match the approved
+  proposal within the words the new controls add ("Read the wording" ×6).
+  npm test — 6,946 tests, 1,388 suites, 0 failures, 4m20s (second run; the
+  first found four tests pinning the old words — f17, f241, f7, n2 — each
+  re-pointed to its real claim).

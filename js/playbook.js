@@ -798,7 +798,6 @@ function openClausePicker(c, opts){
   openModal(`
     <div class="p-6">
       <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('pb_insert_from_library')}</h3>
-      <p class="text-xs text-ink/60 mb-3">${i18t('pb_adds_preferred')}</p>
       ${''/* No 50vh cap: the side panel this now opens in scrolls itself, and
              a scroll box inside a scroll box is two bars for one list. */}
       <div class="space-y-2">
@@ -808,7 +807,10 @@ function openClausePicker(c, opts){
             ${stop
               ? `<span class="ml-auto text-[11px] font-600 text-ink/55" title="${_pbEsc(stop.message)}">${i18t('ng_dup_clause_here')}</span>`
               : `<button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">${i18t('pb_insert')}</button>`}</div>
-          <div class="mt-1 text-[11px] text-ink/65">${cl.preferred.slice(0,160)}${cl.preferred.length>160?'…':''}</div>
+          ${''/* The wording opens on a press (the pop-up diet, 13 Sep 2026):
+                 the reader picks by name, then reads. */}
+          <details class="mt-1"><summary class="text-[11px] text-ink/55 cursor-pointer">${i18t('pb_read_wording')}</summary>
+            <div class="mt-1 text-[11px] text-ink/65">${_pbEsc(cl.preferred)}</div></details>
           ${stop?`<div class="mt-1 text-[11px] text-ink/55">${_pbEsc(stop.message)}</div>`:''}
         </div>`; }).join('')}
       </div>

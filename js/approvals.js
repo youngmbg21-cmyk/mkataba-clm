@@ -680,7 +680,7 @@ function openSignerPlanEditor(c, opts){
       </div></div>`;
   openModal(`<div class="p-6" style="max-width:560px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
-    <p class="text-xs text-ink/60 mb-3">${i18t('ap_signers_execute')} <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
+    <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
     ${dirList}
     <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
     <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-2">${i18t('ap_add_signer')}</button>
@@ -690,7 +690,6 @@ function openSignerPlanEditor(c, opts){
            itself. This says where the route stands after every keystroke, so
            the refusal below is a confirmation rather than a surprise. */}
     <div id="sp-tally" class="mb-4 text-[11.5px] leading-relaxed"></div>
-    ${people.length?`<p class="text-[11px] text-ink/45 mb-3">${i18t('ap_tip_autofill')}</p>`:''}
     <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
   </div>`);

@@ -136,7 +136,9 @@ describe('f307 (2) — Word is a channel, and the screen follows the choice', ()
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
     const note = () => m.$('#sh-ch-note').textContent;
-    assert.match(note(), /their own page/i, 'the link says what they get');
+    /* Email says nothing (the pop-up diet, 13 Sep 2026): "they read it on
+       their own page" under an Email button is the control printed twice. */
+    assert.equal(note().trim(), '', 'email carries no line');
     m.$('[data-share-ch="word"]').click();
     assert.match(note(), /tracked/i, 'the file says what it carries');
     assert.match(note(), /no page for them|cannot tell you when they open/i,

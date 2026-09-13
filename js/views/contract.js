@@ -1451,11 +1451,9 @@ function openUploadModal(){
       <div id="up-step-1">
         <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
           <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
-        <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:var(--radius);background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
-          <div style="font-size:var(--t-meta);color:var(--accent-ink-700);margin-top:var(--s-2);font-weight:var(--w-strong)">${i18t('ct_thats_all')}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
@@ -2054,21 +2052,23 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px">
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:c.id})}</h3></div>
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">${i18t('ct_change_and_save')} <b>new version</b> ${i18t('ct_review_under')} <b>${i18t('ct_compare')}</b> and share the updated text with the counterparty as usual.${firstEdit?` <b>${i18t('ct_note')}</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.`:''}</p>
-        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:0 0 10px;font-size:var(--t-meta);line-height:1.5;color:var(--st-steel-fg)">
+        ${''/* ONE LINE, AND ONLY WHERE SAVE COSTS SOMETHING (the pop-up diet,
+               13 Sep 2026): the formatting is lost and cannot be got back, so
+               that stays on the face; how versions and Compare work does not. */}
+        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:6px 0 10px;font-size:var(--t-meta);line-height:1.5;color:var(--st-steel-fg)">
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
-          <span>${i18t('ct_doc_carries')} <b>formatting</b> ${i18t('ct_headings_bold')} <b>${i18t('ct_converts_plain')}</b>${i18t('ct_clause_numbers_text')}</span></div>`:''}
+          <span>${i18t('ct_plain_text_warn')}</span></div>`:''}
       </div>
       <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:22px 26px;font:inherit;font-size:var(--t-card);line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
       <div style="${COL};padding:0 26px;margin-top:var(--s-3)">
         <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font-size:var(--t-meta);cursor:pointer">
           <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
           <span><b>${i18t('ct_changes_came_from',{who:esc(c.counterparty||i18t('ng_the_counterparty'))})}</b>
-          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('ct_tick_when_typing')} <b>${i18t('ct_in_their_name')}</b> ${i18t('ct_waits_for_decision')}</span></span>
+          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('ct_filed_in_their_name')}</span></span>
         </label>
       </div>
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-        <span id="ed-count" style="font-size:var(--t-label);color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
+        <span id="ed-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         <span style="display:flex;gap:var(--s-2)">
           <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
@@ -2076,7 +2076,7 @@ function openEditDocModal(c){
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
   const ta=document.getElementById('ed-text');
-  ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=ta.value.length.toLocaleString()+' characters'; });
+  ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=''; });
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
   document.getElementById('ed-save').addEventListener('click',()=>{
     const txt=ta.value;
@@ -5169,7 +5169,7 @@ function openNegoProposeModal(c){
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_propose_changes_to',{who:esc(c.counterparty||i18t('ng_the_counterparty'))})}</h3>
-          <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>${i18t('ct_nothing_changes_contract')}</b> ${i18t('ct_moves_when_accepted')}</p>
+          <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">${i18t('ct_each_clause_own_change')}</p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
@@ -5183,7 +5183,6 @@ function openNegoProposeModal(c){
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <span style="flex:1;min-width:150px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('ct_changed_become_pending')}</span>
           <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
@@ -9892,9 +9891,7 @@ function openPaperSignatureModal(c){
     <div style="padding:22px var(--s-6)">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent);display:inline-flex">${icon('finger')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
-      <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">
-        Attach the signed copy to <b>this</b> contract, so the ${(c.rounds||[]).length} round${(c.rounds||[]).length===1?'':'s'} of negotiation stay with the document they produced.
-        HaTi records it as <b>${i18t('ct_executed_outside')}</b> ${i18t('ct_no_esig_scan')}</p>
+      <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">${i18t('ct_paper_sig_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
         <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>

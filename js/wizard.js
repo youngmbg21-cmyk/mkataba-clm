@@ -281,7 +281,7 @@ function openWizard(preTid, prefill){
                Send. Three times for one fact, in one sitting. Once it is on the
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
-          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
+          <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
           <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:20px;">

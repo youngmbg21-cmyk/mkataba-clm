@@ -141,10 +141,11 @@ describe('F182 — the dialog says where the box was filled from', () => {
     assert.match(modalHtml, new RegExp(`value="${YAHOO.replace('.', '\\.')}"`),
       "the route's address must be the one in the box");
     assert.ok(!modalHtml.includes(GMAIL), 'the older address must not be prefilled anywhere');
-    assert.match(modalHtml, /Filled in from the signing route/);
-    assert.ok(!/Filled in from the last time you shared/.test(modalHtml),
-      'the sentence must not claim a source the address did not come from');
-    assert.match(modalHtml, /data-prefill-src="route"/);
+    /* THE SENTENCE IS GONE (the pop-up diet, owner-approved 13 Sep 2026): a
+       filled box says it is filled. The SOURCE survives as an attribute on the
+       box, which is what this claim has always been about. */
+    assert.ok(!/Filled in from/.test(modalHtml), 'no sentence above the box');
+    assert.match(modalHtml, /id="sh-email" type="email" data-prefill-src="route"/);
   });
 
   test('and the signer row it came from opens already chosen, so the link binds', async () => {
@@ -163,13 +164,13 @@ describe('F182 — the dialog says where the box was filled from', () => {
 
   test('the old sentence still stands where it is true', async () => {
     const { modalHtml } = await open(contract(), [share()]);
-    assert.match(modalHtml, /Filled in from the last time you shared/);
+    assert.ok(!/Filled in from/.test(modalHtml));
     assert.match(modalHtml, /data-prefill-src="last"/);
   });
 
   test('an address off Key terms is named as that, not as a share that never happened', async () => {
     const { modalHtml } = await open(contract({ counterpartyEmail: 'terms@juno.co.ke' }), []);
-    assert.match(modalHtml, /Filled in from the contact recorded on this contract/);
+    assert.ok(!/Filled in from/.test(modalHtml));
     assert.match(modalHtml, /data-prefill-src="record"/);
   });
 

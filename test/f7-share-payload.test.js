@@ -145,8 +145,10 @@ describe('F7 — static-mode sharing is labelled', () => {
   test('the share dialog warns that a link-borne document cannot be revoked', () => {
     /* Anchored on the dictionary key, because the heading itself is now read
        in the sender's own language. */
+    /* The dialog's own region, not a byte window: the one-screen order of
+       13 Sep 2026 moved the banner further from the anchor. */
     const at = CORE.indexOf("co_share_with_cp");
-    const modal = CORE.slice(at - 4000, at + 4000);
+    const modal = CORE.slice(at - 4000, CORE.indexOf('function reshareNotSentModal'));
     /* Same move as the never-expires line below: the banner is read in the
        sender's own language now, so the source carries the KEY and the words
        live in the dictionary. Both halves are checked. */

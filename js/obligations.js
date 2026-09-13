@@ -866,7 +866,7 @@ function openObligationsReview(c, found){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">${i18t('ob_proposed')}</h3></div>
-      <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')} <b>ours</b> — open any one afterwards to mark it as the counterparty&rsquo;s, or to set a date and an owner. Nothing is saved until you confirm.</p>
+      <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')}</p>
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
         ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer${dupe[i]?' opacity-70':''}">
           <input type="checkbox" data-ob-pick="${i}"${dupe[i]?'':' checked'} class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>

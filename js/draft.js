@@ -118,7 +118,6 @@ function openDraftFromSentence(){
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${i18t('dr_title')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('dr_lead')}</p>
     <textarea id="dr-say" rows="3" maxlength="${DRAFT_SENTENCE_MAX}" placeholder="${esc(i18t('dr_ph'))}" style="${TA}"></textarea>
-    <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${i18t('dr_example')}</p>
     ${ready?'':`<p id="dr-nokey" style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.55">${i18t('dr_no_ai')}</p>`}
     <div id="dr-out" style="margin-top:12px"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4)">

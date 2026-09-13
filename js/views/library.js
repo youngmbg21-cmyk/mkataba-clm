@@ -130,16 +130,17 @@ function openTemplateFillModal(t, prefill){
     /* The arrow says where the answer is filed, and stands down when that is
        the same word as the label — see the note in js/wizard.js. */
     const _map=f.maps?String(tplMapLabel(f.maps)||''):'';
-    const _mapNote=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase())
-      ? `<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(_map)}</span>` : '';
-    const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
+    /* Where the answer is filed rides on the hover, not after the label (the
+       pop-up diet, 13 Sep 2026): a label is a label. */
+    const _mapNote='';
+    const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
+    const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
     const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
              blank of its own mapped to `party`, in which case that one wins —
@@ -148,7 +149,7 @@ function openTemplateFillModal(t, prefill){
              only place the entity can be named, and without it every contract
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
-        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${_tplEsc(i18t('tf_our_party_hint'))}</span></span>
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}</span>
         <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
@@ -157,7 +158,7 @@ function openTemplateFillModal(t, prefill){
              contract made from "Counterparty Templates" back where it started: asked in
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
-        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> ${i18t('lib_so_you_can_send')}</span></span>
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font:inherit;font-size:var(--t-body);outline:none"/></label>
     </div>
     <div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
@@ -268,7 +269,6 @@ function openCreateTemplateModal(mode){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_create_template')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">${i18t('lib_bring_standard_paper')}</p>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px" id="ct-tabs">
         ${tabBtn('paste','Paste the document','From Word or Google Docs — keeps the formatting')}
@@ -1174,7 +1174,7 @@ function openBulkCreateModal(t){
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${i18t('lib_every_row_checked')}</b>${i18t('lib_bad_cell_note')} Up to ${TPL_BULK_MAX} rows.</p>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('lib_bulk_line', { n:TPL_BULK_MAX })}</p>
     <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
       <button id="bk-csv" class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
       <label class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet

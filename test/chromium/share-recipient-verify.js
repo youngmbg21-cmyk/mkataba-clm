@@ -105,10 +105,13 @@ const ROUTE = [
 
     const readBox = () => page.evaluate(() => {
       const e = document.getElementById('sh-email'), n = document.getElementById('sh-name');
+      /* The source rides on the box since the pop-up diet (13 Sep 2026); the
+         sentence that used to say it is not drawn, and `said` is what the
+         dialog prints ABOVE the box — nothing, by the owner's word. */
       const note = document.getElementById('sh-prefill-note');
       const box = e ? e.getBoundingClientRect() : null;
       return { email: e ? e.value : null, name: n ? n.value : null,
-        src: note ? note.getAttribute('data-prefill-src') : null,
+        src: e ? e.getAttribute('data-prefill-src') : null,
         said: note ? note.textContent.replace(/\s+/g, ' ').trim() : '',
         visible: !!box && box.width > 0 && box.height > 0 };
     });
@@ -135,8 +138,8 @@ const ROUTE = [
     check('and it does NOT arrive carrying the older address',
       signBox.email !== GMAIL, signBox.email);
     check('the name comes from the same row', signBox.name === 'Amina Juma', signBox.name);
-    check('and the dialog says which record filled it in',
-      signBox.src === 'route' && /signing route/i.test(signBox.said), signBox.said.slice(0, 90));
+    check('and the box carries which record filled it in',
+      signBox.src === 'route' && signBox.said === '', signBox.src + ' / ' + signBox.said.slice(0, 90));
     check('the old sentence is not printed over an address it did not supply',
       !/last time you shared/i.test(signBox.said));
 
@@ -171,9 +174,8 @@ const ROUTE = [
     await page.screenshot({ path: path.join(OUT, '02-no-route.png') });
     check('with no route, the last link we sent still answers',
       noRoute.email === GMAIL, noRoute.email);
-    check('and the old sentence stands where it is true',
-      noRoute.src === 'last' && /last time you shared/i.test(noRoute.said),
-      noRoute.said.slice(0, 80));
+    check('and the source is the last link, said by the box alone',
+      noRoute.src === 'last' && noRoute.said === '', noRoute.src + ' / ' + noRoute.said.slice(0, 80));
 
     /* ================= 4. KEY TERMS NEVER DISAGREES QUIETLY =============== */
     await page.evaluate(() => { if (window.closeModal) closeModal(); });

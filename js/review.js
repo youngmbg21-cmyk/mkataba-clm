@@ -1599,8 +1599,10 @@ function reviewAskModalHtml(c, opts = {}){
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
           border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
       </div>
-      <div id="rv-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${
-        _rvE(i18t('rv_who_hint'))}</div>
+      ${''/* The search hint is not printed at rest (the pop-up diet, 13 Sep
+             2026): the box's own placeholder says it. The line stays as the
+             slot the picker speaks into once somebody types. */}
+      <div id="rv-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
       <input type="hidden" id="rv-who-id" value=""/>
     </div>` : `<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);
       border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3);line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
@@ -1683,7 +1685,9 @@ function reviewWirePicker(c, cfg = {}){
        shouting at somebody before they have typed is how a form feels hostile. */
     if (!String(box.value || '').trim()){
       pick = null; hid.value = '';
-      say.textContent = i18t('rv_who_hint');
+      /* Nothing at rest (the pop-up diet, 13 Sep 2026): the placeholder in the
+         box already says to type a name or an address. rv_who_hint is inert. */
+      say.textContent = '';
       say.style.color = 'var(--color-neutral-600)';
       return;
     }
@@ -1865,7 +1869,7 @@ function openReviewEntryChooser(c, opts = {}){
       <span>${_rvE(sub)}</span>
     </button>`;
   window.openModal(`
-    ${reviewDialogHeadHtml('&#128100;', i18t('rv_entry_title'), i18t('rv_entry_sub'))}
+    ${reviewDialogHeadHtml('&#128100;', i18t('rv_entry_title'), '')}
     <div class="rvd-body">
       ${opt('desk', '&#128101;', i18t('rv_entry_desk'), i18t('rv_entry_desk_sub'))}
       ${opt('ask', '&#128172;', i18t('rv_entry_ask'), i18t('rv_entry_ask_sub'))}

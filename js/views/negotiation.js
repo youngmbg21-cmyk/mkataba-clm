@@ -7681,7 +7681,7 @@ function openNegoMemoShare(c, m){
   openModal(`
     <div class="rvd-head"><div>
       <div class="rvd-title">${_ne(i18t('ng_memo_send_h'))}</div>
-      <div class="rvd-sub">${_ne(i18t('ng_memo_send_sub', { name }))}</div></div></div>
+      <div class="rvd-sub"></div></div></div>
     <div class="rvd-body">
       <label class="rvd-opt" style="display:block">
         <span style="${lbl}">${_ne(i18t('ng_memo_send_who'))}</span>

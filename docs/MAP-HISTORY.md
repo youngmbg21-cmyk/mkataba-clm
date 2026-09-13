@@ -19139,3 +19139,77 @@ that carries the count now instead of the wall line that was printing it twice.
 f42 and f45 described the send as two steps with a Next between them; their
 real claims — you are shown what is going out before you send, and both routes
 show the same manifest — are asked of the one screen.
+
+## THE POP-UP DIET (13 Sep 2026)
+
+The owner, with the send pop-up on screen: *"the pop ups have too many words
+which are unnecessary and makes the card overwhelming. In artifact format,
+review all the pops ups that have too many words and propose a current vs
+proposed solution with an aim of keeping them clean or stripping them to just
+the buttons and entry fields."* Then, on the first proposal: *"I did not want
+to strip all the words but strip the unnecessary wording. Also update the
+artifact and show real renders of how they appear in the platform of before
+and proposed."* Then: *"Build all 26 as shown."*
+
+**How it was measured.** A probe opened forty pop-ups on a real contract with
+one change filed (thirty-five opened; the note window is a drawer now, the
+signing window refused on a fixture with an approval outstanding, and the
+playbook and webhook editors open only from inside Settings). Every word on
+each face was counted — titles, sentences, labels and buttons — and each was
+photographed. Twenty-six carried more words than they needed: 2,626 between
+them. For the proposal, the new wording was placed into the same pop-up
+INSIDE the real product by editing the DOM and photographed again, so the
+"proposed" pictures were real renders in HaTi's own fonts and boxes, not
+drawings. The owner approved every one.
+
+**The rule that decided each sentence.** Anything a control already says goes
+("Send for review" needs no sentence saying what a review is; a box with a
+placeholder needs no "start typing" hint). How the machinery works goes —
+fingerprints, versions, what the register reads — to the hover where somebody
+might want it. One line that tells a first-timer what happens next stays
+("Copilot picks the template that fits and fills in what you say"). A cost
+stays, next to the button ("Saving here converts the document to plain text";
+"the signature already given is discarded"). What the other side sees stays,
+in one line ("Nothing can be signed on this link"; "Nandi Dairy sees one
+name"). A hint arrives when it is needed: "a .doc must be re-saved" is said to
+the person who drops a .doc, as the refusal, which the product already did.
+
+**The send pop-up changed shape as well as words.** The build of 13 Sep had
+joined the two old screens and hidden Next, so the reading order was the old
+order concatenated and the dialog scrolled. The owner's approved drawing is
+the order now: what travels first (the round line, the folded list, "Send
+something else"), then what this round is for with ONE line under the chosen
+answer, then the channel, then name and email, then the note, then the
+warnings folded to a count, then the email-off line, then the link settings,
+then Send — 724px against 1,254px on the same fixture. Two note boxes ("A note
+to Nandi Dairy" on step 1 and "Personal message" on step 2, joined into one
+message before they travelled) became one, under the recipient, keeping the
+id `sh-summary` so every reader of it is unchanged. The sentence saying where
+the address came from is gone; the SOURCE survives as `data-prefill-src` on
+the email box because a test and a reader both have a right to it. The line
+under the channel row and the line under the note box print only where the
+channel costs something (a file has no page; a copied link mails nothing) —
+"this note is sent in the email" under an email form was the control printed
+twice. The "worth checking" strip folds to a count, but a BLOCK never folds:
+it carries the tick that lets the send through, and a tick behind a fold is a
+tick nobody sees. The email-off strip was four lines saying what else could
+not be delivered on this workspace, which is the mail panel's job; it is one
+line with the way forward now.
+
+**Retiring a sentence means not calling it.** Every key whose sentence left
+the face stays in both dictionaries, inert — the standing rule for keys — and
+f310 (2) is the sweep: a builder that calls one of them again fails. Where a
+sentence was shortened rather than dropped, the key's text changed in place in
+BOTH books, so a Swedish reader gets the same diet.
+
+**Tests re-pointed, each keeping its real claim.** f182 said the dialog names
+where the address came from; it asks the box's attribute now and asserts the
+sentence is NOT drawn. f307 said the line under Email says what they get; it
+asserts that line is empty. f42 and n4 pinned two sentences by their old
+words. share-recipient-verify read the sentence's element for the source; it
+reads the box.
+
+**Verified.** Lint 0 errors; the full suite green; the twenty-six re-photographed
+on the built product and the counts compared to the proposal (send 114 words
+against 112 proposed; the one gap — the review picker re-painting its search
+hint after open — fixed and re-measured).

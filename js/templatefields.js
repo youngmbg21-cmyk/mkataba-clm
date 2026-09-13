@@ -385,7 +385,7 @@ const CONTRACT_ESSENTIALS = [
   { key:'value',        get label(){ return i18t('tf_contract_value'); }, type:'num', maps:'value',
     ph:'0', hint:'if known' },
   { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },
-  { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry' },
+  { key:'expiry',       label:'End date', type:'date', maps:'expiry' },
 ];
 /* The value label carries the workspace's own currency, so a Kenyan workspace
    asks for KES and a Swedish one for SEK rather than both being told "value". */
@@ -412,13 +412,13 @@ function openContractEssentials(opts){
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}${
-        f.hint ? `<span style="font-weight:var(--w-body);color:var(--color-neutral-500)"> → ${esc(f.hint)}</span>` : ''}</span>
+        ''}</span>
       <input id="ce-${f.key}" type="${it}" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
   };
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${esc(o.title||'New contract')}</h3>
     <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
-      esc(o.blurb||'')} Everything here is filed as contract data — the register, the calendar and the reports all read it. You can skip and fill it in later.</p>
+      esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
     <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">${fs.map(input).join('')}</div>
     <div id="ce-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">

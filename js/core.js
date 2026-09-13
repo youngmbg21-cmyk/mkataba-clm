@@ -3120,12 +3120,17 @@ const SHARE_PURPOSE_COPY={
      fault rather than as a missing translation. AND THEY MUST STAY GETTERS:
      an object literal freezes load-time language (the getter trap). */
   negotiate:{ get label(){ return i18t('co_purpose_negotiate_label'); }, get title(){ return i18t('co_purpose_negotiate'); },
-    get blurb(){ return i18t('co_purpose_negotiate_sub'); } },
+    get blurb(){ return i18t('co_purpose_negotiate_sub'); }, get line(){ return i18t('co_purpose_negotiate_line'); } },
   sign:{ get label(){ return i18t('act_sign'); }, get title(){ return i18t('co_purpose_sign'); },
-    get blurb(){ return i18t('co_purpose_sign_sub'); } },
+    get blurb(){ return i18t('co_purpose_sign_sub'); }, get line(){ return i18t('co_purpose_sign_line'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
-    get blurb(){ return i18t('co_purpose_view_blurb'); } },
+    get blurb(){ return i18t('co_purpose_view_blurb'); }, get line(){ return i18t('co_purpose_view_line'); } },
 };
+/* THE ONE-SCREEN ROW SAYS ONE LINE UNDER THE CHOSEN PURPOSE (the pop-up diet,
+   owner-approved 13 Sep 2026): the promise about what the other side can DO,
+   and nothing about which room they land in or how their items come back.
+   `line` is that sentence; `title` and `blurb` stay for the three cards of
+   the two-screen shape. */
 /* ---------- THE FIRST QUESTION, WHICH USED NOT TO BE ASKED ----------
    Share opened straight into "what is this link for?" and offered Sign and
    Negotiate. It never asked the question above that one: is the CONTRACT
@@ -3203,9 +3208,9 @@ function sharePurposePickerHtml(c, sel, o={}){
         color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
     return `<div id="share-purpose" style="margin:0 0 14px">
-      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_link_for')}</span>
+      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_round_for')}</span>
       <div style="display:flex;gap:6px">${seg('sign')}${seg('negotiate')}${seg('view')}</div>
-      <div id="share-purpose-say" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"><b style="color:var(--color-text)">${m.title}</b> ${m.blurb}</div>
+      <div id="share-purpose-say" data-compact="1" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(m.line)}</div>
     </div>`;
   }
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
@@ -3251,6 +3256,19 @@ function sharePurposePickerHtml(c, sel, o={}){
    quoted from the change records (negoChangeSummary) and never composed — the
    sender can edit it, because a covering note is theirs to write, but the
    fingerprints and clause names it starts from are the record's. */
+/* THE ONE NOTE BOX (the pop-up diet, 13 Sep 2026). There were two: this one on
+   step 1 and "Personal message" on step 2, joined into one message before
+   they travelled — two boxes for one sentence. This is the box; on one screen
+   it sits under the recipient, on the two-screen shape where it always was.
+   The id stays `sh-summary` so every reader of it is unchanged. */
+function shareNoteBoxHtml(c, hist){
+  return `<label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${
+        hist?i18t('co_note_with_record')
+            :i18t('co_note_to', { who:esc(c.counterparty||i18t('co_them')) })}</span>
+        <textarea id="sh-summary" rows="3" style="${HATI_FLD}" placeholder="${
+          hist?'e.g. The full record of our negotiation, for your file.'
+             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>`;
+}
 function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
   const rows = s && s.lines.length ? s.lines.map(x=>`
@@ -3276,8 +3294,16 @@ function shareSummaryStepHtml(c, opts={}){
      wiring shows one — repainting in place rather than rebuilding, because the
      summary textarea below may already carry words the sender typed. */
   const hist = opts.purposeSel==='history';
+  const one = !!opts.oneScreen;
+  const purposeBlock = `<div id="share-purpose-wrap"${hist?' class="hidden"':''}>${
+        sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:one })}</div>`;
   return `
     <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
+      ${''/* ---- THE ORDER ON ONE SCREEN IS THE OWNER'S DRAWING ---- (the pop-up
+             diet, 13 Sep 2026): title, what travels, what this round is for,
+             then the recipient and the note, which live in step 2. The pieces
+             below are built once each and placed by `one`: the two-screen
+             shape keeps its own order. */}
       ${''/* THE TITLE SAYS WHO IT IS GOING TO AND WHICH ROUND, because on one
              screen this is the page's only heading and "What you are sending"
              is a question the screen below answers by itself. */}
@@ -3293,8 +3319,7 @@ function shareSummaryStepHtml(c, opts={}){
              link opens read-only on the timeline and there is nothing on it to
              do. So the picker is not disabled here, it is absent, and the
              screen says why rather than leaving a gap where a question was. */}
-      <div id="share-purpose-wrap"${hist?' class="hidden"':''}>${
-        sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:!!opts.oneScreen })}</div>
+      ${one?'':purposeBlock}
       ${''/* Drawn always and shown on Sign, like every other branch in this
              step: switching the purpose must not rebuild the dialog, or the
              note the sender has already typed goes with it. */}
@@ -3309,8 +3334,9 @@ function shareSummaryStepHtml(c, opts={}){
              not throw away a summary the sender has already edited. */}
       <p id="share-manifest-line"${hist?' class="hidden"':''} style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">
         ${s&&s.lines.length
-          ? `Round ${s.total?esc(String(s.round)):''} — ${s.lines.length} change${s.lines.length===1?'':'s'} on the table${s.pending?`, ${s.pending} still awaiting a decision`:''}. ${esc(c.counterparty||'The counterparty')} sees this summary alongside the link.`
-          : `No changes have been proposed on this contract yet, so ${esc(c.counterparty||'the counterparty')} will receive the document as it currently stands.`}</p>
+          ? `Round ${s.total?esc(String(s.round)):''} — ${s.lines.length} change${s.lines.length===1?'':'s'} on the table${s.pending?`, ${s.pending} still awaiting a decision`:''}.${one?'':` ${esc(c.counterparty||'The counterparty')} sees this summary alongside the link.`}`
+          : (one ? i18t('co_no_changes_yet_short', { who:esc(c.counterparty||i18t('co_them')) })
+            : `No changes have been proposed on this contract yet, so ${esc(c.counterparty||'the counterparty')} will receive the document as it currently stands.`)}</p>
       <p id="share-manifest-line-hist"${hist?'':' class="hidden"'} style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">
         ${s&&s.lines.length
           ? `${s.lines.length} change${s.lines.length===1?'':'s'} on the record — this is what the link shows, oldest first, with what was decided.`
@@ -3373,12 +3399,7 @@ function shareSummaryStepHtml(c, opts={}){
              travels; say nothing and the recipient gets the contract without a
              paragraph pretending a person wrote it. The manifest above is
              unchanged — the SENDER still sees exactly what is going out. */}
-      <label style="display:block"><span id="sh-summary-label" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono);letter-spacing:.02em;">${
-        hist?'A note to send with the record — optional'
-           :`A note to ${esc(c.counterparty||'them')} — optional`}</span>
-        <textarea id="sh-summary" rows="4" style="${FLD}" placeholder="${
-          hist?'e.g. The full record of our negotiation, for your file.'
-             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>
+      ${one?'':shareNoteBoxHtml(c, hist)}
       ${opts.handOver?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
         <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       ${''/* ---- ONE SCREEN, AND NOTHING ON IT NEEDS A NEXT ---- (owner-approved
@@ -3388,8 +3409,8 @@ function shareSummaryStepHtml(c, opts={}){
              the contract, or the record of the negotiation — as a quiet way
              out rather than a screen everybody must pass. Both markups are
              kept and one is drawn: an option, not a fork in the builder. */}
-      ${opts.oneScreen ? `<div style="margin-top:6px"><button type="button" id="share-other" class="ui-btn-plain"
-          style="font:inherit;font-size:var(--t-meta);background:none;border:0;padding:0;cursor:pointer;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('co_send_something_else')}</button></div>`
+      ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-btn-plain"
+          style="font:inherit;font-size:var(--t-meta);background:none;border:0;padding:0;cursor:pointer;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('co_send_something_else')}</button></div>${purposeBlock}`
       : `<div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
         <button id="share-close-1" class="ui-btn">${i18t('act_close')}</button>
@@ -3511,9 +3532,21 @@ function shareSignerPickHtml(c, sel){
    either the number is wrong or one of the lines is. They are separated now:
    what BLOCKS is counted and listed, what is merely worth knowing sits under
    its own quiet line. */
-function readinessPanelHtml(c){
+function readinessPanelHtml(c, o={}){
   const probs=contractReadiness(c);
   if(!probs.length) return '';
+  /* ---- ON ONE SCREEN THE WARNINGS FOLD TO A COUNT ---- (the pop-up diet,
+     owner-approved 13 Sep 2026). Amber notes are facts worth a glance, not a
+     wall: the head says how many and opens on a press. A BLOCK stays open —
+     it carries the tick that lets the send through, and a tick behind a fold
+     is a tick nobody sees. */
+  if(o.fold && !probs.some(x=>x.severity==='block')){
+    const n=probs.length;
+    return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:8px var(--s-3);">
+      <details><summary style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')} ${i18tn('co_worth_checking_n', n, { n })}</summary>
+      <ul style="margin:6px 0 0;padding-left:var(--s-4);font-size:var(--t-meta);line-height:1.65;color:var(--st-amber-fg);">${probs.map(x=>`<li>${esc(x.label)}</li>`).join('')}</ul></details>
+    </div>`;
+  }
   const blocks=probs.filter(x=>x.severity==='block');
   const notes=probs.filter(x=>x.severity!=='block');
   const tone=blocks.length
@@ -4714,13 +4747,6 @@ async function openShareModal(c, opts={}){
       <p id="share-send-blurb" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>${i18t('co_no_account_needed')}</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       <p id="share-send-blurb-hist" class="hidden" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_send_readonly_to')} <strong>negotiation history</strong> ${i18t('co_every_change_who')} <strong>${i18t('co_no_account_needed')}</strong>${i18t('co_nothing_to_sign')}</p>
       </div>
-      ${readinessPanelHtml(c)}
-      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:10px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">
-        <b>${i18t('co_not_emailed')}</b> ${EMAIL_SETUP_LINE} ${i18t('co_press_create_link',{what:i18t('co_create_link'),who:esc(c.counterparty||i18t('co_them'))})}</div>`:''}
-      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
-        <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
-      </div>`}
       ${''/* ---- HOW IT REACHES THEM, AND WORD IS ONE OF THE WAYS ----
              (owner-approved 13 Sep 2026.) A counterparty who will only work in
              Word could not be SENT anything from here: the file was a download,
@@ -4731,49 +4757,49 @@ async function openShareModal(c, opts={}){
              to, and the .docx writer loaded. */}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:6px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${
         (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
+      ${''/* Spoken only where the channel costs something (a file has no page,
+             a copied link mails nothing); empty for email and WhatsApp. */}
       <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:0 0 var(--s-3)"></div>
       <div id="share-fields">
-        ${preNote?`<div id="sh-prefill-note" data-prefill-src="${attr(pre.source)}" style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px">
-          <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
-          <span style="flex:1;min-width:0">${preNote}</span>
-        </div>`:''}
+        ${''/* Where the address came from rides as an attribute on the box —
+               a test-facing fact — and is no longer a sentence above it: a
+               filled box says it is filled. */}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label><span style="${LBL}">${i18t('co_recipient_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
-          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_recipient_email')}</span><input id="sh-email" type="email" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label><span style="${LBL}">${i18t('co_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
-        <label style="display:block;margin-top:10px;"><span style="${LBL}">${i18t('co_personal_message')}</span>
-          <textarea id="sh-msg" rows="2" placeholder="${esc(i18t('co_ph_share_msg'))}" style="${FLD}min-height:0;"></textarea></label>
-        ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026) ----
-               The counterparty's page used to reproduce this note in four
-               places. It does not any more — a covering note belongs in the
-               covering letter — so the note's ONLY road is the email or the
-               WhatsApp text. Which means "copy the link" is now a channel that
-               carries no message at all, and a box that silently swallows what
-               somebody typed is worse than the banner ever was.
-
-               One quiet line, naming the channel, repainted by setCh when the
-               channel changes. It speaks for BOTH boxes: the step-1 note and
-               this one are joined into one message before they travel. */}
+        <div style="margin-top:10px">${shareNoteBoxHtml(c, purposeSel==='history')}</div>
+        ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026),
+               and since the diet it says so ONLY where the answer is nowhere:
+               a copied link carries no message. On the channels that carry it
+               the line is empty — "it goes in the email" under an email form
+               is the fact printed twice. Repainted by setCh. */}
         <div id="sh-msg-where" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"></div>
-        ${server?`<div id="sh-link-opts"><div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px">
+      </div>
+      ${readinessPanelHtml(c, { fold:true })}
+      ${''/* EMAIL OFF: one line and the way forward. The four-line version said
+             what else could not be delivered on this workspace, which is the
+             mail panel's job, not this dialog's. */}
+      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${i18t('co_email_off_line')}</div>`:''}
+      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
+        <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
+      </div>`}
+      ${server?`<div id="sh-link-opts"><div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px">
           <label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-800);cursor:pointer">
-            ${''/* A SIGNING LINK OPENS ONE-SHOT, and the dialog's own words say
-                   why: "the right choice for a final signature, where one copy
-                   gets exactly one response". A signature has to bind exactly
+            ${''/* A SIGNING LINK OPENS ONE-SHOT: a signature has to bind exactly
                    one copy of exactly one text, so the standing-channel default
-                   is wrong for it — and a default that contradicts the sentence
-                   beside it is worse than no default. Still theirs to change. */}
+                   is wrong for it. Still theirs to change. The sentence that
+                   explained the tick is on its hover now (co_keep_link_open_tip). */}
             <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
-            <span><b>${i18t('co_keep_link_open')}</b>
-            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('co_one_link_current')} <b>${i18t('co_single_answer_link')}</b> ${i18t('co_right_for_final')}</span></span>
+            <span title="${attr(i18t('co_keep_link_open_tip'))}"><b>${i18t('co_keep_link_open')}</b></span>
           </label>
         </div>
         <label style="display:flex;align-items:center;gap:var(--s-2);margin-top:10px;font-size:var(--t-meta);color:var(--color-neutral-700)">Link expires in
           <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 6px;font:inherit;font-size:var(--t-meta);color:inherit;">
             ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${d} days</option>`).join('')}
           </select></label></div>`:''}
-      </div>
       <div id="sh-result" style="margin-top:var(--s-3);"></div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="share-back" class="ui-btn hidden">← Back</button>
@@ -4839,8 +4865,8 @@ async function openShareModal(c, opts={}){
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
     if(lab) lab.textContent = hist
-      ? 'A note to send with the record — optional'
-      : `A note to ${c.counterparty||'them'} — optional`;
+      ? i18t('co_note_with_record')
+      : i18t('co_note_to', { who:c.counterparty||i18t('co_them') });
     document.getElementById('share-manifest-line')?.classList.toggle('hidden', hist);
     document.getElementById('share-manifest-line-hist')?.classList.toggle('hidden', !hist);
     document.getElementById('share-manifest')?.classList.toggle('hidden', hist);
@@ -4886,7 +4912,8 @@ async function openShareModal(c, opts={}){
        consequence of what they picked rather than all three at once. */
     const say=document.getElementById('share-purpose-say');
     if(say){ const m=SHARE_PURPOSE_COPY[purposeSel]||SHARE_PURPOSE_COPY.negotiate;
-      say.innerHTML=`<b style="color:var(--color-text)">${m.title}</b> ${m.blurb}`; }
+      say.innerHTML=say.hasAttribute('data-compact') ? esc(m.line)
+        : `<b style="color:var(--color-text)">${m.title}</b> ${m.blurb}`; }
     /* A signing link is one-shot by default and a negotiation link is standing,
        for the reason written beside the checkbox. Changing the purpose has to
        move it, or the picker would quietly leave the wrong kind of link. */
@@ -5036,8 +5063,7 @@ async function openShareModal(c, opts={}){
        them opening it, and their answer comes back as a file to import. */
     const note=document.getElementById('sh-ch-note');
     if(note) note.innerHTML=word?i18t('co_ch_word_note')
-      :k==='whatsapp'?esc(i18t('co_ch_whatsapp_note'))
-      :k==='email'?esc(i18t('co_ch_email_note')):esc(i18t('co_ch_link_note'));
+      :k==='link'?esc(i18t('co_ch_link_note')):'';
     /* WHERE THE NOTE GOES, said under the box it is typed into. A copied link
        carries no message at all now that the counterparty's page has stopped
        reproducing it, so that branch is a WARNING and wears the warning
@@ -5045,10 +5071,12 @@ async function openShareModal(c, opts={}){
     const where=document.getElementById('sh-msg-where');
     if(where){
       const none=k!=='email'&&k!=='whatsapp'&&!word;
-      where.textContent=i18t(k==='email'?'co_note_goes_email'
-        :k==='whatsapp'?'co_note_goes_whatsapp':word?'co_note_goes_with_file':'co_note_goes_nowhere');
-      where.style.color=none?'var(--st-amber-fg)':'var(--color-neutral-600)';
-      where.style.fontWeight=none?'600':'400';
+      /* Only the warning is printed (co_note_goes_nowhere). The three
+         statements — co_note_goes_email, co_note_goes_whatsapp,
+         co_note_goes_with_file — are inert since the pop-up diet. */
+      where.textContent=none?i18t('co_note_goes_nowhere'):'';
+      where.style.color='var(--st-amber-fg)';
+      where.style.fontWeight='600';
     }
   };
   document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));

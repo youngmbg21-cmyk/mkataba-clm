@@ -160,13 +160,17 @@ describe('f241 — the twelve screens the audit named', () => {
 
   test('SHARE_PURPOSE_COPY — every member a getter, so the row turns over together', () => {
     const core = read('js/core.js');
-    const block = core.slice(core.indexOf('const SHARE_PURPOSE_COPY'),
-      core.indexOf('const SHARE_PURPOSE_COPY') + 900);
+    /* The whole object, not a byte count — PIN THE REGION: each member gained a
+       one-screen `line` getter on 13 Sep 2026 and a 900-character window
+       stopped short of the third member. */
+    const start = core.indexOf('const SHARE_PURPOSE_COPY');
+    const block = core.slice(start, core.indexOf('\n};', start));
     assert.ok(!/label:'Negotiate'/.test(block), 'still in the source: /label:\'Negotiate\'/');
     assert.ok(!/blurb:'For an advisor/.test(block), 'still in the source: /blurb:\'For an advisor/');
     /* Getters, not calls: an object literal freezes the load-time language. */
     assert.equal((block.match(/get label\(\)/g) || []).length, 3);
     assert.equal((block.match(/get blurb\(\)/g) || []).length, 3);
+    assert.equal((block.match(/get line\(\)/g) || []).length, 3, 'the one-screen sentence turns over with the rest');
   });
 
   test("the counterparty's verb row and everything it says afterwards", () => {

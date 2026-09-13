@@ -181,11 +181,7 @@ function tplLibUploadModal() {
   openModal(`
     <div style="padding:20px 22px;max-width:470px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_convert_doc')}</h3>
-      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">
-        Upload your standard contract as a Word (.docx) or PDF file — including a scan of a paper form.
-        HaTi reads it, works out which parts are fixed wording and which are blanks to fill in, and
-        rebuilds it as a draft template — HaTi's layout, your branding. The original file's formatting
-        is deliberately left behind. You review every detected field before anything goes further.</p>
+      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_convert_line')}</p>
       <input type="file" id="tpllib-up-file" accept=".docx,.pdf" style="display:block;margin-bottom:var(--s-3);font-size:var(--t-meta)">
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_template_name')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tl_defaults_filename')}</span></span>
         <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
@@ -399,9 +395,7 @@ function tplLibCreateModal() {
   openModal(`
     <div style="padding:20px 22px;max-width:460px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_new_standard')}</h3>
-      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">
-        Starts as a draft only template managers can see. Add its content in the builder, then publish
-        to make it available to the whole team.</p>
+      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_new_standard_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
         <input id="tpllib-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none" placeholder="e.g. Account Opening Form" maxlength="160"></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_category')}</span>

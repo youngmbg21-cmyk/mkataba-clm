@@ -300,7 +300,7 @@ describe('Share is two steps, and the summary travels', () => {
     win.negoInit(c);
     const m = await openShare(c);
     assert.ok(m.$('#share-step-1'));
-    assert.match(m.$('#share-step-1').textContent, /No changes have been proposed/i);
+    assert.match(m.$('#share-step-1').textContent, /No changes proposed yet/i);
     assert.ok(m.$('#share-send'), 'and the send still works — a clean document may be sent');
   });
 

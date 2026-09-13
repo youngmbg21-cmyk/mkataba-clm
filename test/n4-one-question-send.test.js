@@ -66,7 +66,7 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
        what this test has always been protecting. */
     assert.match(h, /id="share-step-kind"(?! class="hidden")/, 'the sharing question leads');
     assert.match(h, /What are you sharing\?/);
-    assert.match(h, /What is this link for\?/, 'and the purpose is still asked');
+    assert.match(h, /What this round is for/, 'and the purpose is still asked');
     assert.match(h, /id="share-step-1" class="hidden"/, 'one step at a time');
   });
 
