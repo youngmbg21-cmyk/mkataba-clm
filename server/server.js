@@ -1106,6 +1106,79 @@ function rvGateApplies(c, u){
   const pb = c && c.playbook;
   return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v && v.verdict === 'deviation'));
 }
+/* ============================================================
+   THE CHECK BEFORE SIGNING — THE SERVER'S HALF (13 Sep 2026, phase 5)
+   ============================================================
+   OFF BY DEFAULT. `signCheckGate` is 'off' unless an admin has set it, and on
+   anything but 'require' these answer as they always did: nothing is refused
+   and nothing behaves differently by a byte.
+
+   THE BROWSER CARD IS INFORMATION; THIS IS THE WALL. Asked as a reading of the
+   STORED record, so it cannot be answered by the page holding the link.
+
+   IT ENFORCES TWO OF THE CARD'S THREE QUESTIONS, and says so rather than
+   pretending otherwise:
+     · an unaccepted departure from the playbook, and
+     · a Key terms row that disagrees with the wording and has been neither
+       fixed nor kept.
+   The third — "has the wording moved since the obligations were read" — rests
+   on a text hash the BROWSER computes (simhash64). A second implementation here
+   would have to agree byte for byte or it would answer "unread" for ever, and a
+   hash that drifts on this side refuses real signatures. So it is advisory:
+   the card reports it, the wall does not. Stated here rather than discovered. */
+function scGate(){
+  const v = (getSetting('appSettings') || {}).signCheckGate;
+  return ['off', 'advise', 'require'].includes(v) ? v : 'off';
+}
+/* The record rows, read exactly as the browser's signCheckRecord reads them:
+   `metadata` is what was read OUT OF the wording, the fields beside it are what
+   the record SAYS, and a row the paper says nothing about is unknown and
+   disagrees with nothing. */
+const SC_RECORD_FIELDS = ['value', 'effectiveDate', 'expiryDate', 'counterparty'];
+function scRecordSays(c, field){
+  const f = (c && c.fields) || {};
+  if (field === 'value') return c && c.value != null && c.value !== '' ? String(c.value) : '';
+  if (field === 'effectiveDate') return String(f.effDate || '').trim();
+  if (field === 'expiryDate') return String((c && c.expiry) || f.expiry || '').trim();
+  if (field === 'counterparty') return String((c && c.counterparty) || '').trim();
+  return '';
+}
+function srvSignCheckOpen(c){
+  const out = [];
+  const pb = c && c.playbook;
+  if (!pb || !Array.isArray(pb.verdicts)) out.push('no standards review on file');
+  else for (const v of pb.verdicts){
+    if (!v || (v.status !== 'deviation' && v.status !== 'missing')) continue;
+    if (v.accepted && v.accepted.at) continue;
+    out.push(`an unaccepted departure on "${String(v.category || 'a standard')}"`);
+  }
+  const m = (c && c.metadata) || {};
+  const kept = (c && c.recordAccepted) || {};
+  for (const field of SC_RECORD_FIELDS){
+    const paper = String(m[field] == null ? '' : m[field]).trim();
+    if (!paper) continue;
+    if (kept[field] && kept[field].at) continue;
+    const rec = scRecordSays(c, field);
+    const same = field === 'value'
+      ? Number(String(rec).replace(/[^\d.-]/g, '')) === Number(String(paper).replace(/[^\d.-]/g, ''))
+      : rec.replace(/\s+/g, ' ').toLowerCase() === paper.replace(/\s+/g, ' ').toLowerCase();
+    if (!same) out.push(`the record and the wording disagree about ${field}`);
+  }
+  return out;
+}
+/* The one refusal both signing doors ask. Null where the gate is off or
+   nothing is open — a wall that is always there is not a wall, it is a door
+   that does not open. */
+function signCheckRefusal(c){
+  if (scGate() !== 'require') return null;
+  if (!c) return null;
+  const open = srvSignCheckOpen(c);
+  if (!open.length) return null;
+  return 'This workspace requires a check before signing, and it is not clear yet: '
+    + open.slice(0, 3).join('; ')
+    + (open.length > 3 ? `, and ${open.length - 3} more` : '')
+    + '. Settle or accept each one on the Signing tab first.';
+}
 /* Which of our unsent asks the gate has not been satisfied about. A cleared
    verdict that has gone stale counts as unreviewed, which is the whole point of
    the staleness rule. */
@@ -3465,6 +3538,27 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         return res.status(403).json({
           error: `You may not sign contracts filed under ${c.folder}. Ask an admin, or ask somebody who may.`,
           signFolder: c.folder });
+    }
+  }
+
+  /* ---- AND THE CHECK BEFORE SIGNING, ON A SAVE THAT ADDS A SIGNATURE ----
+     (13 Sep 2026, phase 5.) THE SAME DIFFERENCE as the two guards above it: a
+     save that adds no signature passes untouched, so a workspace with the gate
+     off — which is every workspace until an admin sets it — behaves byte for
+     byte as it did. Read from the PREVIOUS stored record, because the record
+     arriving is the thing under suspicion.
+
+     The counterparty's own door is guarded separately at
+     POST /api/shares/:token/respond; this is the in-app half, and both ask the
+     one function. */
+  if (prev && scGate() === 'require') {
+    const inApp = x => x && x.method === 'session-authenticated';
+    const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
+    const had = new Set((Array.isArray(prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
+    const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
+    if (fresh.length) {
+      const refusal = signCheckRefusal(prev);
+      if (refusal) return res.status(403).json({ error: refusal, signCheck: true });
     }
   }
 
@@ -10446,6 +10540,17 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
         + 'can be signed on this link. You can still read it, comment, propose changes or say you '
         + 'are happy with the wording — and the sender will send a signing link when they are ready.',
       reviewOnly: true });
+  /* ---- AND THE CHECK BEFORE SIGNING, WHERE THE WORKSPACE REQUIRES ONE ----
+     (13 Sep 2026, phase 5.) Asked of the STORED contract, exactly like the
+     route guard above it, and only where an admin has set the gate to require.
+     The counterparty is told plainly and briefly: it is the sender's rule and
+     the sender's fix, not theirs. */
+  if (r.action === 'sign') {
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+    let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
+    const refusal = stored ? signCheckRefusal(stored) : null;
+    if (refusal) return res.status(403).json({ error: refusal, signCheck: true });
+  }
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
        A bound link signs one step of the route, in that step's turn. Out of

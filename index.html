@@ -4485,6 +4485,29 @@
      animation is owed and none is drawn. */
   .kt-tri-chip.is-busy{background:var(--color-neutral-100);color:var(--color-neutral-600);}
   .kt-tri-tile.is-busy .kt-tri-th{color:var(--color-neutral-600);}
+  /* ---- THE CHECK BEFORE SIGNING (13 Sep 2026) ----
+     It borrows the arrival strip's tiles by id (.kt-tri) rather than forking
+     them, so the two shapes can never drift. What it adds is the findings
+     underneath, and one chip tone the arrival strip has no use for.
+
+     "WE DO NOT KNOW" IS NOT "WRONG". The arrival strip's is-no chip is ruby
+     because a reading there either ran or failed. Here a dash means nobody has
+     read this yet, which is neither — and a ruby dash on an unread contract
+     reads as an accusation. Neutral, and the tile's own words carry it. */
+  .kt-tri-chip.is-unknown{background:var(--color-neutral-100);color:var(--color-neutral-600);}
+  .sc-finds{margin-top:10px;border-top:1px solid var(--color-divider);}
+  .sc-find{padding:9px 0;border-bottom:1px solid var(--color-divider);}
+  .sc-find:last-child{border-bottom:0;}
+  .sc-find.is-done{opacity:.72;}
+  .sc-find-t{font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);}
+  .sc-find-w{margin-top:2px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
+  .sc-esc{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.08em;
+    text-transform:uppercase;color:var(--st-ruby-fg);background:var(--st-ruby-bg);
+    border-radius:var(--radius);padding:1px 5px;margin-left:4px;}
+  .sc-find-a{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+  .sc-find-a button{border:0;background:none;padding:0;font:inherit;
+    font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;}
+  .sc-find-a button:hover{text-decoration:underline;}
   .hm-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:10px;}
   .hm-tri-tile{border:1px solid var(--color-divider);padding:8px 10px;min-width:0;}

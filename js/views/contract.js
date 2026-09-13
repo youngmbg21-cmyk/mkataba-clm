@@ -8740,6 +8740,238 @@ function renderSignButton(c){
    this page — you had to find "edit route" inside the panel. Adding a signatory
    is the commonest thing to want here and it is a top-level button now, whether
    the route is empty or five deep. */
+/* ============================================================
+   THE CHECK BEFORE A CONTRACT IS SIGNED — the card (13 Sep 2026)
+   ============================================================
+   WORKORDER-pre-signature-check.md phase 3. js/signcheck.js is the reading;
+   this draws it and nothing else, in the four-tile shape Key terms already
+   uses for a contract read on arrival (`.kt-tri`, borrowed by id, never
+   forked) so it is a shape the reader knows.
+
+   IT DRAWS NOTHING UNTIL THE MOMENT IS REAL: signers named on both sides,
+   nothing left on the negotiating table, and the record not sealed. A check of
+   wording still being argued over is a check of something that will not be
+   signed.
+
+   NO BAND. It is a card in the signing COLUMN. The Signing tab draws the
+   Document canvas beside it and this takes no pixel from the paper — measured
+   before and after (refusal 3).
+
+   EVERY ACT IS A DOOR THAT ALREADY EXISTS: accepting a deviation writes a
+   reason on the verdict, an obligation opens the review dialog the arrival
+   scan opens, a record row lands on the Key terms field. Nothing here files a
+   change, sends a round, or signs. */
+/* ============================================================
+   THE CHECK'S OWN ACTS, AND THE SWEEP (13 Sep 2026, phases 3 and 4)
+   ============================================================
+   Every one of these presses a door the product already has. Nothing here
+   files a change, sends a round or signs, and nothing decides for the reader:
+   a deviation stays a deviation until a person accepts it in writing. */
+
+/* ---- ACCEPTING A DEVIATION IS A RECORD, NOT A SHRUG ----
+   Teams do not always follow their own playbook and that is fine; what is not
+   fine is nobody knowing why. The reason is REQUIRED, it is stamped with the
+   reader's name and today's date, and it changes not one character of the
+   wording. Next time this contract is read the deviation shows as accepted
+   with its reason rather than as an open finding. */
+async function signCheckAccept(c,i,after){
+  const rev=c&&c.playbook; const v=rev&&Array.isArray(rev.verdicts)?rev.verdicts[i]:null;
+  if(!v){ toast(i18t('sc_gone'),'err'); return false; }
+  const why=window.promptDialog
+    ? await promptDialog({ title:i18t('sc_accept_title',{what:v.category||i18t('sc_a_standard')}),
+        message:i18t('sc_accept_msg'), placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_accept_ok') })
+    : null;
+  const text=String(why==null?'':why).trim().slice(0,window.SIGN_ACCEPT_MAX||240);
+  if(!text){ if(why!=null) toast(i18t('sc_accept_needs_reason'),'warn'); return false; }
+  const me=(window.currentUser&&currentUser())||null;
+  v.accepted={ by:(me&&me.name)||'', at:new Date().toISOString(), why:text };
+  logAudit(c,'Playbook',`Deviation accepted on "${v.category||'a standard'}" — ${text}`);
+  persist(c);
+  toast(i18t('sc_accepted_toast'),'ok');
+  if(typeof after==='function') after();
+  return true;
+}
+/* THE WORDING THE FINDING IS ABOUT, where the matcher can place it. It refuses
+   rather than guesses — rlPbFindClause is the ONE matcher and returns null when
+   it is not sure, and opening whichever clause happens to be first would be the
+   reported fault of 26 Aug in quieter clothes. */
+function signCheckOpenClause(c,i){
+  const rev=c&&c.playbook; const v=rev&&Array.isArray(rev.verdicts)?rev.verdicts[i]:null;
+  const q=v&&String(v.quote||'').trim();
+  if(!q||!window.rlPbFindClause){ toast(i18t('sc_no_clause'),'warn'); return false; }
+  let cl=null; try{ cl=rlPbFindClause(c,q,v.category); }catch(_){ cl=null; }
+  if(!cl){ toast(i18t('sc_no_clause'),'warn'); return false; }
+  if(window.rlOpenClauseEditor&&window.rlEditorTakesIt&&rlEditorTakesIt('owner',{})){
+    rlOpenClauseEditor(c,cl.clauseId); return true; }
+  if(window.openRedlineWorkbench){ openRedlineWorkbench(c.id); return true; }
+  toast(i18t('sc_no_clause'),'warn'); return false;
+}
+/* KEEPING THE RECORD is an answer too: the paper and the record can differ for
+   a good reason, and forcing an edit would make the reader write a lie to clear
+   a tile. It stamps who decided and when, and edits nothing. */
+function signCheckKeep(c,field,after){
+  if(!c||!field) return false;
+  c.recordAccepted=c.recordAccepted||{};
+  const me=(window.currentUser&&currentUser())||null;
+  c.recordAccepted[field]={ by:(me&&me.name)||'', at:new Date().toISOString() };
+  logAudit(c,'Key terms',`The record was kept as it stands for "${field}" — the wording says something else`);
+  persist(c);
+  if(typeof after==='function') after();
+  return true;
+}
+/* ---- THE SWEEP, ONCE PER WORDING ---- (phase 4)
+   It runs ONLY the readings that are out of date, which is what makes it
+   affordable: the record comparison is arithmetic and free, the obligations
+   read runs where the wording moved since the last one, and the standards
+   review runs where the review on file is about older wording — which is
+   exactly what phase 1's stamp finally lets HaTi know.
+
+   IT ASKS ONCE, NAMING WHAT IT WILL DO, and nothing runs without that press.
+   The stamp is written only where every reading it pressed came back: a
+   cut-short answer is not a check. */
+async function runSignCheck(c,opts={}){
+  if(!c||!window.signCheck) return null;
+  const r=signCheck(c);
+  if(!r||!r.ready) return null;
+  const wantStd=r.standards.unread===true||r.standards.stale!==false;
+  const wantOb=r.obligations.unread!==false;
+  const after=typeof opts.after==='function'?opts.after:()=>{};
+  if(!wantStd&&!wantOb){
+    signCheckStamp(c); persist(c); toast(i18t('sc_nothing_to_read'),'ok'); after(); return { ok:true, ran:0 };
+  }
+  const parts=[];
+  if(wantStd) parts.push(i18t('sc_will_standards'));
+  if(wantOb) parts.push(i18t('sc_will_obligations'));
+  const ok=window.confirmDialog?await confirmDialog({
+    get title(){ return i18t('sc_run_title'); },
+    message:i18t('sc_run_msg',{what:parts.join(i18t('sc_and'))}),
+    confirmLabel:i18t('sc_run_ok') }):true;
+  if(!ok) return null;
+  c._signChecking=true; after();
+  let all=true, ran=0;
+  try{
+    if(wantStd&&window.runPlaybookReview){
+      const res=await runPlaybookReview(c,{});
+      if(res&&!res.error){ c.playbook=res;
+        logAudit(c,'Playbook',`Checked before signing — reviewed against ${res.label}`);
+        ran++; } else all=false;
+    }
+    if(wantOb&&window.runFindObligations){
+      /* The SAME review dialog the arrival scan opens: proposals arrive
+         unticked, obligationAlreadyOn is asked, and nothing is filed until the
+         reader ticks it. Held rather than filed is the whole rule. */
+      const res=await runFindObligations(c,{});
+      if(res!==false) ran++; else all=false;
+    }
+  }catch(_){ all=false; }
+  c._signChecking=false;
+  if(all&&ran) signCheckStamp(c);
+  persist(c);
+  toast(i18t(all?'sc_done_toast':'sc_part_toast'),all?'ok':'warn');
+  after();
+  return { ok:all, ran };
+}
+/* The stamp the Checked tile reads. It records the wording it was made
+   against, so a wording that has not moved is never read twice. */
+function signCheckStamp(c){
+  const me=(window.currentUser&&currentUser())||null;
+  let h=null;
+  try{ h=window.playbookHashOf?playbookHashOf(window.playbookText?playbookText(c):''):null; }catch(_){ h=null; }
+  c.signCheck={ at:new Date().toISOString(), by:(me&&me.name)||'', wordingHash:h||null };
+  return c.signCheck;
+}
+
+function signCheckCardHtml(c){
+  if(!window.signCheck) return '';
+  const r=signCheck(c);
+  if(!r||!r.ready) return '';
+  const tile=(headKey,tone,mark,detail)=>`<div class="kt-tri-tile">
+    <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(headKey))}</div>
+    ${detail?`<div class="kt-tri-td">${esc(detail)}</div>`:''}</div>`;
+  const s=r.standards, o=r.obligations, rec=r.record;
+  /* THE TILE SAYS WHAT IS TRUE, and "we do not know" is one of the answers.
+     A grey dash is not a tick: an unread contract and a clean one must not
+     look alike. */
+  const sTone=(s.none||s.unread)?'is-unknown':s.open?'is-warn':(s.stale===true?'is-warn':'is-ok');
+  const sMark=s.none||s.unread?'&mdash;':(s.open?String(s.open):'&#10003;');
+  const sDetail=s.none?i18t('sc_std_none')
+    :s.unread?i18t('sc_std_unread')
+    :s.stale===true?i18t('sc_std_stale')
+    :s.open?i18tn('sc_std_open',s.open,{n:s.open})
+    :s.stale===null?i18t('sc_std_ok_unknown'):i18t('sc_std_ok');
+  const oTone=o.unread===true?'is-warn':(o.unread===false?'is-ok':'is-unknown');
+  const oMark=o.unread===true?'!':(o.unread===false?'&#10003;':'&mdash;');
+  const oDetail=o.unread===true?i18t('sc_ob_moved')
+    :o.unread===false?i18tn('sc_ob_ok',o.total,{n:o.total})
+    :i18t('sc_ob_unread');
+  const rTone=rec.open?'is-warn':(rec.rows.length?'is-ok':'is-unknown');
+  const rMark=rec.open?String(rec.open):(rec.rows.length?'&#10003;':'&mdash;');
+  const rDetail=rec.open?i18tn('sc_rec_open',rec.open,{n:rec.open})
+    :rec.rows.length?i18t('sc_rec_ok'):i18t('sc_rec_none');
+  const cTone=r.current?'is-ok':'is-unknown';
+  const cMark=r.current?'&#10003;':'&mdash;';
+  const cDetail=r.current?i18t('sc_checked_on',{when:String((r.checked&&r.checked.at)||'').slice(0,10)})
+    :r.checked?i18t('sc_checked_older'):i18t('sc_checked_never');
+  /* ---- THE FINDINGS, EACH WITH THE DOOR THAT SETTLES IT ----
+     One line of what, one line of why, and verbs that already exist. A verb
+     that cannot work is not drawn. */
+  const rows=[];
+  s.findings.forEach(f=>{
+    const acc=f.accepted;
+    rows.push(`<div class="sc-find${acc?' is-done':''}">
+      <div class="sc-find-t">${esc(f.category||i18t('sc_a_standard'))}${
+        f.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
+      <div class="sc-find-w">${esc(acc
+        ? i18t('sc_accepted_by',{who:acc.by||i18t('sc_somebody'),when:String(acc.at||'').slice(0,10),why:acc.why||''})
+        : (f.status==='missing'?i18t('sc_missing_w',{pos:f.position||''}):i18t('sc_deviation_w',{pos:f.position||''})))}</div>
+      ${acc?'':`<div class="sc-find-a">
+        <button type="button" data-sc-accept="${f.i}">${esc(i18t('sc_accept_btn'))}</button>
+        ${f.quote?`<button type="button" data-sc-clause="${f.i}">${esc(i18t('sc_open_clause'))}</button>`:''}
+      </div>`}
+    </div>`);
+  });
+  if(o.unread===true) rows.push(`<div class="sc-find">
+    <div class="sc-find-t">${esc(i18t('sc_ob_head'))}</div>
+    <div class="sc-find-w">${esc(i18t('sc_ob_moved_w'))}</div>
+    <div class="sc-find-a"><button type="button" data-sc-oblig="1">${esc(i18t('sc_ob_btn'))}</button></div>
+  </div>`);
+  /* A FIGURE IS PRINTED THE WAY THE PRODUCT PRINTS FIGURES. The reading holds
+     the raw values because it compares them; a reader asked whether 4800000 and
+     5200000 are the same thing is being asked to do the formatting themselves,
+     and in this contract's own currency at that. */
+  /* NOT fmtMoneyOf: that formats the CONTRACT'S OWN value and takes no number,
+     so both halves of a disagreement would print as the same figure — which is
+     the one thing this row must never do. The currency is the contract's,
+     read through the one function that answers it. */
+  const money=v=>{ const raw=String(v||'').trim(); const n=Number(raw.replace(/[^\d.-]/g,''));
+    if(!raw||!Number.isFinite(n)) return raw;
+    let cur=''; try{ cur=window.contractCurrency?contractCurrency(c):''; }catch(_){ cur=''; }
+    let loc; try{ loc=window.jxLocale?jxLocale():undefined; }catch(_){ loc=undefined; }
+    return `${cur?cur+' ':''}${n.toLocaleString(loc)}`; };
+  const shown=(x,v)=>x.field==='value'?money(v):String(v||'');
+  rec.rows.filter(x=>x.agrees===false&&!x.kept).forEach(x=>rows.push(`<div class="sc-find">
+    <div class="sc-find-t">${esc(i18t('sc_rec_head',{field:i18t('sc_f_'+x.field)}))}</div>
+    <div class="sc-find-w">${esc(i18t('sc_rec_w',{record:shown(x,x.record)||i18t('sc_blank'),paper:shown(x,x.paper)}))}</div>
+    <div class="sc-find-a">
+      <button type="button" data-sc-fix="${esc(x.field)}">${esc(i18t('sc_fix_btn'))}</button>
+      <button type="button" data-sc-keep="${esc(x.field)}">${esc(i18t('sc_keep_btn'))}</button>
+    </div></div>`));
+  const busy=!!c._signChecking;
+  return `<section id="sign-check" class="kt-tri${busy?' is-busy':''}">
+    <div class="kt-tri-head">
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':(r.anyOpen?'sc_head_open':'sc_head_clear')))}</span>
+      <button type="button" id="sc-run" class="kt-tri-x"${busy?' disabled':''}
+        title="${esc(i18t('sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>
+    </div>
+    <div class="kt-tri-tiles">
+      ${tile('sc_t_standards',sTone,sMark,sDetail)}
+      ${tile('sc_t_obligations',oTone,oMark,oDetail)}
+      ${tile('sc_t_record',rTone,rMark,rDetail)}
+      ${tile('sc_t_checked',cTone,cMark,cDetail)}
+    </div>
+    ${rows.length?`<div class="sc-finds">${rows.join('')}</div>`:''}
+  </section>`;
+}
 function renderSignSide(c){
   const host=document.getElementById('sign-side'); if(!host) return;
   const plan=(window.signerPlan?signerPlan(c):[]);
@@ -8761,6 +8993,10 @@ function renderSignSide(c){
            much as the order — and a note tucked into the lower one reads as
            being about that one alone. */}
     ${closed?`<p class="sign-closed-note">${esc(i18t('ct_signing_closed'))}</p>`:''}
+    ${''/* THE CHECK, ABOVE THE GATE AND THE ORDER: it is about whether this
+           wording should be signed at all, which is a question that comes
+           before who signs it and in what order. */}
+    ${signCheckCardHtml(c)}
     ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${i18t('ct_approval_gate')}</h6>${chain}</section>`:''}
     <section style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
@@ -8785,6 +9021,22 @@ function renderSignSide(c){
            column. It draws nothing when there is nothing to say. */}
     ${window.signSpotsCardHtml?signSpotsCardHtml(c,{CARD,H,may}):''}`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  /* ---- THE CHECK'S ACTS, BOUND IN THE ONE PAINT OF THIS HOST ----
+     Each press repaints the column AND the Sign button, because both read the
+     same answer: the card says what is open and the button refuses while the
+     gate is on and something is. */
+  const scAgain=()=>{ renderSignSide(c); if(window.renderSignButton) renderSignButton(c); };
+  host.querySelector('#sc-run')?.addEventListener('click',()=>runSignCheck(c,{ after:scAgain }));
+  host.querySelectorAll('[data-sc-accept]').forEach(b=>b.addEventListener('click',
+    ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));
+  host.querySelectorAll('[data-sc-clause]').forEach(b=>b.addEventListener('click',
+    ()=>signCheckOpenClause(c,Number(b.getAttribute('data-sc-clause')))));
+  host.querySelector('[data-sc-oblig]')?.addEventListener('click',()=>{
+    if(window.runFindObligations) Promise.resolve(runFindObligations(c,{})).then(scAgain,scAgain); });
+  host.querySelectorAll('[data-sc-fix]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.focusKeyTerms) focusKeyTerms(b.getAttribute('data-sc-fix')); }));
+  host.querySelectorAll('[data-sc-keep]').forEach(b=>b.addEventListener('click',
+    ()=>signCheckKeep(c,b.getAttribute('data-sc-keep'),scAgain)));
   /* ---- THE PLACEMENT ACTS ----
      Bound here, in the one paint of this host, so nothing stacks. Each press
      repaints the column, the paper and the button, because all three read the
@@ -9413,6 +9665,19 @@ function signBlockers(c){
     const sp=signSpotBlocker(c);
     if(sp) add(sp.key, sp.label, sp.short);
   }catch(_){}
+  /* ---- AND THE PRE-SIGNATURE CHECK, WHERE AN ADMIN HAS SET IT TO REQUIRE ----
+     (13 Sep 2026, phase 5.) OFF BY DEFAULT: signCheckBlocker answers null on
+     every workspace that has not turned it on, on a contract that is not yet
+     at the door, and on one with nothing open — so a workspace that never
+     touches the setting behaves byte for byte as it did.
+     It is one row among the others, in their shape, naming what is open. The
+     desk is never asked here and neither is the review: the desk gates
+     redlining and sending, and this gates signing, like the approval chain
+     three rows above it. */
+  try{
+    const sc=(window.signCheckBlocker)?signCheckBlocker(c):null;
+    if(sc) add('signcheck', i18tn('sc_blocker', sc.n, { n: sc.n }), i18t('sc_blocker_short'));
+  }catch(_){}
   return out;
 }
 /* The refusal, in the words each blocker chose for itself. The field-shaped ones
@@ -9876,7 +10141,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wordTrackedFile,bytesToBase64,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

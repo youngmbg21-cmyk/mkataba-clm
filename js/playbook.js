@@ -174,11 +174,44 @@ function playbookReviewHeuristic(c, text){
    COPILOT_PB_TEXT_MIN. */
 const PB_TEXT_MIN=120;
 function playbookText(c){ return isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.docPlainText?docPlainText(c):''); }
+/* ---- WHAT THE REVIEW READ, SO IT CAN SAY WHETHER IT IS STALE ----
+   (owner-approved 13 Sep 2026, the pre-signature check, phase 1.)
+
+   The review recorded WHAT it found and never WHICH WORDING it found it in, so
+   nothing could answer the question the signing door needs to ask: is the
+   review on file about the wording that is about to be signed, or about
+   wording from three rounds ago?
+
+   THE SAME HASHER THE OBLIGATIONS READ ALREADY USES (simhash64, through
+   obligationsReadStamp's own reading) so the two cannot come to disagree about
+   what "the wording moved" means. Stamped HERE, once, on both branches — the
+   model's and the heuristic's — rather than at the four sites that store the
+   result, because a stamp at the stores is a stamp that will be forgotten at
+   the fifth. */
+function playbookHashOf(text){
+  try{ return (typeof window.simhash64 === 'function') ? String(simhash64(String(text || ''))) : null; }
+  catch(_){ return null; }
+}
+/* THE ONE READING OF "the review on file is about older wording".
+     true  — it read something else
+     false — it read this
+     null  — we do not know (no review, or one filed before this was recorded)
+   An absence is stated, never guessed: an older review is not fresh and is not
+   stale either, and printing the second would be inventing a fact. */
+function playbookStale(c){
+  const r = c && c.playbook;
+  if(!r || !r.wordingHash) return null;
+  const now = playbookHashOf(playbookText(c));
+  if(!now) return null;
+  return String(r.wordingHash) !== now;
+}
 async function runPlaybookReview(c,opts={}){
   const text = playbookText(c);
   if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }
+  const stamp = r => (r && !r.error)
+    ? { ...r, wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
   if(API_MODE() && state.aiConfigured){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       // The whole wording goes. A standards check reading only the front of an
@@ -187,10 +220,10 @@ async function runPlaybookReview(c,opts={}){
       const r=await api('ai/playbook','POST',{ text, playbook:pb, kind:cKind(c) },
         { quiet:!!opts.quiet });
       if(r&&r.notice) opts.notice=r.notice;
-      return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
+      return stamp({ key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' });
     }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'err'); }
   }
-  return playbookReviewHeuristic(c, text);
+  return stamp(playbookReviewHeuristic(c, text));
 }
 function deviationSummary(c){
   const r=c.playbook; if(!r) return null;
@@ -793,4 +826,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

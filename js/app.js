@@ -23,6 +23,7 @@ import './negotiation.js'; // the fingerprinted change model every intake path c
 import './obligations.js';
 import './playbook.js';
 import './payterms.js';    // payment terms turned into a number of days, and counted (2 Sep 2026)
+import './signcheck.js';   // where a contract stands at the signing door: one deterministic reading, no spend (13 Sep 2026)
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send

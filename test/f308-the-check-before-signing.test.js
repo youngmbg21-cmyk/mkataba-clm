@@ -1,0 +1,346 @@
+/* ============================================================
+   f308 — THE CHECK BEFORE A CONTRACT IS SIGNED
+   ============================================================
+   WORKORDER-pre-signature-check.md, Part A, phases 1 to 5. Built 13 Sep 2026
+   on the owner's go. The owner's own words: *"once any contract is ready for
+   signing, it should have another sweep to see where it stands against company
+   policy and any new obligations."*
+
+   WHY IT EXISTS. A contract is read when it ARRIVES from outside and never
+   read again — but the wording that gets signed is not the wording that
+   arrived. Rounds of redlines move clauses, add promises and change figures the
+   record may not have followed.
+
+   Every claim below is a MEASUREMENT of the reading or a driven press, never a
+   description of a shape. The walls are the ones the work order names: it
+   spends nothing, it writes nothing, it decides nothing, and an absence is
+   stated rather than guessed.
+   ============================================================ */
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { buildWorld } = require('./world');
+const { startHati, seedWorkspace } = require('./helpers');
+
+const ROOT = path.join(__dirname, '..');
+const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+const SIGNCHECK = read('js/signcheck.js');
+const CONTRACT = read('js/views/contract.js');
+const SERVER = read('server/server.js');
+const I18N = read('js/i18n.js');
+
+const TEXT = 'This Supply Agreement is made between Highland Corporate Ltd and Nordkust Industri AB. '
+  + '1. Supply. The Supplier shall supply the goods to the agreed specification. '
+  + '2. Payment. The Buyer shall pay each undisputed invoice within 60 days of receipt. '
+  + '3. Governing law. This Agreement is governed by the laws of California. ';
+
+function contract(over = {}){
+  return { id: 'MK-308', name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB',
+    counterpartyEmail: 'ola@nordkust.se', status: 'Under Review', source: 'upload',
+    folder: 'dist', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+    signatures: [], comments: [], changes: [], obligations: [],
+    value: 4800000, valueType: 'estimated',
+    upload: { name: 'supply.docx', extractedText: TEXT }, ...over };
+}
+/* A world with the signing door's reading on it, and the two stand-ins it
+   needs to answer at all: the contract has to be AT the door (a route with a
+   signer on each side) or the whole card draws nothing, which is the point. */
+function bench(over = {}, ready = true){
+  const w = buildWorld({ signcheck: true, contractView: true });
+  const { win } = w;
+  const c = contract(over);
+  win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: win.state && win.state.settings || {} });
+  win.getContract = id => (id === c.id ? c : null);
+  win.canViewValues = () => true;
+  win.signingRouteOpen = () => ready;
+  return { w, win, c };
+}
+
+describe('f308 (1) — the standards review remembers what it read', () => {
+  test('the reading is one function, and an older review says "we do not know"', () => {
+    const { win, c } = bench();
+    /* A review filed before any of this existed. It is not fresh and it is not
+       stale either, and printing the second would be inventing a fact. */
+    c.playbook = { label: 'Default', verdicts: [] };
+    assert.equal(win.playbookStale(c), null, 'no hash on file: unknown');
+    /* One that recorded the wording it read, and the wording has not moved. */
+    c.playbook.wordingHash = win.playbookHashOf(win.playbookText(c));
+    assert.equal(win.playbookStale(c), false, 'it read this wording');
+    /* And now the wording moves. */
+    c.upload.extractedText = TEXT + ' 4. Data protection. Each party shall process personal data lawfully and shall notify the other within seventy-two hours of any breach affecting the other party.';
+    assert.equal(win.playbookStale(c), true, 'it read something else');
+  });
+
+  test('the stamp is written where the review is BUILT, not at the stores', () => {
+    const code = strip(read('js/playbook.js'));
+    assert.match(code, /const stamp = r =>/, 'one stamper');
+    assert.match(code, /return stamp\(\{ key:playbookKeyFor\(c\)/, 'the model\'s branch');
+    assert.match(code, /return stamp\(playbookReviewHeuristic\(c, text\)\)/, 'and the heuristic\'s');
+  });
+});
+
+describe('f308 (2) — signCheck is the one reading of where it stands', () => {
+  test('it draws nothing before the moment it is about', () => {
+    const { win, c } = bench({}, false);
+    assert.equal(win.signCheck(c).ready, false, 'no route named, no check');
+    assert.equal(win.signCheckCardHtml(c), '', 'and no card');
+  });
+
+  test('no playbook saved is its own answer, never "fine"', () => {
+    const { win, c } = bench();
+    win.resolvePlaybook = () => null;
+    const s = win.signCheck(c).standards;
+    assert.equal(s.none, true);
+    assert.equal(s.open, 0);
+  });
+
+  test('a playbook with nothing read against it says so', () => {
+    const { win, c } = bench();
+    win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
+    const s = win.signCheck(c).standards;
+    assert.equal(s.none, false);
+    assert.equal(s.unread, true, 'nothing has read this contract');
+  });
+
+  test('an unaccepted departure is open; accepting it in writing closes it', () => {
+    const { win, c } = bench();
+    win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
+    c.playbook = { label: 'Default', wordingHash: win.playbookHashOf(win.playbookText(c)), verdicts: [
+      { category: 'Payment terms', status: 'deviation', position: '<= 45 days', quote: 'within 60 days' },
+      { category: 'Confidentiality', status: 'aligned' }] };
+    assert.equal(win.signCheck(c).standards.open, 1);
+    /* THE INDEX IS THE VERDICT'S OWN POSITION, taken before the filter — an
+       index into the filtered list would stamp the reason onto the wrong one. */
+    const f = win.signCheck(c).standards.findings[0];
+    assert.equal(f.i, 0);
+    c.playbook.verdicts[f.i].accepted = { by: 'Wanjiru Kamau', at: new Date().toISOString(), why: 'Traded in round 2.' };
+    const after = win.signCheck(c).standards;
+    assert.equal(after.open, 0, 'accepted, and it stops holding anything up');
+    assert.equal(after.findings[0].accepted.why, 'Traded in round 2.', 'with its reason kept');
+  });
+
+  test('obligations: unread is a real answer, and so is "we do not know"', () => {
+    const { win, c } = bench();
+    assert.equal(win.signCheck(c).obligations.unread, null, 'nothing has ever read it');
+    c.obligationsReadHash = win.playbookHashOf(win.playbookText(c));
+    assert.equal(win.signCheck(c).obligations.unread, false, 'read from this wording');
+    c.upload.extractedText = TEXT + ' 4. The Supplier shall indemnify the Buyer against all third-party claims arising from any defect in the goods supplied under this Agreement.';
+    assert.equal(win.signCheck(c).obligations.unread, true, 'and the wording moved after it');
+  });
+
+  test('the record rows agree, disagree, or say the paper is silent', () => {
+    const { win, c } = bench();
+    c.metadata = { value: 4800000, counterparty: 'Nordkust Industri AB' };
+    const rows = win.signCheck(c).record.rows;
+    const by = k => rows.find(r => r.field === k);
+    assert.equal(by('value').agrees, true, 'the same figure, written differently, is the same figure');
+    assert.equal(by('counterparty').agrees, true);
+    assert.equal(by('expiryDate').unknown, true, 'the paper says nothing about it');
+    assert.equal(by('expiryDate').agrees, null, 'so it agrees with nothing');
+    c.metadata.value = 5200000;
+    assert.equal(win.signCheck(c).record.open, 1, 'and a real disagreement is one open row');
+  });
+
+  test('keeping the record is an answer too', () => {
+    const { win, c } = bench();
+    c.metadata = { value: 5200000 };
+    assert.equal(win.signCheck(c).record.open, 1);
+    c.recordAccepted = { value: { by: 'Wanjiru Kamau', at: new Date().toISOString() } };
+    assert.equal(win.signCheck(c).record.open, 0, 'kept, and nothing is held up');
+  });
+
+  /* MONEY ONLY WHERE THE READER MAY SEE VALUES — not drawn at all rather than
+     drawn as dashes, which is the product's own rule. */
+  test('a reader who may not see values is shown no value row', () => {
+    const { win, c } = bench();
+    c.metadata = { value: 5200000 };
+    win.canViewValues = () => false;
+    assert.equal(win.signCheck(c).record.rows.some(r => r.field === 'value'), false);
+  });
+
+  /* READING MUST NOT WRITE. This is asked on every paint of the Signing tab. */
+  test('the reading leaves the record byte-identical', () => {
+    const { win, c } = bench();
+    c.playbook = { label: 'Default', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    const before = JSON.stringify(c);
+    win.signCheck(c); win.signCheckCardHtml(c);
+    assert.equal(JSON.stringify(c), before);
+  });
+
+  test('and it starts no negotiation on a contract that has none', () => {
+    const { win, c } = bench();
+    assert.equal(c.negotiation, undefined);
+    win.signCheck(c);
+    assert.equal(c.negotiation, undefined, 'negoOpenPoints is asked only where one exists');
+  });
+
+  test('it spends nothing and asks no route', () => {
+    const code = strip(SIGNCHECK);
+    assert.doesNotMatch(code, /fetch|api\(|\/api\/|anthropic|copilot/i);
+  });
+});
+
+describe('f308 (3) — the card, and its acts', () => {
+  function ready(win, c){
+    win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
+    c.playbook = { label: 'Default', wordingHash: win.playbookHashOf(win.playbookText(c)), verdicts: [
+      { category: 'Payment terms', status: 'deviation', position: '<= 45 days', quote: 'within 60 days' }] };
+    c.metadata = { value: 5200000 };
+    return win.signCheckCardHtml(c);
+  }
+  test('four tiles, in the arrival strip\'s own shape', () => {
+    const { win, c } = bench();
+    const html = ready(win, c);
+    assert.match(html, /id="sign-check"/);
+    assert.match(html, /class="kt-tri/, 'it borrows the shape rather than forking it');
+    assert.equal((html.match(/class="kt-tri-tile"/g) || []).length, 4);
+  });
+
+  test('every finding carries the door that settles it', () => {
+    const { win, c } = bench();
+    const html = ready(win, c);
+    assert.match(html, /data-sc-accept="0"/, 'accept the departure, with a reason');
+    assert.match(html, /data-sc-clause="0"/, 'or go and read the clause');
+    assert.match(html, /data-sc-fix="value"/, 'fix the record');
+    assert.match(html, /data-sc-keep="value"/, 'or keep it as it stands');
+  });
+
+  /* "WE DO NOT KNOW" IS NOT "WRONG": an unread contract and a clean one must
+     not look alike, and neither may an unread one look like a failure. */
+  test('an unread tile is neutral, not ruby', () => {
+    const { win, c } = bench();
+    win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
+    const html = win.signCheckCardHtml(c);
+    assert.match(html, /kt-tri-chip is-unknown/);
+  });
+
+  test('the card computes nothing — signCheck does', () => {
+    const m = /function signCheckCardHtml\(c\)\{[\s\S]*?\n\}/.exec(strip(CONTRACT));
+    assert.ok(m);
+    assert.match(m[0], /signCheck\(c\)/, 'it asks the one reading');
+    assert.doesNotMatch(m[0], /\.filter\(v =>|verdicts\.filter/, 'and does none of its own');
+  });
+});
+
+describe('f308 (4) — the sweep runs only what is out of date', () => {
+  const code = () => strip(CONTRACT);
+  test('it asks before it spends, naming what it will do', () => {
+    const m = /async function runSignCheck\([\s\S]*?\n\}/.exec(code());
+    assert.ok(m, 'the sweep exists');
+    assert.match(m[0], /confirmDialog/, 'one confirm');
+    assert.match(m[0], /sc_will_standards/, 'naming the standards read');
+    assert.match(m[0], /sc_will_obligations/, 'and the obligations read');
+  });
+  test('the standards read runs only where the review is stale or absent', () => {
+    const m = /async function runSignCheck\([\s\S]*?\n\}/.exec(code());
+    assert.match(m[0], /wantStd\s*=\s*r\.standards\.unread\s*===\s*true\s*\|\|\s*r\.standards\.stale\s*!==\s*false/);
+    assert.match(m[0], /wantOb\s*=\s*r\.obligations\.unread\s*!==\s*false/);
+  });
+  /* A CUT-SHORT ANSWER IS NOT A CHECK. */
+  test('the stamp is written only where everything came back', () => {
+    const m = /async function runSignCheck\([\s\S]*?\n\}/.exec(code());
+    assert.match(m[0], /if\(all&&ran\) signCheckStamp\(c\)/);
+  });
+  test('and it goes through the readings that already exist', () => {
+    const m = /async function runSignCheck\([\s\S]*?\n\}/.exec(code());
+    assert.match(m[0], /runPlaybookReview\(c/, 'the same review the panel runs');
+    assert.match(m[0], /runFindObligations\(c/, 'and the same obligations dialog');
+    assert.doesNotMatch(m[0], /ai\/playbook|ai\/obligations/, 'never a route of its own');
+  });
+});
+
+describe('f308 (5) — the gate, off by default', () => {
+  test('off is the default, and nothing is held back', () => {
+    const { win, c } = bench();
+    assert.equal(win.signCheckGate(), 'off');
+    c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    assert.equal(win.signCheckBlocker(c), null);
+  });
+  test('advise draws the card and blocks nothing', () => {
+    const { win, c } = bench();
+    win.state.settings.signCheckGate = 'advise';
+    c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    assert.equal(win.signCheckBlocker(c), null);
+  });
+  test('require holds the signature, and accepting it lets it go', () => {
+    const { win, c } = bench();
+    win.state.settings.signCheckGate = 'require';
+    win.resolvePlaybook = () => ({ label: 'D', positions: [{ category: 'Payment terms' }] });
+    c.playbook = { label: 'D', wordingHash: win.playbookHashOf(win.playbookText(c)),
+      verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    const b = win.signCheckBlocker(c);
+    assert.ok(b && b.n >= 1, 'it holds');
+    c.playbook.verdicts[0].accepted = { by: 'W', at: new Date().toISOString(), why: 'Traded.' };
+    c.obligationsReadHash = win.playbookHashOf(win.playbookText(c));
+    assert.equal(win.signCheckBlocker(c), null, 'and lets go once it is settled');
+  });
+  test('it is one row in signBlockers, never a fourth kind of gate', () => {
+    const m = /function signBlockers\(c\)\{[\s\S]*?\n\}/.exec(strip(CONTRACT));
+    assert.ok(m);
+    assert.match(m[0], /signCheckBlocker\(c\)/);
+    assert.doesNotMatch(m[0], /deskMay|reviewSendBlock/, 'the desk and the review are not asked here');
+  });
+  test('the words are in both books', () => {
+    for (const k of ['sc_set_title', 'sc_set_off', 'sc_set_advise', 'sc_set_require',
+      'sc_blocker_one', 'sc_blocker_short', 'sc_accept_btn', 'sc_keep_btn', 'sc_t_standards'])
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
+
+describe('f308 (5b) — the server is the wall', () => {
+  let h, W;
+  const ID = 'MK-SC1';
+  before(async () => {
+    h = await startHati(); W = await seedWorkspace(h);
+    await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: {
+      id: ID, name: 'Signing wall fixture', counterparty: 'Nordkust Industri AB',
+      folder: 'dist', status: 'Under Review', fields: {}, metadata: {}, audit: [], rounds: [],
+      versions: [], signatures: [], comments: [], changes: [], obligations: [],
+      value: 100000, valueType: 'estimated' } } });
+  });
+  after(async () => { await h.stop(); });
+  const put = async patch => {
+    const seen = await W.admin.json('/api/contracts/' + ID);
+    return W.admin.json('/api/contracts/' + ID, { method: 'PUT',
+      body: { contract: { ...seen, ...patch }, baseVersion: seen._v } });
+  };
+  const gate = v => W.admin.json('/api/settings', { method: 'PUT', body: { signCheckGate: v } });
+  const sig = () => [{ name: 'Wanjiru Kamau', email: 'admin@example.co.ke',
+    at: new Date().toISOString(), method: 'session-authenticated' }];
+
+  test('with the gate off, a signature saves exactly as it always did', async () => {
+    await put({ playbook: { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] } });
+    const r = await put({ signatures: sig() });
+    assert.ok(r && !r.error, 'nothing is refused');
+    await put({ signatures: [] });
+  });
+
+  test('on require it refuses an unaccepted departure, and lets go once accepted', async () => {
+    await gate('require');
+    await put({ signatures: [],
+      playbook: { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] } });
+    let refused = null;
+    try { await put({ signatures: sig() }); } catch (e) { refused = e; }
+    assert.ok(refused, 'the save is refused');
+    assert.match(String((refused && (refused.message || (refused.body && refused.body.error))) || ''),
+      /check before signing/i, 'the wall holds on the route, not only in the browser');
+    await put({ playbook: { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation',
+      accepted: { by: 'Wanjiru Kamau', at: new Date().toISOString(), why: 'Traded in round 2.' } }] } });
+    const ok = await put({ signatures: sig() });
+    assert.ok(ok && !ok.error, 'and lets go once it is accepted in writing');
+    await gate('off');
+  });
+
+  test('the refusal is one function, asked at both signing doors', () => {
+    assert.equal((SERVER.match(/signCheckRefusal\(/g) || []).length, 3,
+      'declared once and asked at the in-app save and at the counterparty\'s respond route');
+  });
+
+  /* THE HONEST LIMIT, STATED RATHER THAN DISCOVERED: the wall enforces the two
+     questions it can compute exactly from the stored record. */
+  test('the server says which half of the check it does not enforce', () => {
+    assert.match(SERVER, /it is advisory:\s*\n\s*the card reports it, the wall does not/);
+  });
+});

@@ -1866,6 +1866,22 @@ const SET_PANELS={
     wire(){ renderReviewGatePanel(); },
   },
 
+  /* ---- THE CHECK BEFORE SIGNING, BESIDE THE REVIEW GATE (13 Sep 2026) ----
+     Three settings and OFF is the default: the card informs and blocks nothing
+     until an admin says otherwise. It sits next to the review gate because it
+     is the same kind of rule — a step the organisation may require before
+     something leaves or is signed — and a reader looking for one will be
+     looking in the same place for the other. */
+  signcheck:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('sc_set_title'),
+    sub:()=>i18t('sc_set_sub'),
+    state(){ const g=(window.signCheckGate?signCheckGate():'off');
+      return { dot:g==='off'?'off':'ok', text:`${i18t('sc_set_title')} — ${i18t('sc_set_'+g)}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
+    wire(){ renderSignCheckGatePanel(); },
+  },
+
   desk:{
     tab:'platform', mandatory:false,
     title:()=>i18t('st_p_desk'),
@@ -3897,6 +3913,29 @@ function renderReviewGatePanel(){
    The paragraph under the switch is not decoration. Switching this on changes
    what colleagues can do on contracts they could work on yesterday, and an
    admin should be able to read exactly what happens without leaving the row. */
+/* THE GATE IS A SETTING AND WRITES ON CHANGE — gates have no Save (the
+   rulebook's own line). Three answers, safest first, so the default is the one
+   the eye lands on. A non-admin is shown the state and cannot move it. */
+function renderSignCheckGatePanel(){
+  const host=document.getElementById('sc-gate-panel'); if(!host) return;
+  const admin=isAdmin();
+  const now=(window.signCheckGate?signCheckGate():'off');
+  const row=k=>`<label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;margin-bottom:9px;cursor:${admin?'pointer':'not-allowed'}">
+    <input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+    <span><span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('sc_set_'+k)}</span>
+    <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('sc_set_'+k+'_d')}</span></span>
+  </label>`;
+  host.innerHTML=(window.SIGN_CHECK_GATES||['off','advise','require']).map(row).join('');
+  if(!admin) return;
+  host.querySelectorAll('input[name="sc-gate"]').forEach(r=>r.addEventListener('change',()=>{
+    if(!r.checked) return;
+    state.settings=state.settings||{};
+    state.settings.signCheckGate=r.value;
+    if(window.saveSettings) saveSettings();
+    toast(i18t('sc_set_saved'));
+    renderSignCheckGatePanel();
+  }));
+}
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;
   const admin=isAdmin();

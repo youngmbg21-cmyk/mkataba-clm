@@ -145,6 +145,11 @@ const TRIAGE = 'js/triage.js';
 const DESKNIGHT = 'js/desknight.js';
 /* Obligations and renewal decisions (buildWorld({obligations:true})). */
 const OBLIGATIONS = 'js/obligations.js';
+const SIGNCHECK = 'js/signcheck.js';
+/* The text hasher the signing door's two "has the wording moved" questions
+   share with the obligations scan. Without it both answer null — "we do not
+   know" — which is the honest fallback and not what these tests are about. */
+const DEDUPE = 'js/dedupe.js';
 /* Payment terms turned into a number of days (buildWorld({payterms:true})).
    A reading with no view, like js/precedent.js: it annotates a contract and
    touches nothing, so a stage without it behaves exactly as every test
@@ -385,6 +390,18 @@ function buildWorld(opts = {}) {
      when it is absent, which is the order js/app.js uses too. */
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
+  /* THE SIGNING DOOR'S OWN READING (buildWorld({signcheck:true}), 13 Sep 2026).
+     It reads the playbook, the obligations and the record, and every one of
+     them through `window` with a guard — so it answers a smaller truth on a
+     stage without them rather than throwing. The two it most needs are brought
+     along unless the caller has already asked for them by name, which is the
+     same guard the standards read uses two blocks down. */
+  if (opts.signcheck) {
+    if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
+    if (!opts.obligations) files.push(OBLIGATIONS);
+    if (!files.includes(DEDUPE)) files.push(DEDUPE);
+    files.push(SIGNCHECK);
+  }
   /* The guard is the one this file already uses for intelView and obligations:
      asking for the read brings the playbook it measures against, unless the
      caller has asked for it by name — a module run twice in one context
