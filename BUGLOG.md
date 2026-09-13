@@ -13056,3 +13056,22 @@ VERIFIED
   npm test — 6,946 tests, 1,388 suites, 0 failures, 4m20s (second run; the
   first found four tests pinning the old words — f17, f241, f7, n2 — each
   re-pointed to its real claim).
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 — THE PENCIL KEEPS SUGGESTIONS
+Owner: "when i click on the pencil, it takes me to the playbook scan page
+when i should remain in the suggestions."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · Build plan G1.1 (this morning) opened the clause editor's rail on the
+    Playbook tab where the clause had findings. Reversed on the owner's word:
+    the rail opens on Suggestions unless a caller names the Playbook tab.
+    ceClauseFindings stays as the reading behind the tab's count. f306 (1)
+    re-pointed; the rulebook's G1 line says so.
+
+NOTICED, NOT FIXED
+  · nothing.
+
+VERIFIED
+  f306 green; lint 0 errors.

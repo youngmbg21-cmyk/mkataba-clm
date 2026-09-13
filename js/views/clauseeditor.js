@@ -1827,9 +1827,14 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
 
      ORDER MATTERS: the reset above has to run first, or the groups are read
      through the PREVIOUS sitting's scan. */
-  _ceTab = opts.tab === 'scan' ? 'scan'
-    : opts.tab === 'chat' ? 'chat'
-    : (ceClauseFindings() ? 'scan' : 'chat');
+  /* THE PENCIL KEEPS SUGGESTIONS (Young, 13 Sep 2026, with the page on
+     screen: "when i click on the pencil, it takes me to the playbook scan
+     page when i should remain in the suggestions"). This reverses the
+     auto-open above the same day it shipped: the rail opens on the greeting
+     unless a caller NAMES the Playbook tab. ceClauseFindings stays as a
+     reading with no caller here; the Playbook tab's own count still shows
+     the findings without moving anybody onto it. */
+  _ceTab = opts.tab === 'scan' ? 'scan' : 'chat';
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----

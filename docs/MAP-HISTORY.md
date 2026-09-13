@@ -19213,3 +19213,13 @@ reads the box.
 on the built product and the counts compared to the proposal (send 114 words
 against 112 proposed; the one gap — the review picker re-painting its search
 hint after open — fixed and re-measured).
+
+## THE PENCIL KEEPS SUGGESTIONS (13 Sep 2026, the same evening)
+
+Group 1.1 of the build plan opened the clause editor's rail on the Playbook
+tab wherever the clause had findings of its own. The owner, with the page on
+screen the same day: *"fix the fact that when i click on the pencil, it takes
+me to the playbook scan page when i should remain in the suggestions."*
+Reversed: the rail opens on Suggestions unless a caller names the Playbook tab
+(no caller does). `ceClauseFindings` stays as the reading the tab's count is
+drawn from; nothing moves the reader onto it. f306 (1) re-pointed.

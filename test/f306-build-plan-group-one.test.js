@@ -70,15 +70,25 @@ const tabOn = doc => {
   return on ? on.getAttribute('data-ce-tab') : null;
 };
 
-describe('f306 (1) — the rail opens on the finding it is already holding', () => {
-  test('a clause with a located finding opens on the Playbook tab', async () => {
+describe('f306 (1) — the rail opens on Suggestions; the Playbook tab is a door, not a landing', () => {
+  /* REVERSED THE DAY IT SHIPPED (Young, 13 Sep 2026): "when i click on the
+     pencil, it takes me to the playbook scan page when i should remain in the
+     suggestions". The reading survives (the tab's count is drawn off it); the
+     auto-open does not. */
+  test('a clause with a located finding still opens on Suggestions', async () => {
     const { win, c, doc } = await bench();
     const cl = clauseWith(win, c, /thirty \(30\) days/);
     assert.ok(cl, 'the fixture has a payment clause');
     putReview(c, cl.text.slice(0, 80), 'Payment terms');
     assert.equal(win.rlOpenClauseEditor(c, cl.clauseId), true, 'the editor opens');
-    assert.equal(win.ceClauseFindings() > 0, true, 'and this clause has findings of its own');
-    assert.equal(tabOn(doc), 'scan', 'so the rail lands on the tab that already holds them');
+    assert.equal(win.ceClauseFindings() > 0, true, 'this clause has findings of its own');
+    assert.equal(tabOn(doc), 'chat', 'and the rail stays on Suggestions regardless');
+  });
+  test('a caller that names the Playbook tab still gets it', async () => {
+    const { win, c, doc } = await bench();
+    const cl = clauseWith(win, c, /thirty \(30\) days/);
+    win.rlOpenClauseEditor(c, cl.clauseId, { tab: 'scan' });
+    assert.equal(tabOn(doc), 'scan');
   });
 
   test('a clause with none of its own opens on the greeting, as it always did', async () => {
