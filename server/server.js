@@ -1109,7 +1109,7 @@ function rvGateApplies(c, u){
 /* ============================================================
    THE CHECK BEFORE SIGNING — THE SERVER'S HALF (13 Sep 2026, phase 5)
    ============================================================
-   OFF BY DEFAULT. `signCheckGate` is 'off' unless an admin has set it, and on
+   ADVISE BY DEFAULT (was off until 13 Sep 2026). `signCheckGate` is 'advise' unless an admin has set it, and on
    anything but 'require' these answer as they always did: nothing is refused
    and nothing behaves differently by a byte.
 
@@ -1128,7 +1128,31 @@ function rvGateApplies(c, u){
    the card reports it, the wall does not. Stated here rather than discovered. */
 function scGate(){
   const v = (getSetting('appSettings') || {}).signCheckGate;
-  return ['off', 'advise', 'require'].includes(v) ? v : 'off';
+  /* ADVISE BY DEFAULT since 13 Sep 2026 (the signing flow rebuilt, owner's
+     ruling): an ESCALATED departure holds until the colleague asked, or an
+     admin, clears it; everything else on the check is shown and can be
+     accepted by the signer with a reason. Mirrors SIGN_CHECK_GATE_DEFAULT in
+     js/signcheck.js — the two must agree or the browser and the wall disagree. */
+  return ['off', 'advise', 'require'].includes(v) ? v : 'advise';
+}
+/* WHO GAVE THE ACCEPTANCE, read off the stamped record and never off the
+   caller: an escalated finding counts as settled only where the acceptance
+   carries the id of the colleague it was escalated to, or an admin's. The
+   role is looked up on the users table by the stamped id, so a member who was
+   an admin when they accepted and is not one now still counts — the record
+   is what it was at the time. */
+function scAcceptedProperly(v){
+  const a = v && v.accepted;
+  if (!a || !a.at) return false;
+  if (!v.escalate) return true;
+  const to = v.escalation && v.escalation.to;
+  if (to && to.id && a.byId && String(to.id) === String(a.byId)) return true;
+  if (String(a.role || '') === 'admin') return true;
+  if (a.byId){
+    const u = db.prepare('SELECT role FROM users WHERE id=?').get(String(a.byId));
+    if (u && u.role === 'admin') return true;
+  }
+  return false;
 }
 /* The record rows, read exactly as the browser's signCheckRecord reads them:
    `metadata` is what was read OUT OF the wording, the fields beside it are what
@@ -1143,15 +1167,26 @@ function scRecordSays(c, field){
   if (field === 'counterparty') return String((c && c.counterparty) || '').trim();
   return '';
 }
-function srvSignCheckOpen(c){
-  const out = [];
+/* What is open on the check, itemised with whether the row is an ESCALATION —
+   `advise` holds only those, `require` holds every row. A finding accepted by
+   somebody the escalation did not name is still open, and says so. */
+function srvSignCheckOpen(c, opts){
+  const all = [];
   const pb = c && c.playbook;
-  if (!pb || !Array.isArray(pb.verdicts)) out.push('no standards review on file');
+  if (!pb || !Array.isArray(pb.verdicts)) all.push({ text: 'no standards review on file', esc: false });
   else for (const v of pb.verdicts){
     if (!v || (v.status !== 'deviation' && v.status !== 'missing')) continue;
-    if (v.accepted && v.accepted.at) continue;
-    out.push(`an unaccepted departure on "${String(v.category || 'a standard')}"`);
+    if (scAcceptedProperly(v)) continue;
+    const cat = String(v.category || 'a standard');
+    all.push({ esc: !!v.escalate, text: v.accepted && v.accepted.at
+      ? `an escalated departure on "${cat}" accepted by somebody it was not escalated to`
+      : `${v.escalate ? 'an escalated' : 'an unaccepted'} departure on "${cat}"` });
   }
+  const out = [];
+  const gate = (opts && opts.gate) || scGate();
+  const take = x => { if (gate === 'require' || (gate === 'advise' && x.esc)) out.push(x.text); };
+  all.forEach(take);
+  if (gate !== 'require') return out;
   const m = (c && c.metadata) || {};
   const kept = (c && c.recordAccepted) || {};
   for (const field of SC_RECORD_FIELDS){
@@ -1170,11 +1205,14 @@ function srvSignCheckOpen(c){
    nothing is open — a wall that is always there is not a wall, it is a door
    that does not open. */
 function signCheckRefusal(c){
-  if (scGate() !== 'require') return null;
+  const gate = scGate();
+  if (gate === 'off') return null;
   if (!c) return null;
-  const open = srvSignCheckOpen(c);
+  const open = srvSignCheckOpen(c, { gate });
   if (!open.length) return null;
-  return 'This workspace requires a check before signing, and it is not clear yet: '
+  return (gate === 'require'
+      ? 'This workspace requires a check before signing, and it is not clear yet: '
+      : 'Something on the check before signing is still held: ')
     + open.slice(0, 3).join('; ')
     + (open.length > 3 ? `, and ${open.length - 3} more` : '')
     + '. Settle or accept each one on the Signing tab first.';
@@ -3551,7 +3589,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      The counterparty's own door is guarded separately at
      POST /api/shares/:token/respond; this is the in-app half, and both ask the
      one function. */
-  if (prev && scGate() === 'require') {
+  if (prev && scGate() !== 'off') {
     const inApp = x => x && x.method === 'session-authenticated';
     const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
     const had = new Set((Array.isArray(prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
@@ -8409,6 +8447,45 @@ app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
     told.push({ id: p.id, name, to, ...mailReport(r3) });
   }
   res.json({ ok: true, told, skipped, emailConfigured: EMAIL_ON() });
+});
+
+/* ---------- ESCALATE A DEPARTURE BEFORE SIGNING (13 Sep 2026) ----------
+   The browser stamps the escalation on the verdict and saves it; this route
+   only TELLS the colleague, and owns who is written to — the mention route's
+   own rule. Ids in, addresses never (a body address is refused); the colleague
+   is a `users` row, in scope for this contract, and the link lands on the
+   Signing tab where the row and its verbs are. Nothing is written to the
+   record here. */
+app.post('/api/contracts/:id/escalate', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address)
+    return res.status(400).json({ error: 'This route resolves the colleague’s address from the workspace’s own records. Send a member id, not an email address.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const memberId = String(b.memberId || '').trim();
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  if (memberId === String(req.user.id)) return res.status(400).json({ error: 'An escalation goes to somebody else' });
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(memberId);
+  if (!u) return res.status(404).json({ error: 'That colleague is not on this workspace' });
+  if (!inScope(folderScopeFor(u), row.folder))
+    return res.status(403).json({ error: `${u.name} cannot open this contract` });
+  const to = String(u.email || '').trim();
+  const category = clean(b.category).slice(0, 120) || 'a standard';
+  const note = clean(b.note).slice(0, 600);
+  const cName = c.name || req.params.id;
+  const link = contractUrl(req, req.params.id, 'sign');
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: true, told: false, why: 'no-address', name: u.name, emailConfigured: EMAIL_ON() });
+  const L = langForEmail(to);
+  const r3 = await sendEmail(to,
+    tFor(L, 'mail_esc_subject', { who: req.user.name, name: cName }),
+    `${tFor(L, 'mail_hello')} ${u.name},\n\n`
+      + tFor(L, 'mail_esc_line', { who: req.user.name, what: category, name: cName })
+      + (note ? `\n\n"${note}"\n` : '\n')
+      + `\n${tFor(L, 'mail_at_open')}\n${link}\n`
+      + `\n${tFor(L, 'mail_automated_notice')}`,
+    `escalate: ${req.params.id} -> ${to}`);
+  res.json({ ok: true, told: true, name: u.name, to, ...mailReport(r3), emailConfigured: EMAIL_ON() });
 });
 
 /* ---------- THE NEGOTIATION MEMO, MAILED TO A COLLEAGUE ----------

@@ -40,13 +40,21 @@ const SRC = fs.readFileSync(
   path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
 
 describe('F176 — the intent-to-sign step speaks without a button', () => {
-  test('the branch still answers, and declines the primary slot', () => {
-    const branch = /if\(!c\.compliance\.consent\) return \{[\s\S]{0,400}?\};/.exec(SRC);
-    assert.ok(branch, 'the intent-to-sign branch is still there to be found');
-    assert.match(branch[0], /kind:'sign-scroll'/, 'it is the state under test');
-    assert.match(branch[0], /noButton:\s*true/, 'and it asks for no button of its own');
-    assert.match(branch[0], /guide:'[^']*intent-to-sign/,
-      'while still saying what the next step actually is');
+  /* RE-POINTED 13 Sep 2026 (the signing flow rebuilt): the intent tick-box
+     left the Signing tab for the signature pad, so the branch that pointed
+     at it — and its 'sign-scroll' kind — are gone. What the head says now is
+     how much stands in the way ("Sign · N to settle"), and the press lands on
+     the readiness list while anything holds. The rule this file is named for
+     still stands: the head never draws a second door onto a thing the tab
+     row already carries. */
+  test('the intent-to-sign branch is gone, and the Sign branch quotes the one list', () => {
+    assert.doesNotMatch(SRC, /if\(!c\.compliance\.consent\) return \{/, 'no branch points at a tick-box any more');
+    /* Comments stripped first: the code says in words that the kind is retired. */
+    const bare = SRC.replace(/\/\*[\s\S]*?\*\//g, '');
+    const fn = /function wsNextAction\(c\)\{[\s\S]*?\n\}/.exec(bare);
+    assert.ok(fn);
+    assert.doesNotMatch(fn[0], /'sign-scroll'/, 'the kind that scrolled to the box is retired');
+    assert.match(fn[0], /signHeadLabel\(c\)/, 'the head\'s word is the reading\'s');
   });
 
   /* ---- AND THE SAME RULE, ON THE SAME HEAD, FOR THE NEGOTIATION ----

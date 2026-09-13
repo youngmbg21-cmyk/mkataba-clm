@@ -184,14 +184,15 @@ describe('f256 (4) — every blocker that refused before still refuses', () => {
        the list has carried since the desk and the review gate came OFF it on
        12 Aug 2026, and this claim's job is that J-1 added a sixth without
        disturbing any of them. */
-    ['consent', 'approval', 'turn', 'negotiation', 'fields'].forEach(k => {
+    ['approval', 'turn', 'negotiation', 'fields', 'signers'].forEach(k => {
       assert.ok(new RegExp(`add\\('${k}'`).test(m),
         `the ${k} blocker is still on the list`);
     });
-    /* And it refuses for the reason it always did: a contract with no consent
-       tick is refused with the consent blocker FIRST, exactly as before. */
+    /* RE-POINTED 13 Sep 2026: the intent tick-box left this list for the
+       signature pad, so `consent` is no longer a key on it. */
+    assert.ok(!/add\('consent'/.test(m), 'the intent row is gone from the list');
     const out = win.signBlockers(c);
-    assert.equal(out[0].key, 'consent', 'intent still leads');
+    assert.ok(!out.some(x => x.key === 'consent'), 'and never answers');
   });
 
   test('a spot waiting on the OTHER SIDE is not a reason this reader cannot sign', () => {

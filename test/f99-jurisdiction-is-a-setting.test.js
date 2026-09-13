@@ -287,11 +287,10 @@ describe('F99g — a claim a market cannot support is not made', () => {
   test('the signing consent box cites the market\'s own e-signature basis', () => {
     /* Read from source: this is one line of markup deep inside the workspace
        screen, and what matters is that it interpolates rather than asserts. */
-    const src = read('js/views/contract.js');
-    /* The LABEL is a dictionary key now (the signer reads it in their own
-       language); the statute beside it still has to be interpolated from the
-       market pack rather than asserted. */
-    assert.match(src, /ct_intend_to_sign[\s\S]{0,220}\$\{jxEsignature\(\)\}/,
+    /* RE-POINTED 13 Sep 2026: the consent line moved into the signature pad
+       (js/signature.js) — same label key, same interpolated statute. */
+    const src = read('js/signature.js');
+    assert.match(src, /ct_intend_to_sign[\s\S]{0,260}jxEsignature\(\)/,
       'the consent a signer gives must name the law they are giving it under');
   });
 });

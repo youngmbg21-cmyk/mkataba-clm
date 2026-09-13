@@ -185,41 +185,163 @@ function signCheck(c){
 
 
 /* ============================================================
-   THE GATE, OFF BY DEFAULT (phase 5)
+   THE GATE — ADVISE BY DEFAULT (13 Sep 2026, the signing flow rebuilt)
    ============================================================
-   By default the card tells you things and blocks nothing at all. An admin can
-   set it to `require`, and then it joins the things that already hold a
-   signature back, in exactly their shape: one row in signBlockers, naming what
-   is open.
+   Three settings, one meaning each, read here and mirrored by the server's
+   scGate so the browser and the wall cannot disagree:
+     off     — nothing on the check holds a signature; the rows are still drawn.
+     advise  — THE DEFAULT. An ESCALATED departure holds until the colleague
+               asked, or an admin, clears it. Everything else on the check is
+               shown and can be accepted by the signer with a written reason.
+     require — every open row on the check holds.
+   The owner's ruling on the defaults (13 Sep 2026): "escalations, approvals,
+   turn, blanks and signers hold; departures and risk findings are shown and
+   acceptable with a reason."
 
    IT IS A SECOND ROW IN THE APPROVAL CHAIN'S KIND OF QUESTION, not a fourth
-   kind of gate. The rulebook's line stands: the desk gates redlining and
-   sending, the approval chain gates signing, the review gates sending. This
-   gates signing, like the approval chain, and never anything else. */
+   kind of gate. The desk gates redlining and sending, the review gates
+   sending; this gates signing, like the approval chain, and nothing else. */
 const SIGN_CHECK_GATES = ['off', 'advise', 'require'];
+const SIGN_CHECK_GATE_DEFAULT = 'advise';
 function signCheckGate(){
   let st = null; try{ st = window.state; }catch(_){ st = null; }
   const v = st && st.settings && st.settings.signCheckGate;
-  return SIGN_CHECK_GATES.includes(v) ? v : 'off';
+  return SIGN_CHECK_GATES.includes(v) ? v : SIGN_CHECK_GATE_DEFAULT;
 }
-/* THE ONE PREDICATE every enforcement point asks — the review gate's own shape,
-   so a gate enforced in one place and not the other cannot happen. */
-function signCheckApplies(c){ return !!c && signCheckGate() === 'require'; }
-/* WHAT WOULD HOLD A SIGNATURE, counted. Null where the gate is off, where the
-   moment has not come, or where nothing is open — a blocker that is always
-   there is furniture. */
+/* Kept for the callers that asked the old yes/no question: "does the check
+   hold anything at all on this workspace". */
+function signCheckApplies(c){ return !!c && signCheckGate() !== 'off'; }
+
+/* ---- ESCALATE MEANS SOMEBODY ELSE ----
+   A finding the playbook marks `escalate` is one the person about to sign may
+   not wave through alone. `v.escalation` is the ask — {to:{id,name}, by, byId,
+   at, note} — stamped by signCheckEscalate; `v.accepted` is the answer, and
+   carries `byId` so the wall can tell who gave it.
+   WHO MAY ACCEPT: an ordinary departure, anyone who can sign; an escalated
+   one, the colleague it was sent to, or an admin. Nobody asked yet is not a
+   loophole — the signer still cannot, and an admin still can. */
+function signCheckMayAccept(c, v, user){
+  if (!v) return false;
+  if (!v.escalate) return true;
+  const u = user || _scCall('currentUser') || null;
+  if (!u) return false;
+  if (String(u.role || '') === 'admin') return true;
+  const to = v.escalation && v.escalation.to;
+  return !!(to && to.id && String(to.id) === String(u.id));
+}
+/* An escalated finding accepted by somebody who was not allowed to: the
+   record shows an acceptance and the wall must still hold. Asked of the
+   stamped acceptance, never of who is looking. */
+function signCheckAcceptedProperly(v){
+  const a = v && v.accepted;
+  if (!a || !a.at) return false;
+  if (!v.escalate) return true;
+  if (String(a.role || '') === 'admin') return true;
+  const to = v.escalation && v.escalation.to;
+  return !!(to && to.id && a.byId && String(to.id) === String(a.byId));
+}
+
+/* ---- THE ROWS OF THE CHECK, AND WHICH OF THEM HOLD ----
+   One row per finding, per record disagreement, and one for the obligations
+   read — the itemised shape of signCheck's three counts, so the card, the
+   button and the server count the same things. `holds` is the gate's answer
+   for THIS row; `settled` rows are kept so the card can fold them under a
+   count rather than silently dropping what a colleague already dealt with. */
+function signCheckRowHolds(row, gate){
+  const g = gate || signCheckGate();
+  if (row.settled) return false;
+  if (g === 'off') return false;
+  if (g === 'require') return true;
+  return row.kind === 'standard' && !!row.escalate;      /* advise */
+}
+function signCheckRows(c, r){
+  const rd = r || signCheck(c);
+  if (!rd || !rd.ready) return [];
+  const rows = [];
+  const s = rd.standards;
+  if (s.unread === true || s.stale === true)
+    rows.push({ kind: 'standards-read', key: 'standards-read', stale: s.stale === true, settled: false, escalate: false });
+  s.findings.forEach(f => {
+    const v = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts[f.i] : null;
+    const properly = signCheckAcceptedProperly(v);
+    rows.push({ kind: 'standard', key: 'std:' + f.i, i: f.i, category: f.category, status: f.status,
+      position: f.position, quote: f.quote, escalate: f.escalate,
+      escalation: v && v.escalation ? v.escalation : null,
+      accepted: f.accepted, settled: !!f.accepted && properly,
+      /* accepted, but by somebody who may not: shown as open, said in words */
+      badAccept: !!f.accepted && !properly });
+  });
+  if (rd.obligations.unread === true)
+    rows.push({ kind: 'obligations', key: 'obligations', settled: false, escalate: false });
+  rd.record.rows.filter(x => x.agrees === false).forEach(x => rows.push({
+    kind: 'record', key: 'rec:' + x.field, field: x.field, record: x.record, paper: x.paper,
+    kept: x.kept, settled: !!x.kept, escalate: false }));
+  const gate = signCheckGate();
+  rows.forEach(row => { row.holds = signCheckRowHolds(row, gate); });
+  return rows;
+}
+/* The check rows that hold a signature RIGHT NOW. The one count signBlockers'
+   row carries and signReadiness reads — so the two cannot drift. */
+function signCheckHolding(c){
+  return signCheckRows(c).filter(x => x.holds);
+}
 function signCheckBlocker(c){
-  if (!signCheckApplies(c)) return null;
-  const r = signCheck(c);
-  if (!r || !r.ready || !r.anyOpen) return null;
-  const n = (r.standards.open || 0) + (r.standards.unread ? 1 : 0)
-    + (r.record.open || 0) + (r.obligations.unread === true ? 1 : 0);
+  if (!c) return null;
+  const n = signCheckHolding(c).length;
   return n ? { key: 'signcheck', n } : null;
 }
 
+/* ============================================================
+   ONE LIST BEFORE THE SIGNATURE (13 Sep 2026 — the signing audit's piece 1)
+   ============================================================
+   Five surfaces each printed their own number: the button, the check card,
+   the red risk line, the head, Home. signReadiness is the one reading of
+   "what stands between this reader and signing", and every one of them
+   quotes it.
+
+   A ROW IS ONE THING TO SETTLE, in the order of its weight:
+     · the rows signBlockers already carries (approval, turn, negotiation,
+       blanks, fields, cap, folder, spots, signers) — every one HOLDS;
+     · the check's own rows (standards, obligations, record) — holding or
+       merely shown, by the gate;
+     · the risk scan's open high findings — shown, never holding.
+   `holds` is what stops the button; `noted` is what the signer is signing
+   over with their eyes open; `settled` is what was dealt with. */
+const SIGN_RISK_SEV = 'high';
+function signReadiness(c, opts){
+  if (!c) return { rows: [], holds: [], noted: [], settled: [], open: [], n: 0 };
+  const rows = [];
+  const bl = _scCall('signBlockers', c) || [];
+  bl.filter(b => b && b.key !== 'signcheck').forEach(b => rows.push({
+    kind: b.key, key: 'bl:' + b.key, label: b.label, short: b.short, holds: true, settled: false }));
+  /* THE LIGHT LIST: a register row carries no wording (HEAVY strips an
+     upload's text), so the two rows that hash the wording — "the review is
+     about earlier wording", "the wording moved since the obligations were
+     read" — cannot be answered off it and would answer wrongly. A caller
+     reading a light record says so, and those two rows are left out rather
+     than guessed. The rest is on the record and survives the list. */
+  const light = !!(opts && opts.light);
+  signCheckRows(c).filter(r => !(light && (r.kind === 'standards-read' || r.kind === 'obligations')))
+    .forEach(r => rows.push(r));
+  const findings = _scCall('openFindings', c) || [];
+  findings.filter(f => f && f.sev === SIGN_RISK_SEV).forEach(f => rows.push({
+    kind: 'risk', key: 'risk:' + f.id, id: f.id, title: f.title, what: f.what, fix: f.fix,
+    anchor: f.anchor, holds: false, settled: false }));
+  /* HOLDING FIRST, then what is merely open, then what was settled — and
+     escalations lead the holds, because they are the ones the signer cannot
+     settle alone. */
+  const rank = r => r.settled ? 3 : r.holds ? (r.escalate ? 0 : 1) : 2;
+  const ordered = rows.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map(x => x.r);
+  const holds = ordered.filter(r => r.holds);
+  const noted = ordered.filter(r => !r.holds && !r.settled);
+  const settled = ordered.filter(r => r.settled);
+  return { rows: ordered, holds, noted, settled, open: holds.concat(noted), n: holds.length };
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
-  SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES,
-  signCheckGate, signCheckApplies, signCheckBlocker,
+  SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
+  signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly,
+  signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness,
   signCheck, signCheckReady, signCheckTableClear,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,
 });

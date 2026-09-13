@@ -13101,3 +13101,48 @@ NOTICED, NOT FIXED
     fact formatter as NaN. A real defect on a real shape of record.
   · The signing order chip read "EMAIL FAILED" on a workspace with no mail
     provider (expected there, but the chip reads as an error).
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 — ONE LIST BEFORE THE SIGNATURE (the signing audit, built)
+Owner: "go" — the defaults as written in the artifact "Signing, audited".
+════════════════════════════════════════════════════════════════════════
+
+BUILT
+  · signReadiness(c) is the one reading; the card, the button, the head, the
+    bell and Home quote it. The four tiles are gone; every row is a door.
+  · Escalate means somebody else: Ask a colleague (a real dialog, the
+    review's candidates), the stamp on the verdict, the mail through
+    POST /api/contracts/:id/escalate; the signer alone can never accept an
+    escalated departure; the server judges the stamped acceptance.
+  · The gate defaults to advise (browser and server); off/advise/require
+    re-described in both books.
+  · The intent statement is the signature pad's first line; the tick-box
+    left the Signing tab; 'sign-scroll' retired.
+  · The button is live while held — the press lands on the first held row.
+
+DEFECTS FOUND ON THE WAY, FIXED BECAUSE THEY WERE IN THE ROWS BEING REBUILT
+  · The record row's "Fix on Key terms" handed the FIELD NAME to
+    focusKeyTerms, which takes the contract — a dead press on every record
+    disagreement since the card was built.
+  · signBlockers created a negotiation on every paint of the Signing tab
+    (negoSigningBlockers → negoAlignment → negoInit) on a contract that had
+    none; found by f308's byte-identical claim the moment the readiness card
+    read the list. It asks only where a table exists.
+  · The head's Sign kept its old count after an act on the Signing tab (the
+    head is built once per render); re-worded after every act.
+
+NOTICED, NOT FIXED
+  · The signing order chip still reads "EMAIL FAILED" on a workspace with no
+    mail provider (already logged 13 Sep; unchanged).
+  · An approval row on the readiness list has no Remind verb — no reminder
+    route for approvers exists; the row names who it waits on and the chain
+    card below carries the approver's own verbs.
+  · Home's row and the bell's sub-line read the LIGHT record, so they never
+    count the two hash-based rows (review stale / obligations unread); the
+    Signing tab can therefore say one more than Home does. Said in the code;
+    a transport flag would close it.
+
+VERIFIED
+  f311 28/28 (1 of 28 at the parent); signing-flow-verify 17/17;
+  sign-links-verify 38/38; f308, f256, f167, f232, f48, f148 green;
+  lint 0 errors; full suite — see the commit.

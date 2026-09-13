@@ -19223,3 +19223,91 @@ me to the playbook scan page when i should remain in the suggestions."*
 Reversed: the rail opens on Suggestions unless a caller names the Playbook tab
 (no caller does). `ceClauseFindings` stays as the reading the tab's count is
 drawn from; nothing moves the reader onto it. f306 (1) re-pointed.
+
+## ONE LIST BEFORE THE SIGNATURE (Young's "go" on the signing audit, 13 Sep 2026)
+
+The owner's report, with the page in front of him: *"So many layers of poor
+flow prior to signing. First I am allowed to sign the contract without
+resolving the fact that I need to resolve that accept the highlighted issues
+first. Then at some stage I had a sign in red saying that I have 2 high
+severity issues that prevented me from signing but the writing was not a link
+where I needed to go to resolve the issues. Think best in class and give me a
+seamless flow that also steers you towards what needs resolving."*
+
+THE AUDIT (the artifact "Signing, audited") measured, on one real contract:
+five different counts for "what stands before signing" on one visit (the
+Checks card, the risk row, the check tiles, the red line, the gate's refusal);
+the button leading with "tick intent to sign first" while an escalated
+departure from standards was not on it at all; the red risk line and the gate
+refusal printed as sentences with nowhere to press; the gate OFF by default so
+the pad opened over four open findings; ESCALATE offering "Accept with a
+reason" to the very person about to sign; the column upside down (obstacle
+at the top, act at the bottom, the tick-box under the block); the head and
+Home saying nothing about how much stood in the way. The owner said "go" and
+took the defaults as written: escalations cleared by the colleague asked or
+an admin; escalations, approvals, whose turn, blanks and unnamed signers hold;
+departures and risk findings shown and acceptable with a reason; the intent
+statement moved into the signature pad.
+
+WHAT WAS BUILT, six pieces, one idea each:
+1. `signReadiness(c)` — the one reading. It composes the rows `signBlockers`
+   already carried (each holds), the check's own rows itemised
+   (`signCheckRows`, each holding or shown by the gate), and the risk scan's
+   open HIGH findings (shown, never holding). `opts.light` leaves the two
+   hash-based rows out on a register row, because HEAVY strips the wording
+   they hash and a guessed answer would be wrong on Home and the bell.
+   READING MUST NOT WRITE: `signBlockers` reached negoSigningBlockers →
+   negoAlignment → negoInit and CREATED a negotiation on every paint of the
+   Signing tab (found by f308's byte-identical claim the moment the card read
+   the list); it asks only where a table exists.
+2. Rows are doors. The four tiles went; the card draws the rows in weight
+   order (escalations first, then holds, then noted, then settled folded
+   under their count). The `[data-sc-fix]` door had handed the FIELD NAME to
+   focusKeyTerms, which takes the contract — dead on every press, found by
+   reading it. "Read it" is `scanGoTo`, lifted out of the scan card's handler
+   so both press one door. "Dismiss with a reason" writes the scan's own
+   store with the reason it never asked for. "Take the paper's value" writes
+   exactly where the Key terms editor writes (`c.value`, `fields.effDate`,
+   `c.expiry`, `c.counterparty`).
+3. Escalate means somebody else. `v.escalation` is the ask; `v.accepted`
+   carries `byId` and `role`; `signCheckMayAccept` (who may, asked of the
+   viewer) and `signCheckAcceptedProperly` (was it, asked of the STAMP) are
+   the two readings, and the server's `scAcceptedProperly` mirrors the
+   second and looks the role up on the users table by the stamped id. An
+   escalated finding accepted by the wrong person is drawn as OPEN with the
+   reason. The colleague is told through `POST /api/contracts/:id/escalate`
+   — the mention route's own rule (ids in, addresses refused, scope checked)
+   with a link onto the Signing tab. Ask a colleague leads every escalated
+   row, an admin's included: an admin may decide it alone and may also hand
+   it to whoever owns the standard.
+4. The gate defaults to ADVISE. `signCheckRowHolds` is the one rule (off →
+   nothing; advise → escalated standards rows; require → every open row) and
+   the server reads the same three at both doors on every gate but off. The
+   settings panel's three descriptions were rewritten in both books.
+5. The column reads list → order → block → Sign; the tick-box left the page.
+   `openSignaturePad({intent:true})` draws "I intend to sign electronically"
+   with the statute line as the pad's first line and refuses Adopt & sign
+   without it, flashing the row; the answer rides the result as `consent`
+   and `signConsentStamp` writes the record and the same Consent audit line
+   the box wrote. The counterparty's pad (portal.js) does not ask — their
+   consent is their own page's.
+6. Upstream. The button reads "Sign — N to settle" and is LIVE: the press is
+   `signLandOnList`, onto the first held row, lit. "Sign — N noted" names the
+   rows on the hover. The head's Sign says "Sign · N to settle" and its press
+   lands on the list while anything holds ('sign-scroll' retired — it pointed
+   at a box that no longer exists); `signPaintHeadLabel` re-words the head
+   after every act, because the head is built once per render and a tab
+   change never redraws it (measured: the head still said "1 to settle" after
+   the admin's acceptance until this was added). The bell's signature row
+   gains a sub-line and Home's "Needs your decision" a row, both quoting N.
+
+MEASURED in signing-flow-verify with real presses (17 claims): the button
+reads "Sign — 1 to settle" live; the escalated row leads and offers Ask a
+colleague; the held press lands on the row and lights it; the dialog picks a
+real colleague and the stamp lands; the server refuses a signature over the
+open escalation; an admin's acceptance turns the button to "Sign — 1 noted"
+and the head to "Sign"; the pad refuses Adopt & sign without the tick; with
+it the signature lands and consent is on the record and the trail.
+
+Tests: f311 (28 claims, 27 red at the parent), signing-flow-verify; f308 (3)
+and (5), f256 (4), f167, sign-links-verify section 5 re-pointed in place.

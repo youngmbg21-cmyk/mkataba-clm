@@ -1474,8 +1474,15 @@ function buildAlerts(){
       const mine=(ns.memberId&&String(ns.memberId)===String(me.id))
         || (!!ns.email&&!!me.email&&String(ns.email).toLowerCase()===String(me.email).toLowerCase());
       if(!mine) return;
+      /* THE ROW QUOTES THE ONE LIST (13 Sep 2026): how much still stands
+         between this reader and the signature, off signReadiness — the same
+         number the Signing tab's button and the head carry. Read LIGHT where
+         the record is a register row, so the two hash-based rows are never
+         guessed off stripped wording. */
+      let n=0; try{ n=window.signReadiness?signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n:0; }catch(_){ n=0; }
       push('signature',c,i18t('al_signature'),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);
     });
   }
   /* ---- 6. AN OBLIGATION THAT IS YOURS AND FALLS DUE (J-2.1) ----

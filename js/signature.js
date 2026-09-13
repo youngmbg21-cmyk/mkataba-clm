@@ -99,6 +99,11 @@ function openSignaturePad(opts={}){
             <div style="font-size:var(--t-label);color:${N6};margin-top:var(--s-2);font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>
+        ${opts.intent?`
+        <label id="sig-intent-row" style="display:flex;align-items:flex-start;gap:9px;margin:0 20px var(--s-2);border:1px solid ${C};border-radius:var(--radius);padding:9px 10px;cursor:pointer">
+          <input id="sig-intent" type="checkbox" style="margin-top:2px;width:15px;height:15px;accent-color:${ACC};flex:none"/>
+          <span style="font-size:var(--t-meta)"><span style="font-weight:var(--w-strong);display:block;color:${TXT}">${i18t('ct_intend_to_sign')}</span><span style="color:${N7};display:block;line-height:1.4">${(typeof jxEsignature==='function'?jxEsignature():'')}</span></span>
+        </label>`:''}
         <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:var(--s-2)">
           <label style="display:flex;align-items:center;gap:7px;font-size:var(--t-meta);color:${N7};cursor:pointer">
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
@@ -185,6 +190,18 @@ function openSignaturePad(opts={}){
     // ---- adopt ----
     q('#sig-cancel').addEventListener('click',()=>done(null));
     q('#sig-adopt-go').addEventListener('click',async()=>{
+      /* ---- THE INTENT LINE, ASKED HERE (13 Sep 2026) ----
+         "I intend to sign electronically" used to be a tick-box on the
+         Signing tab that led the queue of refusals. It is the pad's own
+         first line now: adopting a mark without it is refused, in words,
+         and the answer rides out on the result as `consent` so the caller
+         can stamp the record. Only where the caller asked for it — the
+         counterparty's page keeps its own consent. */
+      if(opts.intent && !(q('#sig-intent')&&q('#sig-intent').checked)){
+        toast(i18t('ct_tick_intent_first'),'err');
+        const row=q('#sig-intent-row'); if(row){ row.classList.remove('anchor-flash'); void row.offsetWidth; row.classList.add('anchor-flash'); }
+        return;
+      }
       let form=tab, image=null, typedName=null, font=null;
       if(tab==='saved' && saved){ form=saved.form; image=saved.image; typedName=saved.typedName||null; font=saved.font||null; }
       else if(tab==='draw'){ if(!drawn){ toast(i18t('si_draw_first'),'err'); return; } image=canvas.toDataURL('image/png'); }
@@ -193,7 +210,7 @@ function openSignaturePad(opts={}){
       else if(tab==='upload'){ if(!uploadedDataUrl){ toast(i18t('si_upload_first'),'err'); return; } image=uploadedDataUrl; }
       if(!image){ toast(i18t('si_add_first'),'err'); return; }
       const imageHash=await sha256(image);
-      const out={ form, image, imageHash, typedName, font };
+      const out={ form, image, imageHash, typedName, font, consent:!!opts.intent };
       if(q('#sig-adopt').checked) setSavedSignature(out); else if(saved && !q('#sig-adopt').checked) setSavedSignature(null);
       done(out);
     });

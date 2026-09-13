@@ -252,6 +252,34 @@ function runScan(c){
     lang:(typeof langId==='function'?langId():'en'),
     findings:scanRules(c), dismissed:prev };
 }
+/* ---- THE ONE DOOR ONTO A FINDING'S WORDING (13 Sep 2026) ----
+   Lifted out of renderScanSection's handler so the readiness card on the
+   Signing tab can press the same door ("Read it") — the Signing tab draws the
+   same canvas, so the same walk lands on the same words. */
+function scanGoTo(c, id, anchorHint){
+  clearQuoteMarks();
+  const f=((c&&c.scan&&c.scan.findings)||[]).find(x=>String(x.id)===String(id));
+  const anchor=anchorHint||(f&&f.anchor)||'doc';
+  // The wording itself, wherever it sits, beats a section anchor — and on an
+  // uploaded document it is the only thing that works, because there are no
+  // clause anchors to aim at.
+  const q=findingQuote(f);
+  if(q&&scrollToQuote(q)) return true;
+  /* Anchors go stale — a drafted contract that has been edited renders as one
+     working-text block, and an uploaded one never had clause anchors at all.
+     Walk down to whatever the document does offer rather than leaving a
+     button that answers a click with nothing. */
+  const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`)
+    || document.querySelector('#doc-canvas [data-anchor="redline"]')
+    || document.querySelector('#doc-canvas [data-anchor="doc"]')
+    || document.getElementById('doc-canvas');
+  if(!el) return false;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  const pane=document.getElementById('doc-scroll');
+  const small=!pane || el.getBoundingClientRect().height <= pane.clientHeight*0.6;
+  if(small){ el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash'); }
+  return true;
+}
 /* What language a stored AI result is in. The stamp where there is one, English
    where there is not — never the reader's current language, which is the whole
    point: the text on the record does not change when the reader does. */
@@ -396,27 +424,7 @@ function renderScanSection(c){
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
-    clearQuoteMarks();
-    const anchor=b.getAttribute('data-scan-goto'), id=b.getAttribute('data-scan-id');
-    const f=((c.scan&&c.scan.findings)||[]).find(x=>String(x.id)===String(id));
-    // The wording itself, wherever it sits, beats a section anchor — and on an
-    // uploaded document it is the only thing that works, because there are no
-    // clause anchors to aim at.
-    const q=findingQuote(f);
-    if(q&&scrollToQuote(q)) return;
-    /* Anchors go stale — a drafted contract that has been edited renders as one
-       working-text block, and an uploaded one never had clause anchors at all.
-       Walk down to whatever the document does offer rather than leaving a
-       button that answers a click with nothing. */
-    const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`)
-      || document.querySelector('#doc-canvas [data-anchor="redline"]')
-      || document.querySelector('#doc-canvas [data-anchor="doc"]')
-      || document.getElementById('doc-canvas');
-    if(!el) return;
-    el.scrollIntoView({behavior:'smooth',block:'center'});
-    const pane=document.getElementById('doc-scroll');
-    const small=!pane || el.getBoundingClientRect().height <= pane.clientHeight*0.6;
-    if(small){ el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash'); }
+    scanGoTo(c, b.getAttribute('data-scan-id'), b.getAttribute('data-scan-goto'));
   }));
 }
 
@@ -4179,7 +4187,7 @@ document.addEventListener('keydown',e=>{
 if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
-Object.assign(window,{
+Object.assign(window,{scanGoTo,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

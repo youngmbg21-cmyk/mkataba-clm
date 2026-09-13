@@ -3186,7 +3186,7 @@ function wsNextAction(c){
     .some(s=>s && s.party!=='counterparty');
   if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
     const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
-    return { get label(){ return i18t('ct_sign'); }, ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
+    return { get label(){ return signHeadLabel(c); }, ic:'finger', kind:'sign',
       guide:`${who} has signed. Your signature is the only thing left.` };
   }
   if(c.status==='Draft'){
@@ -3307,9 +3307,27 @@ function wsNextAction(c){
   if(window.signingRouteOpen && !signingRouteOpen(c))
     return { get label(){ return i18t('ct_add_signers'); }, ic:'users', kind:'add-signers',
       get guide(){ return i18t('ct_name_who_signs_guide',{ them:c.counterparty||i18t('ct_a_counterparty') }); } };
-  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger',
-    guide:'Approved — confirm intent-to-sign on the Signing tab, then sign.', kind:'sign-scroll', noButton:true };
-  return { get label(){ return i18t('ct_sign'); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+  /* ---- 'sign-scroll' IS RETIRED (13 Sep 2026) ----
+     It sent the reader to a tick-box that no longer exists. The head's Sign
+     says how much stands in the way — "Sign · 3 to settle" — and lands on the
+     readiness list; when nothing does, it signs. One kind, one door. */
+  return { get label(){ return signHeadLabel(c); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+}
+/* THE HEAD FOLLOWS THE LIST: the head is built once per render and never by
+   a tab change, so after an act on the Signing tab moves the count, its Sign
+   button is re-worded here — a text patch on the surviving element, never a
+   second binding (its handler resolves the contract at press time). Called
+   from renderSignButton, the one paint every act ends in. */
+function signPaintHeadLabel(c){
+  const na=document.getElementById('ws-next-action');
+  if(!na||na.getAttribute('data-na')!=='sign') return;
+  na.innerHTML=`${icon('finger','w-3.5 h-3.5')} ${esc(signHeadLabel(c))}`;
+}
+/* The head's word for the act, quoting the one reading: the count of what
+   holds, or plainly "Sign". */
+function signHeadLabel(c){
+  let n=0; try{ n=window.signReadiness?signReadiness(c).n:0; }catch(_){ n=0; }
+  return n?i18t('ct_sign_n_to_settle',{n}):i18t('ct_sign');
 }
 
 /* The status strip under the document header. Split out so filling in the key
@@ -3456,17 +3474,12 @@ function wireActionBar(c){
       setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(c); },180);
       return;
     }
-    if(kind==='sign-scroll'){
-      /* The consent box is on the SIGNING tab. Scrolling to it without going
-         there first scrolled a pane nobody was looking at, and the toast then
-         asked for a tick on a box that was not on screen. */
-      roomGoTab(c,'sign');
-      setTimeout(()=>{
-        const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
-        const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
-      },160);
-      toast(i18t('ct_tick_then_sign'));
-      return;
+    /* SIGN WHERE THE SIGNING IS. And where something HOLDS the signature,
+       the press lands on the readiness list rather than on a refusal: the
+       list is where the verbs are (13 Sep 2026). */
+    if(kind==='sign'||kind==='sign-scroll'){
+      let holds=0; try{ holds=window.signReadiness?signReadiness(c).n:0; }catch(_){ holds=0; }
+      if(holds){ signLandOnList(c); return; }
     }
     /* SIGN WHERE THE SIGNING IS. This signed from wherever the reader happened
        to be standing — Key terms, History — so the one irreversible act in the
@@ -6970,11 +6983,9 @@ function renderWorkspace(){
           <div id="sign-side" style="display:flex;flex-direction:column;gap:var(--s-3)"></div>
           <div style="${CARD};padding:var(--s-4) 18px;display:flex;flex-direction:column;gap:var(--s-3)">
             <div id="sign-block"></div>
-            ${(!locked&&canEdit())?`
-            <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px;cursor:pointer">
-              <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-              <span style="font-size:var(--t-meta)"><span style="font-weight:var(--w-strong);display:block">${i18t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
-            </label>`:''}
+            ${''/* THE INTENT TICK-BOX IS GONE FROM HERE (13 Sep 2026): it is
+                   the signature pad's first line now — see captureSignature.
+                   The column reads list → order → block → Sign, once. */}
             <div id="sign-wrap"></div>
           </div>
         </div>
@@ -8697,8 +8708,23 @@ function renderSignButton(c){
      signBlockers is ordered by what the reader should do next — and the rest are
      listed under it, because a button that names one obstacle over a page that
      has three is a queue nobody can see the end of. */
-  const signLabel = ready ? (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document')
-    : `Sign — ${blockers[0].short}`;
+  /* ---- THE BUTTON IS THE LIST (13 Sep 2026, the signing audit) ----
+     Five surfaces each printed their own number. signReadiness is the one
+     reading now: while anything HOLDS the button reads "Sign — N to settle"
+     and the press lands on the first open row of the card above, where the
+     verbs are; where nothing holds but something was accepted or is merely
+     shown, it reads "Sign — N noted" with the rows named on the hover, so the
+     signer signs over them with their eyes open; clear, it names the signer.
+     The old paragraph of blockers and the red "N high-severity findings" line
+     are gone from under it — every one of them is a row on the card. */
+  const rd=window.signReadiness?signReadiness(c):{ holds:[], noted:[], n:0 };
+  const holdsN=rd.holds.length, notedN=rd.noted.length;
+  const signLabel = holdsN ? i18t('sc_btn_to_settle',{n:holdsN})
+    : notedN ? i18t('sc_btn_noted',{n:notedN})
+    : (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document');
+  const rowWord=r=>signRowTitle(c,r);
+  const signTitle = holdsN ? rd.holds.map(rowWord).join(' · ')
+    : notedN ? rd.noted.map(rowWord).join(' · ') : '';
   /* WHO SIGNS, AND IN WHAT ORDER — asked BEFORE the button that ends it.
 
      This was an 11px text link UNDERNEATH "Sign Document": a decision about
@@ -8724,22 +8750,17 @@ function renderSignButton(c){
   wrap.innerHTML=`
     ${sideCol?'':approvalPanelHtml(c)}
     ${sideCol?'':signerRoute}
-    <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
-      ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
+    ${''/* NOT disabled while something holds: the press is a DOOR onto the
+           first open row (signLandOnList), which is the one thing a reader
+           facing a refusal needs. It keeps the held face so it never promises. */}
+    <button id="sign-btn" data-sign-holds="${holdsN}" title="${esc(signTitle)}" class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/70 sign-held'}">
+      ${icon('finger','w-[18px] h-[18px]')} ${esc(signLabel)}
     </button>
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
-           :`<div class="mt-2 text-[11px] text-brand-800/65 leading-relaxed">
-              ${''/* WHAT BLOCKS, IN FULL, BEFORE THE PRESS. The label names the
-                     first one; this names all of them in each blocker's own
-                     sentence, which is what readinessPanelHtml has done on the
-                     Key terms panel all along. The Signing tab simply was not
-                     asking. */}
-              ${blockers.map(b=>`<div class="flex items-start gap-1.5 justify-center text-center"><span>${esc(b.label)}</span></div>`).join('')}
-            </div>`}
-    ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
-      return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${i18tn('ct_high_findings',oh,{n:oh})}</p>`:''; })()}
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${esc(i18t('sc_btn_held_line'))}</p>`}
     ${paperRoute}`;
-  if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
+  document.getElementById('sign-btn').addEventListener('click',()=>{ if(ready) signDocument(c); else signLandOnList(c); });
+  signPaintHeadLabel(c);
   document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
   wirePaper();
   renderSignSide(c);
@@ -8793,6 +8814,10 @@ function renderSignButton(c){
 async function signCheckAccept(c,i,after){
   const rev=c&&c.playbook; const v=rev&&Array.isArray(rev.verdicts)?rev.verdicts[i]:null;
   if(!v){ toast(i18t('sc_gone'),'err'); return false; }
+  /* ESCALATE MEANS SOMEBODY ELSE: the signer may not accept an escalated
+     finding alone — the colleague asked, or an admin, may. The wall on the
+     server asks the same of the stamped acceptance. */
+  if(window.signCheckMayAccept&&!signCheckMayAccept(c,v)){ toast(i18t('sc_accept_not_you'),'warn'); return false; }
   const why=window.promptDialog
     ? await promptDialog({ title:i18t('sc_accept_title',{what:v.category||i18t('sc_a_standard')}),
         message:i18t('sc_accept_msg'), placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_accept_ok') })
@@ -8800,8 +8825,11 @@ async function signCheckAccept(c,i,after){
   const text=String(why==null?'':why).trim().slice(0,window.SIGN_ACCEPT_MAX||240);
   if(!text){ if(why!=null) toast(i18t('sc_accept_needs_reason'),'warn'); return false; }
   const me=(window.currentUser&&currentUser())||null;
-  v.accepted={ by:(me&&me.name)||'', at:new Date().toISOString(), why:text };
-  logAudit(c,'Playbook',`Deviation accepted on "${v.category||'a standard'}" — ${text}`);
+  /* WHO, BY ID AND ROLE: an escalated acceptance is only good from the person
+     it was escalated to or an admin, and the server checks the stamp, not
+     the caller. */
+  v.accepted={ by:(me&&me.name)||'', byId:me?String(me.id):'', role:(me&&me.role)||'', at:new Date().toISOString(), why:text };
+  logAudit(c,'Playbook',`Deviation accepted on "${v.category||'a standard'}"${v.escalate?' (escalated)':''} — ${text}`);
   persist(c);
   toast(i18t('sc_accepted_toast'),'ok');
   if(typeof after==='function') after();
@@ -8897,96 +8925,251 @@ function signCheckStamp(c){
   return c.signCheck;
 }
 
+/* ---- THE ROW'S OWN WORDS ----
+   One title per kind, read by the card, the button's hover and the head. */
+function signRowTitle(c,r){
+  const t=k=>i18t(k);
+  switch(r.kind){
+    case 'standard': return r.category||t('sc_a_standard');
+    case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
+    case 'obligations': return t('sc_ob_head');
+    case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
+    case 'risk': return String(r.title||'');
+    case 'approval': return t('sc_row_approval');
+    case 'turn': return t('sc_row_turn');
+    case 'negotiation': return t('sc_row_negotiation');
+    case 'signers': return t('sc_row_signers');
+    case 'counterparty': case 'value': return i18t('sc_row_blank',{field:t(r.kind==='value'?'sc_f_value':'sc_f_counterparty')});
+    case 'placeholders': return t('sc_row_placeholders');
+    case 'fields': return t('sc_row_fields');
+    case 'spots': return t('sc_row_spots');
+    default: return String(r.short||r.label||r.kind);
+  }
+}
+/* Whether the settled rows are unfolded, per sitting. */
+let _scSettledOpen=false;
+/* ============================================================
+   BEFORE YOU SIGN — THE ONE LIST, DRAWN (13 Sep 2026)
+   ============================================================
+   The signing audit's finding: five surfaces printed five numbers and none
+   of them was a door. This card draws signReadiness — the one reading — as
+   rows in the order of their weight: what HOLDS first (escalations leading,
+   because the signer cannot settle those alone), then what is shown and can
+   be accepted, then what was settled, folded under its count.
+
+   EVERY ROW CARRIES THE VERB THAT SETTLES IT AND NOTHING ELSE, and every
+   verb is a door that already exists: ask a colleague (the escalation),
+   accept with a reason, open the clause, take the paper's value, fix on Key
+   terms, keep the record, read the finding, find obligations, add signers,
+   open the negotiation, place it on the paper. A verb that cannot work is
+   not drawn.
+
+   NO BAND. It is the first card in the signing column and takes no pixel
+   from the paper. The four tiles of the first build are gone: the rows say
+   the same things one at a time, which is what a list is for. */
 function signCheckCardHtml(c){
-  if(!window.signCheck) return '';
-  const r=signCheck(c);
-  if(!r||!r.ready) return '';
-  const tile=(headKey,tone,mark,detail)=>`<div class="kt-tri-tile">
-    <div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span>${esc(i18t(headKey))}</div>
-    ${detail?`<div class="kt-tri-td">${esc(detail)}</div>`:''}</div>`;
-  const s=r.standards, o=r.obligations, rec=r.record;
-  /* THE TILE SAYS WHAT IS TRUE, and "we do not know" is one of the answers.
-     A grey dash is not a tick: an unread contract and a clean one must not
-     look alike. */
-  const sTone=(s.none||s.unread)?'is-unknown':s.open?'is-warn':(s.stale===true?'is-warn':'is-ok');
-  const sMark=s.none||s.unread?'&mdash;':(s.open?String(s.open):'&#10003;');
-  const sDetail=s.none?i18t('sc_std_none')
-    :s.unread?i18t('sc_std_unread')
-    :s.stale===true?i18t('sc_std_stale')
-    :s.open?i18tn('sc_std_open',s.open,{n:s.open})
-    :s.stale===null?i18t('sc_std_ok_unknown'):i18t('sc_std_ok');
-  const oTone=o.unread===true?'is-warn':(o.unread===false?'is-ok':'is-unknown');
-  const oMark=o.unread===true?'!':(o.unread===false?'&#10003;':'&mdash;');
-  const oDetail=o.unread===true?i18t('sc_ob_moved')
-    :o.unread===false?i18tn('sc_ob_ok',o.total,{n:o.total})
-    :i18t('sc_ob_unread');
-  const rTone=rec.open?'is-warn':(rec.rows.length?'is-ok':'is-unknown');
-  const rMark=rec.open?String(rec.open):(rec.rows.length?'&#10003;':'&mdash;');
-  const rDetail=rec.open?i18tn('sc_rec_open',rec.open,{n:rec.open})
-    :rec.rows.length?i18t('sc_rec_ok'):i18t('sc_rec_none');
-  const cTone=r.current?'is-ok':'is-unknown';
-  const cMark=r.current?'&#10003;':'&mdash;';
-  const cDetail=r.current?i18t('sc_checked_on',{when:String((r.checked&&r.checked.at)||'').slice(0,10)})
-    :r.checked?i18t('sc_checked_older'):i18t('sc_checked_never');
-  /* ---- THE FINDINGS, EACH WITH THE DOOR THAT SETTLES IT ----
-     One line of what, one line of why, and verbs that already exist. A verb
-     that cannot work is not drawn. */
-  const rows=[];
-  s.findings.forEach(f=>{
-    const acc=f.accepted;
-    rows.push(`<div class="sc-find${acc?' is-done':''}">
-      <div class="sc-find-t">${esc(f.category||i18t('sc_a_standard'))}${
-        f.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
-      <div class="sc-find-w">${esc(acc
-        ? i18t('sc_accepted_by',{who:acc.by||i18t('sc_somebody'),when:String(acc.at||'').slice(0,10),why:acc.why||''})
-        : (f.status==='missing'?i18t('sc_missing_w',{pos:f.position||''}):i18t('sc_deviation_w',{pos:f.position||''})))}</div>
-      ${acc?'':`<div class="sc-find-a">
-        <button type="button" data-sc-accept="${f.i}">${esc(i18t('sc_accept_btn'))}</button>
-        ${f.quote?`<button type="button" data-sc-clause="${f.i}">${esc(i18t('sc_open_clause'))}</button>`:''}
-      </div>`}
-    </div>`);
-  });
-  if(o.unread===true) rows.push(`<div class="sc-find">
-    <div class="sc-find-t">${esc(i18t('sc_ob_head'))}</div>
-    <div class="sc-find-w">${esc(i18t('sc_ob_moved_w'))}</div>
-    <div class="sc-find-a"><button type="button" data-sc-oblig="1">${esc(i18t('sc_ob_btn'))}</button></div>
-  </div>`);
-  /* A FIGURE IS PRINTED THE WAY THE PRODUCT PRINTS FIGURES. The reading holds
-     the raw values because it compares them; a reader asked whether 4800000 and
-     5200000 are the same thing is being asked to do the formatting themselves,
-     and in this contract's own currency at that. */
-  /* NOT fmtMoneyOf: that formats the CONTRACT'S OWN value and takes no number,
-     so both halves of a disagreement would print as the same figure — which is
-     the one thing this row must never do. The currency is the contract's,
-     read through the one function that answers it. */
+  if(!window.signReadiness) return '';
+  const rd=signReadiness(c);
+  const rc=window.signCheck?signCheck(c):null;
+  if(!rd.rows.length && !(rc&&rc.ready)) return '';
+  const me=(window.currentUser&&currentUser())||null;
+  const day=v=>String(v||'').slice(0,10);
   const money=v=>{ const raw=String(v||'').trim(); const n=Number(raw.replace(/[^\d.-]/g,''));
     if(!raw||!Number.isFinite(n)) return raw;
     let cur=''; try{ cur=window.contractCurrency?contractCurrency(c):''; }catch(_){ cur=''; }
     let loc; try{ loc=window.jxLocale?jxLocale():undefined; }catch(_){ loc=undefined; }
     return `${cur?cur+' ':''}${n.toLocaleString(loc)}`; };
-  const shown=(x,v)=>x.field==='value'?money(v):String(v||'');
-  rec.rows.filter(x=>x.agrees===false&&!x.kept).forEach(x=>rows.push(`<div class="sc-find">
-    <div class="sc-find-t">${esc(i18t('sc_rec_head',{field:i18t('sc_f_'+x.field)}))}</div>
-    <div class="sc-find-w">${esc(i18t('sc_rec_w',{record:shown(x,x.record)||i18t('sc_blank'),paper:shown(x,x.paper)}))}</div>
-    <div class="sc-find-a">
-      <button type="button" data-sc-fix="${esc(x.field)}">${esc(i18t('sc_fix_btn'))}</button>
-      <button type="button" data-sc-keep="${esc(x.field)}">${esc(i18t('sc_keep_btn'))}</button>
-    </div></div>`));
+  const shown=(r,v)=>r.field==='value'?money(v):String(v||'');
+  const verb=(attr,val,key,title)=>`<button type="button" ${attr}="${esc(String(val))}"${title?` title="${esc(title)}"`:''}>${esc(i18t(key))}</button>`;
+  const row=r=>{
+    const mark=r.settled?'<span class="sc-mark is-done">&#10003;</span>'
+      :r.holds?`<span class="sc-mark ${r.escalate?'is-esc':'is-hold'}">!</span>`
+      :'<span class="sc-mark is-note">&middot;</span>';
+    let why='', acts=[];
+    switch(r.kind){
+      case 'standard': {
+        const v=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts[r.i]:null;
+        if(r.settled){
+          why=i18t('sc_accepted_by',{who:r.accepted.by||i18t('sc_somebody'),when:day(r.accepted.at),why:r.accepted.why||''});
+        } else {
+          why=r.status==='missing'?i18t('sc_missing_w',{pos:r.position||''}):i18t('sc_deviation_w',{pos:r.position||''});
+          if(r.badAccept) why+=' '+i18t('sc_bad_accept',{who:(r.accepted&&r.accepted.by)||i18t('sc_somebody')});
+          if(r.escalation&&r.escalation.to) why+=' '+i18t('sc_asked_line',{who:r.escalation.to.name||'',when:day(r.escalation.at)});
+          /* ASK A COLLEAGUE LEADS EVERY ESCALATED ROW — for an admin too,
+             who may decide it alone but may also hand it to the person who
+             owns the standard. Accept is offered only where this reader may. */
+          const may=window.signCheckMayAccept?signCheckMayAccept(c,v,me):!r.escalate;
+          if(r.escalate) acts.push(verb('data-sc-escalate',r.i,r.escalation?'sc_ask_again':'sc_ask_colleague',i18t('sc_ask_title')));
+          if(may) acts.push(verb('data-sc-accept',r.i,'sc_accept_btn'));
+          if(r.quote) acts.push(verb('data-sc-clause',r.i,'sc_open_clause'));
+        }
+        break; }
+      case 'standards-read':
+        why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
+      case 'obligations':
+        why=i18t('sc_ob_moved_w'); acts.push(verb('data-sc-oblig','1','sc_ob_btn')); break;
+      case 'record':
+        if(r.settled) why=i18t('sc_kept_by',{who:r.kept.by||i18t('sc_somebody'),when:day(r.kept.at)});
+        else { why=i18t('sc_rec_w',{record:shown(r,r.record)||i18t('sc_blank'),paper:shown(r,r.paper)});
+          acts.push(verb('data-sc-take',r.field,'sc_take_btn',i18t('sc_take_title',{v:shown(r,r.paper)})));
+          acts.push(verb('data-sc-fix',r.field,'sc_fix_btn'));
+          acts.push(verb('data-sc-keep',r.field,'sc_keep_btn')); }
+        break;
+      case 'risk':
+        why=String(r.what||'');
+        acts.push(verb('data-sc-risk-read',r.id,'sc_read_btn'));
+        acts.push(verb('data-sc-risk-dismiss',r.id,'sc_dismiss_btn'));
+        break;
+      case 'signers': why=r.label; acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
+      case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
+      case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
+      case 'placeholders': case 'fields': why=r.label; acts.push(verb('data-sc-docs','1','sc_open_doc')); break;
+      case 'spots': why=r.label; if(window.signWalkGo) acts.push(verb('data-sc-spots','1','sc_place_btn')); break;
+      default: why=r.label||'';
+    }
+    return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}" data-sc-row="${esc(r.key)}">
+      <div class="sc-find-t">${mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
+      ${why?`<div class="sc-find-w">${esc(why)}</div>`:''}
+      ${acts.length?`<div class="sc-find-a">${acts.join('')}</div>`:''}
+    </div>`;
+  };
   const busy=!!c._signChecking;
-  return `<section id="sign-check" class="kt-tri${busy?' is-busy':''}">
+  const holdsN=rd.holds.length, notedN=rd.noted.length, settledN=rd.settled.length;
+  const counts=[ holdsN?i18tn('sc_n_to_settle',holdsN,{n:holdsN}):'', notedN?i18tn('sc_n_noted',notedN,{n:notedN}):'',
+    settledN?i18tn('sc_n_settled',settledN,{n:settledN}):'' ].filter(Boolean).join(' · ');
+  const openRows=rd.open.map(row).join('');
+  const settledRows=settledN?`<div class="sc-settled">
+      <button type="button" class="sc-fold" data-sc-fold="1" aria-expanded="${_scSettledOpen?'true':'false'}">${esc(i18tn('sc_n_settled',settledN,{n:settledN}))} — ${esc(rd.settled.map(r=>signRowTitle(c,r)).join(' · '))}</button>
+      ${_scSettledOpen?rd.settled.map(row).join(''):''}
+    </div>`:'';
+  /* THE RUN CONTROL stays in the head: it is the door onto the two readings
+     the check can still make, and says "nothing has moved" when it has
+     nothing to do. Drawn only where the check is at its moment. */
+  const runCtl=(rc&&rc.ready)?`<button type="button" id="sc-run" class="kt-tri-x"${busy?' disabled':''}
+        title="${esc(i18t('sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`:'';
+  return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':(r.anyOpen?'sc_head_open':'sc_head_clear')))}</span>
-      <button type="button" id="sc-run" class="kt-tri-x"${busy?' disabled':''}
-        title="${esc(i18t('sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
+      ${runCtl}
     </div>
-    <div class="kt-tri-tiles">
-      ${tile('sc_t_standards',sTone,sMark,sDetail)}
-      ${tile('sc_t_obligations',oTone,oMark,oDetail)}
-      ${tile('sc_t_record',rTone,rMark,rDetail)}
-      ${tile('sc_t_checked',cTone,cMark,cDetail)}
-    </div>
-    ${rows.length?`<div class="sc-finds">${rows.join('')}</div>`:''}
+    ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
+      :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}
   </section>`;
+}
+/* ---- LAND ON THE LIST ----
+   The one thing every held press does: go to the Signing tab, put the first
+   open row in view and light it. The row is where the verbs are. */
+const signReadinessCardHtml=signCheckCardHtml;
+function signLandOnList(c){
+  if(window.roomGoTab&&typeof _wsTab!=='undefined'&&_wsTab!=='sign') roomGoTab(c,'sign');
+  setTimeout(()=>{
+    const card=document.getElementById('sign-check');
+    const row=card&&(card.querySelector('.sc-find.is-hold')||card.querySelector('.sc-find:not(.is-done)'));
+    const el=row||card;
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
+    setTimeout(()=>el.classList.remove('anchor-flash'),1800);
+  },160);
+}
+/* ---- ESCALATE MEANS SOMEBODY ELSE (13 Sep 2026, piece 3) ----
+   A colleague is asked by name — the review's own candidates, people with a
+   seat who can open this contract — and the ask is stamped on the verdict:
+   until they, or an admin, accept it with a reason the row holds. The
+   colleague is told through POST /api/contracts/:id/escalate, which owns who
+   is written to (ids in, addresses never). Nothing here changes a word. */
+async function signCheckEscalate(c,i,after){
+  const rev=c&&c.playbook; const v=rev&&Array.isArray(rev.verdicts)?rev.verdicts[i]:null;
+  if(!v){ toast(i18t('sc_gone'),'err'); return false; }
+  const people=(window.reviewCandidates?reviewCandidates(c):[]).filter(u=>u&&u.id);
+  if(!people.length){ toast(i18t('sc_esc_nobody'),'warn'); return false; }
+  const me=(window.currentUser&&currentUser())||null;
+  const cat=v.category||i18t('sc_a_standard');
+  const head=window.reviewDialogHeadHtml?reviewDialogHeadHtml('&#9650;',i18t('sc_ask_title'),cat):`<h2 style="margin:0 0 10px">${esc(i18t('sc_ask_title'))}</h2>`;
+  const fld=window.HATI_FLD||'', lbl=window.HATI_LBL||'';
+  const prev=v.escalation&&v.escalation.to?String(v.escalation.to.id):'';
+  return new Promise(resolve=>{
+    openModal(`<div style="padding:22px var(--s-6)">
+      ${head}
+      <label style="display:block;margin:var(--s-3) 0 10px"><span style="${lbl}">${esc(i18t('sc_esc_who'))}</span>
+        <select id="sc-esc-who" style="${fld}">${people.map(u=>`<option value="${esc(u.id)}"${String(u.id)===prev?' selected':''}>${esc(u.name||u.email||u.id)}${u.email?` — ${esc(u.email)}`:''}</option>`).join('')}</select></label>
+      <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
+        <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
+      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
+        <button id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
+        <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
+      </div></div>`);
+    document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
+    document.getElementById('sc-esc-go').addEventListener('click',async e=>{
+      const sel=document.getElementById('sc-esc-who'); const id=sel?String(sel.value):'';
+      const u=people.find(x=>String(x.id)===id); if(!u){ toast(i18t('sc_esc_nobody'),'warn'); return; }
+      const note=String((document.getElementById('sc-esc-note')||{}).value||'').trim().slice(0,600);
+      const btn=e.currentTarget; btn.disabled=true;
+      /* THE STAMP FIRST, then the mail — the record is the wall, the mail is
+         a courtesy, and a courtesy that fails must not un-ask the question. */
+      v.escalation={ to:{ id:String(u.id), name:u.name||'' }, by:(me&&me.name)||'', byId:me?String(me.id):'',
+        at:new Date().toISOString(), note:note||undefined };
+      delete v.accepted;
+      logAudit(c,'Playbook',`Departure on "${cat}" escalated to ${u.name||u.id}${note?` — ${note}`:''}`);
+      persist(c);
+      let told=null;
+      try{ if(window.flushSaves) await flushSaves(); }catch(_){}
+      try{ if(window.API_MODE&&API_MODE()) told=await api(`contracts/${c.id}/escalate`,'POST',{ memberId:String(u.id), category:cat, note }); }catch(err){ told={ error:String(err&&err.message||err) }; }
+      closeModal();
+      if(told&&told.error) toast(i18t('sc_esc_asked_nomail',{who:u.name||u.id}),'warn');
+      else if(told&&told.told===false) toast(i18t('sc_esc_asked_nomail',{who:u.name||u.id}),'warn');
+      else if(told&&told.emailSent===false&&!told.outbox) toast(i18t('sc_esc_asked_nomail',{who:u.name||u.id}),'warn');
+      else toast(i18t('sc_esc_asked',{who:u.name||u.id}),'ok');
+      if(typeof after==='function') after();
+      resolve(true);
+    });
+  });
+}
+/* ---- TAKE THE PAPER'S VALUE (piece 5) ----
+   The check found the record and the wording disagreeing; the paper has just
+   told it the answer. One press writes what the wording says onto the record,
+   exactly where the Key terms editor writes it, and stamps the trail. */
+function signCheckTake(c,field,after){
+  if(!c||!field) return false;
+  const m=c.metadata||{}; const paper=String(m[field]==null?'':m[field]).trim();
+  if(!paper){ toast(i18t('sc_take_nothing'),'warn'); return false; }
+  const before=window.signCheckRecordValue?signCheckRecordValue(c,field):'';
+  if(field==='value'){ const n=Number(paper.replace(/[^\d.-]/g,'')); if(!Number.isFinite(n)){ toast(i18t('sc_take_nothing'),'warn'); return false; }
+    c.value=n; if(c.valueType==='none') c.valueType='estimated'; }
+  else if(field==='effectiveDate'){ c.fields=c.fields||{}; c.fields.effDate=paper; }
+  else if(field==='expiryDate'){ c.expiry=paper; }
+  else if(field==='counterparty'){ c.counterparty=paper; }
+  else return false;
+  if(c.recordAccepted&&c.recordAccepted[field]) delete c.recordAccepted[field];
+  logAudit(c,'Key terms',`"${field}" set from the wording before signing — was "${before||'nothing'}", now "${paper}"`);
+  persist(c);
+  toast(i18t('sc_taken_toast'),'ok');
+  if(typeof after==='function') after();
+  return true;
+}
+/* ---- DISMISS A RISK FINDING WITH A REASON (piece 2) ----
+   The scan card's own Dismiss, with the reason it never asked for: the same
+   store (c.scan.dismissed), one audit line, so the finding stops being a row
+   here and there at once. */
+async function signRiskDismiss(c,id,after){
+  if(!c||!c.scan) return false;
+  const f=(c.scan.findings||[]).find(x=>String(x.id)===String(id));
+  if(!f){ toast(i18t('sc_gone'),'err'); return false; }
+  const why=window.promptDialog
+    ? await promptDialog({ title:i18t('sc_dismiss_title',{what:f.title||''}), message:i18t('sc_dismiss_msg'),
+        placeholder:i18t('sc_accept_ph'), confirmLabel:i18t('sc_dismiss_ok') })
+    : null;
+  const text=String(why==null?'':why).trim().slice(0,window.SIGN_ACCEPT_MAX||240);
+  if(!text){ if(why!=null) toast(i18t('sc_accept_needs_reason'),'warn'); return false; }
+  c.scan.dismissed=Array.isArray(c.scan.dismissed)?c.scan.dismissed:[];
+  if(!c.scan.dismissed.includes(f.id)) c.scan.dismissed.push(f.id);
+  const me=(window.currentUser&&currentUser())||null;
+  logAudit(c,'Scan',`Finding "${f.title||f.id}" dismissed before signing by ${(me&&me.name)||'user'} — ${text}`);
+  persist(c);
+  if(window.renderScanSection) try{ renderScanSection(c); }catch(_){}
+  toast(i18t('sc_accepted_toast'),'ok');
+  if(typeof after==='function') after();
+  return true;
 }
 function renderSignSide(c){
   const host=document.getElementById('sign-side'); if(!host) return;
@@ -9043,6 +9226,7 @@ function renderSignSide(c){
      gate is on and something is. */
   const scAgain=()=>{ renderSignSide(c); if(window.renderSignButton) renderSignButton(c); };
   host.querySelector('#sc-run')?.addEventListener('click',()=>runSignCheck(c,{ after:scAgain }));
+  host.querySelectorAll('[data-sc-run]').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
   host.querySelectorAll('[data-sc-accept]').forEach(b=>b.addEventListener('click',
     ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));
   host.querySelectorAll('[data-sc-clause]').forEach(b=>b.addEventListener('click',
@@ -9050,7 +9234,22 @@ function renderSignSide(c){
   host.querySelector('[data-sc-oblig]')?.addEventListener('click',()=>{
     if(window.runFindObligations) Promise.resolve(runFindObligations(c,{})).then(scAgain,scAgain); });
   host.querySelectorAll('[data-sc-fix]').forEach(b=>b.addEventListener('click',()=>{
-    if(window.focusKeyTerms) focusKeyTerms(b.getAttribute('data-sc-fix')); }));
+    if(window.focusKeyTerms) focusKeyTerms(c); }));
+  /* ---- THE READINESS ROWS' OWN DOORS (13 Sep 2026) ---- every one a press
+     on something that already exists. */
+  host.querySelectorAll('[data-sc-escalate]').forEach(b=>b.addEventListener('click',
+    ()=>signCheckEscalate(c,Number(b.getAttribute('data-sc-escalate')),scAgain)));
+  host.querySelectorAll('[data-sc-take]').forEach(b=>b.addEventListener('click',
+    ()=>signCheckTake(c,b.getAttribute('data-sc-take'),scAgain)));
+  host.querySelectorAll('[data-sc-risk-read]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.scanGoTo) scanGoTo(c,b.getAttribute('data-sc-risk-read')); }));
+  host.querySelectorAll('[data-sc-risk-dismiss]').forEach(b=>b.addEventListener('click',
+    ()=>signRiskDismiss(c,b.getAttribute('data-sc-risk-dismiss'),scAgain)));
+  host.querySelector('[data-sc-signers]')?.addEventListener('click',()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(c); });
+  host.querySelector('[data-sc-nego]')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+  host.querySelectorAll('[data-sc-docs]').forEach(b=>b.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); }));
+  host.querySelector('[data-sc-spots]')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
+  host.querySelector('[data-sc-fold]')?.addEventListener('click',()=>{ _scSettledOpen=!_scSettledOpen; scAgain(); });
   host.querySelectorAll('[data-sc-keep]').forEach(b=>b.addEventListener('click',
     ()=>signCheckKeep(c,b.getAttribute('data-sc-keep'),scAgain)));
   /* ---- THE PLACEMENT ACTS ----
@@ -9605,10 +9804,12 @@ function signBlockers(c){
   const out=[];
   if(!c) return out;
   const add=(key,label,short)=>out.push({ key, label, short });
-  /* THE INTENT, FIRST. It is the one thing the reader can settle on this very
-     screen, so it leads — the rest send them somewhere else. */
-  if(!(c.compliance&&c.compliance.consent))
-    add('consent','Intent to sign has not been confirmed on the Signing tab.','tick intent to sign first');
+  /* ---- THE INTENT ROW IS GONE FROM THIS LIST (13 Sep 2026) ----
+     "I intend to sign electronically" is asked IN THE SIGNATURE PAD now, at
+     the moment of adoption — the general practice for e-signature consent —
+     so it is no longer a box on the page that a queue of real obstacles has
+     to stand behind. signDocument stamps c.compliance.consent off the pad's
+     own answer; see captureSignature. */
   try{
     const ap=(window.approvalState)?window.approvalState(c):null;
     if(ap && ap.required && !ap.ok){
@@ -9633,12 +9834,30 @@ function signBlockers(c){
   }catch(_){}
   /* THE NEGOTIATION. A signature freezes the wording, and it does not go on top
      of an argument that is still running. */
+  /* READING MUST NOT WRITE: negoSigningBlockers reaches negoAlignment and
+     negoOpenPoints, which run negoInit and CREATE a negotiation on a contract
+     that has none — and this list is read on every paint of the Signing tab
+     and by the readiness card, the head, the bell and Home. A contract with
+     no negotiation and no filed change has nothing open by construction
+     (every filed change came through the funnel, which starts one), so the
+     question is asked only where there is something to ask it of. */
   try{
-    const nb=(window.negoSigningBlockers?negoSigningBlockers(c)
+    const hasTable=!!(c.negotiation||(Array.isArray(c.changes)&&c.changes.length));
+    const nb=(hasTable&&window.negoSigningBlockers?negoSigningBlockers(c)
       :((window.unresolvedRedlines&&unresolvedRedlines(c))?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
     if(nb.length) add('negotiation',
       `${nb.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,
       'the negotiation is not settled');
+  }catch(_){}
+  /* ---- NOBODY NAMED TO SIGN (13 Sep 2026) ----
+     Naming the signers is what opens signing (11 Aug 2026): the share dialog,
+     POST /api/shares and the counterparty's respond route all refuse without
+     a route, and the head's own next act says "Add signers". The in-app Sign
+     button was the one door that did not ask, so it joins the list here —
+     one row, holding, with the editor as its verb on the readiness card. */
+  try{
+    if(window.signingRouteMissing && signingRouteMissing(c))
+      add('signers', i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}), i18t('sc_short_signers'));
   }catch(_){}
   /* THE BLANKS — and only these three wear the "fill these in" sentence. */
   const readiness=(window.contractReadiness?contractReadiness(c):[]);
@@ -9681,11 +9900,11 @@ function signBlockers(c){
     const sp=signSpotBlocker(c);
     if(sp) add(sp.key, sp.label, sp.short);
   }catch(_){}
-  /* ---- AND THE PRE-SIGNATURE CHECK, WHERE AN ADMIN HAS SET IT TO REQUIRE ----
-     (13 Sep 2026, phase 5.) OFF BY DEFAULT: signCheckBlocker answers null on
-     every workspace that has not turned it on, on a contract that is not yet
-     at the door, and on one with nothing open — so a workspace that never
-     touches the setting behaves byte for byte as it did.
+  /* ---- AND THE PRE-SIGNATURE CHECK, AS THE GATE SAYS ----
+     (13 Sep 2026.) ADVISE BY DEFAULT since the signing flow was rebuilt: an
+     escalated departure holds until the colleague asked or an admin clears
+     it; `require` holds every open row; `off` holds none. signCheckHolding is
+     the one count, and the readiness card itemises the same rows.
      It is one row among the others, in their shape, naming what is open. The
      desk is never asked here and neither is the review: the desk gates
      redlining and sending, and this gates signing, like the approval chain
@@ -9710,7 +9929,6 @@ function signBlockMessage(c, list){
 }
 async function signDocument(c){
   if(!canEdit()){ toast(i18t('ct_viewers_no_sign'),'err'); return; }
-  if(!c.compliance.consent){ toast(i18t('ct_tick_intent_first'),'err'); return; }
   if(!approvalState(c).ok){ toast(i18t('ct_needs_approval'),'err'); return; }
   /* ---- THE DESK DOES NOT GATE SIGNING, AND NEVER DID BY THE RULEBOOK ----
      (owner-reported, 12 Aug 2026.) What stood here asked readinessBlocks, which
@@ -9764,6 +9982,7 @@ async function signDocument(c){
     if(ns.memberId && u && u.id!==ns.memberId){ toast(`This step is reserved for ${ns.name}. Sign in as ${ns.name} to sign here.`,'err'); return; }
     const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
     if(!sig) return;                              // signer cancelled the pad
+    signConsentStamp(c,sig);
     ns.signed=true; ns.at=at; ns.by=u.name; ns.signature={ form:sig.form, image:sig.image, imageHash:sig.imageHash };
     c.signatures=c.signatures||[];
     // ns.role is the signing route's free-text "Title (e.g. CFO)" field — a
@@ -9815,14 +10034,27 @@ async function signDocument(c){
   // Single-signer path (no route): capture the first party's mark, then seal.
   const sig=await captureSignature(u.name);
   if(!sig) return;
+  signConsentStamp(c,sig);
   await finalizeExecution(c, { by:u, meta, firstPartySig:sig });
 }
 
 /* Open the free-choice signature pad; falls back to a metadata-only signature
    if the pad module is unavailable. */
 async function captureSignature(name){
-  if(typeof openSignaturePad!=='function') return { form:'session', image:null, imageHash:null };
-  return await openSignaturePad({ name });
+  if(typeof openSignaturePad!=='function') return { form:'session', image:null, imageHash:null, consent:true };
+  /* THE INTENT LINE IS THE PAD'S FIRST LINE (13 Sep 2026): the pad asks it
+     and refuses to adopt without it, so consent and the mark are one act. */
+  return await openSignaturePad({ name, intent:true });
+}
+/* The record of that consent, written where the mark is written — the same
+   audit line the old tick-box wrote, so the trail reads as it always did. */
+function signConsentStamp(c,sig){
+  if(!c) return;
+  c.compliance=c.compliance||{};
+  if(sig&&sig.consent&&!c.compliance.consent){
+    c.compliance.consent=true;
+    logAudit(c,'Consent',`Intent-to-sign confirmed by ${currentUser()?.name||'user'}`);
+  }
 }
 
 /* ---- signed on paper ----
@@ -10174,7 +10406,7 @@ Object.assign(window,{wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckA
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signReadinessCardHtml,signRowTitle,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,

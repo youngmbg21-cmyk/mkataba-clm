@@ -190,12 +190,17 @@ describe('f308 (3) — the card, and its acts', () => {
     c.metadata = { value: 5200000 };
     return win.signCheckCardHtml(c);
   }
-  test('four tiles, in the arrival strip\'s own shape', () => {
+  /* RE-POINTED 13 Sep 2026 (the signing flow rebuilt): the four tiles are
+     gone — the card is the one list, a row per thing to settle, in the
+     arrival strip's card shape. */
+  test('one list, a row per thing to settle, in the arrival strip\'s own card', () => {
     const { win, c } = bench();
     const html = ready(win, c);
     assert.match(html, /id="sign-check"/);
     assert.match(html, /class="kt-tri/, 'it borrows the shape rather than forking it');
-    assert.equal((html.match(/class="kt-tri-tile"/g) || []).length, 4);
+    assert.equal((html.match(/class="kt-tri-tile"/g) || []).length, 0, 'no tiles');
+    assert.match(html, /data-sc-row="std:0"/, 'the departure is a row');
+    assert.match(html, /data-sc-row="rec:value"/, 'and so is the record disagreement');
   });
 
   test('every finding carries the door that settles it', () => {
@@ -209,11 +214,15 @@ describe('f308 (3) — the card, and its acts', () => {
 
   /* "WE DO NOT KNOW" IS NOT "WRONG": an unread contract and a clean one must
      not look alike, and neither may an unread one look like a failure. */
-  test('an unread tile is neutral, not ruby', () => {
+  test('an unread contract is a quiet row with the door, not a ruby mark', () => {
     const { win, c } = bench();
     win.resolvePlaybook = () => ({ label: 'Default', positions: [{ category: 'Payment terms' }] });
     const html = win.signCheckCardHtml(c);
-    assert.match(html, /kt-tri-chip is-unknown/);
+    const row = /<div class="sc-find" data-sc-row="standards-read">[\s\S]*?<\/div>\s*<\/div>/.exec(html);
+    assert.ok(row, 'the unread row is drawn');
+    assert.match(row[0], /sc-mark is-note/, 'neutral — nobody has read it, which is neither wrong nor fine');
+    assert.doesNotMatch(row[0], /is-esc|is-hold/);
+    assert.match(row[0], /data-sc-run="1"/, 'and it carries the run control');
   });
 
   test('the card computes nothing — signCheck does', () => {
@@ -251,17 +260,21 @@ describe('f308 (4) — the sweep runs only what is out of date', () => {
   });
 });
 
-describe('f308 (5) — the gate, off by default', () => {
-  test('off is the default, and nothing is held back', () => {
+describe('f308 (5) — the gate, advise by default (re-pointed 13 Sep 2026)', () => {
+  /* The default moved from off to advise when the signing flow was rebuilt:
+     an ESCALATED departure holds; an ordinary one is shown and acceptable. */
+  test('advise is the default, and an ordinary departure holds nothing', () => {
     const { win, c } = bench();
-    assert.equal(win.signCheckGate(), 'off');
+    assert.equal(win.signCheckGate(), 'advise');
+    win.resolvePlaybook = () => ({ label: 'D', positions: [{ category: 'Payment terms' }] });
     c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
     assert.equal(win.signCheckBlocker(c), null);
   });
-  test('advise draws the card and blocks nothing', () => {
+  test('off holds nothing, even an escalated departure', () => {
     const { win, c } = bench();
-    win.state.settings.signCheckGate = 'advise';
-    c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] };
+    win.state.settings.signCheckGate = 'off';
+    win.resolvePlaybook = () => ({ label: 'D', positions: [{ category: 'Payment terms' }] });
+    c.playbook = { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation', escalate: true }] };
     assert.equal(win.signCheckBlocker(c), null);
   });
   test('require holds the signature, and accepting it lets it go', () => {
@@ -311,6 +324,7 @@ describe('f308 (5b) — the server is the wall', () => {
     at: new Date().toISOString(), method: 'session-authenticated' }];
 
   test('with the gate off, a signature saves exactly as it always did', async () => {
+    await gate('off');
     await put({ playbook: { label: 'D', verdicts: [{ category: 'Payment terms', status: 'deviation' }] } });
     const r = await put({ signatures: sig() });
     assert.ok(r && !r.error, 'nothing is refused');

@@ -970,6 +970,16 @@ function renderDashboard(){
      nowhere on the page. */
   const deskIds=(typeof deskCids==='function')?deskCids(deskRows):new Set();
 
+  const meNow=(typeof currentUser==='function')?currentUser():null;
+  const mySignings=(meNow&&window.nextSigner&&window.signReadiness)?cs.filter(c=>c.status!=='Signed'&&c.status!=='Declined'&&!c.archived).map(c=>{
+    let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
+    if(!ns||ns.party==='counterparty'||ns.signed) return null;
+    const mine=(ns.memberId&&String(ns.memberId)===String(meNow.id))
+      || (!!ns.email&&!!meNow.email&&String(ns.email).toLowerCase()===String(meNow.email).toLowerCase());
+    if(!mine) return null;
+    let n=0; try{ n=signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n; }catch(_){ n=0; }
+    return n?{ c, n }:null;
+  }).filter(Boolean):[];
   const decisionItems=[
     /* ---- AUTO-TRIAGE'S CARD IS NOT ON HOME (owner-ruled 9 Sep 2026) ----
        *"delete the 4 cards from the home page and simply land in the key terms
@@ -1017,6 +1027,19 @@ function renderDashboard(){
       txt:i18t('dk_join_card',{who:esc(x.req.name)})+' — <strong style="font-weight:var(--w-strong)">'+esc(x.c.name)+'</strong>',
       meta:x.req.why?`“${esc(x.req.why)}”`:esc(x.c.counterparty||i18t('home_no_counterparty')),
       tag:esc(i18t('dk_ask_tag')),
+    })),
+    /* ---- YOUR SIGNATURE, AND WHAT STANDS BEFORE IT (13 Sep 2026) ----
+       A contract whose next signature is this reader's, with something still
+       to settle first, is a decision owed by name — the shape of everything
+       else on this card. The number is signReadiness's, the same the Signing
+       tab and the head quote; read LIGHT off a register row so the two rows
+       that hash the wording are never guessed. A contract with nothing to
+       settle is the bell's "your turn to sign", not a decision. */
+    ...mySignings.map(x=>({
+      cid:x.c.id, urgent:false, ic:'finger',
+      txt:i18t('home_sign_row',{n:x.n,name:`<strong style="font-weight:var(--w-strong)">${esc(x.c.name)}</strong>`}),
+      meta:esc(x.c.counterparty||i18t('home_no_counterparty')),
+      tag:esc(i18t('home_sign_tag')),
     })),
     ...decisions.filter(x=>!deskIds.has(x.c.id)).map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',

@@ -312,19 +312,25 @@ const ROUTE = [
       const b = document.getElementById('sign-btn');
       if (!b) return { there: false };
       const r = b.getBoundingClientRect();
+      const card = document.getElementById('sign-check');
       return { there: true, disabled: b.disabled, label: b.textContent.replace(/\s+/g, ' ').trim(),
-        w: Math.round(r.width), h: Math.round(r.height),
-        says: (document.getElementById('sign-wrap') || {}).textContent
-          ? document.getElementById('sign-wrap').textContent.replace(/\s+/g, ' ') : '' };
+        w: Math.round(r.width), h: Math.round(r.height), holds: b.getAttribute('data-sign-holds'),
+        rows: card ? card.querySelectorAll('.sc-find.is-hold').length : 0,
+        card: card ? card.textContent.replace(/\s+/g, ' ') : '' };
     });
-    check('the Sign button is on the screen and refuses before the press',
-      blocked.there && blocked.disabled === true && blocked.w > 100,
-      `${blocked.label} · ${blocked.w}x${blocked.h} disabled=${blocked.disabled}`);
+    /* RE-POINTED 13 Sep 2026 (the signing flow rebuilt): the held button is
+       no longer disabled — it is a DOOR onto the first open row of the list
+       above it — and it wears the count of what holds. The intent tick-box
+       left the page for the signature pad, so the list is read off the
+       readiness card, not off the words under the button. */
+    check('the Sign button is on the screen and says what holds before the press',
+      blocked.there && blocked.disabled === false && blocked.w > 100 && Number(blocked.holds) > 0,
+      `${blocked.label} · ${blocked.w}x${blocked.h} holds=${blocked.holds}`);
     check('and it wears the obstacle rather than the promise',
-      /^Sign — /.test(blocked.label || ''), blocked.label);
-    check('with the whole list under it, in each blocker’s own words',
-      /Intent to sign has not been confirmed/.test(blocked.says || ''),
-      (blocked.says || '').slice(0, 120));
+      /^Sign — \d+ to settle/.test(blocked.label || ''), blocked.label);
+    check('with the whole list above it, a row per thing to settle',
+      Number(blocked.rows) === Number(blocked.holds) && Number(blocked.rows) > 0,
+      `${blocked.rows} holding rows on the card · ${(blocked.card || '').slice(0, 100)}`);
 
     const live = await page.evaluate(async () => {
       const c = getContract(state.activeId);
@@ -339,8 +345,11 @@ const ROUTE = [
       return { disabled: b ? b.disabled : null, label: b ? b.textContent.replace(/\s+/g, ' ').trim() : '',
         blockers: (window.signBlockers ? signBlockers(c) : []).map(x => x.key) };
     });
+    /* "Sign — N noted" is live too (13 Sep 2026): nothing holds, something
+       is shown and signed over with eyes open. What may not appear is a
+       count still to settle. */
     check('and once nothing blocks, it is live and says so',
-      live.disabled === false && !live.blockers.length && !/^Sign — /.test(live.label),
+      live.disabled === false && !live.blockers.length && !/to settle/.test(live.label),
       `${live.label} · [${live.blockers.join(', ')}]`);
 
     /* ---- AN EXECUTED CONTRACT KEEPS ITS SIGNING COLUMN (owner-reported

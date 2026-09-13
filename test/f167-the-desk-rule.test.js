@@ -549,11 +549,15 @@ describe('f167 · the desk gates redlining and sending, never signing', () => {
 
   test('each blocker prints its own sentence — the field tail wraps fields only', async () => {
     const lead = signWorld(ME);
-    const c = contract({ compliance: {} });          // no intent-to-sign ticked
+    /* RE-POINTED 13 Sep 2026: the intent tick-box left this list for the
+       signature pad. The row that is NOT a blank is now "nobody is named to
+       sign" — staged here because js/approvals.js is not on this floor. */
+    lead.win.signingRouteMissing = () => 'both';
+    const c = contract({ compliance: {} });
     const msg = lead.win.signBlockMessage(c);
-    assert.match(msg, /Intent to sign has not been confirmed/);
+    assert.match(msg, /Nobody has been named to sign/);
     assert.ok(!/Fill these in on Key terms/.test(msg),
-      'an unticked box is not a blank in the wording, and must not be told to be one');
+      'an unnamed signer is not a blank in the wording, and must not be told to be one');
 
     /* The other half — that a blank DOES wear that tail — needs the readiness
        list, which is built in js/core.js and is not on this stage. */
@@ -570,6 +574,9 @@ describe('f167 · the desk gates redlining and sending, never signing', () => {
     const c = contract({ compliance: {} });
     c.signerPlan = [{ id: 'S1', order: 1, party: 'internal', name: ME.name,
       memberId: ME.id, email: ME.email, signed: false }];
+    /* One side named and not the other is the route still shut (13 Sep 2026:
+       the signers row joined the list; the intent row left it). */
+    lead.win.signingRouteMissing = () => 'theirs';
     const bl = lead.win.signBlockers(c);
     assert.ok(bl.length, 'something blocks');
     assert.ok(bl[0].short, 'and it has a form the button can wear');
