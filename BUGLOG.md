@@ -13075,3 +13075,29 @@ NOTICED, NOT FIXED
 
 VERIFIED
   f306 green; lint 0 errors.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13 Sep 2026 — THE SIGNING JOURNEY, AUDITED (proposal only, nothing built)
+Owner: "So many layers of poor flow prior to signing ... Audit the process
+and where it fails then in artifact format propose the best way to go
+through a signing process."
+════════════════════════════════════════════════════════════════════════
+
+MEASURED on a real contract (foreign law, 60-day terms, four playbook
+departures with two escalations, signers named both sides):
+  · five different counts for "what stands before signing" on one visit
+    (Checks card 4 / risk row 1 high·5 open / check tiles 4·2 / red line 1 /
+    gate refusal 6); the button asks for the intent tick first and never
+    names an escalated departure; the red risk line and the gate's refusal
+    are sentences, not doors; with the gate off (the default) Sign opens the
+    pad over four open findings; ESCALATE offers "Accept with a reason" to
+    the signer. Written up as the artifact "Signing, audited" with a
+    proposed flow. Nothing changed in the product.
+
+NOTICED, NOT FIXED
+  · The room's fact row printed "Term · 364 days to NaN.NaN.NaN" on a
+    contract with metadata.effectiveDate 2026-08-01 and expiryDate
+    2027-07-31 and no term span in the wording: the end date reaches the
+    fact formatter as NaN. A real defect on a real shape of record.
+  · The signing order chip read "EMAIL FAILED" on a workspace with no mail
+    provider (expected there, but the chip reads as an error).
