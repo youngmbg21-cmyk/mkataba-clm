@@ -13718,8 +13718,16 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
       ${(root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''}
     </div>` : '';
   const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
-  return `<div class="rl-np-note${theirs ? ' is-them' : ''}${(ctx && !root) ? ' is-reply' : ''}" data-rl-np-key="${_nea(key)}">
-    <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhenFull(m.at))}</span></div>
+  /* ---- AND WHETHER IT IS NEW TO THIS READER ---- (13 Sep 2026, group 5)
+     A dot, on the note itself, where the reading happens — the bell counts
+     only the notes that name you and remembers per browser, so it could never
+     answer this. Never on the counterparty's seat: their page has no reader to
+     remember. */
+  const fresh = !!(c && !PORTAL_MODE && window.negoNoteUnread && negoNoteUnread(c, m));
+  return `<div class="rl-np-note${theirs ? ' is-them' : ''}${(ctx && !root) ? ' is-reply' : ''}${fresh ? ' is-new' : ''}" data-rl-np-key="${_nea(key)}">
+    <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b>${
+      fresh ? `<i class="rl-np-dot" title="${_nea(i18t('ng_np_new'))}" aria-label="${_nea(i18t('ng_np_new'))}"></i>` : ''
+    }<span>${_ne(negoWhenFull(m.at))}</span></div>
     ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
     ${anchor}
     <p${long ? ' class="rl-np-clamp"' : ''}>${rlNpMarkMentions(_ne(t), m)}</p>
@@ -14471,6 +14479,17 @@ const _rlNpCssKey = k => (typeof CSS !== 'undefined' && CSS && typeof CSS.escape
 function rlNpWireActs(host, c, ch, opts = {}, repaint){
   if (!host || !host.querySelectorAll || !c) return;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* ---- HAVING THE DRAWER OPEN IS HAVING READ THEM ---- (13 Sep 2026)
+     Written AFTER the paint, so the dots the reader is looking at are the ones
+     that were new when they opened it — stamping before would clear the marks
+     in the same breath as drawing them. It moves only forwards and writes
+     nothing when it has not moved, so an open-and-shut costs no save. Never on
+     the counterparty's seat: their page has no reader to remember. */
+  if (side !== 'counterparty' && !PORTAL_MODE && window.negoMarkNotesRead){
+    setTimeout(() => {
+      try{ if (negoMarkNotesRead(c) && window.persist) persist(c); }catch(_){}
+    }, 0);
+  }
   const again = () => {
     try { rlRepaintNoteMarks(c, opts); } catch (e){}
     try { if (typeof repaint === 'function') repaint(); } catch (e){}

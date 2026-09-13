@@ -3270,6 +3270,52 @@ function negoNoteAnchor(a){
 }
 /* The pending change on this clause, newest first, or null — the CHG a note
    on these words is tagged to. Reads c.changes raw. */
+/* ============================================================
+   WHICH NOTES ARE NEW TO THIS READER (owner-approved 13 Sep 2026, group 5)
+   ============================================================
+   The drawer could not say which notes were new. The BELL is not the answer
+   and it would be wrong to claim it is: it counts only the notes that NAME
+   you, on one contract, and what it remembers lives in that browser rather
+   than in the record. A mark on every unread note needs HaTi to remember what
+   each reader has read, which is the new piece of record this needs.
+
+   `c.notesRead` is an ordinary field — reader id to the moment they last had
+   the drawer open — absent on every record on file, and no migration. It
+   NEVER TRAVELS: it is not on the share payload's allow-list, so a
+   counterparty is never told who on our side has read what, and it would be a
+   strange thing to tell them.
+
+   YOUR OWN NOTE IS NEVER NEW TO YOU. Neither is one written before the last
+   time you had this drawer open. A reader who has never opened it sees
+   everything as new, which is true. */
+function negoNotesReadAt(c, who){
+  const map = c && c.notesRead;
+  if (!map || typeof map !== 'object') return null;
+  const me = who || (window.currentUser ? currentUser() : null);
+  const id = me && (me.id || me.email || me.name);
+  const at = id ? map[String(id)] : null;
+  return at ? String(at) : null;
+}
+function negoNoteUnread(c, m, who){
+  if (!m || !m.at) return false;
+  try{ if (window.negoNoteAuthoredBy && negoNoteAuthoredBy(m, who)) return false; }catch(_){}
+  const seen = negoNotesReadAt(c, who);
+  if (!seen) return true;
+  return String(m.at) > seen;
+}
+/* THE ONE WRITER, and it moves only forwards: a drawer opened twice in a
+   minute writes once, and an older stamp can never overwrite a newer one. */
+function negoMarkNotesRead(c, who){
+  if (!c) return null;
+  const me = who || (window.currentUser ? currentUser() : null);
+  const id = me && (me.id || me.email || me.name);
+  if (!id) return null;
+  const now = new Date().toISOString();
+  c.notesRead = (c.notesRead && typeof c.notesRead === 'object') ? c.notesRead : {};
+  if (String(c.notesRead[String(id)] || '') >= now) return null;
+  c.notesRead[String(id)] = now;
+  return now;
+}
 function negoNoteHomeFor(c, clauseId){
   const id = String(clauseId || '');
   if (!c || !id) return null;
@@ -4643,6 +4689,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
+  negoNotesReadAt, negoNoteUnread, negoMarkNotesRead,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,
