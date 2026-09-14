@@ -13322,3 +13322,98 @@ VERIFIED
   f307 (6) claim red at the parent; share-recipient-verify 37/37 (the
   painted heading read on the history screen); f148; lint 0 errors; full
   suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 13–14 Sep 2026 (overnight) — TWO POP-UPS BALANCED, THE BUILDER IS
+THE PAPER AND THE RAIL, AND THE LAYERED REDLINE
+Owner: the five screenshots ("all pop ups should always have balance and
+centered … other is in the dropdown twice … have copilot on the right hand
+side like in the contract workspace … you tag each section … you click
+apply"), the Tag, Talk, Apply artifact ("build it as agreed"), and the
+brief "Build the layered redline (the 'Large' option)".
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · A dialog stated its width twice — 32rem on the frame and a narrower
+    max-width on the box inside it, left-aligned — so the approval route
+    editor and the template pop-ups drew a blank column. The width is
+    said ONCE, on the frame (DLG_W, four rungs); every inner max-width
+    is gone; a net fails on the next one.
+  · "What kind of template?" is two equal tiles; "New standard template"
+    puts Category and Value stream on one row; the Category dropdown
+    listed "Other" twice (once from the list, once appended) — once now.
+  · The template builder had Copilot nowhere but an ask box under every
+    section. It is the paper and the rail: the template drawn as a
+    document on the left, Copilot in the clause editor's clothes on the
+    right; a section is tagged (✦, the arrows, @, Next, Draft this — five
+    doors, one reading), talked about in its own thread, and Apply is the
+    one writer, landing wording on the block exactly as a keystroke does.
+    "Walk me through it" is on after an outline; Playbook and Blanks are
+    tabs; below 1,024px the rail is not drawn.
+  · The outline added a section twice where the playbook's required
+    category matched a heading the model had already proposed.
+  · A counter written on the other side's ask SUPERSEDED it (the 15 Aug
+    rule), so the record could never say "we took the shape of their
+    redraft and moved two parts". It STACKS now: their ask is parked
+    under ours, keeps its wording and fingerprint, travels, and is drawn
+    under ours in their colour; the pair is decided together (accept
+    answers it, refuse puts it back exactly as it stood, reopen re-parks
+    it). A rewrite whose marks would outnumber its words is a REPLACEMENT
+    and a BUNDLE: every live ask on the clause goes under it, however deep
+    it was parked; accept answers them all, refuse puts each back where it
+    was. A round cannot close over a parked ask. A rival measured against
+    the standing text still supersedes (the playbook pass, Prepare
+    redlines, Copilot's batch, the Word round trip).
+  · Their counter, arriving through the link measured against OUR ask,
+    was re-measured against the standing text and superseded ours; it
+    stacks on arrival now.
+  · The clause editor opened on the agreed wording plus adopted changes
+    with their pending ask nowhere in the box; it seeds from their
+    version, files on top of it, and its marked reading is the two layers.
+  · Click into a clause and type (reverses 1 Sep): the marks no longer
+    leave the screen when a cursor goes down — the marked reading stays
+    under the typing box and follows the typing. No pencil at rest; the
+    pencil appears on the clause being typed in and means done. A clause
+    the reader may not write in speaks its refusal on the click; no caret
+    blinks in it. A colleague's lock sign is drawn at rest where the
+    pencil used to be, before the click.
+  · The marks drawn under the box were first drawn ABOVE it, and the
+    first keystroke on a clean clause scrolled the pencil out from under
+    the pointer (the browser holds the caret still when a block appears
+    above it — 58px measured). Under the box, nothing above the caret
+    moves.
+  · A revision filed without a body over a rich ask left the OLD body
+    beside the NEW words, and the editor seeded from the body — marking
+    the difference as the reader's own. Where the two disagree the words
+    win (the editor's reading only; the fold itself is untouched — below).
+
+NOTICED, NOT FIXED
+  · The fold that revises a change in place keeps the old bodyHtml when
+    the revising draft carries none (a text-only route over a rich ask),
+    leaving a record whose body and words disagree.
+  · redline-verify check 5 ("no menu follows a highlight") has been red
+    since the highlight started offering Ask · Edit · Comment on that
+    page (11 Sep); the claim is stale, not the product.
+  · The builder's shell title still reads "Contract Lifecycle Management".
+  · TPLLIB_CATEGORIES carries one literal English label.
+  · Cutting the START of a paragraph leaves a lowercase remainder that the
+    text→rich lift re-flows into the paragraph above (recorded 12 Sep,
+    still so).
+  · The negotiation page's own pencil is still the door into the editor;
+    a press in the wording there does nothing (the 1 Sep rule stands on
+    that page) — the brief's rule 1 was read as the editor's.
+  · A lone ask with no counter on it keeps the classic green/red on the
+    negotiation page while the editor draws it in the other side's
+    colour from the first moment; only a stack is author-coloured on the
+    paper.
+
+VERIFIED
+  f312 (new), f306 (58 claims), f207-D (18 claims, every one red at the
+  parent), f245 (26) and three claims reversed in place (red at the
+  parent), f103, f148, f232, f48; dialog-balance-verify 18/18,
+  prompt-and-build-verify 27/27, clause-editor-verify 265/265 (section 32
+  drives a real click, real keys and a real pencil press; 16–21, 30d and
+  32 red at the parent), clause-door-verify 119/119 (16d3, 16e–16h
+  reversed with a real mouse, red at the parent), redline-verify 222/223
+  (27 new; 5 pre-existing), parity-verify 47/47 (12 new); lint 0 errors;
+  full suite — see the commit.
