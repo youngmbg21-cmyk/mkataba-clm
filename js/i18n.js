@@ -1511,7 +1511,7 @@ const STRINGS = {
     /* ---- THE WRITING BAR ---- the tools' own names, on their hovers and as
        their accessible names. One key per tool, read by richBarHtml. */
     ce_bar_label: 'Writing tools',
-    ce_bar_press_pencil: 'Press the pencil on a clause first — the tools act on what you are writing in',
+    ce_bar_press_pencil: 'Click into a clause first — the tools act on what you are writing in',
     ce_stepped_forward: 'Forward to {label}',
     rb_undo: 'Undo',
     rb_redo: 'Redo',
@@ -1818,6 +1818,8 @@ const STRINGS = {
     ce_pencil_stop: 'Show the marks',
     ce_pencil_stop_title: 'Stop typing and read your draft marked against what stands',
     ce_pencil_move: 'Work on this clause instead',
+    ce_pencil_done: 'Done',
+    ce_pencil_done_title: 'Finished with this clause — files what you have written and asks for a note. With nothing written it only stops typing.',
     ce_reading_only: 'Reading only — go back to Redlined to change the wording.',
     ce_save_opens_note: 'Files this as a change and opens the note drawer.',
     ce_paper_label: 'The contract, with your draft on this clause',
@@ -7969,7 +7971,7 @@ const STRINGS = {
     ng_nothing_changed_yet: 'Inget har ändrats ännu',
     /* ---- SKRIVLISTEN ---- */
     ce_bar_label: 'Skrivverktyg',
-    ce_bar_press_pencil: 'Tryck på pennan i en klausul först — verktygen verkar på det du skriver i',
+    ce_bar_press_pencil: 'Klicka i en klausul först — verktygen verkar på det du skriver i',
     ce_stepped_forward: 'Framåt till {label}',
     rb_undo: 'Ångra',
     rb_redo: 'Gör om',
@@ -8192,6 +8194,8 @@ const STRINGS = {
     ce_pencil_stop: 'Visa markeringarna',
     ce_pencil_stop_title: 'Sluta skriva och läs ditt utkast markerat mot den som gäller',
     ce_pencil_move: 'Arbeta med den här klausulen i stället',
+    ce_pencil_done: 'Klar',
+    ce_pencil_done_title: 'Klar med klausulen — arkiverar det du skrivit och frågar efter en anteckning. Har du inte skrivit något avslutas bara skrivandet.',
     ce_reading_only: 'Endast läsning — gå tillbaka till ändringsmarkeringar för att ändra lydelsen.',
     ce_save_opens_note: 'Registrerar detta som en ändring och öppnar anteckningarna.',
     ce_paper_label: 'Avtalet, med ditt utkast på den här klausulen',

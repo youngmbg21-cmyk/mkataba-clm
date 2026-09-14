@@ -1867,8 +1867,15 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
      Only a live ask on THIS clause qualifies; anything else measures against
      the standing text exactly as before, so every caller that does not pass it
      files as it always did. */
-  const on = opts.onTop ? (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === opts.onTop
-    && x.clauseId === clauseId && x.status === 'pending' && !x.withdrawn && x.changeType !== 'insertClause') : null;
+  const all = Array.isArray(c.changes) ? c.changes : [];
+  /* A live ask: pending — or PARKED under a pending counter of the filer's
+     own side, so a revision of that counter keeps measuring against the ask
+     it stands on. */
+  const liveAsk = x => x && x.id === opts.onTop && x.clauseId === clauseId && !x.withdrawn
+    && x.changeType !== 'insertClause'
+    && (x.status === 'pending' || (x.status === 'countered'
+      && all.some(t => t && t.id === x.counteredBy && t.status === 'pending' && t.authorSide === (opts.side === 'owner' ? 'owner' : 'counterparty'))));
+  const on = opts.onTop ? all.find(liveAsk) : null;
   const from = on ? String(on.newText == null ? '' : on.newText) : cl.text;
   return negoFileChange(c, { clauseId, changeType: 'modify',
     oldText: from, newText, bodyHtml: body,
