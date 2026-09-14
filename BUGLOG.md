@@ -13511,3 +13511,66 @@ VERIFIED
   every one run again at the parent commit in a worktree and failing on
   the same checks with the same detail; the colour census reads 27/40 on
   both trees line for line and was NOT re-recorded.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 14 Sep 2026 — THE BUILDER'S PAPER SCROLLS IN ITS COLUMN, THE RAIL
+STAYS
+Owner (a screenshot with the seam between the paper and the rail boxed):
+"There needs to be a scrolling feature for the contract being created on
+the left just like in the editor page. For right hand side in copilot, it
+should stay intact and not move even when scrolling through the contract
+on the left."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The whole builder page scrolled, strip and rail with it. The rail was
+    written position:sticky, but inside a grid slot exactly its own
+    height — a sticky element with nowhere to go, so the declaration did
+    nothing (measured at the parent: a wheel of 600 moved the rail 600).
+    The page is now exactly the shell's measured height, the register's
+    and the contract room's own mechanism: the strip stays, everything
+    under it sits in one scroller in the paper's column, the rail fills
+    the row and cannot move. Measured after: a wheel of 600 moved the
+    paper 600, the rail 0, the strip 0, the shell 0.
+  · No padding above the paper: the first line of the wording measured
+    137 from the top of the window before and after (refusal 3).
+  · The shell's reserved scrollbar channel is dead space on a page that
+    cannot scroll the shell (the 25 Aug rule), and this page is not a
+    view, so it paints the class itself on the way in and gives it back
+    at its two ways out (Back, Publish); a setView recomputes it as
+    before. The note beside VIEW_OWNS_HEIGHT names the second writer.
+  · A repaint of the page (Add block, delete, move, a resize across 1024)
+    would have thrown the reader to the top of a rebuilt scroller — the
+    page-level scroll used to survive for free. The place is held before
+    the write and put back straight after it, synchronously and once;
+    keepScroll's second restore on the next frame would have undone the
+    scrollIntoView an Add block does a tick later. A fresh open is a
+    navigation and lands at the top (found by re-opening the builder over
+    one already scrolled: the new template arrived 92px down).
+
+NOTICED, NOT FIXED
+  · The foot strip's Save and Publish were added because the top bar
+    scrolled away on a long template; it no longer does, so the foot is
+    two doors onto one act on one screen. Kept by the owner's word
+    ("leave all else the same") — the owner's call.
+  · The Design step (js/views/designstep.js) is a --view-h page under the
+    same view and has never painted the gutter class: a 10px reserved
+    channel at its right edge, pre-existing and untouched.
+  · The unit stage's DOM (test/dom.js) is a fake — classList, contains and
+    click are stubs — so a claim about the printed page reads its markup
+    as text; the geometry is proved in the browser file.
+  · Playwright scrolls a control into view before clicking it, so a
+    check that presses Add block with page.click measures Playwright's
+    scroll (600 → 883 in the probe) and not the repaint; the press is
+    dispatched in the page.
+
+VERIFIED
+  f306 (four new claims: the scroller's shape read off the printed page,
+  the sheet's rules, the class painted on and its two ways off, the hold
+  held once and never keepScroll — the four red at the parent in a
+  worktree, 62 pass / 4 fail there; 66/66 here); prompt-and-build-verify
+  38/38 (13a–13f: a real wheel over a fourteen-section template; 32/38 at
+  the parent, 13a–13f the six red, 13d–13f reported rather than crashed
+  on a build without the scroller); lint 0 errors; the full suite 7,060
+  tests in 1,408 suites, 0 red, 5m31s. No other check file opens the
+  builder (grepped), so no other browser file was re-run.
