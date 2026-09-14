@@ -13680,3 +13680,122 @@ VERIFIED
   run before this one, each re-run at origin/main in a worktree and
   failing on the same count; the colour census reads 27/40 on both trees
   LINE FOR LINE IDENTICAL and was NOT re-recorded.
+
+RUN — 14 Sep 2026 (night) — THE ARTIFACT, BUILT AS DRAWN: THE LADDER'S SECOND PASS
+Owner: "If merged to main, why do i see a completely different page compared
+to what is in the artifact? ... Please advise why you have not implement as
+designed in the artifact." Then, on the three rulings put to them: "1, build
+as designed in the artifact. 2, go with exactly what is in the artifact. 3,
+yes build as in the artifact. Note that I also want the colors that are
+designed in the artifact so in short, replicate the artifact apart from the
+top of the contract as previously discussed. ... build as an autonomous run
+and merge to main." And: "Hati does not have a done pencil currently but
+build it as seen in the attached image." Started from origin/main at 529bda9.
+════════════════════════════════════════════════════════════════════════
+
+WHY THE FIRST PASS MISSED
+  The 14 Sep ladder shipped the ENGINE (js/ladder.js) and three small
+  surfaces, and treated the rest of the artifact as HaTi as it already
+  stood. Four of its pieces collided with standing rules (no new bands,
+  Open is the one thing on the face, one door, a lone ask keeps green/red)
+  and the refusals were taken silently instead of being put to the owner
+  in a sentence first. Put to the owner this time; all three lifted.
+
+BUILT
+  · EVERY MARK WEARS ITS AUTHOR'S SIDE — amber for the other side, the
+    accent for ours, on a lone ask as on a stack, on the negotiate page,
+    the room's canvas, the clause editor's box and the counterparty's
+    page (from their chair). An added run is underlined, a struck one
+    struck. redlineOpsHtml takes opts.who; rlSideWho is the one reading.
+  · THE LINE UNDER A STACKED CLAUSE (a band the owner ruled in): what
+    the plain words are, with the figure, and the agreed figure beside
+    it with a real "As agreed" press. Only on a stack; never in the
+    editor.
+  · THE CHIP says "· not sent" on our unsent top (ladderUnsent, the RAW
+    twin of negoUnsentAsks) and sits beside the heading; drawn on the
+    editor's paper too, as a statement.
+  · THE DONE PENCIL: the pill that is pressed prints its word, wears an
+    edge and sits in the row beside the chip. It was there before as an
+    icon-only, hover-only pencil with its word in an aria-label — which
+    is why the owner said HaTi had none.
+  · THE COLUMN IS THE ARTIFACT'S: the clause leads the row (the reference
+    on the hover and in the open card); the argument on a full-width
+    second line (the figure track, or "R2 · yours on their R1 · summary");
+    Accept · Reject · Counter / Edit · Send · Discard and Ladder on the
+    FACE, picked out of the body's own verb list so they cannot drift;
+    Open last, a bare word; a parked ask folds under its counter's row on
+    both seats; the piles renamed; AWAITING YOU amber.
+  · THE PANEL'S TAIL: verbs on the top rung, the paper's two moves shaded,
+    Your playbook (standard · fallback · walk-away "—" with the reason on
+    the hover · precedent), The figure (the scale and "Write it into the
+    clause", which opens the editor with the figure applied), Notes (the
+    count borrowed from negoNoteCounts, and the drawer's door).
+  · THE DEAL BOARD IS A PAGE: the fourth tab, lit, no reading lit; the
+    grid steps aside; nine columns; "N within your fallback"; Copy as
+    memo; a row lands on its clause's ladder; a reading puts the paper
+    back. Still our seat only; still not a fourth reading.
+  · THE RAIL: Suggestions · Ladder · Figure · Playbook scan. The ladder
+    card leads the conversation — what moved, on your ladder, what you
+    settled for, the suggested reply and its note, Apply to the box, Keep
+    the note for filing (it rides ceFile as the reason), Accept their
+    R{n} — worked out from the playbook, precedent and the ladder, and
+    no model is called for it.
+
+FIXED ON THE WAY (found by photographing the real page)
+  · The chip sat at the far end of the row (space-between) and the
+    heading kept a 62px reserve beside it; the row is flex-start now and
+    the heading gives up the reserve when a chip carries it.
+  · The face verbs stacked vertically, then overlapped the reference: the
+    grid's second track was minmax(floor, 1fr) and the side's min-width
+    was 0, so a five-verb face was squeezed to 138px and overflowed
+    leftwards. max-content and min-width:max-content, written AFTER the
+    row's own rules — an override placed earlier in the sheet lost by
+    order at equal specificity and looked correct in the source.
+  · An INSURANCE clause read as the liability topic off the words
+    "product liability insurance" and the board printed the liability
+    fallback beside it: ladderTopic now refuses a topic whose own figure
+    reader finds nothing in the clause.
+  · Every standard read as absent, because the playbook's range readers
+    match "within 30 days" and not the drafted "thirty (30) days":
+    ladderStandard falls back to the range by topic key. The playbook's
+    own readers are untouched.
+  · The board's fallback column showed the liability wording on the
+    insurance row (the same topic fault); the clause cell elided.
+  · A rail listener written as addEventListener('input') was the first
+    such listener in the file and f245 (19) read it as the box's own —
+    assigned handlers instead.
+  · "Write it into the clause" asked to type on the way in; Apply is the
+    door and the ask is never made there.
+  · The Notes section drew nothing on a stage without the drawer; the
+    count draws everywhere, the door only where the drawer exists.
+
+NOTICED, NOT FIXED
+  · The playbook's range readers (PB_RANGE_READERS) do not read a
+    parenthesised figure — "thirty (30) days" — so the playbook PASS
+    itself misses the drafted form on the same paper. Worked around for
+    the ladder by topic key; the readers are the playbook's own and were
+    left alone.
+  · The clause library's liability fallback ("capped at the total
+    contract value") carries no figure, so the rail suggests the STANDARD
+    (12 months) as the reply on a liability clause. Said in the card.
+  · The rail keeps HaTi's own chips (softer / playbook / risk / plain)
+    rather than the artifact's three; the artifact's answers were
+    scripted and these call the model.
+  · The lint count reads 187 against the parent's 185; a whole-tree
+    unix-format diff of the two runs is empty, so the two are not in any
+    linted file — unaccounted for and said here.
+  · redline-verify 5 ("no menu follows a highlight") is red at the parent
+    and stays red: the round-three rule that every highlight offers the
+    verbs reversed it and nobody re-pointed it.
+
+VERIFIED
+  f313 (37 claims: ten new, every one red at the parent's reading),
+  ladder-verify 73/73 (32 new checks, each a real press or a measured
+  pixel); clause-door-verify 122/122, clause-editor-verify 268/268,
+  parity-verify 47/47, redline-verify 222/223 (5 red at the parent too);
+  re-pointed in place with the ruling beside each: f245 (18)(19)(26),
+  f246 (4)(5), f207-B/D, f248, f37, f93, clause-door-verify 2f/9a/9b,
+  clause-editor-verify 1b/14a/20f, redline-verify 14b/19/25. Lint 0
+  errors. The full suite: 7,097 tests in 1,409 suites, 0 red. The browser set: 23 of 107 red on the first run; three were this run's own (notes-two-rooms, round-two-comments, round-delivery — the Open word, the ladder card leading the lane, a row read by its id) and are re-pointed and green; the other twenty were red at unmodified main and each was RUN THERE in a worktree and failed on the same count (theme-tokens 13/13, the census untouched). One real fault came out of that pass: at ~300px the five-verb face overflowed the row instead of wrapping — the verbs wrap now, nothing on the face is cut off.
+  Photographed on the staged contract: the paper, the column, the panel
+  and its tail, the board page, the editor and its three tabs.

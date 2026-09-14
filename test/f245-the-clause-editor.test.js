@@ -1688,9 +1688,11 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.equal(/\.ce-chg\{/.test(SRC), false, 'and its dress went with it');
   });
 
-  test('the rail is Copilot and the playbook scan, and nothing else', () => {
+  test('the rail is Copilot, the ladder, the figure and the playbook scan, and nothing else', () => {
+    /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's rail): the
+       Ladder and Figure tabs joined; the Changes tab is still gone. */
     const tabs = [...CODE.matchAll(/data-ce-tab="([a-z]+)"/g)].map(m => m[1]);
-    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'scan']);
+    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'figure', 'ladder', 'scan']);
   });
 
   test('the two keys are left INERT in both dictionaries, never removed from one', () => {
@@ -1778,9 +1780,13 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.match(CODE, /if \(_ceSel\)\{ ceDetachPassage\(\); return; \}\s*\n\s*ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\);/,
       'and so does Escape \u2014 after it has released a held passage, which is '
       + 'what that key answers first');
-    /* Exactly three, so a fourth door is a decision rather than a discovery. */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 4,
-      'three callers and the declaration \u2014 no fourth door written past it');
+    /* Exactly four, so a fifth door is a decision rather than a discovery.
+       RE-POINTED 14 Sep 2026: the ladder card's "Accept their R{n}" leaves
+       the page to press the card's own Accept, and it asks first. */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 5,
+      'four callers and the declaration \u2014 no fifth door written past it');
+    assert.match(CODE, /case 'ladder-accept': \{[\s\S]{0,400}?ceLeaveGuard\(/,
+      'the ladder card\'s Accept is the fourth, and it asks');
   });
 
   test('and the guard is at the DOORS, never inside the close', () => {
@@ -2201,8 +2207,10 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
       'the paper is never assigned directly — every move goes through the helper');
     assert.equal(sites.filter(x => x === 'el.scrollTop = ').length, 1,
       'and the helper itself is the one place that writes one');
-    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 2,
-      'the rail keeps its own two — the scan tab\'s top and the last turn');
+    /* RE-POINTED 14 Sep 2026: the rail gained the Ladder and Figure tabs,
+       each landing at its own top exactly as the scan tab does. */
+    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 4,
+      'the rail keeps its own four — the scan, ladder and figure tabs\' tops and the last turn');
   });
 });
 
@@ -2815,7 +2823,11 @@ describe('f245 (26) — the layered redline in the editor', () => {
     p.win.rlOpenClauseEditor(p.c, id, { again: () => {} });
     const html = p.win.ceMarkedHtml('<p>' + p.win.negoClauseNowById(p.c, id).text.replace('thirty (30)', 'forty-five (45)') + '</p>');
     assert.match(html, /<(ins|del)/, 'marked');
-    assert.ok(!/\brl-them\b|\brl-us\b/.test(html), 'one layer, no author colours');
+    /* RE-POINTED 14 Sep 2026 (Young: "go with exactly what is in the
+       artifact"): a lone draft is still ONE layer against what stands, and it
+       wears OUR colour now — every mark on every paper says whose it is. */
+    assert.ok(/\brl-us\b/.test(html), 'one layer, in our colour');
+    assert.ok(!/\brl-them\b/.test(html), 'and nothing of theirs under it');
     p.win.rlCloseClauseEditor();
   });
 

@@ -765,8 +765,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const hovered = { panel: panelOpen(), open: !!card().querySelector('.rl-cb-wrap') };
     return { start, cardOpen, shut, afterHead, hovered };
   });
-  check('14b the face carries Open and nothing else — no verbs, no door',
-    !pop.start.panel && !pop.start.faceHasDoor && !pop.start.faceHasVerbs && pop.start.openVisible,
+  /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): the
+     face carries the artifact's verbs — Accept · Reject · Counter, or Edit ·
+     Send · Discard, and Ladder — picked out of the body's own list, with Open
+     still the way to the wording, the notes and Copilot's read. What must
+     still hold: nothing on the face opens the clause PANEL, and Open is
+     visible at rest. */
+  check('14b the face carries the artifact\'s verbs and Open — and nothing opens the panel',
+    !pop.start.panel && pop.start.openVisible,
     JSON.stringify(pop.start));
   check('14b Open expands the card IN PLACE — which is the ruling, not a fault',
     pop.cardOpen.h > pop.start.h && pop.cardOpen.col > pop.start.col,
@@ -1708,10 +1714,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         actsMin: Math.min(...rows.map(r => {
           const el = r.querySelector('.rl-card-side');
           return el ? Math.round(el.getBoundingClientRect().width) : 9999; })),
-        sumMax: Math.max(...rows.map(r => {
+        /* RE-POINTED 14 Sep 2026: the argument line (.rl-card-sum) spans the
+           row; a row that carries none is measured by its reference, which
+           shares the row with the verbs, so it is left out of the line-up
+           where any row carries the line. */
+        sumMax: Math.max(...(rows.some(r => r.querySelector('.rl-card-sum')) ? rows.filter(r => r.querySelector('.rl-card-sum')) : rows).map(r => {
           const el = r.querySelector('.rl-card-sum') || r.querySelector('.rl-card-meta');
           return el ? Math.round(el.getBoundingClientRect().width) : 0; })),
-        sum: Math.min(...rows.map(r => {
+        sum: Math.min(...(rows.some(r => r.querySelector('.rl-card-sum')) ? rows.filter(r => r.querySelector('.rl-card-sum')) : rows).map(r => {
           const el = r.querySelector('.rl-card-sum') || r.querySelector('.rl-card-meta');
           return el ? Math.round(el.getBoundingClientRect().width) : 0; })),
         /* nothing in the action block may be cut off at any width */
@@ -1757,21 +1767,29 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('19 every row\'s wording ends on the same vertical',
     geom.wide.sumMax - geom.wide.sum <= 1,
     `wording ${geom.wide.sum}–${geom.wide.sumMax} across ${geom.wide.n} rows`);
-  check('19 and every row gives its acts the same room',
-    geom.wide.acts - geom.wide.actsMin <= 1,
-    `acts ${geom.wide.actsMin}–${geom.wide.acts}`);
-  check('19 the wording takes about two thirds of it',
-    geom.wide.sum > geom.wide.acts * 1.6,
+  /* RE-POINTED 14 Sep 2026 (the artifact's row): the acts take their OWN
+     width (max-content) and the argument line spans the whole row beneath
+     the reference — so "the same room" and "two thirds" are no longer the
+     shape. What must hold: every act block is at least a word wide and none
+     is clipped, and the full-width line is never narrower than the acts. */
+  check('19 and every row\'s acts take their own room, uncut',
+    geom.wide.actsMin > 0 && geom.wide.clipped === 0,
+    `acts ${geom.wide.actsMin}–${geom.wide.acts}, clipped ${geom.wide.clipped}`);
+  check('19 the argument line spans the row',
+    geom.wide.sum >= geom.wide.acts,
     `wording ${geom.wide.sum} vs acts ${geom.wide.acts} at ${geom.wide.col}px`);
   check('19 squeezing the column really does squeeze it',
     geom.tight.col < geom.wide.col - 40, `${geom.wide.col} → ${geom.tight.col}`);
-  check('19 the acts stop at the floor rather than shrinking with it',
-    geom.tight.acts > 0 && geom.tight.acts >= geom.wide.acts * 0.82,
-    `acts ${geom.wide.acts} → ${geom.tight.acts}`);
+  /* RE-POINTED 14 Sep 2026 (the artifact's face carries up to five verbs):
+     squeezed, the verbs WRAP onto a second line rather than shrink or clip —
+     every one stays on screen inside the row. */
+  check('19 the acts wrap rather than clip when squeezed — every verb stays inside the row',
+    geom.tight.acts > 0 && geom.tight.clipped === 0 && geom.tight.acts <= geom.tight.col,
+    `acts ${geom.wide.acts} → ${geom.tight.acts} in a ${geom.tight.col}px column, clipped ${geom.tight.clipped}`);
   check('19 and the wording is what gives instead',
     geom.tight.sum < geom.wide.sum, `wording ${geom.wide.sum} → ${geom.tight.sum}`);
   check('19 and the rows still line up once it is squeezed',
-    geom.tight.sumMax - geom.tight.sum <= 1 && geom.tight.acts - geom.tight.actsMin <= 1,
+    geom.tight.sumMax - geom.tight.sum <= 1,
     `wording ${geom.tight.sum}–${geom.tight.sumMax}, acts ${geom.tight.actsMin}–${geom.tight.acts}`);
   check('19 not one verb is cut off, at either width',
     geom.wide.clipped === 0 && geom.tight.clipped === 0,
@@ -2449,7 +2467,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const panelFor = id => document.querySelector('.rl-cp-src[data-rl-cp-for="' + id + '"]');
     const editIn = id => { const b = document.querySelector('[data-rl-card-open="' + id + '"]');
       const card = b ? b.closest('[data-nego-card]') : null;
-      return card ? card.querySelector('.rl-edit.rl-verb-ai') : null; };
+      /* The BODY's door: the face carries a copy of it since 14 Sep 2026. */
+      return card ? (card.querySelector('.rl-card-verbs .rl-edit.rl-verb-ai') || card.querySelector('.rl-edit.rl-verb-ai')) : null; };
     const e = editIn(o.held), p = panelFor(o.heldClause);
     const pb = p ? p.querySelector('.rl-cp-act-ai') : null;
     const mono = e ? e.querySelector('.rl-lock-mono') : null;

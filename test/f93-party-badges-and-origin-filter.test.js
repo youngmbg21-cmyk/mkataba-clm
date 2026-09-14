@@ -194,7 +194,10 @@ describe('F93 (1) — the origin pill is OFF the card, and the edge still says i
     const side = card.querySelector('.rl-card-side');
     assert.ok(txt && side, 'the owner\'s row draws its text and its acts side by side');
     const meta = txt.querySelector('.rl-card-meta');
-    assert.ok(meta && /CHG-/.test(meta.textContent), 'the id opens the meta line');
+    /* RE-POINTED 14 Sep 2026 (the artifact's row): the clause leads the meta
+       line and the reference rides its hover. */
+    assert.ok(meta && /CHG-/.test(meta.getAttribute('title') || ''), 'the id is on the meta line\'s hover');
+    assert.ok(meta && /Clause|\d/.test(meta.textContent), 'and the clause opens the line');
     /* The status slot lives in the acts group WHEREVER IT DRAWS, and there is
        never a second one anywhere on the row. */
     assert.equal(card.querySelectorAll('.rl-badge').length,

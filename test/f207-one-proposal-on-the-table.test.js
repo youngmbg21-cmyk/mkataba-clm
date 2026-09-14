@@ -201,7 +201,11 @@ describe('f207-B — a counter takes the table', () => {
     const cards = win.redlineChangeCardsHtml(c, { side: 'owner', canAct: true });
     const card = cards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
     assert.ok(card, 'the countering card is on the table');
-    assert.ok(!/counter/i.test(card), 'and carries no counter line');
+    /* RE-POINTED 14 Sep 2026: the face carries the artifact's verb "Counter"
+       on an ask of theirs; what must stay off the card is the LINE that
+       explained the supersession (ng_counters_line, .rl-counterline). */
+    assert.ok(!/rl-counterline|ng_counters_line/.test(card), 'and carries no counter line');
+    assert.ok(!/counter(ed|s|Of| line)/i.test(card.replace(/>Counter</g, '')), 'nor any sentence about what it countered');
     assert.ok(!card.includes(ours.id),
       'nor names the ask it replaced — that is what the audit trail is for');
     /* The record still knows, which is the half that must not be lost. */
@@ -738,15 +742,22 @@ describe('f207-D — the stack travels, arrives as a stack, and is drawn as two 
     assert.equal(s.win.rlCardBand(theirs, 'owner', new Set(), null, s.c), s.win.rlCardBand(ours, 'owner', new Set(), null, s.c),
       'the pair sits together');
     const cards = s.win.redlineChangeCardsHtml(s.c, { side: 'owner', canAct: true });
-    const card = cards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
-    assert.ok(card, 'the parked ask is still on the column');
-    assert.ok(!/data-nego-accept|data-nego-reject/.test(card), 'and takes no decision of its own');
+    /* RE-POINTED 14 Sep 2026 (the artifact's column): on our seat the parked
+       ask FOLDS under its counter's row — one row per argument, carrying the
+       whole track and the ladder — so it is not drawn as a row of its own and
+       takes no decision by construction. Their seat, below, still draws it. */
+    const card = cards.split('data-nego-card=').find(x => x.includes('"' + theirs.id + '"')) || '';
+    assert.equal(card, '', 'the parked ask is folded under its counter, not a second row');
+    const counter = cards.split('data-nego-card=').find(x => x.includes('"' + ours.id + '"')) || '';
+    assert.ok(counter, 'the counter\'s row is on the column');
     /* Their seat, once sent: our counter is the live question and carries the verbs; their parked ask does not. */
     s.c.negotiation.turn = 'counterparty'; s.c.negotiation.turnAt = '2099-01-01T00:00:00.000Z';
     const theirCards = s.win.redlineChangeCardsHtml(s.c, { side: 'counterparty', canAct: true });
     const oursThere = theirCards.split('data-nego-card=').find(x => x.includes(ours.id)) || '';
     assert.match(oursThere, /data-nego-accept/, 'they may accept our counter');
-    const theirsThere = theirCards.split('data-nego-card=').find(x => x.includes(theirs.id)) || '';
-    assert.ok(theirsThere && !/data-nego-accept/.test(theirsThere));
+    /* And on THEIR seat the same fold: their parked ask sits under our
+       counter's row rather than as a row of its own (14 Sep 2026). */
+    const theirsThere = theirCards.split('data-nego-card=').find(x => x.includes('"' + theirs.id + '"')) || '';
+    assert.equal(theirsThere, '', 'their parked ask folds under our counter on their seat too');
   });
 });

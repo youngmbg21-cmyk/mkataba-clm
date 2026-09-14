@@ -160,7 +160,10 @@ function readScreen(root, win){
          id being printed once on each seat in a different place. */
       meta: ((n.querySelector('.rl-card-meta') || {}).textContent || '')
         .replace(/\s+/g, ' ').trim().replace(/^CHG-\d+\s*·\s*/, ''),
-      names: /CHG-\d+/.test((n.textContent || '')),
+      /* RE-POINTED 14 Sep 2026: on our seat the clause leads the row and the
+         reference rides the meta line's hover; their card keeps its chip. */
+      names: /CHG-\d+/.test((n.textContent || '') + ' ' + ((n.querySelector('.rl-card-meta') || {}).getAttribute
+        ? (n.querySelector('.rl-card-meta').getAttribute('title') || '') : '')),
     })),
     inserted: q('[id="rl-doc"] ins, [id="rl-doc"] .nego-ins').map(n => n.textContent).join(' | '),
     deleted: q('[id="rl-doc"] del, [id="rl-doc"] .nego-del').map(n => n.textContent).join(' | '),

@@ -54,6 +54,7 @@ const SAME_IN_BOTH = new Set([
      from ng_rung_your_move / ng_rung_you, which ARE translated. A Swedish
      rewriting of a separator would be a difference with nothing in it. */
   'ng_rung_plain',
+  'ng_pb_std',
   'ng_rung_pick',
   'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
   'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)

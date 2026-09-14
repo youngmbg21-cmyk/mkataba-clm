@@ -842,6 +842,15 @@ function rlReplStands(ch){
   if (!ids.length) return '';
   return i18t('ng_repl_stands', { ids: ids.length > 3 ? ids.slice(0, 3).join(', ') + ' ' + i18t('ng_repl_more', { n: ids.length - 3 }) : ids.join(', ') });
 }
+/* ---- WHOSE MARK, FROM THIS CHAIR (14 Sep 2026) ----
+   'us' or 'them' relative to the READER, which is what the colours say. One
+   reading for every paper this file draws and for the card's preview, so a
+   lone ask and a stacked one cannot come to disagree about which side wears
+   the amber. */
+function rlSideWho(ch, viewerSide){
+  const me = viewerSide === 'counterparty' ? 'counterparty' : 'owner';
+  return (ch && ch.authorSide === me) ? 'us' : 'them';
+}
 function rlLayeredHtml(c, ch, viewerSide, opts = {}){
   const under = rlStackUnder(c, ch); if (!under) return null;
   const me = viewerSide === 'counterparty' ? 'counterparty' : 'owner';
@@ -956,7 +965,7 @@ function negoDocHtml(c, opts){
     }
     const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
     return (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      ? redlineOpsBlocksHtml(ops)
+      ? redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner') })
       : (window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || ''));
   };
   /* The adopted wording, in the same blocks. Built off the ops with the
@@ -5583,6 +5592,8 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
     if (!b) return;
     ev.preventDefault();
     rlSetReadMode(b.getAttribute('data-rl-read'));
+    /* THE DEAL BOARD STEPS ASIDE for a reading (14 Sep 2026). */
+    if (typeof rlBoardIsOpen === 'function' && rlBoardIsOpen()){ rlBoardSet(false); rlBoardPaintTitle(); }
     rlRepaintFrom(b);
   });
   /* ---- AND THE ASK TAG, ON THE SAME TERMS (OI-12) ----
@@ -5940,13 +5951,17 @@ function rlAskResetOpen(){ _rlAskOpen = null; }
 function rlChangeWordingHtml(ch, opts = {}){
   if (!ch) return '';
   const ops = rlChangeOps(ch);
+  /* Whose colour: the caller names the chair; absent, the record's own seat
+     is read as "us" — every surface that prints this is our seat's or the
+     portal's, and the portal passes its side. */
+  const who = rlSideWho(ch, opts.side || 'owner');
   /* THE THREE STYLE OPTIONS TRAVEL, and nothing else does. This builds its own
      opts rather than forwarding the caller's, which is right — a renderer that
      passes everything through has no contract at all — so the options added
      for markup that LEAVES this app (the memo's clipboard copy, where none of
      the product's classes or tokens exist) have to be named here. Absent on
      every other caller, and absent they change nothing. */
-  const pass = { changedOnly: !!opts.changedOnly };
+  const pass = { changedOnly: !!opts.changedOnly, who };
   for (const k of ['insStyle', 'delStyle', 'blockStyle']) if (opts[k]) pass[k] = opts[k];
   return window.redlineOpsBlocksHtml
     ? redlineOpsBlocksHtml(ops, pass)
@@ -6182,10 +6197,21 @@ function rlClauseEditPillHtml(cl, opts = {}){
      that really do open it. */
   const title = say(pill && pill.title,
     i18t(attr === 'data-rl-cp-editor' ? 'ng_cp_edit_title' : 'ng_cp_open_title'));
-  return `<button type="button" class="rl-cp-pill" ${attr}="${id}"
+  /* ---- THE PENCIL THAT MEANS DONE SAYS SO (Young, 14 Sep 2026: "HaTi does
+     not have a done pencil currently but build it as seen in the attached
+     image") ----
+     A caller's pencil that is PRESSED — the clause editor's, on the one
+     clause being typed in — prints its word beside the glyph, wears an edge,
+     and sits in the row beside the round chip rather than pinned out of it.
+     The icon-only pencil was there and was invisible: hover-only at rest, its
+     label an aria-label nobody sighted could read. Every other pencil is
+     byte-identical. */
+  const done = !!(pill && on);
+  return `<button type="button" class="rl-cp-pill${done ? ' rl-cp-pill-done' : ''}" ${attr}="${id}"
     aria-expanded="${on ? 'true' : 'false'}"
     aria-label="${_nea(label)}"
-    title="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`;
+    title="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>${
+    done ? `<span class="rl-cp-pill-w">${_ne(label)}</span>` : ''}</button>`;
 }
 
 /* ---- ONE CLAUSE, ONE SHAPE, WHEREVER IT IS DRAWN ----
@@ -6596,7 +6622,7 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
            section above cannot answer once a round has closed: its own list
            empties at negoAdvanceRound. One reading (js/ladder.js), drawn here
            and on the deal board, and it never initialises a negotiation. */}
-    ${rlLadderSectionHtml(c, cl, side, opts)}
+    ${rlLadderSectionHtml(c, cl, side, { ...opts, chs: list })}
   </div>`;
 }
 /* ============================================================
@@ -6681,7 +6707,7 @@ function rlReadAtHtml(c, clauseId, side){
    NEVER ON A PREVIEW and never inside the clause editor's own canvas — that
    page is one clause and the ladder is in its rail. */
 function rlLadderChipHtml(c, cl, side, opts = {}){
-  if (!cl || !cl.clauseId || opts.pill) return '';
+  if (!cl || !cl.clauseId) return '';
   /* ---- A CLEAN READING CARRIES NO CHIP, FOR THE PENCIL'S OWN REASON ----
      Under "As agreed" or "With changes" the clause is drawn with no marks
      on it, and a chip saying which move the paper is showing would be
@@ -6701,11 +6727,51 @@ function rlLadderChipHtml(c, cl, side, opts = {}){
   }
   const chip = ladderChip(c, id, side);
   if (!chip) return '';
+  /* INSIDE THE CLAUSE EDITOR (opts.pill) the chip is a statement, not a door:
+     that page is one clause and its rail carries the ladder as a tab. */
+  if (opts.pill) return `<span class="rl-rung rl-rung-${_ne(chip.cls)} rl-rung-static">${_ne(chip.text)}</span>`;
   return `<button type="button" class="rl-rung rl-rung-${_ne(chip.cls)}"
     data-rl-ladder="${_ne(id)}" aria-expanded="false"
     title="${_nea(i18t('ng_rung_open_title'))}">${_ne(chip.text)}</button>`;
 }
 
+/* ---- THE LINE UNDER A STACKED CLAUSE (Young ruled 14 Sep 2026: build the
+   artifact's line) ----
+   Under two moves the PLAIN words are the last wording exchanged, and the
+   reader who takes them for the contract signs off on a figure nobody
+   accepted. The column's key says it once for the whole column; this says
+   it on the clause it is true of, with the figure, and puts the agreed
+   figure and the way to read it beside it. Drawn only on a stack (a lone ask
+   is drawn against the agreed text, so there is nothing to say), only in
+   the redlined reading, and never inside the clause editor (opts.pill —
+   that page is one clause and its rail says all of this). While a rung is
+   pinned it says what the paper is showing instead, with the way back.
+   FURNITURE, NOT PAPER: it names no size in the sheet's scale. */
+function rlBaselineHtml(c, cl, side, opts = {}){
+  if (!cl || !cl.clauseId || opts.pill) return '';
+  if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
+  if (typeof window.ladderBaseline !== 'function') return '';
+  const id = String(cl.clauseId);
+  const at = rlReadAtRung(c, id);
+  if (at){
+    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}"><span>${_ne(i18t('ng_base_reading'))}</span>
+      <button type="button" data-rl-read-now="${_ne(id)}">${_ne(i18t('ng_rung_back'))}</button></div>`;
+  }
+  const b = ladderBaseline(c, id, side);
+  if (!b) return '';
+  const num = (String(cl.label || cl.headingText || '').match(/^\s*(\d+(?:\.\d+)*)/) || [])[1]
+    || (typeof clauseNameShown === 'function' ? clauseNameShown(cl.label || '') : String(cl.label || ''));
+  const u = b.unit;
+  const figOf = n => (n == null || !u) ? '' : ` (${_ne(String(n))} ${_ne(u)})`;
+  const plain = b.below
+    ? _ne(i18t('ng_base_eq_rung', { who: i18t(b.below.who === 'you' ? 'ng_base_your' : 'ng_base_their'), n: b.below.n }))
+      + figOf(b.below.fig) + _ne(i18t('ng_base_not_agreed'))
+    : _ne(i18t('ng_base_eq_agreed'));
+  return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
+    <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
+    <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)} &middot; <button type="button"
+      data-rl-read="agreed">${_ne(i18t('ng_read_agreed'))}</button></span></div>`;
+}
 /* ---- THE LADDER ITSELF ----
    Newest at the top, which is the History tab's own order and the order a
    reader coming back to a clause wants: what just happened, then how it got
@@ -6721,68 +6787,94 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
   if (!rungs.length) return '';
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const mine = r => r.side === me;
-  const readAt = rlReadAtOf(id);
+  const inEditor = !!opts.editor;
+  const readAt = inEditor ? null : rlReadAtOf(id);
   const over = ladderOverflow(c, id);
   const track = (typeof ladderTrack === 'function') ? ladderTrack(c, id, side) : null;
+  const top = ladderTop(rungs);
+  const topUnder = top ? ladderUnder(rungs, top) : null;
+  const acc = ladderSettled(rungs);
+  /* THE TWO MOVES THE PAPER IS SHOWING are shaded, so the ladder and the
+     paper say the same thing about what is on screen (the artifact's `win`). */
+  const winIds = new Set([top && top.id, topUnder && topUnder.id].filter(Boolean));
+  /* Whose seat may act: our own, not a preview, not a reading. */
+  const canAct = !inEditor && side !== 'counterparty' && !opts.preview
+    && !(typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) && opts.editable !== false;
+  const editorTakes = (typeof rlEditorTakesIt === 'function') ? rlEditorTakesIt(side, opts) : false;
+  const door = (word, cls) => editorTakes
+    ? `<button type="button" class="${cls}" data-rl-cp-editor-row="${_nea(id)}" data-rl-cp-editor-change="${_nea(top ? top.id : '')}"
+        title="${_nea(i18t('ng_cp_edit_title'))}">${_ne(word)}</button>`
+    : '';
   const rows = rungs.slice().reverse().map(r => {
     const under = ladderUnder(rungs, r);
     const tone = (r.status === 'rejected' || r.withdrawn) ? 'no'
       : r.status === 'accepted' ? 'ok'
       : r.status === 'superseded' ? 'was'
       : mine(r) ? 'you' : 'them';
+    const unsent = mine(r) && typeof ladderUnsent === 'function' && ladderUnsent(c, r, side);
     const tag = r.withdrawn ? i18t('ng_rung_tag_withdrawn')
       : r.status === 'rejected' ? i18t('ng_rung_tag_refused')
       : r.status === 'accepted' ? i18t('ng_rung_tag_accepted')
       : r.status === 'superseded' ? i18t('ng_rung_tag_replaced')
-      : r.status === 'countered' ? i18t('ng_rung_tag_countered') : '';
+      : r.status === 'countered' ? i18t('ng_rung_tag_countered')
+      : unsent ? i18t('ng_rung_tag_draft') : '';
     /* WHAT MOVED, in the record's own words. `summary` is what the funnel
        wrote at filing and what the card prints; a second description worked
        out here is a second answer waiting to disagree with the card. */
     const what = r.summary || '';
     const acts = [];
-    acts.push(readAt === r.id
+    if (!inEditor) acts.push(readAt === r.id
       ? `<button type="button" data-rl-read-now="${_ne(id)}">${_ne(i18t('ng_rung_back'))}</button>`
       : `<button type="button" data-rl-read-at="${_ne(id)}" data-rung="${_ne(r.id)}"
           title="${_nea(i18t('ng_rung_read_title'))}">${_ne(i18t('ng_rung_read'))}</button>`);
+    /* THE TOP RUNG CARRIES THE VERBS (the artifact's ladder): Accept · Reject
+       · Counter on their live ask, Edit · Send · Discard on our unsent draft.
+       The SAME doors the card draws, by the same attributes, so one handler
+       answers them wherever they are pressed. */
+    if (canAct && r === top && !acc && r.status === 'pending' && !r.withdrawn){
+      if (!mine(r)){
+        acts.push(`<button type="button" class="acc" data-nego-accept="${_nea(r.id)}">${_ne(i18t('ng_accept'))}</button>`);
+        acts.push(`<button type="button" class="rej" data-nego-reject="${_nea(r.id)}">${_ne(i18t('ng_reject'))}</button>`);
+        acts.push(door(i18t('ng_counter'), ''));
+      } else if (unsent){
+        acts.push(door(i18t('act_edit'), ''));
+        acts.push(`<button type="button" data-rl-send="${_nea(r.id)}">${_ne(i18t('ng_send'))}</button>`);
+        acts.push(`<button type="button" class="grey" data-rl-retract="${_nea(r.id)}">${_ne(i18t('ng_discard'))}</button>`);
+      }
+    }
     /* ---- WHY THERE IS NO "ACCEPT THIS EARLIER ASK" VERB ----
-       The artifact this feature was drawn from offered one: settle on the
-       figure they gave two rounds ago without asking them to send it again.
-       IT CANNOT WORK IN THIS MODEL AND IS NOT DRAWN, which is this page's own
-       rule about a verb that cannot work.
-
        Writing a counter on their ask PARKS it (status 'countered'), and
        negoResolve refuses a decision on a parked ask by name — the pair is
        decided together, through the counter that stands on it. So an earlier
-       ask of theirs is never both live and beneath something: the moment
-       anything of ours sits on top of it, it is parked, and a rival filing
-       supersedes it instead. There is no third case, so the press would have
-       been refused every time it was offered.
-
-       The rung SAYS where its decision lives instead. The way to their
-       earlier figure is the product's own: withdraw the counter standing on
-       it, which releases the ask, and decide it on its own card. */
+       ask of theirs is never both live and beneath something, and the press
+       would have been refused every time it was offered. The rung SAYS where
+       its decision lives instead. */
     const parked = r.status === 'countered' && r.ch && r.ch.counteredBy;
-    return `<li class="rl-rung-row rl-rung-${tone}${readAt === r.id ? ' is-reading' : ''}">
+    return `<li class="rl-rung-row rl-rung-${tone}${winIds.has(r.id) && !acc && !readAt ? ' rl-rung-win' : ''}${readAt === r.id ? ' is-reading' : ''}"${
+      winIds.has(r.id) ? ` title="${_nea(i18t('ng_rung_win_title'))}"` : ''}>
       <div class="rl-rung-who"><span class="rl-rung-n">R${r.n}</span>
         <span>${_ne(mine(r) ? i18t('ng_rung_you') : i18t('ng_rung_them'))}${
           r.author ? ` · ${_ne(r.author)}` : ''}</span>
         ${tag ? `<span class="rl-rung-tag">${_ne(tag)}</span>` : ''}
         <span class="rl-rung-when">${_ne(i18t('ng_rung_round', { n: r.round }))}${
-          r.at ? ` · ${_ne(negoWhen(r.at))}` : ''}</span></div>
+          r.at ? ` · ${_ne(negoWhen(r.at))}` : ''}${unsent ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</span></div>
       ${what ? `<div class="rl-rung-what">${_ne(what)}</div>` : ''}
       ${under ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_stands_on', { n: under.n }))}</div>` : ''}
-      ${parked ? (() => { const over = rungs.find(x => x.id === r.ch.counteredBy);
-        return over ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_decided_with', { n: over.n }))}</div>` : ''; })() : ''}
+      ${parked ? (() => { const o = rungs.find(x => x.id === r.ch.counteredBy);
+        return o ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_decided_with', { n: o.n }))}</div>` : ''; })() : ''}
       ${r.say ? `<div class="rl-rung-say">${_ne(r.say)}</div>` : ''}
-      <div class="rl-rung-acts">${acts.join('')}</div>
+      ${acts.filter(Boolean).length ? `<div class="rl-rung-acts">${acts.filter(Boolean).join('')}</div>` : ''}
     </li>`;
   }).join('');
   const base = ladderBaseText(rungs);
+  const baseFig = (track && typeof ladderFigure === 'function') ? ladderFigure(ladderTopic(rungs), base) : null;
   const r0 = `<li class="rl-rung-row rl-rung-base${readAt === '0' ? ' is-reading' : ''}">
     <div class="rl-rung-who"><span class="rl-rung-n">R0</span>
       <span>${_ne(i18t('ng_rung_agreed'))}</span></div>
-    ${base ? `<div class="rl-rung-what">${_ne(base.length > 120 ? base.slice(0, 119) + '…' : base)}</div>` : ''}
+    ${baseFig != null ? `<div class="rl-rung-what">${_ne(String(baseFig))} ${_ne(track.unit || '')}</div>`
+      : base ? `<div class="rl-rung-what">${_ne(base.length > 120 ? base.slice(0, 119) + '…' : base)}</div>` : ''}
   </li>`;
+  const tail = (inEditor || opts.noTail) ? '' : rlLadderTailHtml(c, cl, opts.chs || [], side, { act: 'panel' });
   return `<section class="rl-cp-sec rl-ladder-sec">
     <h5 class="rl-cp-h">${i18t('ng_ladder_head', { n: rungs.length })}</h5>
     ${track ? rlLadderTrackHtml(track) : ''}
@@ -6790,7 +6882,7 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
     ${over ? `<p class="rl-cp-none">${_ne(i18t('ng_ladder_capped', { n: over }))}</p>` : ''}
     ${rungs.length > 1 ? `<div class="rl-rung-acts rl-ladder-foot"><button type="button"
       data-rl-rung-compare="${_ne(id)}">${_ne(i18t('ng_ladder_compare'))}</button></div>` : ''}
-  </section>`;
+  </section>${tail}`;
 }
 /* THE FIGURE, AS A TRACK. R0 → R1 → R2, each with its number and whose it
    was — the whole argument on one line where the argument is a number.
@@ -6913,122 +7005,259 @@ function openLadderCompare(clauseId, aId, bId){
 
    A ROW IS A DOOR onto its clause, which is the whole point of a board: you
    read it to decide what to work on next. */
+/* ============================================================
+   YOUR PLAYBOOK · THE FIGURE · NOTES — the clause panel's lower sections
+   (Young ruled 14 Sep 2026: build the artifact as drawn)
+   ============================================================
+   Three readings under the ladder. Every figure is js/ladder.js's own or the
+   playbook's own; nothing here initialises, files or spends. Drawn by the
+   clause panel and, through window, by the clause editor's rail. */
+function rlPlaybookSecHtml(c, clauseId, side){
+  if (side === 'counterparty' || typeof window.ladderStand !== 'function') return '';
+  const row = ladderStand(c, String(clauseId || ''), side);
+  if (!row) return '';
+  const topic = row.topic;
+  const unit = row.unit || '';
+  const dash = `<span class="rl-pb-none" title="${_nea(i18t('ng_pb_walk_none_title'))}">&mdash;</span>`;
+  const fig = (n, u) => n == null ? dash : `${_ne(String(n))}${u ? ` ${_ne(u)}` : ''}`;
+  const std = row.standard
+    ? `${_ne(row.standard.op === '<=' ? '≤' : row.standard.op === '>=' ? '≥' : '')} ${fig(row.standard.value, unit)}`.trim()
+    : dash;
+  const fb = (typeof window.ladderFallback === 'function') ? ladderFallback(topic) : null;
+  const fbCell = fb ? (fb.figure != null ? fig(fb.figure, unit) : `<span title="${_nea(fb.text)}">${_ne(fb.text.length > 48 ? fb.text.slice(0, 47) + '…' : fb.text)}</span>`) : dash;
+  let prec = '';
+  if (topic && typeof window.ladderSettledFigure === 'function'){
+    const p = ladderSettledFigure(topic.key);
+    if (p) prec = i18t('ce_lc_prec_fig', { n: p.figure, unit: p.unit || unit, seen: p.seen, of: p.of });
+  }
+  if (!prec){
+    try{
+      const lead = row.top || row.theirs || row.ours;
+      if (lead && lead.ch && window.precedentForChange && window.precedentLine){
+        const p = precedentForChange(c, lead.ch);
+        prec = p ? String(precedentLine(p) || '').replace(/<[^>]*>/g, '').trim() : '';
+      }
+    }catch(_){ prec = ''; }
+  }
+  return `<section class="rl-cp-sec rl-pb-sec">
+    <h5 class="rl-cp-h">${_ne(i18t('ng_pb_sec'))}</h5>
+    <div class="rl-pbook">
+      <span>${_ne(i18t('ng_pb_std'))}</span><b>${std}</b>
+      <span>${_ne(i18t('ng_pb_fb'))}</span><b>${fbCell}</b>
+      <span>${_ne(i18t('ng_pb_walk'))}</span><b>${dash}</b>
+      ${prec ? `<span>${_ne(i18t('ng_pb_prec'))}</span><span class="rl-pb-prec">${_ne(prec)}</span>` : ''}
+    </div>
+  </section>`;
+}
+/* The scale: their last ask, our position and the agreed figure on one line,
+   with the green span between the playbook's fallback and its standard. The
+   bounds are the figures' own (a scale that hides a mark is a lie about the
+   distance), rounded up to a round number so the ticks read. */
+function rlScaleHtml(row){
+  if (!row || !row.topic) return '';
+  const fb = (typeof window.ladderFallback === 'function') ? ladderFallback(row.topic) : null;
+  const fbN = fb ? fb.figure : null;
+  const stdN = row.standard ? row.standard.value : null;
+  const base = (typeof window.ladderBaseText === 'function') ? ladderFigure(row.topic, ladderBaseText(row.rungs)) : null;
+  const all = [row.theirFig, row.ourFig, base, stdN, fbN].filter(n => n != null && Number.isFinite(n));
+  if (!all.length) return '';
+  const raw = Math.max(...all) * 1.25 || 10;
+  const step = raw <= 12 ? 2 : raw <= 30 ? 5 : raw <= 120 ? 10 : 50;
+  const hi = Math.max(step, Math.ceil(raw / step) * step);
+  const pct = n => Math.max(0, Math.min(100, (n / hi) * 100));
+  const unit = row.unit || '';
+  const zone = (fbN != null && stdN != null)
+    ? `<span class="rl-sc-zone" style="left:${Math.min(pct(fbN), pct(stdN))}%;width:${Math.abs(pct(stdN) - pct(fbN))}%"></span>` : '';
+  const mark = (n, cls, key) => n == null ? '' : `<span class="rl-sc-mark rl-sc-${cls}" style="left:${pct(n)}%">${_ne(i18t(key, { n }))}</span>`;
+  const ticks = [0, hi / 2, hi].map(v => `<span class="rl-sc-tick" style="left:${pct(v)}%">${_ne(String(v))}</span>`).join('');
+  return `<div class="rl-scale"><div class="rl-sc-line">${zone}${
+    mark(row.theirFig, 'them', 'ng_fig_theirs')}${mark(row.ourFig, 'you', 'ng_fig_yours')}${
+    base != null ? `<span class="rl-sc-mark rl-sc-grey rl-sc-below" style="left:${pct(base)}%">${_ne(i18t('ng_fig_agreed', { n: base }))}</span>` : ''}${ticks}</div></div>
+    <p class="rl-sc-note">${_ne(i18t('ng_fig_zone'))}${unit ? ` ${_ne(unit)}.` : ''}</p>`;
+}
+/* THE FIGURE section: the scale, a number box and one press that writes the
+   figure into the wording. `opts.act` names the door: 'panel' opens the
+   clause editor with the figure applied (data-rl-fig-write); 'editor' is the
+   editor's own tab and applies to its box (data-ce-act="fig-write"). */
+function rlFigureSecHtml(c, clauseId, side, opts = {}){
+  if (side === 'counterparty' || typeof window.ladderStand !== 'function') return '';
+  const row = ladderStand(c, String(clauseId || ''), side);
+  if (!row || !row.topic || row.accepted) return '';
+  const scale = rlScaleHtml(row);
+  if (!scale) return '';
+  const now = row.top ? ladderFigure(row.topic, row.top.text) : null;
+  const val = now != null ? now : (row.ourFig != null ? row.ourFig : (row.theirFig != null ? row.theirFig : ''));
+  const id = _ne(String(clauseId));
+  const inputId = opts.act === 'editor' ? 'ce-fig' : `rl-fig-${id}`;
+  const press = opts.act === 'editor'
+    ? `data-ce-act="fig-write"` : `data-rl-fig-write="${id}"`;
+  return `<section class="rl-cp-sec rl-fig-sec">
+    <h5 class="rl-cp-h">${_ne(i18t('ng_fig_sec'))}</h5>
+    ${scale}
+    <div class="rl-figrow"><span>${_ne(i18t('ng_fig_propose'))}</span>
+      <input type="number" id="${inputId}" value="${_nea(String(val))}" min="0" step="1" aria-label="${_nea(i18t('ng_fig_propose'))}">
+      <span class="rl-fig-u">${_ne(row.unit || '')}</span>
+      <button type="button" class="ui-btn ui-btn-primary rl-fig-go" ${press}
+        title="${_nea(i18t('ng_fig_write_title'))}">${_ne(i18t('ng_fig_write'))}</button></div>
+    ${opts.act === 'editor' ? `<div class="rl-figrow"><input type="range" id="ce-fig-range" min="0" max="${_nea(String(Math.max(1, Math.ceil((Number(val) || 1) * 2))))}" value="${_nea(String(val))}" aria-label="${_nea(i18t('ng_fig_propose'))}"></div>` : ''}
+  </section>`;
+}
+/* Notes on this clause: the count and the one door onto the drawer. */
+function rlNotesSecHtml(c, clauseId, chs, side){
+  const list = Array.isArray(chs) ? chs : [];
+  /* BORROWED, never derived: negoNoteCounts is the one arithmetic (f248). */
+  let n = 0;
+  list.forEach(ch => { try{ n += negoNoteCounts(c, ch, {}, side).total; }catch(_){} });
+  const lead = list.length ? list[list.length - 1] : null;
+  /* The count is a fact and draws on every stage; the door draws only where
+     the drawer exists to open (a stage without js/app.js has none). */
+  const door = (typeof window.openNotesPanel === 'function')
+    ? `<button type="button" class="ui-btn rl-notes-go" data-rl-cp-notes-open="${_nea(lead ? lead.id : '')}"
+        data-rl-cp-notes-c="${_nea(c.id)}">${_ne(i18t('ng_notes_open'))}</button>` : '';
+  return `<section class="rl-cp-sec rl-notes-sec">
+    <h5 class="rl-cp-h">${_ne(i18t('ng_notes_sec'))}</h5>
+    <div class="rl-notes-row"><span>${_ne(n ? i18tn('ng_notes_n', n, { n }) : i18t('ng_notes_none'))}</span>${door}</div>
+  </section>`;
+}
+/* THE PANEL'S TAIL, in the artifact's order: playbook, figure, notes. */
+function rlLadderTailHtml(c, cl, chs, side, opts = {}){
+  if (!cl || !cl.clauseId) return '';
+  const id = String(cl.clauseId);
+  return rlPlaybookSecHtml(c, id, side)
+    + (opts.noFigure ? '' : rlFigureSecHtml(c, id, side, { act: opts.act || 'panel' }))
+    + (opts.noNotes ? '' : rlNotesSecHtml(c, id, chs, side));
+}
+
+/* ============================================================
+   THE DEAL BOARD IS A PAGE (Young ruled 14 Sep 2026: "3, yes build as in
+   the artifact")
+   ============================================================
+   A fourth tab beside the three readings, drawn IN the working area in the
+   grid's place. NOT a fourth reading: RL_READS is how the DOCUMENT is drawn
+   and a value there would fall through every clause branch; this is one
+   flag, per sitting, that renderRedline reads. Our seat only. */
+let _rlBoardOpen = false;
+function rlBoardIsOpen(){ return !!_rlBoardOpen; }
+function rlBoardSet(on){ _rlBoardOpen = !!on; }
+function rlBoardPaintTitle(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('shell-title') : null;
+  if (!el) return;
+  if (_rlBoardOpen) el.textContent = i18t('ng_board');
+  else if (typeof window.shellTitleFor === 'function') el.textContent = shellTitleFor('redline');
+}
+function rlBoardPageHtml(c){
+  return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
+}
+function rlBoardMemoText(c){
+  if (typeof window.ladderBoard !== 'function') return '';
+  const rows = ladderBoard(c, 'owner');
+  const f = (n, u) => n == null ? '—' : `${n}${u ? ' ' + u : ''}`;
+  return `${i18t('ng_board')} · ${c.name || c.id} · ${c.counterparty || ''}\n` + rows.map(r =>
+    `- ${r.label || r.clauseId}: ${i18t('ng_board_col_ours').toLowerCase()} ${f(r.ourFig, r.unit)} / ${
+      i18t('ng_board_col_theirs').toLowerCase()} ${f(r.theirFig, r.unit)} / ${i18t('ng_board_col_gap').toLowerCase()} ${
+      r.dist != null ? f(r.dist, r.unit) : (r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))} / ${r.state}`).join('\n');
+}
 function dealBoardHtml(c, side){
   if (typeof window.ladderBoard !== 'function') return '';
   const rows = ladderBoard(c, side);
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const dash = `<span class="db-none">&mdash;</span>`;
   const open = rows.filter(r => r.state === 'awaiting' || r.state === 'with').length;
-  const yours = rows.filter(r => r.state === 'awaiting').length;
+  const fbOf = r => (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
+  const within = rows.filter(r => { const fb = fbOf(r); return fb && fb.figure != null && r.theirFig != null
+    && typeof window.ladderWithin === 'function' && ladderWithin(r.topic, r.theirFig, fb.figure) === true; }).length;
+  const head = `<div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b>
+      <span>${_ne(i18tn('ng_board_open', open, { n: open }))}</span>
+      <span>${_ne(i18tn('ng_board_within', within, { n: within }))}</span>
+      <span>${_ne(i18t('ng_board_sorted_cap'))}</span><span class="sp"></span>
+      <button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button></div>`;
   if (!rows.length){
-    return `<div class="db"><h2 class="db-h">${_ne(i18t('ng_board_head'))}</h2>
-      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+    return `<div class="db">${head}<p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
   }
+  /* Is this row's own top move an unsent draft of ours — the board's fifth
+     word, which the ladder's state does not carry. */
+  const unsentTop = r => r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
   const move = r => {
     const k = r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
-      : r.state === 'with' ? ['them', i18t('ng_board_move_them')]
+      : r.state === 'with' ? (unsentTop(r) ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
       : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
       : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
       : ['quiet', i18t('ng_board_move_none')];
     return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
   };
   const fig = (n, unit) => n == null ? dash : `${_ne(String(n))}${unit ? ` <i>${_ne(unit)}</i>` : ''}`;
-  /* THE DISTANCE BAR IS THE SAME OBJECT ON EVERY ROW: their last ask, your
-     position, and the ground between them. Where the clause is not argued in
-     a number there is no bar and the cell says so in a word — a bar drawn
-     from nothing is a picture of a number that does not exist. */
   const bar = r => {
-    if (r.dist == null) return `<span class="db-gap-w">${_ne(
-      r.state === 'settled' ? i18t('ng_board_gap_settled')
-        : r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))}</span>`;
-    const hi = Math.max(r.theirFig, r.ourFig);
-    const span = Math.max(hi, 1);
-    const pct = v => Math.max(0, Math.min(100, (v / span) * 100));
+    if (r.dist == null){
+      /* A wording argument still draws two dots, apart or together, so the
+         column reads as one object down the page; a clause with no ask
+         draws an empty track. */
+      const both = r.theirs ? (r.ours && r.ours.text !== r.theirs.text
+        ? `<b style="left:8%;width:84%"></b><i class="t" style="left:8%"></i><i class="y" style="left:92%"></i>`
+        : `<i class="t" style="left:50%"></i><i class="y" style="left:50%"></i>`) : '';
+      return `<span class="db-gap"><span class="db-bar">${both}</span><span class="db-gap-w">${_ne(
+        r.state === 'settled' ? i18t('ng_board_gap_settled')
+          : r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))}</span></span>`;
+    }
+    const fb = fbOf(r);
+    const hi = Math.max(r.theirFig, r.ourFig, fb && fb.figure != null ? fb.figure : 0, r.standard ? r.standard.value : 0, 1);
+    const pct = v => Math.max(0, Math.min(100, (v / hi) * 100));
     const a = pct(r.theirFig), b = pct(r.ourFig);
     return `<span class="db-gap"><span class="db-bar" role="img" aria-label="${
       _nea(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' }))}"><b style="left:${
-      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b><i class="t" style="left:${a}%"></i><i class="y" style="left:${
-      b}%"></i></span><span class="db-gap-n">${_ne(String(r.dist))}${
-      r.unit ? ` ${_ne(r.unit)}` : ''}</span></span>`;
+      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b>${fb && fb.figure != null ? `<i class="s" style="left:${pct(fb.figure)}%"></i>` : ''}<i class="t" style="left:${a}%"></i><i class="y" style="left:${
+      b}%"></i></span><span class="db-gap-n">${r.dist ? `${_ne(String(r.dist))}${r.unit ? ` ${_ne(r.unit)}` : ''}` : _ne(i18t('ng_board_agreed_fig'))}</span></span>`;
   };
   const std = r => {
     if (!r.standard) return dash;
     const op = r.standard.op === '<=' ? '≤' : r.standard.op === '>=' ? '≥' : '';
     return `${_ne(op)} ${_ne(String(r.standard.value))}${r.unit ? ` <i>${_ne(r.unit)}</i>` : ''}`;
   };
-  /* PRECEDENT, and it is never called on the counterparty's seat — our own
-     negotiating history is the single most useful thing an opponent could
-     read. The board is our seat's by construction (see openDealBoard), and
-     this is the second wall. */
-  const prec = r => {
-    if (me === 'counterparty' || !r.topic || typeof window.ladderSettledFigure !== 'function') return dash;
-    const p = ladderSettledFigure(r.topic.key);
-    if (!p) return dash;
-    return `${_ne(String(p.figure))}${p.unit ? ` <i>${_ne(p.unit)}</i>` : ''}<em class="db-seen" title="${
-      _nea(i18t('ng_board_prec_title', { seen: p.seen, of: p.of }))}">${_ne(String(p.seen))}×</em>`;
-  };
+  const fbCell = r => { const fb = fbOf(r); if (!fb) return dash;
+    return fb.figure != null ? fig(fb.figure, r.unit) : `<span class="db-fbw" title="${_nea(fb.text)}">${_ne(fb.text.length > 32 ? fb.text.slice(0, 31) + '…' : fb.text)}</span>`; };
+  const walk = `<span class="db-none" title="${_nea(i18t('ng_pb_walk_none_title'))}">&mdash;</span>`;
+  const words = r => r.theirs ? _ne(String(r.theirs.summary || '').slice(0, 40)) : dash;
   const body = rows.map(r => `<tr class="db-row" data-rl-board-go="${_ne(r.clauseId)}" tabindex="0" role="button"
       title="${_nea(i18t('ng_board_go'))}">
-    <td class="db-c">${_ne(r.label || r.clauseId)}<em class="db-moves">${
-      _ne(i18tn('ng_board_moves_n', r.moves, { n: r.moves }))}</em></td>
+    <td class="db-c">${_ne(r.label || r.clauseId)}</td>
     <td>${std(r)}</td>
-    <td>${prec(r)}</td>
-    <td>${r.theirs ? fig(r.theirFig, r.unit) : dash}</td>
-    <td>${r.ours ? fig(r.ourFig, r.unit)
+    <td>${fbCell(r)}</td>
+    <td>${walk}</td>
+    <td>${r.theirs ? (r.theirFig != null ? fig(r.theirFig, r.unit) : words(r)) : dash}</td>
+    <td>${r.ours ? (r.ourFig != null ? fig(r.ourFig, r.unit) : _ne(String(r.ours.summary || '').slice(0, 40)))
       : r.ourFig != null ? `<span class="db-drafted" title="${_nea(i18t('ng_board_as_drafted_title'))}">${
-        fig(r.ourFig, r.unit)} <em>${_ne(i18t('ng_board_as_drafted'))}</em></span>` : dash}</td>
+        fig(r.ourFig, r.unit)} <em>${_ne(i18t('ng_board_as_drafted'))}</em></span>`
+      : (r.theirs ? _ne(i18t('ng_board_not_answered')) : _ne(i18t('ng_board_as_drafted')))}</td>
     <td>${bar(r)}</td>
+    <td class="db-n">${_ne(String(r.moves))}</td>
     <td>${move(r)}</td>
   </tr>`).join('');
   return `<div class="db">
-    <h2 class="db-h">${_ne(i18t('ng_board_head'))}</h2>
-    <p class="db-sub">${_ne(i18tn('ng_board_open', open, { n: open }))}${
-      yours ? ` · ${_ne(i18tn('ng_board_yours', yours, { n: yours }))}` : ''} · ${
-      _ne(i18t('ng_board_sorted'))}</p>
+    ${head}
     <div class="db-wrap"><table class="db-t"><thead><tr>
       <th>${_ne(i18t('ng_board_col_clause'))}</th>
       <th>${_ne(i18t('ng_board_col_std'))}</th>
-      <th>${_ne(i18t('ng_board_col_prec'))}</th>
+      <th>${_ne(i18t('ng_board_col_fb'))}</th>
+      <th>${_ne(i18t('ng_board_col_walk'))}</th>
       <th>${_ne(i18t('ng_board_col_theirs'))}</th>
       <th>${_ne(i18t('ng_board_col_ours'))}</th>
       <th>${_ne(i18t('ng_board_col_gap'))}</th>
+      <th>${_ne(i18t('ng_board_col_rungs'))}</th>
       <th>${_ne(i18t('ng_board_col_move'))}</th>
     </tr></thead><tbody>${body}</tbody></table></div>
-    <p class="db-foot">${_ne(i18t('ng_board_foot'))}</p>
+    <p class="db-foot">${_ne(i18t('ng_board_note'))}</p>
   </div>`;
 }
 /* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
-   drawn on the counterparty's page and its door is not either. */
+   drawn on the counterparty's page and its door is not either. A PAGE since
+   14 Sep 2026: the flag is set and the negotiate page repaints with the board
+   in the working area; pressing any reading tab, or the board's tab again,
+   puts the paper back. */
 function openDealBoard(){
   const c = rlLadderContract();
   if (!c){ if (window.toast) toast(i18t('ng_board_no_contract'), 'warn'); return; }
-  openModal(`<div style="padding:18px 20px var(--s-4)">${dealBoardHtml(c, 'owner')}
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:14px">
-      <button type="button" id="rl-board-done" class="ui-btn ui-btn-primary">${
-      _ne(i18t('ng_rung_cmp_done'))}</button></div></div>`, { maxWidth: 'min(1080px, 94vw)' });
-  const done = document.getElementById('rl-board-done');
-  if (done) done.addEventListener('click', () => closeModal());
-  const root = document.getElementById('modal-root');
-  if (!root) return;
-  /* A ROW IS A DOOR, and it lands on the clause's own ladder: the board says
-     where a point stands, the panel says how it got there. */
-  const go = el => {
-    const id = el.getAttribute('data-rl-board-go');
-    closeModal();
-    const scope = document.querySelector('.redline-page') || document;
-    if (typeof rlCpSetShown === 'function') rlCpSetShown(scope, id);
-    const sec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(id))}"]`);
-    if (sec && sec.scrollIntoView) sec.scrollIntoView({ block: 'center' });
-  };
-  root.addEventListener('click', ev => {
-    const row = ev.target && ev.target.closest && ev.target.closest('[data-rl-board-go]');
-    if (row) go(row);
-  });
-  root.addEventListener('keydown', ev => {
-    if (ev.key !== 'Enter' && ev.key !== ' ') return;
-    const row = ev.target && ev.target.closest && ev.target.closest('[data-rl-board-go]');
-    if (row){ ev.preventDefault(); go(row); }
-  });
+  rlBoardSet(true);
+  if (typeof renderRedline === 'function') renderRedline();
+  rlBoardPaintTitle();
 }
 
 
@@ -7057,8 +7286,9 @@ function rlReadSegsHtml(opts = {}){
   const n = Number(opts.n);
   const cnt = (Number.isFinite(n) && n > 0)
     ? `<span class="rl-seg-n">${n}</span>` : '';
+  const lit = v => !opts.none && rlReadMode() === v;
   const seg = (v, label, tip) => `<button type="button" data-rl-read="${v}"
-    class="rl-seg${rlReadMode() === v ? ' on' : ''}" aria-pressed="${rlReadMode() === v ? 'true' : 'false'}"
+    class="rl-seg${lit(v) ? ' on' : ''}" aria-pressed="${lit(v) ? 'true' : 'false'}"
     title="${_nea(tip)}">${_ne(label)}${v === 'marks' ? cnt : ''}</button>`;
   return `<div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
     title="${_nea(i18t('ng_read_group'))}">${
@@ -8722,7 +8952,7 @@ function renderRedline(){
            as two floating strips rather than as the top of a page. Nothing else
            moved: --view-h, the flex column and min-height:0 are what make the
            columns scroll inside themselves and are untouched. */}
-    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:0;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}${_rlBoardOpen ? ' rl-board-on' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:0;min-height:0;">
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -8826,7 +9056,7 @@ function renderRedline(){
                clauses, drawn three ways. See rlReadMode for what each one
                means and why only LIVE proposals are affected. */}
         ${rlReadSegsHtml({ n: (typeof redlineCardIds === 'function')
-          ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0 })}
+          ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0, none: _rlBoardOpen && rowSide !== 'counterparty' && !preview })}
         ${''/* ---- THE DEAL BOARD SITS BESIDE THE READINGS, NOT AMONG THEM ----
                It reads like a fourth tab and it is deliberately not one:
                RL_READS is how the DOCUMENT is drawn (see rlReadSideOf), and a
@@ -8835,7 +9065,7 @@ function renderRedline(){
                rlReadOnlyReading. So it is its own control, our seat only,
                carrying the same data-rl-board the More menu's row does. */}
         ${(rowSide !== 'counterparty' && !preview)
-          ? `<button type="button" class="rl-seg rl-boardseg" data-rl-board
+          ? `<button type="button" class="rl-seg rl-boardseg${_rlBoardOpen ? ' on' : ''}" data-rl-board aria-pressed="${_rlBoardOpen ? 'true' : 'false'}"
               title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
@@ -10188,6 +10418,7 @@ function rlCardForgetPins(contractId){
      not have, so the paper would look right and one clause would quietly be
      drawing nothing. */
   if (typeof rlClearReadAt === 'function') rlClearReadAt();
+  _rlBoardOpen = false;
 }
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
@@ -11314,6 +11545,7 @@ function redlineDocHtml(c, opts = {}){
      cannot appear on different clauses. It is emitted BEFORE the pencil: the
      pencil is pinned to the row's right edge by its own rule, so the chip
      lands beside the heading where the formatting chip already sits. */
+  const baselineFor = cl => rlBaselineHtml(c, cl, side, { pill: opts.pill });
   const pillFor = cl => rlLadderChipHtml(c, cl, side, { pill: opts.pill })
     + rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
@@ -11474,10 +11706,11 @@ function redlineDocHtml(c, opts = {}){
        ops at all (an older payload) keeps the fallback it has always had. */
     if (Array.isArray(ch.ops) && ch.ops.length && !ch.formattingOnly && !negoWordsMoved(ch)) return null;
     const ops = rlOpsAsSide(ch.ops, which);
+    const whoM = rlSideWho(ch, side);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM })}</div>`;
     if (window.redlineOpsHtml && ops)
-      return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip })}</p></div>`;
+      return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip, who: whoM })}</p></div>`;
     return `<div class="nego-body"><p>${_ne(which === 'del' ? (ch.oldText || '') : (ch.proposedText || ch.newText || ''))}</p></div>`;
   };
   /* The added clause itself. Marked as an addition and never as settled text:
@@ -11533,7 +11766,7 @@ function redlineDocHtml(c, opts = {}){
        the agreement and the argument about it is on the record, and a reader
        scrolling past a gap cannot tell those apart. */
     const inner = window.redlineOpsBlocksHtml
-      ? redlineOpsBlocksHtml([{ op: ch.status === 'rejected' ? 'del' : 'ins', text }])
+      ? redlineOpsBlocksHtml([{ op: ch.status === 'rejected' ? 'del' : 'ins', text }], { who: rlSideWho(ch, side) })
       : `<p><span class="${ch.status === 'rejected' ? 'nego-del' : 'nego-ins'}">${_ne(text)}</span></p>`;
     /* ---- A CLAUSE YOU PROPOSED IS EDITABLE LIKE ANY OTHER (owner-asked
        25 Aug 2026, off a screenshot of a payment-terms clause added from the
@@ -11586,7 +11819,7 @@ function redlineDocHtml(c, opts = {}){
           ${pillFor(cl)}
         </div>
         ${liveHtml}
-      </section>${after}`;
+      </section>${baselineFor(cl)}${after}`;
     }
     /* ---- THE PAPER MUST SHOW WHAT WAS ADOPTED (owner-reported 15 Aug 2026)
        ----
@@ -11696,7 +11929,7 @@ function redlineDocHtml(c, opts = {}){
         </div>
         ${clean == null ? richBody(cl) : clean}
         ${cpPush(cl, chs)}
-      </section>${after}`;
+      </section>${baselineFor(cl)}${after}`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
       <div class="rl-clause-top">
@@ -11774,7 +12007,7 @@ function redlineDocHtml(c, opts = {}){
     const tip = String((frontCh.author || '') || '').trim();
     const ops = rlOpsAsSide(frontCh.ops, 'marks');
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '' })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '', who: rlSideWho(frontCh, side) })}</div>`;
     return `<div class="nego-body"><p>${_ne(frontCh.newText || '')}</p></div>`;
   };
   const head = (frontCl && frontDrawn == null)
@@ -15811,7 +16044,15 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* Whose asks the reader asked to see. The SAME predicate redlineCardIds
        applies, so the count above this list and the list itself cannot
        disagree — see rlCardFilterPass. */
-    && rlCardFilterPass(x, side)),
+    && rlCardFilterPass(x, side)
+    /* ---- A PARKED ASK FOLDS UNDER ITS COUNTER (the artifact's column,
+       14 Sep 2026) ----
+       One row per argument: the counter's row carries the whole track
+       (R0 → R1 → R2 → R3) and the ladder behind it, so the ask it stands on
+       is not a second row saying the same thing without verbs. Kept where
+       its counter is NOT drawn on this seat (an unsent counter read from the
+       other chair) — there the parked ask is still the live thing. */
+    && !(_rlIsParked(x) && x.counteredBy && all.some(y => y && y.id === x.counteredBy && !hidden.has(y.id) && (_rlIsLive(y) || _rlIsParked(y))))),
     /* AND THE SAME ORDER, from the same function AND WITH THE SAME BAND
        READING: the piles first, still-open work before settled inside each.
        Passing bandOpts here is what stops the pill and this column agreeing
@@ -15922,6 +16163,38 @@ function redlineChangeCardsHtml(c, opts = {}){
      not load the editor at all must keep the jump. */
   const ceTakesIt = rlEditorTakesIt(side, { preview: previewSeat });
   let lastBand = null;
+  /* THE FACE VERBS, picked from the body's own list by the door each opens. */
+  const rlRowFaceVerbs = (list, ch, theirs) => {
+    const pick = re => list.find(v => re.test(v)) || '';
+    const relabel = (v, word) => v ? v.replace(/>(?:&#10022; )?[^<>]*<\/button>\s*$/, `>${_ne(word)}</button>`) : '';
+    const door = pick(/data-rl-cp-editor-row=|data-rl-edit=/);
+    const out = [];
+    if (theirs){
+      out.push(pick(/data-nego-accept=/), pick(/data-nego-reject=/), relabel(door, i18t('ng_counter')));
+    } else {
+      out.push(relabel(door, i18t('act_edit')), pick(/data-rl-send=/), relabel(pick(/data-rl-retract=/), i18t('ng_discard')));
+    }
+    if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
+      out.push(`<button type="button" class="rl-edit" data-rl-ladder="${_nea(ch.clauseId)}"
+        title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`);
+    const kept = out.filter(Boolean);
+    return kept.length ? `<span class="rl-card-face">${kept.join('')}</span>` : '';
+  };
+  const rlRowSubHtml = (c, ch, side, sum) => {
+    if (!ch.clauseId || typeof window.ladderRungs !== 'function' || ch.changeType === 'insertClause')
+      return sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : '';
+    const track = (typeof ladderTrack === 'function') ? ladderTrack(c, String(ch.clauseId), side) : null;
+    if (track) return `<div class="rl-card-sum rl-card-track">${rlLadderTrackHtml(track)}</div>`;
+    const rungs = ladderRungs(c, String(ch.clauseId));
+    const r = rungs.find(x => x.id === ch.id);
+    if (!r) return sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : '';
+    const me = side === 'counterparty' ? 'counterparty' : 'owner';
+    const mine = x => x.side === me;
+    const under = ladderUnder(rungs, r);
+    const lead = `R${r.n} · ${i18t(mine(r) ? 'ng_rung_yours' : 'ng_rung_theirs')}${
+      under ? ` ${i18t('ng_rung_on_word', { who: i18t(mine(under) ? 'ng_base_your' : 'ng_base_their'), n: under.n })}` : ''}`;
+    return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)}${sum ? ` · ${_ne(sum)}` : ''}</div>`;
+  };
   const bandHead = ch => {
     if (!banded) return '';
     const b = rlCardBand(ch, side, unsent, heldIds, c);
@@ -16723,7 +16996,9 @@ function redlineChangeCardsHtml(c, opts = {}){
       /* (The `state` constant this note is about is gone with the acts column
          it was drawn into: the row's right-hand end is one Open button now.) */
       const cardOpen = rlCardOpenId() === String(ch.id);
-      const meta = [ch.id, who].filter(Boolean).join(' &middot; ');
+      /* THE CLAUSE LEADS THE ROW (the artifact's row, 14 Sep 2026); the
+         reference rides the hover and the open card. */
+      const meta = who || ch.id;
       /* ---- AND THE SENTENCE THE BADGE CARRIED RIDES ON THE ROW ----
          Every entry in that table is [tone, word, hover], and the third slot
          is the one carrying real information — "waiting on them", "only they
@@ -16732,8 +17007,24 @@ function redlineChangeCardsHtml(c, opts = {}){
          the hover this line already had rather than leaving the product. This
          is the standing rule out loud: a sentence removed from a slot has to
          be findable in another one before the slot goes. */
-      const dTip = [tip, badge[2]].filter(Boolean).join(' \u00b7 ');
+      const dTip = [ch.id, tip, badge[2]].filter(Boolean).join(' \u00b7 ');
       const sum = String(ch.summary || '').trim();
+      /* ---- THE ROW'S SECOND LINE IS THE CLAUSE'S ARGUMENT (Young ruled
+         14 Sep 2026, the artifact's column) ----
+         Where the clause is argued in a number, the whole argument on one
+         line — R0 12 → R1 24 → R2 6 → R3 18 months — coloured by whose move
+         each was; else the rung this row is, whose it is, what it stands on
+         and the summary the funnel wrote. Every figure is js/ladder.js's own
+         reading; nothing here initialises. */
+      const sub = rlRowSubHtml(c, ch, side, sum);
+      /* ---- THE VERBS ON THE FACE (the artifact's row, 14 Sep 2026) ----
+         Accept · Reject · Counter on an ask of theirs; Edit · Send · Discard
+         on a draft of ours; Ladder on every row. THE SAME DOORS the open card
+         already draws — picked out of `verbs` by attribute so a second copy of
+         the gating cannot drift — relabelled where the artifact's word is
+         shorter. Open stays: the card body still holds the wording, the
+         notes and Copilot's read. */
+      const face = rlRowFaceVerbs(verbs, ch, theirs);
       return `<article class="rl-card rl-card-d${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
         RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
@@ -16767,7 +17058,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                 is what elides, never the number. */}
           <div class="rl-card-metarow"><div class="rl-card-meta"${dTip ? ` title="${_nea(dTip)}"` : ''}>${meta}</div>${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : ''}
+          ${sub}
         </div>
         ${''/* ---- ONE CONTROL ON THE FACE (owner-ruled 2 Sep 2026) ----
                *"What if the cards only had Open instead of edit, accepted etc.
@@ -16790,7 +17081,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                THE COUNTERPARTY'S SEAT IS UNTOUCHED, as it was for the piles:
                this branch is our own seat only and their page falls through to
                the receipt and full shapes below. */}
-        <div class="rl-card-side"><button type="button" class="rl-open-btn rl-card-open"
+        <div class="rl-card-side">${face}<button type="button" class="rl-open-btn rl-card-open"
           data-rl-card-open="${_ne(ch.id)}" aria-expanded="${cardOpen}"
           aria-controls="rl-cb-${_nea(ch.id)}"
           ${''/* THE NAME IS OWED TO A READER WHO CANNOT SEE THE CARD. The id
@@ -16839,7 +17130,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const diff = (() => {
       const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
       if (window.redlineOpsHtml && Array.isArray(ops) && ops.length)
-        return `<div class="rl-card-diff">${redlineOpsHtml(ops)}</div>`;
+        return `<div class="rl-card-diff">${redlineOpsHtml(ops, { who: rlSideWho(ch, side) })}</div>`;
       const t = String(ch.proposedText || ch.newText || '').trim();
       return t ? `<div class="rl-card-diff">${_ne(t)}</div>` : '';
     })();
@@ -17628,7 +17919,66 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         const board = t.closest('[data-rl-board]');
         if (board){
           ev.preventDefault(); ev.stopPropagation();
-          openDealBoard();
+          /* A PAGE, NOT A WINDOW (14 Sep 2026): the tab and the More row both
+             toggle it, and the reading tabs put the paper back. */
+          if (rlBoardIsOpen()){ rlBoardSet(false); if (typeof renderRedline === 'function') renderRedline(); rlBoardPaintTitle(); }
+          else openDealBoard();
+          return;
+        }
+        const bgo = t.closest('[data-rl-board-go]');
+        if (bgo){
+          ev.preventDefault(); ev.stopPropagation();
+          const gid = bgo.getAttribute('data-rl-board-go');
+          rlBoardSet(false);
+          if (typeof renderRedline === 'function') renderRedline();
+          rlBoardPaintTitle();
+          const gscope = document.querySelector('.redline-page') || document;
+          if (typeof rlCpSetShown === 'function') rlCpSetShown(gscope, gid);
+          const gsec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(gid))}"]`);
+          if (gsec && gsec.scrollIntoView) gsec.scrollIntoView({ block: 'center' });
+          return;
+        }
+        const memo = t.closest('[data-rl-board-memo]');
+        if (memo){
+          ev.preventDefault(); ev.stopPropagation();
+          const mc = rlLadderContract();
+          const txt = mc ? rlBoardMemoText(mc) : '';
+          const ok = () => { if (window.toast) toast(i18t('ng_board_memo_ok'), 'ok'); };
+          const no = () => { if (window.toast) toast(i18t('ng_board_memo_fail'), 'warn'); };
+          if (txt && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, no);
+          else no();
+          return;
+        }
+        const figw = t.closest('[data-rl-fig-write]');
+        if (figw){
+          ev.preventDefault(); ev.stopPropagation();
+          const fid = figw.getAttribute('data-rl-fig-write');
+          const fc = rlLadderContract();
+          const box = document.getElementById('rl-fig-' + fid);
+          const n = box ? parseInt(box.value, 10) : NaN;
+          if (!fc || !Number.isFinite(n)){ if (window.toast) toast(i18t('ng_fig_nan'), 'warn'); return; }
+          const row = (typeof ladderStand === 'function') ? ladderStand(fc, fid, 'owner') : null;
+          if (!row || !row.topic) return;
+          const from = row.top ? row.top.text : ((typeof ladderBaseText === 'function') ? ladderBaseText(row.rungs) : '');
+          const next = ladderWriteFigure(from, n, row.unit);
+          if (next === from){ if (window.toast) toast(i18t('ng_fig_same'), 'warn'); return; }
+          /* THE ONE DOOR: the clause editor, with the figure applied to its
+             box; the pencil files it as an ordinary redline. */
+          if (typeof window.rlOpenClauseEditor !== 'function') return;
+          /* Opened at rest and then APPLIED: ceApply is what puts the words in
+             the box and shows their marks, exactly as a Copilot card's Apply
+             does — so the ask to type is never made here. */
+          const opened = rlOpenClauseEditor(fc, fid, { changeId: row.top ? row.top.id : '' });
+          if (opened === false) return;
+          setTimeout(() => { if (window.ceApply) ceApply(next, i18t('ng_fig_from')); }, 0);
+          return;
+        }
+        const nopen = t.closest('[data-rl-cp-notes-open]');
+        if (nopen){
+          ev.preventDefault(); ev.stopPropagation();
+          const ncid = nopen.getAttribute('data-rl-cp-notes-c');
+          const nch = nopen.getAttribute('data-rl-cp-notes-open') || null;
+          if (typeof window.openNotesPanel === 'function' && ncid) openNotesPanel(ncid, nch, { force: true });
           return;
         }
     const closer = t.closest('[data-rl-cp-close]');
@@ -17724,6 +18074,7 @@ function redlinePanesHtml(c, opts = {}){
            bottom-right stack now, with its own "Issue a signing link" button
            still on it; see rlFloatingNoticesHtml at the foot of this builder. */
     }</div>
+    ${(opts.side !== 'counterparty' && !opts.preview && _rlBoardOpen) ? rlBoardPageHtml(c) : ''}
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
@@ -18277,7 +18628,9 @@ if (typeof window !== 'undefined') Object.assign(window, {
      paper, the column head and the two board doors. */
   rlLadderChipHtml, rlLadderSectionHtml, rlLadderTrackHtml, rlMarkLegendHtml,
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
-  rlLadderContract, openLadderCompare, dealBoardHtml, openDealBoard,
+  rlLadderContract, openLadderCompare, rlSideWho, rlBaselineHtml,
+  rlPlaybookSecHtml, rlScaleHtml, rlFigureSecHtml, rlNotesSecHtml, rlLadderTailHtml,
+  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

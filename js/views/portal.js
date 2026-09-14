@@ -2563,10 +2563,12 @@ function portalViewerRedlineHtml(c){
   const changes=Array.isArray(c.changes)?c.changes:[];
   if(!changes.length) return '';
   const rows=changes.map(ch=>{
+    /* From the reader's chair: the viewer is the counterparty's page. */
+    const whoM = ch.authorSide === 'counterparty' ? 'us' : 'them';
     const marks=(Array.isArray(ch.ops)&&ch.ops.length&&window.redlineOpsHtml)
-      ? redlineOpsHtml(ch.ops)
+      ? redlineOpsHtml(ch.ops, { who: whoM })
       : (window.redlineOps&&window.redlineOpsHtml)
-        ? redlineOpsHtml(redlineOps(String(ch.oldText||''),String(ch.newText||'')))
+        ? redlineOpsHtml(redlineOps(String(ch.oldText||''),String(ch.newText||'')), { who: whoM })
         : esc(String(ch.newText||''));
     /* Outcome as VISUAL STATE only. Who ruled on it, when, and why are the
        negotiation's story and the story belongs to the parties — the payload

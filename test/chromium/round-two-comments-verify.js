@@ -564,7 +564,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       const held = await p.evaluate(() => ({ held: !!(window.ceHeldPassage && ceHeldPassage()), scope: !!document.querySelector('#ce-scope .ce-scope'), asking: !!document.querySelector('#ce-scope .ce-scope.is-asking'), focused: document.activeElement === document.getElementById('ce-ask') }));
       await p.keyboard.type('make it firmer'); await p.keyboard.press('Enter');
       await pause(900);
-      const card = await p.evaluate(() => { const c = document.querySelector('#clause-editor .ce-card'); return { name: c ? (c.querySelector('.n span') || {}).textContent : '', apply: !!(c && c.querySelector('[data-ce-apply]')), want: i18t('ce_suggestion_passage') }; });
+      /* The ladder card (.ce-lcard) leads the lane since 14 Sep 2026; the ANSWER's card is the one asked about. */
+      const card = await p.evaluate(() => { const c = document.querySelector('#clause-editor .ce-card:not(.ce-lcard)'); return { name: c ? (c.querySelector('.n span') || {}).textContent : '', apply: !!(c && c.querySelector('[data-ce-apply]')), want: i18t('ce_suggestion_passage') }; });
       j1 = { ...held, ...card };
     }
   }
