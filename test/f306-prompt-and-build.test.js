@@ -621,4 +621,70 @@ describe('f306 (11) — what the screen prints', () => {
     const fit = TB.slice(TB.indexOf('function tbFitSplit'), TB.indexOf('function tbWireSplit'));
     assert.match(fit, /_tbPad\(grid\)\.l/, 'the grid\'s own padding is taken off, or the handle sits a page-margin left of the seam');
   });
+  /* ============================================================
+     THE PAPER SCROLLS INSIDE ITS COLUMN AND THE RAIL STAYS (Young asked
+     14 Sep 2026: "a scrolling feature for the contract being created on the
+     left just like in the editor page … the right hand side … should stay
+     intact and not move"). The page is --view-h tall, as the register and the
+     contract room are; the geometry is measured in prompt-and-build-verify 13.
+     Every claim here is red at the parent.
+     ============================================================ */
+  test('everything under the strip is inside ONE scroller; the strip and the rail are outside it', async () => {
+    /* The stage's DOM is a fake (test/dom.js), so the page is read as the
+       markup it printed; the geometry is measured in prompt-and-build-verify 13. */
+    const s = await stage([['heading', 'Confidentiality'], ['fixed_text', 'Each party keeps the other\'s secrets.']]);
+    const at = m => s.page.indexOf(m);
+    const open = at('<div class="tb-scroll scroll-thin" id="tb-scroll">');
+    assert.ok(open > 0, 'the paper column has its own scroller, wearing the shell\'s thin scrollbar');
+    assert.equal((s.page.match(/id="tb-scroll"/g) || []).length, 1, 'exactly one');
+    assert.ok(at('<div class="tb-left">') < at('id="tb-back"') && at('id="tb-back"') < open, 'the strip comes first in the paper\'s column, above the scroller');
+    for (const inside of ['id="tb-paperslot"', 'id="tb-branding"', 'id="tb-save-bottom"', 'id="tb-publish-bottom"'])
+      assert.ok(open < at(inside) && at(inside) < at('id="tb-railslot"'), inside + ' is inside the scroller, before the rail\'s slot');
+    assert.ok(at('id="tb-railslot"') > 0 && at('id="tb-resizer"') > at('id="tb-railslot"'), 'the rail\'s slot and the handle are the column\'s siblings, after it');
+  });
+
+  test('the sheet: the page is --view-h tall, the column stacks strip over scroller, the rail is the row\'s height and never sticky', () => {
+    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('function tbStyleHtml') + 9000);
+    assert.match(css, /\.tb-page\{[^}]*height:var\(--view-h\)[^}]*\}/, 'the shell\'s own measured room, as the register and the contract room');
+    assert.match(css, /\.tb-page\{[^}]*grid-template-rows:minmax\(0,1fr\)/, 'one row that may shrink');
+    assert.match(css, /\.tb-left\{min-width:0;min-height:0;display:flex;flex-direction:column\}/, 'the column stacks the strip over the scroller');
+    assert.match(css, /\.tb-left > \.tb-strip\{flex:none\}/, 'the strip keeps its height');
+    assert.match(css, /\.tb-scroll\{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 28px\}/, 'the scroller takes the rest, with no padding above the paper (refusal 3)');
+    assert.match(css, /#tb-railslot\{min-width:0;min-height:0;display:flex;flex-direction:column\}/, 'the rail\'s slot is the row');
+    const rail = /\.tb-rail\{([^}]*)\}/.exec(css);
+    assert.ok(rail, 'the rail rule');
+    assert.ok(!/sticky|100vh|420px|align-self/.test(rail[1]), 'never sticky, never the window\'s height, no floor of its own: ' + rail[1]);
+    assert.match(rail[1], /flex:1;min-height:0/, 'it fills its slot');
+    assert.match(css, /\.tb-page\.no-rail > #tb-railslot\{display:none\}/, 'no rail, no empty second row');
+  });
+
+  test('the shell\'s scrollbar channel is given back while the page is up, and returned on the way out', async () => {
+    const s = await stage([['heading', 'Term']]);
+    const d = s.w.document;
+    /* The stage has no shell and its elements' classList is a stub: give the
+       scroller the class is painted on a classList that remembers, then paint. */
+    const sc = d.getElementById('content-scroll');
+    const cls = new Set();
+    sc.classList = { add: c => cls.add(c), remove: c => cls.delete(c), toggle: (c, on) => { if (on) cls.add(c); else cls.delete(c); return cls.has(c); }, contains: c => cls.has(c) };
+    s.w.tbPaint();
+    assert.ok(cls.has('view-fixed'), 'the class VIEW_OWNS_HEIGHT paints for the five views, painted by the page itself');
+    const APP = read('js/app.js');
+    assert.match(APP, /classList\.toggle\('view-fixed', VIEW_OWNS_HEIGHT\.includes\(view\)\)/, 'the shell still paints the same class from the view name');
+    assert.match(TB, /classList\.toggle\('view-fixed', !!on\)/, 'and this page toggles that class and no other');
+    /* The two ways out, read at their doors (the stub DOM cannot press Back;
+       prompt-and-build-verify 13f presses it for real). */
+    const leave = TB.slice(TB.indexOf('function tbLeave'), TB.indexOf('async function tbSave'));
+    assert.match(leave, /const go = \(\) => \{ tbGutter\(false\); openTemplateLibDetail\(_tb\.tid\); \};/, 'Back gives it back before the template\'s own page paints');
+    const pub = TB.slice(TB.indexOf('async function tbPublish'), TB.indexOf('function tbFieldModal'));
+    assert.ok(pub.indexOf('tbGutter(false)') > pub.indexOf('tbSave(true)') && pub.indexOf('tbGutter(false)') < pub.indexOf('openDesignStep('), 'Publish gives it back before the Design step paints');
+  });
+
+  test('a repaint holds the reader\'s place in the paper, synchronously and once', () => {
+    const paint = TB.slice(TB.indexOf('function tbPaint(opts = {})'), TB.indexOf('THE DIVIDER (Young asked'));
+    assert.ok(paint.indexOf('const held = opts.fresh ? null : tbHoldScroll();') > 0 && paint.indexOf('const held = opts.fresh ? null : tbHoldScroll();') < paint.indexOf('.innerHTML = `'), 'held before the write, unless this is a fresh open');
+    assert.match(TB.slice(TB.indexOf('async function openTemplateBuilder'), TB.indexOf('PROMPT & BUILD')), /tbPaint\(\{ fresh: true \}\);/, 'a fresh open is a navigation and lands at the top of the paper');
+    assert.ok(paint.indexOf('tbRestoreScroll(held);') > paint.indexOf('tbPaintBranding();'), 'put back after the column is painted');
+    assert.ok(!/keepScroll\(/.test(TB), 'not keepScroll: its second restore on the next frame would undo the scrollIntoView an Add block does a tick later');
+    assert.match(TB, /function tbHoldScroll\(\) \{ const el = document\.getElementById\('tb-scroll'\); return el \? el\.scrollTop : null; \}/, 'the scroller\'s own place, null where there is none');
+  });
 });
