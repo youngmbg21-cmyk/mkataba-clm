@@ -1,0 +1,319 @@
+/* ============================================================
+   f313 — THE CLAUSE LADDER (Young ruled 14 Sep 2026)
+   ============================================================
+   A clause that goes back and forth four times has four moves on it. The
+   paper shows the last two; the ladder is how a reader reaches the rest.
+
+   WHAT THIS FILE IS FOR, and what it is deliberately NOT for. Every claim
+   here is about the RECORD and the READING over it — what a rung is, what it
+   stands on, which side it belongs to, what a board row says. Nothing here
+   can see a pixel. The geometry (does the chip run under the pencil, does
+   the ladder draw one set of numbers or two, does every board column reach
+   the screen) is measured in test/chromium/ladder-verify.js, because jsdom
+   has no layout engine and every one of those three faults was invisible
+   here and obvious there.
+
+   THE WALLS ARE THE POINT OF SECTION 1. A reading drawn beside every clause
+   on every paint that CREATED a negotiation would rewrite the book by being
+   looked at — the READING MUST NOT WRITE rule, and the most expensive way to
+   break it. */
+const { test, describe } = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const { buildWorld } = require('./world.js');
+
+const SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'ladder.js'), 'utf8');
+/* ---- A NET GREPS THE CODE, NOT THE PROSE ----
+   The first two nets below failed on their first run against a file that
+   does exactly what they ask, because js/ladder.js's own header NAMES the
+   forbidden calls to explain why it avoids them — 'f313 greps this file for
+   fetch/api/route names' matched '/api/' and the READING MUST NOT WRITE note
+   matched 'negoInit'. A net that a file's documentation can trip is a net
+   that will be silenced by deleting the documentation. Comments come off
+   first; string literals stay, because a route written as a string IS the
+   fault. */
+const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
+/* A contract with a real argument on one clause: ours, theirs on top of it,
+   ours on top of that — the three-move stack the feature exists for — plus a
+   lone ask on a second clause and a settled round underneath. Built as the
+   RECORD, not through the funnel: this file is about what the reading makes
+   of a record, and the funnel has its own tests (f207, f207-D). */
+function book(){
+  const mk = (id, clauseId, side, oldText, newText, o) => Object.assign({
+    id, clauseId, clauseLabel: 'Clause 4 — Limitation of liability',
+    changeType: 'modify', oldText, newText, status: 'pending',
+    authorSide: side, author: side === 'owner' ? 'Young' : 'Amina',
+    createdAt: '2026-09-1' + (o && o.d || 0) + 'T09:00:00.000Z',
+    seq: (o && o.seq) || 1, summary: (o && o.summary) || '', why: (o && o.why) || ''
+  }, o || {});
+  const A = 'The cap is twelve (12) months of fees.';
+  const B = 'The cap is twenty-four (24) months of fees.';
+  const C = 'The cap is six (6) months of fees.';
+  const D = 'The cap is eighteen (18) months of fees.';
+  return {
+    id: 'MK-1', name: 'Supply', counterparty: 'Juno Limited',
+    negotiation: {
+      round: 2,
+      rounds: [{ n: 1, at: '2026-09-05T09:00:00.000Z', baselineText: '', changes: [
+        mk('CHG-900', 'cl_a', 'counterparty', 'Notice is 30 days.', 'Notice is 60 days.',
+          { seq: 1, d: 1, status: 'accepted', clauseLabel: 'Clause 9 — Notice' })
+      ] }]
+    },
+    changes: [
+      mk('CHG-001', 'cl_4', 'owner', A, B, { seq: 2, d: 2, status: 'countered',
+        counteredBy: 'CHG-002', summary: '12 → 24 months', why: 'A full season.' }),
+      mk('CHG-002', 'cl_4', 'counterparty', B, C, { seq: 3, d: 3, status: 'countered',
+        counterOf: 'CHG-001', counteredBy: 'CHG-003', summary: '24 → 6 months' }),
+      mk('CHG-003', 'cl_4', 'owner', C, D, { seq: 4, d: 4, status: 'pending',
+        counterOf: 'CHG-002', summary: '6 → 18 months' }),
+      mk('CHG-010', 'cl_5', 'counterparty', 'Kept three (3) years.', 'Kept five (5) years.',
+        { seq: 5, d: 5, status: 'pending', clauseLabel: 'Clause 5 — Confidentiality' })
+    ]
+  };
+}
+
+describe('f313 — the clause ladder', () => {
+
+  /* ---------- 1 · THE WALLS ---------- */
+
+  test('(1) it is a READING: no route, no store, no field', () => {
+    for (const bad of ['fetch(', 'api(', 'XMLHttpRequest', '/api/', 'localStorage', 'sessionStorage']){
+      assert.ok(!CODE.includes(bad), `js/ladder.js must not carry ${bad} — it is a reading`);
+    }
+  });
+
+  test('(2) READING MUST NOT WRITE: it never calls a name that initialises', async () => {
+    /* negoClauseList, negoChanges, negoAllChanges and negoRound all reach
+       negoInit, which CREATES a negotiation and stamps clause ids into the
+       stored body. This reading is asked beside every clause on every paint. */
+    for (const bad of ['negoInit', 'negoClauseList', 'negoAllChanges', 'negoChanges(', 'negoRound(']){
+      assert.ok(!CODE.includes(bad), `js/ladder.js must not call ${bad}`);
+    }
+  });
+
+  test('(3) a contract with no negotiation is not given one by being read', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = { id: 'MK-9', changes: [] };
+    const before = JSON.stringify(c);
+    w.win.ladderRungs(c, 'cl_4');
+    w.win.ladderChip(c, 'cl_4', 'owner');
+    w.win.ladderBoard(c, 'owner');
+    w.win.ladderStand(c, 'cl_4', 'owner');
+    assert.equal(JSON.stringify(c), before, 'the record moved while it was being read');
+    assert.ok(!c.negotiation, 'a negotiation was created by a reading');
+  });
+
+  /* ---------- 2 · THE RUNGS ---------- */
+
+  test('(4) every move on one clause, oldest first, numbered from 1', async () => {
+    const w = await buildWorld({ ladder: true });
+    const r = w.win.ladderRungs(book(), 'cl_4');
+    assert.deepEqual(r.map(x => x.id), ['CHG-001', 'CHG-002', 'CHG-003']);
+    assert.deepEqual(r.map(x => x.n), [1, 2, 3]);
+    assert.deepEqual(r.map(x => x.side), ['owner', 'counterparty', 'owner']);
+  });
+
+  test('(5) a CLOSED round is on the ladder too — that is the whole point', async () => {
+    const w = await buildWorld({ ladder: true });
+    const r = w.win.ladderRungs(book(), 'cl_a');
+    assert.equal(r.length, 1, 'the move that settled in round 1 is not reachable');
+    assert.equal(r[0].round, 1);
+    assert.equal(r[0].status, 'accepted');
+  });
+
+  test('(6) what a rung stands on is READ off the record, never guessed', async () => {
+    const w = await buildWorld({ ladder: true });
+    const r = w.win.ladderRungs(book(), 'cl_4');
+    assert.equal(w.win.ladderUnder(r, r[0]), null, 'the first move stands on R0');
+    assert.equal(w.win.ladderUnder(r, r[1]).id, 'CHG-001');
+    assert.equal(w.win.ladderUnder(r, r[2]).id, 'CHG-002');
+  });
+
+  test('(7) R0 is the first move\'s own starting point', async () => {
+    const w = await buildWorld({ ladder: true });
+    const r = w.win.ladderRungs(book(), 'cl_4');
+    assert.equal(w.win.ladderBaseText(r), 'The cap is twelve (12) months of fees.');
+    assert.equal(w.win.ladderBaseText([]), '', 'no rungs, nothing to say');
+  });
+
+  test('(8) a PARKED ask is not live, and is still on the ladder', async () => {
+    const w = await buildWorld({ ladder: true });
+    const r = w.win.ladderRungs(book(), 'cl_4');
+    assert.equal(w.win.ladderLive(r).length, 1, 'only the top of the stack is live');
+    assert.equal(w.win.ladderTop(r).id, 'CHG-003');
+    assert.equal(r.length, 3, 'the parked asks left the ladder');
+  });
+
+  /* ---------- 3 · THE CHIP ---------- */
+
+  test('(9) the chip says the round, whose move, and what it stands on', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    const ours = w.win.ladderChip(c, 'cl_4', 'owner');
+    assert.match(ours.text, /R3/);
+    assert.match(ours.text, /R2/, 'it does not say what it stands on');
+    assert.equal(ours.cls, 'you');
+  });
+
+  test('(10) the SAME clause reads the other way round from the other seat', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    const a = w.win.ladderChip(c, 'cl_4', 'owner');
+    const b = w.win.ladderChip(c, 'cl_4', 'counterparty');
+    assert.equal(a.cls, 'you');
+    assert.equal(b.cls, 'them', 'our move reads as theirs on their seat');
+    assert.notEqual(a.text, b.text);
+  });
+
+  test('(11) a clause nobody has touched carries no chip', async () => {
+    const w = await buildWorld({ ladder: true });
+    assert.equal(w.win.ladderChip(book(), 'cl_never', 'owner'), null);
+  });
+
+  test('(12) a settled clause says so instead of naming a move', async () => {
+    const w = await buildWorld({ ladder: true });
+    const chip = w.win.ladderChip(book(), 'cl_a', 'owner');
+    assert.equal(chip.cls, 'settled');
+  });
+
+  /* ---------- 4 · THE FIGURE, BORROWED ---------- */
+
+  test('(13) the figure track reads the whole argument, in order', async () => {
+    const w = await buildWorld({ ladder: true });
+    const t = w.win.ladderTrack(book(), 'cl_4', 'owner');
+    assert.ok(t, 'no track on a clause argued in months');
+    assert.deepEqual(t.rows.map(x => x.n), [12, 24, 6, 18]);
+    assert.deepEqual(t.rows.map(x => x.who), ['base', 'you', 'them', 'you']);
+    assert.equal(t.unit, 'months');
+  });
+
+  test('(14) the figure reader is PRECEDENT\'S OWN, not a second table', () => {
+    assert.ok(CODE.includes('precedentTopicOf'), 'it must ask precedent for the topic');
+    assert.ok(!/PRECEDENT_NUMS|liabilityMonths *:|paymentDays *:/.test(CODE),
+      'js/ladder.js has grown its own copy of the figure table');
+  });
+
+  test('(15) a clause that is not about a number has no track', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    c.changes = [Object.assign({}, c.changes[3], { clauseId: 'cl_law',
+      clauseLabel: 'Clause 12 — Governing law',
+      oldText: 'Kenyan law governs.', newText: 'Swedish law governs.' })];
+    assert.equal(w.win.ladderTrack(c, 'cl_law', 'owner'), null);
+  });
+
+  /* ---------- 5 · THE BOARD ---------- */
+
+  test('(16) one row per clause with a move on it, and no others', async () => {
+    const w = await buildWorld({ ladder: true });
+    const rows = w.win.ladderBoard(book(), 'owner');
+    assert.deepEqual(rows.map(r => r.clauseId).sort(), ['cl_4', 'cl_5', 'cl_a']);
+  });
+
+  test('(17) a PARKED ask is still their stated position', async () => {
+    /* The board asks where each side STANDS. The moment we counter them their
+       ask stops being live, and reading only the live rungs made the board
+       say "no ask yet" on the most argued clause on the page. */
+    const w = await buildWorld({ ladder: true });
+    const row = w.win.ladderStand(book(), 'cl_4', 'owner');
+    assert.equal(row.theirs.id, 'CHG-002', 'their parked ask was dropped');
+    assert.equal(row.theirFig, 6);
+    assert.equal(row.ourFig, 18);
+    assert.equal(row.dist, 12);
+  });
+
+  test('(18) with no move of our own, our figure is the drafted wording', async () => {
+    const w = await buildWorld({ ladder: true });
+    const row = w.win.ladderStand(book(), 'cl_5', 'owner');
+    assert.equal(row.ours, null, 'we have not moved on this clause');
+    assert.equal(row.ourFig, 3, 'so the figure is the one in the wording as it stands');
+    assert.equal(row.theirFig, 5);
+    assert.equal(row.dist, 2);
+  });
+
+  test('(19) the board sorts by how far apart the two sides are', async () => {
+    const w = await buildWorld({ ladder: true });
+    const rows = w.win.ladderBoard(book(), 'owner');
+    assert.equal(rows[0].clauseId, 'cl_4', '12 months apart must outrank 2 years apart');
+    assert.equal(rows[rows.length - 1].clauseId, 'cl_a', 'a settled clause sorts last');
+  });
+
+  test('(20) whose move it is, read from the record', async () => {
+    const w = await buildWorld({ ladder: true });
+    const mine = w.win.ladderBoard(book(), 'owner');
+    const theirs = w.win.ladderBoard(book(), 'counterparty');
+    const g = (rows, id) => rows.find(r => r.clauseId === id).state;
+    assert.equal(g(mine, 'cl_4'), 'with', 'our own top ask is with them');
+    assert.equal(g(theirs, 'cl_4'), 'awaiting', 'and awaits them on their seat');
+    assert.equal(g(mine, 'cl_a'), 'settled');
+  });
+
+  /* ---------- 6 · WHAT IS CAPPED IS SAID ---------- */
+
+  test('(21) a cap is a fact, never a silent trim', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    const base = c.changes[0];
+    c.changes = [];
+    for (let i = 0; i < w.win.LADDER_CAP + 5; i++){
+      c.changes.push(Object.assign({}, base, { id: 'CHG-' + (100 + i), seq: 100 + i }));
+    }
+    assert.equal(w.win.ladderRungs(c, 'cl_4').length, w.win.LADDER_CAP);
+    assert.equal(w.win.ladderOverflow(c, 'cl_4'), 5, 'what was left out is not counted');
+  });
+
+  /* ---------- 7 · THE VIEW'S OWN WALLS ---------- */
+
+  test('(22) the ladder never adds a fourth reading to RL_READS', () => {
+    /* RL_READS is how the DOCUMENT is drawn. A fourth value would fall
+       through rlReadSideOf as an unknown mode and shut the pencil everywhere
+       through rlReadOnlyReading. The board is a window, not a mode. */
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const m = v.match(/const RL_READS = \[[^\]]*\]/);
+    assert.ok(m, 'RL_READS is gone');
+    assert.equal(m[0], "const RL_READS = ['marks', 'agreed', 'proposed']");
+  });
+
+  test('(23) TWO DOORS, ONE ACT: both board doors carry the same attribute', () => {
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const doors = (v.match(/data-rl-board(?![-\w])/g) || []).length;
+    assert.ok(doors >= 2, `the board should have two doors, found ${doors}`);
+    assert.ok(v.includes("t.closest('[data-rl-board]')"),
+      'one handler must answer both doors, or they will drift');
+  });
+
+  test('(24) the ladder decides nothing — it has no path into the record', () => {
+    /* ONE DOOR. Every act the ladder offers is a READING or a press on a door
+       the product already has. It drew an 'accept this earlier ask' verb for
+       one draft and that verb was REMOVED, not fixed: writing a counter parks
+       their ask, negoResolve refuses a decision on a parked ask by name, and
+       a rival filing supersedes it instead — so there is no state in which
+       the press could have worked, and it would have been refused every time
+       it was offered. The rung points at the counter that answers it. */
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const start = v.indexOf('function rlLadderSectionHtml(');
+    const block = v.slice(start, v.indexOf('function rlLadderTrackHtml('));
+    assert.ok(start > 0, 'the ladder builder is gone');
+    for (const bad of ['negoResolve(', 'negoFileChange(', 'negoEditClause(', 'persist(']){
+      assert.ok(!block.includes(bad), `the ladder must not call ${bad}`);
+    }
+    assert.ok(!v.includes('data-rl-rung-accept'),
+      'the accept-an-earlier-rung verb is back, and the model still refuses it');
+  });
+
+  test('(25) READ AS IT STOOD is per sitting and never reaches the record', () => {
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const block = v.slice(v.indexOf('let _rlReadAt ='), v.indexOf('function rlLadderChipHtml'));
+    assert.ok(!/persist\(|localStorage|api\(/.test(block),
+      'a reading of the paper must not be written anywhere');
+  });
+
+  test('(26) both dictionaries carry every ladder key', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    const keys = Object.keys(STRINGS.en).filter(k => /^ng_(rung|ladder|board|legend)/.test(k));
+    assert.ok(keys.length > 30, `expected the ladder's keys, found ${keys.length}`);
+    for (const k of keys) assert.ok(STRINGS.sv[k], `sv is missing ${k}`);
+  });
+});

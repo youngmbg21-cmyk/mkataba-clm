@@ -13574,3 +13574,81 @@ VERIFIED
   on a build without the scroller); lint 0 errors; the full suite 7,060
   tests in 1,408 suites, 0 red, 5m31s. No other check file opens the
   builder (grepped), so no other browser file was re-run.
+
+RUN — 14 Sep 2026 (evening) — THE CLAUSE LADDER AND THE DEAL BOARD
+Owner: "now code this into HaTi. Once done, please audit to ensure there
+are no bugs in functionality, all the presses work accordingly to plan,
+when you click you land in the right screen, when you highlight a
+sentence the choices appear, the colors in the artifact are applied
+accordingly for differentiation, no glitches etc. After then merge to
+main but please start from the latest main."
+Built from the approved artifact "Redline Ladder Workbench". Started from
+origin/main at df5781d.
+════════════════════════════════════════════════════════════════════════
+
+BUILT
+  · js/ladder.js — the ONE reading: every move on one clause, across
+    every closed round AND the live set, with what each one stands on.
+    No route, no store, no field, and it never calls a name that
+    initialises.
+  · The ROUND CHIP on every clause head, through the one closure the
+    pencil already goes through, so the two cannot drift.
+  · The LADDER as the clause panel's fourth section, with READ AS IT
+    STOOD and COMPARE TWO MOVES.
+  · The KEY in the change column's head — the two colours, and the one
+    fact the two-move window cannot say for itself (the plain words are
+    the last wording exchanged, not the agreed text).
+  · The DEAL BOARD: one row per clause with a move on it, sorted by how
+    far apart the sides still are. Two doors, one act, one handler.
+
+FIXED (every one found by driving the real page, every one mine)
+  · The chip ran UNDER the pinned pencil: the pencil is
+    position:absolute;right:0, so anything left in the flow slides
+    beneath it. The chip reserves the same 62px the heading does.
+  · The chip carried data-rl-cp-open, which is what the click-in-the-
+    wording door hunts for when it looks for a clause's PENCIL — and
+    querySelector answers in DOCUMENT order, so the chip answered first
+    and a click in the wording opened the panel instead of the editor.
+    It carries data-rl-ladder now and has its own branch.
+  · The ladder drew "1. 2. 3." beside its own "R3 R2 R1": the clause
+    panel restores real list markers to every ol inside it and a TYPE
+    selector (0,2,1) beat the plain class rule (0,2,0). Fixed by SCOPE.
+  · Two of the deal board's seven columns fell off the right of its own
+    dialog, and the two that fell were the ones saying whose turn it is.
+  · The board read only LIVE rungs, so the moment you counter them their
+    ask stopped being a position and the board said "no ask yet" on the
+    most argued clause on the page.
+  · opts.preview was read in the tab row, where opts is declared two
+    hundred lines below — a temporal dead zone that took renderRedline
+    down. The comment at the head row already warns about this trap.
+  · Two backticks inside the CSS template literal (f236 caught them).
+  · The "accept this earlier ask" verb the artifact drew was REMOVED,
+    not fixed: a counter parks their ask, negoResolve refuses a decision
+    on a parked ask by name, and a rival filing supersedes it instead —
+    so the press could never have worked in any state. The rung names
+    the counter that answers it instead.
+  · A pinned rung survived a contract switch and overrode the clean
+    readings. Cleared with the card pins; not honoured under As agreed.
+  · rlReadingBack was published with no caller; deleted. Three locals
+    nothing reads went with the removed verb.
+
+NOTICED, NOT FIXED
+  · A closed round travels to the counterparty as ids only, so their
+    ladder carries the live set and not the rounds behind it. Honest —
+    they see what was sent — but the two seats' ladders are different
+    lengths and nothing says so on their page.
+  · ng_board_col_moves is inert: the move count moved into the clause
+    cell when the board's columns were cut to seven.
+
+VERIFIED
+  f313 (27 claims, new), ladder-verify (41 checks, new — every door
+  pressed with a real mouse, both themes measured, the counterparty's
+  seat checked, and the four geometry faults above pinned as the numbers
+  that caught them); clause-door-verify 122/122 (2f re-pointed in place:
+  the panel has four sections now), clause-editor-verify 268/268, f148,
+  f210, f232, f236, f48; lint 0 errors and 186 warnings, the baseline
+  figure unmoved; the full suite 7,086 tests in 1,409 suites, 0 red,
+  4m58s; the browser set 20 of 107 files red — the SAME twenty as the
+  run before this one, each re-run at origin/main in a worktree and
+  failing on the same count; the colour census reads 27/40 on both trees
+  LINE FOR LINE IDENTICAL and was NOT re-recorded.

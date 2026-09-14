@@ -256,9 +256,21 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('2e ONE clause at a time, though every clause\'s body is in the panel',
      !!open && open.shown === 1 && open.bodies === allPills.clauses,
      open && `${open.shown} shown of ${open.bodies}`);
-  ck('2f the three sections are there',
-     !!open && open.heads.filter(h=>h!=='Change this clause').join('|')
-       === 'As it stands|On the table|History',
+  /* ---- REVERSED IN PLACE, 14 Sep 2026: THERE ARE FOUR SECTIONS NOW ----
+     The ladder joined the panel (Young's ruling on the redline ladder). It is
+     not a fourth copy of the History section above it and the two answer
+     different questions: History is THIS ROUND's settled asks and its own list
+     empties at negoAdvanceRound, while the ladder is every move on this clause
+     across every round, read off js/ladder.js. The heading carries a count, so
+     it is matched by its stem rather than by its words.
+     THE OTHER THREE ARE UNCHANGED and are still asserted exactly, in order —
+     the point of this claim was never the number three, it was that the panel
+     says what stands, what is on the table and what is settled, in that
+     order, and it still does. */
+  ck('2f the panel\'s sections are there, in order, with the ladder last',
+     !!open && open.heads.filter(h => h !== 'Change this clause')
+       .map(h => h.replace(/\s*\(\d+\)\s*$/, '')).join('|')
+       === 'As it stands|On the table|History|The ladder',
      open && open.heads.join(' · '));
   /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- this used to read "the backdrop is
      up". The owner asked for the opposite: no shading, "it has to remain

@@ -49,6 +49,12 @@ const SAME_IN_BOTH = new Set([
   'tb_copilot',           // 'Copilot' — the product's own name, on the template builder's rail (13 Sep 2026)
   /* "Under #CHG-001" — 'under' is the same word in Swedish (13 Sep 2026) */
   'ng_badge_countered',
+  /* The ladder's two bare labels (14 Sep 2026). 'R{n} · {who}' is a rung
+     number and a slot and nothing else — every readable word in it comes
+     from ng_rung_your_move / ng_rung_you, which ARE translated. A Swedish
+     rewriting of a separator would be a difference with nothing in it. */
+  'ng_rung_plain',
+  'ng_rung_pick',
   'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
   'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)
   'reg_col_status',       // ditto
