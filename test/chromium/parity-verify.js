@@ -642,6 +642,73 @@ const CARD_EDIT = async () => {
       `stands ${ownerType.stands} · h ${ownerType.h}`);
   }
 
+  /* ---- 12. THE LAYERED PICTURE, SEATS REVERSED (Young ruled 13 Sep 2026) ----
+     ONE CONTRACT, TWO SURFACES, and the colour says WHO: our counter written on
+     their ask draws in the accent on our seat and in amber on theirs, their ask
+     the other way round. The same words on both. Staged through the funnel on
+     the shared record; measured as paint on each seat. */
+  const stack12 = await page.evaluate(async () => {
+    try {
+      const c = window.CONTRACT;
+      const fm = (c.changes || []).find(x => x && x.status === 'pending' && x.authorSide === 'counterparty' && /five \(5\) business days/.test(x.newText || ''));
+      if (!fm) return { error: 'no force-majeure ask of theirs on the stage' };
+      const ours = await negoEditClause(c, fm.clauseId, '<p>' + fm.newText.replace('five (5) business days', 'ten (10) business days') + '</p>',
+        { side: 'owner', author: 'Wanjiru Kamau', onTop: fm.id });
+      if (!ours) return { error: 'the counter did not file' };
+      window.SHOW_OWNER();
+      await new Promise(r => setTimeout(r, 400));
+      const read = root => {
+        const sec = document.querySelector(`${root} .rl-clause[data-clause="${CSS.escape(fm.clauseId)}"]`);
+        if (!sec) return null;
+        const ten = [...sec.querySelectorAll('ins')].find(e => /ten \(10\)/.test(e.textContent));
+        /* THE TWO LAYERS' OWN COLOURS, read off an outer mark of each author. */
+        const them = sec.querySelector('ins.rl-them'), us = sec.querySelector('ins.rl-us');
+        /* The other side's own insertion, found by its WORDS so the same run
+           can be asked for on the other seat. */
+        const theirIns = [...sec.querySelectorAll('ins')].find(e => /business days/.test(e.textContent) && !/ten \(10\)/.test(e.textContent))
+          || [...sec.querySelectorAll('ins')].find(e => !/ten \(10\)/.test(e.textContent));
+        return { ten: ten ? { cls: ten.className, bg: getComputedStyle(ten).backgroundColor } : null,
+          themBg: them ? getComputedStyle(them).backgroundColor : null,
+          usBg: us ? getComputedStyle(us).backgroundColor : null,
+          theirIns: theirIns ? { cls: theirIns.className, text: theirIns.textContent } : null,
+          words: sec.textContent.replace(/\s+/g, ' ') };
+      };
+      const owner = read('#rl-doc');
+      window.SHOW_COUNTERPARTY();
+      await new Promise(r => setTimeout(r, 600));
+      const cp = read('#share-root') || read('body');
+      return { parked: fm.status === 'countered', owner, cp };
+    } catch (e) { return { error: String(e && e.message || e) }; }
+  });
+  if (stack12.error || !stack12.owner || !stack12.cp){
+    check('12 the stack is staged on both seats', false, stack12.error || JSON.stringify({ owner: !!stack12.owner, cp: !!stack12.cp }));
+  } else {
+    check('12a OUR counter wears OUR colour on our seat and THEIRS on their page',
+      !!stack12.owner.ten && /\brl-us\b/.test(stack12.owner.ten.cls) && !!stack12.cp.ten && /\brl-them\b/.test(stack12.cp.ten.cls)
+        && stack12.owner.ten.bg !== stack12.cp.ten.bg,
+      `ours: ${stack12.owner.ten && stack12.owner.ten.bg} here, ${stack12.cp.ten && stack12.cp.ten.bg} there`);
+    /* THE COLOUR FOLLOWS THE READER, NOT THE AUTHOR: amber is always "the
+       other side" and the accent always "us", from whichever chair — one
+       stylesheet, two seats — so the WORDS swap class between the seats while
+       each class keeps its colour. */
+    check('12b THEIR insertion is "them" here and "us" there — the layers swap with the chair',
+      !!stack12.owner.theirIns && /\brl-them\b/.test(stack12.owner.theirIns.cls)
+        && !!stack12.cp.theirIns && /\brl-us\b/.test(stack12.cp.theirIns.cls),
+      `here ${stack12.owner.theirIns && stack12.owner.theirIns.cls.replace(/hati-ins nego-ins bg-green-100 text-green-800 underline ?/, '')} \u00b7 there ${stack12.cp.theirIns && stack12.cp.theirIns.cls.replace(/hati-ins nego-ins bg-green-100 text-green-800 underline ?/, '')}`);
+    check('12b2 and each class keeps its colour on both seats — one stylesheet',
+      !!stack12.owner.themBg && !!stack12.owner.usBg && stack12.owner.themBg !== stack12.owner.usBg
+        && stack12.owner.themBg === stack12.cp.themBg && stack12.owner.usBg === stack12.cp.usBg,
+      `them ${stack12.owner.themBg} / us ${stack12.owner.usBg} on both`);
+    check('12c the same words on both seats, both layers',
+      /five \(5\)/.test(stack12.owner.words) && /ten \(10\)/.test(stack12.owner.words)
+        && /five \(5\)/.test(stack12.cp.words) && /ten \(10\)/.test(stack12.cp.words),
+      'five (5) and ten (10) on both');
+    check('12d the parked ask travelled as parked', stack12.parked === true, `countered ${stack12.parked}`);
+  }
+  await page.screenshot({ path: path.join(OUT, '12-layered-counterparty.png') });
+  await page.evaluate(() => window.SHOW_OWNER());
+  await pause(300);
+
   /* The owner's side is the control: if these were absent there too, every
      assertion above would be passing for the wrong reason.
      nego-bulk-acc is no longer one of them — it is gone from our column by

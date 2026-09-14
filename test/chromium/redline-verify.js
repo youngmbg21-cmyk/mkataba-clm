@@ -2558,6 +2558,84 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     !!bar26 && bar26.paperX != null && bar26.paperX < bar26.barX && bar26.barRight <= bar26.wordX,
     bar26 && `sheet ${Math.round(bar26.paperX)} < bar ${Math.round(bar26.barX)}–${Math.round(bar26.barRight)} ≤ wording ${Math.round(bar26.wordX)}`);
 
+  /* ============ 27 · THE LAYERED REDLINE (Young ruled 13 Sep 2026 — "the Large
+     option") ============
+     A counter written on their ask STACKS: their marks and ours on one
+     paragraph, coloured by author — and a rewrite whose marks outnumber its
+     words draws as a REPLACEMENT with the line saying what it stands on. Both
+     staged through the product's own funnel and measured as PAINT: two colours
+     that differ, both wordings on the page, the stands line inside the clause. */
+  const layered27 = await page.evaluate(async () => {
+    try {
+      const c = window.CONTRACT;
+      /* A FRESH RECORD, as section 25 built one: the sections above have
+         decided or argued every clause the stage had. Two clauses of paper,
+         THEIR ask on each, through the funnel. */
+      c.redlineText = '<h1>SUPPLY AGREEMENT</h1><p>Between the parties.</p>'
+        + '<h2>3. INSURANCE</h2><p>The Supplier shall maintain liability insurance with a reputable insurer '
+        + 'licensed in Kenya throughout the term of this Agreement.</p>'
+        + '<h2>4. CONFIDENTIALITY</h2><p>Each party shall keep confidential all information disclosed by the '
+        + 'other party in connection with this Agreement.</p>';
+      c.format = 'rich';
+      c.changes = []; delete c.negotiation;
+      negoInit(c);
+      const free = negoClauseList(c).filter(x => !window.negoIsFrontId(x.clauseId) && (x.text || '').length > 40);
+      if (free.length < 2) return { error: 'the stage has fewer than two clauses' };
+      const [a, b] = free;
+      const ins = await negoEditClause(c, a.clauseId, '<p>' + a.text + ' Certificates of currency are furnished each quarter.</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru' });
+      const conf = await negoEditClause(c, b.clauseId, '<p>' + b.text + ' Confidential information is kept for five (5) years.</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru' });
+      if (!ins || !conf) return { error: 'their asks did not file' };
+      /* OURS, written ON theirs: a two-word move on the first… */
+      const stack = await negoEditClause(c, ins.clauseId, '<p>' + ins.newText.replace('each quarter', 'each month') + '</p>',
+        { side: 'owner', author: 'Young Mbagaya', onTop: ins.id });
+      /* …and a wholesale rewrite of the second. */
+      const repl = await negoEditClause(c, conf.clauseId,
+        '<p>Confidential information is protected under the separate non-disclosure agreement between the parties, which governs.</p>',
+        { side: 'owner', author: 'Young Mbagaya', onTop: conf.id });
+      renderRedline();
+      await new Promise(r => setTimeout(r, 400));
+      const seen = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(ins.clauseId)}"]`);
+      const them = sec && sec.querySelector('ins.rl-them, del.rl-them');
+      const us = sec && sec.querySelector('ins.rl-us, del.rl-us');
+      const sec2 = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(conf.clauseId)}"]`);
+      const blk = sec2 && sec2.querySelector('.rl-repl');
+      const on = blk && blk.querySelector('.rl-repl-on');
+      const dl = blk && blk.querySelector('del'), il = blk && blk.querySelector('ins');
+      return { stackParked: ins.status === 'countered' && ins.counteredBy === (stack && stack.id),
+        replBundle: !!(repl && repl.replacement) && conf.status === 'countered',
+        them: them ? { bg: getComputedStyle(them).backgroundColor, seen: seen(them) } : null,
+        us: us ? { bg: getComputedStyle(us).backgroundColor, seen: seen(us) } : null,
+        words: sec ? sec.textContent.replace(/\s+/g, ' ') : '',
+        repl: blk ? { seen: seen(blk), del: !!dl && seen(dl), ins: !!il && seen(il),
+          delWords: dl ? dl.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '',
+          on: on ? on.textContent.trim() : '', onSeen: seen(on),
+          onInside: !!(on && sec2) && on.getBoundingClientRect().bottom <= sec2.getBoundingClientRect().bottom + 1
+            && on.getBoundingClientRect().top >= (il ? il.getBoundingClientRect().bottom - 1 : 0) } : null,
+        confId: conf.id };
+    } catch (e) { return { error: String(e && e.message || e) }; }
+  });
+  if (layered27.error){
+    check('27 the stage builds a stack and a replacement', false, layered27.error);
+  } else {
+    check('27a THE RECORD: the counter parks their ask; the rewrite is a bundle',
+      layered27.stackParked && layered27.replBundle, JSON.stringify({ parked: layered27.stackParked, bundle: layered27.replBundle }));
+    check('27b BOTH LAYERS ARE PAINTED, in two colours — theirs and ours',
+      !!layered27.them && !!layered27.us && layered27.them.seen && layered27.us.seen && layered27.them.bg !== layered27.us.bg,
+      `them ${layered27.them && layered27.them.bg} \u00b7 us ${layered27.us && layered27.us.bg}`);
+    check('27c and BOTH wordings are on the paper — their quarter under our month',
+      /quarter/.test(layered27.words) && /month/.test(layered27.words), layered27.words.slice(0, 120));
+    check('27d THE REPLACEMENT draws as one struck block and one inserted block',
+      !!layered27.repl && layered27.repl.seen && layered27.repl.del && layered27.repl.ins && layered27.repl.delWords.length > 10,
+      JSON.stringify(layered27.repl && { del: layered27.repl.del, ins: layered27.repl.ins, delWords: layered27.repl.delWords }));
+    check('27e with the line saying what it stands on, INSIDE the clause, under the wording — not a band',
+      !!layered27.repl && layered27.repl.onSeen && layered27.repl.onInside && layered27.repl.on.includes('#' + layered27.confId),
+      layered27.repl && `"${layered27.repl.on}" inside ${layered27.repl.onInside}`);
+  }
+  await page.screenshot({ path: path.join(OUT, '27-layered.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

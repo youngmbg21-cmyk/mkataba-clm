@@ -520,6 +520,10 @@ function clauseEditorCss(){
     outline-offset:6px}
   .ce-paperwrap .ce-typing{background:transparent; box-shadow:none;
     outline:none; padding:8px 10px; margin:-8px -10px}
+  /* THE MARKS UNDER THE BOX (rule 2): the paper's own reading, parted from the
+     typing box by the dashed frame's own vocabulary — no fill, no words. */
+  .ce-paperwrap .ce-twin{padding-top:8px; margin-top:14px;
+    border-top:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent); cursor:default}
   .ce-paperwrap .ce-typing:focus{outline:none; box-shadow:none}
   /* ---- AND THE CLAUSE'S NAME KEEPS ITS OWN GEOMETRY ----
      .ce-headbox adds no colour, no fill and no size of its own, so the heading
@@ -899,6 +903,26 @@ function ceLeadChange(named){
   }catch(_){}
   return on.length ? on[on.length - 1] : null;
 }
+/* ---- WHICH ASK THIS PAGE IS WRITING ON (13 Sep 2026) ----
+   The lead change where it is the OTHER side's live proposal on this clause:
+   the box was seeded from its wording, so a filing is a counter written on it
+   and files `onTop`. Null where the lead is ours (a revision of our own ask),
+   an insertion (revised through negoReviseInsert), or absent. */
+function ceStacksOn(){
+  const on = _ceLead;
+  if (!on || on.status !== 'pending' || on.withdrawn || on.changeType === 'insertClause') return null;
+  if (on.authorSide !== 'owner') return on;
+  /* THE LEAD IS OUR OWN COUNTER, STANDING ON THEIR PARKED ASK: a further edit
+     is a revision of that counter and is still measured against THEIR wording
+     — or the stack would fall apart at the first revision (the fold rewrites
+     oldText from what the draft was measured against). rlStackUnder is the
+     paper's own reading of what a counter stands on. */
+  try{
+    const under = window.rlStackUnder ? rlStackUnder(_ceC, on) : null;
+    if (under && under.authorSide !== 'owner' && under.changeType !== 'insertClause') return under;
+  }catch(_){}
+  return null;
+}
 /* The plain wording a change proposes. A change stores its own newText, which
    is exactly what was filed; falling back to the standing wording means "this
    change proposes nothing new", which the redline then shows as no marks. */
@@ -934,8 +958,18 @@ const ceHeadEditable = () => !!_ceHeadBase;
    reading below is for. */
 function ceProposedOf(ch){
   const rich = String((ch && ch.bodyHtml) == null ? '' : ch.bodyHtml).trim();
-  if (rich) return rich;
   const t = String((ch && ch.newText) == null ? '' : ch.newText).trim();
+  /* THE WORDS ARE THE RECORD (13 Sep 2026). newText is what the funnel hashed,
+     what travels and what the ops rebuild; the rich body is its dress. A
+     revision filed without a body (a text-only route over a rich ask) leaves
+     the OLD body beside the NEW words, and seeding from that body would open
+     this page on wording the record no longer claims — and mark the difference
+     as the reader's own. Where the two disagree, the words win. */
+  if (rich && t){
+    const same = s => String(s || '').replace(/\s+/g, ' ').trim();
+    if (same(ceWords(rich)) !== same(t)) return ceRich(t);
+  }
+  if (rich) return rich;
   return t ? ceRich(t) : '';
 }
 /* ---- AN ASK THAT LEAVES NO WORDING ---- (owner-reported 10 Sep 2026)
@@ -1166,6 +1200,61 @@ function ceCounts(a, b){
     if (window.redlineStats){ const s = redlineStats(ops); return { ins: s.ins || 0, del: s.del || 0 }; }
   }catch(_){}
   return { ins: 0, del: 0 };
+}
+
+/* ---- THE MARKED READING IS LAYERED (Young ruled 13 Sep 2026 — "the Large
+   option") ----
+   Where the box was seeded from THEIR pending ask, the draft is a counter
+   written on it, and the picture of it is two layers on one paragraph: their
+   marks against what stands (their STORED ops, never re-diffed) in the other
+   side's colour, and ours against their wording in ours. The negotiation page
+   draws a filed stack the same way (rlLayeredHtml); this is the same reading
+   for a draft that has not been filed yet, so the page the reader types on and
+   the page the record is drawn on cannot disagree about what a counter looks
+   like. A rewrite whose marks would outnumber its words draws as a REPLACEMENT
+   — one struck block, one inserted block, the line saying what it stands on —
+   exactly as the filed one will. Where there is no ask to stand on, or their
+   ops do not rebuild the wording the draft was written on, the draft is marked
+   against what stands, as it always was. */
+function ceMarkedHtml(text){
+  const draft = text == null ? _ceText : text;
+  const on = ceStacksOn();
+  if (on && Array.isArray(on.ops) && on.ops.length && window.redlineLayerOps && window.redlineOpsBlocksHtml){
+    try{
+      const theirs = ceWords(on.newText), ours = ceWords(draft);
+      if (window.redlineWholesale && window.redlineReplacementHtml && ours !== theirs && redlineWholesale(theirs, ours)){
+        return redlineReplacementHtml(theirs, ours, { under: 'them', over: 'us',
+          stands: _cet('ng_repl_stands', { ids: '#' + on.id }) });
+      }
+      const overOps = window.redlineOpsStructured ? redlineOpsStructured(theirs, ours)
+        : (window.redlineOps ? redlineOps(theirs, ours) : null);
+      const ops = overOps ? redlineLayerOps(on.ops, overOps, { under: 'them', over: 'us' }) : null;
+      if (ops) return redlineOpsBlocksHtml(ops);
+    }catch(_){ /* falls through to the one-layer reading */ }
+  }
+  return ceRedlineHtml(_ceBase, draft);
+}
+/* ---- MAY THIS CLAUSE BE TYPED IN, RIGHT NOW — THE ONE READING (13 Sep 2026) ----
+   With no pencil at rest (rule 1 of the layered redline: click into a clause
+   and type), the absent pencil is no longer the signal that a clause cannot
+   be written in. The refusal is SPOKEN when the click lands, in the sentences
+   that already exist, and a caret never blinks in a clause the person cannot
+   change. Asked by the press in the wording and by nothing else that decides
+   for itself: every branch below is a wall the product already had. */
+function ceTypingRefusal(){
+  if (!_ceC) return _cet('ce_no_contract');
+  if (ceUnderDeletion()) return _cet('ce_under_deletion');
+  if (!ceEditableReading()) return _cet('ce_reading_only');
+  try{
+    const held = window.clauseLockHeldByOther ? clauseLockHeldByOther(_ceC, _ceClauseId) : null;
+    if (held) return _cet('cl_locked_refuse',
+      { who: String((held.by && held.by.name) || '').trim() || _cet('cl_a_colleague') });
+  }catch(_){}
+  try{
+    const door = clauseEditorRefusal(_ceC, { side: 'owner', readonly: !!(_ceOpts && _ceOpts.readonly) });
+    if (door) return door;
+  }catch(_){}
+  return null;
 }
 
 /* ---------- WHO MAY OPEN IT ----------
@@ -1889,6 +1978,10 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      contract it can be twenty clauses down. Bringing it into view is the whole
      difference between arriving at the clause and arriving at the contract. */
   ceScrollToClause(placeAt);
+  /* AN ASK TO TYPE THAT THE CLAUSE REFUSES IS SAID, NOT SWALLOWED (13 Sep
+     2026): a click into a clause the other side wants removed arrives here
+     with typing asked for, opens showing the strike-through, and says why. */
+  if (wantTyping && !_ceEditing){ const why = ceTypingRefusal(); if (why) ceSay(why); }
   /* WHERE A KEYBOARD READER LANDS. It used to be the way out — the first
      control on a page that had a header. With the header gone the way out is
      the LAST thing on the strip, and landing on it means tabbing backwards
@@ -2471,11 +2564,28 @@ function ceRenderPaper(){
      does not admit, so anything read back out of the box is unwrapped on the
      way — and ceBoxHtml takes it off the copy it compares, so a pull never
      reports the box as corrected and nothing repaints under the caret. */
+  /* ---- MARKS NEVER DISAPPEAR (rule 2 of the layered redline, 13 Sep 2026) ----
+     You cannot type into a redline, so the box holds the draft clean — and
+     until today that is why putting a cursor down took a clause's marks off
+     the screen, which is what got click-to-type retired on 1 Sep. The marks
+     stay now: the marked reading is drawn UNDER the box, on the same paper,
+     from the same reading the clause shows at rest (ceMarkedHtml), and it
+     follows the typing (ceTwinPaint, patched in place — never a rebuild under
+     the caret). Drawn only where there is something to keep on screen: their
+     ask under the draft, or a draft that has moved off what stands.
+
+     UNDER, NOT ABOVE, and it was measured: the first keystroke on a clause with
+     nothing on it conjures the twin, and a block appearing ABOVE a focused box
+     makes the browser hold the caret still by scrolling the paper — 58px on
+     the proof clause — which walked the pencil up under the readings row and
+     out from under the pointer (the 31 fault, in a third costume). Below the
+     box, nothing above the caret ever moves. */
+  const twinHtml = typing ? ceTwinHtml(_ceText) : '';
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>`
+        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>${twinHtml}`
     : `<div class="nego-body" id="ce-clausebody">${
-        clean == null ? ceRedlineHtml(_ceBase, _ceText) : clean}</div>`;
+        clean == null ? ceMarkedHtml(_ceText) : clean}</div>`;
   /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
      One editor, one press: the heading is part of the clause the reader opened,
      so it is typed where it sits rather than in a control of its own somewhere
@@ -2510,16 +2620,19 @@ function ceRenderPaper(){
          one does: here it turns typing on and off, and on another clause it
          moves the page to that clause. */
       pill: { attr: 'data-ce-pencil', pressed: typing ? _ceClauseId : '',
-        /* NOT ON THE CLAUSE THE OTHER SIDE WANTS REMOVED. There is no wording
-           to type there, so the pencil would be a control whose only outcome
-           is a refusal — the product's own "a verb that cannot work is not
-           drawn". It is asked of THIS clause alone: the pencil on every other
-           clause still moves the page, which is what it has always meant. */
-        skip: cl => String(cl.clauseId) === String(_ceClauseId) && ceUnderDeletion(),
-        label: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
-          : (typing ? _cet('ce_pencil_stop') : _cet('ce_pencil')),
-        title: cl => (String(cl.clauseId) !== String(_ceClauseId)) ? _cet('ce_pencil_move')
-          : (typing ? _cet('ce_pencil_stop_title') : _cet('ce_pencil_title')) },
+        /* ---- NO PENCIL TO START; THE PENCIL MEANS FINISHED (Young ruled
+           13 Sep 2026, rule 1 of the layered redline) ----
+           The way IN is a click in the wording (see the paper's click branch
+           in ceWirePage), so at rest no clause draws a pencil — and a
+           colleague's lock sign stays at rest where the pencil used to be,
+           which is how a clause is seen to be held BEFORE the click. The
+           pencil appears on the one clause being typed in and says "done":
+           it files what was written and asks for the note. Not on a clause
+           under a proposed deletion (there is no wording to type, and the
+           press in the wording speaks that refusal). */
+        skip: cl => String(cl.clauseId) !== String(_ceClauseId) || !typing || ceUnderDeletion(),
+        label: () => _cet('ce_pencil_done'),
+        title: () => _cet('ce_pencil_done_title') },
     });
   }catch(e){ html = ''; }
   /* ---- THE WRITE IS FENCED, BECAUSE REPLACING IT BLURS WHAT IS IN IT ----
@@ -2554,6 +2667,37 @@ function ceStatHtml(){
   return (n.ins || n.del)
     ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
     : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
+}
+/* ---- THE MARKS UNDER THE BOX (rule 2 of the layered redline, 13 Sep 2026) ----
+   The same reading the clause shows at rest, drawn under the typing box so
+   that nothing on the table leaves the screen because a cursor went down.
+   Nothing where there is nothing to keep — a clause with no ask under it and a
+   draft still equal to what stands would be a copy of the box above the box.
+   ceTwinPaint follows the typing: the box is READ (never written), the
+   reading is recomputed and the twin alone is patched — or created, or taken
+   down — a beat after the keystroke. */
+const CE_TWIN_MS = 300;
+let _ceTwinTimer = null;
+function ceTwinHtml(text){
+  const draft = text == null ? _ceText : text;
+  if (!ceStacksOn() && ceWords(draft) === ceWords(_ceBase)) return '';
+  return `<div class="nego-body ce-twin" id="ce-twin">${ceMarkedHtml(draft)}</div>`;
+}
+function ceTwinPaint(){
+  if (!clauseEditorOpen() || !ceIsTyping()) return;
+  const box = _ceQ('#ce-clausebody');
+  if (!box) return;
+  let draft = _ceText;
+  try{ const raw = ceBoxHtml(box); draft = window.sanitizeRich ? sanitizeRich(raw) : raw; }catch(_){ draft = _ceText; }
+  const html = ceTwinHtml(draft);
+  const twin = _ceQ('#ce-twin');
+  if (!html){ if (twin) twin.remove(); return; }
+  if (twin){ twin.innerHTML = html.replace(/^<div[^>]*>/, '').replace(/<\/div>$/, ''); return; }
+  try{ box.insertAdjacentHTML('afterend', html); }catch(_){}
+}
+function ceTwinSchedule(){
+  if (_ceTwinTimer) clearTimeout(_ceTwinTimer);
+  _ceTwinTimer = setTimeout(() => { _ceTwinTimer = null; try{ ceTwinPaint(); }catch(_){} }, CE_TWIN_MS);
 }
 function cePaintStat(){
   const el = _ceQ('#ce-stat');
@@ -2866,7 +3010,7 @@ function ceApply(text, label, opts = {}){
      THE PAPER IS STILL REBUILT WHERE IT IS OWED, which is when the sanitiser
      had to correct the box: there the screen is showing something the record
      will not keep, and a repaint is the only thing that tells the truth. */
-  if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); }
+  if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); ceTwinPaint(); }
   else { ceRenderPaper(); ceRenderFoot(); ceRenderHead(); }
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
@@ -4286,6 +4430,14 @@ async function ceFile(why){
        reader who types the original back clears the record's own rename rather
        than leaving a stale one standing. */
     if (ceHeadEditable()) o.headingText = _ceHead;
+    /* ---- THE COUNTER IS WRITTEN ON THEIR ASK (Young ruled 13 Sep 2026) ----
+       The box was seeded from the lead change; where that is THEIR pending
+       proposal, this filing is measured against it, and the funnel stacks the
+       two — their marks stay on the paper under ours and the pair is decided
+       together. ceStacksOn is the one reading of "which ask is this written
+       on", asked here and by the layered picture above the box. */
+    const on = ceStacksOn();
+    if (on) o.onTop = on.id;
     ch = proposed ? await negoReviseInsert(c, clauseId, { bodyHtml: html, ...(ceHeadEditable() ? { headingText: _ceHead } : {}) }, o)
       : await negoEditClause(c, clauseId, html, o);
   }catch(e){ err = e; }
@@ -4492,12 +4644,15 @@ function ceWirePage(page){
         });
         return;
       }
-      _ceEditing = !_ceEditing;
+      /* THE PENCIL ONLY EXISTS WHILE TYPING (13 Sep 2026), so with nothing
+         to file the press means "I have finished reading this clause": typing
+         goes off and the marks come back. The way IN is a click in the
+         wording, never this control. */
+      _ceEditing = false;
       /* THE BAR FOLLOWS THE PENCIL. Its tools grey when nothing is typeable,
          so a pencil press that did not repaint it would leave the whole shelf
          dressed for the state before the press. */
       ceDetachPassage(); ceRenderPaper(); ceRenderBar();
-      if (ceIsTyping()) ceFocusTyping();
       return; }
 
     /* ---- THE THREE READINGS ----
@@ -4669,6 +4824,50 @@ function ceWirePage(page){
        published, so there is no door a third caller could bring it back
        through. */
 
+    /* ---- CLICK INTO A CLAUSE AND TYPE (Young ruled 13 Sep 2026 — rule 1 of
+       the layered redline) ----
+       REVERSES THE PENCIL IS THE ONLY WAY IN (1 Sep 2026). It sits AFTER every
+       control drawn on the paper has answered and BEFORE the strip's own acts
+       (`[data-ce-act]`, whose branch returns on anything that is not one), so
+       what reaches it is a press in the wording itself.
+
+       WHAT GOT THIS GESTURE RETIRED WAS THAT IT HID THE MARKS — you cannot
+       type into a redline, so the press that felt like putting a cursor down
+       was the press that took a clause's marks off the screen. Rule 2 removes
+       that objection: the marked reading stays above the box (ceTwinHtml /
+       ceTwinPaint), so a cursor costs the reader nothing they were looking at.
+
+       · A DRAG IS A HIGHLIGHT, not a press: the selection stands and the
+         mouseup handler has already offered its verbs.
+       · ANOTHER CLAUSE: the page moves there and starts typing — through
+         ceGoClause, which asks before a draft is thrown away, and through the
+         door, which speaks its own refusals (a colleague's lock, a clause the
+         other side wants removed).
+       · THIS CLAUSE: the refusal is SPOKEN where the click landed
+         (ceTypingRefusal — the sentences that already exist), and a caret
+         never blinks in a clause the person cannot change. Otherwise typing
+         goes on and the box takes the caret.
+       · ALREADY TYPING: the browser's own caret is the right answer and this
+         page does not fight it; a press on the marks under the box puts the
+         caret back in the box. */
+    if (hit('#ce-doc') && !hit('button, a, [data-ce-pencil], [data-rl-note-open], .rl-note-mk, .rl-cp-lock, .rl-cp-pill, .rl-repl-on')){
+      const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+      if (sel && !sel.isCollapsed && String(sel).trim()) return;
+      if (Date.now() - _ceMenuPickAt < CE_MENU_PICK_MS) return;
+      const sec = t.closest('[data-clause]');
+      const id = sec ? sec.getAttribute('data-clause') : null;
+      if (!id) return;
+      if (String(id) !== String(_ceClauseId)){ ceGoClause(id, { typing: true }); return; }
+      if (ceIsTyping()){ if (hit('#ce-twin')) ceFocusTyping(); return; }
+      const why = ceTypingRefusal();
+      if (why){ ceSay(why); if (window.toast) toast(why, 'warn'); return; }
+      /* On because nothing refused it — the wall is the line above, and the
+         28 Aug rule about ARRIVAL is untouched (this is a press). */
+      _ceEditing = !why;
+      ceDetachPassage(); ceRenderPaper(); ceRenderBar();
+      ceFocusTyping();
+      return;
+    }
     const act = hit('[data-ce-act]');
     if (!act) return;
     ev.preventDefault();
@@ -4750,6 +4949,8 @@ function ceWirePage(page){
        Guarded on there BEING one, so an ordinary keystroke costs nothing. */
     if (_ceSel) ceDetachPassage();
     ceSyncBarSteps();
+    /* THE MARKS FOLLOW THE TYPING, a beat behind and never under the caret. */
+    ceTwinSchedule();
   });
 
   /* ---- A HEADING IS ONE LINE ----
@@ -4929,6 +5130,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
+  ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,

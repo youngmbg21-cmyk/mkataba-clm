@@ -3692,6 +3692,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
            not FILE is its own rule, judged on the change they filed, not on
            the status its arrival moved. */
         if (String(ch.status) === 'superseded') return false;
+        /* PARKING AND RELEASING ARE THE SAME KIND OF MOVE (13 Sep 2026): a
+           counter written on their ask parks it (`countered`), and deciding
+           OUR counter puts it back or answers it — a consequence of a decision
+           on our own change, never a verdict on theirs. */
+        if (String(ch.status) === 'countered' || String(was.status) === 'countered') return false;
         const by = String(ch.resolvedBy || '');
         if (by && by !== String(req.user.name || '')) return false;
         if (ch.withdrawn && ch.withdrawn.side === 'counterparty') return false;

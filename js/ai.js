@@ -3045,6 +3045,9 @@ async function copilotProposeTemplate(o){
       + `only what this template needs (a defined term, a party name):\n"""\n${o.library}\n"""` : '',
     o.standard ? `\nTHE COMPANY PLAYBOOK on this point: ${o.standard}` : '',
     o.precedent ? `\nWHAT THIS COMPANY HAS ACTUALLY AGREED BEFORE: ${o.precedent}` : '',
+    /* A section tagged with @ in the builder's ask box rides along for
+       consistency — read, never rewritten (13 Sep 2026). */
+    o.others ? `\nOTHER SECTIONS OF THE SAME TEMPLATE, for consistency only — do not rewrite them:\n${o.others}` : '',
     existing ? `\nThe section already reads:\n"""\n${existing}\n"""\nRewrite it.` : '',
     '',
     AI_TEMPLATE_RULE(),

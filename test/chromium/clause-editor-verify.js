@@ -61,6 +61,18 @@ async function answerLeave(p){
     return true;
   }catch(_){ return false; }
 }
+/* ---- THE WAY INTO TYPING IS A CLICK IN THE WORDING (Young ruled 13 Sep 2026,
+   rule 1 of the layered redline) ----
+   No pencil at rest: a check that wants the box typeable presses INTO the
+   clause's own wording, which is what a reader does. The pencil exists only
+   while typing and means DONE (it files where there is something to file), so
+   it is the way OUT and never the way in. */
+const TYPE_IN = `(() => {
+  const live = document.querySelector('#clause-editor .rl-clause-live');
+  const el = live && (live.querySelector('#ce-twin') || live.querySelector('.nego-body') || live);
+  if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  return !!el;
+})()`;
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
 function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
@@ -498,6 +510,8 @@ const dismissNote = async pg => {
       insColour: ins ? getComputedStyle(ins).color : null,
       delColour: del ? getComputedStyle(del).color : null,
       delLine: del ? getComputedStyle(del).textDecorationLine : null,
+      insLine: ins ? getComputedStyle(ins).textDecorationLine : null,
+      bodyInk: getComputedStyle(body).color,
       stat: (page.querySelector('#ce-stat') || {}).innerText || '',
       editable: body.getAttribute('contenteditable') };
   });
@@ -507,10 +521,16 @@ const dismissNote = async pg => {
      marked && `${marked.ins} ins / ${marked.del} del`);
   ck('3c and the counts agree with the marks',
      !!marked && /\+\s*\d/.test(marked.stat), marked && marked.stat.replace(/\s+/g, ' ').trim());
-  ck('3d the marks are COLOURED and the deletion is struck — the rule really reaches them',
-     !!marked && !!marked.insColour && marked.insColour !== marked.delColour
-       && /line-through/.test(marked.delLine || ''),
-     marked && `ins ${marked.insColour}, del ${marked.delColour} ${marked.delLine}`);
+  /* ---- RE-POINTED 13 Sep 2026 (Young: the layered redline) ----
+     COLOUR SAYS WHO, THE LINE SAYS WHAT. The clause in the editor is drawn as
+     the other side's layer, so its insertion and its deletion share the other
+     side's colour; the deletion is struck and the insertion underlined. What
+     3d has always been for — that the rule really reaches the marks — is the
+     colour differing from the paper's own ink. */
+  ck('3d the marks are COLOURED by author and the deletion is struck — the rule really reaches them',
+     !!marked && marked.insColour && marked.insColour === marked.delColour && marked.insColour !== marked.bodyInk
+       && marked.delLine === 'line-through',
+     marked && `ins ${marked.insColour} ${marked.insLine} · del ${marked.delColour} ${marked.delLine} · ink ${marked.bodyInk}`);
 
   /* ---- 4. THE READY-MADE QUESTIONS ARE ONE LINE ---- */
   const chips = await p.evaluate(() => {
@@ -701,9 +721,10 @@ const dismissNote = async pg => {
   ck('12a the clause you came in on opens TYPEABLE, in place on the paper',
      typing.editable === 'true' && typing.penPressed === 'true' && typing.penPainted,
      `contenteditable ${typing.editable}, pencil pressed ${typing.penPressed}`);
-  ck('12b the pencil is the PRODUCT\'S OWN control, in its second home — a second '
-     + 'pencil is how the two surfaces come to disagree',
-     /rl-cp-pill/.test(typing.penClass) && typing.pencils > 1 && typing.cpDoors === 0,
+  /* RE-POINTED 13 Sep 2026: the pencil is drawn on the ONE clause being typed
+     in and nowhere else (it means done; the way in is a click in the wording). */
+  ck('12b the pencil is the PRODUCT\'S OWN control, in its second home — ONE, on the clause being typed in',
+     /rl-cp-pill/.test(typing.penClass) && typing.pencils === 1 && typing.cpDoors === 0,
      `${typing.pencils} pencils, class "${typing.penClass}", panel doors ${typing.cpDoors}`);
 
   /* Typing for real, then blurring — a hand edit is an Apply like any other. */
@@ -881,8 +902,10 @@ const dismissNote = async pg => {
          this builder with nothing and still gets nothing */
       retired: (window.rlReadNoticeHtml ? rlReadNoticeHtml() : 'x') === '' };
   });
+  /* RE-POINTED 13 Sep 2026: at rest no pencil is drawn — the way in is a click
+     in the wording — so what comes back with Redlined is the marks alone. */
   ck('12j the way back on the band really works — the marks return',
-     backOn.marks > 0 && backOn.pencils > 0, `${backOn.marks} marks, ${backOn.pencils} pencils`);
+     backOn.marks > 0 && backOn.pencils === 0, `${backOn.marks} marks, ${backOn.pencils} pencils`);
   ck('12k and on Redlined the band draws NOTHING — a band that is always there '
      + 'stops being read',
      backOn.band === 0, `${backOn.band} bands`);
@@ -898,10 +921,13 @@ const dismissNote = async pg => {
   const moved = await p.evaluate(() => {
     const page = document.getElementById('clause-editor');
     const here = window.clauseEditorClauseId();
-    const other = [...page.querySelectorAll('[data-ce-pencil]')]
-      .map(b => b.getAttribute('data-ce-pencil')).find(id => id && id !== here);
+    /* RE-POINTED 13 Sep 2026: another clause is reached by a press in ITS
+       wording (rule 1 of the layered redline); the pencil is gone from rest. */
+    const other = [...page.querySelectorAll('#ce-doc .rl-clause[data-clause]')]
+      .map(s => s.getAttribute('data-clause')).find(id => id && id !== here);
     if (!other) return null;
-    page.querySelector(`[data-ce-pencil="${other}"]`).click();
+    const sec = page.querySelector(`#ce-doc .rl-clause[data-clause="${other}"]`);
+    (sec.querySelector('.nego-body') || sec).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     return { from: here, to: other, dirty: !!window.clauseEditorDirty() };
   });
   await pause(400);
@@ -1523,9 +1549,16 @@ const dismissNote = async pg => {
     const box = () => document.getElementById('ce-clausebody');
     const is = () => !!(box() && box().getAttribute('contenteditable') === 'true');
     if (is() === on) return is();
-    const pen = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]')
-      || document.querySelector('#clause-editor [data-ce-pencil]');
-    if (pen) pen.click();
+    /* RE-POINTED 13 Sep 2026: ON is a press in the wording; OFF is the pencil,
+       which exists only while typing and means done. */
+    if (on){
+      const live = document.querySelector('#clause-editor .rl-clause-live');
+      const el = live && (live.querySelector('.nego-body') || live);
+      if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    } else {
+      const pen = document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]');
+      if (pen) pen.click();
+    }
     await new Promise(r => setTimeout(r, 600));
     return is();
   }, want);
@@ -2011,7 +2044,7 @@ const dismissNote = async pg => {
   ck('19a a clause carrying a draft opens SHOWING ITS MARKS, not typeable',
      (await typeable()) !== 'true', String(await typeable()));
   await setTyping(true);
-  ck('19a2 …and ONE press of the pencil on that clause starts the writing',
+  ck('19a2 …and ONE press in the wording starts the writing (13 Sep 2026: the pencil means done)',
      (await typeable()) === 'true', String(await typeable()));
 
   /* ---- REVERSED IN PLACE 10 Sep 2026 (Young: "they do not speak the same
@@ -2141,7 +2174,9 @@ const dismissNote = async pg => {
     document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
     await new Promise(r => setTimeout(r, 600));
     const off = read();
-    document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
+    /* RE-POINTED 13 Sep 2026: typing comes back through the wording. */
+    const sec = document.querySelector('#clause-editor .rl-clause-live');
+    (sec.querySelector('.nego-body') || sec).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 600));
     return { live, off, back: read() };
   });
@@ -2149,12 +2184,12 @@ const dismissNote = async pg => {
      greyed.live.bold === false && greyed.live.size === false, JSON.stringify(greyed.live));
   ck('19m WITH THE PENCIL OFF THEY GREY, with the reason on the hover — not a dead press',
      greyed.off.bold === true && greyed.off.size === true
-       && /pencil|penna/i.test(greyed.off.tip || '') && Number(greyed.off.dim) < 0.6,
+       && /click into|klicka/i.test(greyed.off.tip || '') && Number(greyed.off.dim) < 0.6,
      JSON.stringify(greyed.off));
   ck('19n …but Undo and the way out still work, because they can',
      greyed.off.undo === false && greyed.off.exit === false,
      `undo off=${greyed.off.undo}, exit off=${greyed.off.exit}`);
-  ck('19o and pressing the pencil again brings the tools back',
+  ck('19o and a press in the wording brings the tools back',
      greyed.back.bold === false, JSON.stringify(greyed.back));
 
   /* ============================================================
@@ -2331,20 +2366,21 @@ const dismissNote = async pg => {
      marks.ins > 0 || marks.del > 0, `ins ${marks.ins} · del ${marks.del}`);
   ck('20j …because a clause with a draft on it does not open typeable',
      marks.typing === false, `typing ${marks.typing}`);
-  ck('20k …and the pencil is still right there to start typing',
-     marks.pencil === true, `pencil ${marks.pencil}`);
+  /* RE-POINTED 13 Sep 2026 (rule 1 of the layered redline): no pencil at rest;
+     the way into typing is a press in the wording, driven below. */
+  ck('20k …and no pencil is drawn at rest — the wording itself is the way in',
+     marks.pencil === false, `pencil ${marks.pencil}`);
 
   /* Typing is one press away, and it shows the draft — you cannot type into a
      redline, which is the trade this posture exists to make honest. */
   const afterPencil = await p.evaluate(async () => {
-    const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
-      || document.querySelector('#ce-doc [data-ce-pencil]');
-    if (pen) pen.click();
+    const live = document.querySelector('#ce-doc .rl-clause-live');
+    (live.querySelector('.nego-body') || live).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 350));
     const box = document.getElementById('ce-clausebody');
     return { typing: !!(box && box.getAttribute('contenteditable') === 'true') };
   });
-  ck('20l pressing the pencil starts typing', afterPencil.typing === true,
+  ck('20l a press in the wording starts typing', afterPencil.typing === true,
      `typing ${afterPencil.typing}`);
 
   await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"]'); if (b) b.click(); });
@@ -2377,21 +2413,28 @@ const dismissNote = async pg => {
   /* ONE press, and BOTH halves of what it owes are asserted together — a fix
      that cleared the marks without making the clause typeable, or the other way
      round, has to fail here rather than pass on half the job. */
+  /* ---- REVERSED IN PLACE 13 Sep 2026 (Young: the layered redline) ----
+     It pinned "one press of the pencil starts typing AND clears the marks".
+     Rule 1 puts the press in the WORDING, and rule 2 is that the marks NEVER
+     disappear: the marked reading stays under the box (the twin) while the box
+     itself holds the draft clean. Both halves asserted together, as before. */
   const onePress = await p.evaluate(async () => {
-    const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
-      || document.querySelector('#ce-doc [data-ce-pencil]');
+    const live0 = document.querySelector('#ce-doc .rl-clause-live');
     const before = { presses: 0 };
-    if (pen){ pen.click(); before.presses = 1; }
+    if (live0){ (live0.querySelector('.nego-body') || live0).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); before.presses = 1; }
     await new Promise(r => setTimeout(r, 400));
     const live = document.querySelector('#ce-doc .rl-clause-live');
     const box = document.getElementById('ce-clausebody');
+    const twin = document.getElementById('ce-twin');
     return { presses: before.presses,
       typing: !!(box && box.getAttribute('contenteditable') === 'true'),
-      marks: live ? live.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1 };
+      marks: live ? live.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
+      inBox: box ? box.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
+      twinBelow: !!(twin && box) && twin.getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1 };
   });
-  ck('21a ONE press of the pencil starts typing AND clears the marks',
-     onePress.presses === 1 && onePress.typing === true && onePress.marks === 0,
-     `presses ${onePress.presses} · typing ${onePress.typing} · marks ${onePress.marks}`);
+  ck('21a ONE press in the wording starts typing AND THE MARKS STAY — under the box, not in it',
+     onePress.presses === 1 && onePress.typing === true && onePress.marks > 0 && onePress.inBox === 0 && onePress.twinBelow,
+     `presses ${onePress.presses} · typing ${onePress.typing} · marks ${onePress.marks} (in box ${onePress.inBox}) · twin below ${onePress.twinBelow}`);
 
   /* ---- THE HIGHLIGHT, DRAGGED FOR REAL ---- */
   const target = await p.evaluate(() => {
@@ -2832,11 +2875,10 @@ const dismissNote = async pg => {
   if (clean25){
     await p.evaluate(id => rlOpenClauseEditor(window.CONTRACT, id, {}), clean25);
     await pause(800);
-    await p.evaluate(() => {
+    await p.evaluate(TYPE => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
-      if (b.getAttribute('contenteditable') !== 'true')
-        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
-    });
+      if (b.getAttribute('contenteditable') !== 'true') eval(TYPE);
+    }, TYPE_IN);
     await pause(400);
     await p.evaluate(() => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
@@ -2907,11 +2949,10 @@ const dismissNote = async pg => {
     await skipNote(p);
 
     /* ---- A REVISION IS ASKED AGAIN, and the pin says it is one ---- */
-    await p.evaluate(() => {
+    await p.evaluate(TYPE => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
-      if (b.getAttribute('contenteditable') !== 'true')
-        document.querySelector('#clause-editor .rl-clause-live [data-ce-pencil]').click();
-    });
+      if (b.getAttribute('contenteditable') !== 'true') eval(TYPE);
+    }, TYPE_IN);
     await pause(400);
     await p.evaluate(() => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
@@ -3320,8 +3361,8 @@ const dismissNote = async pg => {
     const box = document.getElementById('ce-clausebody');
     if (!box || box.getAttribute('contenteditable') !== 'true'){
       const cl = document.querySelector(`#ce-doc [data-clause="${id}"]`);
-      const pen = cl && cl.querySelector('[data-ce-pencil]');
-      if (pen) pen.click();
+      /* RE-POINTED 13 Sep 2026: the way in is a press in the wording. */
+      if (cl) (cl.querySelector('.nego-body') || cl).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     }
   }, stage29.clauseId);
   await pause(350);
@@ -3440,8 +3481,10 @@ const dismissNote = async pg => {
   ck('30c and the count still reads the whole clause out',
      /−|-/.test(seen30.stat) && new RegExp(String(del30.words)).test(seen30.stat),
      `${seen30.stat} · clause is ${del30.words} words`);
-  ck('30d the pencil is not drawn on that clause, and still is on the others',
-     seen30.pencilHere === 0 && seen30.pencilsElsewhere > 0,
+  /* RE-POINTED 13 Sep 2026: at rest no clause draws a pencil; the refusal on
+     this one is SPOKEN when the click lands (32e below drives it). */
+  ck('30d no pencil is drawn on that clause — nor on any other, at rest',
+     seen30.pencilHere === 0 && seen30.pencilsElsewhere === 0,
      `here ${seen30.pencilHere} · elsewhere ${seen30.pencilsElsewhere}`);
   ck('30e Apply refuses, in words, where the reader is looking',
      seen30.applyRefused && /remove/i.test(seen30.says) && seen30.canFile === false,
@@ -3544,6 +3587,149 @@ const dismissNote = async pg => {
   await p.setViewportSize({ width: 1500, height: 1000 }); await pause(300);
   await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
   await answerLeave(p); await pause(200);
+
+  /* ============================================================
+     32. THE LAYERED REDLINE IN THE EDITOR (Young ruled 13 Sep 2026 — "the
+     Large option"), DRIVEN WITH A REAL MOUSE
+     ============================================================
+     The box is seeded from THEIR ask. A click in the wording starts typing and
+     the marks STAY (under the box); what is typed draws as OUR layer over
+     theirs, in two colours; the pencil — drawn only while typing — files the
+     counter, which STACKS on their ask instead of superseding it; and a clause
+     the reader may not write in SPEAKS its refusal on the click. */
+  const stage32 = await p.evaluate(async () => {
+    const c = window.CONTRACT;
+    const busy = new Set((c.changes || []).filter(x => x && x.status === 'pending').map(x => x.clauseId));
+    const cl = negoClauseList(c).find(x => !busy.has(x.clauseId) && /\w/.test(x.text || '') && (x.text || '').length > 60 && !window.negoIsFrontId(x.clauseId));
+    if (!cl) return { error: 'no untouched clause on the stage' };
+    const theirs = await negoEditClause(c, cl.clauseId, '<p>' + cl.text + ' Interest runs at two per cent above base.</p>',
+      { side: 'counterparty', author: 'Henry M.' });
+    if (!theirs) return { error: 'their ask did not file' };
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    rlOpenClauseEditor(c, cl.clauseId, { changeId: theirs.id });
+    await new Promise(r => setTimeout(r, 700));
+    const box = document.getElementById('ce-clausebody');
+    const live = document.querySelector('#ce-doc .rl-clause-live');
+    const them = live && live.querySelector('ins.rl-them');
+    const r = box ? box.getBoundingClientRect() : null;
+    return { clauseId: cl.clauseId, theirs: theirs.id,
+      typing: !!(box && box.isContentEditable),
+      themPainted: !!them && them.getBoundingClientRect().width > 0,
+      themBg: them ? getComputedStyle(them).backgroundColor : null,
+      pageBg: getComputedStyle(document.body).backgroundColor,
+      pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length,
+      x: r ? Math.round(r.left + 60) : 0, y: r ? Math.round(r.top + 12) : 0 };
+  });
+  if (stage32.error){
+    ck('32 the stage files their ask and opens on it', false, stage32.error);
+  } else {
+    ck('32a AT REST: their ask is drawn in their colour, no pencil anywhere, nothing typeable',
+       stage32.typing === false && stage32.themPainted && stage32.themBg !== stage32.pageBg && stage32.pencils === 0,
+       JSON.stringify({ typing: stage32.typing, themBg: stage32.themBg, pencils: stage32.pencils }));
+    await p.evaluate(() => document.getElementById('ce-clausebody').scrollIntoView({ block: 'center' }));
+    await pause(300);
+    const at = await p.evaluate(() => { const r = document.getElementById('ce-clausebody').getBoundingClientRect();
+      return { x: Math.round(r.left + 60), y: Math.round(r.top + 12) }; });
+    await p.mouse.click(at.x, at.y);
+    await pause(700);
+    const on32 = await p.evaluate(() => {
+      const box = document.getElementById('ce-clausebody');
+      const twin = document.getElementById('ce-twin');
+      const live = document.querySelector('#ce-doc .rl-clause-live');
+      const pens = [...document.querySelectorAll('#ce-doc [data-ce-pencil]')];
+      const them = twin && twin.querySelector('ins.rl-them');
+      return { typing: !!(box && box.isContentEditable),
+        twin: !!twin, twinMarks: twin ? twin.querySelectorAll('ins, del').length : 0,
+        twinThem: !!them && them.getBoundingClientRect().width > 0,
+        twinBelow: !!(twin && box) && twin.getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1,
+        inBox: box ? box.querySelectorAll('ins, del').length : -1,
+        pencils: pens.length, pencilOnLive: !!(live && live.querySelector('[data-ce-pencil]')),
+        pencilWord: pens[0] ? pens[0].getAttribute('aria-label') : '' };
+    });
+    ck('32b A REAL CLICK IN THE WORDING starts typing, and THEIR MARKS STAY under the box',
+       on32.typing && on32.twin && on32.twinThem && on32.twinBelow && on32.inBox === 0,
+       JSON.stringify(on32));
+    ck('32c the pencil appears only now, on this clause, and says Done',
+       on32.pencils === 1 && on32.pencilOnLive && /done|klar/i.test(on32.pencilWord),
+       `${on32.pencils} pencil(s) · "${on32.pencilWord}"`);
+    /* Type, for real, at the end of the box. */
+    await p.evaluate(() => { const b = document.getElementById('ce-clausebody');
+      const r = document.createRange(); r.selectNodeContents(b); r.collapse(false);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); b.focus(); });
+    await p.keyboard.type(' Interest is simple, never compound.');
+    await pause(800);
+    const typed32 = await p.evaluate(() => {
+      const twin = document.getElementById('ce-twin');
+      const box = document.getElementById('ce-clausebody');
+      const us = twin && twin.querySelector('ins.rl-us');
+      const them = twin && twin.querySelector('ins.rl-them');
+      return { us: !!us && us.getBoundingClientRect().width > 0, usBg: us ? getComputedStyle(us).backgroundColor : null,
+        themBg: them ? getComputedStyle(them).backgroundColor : null,
+        usWords: us ? us.textContent : '', inBox: box ? box.querySelectorAll('ins, del').length : -1,
+        typing: !!(box && box.isContentEditable) };
+    });
+    ck('32d WHAT IS TYPED DRAWS AS OUR LAYER OVER THEIRS, in a second colour, while the box stays clean',
+       typed32.us && /compound/.test(typed32.usWords) && typed32.usBg !== typed32.themBg && typed32.inBox === 0 && typed32.typing,
+       JSON.stringify(typed32));
+    /* THE PENCIL MEANS DONE: a real press files the counter, which STACKS. */
+    const pen32 = await p.$('#clause-editor .rl-clause-live [data-ce-pencil]');
+    const pb = pen32 ? await pen32.boundingBox() : null;
+    if (pb){ await p.mouse.click(pb.x + pb.width / 2, pb.y + pb.height / 2); await pause(900); }
+    const filed32 = await p.evaluate(id => {
+      const c = window.CONTRACT;
+      const theirs = negoChangeById(c, id);
+      const ours = (c.changes || []).find(x => x && x.counterOf === id && x.authorSide === 'owner');
+      const box = document.getElementById('ce-clausebody');
+      const live = document.querySelector('#ce-doc .rl-clause-live');
+      return { theirsStatus: theirs && theirs.status, counteredBy: theirs && theirs.counteredBy,
+        ours: ours ? ours.id : null, oursOld: ours ? ours.oldText === theirs.newText : false,
+        note: !!(window.state && state.panelOpen),
+        typing: !!(box && box.isContentEditable),
+        them: live ? live.querySelectorAll('ins.rl-them, del.rl-them').length : 0,
+        us: live ? live.querySelectorAll('ins.rl-us, del.rl-us').length : 0 };
+    }, stage32.theirs);
+    await skipNote(p);
+    ck('32e ONE REAL PRESS ON THE PENCIL FILES — and the counter STACKS on their ask instead of superseding it',
+       !!pb && !!filed32.ours && filed32.oursOld && filed32.theirsStatus === 'countered' && filed32.counteredBy === filed32.ours,
+       JSON.stringify(filed32));
+    ck('32f …asks for the note, ends the typing, and the paper draws BOTH layers',
+       filed32.note && filed32.typing === false && filed32.them > 0 && filed32.us > 0,
+       `note ${filed32.note} · typing ${filed32.typing} · them ${filed32.them} · us ${filed32.us}`);
+    /* THE REFUSAL IS SPOKEN: a colleague holds the clause. The lock sign stands
+       at rest where the pencil is not; the click lands and says why; no caret. */
+    const held32 = await p.evaluate(async id => {
+      const real = window.clauseLockHeldByOther;
+      window.clauseLockHeldByOther = (c, cid) => String(cid) === String(id) ? { by: { name: 'Ruth Chege' }, clauseId: cid, at: Date.now() } : null;
+      try{
+        window.ceRenderPaper();
+        await new Promise(r => setTimeout(r, 300));
+        const live = document.querySelector('#ce-doc .rl-clause-live');
+        const sign = live && live.querySelector('.rl-cp-lock');
+        const box = document.getElementById('ce-clausebody');
+        const r = box.getBoundingClientRect();
+        return { sign: !!sign && sign.getBoundingClientRect().width > 0, mono: sign ? (sign.querySelector('.rl-cp-lock-mono') || {}).textContent : '',
+          pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length,
+          x: Math.round(r.left + 60), y: Math.round(r.top + 12) };
+      } finally { window.__realLock = real; }
+    }, stage32.clauseId);
+    await p.mouse.click(held32.x, held32.y);
+    await pause(600);
+    const spoke32 = await p.evaluate(() => {
+      const box = document.getElementById('ce-clausebody');
+      const say = document.getElementById('ce-say');
+      const out = { typing: !!(box && box.isContentEditable), said: say ? say.textContent.trim() : '',
+        editables: document.querySelectorAll('#ce-doc [contenteditable="true"]').length };
+      window.clauseLockHeldByOther = window.__realLock; delete window.__realLock;
+      return out;
+    });
+    ck('32g A HELD CLAUSE shows the lock sign AT REST, where the pencil is not',
+       held32.sign && /RC/.test(held32.mono || '') && held32.pencils === 0, JSON.stringify({ sign: held32.sign, mono: held32.mono, pencils: held32.pencils }));
+    ck('32h …and the click into it is REFUSED IN WORDS — no caret blinks in a clause the person cannot change',
+       spoke32.typing === false && spoke32.editables === 0 && /Ruth Chege/.test(spoke32.said),
+       JSON.stringify(spoke32));
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await answerLeave(p); await pause(200);
+  }
 
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 

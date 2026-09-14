@@ -458,11 +458,16 @@ describe('f264 (6) — the gesture that means done, means done', () => {
     assert.match(fn, /\n  return ch;\n\}/);
   });
 
-  test('a clause only READ still toggles, exactly as it always did', () => {
+  test('a clause only READ: the pencil ENDS the typing (13 Sep 2026) — it no longer toggles it on', () => {
+    /* ---- REVERSED IN PLACE 13 Sep 2026 (Young: the layered redline, rule 1) ----
+       It pinned the plain toggle below the filing branch. The pencil is drawn
+       only while typing now and means DONE; the way INTO typing is a press in
+       the wording. So with nothing to file the press ends the typing and the
+       marks come back — never the other direction. */
     const branch = CE.match(/const pencil = hit\('\[data-ce-pencil\]'\);[\s\S]*?\n      return; \}/)[0];
-    assert.match(branch, /_ceEditing = !_ceEditing;/,
-      'the plain toggle is still there, below the branch, for the case where '
-      + 'there is nothing to file');
+    assert.ok(!/_ceEditing = !_ceEditing;/.test(branch), 'the toggle is gone');
+    assert.match(branch, /_ceEditing = false;\s*(?:\/\*[\s\S]*?\*\/\s*)?ceDetachPassage\(\); ceRenderPaper\(\); ceRenderBar\(\);\s*return; \}/,
+      'below the filing branch, the press with nothing to file only ends the typing');
   });
 
   test('filing keeps typing on everywhere else — the 30 Aug rule is untouched', () => {

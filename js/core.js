@@ -2395,9 +2395,20 @@ function dragDialog(panel, opts = {}){
   };
 }
 
+/* ---- A DIALOG STATES ITS WIDTH ONCE, ON THE FRAME (owner-reported 13 Sep 2026) ----
+   Two pop-ups came back with a blank column down their right-hand side. The
+   cause was one fault in two costumes: this builder paints a 32rem frame and
+   the dialog painted a NARROWER box inside it, at the frame's left edge — 380
+   for the "What kind of template?" question, 460 for the form — so what was
+   left over was blank. The frame was centred exactly as it should be; the box
+   in it was not.
+   THE LADDER: four rungs, and a dialog picks one by passing opts.maxWidth (or
+   none, which is the M rung). No dialog states a second width on its inner
+   box — f312 reads every openModal call and fails on one. */
+const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
-  const maxw=opts.maxWidth||'32rem';
+  const maxw=opts.maxWidth||DLG_W.m;
   // Given an explicit height the panel becomes a fill-the-window shell: it stops
   // scrolling itself and whatever is inside takes charge of its own overflow.
   const sized=opts.height
@@ -3793,6 +3804,14 @@ function buildSharePayload(c, docHash, who, opts){
          say "counters #CHG-001" instead of showing an unexplained replacement.
          The superseded change itself never travels (filtered above). */
       counterOf:x.counterOf||null,
+      /* THE STACK TRAVELS (13 Sep 2026). A parked ask keeps its status,
+         says which counter parks it, and the counter carries what it stands on
+         and whether it is a wholesale replacement — so their page draws the
+         same layered picture, seats reversed, and their refusal of our counter
+         brings their own ask back on both records alike. */
+      counteredBy:x.counteredBy||null,
+      bundle:Array.isArray(x.bundle)?x.bundle.map(b=>({ id:b.id, was:b.was||'pending', counteredBy:b.counteredBy||null })):undefined,
+      replacement:x.replacement?true:undefined,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read
@@ -6525,10 +6544,19 @@ async function applyNegoProposals(c, r, who){
     if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===clauseId
         && x.status==='pending' && String(x.newText||'')===newText
         && (!p.bodyHtml || canonB(x.bodyHtml)===canonB(p.bodyHtml)))) continue;
+    /* ---- A COUNTER WRITTEN ON OUR ASK ARRIVES AS ONE (13 Sep 2026) ----
+       Their counter was measured against OUR proposal's wording. Filed against
+       the standing clause it would read as a rival and supersede our ask; filed
+       against the text it was really written on, the funnel stacks it and our
+       ask is parked under it, which is what happened on their page. Only where
+       a live ask of ours carries exactly that wording — otherwise the standing
+       clause is what it always was. */
+    const stacksOn = (c.changes||[]).find(x=>x && x.status==='pending' && x.clauseId===clauseId
+      && x.changeType!=='insertClause' && String(x.newText||'')!=='' && String(x.newText||'')===String(p.oldText||''));
     let ch=null;
     try{
       ch=await negoFileChange(c, { clauseId, changeType:type,
-        oldText: cl?cl.text:String(p.oldText||''), newText,
+        oldText: stacksOn?String(p.oldText||''):(cl?cl.text:String(p.oldText||'')), newText,
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },
@@ -6761,4 +6789,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

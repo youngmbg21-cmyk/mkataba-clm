@@ -1678,7 +1678,89 @@ async function negoFileChange(c, draft, opts = {}){
   const rivals = draft.changeType === 'insertClause' ? [] :
     c.changes.filter(x => x && x.clauseId === draft.clauseId && x.status === 'pending'
       && x.changeType !== 'insertClause');
-  if (rivals.length){
+  /* ---- THE LAYERED REDLINE (Young ruled 13 Sep 2026 — "the Large option") ----
+     Two of the three things a filing can meet on a contested clause are NOT
+     rivals, and the 15 Aug rule above treated all three alike:
+
+     · WRITTEN ON TOP. A counter measured against THEIR proposal — its oldText
+       IS their newText, which is what negoMeasuredAlike already tells apart
+       from a rival — accepts the shape of their redraft and moves parts of it.
+       It STACKS: their ask is PARKED (`countered`, `counteredBy`), stays on the
+       table under ours, keeps its wording and its fingerprint, and TRAVELS.
+       The pair is decided together in negoResolve: accepting ours answers
+       theirs; refusing ours puts theirs back exactly as it stood.
+     · A WHOLESALE REPLACEMENT. When the marks would outnumber the words
+       (redlineWholesale — a comparison of two lengths, not a percentage), the
+       filing is a BUNDLE: every live ask on the clause, both sides', is parked
+       under it at once. Accept and every one is answered by that press; refuse
+       and every one comes back as it stood — including one that was itself
+       parked under an earlier counter, which goes back UNDER it, not onto the
+       table. `bundle` records what each was, so the refusal can put it back.
+     · A RIVAL, measured against the same text — the playbook pass, Prepare
+       redlines, Copilot's batch filing, the Word round trip, a second edit of
+       the standing clause — still supersedes, exactly as it has since 15 Aug.
+       Those state our standards; they do not answer their draft. Leaving them
+       alone IS the requirement.
+
+     The rule keys on MEASUREMENT and on SIZE, never on who is filing or how:
+     Copilot writing into the box and a person retyping the paragraph produce
+     the same texts, so there is one rule for both and Copilot has no special
+     case. Insertions stay exempt both ways, for the reason given above. */
+  /* WRITTEN ON TOP means measured against THEIR live ask: the draft's oldText
+     is that ask's newText. Our own earlier ask on the clause is a restatement
+     of our own position — the same-round one is folded above as a revision,
+     another round's keeps the 15 Aug rule (superseded, never parked). A filing
+     measured against the STANDING text is a rival however large it is: the
+     playbook pass, Prepare redlines, Copilot's batch and the Word round trip
+     all measure that way and all keep superseding (the brief's own wall). */
+  const theirsLive = x => x && x.authorSide !== side;
+  const rivalsTheirs = rivals.filter(theirsLive);
+  const rivalsOurs = rivals.filter(x => !theirsLive(x));
+  const onTop = (draft.changeType === 'modify' && oldText)
+    ? rivalsTheirs.find(r => String(r.newText == null ? '' : r.newText) === oldText) || null : null;
+  /* Every ask already parked on the clause, either side's — under our earlier
+     counter, or under theirs. A replacement takes them all. */
+  const parked = !onTop ? [] :
+    c.changes.filter(x => x && x.clauseId === draft.clauseId && x.status === 'countered'
+      && x.changeType !== 'insertClause');
+  const wholesale = !!onTop && typeof window !== 'undefined' && typeof window.redlineWholesale === 'function'
+    && redlineWholesale(oldText, newText);
+  if (wholesale){
+    const all = rivals.concat(parked).slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+    ch.replacement = true;
+    /* `was` is what the refusal puts back — and for an ask that was itself
+       parked, WHOM it was parked under, so it goes back under that counter
+       rather than onto the table. */
+    ch.bundle = all.map(x => ({ id: x.id, was: x.status, counteredBy: x.counteredBy || null }));
+    for (const x of all){ x.status = 'countered'; x.counteredBy = ch.id; x.counteredAt = at; }
+    /* The word on the card names the ask this was written on. */
+    ch.counterOf = onTop.id;
+    if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
+      `#${ch.id} replaces the clause on ${ch.clauseLabel || ch.clauseId} — ${all.map(x => '#' + x.id).join(', ')} ` +
+      `parked under it as one bundle; accepting #${ch.id} answers them all, refusing it puts every one back as it stood`);
+  } else if (onTop){
+    ch.counterOf = onTop.id;
+    ch.bundle = [{ id: onTop.id, was: 'pending', counteredBy: null }];
+    onTop.status = 'countered'; onTop.counteredBy = ch.id; onTop.counteredAt = at;
+    if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
+      `#${ch.id} is written on #${onTop.id}'s wording on ${ch.clauseLabel || ch.clauseId} — ` +
+      `#${onTop.id} stays on the table under it; the pair is decided together`);
+  }
+  /* What still steps down under the 15 Aug rule: nothing under a replacement
+     (it took every live ask into its bundle); under a stack, our own asks from
+     another round; otherwise every rival, as before. Where one of ours was
+     itself a counter, what it parked is re-parked under the new change rather
+     than left pointing at a superseded id. */
+  const stepDown = wholesale ? [] : (onTop ? rivalsOurs : rivals);
+  for (const r of stepDown){
+    if (!Array.isArray(r.bundle) || !r.bundle.length) continue;
+    const have = new Set((ch.bundle || []).map(b => b && b.id));
+    ch.bundle = (ch.bundle || []).concat(r.bundle.filter(b => b && !have.has(b.id)));
+    for (const x of negoParkedUnder(c, r.id)){ x.counteredBy = ch.id; x.counteredAt = at; }
+    if (!ch.counterOf) ch.counterOf = r.counterOf || null;
+  }
+  if (stepDown.length){
+    const rivals = stepDown;
     const localSide = (typeof window !== 'undefined' && window.PORTAL_MODE) ? 'counterparty' : 'owner';
     /* Read BEFORE the supersession: unsent is a fact about pending asks. */
     const unsentHere = new Set((typeof negoUnsentAsks === 'function'
@@ -1697,7 +1779,7 @@ async function negoFileChange(c, draft, opts = {}){
           && typeof window !== 'undefined' && window.toast)
         toast(i18t('ng_draft_superseded', { old: r.id, label: r.clauseLabel || r.clauseId }));
     }
-    ch.counterOf = newest ? newest.id : null;
+    if (!ch.counterOf) ch.counterOf = newest ? newest.id : null;
     if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
       `#${ch.id} supersedes ${rivals.map(x => '#' + x.id).join(', ')} on ` +
       `${ch.clauseLabel || ch.clauseId} — one proposal on the table; the earlier ` +
@@ -1775,8 +1857,28 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
      ABSENT opts.headingText says nothing about the heading, which is what
      every caller written before this passes — so the playbook, the Word round
      trip, Copilot and the clause library all file exactly as they did. */
+  /* ---- WRITTEN ON TOP OF THEIR ASK (Young ruled 13 Sep 2026) ----
+     The clause editor seeds from THEIR pending proposal, so what the reader
+     edited is that proposal, not the clause as it stands — and `oldText`
+     records what a change was measured against. A caller that says which ask
+     it wrote on (`opts.onTop`, the change's id) has this measured against that
+     ask's wording; the funnel then reads the difference as a stack rather than
+     a rival (negoMeasuredAlike), parks the ask underneath and keeps its marks.
+     Only a live ask on THIS clause qualifies; anything else measures against
+     the standing text exactly as before, so every caller that does not pass it
+     files as it always did. */
+  const all = Array.isArray(c.changes) ? c.changes : [];
+  /* A live ask: pending — or PARKED under a pending counter of the filer's
+     own side, so a revision of that counter keeps measuring against the ask
+     it stands on. */
+  const liveAsk = x => x && x.id === opts.onTop && x.clauseId === clauseId && !x.withdrawn
+    && x.changeType !== 'insertClause'
+    && (x.status === 'pending' || (x.status === 'countered'
+      && all.some(t => t && t.id === x.counteredBy && t.status === 'pending' && t.authorSide === (opts.side === 'owner' ? 'owner' : 'counterparty'))));
+  const on = opts.onTop ? all.find(liveAsk) : null;
+  const from = on ? String(on.newText == null ? '' : on.newText) : cl.text;
   return negoFileChange(c, { clauseId, changeType: 'modify',
-    oldText: cl.text, newText, bodyHtml: body,
+    oldText: from, newText, bodyHtml: body,
     headingText: opts.headingText == null ? null : String(opts.headingText),
     clauseLabel: negoClauseLabel(cl) }, opts);
 }
@@ -2432,6 +2534,91 @@ function negoCommitText(c, text){
   return { flattened };
 }
 
+/* ---------- WHAT A COUNTER'S DECISION DOES TO WHAT IT PARKED (13 Sep 2026) ----------
+   One function for the stacked counter and the wholesale bundle — a counter is
+   a bundle of one. Accepted: every ask still parked under it is answered
+   (`superseded`, by this id — the counter's wording already contains theirs).
+   Refused: every one still parked under it comes back AS IT STOOD — to the
+   table, or back under the earlier counter it was parked under before. An ask
+   that has since gone some other way (withdrawn, decided, re-parked elsewhere)
+   is not touched: "an ask that has since been decided some other way does not
+   return". Reopened: what this counter had answered or released is parked
+   again, where it still stands as it was. */
+function negoBundleFollow(c, ch, status){
+  if (!ch || !Array.isArray(ch.bundle) || !ch.bundle.length) return;
+  const now = window.nowISO ? window.nowISO() : new Date().toISOString();
+  /* Roots first, then what was parked under them, then what was parked under
+     THOSE: an ask goes back under its counter, so that counter has to be back
+     on the table before the ask is looked at. Depth is read off the bundle's
+     own `counteredBy` links, bounded so a malformed record cannot loop. */
+  const byId = new Map(ch.bundle.filter(b => b && b.id).map(b => [b.id, b]));
+  const depth = b => { let d = 0, cur = b; while (cur && cur.was === 'countered' && cur.counteredBy && byId.has(cur.counteredBy) && d < byId.size){ cur = byId.get(cur.counteredBy); d++; } return d; };
+  const order = ch.bundle.slice().sort((p, q) => depth(p) - depth(q));
+  for (const b of order){
+    const x = negoChangeById(c, b && b.id); if (!x) continue;
+    const parkedHere = x.status === 'countered' && x.counteredBy === ch.id;
+    if (status === 'accepted'){
+      /* Everything under the accepted counter is answered — and so is anything
+         parked under THOSE (an ask of ours their counter had parked): the
+         clause now reads the accepted wording, so nothing beneath it can come
+         back. Walked, never assumed one deep. */
+      if (parkedHere){
+        const stack = [x];
+        while (stack.length){
+          const y = stack.pop();
+          for (const z of negoParkedUnder(c, y.id)) stack.push(z);
+          y.status = 'superseded'; y.supersededBy = ch.id; y.supersededAt = now;
+          /* The deeper ones KEEP `counteredBy` — it is how a reopen puts them
+             back under the counter they were parked under. */
+          if (y === x) delete y.counteredBy;
+        }
+      }
+    } else if (status === 'rejected'){
+      if (!parkedHere) continue;
+      /* Back UNDER the earlier counter only while that counter is still on the
+         table (pending, or itself parked); under a superseded or withdrawn one
+         the ask would point at nothing, so it comes back onto the table. */
+      const under = b.was === 'countered' && b.counteredBy ? negoChangeById(c, b.counteredBy) : null;
+      if (under && (under.status === 'pending' || under.status === 'countered')){ x.status = 'countered'; x.counteredBy = b.counteredBy; }
+      else { x.status = 'pending'; delete x.counteredBy; }
+      delete x.counteredAt;
+    } else if (status === 'pending'){
+      const answered = x.status === 'superseded' && x.supersededBy === ch.id;
+      const released = (b.was === 'pending' && x.status === 'pending' && !x.withdrawn)
+        || (b.was === 'countered' && x.status === 'countered' && x.counteredBy === b.counteredBy);
+      if (answered){ delete x.supersededBy; delete x.supersededAt; }
+      if (answered || released){ x.status = 'countered'; x.counteredBy = ch.id; x.counteredAt = now; }
+      /* An ask that came back UNDER its own counter on the refusal stays there
+         on the reopen: the counter is parked under ch again and carries it. */
+      if (answered || released){
+        const under = b.was === 'countered' && b.counteredBy ? negoChangeById(c, b.counteredBy) : null;
+        if (under && under !== x && under.status === 'countered' && byId.has(under.id)) x.counteredBy = b.counteredBy;
+      }
+    }
+  }
+  /* A reopen also brings back what the accept answered BENEATH the bundle —
+     asks parked under a parked counter, which kept their `counteredBy` for
+     exactly this walk. */
+  if (status === 'pending'){
+    const ids = new Set(ch.bundle.map(b => b && b.id));
+    /* To a fixpoint: a deeper ask comes back only once the one above it has. */
+    let moved = true;
+    for (let guard = 0; moved && guard <= c.changes.length; guard++){
+      moved = false;
+      for (const y of c.changes){
+        if (!y || ids.has(y.id) || y.status !== 'superseded' || y.supersededBy !== ch.id || !y.counteredBy) continue;
+        const under = negoChangeById(c, y.counteredBy);
+        if (!under || under.status !== 'countered') continue;
+        y.status = 'countered'; y.counteredAt = now; delete y.supersededBy; delete y.supersededAt;
+        moved = true;
+      }
+    }
+  }
+}
+/* The changes parked under a counter that is still undecided. Read raw. */
+const negoParkedUnder = (c, id) => (Array.isArray(c && c.changes) ? c.changes : [])
+  .filter(x => x && x.status === 'countered' && x.counteredBy === id);
+
 /* ---------- deciding a change ----------
    Accept merges that one clause into the document. Reject leaves the clause at
    the baseline and the ask becomes an open point. Reopen puts it back to
@@ -2450,6 +2637,15 @@ function negoResolve(c, id, status, opts = {}){
      response code) after the table has moved. Quiet, like the other
      cannot-apply returns here: the surfaces that could ask already show why. */
   if (ch.status === 'superseded') return null;
+  /* ---- THE PAIR IS DECIDED TOGETHER (13 Sep 2026) ----
+     An ask parked under a counter is answered THROUGH the counter, never on
+     its own: accepting the counter answers it, refusing the counter puts it
+     back. Deciding it directly would give two changes four outcomes. Refused
+     in words, naming the change to decide instead. */
+  if (ch.status === 'countered'){
+    if (!opts.quiet && window.toast) toast(i18t('ng_countered_decide_counter', { id: ch.counteredBy || '' }), 'err');
+    return null;
+  }
   /* Read the permission through `window` deliberately, not as a bare call.
      js/core.js declares `const canEdit = …`, which is a LEXICAL binding rather
      than a property of the global object — so a bare `canEdit()` here resolves
@@ -2562,6 +2758,7 @@ function negoResolve(c, id, status, opts = {}){
 
   negoInvalidateVerification(c);
   ch.status = status;
+  negoBundleFollow(c, ch, status);
   /* A withdrawal answers ONE rejection. Rule on the change again — reopen it,
      accept it, refuse it afresh — and the acknowledgement is about a decision
      that no longer stands, so it goes with it. Leaving it would let a stale
@@ -2702,6 +2899,9 @@ function negoRetractDraft(c, id, opts = {}){
   const i = c.changes.findIndex(x => x && x.id === id);
   if (i < 0) return null;
   c.changes.splice(i, 1);
+  /* A retracted counter lets go of what it parked — the asks under it come
+     back as they stood, exactly as a refusal would bring them back. */
+  negoBundleFollow(c, ch, 'rejected');
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   if (window.logAudit) logAudit(c, 'Negotiation',
     `#${ch.id} retracted by ${who} — “${ch.summary || ch.clauseLabel || ch.clauseId}” was never sent, so nothing was withdrawn from anyone`);
@@ -3503,7 +3703,10 @@ function negoThreadUnread(msgs, side, seenAt){
 
 /* ---------- progress, and the one transition out ---------- */
 function negoProgress(c){
-  const live = negoChanges(c).filter(x => x.status !== 'superseded');
+  /* A parked ask (`countered`) is answered THROUGH its counter — the counter
+     is what is pending, and counting the ask beneath it as "done" would read
+     "3 of 4 decided" over one decision and two parked asks. */
+  const live = negoChanges(c).filter(x => x.status !== 'superseded' && x.status !== 'countered');
   const total = live.length;
   const done = live.filter(x => x.status !== 'pending').length;
   return { total, done, pending: total - done,
@@ -4326,6 +4529,13 @@ function negoAdvanceRound(c, opts = {}){
   negoInit(c);
   const p = negoProgress(c);
   if (p.pending) return null;                 // an undecided change is not history yet
+  /* ---- A PARKED ASK IS NOT HISTORY EITHER (13 Sep 2026) ----
+     An ask parked under a counter is answered only when the counter is; the
+     counter being undecided is what keeps the round open above, and a parked
+     ask whose counter is decided has already been answered or released. So a
+     `countered` change here means the record is mid-decision, and closing the
+     round over it would archive the very asks a refusal has to bring back. */
+  if (negoChanges(c).some(x => x && x.status === 'countered')) return null;
   const decided = negoChanges(c).filter(x => x.status === 'accepted' || x.status === 'rejected');
   if (!decided.length) return null;
   /* Superseded asks are ARCHIVED BESIDE the decided ones, not dropped: a
@@ -4682,7 +4892,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   /* PUBLISHED, or the doors that ask read undefined through window and file in
      silence — this codebase's most repeated defect. */
   negoClauseNameKey, negoClauseNamed, negoDupClauseStop, negoAddNamedClause,
-  negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
+  negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoBundleFollow, negoParkedUnder, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,

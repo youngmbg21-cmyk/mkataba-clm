@@ -557,7 +557,7 @@ function openSigningLockedNotice(c, opts){
     ? done.map(s=>esc(s.name||'—')).join(', ')
     : esc(((c.signatures||[])[0]||{}).name || i18t('ap_someone'));
   const admin=(typeof isAdmin==='function') && isAdmin();
-  openModal(`<div class="p-6" style="max-width:520px">
+  openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
     <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:11px 13px;margin:10px 0 var(--s-3)">
       <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-body);font-weight:var(--w-title);color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('ap_route_locked')}</div>
@@ -678,7 +678,7 @@ function openSignerPlanEditor(c, opts){
         <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_title_eg')}" class="${IN}"/>
         <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_email')}" class="${IN}"/>
       </div></div>`;
-  openModal(`<div class="p-6" style="max-width:560px">
+  openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
     <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
     ${dirList}
@@ -692,7 +692,7 @@ function openSignerPlanEditor(c, opts){
     <div id="sp-tally" class="mb-4 text-[11.5px] leading-relaxed"></div>
     <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
-  </div>`);
+  </div>`, { maxWidth: DLG_W.l });
   /* Named rows only, on both counts: a blank row is discarded on save (see
      `if(!s.name) return` below), so counting it here would promise a route the
      save is about to refuse. */

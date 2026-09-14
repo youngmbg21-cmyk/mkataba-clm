@@ -1735,9 +1735,21 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'the flag is taken off the stored options at the moment it is read');
   });
 
-  test('and the pencil is still the one press that starts the writing', () => {
-    assert.match(CODE, /_ceEditing = !_ceEditing/,
-      'the control that turns typing on is unchanged and is on the clause');
+  test('THE PENCIL ENDS THE WRITING; A CLICK IN THE WORDING STARTS IT (Young ruled 13 Sep 2026)', () => {
+    /* ---- REVERSED IN PLACE 13 Sep 2026 ----
+       It pinned the pencil as the one press that turns typing on. Rule 1 of
+       the layered redline reverses that: click into a clause and type, as in
+       a Word template; the pencil appears only while typing and means
+       FINISHED — it files what was written and asks for the note. */
+    assert.ok(!/_ceEditing = !_ceEditing/.test(CODE),
+      'the toggle is gone — the pencil no longer turns typing on');
+    assert.match(CODE, /if \(_ceEditing && ceCanFile\(\)\)\{\s*Promise\.resolve\(ceFile\(\)\)/,
+      'pressed with something to file, it files');
+    assert.match(CODE, /_ceEditing = false;\s*ceDetachPassage\(\); ceRenderPaper\(\); ceRenderBar\(\);\s*return; \}/,
+      'and with nothing to file it only ends the typing');
+    assert.match(CODE, /skip: cl => String\(cl\.clauseId\) !== String\(_ceClauseId\) \|\| !typing \|\| ceUnderDeletion\(\)/,
+      'and it is DRAWN only on the clause being typed in, only while typing');
+    assert.match(CODE, /label: \(\) => _cet\('ce_pencil_done'\)/, 'wearing the one word it means');
   });
 
   test('ONE GUARD, AND EVERY DOOR OUT OF A DRAFT GOES THROUGH IT', () => {
@@ -1877,34 +1889,41 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     }
   });
 
-  test('THE PENCIL IS THE ONLY WAY IN — a press in the words does nothing', () => {
-    /* ---- REVERSED IN PLACE 1 Sep 2026 ----
-       It pinned click-in-the-words-and-type (owner-asked 29 Aug: "Let me just
-       edit like I am in Google Docs"). The owner reversed it in those terms:
-       "only after clicking on the pencil can you have the ability to edit."
-       WHAT THAT GESTURE COST is why: you cannot type into a redline, so a press
-       that felt like putting a cursor down was quietly the press that took a
-       clause's marks off the screen.
-
-       IT DOES NOT EVEN MOVE THE PAGE, ruled on by name — a click that silently
-       re-points this page at another clause changes what the crumb says, what
-       File would file and what Copilot is answering about, with nothing on
-       screen inviting it. */
-    assert.ok(!/const inDoc = hit\('#ce-doc'\)/.test(CODE),
-      'the branch that read a press in the paper as an ask to type is gone');
-    assert.ok(!/ceStartTyping/.test(CODE.replace(/\/\*[\s\S]*?\*\//g, '')),
-      'and its helper with it — one definition, one caller, never published');
-    /* THE TWO DOORS THAT DO MOVE YOU, both still there and both deliberate. */
-    assert.match(CODE, /if \(id && id !== _ceClauseId\)\{ ceGoClause\(id, \{ typing: true \}\); return; \}/,
-      'the pencil on another clause: ONE press, goes there AND starts editing, '
-      + 'because a pencil means edit wherever it is');
+  test('CLICK INTO A CLAUSE AND TYPE — the press in the wording is the way in (Young ruled 13 Sep 2026)', () => {
+    /* ---- REVERSED IN PLACE 13 Sep 2026, for the second time ----
+       1 Sep retired click-to-type because the press that felt like putting a
+       cursor down took the clause's marks off the screen. Rule 2 of the
+       layered redline removes that objection — the marked reading stays above
+       the box (ceTwinHtml) — so rule 1 brings the gesture back: a press in the
+       wording starts typing on that clause, a press in ANOTHER clause moves the
+       page there and starts typing, and a clause the reader may not write in
+       SPEAKS its refusal where the click landed. The branch lands LAST in the
+       click handler so every control on the paper answers first. */
+    const click = CODE.slice(CODE.indexOf("page.addEventListener('click', ev => {"),
+      CODE.indexOf("const which = page.querySelector('#ce-crumb');"));
+    assert.match(click, /if \(hit\('#ce-doc'\) && !hit\('button, a, \[data-ce-pencil\]/,
+      'a press in the wording, and not on any control drawn on it');
+    assert.match(click, /if \(sel && !sel\.isCollapsed && String\(sel\)\.trim\(\)\) return;/,
+      'a drag is a highlight and is left to the mouseup handler — no guard of ours races it');
+    assert.match(click, /if \(String\(id\) !== String\(_ceClauseId\)\)\{ ceGoClause\(id, \{ typing: true \}\); return; \}/,
+      'another clause: the page moves there and starts typing, asking first where a draft would be lost');
+    assert.match(click, /const why = ceTypingRefusal\(\);\s*\n\s*if \(why\)\{ ceSay\(why\);/,
+      'a clause the reader may not write in speaks its refusal on the click');
+    assert.match(click, /_ceEditing = !why;/, 'and typing goes on only because nothing refused it');
+    /* THE OLD DOORS SURVIVE. */
     assert.match(CODE, /const goCl = hit\('\[data-ce-goclause\]'\)/,
-      'and the clause list moves you WITHOUT editing — the reading door');
-    /* Once typing is on, the browser's own caret is the right answer and this
-       page must not fight it. Nothing here places one from a press. */
+      'the clause list still moves you WITHOUT editing — the reading door');
     assert.ok(!/caretRangeFromPoint|caretPositionFromPoint/.test(CODE),
-      'no caret is placed from a press: that was the click-to-type route\'s own '
-      + 'machinery and it went with the gesture');
+      'no caret is placed from a point: the box takes the caret at its start, the browser\'s own way');
+  });
+
+  test('THE ONE READING of "may this clause be typed in now" speaks the sentences that already exist', () => {
+    const fn = CODE.match(/function ceTypingRefusal\(\)\{[\s\S]*?\n\}/);
+    assert.ok(fn, 'ceTypingRefusal exists');
+    assert.match(fn[0], /ceUnderDeletion\(\)\) return _cet\('ce_under_deletion'\)/, 'a proposed deletion');
+    assert.match(fn[0], /ceEditableReading\(\)\) return _cet\('ce_reading_only'\)/, 'a reading that refuses editing');
+    assert.match(fn[0], /clauseLockHeldByOther[\s\S]*cl_locked_refuse/, 'a colleague\'s lock');
+    assert.match(fn[0], /clauseEditorRefusal\(_ceC, \{ side: 'owner'/, 'and every wall the door itself has');
   });
 });
 
@@ -2673,8 +2692,12 @@ describe('f245 (25) — the page may not hide a proposed deletion', () => {
     const { p, id } = await deletionBench('delete');
     assert.equal(p.doc.querySelectorAll(`#ce-doc [data-clause="${id}"] [data-ce-pencil]`).length, 0,
       'the pencil is not drawn on that clause — a verb that cannot work is not drawn');
-    assert.ok(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length > 0,
-      'and it is still drawn on every OTHER clause, where it moves the page');
+    /* RE-POINTED 13 Sep 2026: no clause draws a pencil at rest any more (the
+       way in is a click in the wording), so the refusal is SPOKEN instead. */
+    assert.equal(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length, 0,
+      'and none is drawn anywhere else either — at rest the paper has no pencil');
+    assert.equal(p.win.ceTypingRefusal(), p.win.i18t('ce_under_deletion'),
+      'the click into it would be answered in words');
     assert.equal(p.win.ceApply('<p>Wording of our own.</p>', 'typed'), false,
       'and Apply — the door still pressable once the pencil has stood down — refuses');
     assert.equal(p.win.ceCanFile(), false, 'so nothing can be filed from it');
@@ -2716,5 +2739,161 @@ describe('f245 (25) — the page may not hide a proposed deletion', () => {
     /* The refusal carries its way forward on the same screen. */
     assert.match(I18N, /ce_under_deletion: '[^']*card in the change column/,
       'and it names where the decision lives');
+  });
+});
+
+
+/* ============================================================
+   f245 (26) — THE LAYERED REDLINE IN THE EDITOR (Young ruled 13 Sep 2026)
+   ============================================================
+   The box is seeded from THEIR pending ask; what the reader types is a counter
+   written on it. Three things follow, each pinned here and driven for real in
+   clause-editor-verify 32: the marked reading is two layers (theirs amber,
+   ours accent), the marks stay above the box while typing, and the filing is
+   measured against their wording so the funnel STACKS rather than supersedes.
+   Every claim below fails against the parent commit unless it says (control).
+   ============================================================ */
+describe('f245 (26) — the layered redline in the editor', () => {
+  /* THE PAYMENT CLAUSE — the one the fixture's own text carries a figure in,
+     so their ask and our counter are each a two-word move on a real clause. */
+  const payClause = p => p.win.negoClauseList(p.c).find(x => /thirty \(30\)/.test(x.text || ''));
+  const OURS_SMALL = t => '<p>' + t.replace('sixty (60)', 'forty-five (45)') + '</p>';
+  async function theirAsk(opts = {}){
+    const p = await bench({ ask: false });
+    wide(p.win);
+    p.win.rlNoteAskAfterFile = () => null;
+    const id = payClause(p).clauseId;
+    const cl = p.win.negoClauseNowById(p.c, id);
+    const theirs = await p.win.negoEditClause(p.c, id,
+      '<p>' + cl.text.replace('thirty (30)', 'sixty (60)') + '</p>',
+      { side: 'counterparty', author: 'Amina Wanjiru' });
+    p.win.rlOpenClauseEditor(p.c, id, { changeId: theirs.id, again: () => {}, ...opts });
+    return { p, id, theirs };
+  }
+
+  test('the box is seeded from THEIR ask, and ceStacksOn names it', async () => {
+    const { p, theirs } = await theirAsk();
+    assert.equal(p.win.ceStacksOn() && p.win.ceStacksOn().id, theirs.id, 'the ask this page writes on');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('ceStacksOn is null where the lead is OUR OWN ask — that is a revision, not a counter', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    const ours = await p.win.negoEditClause(p.c, id, '<p>Our own first draft of the clause.</p>',
+      { side: 'owner', author: 'Young Mbagaya' });
+    p.win.rlOpenClauseEditor(p.c, id, { changeId: ours.id, again: () => {} });
+    assert.equal(p.win.ceStacksOn(), null);
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('the marked reading is TWO LAYERS: their marks in their colour under ours in ours', async () => {
+    const { p } = await theirAsk();
+    const untouched = p.win.ceMarkedHtml();
+    assert.match(untouched, /\brl-them\b/, 'their layer is drawn before a word is typed');
+    assert.ok(!/<(ins|del) class="[^"]*\brl-us\b/.test(untouched), 'and nothing of ours yet');
+    const moved = p.win.ceMarkedHtml(OURS_SMALL(p.win.ceStacksOn().newText));
+    assert.match(moved, /\brl-them\b/, 'their layer stays');
+    assert.match(moved, /<(ins|del) class="[^"]*\brl-us\b/, 'ours is drawn over it');
+    assert.match(moved, /sixty[\s\S]*forty-five|forty-five[\s\S]*sixty/, 'both wordings on one paragraph');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('a rewrite whose marks outnumber its words draws as a REPLACEMENT that says what it stands on', async () => {
+    const { p, theirs } = await theirAsk();
+    const html = p.win.ceMarkedHtml('<p>All invoices fall due on the last banking day of the month following delivery, with no set-off of any kind.</p>');
+    assert.match(html, /class="rl-repl"/);
+    assert.ok(html.includes('#' + theirs.id), 'naming their ask');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('(control) with no ask under it, the draft is marked against what stands as before', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = payClause(p).clauseId;
+    p.win.rlOpenClauseEditor(p.c, id, { again: () => {} });
+    const html = p.win.ceMarkedHtml('<p>' + p.win.negoClauseNowById(p.c, id).text.replace('thirty (30)', 'forty-five (45)') + '</p>');
+    assert.match(html, /<(ins|del)/, 'marked');
+    assert.ok(!/\brl-them\b|\brl-us\b/.test(html), 'one layer, no author colours');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('MARKS NEVER DISAPPEAR — while typing, the marked reading stays under the box', async () => {
+    const { p } = await theirAsk({ typing: true });
+    const box = p.doc.querySelector('#ce-clausebody');
+    assert.equal(box && box.getAttribute('contenteditable'), 'true', 'typing is on');
+    const twin = p.doc.querySelector('#ce-twin');
+    assert.ok(twin, 'the marks are drawn under the box');
+    assert.ok(twin.querySelectorAll('ins, del').length > 0, 'and they are marks');
+    assert.ok(box.compareDocumentPosition(twin) & 4, 'under it, on the same paper — so nothing above the caret ever moves');
+    assert.equal(box.querySelectorAll('ins, del').length, 0, 'the box itself holds the draft clean');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('…and nothing is drawn under a box with nothing to keep on screen', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { typing: true, again: () => {} });
+    assert.equal(p.doc.querySelector('#ce-twin'), null);
+    assert.equal(p.win.ceTwinHtml(), '');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('THE FILING IS MEASURED AGAINST THEIR WORDING, so the funnel stacks: theirs is parked, not superseded', async () => {
+    const { p, theirs } = await theirAsk({ typing: true });
+    assert.ok(p.win.ceApply(OURS_SMALL(theirs.newText), 'typed', { keepView: false }));
+    const ch = await p.win.ceFile();
+    assert.ok(ch, 'filed');
+    assert.equal(ch.oldText, theirs.newText, 'measured against their proposal');
+    assert.equal(theirs.status, 'countered');
+    assert.equal(theirs.counteredBy, ch.id);
+    assert.equal(ch.counterOf, theirs.id);
+    assert.equal(p.win.negoPending(p.c).length, 1, 'one question on the table');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('NO PENCIL AT REST; ONE PENCIL WHILE TYPING, on the clause being typed in, meaning done', async () => {
+    const { p, id } = await theirAsk();
+    assert.equal(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length, 0, 'at rest, none');
+    p.win.rlCloseClauseEditor();
+    const q = await theirAsk({ typing: true });
+    const pens = [...q.p.doc.querySelectorAll('#ce-doc [data-ce-pencil]')];
+    assert.equal(pens.length, 1, 'while typing, one');
+    assert.equal(pens[0].getAttribute('data-ce-pencil'), q.id);
+    assert.equal(pens[0].getAttribute('aria-label'), q.p.win.i18t('ce_pencil_done'));
+    assert.ok(id, 'the first stage had a clause too');
+    q.p.win.rlCloseClauseEditor();
+  });
+
+  test('THE LOCK SIGN IS A FACT AND IS DRAWN AT REST, where the pencil is not', async () => {
+    const p = await bench({ ask: false });
+    wide(p.win);
+    const id = firstClauseId(p);
+    p.win.clauseLockSign = () => ({ mono: 'RC', say: 'Locked by R. C.', title: 'Ruth Chege', name: 'Ruth Chege' });
+    const cl = p.win.negoClauseNowById(p.c, id);
+    const html = p.win.rlClauseEditPillHtml(cl, { c: p.c, editable: true, hasPanel: true,
+      pill: { attr: 'data-ce-pencil', skip: () => true } });
+    assert.match(html, /rl-cp-lock/, 'the sign is drawn even where the caller draws no pencil');
+    assert.ok(!/rl-cp-pill/.test(html), 'and no pencil beside it');
+    assert.match(html, /RC/);
+  });
+
+  test('the refusal is SPOKEN on the click: a held clause, a reading that refuses, a clause under deletion', async () => {
+    const { p } = await theirAsk();
+    assert.equal(p.win.ceTypingRefusal(), null, 'an ordinary clause refuses nothing');
+    p.win.clauseLockHeldByOther = () => ({ by: { name: 'Ruth Chege' } });
+    assert.equal(p.win.ceTypingRefusal(), p.win.i18t('cl_locked_refuse', { who: 'Ruth Chege' }));
+    p.win.clauseLockHeldByOther = () => null;
+    p.win.rlReadOnlyReading = () => true;
+    assert.equal(p.win.ceTypingRefusal(), p.win.i18t('ce_reading_only'));
+    p.win.rlReadOnlyReading = () => false;
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('both of the pencil\'s words are in both languages', () => {
+    for (const k of ['ce_pencil_done', 'ce_pencil_done_title']){
+      assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2, k + ' is in BOTH languages');
+    }
   });
 });

@@ -179,7 +179,7 @@ function tplCompanySectionHtml() {
 function tplLibUploadModal() {
   const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   openModal(`
-    <div style="padding:20px 22px;max-width:470px">
+    <div style="padding:24px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_convert_doc')}</h3>
       <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_convert_line')}</p>
       <input type="file" id="tpllib-up-file" accept=".docx,.pdf" style="display:block;margin-bottom:var(--s-3);font-size:var(--t-meta)">
@@ -390,26 +390,45 @@ async function tplLibCreate(id, essentials) {
 }
 
 /* ---------- create shell ---------- */
+/* ---- ONE LIST OF CATEGORIES FOR BOTH DIALOGS, AND "OTHER" APPEARS ONCE ----
+   Owner-reported 13 Sep 2026: "other is in the dropdown twice." The create
+   dialog prepended its own translated "Other" over a list that already ended
+   in one — and in Swedish the two read differently ("Övrigt", then "Other").
+   Built here once for the create dialog and the details dialog: Other leads
+   (it is the default), is translated, and is drawn exactly once. */
+function tplLibCategoryOptions(selected) {
+  const sel = selected || 'other';
+  const keys = ['other'].concat(Object.keys(TPLLIB_CATEGORIES).filter(k => k !== 'other'));
+  return keys.map(k => `<option value="${k}"${sel === k ? ' selected' : ''}>${k === 'other' ? i18t('tl_other_category') : esc(TPLLIB_CATEGORIES[k])}</option>`).join('');
+}
+/* ---- CATEGORY AND VALUE STREAM SHARE ONE ROW (13 Sep 2026) ----
+   Two short answers side by side use the dialog's width and take a row off its
+   height; under about 400px of box they stack. One builder for both dialogs so
+   the create screen and the details screen cannot drift apart.
+   WHICH STREAM IT IS FILED UNDER (15 Aug 2026, OI-11): the draft-from-template
+   picker opens on the value streams, so a template needs one or it lands in
+   "Other". Optional on purpose: an unfiled template is an honest state, and
+   "Other" is where it goes rather than into a stream somebody guessed for it.
+   Built from visibleFolders, the one list every other stream picker reads. */
+function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
+  const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
+  const LBL = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)';
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:10px">
+        <label style="display:block"><span style="${LBL}">${i18t('tl_category')}</span>
+          <select id="${idCat}" style="${FLD}">${tplLibCategoryOptions(category)}</select></label>
+        <label style="display:block"><span style="${LBL}">${i18t('tl_stream')}</span>
+          <select id="${idStream}" style="${FLD}"><option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts(folder || '')}</select></label>
+      </div>`;
+}
+
 function tplLibCreateModal() {
-  const cats = Object.entries(TPLLIB_CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   openModal(`
-    <div style="padding:20px 22px;max-width:460px">
+    <div style="padding:24px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_new_standard')}</h3>
       <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_new_standard_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
         <input id="tpllib-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none" placeholder="e.g. Account Opening Form" maxlength="160"></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_category')}</span>
-        <select id="tpllib-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none"><option value="other">${i18t('tl_other_category')}</option>${cats}</select></label>
-      ${''/* ---- WHICH STREAM IT IS FILED UNDER (15 Aug 2026, OI-11) ----
-             The draft-from-template picker opens on the value streams now, so a
-             template needs one or it lands in "Other". Optional on purpose: an
-             unfiled template is an honest state, and "Other" is where it goes
-             rather than into a stream somebody guessed for it. Built from
-             visibleFolders, which is the one list every other stream picker in
-             the product reads. */}
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tpllib-stream" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none">
-          <option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts('')}</select></label>
+      ${tplLibCatStreamRowHtml('tpllib-cat', 'tpllib-stream', 'other', '')}
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(optional)</span></span>
         <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000" placeholder="${i18t('tl_what_for')}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
@@ -438,7 +457,7 @@ function saveContractToLibrary(c) {
   if (!tplLibCanManage() && !(typeof canEdit === 'function' && canEdit())) { toast(i18t('tl_admin_legal_only'), 'err'); return; }
   const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   openModal(`
-    <div style="padding:20px 22px;max-width:470px">
+    <div style="padding:24px">
       <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_save_as_standard')}</h3>
       <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">
         HaTi copies this contract's wording into a new draft template. Party-specific values it can
@@ -559,25 +578,12 @@ async function openTemplateLibDetail(id) {
 }
 
 function tplLibMetaModal(t) {
-  const cats = Object.entries(TPLLIB_CATEGORIES).map(([k, v]) =>
-    `<option value="${k}"${t.category === k ? ' selected' : ''}>${v}</option>`).join('');
   openModal(`
-    <div style="padding:20px 22px;max-width:460px">
+    <div style="padding:24px">
       <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_template_details')}</h3>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
         <input id="tpllib-m-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none" maxlength="160" value="${esc(t.name)}"></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_category')}</span>
-        <select id="tpllib-m-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none">${cats}</select></label>
-      ${''/* ---- WHICH STREAM IT IS FILED UNDER (15 Aug 2026, OI-11) ----
-             The draft-from-template picker opens on the value streams now, so a
-             template needs one or it lands in "Other". Optional on purpose: an
-             unfiled template is an honest state, and "Other" is where it goes
-             rather than into a stream somebody guessed for it. Built from
-             visibleFolders, which is the one list every other stream picker in
-             the product reads. */}
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tpllib-m-stream" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none">
-          <option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts(t.folder)}</select></label>
+      ${tplLibCatStreamRowHtml('tpllib-m-cat', 'tpllib-m-stream', t.category, t.folder)}
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')}</span>
         <textarea id="tpllib-m-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
@@ -810,7 +816,7 @@ function tplFormPopover(c, idx, anchor) {
   try { input?.focus(); } catch (_) {}
 }
 
-Object.assign(window, {
+Object.assign(window, { tplLibCategoryOptions, tplLibCatStreamRowHtml,
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */

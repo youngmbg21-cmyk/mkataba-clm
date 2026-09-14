@@ -290,12 +290,33 @@ describe('f306 (7) — one door into the record', () => {
   });
 
   test('the outline and the coverage door both press that act', () => {
-    assert.match(TB, /function tbOutlineAdd\(\)[\s\S]{0,400}tbAddBlock\('heading', x\.heading\)/);
-    assert.match(TB, /data-tb-cover-add[\s\S]{0,400}tbAddBlock\('heading', name\)/);
+    assert.match(TB, /function tbOutlineAdd\(opts = \{\}\)[\s\S]{0,400}tbAddBlock\('heading', x\.heading\)/);
+    /* The Playbook tab's door: the handler, not the button's markup. */
+    assert.match(TB, /hit\('\[data-tb-cover-add\]'\)[\s\S]{0,500}tbAddBlock\('heading', name\)/);
   });
 
   test('the add-block button no longer carries its own copy of the act', () => {
-    assert.match(TB, /getElementById\('tb-addblock'\)[\s\S]{0,200}tbAddBlock\(document\.getElementById\('tb-addtype'\)\.value\)/);
+    assert.match(TB, /hit\('#tb-addblock'\)[\s\S]{0,200}tbAddBlock\(document\.getElementById\('tb-addtype'\)\.value\)/);
+  });
+
+  test('five doors arrive at one reading of the section in hand', () => {
+    /* tbFocus is the only writer of _tb.focus besides the open (the first
+       section still to write). */
+    assert.equal((TB.match(/_tb\.focus = /g) || []).length, 2, 'tbFocus, and the open');
+    for (const door of ['[data-tb-tag]', '[data-tb-step]', '[data-tb-next]', '[data-tb-cover-draft]', '[data-tb-pick]'])
+      assert.ok(TB.includes(`hit('${door}')`), `${door} is a door`);
+    assert.match(TB, /hit\('\[data-tb-tag\]'\)\)\) \{ tbFocus\(/);
+    assert.match(TB, /hit\('\[data-tb-step\]'\)\)\) \{ tbStep\(/);
+    assert.match(TB, /function tbStep\(d\)[\s\S]{0,300}tbFocus\(/);
+  });
+
+  test('Apply, typing and a kept blank are the only three things that write a block', () => {
+    const writes = TB.match(/_tb\.blocks\[[a-z]+\]\.content = [^;]+;/g) || [];
+    assert.deepEqual(writes.map(w => w.replace(/\s+/g, ' ')), [
+      '_tb.blocks[bi].content = a.text;',
+      '_tb.blocks[bi].content = _tb.blocks[bi].content.split(p.find).join(\'{{\' + p.key + \'}}\');',
+      '_tb.blocks[i].content = tbReadEditable(el);',
+    ]);
   });
 
   test('accepted wording lands on the block content a keystroke fills', () => {
@@ -349,8 +370,9 @@ describe('f306 (9) — every failure speaks, and every string is in both books',
     assert.ok(!/answered[\s\S]{0,200}_tb\.blocks/.test(body), 'nothing reaches the record on that branch');
   });
 
-  test('no key is drawn as a sentence on the section, never silence', () => {
-    assert.match(TB, /copilotAvailable\(\)\)\)\n\s*return `<div[^`]*tb_pb_nokey/);
+  test('no key is drawn as a sentence in the rail, never silence', () => {
+    assert.match(TB, /if \(!on\) return tbAiHtml\(i18t\('tb_pb_nokey'\), 'amber'\)/);
+    assert.match(TB, /\$\{on \? '' : 'disabled'\}>➤/, 'and the send button is greyed with the reason on its hover');
   });
 
   test('the two dictionaries carry the same Prompt & Build keys', () => {
@@ -390,7 +412,9 @@ describe('f306 (10) — what the screen refuses to grow', () => {
    f306 (11) — and it draws. The three sections above read functions; this one
    reads the MARKUP the builder actually generates, because a reading that is
    right and a screen that never prints it is the fault this codebase has paid
-   for most often.
+   for most often. Since 13 Sep 2026 the builder is THE PAPER AND THE RAIL:
+   the page is painted once and the paper and the rail into their own slots,
+   so the two slots are read here beside the page.
    ============================================================ */
 describe('f306 (11) — what the screen prints', () => {
   const VERSION = blocks => ({
@@ -398,7 +422,7 @@ describe('f306 (11) — what the screen prints', () => {
     blocks: blocks.map((b, i) => ({ orderIndex: i, blockType: b[0], content: b[1] })),
     fields: [],
   });
-  const stage = async (blocks, { configured = true } = {}) => {
+  const stage = async (blocks, { configured = true, width } = {}) => {
     const sandbox = loadViews(
       ['js/fieldlib.js', 'js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js'],
       {
@@ -413,88 +437,135 @@ describe('f306 (11) — what the screen prints', () => {
           throw new Error('unexpected api call: ' + p);
         },
       });
+    if (width) { sandbox.innerWidth = width; if (sandbox.window) sandbox.window.innerWidth = width; }
     await sandbox.openTemplateBuilder('tpl_1', 'tv_1');
     await new Promise(r => setTimeout(r, 0));
-    return sandbox.document.getElementById('content').innerHTML;
+    const read = () => ({
+      page: sandbox.document.getElementById('content').innerHTML,
+      paper: sandbox.document.getElementById('tb-paperslot').innerHTML,
+      rail: sandbox.document.getElementById('tb-railslot').innerHTML,
+    });
+    return { w: sandbox, ...read(), read };
   };
 
-  test('an EMPTY template opens on the sentence box, and says it writes no wording', async () => {
-    const html = await stage([]);
-    assert.ok(html.includes('Describe the agreement you need'), 'the opening ask is drawn');
-    assert.ok(html.includes('Propose sections'), 'and its press');
-    assert.ok(html.includes('writes no wording at this step'), 'and the promise under it');
-    assert.ok(html.includes('id="tb-brief-in"'), 'a real box, not a picture of one');
+  test('an EMPTY template opens on the one question, in the rail, and says it writes no wording', async () => {
+    const s = await stage([]);
+    assert.ok(s.rail.includes('What is this template for?'), 'the opening question is the rail’s first line');
+    assert.ok(s.rail.includes('not the wording'), 'and it says no wording is written at this step');
+    assert.ok(s.rail.includes('id="tb-ask"'), 'a real box, not a picture of one');
+    assert.ok(s.rail.includes('e.g. Two-year distributor agreement'), 'with the sentence box’s own placeholder');
+    assert.ok(s.rail.includes('No sections yet'), 'and the foot says where things stand');
+    assert.ok(s.paper.includes('Distributor Agreement'), 'the paper carries the template’s name as its title');
   });
 
-  test('a template with blocks in it does NOT draw the sentence box', async () => {
-    const html = await stage([['heading', 'Confidentiality']]);
-    assert.ok(!html.includes('Describe the agreement you need'),
+  test('a template with blocks in it does NOT ask the opening question', async () => {
+    const s = await stage([['heading', 'Confidentiality']]);
+    assert.ok(!s.rail.includes('What is this template for?'),
       'the opening ask is for an empty template only — the owner’s ruling, 12 Sep 2026');
   });
 
-  test('every empty section carries an ask box, on its own heading row', async () => {
-    const html = await stage([['heading', 'Confidentiality'], ['heading', 'Brand and trade marks']]);
-    assert.equal((html.match(/Tell Copilot what this section should say/g) || []).length, 2,
-      'one box per section, and no more');
-    assert.ok(html.includes('Draft this section'), 'and the press beside it');
+  test('every empty section is drawn on the paper with its placeholder; the ask box exists ONCE, in the rail', async () => {
+    const s = await stage([['heading', 'Confidentiality'], ['heading', 'Brand and trade marks']]);
+    assert.equal((s.paper.match(/data-tb-ph="/g) || []).length, 2, 'one placeholder per empty section');
+    assert.equal((s.rail.match(/id="tb-ask"/g) || []).length, 1, 'one box, in the rail');
+    assert.ok(!s.paper.includes('id="tb-ask'), 'and none under the headings');
+    assert.equal((s.paper.match(/data-tb-tag="/g) || []).length, 2, 'the ✦ tag on every section');
+  });
+
+  test('the section in hand at open is the first still to write, and the rail names it', async () => {
+    const s = await stage([['heading', 'Parties'], ['field_group', 'This Agreement is made between…'], ['heading', 'Confidentiality']]);
+    assert.ok(s.rail.includes('Section 2 · Confidentiality'), 'the focus card names the empty one');
+    assert.ok(s.paper.includes('data-tb-sec="3"') && /data-tb-sec="3"[^>]*is-on|is-on[^>]*data-tb-sec="3"/.test(s.paper), 'and the paper frames it');
   });
 
   test('a section the clause library answers offers it FREE, and says so', async () => {
-    const html = await stage([['heading', 'Confidentiality']]);
-    assert.ok(/Use our /.test(html), 'the workspace’s own wording is offered');
-    assert.ok(html.includes('no read — this one is in your library'),
-      'and the cost line says it spends nothing');
+    const s = await stage([['heading', 'Confidentiality']]);
+    assert.ok(/Use our /.test(s.rail), 'the workspace’s own wording is offered as a chip');
+    assert.ok(s.rail.includes('no read — this one is in your library'), 'and the chip says it spends nothing');
   });
 
   test('a section the library says nothing about costs one read', async () => {
-    const html = await stage([['heading', 'Brand and trade marks']]);
-    assert.ok(!/Use our /.test(html), 'nothing of the workspace’s own to offer');
-    assert.ok(html.includes('one read'), 'so the press has a price on it');
+    const s = await stage([['heading', 'Brand and trade marks']]);
+    assert.ok(!/Use our /.test(s.rail), 'nothing of the workspace’s own to offer');
+    assert.ok(s.rail.includes('title="one read"'), 'so the send has a price on it');
   });
 
-  test('a section that already carries wording gets no ask box', async () => {
-    const html = await stage([['heading', 'Confidentiality'], ['field_group', 'Each party shall keep the other’s information secret.']]);
-    assert.ok(!html.includes('Tell Copilot what this section should say'),
-      'the box is for an empty section; a written one is left alone');
+  test('a section that already carries wording is greeted, not asked, and gets the four refinements', async () => {
+    const s = await stage([['heading', 'Confidentiality'], ['field_group', 'Each party shall keep the other’s information secret.']]);
+    assert.ok(!s.paper.includes('data-tb-ph='), 'no placeholder under a written section');
+    for (const chip of ['Shorter', 'Firmer', 'Make it mutual', 'Plain English']) assert.ok(s.rail.includes(`>${chip}<`), chip);
+    assert.ok(s.rail.includes('Tell me what'), 'the thread opens with a greeting for the section');
   });
 
-  test('the playbook card draws, names its book, and offers a door per gap', async () => {
-    const html = await stage([['heading', 'Confidentiality']]);
-    assert.ok(html.includes('Against your playbook'), 'the card is on the page');
-    assert.ok(html.includes('All contracts (baseline)'), 'and names which book answered');
-    assert.ok(html.includes('+ Add the section'), 'a missing position is a door');
-    assert.ok(html.includes('data-tb-cover-add'), 'a real press');
-    assert.ok(html.includes('Counted from the playbook'), 'and says where the count comes from');
+  test('the playbook is a TAB on the rail: it names its book and offers a door per gap', async () => {
+    const s = await stage([['heading', 'Confidentiality']]);
+    s.w.tbSetTab('playbook');
+    const rail = s.read().rail;
+    assert.ok(rail.includes('Against your playbook'), 'the card is on the tab');
+    assert.ok(rail.includes('All contracts (baseline)'), 'and names which book answered');
+    assert.ok(rail.includes('data-tb-cover-add') || rail.includes('data-tb-cover-draft'), 'a missing position is a door');
+    assert.ok(rail.includes('Counted from the playbook'), 'and says where the count comes from');
   });
 
-  test('the count sits in the card head, not in a band', async () => {
-    const html = await stage([['heading', 'Confidentiality']]);
-    assert.ok(html.includes('Playbook'), 'the count is drawn');
-    const head = html.slice(html.indexOf('tb-addtype') - 1200, html.indexOf('tb-addtype'));
-    assert.ok(head.includes('Playbook'), 'beside the Add block control, in the card head');
+  test('the count sits on the tab and in the card head — nowhere above the paper', async () => {
+    const s = await stage([['heading', 'Confidentiality']]);
+    s.w.tbSetTab('playbook');
+    const rail = s.read().rail;
+    assert.match(rail, /class="chip [a-z]+">\d+ of \d+</, 'n of m in the card head');
+    const strip = s.page.slice(0, s.page.indexOf('tb-paperslot'));
+    assert.ok(!strip.includes('Playbook'), 'the strip above the paper says nothing about the playbook — one place says it');
   });
 
-  test('with no Copilot key the section says so and keeps the ordinary box', async () => {
-    const html = await stage([['heading', 'Confidentiality']], { configured: false });
-    assert.ok(html.includes('Copilot is not connected'), 'the reason is on the section');
-    assert.ok(!html.includes('Draft this section'), 'and nothing pretends to work');
-    assert.ok(html.includes('Add a wording block with + Add block'),
-      'a section with nothing to type into is told how to get a box, not pointed at one that is not there');
+  test('with no Copilot key the rail says so, the box is greyed, and the paper still types', async () => {
+    const s = await stage([['heading', 'Confidentiality']], { configured: false });
+    assert.ok(s.rail.includes('Copilot is not connected'), 'the reason is in the rail');
+    assert.match(s.rail, /<textarea id="tb-ask"[^>]*disabled/, 'the box is greyed');
+    assert.ok(s.paper.includes('contenteditable="true"'), 'and the paper is still a place to write');
   });
 
-  test('a section that HAS a wording block is pointed at it, not at Add block', async () => {
-    const html = await stage([['heading', 'Confidentiality'], ['field_group', '']], { configured: false });
-    assert.ok(html.includes('Write this section yourself'), 'the box is right there');
-    assert.ok(!html.includes('Add a wording block with'), 'so it is not told to make one');
-    assert.ok(html.includes('Wording — use {{field_key}} where a blank sits'),
-      'and the plain textarea this screen has always had is untouched');
+  test('the paper keeps every block control — arrows, delete, add, and the editable itself', async () => {
+    const s = await stage([['heading', 'Confidentiality'], ['field_group', 'x']]);
+    assert.ok(s.paper.includes('data-tb-up="0"') && s.paper.includes('data-tb-down="0"'), 'the arrows');
+    assert.ok(s.paper.includes('data-tb-del="1"'), 'the delete');
+    assert.ok(s.paper.includes('id="tb-addblock"') && s.paper.includes('id="tb-addtype"'), 'the add control');
+    assert.ok(s.paper.includes('data-tb-content="1"'), 'and the editable');
   });
 
-  test('the block list itself is unchanged — arrows, delete, add, all still drawn', async () => {
-    const html = await stage([['heading', 'Confidentiality'], ['field_group', 'x']]);
-    assert.ok(html.includes('data-tb-up="0"') && html.includes('data-tb-down="0"'), 'the arrows');
-    assert.ok(html.includes('data-tb-del="1"'), 'the delete');
-    assert.ok(html.includes('tb-addblock') && html.includes('tb-addtype'), 'the add control');
-    assert.ok(html.includes('data-tb-content="1"'), 'and the ordinary editor');
+  test('a blank is a chip on the paper, and reads back as its marker', async () => {
+    const s = await stage([['heading', 'Payment'], ['field_group', 'Pay within {{payment_days}} days.']]);
+    assert.ok(s.paper.includes('data-tb-blank="payment_days"'), 'the marker is drawn as a chip');
+    assert.ok(s.paper.includes('tb-bl is-new'), 'amber, because no field is declared for it yet');
+    assert.ok(!s.paper.includes('{{payment_days}}'), 'the raw marker is not on the paper');
+    const node = { childNodes: [
+      { nodeType: 3, nodeValue: 'Pay within ' },
+      { nodeType: 1, tagName: 'SPAN', getAttribute: k => (k === 'data-tb-blank' ? 'payment_days' : null), childNodes: [] },
+      { nodeType: 3, nodeValue: ' days.' }] };
+    assert.equal(s.w.tbReadEditable(node), 'Pay within {{payment_days}} days.', 'the record never learns the chips exist');
+  });
+
+  test('below 1,024px the rail is not drawn and the paper still types', async () => {
+    const s = await stage([['heading', 'Confidentiality']], { width: 1000 });
+    assert.equal(s.rail, '', 'no rail');
+    assert.ok(!s.paper.includes('data-tb-tag='), 'and no ✦, because there is no rail to receive it');
+    assert.ok(s.paper.includes('contenteditable="true"'), 'the paper is still a place to write');
+    assert.ok(s.w.TB_RAIL_MIN === 1024, 'the clause editor’s own line');
+  });
+
+  test('Apply lands on the paper, the receipt names the section, and the walk moves on to the next empty one', async () => {
+    const s = await stage([['heading', 'Parties'], ['field_group', ''], ['heading', 'Definitions'], ['field_group', '']]);
+    s.w.tbSetWalk(true);
+    s.w.tbFocus(1);
+    s.w.tbTurn(1, { who: 'ai', text: 'Drafted.', card: { src: 'Copilot drafted', tone: 'ai', text: 'This Agreement is made between the parties named below.', before: '' } });
+    await s.w.tbAccept(1, 0);
+    const out = s.read();
+    assert.ok(out.paper.includes('This Agreement is made between the parties named below.'), 'the wording is on the paper');
+    assert.ok(out.rail.includes('Applied to 1 · Parties'), 'the receipt names the section');
+    assert.ok(out.rail.includes('Section 2 · Definitions'), 'and the next empty section is now in hand');
+    assert.ok(out.rail.includes('what should it say?'), 'with its question, in HaTi’s own words');
+  });
+
+  test('the walk’s question is HaTi’s own — no read', () => {
+    const body = TB.slice(TB.indexOf('function tbQuestionFor'), TB.indexOf('function tbRestsLine'));
+    assert.ok(!/api\(|copilotPropose|copilotAsk/.test(body), 'composed from the outline and the playbook, never asked of the model');
   });
 });

@@ -1,0 +1,234 @@
+/* Chromium verification: THE PAPER AND THE RAIL — tag, talk, apply.
+   ============================================================
+   Prompt & Build, round two (13 Sep 2026). f306 reads the markup the builder
+   prints; this file PRESSES it with a real mouse and keyboard, because the
+   claims that matter here are journeys: a section tagged from the paper lands
+   on the rail's focus card, a draft asked for in the box comes back as a card,
+   Apply puts its wording on the paper and — through Save — on the server, the
+   walk moves on to the next empty section, and typing on the paper itself is
+   still the first way in. Copilot is a stub in the page (the drafting call is
+   the product's own and is not what is under test); the outline route is
+   answered at the network edge.
+
+   Run: node test/chromium/prompt-and-build-verify.js
+   HATI_SHOT_DIR=/some/dir puts the screenshots somewhere else. */
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('playwright-core');
+const { startHati, seedWorkspace } = require('../helpers');
+
+const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'prompt-and-build');
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+
+const results = [];
+const check = (name, pass, detail) => {
+  results.push({ name, pass: !!pass });
+  console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + JSON.stringify(detail) : ''}`);
+};
+const pause = ms => new Promise(r => setTimeout(r, ms));
+
+const OUTLINE = { sections: [
+  { heading: 'Parties', intent: 'Who the agreement is between.' },
+  { heading: 'Definitions', intent: 'The terms the rest of the paper leans on.' },
+  { heading: 'Payment terms', intent: 'When invoices are paid and what late payment costs.' },
+], note: 'Three sections for a carrier agreement.' };
+const DRAFT = 'The Carrier shall collect and deliver the Company’s freight within {{delivery_days}} days of booking.';
+
+const RAIL = () => {
+  const R = e => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) }; };
+  const page = document.getElementById('tb-page'), rail = document.getElementById('tb-rail'), paper = document.getElementById('tb-paper');
+  return {
+    page: R(page), rail: R(rail), paper: R(paper),
+    scope: (document.querySelector('#tb-scope .eb b') || {}).textContent || '',
+    lane: (document.getElementById('tb-lane') || {}).textContent || '',
+    foot: (document.getElementById('tb-railfoot') || {}).textContent || '',
+    heads: [...document.querySelectorAll('.tb-hed')].map(e => e.textContent),
+    tags: document.querySelectorAll('[data-tb-tag]').length,
+    inlineAsks: document.querySelectorAll('[data-tb-ask-in]').length,
+    editables: document.querySelectorAll('[contenteditable="true"]').length,
+    cards: document.querySelectorAll('.tb-card[data-tb-card]').length,
+    active: document.activeElement && document.activeElement.id,
+    dirty: (document.getElementById('tb-dirty') || {}).textContent || '',
+    pick: (() => { const p = document.getElementById('tb-pick'); return p ? { hidden: p.hidden, rows: p.querySelectorAll('[data-tb-pick]').length } : null; })(),
+    sec2: (() => { const s = document.querySelectorAll('[data-tb-sec]')[1]; return s ? s.textContent : ''; })(),
+    on: [...document.querySelectorAll('[data-tb-sec].is-on .tb-hed')].map(e => e.textContent),
+  };
+};
+
+(async () => {
+  fs.mkdirSync(OUT, { recursive: true });
+  const h = await startHati();
+  const seeded = await seedWorkspace(h);
+  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.route('**/api/ai/outline', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OUTLINE) }));
+
+  try {
+    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await pause(600);
+    await page.fill('#li-email', 'admin@example.co.ke');
+    await page.fill('#li-pass', 'adminpassword1');
+    await page.click('#li-go');
+    await pause(2400);
+    /* A draft template of this workspace's own, made through the product's own
+       route; the builder is opened on its first version. */
+    const ids = await page.evaluate(async () => {
+      const d = await api('templates', 'POST', { name: 'Transportation Management', category: 'procurement', folder: 'dist', description: '' });
+      const t = await api('templates/' + d.template.id);
+      return { tid: d.template.id, vid: t.versions[0].id };
+    });
+    await page.evaluate(() => {
+      window.copilotAvailable = () => true;
+      window.copilotPropose = async o => ({ advice: 'Drafted from your ask; nothing in your library for this heading.', proposedText: window.__PB_DRAFT });
+    });
+    await page.evaluate(d => { window.__PB_DRAFT = d; }, DRAFT);
+    await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), ids);
+    await pause(1200);
+
+    /* ================= 1 · THE SHAPE ================ */
+    let s = await page.evaluate(RAIL);
+    await page.screenshot({ path: path.join(OUT, '01-empty.png') });
+    check('1a · two columns: the page fills the screen and the rail is 380 wide, to the right of the paper',
+      !!s.page && s.page.w > 1000 && !!s.rail && Math.abs(s.rail.w - 380) <= 2 && s.rail.x > s.paper.x + s.paper.w - 1,
+      { page: s.page && s.page.w, rail: s.rail, paper: s.paper });
+    check('1b · no ask box under any heading — the rail is the one door', s.inlineAsks === 0 && !!s.lane, { inline: s.inlineAsks });
+    check('1c · an empty template is asked the one question in the rail', /What is this template for\?/.test(s.lane), s.lane.slice(0, 80));
+
+    /* ================= 2 · DESCRIBE → OUTLINE → ADD ================ */
+    await page.fill('#tb-ask', 'Transportation agreement with a carrier to manage our freight distribution.');
+    await page.keyboard.press('Enter');
+    await pause(900);
+    s = await page.evaluate(RAIL);
+    check('2a · the outline comes back as a list, headings only', /Parties[\s\S]*Definitions[\s\S]*Payment terms/.test(s.lane) && /Headings only/.test(s.lane), s.lane.slice(0, 120));
+    await page.click('[data-tb-out-add]');
+    await pause(900);
+    s = await page.evaluate(RAIL);
+    await page.screenshot({ path: path.join(OUT, '02-outlined.png') });
+    /* The stub proposes three; the playbook's open positions join them, marked,
+       and nothing is proposed twice (Payment terms is both the model's and the
+       playbook's, and appears once). */
+    const N = s.heads.length;
+    check('2b · Add puts the proposed sections on the paper, the playbook’s after them, none twice',
+      N >= 4 && s.heads[0] === 'Parties' && s.heads[1] === 'Definitions' && s.heads[2] === 'Payment terms'
+        && new Set(s.heads.map(x => x.toLowerCase())).size === N, s.heads);
+    check('2c · the first section is in hand, framed on the paper and named on the focus card',
+      /Section 1 · Parties/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
+    check('2d · the walk is on and asks its question in HaTi’s own words', /what should it say\?/.test(s.lane) && /Walk me through it · on/.test(s.foot), { foot: s.foot });
+    check('2e · the foot counts: 0 of N written', new RegExp('0 of ' + N).test(s.foot), s.foot);
+
+    /* ================= 3 · TAG (a real press on the ✦) ================ */
+    const tag2 = page.locator('[data-tb-sec]').nth(1).locator('[data-tb-tag]');
+    await page.locator('[data-tb-sec]').nth(1).hover();
+    await pause(150);
+    await tag2.click();
+    await pause(400);
+    s = await page.evaluate(RAIL);
+    check('3a · ✦ on section 2 puts it in hand: the focus card names it and the frame moves', /Section 2 · Definitions/.test(s.scope) && s.on[0] === 'Definitions', { scope: s.scope, on: s.on });
+    check('3b · and the caret is in the ask box', s.active === 'tb-ask', s.active);
+
+    /* ================= 4 · TALK ================ */
+    await page.fill('#tb-ask', 'Define the Services and the Fees.');
+    await page.keyboard.press('Enter');
+    await pause(900);
+    s = await page.evaluate(RAIL);
+    const card = await page.evaluate(() => {
+      const c = document.querySelector('.tb-card[data-tb-card]'); if (!c) return null;
+      return { name: c.querySelector('.n').textContent, apply: !!c.querySelector('[data-tb-use]'), refine: !!c.querySelector('[data-tb-refine]'),
+        chip: c.querySelector('.pv .tb-bl') && c.querySelector('.pv .tb-bl').textContent, rests: (c.querySelector('.r') || {}).textContent || '' };
+    });
+    await page.screenshot({ path: path.join(OUT, '03-card.png') });
+    check('4a · the answer is a card in the rail with Apply and Ask for a change', !!card && card.apply && card.refine && /Definitions — 1/.test(card.name), card);
+    check('4b · the card says what it rests on', !!card && /Rests on:/.test(card.rests), card && card.rests);
+    check('4c · a blank in the draft is already drawn as a chip', !!card && card.chip === 'delivery_days', card && card.chip);
+    check('4d · nothing landed on the paper yet — a card waits for a person', !/within/.test(s.sec2), s.sec2.slice(0, 80));
+
+    /* ================= 5 · APPLY ================ */
+    await page.click('[data-tb-use]');
+    await pause(700);
+    s = await page.evaluate(RAIL);
+    await page.screenshot({ path: path.join(OUT, '04-applied.png') });
+    check('5a · Apply puts the wording on the paper, in section 2', /freight within/.test(s.sec2), s.sec2.slice(0, 100));
+    check('5b · the receipt names the section', /Applied to 2 · Definitions/.test(s.lane), s.lane.slice(-160));
+    check('5c · the walk moves on to the next empty section, section 3', /Section 3 · Payment terms/.test(s.scope), s.scope);
+    check('5d · the foot counts 1 of N, and the strip says Unsaved changes', new RegExp('1 of ' + N).test(s.foot) && /Unsaved/.test(s.dirty), { foot: s.foot, dirty: s.dirty });
+
+    /* ================= 6 · SAVE: the one door, end to end ================ */
+    await page.click('#tb-save');
+    await pause(900);
+    const saved = await seeded.admin.json(`/api/templates/${ids.tid}/versions/${ids.vid}`);
+    const landed = (saved.blocks || []).some(b => b.blockType !== 'heading' && /freight within \{\{delivery_days\}\} days/.test(b.content || ''));
+    check('6 · the applied wording reached the server as ordinary block content, marker and all', landed, (saved.blocks || []).map(b => b.blockType + ':' + String(b.content || '').slice(0, 30)));
+
+    /* ================= 7 · TYPING ON THE PAPER IS STILL THE FIRST WAY IN ================ */
+    /* 7a: the empty wording block under section 1 takes the keyboard directly. */
+    await page.locator('[data-tb-sec]').first().locator('[data-tb-kind="text"]').click();
+    await pause(200);
+    await page.keyboard.type('This Agreement is made between the Company and the Carrier.');
+    await page.mouse.click(30, 700); /* off the paper: blur */
+    await pause(300);
+    /* 7b: a heading added by hand has no wording block yet — its placeholder
+       is a press that makes one (tbWordingBlock, the one splice). */
+    await page.selectOption('#tb-addtype', 'heading');
+    await page.click('#tb-addblock');
+    await pause(500);
+    await page.locator('[data-tb-ph]').first().click();
+    await pause(300);
+    await page.keyboard.type('Typed under a heading added by hand.');
+    await page.mouse.click(30, 700);
+    await pause(300);
+    await page.click('#tb-save');
+    await pause(900);
+    const saved2 = await seeded.admin.json(`/api/templates/${ids.tid}/versions/${ids.vid}`);
+    const typed = (saved2.blocks || []).find(b => /made between the Company and the Carrier/.test(b.content || ''));
+    const typed2 = (saved2.blocks || []).find(b => /Typed under a heading added by hand/.test(b.content || ''));
+    check('7a · typing in a section’s wording block saves as that block’s content', !!typed && typed.orderIndex === 1, (saved2.blocks || []).map(b => b.orderIndex + ':' + b.blockType + ':' + String(b.content || '').slice(0, 24)));
+    check('7b · a placeholder press makes the wording block right under its heading, and the words save', !!typed2 && typed2.orderIndex === saved2.blocks.length - 1 && saved2.blocks[typed2.orderIndex - 1].blockType === 'heading', typed2 && typed2.orderIndex);
+
+    /* ================= 8 · THE @ PICKER ================ */
+    await page.focus('#tb-ask');
+    await page.keyboard.type('Match @');
+    await pause(250);
+    s = await page.evaluate(RAIL);
+    check('8a · @ opens the section picker with every section', !!s.pick && !s.pick.hidden && s.pick.rows === N + 1, s.pick);
+    await page.keyboard.press('Escape');
+    await pause(150);
+    s = await page.evaluate(RAIL);
+    check('8b · Escape closes it', !!s.pick && s.pick.hidden, s.pick);
+    await page.fill('#tb-ask', '');
+
+    /* ================= 9 · THE PLAYBOOK TAB ================ */
+    await page.click('[data-tb-tab="playbook"]');
+    await pause(300);
+    s = await page.evaluate(RAIL);
+    check('9 · the Playbook tab counts against the book and names it', /Against your playbook/.test(s.lane) && /of \d/.test(s.lane), s.lane.slice(0, 80));
+    await page.click('[data-tb-tab="build"]');
+    await pause(200);
+
+    /* ================= 10 · UNDER 1,024 THE RAIL STANDS DOWN ================ */
+    const held = (await page.evaluate(RAIL)).scope; /* the section in hand before the rail goes */
+    await page.setViewportSize({ width: 1000, height: 900 });
+    await pause(500);
+    s = await page.evaluate(RAIL);
+    await page.screenshot({ path: path.join(OUT, '05-narrow.png') });
+    check('10a · at 1,000px there is no rail and no ✦, and the paper still types', !s.rail && s.tags === 0 && s.editables >= 3, { rail: s.rail, tags: s.tags, editables: s.editables });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await pause(500);
+    s = await page.evaluate(RAIL);
+    check('10b · back at 1,440 the rail returns with the same section in hand', !!s.rail && !!held && s.scope === held, { before: held, after: s.scope });
+
+    check('11 · the page threw nothing', errors.length === 0, errors.slice(0, 3));
+  } catch (e) {
+    check('harness', false, String(e && e.stack || e));
+  } finally {
+    await browser.close();
+    await h.stop();
+  }
+
+  const bad = results.filter(r => !r.pass);
+  console.log(`\n${results.length - bad.length}/${results.length} checks passed`);
+  if (bad.length) { bad.forEach(b => console.log('  FAIL ' + b.name)); process.exit(1); }
+})();

@@ -1374,6 +1374,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
          staging that let this ship. */
       typing: !!(box && box.getAttribute('contenteditable') === 'true'),
       marks: liveSec ? liveSec.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
+      /* rule 2 (13 Sep 2026): the marks stay, UNDER the box; the box is clean */
+      inBox: box ? box.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
+      twinBelow: !!(box && document.getElementById('ce-twin'))
+        && document.getElementById('ce-twin').getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1,
       /* and the panel is NOT what opened — that is the half the ruling changed */
       panel: !!document.querySelector('#rl-cp.is-on, #rl-cp-body .rl-cp-src.is-on') };
   }, staged.clauseId);
@@ -1390,8 +1394,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      whatever the door did. */
   ck('16d2 THE REPORTED FAULT: that ONE press lands ready to type',
      landed.typing === true, `typing ${landed.typing}`);
-  ck('16d3 …and the redlines have given way to a clean view',
-     landed.marks === 0, `marks ${landed.marks}`);
+  /* ---- REVERSED IN PLACE 13 Sep 2026 (Young: the layered redline, rule 2) ----
+     It pinned "the redlines have given way to a clean view". MARKS NEVER
+     DISAPPEAR now: the box the reader types in is clean, and the marked
+     reading stays directly above it on the same paper. */
+  ck('16d3 …and the redlines STAY — under the clean box the reader types in',
+     landed.marks > 0 && landed.inBox === 0 && landed.twinBelow === true,
+     `marks ${landed.marks} (in the box ${landed.inBox}) · twin below ${landed.twinBelow}`);
 
   /* ---- 16d4. AND THE WHOLE JOURNEY, WITHOUT A SECOND PRESS ----
      The lesson this fix cost: clause-editor-verify staged the page by calling
@@ -1500,35 +1509,32 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     }
   };
 
-  /* ---- 16e. CLICK IN THE WORDS AND TYPE (owner-asked 29 Aug 2026) ----
-     *"I hate that I have to click on a pencil for me to edit in the edit with
-     copilot page \u2026 Let me just edit like I am in Google Docs but the platform
-     should track which clause I am editing."*
+  /* ---- 16e. CLICK INTO A CLAUSE AND TYPE (owner-asked 29 Aug 2026; retired
+     1 Sep 2026; BACK by Young's ruling of 13 Sep 2026 — rule 1 of the layered
+     redline) ----
+     *"Let me just edit like I am in Google Docs but the platform should track
+     which clause I am editing."* What retired it was that the press hid the
+     clause's marks; rule 2 (marks never disappear — the marked reading stays
+     above the box) is what lets it come back.
 
      Driven with a real mouse at a real point, because the whole claim is about
-     where a press lands: a click in the WORDING starts typing, and a click in
-     ANOTHER clause's wording moves the page to that clause and starts typing
-     there. The caret is read off the live selection rather than inferred. */
-  /* ---- THE POSTURE IS STAGED, NOT ASSUMED (29 Aug 2026) ----
-     This read the state it happened to be in, and the state changed under it:
-     since the pencil's door started asking for typing, the page ARRIVES
-     typeable and `before` was true, so the claim could no longer be made. The
-     state it needs is real and still reachable — moving to another clause from
-     inside the editor lands not-typing, and so does pressing the pencil again —
-     so it is turned off ON PURPOSE here. A check that stages what it wants
-     survives the next change to what it happens to get. */
+     where a press lands: a click in the WORDING starts typing, the marks stay,
+     a click in ANOTHER clause's wording moves the page there and starts typing,
+     and the pencil — drawn only while typing — means DONE. */
   const typed = await p.evaluate(async () => {
     const box0 = document.querySelector('#ce-clausebody');
     if (box0 && box0.isContentEditable){
-      const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]')
-        || document.querySelector('#ce-doc [data-ce-pencil]');
+      const pen = document.querySelector('#ce-doc .rl-clause-live [data-ce-pencil]');
       if (pen) pen.click();
       await new Promise(r => setTimeout(r, 400));
     }
     const box = document.querySelector('#ce-clausebody');
     if (!box) return null;
     box.scrollIntoView({ block: 'center' });
-    return { before: box.isContentEditable };
+    const sec = box.closest('[data-clause]');
+    return { before: box.isContentEditable,
+      marksBefore: sec ? sec.querySelectorAll('ins, del, .nego-ins, .nego-del').length : 0,
+      pencilsAtRest: document.querySelectorAll('#ce-doc [data-ce-pencil]').length };
   });
   if (typed){
     await settleDoc();
@@ -1543,23 +1549,27 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const after = await p.evaluate(() => {
       const box = document.querySelector('#ce-clausebody');
       const sec = box && box.closest('[data-clause]');
+      const twin = document.getElementById('ce-twin');
       return { typing: !!(box && box.isContentEditable),
-        marks: sec ? sec.querySelectorAll('ins, del, .nego-ins, .nego-del').length : 0 };
+        marks: sec ? sec.querySelectorAll('ins, del, .nego-ins, .nego-del').length : 0,
+        inBox: box ? box.querySelectorAll('ins, del, .nego-ins, .nego-del').length : -1,
+        twinBelow: !!(twin && box) && twin.getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1,
+        pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length,
+        pencilOnLive: !!(sec && sec.querySelector('[data-ce-pencil]')) };
     });
-    /* ---- REVERSED IN PLACE 1 Sep 2026 ----
-       These two pinned click-in-the-words-and-type (owner-asked 29 Aug: "Let me
-       just edit like I am in Google Docs"). The owner reversed it in their own
-       words — "only after clicking on the pencil can you have the ability to
-       edit" — and WHAT THAT GESTURE COST is why: you cannot type into a
-       redline, so a press that felt like putting a cursor down was quietly the
-       press that took a clause's marks off the screen.
-       DRIVEN WITH A REAL MOUSE either way, because that is the only thing that
-       can tell "the branch is gone" from "the branch is there and refused". */
-    ck('16e A CLICK IN THE WORDING DOES NOTHING \u2014 the pencil is the only way in',
-       typed.before === false && after.typing === false,
+    /* ---- REVERSED IN PLACE 13 Sep 2026 (Young: the layered redline) ----
+       16e/16f pinned "a click in the wording does nothing — the pencil is the
+       only way in". Rule 1 puts the way in back in the wording and rule 2 keeps
+       the marks: what the 1 Sep ruling protected (the marks) is asserted
+       harder, not dropped. DRIVEN WITH A REAL MOUSE either way. */
+    ck('16e A CLICK IN THE WORDING STARTS TYPING — no pencil at rest, the wording is the way in',
+       typed.before === false && typed.pencilsAtRest === 0 && after.typing === true,
        JSON.stringify({ ...typed, ...after }));
-    ck('16f \u2026and the clause keeps its marks, which is what the press used to take',
-       after.marks > 0, `${after.marks} marks still drawn`);
+    ck('16f \u2026and the clause KEEPS ITS MARKS, under the box the reader types in',
+       typed.marksBefore > 0 && after.marks > 0 && after.inBox === 0 && after.twinBelow,
+       `${typed.marksBefore} marks before, ${after.marks} after (in the box ${after.inBox}) \u00b7 twin below ${after.twinBelow}`);
+    ck('16f2 and the pencil appears ONLY now, on this clause, meaning done',
+       after.pencils === 1 && after.pencilOnLive === true, `${after.pencils} pencil(s), on the live clause ${after.pencilOnLive}`);
   }
   const ceMoved = await p.evaluate(async () => {
     const cur = (document.querySelector('#ce-clausebody') || {}).closest
@@ -1580,28 +1590,32 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     }, ceMoved.want);
     Object.assign(ceMoved, at);
     await p.mouse.click(ceMoved.x, ceMoved.y);
-    await pause(900);
+    await pause(600);
+    /* Nothing was typed on the first clause, so no leave question stands; if
+       one did, it is answered the way a reader with nothing to keep answers. */
+    await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); });
+    await pause(600);
     const now = await p.evaluate(() => {
       const box = document.querySelector('#ce-clausebody');
       const sec = box && box.closest('[data-clause]');
       return { on: sec ? sec.getAttribute('data-clause') : null,
-        typing: !!(box && box.isContentEditable) };
+        typing: !!(box && box.isContentEditable),
+        pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length };
     });
-    /* ---- REVERSED IN PLACE 1 Sep 2026, and the owner ruled on this half by
-       name ---- A click in ANOTHER clause's words does not move the page
-       either: a press that silently re-points this page at a different clause
-       changes what the crumb says, what File would file and what Copilot is
-       answering about, with nothing on screen inviting it. */
-    ck('16g A CLICK IN ANOTHER CLAUSE DOES NOT MOVE THE PAGE EITHER',
-       now.on === ceMoved.from, `${ceMoved.from} \u2192 ${now.on}`);
-    /* AND THE PENCIL ON THAT CLAUSE DOES BOTH IN ONE PRESS — the door that
-       survives, driven so the reversal above cannot read as a lost capability. */
+    /* ---- REVERSED IN PLACE 13 Sep 2026: a click in ANOTHER clause's words
+       MOVES the page there and starts typing (rule 1), through the same door
+       the pencil used, which asks before a draft is thrown away. */
+    ck('16g A CLICK IN ANOTHER CLAUSE MOVES THE PAGE THERE AND STARTS TYPING',
+       now.on === ceMoved.want && now.typing === true, `${ceMoved.from} \u2192 ${now.on} \u00b7 typing ${now.typing}`);
+    /* THE PENCIL MEANS DONE: drawn on the clause being typed in, pressing it
+       with nothing written ends the typing and takes itself away. */
     const pen = await p.evaluate(want => {
       const b = document.querySelector(
         `#ce-doc .rl-clause[data-clause="${want}"] [data-ce-pencil]`);
       if (!b) return null;
       const r = b.getBoundingClientRect();
-      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+        elsewhere: document.querySelectorAll('#ce-doc [data-ce-pencil]').length - 1 };
     }, ceMoved.want);
     if (pen){
       await p.mouse.click(pen.x, pen.y);
@@ -1610,11 +1624,14 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         const box = document.querySelector('#ce-clausebody');
         const sec = box && box.closest('[data-clause]');
         return { on: sec ? sec.getAttribute('data-clause') : null,
-          typing: !!(box && box.isContentEditable) };
+          typing: !!(box && box.isContentEditable),
+          pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length };
       });
-      ck('16h THE PENCIL ON THAT CLAUSE MOVES YOU AND STARTS EDITING, IN ONE PRESS',
-         gone.on === ceMoved.want && gone.typing === true,
-         `${gone.on} (wanted ${ceMoved.want}) \u00b7 typing ${gone.typing}`);
+      ck('16h THE PENCIL IS DRAWN ONLY WHILE TYPING AND MEANS DONE \u2014 pressed with nothing written, typing ends and it goes',
+         pen.elsewhere === 0 && gone.on === ceMoved.want && gone.typing === false && gone.pencils === 0,
+         `pencils elsewhere while typing ${pen.elsewhere} \u00b7 after: on ${gone.on} typing ${gone.typing} pencils ${gone.pencils}`);
+    } else {
+      ck('16h THE PENCIL IS DRAWN ONLY WHILE TYPING AND MEANS DONE', false, 'no pencil on the clause being typed in');
     }
   }
   await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });

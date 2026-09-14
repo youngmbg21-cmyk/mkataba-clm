@@ -4122,6 +4122,16 @@ function redlineLayoutCss(){
      carried the convention. The paper does not any more (see .nego-ins), so the
      copy is gone: one fact, one rule. */
   .redline-page .rl-cp-src ins.hati-ins{font-weight:inherit}
+  /* ---- THE LAYERED REDLINE: colour says who, the line says what (13 Sep 2026) ----
+     Their marks amber, ours the accent — the notes rooms' own convention — and
+     a deletion of ours inside an insertion of theirs is drawn nested: their
+     tint kept, our strike over it. Scoped to the two sheets so the utility
+     classes on every mark lose the fight by specificity, never by order. */
+  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
   .redline-page .rl-cp-wd{font-size:var(--t-card);line-height:1.6;color:var(--color-text)}
   .redline-page .rl-cp-why{display:block;margin-top:var(--s-1);font-size:var(--t-body);font-style:italic;
     color:var(--color-neutral-600)}
