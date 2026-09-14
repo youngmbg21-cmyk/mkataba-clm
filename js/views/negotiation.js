@@ -6590,8 +6590,448 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              the BOTTOM, which is where it belongs in seq order anyway. */}
       ${past.length ? past.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_history_none')}</p>`}
     </section>
+    ${''/* ---- AND THE LADDER UNDER IT (Young ruled 14 Sep 2026) ----
+           The section above is THIS ROUND's settled asks. The ladder is every
+           move on this clause across every round, which is the question the
+           section above cannot answer once a round has closed: its own list
+           empties at negoAdvanceRound. One reading (js/ladder.js), drawn here
+           and on the deal board, and it never initialises a negotiation. */}
+    ${rlLadderSectionHtml(c, cl, side, opts)}
   </div>`;
 }
+/* ============================================================
+   THE CLAUSE LADDER ON THE PAGE (Young ruled 14 Sep 2026)
+   ============================================================
+   js/ladder.js is the reading — every move on one clause, across every
+   round, with what each one stands on. This is what draws it.
+
+   THREE THINGS, AND ONLY THE FIRST IS NEW FURNITURE:
+   · a ROUND CHIP on the clause's own head row, saying which move the paper
+     is showing and whose it is, which is a DOOR onto the panel;
+   · the LADDER itself, which is the clause panel's History section grown up
+     — same section, same place, more of the record in it;
+   · READ AS IT STOOD, which redraws ONE clause at an earlier rung.
+
+   NO NEW BAND. The chip takes the slot the formatting chip already sits in,
+   beside the pencil; it adds no line and moves the wording by nothing. The
+   ladder is inside the panel that already existed. The legend and the
+   plain-text line are the column's own key and a fact about the reading,
+   both off the sheet.
+
+   PER SITTING, IN MEMORY, NEVER SENT. _rlReadAt is a reading of the paper,
+   like the three reading tabs, and is cleared whenever the page is left. */
+
+/* WHICH RUNG EACH CLAUSE IS BEING READ AT. Keyed by clause id so two clauses
+   can be read at different rungs at once — a reader comparing where two
+   arguments stood at the same round is exactly the case this serves. */
+let _rlReadAt = Object.create(null);
+function rlReadAtOf(clauseId){
+  const k = String(clauseId || '');
+  return k ? (_rlReadAt[k] || null) : null;
+}
+function rlSetReadAt(clauseId, rungId){
+  const k = String(clauseId || '');
+  if (!k) return null;
+  if (!rungId) delete _rlReadAt[k]; else _rlReadAt[k] = String(rungId);
+  return _rlReadAt[k] || null;
+}
+function rlClearReadAt(){ _rlReadAt = Object.create(null); }
+
+/* The rung a clause is being read at, resolved against the record. Null
+   where nothing is set OR where the id no longer names a rung — a round
+   that closed under the reader's feet must not leave the paper stuck. */
+function rlReadAtRung(c, clauseId){
+  const want = rlReadAtOf(clauseId);
+  if (!want || typeof window.ladderRungs !== 'function') return null;
+  const rungs = ladderRungs(c, clauseId);
+  return rungs.find(r => r.id === want) || null;
+}
+/* THE PAPER AT AN EARLIER RUNG. That rung's own stored ops, drawn against
+   what it was measured on — which is exactly what the other side was looking
+   at when they read it. The ops are never re-diffed: they are inside the
+   change's fingerprint, and a redrawn diff is a different document. */
+function rlReadAtHtml(c, clauseId, side){
+  /* A CLEAN READING IS A CLEAN CLAUSE, and reading a move back is marks.
+     Under "As agreed" or "With changes" the pin is KEPT but not honoured,
+     so switching away and back lands the reader where they were rather than
+     silently throwing their place away. */
+  if (rlReadMode() !== 'marks') return null;
+  const r = rlReadAtRung(c, clauseId);
+  if (!r) return null;
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const who = r.side === me ? 'us' : 'them';
+  const tip = r.author ? `${i18t('ng_rung_by')} ${r.author}` : '';
+  let inner = '';
+  if (Array.isArray(r.ch.ops) && r.ch.ops.length && typeof redlineOpsBlocksHtml === 'function'){
+    inner = redlineOpsBlocksHtml(r.ch.ops.map(o => Object.assign({}, o, { who })), { title: tip });
+  } else if (typeof redlineOpsBlocksHtml === 'function' && typeof window.redlineOpsStructured === 'function'){
+    inner = redlineOpsBlocksHtml(window.redlineOpsStructured(r.oldText, r.text).map(o =>
+      Object.assign({}, o, { who })), { title: tip });
+  } else {
+    inner = `<p class="rl-line rl-text">${_ne(r.text)}</p>`;
+  }
+  return `<div class="nego-body nego-stack rl-read-at" data-rl-read-at="${_ne(r.id)}">${inner}</div>`;
+}
+
+/* ---- THE CHIP ON THE CLAUSE'S OWN HEAD ROW ----
+   What the paper is showing on this clause, in five words, and a door onto
+   everything it is not showing. Drawn only where there is something to say:
+   a clause nobody has touched carries nothing, because a chip reading "no
+   moves" is a fact printed for its own sake.
+   NEVER ON A PREVIEW and never inside the clause editor's own canvas — that
+   page is one clause and the ladder is in its rail. */
+function rlLadderChipHtml(c, cl, side, opts = {}){
+  if (!cl || !cl.clauseId || opts.pill) return '';
+  /* ---- A CLEAN READING CARRIES NO CHIP, FOR THE PENCIL'S OWN REASON ----
+     Under "As agreed" or "With changes" the clause is drawn with no marks
+     on it, and a chip saying which move the paper is showing would be
+     describing a reading the reader is not in. rlClauseEditPillHtml stands
+     down on the same question (rlReadOnlyReading) and this follows it, so
+     the row is the same row in every reading. The ladder is still reached
+     from the change column's own rows and from the deal board. */
+  if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
+  if (typeof window.ladderChip !== 'function') return '';
+  const id = String(cl.clauseId);
+  /* The chip may not say the paper is showing an earlier move while a clean
+     reading is drawing today's wording — see rlReadAtHtml. */
+  const at = rlReadMode() === 'marks' ? rlReadAtRung(c, id) : null;
+  if (at){
+    return `<button type="button" class="rl-rung rl-rung-reading" data-rl-read-now="${_ne(id)}"
+      title="${_nea(i18t('ng_rung_back_title'))}">${_ne(i18t('ng_rung_reading', { n: at.n }))}</button>`;
+  }
+  const chip = ladderChip(c, id, side);
+  if (!chip) return '';
+  return `<button type="button" class="rl-rung rl-rung-${_ne(chip.cls)}"
+    data-rl-ladder="${_ne(id)}" aria-expanded="false"
+    title="${_nea(i18t('ng_rung_open_title'))}">${_ne(chip.text)}</button>`;
+}
+
+/* ---- THE LADDER ITSELF ----
+   Newest at the top, which is the History tab's own order and the order a
+   reader coming back to a clause wants: what just happened, then how it got
+   there. R0 — the clause before anybody moved — closes the list, because it
+   is the floor everything else stands on.
+   EVERY ROW IS A READING. Nothing here files, decides or sends; the verbs
+   are the product's own doors (the card's Accept, the editor, the compare
+   window) reached from a new place. */
+function rlLadderSectionHtml(c, cl, side, opts = {}){
+  if (typeof window.ladderRungs !== 'function') return '';
+  const id = String(cl.clauseId || '');
+  const rungs = ladderRungs(c, id);
+  if (!rungs.length) return '';
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const mine = r => r.side === me;
+  const readAt = rlReadAtOf(id);
+  const over = ladderOverflow(c, id);
+  const track = (typeof ladderTrack === 'function') ? ladderTrack(c, id, side) : null;
+  const rows = rungs.slice().reverse().map(r => {
+    const under = ladderUnder(rungs, r);
+    const tone = (r.status === 'rejected' || r.withdrawn) ? 'no'
+      : r.status === 'accepted' ? 'ok'
+      : r.status === 'superseded' ? 'was'
+      : mine(r) ? 'you' : 'them';
+    const tag = r.withdrawn ? i18t('ng_rung_tag_withdrawn')
+      : r.status === 'rejected' ? i18t('ng_rung_tag_refused')
+      : r.status === 'accepted' ? i18t('ng_rung_tag_accepted')
+      : r.status === 'superseded' ? i18t('ng_rung_tag_replaced')
+      : r.status === 'countered' ? i18t('ng_rung_tag_countered') : '';
+    /* WHAT MOVED, in the record's own words. `summary` is what the funnel
+       wrote at filing and what the card prints; a second description worked
+       out here is a second answer waiting to disagree with the card. */
+    const what = r.summary || '';
+    const acts = [];
+    acts.push(readAt === r.id
+      ? `<button type="button" data-rl-read-now="${_ne(id)}">${_ne(i18t('ng_rung_back'))}</button>`
+      : `<button type="button" data-rl-read-at="${_ne(id)}" data-rung="${_ne(r.id)}"
+          title="${_nea(i18t('ng_rung_read_title'))}">${_ne(i18t('ng_rung_read'))}</button>`);
+    /* ---- WHY THERE IS NO "ACCEPT THIS EARLIER ASK" VERB ----
+       The artifact this feature was drawn from offered one: settle on the
+       figure they gave two rounds ago without asking them to send it again.
+       IT CANNOT WORK IN THIS MODEL AND IS NOT DRAWN, which is this page's own
+       rule about a verb that cannot work.
+
+       Writing a counter on their ask PARKS it (status 'countered'), and
+       negoResolve refuses a decision on a parked ask by name — the pair is
+       decided together, through the counter that stands on it. So an earlier
+       ask of theirs is never both live and beneath something: the moment
+       anything of ours sits on top of it, it is parked, and a rival filing
+       supersedes it instead. There is no third case, so the press would have
+       been refused every time it was offered.
+
+       The rung SAYS where its decision lives instead. The way to their
+       earlier figure is the product's own: withdraw the counter standing on
+       it, which releases the ask, and decide it on its own card. */
+    const parked = r.status === 'countered' && r.ch && r.ch.counteredBy;
+    return `<li class="rl-rung-row rl-rung-${tone}${readAt === r.id ? ' is-reading' : ''}">
+      <div class="rl-rung-who"><span class="rl-rung-n">R${r.n}</span>
+        <span>${_ne(mine(r) ? i18t('ng_rung_you') : i18t('ng_rung_them'))}${
+          r.author ? ` · ${_ne(r.author)}` : ''}</span>
+        ${tag ? `<span class="rl-rung-tag">${_ne(tag)}</span>` : ''}
+        <span class="rl-rung-when">${_ne(i18t('ng_rung_round', { n: r.round }))}${
+          r.at ? ` · ${_ne(negoWhen(r.at))}` : ''}</span></div>
+      ${what ? `<div class="rl-rung-what">${_ne(what)}</div>` : ''}
+      ${under ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_stands_on', { n: under.n }))}</div>` : ''}
+      ${parked ? (() => { const over = rungs.find(x => x.id === r.ch.counteredBy);
+        return over ? `<div class="rl-rung-on">${_ne(i18t('ng_rung_decided_with', { n: over.n }))}</div>` : ''; })() : ''}
+      ${r.say ? `<div class="rl-rung-say">${_ne(r.say)}</div>` : ''}
+      <div class="rl-rung-acts">${acts.join('')}</div>
+    </li>`;
+  }).join('');
+  const base = ladderBaseText(rungs);
+  const r0 = `<li class="rl-rung-row rl-rung-base${readAt === '0' ? ' is-reading' : ''}">
+    <div class="rl-rung-who"><span class="rl-rung-n">R0</span>
+      <span>${_ne(i18t('ng_rung_agreed'))}</span></div>
+    ${base ? `<div class="rl-rung-what">${_ne(base.length > 120 ? base.slice(0, 119) + '…' : base)}</div>` : ''}
+  </li>`;
+  return `<section class="rl-cp-sec rl-ladder-sec">
+    <h5 class="rl-cp-h">${i18t('ng_ladder_head', { n: rungs.length })}</h5>
+    ${track ? rlLadderTrackHtml(track) : ''}
+    <ol class="rl-ladder">${rows}${r0}</ol>
+    ${over ? `<p class="rl-cp-none">${_ne(i18t('ng_ladder_capped', { n: over }))}</p>` : ''}
+    ${rungs.length > 1 ? `<div class="rl-rung-acts rl-ladder-foot"><button type="button"
+      data-rl-rung-compare="${_ne(id)}">${_ne(i18t('ng_ladder_compare'))}</button></div>` : ''}
+  </section>`;
+}
+/* THE FIGURE, AS A TRACK. R0 → R1 → R2, each with its number and whose it
+   was — the whole argument on one line where the argument is a number.
+   Drawn only where js/ladder.js found a figure reader for this clause kind
+   and at least two rungs carry a figure; a track with one number on it is
+   not a track. */
+/* ---- THE KEY THE TWO COLOURS NEEDED (Young ruled 14 Sep 2026) ----
+   Relative to the READER, exactly as the marks are: "you" is whoever is
+   sitting here, so the same clause's key reads correctly on both seats from
+   one builder. The third line is the one fact the window cannot say for
+   itself — under two stacked moves the PLAIN words are the last wording
+   exchanged, which is somebody's proposal and not the agreed text. A reader
+   who takes them for the contract signs off on a number nobody accepted, and
+   that is the one way the two-move window can mislead. */
+function rlMarkLegendHtml(side){
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const item = (cls, key) => `<span><i class="rl-lg rl-lg-${cls}"></i>${_ne(i18t(key))}</span>`;
+  return `<p class="rl-legend">${item('us', 'ng_legend_you')}${
+    item('them', me === 'counterparty' ? 'ng_legend_them_cp' : 'ng_legend_them')}${
+    item('base', 'ng_legend_plain')}</p>`;
+}
+function rlLadderTrackHtml(track){
+  if (!track || !Array.isArray(track.rows) || track.rows.length < 2) return '';
+  const cell = r => `<span class="rl-tr-n rl-tr-${_ne(r.who)}">R${r.lab} ${_ne(String(r.n))}</span>`;
+  return `<p class="rl-ladder-track">${track.rows.map(cell).join('<i aria-hidden="true">&rarr;</i>')}${
+    track.unit ? `<span class="rl-tr-u">${_ne(track.unit)}</span>` : ''}</p>`;
+}
+/* ---- WHICH CONTRACT THE LADDER'S PRESSES ARE ABOUT ----
+   Asked at the PRESS and never closed over. These listeners are armed once
+   at module load; a contract captured then would be the one that happened to
+   be open when the page first drew. redlineHeldId is the negotiation page's
+   own record of which contract it is showing — the same reading the Copilot
+   brief and the plain-English painter already use. */
+function rlLadderContract(){
+  if (typeof window === 'undefined') return null;
+  if (window.PORTAL_MODE && (typeof PORTAL_MODE === 'function' ? PORTAL_MODE() : PORTAL_MODE)) return null;
+  const id = (typeof redlineHeldId === 'function') ? redlineHeldId() : null;
+  if (!window.state || !Array.isArray(state.contracts)) return null;
+  return state.contracts.find(x => x && String(x.id) === String(id || state.activeId)) || null;
+}
+
+/* ---- COMPARE ANY TWO RUNGS ----
+   The question no compare tool on the market answers: not "what changed
+   between two drafts" but "what happened to THIS CLAUSE between round two
+   and round five". Two pickers and the product's own structured diff — the
+   same renderer the version Compare window draws, so a diff reads the same
+   wherever it is shown.
+   A READING. It opens a dialog, draws, and closes; nothing is written. */
+function openLadderCompare(clauseId, aId, bId){
+  const c = rlLadderContract();
+  if (!c || typeof window.ladderRungs !== 'function') return;
+  const id = String(clauseId || '');
+  const rungs = ladderRungs(c, id);
+  if (rungs.length < 1) return;
+  const mineOf = r => r.side !== 'counterparty';
+  const items = [{ id: '0', label: i18t('ng_rung_pick_base'), text: ladderBaseText(rungs) }]
+    .concat(rungs.map(r => ({ id: r.id, text: r.text,
+      label: i18t('ng_rung_pick', { n: r.n,
+        who: i18t(mineOf(r) ? 'ng_rung_you' : 'ng_rung_them') }) })));
+  const find = v => items.find(x => x.id === String(v)) || null;
+  let A = find(aId) || items[Math.max(0, items.length - 2)];
+  let B = find(bId) || items[items.length - 1];
+  const sel = (which, cur) => `<select data-rl-cmp="${which}" class="ui-input">${
+    items.map(it => `<option value="${_ne(it.id)}"${it.id === cur.id ? ' selected' : ''}>${
+      _ne(it.label)}</option>`).join('')}</select>`;
+  const draw = () => {
+    const html = (typeof window.redlineStructuredHtml === 'function')
+      ? redlineStructuredHtml(A.text, B.text, { classPrefix: 'cmp', insClass: 'cmp-ins', delClass: 'cmp-del' })
+      : null;
+    return html || `<p class="rl-cp-none">${i18t('ng_rung_cmp_same')}</p>`;
+  };
+  const body = () => `<div class="rl-cmp-pick">${sel('a', A)}<span>${
+    _ne(i18t('ng_rung_cmp_against'))}</span>${sel('b', B)}</div>
+    <div class="rl-cmp-out cmp-doc" id="rl-cmp-out">${draw()}</div>`;
+  const head = i18t('ng_rung_cmp_head', { clause:
+    (typeof clauseNameShown === 'function' ? clauseNameShown(rungs[0] ? rungs[0].label : '') : '') || id });
+  const shell = () => `<div class="rl-cmp-dlg" style="padding:18px 20px var(--s-4)">
+      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 10px">${_ne(head)}</h2>
+      <div id="rl-cmp-body">${body()}</div>
+      <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:14px">
+        <button type="button" id="rl-cmp-done" class="ui-btn ui-btn-primary">${_ne(i18t('ng_rung_cmp_done'))}</button>
+      </div></div>`;
+  openModal(shell(), { maxWidth: '760px' });
+  const done = document.getElementById('rl-cmp-done');
+  if (done) done.addEventListener('click', () => closeModal());
+  const root = document.getElementById('modal-root');
+  if (!root) return;
+  root.addEventListener('change', ev => {
+    const s = ev.target && ev.target.closest && ev.target.closest('[data-rl-cmp]');
+    if (!s) return;
+    const picked = find(s.value);
+    if (!picked) return;
+    if (s.getAttribute('data-rl-cmp') === 'a') A = picked; else B = picked;
+    const out = document.getElementById('rl-cmp-out');
+    if (out) out.innerHTML = draw();
+  });
+}
+
+/* ============================================================
+   THE DEAL BOARD (Young ruled 14 Sep 2026)
+   ============================================================
+   Lawyers keep an issues list by hand: for each open point, where we are,
+   where they are, and how far apart that leaves us. The AI vendors encode
+   the same thing in a playbook and call it a concession ladder; none of them
+   draws it for the two people actually negotiating.
+
+   HaTi already holds every input. The playbook says the standard, precedent
+   says what this workspace has actually settled for, and the ladder says
+   where this clause is right now. This is the reading of the three together,
+   one row per clause with a move on it, sorted by how far apart the sides
+   still are.
+
+   NOTHING ON IT IS WRITTEN BY A MODEL, and the code says so on the screen.
+
+   THERE IS NO WALK-AWAY COLUMN. The playbook holds a position and no
+   walk-away, so a walk-away here would be a number this product invented and
+   then showed a lawyer as their own policy. What stands beside the standard
+   instead is PRECEDENT — what has actually been settled — which is on the
+   record and can be checked.
+
+   A ROW IS A DOOR onto its clause, which is the whole point of a board: you
+   read it to decide what to work on next. */
+function dealBoardHtml(c, side){
+  if (typeof window.ladderBoard !== 'function') return '';
+  const rows = ladderBoard(c, side);
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const dash = `<span class="db-none">&mdash;</span>`;
+  const open = rows.filter(r => r.state === 'awaiting' || r.state === 'with').length;
+  const yours = rows.filter(r => r.state === 'awaiting').length;
+  if (!rows.length){
+    return `<div class="db"><h2 class="db-h">${_ne(i18t('ng_board_head'))}</h2>
+      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+  }
+  const move = r => {
+    const k = r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
+      : r.state === 'with' ? ['them', i18t('ng_board_move_them')]
+      : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
+      : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
+      : ['quiet', i18t('ng_board_move_none')];
+    return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
+  };
+  const fig = (n, unit) => n == null ? dash : `${_ne(String(n))}${unit ? ` <i>${_ne(unit)}</i>` : ''}`;
+  /* THE DISTANCE BAR IS THE SAME OBJECT ON EVERY ROW: their last ask, your
+     position, and the ground between them. Where the clause is not argued in
+     a number there is no bar and the cell says so in a word — a bar drawn
+     from nothing is a picture of a number that does not exist. */
+  const bar = r => {
+    if (r.dist == null) return `<span class="db-gap-w">${_ne(
+      r.state === 'settled' ? i18t('ng_board_gap_settled')
+        : r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))}</span>`;
+    const hi = Math.max(r.theirFig, r.ourFig);
+    const span = Math.max(hi, 1);
+    const pct = v => Math.max(0, Math.min(100, (v / span) * 100));
+    const a = pct(r.theirFig), b = pct(r.ourFig);
+    return `<span class="db-gap"><span class="db-bar" role="img" aria-label="${
+      _nea(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' }))}"><b style="left:${
+      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b><i class="t" style="left:${a}%"></i><i class="y" style="left:${
+      b}%"></i></span><span class="db-gap-n">${_ne(String(r.dist))}${
+      r.unit ? ` ${_ne(r.unit)}` : ''}</span></span>`;
+  };
+  const std = r => {
+    if (!r.standard) return dash;
+    const op = r.standard.op === '<=' ? '≤' : r.standard.op === '>=' ? '≥' : '';
+    return `${_ne(op)} ${_ne(String(r.standard.value))}${r.unit ? ` <i>${_ne(r.unit)}</i>` : ''}`;
+  };
+  /* PRECEDENT, and it is never called on the counterparty's seat — our own
+     negotiating history is the single most useful thing an opponent could
+     read. The board is our seat's by construction (see openDealBoard), and
+     this is the second wall. */
+  const prec = r => {
+    if (me === 'counterparty' || !r.topic || typeof window.ladderSettledFigure !== 'function') return dash;
+    const p = ladderSettledFigure(r.topic.key);
+    if (!p) return dash;
+    return `${_ne(String(p.figure))}${p.unit ? ` <i>${_ne(p.unit)}</i>` : ''}<em class="db-seen" title="${
+      _nea(i18t('ng_board_prec_title', { seen: p.seen, of: p.of }))}">${_ne(String(p.seen))}×</em>`;
+  };
+  const body = rows.map(r => `<tr class="db-row" data-rl-board-go="${_ne(r.clauseId)}" tabindex="0" role="button"
+      title="${_nea(i18t('ng_board_go'))}">
+    <td class="db-c">${_ne(r.label || r.clauseId)}<em class="db-moves">${
+      _ne(i18tn('ng_board_moves_n', r.moves, { n: r.moves }))}</em></td>
+    <td>${std(r)}</td>
+    <td>${prec(r)}</td>
+    <td>${r.theirs ? fig(r.theirFig, r.unit) : dash}</td>
+    <td>${r.ours ? fig(r.ourFig, r.unit)
+      : r.ourFig != null ? `<span class="db-drafted" title="${_nea(i18t('ng_board_as_drafted_title'))}">${
+        fig(r.ourFig, r.unit)} <em>${_ne(i18t('ng_board_as_drafted'))}</em></span>` : dash}</td>
+    <td>${bar(r)}</td>
+    <td>${move(r)}</td>
+  </tr>`).join('');
+  return `<div class="db">
+    <h2 class="db-h">${_ne(i18t('ng_board_head'))}</h2>
+    <p class="db-sub">${_ne(i18tn('ng_board_open', open, { n: open }))}${
+      yours ? ` · ${_ne(i18tn('ng_board_yours', yours, { n: yours }))}` : ''} · ${
+      _ne(i18t('ng_board_sorted'))}</p>
+    <div class="db-wrap"><table class="db-t"><thead><tr>
+      <th>${_ne(i18t('ng_board_col_clause'))}</th>
+      <th>${_ne(i18t('ng_board_col_std'))}</th>
+      <th>${_ne(i18t('ng_board_col_prec'))}</th>
+      <th>${_ne(i18t('ng_board_col_theirs'))}</th>
+      <th>${_ne(i18t('ng_board_col_ours'))}</th>
+      <th>${_ne(i18t('ng_board_col_gap'))}</th>
+      <th>${_ne(i18t('ng_board_col_move'))}</th>
+    </tr></thead><tbody>${body}</tbody></table></div>
+    <p class="db-foot">${_ne(i18t('ng_board_foot'))}</p>
+  </div>`;
+}
+/* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
+   drawn on the counterparty's page and its door is not either. */
+function openDealBoard(){
+  const c = rlLadderContract();
+  if (!c){ if (window.toast) toast(i18t('ng_board_no_contract'), 'warn'); return; }
+  openModal(`<div style="padding:18px 20px var(--s-4)">${dealBoardHtml(c, 'owner')}
+    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:14px">
+      <button type="button" id="rl-board-done" class="ui-btn ui-btn-primary">${
+      _ne(i18t('ng_rung_cmp_done'))}</button></div></div>`, { maxWidth: 'min(1080px, 94vw)' });
+  const done = document.getElementById('rl-board-done');
+  if (done) done.addEventListener('click', () => closeModal());
+  const root = document.getElementById('modal-root');
+  if (!root) return;
+  /* A ROW IS A DOOR, and it lands on the clause's own ladder: the board says
+     where a point stands, the panel says how it got there. */
+  const go = el => {
+    const id = el.getAttribute('data-rl-board-go');
+    closeModal();
+    const scope = document.querySelector('.redline-page') || document;
+    if (typeof rlCpSetShown === 'function') rlCpSetShown(scope, id);
+    const sec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(id))}"]`);
+    if (sec && sec.scrollIntoView) sec.scrollIntoView({ block: 'center' });
+  };
+  root.addEventListener('click', ev => {
+    const row = ev.target && ev.target.closest && ev.target.closest('[data-rl-board-go]');
+    if (row) go(row);
+  });
+  root.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const row = ev.target && ev.target.closest && ev.target.closest('[data-rl-board-go]');
+    if (row){ ev.preventDefault(); go(row); }
+  });
+}
+
+
 
 /* ---- HOW THE CONTRACT READS, AS ONE BUILDER (15 Aug 2026) ----
    Three words — Redlined / As agreed / With changes — and they were written
@@ -8249,6 +8689,17 @@ function renderRedline(){
     ? `<button type="button" data-rl-memo${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_memo_title'))}"
       ><span aria-hidden="true">&#9636;</span>${i18t('ng_memo')}</button>` : '')
+  /* ---- AND THE DEAL BOARD (Young ruled 14 Sep 2026) ----
+     Where every open point stands against the playbook and against what we
+     have settled before. A whole-negotiation READING, so it sits with the
+     memo and the timeline rather than on the head row. TWO DOORS, ONE ACT:
+     this row and the button on the control row both carry data-rl-board and
+     one handler answers both — the lesson f295 wrote down. Our seat only:
+     the board reads our playbook and our own negotiating history. */
+    + (mayMenu
+    ? `<button type="button" data-rl-board${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_board_title'))}"
+      ><span aria-hidden="true">&#9707;</span>${i18t('ng_board')}</button>` : '')
   /* ---- AND "PREPARE REDLINES", THE THIRD ROW (A12, 11 Sep 2026) ----
      A job rather than an act, so it lives beside the playbook pass and the
      memo and not on the head row. Same gate, and NOT DRAWN on an executed
@@ -8376,6 +8827,16 @@ function renderRedline(){
                means and why only LIVE proposals are affected. */}
         ${rlReadSegsHtml({ n: (typeof redlineCardIds === 'function')
           ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0 })}
+        ${''/* ---- THE DEAL BOARD SITS BESIDE THE READINGS, NOT AMONG THEM ----
+               It reads like a fourth tab and it is deliberately not one:
+               RL_READS is how the DOCUMENT is drawn (see rlReadSideOf), and a
+               fourth value there would fall through every clause branch as an
+               unknown mode and shut the pencil everywhere through
+               rlReadOnlyReading. So it is its own control, our seat only,
+               carrying the same data-rl-board the More menu's row does. */}
+        ${(rowSide !== 'counterparty' && !preview)
+          ? `<button type="button" class="rl-seg rl-boardseg" data-rl-board
+              title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -9721,6 +10182,12 @@ function rlCardForgetPins(contractId){
      no body — but "shut on arrival" is this feature's own stated rule and is
      kept true here rather than left to a coincidence of ids.) */
   if (typeof rlCpSetOpen === 'function') rlCpSetOpen(null);
+  /* AND NO CLAUSE ARRIVES PINNED TO AN EARLIER ROUND. Reading a clause back
+     is a preference on THIS contract's paper exactly as an open card is;
+     carried to the next contract it would pin a clause id that document does
+     not have, so the paper would look right and one clause would quietly be
+     drawing nothing. */
+  if (typeof rlClearReadAt === 'function') rlClearReadAt();
 }
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
@@ -10840,7 +11307,15 @@ function redlineDocHtml(c, opts = {}){
         pencil claiming a page nothing can open, which is the dead press this
         whole draw-time decision exists to prevent. */
   const editorTakesIt = rlEditorTakesIt(side);
-  const pillFor = cl => rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
+  /* ---- THE ROUND CHIP RIDES WITH THE PENCIL ----
+     Seven clause rows in this builder draw `.rl-clause-top`, and a chip added
+     to each of them by hand is six chances to forget the seventh. It goes
+     through the one closure they all already call, so the chip and the pencil
+     cannot appear on different clauses. It is emitted BEFORE the pencil: the
+     pencil is pinned to the row's right edge by its own rule, so the chip
+     lands beside the heading where the formatting chip already sits. */
+  const pillFor = cl => rlLadderChipHtml(c, cl, side, { pill: opts.pill })
+    + rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill });
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
@@ -10939,12 +11414,20 @@ function redlineDocHtml(c, opts = {}){
      replaces `.nego-body` (falling back to the first `p`), so without this
      wrapper a multi-paragraph clause would have had only its first paragraph
      swapped for the editor and the rest stranded outside what got saved. */
-  const richBody = cl => `<div class="nego-body">${rlHangRichHtml(
+  /* READ AS IT STOOD is asked before either body builder answers, so a
+     clause pinned to an earlier rung draws that rung whether or not it
+     carries a live change today. Inert while nothing is pinned — _rlReadAt
+     is empty on every paint until somebody presses a rung. */
+  const bodyAt = cid => rlReadAtHtml(c, cid, side);
+  const richBody = cl => bodyAt(cl && cl.clauseId)
+    || `<div class="nego-body">${rlHangRichHtml(
     (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`)}</div>`;
   /* How this page is being read — see rlReadMode. Resolved once for the whole
      document so every clause on it answers the same question. */
   const readMode = rlReadMode();
   const redlineBody = ch => {
+    const pinned = bodyAt(ch && ch.clauseId);
+    if (pinned) return pinned;
     /* A CLEAN READING IS A CLEAN CLAUSE. Under "As agreed" or "With changes"
        the marks come off and the clause reads as ordinary wording — one side of
        the ops, chosen by rlReadSideOf. Nothing about the record moves. */
@@ -16974,7 +17457,7 @@ function rlCpSetShown(scope, clauseId){
   root.querySelectorAll('#rl-cp').forEach(p => {
     p.classList.toggle('is-open', on); p.setAttribute('aria-hidden', on ? 'false' : 'true');
   });
-  root.querySelectorAll('[data-rl-cp-open]').forEach(b => b.setAttribute('aria-expanded',
+  root.querySelectorAll('[data-rl-cp-open], [data-rl-ladder]').forEach(b => b.setAttribute('aria-expanded',
     on && b.getAttribute('data-rl-cp-open') === want ? 'true' : 'false'));
   if (on){
     /* preventScroll — see the note on .rl-grid's overflow. Moving focus into a
@@ -17098,6 +17581,56 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       rlCpSetShown(scope, rlCpOpenId() === id ? null : id);
       return;
     }
+    /* ---- THE LADDER'S OWN ACTS ----
+           On the SAME listener as the panel they live in: one door, one phase,
+           one place where a press inside a clause is stopped from also
+           navigating it. Each of these is a READING or a press on an act the
+           product already has — nothing here files, sends or decides on its
+           own. The contract is fetched at the PRESS (redlineHeldId), never
+           closed over: a listener armed at module load that captured a
+           contract would be acting on the one that was open when the page
+           first drew. */
+        /* THE CHIP OPENS THE LADDER, and pressing it again closes it — the
+       owner's rule that the press which opens a sliding panel closes it.
+       Its own attribute rather than data-rl-cp-open: that one is what the
+       click-in-the-wording door looks for when it hunts for a clause's
+       PENCIL, and querySelector answers in document order, so a chip
+       carrying it answered instead of the pencil and a click in the wording
+       opened the panel rather than the editor. */
+    const lad = t.closest('[data-rl-ladder]');
+    if (lad){
+      ev.preventDefault(); ev.stopPropagation();
+      const lid = lad.getAttribute('data-rl-ladder');
+      const lscope = lad.closest('.redline-page') || document;
+      rlCpSetShown(lscope, rlCpOpenId() === lid ? null : lid);
+      return;
+    }
+    const readAt = t.closest('[data-rl-read-at]');
+        if (readAt){
+          ev.preventDefault(); ev.stopPropagation();
+          rlSetReadAt(readAt.getAttribute('data-rl-read-at'), readAt.getAttribute('data-rung'));
+          rlRepaintFrom(readAt);
+          return;
+        }
+        const readNow = t.closest('[data-rl-read-now]');
+        if (readNow){
+          ev.preventDefault(); ev.stopPropagation();
+          rlSetReadAt(readNow.getAttribute('data-rl-read-now'), null);
+          rlRepaintFrom(readNow);
+          return;
+        }
+        const cmp = t.closest('[data-rl-rung-compare]');
+        if (cmp){
+          ev.preventDefault(); ev.stopPropagation();
+          openLadderCompare(cmp.getAttribute('data-rl-rung-compare'));
+          return;
+        }
+        const board = t.closest('[data-rl-board]');
+        if (board){
+          ev.preventDefault(); ev.stopPropagation();
+          openDealBoard();
+          return;
+        }
     const closer = t.closest('[data-rl-cp-close]');
     if (closer) rlCpSetShown(closer.closest('.redline-page') || document, null);
   }, true);
@@ -17360,6 +17893,18 @@ function redlinePanesHtml(c, opts = {}){
                      until the moment you no longer needed telling. */}
               ${rlCloseRoundHtml(c, opts, p)}
             </div>
+            ${''/* ---- THE COLUMN'S OWN KEY (Young ruled 14 Sep 2026) ----
+                   Two colours carry the whole page — one side's marks and the
+                   other's — and until now nothing said which was which. A new
+                   reader, and the counterparty on their own page, had to work
+                   it out from the words.
+
+                   IT IS A KEY, NOT A BAND. It sits in the head of the column
+                   whose cards those colours are about, says something no
+                   control on the screen says, and takes no pixel off the
+                   contract — the sheet is in the other column. Drawn only
+                   where there is something to be a key TO. */}
+            ${p.total ? rlMarkLegendHtml(side) : ''}
             ${p.total ? `<div class="rl-idx-bar" role="img"
               aria-label="${_nea(i18t('ng_n_of_m_decided',{done:p.done,total:p.total}))}"><i
               style="width:${p.pct}%"></i></div>
@@ -17727,6 +18272,12 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoTimelineScreenHtml, negoTimelineEventHtml, negoTimelineSeatIsTheirs, openHistoryTimeline,
   negoVerifyResultHtml, negoHistoryWordHtml, negoHistoryExportHtml, negoHistoryExportRun, negoHistoryPrintRun,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
+  /* THE LADDER (14 Sep 2026). Every name a window.* read asks for must be
+     published — f232 is the net, and these are read by the clause panel, the
+     paper, the column head and the two board doors. */
+  rlLadderChipHtml, rlLadderSectionHtml, rlLadderTrackHtml, rlMarkLegendHtml,
+  rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
+  rlLadderContract, openLadderCompare, dealBoardHtml, openDealBoard,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

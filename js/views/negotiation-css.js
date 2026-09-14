@@ -5151,6 +5151,195 @@ function redlineLayoutCss(){
          from its padding and its missing verbs. */}
 
 
+
+  ${''/* ============================================================
+         THE CLAUSE LADDER (Young ruled 14 Sep 2026)
+         ============================================================
+         THE COLOURS ARE THE PAGE'S OWN AND NOT ONE NEW ONE. A move of ours
+         wears the accent the marks already wear (--st-steel-bg / --accent-ink,
+         which is what .rl-us resolves to) and a move of theirs wears the amber
+         .rl-them wears. That is the whole point: the chip on the clause and
+         the marks inside it have to be the same two colours, or the key in the
+         column head is a key to nothing.
+
+         THE CHIP TAKES NO PIXEL OFF THE CONTRACT. It sits in .rl-clause-top,
+         the row the heading and the formatting chip already share, and the
+         pencil is pinned out of that row by its own rule — so the chip lands
+         beside the heading and the row's height is the heading's, as before.
+         It follows the sheet's own type (--doc-scale), like every other mark
+         ON the paper. */}
+  .redline-page .rl-rung{flex:none;font:inherit;font-size:calc(10.5px * var(--doc-scale,1));
+    font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;
+    padding:calc(3px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1));
+    border:0;border-radius:var(--radius);cursor:pointer;white-space:nowrap;
+    background:var(--st-steel-bg);color:var(--accent-ink);
+    align-self:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    margin-right:calc(62px * var(--doc-scale,1))}
+  ${''/* THE 62px IS THE PENCIL'S OWN RESERVE. It is pinned out of this row
+         (position:absolute;right:0), so anything left in the flow runs
+         straight under it — which is what the chip did, measured on a real
+         page before this line existed. The heading reserves the same width
+         with its own padding-right and the number is stated in both places
+         deliberately: they are the same fact about the same pinned control,
+         and a chip that reserved less would overlap it again. Where the
+         pencil stands down for a colleague's lock the monogram takes the
+         same box, so the reserve is right either way. */}
+  .redline-page .rl-rung:hover{filter:brightness(.96)}
+  .redline-page .rl-rung:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .redline-page .rl-rung-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-rung-settled{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .redline-page .rl-rung-grey{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  ${''/* READING BACK IS A STATE THE READER MUST NOT LOSE TRACK OF, so the chip
+         that says so is the loudest thing on the clause and is the way out of
+         it. Violet, which this page uses nowhere else — a reading of the past
+         is not one of the two sides and must not borrow either one's colour. */}
+  .redline-page .rl-rung-reading{background:var(--color-accent-100);color:var(--accent-ink);
+    box-shadow:inset 0 0 0 1px var(--color-accent-600)}
+  ${''/* The clause being read back is dashed, not tinted: a fill would fight
+         the marks inside it, which are the thing being read. */}
+  .redline-page .rl-read-at{outline:1px dashed var(--color-accent-600);outline-offset:6px}
+
+  ${''/* ---- THE LADDER IN THE CLAUSE PANEL ----
+         The panel's own section furniture (.rl-cp-sec, .rl-cp-h) carries the
+         heading; this is the list under it. A rail down the left with a dot
+         per move, which is the shape every timeline in this product already
+         uses — the History tab's, the desk's — so a reader meets one idea
+         rather than three. */}
+  ${''/* ---- THE LADDER IS A LIST THAT CARRIES ITS OWN NUMBERS ----
+         Written plainly as .redline-page .rl-ladder this LOSES: the clause
+         panel restores real list markers to every ol inside it
+         (.redline-page .rl-cp-src ol, above), and a TYPE selector makes that
+         rule (0,2,1) against this one's (0,2,0). Measured on a real page, the
+         ladder drew "1. 2. 3." beside its own "R3 R2 R1" — two numbering
+         systems on one list. Fixed by SCOPE, never !important, which is this
+         codebase's own rule for a cascade fight. */}
+  .redline-page .rl-cp-src ol.rl-ladder,
+  .redline-page ol.rl-ladder{list-style:none;margin:var(--s-2) 0 0;padding:0;position:relative}
+  .redline-page .rl-rung-row{position:relative;padding:9px 0 9px 22px;
+    border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-rung-row:last-child{border-bottom:0}
+  .redline-page .rl-rung-row::before{content:'';position:absolute;left:4px;top:14px;
+    width:9px;height:9px;border-radius:50%;background:var(--color-neutral-400)}
+  .redline-page .rl-rung-row::after{content:'';position:absolute;left:8px;top:25px;bottom:-9px;
+    width:1px;background:var(--color-divider)}
+  .redline-page .rl-rung-row:last-child::after{display:none}
+  .redline-page .rl-rung-row.rl-rung-you::before{background:var(--color-accent-600)}
+  .redline-page .rl-rung-row.rl-rung-them::before{background:var(--st-amber-dot)}
+  .redline-page .rl-rung-row.rl-rung-ok::before{background:var(--st-green-dot)}
+  .redline-page .rl-rung-row.rl-rung-no::before{background:var(--st-ruby-dot)}
+  .redline-page .rl-rung-row.is-reading{outline:1px dashed var(--color-accent-600);outline-offset:-1px}
+  .redline-page .rl-rung-who{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;
+    font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .redline-page .rl-rung-n{font-family:var(--font-code);font-weight:var(--w-title);color:var(--color-text)}
+  .redline-page .rl-rung-when{margin-left:auto;font-size:var(--t-label);white-space:nowrap}
+  .redline-page .rl-rung-tag{font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.05em;
+    text-transform:uppercase;padding:2px 5px;border-radius:var(--radius);
+    background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .redline-page .rl-rung-no .rl-rung-tag{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .redline-page .rl-rung-ok .rl-rung-tag{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .redline-page .rl-rung-what{font-size:var(--t-meta);color:var(--color-text);margin-top:2px}
+  .redline-page .rl-rung-on{font-size:var(--t-label);color:var(--color-neutral-500);margin-top:2px}
+  .redline-page .rl-rung-say{font-size:var(--t-meta);color:var(--color-neutral-600);
+    margin-top:2px;font-style:italic}
+  .redline-page .rl-rung-say::before{content:'\\201C'}
+  .redline-page .rl-rung-say::after{content:'\\201D'}
+  .redline-page .rl-rung-acts{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}
+  .redline-page .rl-rung-acts button{border:0;background:none;padding:0;cursor:pointer;
+    font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)}
+  .redline-page .rl-rung-acts button:hover{text-decoration:underline}
+  .redline-page .rl-rung-acts button.acc{color:var(--st-green-fg)}
+  .redline-page .rl-ladder-foot{margin-top:10px}
+  .redline-page .rl-rung-base .rl-rung-what{color:var(--color-neutral-600)}
+
+  ${''/* THE FIGURE, AS A TRACK. Where the argument is a number the whole
+         argument fits on one line, and that line is the fastest reading on the
+         page for a procurement reader who never opens the wording. */}
+  .redline-page .rl-ladder-track{display:flex;flex-wrap:wrap;align-items:center;gap:5px;
+    margin:0 0 var(--s-2);font-family:var(--font-code);font-size:var(--t-label);
+    color:var(--color-neutral-600)}
+  .redline-page .rl-ladder-track i{font-style:normal;color:var(--color-neutral-400)}
+  .redline-page .rl-tr-n{padding:1px 5px;border-radius:var(--radius);color:var(--color-text);
+    background:var(--color-neutral-100)}
+  .redline-page .rl-tr-you{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .redline-page .rl-tr-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-tr-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .redline-page .rl-tr-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through}
+  .redline-page .rl-tr-u{font-family:var(--font-body)}
+
+  ${''/* ---- THE KEY IN THE COLUMN HEAD ----
+         Three short lines, label size, in the column whose cards they are
+         about. It is not a band: no fill, no edge, no amber at rest — it is
+         the head's own key, drawn where a key belongs. */}
+  .redline-page .rl-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:var(--s-2) 0 0;
+    font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-legend span{display:inline-flex;align-items:center;gap:5px}
+  .redline-page .rl-lg{width:10px;height:10px;border-radius:var(--radius);flex:none}
+  .redline-page .rl-lg-us{background:var(--st-steel-bg);box-shadow:inset 0 0 0 1px var(--color-accent-600)}
+  .redline-page .rl-lg-them{background:var(--st-amber-bg);box-shadow:inset 0 0 0 1px var(--st-amber-fg)}
+  .redline-page .rl-lg-base{background:transparent;box-shadow:inset 0 0 0 1px var(--color-divider),
+    inset 0 -2px 0 var(--color-neutral-500)}
+
+  ${''/* The board's own door on the control row wears the reading tabs' clothes
+         so the four read as one row, and is NOT a fourth reading — it never
+         takes the .on face, because the board is a window and not a mode the
+         paper is in. */}
+  .redline-page .rl-boardseg{align-self:center;color:var(--accent-ink);font-weight:var(--w-title)}
+  .redline-page .rl-boardseg:hover{background:var(--color-surface)}
+
+
+  ${''/* ============================================================
+         THE DEAL BOARD (Young ruled 14 Sep 2026)
+         ============================================================
+         A MODAL, NOT A PAGE, and it is dressed here rather than in the
+         stylesheet the negotiate page injects, because it is drawn into
+         #modal-root — which is OUTSIDE .redline-page, so every rule in
+         redlineLayoutCss's scoped block would miss it. That is the
+         clothes-follow-the-builder lesson, and it is why these selectors
+         carry no .redline-page. */}
+  .db{font-size:var(--t-body)}
+  .db-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 4px}
+  .db-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px}
+  .db-empty{font-size:var(--t-body);color:var(--color-neutral-600);margin:0}
+  .db-wrap{overflow-x:auto}
+  .db-t{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+  .db-t th{font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;
+    text-transform:uppercase;color:var(--color-neutral-500);text-align:left;
+    padding:8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
+  .db-t td{padding:9px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle;
+    font-variant-numeric:tabular-nums}
+  .db-t td i{font-style:normal;color:var(--color-neutral-500)}
+  .db-row{cursor:pointer}
+  .db-row:hover td{background:var(--nav-well)}
+  .db-row:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
+  .db-c{font-weight:var(--w-title);white-space:nowrap;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
+  .db-n{text-align:right;color:var(--color-neutral-600)}
+  .db-none{color:var(--color-neutral-400)}
+  .db-seen{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-500);margin-left:4px}
+  .db-moves{display:block;font-style:normal;font-weight:var(--w-body);font-size:var(--t-label);
+    color:var(--color-neutral-500);margin-top:1px}
+  .db-drafted{color:var(--color-neutral-600)}
+  .db-drafted em{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-500)}
+  .db-move{font-weight:var(--w-title);white-space:nowrap}
+  .db-move-you{color:var(--st-amber-fg)}
+  .db-move-them{color:var(--accent-ink)}
+  .db-move-ok{color:var(--st-green-fg)}
+  .db-move-quiet{color:var(--color-neutral-500)}
+  ${''/* THE BAR IS THE SAME OBJECT ON EVERY ROW: their last ask, your position,
+         and the ground between them. Their dot is amber and yours is the
+         accent — the page's own two colours again, so a reader who has learned
+         the marks has already learned this. */}
+  .db-gap{display:flex;align-items:center;gap:6px;min-width:110px}
+  .db-bar{position:relative;flex:1;height:6px;min-width:44px;background:var(--color-neutral-100);
+    border-radius:1px}
+  .db-bar b{position:absolute;top:0;height:6px;background:var(--st-ruby-bg)}
+  .db-bar i{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;
+    transform:translateX(-50%);font-style:normal}
+  .db-bar i.t{background:var(--st-amber-dot)}
+  .db-bar i.y{background:var(--color-accent-600)}
+  .db-gap-n{white-space:nowrap;color:var(--color-neutral-600);font-size:var(--t-label)}
+  .db-gap-w{color:var(--color-neutral-500);font-size:var(--t-label)}
+  .db-foot{font-size:var(--t-label);color:var(--color-neutral-600);margin:12px 0 0;line-height:1.6}
+
   `;
   document.head.appendChild(s);
 }
