@@ -3284,12 +3284,13 @@ function redlineLayoutCss(){
          reference is what elides. Open is a bare word like its siblings now that the face carries the
          verbs the artifact draws. WRITTEN AFTER the row's own grid and side rules, because it beats
          them by ORDER at equal specificity. */}
-  .redline-page .rl-card-d{grid-template-columns:minmax(0,1fr) max-content;row-gap:2px}
+  
+  .redline-page .rl-card-d{grid-template-columns:minmax(96px,1fr) minmax(0,max-content);row-gap:2px}
   .redline-page .rl-card-d > .rl-card-txt{display:contents}
   .redline-page .rl-card-d .rl-card-metarow{grid-column:1;grid-row:1;min-width:0}
-  .redline-page .rl-card-d > .rl-card-side{grid-column:2;grid-row:1;min-width:max-content;flex-wrap:nowrap}
+  .redline-page .rl-card-d > .rl-card-side{grid-column:2;grid-row:1;min-width:0;flex-wrap:wrap;row-gap:2px}
   .redline-page .rl-card-d .rl-card-sum{grid-column:1 / -1;grid-row:2;margin-top:0}
-  .redline-page .rl-card-d .rl-card-face{flex-wrap:nowrap}
+  .redline-page .rl-card-d .rl-card-face{flex-wrap:wrap;row-gap:2px}
   .redline-page .rl-card-d .rl-card-open{border:0;background:none;padding:0;height:auto;min-width:0;
     margin-left:0;font-size:var(--t-meta);font-weight:var(--w-title);line-height:18px;color:var(--accent-ink)}
   .redline-page .rl-card-d .rl-card-open:hover{background:none;text-decoration:underline;color:var(--accent-ink)}

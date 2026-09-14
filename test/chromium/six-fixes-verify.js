@@ -311,8 +311,12 @@ for (let i = 1; i <= 12; i++)
          ink and edge now (owner: "the outline of the open are too faint"), so
          the two are told apart by the EDGE at full accent and the tinted FILL
          on the open one — never by the ink alone. */
-      check('1g which a shut one is not — its edge is the platform\'s 45% mix and it carries no tint',
-        !openState.shutLabel || (openState.shutEdge !== openState.edge && openState.shutFill !== openState.fill),
+      /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): Open
+         is a bare word on the face beside the artifact's verbs — no edge, no
+         tint, open or shut — so the two are told apart by the WORD (Close /
+         Open, the first 1g check) and by aria-expanded, never by dress. */
+      check('1g which a shut one shares — both are bare words, told apart by the word itself',
+        !openState.shutLabel || (openState.shutFill === openState.fill && /open/i.test(openState.shutLabel) && /close/i.test(openState.label)),
         `open edge ${openState.edge} fill ${openState.fill} vs shut edge ${openState.shutEdge} fill ${openState.shutFill}`);
       /* NOT FILLED: every other verb on this card is a bare coloured word, and
          a solid button here would be the loudest object on the column. */

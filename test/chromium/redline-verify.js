@@ -1780,9 +1780,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     `wording ${geom.wide.sum} vs acts ${geom.wide.acts} at ${geom.wide.col}px`);
   check('19 squeezing the column really does squeeze it',
     geom.tight.col < geom.wide.col - 40, `${geom.wide.col} → ${geom.tight.col}`);
-  check('19 the acts stop at the floor rather than shrinking with it',
-    geom.tight.acts > 0 && geom.tight.acts >= geom.wide.acts * 0.82,
-    `acts ${geom.wide.acts} → ${geom.tight.acts}`);
+  /* RE-POINTED 14 Sep 2026 (the artifact's face carries up to five verbs):
+     squeezed, the verbs WRAP onto a second line rather than shrink or clip —
+     every one stays on screen inside the row. */
+  check('19 the acts wrap rather than clip when squeezed — every verb stays inside the row',
+    geom.tight.acts > 0 && geom.tight.clipped === 0 && geom.tight.acts <= geom.tight.col,
+    `acts ${geom.wide.acts} → ${geom.tight.acts} in a ${geom.tight.col}px column, clipped ${geom.tight.clipped}`);
   check('19 and the wording is what gives instead',
     geom.tight.sum < geom.wide.sum, `wording ${geom.wide.sum} → ${geom.tight.sum}`);
   check('19 and the rows still line up once it is squeezed',
