@@ -574,6 +574,18 @@ function clauseEditorCss(){
 
   /* the chat is WHITE, like HaTi's own Copilot panel — a grey ground made the
      rail read as a sunken well rather than as the panel it is */
+  /* ---- THE LADDER CARD AND THE TWO NEW TABS (14 Sep 2026) ---- */
+  .ce-lcard .k{font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--color-neutral-500); margin:10px 0 3px}
+  .ce-lcard .k:first-child{margin-top:0}
+  .ce-lcard .said{font-style:italic; color:var(--color-neutral-600)}
+  .ce-lcard .cost{font-size:var(--t-label); color:var(--color-neutral-600); margin-top:8px}
+  .ce-lcard .acts{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+  .ce-ladder-lane{padding:0}
+  .ce-ladder-lane .rl-cp-sec{margin:0 0 18px}
+  .ce-ladder-lane .rl-cp-h{margin:0 0 var(--s-1); font-size:var(--t-label); font-weight:var(--w-title); letter-spacing:.06em;
+    text-transform:uppercase; color:var(--color-neutral-500)}
+  .ce-fig-note{font-size:var(--t-meta); color:var(--color-neutral-600); margin:8px 0 0}
   .ce-lane{flex:1; min-height:0; overflow:auto; padding:14px; background:var(--color-surface)}
   .ce-you{display:flex; justify-content:flex-end; margin:0 0 var(--s-3)}
   .ce-you span{max-width:86%; background:var(--st-steel-bg); color:var(--color-text);
@@ -1192,8 +1204,10 @@ function ceRedlineHtml(a, b){
   const ops = ceOps(a, b);
   if (!ops) return `<p>${_cee(ceWords(b))}</p>`;
   try{
-    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops);
-    if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops)}</p>`;
+    /* THE DRAFT IS OURS: this page is our seat's by construction, so a mark
+       drawn here wears the accent (14 Sep 2026). */
+    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us' });
+    if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops, { who: 'us' })}</p>`;
   }catch(_){}
   return `<p>${_cee(ceWords(b))}</p>`;
 }
@@ -1451,6 +1465,8 @@ function clauseEditorHtml(){
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
             <button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>
+            <button type="button" data-ce-tab="ladder">${_cet('ce_tab_ladder')}</button>
+            <button type="button" data-ce-tab="figure" id="ce-tab-figure">${_cet('ce_tab_figure')}</button>
             ${''/* ---- THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026:
                    "Delete changes tab") ----
                    It was built the same day from the approved prototype — every
@@ -2824,7 +2840,9 @@ function ceMarksOps(ours){
   try{
     const ops = window.redlineOpsStructured ? redlineOpsStructured(base, ours)
       : (window.redlineOps ? redlineOps(base, ours) : null);
-    return ops ? { ops } : null;
+    /* Stamped 'us' so the atoms and wrappers the walk draws wear our colour
+       on a lone draft as they do on a stack (14 Sep 2026). */
+    return ops ? { ops: ops.map(o => (o && o.op !== 'keep' && !o.who) ? Object.assign({}, o, { who: 'us' }) : o) } : null;
   }catch(_){ return null; }
 }
 /* The walk. Every projected character is matched to the op that owns it; a
@@ -3455,12 +3473,138 @@ function ceDiscard(){
 /* ============================================================================
    THE RAIL
    ========================================================================== */
+/* ============================================================
+   THE RAIL'S LADDER CARD, LADDER TAB AND FIGURE TAB (Young ruled 14 Sep
+   2026: build the artifact's rail)
+   ============================================================
+   Everything here is worked out from the playbook, precedent and this
+   clause's ladder, and the card says so. NO MODEL IS CALLED: the numbers
+   are the record's own and the sentence about them is deterministic — a
+   model is asked only when the reader types a question, as before. */
+let _ceHeldNote = '';
+let _ceLadderReply = null;
+function ceLadderRow(){
+  if (!_ceC || !_ceClauseId || typeof window.ladderStand !== 'function') return null;
+  try{ return ladderStand(_ceC, String(_ceClauseId), 'owner'); }catch(_){ return null; }
+}
+function ceFigureTopic(){ const r = ceLadderRow(); return (r && r.topic && typeof r.topic.num === 'function' && r.unit) ? r.topic : null; }
+function ceLadderCardHtml(){
+  const row = ceLadderRow();
+  if (!row) return '';
+  const theirs = row.theirs;
+  const clauseName = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
+  const unit = row.unit || '';
+  /* WHAT MOVED */
+  let moved = '';
+  if (theirs){
+    const under = (typeof window.ladderUnder === 'function') ? ladderUnder(row.rungs, theirs) : null;
+    const from = under ? ladderFigure(row.topic, under.text) : ladderFigure(row.topic, ladderBaseText(row.rungs));
+    const to = row.theirFig;
+    moved = (from != null && to != null && from !== to)
+      ? `${clauseName}: ${from} → ${to} ${unit}`
+      : String(theirs.summary || '');
+  } else {
+    moved = _cet('ce_lc_nothing', { what: row.top ? _cet('ce_lc_own', { n: row.top.n }) : _cet('ce_lc_agreed') });
+  }
+  /* ON YOUR LADDER */
+  const fb = (row.topic && typeof window.ladderFallback === 'function') ? ladderFallback(row.topic) : null;
+  const fbN = fb ? fb.figure : null;
+  const stdN = row.standard ? row.standard.value : null;
+  const opWord = row.standard ? (row.standard.op === '<=' ? '≤ ' : row.standard.op === '>=' ? '≥ ' : '') : '';
+  let ladder = '', acceptable = false, reply = null;
+  if (row.topic && theirs && row.theirFig != null && (stdN != null || fbN != null)){
+    const inFb = (fbN != null && typeof window.ladderWithin === 'function') ? ladderWithin(row.topic, row.theirFig, fbN) : null;
+    const inStd = (stdN != null && typeof window.ladderWithin === 'function') ? ladderWithin(row.topic, row.theirFig, stdN) : null;
+    if (inFb === true || (fbN == null && inStd === true)){
+      ladder = _cet('ce_lc_within', { n: row.theirFig, f: fbN != null ? fbN : stdN });
+      acceptable = theirs === row.top;
+    } else {
+      ladder = fbN != null
+        ? _cet('ce_lc_outside', { s: (opWord + (stdN != null ? stdN : '—')).trim(), f: fbN })
+        : _cet('ce_lc_outside_std', { s: (opWord + (stdN != null ? stdN : '—')).trim() });
+      /* The reply is the fallback where the playbook holds one with a figure,
+         else the standard itself — the one figure the playbook does hold. */
+      reply = fbN != null ? fbN : stdN;
+    }
+  } else if (row.topic && (stdN != null || fbN != null)){
+    ladder = _cet('ce_lc_between', { s: (opWord + (stdN != null ? stdN : '—')).trim(), f: fbN != null ? fbN : '—' });
+  } else {
+    ladder = _cet('ce_lc_nostd');
+  }
+  /* WHAT YOU HAVE SETTLED FOR */
+  let prec = '';
+  if (row.topic && typeof window.ladderSettledFigure === 'function'){
+    const p = ladderSettledFigure(row.topic.key);
+    if (p) prec = _cet('ce_lc_prec_fig', { n: p.figure, unit: p.unit || unit, seen: p.seen, of: p.of });
+  }
+  if (!prec) prec = cePrecedentLine() || _cet('ce_lc_noprec');
+  /* SUGGESTED REPLY — the fallback figure written into THEIR wording, so
+     everything else they asked for is kept. */
+  let replyHtml = '', acts = '';
+  _ceLadderReply = null;
+  if (reply != null && theirs && typeof window.ladderWriteFigure === 'function'){
+    const text = ladderWriteFigure(ceWords(theirs.text), reply, unit);
+    if (text !== ceWords(theirs.text)){
+      const words = (typeof window.ladderWords === 'function') ? ladderWords(reply) : String(reply);
+      const note = _cet('ce_lc_note_fig', { words, n: reply, unit, clause: clauseName.toLowerCase() });
+      _ceLadderReply = { text, note };
+      replyHtml = `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div><b>${_cee(_cet('ce_lc_reply_fig', { words, n: reply, unit }))}</b></div>
+        <div class="k">${_cee(_cet('ce_lc_note'))}</div><div class="said">“${_cee(note)}”</div>`;
+      acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-apply">${_cee(_cet('ce_lc_apply'))}</button>
+        <button type="button" class="ui-btn" data-ce-act="ladder-note">${_cee(_cet('ce_lc_keep_note'))}</button></div>`;
+    }
+  } else if (acceptable && theirs){
+    replyHtml = `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div>${_cee(_cet('ce_lc_accept_line'))}</div>`;
+    acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ce_lc_accept', { n: theirs.n }))}</button></div>`;
+  }
+  return `<div class="ce-card ce-lcard">
+    <div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
+    <div class="k">${_cee(_cet('ce_lc_ladder'))}</div><div>${_cee(ladder)}</div>
+    <div class="k">${_cee(_cet('ce_lc_settled'))}</div><div>${_cee(prec)}</div>
+    ${replyHtml}${acts}
+    <div class="cost">${_cee(_cet('ce_lc_cost'))}</div>
+  </div>`;
+}
+/* The Ladder tab: the clause panel's own ladder and its tail, drawn in the
+   rail. Wrapped in the negotiate page's own class so the same rules dress
+   it; the read-as-it-stood and counter verbs are not offered here (this page
+   IS the counter, and the paper it shows is the box). */
+function ceLadderLaneHtml(){
+  const cl = ceClause();
+  if (!cl || !_ceC || typeof window.rlLadderSectionHtml !== 'function') return `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`;
+  const sec = rlLadderSectionHtml(_ceC, cl, 'owner', { editor: true });
+  const tail = (typeof window.rlLadderTailHtml === 'function') ? rlLadderTailHtml(_ceC, cl, ceOnTable(), 'owner', { noFigure: true, noNotes: true }) : '';
+  return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec || `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`}${tail}</div>`;
+}
+function ceFigureLaneHtml(){
+  const cl = ceClause();
+  if (!cl || !_ceC || typeof window.rlFigureSecHtml !== 'function') return '';
+  const sec = rlFigureSecHtml(_ceC, cl.clauseId, 'owner', { act: 'editor' });
+  return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec}<p class="ce-fig-note">${_cee(_cet('ng_fig_write_title'))}</p></div>`;
+}
+/* Write the figure from the tab into the box. The draft's own wording is what
+   is written on — never the record's — so a figure typed twice moves once. */
+function ceFigureWrite(){
+  const topic = ceFigureTopic(); if (!topic) return;
+  const box = _ceQ('#ce-fig');
+  const n = box ? parseInt(box.value, 10) : NaN;
+  if (!Number.isFinite(n)){ ceSay(_cet('ng_fig_nan')); return; }
+  const now = ceWords(ceDraftNow() || _ceText);
+  const next = ladderWriteFigure(now, n, topic.unit);
+  if (next === now){ ceSay(_cet('ng_fig_same')); return; }
+  ceApply(next, _cet('ce_step_figure'));
+  _ceTab = 'chat'; ceRenderTabs(); ceRenderLane();
+}
+
 function ceRenderTabs(){
   if (!clauseEditorOpen()) return;
   const page = document.getElementById('clause-editor'); if (!page) return;
   page.querySelectorAll('[data-ce-tab]').forEach(b =>
     b.classList.toggle('is-on', b.getAttribute('data-ce-tab') === _ceTab));
   const n = ceDeviationCount();
+  /* The Figure tab is drawn only where the clause is argued in a number. */
+  const ft = _ceQ('#ce-tab-figure');
+  if (ft) ft.hidden = !ceFigureTopic();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
   /* The ask box belongs to the conversation. The scan has nothing to be asked.
@@ -3477,7 +3621,19 @@ function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
   if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; return; }
-  lane.innerHTML = _ceThread.map(ceTurnHtml).join('')
+  if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
+  if (_ceTab === 'figure'){
+    lane.innerHTML = ceFigureLaneHtml(); lane.scrollTop = 0;
+    const rg = _ceQ('#ce-fig-range'), fi = _ceQ('#ce-fig');
+    /* The two boxes follow each other; assigned handlers, because the box's
+       own input listener is what f245 (19) reads by name. */
+    if (rg && fi){ rg.oninput = () => { fi.value = rg.value; }; fi.oninput = () => { rg.value = fi.value; }; }
+    return;
+  }
+  /* THE LADDER CARD LEADS THE CONVERSATION (14 Sep 2026): what moved, where
+     it sits on our ladder, what we settled for, and the reply that follows —
+     worked out, not asked for. */
+  lane.innerHTML = ceLadderCardHtml() + _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
@@ -4774,6 +4930,8 @@ function ceFiled(c){
   try{ ceFitToShell(); }catch(_){}
 }
 async function ceFile(why){
+  /* A note kept from the ladder card rides the filing as its reason. */
+  if (!why && _ceHeldNote) why = _ceHeldNote;
   if (_ceBusy) return null;
   if (_ceText === _ceBase && _ceHead === _ceHeadBase){ ceSay(_cet('ce_nothing_to_file')); return null; }
   const c = _ceC, clauseId = _ceClauseId;
@@ -5061,7 +5219,7 @@ function ceWirePage(page){
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
-      _ceTab = want === 'scan' ? 'scan' : 'chat';
+      _ceTab = ['scan', 'ladder', 'figure'].includes(want) ? want : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
 
@@ -5271,6 +5429,22 @@ function ceWirePage(page){
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
       case 'save': cePullText(); ceFile(); break;
+      case 'ladder-apply': {
+        if (_ceLadderReply && _ceLadderReply.text){
+          ceApply(_ceLadderReply.text, _cet('ce_step_copilot'));
+          if (_ceLadderReply.note) _ceHeldNote = _ceLadderReply.note;
+        }
+        break; }
+      case 'ladder-note': {
+        if (_ceLadderReply && _ceLadderReply.note){ _ceHeldNote = _ceLadderReply.note; ceSay(_cet('ce_lc_kept')); }
+        break; }
+      case 'ladder-accept': {
+        /* THE CARD'S OWN ACCEPT, pressed on the page behind: one door. */
+        const aid = act.getAttribute('data-id');
+        const btn = aid ? document.querySelector(`.redline-page [data-nego-accept="${CSS.escape(aid)}"]`) : null;
+        ceLeaveGuard(() => { rlCloseClauseEditor(); if (btn) btn.click(); });
+        break; }
+      case 'fig-write': ceFigureWrite(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
@@ -5566,5 +5740,6 @@ Object.assign(window, {
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
+  ceLadderCardHtml, ceLadderLaneHtml, ceFigureLaneHtml, ceFigureWrite, ceFigureTopic, ceLadderRow,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
 });

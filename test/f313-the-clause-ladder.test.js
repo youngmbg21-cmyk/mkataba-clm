@@ -316,4 +316,142 @@ describe('f313 — the clause ladder', () => {
     assert.ok(keys.length > 30, `expected the ladder's keys, found ${keys.length}`);
     for (const k of keys) assert.ok(STRINGS.sv[k], `sv is missing ${k}`);
   });
+
+  /* ---------- 7 · THE ARTIFACT, BUILT AS DRAWN (Young ruled 14 Sep 2026) ---------- */
+
+  test('(27) a lone mark wears its author\'s side: opts.who stamps ops that carry none', async () => {
+    const w = await buildWorld({ ladder: true });
+    const html = w.win.redlineOpsHtml([{ op: 'ins', text: 'a' }, { op: 'del', text: 'b', who: 'them' }], { who: 'us' });
+    assert.match(html, /<ins class="[^"]*\brl-us\b/, 'the bare op takes the caller\'s side');
+    assert.match(html, /<del class="[^"]*\brl-them\b/, 'an op with a side of its own keeps it');
+    const bare = w.win.redlineOpsHtml([{ op: 'ins', text: 'a' }]);
+    assert.ok(!/\brl-(us|them)\b/.test(bare), 'absent, byte-identical to before');
+  });
+
+  test('(28) UNSENT is read RAW off the hand-over stamp, and the record is untouched', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    const before = JSON.stringify(c);
+    const r = w.win.ladderRungs(c, 'cl_4');
+    const top = r[2];
+    assert.equal(w.win.ladderUnsent(c, top, 'owner'), true, 'nothing handed over yet: our top move is unsent');
+    assert.equal(w.win.ladderUnsent(c, r[1], 'owner'), false, 'theirs is never unsent on our record');
+    c.negotiation.turnAt = '2026-09-15T00:00:00.000Z';
+    assert.equal(w.win.ladderUnsent(c, top, 'owner'), false, 'filed before the hand-over: sent');
+    c.negotiation.holdIds = [top.id];
+    assert.equal(w.win.ladderUnsent(c, top, 'owner'), true, 'held back by a solo send: unsent again');
+    delete c.negotiation.turnAt; delete c.negotiation.holdIds;
+    assert.equal(JSON.stringify(c), before, 'the reading wrote nothing');
+    assert.match(w.win.ladderChip(c, 'cl_4', 'owner').text, /not sent/i, 'and the chip says so');
+  });
+
+  test('(29) the line under a stacked clause names what the plain words are', async () => {
+    const w = await buildWorld({ ladder: true });
+    const c = book();
+    const b = w.win.ladderBaseline(c, 'cl_4', 'owner');
+    assert.ok(b, 'a three-move stack has a line');
+    assert.equal(b.below.n, 1, 'the plain words are the wording the LOWER move was written on — R1');
+    assert.equal(b.below.who, 'you');
+    assert.equal(b.below.fig, 24);
+    assert.equal(b.baseFig, 12, 'and the agreed figure is R0\'s');
+    assert.equal(w.win.ladderBaseline(c, 'cl_5', 'owner'), null, 'a lone ask is drawn against the agreed text: nothing to say');
+  });
+
+  test('(30) a figure is written back into the wording in words and digits, and nothing else moves', async () => {
+    const w = await buildWorld({ ladder: true });
+    const f = w.win.ladderWriteFigure;
+    assert.equal(f('pay within thirty (30) days of receipt.', 45, 'days'), 'pay within forty-five (45) days of receipt.');
+    assert.equal(f('for twelve (12) months of fees', 1, 'months'), 'for one (1) month of fees', 'the plural follows the number');
+    assert.equal(f('within thirty (30) business days', 60, 'days'), 'within sixty (60) business days', 'the qualifier is kept');
+    assert.equal(f('within 30 days', 45, 'days'), 'within 45 days', 'a bare figure stays bare');
+    assert.equal(f('no figure here', 45, 'days'), 'no figure here', 'unchanged where there is nothing to write');
+    assert.equal(w.win.ladderWords(118), 'one hundred and eighteen');
+  });
+
+  test('(31) a topic whose own reader finds no figure in the clause is refused', async () => {
+    const w = await buildWorld({ ladder: true });
+    const mk = (label, text) => ({ id: 'X', clauseId: 'cl_x', clauseLabel: label, changeType: 'modify',
+      oldText: text, newText: text + ' Amended.', status: 'pending', authorSide: 'owner', seq: 1 });
+    const ins = { id: 'MK-2', changes: [mk('3. INSURANCE', 'The Supplier shall maintain product liability insurance.')] };
+    assert.equal(w.win.ladderTopic(w.win.ladderRungs(ins, 'cl_x')), null,
+      '"product liability insurance" read as the liability topic and drew the liability fallback beside an insurance clause');
+    const liab = { id: 'MK-3', changes: [mk('4. Limitation of liability', 'The cap is twelve (12) months of fees.')] };
+    const t = w.win.ladderTopic(w.win.ladderRungs(liab, 'cl_x'));
+    assert.ok(t && t.key === 'liability', 'a clause that carries the figure keeps its topic');
+  });
+
+  test('(32) the standard is still the playbook\'s where the range reader misses the drafted figure', async () => {
+    const w = await buildWorld({ ladder: true, playbook: true });
+    /* playbookKeyFor opens by calling cKind and playbook() reads state bare —
+       the stage answers both as test/world.js does for the playbook's own files. */
+    w.win.state = w.win.state || { contracts: [], settings: {} };
+    w.win.cKind = w.win.cKind || (() => 'Contract');
+    const row = w.win.ladderStand(book(), 'cl_4', 'owner');
+    assert.ok(row.standard, 'the range reader does not read "twelve (12) months of fees"; the topic key does');
+    assert.equal(row.standard.key, 'liabilityMonths');
+    assert.equal(row.standard.op, '>=');
+    assert.equal(row.standard.value, 12);
+  });
+
+  test('(33) the fallback is the clause library\'s own, and "within" follows which way is worse', async () => {
+    const w = await buildWorld({ ladder: true, playbook: true });
+    w.win.state = w.win.state || { contracts: [], settings: {} };
+    w.win.cKind = w.win.cKind || (() => 'Contract');
+    const liab = w.win.precedentTopicByKey('liability'), pay = w.win.precedentTopicByKey('payment');
+    const fb = w.win.ladderFallback(liab);
+    assert.ok(fb && /capped/i.test(fb.text), 'the library\'s fallback wording');
+    assert.equal(fb.figure, null, 'which holds no figure — and none is invented');
+    assert.equal(w.win.ladderFallback(pay).figure, 45);
+    assert.equal(w.win.ladderWithin(liab, 6, 12), false, 'a cap below the bound is worse');
+    assert.equal(w.win.ladderWithin(liab, 18, 12), true);
+    assert.equal(w.win.ladderWithin(pay, 60, 45), false, 'more days to pay is worse');
+    assert.equal(w.win.ladderWithin(pay, 30, 45), true);
+    assert.equal(w.win.ladderWithin(pay, null, 45), null, 'no figure, no answer');
+  });
+
+  test('(34) the deal board is a PAGE, our seat only, and a reading tab puts the paper back', () => {
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const open = v.slice(v.indexOf('function openDealBoard(){'), v.indexOf('\n}\n', v.indexOf('function openDealBoard(){')));
+    assert.ok(!open.includes('openModal('), 'no window: it is a page');
+    assert.ok(open.includes('rlBoardSet(true)') && open.includes('renderRedline()'), 'the flag and the repaint');
+    assert.match(v, /opts\.side !== 'counterparty' && !opts\.preview && _rlBoardOpen\) \? rlBoardPageHtml\(c\)/,
+      'drawn in the working area, never on their seat or a preview');
+    const at = v.indexOf("rlSetReadMode(b.getAttribute('data-rl-read'));");
+    assert.ok(at > 0, 'the reading press is still one handler');
+    const read = v.slice(at, v.indexOf('rlRepaintFrom(b);', at));
+    assert.ok(read.includes('rlBoardSet(false)'), 'a reading press takes the board down');
+    assert.ok(/_rlBoardOpen \? ' rl-board-on' : ''/.test(v), 'and the page wears the flag so the grid steps aside');
+    assert.ok(!/const RL_READS = \[[^\]]*board/.test(v), 'still not a fourth reading');
+  });
+
+  test('(35) the rail\'s ladder card is worked out, never asked for', () => {
+    const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'clauseeditor.js'), 'utf8');
+    const card = v.slice(v.indexOf('function ceLadderCardHtml(){'), v.indexOf('function ceLadderLaneHtml(){'));
+    assert.ok(card.length > 200, 'the card builder is there');
+    for (const bad of ['fetch(', 'api(', 'copilotPropose', 'anthropic', 'copilotAsk'])
+      assert.ok(!card.includes(bad), `the card must not call ${bad}`);
+    assert.ok(/data-ce-tab="ladder"/.test(v) && /data-ce-tab="figure"/.test(v), 'the two tabs');
+    assert.match(v, /if \(!why && _ceHeldNote\) why = _ceHeldNote;/, 'a kept note rides the filing as its reason');
+    assert.ok(!/typing: true/.test(v.slice(v.indexOf('function ceFigureWrite'), v.indexOf('function ceRenderTabs'))),
+      'writing the figure never asks to type — Apply is the door');
+  });
+
+  test('(36) every paper passes whose mark it is', () => {
+    const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const ce = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'clauseeditor.js'), 'utf8');
+    const portal = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'portal.js'), 'utf8');
+    assert.ok(nego.includes("redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner') })"), 'the room\'s canvas');
+    assert.ok(nego.includes('redlineOpsBlocksHtml(ops, { title: tip, who: whoM })'), 'the negotiate page and the editor\'s canvas');
+    assert.ok(ce.includes("redlineOpsBlocksHtml(ops, { who: 'us' })"), 'the editor\'s own draft');
+    assert.ok(portal.includes('redlineOpsHtml(ch.ops, { who: whoM })'), 'the counterparty\'s viewer, from their chair');
+    assert.match(nego, /function rlSideWho\(ch, viewerSide\)\{/, 'one reading of whose side, from this chair');
+  });
+
+  test('(37) both dictionaries carry every key the artifact added', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    const keys = Object.keys(STRINGS.en).filter(k => /^(ng_(pb|fig|notes|base)_|ce_lc_|ce_tab_(ladder|figure)|ng_rung_(not_sent|tag_draft|yours|theirs|on_word)|ng_row_ladder|ng_counter|ng_discard)/.test(k));
+    assert.ok(keys.length > 60, `expected the artifact's keys, found ${keys.length}`);
+    for (const k of keys) assert.ok(STRINGS.sv[k], `sv is missing ${k}`);
+  });
+
 });

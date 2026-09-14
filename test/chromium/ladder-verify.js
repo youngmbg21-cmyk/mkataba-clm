@@ -360,6 +360,156 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     seat.chips > 0 && seat.ladderInPanel, JSON.stringify(seat));
   check('14c and our precedent never reaches it', !seat.precedentInPanel);
 
+
+  /* ============================================================
+     15–21 · THE ARTIFACT, BUILT AS DRAWN (Young ruled 14 Sep 2026)
+     ============================================================
+     Every check below is a real press or a measured pixel on the staged
+     page: the colours on every mark, the fuller chip, the line under a
+     stacked clause, the column's verbs and track, the panel's tail, the
+     board as a page and the editor's three tabs. */
+  await page.evaluate(() => { if (window.rlCloseClauseEditor && window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor();
+    if (window.rlSetReadMode) rlSetReadMode('marks'); if (window.rlBoardSet) rlBoardSet(false); if (window.rlCpSetShown) rlCpSetShown(document, null); renderRedline(); });
+  await pause(400);
+
+  /* 15 · every mark wears its side */
+  const sides = await page.evaluate(cid => {
+    const marks = [...document.querySelectorAll('#rl-doc ins.nego-ins, #rl-doc del.nego-del')];
+    const bare = marks.filter(el => !/\brl-(us|them)\b/.test(el.className)).length;
+    const insUs = document.querySelector('#rl-doc ins.rl-us'), insThem = document.querySelector('#rl-doc ins.rl-them');
+    const lone = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"] ins.rl-them`);
+    const leg = document.querySelector('.rl-legend .rl-lg-them');
+    return { n: marks.length, bare,
+      usUnderlined: insUs ? /underline/.test(getComputedStyle(insUs).textDecorationLine) : null,
+      themUnderlined: insThem ? /underline/.test(getComputedStyle(insThem).textDecorationLine) : null,
+      loneAmber: !!(lone && leg) && getComputedStyle(lone).backgroundColor === getComputedStyle(leg).backgroundColor };
+  }, staged.c5);
+  check('15a every mark on the paper carries its author\'s side', sides.n > 0 && sides.bare === 0, JSON.stringify(sides));
+  check('15b an added run is underlined, ours and theirs alike', sides.usUnderlined === true && sides.themUnderlined === true, JSON.stringify(sides));
+  check('15c a LONE ask of theirs wears the amber the key promises', sides.loneAmber, JSON.stringify(sides));
+
+  /* 16 · the chip: "not sent", beside the heading */
+  const chip16 = await page.evaluate(cid => {
+    const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
+    const el = sec && sec.querySelector('.rl-rung'); const h = sec && sec.querySelector('.rl-clause-h');
+    if (!el || !h) return null;
+    const a = el.getBoundingClientRect(), b = h.getBoundingClientRect();
+    return { text: el.textContent.trim(), gap: Math.round(a.left - b.right), sameLine: Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 8 };
+  }, staged.c4);
+  check('16a our unsent top move says so on the chip', !!chip16 && /not sent/i.test(chip16.text), chip16 && chip16.text);
+  check('16b the chip sits beside the heading, not at the far end of the row', !!chip16 && chip16.gap >= 0 && chip16.gap <= 24 && chip16.sameLine, JSON.stringify(chip16));
+
+  /* 17 · the line under a stacked clause */
+  const base17 = await page.evaluate(o => {
+    const l = document.querySelector(`.rl-baseline[data-rl-baseline="${CSS.escape(o.c4)}"]`);
+    const lone = document.querySelector(`.rl-baseline[data-rl-baseline="${CSS.escape(o.c5)}"]`);
+    return { text: l ? l.textContent.replace(/\s+/g, ' ').trim() : null, seen: !!l && l.getBoundingClientRect().height > 0,
+      lone: !!lone, press: !!(l && l.querySelector('[data-rl-read="agreed"]')) };
+  }, { c4: staged.c4, c5: staged.c5 });
+  check('17a the stacked clause carries the line naming what the plain words are', base17.seen && /Plain text on clause/.test(base17.text) && /R0/.test(base17.text), base17.text);
+  check('17b a lone ask carries no line', !base17.lone);
+  check('17c its "As agreed" is a real press onto the reading', base17.press);
+  await page.click(`.rl-baseline[data-rl-baseline="${staged.c4}"] [data-rl-read="agreed"]`); await pause(400);
+  const read17 = await page.evaluate(() => ({ mode: rlReadMode(), lines: document.querySelectorAll('.rl-baseline').length }));
+  check('17d pressing it reads the paper as agreed, and the line stands down with the marks', read17.mode === 'agreed' && read17.lines === 0, JSON.stringify(read17));
+  await page.click('[data-rl-read="marks"]'); await pause(400);
+
+  /* 18 · the column: one row per argument, the verbs on the face, the track */
+  const col18 = await page.evaluate(o => {
+    const rows = [...document.querySelectorAll('#rl-changes .rl-card-d')];
+    const rowFor = id => rows.find(r => (r.querySelector('.rl-card-face [data-rl-ladder]') || {}).getAttribute && r.querySelector('.rl-card-face [data-rl-ladder]').getAttribute('data-rl-ladder') === id);
+    const r4 = rowFor(o.c4), r5 = rowFor(o.c5);
+    const verbs = r => r ? [...r.querySelectorAll('.rl-card-face button')].map(b => b.textContent.trim()) : null;
+    return { rows: rows.length, v4: verbs(r4), v5: verbs(r5),
+      track4: r4 && r4.querySelector('.rl-card-track') ? r4.querySelector('.rl-card-track').textContent.replace(/\s+/g, ' ').trim() : null,
+      bands: [...document.querySelectorAll('#rl-changes .rl-band span:first-child')].map(b => b.textContent.trim()),
+      awaitingInk: (() => { const b = document.querySelector('#rl-changes .rl-band[data-rl-band="awaiting"]'); return b ? getComputedStyle(b).color : null; })() };
+  }, { c4: staged.c4, c5: staged.c5 });
+  check('18a one row per argument — the parked asks fold under the counter', col18.rows === 2, 'rows ' + col18.rows);
+  check('18b their live ask offers Accept · Reject · Counter · Ladder on its face', !!col18.v5 && /Accept/.test(col18.v5[0]) && /Reject/.test(col18.v5[1]) && /Counter/.test(col18.v5[2]) && col18.v5.some(v => /Ladder/.test(v)), JSON.stringify(col18.v5));
+  check('18c our unsent draft offers Edit · Send · Discard · Ladder', !!col18.v4 && /Edit/.test(col18.v4[0]) && /Send/.test(col18.v4[1]) && /Discard/.test(col18.v4[2]) && col18.v4.some(v => /Ladder/.test(v)), JSON.stringify(col18.v4));
+  check('18d the argued figure is a track under the row', !!col18.track4 && /R0 12/.test(col18.track4) && /R3 18/.test(col18.track4), col18.track4);
+  check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
+  check('18f the pile that needs the reader is amber', !!col18.awaitingInk && col18.awaitingInk !== 'rgb(0, 0, 0)' && /rgb\(180, 83, 9\)|rgb\(251, 191, 36\)/.test(col18.awaitingInk), col18.awaitingInk);
+  /* THE PANEL COVERS THE COLUMN while it is open, so it is shut first and
+     the press is dispatched in the page, as this file's other presses are. */
+  await page.evaluate(id => { rlCpSetShown(document, null); const b = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(id)}"]`); b && b.click(); }, staged.c4); await pause(400);
+  const lad18 = await page.evaluate(id => { const b = document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`); return !!(b && b.classList.contains('is-on') && document.querySelector('#rl-cp.is-open')); }, staged.c4);
+  check('18g the row\'s Ladder opens the clause panel on that clause', lad18);
+
+  /* 19 · the panel's tail */
+  const tail19 = await page.evaluate(() => {
+    const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+    const secs = on ? [...on.querySelectorAll('.rl-cp-sec')].map(s => s.className.replace(/rl-cp-sec\s*/, '').trim()) : [];
+    const i = secs.indexOf('rl-ladder-sec');
+    const win = on ? on.querySelectorAll('.rl-rung-row.rl-rung-win').length : 0;
+    const top = on && on.querySelector('.rl-ladder .rl-rung-row');
+    const acts = top ? [...top.querySelectorAll('.rl-rung-acts button')].map(b => b.textContent.trim()) : [];
+    return { secs, after: i >= 0 ? secs.slice(i + 1) : [], win, acts,
+      std: (on && on.querySelector('.rl-pbook b') || {}).textContent, fig: !!(on && on.querySelector('.rl-fig-sec .rl-scale')),
+      /* The drawer's door needs js/app.js, which this harness does not load; the section and its count are what is asked. */
+      write: !!(on && on.querySelector('[data-rl-fig-write]')), notes: !!(on && on.querySelector('.rl-notes-sec .rl-notes-row')) };
+  });
+  check('19a Your playbook, The figure and Notes follow the ladder, in that order', tail19.after.join('|') === 'rl-pb-sec|rl-fig-sec|rl-notes-sec', tail19.secs.join(' · '));
+  check('19b the two moves the paper shows are shaded on the ladder', tail19.win === 2, 'shaded ' + tail19.win);
+  check('19c the top rung carries the verbs — Edit · Send · Discard on our draft', tail19.acts.some(a => /Edit/.test(a)) && tail19.acts.some(a => /Send/.test(a)) && tail19.acts.some(a => /Discard/.test(a)), JSON.stringify(tail19.acts));
+  check('19d the standard is the playbook\'s own figure', /12/.test(tail19.std || ''), tail19.std);
+  check('19e the figure scale and the write press are drawn', tail19.fig && tail19.write && tail19.notes);
+  await page.evaluate(id => { const b = document.getElementById('rl-fig-' + id); if (b) b.value = '20'; }, staged.c4);
+  await page.evaluate(() => { const b = document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-fig-write]'); b && b.click(); }); await pause(900);
+  const wrote19 = await page.evaluate(() => ({ open: !!(window.clauseEditorOpen && clauseEditorOpen()), draft: window.ceDraftNow ? ceDraftNow() : '' }));
+  check('19f "Write it into the clause" opens the editor with the figure in the box', wrote19.open && /twenty \(20\) months/.test(wrote19.draft), JSON.stringify({ open: wrote19.open, draft: wrote19.draft.slice(0, 120) }));
+
+  /* 21 · the editor: Done beside the chip, three tabs, the card.
+     Apply ends typing (the 30 Aug rule), so the reader clicks into the
+     wording to type — a real click, which is the door the pencil answers. */
+  const wordBox = await page.evaluate(cid => { const p = document.querySelector(`#ce-doc .rl-clause[data-clause="${CSS.escape(cid)}"] .nego-body p, #ce-doc .rl-clause[data-clause="${CSS.escape(cid)}"] p`); const r = p.getBoundingClientRect(); return { x: r.left + 40, y: r.top + 8 }; }, staged.c4);
+  await page.mouse.click(wordBox.x, wordBox.y); await pause(600);
+  const ed21 = await page.evaluate(cid => {
+    const sec = document.querySelector(`#ce-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
+    const chip = sec && sec.querySelector('.rl-rung'); const done = sec && sec.querySelector('.rl-cp-pill-done');
+    const tabs = [...document.querySelectorAll('[data-ce-tab]')].map(b => b.getAttribute('data-ce-tab'));
+    const card = document.querySelector('#ce-lane .ce-lcard');
+    return { chip: chip ? chip.textContent.trim() : null, done: done ? done.textContent.trim() : null,
+      doneSeen: !!done && done.getBoundingClientRect().width > 0,
+      besides: !!(chip && done) && done.getBoundingClientRect().left >= chip.getBoundingClientRect().right,
+      tabs, card: !!card && card.getBoundingClientRect().height > 0,
+      cardHeads: card ? [...card.querySelectorAll('.k')].map(k => k.textContent.trim()) : [] };
+  }, staged.c4);
+  check('21a the chip is on the editor\'s paper too, as a statement', !!ed21.chip && /R3/.test(ed21.chip), ed21.chip);
+  check('21b while typing the pencil says Done, visibly, beside the chip', ed21.done === 'Done' && ed21.doneSeen && ed21.besides, JSON.stringify({ done: ed21.done, seen: ed21.doneSeen, besides: ed21.besides }));
+  check('21c the rail has Suggestions · Ladder · Figure · Playbook scan', ed21.tabs.join(',') === 'chat,ladder,figure,scan', ed21.tabs.join(','));
+  check('21d the ladder card leads the conversation with what moved, the ladder and the precedent', ed21.card && ed21.cardHeads.length >= 3, ed21.cardHeads.join(' · '));
+  await page.evaluate(() => document.querySelector('[data-ce-tab="ladder"]').click()); await pause(300);
+  const lad21 = await page.evaluate(() => ({ rows: document.querySelectorAll('#ce-lane .rl-ladder .rl-rung-row').length, pb: !!document.querySelector('#ce-lane .rl-pb-sec') }));
+  check('21e the Ladder tab draws the ladder and the playbook in the rail', lad21.rows >= 3 && lad21.pb, JSON.stringify(lad21));
+  await page.evaluate(() => document.querySelector('[data-ce-tab="figure"]').click()); await pause(300);
+  await page.evaluate(() => { const b = document.getElementById('ce-fig'); if (b) b.value = '21'; });
+  await page.evaluate(() => document.querySelector('#ce-lane [data-ce-act="fig-write"]').click()); await pause(500);
+  const fig21 = await page.evaluate(() => ({ draft: ceDraftNow(), tab: document.querySelector('[data-ce-tab].is-on') ? document.querySelector('[data-ce-tab].is-on').getAttribute('data-ce-tab') : '' }));
+  check('21f the Figure tab writes the figure into the box and returns to Suggestions', /twenty-one \(21\) months/.test(fig21.draft) && fig21.tab === 'chat', JSON.stringify({ tab: fig21.tab, draft: fig21.draft.slice(0, 100) }));
+  await page.evaluate(() => { if (window.ceDiscard) ceDiscard(); rlCloseClauseEditor(); }); await pause(400);
+  await page.evaluate(() => { const c = window.CONTRACT; if (window.confirmDialog) window.confirmDialog = (o) => Promise.resolve(true); });
+
+  /* 20 · the deal board is a page */
+  await page.evaluate(() => { const p = document.querySelector('#rl-cp'); if (p) p.classList.remove('is-open'); });
+  await page.evaluate(() => document.querySelector('.rl-boardseg').click()); await pause(500);
+  const board20 = await page.evaluate(() => {
+    const pg = document.querySelector('.rl-boardpage'); const grid = document.getElementById('rl-grid');
+    const seg = document.querySelector('.rl-boardseg'); const title = document.getElementById('shell-title');
+    return { page: !!pg && pg.getBoundingClientRect().height > 0, gridHidden: !!grid && getComputedStyle(grid).display === 'none',
+      lit: !!seg && seg.classList.contains('on'), cols: document.querySelectorAll('.db-t thead th').length,
+      memo: !!document.querySelector('[data-rl-board-memo]'), noReadingLit: !document.querySelector('.rl-readwrap .rl-seg.on'),
+      modal: (document.getElementById('modal-root') || { innerHTML: '' }).innerHTML.trim().length,
+      title: title ? title.textContent.trim() : null, within: /within your fallback/.test((document.querySelector('.db-sum') || {}).textContent || '') };
+  });
+  check('20a the board is a PAGE in the working area, and the grid steps aside', board20.page && board20.gridHidden && board20.modal === 0, JSON.stringify(board20));
+  check('20b its tab is lit and no reading is', board20.lit && board20.noReadingLit);
+  check('20c nine columns, the fallback and the walk-away among them, and Copy as memo', board20.cols === 9 && board20.memo && board20.within, JSON.stringify({ cols: board20.cols, memo: board20.memo }));
+  await page.evaluate(() => document.querySelector('.rl-readwrap [data-rl-read="marks"]').click()); await pause(500);
+  const back20 = await page.evaluate(() => ({ page: !!document.querySelector('.rl-boardpage'), grid: getComputedStyle(document.getElementById('rl-grid')).display !== 'none', lit: !!document.querySelector('.rl-readwrap .rl-seg.on') }));
+  check('20d pressing a reading puts the paper back', !back20.page && back20.grid && back20.lit, JSON.stringify(back20));
+
   check('9 no page error anywhere in the run', errs.length === 0, errs.join(' | ').slice(0, 300));
   console.log(`\n${results.filter(r=>r.pass).length}/${results.length} passed`);
   await browser.close(); srv.close();

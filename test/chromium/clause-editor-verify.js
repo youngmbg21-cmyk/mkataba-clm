@@ -193,13 +193,18 @@ const dismissNote = async pg => {
       || document.querySelector(`.redline-page [data-rl-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
     if (!card) return null;
-    const all = [...card.querySelectorAll('[data-rl-cp-editor-row]')];
+    /* RE-POINTED 14 Sep 2026: the face draws the artifact's Counter / Edit
+       as a copy of the body's own door (picked out of the same list, see
+       rlRowFaceVerbs); the BODY's door is still exactly one. */
+    const all = [...card.querySelectorAll('.rl-card-verbs [data-rl-cp-editor-row]')];
+    const face = card.querySelector('.rl-card-face [data-rl-cp-editor-row]');
     return { n: all.length,
       label: all[0] ? (all[0].textContent || '').trim() : '',
-      onFace: !!all[0] && !all[0].closest('.rl-cb-wrap') };
+      onFace: !!face,
+      sameChange: !face || !all[0] || face.getAttribute('data-rl-cp-editor-change') === all[0].getAttribute('data-rl-cp-editor-change') };
   }, staged.id);
-  ck('1b the editor door is drawn exactly once — never twice, never nowhere',
-     !!doorCount && doorCount.n === 1, doorCount && `${doorCount.n} drawn`);
+  ck('1b the editor door is drawn exactly once in the body — never twice, never nowhere — and the face\'s copy names the same change',
+     !!doorCount && doorCount.n === 1 && doorCount.sameChange, doorCount && `${doorCount.n} drawn`);
   ck('1c and it wears its words, not a bare mark',
      !!doorCount && doorCount.label.length > 1, doorCount && doorCount.label);
   /* RE-POINTED 2 Sep 2026: the height came off the menu ROW, which was a
@@ -1291,7 +1296,9 @@ const dismissNote = async pg => {
 
   const readLane = async () => await p.evaluate(() => {
     const lane = document.querySelector('#ce-lane');
-    const card = lane && lane.querySelector('.ce-card');
+    /* The ladder card (.ce-lcard) leads every lane since 14 Sep 2026 and is
+       not an answer; the question is whether the ANSWER drew one. */
+    const card = lane && lane.querySelector('.ce-card:not(.ce-lcard)');
     const cr = card ? card.getBoundingClientRect() : null;
     const bubbles = [...(lane ? lane.querySelectorAll('.ce-ai p.t') : [])];
     const said = bubbles.map(b => ({ text: b.textContent.replace(/\s+/g, ' ').trim(),
@@ -2337,8 +2344,8 @@ const dismissNote = async pg => {
   ck('20e THE CHANGES TAB IS DELETED, not hidden',
      chg.tab === false && chg.rows === 0 && chg.badge === false,
      `tab ${chg.tab} · rows ${chg.rows} · badge ${chg.badge}`);
-  ck('20f …and the rail is Copilot and the playbook scan',
-     JSON.stringify(chg.tabs) === JSON.stringify(['chat', 'scan']), chg.tabs.join(','));
+  ck('20f …and the rail is Copilot, the ladder, the figure and the playbook scan',
+     JSON.stringify(chg.tabs) === JSON.stringify(['chat', 'ladder', 'figure', 'scan']), chg.tabs.join(','));
 
   /* ---- 20i THE REDLINED READING SHOWS THE REDLINES ----
      (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined

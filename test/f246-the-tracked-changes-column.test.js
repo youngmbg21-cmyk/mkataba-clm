@@ -481,7 +481,14 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
     const card = p.$('#rl-changes .rl-card-d');
     const meta = card.querySelector('.rl-card-meta').textContent;
     const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
-    assert.ok(meta.includes(ch.id), 'the reference');
+    /* RE-POINTED 14 Sep 2026 (the artifact's row, Young: "replicate the
+       artifact"): THE CLAUSE LEADS THE ROW and the reference rides the hover
+       — the row reads "Clause 4 · Limitation of liability" and CHG-003 is
+       the first thing in its title. Nothing is lost: the id is in the open
+       card and on every note. */
+    assert.ok(!meta.includes(ch.id), 'the reference is off the face');
+    assert.ok(String(card.querySelector('.rl-card-meta').getAttribute('title') || '').includes(ch.id),
+      'and on the hover');
     /* RE-POINTED 10 Sep 2026 (one clause-name format on screen): the row prints
        the STAMPED name in the product's one format, so the claim is the RELATION
        — it names the clause this change is on — rather than the stored string's
@@ -490,8 +497,13 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
       ? p.win.negoClauseName(String(ch.clauseLabel || ch.clauseId))
       : String(ch.clauseLabel || ch.clauseId);
     assert.ok(meta.includes(shown), 'and the clause it is on');
-    assert.equal(card.querySelector('.rl-card-sum').textContent.trim(), ch.summary,
-      'and the bold line is the change\'s own summary, quoted, never composed here');
+    /* AND THE SECOND LINE IS THE CLAUSE'S ARGUMENT (14 Sep 2026): the figure
+       track where the clause is argued in a number, else the rung, whose it
+       is, and the summary the funnel wrote — quoted, never composed. */
+    const sum = card.querySelector('.rl-card-sum');
+    assert.ok(sum, 'a second line');
+    assert.ok(sum.classList.contains('rl-card-track') || sum.textContent.includes(ch.summary),
+      'the track, or the rung sentence carrying the change\'s own summary');
   });
 
   /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026) ----
@@ -566,16 +578,28 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
   /* ---- AND THE FACE CARRIES ONE CONTROL AND NOTHING ELSE ----
      The whole of the owner's ruling, asserted as an ABSENCE: a closed card may
      offer no verb at all, because the reader is meant to open it first. */
-  test('a closed card offers exactly one control, and it is Open', async () => {
+  test('a closed card offers the artifact\'s verbs on its face, and Open is the last of them', async () => {
+    /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column). The
+       2 Sep ruling put ONE control on the face; the approved artifact draws
+       Accept · Reject · Counter on an ask of theirs, Edit · Send · Discard on
+       a draft of ours, and Ladder on every row. THE FACE VERBS ARE PICKED OUT
+       OF THE BODY'S OWN LIST by the door each opens (rlRowFaceVerbs), so the
+       two cannot drift, and Open stays as the way to the wording, the notes
+       and Copilot's read. */
     const p = await bench();
     p.win.rlCardSetOpen(null); p.again();
     for (const card of p.$$('#rl-changes .rl-card-d')){
       const btns = [...card.querySelectorAll('button')];
-      assert.equal(btns.length, 1,
-        'one control on the face — found ' + btns.map(b => b.textContent.trim()).join(', '));
-      assert.ok(btns[0].hasAttribute('data-rl-card-open'), 'and it is Open');
-      assert.equal(btns[0].textContent.trim(), p.win.i18t('ng_row_open'));
-      assert.equal(btns[0].getAttribute('aria-expanded'), 'false');
+      const open = btns.filter(b => b.hasAttribute('data-rl-card-open'));
+      assert.equal(open.length, 1, 'exactly one Open');
+      assert.equal(open[0].textContent.trim(), p.win.i18t('ng_row_open'));
+      assert.equal(open[0].getAttribute('aria-expanded'), 'false');
+      assert.equal(btns[btns.length - 1], open[0], 'and it is the last control on the face');
+      const face = card.querySelector('.rl-card-face');
+      const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
+      if (ch && ch.authorSide === 'counterparty' && ch.status === 'pending')
+        assert.ok(face && face.querySelector('[data-nego-accept]') && face.querySelector('[data-nego-reject]'),
+          'their live ask offers Accept and Reject on the face');
     }
   });
 
@@ -655,9 +679,17 @@ describe('f246 (5) — the card opens instead of a menu', () => {
     let seen = 0;
     for (const ch of p.c.changes){
       const card = p.open(ch.id);
-      const doors = card.querySelectorAll('[data-rl-cp-editor-row]');
+      /* RE-POINTED 14 Sep 2026: the face draws the door too (the artifact's
+         Counter / Edit), picked out of the body's list as the SAME string with
+         its word swapped — so the body's own door is still exactly one, and
+         the face's copy carries the same change id by construction. */
+      const doors = card.querySelectorAll('.rl-card-verbs [data-rl-cp-editor-row]');
       assert.ok(doors.length <= 1,
         'one clause, one way into the edit page — ' + doors.length + ' drawn');
+      const faceDoor = card.querySelector('.rl-card-face [data-rl-cp-editor-row]');
+      if (faceDoor && doors.length)
+        assert.equal(faceDoor.getAttribute('data-rl-cp-editor-change'), doors[0].getAttribute('data-rl-cp-editor-change'),
+          'the face\'s copy names the same change');
       if (doors.length){
         seen += 1;
         assert.equal(doors[0].getAttribute('data-rl-cp-editor-change'), ch.id,
@@ -672,7 +704,8 @@ describe('f246 (5) — the card opens instead of a menu', () => {
        so the name and the violet come back rather than going with the menu. */
     const p = await bench();
     const card = p.open(p.c.changes.find(x => x.authorSide === 'counterparty').id);
-    const b = card.querySelector('[data-rl-cp-editor-row]');
+    /* The BODY's door (the face's copy says the artifact's one word, Counter). */
+    const b = card.querySelector('.rl-card-verbs [data-rl-cp-editor-row]');
     assert.ok(b, 'the door is there');
     assert.ok(b.textContent.includes(p.win.i18t('ng_cp_copilot')), 'and it says so');
     assert.ok(b.classList.contains('rl-verb-ai'), 'wearing the Copilot class');

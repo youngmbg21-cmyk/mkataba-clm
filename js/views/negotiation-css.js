@@ -2252,7 +2252,10 @@ function redlineLayoutCss(){
      has to be able to tell the two apart without reading the tag. */
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,var(--st-green-dot) 7%,transparent);
     border-color:color-mix(in srgb,var(--st-green-dot) 34%,transparent)}
-  .redline-page .rl-clause-top{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .redline-page .rl-clause-top{position:relative;display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap}
+  
+  .redline-page .rl-clause-top:has(.rl-rung) .rl-clause-h{padding-right:0}
+  .redline-page .rl-clause-top:has(.rl-cp-pill-done) .rl-clause-h{padding-right:0}
   /* ---- THE GREEN EDIT PILL (owner-asked, 16 Aug 2026) ----
      Top right of every clause, always drawn, in the emerald this page already
      wears for "your redlines travel on this colour". margin-left:auto rather
@@ -2894,6 +2897,22 @@ function redlineLayoutCss(){
          underneath carry no boxes of their own. It bleeds to the column's
          walls: the rail's own 16px inset is cancelled and put back inside, so
          the strip runs the full width while the words line up with the rows. */}
+  
+  .redline-page .rl-band[data-rl-band="awaiting"]{color:var(--st-amber-fg)}
+  
+  .redline-page .rl-card-d .rl-card-face{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap;
+    justify-content:flex-end;min-width:0}
+  .redline-page .rl-card-d .rl-card-face button{border:0;background:none;padding:0;height:auto;min-height:0;
+    font-size:var(--t-meta);font-weight:var(--w-title);line-height:18px;cursor:pointer;white-space:nowrap}
+  .redline-page .rl-card-d .rl-card-face button:hover{text-decoration:underline;background:none}
+  .redline-page .rl-card-d .rl-card-face .rl-acc{color:var(--st-green-fg)}
+  .redline-page .rl-card-d .rl-card-face .rl-rej{color:var(--st-ruby-fg)}
+  .redline-page .rl-card-d .rl-card-face .rl-edit,.redline-page .rl-card-d .rl-card-face .rl-send{color:var(--accent-ink)}
+  .redline-page .rl-card-d .rl-card-face .rl-verb-ai{color:var(--accent-ink)}
+  .redline-page .rl-card-d .rl-card-face [data-rl-retract]{color:var(--color-neutral-600)}
+  .redline-page .rl-card-d .rl-card-track{white-space:normal}
+  
+  .redline-page .rl-card-d .rl-card-track .rl-ladder-track{margin:0}
   .redline-page .rl-band{display:flex;align-items:center;gap:var(--s-2);
     margin:0;padding:7px var(--s-4) 6px;background:var(--color-neutral-100);
     border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);
@@ -3258,6 +3277,22 @@ function redlineLayoutCss(){
          there is something to count. flex:none, so the NAME is what gives. */}
   .redline-page .rl-card-metarow{display:flex;align-items:center;gap:var(--s-2);min-width:0}
   .redline-page .rl-card-metarow > .rl-card-meta{flex:1 1 auto;min-width:0}
+  ${''/* ---- THE ROW IS TITLE · VERBS OVER ONE FULL-WIDTH LINE (the artifact's row, 14 Sep 2026) ----
+         The head becomes display:contents so its two lines are grid children in their own right: the
+         reference on row 1 beside the verbs, the argument (the track, or the rung sentence) on row 2
+         across the whole width. The verbs take their own width (max-content) and never wrap; the
+         reference is what elides. Open is a bare word like its siblings now that the face carries the
+         verbs the artifact draws. WRITTEN AFTER the row's own grid and side rules, because it beats
+         them by ORDER at equal specificity. */}
+  .redline-page .rl-card-d{grid-template-columns:minmax(0,1fr) max-content;row-gap:2px}
+  .redline-page .rl-card-d > .rl-card-txt{display:contents}
+  .redline-page .rl-card-d .rl-card-metarow{grid-column:1;grid-row:1;min-width:0}
+  .redline-page .rl-card-d > .rl-card-side{grid-column:2;grid-row:1;min-width:max-content;flex-wrap:nowrap}
+  .redline-page .rl-card-d .rl-card-sum{grid-column:1 / -1;grid-row:2;margin-top:0}
+  .redline-page .rl-card-d .rl-card-face{flex-wrap:nowrap}
+  .redline-page .rl-card-d .rl-card-open{border:0;background:none;padding:0;height:auto;min-width:0;
+    margin-left:0;font-size:var(--t-meta);font-weight:var(--w-title);line-height:18px;color:var(--accent-ink)}
+  .redline-page .rl-card-d .rl-card-open:hover{background:none;text-decoration:underline;color:var(--accent-ink)}
   .redline-page .rl-card-notes{display:inline-flex;align-items:center;gap:4px;flex:none;
     border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);
     font-weight:var(--w-strong);color:var(--color-neutral-600);cursor:pointer;line-height:18px}
@@ -4127,8 +4162,14 @@ function redlineLayoutCss(){
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them,.rl-col ins.rl-them,.rl-col del.rl-them,.pv-sheet ins.rl-them,.pv-sheet del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us,.rl-col ins.rl-us,.rl-col del.rl-us,.pv-sheet ins.rl-us,.pv-sheet del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
+     say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
+     Written on the sided classes only: a mark carrying neither side keeps the
+     green/red it always had. */
+  .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
+  .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
   .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
   .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
@@ -5168,7 +5209,7 @@ function redlineLayoutCss(){
          beside the heading and the row's height is the heading's, as before.
          It follows the sheet's own type (--doc-scale), like every other mark
          ON the paper. */}
-  .redline-page .rl-rung{flex:none;font:inherit;font-size:calc(10.5px * var(--doc-scale,1));
+  .redline-page .rl-rung{flex:none;font:inherit;font-size:calc(10.5px * var(--doc-scale,1));display:inline-block;
     font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;
     padding:calc(3px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1));
     border:0;border-radius:var(--radius);cursor:pointer;white-space:nowrap;
@@ -5184,6 +5225,20 @@ function redlineLayoutCss(){
          and a chip that reserved less would overlap it again. Where the
          pencil stands down for a colleague's lock the monogram takes the
          same box, so the reserve is right either way. */}
+  
+  .redline-page .rl-cp-pill.rl-cp-pill-done{position:static;opacity:1;flex:none;gap:5px;
+    height:24px;padding:0 9px;border:1px solid var(--color-accent-600);
+    background:var(--color-surface);color:var(--accent-ink);
+    font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none}
+  .redline-page .rl-cp-pill.rl-cp-pill-done svg{width:14px;height:14px}
+  .redline-page .rl-cp-pill.rl-cp-pill-done:hover{background:var(--color-accent-100)}
+  
+  .redline-page .rl-baseline{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 16px;
+    font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-baseline b{color:var(--color-text);font-weight:var(--w-title)}
+  .redline-page .rl-baseline button{border:0;background:none;padding:0;font:inherit;cursor:pointer;
+    color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+  .redline-page .rl-rung-static{cursor:default}
   .redline-page .rl-rung:hover{filter:brightness(.96)}
   .redline-page .rl-rung:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
   .redline-page .rl-rung-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -5296,6 +5351,69 @@ function redlineLayoutCss(){
          redlineLayoutCss's scoped block would miss it. That is the
          clothes-follow-the-builder lesson, and it is why these selectors
          carry no .redline-page. */}
+  /* ---- THE LADDER'S WINDOW, THE PLAYBOOK, THE FIGURE, THE NOTES (the
+     artifact's panel, 14 Sep 2026) ---- */
+  .redline-page .rl-rung-row.rl-rung-win{background:linear-gradient(90deg,color-mix(in srgb, var(--accent-solid) 9%, transparent),transparent 70%);
+    margin-inline:-8px;padding-inline:30px 8px}
+  .redline-page .rl-rung-row.rl-rung-win::before{left:12px}
+  .redline-page .rl-rung-row.rl-rung-win::after{left:16px}
+  .redline-page .rl-rung-acts button.rej{color:var(--st-ruby-fg)}
+  .redline-page .rl-rung-acts button.grey{color:var(--color-neutral-600)}
+  .redline-page .rl-pbook{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:var(--t-meta);
+    color:var(--color-neutral-600);align-items:baseline}
+  .redline-page .rl-pbook b{color:var(--color-text);font-weight:var(--w-title)}
+  .redline-page .rl-pbook .rl-pb-prec{color:var(--color-neutral-600)}
+  .redline-page .rl-pb-none{color:var(--color-neutral-400)}
+  .redline-page .rl-scale{margin:6px 0 0;padding:16px 0 0}
+  .redline-page .rl-sc-line{position:relative;height:42px;border-bottom:1px solid var(--color-divider);margin:0 10px}
+  .redline-page .rl-sc-tick{position:absolute;bottom:-1px;transform:translateX(-50%);font-size:var(--t-micro);
+    color:var(--color-neutral-600);padding-top:26px;font-family:var(--font-code)}
+  .redline-page .rl-sc-tick::before{content:'';position:absolute;left:50%;top:18px;width:1px;height:8px;background:var(--color-divider)}
+  .redline-page .rl-sc-mark{position:absolute;transform:translateX(-50%);top:0;font-size:var(--t-micro);font-weight:var(--w-title);
+    line-height:1;padding:3px 6px;border-radius:var(--radius);white-space:nowrap}
+  .redline-page .rl-sc-mark::after{content:'';position:absolute;left:50%;bottom:-8px;width:8px;height:8px;border-radius:50%;transform:translateX(-50%)}
+  .redline-page .rl-sc-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-sc-them::after{background:var(--st-amber-dot)}
+  .redline-page .rl-sc-you{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .redline-page .rl-sc-you::after{background:var(--color-accent-600)}
+  .redline-page .rl-sc-grey{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .redline-page .rl-sc-grey::after{background:var(--color-neutral-400)}
+  .redline-page .rl-sc-below{top:auto;bottom:-34px}
+  .redline-page .rl-sc-below::after{bottom:auto;top:-8px}
+  .redline-page .rl-sc-zone{position:absolute;top:28px;height:4px;background:var(--st-green-bg)}
+  .redline-page .rl-sc-note{font-size:var(--t-label);color:var(--color-neutral-600);margin:40px 0 0}
+  .redline-page .rl-figrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:var(--t-meta);margin-top:12px}
+  .redline-page .rl-figrow input[type=number]{font:inherit;font-family:var(--font-code);width:72px;height:var(--ctl-h);
+    border:1px solid var(--field-line,var(--color-divider));padding:0 8px;border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .redline-page .rl-figrow input[type=range]{width:100%;accent-color:var(--color-accent-600)}
+  .redline-page .rl-fig-u{color:var(--color-neutral-600)}
+  .redline-page .rl-notes-row{display:flex;gap:10px;align-items:center;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* ---- THE DEAL BOARD PAGE (14 Sep 2026) ---- the grid steps aside for it */
+  .redline-page.rl-board-on #rl-grid,.redline-page.rl-board-on .rl-turnwrap{display:none}
+  .redline-page .rl-boardpage{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 24px 40px}
+  .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff}
+  .db-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 12px;align-items:center}
+  .db-sum b{color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)}
+  .db-sum .sp{flex:1}
+  .db-t{background:var(--color-surface);border:1px solid var(--color-divider)}
+  .db-t th{padding:10px 12px}
+  .db-t td{padding:11px 12px}
+  .db-t td.db-n{text-align:right;font-variant-numeric:tabular-nums}
+  .db-gap{display:flex;align-items:center;gap:8px;min-width:180px}
+  .db-bar{flex:1;height:6px;background:var(--color-neutral-100);position:relative;margin:0 10px 0 4px;display:block;min-width:80px}
+  .db-bar i{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;transform:translateX(-50%)}
+  .db-bar i.t{background:var(--st-amber-dot)}
+  .db-bar i.y{background:var(--color-accent-600)}
+  .db-bar i.s{width:2px;height:12px;border-radius:0;top:-3px;background:var(--color-neutral-500)}
+  .db-bar b{position:absolute;top:0;height:6px;background:var(--st-ruby-bg)}
+  .db-gap-n,.db-gap-w{white-space:nowrap;color:var(--color-neutral-600);font-size:var(--t-meta)}
+  .db-move{font-weight:var(--w-title);white-space:nowrap}
+  .db-move-you{color:var(--st-amber-fg)}
+  .db-move-them{color:var(--accent-ink)}
+  .db-move-ok{color:var(--st-green-fg)}
+  .db-move-quiet{color:var(--color-neutral-600)}
+  .db-foot{font-size:var(--t-meta);color:var(--color-neutral-600);margin:12px 0 0;max-width:90ch}
+  .db-t td.db-c{white-space:normal;max-width:none;min-width:150px}
   .db{font-size:var(--t-body)}
   .db-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 4px}
   .db-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px}

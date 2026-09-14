@@ -159,6 +159,47 @@ function ladderSettled(rungs){
    the other, which is the same rule the marks themselves follow.
    Null where there is nothing to say — a clause nobody has touched carries
    no chip, because a chip saying "no moves" is furniture. */
+/* ---- IS THIS RUNG OF OURS STILL UNSENT (14 Sep 2026) ----
+   The RAW twin of negoUnsentAsks, which reads through negoPending → negoInit
+   and may not be asked by a reading drawn beside every clause. Same rule:
+   an ask of ours filed after the last hand-over (negotiation.turnAt), or
+   held back by a solo send (negotiation.holdIds), has not reached the other
+   side; where nothing has ever been handed over, our own asks are unsent and
+   theirs never are. Asked only of the reader's own rungs — the other side's
+   copy is on our record because it was sent. */
+function ladderUnsent(c, r, viewerSide){
+  if (!c || !r || !r.ch) return false;
+  const mine = (r.side === 'counterparty') === (viewerSide === 'counterparty');
+  if (!mine || r.status !== 'pending' || r.withdrawn) return false;
+  const neg = c.negotiation || null;
+  const hb = (neg && Array.isArray(neg.holdIds)) ? neg.holdIds : [];
+  if (hb.includes(r.id)) return true;
+  const at = neg && neg.turnAt;
+  return at ? String(r.ch.createdAt || '') > String(at) : viewerSide !== 'counterparty';
+}
+/* ---- WHAT THE PLAIN WORDS UNDER TWO MOVES ARE (14 Sep 2026) ----
+   The line the artifact prints under a stacked clause. The window draws the
+   top move against the one beneath it, so the words carrying no mark are the
+   wording the LOWER move was written on — somebody's proposal, not the agreed
+   text — and this says so, with the figure where the clause is argued in
+   one. Null where the clause is not a stack: a lone ask is drawn against the
+   agreed wording and the plain words are the contract's own. */
+function ladderBaseline(c, clauseId, viewerSide){
+  const rungs = ladderRungs(c, clauseId);
+  const top = ladderTop(rungs);
+  if (!top) return null;
+  const under = ladderUnder(rungs, top);
+  if (!under) return null;
+  const below = ladderUnder(rungs, under);
+  const mine = s => (s === 'counterparty') === (viewerSide === 'counterparty');
+  const topic = ladderTopic(rungs);
+  return {
+    below: below ? { n: below.n, who: mine(below.side) ? 'you' : 'them',
+      fig: ladderFigure(topic, below.text) } : null,
+    baseFig: ladderFigure(topic, ladderBaseText(rungs)),
+    unit: (topic && topic.unit) || ''
+  };
+}
 function ladderChip(c, clauseId, viewerSide){
   const rungs = ladderRungs(c, clauseId);
   if (!rungs.length) return null;
@@ -179,11 +220,16 @@ function ladderChip(c, clauseId, viewerSide){
   const key = under
     ? (mine(under.side) ? 'ng_rung_on_yours' : 'ng_rung_on_theirs')
     : 'ng_rung_plain';
+  /* "· not sent" on our own unsent top move — the one fact about the chip
+     that the column's band also carries, said here because the paper is
+     where the reader is looking (the artifact's chip, 14 Sep 2026). */
+  const unsent = who === 'you' && ladderUnsent(c, top, viewerSide);
   return {
     cls: who === 'you' ? 'you' : 'them',
-    key: 'move', n: top.n, under: under ? under.n : 0,
+    key: 'move', n: top.n, under: under ? under.n : 0, unsent,
     text: _ladderT(key, { n: top.n, u: under ? under.n : 0,
       who: _ladderT(who === 'you' ? 'ng_rung_your_move' : 'ng_rung_their_move') })
+      + (unsent ? ' · ' + _ladderT('ng_rung_not_sent') : '')
   };
 }
 /* The dictionary, asked safely: this file loads on stages that carry no
@@ -204,7 +250,21 @@ function _ladderT(key, vars){
 function ladderTopic(rungs){
   if (!Array.isArray(rungs) || !rungs.length) return null;
   if (typeof window === 'undefined' || typeof window.precedentTopicOf !== 'function') return null;
-  for (const r of rungs){ const t = window.precedentTopicOf(r.ch); if (t && typeof t.num === 'function') return t; }
+  for (const r of rungs){
+    const t = window.precedentTopicOf(r.ch);
+    if (!t || typeof t.num !== 'function') continue;
+    /* A TOPIC THAT CANNOT FIND ITS OWN FIGURE IN THE CLAUSE IS NOT THIS
+       CLAUSE'S TOPIC (measured 14 Sep 2026: an INSURANCE clause read as
+       "liability" off the words "product liability insurance", and the board
+       then printed the liability fallback beside it). precedentTopicOf reads
+       the heading first and the wording second, and the second reading is
+       right for counting precedent and wrong for naming a standard. So a
+       topic that carries a figure reader must find a figure in at least one
+       of the clause's wordings, or it is refused here. */
+    const has = [r.text, r.oldText].some(x => ladderFigure(t, x) != null)
+      || rungs.some(x => ladderFigure(t, x.text) != null);
+    if (has) return t;
+  }
   return null;
 }
 function ladderFigure(topic, text){
@@ -253,14 +313,25 @@ function ladderStandard(c, rungs, topic){
      the wording rather than matched by name, so a playbook that renames its
      ranges still lands on the right clause. */
   const text = (ladderTop(rungs) || rungs[rungs.length - 1] || {}).text || ladderBaseText(rungs);
+  const shape = r => ({ key: r.key, label: r.label || '', op: r.op || '', value: Number(r.value), note: r.note || '' });
   for (const r of pb.ranges){
     if (!r || !r.key) continue;
     let hit = null;
     try { hit = (typeof window.pbRangeRead === 'function') ? window.pbRangeRead(r.key, text) : null; } catch (_){}
-    if (hit) return { key: r.key, label: r.label || '', op: r.op || '', value: Number(r.value), note: r.note || '' };
+    if (hit) return shape(r);
   }
+  /* BY TOPIC where the wording defeats the range reader (14 Sep 2026): the
+     playbook's readers match "within 30 days" and "12 months' fees" and not
+     the drafted "thirty (30) days" — so on exactly the paper this ladder is
+     about, every standard read as absent. The range's key names the topic it
+     is about, and that pairing is the playbook's own (LADDER_RANGE_TOPIC
+     mirrors PB_RANGE_READERS' keys), so the standard is still the playbook's
+     and nothing is guessed. */
+  const want = LADDER_RANGE_TOPIC[topic.key];
+  if (want){ const r = pb.ranges.find(x => x && x.key === want); if (r) return shape(r); }
   return null;
 }
+const LADDER_RANGE_TOPIC = { payment: 'paymentDays', liability: 'liabilityMonths' };
 function ladderStand(c, clauseId, viewerSide){
   const rungs = ladderRungs(c, clauseId);
   if (!rungs.length) return null;
@@ -350,8 +421,64 @@ function ladderBoard(c, viewerSide){
   return rows;
 }
 
+/* ---- A FIGURE, WRITTEN BACK INTO THE WORDING (14 Sep 2026) ----
+   The artifact's "Write it into the clause": the sentence is written from
+   the figure, in words and digits, and everything else in the clause is
+   left exactly as it stands. It touches the ONE figure the clause is argued
+   in — the first "words (digits) unit" for the topic's unit, else the first
+   bare "digits unit" — and answers the text unchanged where there is none,
+   so a caller can tell "nothing to write" from "written". English words,
+   because contract text is never translated. */
+const LADDER_ONES = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+const LADDER_TENS = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+function ladderWords(n){
+  n = Math.round(Number(n));
+  if (!Number.isFinite(n) || n < 0) return String(n);
+  if (n < 20) return LADDER_ONES[n];
+  if (n < 100) return LADDER_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + LADDER_ONES[n % 10] : '');
+  if (n < 1000) return LADDER_ONES[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' and ' + ladderWords(n % 100) : '');
+  return String(n);
+}
+function ladderWriteFigure(text, n, unit){
+  const t = String(text == null ? '' : text);
+  const k = Math.round(Number(n));
+  if (!Number.isFinite(k)) return t;
+  const u = String(unit || '').replace(/s$/, '');
+  if (!u) return t;
+  const word = u + (k === 1 ? '' : 's');
+  const paren = new RegExp('\\b[a-z]+(?:-[a-z]+)?(?: (?:hundred|and) [a-z-]+)* \\((\\d{1,3})\\) ((?:calendar |working |business )?)' + u + 's?\\b', 'i');
+  if (paren.test(t)) return t.replace(paren, (m, d, q) => ladderWords(k) + ' (' + k + ') ' + q + word);
+  const bare = new RegExp('\\b(\\d{1,3}) ((?:calendar |working |business )?)' + u + 's?\\b', 'i');
+  if (bare.test(t)) return t.replace(bare, (m, d, q) => k + ' ' + q + word);
+  return t;
+}
+/* ---- THE PLAYBOOK'S FALLBACK FOR THIS TOPIC (14 Sep 2026) ----
+   The clause library holds a preferred wording and a fallback wording per
+   topic (js/playbook.js); the fallback's figure, read by the topic's own
+   reader, is the "as far as we can go" the artifact's card and scale draw.
+   Read through window and never guessed: a topic with no library clause, or
+   a fallback with no figure in it, answers null and the surface says so. */
+function ladderFallback(topic){
+  if (!topic || typeof window === 'undefined' || typeof window.clauseById !== 'function') return null;
+  let cl = null;
+  try { cl = topic.clause ? window.clauseById(topic.clause) : null; } catch (_){ return null; }
+  if (!cl) return null;
+  const text = String(cl.fallback || '');
+  const n = ladderFigure(topic, text);
+  return { text, figure: n, preferred: String(cl.preferred || '') };
+}
+/* Is a figure on the acceptable side of a bound, given which direction is
+   worse for us. lower-is-worse (a liability cap, a notice period we need)
+   accepts a figure AT OR ABOVE the bound; higher-is-worse (payment days)
+   accepts one at or below. */
+function ladderWithin(topic, figure, bound){
+  if (figure == null || bound == null || !topic) return null;
+  return topic.dir === 'lower-is-worse' ? figure >= bound : figure <= bound;
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
   LADDER_CAP, ladderMoves, ladderRungs, ladderOverflow, ladderUnder, ladderBaseText,
   ladderLive, ladderTop, ladderSettled, ladderChip, ladderTopic, ladderFigure,
-  ladderTrack, ladderStandard, ladderSettledFigure, ladderStand, ladderBoard
+  ladderTrack, ladderStandard, ladderSettledFigure, ladderStand, ladderBoard,
+  ladderUnsent, ladderBaseline, ladderWords, ladderWriteFigure, ladderFallback, ladderWithin
 });

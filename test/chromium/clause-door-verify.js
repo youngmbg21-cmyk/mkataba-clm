@@ -267,10 +267,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      the point of this claim was never the number three, it was that the panel
      says what stands, what is on the table and what is settled, in that
      order, and it still does. */
-  ck('2f the panel\'s sections are there, in order, with the ladder last',
-     !!open && open.heads.filter(h => h !== 'Change this clause')
-       .map(h => h.replace(/\s*\(\d+\)\s*$/, '')).join('|')
-       === 'As it stands|On the table|History|The ladder',
+  /* RE-POINTED 14 Sep 2026 (the artifact's panel): the ladder is followed by
+     its tail — Your playbook, The figure where the clause is argued in a
+     number, and Notes. The four that were asserted are still exact and in
+     order; what follows the ladder is named, so a section wandering in
+     ahead of it would still fail. */
+  ck('2f the panel\'s sections are there, in order, the ladder after History and its tail after the ladder',
+     !!open && (() => { const h = open.heads.filter(x => x !== 'Change this clause')
+       .map(x => x.replace(/\s*\(\d+\)\s*$/, ''));
+       const head = h.slice(0, 4).join('|'), tail = h.slice(4);
+       return head === 'As it stands|On the table|History|The ladder'
+         && tail.every(x => ['Your playbook', 'The figure', 'Notes'].includes(x)); })(),
      open && open.heads.join(' · '));
   /* ---- REVERSED IN PLACE, 16 Aug 2026 ---- this used to read "the backdrop is
      up". The owner asked for the opposite: no shading, "it has to remain
@@ -912,9 +919,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       meta: (st(on, '.rl-cp-who')||{}).color, note: (st(on, '.rl-cp-note')||{}).color,
       body: getComputedStyle(document.body).color };
   });
-  ck('9a the panel\'s additions are plain green — no bold, no underline, no rule',
+  /* RE-POINTED 14 Sep 2026 (Young: "go with exactly what is in the
+     artifact"): an addition wears its AUTHOR'S side — amber for the other
+     side, the accent for ours — and is UNDERLINED, so colour says who and the
+     line says what. Still no bold and no rule. The staged ask is theirs. */
+  ck('9a the panel\'s additions wear the author\'s colour, underlined — no bold, no rule',
      !!look.insPanel && look.insPanel.fw === '400' && look.insPanel.bb === 0
-     && look.insPanel.td === 'none' && /rgb\(4, 120, 87\)/.test(look.insPanel.col),
+     && look.insPanel.td === 'underline' && /rgb\(180, 83, 9\)|rgb\(4, 120, 87\)/.test(look.insPanel.col),
      JSON.stringify(look.insPanel));
   /* ---- 9b REVERSED IN PLACE, 16 Aug 2026 ---- this proved the paper KEPT the
      bold-and-underlined convention while only the panel went plain. The owner
@@ -924,7 +935,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      strike can say "taken out". */
   ck('9b …and the PAPER now reads the same way — one fact, one rule',
      !!look.insDoc && look.insDoc.fw === '400' && look.insDoc.bb === 0
-     && look.insDoc.td === 'none', JSON.stringify(look.insDoc));
+     && look.insDoc.td === look.insPanel.td, JSON.stringify(look.insDoc));
   const struck = await p.evaluate(() => {
     const d = document.querySelector('#rl-doc .nego-del, #rl-doc del.hati-del');
     return d ? getComputedStyle(d).textDecorationLine : null; });

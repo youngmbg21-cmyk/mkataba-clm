@@ -325,7 +325,15 @@ function redlineOpsHtml(ops, opts = {}){
      who, the line says what. An op carrying neither is drawn exactly as it
      always was, byte for byte, which is what keeps every stored change and
      every fingerprinted picture unchanged. */
-  const who = o => (o && o.who) ? ` rl-${o.who}` : '';
+  /* ---- AND A LONE ASK WEARS ITS AUTHOR'S COLOUR TOO (Young ruled 14 Sep 2026,
+     "go with exactly what is in the artifact") ----
+     `opts.who` is the side of every op that carries none of its own: the
+     caller knows whose change these ops are and says so once, and the marks
+     wear amber for the other side and the accent for ours whether the change
+     stands alone or on a stack. An op with its own `who` (composed by
+     redlineLayerOps) keeps it. Absent, byte-identical to before. */
+  const dflt = opts.who ? ` rl-${opts.who}` : '';
+  const who = o => (o && o.who) ? ` rl-${o.who}` : dflt;
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
     : o.op === 'ins' ? `<${tagIns} class="${insCls}${who(o)}"${sIns ? ` style="${attr(sIns)}"` : ''}${tip}>${e(o.text)}</${tagIns}>`
