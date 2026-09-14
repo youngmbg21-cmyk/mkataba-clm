@@ -262,7 +262,11 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    what makes the reservation dead space rather than something in use. Home,
    Reports, Templates, Import and the Approvals queue are all deliberately
    absent: they grow with their content and the reservation is what stops them
-   jolting. */
+   jolting.
+   ONE PAGE THAT IS NOT A VIEW PAINTS THE CLASS ITSELF: the template builder
+   (js/views/templatebuilder.js, tbGutter) is drawn under Templates and has
+   been --view-h tall since 14 Sep 2026 — on while it is up, off on its own
+   two ways out; a setView recomputes it here exactly as before. */
 const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view

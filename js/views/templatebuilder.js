@@ -56,7 +56,9 @@ async function openTemplateBuilder(tid, vid) {
      first — so the rail has something to say before anything is pressed. */
   const secs = tbSections(); const first = secs.find(x => !tbSectionText(x)) || secs[0];
   _tb.focus = first ? first.k : null;
-  tbPaint();
+  /* A fresh open is a NAVIGATION and lands at the top of the paper — the place
+     tbPaint holds is a repaint's, never another template's. */
+  tbPaint({ fresh: true });
 }
 
 /* ═══════════════════════════ PROMPT & BUILD ═══════════════════════════
@@ -501,8 +503,18 @@ const TB_CHIP_ASK = {
    for value (one stylesheet per builder — THE CLOTHES FOLLOW THE BUILDER). */
 function tbStyleHtml() {
   return `<style id="tb-style">
-  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start;position:relative}
+  /* THE PAGE OWNS ITS HEIGHT (Young asked 14 Sep 2026: "a scrolling feature
+     for the contract being created on the left just like in the editor page …
+     the right hand side … should stay intact and not move"). The grid is
+     exactly --view-h tall — the shell's own measured room, the way the
+     register, the calendar and the contract room size themselves — so the PAGE
+     never scrolls: the strip stays put, the paper scrolls inside its own column
+     (.tb-scroll) and the rail fills the row and cannot move. The rail used to
+     be position:sticky inside a slot exactly its own height — a sticky element
+     with nowhere to go, which is why it travelled with the page. */
+  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr);gap:16px;align-items:stretch;position:relative;height:var(--view-h);box-sizing:border-box;min-height:0}
   .tb-page.no-rail{grid-template-columns:minmax(0,1fr)}
+  .tb-page.no-rail > #tb-railslot{display:none}
   /* THE DIVIDER (14 Sep 2026) — the clause editor's handle, value for value,
      in this page's own sheet (the negotiation sheet that declares .rl-resizer
      is not on every page this one is). It straddles the gap track. */
@@ -512,7 +524,13 @@ function tbStyleHtml() {
   .tb-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}
   .tb-resizer:hover span,.tb-resizer[data-drag] span{background:var(--color-accent)}
   .tb-page.no-rail > .tb-resizer{display:none}
-  .tb-left{min-width:0}
+  .tb-left{min-width:0;min-height:0;display:flex;flex-direction:column}
+  .tb-left > .tb-strip{flex:none}
+  /* THE PAPER'S OWN SCROLLER. No padding above the paper, so the first line of
+     the wording sits exactly where the flowing page put it (refusal 3 — the
+     contract's pixels); the shell's thin scrollbar (.scroll-thin on the
+     element); a wheel at the end goes nowhere else. */
+  .tb-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 28px}
   .tb-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
   .tb-strip-foot{justify-content:flex-end;margin:14px 0 0}
   .tb-paper{background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;
@@ -548,9 +566,12 @@ function tbStyleHtml() {
   .tb-sig .tb-sigline{display:block;border-bottom:1px solid var(--color-neutral-500);height:26px;margin:14px 0 4px}
   .tb-sig small{color:var(--color-neutral-600);font-size:11px}
   .tb-add{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:26px;padding-top:12px;border-top:1px dashed var(--color-divider)}
-  .tb-rail{position:sticky;top:0;align-self:start;display:flex;flex-direction:column;min-width:0;min-height:420px;
+  #tb-railslot{min-width:0;min-height:0;display:flex;flex-direction:column}
+  /* THE RAIL IS THE ROW'S HEIGHT, never the window's: it fills its slot and
+     its lane scrolls inside it (.tb-lane), exactly as the clause editor's. */
+  .tb-rail{flex:1;min-height:0;display:flex;flex-direction:column;min-width:0;
     background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);
-    height:calc(100vh - var(--shell-head-h,44px) - 32px);font-size:var(--t-meta);color:var(--color-text)}
+    font-size:var(--t-meta);color:var(--color-text)}
   .tb-ah{flex:none;display:flex;align-items:center;gap:18px;padding:0 14px;border-bottom:1px solid var(--color-divider)}
   .tb-ah .sp{display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink);padding:var(--s-3) 0;white-space:nowrap}
   .tb-tabs{display:flex;gap:16px;margin-left:auto;min-width:0}
@@ -907,9 +928,27 @@ function tbRailHtml() {
 /* ---- PAINTING. The page once; the paper and the rail into their own slots,
    so a repaint of one never rebuilds the other (the 30 Aug lesson: nothing is
    rebuilt while a caret is in it). ---- */
-function tbPaint() {
+/* ---- THE READER'S PLACE SURVIVES A REPAINT (14 Sep 2026) ----
+   The paper scrolls inside its own column now, and tbPaint rebuilds that
+   column from scratch — a rebuilt scroller starts at the top. The place is
+   held before the write and put back straight after it, synchronously and
+   ONCE (dsHoldScroll's shape, deliberately not keepScroll's): keepScroll puts
+   the old place back again on the next frame, which would undo the
+   scrollIntoView an Add block does a tick later to land on its new heading. */
+function tbHoldScroll() { const el = document.getElementById('tb-scroll'); return el ? el.scrollTop : null; }
+function tbRestoreScroll(top) { if (top == null) return; const el = document.getElementById('tb-scroll'); if (el) el.scrollTop = top; }
+/* ---- THE SHELL'S SCROLLBAR CHANNEL IS DEAD SPACE HERE ----
+   VIEW_OWNS_HEIGHT (js/app.js) carries this fact for the five views whose root
+   is --view-h tall, and renderPageHeader paints #content-scroll.view-fixed
+   from it on every view change. This page is not a view — it is drawn under
+   Templates — so it paints the class itself on the way in and takes it off on
+   its own two ways out (Back, Publish); every other way out is a setView,
+   whose renderPageHeader recomputes it from the view name. */
+function tbGutter(on) { const sc = document.getElementById('content-scroll'); if (sc && sc.classList) sc.classList.toggle('view-fixed', !!on); }
+function tbPaint(opts = {}) {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const t = _tb.template;
+  const held = opts.fresh ? null : tbHoldScroll();
   document.getElementById('content').innerHTML = `${tbStyleHtml()}
   <div class="view-enter tb-page${tbRailFits() ? '' : ' no-rail'}" id="tb-page" style="padding:var(--page-pad)">
     <div class="tb-left">
@@ -921,15 +960,21 @@ function tbPaint() {
         <button id="tb-save" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
         <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
       </div>
-      <div id="tb-paperslot"></div>
-      <section style="${CARD};padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
-      <!-- The same two verbs again at the foot: on a long template the top bar
-           is screens away by the time the last block is written, and a save
-           that requires scrolling back up is a save that gets skipped. -->
-      <div class="tb-strip tb-strip-foot">
-        <span id="tb-dirty-bottom" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
-        <button id="tb-save-bottom" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
-        <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
+      <!-- THE PAPER SCROLLS INSIDE ITS COLUMN (14 Sep 2026): everything under the
+           strip lives in this one scroller, so the strip above and the rail
+           beside it never move. -->
+      <div class="tb-scroll scroll-thin" id="tb-scroll">
+        <div id="tb-paperslot"></div>
+        <section style="${CARD};padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
+        <!-- The same two verbs again at the foot. They were added because the
+             top bar scrolled away on a long template; since 14 Sep 2026 it does
+             not, and they stay by the owner's word ("leave all else the same")
+             — said in BUGLOG.md, the owner's call. -->
+        <div class="tb-strip tb-strip-foot">
+          <span id="tb-dirty-bottom" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
+          <button id="tb-save-bottom" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
+          <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
+        </div>
       </div>
     </div>
     <div id="tb-railslot"></div>
@@ -937,6 +982,8 @@ function tbPaint() {
       aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
   tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+  tbRestoreScroll(held);
+  tbGutter(true);
 }
 /* ============================================================================
    THE DIVIDER (Young asked 14 Sep 2026: "make this page similar in
@@ -1288,7 +1335,7 @@ function tbMove(i, d) {
 }
 
 function tbLeave() {
-  const go = () => openTemplateLibDetail(_tb.tid);
+  const go = () => { tbGutter(false); openTemplateLibDetail(_tb.tid); };
   if (!_tb.dirty) return go();
   (typeof confirmDialog === 'function'
     ? confirmDialog({ get title(){ return i18t('tb_leave_without_saving'); }, message: 'The edits since your last save will be lost.', confirmLabel: 'Leave', danger: true })
@@ -1313,6 +1360,7 @@ async function tbSave(quiet) {
    pre-dressed and Publish is one click. */
 async function tbPublish() {
   if (!await tbSave(true)) return;
+  tbGutter(false);   /* the Design step is its own page; onBack repaints this one, which paints it on again */
   openDesignStep({
     mode: 'publish',
     tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,

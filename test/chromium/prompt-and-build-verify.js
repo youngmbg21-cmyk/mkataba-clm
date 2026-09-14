@@ -264,6 +264,64 @@ const RAIL = () => {
       await page.screenshot({ path: path.join(OUT, '06-divider.png') });
     }
 
+    /* ================= 13 · THE PAPER SCROLLS INSIDE ITS COLUMN, THE RAIL STAYS (Young asked 14 Sep 2026) ================
+       "There needs to be a scrolling feature for the contract being created on
+       the left just like in the editor page. For right hand side in copilot, it
+       should stay intact and not move even when scrolling through the contract
+       on the left." A long template through the product's own route, then a
+       real wheel over the paper. Every claim below is red at the parent. */
+    await page.evaluate(async ids => {
+      const blocks = [];
+      for (let i = 1; i <= 14; i++) {
+        blocks.push({ orderIndex: blocks.length, blockType: 'heading', content: 'Section ' + i });
+        blocks.push({ orderIndex: blocks.length, blockType: 'fixed_text', content: 'The parties agree that clause ' + i + ' governs the matters described in it, and that every figure stated in it binds both of them for the whole term.' });
+      }
+      await api(`templates/${ids.tid}/versions/${ids.vid}`, 'PUT', { blocks, fields: [] });
+      await openTemplateBuilder(ids.tid, ids.vid);
+    }, ids);
+    await pause(1000);
+    const SCR = () => { const R = e => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom) }; };
+      const sc = document.getElementById('content-scroll'), pg = document.getElementById('tb-page'), scroll = document.getElementById('tb-scroll');
+      const strip = document.querySelector('#tb-page .tb-left > .tb-strip');
+      return { shell: { clientH: sc.clientHeight, scrollH: sc.scrollHeight, top: sc.scrollTop, fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter },
+        page: R(pg), scroll: scroll ? { clientH: scroll.clientHeight, scrollH: scroll.scrollHeight, top: scroll.scrollTop, rect: R(scroll) } : null,
+        strip: R(strip), stripMB: strip ? parseFloat(getComputedStyle(strip).marginBottom) : null,
+        paper: R(document.getElementById('tb-paper')), title: R(document.querySelector('#tb-paper .tb-title')),
+        rail: R(document.getElementById('tb-rail')), back: R(document.getElementById('tb-back')),
+        editables: document.querySelectorAll('[contenteditable="true"]').length }; };
+    const k0 = await page.evaluate(SCR);
+    check('13a · the page is exactly the shell\'s room and the shell has nothing to scroll; the paper column scrolls inside itself',
+      !!k0.page && Math.abs(k0.page.h - k0.shell.clientH) <= 1 && k0.shell.scrollH <= k0.shell.clientH + 1 && !!k0.scroll && k0.scroll.scrollH > k0.scroll.clientH + 400,
+      { page: k0.page && k0.page.h, shell: k0.shell, scroll: k0.scroll && { clientH: k0.scroll.clientH, scrollH: k0.scroll.scrollH } });
+    check('13b · the paper starts where the flowing page put it: the scroller begins at the strip\'s own margin and there is no padding above the sheet (refusal 3)',
+      !!k0.scroll && !!k0.strip && Math.abs(k0.scroll.rect.y - (k0.strip.bottom + k0.stripMB)) <= 1 && Math.abs(k0.paper.y - k0.scroll.rect.y) <= 1,
+      { stripBottom: k0.strip && k0.strip.bottom, margin: k0.stripMB, scrollerTop: k0.scroll && k0.scroll.rect.y, paperTop: k0.paper && k0.paper.y });
+    check('13c · the shell\'s scrollbar channel is given back while the page is up', k0.shell.fixed && k0.shell.gutter === 'auto', k0.shell);
+    /* GUARDED: a build without the scroller reports the three presses as failures rather than crashing on a null. */
+    if (!k0.scroll){
+      ['13d · a real wheel over the paper moves the paper and nothing else: the rail, the strip and the shell stay',
+       '13e · a repaint (Add block) keeps the reader\'s place in the paper',
+       '13f · Back lands on the template\'s page with the channel reserved again'].forEach(n => check(n, false, 'no scroller on the page'));
+    } else {
+      await page.mouse.move(k0.paper.x + k0.paper.w / 2, Math.min(k0.paper.y + 200, 700)); await page.mouse.wheel(0, 600); await pause(500);
+      const k1 = await page.evaluate(SCR);
+      check('13d · a real wheel over the paper moves the paper and nothing else: the rail, the strip and the shell stay',
+        k1.scroll.top - k0.scroll.top >= 590 && Math.abs((k0.title.y - k1.title.y) - (k1.scroll.top - k0.scroll.top)) <= 1 && JSON.stringify(k1.rail) === JSON.stringify(k0.rail) && JSON.stringify(k1.back) === JSON.stringify(k0.back) && k1.shell.top === 0,
+        { scrolled: k1.scroll.top, title: [k0.title.y, k1.title.y], rail: [k0.rail, k1.rail], strip: [k0.back, k1.back], shellTop: k1.shell.top });
+      /* The press is dispatched IN the page: Playwright would scroll the button into view first, and the claim is about the repaint. */
+      await page.evaluate(() => { document.getElementById('tb-addtype').value = 'fixed_text'; document.getElementById('tb-addblock').click(); });
+      await pause(400);
+      const k2 = await page.evaluate(SCR);
+      check('13e · a repaint (Add block) keeps the reader\'s place in the paper',
+        Math.abs(k2.scroll.top - k1.scroll.top) <= 2 && k2.editables === k1.editables + 1, { before: k1.scroll.top, after: k2.scroll.top, editables: [k1.editables, k2.editables] });
+      await page.screenshot({ path: path.join(OUT, '07-scroll.png') });
+      /* Save (the strip is on screen, so the press needs no scroll), then Back: the page that grows gets its channel back. */
+      await page.click('#tb-save'); await pause(500);
+      await page.click('#tb-back'); await pause(900);
+      const k3 = await page.evaluate(() => { const sc = document.getElementById('content-scroll'); return { fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter, builder: !!document.getElementById('tb-page'), detail: !!document.getElementById('tpllib-back') }; });
+      check('13f · Back lands on the template\'s page with the channel reserved again', !k3.builder && k3.detail && !k3.fixed && k3.gutter === 'stable', k3);
+    }
+
     check('11 · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
     check('harness', false, String(e && e.stack || e));
