@@ -568,4 +568,57 @@ describe('f306 (11) — what the screen prints', () => {
     const body = TB.slice(TB.indexOf('function tbQuestionFor'), TB.indexOf('function tbRestsLine'));
     assert.ok(!/api\(|copilotPropose|copilotAsk/.test(body), 'composed from the outline and the playbook, never asked of the model');
   });
+
+  /* ============================================================
+     THE DIVIDER (Young asked 14 Sep 2026: "you can drag / pull a separator
+     one side to be bigger than the other. Leave all else the same.")
+     The clause editor's own mechanism, ported; the arithmetic is proved here
+     without a browser and the drag is driven in prompt-and-build-verify 12.
+     ============================================================ */
+  test('the page carries ONE separator between the paper and the rail, and nothing else on it moved', async () => {
+    const s = await stage([['heading', 'Confidentiality'], ['heading', 'Term']]);
+    assert.equal((s.page.match(/id="tb-resizer"/g) || []).length, 1, 'one handle');
+    assert.match(s.page, /id="tb-resizer" class="tb-resizer" role="separator" aria-orientation="vertical" tabindex="0"/, 'a real separator a keyboard can reach');
+    assert.ok(s.page.includes('id="tb-paperslot"') && s.page.includes('id="tb-railslot"'), 'the paper and the rail are still the two slots');
+    assert.equal((s.paper.match(/data-tb-tag="/g) || []).length, 2, 'the ✦ tags are untouched');
+    assert.ok(s.rail.includes('id="tb-ask"'), 'and the rail still holds the one ask box');
+  });
+
+  test('the sheet dresses the handle itself and hides it where there is no rail', () => {
+    const css = TB.slice(TB.indexOf('function tbStyleHtml'), TB.indexOf('function tbStyleHtml') + 6000);
+    assert.match(css, /\.tb-resizer\{position:absolute;top:0;bottom:0;width:14px/, 'the editor\'s handle, value for value, in this page\'s own sheet');
+    assert.match(css, /\.tb-resizer\[data-rl-at-limit\] span\{background:var\(--st-amber-dot\)\}/, 'and it says when it will not go further');
+    assert.match(css, /\.tb-page\.no-rail > \.tb-resizer\{display:none\}/, 'no rail, no handle');
+    assert.match(css, /\.tb-page\{[^}]*position:relative/, 'the grid is the handle\'s frame');
+  });
+
+  test('the arithmetic: both stops in both directions, and the floors are the editor\'s own', async () => {
+    const s = await stage([]);
+    const w = s.w;
+    const CE = read('js/views/clauseeditor.js');
+    const ce = /const CE_LEFT_MIN = (\d+), CE_RIGHT_MIN = (\d+);/.exec(CE);
+    assert.ok(ce, 'the editor states its floors');
+    assert.equal(w.TB_LEFT_MIN, Number(ce[1]), 'the paper\'s floor is the editor\'s paper floor');
+    assert.equal(w.TB_RIGHT_MIN, Number(ce[2]), 'the rail\'s floor is the editor\'s rail floor — it is the same rail');
+    const J = v => JSON.parse(JSON.stringify(v));   /* the sandbox's objects are another realm's */
+    assert.deepEqual(J(w.tbSplit(1200, 0.5)), { left: 600, limit: null }, 'inside both stops');
+    assert.deepEqual(J(w.tbSplit(1200, 0.1)), { left: 540, limit: 'min' }, 'on a wide window the FRACTION floor binds and says min');
+    assert.deepEqual(J(w.tbSplit(800, 0.45)), { left: w.TB_LEFT_MIN, limit: 'min' }, 'on a narrower one the PIXEL floor binds and says min');
+    assert.deepEqual(J(w.tbSplit(1200, 0.95)), { left: 1200 - w.TB_RIGHT_MIN, limit: 'max' }, 'the rail keeps its floor at the other end');
+    assert.equal(w.tbSplit(500, 0.5).left, 250, 'on a window too narrow for both floors the fraction alone answers');
+    assert.equal(w.TB_SPLIT_KEY, 'hati.v1.tbLeftFrac', 'its own memory — never the editor\'s key');
+  });
+
+  test('the wiring: the handle is bound once, from the paper\'s own wiring, and observed', () => {
+    assert.match(TB, /_tb\._fits = tbRailFits\(\);\n  tbWireSplit\(\);/, 'wired with the page');
+    const body = TB.slice(TB.indexOf('function tbWireSplit'), TB.indexOf('function tbWireSplit') + 3500);
+    assert.match(body, /rez\.dataset\.tbSplitBound/, 'bound once per element');
+    assert.match(body, /pointerFrac/, 'the pointer\'s position, never its travel');
+    assert.match(body, /grabDx = \(hb\.left \+ hb\.width \/ 2\) - e\.clientX/, 'a grab offset');
+    assert.match(body, /new ResizeObserver\(\(\) => tbFitSplit\(\)\)/, 'the grid is observed');
+    assert.match(body, /e\.key === 'Home' \|\| e\.key === 'Enter'/, 'the keyboard puts the sheet\'s columns back');
+    assert.match(body, /rez\.addEventListener\('dblclick', \(\) => \{ clear\(\); tbFitSplit\(\); \}\)/, 'so does a double-click');
+    const fit = TB.slice(TB.indexOf('function tbFitSplit'), TB.indexOf('function tbWireSplit'));
+    assert.match(fit, /_tbPad\(grid\)\.l/, 'the grid\'s own padding is taken off, or the handle sits a page-margin left of the seam');
+  });
 });

@@ -501,8 +501,17 @@ const TB_CHIP_ASK = {
    for value (one stylesheet per builder — THE CLOTHES FOLLOW THE BUILDER). */
 function tbStyleHtml() {
   return `<style id="tb-style">
-  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start;position:relative}
   .tb-page.no-rail{grid-template-columns:minmax(0,1fr)}
+  /* THE DIVIDER (14 Sep 2026) — the clause editor's handle, value for value,
+     in this page's own sheet (the negotiation sheet that declares .rl-resizer
+     is not on every page this one is). It straddles the gap track. */
+  .tb-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;transform:translateX(-50%);
+    cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
+  .tb-resizer span{width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)}
+  .tb-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}
+  .tb-resizer:hover span,.tb-resizer[data-drag] span{background:var(--color-accent)}
+  .tb-page.no-rail > .tb-resizer{display:none}
   .tb-left{min-width:0}
   .tb-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
   .tb-strip-foot{justify-content:flex-end;margin:14px 0 0}
@@ -924,8 +933,135 @@ function tbPaint() {
       </div>
     </div>
     <div id="tb-railslot"></div>
+    <div id="tb-resizer" class="tb-resizer" role="separator" aria-orientation="vertical" tabindex="0"
+      aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
   tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+}
+/* ============================================================================
+   THE DIVIDER (Young asked 14 Sep 2026: "make this page similar in
+   functionality to the editor page … you can drag / pull a separator one side
+   to be bigger than the other. Leave all else the same.")
+   ----------------------------------------------------------------------------
+   The clause editor's divider, ported again — ceWireSplit's own five
+   properties (one geometry, the pointer's position never its travel, a grab
+   offset, the grid observed, an unmeasured grid left alone). What differs is
+   said: this grid has a 16px GAP track the handle straddles, so the available
+   width is the grid's less the gap; and where NOTHING is stored the sheet's own
+   columns hold (a 380px rail), exactly as the negotiation page's divider rests
+   on its CSS until somebody moves it — a double-click or Home puts that back.
+   The rail's floor is the editor's (340: it is the same rail in the same
+   clothes); the paper's floor is the editor's paper floor too.
+   ========================================================================== */
+const TB_FMIN = 0.45, TB_FMAX = 0.80;
+const TB_LEFT_MIN = 380, TB_RIGHT_MIN = 340, TB_GAP = 16;
+const TB_SPLIT_KEY = 'hati.v1.tbLeftFrac';
+function _tbLeftFrac() {
+  try {
+    const v = localStorage.getItem(TB_SPLIT_KEY);
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return (n >= TB_FMIN - 0.001 && n <= TB_FMAX + 0.001) ? n : null;
+  } catch (_) { return null; }
+}
+/* THE GRID CARRIES THE PAGE'S OWN PADDING (the editor's does not): the columns
+   are laid out inside it, and an absolute handle is placed from the padding
+   edge — so both readings take the padding off, or the handle sits a
+   page-margin left of the seam (measured: 16px, 14 Sep 2026). */
+const _tbPad = grid => { try { const cs = getComputedStyle(grid); return { l: parseFloat(cs.paddingLeft) || 0, r: parseFloat(cs.paddingRight) || 0 }; } catch (_) { return { l: 0, r: 0 }; } };
+const _tbAvail = grid => { const pad = _tbPad(grid); return Math.max(0, grid.clientWidth - pad.l - pad.r - TB_GAP); };
+/* COUNTING IS NOT DRAWING: the arithmetic answers on its own and is proved
+   without a browser (f306). Both stops in both directions, as the editor's. */
+function tbSplit(avail, frac) {
+  const f = Math.max(TB_FMIN, Math.min(TB_FMAX, typeof frac === 'number' && isFinite(frac) ? frac : 2 / 3));
+  let left = Math.round(f * avail);
+  let limit = f <= TB_FMIN ? 'min' : f >= TB_FMAX ? 'max' : null;
+  if (avail >= TB_LEFT_MIN + TB_RIGHT_MIN) {
+    if (left <= TB_LEFT_MIN) { left = TB_LEFT_MIN; limit = 'min'; }
+    else if (left >= avail - TB_RIGHT_MIN) { left = avail - TB_RIGHT_MIN; limit = 'max'; }
+  }
+  return { left, limit };
+}
+function tbFitSplit() {
+  const grid = document.getElementById('tb-page');
+  const rez = grid && grid.querySelector('#tb-resizer');
+  if (!grid || !rez) return;
+  const frac = _tbLeftFrac();
+  /* The sheet's own layout, or no rail at all: nothing is written over it —
+     an inline column would beat the stacked rule. The handle still sits on
+     the seam the sheet drew. */
+  if (grid.classList.contains('no-rail') || !tbRailFits() || frac == null) {
+    grid.style.gridTemplateColumns = '';
+    rez.removeAttribute('data-rl-at-limit');
+    const leftEl = grid.querySelector('.tb-left');
+    let w = 0;
+    try { w = leftEl ? leftEl.getBoundingClientRect().width : 0; } catch (_) { w = 0; }
+    rez.style.left = w ? (_tbPad(grid).l + w + TB_GAP / 2) + 'px' : '';
+    return;
+  }
+  const avail = _tbAvail(grid);
+  if (avail < 160) return;
+  const { left, limit } = tbSplit(avail, frac);
+  grid.style.gridTemplateColumns = left + 'px minmax(0,1fr)';
+  rez.style.left = (_tbPad(grid).l + left + TB_GAP / 2) + 'px';
+  if (limit) rez.setAttribute('data-rl-at-limit', limit); else rez.removeAttribute('data-rl-at-limit');
+}
+function tbWireSplit() {
+  const grid = document.getElementById('tb-page');
+  const rez = grid && grid.querySelector('#tb-resizer');
+  if (!grid || !rez) return;
+  tbFitSplit();
+  if (rez.dataset.tbSplitBound) return;
+  rez.dataset.tbSplitBound = '1';
+  const clamp = f => Math.max(TB_FMIN, Math.min(TB_FMAX, f));
+  const save = f => { try { localStorage.setItem(TB_SPLIT_KEY, String(f)); } catch (_) {} };
+  const clear = () => { try { localStorage.removeItem(TB_SPLIT_KEY); } catch (_) {} };
+  /* The fraction in force: stored, else the one the sheet is drawing. */
+  const fracNow = () => {
+    const f = _tbLeftFrac();
+    if (f != null) return f;
+    const leftEl = grid.querySelector('.tb-left');
+    const avail = Math.max(1, _tbAvail(grid));
+    try { return clamp((leftEl ? leftEl.getBoundingClientRect().width : avail * 2 / 3) / avail); } catch (_) { return 2 / 3; }
+  };
+  let grabDx = 0;
+  const pointerFrac = x => {
+    const r = grid.getBoundingClientRect();
+    const avail = Math.max(1, _tbAvail(grid));
+    return clamp(((x + grabDx) - r.left - _tbPad(grid).l - TB_GAP / 2) / avail);
+  };
+  const onMove = e => {
+    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    save(pointerFrac(x));
+    tbFitSplit();
+  };
+  const onUp = () => {
+    delete rez.dataset.drag;
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  };
+  rez.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    rez.dataset.drag = '1';
+    const hb = rez.getBoundingClientRect();
+    grabDx = (hb.left + hb.width / 2) - e.clientX;
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+  rez.addEventListener('keydown', e => {
+    if (e.key === 'Home' || e.key === 'Enter') { e.preventDefault(); clear(); tbFitSplit(); return; }
+    const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
+    if (!step) return;
+    e.preventDefault();
+    save(clamp(fracNow() + step));
+    tbFitSplit();
+  });
+  rez.addEventListener('dblclick', () => { clear(); tbFitSplit(); });
+  if (typeof ResizeObserver === 'function' && !grid._tbObs) {
+    try { grid._tbObs = new ResizeObserver(() => tbFitSplit()); grid._tbObs.observe(grid); } catch (_) {}
+  }
 }
 function tbPaintPaper() { const s = document.getElementById('tb-paperslot'); if (s) s.innerHTML = tbPaperHtml(); }
 function tbPaintRail() { const s = document.getElementById('tb-railslot'); if (s) s.innerHTML = tbRailFits() ? tbRailHtml() : ''; }
@@ -971,6 +1107,7 @@ function tbWire() {
   document.getElementById('tb-publish-bottom')?.addEventListener('click', () => tbPublish());
   if (!_tbResizeBound && typeof window !== 'undefined' && typeof window.addEventListener === 'function') { _tbResizeBound = true; window.addEventListener('resize', tbOnResize); }
   _tb._fits = tbRailFits();
+  tbWireSplit();
 
   /* ---- THE PAPER ---- */
   const paper = document.getElementById('tb-paperslot');
@@ -1321,5 +1458,6 @@ async function tbPaintBranding() {
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
 Object.assign(window, { openTemplateBuilder, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+  tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk });
