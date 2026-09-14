@@ -1,0 +1,7 @@
+# THE RUN LOG IS APPEND-ONLY — one section per run, newest at the bottom
+# (CLAUDE.md states the rule, and reading the file is denied on purpose because
+# it is ~460 KB). Two branches that each append their own run section are not in
+# disagreement: BOTH sections belong. `union` is git's built-in driver for
+# exactly that — it keeps both sides instead of raising a conflict a person then
+# has to resolve by hand inside a file the session may not open.
+BUGLOG.md merge=union
