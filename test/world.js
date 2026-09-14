@@ -122,6 +122,11 @@ const FAMILY = 'js/family.js';
    js/app.js's: the playbook first, then the memory that reads settled rounds,
    then the engine that weighs them. */
 const PRECEDENT = 'js/precedent.js';
+/* The clause ladder (buildWorld({ladder:true})). A READING with no view, no
+   route and no store, on the shelf js/precedent.js sits on — and it BORROWS
+   that file's topic table for the figure a clause is argued in, so the option
+   brings precedent under it, which is js/app.js's own order. */
+const LADDER = 'js/ladder.js';
 const REDLINE_PLAN = 'js/redlineplan.js';
 /* The Standards page's own readings (buildWorld({standards:true})). It sits on
    the same shelf as precedent.js and payterms.js — no view, no store, no route
@@ -384,6 +389,10 @@ function buildWorld(opts = {}) {
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.ocr) files.push(OCR);
   if (opts.playbook) files.push(PLAYBOOK);
+  /* The ladder brings precedent under it — it borrows PRECEDENT_TOPICS for
+     the figure a clause is argued in, and a stage without that file would
+     exercise this module's own typeof fallback and prove nothing. */
+  if (opts.ladder){ if (!files.includes(PRECEDENT)) files.push(PRECEDENT); files.push(LADDER); }
   if (opts.homeView) files.push(HOME_VIEW);
   /* The family model and the obligations record (buildWorld({family:true}) /
      ({obligations:true})). Loaded on request like the views: both sit beside the

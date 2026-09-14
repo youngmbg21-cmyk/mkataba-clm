@@ -42,6 +42,7 @@ import './ocr.js';
 import './dedupe.js';
 import './family.js';
 import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
+import './ladder.js';       // every move on one clause, across every round (14 Sep 2026)
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
