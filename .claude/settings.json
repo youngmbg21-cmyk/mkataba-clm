@@ -25,6 +25,10 @@
     ]
   },
   "permissions": {
+    "allow": [
+      "Bash(cat >> ./BUGLOG.md *)",
+      "Bash(tee -a ./BUGLOG.md *)"
+    ],
     "deny": [
       "Read(./node_modules/**)",
       "Read(./dist/**)",
