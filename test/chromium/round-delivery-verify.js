@@ -236,8 +236,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const seen = () => own.evaluate(id => {
       const c = state.contracts.find(x => x.id === id);
       return { rec: (c.changes || []).map(x => x.id + ':' + x.status).join(', '),
+        /* RE-POINTED 14 Sep 2026: the row's text leads with the clause and the
+           reference rides the hover, so the row is read by the id it carries. */
         cards: [...document.querySelectorAll('.rl-card,.rl-receipt')]
-          .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30)) };
+          .map(e => (e.getAttribute('data-nego-card') || '') + ' ' + (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30)) };
     }, cid);
     /* Past pollNow's four-second throttle first, so this measures the DOOR
        rather than the throttle. */

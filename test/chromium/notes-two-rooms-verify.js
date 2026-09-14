@@ -622,10 +622,15 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const head = document.querySelector('#ws-head .ui-btn:not(.ui-btn-primary)');
       if (!open || !head) return { open: !!open, head: !!head };
       const o = getComputedStyle(open), h = getComputedStyle(head);
-      return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor, ink: o.color, headInk: h.color };
+      return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor, ink: o.color, headInk: h.color,
+        noEdge: parseFloat(o.borderTopWidth) === 0 || /rgba\(0, 0, 0, 0\)|transparent/.test(o.borderTopColor) };
     });
-    check('the card’s Open control carries the same edge as Internal review / Share / More',
-      openEdge.open && openEdge.head && openEdge.edge === openEdge.headEdge, JSON.stringify(openEdge));
+    /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): the
+       face carries the artifact's verbs as bare coloured words and Open is
+       the last of them, a bare word too — no edge. What survives of the 11 Sep
+       ask is the INK: Open reads in the head buttons' own accent ink. */
+    check('the card’s Open control is a bare word on the face, in the head buttons’ ink',
+      openEdge.open && openEdge.head && openEdge.noEdge && openEdge.ink === openEdge.headInk, JSON.stringify(openEdge));
     check('and the same ink', openEdge.open && openEdge.head && openEdge.ink === openEdge.headInk, `${openEdge.ink} vs ${openEdge.headInk}`);
 
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
