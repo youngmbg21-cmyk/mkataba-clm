@@ -525,6 +525,10 @@ function clauseEditorCss(){
   .ce-paperwrap .ce-twin{padding-top:8px; margin-top:14px;
     border-top:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent); cursor:default}
   .ce-paperwrap .ce-typing:focus{outline:none; box-shadow:none}
+  /* TYPING IN THE MARKS (14 Sep 2026): a struck run is an ATOM the caret steps
+     over and nothing types into, drawn in the sheet's own del/ins clothes; a
+     run struck across a line break keeps its break. */
+  .ce-paperwrap .ce-typing [data-ce-mark="del"]{white-space:pre-wrap; cursor:default}
   /* ---- AND THE CLAUSE'S NAME KEEPS ITS OWN GEOMETRY ----
      .ce-headbox adds no colour, no fill and no size of its own, so the heading
      keeps the paper's own heading type. The negative margins the wording's box
@@ -2564,26 +2568,20 @@ function ceRenderPaper(){
      does not admit, so anything read back out of the box is unwrapped on the
      way — and ceBoxHtml takes it off the copy it compares, so a pull never
      reports the box as corrected and nothing repaints under the caret. */
-  /* ---- MARKS NEVER DISAPPEAR (rule 2 of the layered redline, 13 Sep 2026) ----
-     You cannot type into a redline, so the box holds the draft clean — and
-     until today that is why putting a cursor down took a clause's marks off
-     the screen, which is what got click-to-type retired on 1 Sep. The marks
-     stay now: the marked reading is drawn UNDER the box, on the same paper,
-     from the same reading the clause shows at rest (ceMarkedHtml), and it
-     follows the typing (ceTwinPaint, patched in place — never a rebuild under
-     the caret). Drawn only where there is something to keep on screen: their
-     ask under the draft, or a draft that has moved off what stands.
-
-     UNDER, NOT ABOVE, and it was measured: the first keystroke on a clause with
-     nothing on it conjures the twin, and a block appearing ABOVE a focused box
-     makes the browser hold the caret still by scrolling the paper — 58px on
-     the proof clause — which walked the pencil up under the readings row and
-     out from under the pointer (the 31 fault, in a third costume). Below the
-     box, nothing above the caret ever moves. */
-  const twinHtml = typing ? ceTwinHtml(_ceText) : '';
+  /* ---- MARKS NEVER DISAPPEAR, BECAUSE YOU TYPE AMONG THEM (Young ruled
+     14 Sep 2026 — reverses the 13 Sep twin) ----
+     The box holds the draft, and the marks are PAINTED INTO IT once it is
+     mounted (ceMarksMount, below the write): their strikes as atoms the caret
+     steps over, every added run wrapped in the sheet's own ins, coloured by
+     author exactly as the clause draws at rest. The 13 Sep answer — the marked
+     reading drawn UNDER the box — was the wrong shape for what the owner
+     meant ("redline in the redlined section"), and survives only as the
+     fallback for a clause the painter cannot own (a table or a pre in the
+     body): there the reading is still drawn under the box, so no clause ever
+     types with its marks off the screen. */
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>${twinHtml}`
+        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceMarkedHtml(_ceText) : clean}</div>`;
   /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
@@ -2649,6 +2647,9 @@ function ceRenderPaper(){
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
     try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: 'owner' }); } catch (e){}
+    /* THE MARKS GO INTO THE BOX (14 Sep 2026), after it is in the document —
+       the paint splits live text nodes, which markup cannot express. */
+    if (typing) ceMarksMount({ fresh: true });
     ceRestoreScroll(host, keep);
   } finally { _ceRendering = false; }
   ceApplyZoom();
@@ -2662,8 +2663,8 @@ function ceRenderPaper(){
    alone (see ceApply, which rebuilds nothing while the caret is in the box).
    Two places printing what the draft has done is how they come to disagree
    about it, so there is one builder and two callers. */
-function ceStatHtml(){
-  const n = ceCounts(_ceBase, _ceText);
+function ceStatHtml(draft){
+  const n = ceCounts(_ceBase, draft == null ? _ceText : draft);
   return (n.ins || n.del)
     ? `<span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span>`
     : `<span class="ce-none">${_cee(_cet('ce_no_change_yet'))}</span>`;
@@ -2699,9 +2700,373 @@ function ceTwinSchedule(){
   if (_ceTwinTimer) clearTimeout(_ceTwinTimer);
   _ceTwinTimer = setTimeout(() => { _ceTwinTimer = null; try{ ceTwinPaint(); }catch(_){} }, CE_TWIN_MS);
 }
-function cePaintStat(){
+
+/* ============================================================================
+   TYPING IN THE MARKS (Young ruled 14 Sep 2026: "I want to be able to redline
+   in the redlined section … I would delete whatever I disagree with and enter
+   what I want as the new clause and when I finish I click the pencil and the
+   new redlines appear on top of the previous redlines")
+   ----------------------------------------------------------------------------
+   The typing box holds the DRAFT — the rich wording the record will be handed
+   — and the marks are PAINTED INTO IT. A run of the draft the other side added,
+   or that this draft adds, is wrapped in the sheet's own <ins>; a run somebody
+   struck is not in the draft at all, so it is put back where it was taken out
+   as an ATOM — a <del> the caret steps over and nothing can type into. Read
+   back through ceBoxHtml the paint comes off and the draft is exactly what the
+   reader typed, dressing and all: the box never stopped being rich, which is
+   why the writing bar keeps working and why nothing here can reach the record
+   (the pull strips it, the sanitiser would refuse it, and f245 pins both).
+
+   ONE PROJECTION, ONE MAP. The marks are ops over the wording's TEXT projection
+   (richToText's), and that projection is built here off the live box by the
+   very walk richFromTextEdit reads it with (_lineUnits, which records the text
+   nodes each line owns), so every op offset lands on a DOM character or is
+   known not to — a list's regenerated number is in the projection and not in
+   the DOM, and a mark on it is skipped. The walk re-folds whitespace exactly as
+   that reader does and REFUSES if the two projections differ by a character:
+   a mark drawn one word out is worse than no mark, so the marked reading is
+   then drawn under the box instead (ceTwinPaint, the 13 Sep answer, kept as
+   the fallback for that and for a table or a <pre> the walk cannot own).
+
+   REPAINTED A BEAT AFTER EACH KEYSTROKE, the caret put back by its count of
+   LIVE characters — a number the paint cannot move, because wrappers only
+   split text nodes and atoms carry text the draft does not have. A struck run
+   the reader selects and deletes is back at the next paint: it was never theirs
+   to remove; the record holds it.
+   ========================================================================== */
+const CE_MARK_ATTR = 'data-ce-mark';
+const CE_MARKS_MS = 300;
+let _ceMarksTimer = null;
+const _ceIsAtom = n => !!(n && n.nodeType === 1 && n.getAttribute && n.getAttribute(CE_MARK_ATTR) === 'del');
+/* The text nodes a reader can type in — everything in the box but the atoms.
+   The one walk the passage finders and the caret bookkeeping share. */
+function ceLiveTextNodes(root){
+  const out = [];
+  if (!root || typeof document === 'undefined' || !document.createTreeWalker) return out;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let nd;
+  while ((nd = walker.nextNode())){
+    const p = nd.parentElement;
+    if (p && p.closest && p.closest(`[${CE_MARK_ATTR}="del"]`)) continue;
+    out.push(nd);
+  }
+  return out;
+}
+/* The paint comes off: atoms go, wrappers unwrap, the split text nodes are
+   joined again so a raw character index means one thing. */
+function ceMarksClear(box){
+  if (!box || !box.querySelectorAll) return;
+  box.querySelectorAll(`[${CE_MARK_ATTR}="del"]`).forEach(n => n.remove());
+  box.querySelectorAll(`[${CE_MARK_ATTR}="ins"]`).forEach(w => {
+    const p = w.parentNode; if (!p) return;
+    while (w.firstChild) p.insertBefore(w.firstChild, w);
+    w.remove();
+  });
+  try{ box.normalize(); }catch(_){}
+}
+/* Where the caret is, as a count of live characters before it; null where
+   the caret is not in the box. */
+function ceCaretSave(box){
+  try{
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !box.contains(sel.focusNode)) return null;
+    const pt = document.createRange();
+    pt.setStart(sel.focusNode, sel.focusOffset); pt.collapse(true);
+    let n = 0;
+    for (const t of ceLiveTextNodes(box)){
+      const len = t.data.length;
+      if (pt.comparePoint(t, len) <= 0){ n += len; continue; }
+      if (pt.comparePoint(t, 0) <= 0){
+        let k = 0;
+        while (k < len && pt.comparePoint(t, k + 1) <= 0) k++;
+        n += k;
+      }
+      return n;
+    }
+    return n;
+  }catch(_){ return null; }
+}
+/* The caret put back at the same count — only where the box still holds the
+   focus, so a reader who has moved to the ask box is not pulled back. */
+function ceCaretRestore(box, n){
+  if (n == null || typeof n !== 'number') return;
+  try{
+    if (document.activeElement !== box && !box.contains(document.activeElement)) return;
+    const nodes = ceLiveTextNodes(box);
+    let left = n, at = null;
+    for (const t of nodes){
+      if (left <= t.data.length){ at = { node: t, off: left }; break; }
+      left -= t.data.length;
+    }
+    if (!at){ const last = nodes[nodes.length - 1]; at = last ? { node: last, off: last.data.length } : { node: box, off: box.childNodes.length }; }
+    const r = document.createRange(); r.setStart(at.node, at.off); r.collapse(true);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }catch(_){}
+}
+/* What the picture is made of, for this draft (`ours` is the box's own
+   projection): the two layers over their ask, a REPLACEMENT where the marks
+   would outnumber the words, one layer against what stands where there is no
+   ask to stand on — or null where the draft is what stands. The same three
+   answers ceMarkedHtml gives the clause at rest, so the box being typed in
+   and the clause beside it cannot disagree about what a counter looks like. */
+function ceMarksOps(ours){
+  const on = ceStacksOn();
+  if (on && Array.isArray(on.ops) && on.ops.length && window.redlineLayerOps && window.redlineOpsStructured){
+    const theirs = ceWords(on.newText);
+    if (window.redlineWholesale && ours !== theirs && redlineWholesale(theirs, ours)) return { wholesale: true, theirs };
+    try{
+      const ops = redlineLayerOps(on.ops, redlineOpsStructured(theirs, ours), { under: 'them', over: 'us' });
+      if (ops) return { ops };
+    }catch(_){}
+  }
+  const base = ceWords(_ceBase);
+  if (ours === base) return null;
+  try{
+    const ops = window.redlineOpsStructured ? redlineOpsStructured(base, ours)
+      : (window.redlineOps ? redlineOps(base, ours) : null);
+    return ops ? { ops } : null;
+  }catch(_){ return null; }
+}
+/* The walk. Every projected character is matched to the op that owns it; a
+   struck op has no character of its own and becomes an atom at the point it
+   was taken out; an added run becomes a wrapper round the characters it owns.
+   The DOM is not touched until the whole walk has agreed with the projection
+   — a disagreement anywhere draws nothing (false), never half a picture. */
+function ceMarksDraw(box, units, plan){
+  const doc = box.ownerDocument;
+  const INS = window.REDLINE_INS_CLASS || 'hati-ins nego-ins';
+  const DEL = window.REDLINE_DEL_CLASS || 'hati-del nego-del';
+  const wrapper = who => { const el = doc.createElement('ins'); el.className = INS + (who ? ' rl-' + who : '');
+    el.setAttribute(CE_MARK_ATTR, 'ins'); return el; };
+  const atom = (text, who, under) => {
+    const d = doc.createElement('del'); d.className = DEL + (who ? ' rl-' + who : ''); d.textContent = text;
+    let el = d;
+    if (under){ el = doc.createElement('ins'); el.className = INS + ' rl-' + under; el.appendChild(d); }
+    el.setAttribute(CE_MARK_ATTR, 'del');
+    return el;
+  };
+  const nodesOf = u => (u.nodes || []).filter(t => t && t.parentNode);
+  /* A rewrite: everything in the box is ours, and their wording, struck, stands
+     above it — the shape redlineReplacementHtml draws once it is filed. */
+  if (plan.wholesale){
+    const events = [];
+    for (const u of units) for (const t of nodesOf(u)) if (t.data.trim()) events.push({ node: t, k: 0, k2: t.data.length, kind: 'wrap', el: wrapper('us'), seq: events.length });
+    ceMarksApply(box, events);
+    const blk = doc.createElement('p'); blk.className = 'rl-line rl-line-del';
+    blk.appendChild(atom(plan.theirs, 'them'));
+    blk.setAttribute(CE_MARK_ATTR, 'del');
+    box.insertBefore(blk, box.firstChild);
+    return true;
+  }
+  const ops = (plan.ops || []).filter(o => o && o.text);
+  let oi = 0, off = 0, seq = 0;
+  const events = [];
+  const dels = () => { const out = []; while (oi < ops.length && ops[oi].op === 'del'){ out.push(ops[oi]); oi++; off = 0; } return out; };
+  const take = () => {
+    if (oi >= ops.length) return null;
+    const o = ops[oi]; off++;
+    if (off >= o.text.length){ oi++; off = 0; }
+    return o;
+  };
+  const atomsAt = (node, k) => { for (const d of dels()) events.push({ node, k, kind: 'atom', el: atom(d.text, d.who, d.under), seq: seq++ }); };
+  for (let ui = 0; ui < units.length; ui++){
+    const u = units[ui];
+    const nodes = nodesOf(u);
+    if (!nodes.length) return false;
+    /* The line's raw characters, and which of them the projection keeps: the
+       reader's folding — every whitespace run one space, none at either end. */
+    const raw = [];
+    for (const t of nodes) for (let k = 0; k < t.data.length; k++) raw.push({ t, k, ws: /\s/.test(t.data[k]), emit: false });
+    let seenWord = false, inRun = false;
+    for (const ch of raw){
+      if (ch.ws){ if (!inRun && seenWord) ch.emit = true; inRun = true; }
+      else { ch.emit = true; seenWord = true; inRun = false; }
+    }
+    for (let i = raw.length - 1; i >= 0 && raw[i].ws; i--) raw[i].emit = false;
+    const emitted = raw.filter(ch => ch.emit);
+    const line = emitted.map(ch => ch.ws ? ' ' : ch.t.data[ch.k]).join('');
+    if (line !== u.text) return false;
+    const first = emitted[0] || raw[0] || null;
+    /* The regenerated marker of a list item: projected, not in the DOM. */
+    for (let i = 0; i < u.prefix.length; i++){
+      atomsAt(first.t, first.k);
+      if (!take()) return false;
+    }
+    let curOp = null, runStart = null, runEnd = null;
+    const closeRun = () => {
+      if (curOp && curOp.op === 'ins' && runStart)
+        events.push({ node: runStart.t, k: runStart.k, k2: runEnd.k + 1, kind: 'wrap', el: wrapper(curOp.who), seq: seq++ });
+      curOp = null; runStart = null; runEnd = null;
+    };
+    for (const ch of raw){
+      if (ch.emit){
+        atomsAt(ch.t, ch.k);
+        const o = take(); if (!o) return false;
+        if (!curOp || o !== curOp || ch.t !== runStart.t){ closeRun(); curOp = o; runStart = ch; }
+      }
+      if (curOp && ch.t === runStart.t) runEnd = ch;
+    }
+    closeRun();
+    /* The break after this line: a struck run due there sits after the line's
+       last character. */
+    const last = raw[raw.length - 1];
+    if (ui < units.length - 1){
+      atomsAt(last.t, last.k + 1);
+      if (!take()) return false;
+    } else {
+      atomsAt(last.t, last.k + 1);
+    }
+  }
+  if (oi < ops.length) return false;
+  ceMarksApply(box, events);
+  return true;
+}
+/* The events land last-first, so an index into a text node still means what
+   it meant when the walk recorded it: a split at k leaves [0,k) where it was.
+   At one index a wrapper is made BEFORE an atom is placed, and the atom then
+   goes before the wrapper — the old wording before the new, the order the
+   ops keep. */
+function ceMarksApply(box, events){
+  const byNode = new Map();
+  for (const ev of events){
+    if (!byNode.has(ev.node)) byNode.set(ev.node, []);
+    byNode.get(ev.node).push(ev);
+  }
+  byNode.forEach((list, node) => {
+    list.sort((a, b) => (b.k - a.k) || ((a.kind === 'wrap' ? 0 : 1) - (b.kind === 'wrap' ? 0 : 1)) || (a.seq - b.seq));
+    const wrappedAt = new Map();
+    for (const ev of list){
+      if (!node.parentNode) return;
+      if (ev.kind === 'wrap'){
+        let mid = node;
+        if (ev.k2 < node.data.length) node.splitText(ev.k2);
+        if (ev.k > 0) mid = node.splitText(ev.k);
+        mid.parentNode.insertBefore(ev.el, mid); ev.el.appendChild(mid);
+        wrappedAt.set(ev.k, ev.el);
+        continue;
+      }
+      const w = wrappedAt.get(ev.k);
+      if (w){ w.parentNode.insertBefore(ev.el, w); continue; }
+      if (ev.k >= node.data.length){ node.parentNode.insertBefore(ev.el, node.nextSibling); continue; }
+      const tail = ev.k > 0 ? node.splitText(ev.k) : node;
+      tail.parentNode.insertBefore(ev.el, tail);
+    }
+  });
+}
+/* The paint, whole: the caret remembered, the old paint taken off, the
+   projection read off the box, the picture drawn, the caret put back. True
+   where the box now shows its marks (or has none to show); false where the
+   painter could not own the box and the caller must draw the reading under it. */
+function ceMarksPaint(o = {}){
+  if (!clauseEditorOpen() || !ceIsTyping()) return false;
+  const box = _ceQ('#ce-clausebody');
+  if (!box || typeof window._lineUnits !== 'function') return false;
+  const caret = o.fresh ? null : ceCaretSave(box);
+  ceMarksClear(box);
+  let drawn = false;
+  try{
+    const units = _lineUnits(box);
+    if (units.length && !units.some(u => u.opaque)){
+      const ours = units.map(u => u.line).join('\n');
+      const plan = ceMarksOps(ours);
+      drawn = !plan ? true : ceMarksDraw(box, units, plan);
+      if (!drawn) ceMarksClear(box);
+    }
+  }catch(_){ ceMarksClear(box); drawn = false; }
+  ceCaretRestore(box, caret);
+  return drawn;
+}
+/* Marks into the box where the painter can own it; the reading under the box
+   where it cannot. One call for the mount and for every beat after a keystroke. */
+function ceMarksMount(o){
+  let ok = false;
+  try{ ok = ceMarksPaint(o || {}); }catch(_){ ok = false; }
+  if (!ok){ ceTwinPaint(); return; }
+  const twin = _ceQ('#ce-twin');
+  if (twin) twin.remove();
+}
+function ceMarksSchedule(){
+  if (_ceMarksTimer) clearTimeout(_ceMarksTimer);
+  _ceMarksTimer = setTimeout(() => {
+    _ceMarksTimer = null;
+    try{ ceMarksMount(); }catch(_){}
+    try{ cePaintStat(ceDraftNow()); }catch(_){}
+  }, CE_MARKS_MS);
+}
+/* ---- A STRUCK RUN IS NOT NON-EDITABLE, AND THAT IS DELIBERATE ----
+   A contenteditable="false" island inside an editable box is what the browser
+   drags as an OBJECT when a press lands on it, so a highlight begun on a
+   struck word never became a highlight at all (measured on clause-editor-verify
+   21: the drag from the paragraph's edge started on the atom and selected
+   nothing), and a writing-bar press wrote its marker INTO the island (19c).
+   The atoms are ordinary elements the caret crosses and a drag selects; what
+   keeps them the record's rather than the reader's is the beforeinput wall
+   below and the key step here. A struck run a selection swallows is back at
+   the next paint — the record holds it. */
+/* Which struck run the point sits in, if any. */
+function ceAtomAt(node){
+  const el = node ? (node.nodeType === 1 ? node : node.parentElement) : null;
+  return (el && el.closest) ? el.closest(`[${CE_MARK_ATTR}="del"]`) : null;
+}
+/* Backspace before a struck run and Delete after it step the caret across it,
+   as Word does; a caret INSIDE one steps out on the side the key deletes
+   towards. True where the key was spent on the step. */
+function ceAtomSkip(dir){
+  const box = _ceQ('#ce-clausebody');
+  const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+  if (!box || !sel || !sel.rangeCount || !sel.isCollapsed || !box.contains(sel.anchorNode)) return false;
+  const node = sel.anchorNode, off = sel.anchorOffset;
+  const inside = ceAtomAt(node);
+  if (inside && box.contains(inside)){
+    try{
+      const r = document.createRange();
+      if (dir < 0) r.setStartBefore(inside); else r.setStartAfter(inside);
+      r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+      return true;
+    }catch(_){ return false; }
+  }
+  const side = n => (dir < 0 ? n.previousSibling : n.nextSibling);
+  let nb = null;
+  if (node.nodeType === 3){
+    if (dir < 0 ? off > 0 : off < node.data.length) return false;
+    let n = node;
+    while (n && n !== box && !side(n)) n = n.parentNode;
+    if (!n || n === box) return false;
+    nb = side(n);
+  } else {
+    nb = dir < 0 ? node.childNodes[off - 1] : node.childNodes[off];
+    if (!nb){
+      let n = node;
+      while (n && n !== box && !side(n)) n = n.parentNode;
+      if (!n || n === box) return false;
+      nb = side(n);
+    }
+  }
+  let leaf = nb;
+  while (leaf && leaf.nodeType === 1 && !_ceIsAtom(leaf) && leaf.childNodes.length) leaf = dir < 0 ? leaf.lastChild : leaf.firstChild;
+  const atom = _ceIsAtom(leaf) ? leaf
+    : (leaf && leaf.parentElement && leaf.parentElement.closest ? leaf.parentElement.closest(`[${CE_MARK_ATTR}="del"]`) : null);
+  if (!atom || !box.contains(atom)) return false;
+  try{
+    const r = document.createRange();
+    if (dir < 0) r.setStartBefore(atom); else r.setStartAfter(atom);
+    r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+  }catch(_){ return false; }
+  return true;
+}
+/* The draft as the box says it now — the live wording while typing, the
+   record's draft otherwise. What every reading of "the lines" compares a
+   highlight against (the 14 Sep fault: a highlight of words just typed was
+   refused against the draft as it stood at the last pull). */
+function ceDraftNow(){
+  if (!ceIsTyping()) return _ceText;
+  const box = _ceQ('#ce-clausebody');
+  if (!box) return _ceText;
+  try{ const raw = ceBoxHtml(box); return window.sanitizeRich ? sanitizeRich(raw) : raw; }catch(_){ return _ceText; }
+}
+function cePaintStat(draft){
   const el = _ceQ('#ce-stat');
-  if (el) el.innerHTML = ceStatHtml();
+  if (el) el.innerHTML = ceStatHtml(draft);
 }
 function ceRenderReadBar(){
   const bar = _ceQ('#ce-readbar');
@@ -3010,7 +3375,7 @@ function ceApply(text, label, opts = {}){
      THE PAPER IS STILL REBUILT WHERE IT IS OWED, which is when the sanitiser
      had to correct the box: there the screen is showing something the record
      will not keep, and a repaint is the only thing that tells the truth. */
-  if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); ceTwinPaint(); }
+  if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); ceMarksMount(); }
   else { ceRenderPaper(); ceRenderFoot(); ceRenderHead(); }
   if (!opts.quiet) ceSay(_cet('ce_applied'));
   return true;
@@ -3663,8 +4028,19 @@ function ceSelectionRead(){
      reader (_negoNodeText, through window) puts a newline at every block, in
      every browser alike; Selection.toString does so only in some. Runs of
      spaces fold to one, a break stays a break. */
+  /* ---- STRUCK WORDS ARE ON THE PAGE AND NOT IN THE DRAFT (14 Sep 2026) ----
+     The marks live in the box now (see TYPING IN THE MARKS), so a highlight
+     that takes in a struck run is the ordinary case, not a mistake: read in the
+     paper's own 'current' mode the struck runs fall away and what is left is
+     the passage — the words that are staying, which is what the reader meant.
+     A marker span keeps the gap the gutter draws, so a whole-line highlight
+     reads "1. Either" and not "1.Either". */
   let raw = '';
-  try{ raw = (typeof window._negoNodeText === 'function') ? _negoNodeText(r.cloneContents(), null) : String(sel.toString() || ''); }
+  try{
+    const frag = r.cloneContents();
+    try{ frag.querySelectorAll('.rl-marker').forEach(m => { if (!/\s$/.test(m.textContent || '')) m.appendChild(document.createTextNode(' ')); }); }catch(_){}
+    raw = (typeof window._negoNodeText === 'function') ? _negoNodeText(frag, 'current') : String(sel.toString() || '');
+  }
   catch(_){ raw = String(sel.toString() || ''); }
   const text = ceWordsKeepBreaks(raw);
   /* A CLICK IS NOT A REFUSAL. Below this there is nothing a reader could have
@@ -3762,7 +4138,7 @@ function ceWordsKeepBreaks(w){
 /* The wording as LINES, with horizontal runs collapsed and the breaks kept —
    the one reading both the selection and the replacement work in. */
 function ceLines(){
-  return ceWords(_ceText).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
+  return ceWords(ceDraftNow()).split(/\n/).map(l => l.replace(/[^\S\n]+/g, ' ').trim());
 }
 /* ============================================================================
    THE SENTENCE THE STRIP IS HOLDING (owner-approved render, 30 Aug 2026)
@@ -3800,9 +4176,7 @@ function ceMarkHeld(range){
      come off exactly as before (ceClearHeld unwraps every one). */
   const pieces = [];
   try{
-    const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
-    let nd;
-    while ((nd = walker.nextNode())){
+    for (const nd of ceLiveTextNodes(box)){
       if (!range.intersectsNode(nd)) continue;
       const a = nd === range.startContainer ? range.startOffset : 0;
       const b = nd === range.endContainer ? range.endOffset : nd.data.length;
@@ -3867,12 +4241,16 @@ function ceClearHeld(scope){
    box as CORRECTED (the sanitiser unwraps a span whose class it does not
    admit), and a corrected box repaints the paper, which is the one thing that
    may not happen under a caret. */
-const CE_PAINT_SEL = '.' + CE_HELD_CLASS + ',.rl-marker';
+const CE_PAINT_SEL = '.' + CE_HELD_CLASS + ',.rl-marker,[data-ce-mark]';
 function ceBoxHtml(box){
   if (!box) return '';
   if (!box.querySelector || !box.querySelector(CE_PAINT_SEL)) return String(box.innerHTML || '');
   try{
     const clone = box.cloneNode(true);
+    /* THE MARKS COME OFF FIRST (14 Sep 2026): an atom carries wording the draft
+       does not have and goes whole; a wrapper is unwrapped and its characters
+       stay. Neither may reach the record — the pull is the funnel's door. */
+    ceMarksClear(clone);
     ceClearHeld(clone);
     /* The span goes and its characters stay: the marker IS part of the clause's
        wording, and a pull that dropped it would file a change striking the
@@ -3980,9 +4358,7 @@ function ceAttachWords(text, mode){
   const box = _ceQ('#ce-clausebody');
   const q = String(text || '').replace(/\s+/g, ' ').trim();
   if (!box || !q || !document.createTreeWalker || !window.getSelection) return false;
-  const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
-  const nodes = []; let nd;
-  while ((nd = walker.nextNode())) nodes.push(nd);
+  const nodes = ceLiveTextNodes(box);
   let full = ''; const starts = [];
   for (const t of nodes){ starts.push(full.length); full += t.data; }
   /* Whitespace-blind across a break, and a list marker the box does not
@@ -4144,6 +4520,9 @@ function ceBarOnHeld(k){
   let ran = false;
   try{
     const r = document.createRange();
+    /* THE PAINT COMES OFF FIRST (14 Sep 2026): the bar writes into whatever
+       text node is under the range, and a struck run's is not the draft's. */
+    ceMarksClear(box);
     /* From the first held piece to the last — one span or several. */
     r.setStartBefore(spans[0]); r.setEndAfter(spans[spans.length - 1]);
     try{ box.focus({ preventScroll: true }); }catch(_){ box.focus(); }
@@ -4176,9 +4555,7 @@ function ceRangeForText(text){
   if (!box || !want || !document.createTreeWalker) return null;
   const nodes = []; let flat = '';
   try{
-    const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
-    let n;
-    while ((n = walk.nextNode())){ nodes.push({ n, at: flat.length }); flat += n.nodeValue || ''; }
+    for (const n of ceLiveTextNodes(box)){ nodes.push({ n, at: flat.length }); flat += n.nodeValue || ''; }
   }catch(_){ return null; }
   /* Whitespace-blind, so a passage that spans two sub-paragraphs (whose text
      nodes touch with no space between) is found exactly as a one-line one. */
@@ -4552,7 +4929,19 @@ function ceWirePage(page){
        state the caret is in whenever the strip is open. Everywhere else the
        bar reads the reader's own selection in the clause, exactly as it did. */
     if (_ceSel && ceBarOnHeld(k)) return;
-    if (window.richBarPress && richBarPress(k)) cePullText({ repaint: ceBarMovesShape(k) });
+    if (window.richBarPress){
+      /* THE PAINT COMES OFF FIRST (14 Sep 2026): the bar's shape tools write a
+         marker at the block's first text node, and a struck run's is not the
+         draft's. The pull repaints; a press that moved nothing gets its marks
+         back here. */
+      const box = _ceQ('#ce-clausebody');
+      /* The reader's selection is a LIVE range and follows the unwrap; it is
+         not rebuilt (a rebuilt one once landed in a whitespace node between
+         two paragraphs and the bar found no block to act on). */
+      if (box) ceMarksClear(box);
+      if (richBarPress(k)) cePullText({ repaint: ceBarMovesShape(k) });
+      if (box && !box.querySelector(`[${CE_MARK_ATTR}]`)) ceMarksMount();
+    }
   });
 
   /* The picker's own presses. mousedown for the same reason the bar uses it —
@@ -4949,8 +5338,8 @@ function ceWirePage(page){
        Guarded on there BEING one, so an ordinary keystroke costs nothing. */
     if (_ceSel) ceDetachPassage();
     ceSyncBarSteps();
-    /* THE MARKS FOLLOW THE TYPING, a beat behind and never under the caret. */
-    ceTwinSchedule();
+    /* THE MARKS FOLLOW THE TYPING, a beat behind, the caret put back where it was. */
+    ceMarksSchedule();
   });
 
   /* ---- A HEADING IS ONE LINE ----
@@ -4965,6 +5354,39 @@ function ceWirePage(page){
     if (!t || !t.closest || !t.closest('#ce-clausehead')) return;
     if (ev.key === 'Enter'){ ev.preventDefault(); t.blur(); return; }
     if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
+  });
+  /* ---- A STRUCK RUN IS STEPPED OVER, NEVER DELETED (14 Sep 2026) ----
+     The browser would take a non-editable element whole on the Backspace
+     before it; the record would put it straight back. The caret steps across
+     it instead, which is what Word does and what the reader expects. */
+  page.addEventListener('keydown', ev => {
+    if (ev.key !== 'Backspace' && ev.key !== 'Delete') return;
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    if (ceAtomSkip(ev.key === 'Backspace' ? -1 : 1)) ev.preventDefault();
+  });
+  /* ---- NOTHING IS TYPED INTO A STRUCK RUN (the wall behind the step) ----
+     A caret that has come to rest inside one — a click, an arrow — steps out
+     to the run's end and the keystroke lands there; a deletion aimed inside
+     one is refused. The run is the record's; the reader's own words go beside
+     it. */
+  page.addEventListener('beforeinput', ev => {
+    const t = ev.target;
+    if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
+    const box = _ceQ('#ce-clausebody');
+    const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+    if (!box || !sel || !sel.rangeCount || !sel.isCollapsed) return;
+    const atom = ceAtomAt(sel.anchorNode);
+    if (!atom || !box.contains(atom)) return;
+    try{
+      const r = document.createRange(); r.setStartAfter(atom); r.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r);
+    }catch(_){ return; }
+    if (/^delete/.test(String(ev.inputType || ''))){ ev.preventDefault(); return; }
+    if (ev.inputType === 'insertText' && ev.data != null){
+      ev.preventDefault();
+      try{ document.execCommand('insertText', false, ev.data); }catch(_){}
+    }
   });
 
   /* ---- ONE SENTENCE AT A TIME, AND IT NO LONGER WAITS ITS TURN ----
@@ -5144,4 +5566,5 @@ Object.assign(window, {
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
+  ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
 });

@@ -2061,14 +2061,15 @@ const dismissNote = async pg => {
      looked wrong. */
   const bullets = await p.evaluate(async () => {
     const box = document.getElementById('ce-clausebody'); box.focus();
-    const p0 = box.querySelector('p') || box;
+    /* live wording, never a struck block painted into the box (14 Sep 2026) */
+    const p0 = box.querySelector('p:not([data-ce-mark])') || box;
     const r = document.createRange(); r.selectNodeContents(p0);
     const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
     document.querySelector('#ce-bar [data-rb="insertUnorderedList"]')
       .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 800));
     const now = document.getElementById('ce-clausebody');
-    const p1 = now.querySelector('p') || now;
+    const p1 = now.querySelector('p:not([data-ce-mark])') || now;
     const mk = p1.querySelector('.rl-marker');
     return { list: !!now.querySelector('ul,ol,li'),
       text: (p1.textContent || '').slice(0, 12),
@@ -2104,7 +2105,7 @@ const dismissNote = async pg => {
   const errsBefore = errs.length;
   const undone = await p.evaluate(async () => {
     const box = document.getElementById('ce-clausebody'); box.focus();
-    const p0 = box.querySelector('p') || box.querySelector('li') || box;
+    const p0 = box.querySelector('p:not([data-ce-mark])') || box.querySelector('li') || box;
     p0.insertAdjacentText('afterbegin', 'ZZTYPED ');
     box.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 350));
@@ -2432,8 +2433,10 @@ const dismissNote = async pg => {
       inBox: box ? box.querySelectorAll('ins, .nego-ins, del, .nego-del').length : -1,
       twinBelow: !!(twin && box) && twin.getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1 };
   });
-  ck('21a ONE press in the wording starts typing AND THE MARKS STAY — under the box, not in it',
-     onePress.presses === 1 && onePress.typing === true && onePress.marks > 0 && onePress.inBox === 0 && onePress.twinBelow,
+  /* RE-POINTED AGAIN 14 Sep 2026 (Young: "redline in the redlined section"):
+     the marks are IN the box, painted over the draft; nothing under it. */
+  ck('21a ONE press in the wording starts typing AND THE MARKS STAY — in the box the reader types in',
+     onePress.presses === 1 && onePress.typing === true && onePress.marks > 0 && onePress.inBox > 0 && !onePress.twinBelow,
      `presses ${onePress.presses} · typing ${onePress.typing} · marks ${onePress.marks} (in box ${onePress.inBox}) · twin below ${onePress.twinBelow}`);
 
   /* ---- THE HIGHLIGHT, DRAGGED FOR REAL ---- */
@@ -2443,13 +2446,30 @@ const dismissNote = async pg => {
     /* A paragraph long enough that a drag across most of it is an unambiguous
        passage — the strip refuses a two-word or a repeated one, and staging one
        of those would prove nothing about the guard being removed. */
-    const ps = Array.from(box.querySelectorAll('p, div'))
-      .filter(el => (el.innerText || '').trim().length > 40);
-    const el = ps[0] || box;
-    const r = el.getBoundingClientRect();
-    return { x1: r.left + 6, y1: r.top + r.height / 2, x2: r.right - 10, y2: r.top + r.height / 2 };
+    /* LIVE WORDING (14 Sep 2026): the marks are painted into the box, and a
+       struck run is on the page but not in the draft — a drag over it is a
+       highlight of nothing the rail can hold. The longest run the reader can
+       act on is what is dragged, first character to last. */
+    const runs = (window.ceLiveTextNodes ? ceLiveTextNodes(box) : []).filter(t => t.data.trim().length >= 8);
+    const t = runs.sort((a, b) => b.data.length - a.data.length)[0];
+    if (!t) return null;
+    const r1 = document.createRange(); r1.setStart(t, 0); r1.setEnd(t, 1);
+    const r2 = document.createRange(); r2.setStart(t, t.data.length - 1); r2.setEnd(t, t.data.length);
+    const a = r1.getBoundingClientRect(), b = r2.getBoundingClientRect();
+    return { x1: a.left + 1, y1: a.top + a.height / 2, x2: b.right - 1, y2: b.top + b.height / 2, words: t.data.slice(0, 40) };
   });
-  ck('21b a passage long enough to drag was found', !!target, target ? 'ok' : 'none');
+  ck('21b a passage long enough to drag was found', !!target, target ? JSON.stringify(target) : 'none');
+  if (process.env.HATI_SHOT_DIR){ try{ await p.screenshot({ path: path.join(process.env.HATI_SHOT_DIR, '21-before-drag.png') }); }catch(_){} }
+  /* What the mouse-up met, read BEFORE the page's own handler runs (14 Sep
+     2026): the selection standing at that instant and the editor's reading of it. */
+  await p.evaluate(() => {
+    window.__up21 = null;
+    document.addEventListener('mouseup', () => {
+      try{ const r = window.ceSelectionRead ? ceSelectionRead() : null;
+        window.__up21 = { sel: String(getSelection()).slice(0, 80), read: r && r.sel ? { text: r.sel.text.slice(0, 60), multi: !!r.sel.multi } : r }; }
+      catch(e){ window.__up21 = { err: String(e) }; }
+    }, { capture: true, once: true });
+  });
   if (target){
     await p.mouse.move(target.x1, target.y1);
     await p.mouse.down();
@@ -2470,7 +2490,13 @@ const dismissNote = async pg => {
     const r = strip ? strip.getBoundingClientRect() : null;
     const sel = window.getSelection();
     const act = document.activeElement;
+    const box0 = document.getElementById('ce-clausebody');
     return {
+      /* what the drag met, printed with the verdict — the 14 Sep lesson: a
+         green tally says nothing about which half failed */
+      boxHead: box0 ? box0.innerHTML.replace(/\s+/g, ' ').slice(0, 220) : '',
+      selNow: String(sel && sel.toString() || '').slice(0, 60),
+      menu: !!document.querySelector('.nego-selmenu'),
       /* VISIBLE PIXELS, never a class: a strip carrying is-on but painted
          nowhere is the same dead press from the reader's chair. */
       strip: !!(strip && r && r.width > 0 && r.height > 0 && strip.offsetParent !== null),
@@ -2482,7 +2508,7 @@ const dismissNote = async pg => {
     };
   });
   ck('21c THE REPORTED FIX: highlighting while typing attaches the passage',
-     afterDrag.strip === true, `attached ${afterDrag.strip}`);
+     afterDrag.strip === true, `attached ${afterDrag.strip} · menu ${afterDrag.menu} · at mouse-up ${JSON.stringify(await p.evaluate(() => window.__up21))} · box ${afterDrag.boxHead}`);
   /* A SUPPORTING CLAIM, NOT A REGRESSION ONE, and labelled so: this passes
      against the unfixed code too, because while typing the click branch is
      already excluded by its own contenteditable selector. It is here because
@@ -3602,7 +3628,10 @@ const dismissNote = async pg => {
     const busy = new Set((c.changes || []).filter(x => x && x.status === 'pending').map(x => x.clauseId));
     const cl = negoClauseList(c).find(x => !busy.has(x.clauseId) && /\w/.test(x.text || '') && (x.text || '').length > 60 && !window.negoIsFrontId(x.clauseId));
     if (!cl) return { error: 'no untouched clause on the stage' };
-    const theirs = await negoEditClause(c, cl.clauseId, '<p>' + cl.text + ' Interest runs at two per cent above base.</p>',
+    /* Their ask ADDS a sentence and STRIKES the clause's last word (14 Sep
+       2026: a struck run has to be on the stage for the atom claims). */
+    const theirs = await negoEditClause(c, cl.clauseId,
+      '<p>' + cl.text.replace(/(\w+)([.;,]?)\s*$/, 'thereof$2') + ' Interest runs at two per cent above base.</p>',
       { side: 'counterparty', author: 'Henry M.' });
     if (!theirs) return { error: 'their ask did not file' };
     if (window.rlSetReadMode) rlSetReadMode('marks');
@@ -3646,9 +3675,21 @@ const dismissNote = async pg => {
         pencils: pens.length, pencilOnLive: !!(live && live.querySelector('[data-ce-pencil]')),
         pencilWord: pens[0] ? pens[0].getAttribute('aria-label') : '' };
     });
-    ck('32b A REAL CLICK IN THE WORDING starts typing, and THEIR MARKS STAY under the box',
-       on32.typing && on32.twin && on32.twinThem && on32.twinBelow && on32.inBox === 0,
-       JSON.stringify(on32));
+    /* RE-POINTED 14 Sep 2026 (Young: "redline in the redlined section"): the
+       marks are IN the box now, painted over the draft — an atom for a struck
+       run, a wrapper for an added one — and no reading is drawn under it. */
+    const inBox32 = await p.evaluate(() => {
+      const box = document.getElementById('ce-clausebody');
+      const them = box && box.querySelector('ins.rl-them, del.rl-them');
+      const atom = box && box.querySelector('[data-ce-mark="del"]');
+      return { them: !!them && them.getBoundingClientRect().width > 0,
+        atoms: box ? box.querySelectorAll('[data-ce-mark="del"]').length : -1,
+        atomOpen: !!atom && atom.getAttribute('contenteditable') == null,
+        wraps: box ? box.querySelectorAll('[data-ce-mark="ins"]').length : -1 };
+    });
+    ck('32b A REAL CLICK IN THE WORDING starts typing, and THEIR MARKS STAY — in the box, painted over the draft',
+       on32.typing && !on32.twin && inBox32.them && inBox32.atoms > 0 && inBox32.wraps > 0 && inBox32.atomOpen,
+       JSON.stringify({ ...on32, ...inBox32 }));
     ck('32c the pencil appears only now, on this clause, and says Done',
        on32.pencils === 1 && on32.pencilOnLive && /done|klar/i.test(on32.pencilWord),
        `${on32.pencils} pencil(s) · "${on32.pencilWord}"`);
@@ -3659,18 +3700,70 @@ const dismissNote = async pg => {
     await p.keyboard.type(' Interest is simple, never compound.');
     await pause(800);
     const typed32 = await p.evaluate(() => {
-      const twin = document.getElementById('ce-twin');
       const box = document.getElementById('ce-clausebody');
-      const us = twin && twin.querySelector('ins.rl-us');
-      const them = twin && twin.querySelector('ins.rl-them');
+      const us = box && box.querySelector('ins.rl-us');
+      const them = box && box.querySelector('ins.rl-them');
+      const sel = window.getSelection();
       return { us: !!us && us.getBoundingClientRect().width > 0, usBg: us ? getComputedStyle(us).backgroundColor : null,
         themBg: them ? getComputedStyle(them).backgroundColor : null,
-        usWords: us ? us.textContent : '', inBox: box ? box.querySelectorAll('ins, del').length : -1,
+        usWords: us ? us.textContent : '', twin: !!document.getElementById('ce-twin'),
+        caretIn: !!(sel && sel.anchorNode && box && box.contains(sel.anchorNode)),
         typing: !!(box && box.isContentEditable) };
     });
-    ck('32d WHAT IS TYPED DRAWS AS OUR LAYER OVER THEIRS, in a second colour, while the box stays clean',
-       typed32.us && /compound/.test(typed32.usWords) && typed32.usBg !== typed32.themBg && typed32.inBox === 0 && typed32.typing,
+    ck('32d WHAT IS TYPED DRAWS AS OUR LAYER OVER THEIRS, in a second colour, IN the box, with the caret still in it',
+       typed32.us && /compound/.test(typed32.usWords) && typed32.usBg !== typed32.themBg && !typed32.twin && typed32.caretIn && typed32.typing,
        JSON.stringify(typed32));
+    /* THE TWO SILENCES (Young reported them 14 Sep 2026, images 1 and 2): a
+       highlight of the words just typed, and a highlight that takes in a
+       struck run, each OFFER — read against the live wording, without the
+       struck words. Driven with a real drag. */
+    const dragOver = async (text) => {
+      const pts = await p.evaluate(text => {
+        const box = document.getElementById('ce-clausebody');
+        const nodes = window.ceLiveTextNodes ? ceLiveTextNodes(box) : [];
+        let flat = ''; const starts = [];
+        for (const t of nodes){ starts.push(flat.length); flat += t.data; }
+        const at = flat.indexOf(text); if (at < 0) return null;
+        const find = pos => { for (let i = nodes.length - 1; i >= 0; i--) if (starts[i] <= pos) return { n: nodes[i], o: pos - starts[i] }; return null; };
+        const a = find(at), b = find(at + text.length - 1);
+        const r1 = document.createRange(); r1.setStart(a.n, a.o); r1.setEnd(a.n, a.o + 1);
+        const r2 = document.createRange(); r2.setStart(b.n, b.o); r2.setEnd(b.n, b.o + 1);
+        const ra = r1.getBoundingClientRect(), rb = r2.getBoundingClientRect();
+        return { x1: ra.left + 1, y1: ra.top + ra.height / 2, x2: rb.right - 1, y2: rb.top + rb.height / 2 };
+      }, text);
+      if (!pts) return null;
+      await p.mouse.move(pts.x1, pts.y1); await p.mouse.down(); await p.mouse.move(pts.x1 + 8, pts.y1, { steps: 3 });
+      await p.mouse.move(pts.x2, pts.y2, { steps: 12 }); await p.mouse.up(); await pause(450);
+      return p.evaluate(() => { const m = document.querySelector('.nego-selmenu'); const say = document.getElementById('ce-say');
+        return { menu: !!m, acts: m ? [...m.querySelectorAll('button')].map(b => b.textContent.trim()).length : 0,
+          said: !!(say && say.classList.contains('is-on')) }; });
+    };
+    const d32i = await dragOver('never compound');
+    ck('32i A HIGHLIGHT OF THE WORDS JUST TYPED offers the three verbs (image 1 of 14 Sep 2026)',
+       !!d32i && d32i.menu && d32i.acts === 3 && !d32i.said, JSON.stringify(d32i));
+    await p.mouse.click(1400, 60); await pause(200);
+    const d32j = await dragOver('Interest runs');
+    ck('32j …and so does a highlight across their marks (image 2)',
+       !!d32j && d32j.menu && d32j.acts === 3, JSON.stringify(d32j));
+    await p.mouse.click(1400, 60); await pause(200);
+    /* A STRUCK RUN IS STEPPED OVER: Backspace right after an atom deletes nothing. */
+    const atom32 = await p.evaluate(() => {
+      const box = document.getElementById('ce-clausebody');
+      const atom = box.querySelector('[data-ce-mark="del"]');
+      if (!atom) return null;
+      const r = document.createRange(); r.setStartAfter(atom); r.collapse(true);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); box.focus();
+      return { atoms: box.querySelectorAll('[data-ce-mark="del"]').length, chars: ceLiveTextNodes(box).reduce((n, t) => n + t.data.length, 0) };
+    });
+    if (atom32){ await p.keyboard.press('Backspace'); await pause(150); }
+    const atom32b = await p.evaluate(() => { const box = document.getElementById('ce-clausebody');
+      return { atoms: box.querySelectorAll('[data-ce-mark="del"]').length, chars: ceLiveTextNodes(box).reduce((n, t) => n + t.data.length, 0) }; });
+    ck('32k BACKSPACE BEFORE A STRUCK RUN steps the caret over it — nothing is deleted, the mark stays (Word\'s rule)',
+       !!atom32 && atom32.atoms > 0 && atom32b.atoms === atom32.atoms && atom32b.chars === atom32.chars,
+       JSON.stringify({ before: atom32, after: atom32b }));
+    /* back to the end of the box before the pencil, as the reader would be */
+    await p.evaluate(() => { const b = document.getElementById('ce-clausebody'); const nodes = ceLiveTextNodes(b); const last = nodes[nodes.length - 1];
+      const r = document.createRange(); r.setStart(last, last.data.length); r.collapse(true); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.focus(); });
     /* THE PENCIL MEANS DONE: a real press files the counter, which STACKS. */
     const pen32 = await p.$('#clause-editor .rl-clause-live [data-ce-pencil]');
     const pb = pen32 ? await pen32.boundingBox() : null;

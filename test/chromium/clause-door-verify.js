@@ -1398,8 +1398,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      It pinned "the redlines have given way to a clean view". MARKS NEVER
      DISAPPEAR now: the box the reader types in is clean, and the marked
      reading stays directly above it on the same paper. */
-  ck('16d3 …and the redlines STAY — under the clean box the reader types in',
-     landed.marks > 0 && landed.inBox === 0 && landed.twinBelow === true,
+  /* RE-POINTED AGAIN 14 Sep 2026 (Young: "redline in the redlined section"):
+     the marks are IN the box the reader types in, and nothing is drawn under it. */
+  ck('16d3 …and the redlines STAY — in the box the reader types in',
+     landed.marks > 0 && landed.inBox > 0 && landed.twinBelow === false,
      `marks ${landed.marks} (in the box ${landed.inBox}) · twin below ${landed.twinBelow}`);
 
   /* ---- 16d4. AND THE WHOLE JOURNEY, WITHOUT A SECOND PRESS ----
@@ -1565,8 +1567,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     ck('16e A CLICK IN THE WORDING STARTS TYPING — no pencil at rest, the wording is the way in',
        typed.before === false && typed.pencilsAtRest === 0 && after.typing === true,
        JSON.stringify({ ...typed, ...after }));
-    ck('16f \u2026and the clause KEEPS ITS MARKS, under the box the reader types in',
-       typed.marksBefore > 0 && after.marks > 0 && after.inBox === 0 && after.twinBelow,
+    ck('16f \u2026and the clause KEEPS ITS MARKS, in the box the reader types in (14 Sep 2026)',
+       typed.marksBefore > 0 && after.marks > 0 && after.inBox > 0 && !after.twinBelow,
        `${typed.marksBefore} marks before, ${after.marks} after (in the box ${after.inBox}) \u00b7 twin below ${after.twinBelow}`);
     ck('16f2 and the pencil appears ONLY now, on this clause, meaning done',
        after.pencils === 1 && after.pencilOnLive === true, `${after.pencils} pencil(s), on the live clause ${after.pencilOnLive}`);
@@ -1636,6 +1638,111 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   }
   await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
   await pause(400);
+
+  /* ============================================================
+     17. THE NEGOTIATE PAGE TOO (Young ruled 14 Sep 2026: "Yes on the
+     negotiate page too" — the pencil is never the way in anywhere)
+     ============================================================
+     A real click in a clause's wording on the negotiate page presses that
+     clause's own pencil and lands in the editor, typing; a drag is still a
+     highlight and offers its menu; a press ON the pencil opens once. */
+  const where17 = await p.evaluate(() => {
+    /* An earlier section stood the page in the counterparty's shoes and left
+       the flag standing; this section is OUR seat, as the product boots it. */
+    window.PORTAL_MODE = false;
+    if (window.clauseEditorOpen && clauseEditorOpen()) return null;
+    /* The Redlined reading, as a reader arrives: the pencil is not drawn on a
+       reading that hides the marks, and neither is this door. Our seat is
+       MOUNTED AGAIN so the paper is wired as the product wires it for us —
+       the door is decided at wiring, and the last mount stood in their shoes. */
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    if (window.SHOW_OWNER) window.SHOW_OWNER(); else if (window.renderRedline) window.renderRedline();
+    const c = window.CONTRACT;
+    const cl = negoClauseList(c).find(x => !window.negoIsFrontId(x.clauseId) && (x.text || '').length > 60);
+    /* The VISIBLE copy: a page can carry an embedded second canvas. */
+    const sec = cl && [...document.querySelectorAll(`.rl-doc [data-clause="${CSS.escape(cl.clauseId)}"]`)]
+      .find(el => el.getClientRects().length && el.getBoundingClientRect().width > 0);
+    if (!sec) return null;
+    sec.scrollIntoView({ block: 'center' });
+    return { clauseId: cl.clauseId,
+      pencil: !!sec.querySelector('[data-rl-cp-editor], [data-rl-cp-open]'),
+      host: sec.closest('.rl-doc') && sec.closest('.rl-doc').parentElement ? sec.closest('.rl-doc').parentElement.id : null };
+  });
+  /* THE PAPER'S SCROLLER ANIMATES (the standing lesson): the rect is read only
+     once the scroll has settled, in a second evaluate. */
+  await pause(600);
+  if (where17){
+    const at17 = await p.evaluate(id => {
+      const sec = [...document.querySelectorAll(`.rl-doc [data-clause="${CSS.escape(id)}"]`)]
+        .find(el => el.getClientRects().length && el.getBoundingClientRect().width > 0);
+      if (!sec) return null;
+      const walker = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, null);
+      let nd, first = null;
+      while ((nd = walker.nextNode())) if (nd.data.trim().length > 30 && !nd.parentElement.closest('.rl-clause-top')){ first = nd; break; }
+      if (!first) return null;
+      const r1 = document.createRange(); r1.setStart(first, 4); r1.setEnd(first, 5);
+      const a = r1.getBoundingClientRect();
+      return { x: a.left + 1, y: a.top + a.height / 2, vh: window.innerHeight };
+    }, where17.clauseId);
+    if (at17) Object.assign(where17, at17); else where17.x = where17.y = -1;
+  }
+  if (!where17){
+    ck('17 the negotiate page is on the stage with a clause to press', false, 'no clause found or the editor is still open');
+  } else {
+    const under17 = await p.evaluate(pt => { const el = document.elementFromPoint(pt.x, pt.y);
+      return el ? { tag: el.tagName, cls: String(el.className).slice(0, 60), clause: (el.closest('[data-clause]') || {}).getAttribute?.('data-clause') || null, inDoc: !!el.closest('.rl-doc') } : null; }, where17);
+    await p.mouse.click(where17.x, where17.y);
+    await pause(900);
+    const open17 = await p.evaluate(() => {
+      const box = document.getElementById('ce-clausebody');
+      const sec = box && box.closest('[data-clause]');
+      return { open: !!(window.clauseEditorOpen && clauseEditorOpen()), on: sec ? sec.getAttribute('data-clause') : null,
+        typing: !!(box && box.isContentEditable) };
+    });
+    open17.under = under17; open17.at = { x: Math.round(where17.x), y: Math.round(where17.y), vh: where17.vh };
+    ck('17a A REAL CLICK IN THE WORDING on the negotiate page opens the editor on that clause, typing',
+       open17.open && open17.on === where17.clauseId && open17.typing, JSON.stringify({ ...open17, pencilOnStage: where17.pencil, host: where17.host }));
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); }); await pause(400);
+    /* a drag: the menu, and no editor */
+    const pts17 = await p.evaluate(id => {
+      const sec = document.querySelector(`.rl-doc [data-clause="${CSS.escape(id)}"]`);
+      sec.scrollIntoView({ block: 'center' });
+      const walker = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT, null);
+      let nd, first = null;
+      while ((nd = walker.nextNode())) if (nd.data.trim().length > 30 && !nd.parentElement.closest('.rl-clause-top')){ first = nd; break; }
+      const r1 = document.createRange(); r1.setStart(first, 2); r1.setEnd(first, 3);
+      const r2 = document.createRange(); r2.setStart(first, 24); r2.setEnd(first, 25);
+      const a = r1.getBoundingClientRect(), b = r2.getBoundingClientRect();
+      return { x1: a.left + 1, y1: a.top + a.height / 2, x2: b.right - 1, y2: b.top + b.height / 2 };
+    }, where17.clauseId);
+    await p.mouse.move(pts17.x1, pts17.y1); await p.mouse.down(); await p.mouse.move(pts17.x1 + 8, pts17.y1, { steps: 3 });
+    await p.mouse.move(pts17.x2, pts17.y2, { steps: 10 }); await p.mouse.up(); await pause(450);
+    const drag17 = await p.evaluate(() => ({ menu: !!document.querySelector('.nego-selmenu'),
+      open: !!(window.clauseEditorOpen && clauseEditorOpen()), sel: String(getSelection()).trim().length }));
+    ck('17b (control) …a DRAG is still a highlight: the menu comes, the editor does not',
+       drag17.menu && !drag17.open && drag17.sel > 3, JSON.stringify(drag17));
+    await p.mouse.click(1400, 60); await pause(250);
+    /* the pencil itself opens exactly once */
+    const pen17 = await p.evaluate(id => {
+      const sec = document.querySelector(`.rl-doc [data-clause="${CSS.escape(id)}"]`);
+      const b = sec && sec.querySelector('[data-rl-cp-editor], [data-rl-cp-open]');
+      if (!b) return null;
+      window.__opens17 = 0;
+      const real = window.rlOpenClauseEditor;
+      window.rlOpenClauseEditor = (...a) => { window.__opens17++; return real(...a); };
+      window.__realOpen17 = real;
+      const r = b.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, where17.clauseId);
+    if (pen17){ await p.mouse.move(pen17.x, pen17.y); await pause(150); await p.mouse.click(pen17.x, pen17.y); await pause(800); }
+    const pen17b = await p.evaluate(() => { const out = { opens: window.__opens17, open: !!(window.clauseEditorOpen && clauseEditorOpen()) };
+      window.rlOpenClauseEditor = window.__realOpen17; delete window.__realOpen17; return out; });
+    ck('17c (control) …and a press ON the pencil opens the editor exactly once — one door, one act',
+       !!pen17 && pen17b.opens === 1 && pen17b.open, JSON.stringify(pen17b));
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); }); await pause(300);
+  }
 
   ck('no page errors', errs.length===0, errs.join(' | ')||'clean');
   const pass=R.filter(Boolean).length;

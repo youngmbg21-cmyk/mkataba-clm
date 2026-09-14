@@ -220,6 +220,50 @@ const RAIL = () => {
     s = await page.evaluate(RAIL);
     check('10b · back at 1,440 the rail returns with the same section in hand', !!s.rail && !!held && s.scope === held, { before: held, after: s.scope });
 
+    /* ================= 12 · THE DIVIDER (Young asked 14 Sep 2026) ================
+       The clause editor's own handle between the paper and the rail: it sits
+       on the seam at rest, follows the pointer, marks its limit, and a
+       double-click puts the sheet's own columns back. Nothing else moved. */
+    const GEO = () => { const R = e => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, w: r.width }; };
+      const page = document.getElementById('tb-page'), rail = document.getElementById('tb-rail'), left = document.querySelector('#tb-page > .tb-left'), rez = document.getElementById('tb-resizer');
+      return { page: R(page), rail: R(rail), left: R(left), rez: R(rez), limit: rez ? rez.getAttribute('data-rl-at-limit') : null,
+        role: rez ? rez.getAttribute('role') : null, stored: (() => { try { return localStorage.getItem('hati.v1.tbLeftFrac'); } catch (_) { return null; } })(),
+        editables: document.querySelectorAll('[contenteditable="true"]').length }; };
+    const g0 = await page.evaluate(GEO);
+    const seam0 = g0.left ? g0.left.x + g0.left.w + 8 : -1;
+    check('12a · a separator sits on the seam between the paper and the rail at rest, and the rail is still 380',
+      !!g0.rez && g0.role === 'separator' && Math.abs((g0.rez.x + g0.rez.w / 2) - seam0) <= 2 && Math.abs(g0.rail.w - 380) <= 2,
+      { handle: g0.rez && Math.round(g0.rez.x + g0.rez.w / 2), seam: Math.round(seam0), rail: g0.rail && g0.rail.w });
+    /* GUARDED (the standing rule): a build without the handle reports the
+       four drags as failures rather than crashing the file on a null rect. */
+    if (!g0.rez){
+      ['12b · dragged 220px left, the rail is that much wider and the handle is under the pointer',
+       '12c · pushed past its floor the paper stops and the handle SAYS it is at the limit',
+       '12d · a double-click puts the sheet\'s own columns back — the rail at 380, nothing stored',
+       '12e · and the paper still types — nothing else on the page moved'].forEach(n => check(n, false, 'no separator on the page'));
+    } else {
+      const hx = g0.rez.x + g0.rez.w / 2, hy = 400;
+      await page.mouse.move(hx, hy); await page.mouse.down(); await page.mouse.move(hx - 60, hy, { steps: 4 }); await page.mouse.move(hx - 220, hy, { steps: 10 }); await page.mouse.up();
+      await pause(300);
+      const g1 = await page.evaluate(GEO);
+      check('12b · dragged 220px left, the rail is that much wider and the handle is under the pointer',
+        !!g1.rail && g1.rail.w > g0.rail.w + 200 && Math.abs((g1.rez.x + g1.rez.w / 2) - (hx - 220)) <= 2 && g1.stored != null,
+        { rail: g1.rail && Math.round(g1.rail.w), handle: Math.round(g1.rez.x + g1.rez.w / 2), pointer: Math.round(hx - 220) });
+      await page.mouse.move(g1.rez.x + g1.rez.w / 2, hy); await page.mouse.down(); await page.mouse.move(60, hy, { steps: 12 }); await page.mouse.up();
+      await pause(300);
+      const g2 = await page.evaluate(GEO);
+      check('12c · pushed past its floor the paper stops and the handle SAYS it is at the limit',
+        g2.limit === 'min' && g2.left && g2.left.w >= 370, { limit: g2.limit, paper: g2.left && Math.round(g2.left.w) });
+      await page.dblclick('#tb-resizer');
+      await pause(300);
+      const g3 = await page.evaluate(GEO);
+      check('12d · a double-click puts the sheet\'s own columns back — the rail at 380, nothing stored',
+        !!g3.rail && Math.abs(g3.rail.w - 380) <= 2 && g3.stored == null && Math.abs((g3.rez.x + g3.rez.w / 2) - seam0) <= 2,
+        { rail: g3.rail && Math.round(g3.rail.w), stored: g3.stored });
+      check('12e · and the paper still types — nothing else on the page moved', g3.editables === g0.editables && g3.editables >= 3, { before: g0.editables, after: g3.editables });
+      await page.screenshot({ path: path.join(OUT, '06-divider.png') });
+    }
+
     check('11 · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
     check('harness', false, String(e && e.stack || e));

@@ -538,11 +538,15 @@ function richToText(html){
 function _lineUnits(root){
   const units=[];
   let cur=null;
-  const open=(node,prefix)=>{ cur={ node, prefix:prefix||'', text:'' }; };
+  /* `nodes` — the text nodes each line was read from, in order — joined the
+     unit 14 Sep 2026 for the clause editor, which paints the marks INTO the
+     box it is typing in and needs every projected character to land on a DOM
+     character. Additive: every older reader ignores it. */
+  const open=(node,prefix)=>{ cur={ node, prefix:prefix||'', text:'', nodes:[] }; };
   const flush=()=>{
     if(!cur) return;
     const t=cur.text.replace(/[ \t]+/g,' ').trim();
-    if(t) units.push({ node:cur.node, prefix:cur.prefix, text:t, line:cur.prefix+t });
+    if(t) units.push({ node:cur.node, prefix:cur.prefix, text:t, line:cur.prefix+t, nodes:cur.nodes });
     cur=null;
   };
   /* The marker comes from _listMark, the ONE reading richToText asks too: this
@@ -550,7 +554,7 @@ function _lineUnits(root){
      here would abandon every merge that touches a list. */
   (function walk(node, path, owner, ulDepth){
     for(const ch of Array.from(node.childNodes)){
-      if(ch.nodeType===3){ if(cur) cur.text+=ch.nodeValue.replace(/\s+/g,' '); continue; }
+      if(ch.nodeType===3){ if(cur){ cur.text+=ch.nodeValue.replace(/\s+/g,' '); cur.nodes.push(ch); } continue; }
       if(ch.nodeType!==1) continue;
       const tag=ch.tagName;
       if(tag==='BR'){ flush(); open(owner,''); continue; }
@@ -1286,4 +1290,6 @@ Object.assign(window,{RICH_TAGS,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
   RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,richBlockClass,
-  canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});
+  canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich,
+  /* the clause editor's painter reads the projection off the live box through this (14 Sep 2026) */
+  _lineUnits});

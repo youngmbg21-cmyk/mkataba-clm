@@ -2025,7 +2025,7 @@ describe('f245 (19) — one press reaches typing AND the strip', () => {
        it is about is that with nothing held the bar reads the reader's own
        selection and the page then pulls the text — never that the pull takes
        no arguments. */
-    assert.match(bar, /if \(window\.richBarPress && richBarPress\(k\)\) cePullText\(/,
+    assert.match(bar, /if \(window\.richBarPress\)\{[\s\S]{0,600}if \(richBarPress\(k\)\) cePullText\(/,
       'and with nothing held the bar reads the reader\'s own selection exactly '
       + 'as it did');
     const held = CODE.match(/function ceBarOnHeld\([\s\S]*?\n\}/)[0];
@@ -2819,25 +2819,109 @@ describe('f245 (26) — the layered redline in the editor', () => {
     p.win.rlCloseClauseEditor();
   });
 
-  test('MARKS NEVER DISAPPEAR — while typing, the marked reading stays under the box', async () => {
+  /* ---- REVERSED IN PLACE 14 Sep 2026 (Young: "I want to be able to redline in
+     the redlined section") ---- It pinned the marks UNDER the box. The marks
+     are IN the box now — their strikes as atoms the caret steps over, their
+     added runs wrapped — and no twin is drawn where the painter owns the box. */
+  test('MARKS NEVER DISAPPEAR — while typing, the marks are IN the box the reader types in (14 Sep 2026)', async () => {
     const { p } = await theirAsk({ typing: true });
     const box = p.doc.querySelector('#ce-clausebody');
     assert.equal(box && box.getAttribute('contenteditable'), 'true', 'typing is on');
-    const twin = p.doc.querySelector('#ce-twin');
-    assert.ok(twin, 'the marks are drawn under the box');
-    assert.ok(twin.querySelectorAll('ins, del').length > 0, 'and they are marks');
-    assert.ok(box.compareDocumentPosition(twin) & 4, 'under it, on the same paper — so nothing above the caret ever moves');
-    assert.equal(box.querySelectorAll('ins, del').length, 0, 'the box itself holds the draft clean');
+    assert.equal(p.doc.querySelector('#ce-twin'), null, 'no reading under the box: the box IS the marked reading');
+    const atoms = box.querySelectorAll('[data-ce-mark="del"]');
+    assert.ok(atoms.length > 0, 'their struck run is an atom in the box');
+    assert.equal(atoms[0].getAttribute('contenteditable'), null, 'an ordinary element the caret crosses — never a non-editable island the browser would drag');
+    assert.match(CODE, /addEventListener\('beforeinput'/, 'the wall is beforeinput: nothing is typed into a struck run');
+    assert.match(atoms[0].className, /\brl-them\b/, 'in their colour');
+    assert.ok(box.querySelector('ins[data-ce-mark="ins"].rl-them'), 'and their added run is wrapped, in their colour');
     p.win.rlCloseClauseEditor();
   });
 
-  test('…and nothing is drawn under a box with nothing to keep on screen', async () => {
+  test('…and a box with nothing to keep on screen carries no paint at all', async () => {
     const p = await bench({ ask: false });
     wide(p.win);
     p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { typing: true, again: () => {} });
     assert.equal(p.doc.querySelector('#ce-twin'), null);
     assert.equal(p.win.ceTwinHtml(), '');
+    assert.equal(p.doc.querySelectorAll('#ce-clausebody [data-ce-mark]').length, 0);
     p.win.rlCloseClauseEditor();
+  });
+
+  /* ============================================================
+     TYPING IN THE MARKS (Young ruled 14 Sep 2026): the box holds the draft,
+     the marks are painted into it, the paint never reaches the record.
+     ============================================================ */
+  test('the projection walk is published and records the text nodes each line owns', () => {
+    const RD = read('js/richdoc.js');
+    assert.match(RD, /Object\.assign\(window,\{[\s\S]*\b_lineUnits\b/, '_lineUnits is on the window');
+    assert.match(RD, /nodes:cur\.nodes/, 'and each unit carries its nodes');
+  });
+
+  test('what is typed draws as OUR layer over theirs, in the box, and the paint comes off on the way to the record', async () => {
+    const { p, theirs } = await theirAsk({ typing: true });
+    const box = p.doc.querySelector('#ce-clausebody');
+    const live = p.win.ceLiveTextNodes(box);
+    assert.ok(live.length > 0, 'the box has live text');
+    /* Type, as the browser would: characters land in a live text node. */
+    const last = live[live.length - 1];
+    last.data = last.data + ' Fees follow the invoice.';
+    assert.ok(p.win.ceMarksPaint(), 'the painter owns this box');
+    const us = box.querySelector('ins[data-ce-mark="ins"].rl-us');
+    assert.ok(us && /Fees follow/.test(us.textContent), 'the typed words are wrapped as ours');
+    assert.ok(box.querySelector('[data-ce-mark="del"].rl-them'), 'their struck run is still there');
+    const draft = p.win.ceDraftNow();
+    assert.match(draft, /Fees follow the invoice\./, 'the live draft carries the typing');
+    assert.ok(!/data-ce-mark|<del|<ins/.test(p.win.ceBoxHtml(box)), 'and the pull carries no paint');
+    assert.ok(p.win.CE_PAINT_SEL.includes('[data-ce-mark]'), 'the pull knows the paint by name');
+    /* THE PENCIL FILES ON TOP: the record is the draft, measured against theirs. */
+    p.win.cePullText();
+    const ch = await p.win.ceFile();
+    assert.ok(ch, 'filed');
+    assert.equal(ch.oldText, theirs.newText, 'measured against their wording');
+    assert.match(String(ch.newText), /Fees follow the invoice\./);
+    assert.ok(!/data-ce-mark/.test(String(ch.bodyHtml || ch.newText)), 'nothing of the paint reached the record');
+    assert.equal(theirs.status, 'countered', 'and theirs is parked under it');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('the painter is refused nothing it cannot own: a table in the clause keeps the reading UNDER the box', async () => {
+    const { p } = await theirAsk({ typing: true });
+    const box = p.doc.querySelector('#ce-clausebody');
+    const tbl = p.doc.createElement('table'); tbl.innerHTML = '<tr><td>Rate</td><td>10</td></tr>';
+    box.appendChild(tbl);
+    assert.equal(p.win.ceMarksPaint(), false, 'the walk cannot own an opaque block');
+    p.win.ceMarksMount();
+    assert.ok(p.doc.querySelector('#ce-twin'), 'so the 13 Sep fallback draws the reading under the box');
+    p.win.rlCloseClauseEditor();
+  });
+
+  test('a highlight is read against the LIVE wording and without the struck words (the two silences of 14 Sep 2026)', () => {
+    const body = SRC.slice(SRC.indexOf('function ceSelectionRead'), SRC.indexOf('function ceSelection('));
+    assert.match(body, /_negoNodeText\(frag, 'current'\)/, 'struck runs fall away: the passage is the words that are staying');
+    assert.match(body, /\.rl-marker/, 'a marker keeps its gap');
+    const lines = SRC.slice(SRC.indexOf('function ceLines('), SRC.indexOf('function ceLines(') + 200);
+    assert.match(lines, /ceWords\(ceDraftNow\(\)\)/, 'the lines are the box\'s own while typing, never the draft at the last pull');
+    assert.ok((CODE.match(/ceLiveTextNodes\(box\)/g) || []).length >= 3, 'the three passage finders walk the live text only');
+  });
+
+  test('the input schedules the paint; Backspace and Delete step over an atom; the mount paints into the box', () => {
+    assert.match(CODE, /ceMarksSchedule\(\);/, 'a keystroke schedules the paint');
+    assert.match(CODE, /ceAtomSkip\(ev\.key === 'Backspace' \? -1 : 1\)/, 'the two deleting keys ask the atom step');
+    assert.match(CODE, /if \(typing\) ceMarksMount\(\{ fresh: true \}\);/, 'the mount paints after the write');
+    const paper = SRC.slice(SRC.indexOf('function ceRenderPaper'), SRC.indexOf('function ceStatHtml'));
+    assert.ok(!/\$\{twinHtml\}/.test(paper), 'no twin is written into the typing markup');
+  });
+
+  test('THE NEGOTIATE PAGE TOO (Young: "Yes on the negotiate page too"): a click in the wording presses the clause\'s own pencil', () => {
+    const NG = read('js/views/negotiation.js');
+    const at = NG.indexOf('A CLICK IN THE WORDING IS THE PENCIL\'S OWN PRESS');
+    assert.ok(at > 0, 'the door is written');
+    const door = NG.slice(at, at + 3000);
+    assert.match(door, /side !== 'counterparty' && !opts\.preview && !opts\.pill/, 'our seat, not a preview, not the editor\'s own canvas');
+    assert.match(door, /sec\.querySelector\('\[data-rl-cp-editor\]:not\(\[data-nego-ai-clause\]\), \[data-rl-cp-open\]'\)/, 'the clause\'s own pencil');
+    assert.match(door, /pill\.click\(\)/, 'is pressed — one door, one act');
+    assert.match(door, /!s\.isCollapsed && String\(s\)\.trim\(\)\) return/, 'a drag is a highlight and keeps its menu');
+    assert.match(door, /\.rl-cp-lock/, 'a held clause speaks its lock');
   });
 
   test('THE FILING IS MEASURED AGAINST THEIR WORDING, so the funnel stacks: theirs is parked, not superseded', async () => {

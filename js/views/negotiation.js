@@ -4834,6 +4834,38 @@ function wireNegotiationTab(c, opts = {}){
       if (fromControl(e.target)) return;
       setTimeout(openSelMenu, 0);
     });
+    /* ---- A CLICK IN THE WORDING IS THE PENCIL'S OWN PRESS (Young ruled
+       14 Sep 2026: "Yes on the negotiate page too" — the pencil is never the
+       way in anywhere) ----
+       Reverses "NO EDITS ON THE PAPER … a press in the wording does nothing"
+       (1 Sep) for OUR seat on this page: a CLICK — a collapsed selection, not
+       a drag, and not on any control the clause draws — presses the clause's
+       own pencil, so it goes exactly where the pencil goes: the editor, or
+       the panel where the editor cannot take the clause, decided at the DRAW
+       on the pencil's attribute and never re-decided here. A clause a
+       colleague holds draws the lock sign where the pencil would be, and the
+       click SPEAKS it. A drag is a highlight and keeps its menu (the mouseup
+       above). Their seat, a preview, a reading that draws no pencil and the
+       clause editor's own canvas (which answers its own clicks, `opts.pill`)
+       draw no such door. The pencil's own press stops its propagation, so a
+       press ON the pencil arrives here never — one door, one act. */
+    const inPortal = typeof window !== 'undefined'
+      && (typeof window.PORTAL_MODE === 'function' ? !!window.PORTAL_MODE() : !!window.PORTAL_MODE);
+    if (side !== 'counterparty' && !opts.preview && !opts.pill && !inPortal){
+      host.addEventListener('click', ev => {
+        const t = ev.target;
+        if (!t || !t.closest || ev.defaultPrevented) return;
+        const sec = t.closest('.rl-doc [data-clause]');
+        if (!sec || !host.contains(sec)) return;
+        if (fromControl(t) || t.closest('.rl-cp-lock, .rl-repl-on, [contenteditable="true"]')) return;
+        const s = window.getSelection && window.getSelection();
+        if (s && !s.isCollapsed && String(s).trim()) return;
+        const pill = sec.querySelector('[data-rl-cp-editor]:not([data-nego-ai-clause]), [data-rl-cp-open]');
+        if (pill){ pill.click(); return; }
+        const lock = sec.querySelector('.rl-cp-lock');
+        if (lock && window.toast) toast(lock.getAttribute('title') || i18t('cl_a_colleague'), 'warn');
+      });
+    }
     document.addEventListener('mousedown', e => {
       if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
         _negoKillSelMenu();

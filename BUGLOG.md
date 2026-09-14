@@ -13417,3 +13417,97 @@ VERIFIED
   reversed with a real mouse, red at the parent), redline-verify 222/223
   (27 new; 5 pre-existing), parity-verify 47/47 (12 new); lint 0 errors;
   full suite — see the commit.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 14 Sep 2026 — TYPING IN THE MARKS, THE CLICK ON THE NEGOTIATE PAGE,
+THE BUILDER'S DIVIDER
+Owner: three screenshots the morning after the layered redline ("sometimes
+when I try to highlight, I do not get the dropdown … I have highlighted a
+redlined clause and I am not getting the dropdown here either … I want to
+be able to redline in the redlined section … when I finish I click the
+pencil and the new redlines appear on top of the previous redlines"),
+then "Yes on the negotiate page too", and the builder "similar in
+functionality to the editor page … you can drag / pull a separator".
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · A highlight of words just typed in the clause editor was refused
+    with "struck-out text is on the page but not in your draft" and no
+    menu (image 1). The reader compared the highlight with the draft as
+    it stood at the last pull; typing never moved it. The lines are the
+    box's own while typing.
+  · A highlight that took in a struck-out run was refused for the same
+    reason (image 2): the range was read with the struck words in it.
+    It is read in the paper's 'current' mode now — the passage is the
+    words that are staying — and a marker span keeps the gap the gutter
+    draws, so a whole-line highlight no longer reads "1.Either".
+  · The editor drew the draft in a plain box with the marked reading
+    copied under it (the 13 Sep answer). The box is the redline now:
+    their strikes are atoms the caret steps over, their added runs and
+    everything the reader types are wrapped in the sheet's own marks,
+    coloured by author, repainted a beat after each keystroke with the
+    caret put back; the pull takes the paint off, so nothing of it can
+    reach the record, and the writing bar keeps working because the box
+    never stopped being rich. The pencil files the draft on top of their
+    ask exactly as before. A box the painter cannot own (a table, a pre,
+    a projection that disagrees by a character) keeps the reading under
+    the box.
+  · Struck runs were first drawn as non-editable islands; a drag begun on
+    one selected nothing (the browser drags an island as an object) and
+    the bullet press wrote its marker into one. They are ordinary
+    elements now, walled by beforeinput and stepped over on Backspace
+    and Delete; the writing bar takes the paint off before it acts.
+  · On the negotiate page a click in a clause's wording did nothing (the
+    1 Sep rule). It presses the clause's own pencil now — the editor, or
+    the panel where the editor cannot take the clause — and a drag keeps
+    its menu; a held clause speaks its lock.
+  · The template builder has the clause editor's draggable divider
+    between the paper and the rail: pointer position, a grab offset, the
+    grid observed, the editor's own floors, amber at a limit, Home /
+    Enter / double-click back to the sheet's own columns. The grid's own
+    padding had to come off both readings or the handle sat 16px left of
+    the seam.
+
+NOTICED, NOT FIXED
+  · PORTAL_MODE is a boolean (core.js, portal.js) and six places in
+    js/views/negotiation.js call it as a function; each is guarded by
+    side === 'counterparty' first, so the product never reaches the
+    call, and the parity harness reaches it only when an earlier stage
+    leaves the flag standing on our seat.
+  · A highlight made only of struck-out words is offered nothing (the
+    words are on the page and not in the draft). Whether Ask or Comment
+    should be offered on struck wording is a design choice.
+  · A struck run a selection swallows (select across it and type over)
+    is gone until the next paint, 300 ms later, when the record puts it
+    back.
+  · The wholesale picture in the box (a rewrite whose marks outnumber
+    its words) draws their whole text struck as one block above the live
+    wording; a drag over that block selects it and is offered nothing.
+  · parity.html's SHOW_OWNER leaves PORTAL_MODE as the previous seat set
+    it; clause-door-verify 17 resets it before mounting our seat.
+  · The fold that revises a change in place still keeps a stale bodyHtml
+    beside new words (recorded 13 Sep, still so); redline-verify check 5
+    is still red for the reason recorded 13 Sep.
+  · The lint warning count reads 186 (the rulebook says ~137); the 17 in
+    the files this run touched are the same 17 as before it.
+
+VERIFIED
+  f245 (26, extended: eight new or re-pointed claims, every one red at
+  the parent), f306 (four new claims, red at the parent), f207, f232,
+  f48, f148; clause-editor-verify 268/268 (32i–32k drive a real drag
+  over typed words, a real drag across their marks and a real Backspace
+  at an atom; 19, 21 and 32 act on live wording; 21a, 32b, 32d, 32i–32k
+  red at the parent), clause-door-verify 122/122 (17a a real click on the
+  negotiate page, red at the parent; 16d3/16f re-pointed, red at the
+  parent; 17b/17c controls), prompt-and-build-verify 32/32 (12a–12e; red
+  at the parent); lint 0 errors; the full suite 7,056 tests in 1,408
+  suites, 0 red, 5m36s (the rulebook's figure re-measured); the browser
+  set 20 of 106 files red — calendar-redesign,
+  counterparty-reading-and-more, flat-rows-and-alerts, nego-redesign,
+  negotiation-memo (7f), negotiations-door, obligations-tab, paper-grows,
+  portal-header-verbs, phone, redline (5), reopen-a-refusal,
+  room-order-and-notices, selection, settled-ask-reopen, standard-paper,
+  signing-on-paper, six-fixes, tracked-changes-scroll, theme-tokens —
+  every one run again at the parent commit in a worktree and failing on
+  the same checks with the same detail; the colour census reads 27/40 on
+  both trees line for line and was NOT re-recorded.
