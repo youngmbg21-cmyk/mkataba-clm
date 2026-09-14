@@ -512,7 +512,7 @@ function tbStyleHtml() {
   .tb-title{font-family:var(--font-heading);font-size:16px;font-weight:var(--w-strong);text-align:center;margin:0 0 20px;letter-spacing:.01em}
   .tb-brand{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:8px;margin-bottom:18px}
   .tb-row{position:relative}
-  .tb-g{position:absolute;left:-48px;top:1px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity var(--dur-1,120ms)}
+  .tb-g{position:absolute;left:-48px;top:1px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity var(--dur-1)}
   .tb-row:hover>.tb-g,.tb-row:focus-within>.tb-g,.tb-sec.is-on>.tb-row-h>.tb-g{opacity:1}
   .tb-g button{width:22px;height:22px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:var(--radius);font:inherit;font-size:11px;color:var(--color-neutral-600);padding:0;cursor:pointer;line-height:1}
