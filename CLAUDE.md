@@ -24,8 +24,8 @@ THIS FILE IS THE CONDENSED RULEBOOK (condensed 2026-08-11 and again 2026-09-11, 
 
 THE OWNER'S OWN WORDS, 24 Aug 2026. They sit ABOVE the Bug Fix Rules because they GOVERN them: Rule 2 says find every place a thing appears; this says do not fix the other things you find on the way. The finding still gets written down — one line in BUGLOG.md, never a fix.
 
-**BUGLOG.md IS 8,000+ LINES OF RUN HISTORY — APPEND, NEVER WRITE.** One section per run, newest at the bottom: the defects found, then a "Noticed, not fixed" list. **READING IT IS DENIED ON PURPOSE** (`.claude/settings.json` denies `Read(./BUGLOG.md)` — it is 455 KB and would swallow a session); writing is not.
-- To append: `cat >> ./BUGLOG.md <<'EOF' … EOF`. Verify with `git diff --stat -- ./BUGLOG.md`.
+**BUGLOG.md IS 8,000+ LINES OF RUN HISTORY — APPEND, NEVER WRITE.** One section per run, newest at the bottom: the defects found, then a "Noticed, not fixed" list. **READING IT IS DENIED ON PURPOSE** (`.claude/settings.json` denies `Read(./BUGLOG.md)` — it is 455 KB and would swallow a session); writing is not — since 14 Sep 2026 the same file's `permissions.allow` pre-approves the two append forms below by name, after a run in which every append was refused.
+- To append: `cat >> ./BUGLOG.md <<'EOF' … EOF` or `tee -a ./BUGLOG.md >/dev/null <<'EOF' … EOF` — these two are pre-approved; any other form is not. Verify with `git diff --stat -- ./BUGLOG.md`.
 - To read the house style: `git show HEAD:BUGLOG.md | tail -80` (reads the git object, not the path).
 - A refusal on one verb is not a refusal on another — try the verb you actually need. `.claude/settings.json` is strict JSON and cannot carry a comment; an unknown key there can take the hooks down, which is why this note lives here.
 
