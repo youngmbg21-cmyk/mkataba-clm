@@ -638,8 +638,14 @@ describe('f306 (11) — what the screen prints', () => {
     assert.ok(open > 0, 'the paper column has its own scroller, wearing the shell\'s thin scrollbar');
     assert.equal((s.page.match(/id="tb-scroll"/g) || []).length, 1, 'exactly one');
     assert.ok(at('<div class="tb-left">') < at('id="tb-back"') && at('id="tb-back"') < open, 'the strip comes first in the paper\'s column, above the scroller');
-    for (const inside of ['id="tb-paperslot"', 'id="tb-branding"', 'id="tb-save-bottom"', 'id="tb-publish-bottom"'])
+    for (const inside of ['id="tb-paperslot"', 'id="tb-branding"'])
       assert.ok(open < at(inside) && at(inside) < at('id="tb-railslot"'), inside + ' is inside the scroller, before the rail\'s slot');
+    /* NO SECOND SAVE AND PUBLISH (Young ruled 14 Sep 2026): the strip does not
+       scroll away, so the foot pair was the same two acts twice on one screen. */
+    for (const gone of ['tb-strip-foot', 'tb-save-bottom', 'tb-publish-bottom', 'tb-dirty-bottom'])
+      assert.ok(!s.page.includes(gone), gone + ' is retired');
+    assert.equal((s.page.match(/ui-btn-primary/g) || []).length, 1, 'ONE filled button on the page — Publish, in the strip');
+    assert.equal((s.page.match(/id="tb-save"/g) || []).length, 1, 'and one Save');
     assert.ok(at('id="tb-railslot"') > 0 && at('id="tb-resizer"') > at('id="tb-railslot"'), 'the rail\'s slot and the handle are the column\'s siblings, after it');
   });
 

@@ -13574,3 +13574,32 @@ VERIFIED
   on a build without the scroller); lint 0 errors; the full suite 7,060
   tests in 1,408 suites, 0 red, 5m31s. No other check file opens the
   builder (grepped), so no other browser file was re-run.
+
+════════════════════════════════════════════════════════════════════════
+RUN — 14 Sep 2026 — THE FOOT'S SECOND SAVE AND PUBLISH ARE GONE
+Owner, within the hour of the scroll build: "Remove the bottom Save and
+Publish buttons."
+════════════════════════════════════════════════════════════════════════
+
+FIXED
+  · The Save draft and Publish pair under the paper is removed, with its
+    "Unsaved changes" span, its sheet rule and its two listeners. They
+    were added when the top bar scrolled away on a long template; the
+    strip holds still now, so they were the same two acts twice on one
+    screen. The page carries ONE filled button again, which is what the
+    rule has always asked for.
+
+NOTICED, NOT FIXED
+  · The explanatory comment cost two cycles and both are old rules in
+    new clothes. Written inside the emitted markup, its backticks were a
+    balanced pair inside a template literal and EVALUATED — an HTML
+    comment is still JavaScript in there. With the backticks made plain,
+    the sweep still failed: naming the retired classes in the emitted
+    page puts them back on the page the sweep reads. The note belongs in
+    JavaScript above the function, and now lives there.
+
+VERIFIED
+  f306 66/66 (the foot claim reversed in place: the four names are
+  retired and the page carries exactly one filled button and one Save);
+  prompt-and-build-verify 38/38, photographed; lint 0 errors; the full
+  suite 7,060 tests in 1,408 suites, 0 red.

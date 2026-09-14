@@ -532,7 +532,6 @@ function tbStyleHtml() {
      element); a wheel at the end goes nowhere else. */
   .tb-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 2px 28px}
   .tb-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-  .tb-strip-foot{justify-content:flex-end;margin:14px 0 0}
   .tb-paper{background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:0;
     max-width:var(--doc-sheet-max,780px);margin:0 auto;padding:34px 48px 36px 62px;font-size:14px;line-height:1.7;color:var(--color-text)}
   @media (max-width:700px){ .tb-paper{padding:22px 18px 24px 46px} }
@@ -945,6 +944,14 @@ function tbRestoreScroll(top) { if (top == null) return; const el = document.get
    its own two ways out (Back, Publish); every other way out is a setView,
    whose renderPageHeader recomputes it from the view name. */
 function tbGutter(on) { const sc = document.getElementById('content-scroll'); if (sc && sc.classList) sc.classList.toggle('view-fixed', !!on); }
+/* ---- NO SECOND SAVE AND PUBLISH AT THE FOOT (Young ruled 14 Sep 2026) ----
+   The pair under the paper was added when the top bar scrolled away on a long
+   template. The strip holds still now, so they were the same two acts twice on
+   one screen — and the second Publish broke "at most ONE filled button per
+   page" besides. `.tb-strip-foot`, `tb-dirty-bottom`, `tb-save-bottom` and
+   `tb-publish-bottom` are STALE. The note lives HERE rather than in the
+   markup: a comment inside the emitted page would put those names back on it,
+   which is what the net reads. */
 function tbPaint(opts = {}) {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
   const t = _tb.template;
@@ -966,15 +973,6 @@ function tbPaint(opts = {}) {
       <div class="tb-scroll scroll-thin" id="tb-scroll">
         <div id="tb-paperslot"></div>
         <section style="${CARD};padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
-        <!-- The same two verbs again at the foot. They were added because the
-             top bar scrolled away on a long template; since 14 Sep 2026 it does
-             not, and they stay by the owner's word ("leave all else the same")
-             — said in BUGLOG.md, the owner's call. -->
-        <div class="tb-strip tb-strip-foot">
-          <span id="tb-dirty-bottom" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
-          <button id="tb-save-bottom" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
-          <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
-        </div>
       </div>
     </div>
     <div id="tb-railslot"></div>
@@ -1117,7 +1115,7 @@ function tbPaintFocusFrame() {
   document.querySelectorAll('[data-tb-sec]').forEach(el => el.classList.toggle('is-on', String(el.getAttribute('data-tb-sec')) === String(_tb.focus)));
 }
 function tbPatchDirty() {
-  ['tb-dirty', 'tb-dirty-bottom'].forEach(id => { const d = document.getElementById(id); if (d) d.textContent = _tb.dirty ? 'Unsaved changes' : ''; });
+  const d = document.getElementById('tb-dirty'); if (d) d.textContent = _tb.dirty ? 'Unsaved changes' : '';
   const f = document.getElementById('tb-railfoot'); if (f) f.innerHTML = tbFootHtml();
 }
 /* Crossing the 1024 line repaints the page once: the rail arrives or leaves,
@@ -1150,8 +1148,6 @@ function tbWire() {
   document.getElementById('tb-back')?.addEventListener('click', () => tbLeave());
   document.getElementById('tb-save')?.addEventListener('click', () => tbSave());
   document.getElementById('tb-publish')?.addEventListener('click', () => tbPublish());
-  document.getElementById('tb-save-bottom')?.addEventListener('click', () => tbSave());
-  document.getElementById('tb-publish-bottom')?.addEventListener('click', () => tbPublish());
   if (!_tbResizeBound && typeof window !== 'undefined' && typeof window.addEventListener === 'function') { _tbResizeBound = true; window.addEventListener('resize', tbOnResize); }
   _tb._fits = tbRailFits();
   tbWireSplit();
