@@ -667,14 +667,36 @@ const dismissNote = async pg => {
      !!panelDoor && panelDoor.editor, panelDoor && panelDoor.label);
   ck('8b and NOT data-rl-cp-close — the panel has to still be there to come back to',
      !!panelDoor && !panelDoor.closes, panelDoor && `closes ${panelDoor.closes}`);
-  await p.click('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai');
+  /* ---- 8c REVERSED IN PLACE 15 Sep 2026 (Young, of As proposed / Change this
+     clause / On the table / History: "still appears here and there but I cannot
+     trace what is making it appear. It should be deleted") ----
+     On OUR seat, where the clause editor is the destination, the panel now
+     opens narrowed to the ladder whatever door opened it, so the acts row this
+     button sits in is not on screen. NOTHING IS LOST: the same act is the
+     pencil and the card's Edit, both of which open this page, which is the
+     one-door rule doing its job. The button itself is untouched — the markup
+     above still carries it, and the counterparty's seat and any window under
+     1024px still draw it, because there the panel is the only way wording is
+     proposed. So the claim is asked the other way round: the row is not
+     PAINTED here, and the pencil opens the page in its place. */
+  const cpActs = await p.evaluate(() => {
+    const row = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-acts');
+    const lad = document.querySelector('#rl-cp .rl-ladder-sec');
+    const seen = el => !!(el && el.getBoundingClientRect().height > 0
+      && getComputedStyle(el).display !== 'none');
+    return { row: !!row, rowSeen: seen(row), ladderSeen: seen(lad),
+      narrow: !!(window.rlCpNarrowSeat && rlCpNarrowSeat()) };
+  });
+  ck('8c on our seat the acts row is in the markup but not on the screen',
+     cpActs.narrow && cpActs.row && !cpActs.rowSeen, JSON.stringify(cpActs));
+  ck('8c2 …and what the panel shows instead is the ladder',
+     cpActs.ladderSeen, JSON.stringify(cpActs));
+  await p.evaluate(id => { const pen = document.querySelector(
+    `.rl-clause[data-clause="${CSS.escape(id)}"] [data-rl-cp-editor]`); pen && pen.click(); }, staged.clauseId);
   await pause(600);
   const fromPanel = await p.evaluate(() => ({
-    page: !!document.getElementById('clause-editor'),
-    panelStillOpen: !!(window.rlCpOpenId && rlCpOpenId()) }));
-  ck('8c a real press opens the page', fromPanel.page, 'opened');
-  ck('8d and the panel is still standing behind it',
-     fromPanel.panelStillOpen, 'panel held');
+    page: !!document.getElementById('clause-editor') }));
+  ck('8d and the pencil opens the page', fromPanel.page, 'opened');
 
   /* ---- 9. THE WAYS OUT ---- */
   await p.keyboard.press('Escape');
@@ -3869,14 +3891,23 @@ const dismissNote = async pg => {
       const long = x => (x.text || '').length > 120 && !window.negoIsFrontId(x.clauseId);
       /* A clause already carrying an ask of theirs is the state we want and
          costs nothing to stage; otherwise file one on an untouched clause. */
-      let cl = negoClauseList(c).find(x => long(x)
+      /* AND SEVERAL PARAGRAPHS IN IT (15 Sep 2026): the gap 33d2 measures opens
+         BETWEEN paragraphs, so a one-paragraph clause answers it the same
+         before and after whatever the stylesheet says — a check that cannot
+         fail is a description. A clause the book already reads as several
+         sub-paragraphs is preferred; where the stage has none, the ask below
+         is filed as several, which is what a reader types anyway. */
+      const multi = x => long(x) && /\n/.test(x.text || '');
+      const withAsk = f => negoClauseList(c).find(x => f(x)
         && live.some(ch => ch.clauseId === x.clauseId && ch.side === 'counterparty'));
+      let cl = withAsk(multi) || withAsk(long);
       let theirs = cl ? live.find(ch => ch.clauseId === cl.clauseId && ch.side === 'counterparty') : null;
       if (!cl){
         cl = negoClauseList(c).find(x => !busy.has(x.clauseId) && long(x)) || null;
         if (!cl) return { error: 'no clause left to click into' };
         theirs = await negoEditClause(c, cl.clauseId,
-          '<p>' + cl.text + ' Interest runs at two per cent above base.</p>',
+          '<p>' + cl.text.split('\n').join('</p><p>') + '</p>'
+          + '<p>Interest runs at two per cent above base.</p>',
           { side: 'counterparty', author: 'Henry M.' });
         if (!theirs) return { error: 'their ask did not file' };
       }
@@ -3918,6 +3949,16 @@ const dismissNote = async pg => {
           marks: live.querySelectorAll('ins, del').length,
           boxX: Math.round(w.left * 10) / 10, boxY: Math.round(w.top * 10) / 10,
           rings: [live, box, head].filter(Boolean).map(ring),
+          /* ---- AND THE PARAGRAPHS INSIDE THE CLAUSE DO NOT SEPARATE
+             (Young reported it 15 Sep 2026: "when you press inside a clause
+             with redlines, the paragraphs slightly separate from each other
+             when they should not move at all") ---- The first painted glyph of
+             every block in the clause, so a gap that opens between two of them
+             is a number rather than a look. Against the code of an hour before
+             this read a 9px drop for the paragraph under the press and 18px
+             for the one under that, because the redline paper drew its blocks
+             at margin 0 and the typing box drew ordinary paragraphs at 9. */
+          paraInk: [...live.querySelectorAll('p, h1, h2, h3, h4')].map(inkOf),
           /* A word in the middle of the wording, and the point over it. */
           pt: (() => { const t = [...box.querySelectorAll('p, div')].find(e => (e.textContent || '').trim().length > 80) || box;
             const r = document.createRange(); r.selectNodeContents(t);
@@ -3995,6 +4036,16 @@ const dismissNote = async pg => {
                 try{ if (box.matches(r.selectorText)) out.push(r.selectorText + ' {' + r.style.cssText.slice(0, 80) + '}'); }catch(_){}
               } }
             return out; })(),
+          /* ---- AND THE PARAGRAPHS INSIDE THE CLAUSE DO NOT SEPARATE
+             (Young reported it 15 Sep 2026: "when you press inside a clause
+             with redlines, the paragraphs slightly separate from each other
+             when they should not move at all") ---- The first painted glyph of
+             every block in the clause, so a gap that opens between two of them
+             is a number rather than a look. Against the code of an hour before
+             this read a 9px drop for the paragraph under the press and 18px
+             for the one under that, because the redline paper drew its blocks
+             at margin 0 and the typing box drew ordinary paragraphs at 9. */
+          paraInk: [...live.querySelectorAll('p, h1, h2, h3, h4')].map(inkOf),
           headBox: !!document.getElementById('ce-clausehead'),
           donePinned: done ? getComputedStyle(done).position : null,
           doneW: done ? Math.round(done.getBoundingClientRect().width) : null,
@@ -4023,6 +4074,9 @@ const dismissNote = async pg => {
            && JSON.stringify(after.boxInk) === JSON.stringify(before.boxInk),
          JSON.stringify({ before: { headInk: before.headInk, boxInk: before.boxInk },
            after: { headInk: after.headInk, boxInk: after.boxInk } }));
+      ck('33d2 …and no gap opens between the paragraphs inside it either',
+         JSON.stringify(after.paraInk) === JSON.stringify(before.paraInk),
+         JSON.stringify({ before: before.paraInk, after: after.paraInk }));
       ck('33e and STILL no line, now that a cursor is in it',
          after.rings.every(r => r === 0), JSON.stringify(after.rings));
       /* THE RESERVE IS THE WIDEST FACE. The Done pencil is pinned out of the

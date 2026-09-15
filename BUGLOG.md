@@ -14081,3 +14081,50 @@ header open and folded.
 ### Noticed, not fixed
 - The negotiate page's browser file has five checks about the breadcrumb and
   its arrow that were already failing before this session. Left red.
+
+## 15 Sep 2026 (later) — five more off one screen
+
+Owner's report, five items with four screenshots: the check symbols are not
+centred in their boxes; pressing inside a clause with redlines separates its
+paragraphs; the note pin "is still not resolved"; the clause panel's upper
+sections "still appear here and there" and should be deleted; and a highlight
+sometimes offers no verbs.
+
+Defects found and fixed:
+1. The three check glyphs sat 1px from the left wall of a 28px box (9px on the
+   right). `.room-check` centres with grid; the workbench's own row rule states
+   inline-flex + align-items:center with no justify-content, at three classes to
+   one, and won. Centring restated at the narrower scope.
+2. A redlined clause drew its paragraphs at margin 0 while every other clause on
+   the same paper drew them at 9px, so the press into one swapped the ops
+   renderer for the typing box and everything under the caret dropped 9px, then
+   18. `.rl-line` inside the redline paper now takes the body's own gap.
+   Written first as a `margin` shorthand, which also zeroed the LEFT and
+   flattened a sub-bullet onto its sibling (caught by clause-editor-verify 26j);
+   longhands now.
+3. The pin quote was already right for an ordinary edit — measured, an edit to
+   1.2 quoted 1.2 alone. What was still wrong is a change that moves NO wording:
+   a formatting-only edit and a heading rename file all-keep ops, nothing is
+   touched, and the fallback read the whole body from the top. A rename now
+   quotes the name; a formatting ask quotes its own summary.
+4. The clause panel's upper sections were reachable on our seat through exactly
+   one door — a deal board row press, which opened the panel in full with no
+   seat reading. Made a POSTURE (`rlCpNarrowSeat`) rather than a fix to that one
+   door, so no door added later can bring them back. Their seat and windows
+   under 1024px are untouched.
+5. A highlight of one or two characters was refused in silence on the
+   negotiation paper while the clause editor beside it answered on two. One
+   floor now, and it is emptiness.
+
+Noticed, not fixed:
+- clause-editor-verify 33h ("the caret is already in that clause, on the word
+  that was pressed") is FLAKY: red once in four runs, at unmodified main as well
+  as here. The caret lands earlier in the clause when it goes wrong.
+- paper-grows-verify 5d and 6 are red at unmodified main. Both reach for the
+  clause panel through controls that were retired (the card's Open button and
+  the ⋯ menu's row), so they never find a door to press.
+- six-fixes-verify 4a and redline-verify 5 and nego-redesign-verify's five
+  breadcrumb checks are red at unmodified main and were left red.
+- The clause panel's posture is decided when it opens, so resizing the window
+  across 1024px while it is open leaves it in the shape it opened in until the
+  next repaint.

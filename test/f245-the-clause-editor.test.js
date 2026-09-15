@@ -1453,7 +1453,12 @@ describe('f245 (12) — the divider, and what it must not disturb', () => {
    ============================================================ */
 describe('f245 (15) — the editing state is a hairline, and the strip is gone', () => {
   const CE = SRC;
-  const TYPING = CE.match(/\.ce-paperwrap \.ce-typing\{[\s\S]*?\}/)[0];
+  /* ---- RE-POINTED 15 Sep 2026, WITH THE RULE ---- The two boxes were
+     re-scoped to `.ce-paperwrap .rl-doc .rl-clause .ce-typing` when the page's
+     own `.redline-page .rl-doc .nego-body` was measured beating them; the grep
+     kept naming the old two-class spelling and answered null. The claims below
+     are the claims they always were, asked of the rule as it is written. */
+  const TYPING = CE.match(/\.ce-paperwrap \.rl-doc \.rl-clause \.ce-typing\{[\s\S]*?\}/)[0];
   const FOCUS = CE.match(/\.ce-paperwrap \.ce-typing:focus\{[\s\S]*?\}/)[0];
   /* ---- RE-POINTED 1 Sep 2026 ---- The frame moved OFF the two editable boxes
      and onto the clause that contains them, on the owner's report that the name
@@ -1510,13 +1515,50 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
      4px right and 2px down the moment it opened. Pinned as the RELATION — the
      two numbers match — never as the numbers. */
   test('the boxes take back every pixel they inset, so nothing shifts', () => {
-    for (const [name, decl] of [['wording', TYPING], ['name', CE.match(/\.ce-paperwrap \.ce-headbox\{[\s\S]*?\}/)[0]]]){
-      const pad = decl.match(/padding:(-?\d+)px (-?\d+)px/);
-      const mar = decl.match(/margin:(-?\d+)px (-?\d+)px/);
-      assert.ok(pad && mar, `the ${name} box states both`);
-      assert.equal(Number(mar[1]), -Number(pad[1]), `the ${name} box gives back its vertical inset`);
-      assert.equal(Number(mar[2]), -Number(pad[2]), `the ${name} box gives back its horizontal inset`);
+    /* AND THE INSET IS HORIZONTAL ONLY, IN LONGHANDS (15 Sep 2026): a `margin`
+       shorthand here also matched the HEADING and wiped its own 5px bottom gap,
+       which was the last 5px of the movement the owner reported. So the pair is
+       read as `padding:0 Npx` against `margin-left:-Npx` / `margin-right:-Npx`,
+       and the vertical half is pinned at zero rather than mirrored. */
+    for (const [name, decl] of [['wording', TYPING],
+        ['name', CE.match(/\.ce-paperwrap \.rl-doc \.rl-clause \.ce-headbox\{[\s\S]*?\}/)[0]]]){
+      const pad = decl.match(/padding:(-?\d+)(?:px)? (-?\d+)px/);
+      const ml = decl.match(/margin-left:(-?\d+)px/);
+      const mr = decl.match(/margin-right:(-?\d+)px/);
+      assert.ok(pad && ml && mr, `the ${name} box states both`);
+      assert.equal(Number(pad[1]), 0, `the ${name} box insets nothing vertically, so there is nothing to give back`);
+      assert.equal(Number(ml[1]), -Number(pad[2]), `the ${name} box gives back its inset on the left`);
+      assert.equal(Number(mr[1]), -Number(pad[2]), `and on the right`);
     }
+  });
+
+  /* ---- AND THE PARAGRAPHS DO NOT SEPARATE EITHER (Young reported it 15 Sep
+     2026: "when you press inside a clause with redlines, the paragraphs
+     slightly separate from each other when they should not move at all") ----
+     MEASURED on one paper, two clauses: an untouched clause's paragraphs sat
+     9px apart — the body rhythm every block in this product takes — and a
+     REDLINED one's sat at 0, because the ops renderer's own .rl-line had been
+     swept into the line that sets margin:0 on the CONTAINERS. So a redlined
+     clause was already drawn tighter than the wording round it, and the moment
+     the reader pressed into it the typing box drew ordinary paragraphs, the
+     9px came back and everything below the caret dropped: 9px for the
+     paragraph under the press, 18px for the one under that.
+     PINNED AS THE RELATION, never as the number: the gap a redlined block
+     takes is the gap the body takes, and the last block in each gives it back. */
+  test('a redlined clause is spaced like every other clause, so the press moves nothing', () => {
+    const css = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
+    const body = css.match(/\.nego-clause \.nego-body>\*,\.nego-clause \.nego-editing>\*\{margin:0 0 (\d+)px\}/);
+    /* LONGHANDS, and that is load-bearing: a `margin` shorthand also states a
+       LEFT of 0, which is the sub-bullet's own step — written as a shorthand
+       once, it flattened a sub-bullet onto its sibling's left edge (measured,
+       clause-editor-verify 26j). */
+    const line = css.match(/\.redline-page \.rl-doc \.rl-clause \.rl-line\{margin-top:0;margin-bottom:(\d+)px\}/);
+    assert.ok(body && line, 'both gaps are stated');
+    assert.equal(line[1], body[1], 'and they are the same gap');
+    assert.match(css, /\.redline-page \.rl-doc \.rl-clause \.rl-line:last-child\{margin-bottom:0\}/,
+      'the last block gives it back, exactly as the body\'s last block does');
+    assert.ok(!/room-check[^\n]*!important/.test(css) && !/rl-line[^\n]*!important/.test(css),
+      'fixed by SCOPE, never !important');
   });
 
   test('ONE FRAME, ROUND THE CLAUSE — not one per editable box', () => {
@@ -1528,7 +1570,7 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
     assert.ok(!/outline:1px dashed/.test(TYPING),
       'the wording box may not draw a frame of its own — that is the second box');
     assert.match(TYPING, /outline:none/, 'and says so, rather than leaving it to a default');
-    const HEAD = CE.match(/\.ce-paperwrap \.ce-headbox\{[\s\S]*?\}/)[0];
+    const HEAD = CE.match(/\.ce-paperwrap \.rl-doc \.rl-clause \.ce-headbox\{[\s\S]*?\}/)[0];
     assert.ok(!/outline:/.test(HEAD),
       'and the name box adds no frame either — it carries geometry only');
     /* THE STATE IS EXACT, and it is what keeps the frame off a clause being
@@ -2432,9 +2474,17 @@ describe('f245 (22) — the selection goes with the passage', () => {
     const read = CODE.match(/function ceSelectionRead\([\s\S]*?\n\}/)[0];
     for (const k of ['ce_sel_twice', 'ce_sel_not_in_draft'])
       assert.ok(read.includes(k), k + ' is answered by the reading itself');
-    assert.match(read, /if \(text\.length < 3\) return \{ why: null \};/,
-      'A CLICK IS NOT A REFUSAL — below this there is nothing a reader could '
-      + 'have meant, so it names no reason and the page stays silent');
+    /* ---- RE-POINTED 15 Sep 2026 (Young: "sometimes when i highlight a word
+       the 3 options do not appear") ---- The floor was THREE CHARACTERS here
+       and on the negotiation paper, so "by", "to", "of" and a bare figure were
+       refused in silence while the same gesture on the paper beside it was
+       answered. One character is a highlight; nothing at all is a click, and a
+       click is still not a refusal. */
+    assert.match(read, /if \(!text\.length\) return \{ why: null \};/,
+      'A CLICK IS NOT A REFUSAL — an empty reading names no reason and the '
+      + 'page stays silent');
+    assert.ok(!/text\.length < \d+\) return \{ why: null \}/.test(read),
+      'and no length floor comes back: a short word is still a word');
     assert.match(read, /if \(!sel \|\| sel\.isCollapsed \|\| !sel\.rangeCount\) return \{ why: null \};/,
       'and neither is a collapsed selection');
   });

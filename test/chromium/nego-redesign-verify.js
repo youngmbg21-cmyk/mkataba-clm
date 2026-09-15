@@ -678,6 +678,18 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         accent: getComputedStyle(document.documentElement).getPropertyValue('--accent-solid').trim(),
         glyph: (() => { const v = one && one.querySelector('svg');
           return v ? Math.round(v.getBoundingClientRect().width) : 0; })(),
+        /* ---- AND THE MARK SITS IN THE MIDDLE OF THE BOX (Young reported it
+           15 Sep 2026: "the signs are not in the middle of the boxes they sit
+           in") ---- Measured as the four gaps between the glyph's own box and
+           its button's, because "centred" is a RELATION between two rectangles
+           and no number typed here can say it. Against the code of an hour
+           before this read 1px left and 9px right. */
+        gaps: btns.map(b => { const v = b.querySelector('svg'); if (!v) return null;
+          const br = b.getBoundingClientRect(), vr = v.getBoundingClientRect();
+          return { l: Math.round((vr.left - br.left) * 10) / 10,
+                   r: Math.round((br.right - vr.right) * 10) / 10,
+                   t: Math.round((vr.top - br.top) * 10) / 10,
+                   b: Math.round((br.bottom - vr.bottom) * 10) / 10 }; }),
         /* THE GAP BETWEEN THE THREE, and the gap between them and More —
            the owner asked for the row's own spacing, so the two are compared
            rather than typed. */
@@ -690,6 +702,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       checks.n === 3 && checks.kinds.join(',') === 'oblig,playbook,risk',
       checks.kinds.join(','));
     check('13 they are drawn as visible pixels', !!checks.wrap && checks.painted);
+    check('13 the mark sits in the middle of its box, across and down',
+      checks.gaps.length === 3 && checks.gaps.every(g => g && Math.abs(g.l - g.r) <= 0.6 && Math.abs(g.t - g.b) <= 0.6),
+      JSON.stringify(checks.gaps));
     check('13 symbols only — the name lives on the hover, per the ruling',
       checks.wordless && checks.titled && checks.labelled,
       JSON.stringify({ wordless: checks.wordless, titled: checks.titled }));

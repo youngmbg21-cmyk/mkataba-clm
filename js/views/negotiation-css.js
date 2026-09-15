@@ -2096,6 +2096,32 @@ function redlineLayoutCss(){
   .redline-page .rl-doc .nego-body,
   .redline-page .rl-doc .nego-editing,
   .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
+  ${''/* ---- A REDLINED CLAUSE IS SPACED LIKE EVERY OTHER CLAUSE (Young
+         reported it 15 Sep 2026: "when you press inside a clause with
+         redlines, the paragraphs slightly separate from each other when they
+         should not move at all") ----
+         MEASURED on one paper, two clauses: an untouched clause's paragraphs
+         sat 9px apart (.nego-clause .nego-body>*, the body rhythm every block
+         in this product takes) and a redlined one's sat at 0, because the ops
+         renderer's own .rl-line was swept into the line above with the
+         CONTAINERS. So a redlined clause was already drawn tighter than the
+         wording around it; and the moment the reader pressed into it the
+         typing box drew its blocks as ordinary paragraphs, the 9px came back
+         and everything below the caret dropped — 9px for the paragraph under
+         the press, 18px for the one under that.
+         THE GAP IS THE BODY'S, NOT A NUMBER OF ITS OWN: the same 9px and the
+         same last-child 0, so the clause reads the same before the press, in
+         the press and after it, and the same as its neighbours. Written after
+         the line above at one class more, because that line has to keep saying
+         margin:0 for the containers it also names. */}
+  ${''/* LONGHAND, AND THE REASON IS MEASURED: a margin SHORTHAND states four
+         values whether or not you meant them, and the left one is the
+         sub-bullet's own step — clause-editor-verify 26j went from a sub-bullet
+         indented past its sibling to the two at the same 112px the moment this
+         was written as a shorthand. The rule this file already paid for once,
+         on the typing box's own inset. */}
+  .redline-page .rl-doc .rl-clause .rl-line{margin-top:0;margin-bottom:9px}
+  .redline-page .rl-doc .rl-clause .rl-line:last-child{margin-bottom:0}
   /* ---- A WRAPPED LIMB HANGS UNDER ITS OWN FIRST WORD ----
      (owner-asked 16 Aug 2026: "the words when wrap texted the should not go to
      the same line as the bullet point. The should be indentation on the wrapped
@@ -4945,7 +4971,20 @@ function redlineLayoutCss(){
          moment the checks moved into this row. Named here, at this rule's own
          weight plus one, so the row keeps its single rung and the squares keep
          being square. Fixed by SCOPE, never !important. */}
-  .redline-page #ws-head .room-acts button.room-check{padding:0;width:var(--ctl-h,28px)}
+  .redline-page #ws-head .room-acts button.room-check{padding:0;width:var(--ctl-h,28px);
+    ${''/* AND THE GLYPH SITS IN THE MIDDLE OF IT (Young reported it 15 Sep
+           2026: "the signs are not in the middle of the boxes they sit in").
+           MEASURED before it was touched: 1px of space to the left of the mark
+           and 9px to its right, in a 28px box round an 18px glyph. .room-check
+           states display:grid + place-items:center in HaTi's own sheet, which
+           centres on both axes; the row rule above it states display:inline-flex
+           with align-items:center and NO justify-content, and it is written at
+           three classes to that rule's one, so it won — the mark was centred
+           down the box and packed against its left wall. The centring is
+           restated here rather than removed there, because the row rule's
+           inline-flex is what keeps every other button in this row on one
+           baseline. Fixed by SCOPE, never !important. */}
+    justify-content:center;align-items:center}
   .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
   ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
   ${''/* ONE LEFT EDGE DOWN THE WHOLE COLUMN. The index block insetted itself
