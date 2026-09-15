@@ -6385,9 +6385,30 @@ function roomHeadHtml(c,opts={}){
 
            #ws-back IS STILL ONE BUTTON with one id and one handler; what moved
            is which row it sits in and which word it carries. */}
+    ${''/* ---- THE WAY BACK IS A SIGN, NOT A WORD (Young ruled 15 Sep 2026) ----
+           *"where is says contract and contract workspace, there should be a
+           back button but in sign format not words. The should take you to the
+           same page as when you press on the contract and contract work space.
+           The button should similar to image 5 with a blue outline like other
+           buttons."*
+
+           #ws-back IS STILL ONE BUTTON — the third time this control has been
+           restyled rather than replaced (a 34px arrow, then the crumb\'s word,
+           now a sign). Its id, its data-back, its title and its handler in
+           wireRoomHead are untouched, so every route, every test and both
+           destinations are exactly as they were: the room lands on the list,
+           the negotiation lands on the room.
+
+           THE WORD IS NOT LOST, it stops being INK: it is the hover and the
+           aria-label, so the keyboard and a screen reader still hear where the
+           press goes. A sign a reader cannot name is a guess.
+
+           NOT A SECOND DOOR. The Six Questions refuse one, and this is the
+           same door wearing a different face — the word is gone in the same
+           breath the sign arrives. */}
     <nav class="room-crumb" aria-label="Breadcrumb">
-      <button id="ws-back" type="button"${backC ? ' data-back="contract"' : ''}
-        title="${esc(backTitle)}">${esc(i18t(backC ? 'pg_workspace' : 'ct_back_register'))}</button>
+      <button id="ws-back" type="button" class="room-crumb-back"${backC ? ' data-back="contract"' : ''}
+        title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
       <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
     </nav>
     <div class="room-id">

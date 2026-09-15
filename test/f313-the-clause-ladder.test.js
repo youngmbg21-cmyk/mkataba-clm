@@ -440,9 +440,15 @@ describe('f313 — the clause ladder', () => {
     const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
     const ce = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'clauseeditor.js'), 'utf8');
     const portal = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'portal.js'), 'utf8');
-    assert.ok(nego.includes("redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner') })"), 'the room\'s canvas');
-    assert.ok(nego.includes('redlineOpsBlocksHtml(ops, { title: tip, who: whoM })'), 'the negotiate page and the editor\'s canvas');
-    assert.ok(ce.includes("redlineOpsBlocksHtml(ops, { who: 'us' })"), 'the editor\'s own draft');
+    /* ---- RE-POINTED IN PLACE 15 Sep 2026 ----
+       These pinned the three calls as LITERAL argument lists, and on 15 Sep
+       every paper also began handing the clause's own shape in (the contract
+       must not change shape from one screen to the next). THE CLAIM IS
+       UNCHANGED — each paper still says whose mark it is — so it is asked of
+       the `who` argument alone, with whatever else rides beside it. */
+    assert.match(nego, /redlineOpsBlocksHtml\(ops, \{[^}]*who: rlSideWho\(ch, 'owner'\)/, 'the room\'s canvas');
+    assert.match(nego, /redlineOpsBlocksHtml\(ops, \{ title: tip, who: whoM/, 'the negotiate page and the editor\'s canvas');
+    assert.match(ce, /redlineOpsBlocksHtml\(ops, \{ who: 'us'/, 'the editor\'s own draft');
     assert.ok(portal.includes('redlineOpsHtml(ch.ops, { who: whoM })'), 'the counterparty\'s viewer, from their chair');
     assert.match(nego, /function rlSideWho\(ch, viewerSide\)\{/, 'one reading of whose side, from this chair');
   });

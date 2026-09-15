@@ -19565,6 +19565,59 @@ clause as the answer for a position the contract has no clause on at all;
 `redlineWholesale` and `redlineReplacementHtml`; the fallback, which is still
 never filed unattended because it is a position nobody has decided to concede.
 
+## THE CONTRACT KEEPS ITS SHAPE, THE COMMENT NUMBER COMES INSIDE THE PAGE, THE WAY BACK IS A SIGN (Young ruled 15 Sep 2026)
+
+Three reports off one screen.
+
+### 1 · "the fonts of the contract change ... in some case they become bold"
+
+> *"when you press the pencil button and you move to the editor page, the fonts of the contract change in some case they become bold. The contract should never change from one screen to another. Keep the contract shape as from screen to the next so please audit why the changes are happening and fix."*
+
+**ONE CAUSE, SEVERAL FACES, and the source looks correct in every one of them.** The redline's block renderer is handed a list of OPS — plain text plus a verdict per run — and rebuilds each line out of that text. Text carries no bold, no italic and no level. So the moment anybody proposed a change to a clause, that clause stopped being drawn from the drafter's markup and started being drawn from characters: the bold lead-in went, the italic phrase went, the step the Word and PDF readers had carefully read off the file went, and the renderer put a hanging marker and a level back by GUESSING them off the wording. A clause with nothing on it kept everything. So the document changed shape one clause at a time, depending only on whether somebody had proposed something.
+
+**MEASURED, on the same clause, before the fix:**
+- the negotiate page drew `<p><strong>3.1 Availability.</strong> … <em>ninety-nine per cent</em> …</p>` as `<p class="rl-line rl-clause rl-hang"><span class="rl-marker">3.1 </span>Availability. …` — bold gone, italic gone, a hanging indent invented;
+- a sub-paragraph the file had marked `hati-lv-1` came back with no step at all.
+
+**THE FIX IS A MAP, NOT A RE-DERIVATION.** `redlineShapeMap(html)` reads the clause's stored markup once into `line → {tag, shape classes, innerHTML}`, and `redlineOpsBlocksHtml` takes it as `opts.shape`. A line nothing touched, on a change nobody is attributed on, is printed back out of that markup verbatim. A line that really moved is still rebuilt from ops — its words are not the drafter's any more — but its tag and its step are its own.
+
+Three walls, each one a lesson this codebase has already paid for:
+- **`_RL_SHAPE_KEEP` is the file readers' vocabulary and nothing else** — `rl-hang`, `hati-lv-1..3`, `hati-tight`, `hati-pb`, `hati-toc`. A mark class (`nego-ins`, `rl-us`, `rl-marker`) says what a RENDERER decided, never what the file said, and letting one through the map would freeze one screen's decision onto every other.
+- **The tag is bounded** to `p|h1|h2|h3|h4|li`. Stored markup is sanitised, but a renderer that echoes whatever tag it finds is a renderer waiting for the one that was not.
+- **A line said twice keeps the first.** A map is not a tally, and two identical lines must not be able to argue about which shape they had.
+
+**AND THE FIRST PASS ONLY FIXED HALF OF IT.** The negotiate page was given the shape and the clause editor — which is the page the owner actually named — was not. The browser check caught it, because it compares the same clause on the two screens against ITSELF rather than against typed values. So `rlClauseShape(cl)` was promoted to module scope, published, and asked by every surface that draws the contract: the negotiate page's ops branch, its stacked branch (through `rlLayeredHtml`'s own `opts`), its front-matter region, the contract room's `negoDocHtml`, and the clause editor through `ceShapeMap()`. A CARD PREVIEW IS NOT A PAPER and is deliberately not swept — a card quotes a slice, and widening the job to the cards would have been widening the job.
+
+**WHAT THE PARENT-RED PROOF ACTUALLY SAID, and it is worth reading twice.** The page-versus-editor comparison PASSED at the parent: with a mark on the clause, both screens drew it from ops and both had lost the same things, so the two agreed — about a document that was wrong. What went red was the pair asking whether the bold, the italic and the step were there at all. That is the honest account of the fault: the two screens did not contradict each other so much as the marked clause contradicted the clause above it and its own clean reading. The page/editor pair is kept as a named CONTROL, because it is exactly how this fault would come back — the shape handed to one surface and not the next.
+
+**NOTICED, NOT FIXED**: `.nego-redline .rl-marker{font-weight:var(--w-strong)}` in the contract room's canvas bolds a marker the renderer invented, where the drafter's paper had a plain number. That is the literal "become bold". The fix above narrows it to lines that really moved; removing the rule is a styling decision for that canvas and was not asked for.
+
+### 2 · "on the edge but inside the contract page"
+
+> *"The comments numbers should be on the edge but inside the contract page. They should be similar to image 2 also in coloring where the number is dark and the ring background is light colored."*
+
+The marker was placed at a flat `left:-48px`. The sheet's own inset is 56px at the wide rung, 30 and 26 at the middle ones and 20px in the narrow window's working pane — so the marker was inside the page at exactly one rung and out in the grey at every other, and the narrower the window the further out it went. MEASURED at the parent: 9px inside a 56px sheet, and **27px outside** a 20px one.
+
+**THE PLACE IS A RELATION NOW.** `--rl-paper-pad` is declared beside every one of the five `.rl-paper` paddings and the marker reads `left:calc(2px - var(--rl-paper-pad,56px))`, so it is flush inside the sheet at every rung by construction. MEASURED after: 3px inside the page at 1500px AND at 1000px.
+
+The colour was the owner's image 2 and was the opposite of what was drawn: the disc was filled with `--accent-fill` and the number printed white. It is `--st-steel-bg` with `--accent-ink` in it now, and the moved-anchor state is the same idea in amber (`--st-amber-bg` / `--st-amber-fg`) rather than a different shape. The browser check asks it as a RELATION — which of the two painted colours is lighter — so a retune of the palette costs no edit.
+
+### 3 · "a back button but in sign format not words"
+
+> *"Image 3 and 4, where is says contract and contract workspace, there should be a back button but in sign format not words. The should take you to the same page as when you press on the contract and contract work space. The button should similar to image 5 with a blue outline like other buttons."*
+
+`#ws-back` is restyled, never replaced — the third time this one control has changed face (a 34px arrow in August, the crumb's word on 22 Aug, a sign now). Its id, its `data-back`, its title and its handler are untouched, so both destinations and every test that presses it are exactly as they were: the room lands on the list, the negotiation lands on the room.
+
+**THE WORD IS NOT LOST, IT STOPS BEING INK.** It is the `title` and the `aria-label`, so the hover, the keyboard and a screen reader still hear where the press goes. A sign a reader cannot name is a guess.
+
+**NOT A SECOND DOOR**: the Six Questions refuse one, and this is the same door wearing a different face — the word goes in the same breath the sign arrives.
+
+Three things decided by measurement rather than by taste:
+- **A CIRCLE IS NOT A CORNER.** The 26 Aug ruling gives the platform one 2px corner and gives `.rounded-full` its own 9999px for exactly this reason, so the rule states `border-radius:50%` and deliberately does not read `--radius`.
+- **THE OUTLINE IS `--btn-edge`**, the token every other outlined button reads. "Like other buttons" is a token, not a blue: typing a blue would have been right on navy and wrong on teal. MEASURED: `#24488f` at 45% on navy, `#0d9488` at 45% on teal.
+- **IT IS THE SIZE OF THE LINE IT SITS ON**, written as `calc(var(--t-label) * var(--lh-tight))` rather than as 14px. The note above that block in the stylesheet had warned, in August, that putting an icon in this row would break its top-alignment — which is true of an icon of any OTHER height. A box exactly one line box tall makes every item in the row the same height again, so nothing moved: the crumb row stayed 16px and the first line of the contract measured 293 on the room and 309 on the workbench before AND after. That is refusal 3, and it is a number, not a judgement.
+- **AND THE PRESS IS BIGGER THAN THE BOX**: `::before{inset:-7px}` gives a 14px circle a 28px target and spends nothing on layout, which is the only way to have both.
+
 ## THE DECISION THAT COULD NOT BE MADE, AND THE COLUMN THAT WAS BLANK (Young reported all three 15 Sep 2026)
 
 Three reports in one message, alongside the artifact's four decisions.

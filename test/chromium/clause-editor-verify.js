@@ -4270,6 +4270,179 @@ const dismissNote = async pg => {
     }
   }
 
+  /* ============================================================
+     35 — THE CONTRACT DOES NOT CHANGE SHAPE WHEN YOU PRESS THE PENCIL
+     (Young reported it 15 Sep 2026: "when you press the pencil button and you
+     move to the editor page, the fonts of the contract change in some case
+     they become bold. The contract should never change from one screen to
+     another.")
+     ============================================================
+     ONLY A RENDERED PAGE KNOWS THIS. The markup looked correct on both
+     screens; what differed is what the two screens were rendered FROM. A
+     clause carrying a mark is drawn through the ops renderer, and ops are
+     plain text — so a bold lead-in, an italic phrase and the step the Word
+     reader wrote were all rebuilt from characters and lost, while the same
+     clause with nothing on it was drawn from its own markup and kept them.
+     Which screen you saw which on depended on which clause you opened.
+     SO IT IS MEASURED AS A RELATION: the same clause, read twice, and every
+     painted block compared on tag, weight, style, size and step. Not against
+     typed values — against ITSELF on the other screen.
+     WHAT WENT RED AT THE PARENT, exactly: 35d–35f. The two screens AGREED
+     there (35c passed) because both were drawing the marked clause from ops
+     and both had lost the same things — so the document changed shape the
+     moment anybody proposed a change to a clause, and stopped matching the
+     clauses either side of it and its own clean reading. 35g–35i are the
+     control pair and are marked as such.
+     ============================================================ */
+  {
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await answerLeave(p); await pause(200);
+    const st35 = await p.evaluate(async () => {
+      const c = window.CONTRACT;
+      c.redlineText = '<h1>MASTER SUPPLY AGREEMENT</h1><p>Between the parties.</p>'
+        + '<h2>3. MAINTENANCE AND UPTIME</h2>'
+        + '<p><strong>3.1 Availability.</strong> The Supplier shall keep the Platform available '
+        + 'for <em>ninety-nine per cent</em> of each calendar month.</p>'
+        + '<p class="hati-lv-1">3.2 The Supplier shall respond within four (4) hours and holds critical spares locally.</p>'
+        + '<h2>4. CHARGES</h2><p><strong>4.1 Fees.</strong> The Buyer shall pay within thirty (30) days.</p>';
+      c.format = 'rich'; c.changes = []; delete c.negotiation; negoInit(c);
+      const cl = negoClauseList(c).find(x => /Availability/.test(x.text || ''));
+      if (!cl) return { error: 'no clause staged' };
+      /* THEIR ASK, so the clause is drawn through the ops renderer — which is
+         the whole condition on the fault appearing at all. */
+      const body = String(cl.bodyHtml || '').replace('four (4) hours', 'two (2) hours');
+      const ch = await negoEditClause(c, cl.clauseId, body,
+        { side: 'counterparty', author: 'Amina Wanjiru' });
+      if (!ch) return { error: 'their ask did not file' };
+      renderRedline(); await new Promise(r => setTimeout(r, 400));
+      return { clauseId: cl.clauseId, changeId: ch.id };
+    });
+    if (st35.error){ ck('35 the stage puts a mark on a clause with real markup', false, st35.error); }
+    else {
+      await pause(700);
+      /* Read every painted block of ONE clause, whichever surface is mounted. */
+      const SHAPE35 = id => {
+        const scope = document.querySelector('#ce-doc') || document.querySelector('#rl-doc');
+        if (!scope) return { none: 'no canvas' };
+        const sec = scope.querySelector('.rl-clause[data-clause="' + id + '"]');
+        if (!sec) return { none: 'clause not drawn' };
+        const rows = [];
+        sec.querySelectorAll('p,h1,h2,h3,h4,li').forEach(el => {
+          if (el.querySelector('p,h1,h2,h3,h4,li')) return;
+          const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+          if (!txt) return;
+          const cs = getComputedStyle(el);
+          /* THE MARKS ARE READ OFF PAINTED INK, not off tag names: a <strong>
+             the sanitiser dropped and a <b> a renderer invented both show up
+             here, and neither shows up in a source grep. */
+          const heavy = [...el.querySelectorAll('*')].filter(n => !n.children.length
+            && (n.textContent || '').trim() && Number(getComputedStyle(n).fontWeight) >= 600)
+            .map(n => n.textContent.trim()).join('|');
+          const slant = [...el.querySelectorAll('*')].filter(n => !n.children.length
+            && (n.textContent || '').trim() && getComputedStyle(n).fontStyle === 'italic')
+            .map(n => n.textContent.trim()).join('|');
+          rows.push({ key: txt.replace(/two \(2\)|four \(4\)/g, 'N').slice(0, 40),
+            tag: el.tagName, size: cs.fontSize, weight: cs.fontWeight, style: cs.fontStyle,
+            lh: cs.lineHeight, step: /hati-lv-\d/.test(el.className)
+              ? (el.className.match(/hati-lv-\d/) || [''])[0] : '',
+            heavy, slant });
+        });
+        return { none: null, inEditor: !!document.querySelector('#ce-doc'), rows };
+      };
+      const page35 = await p.evaluate(SHAPE35, st35.clauseId);
+      await p.evaluate(a => rlOpenClauseEditor(window.CONTRACT, a.clauseId, { changeId: a.changeId }), st35);
+      await pause(900);
+      const ed35 = await p.evaluate(SHAPE35, st35.clauseId);
+
+      ck('35a (control) the same clause was read on BOTH screens',
+         !page35.none && !ed35.none && page35.inEditor === false && ed35.inEditor === true
+           && page35.rows.length > 0,
+         JSON.stringify({ page: page35.none || page35.rows.length, editor: ed35.none || ed35.rows.length }));
+
+      if (!page35.none && !ed35.none){
+        const byKey = r => { const m = new Map(); r.rows.forEach(x => { if (!m.has(x.key)) m.set(x.key, x); }); return m; };
+        const A = byKey(page35), B = byKey(ed35);
+        const shared = [...A.keys()].filter(k => B.has(k));
+        const FIELDS = ['tag', 'size', 'weight', 'style', 'lh', 'step', 'heavy', 'slant'];
+        const moved = shared.filter(k => FIELDS.some(f => A.get(k)[f] !== B.get(k)[f]));
+        const say = moved.slice(0, 3).map(k => {
+          const a = A.get(k), b = B.get(k);
+          return '«' + k.slice(0, 24) + '» ' + FIELDS.filter(f => a[f] !== b[f])
+            .map(f => f + ' page:' + String(a[f]).slice(0, 18) + ' editor:' + String(b[f]).slice(0, 18)).join(', ');
+        }).join(' · ');
+
+        ck('35b the page and the editor drew the same blocks',
+           shared.length >= 2 && shared.length === page35.rows.length,
+           `${shared.length} shared of ${page35.rows.length} on the page, ${ed35.rows.length} in the editor`);
+        ck('35c NOT ONE block changed shape between the two screens — the report',
+           moved.length === 0, say || `${shared.length} blocks, none moved`);
+
+        const bold35 = [...A.values()].filter(x => x.heavy).map(x => x.heavy);
+        ck('35d (control) the staged clause really does carry a bold lead-in and an italic phrase',
+           bold35.length > 0 && [...A.values()].some(x => x.slant),
+           JSON.stringify({ bold: bold35, italic: [...A.values()].map(x => x.slant).filter(Boolean) }));
+        ck('35e and the editor kept BOTH — the words the drafter emphasised are still emphasised',
+           [...B.values()].some(x => /Availability/.test(x.heavy || ''))
+             && [...B.values()].some(x => /ninety-nine/.test(x.slant || '')),
+           JSON.stringify({ bold: [...B.values()].map(x => x.heavy).filter(Boolean),
+             italic: [...B.values()].map(x => x.slant).filter(Boolean) }));
+        ck('35f and the step the file gave a sub-paragraph survived the crossing',
+           [...A.values()].some(x => x.step) && [...A.values()].filter(x => x.step).every(x => {
+             const b = B.get(x.key); return b && b.step === x.step; }),
+           JSON.stringify({ page: [...A.values()].map(x => x.step).filter(Boolean),
+             editor: [...B.values()].map(x => x.step).filter(Boolean) }));
+      }
+      if (process.env.HATI_SHOT_DIR){ try{ await p.screenshot({ path: path.join(process.env.HATI_SHOT_DIR, '35-shape-crossing.png') }); }catch(_){} }
+      await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+      await answerLeave(p); await pause(200);
+
+      /* ---- AND THE OTHER HALF OF THE CROSSING, AS A CONTROL ----
+         BE HONEST ABOUT WHAT THIS PAIR PROVES. At the parent, 35c above also
+         passed and so does everything below: a clause carrying a mark was
+         drawn through ops on BOTH screens, so the two agreed — about a
+         document that had lost its bold, its italic and its step, which is
+         what 35d–35f measure and what was really wrong. A clause with nothing
+         on it was drawn from its own markup on both screens and always
+         crossed unchanged.
+         SO THIS IS A GUARD, NOT THE REPORT: it is what would go red if the
+         shape ever started being handed to one surface and not the other —
+         the exact way this fault would come back. */
+      const clean35 = await p.evaluate(() => {
+        const c = window.CONTRACT;
+        const cl = negoClauseList(c).find(x => /4\.1 Fees/.test(x.text || ''));
+        return cl ? cl.clauseId : null;
+      });
+      if (!clean35){ ck('35g the stage carries a clause with nothing on it', false, 'not found'); }
+      else {
+        const pg = await p.evaluate(SHAPE35, clean35);
+        await p.evaluate(id => rlOpenClauseEditor(window.CONTRACT, id, {}), clean35);
+        await pause(900);
+        const ed = await p.evaluate(SHAPE35, clean35);
+        ck('35g (control) a clause with NO change on it was read on both screens',
+           !pg.none && !ed.none && pg.rows.length > 0 && ed.rows.length > 0,
+           JSON.stringify({ page: pg.none || pg.rows.length, editor: ed.none || ed.rows.length }));
+        if (!pg.none && !ed.none){
+          /* THE WORDING, not the heading it sits under: a heading is drawn as
+             itself on both screens and would have made this pass at the
+             parent. */
+          const a = pg.rows.find(x => /4\.1 Fees/.test(x.key));
+          const b = ed.rows.find(x => /4\.1 Fees/.test(x.key));
+          const F = ['tag', 'size', 'weight', 'style', 'lh', 'heavy', 'slant'];
+          ck('35h (control) a clause with nothing on it crosses to the editor unchanged',
+             !!(a && b) && F.every(f => a[f] === b[f]),
+             !a || !b ? `page ${!!a} editor ${!!b}`
+               : (F.filter(f => a[f] !== b[f]).map(f => `${f} page:${a[f]} editor:${b[f]}`).join(' · ')
+                 || 'identical on both'));
+          ck('35i (control) and its bold lead-in is bold on both screens',
+             !!(b && /Fees/.test(b.heavy || '')),
+             JSON.stringify({ page: a && a.heavy, editor: b && b.heavy }));
+        }
+        await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+        await answerLeave(p); await pause(200);
+      }
+    }
+  }
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();

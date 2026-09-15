@@ -1263,13 +1263,31 @@ function ceOps(a, b){
   try{ return redlineOps(ceWords(a), ceWords(b)); }
   catch(_){ return null; }
 }
+/* ---- THE CLAUSE KEEPS ITS SHAPE ON THIS PAGE TOO (Young ruled 15 Sep 2026) ----
+   *"when you press the pencil button and you move to the editor page, the
+   fonts of the contract change in some case they become bold. The contract
+   should never change from one screen to another."*
+
+   THE PENCIL IS WHERE THE READER SAW IT, so this is where the fix has to be
+   asked for as well — the negotiate page's own canvas asks rlClauseShape at
+   the draw, and a page that did not would be the two screens disagreeing
+   again, one fix later. ONE READING, THROUGH window: js/views/negotiation.js
+   publishes it, this file reads it by name, and a stage without that file
+   simply gets the shape it always got. */
+function ceShapeMap(){
+  if (!window.rlClauseShape || !_ceC || !_ceClauseId) return null;
+  try{
+    const cl = window.negoClauseNowById ? negoClauseNowById(_ceC, _ceClauseId) : null;
+    return cl ? rlClauseShape(cl) : null;
+  }catch(_){ return null; }
+}
 function ceRedlineHtml(a, b){
   const ops = ceOps(a, b);
   if (!ops) return `<p>${_cee(ceWords(b))}</p>`;
   try{
     /* THE DRAFT IS OURS: this page is our seat's by construction, so a mark
        drawn here wears the accent (14 Sep 2026). */
-    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us' });
+    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us', shape: ceShapeMap() });
     if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops, { who: 'us' })}</p>`;
   }catch(_){}
   return `<p>${_cee(ceWords(b))}</p>`;
@@ -1310,7 +1328,7 @@ function ceMarkedHtml(text){
       const overOps = window.redlineOpsStructured ? redlineOpsStructured(theirs, ours)
         : (window.redlineOps ? redlineOps(theirs, ours) : null);
       const ops = overOps ? redlineLayerOps(on.ops, overOps, { under: 'them', over: 'us' }) : null;
-      if (ops) return redlineOpsBlocksHtml(ops);
+      if (ops) return redlineOpsBlocksHtml(ops, { shape: ceShapeMap() });
     }catch(_){ /* falls through to the one-layer reading */ }
   }
   return ceRedlineHtml(_ceBase, draft);

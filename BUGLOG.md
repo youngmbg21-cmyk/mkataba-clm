@@ -14258,3 +14258,54 @@ Noticed, not fixed:
 - The clause editor's scan rail can still fill the box with a stand-alone
   library clause on a located clause. It is a person's press into a box they
   review before filing, so the wall was deliberately not put there.
+
+## 15 Sep 2026 — the contract's shape, the comment number, the way back
+
+Three reports off one screen (Young), all three built and measured.
+
+DEFECTS FOUND AND FIXED
+- A clause carrying a proposed change was drawn from OPS, and ops are plain text —
+  so the drafter's bold lead-in, italic phrase and the step the Word/PDF readers
+  wrote were thrown away, and a hanging indent and level were re-GUESSED from the
+  characters. The document changed shape one clause at a time, depending only on
+  whether somebody had proposed something. redlineShapeMap + opts.shape; one
+  reading (rlClauseShape) asked by five papers: the negotiate page's ops branch,
+  its stacked branch, its front matter, the contract room's canvas, and the clause
+  editor (ceShapeMap). MEASURED both ways on the same clause.
+- The first pass gave the shape to the negotiate page and NOT to the clause editor,
+  which is the page the report actually named. Caught by the new browser check,
+  which compares the same clause on the two screens against itself.
+- The note marker was at a flat left:-48px against a sheet whose own inset runs
+  56/56/30/26/20px — MEASURED 27px OUTSIDE the page in the narrow working pane.
+  --rl-paper-pad declared at every rung; left:calc(2px - var(--rl-paper-pad,56px)).
+  MEASURED after: 3px inside at 1500px and at 1000px.
+- The marker's disc was filled with --accent-fill and the number printed white —
+  the opposite of what was asked. Now --st-steel-bg with --accent-ink; the moved
+  state is the same shape in amber.
+- The crumb's word became a sign: #ws-back restyled not replaced (same id, handler,
+  data-back, both destinations); circle, --btn-edge outline, sized
+  calc(var(--t-label) * var(--lh-tight)) so the row keeps its height. MEASURED: the
+  contract's first line unmoved at 293 (room) / 309 (workbench). The destination is
+  the title and the aria-label.
+
+TESTS
+- f317 (24 claims; 19 red at 3400ab5, the 2 green ones named as controls).
+- clause-editor-verify 35 (9 checks; 35d-35f red at the parent, 35g-35i named CONTROLS
+  because they passed there — a check that passes against the parent is a description).
+- round-two-comments-verify K (6 checks at two window widths; 4 red at the parent).
+- pages-read-alike-verify 1, f184 and f313 (36) re-pointed IN PLACE with the ruling.
+- Full node suite green; lint 0 errors.
+
+NOTICED, NOT FIXED
+- .nego-redline .rl-marker{font-weight:var(--w-strong)} bolds a marker the renderer
+  INVENTED on the contract room's canvas, where the drafter's paper had a plain
+  number. That is the literal "in some case they become bold". The shape fix narrows
+  it to lines that really moved; removing the rule is that canvas's own styling call.
+- The crumb still draws its "/" separator to the left of the reference, which now
+  follows a sign rather than a word. Left as it was — not part of the request.
+- Eight browser checks were ALREADY RED before this session (proved in a worktree at
+  3400ab5, identical failures): redline-verify 5 (the highlight menu draws its three
+  verbs where that check expects none); nego-redesign-verify 1 and 1c, five checks
+  still asking for the retired .rn-id / .rn-arrow markup and for the crumb to have
+  stood down on the negotiation page, both reversed by the 12 Sep ruling;
+  negotiations-door-verify's two tab-count checks. Left red.

@@ -842,6 +842,34 @@ function rlReplStands(ch){
   if (!ids.length) return '';
   return i18t('ng_repl_stands', { ids: ids.length > 3 ? ids.slice(0, 3).join(', ') + ' ' + i18t('ng_repl_more', { n: ids.length - 3 }) : ids.join(', ') });
 }
+/* ---- THE CLAUSE'S OWN SHAPE, ONE READING (Young ruled 15 Sep 2026) ----
+   *"when you press the pencil button and you move to the editor page, the
+   fonts of the contract change in some case they become bold. The contract
+   should never change from one screen to another."*
+
+   A clause with nothing on it is drawn from its stored MARKUP; a clause
+   carrying a mark is drawn from OPS, and ops are plain text. So every bold
+   lead-in, every italic phrase and every step the Word or PDF reader wrote was
+   thrown away the moment somebody proposed a change to that clause, and the
+   renderer re-GUESSED a shape out of the characters instead — a hanging marker
+   read off the wording, a level read off the marker's depth. Which screen a
+   reader saw which shape on depended only on which clause they opened.
+
+   THIS IS THE SAME MARKUP THE CLEAN READING DRAWS, read once per clause and
+   handed to the renderer, so a marked clause and an unmarked one cannot
+   disagree about the document. It is deliberately ONE function and not one
+   per surface: the negotiate page, the contract room's canvas, the front
+   matter and the clause editor all ask it, which is the only way the four
+   stay in step. A line the reader really moved is still rebuilt from ops —
+   its words are not the drafter's any more — but its tag and its step are. */
+function rlClauseShape(cl){
+  if (!cl || !window.redlineShapeMap) return null;
+  try {
+    return redlineShapeMap(rlHangRichHtml(
+      (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`));
+  } catch (_){ return null; }
+}
+
 /* ---- WHOSE MARK, FROM THIS CHAIR (14 Sep 2026) ----
    'us' or 'them' relative to the READER, which is what the colours say. One
    reading for every paper this file draws and for the card's preview, so a
@@ -958,14 +986,17 @@ function negoDocHtml(c, opts){
      room would otherwise be shown the marks again with nothing saying why.
      Same predicate, same ops transform — THE MAP's rule that both renderers
      draw a pending change the same way. */
-  const redline = ch => {
+  const redline = (ch, cl) => {
+    /* THE SHAPE IS THE CLAUSE'S OWN — this room draws the same document the
+       negotiate page does, so it asks the same reading. */
+    const shape = rlClauseShape(cl);
     if (rlReadSideOf(ch, rlReadMode()) === 'marks'){
-      const stacked = rlLayeredHtml(c, ch, 'owner');
+      const stacked = rlLayeredHtml(c, ch, 'owner', { shape });
       if (stacked) return stacked;
     }
     const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
     return (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      ? redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner') })
+      ? redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner'), shape })
       : (window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || ''));
   };
   /* The adopted wording, in the same blocks. Built off the ops with the
@@ -1096,7 +1127,7 @@ function negoDocHtml(c, opts){
          still deciding about it is the failure this rule exists to prevent. */
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
-        : (fmtBody || `<div class="nego-redline">${redline(ch)}</div>`);
+        : (fmtBody || `<div class="nego-redline">${redline(ch, cl)}</div>`);
     } else if (ch.status === 'accepted'){
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
@@ -11734,7 +11765,15 @@ function redlineDocHtml(c, opts = {}){
   /* How this page is being read — see rlReadMode. Resolved once for the whole
      document so every clause on it answers the same question. */
   const readMode = rlReadMode();
-  const redlineBody = ch => {
+  /* The clause as the clean page renders it, block by block, for the marked
+     drawing to keep. Guarded on the module and on a clause being passed; a
+     stage without either answers null and nothing changes. */
+  /* ---- THE CLAUSE COMES IN BESIDE THE CHANGE (Young ruled 15 Sep 2026) ----
+     So the marked drawing can be handed the clause AS THE CLEAN PAGE DRAWS IT
+     and keep the document's own blocks — see redlineShapeMap in js/redline.js
+     for the measurement. An older caller passing no clause gets exactly the
+     drawing it had. */
+  const redlineBody = (ch, cl) => {
     const pinned = bodyAt(ch && ch.clauseId);
     if (pinned) return pinned;
     /* A CLEAN READING IS A CLEAN CLAUSE. Under "As agreed" or "With changes"
@@ -11755,7 +11794,7 @@ function redlineDocHtml(c, opts = {}){
        or the replacement block. The clean readings show one side's words and
        need no layers. */
     if (which === 'marks'){
-      const stacked = rlLayeredHtml(c, ch, side, { title: tip });
+      const stacked = rlLayeredHtml(c, ch, side, { title: tip, shape: rlClauseShape(cl) });
       if (stacked) return `<div class="nego-body nego-stack">${stacked}</div>`;
     }
     /* A FORMATTING-ONLY ask has all-keep ops — drawn from them this clause
@@ -11784,8 +11823,12 @@ function redlineDocHtml(c, opts = {}){
     if (Array.isArray(ch.ops) && ch.ops.length && !ch.formattingOnly && !negoWordsMoved(ch)) return null;
     const ops = rlOpsAsSide(ch.ops, which);
     const whoM = rlSideWho(ch, side);
+    /* THE SHAPE IS THE CLEAN CLAUSE'S OWN, read off the very markup the page
+       draws where nothing is marked — never re-derived here, so a marked
+       clause and an unmarked one cannot disagree about the document. */
+    const shape = rlClauseShape(cl);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM, shape })}</div>`;
     if (window.redlineOpsHtml && ops)
       return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip, who: whoM })}</p></div>`;
     return `<div class="nego-body"><p>${_ne(which === 'del' ? (ch.oldText || '') : (ch.proposedText || ch.newText || ''))}</p></div>`;
@@ -11957,7 +12000,7 @@ function redlineDocHtml(c, opts = {}){
       const settled = ch.status !== 'pending' || ch.withdrawn;
       const which = settled ? 'marks' : rlReadSideOf(ch, readMode);
       const marked = which === 'marks';
-      const clean = redlineBody(ch);
+      const clean = redlineBody(ch, cl);
       if (!marked){
         return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
           <div class="rl-clause-top">
@@ -12083,8 +12126,11 @@ function redlineDocHtml(c, opts = {}){
     if (!frontCh) return '';
     const tip = String((frontCh.author || '') || '').trim();
     const ops = rlOpsAsSide(frontCh.ops, 'marks');
+    /* The front matter is the contract's own paper too — its region keeps its
+       shape for the same reason every clause below it does. */
+    const fShape = rlClauseShape(frontCl);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '', who: rlSideWho(frontCh, side) })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '', who: rlSideWho(frontCh, side), shape: fShape })}</div>`;
     return `<div class="nego-body"><p>${_ne(frontCh.newText || '')}</p></div>`;
   };
   const head = (frontCl && frontDrawn == null)
@@ -19028,7 +19074,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      paper, the column head and the two board doors. */
   rlLadderChipHtml, rlLadderSectionHtml, rlLadderTrackHtml, rlMarkLegendHtml,
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
-  rlLadderContract, openLadderCompare, rlSideWho, rlBaselineHtml,
+  rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlFigureSecHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,

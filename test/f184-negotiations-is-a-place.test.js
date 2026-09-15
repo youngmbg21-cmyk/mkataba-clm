@@ -912,8 +912,18 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
       'the workbench no longer drops the crumb row');
     assert.match(CT, /<nav class="room-crumb" aria-label="Breadcrumb">/, 'one crumb, one markup');
     assert.equal((CT.match(/class="room-crumb"/g) || []).length, 1, 'and exactly one builder emits it');
-    assert.match(CT, /i18t\(backC \? 'pg_workspace' : 'ct_back_register'\)/,
-      'the negotiation says Contract Workspace, the room says Contracts');
+    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "there should be a back
+       button but in sign format not words") ----
+       This pinned the two WORDS the crumb printed. They are gone: the way back
+       is a sign, and the destination it names moved to the title and the
+       aria-label — the hover and the screen reader, where a sign has to be
+       nameable or it is a guess. WHAT THE CLAIM WAS REALLY ABOUT is untouched
+       and is asserted right below it: the two heads send the reader to two
+       different places, and one button carries both. */
+    assert.match(CT, /title="\$\{esc\(backTitle\)\}" aria-label="\$\{esc\(backTitle\)\}"/,
+      'the sign names its own destination, the negotiation\'s and the room\'s being two');
+    assert.ok(!/i18t\(backC \? 'pg_workspace' : 'ct_back_register'\)/.test(CT),
+      'and the word it used to print is not ink any more');
     assert.match(CT, /\$\{backC \? ' data-back="contract"' : ''\}/,
       'and the negotiation\'s lands on the room, which is where its way back already went');
   });

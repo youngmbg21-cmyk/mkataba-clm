@@ -1924,6 +1924,38 @@
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
   .room-crumb button:hover{ text-decoration:underline; }
+  /* ---- THE WAY BACK IS A SIGN (Young ruled 15 Sep 2026) ----
+     "there should be a back button but in sign format not words ... similar to
+     image 5 with a blue outline like other buttons."
+
+     A CIRCLE IS NOT A CORNER. The 26 Aug ruling gives the platform ONE 2px
+     corner and gives .rounded-full its own 9999px for exactly this reason, so
+     this states 50% and deliberately does not read --radius.
+
+     THE EDGE IS --btn-edge, the token every other outlined button on this
+     product reads: blue on navy, green on teal, from ONE place. That is what
+     "like other buttons" means here — typing a blue would have been right on
+     one brand and wrong on the other.
+
+     IT IS THE SIZE OF THE LINE IT SITS ON, written as that relation rather
+     than as 14px. The note above this block warned that putting an icon in
+     this row breaks its top-alignment; a box exactly one line box tall does
+     not, because every item in the row is then the same height again. MEASURED
+     on both heads: the crumb row stayed 16px and the first line of the
+     contract below it did not move by a pixel — which is refusal 3, and it is
+     a number, not a judgement.
+
+     AND THE PRESS IS BIGGER THAN THE BOX: ::before spends nothing on layout
+     and gives a 14px circle the reach a finger needs. */
+  .room-crumb .room-crumb-back{ position:relative; flex:none;
+    width:calc(var(--t-label) * var(--lh-tight)); height:calc(var(--t-label) * var(--lh-tight));
+    display:grid; place-items:center; padding:0; border-radius:50%;
+    border:1px solid var(--btn-edge,var(--color-accent-600));
+    background:transparent; color:var(--accent-ink); }
+  .room-crumb .room-crumb-back svg{ width:11px; height:11px; }
+  .room-crumb .room-crumb-back::before{ content:''; position:absolute; inset:-7px; }
+  .room-crumb .room-crumb-back:hover{ background:var(--nav-well); text-decoration:none; }
+  .room-crumb .room-crumb-back:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:1px; }
   .room-crumb i{ font-style:normal; color:var(--color-neutral-400); }
   .room-crumb-here{ font-variant-numeric:tabular-nums; }
   /* Status as words. The tone comes inline from STATUS_META, so this rule
