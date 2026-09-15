@@ -1194,7 +1194,22 @@ function redlineLayoutCss(){
            track that is exactly its content clips on the next rounding. It is a
            token rather than a number in the grid so the next type pass moves
            one value rather than hunting one. */}
-    --rl-verb-floor:127px}
+    --rl-verb-floor:127px;
+    ${''/* ---- THE PENCIL'S OWN RESERVE, SAID ONCE (15 Sep 2026) ----
+           The pencil is pinned out of the clause's heading row
+           (position:absolute;right:0), so anything left in the flow runs
+           straight under it; the heading and the ladder chip each hold this
+           width open for it. It was the number 62 typed into both of them.
+
+           IT IS A TOKEN NOW because a THIRD face joined that box: the Done
+           pencil, which carries a word beside its glyph and is therefore
+           wider. The reserve has to fit the WIDEST face the box can wear, or
+           the row moves when the face changes - which is the whole of Young's
+           15 Sep ruling that nothing may move when a cursor enters a clause.
+           MEASURED on a real page at the reader's own type size, Done is the
+           widest at 74px; 78 is that plus the slack a track that is exactly
+           its content needs on the next rounding. */}
+    --rl-pill-reserve:78px}
   /* ---- THE HEADER IS A BAND, NOT A CARD ----
      It used to be drawn as a panel — surface fill, a 1px border, a radius and a
      card shadow — sitting inside a page that already has its own frame and
@@ -2064,7 +2079,7 @@ function redlineLayoutCss(){
      says something is on the table — and it moves nothing sideways. */
   .redline-page .rl-clause{margin:0 0 var(--s-4);padding:0}
   .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-doc-type);font-weight:var(--w-title);
-    letter-spacing:.02em;padding-right:calc(62px * var(--doc-scale,1))}
+    letter-spacing:.02em;padding-right:calc(var(--rl-pill-reserve,78px) * var(--doc-scale,1))}
   /* ---- THE CANVAS READS LIKE THE DOC PAGE ----
      One declaration for the whole document canvas — clause bodies, marked
      lines, the recital — set from --rl-doc-type so the wording is the same
@@ -2277,12 +2292,37 @@ function redlineLayoutCss(){
      amber frame says "this wording is under argument", and this says "this
      wording is not in the contract at all yet". A reader scrolling the document
      has to be able to tell the two apart without reading the tag. */
-  .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,var(--st-green-dot) 7%,transparent);
-    border-color:color-mix(in srgb,var(--st-green-dot) 34%,transparent)}
+  ${''/* AND ON 15 SEP 2026 THE WASH WENT (Young ruled it, ringing the empty
+         space in a screenshot: "what I want taken off is not the teal
+         highlight but the green block covering the entire space of the clause
+         block which covers even the empty space").
+
+         THE WASH WAS A BLOCK and the marks are WORDS. It filled the whole
+         rectangle - the gap to the right of the heading, the tail of the last
+         line, every blank the wording did not reach - so the loudest green on
+         the page was painted over nothing at all, and it sat there in a second
+         green beside the teal the words themselves carry.
+
+         WHAT SAYS IT INSTEAD is already on the clause and says it on the
+         WORDS: every run of an inserted clause is underlined and inked in the
+         workspace accent (rl-us, the 14 Sep ruling), the heading carries its
+         round chip, and the changed-clause bar stands in the margin. The
+         border-color goes with the fill: it was the wash's own edge, and an
+         edge with nothing inside it is a third mark for a fact already made
+         twice. The class STAYS - it is what the two renderers stamp and what
+         the reading below keys on. */}
   .redline-page .rl-clause-top{position:relative;display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap}
   
   .redline-page .rl-clause-top:has(.rl-rung) .rl-clause-h{padding-right:0}
-  .redline-page .rl-clause-top:has(.rl-cp-pill-done) .rl-clause-h{padding-right:0}
+  ${''/* AND THE DONE PENCIL NO LONGER RELEASES IT (15 Sep 2026). This line
+         was right while Done sat in the FLOW: the pencil took its own width
+         there, so the heading's reserve beside it would have been the gutter
+         counted twice. Now Done is pinned in the same box every other face of
+         this control uses, so the reserve is held open whether the pencil is
+         resting, hovered, locked or saying Done - and the heading cannot move
+         when the face changes. The rule is gone rather than zeroed: a
+         declaration that sets a value back to what it already is reads as a
+         rule doing something. */}
   /* ---- THE GREEN EDIT PILL (owner-asked, 16 Aug 2026) ----
      Top right of every clause, always drawn, in the emerald this page already
      wears for "your redlines travel on this colour". margin-left:auto rather
@@ -4146,12 +4186,14 @@ function redlineLayoutCss(){
      no colour, no fill and no size of its own, so the name does not move or
      change weight when the box opens — only the frame arrives, and an OUTLINE
      takes no space, so nothing under it shifts either. */
-  .redline-page .rl-cp-clname.nego-name-edit{
-    outline:1px dashed color-mix(in srgb, var(--color-text) 26%, transparent);
-    outline-offset:4px}
-  .redline-page .rl-cp-clname.nego-name-edit:focus{
-    outline:1px dashed color-mix(in srgb, var(--color-text) 26%, transparent);
-    outline-offset:4px; box-shadow:none}
+  ${''/* AND ON 15 SEP 2026 THE FRAME WENT HERE TOO (Young ruled it of the
+         clause editor: "I do not want to have the dotted line or any line
+         around a clause when I go to edit"). The same mark, the same act, on
+         the other surface that offers it - a rule taken on one screen and
+         left on the other is how two screens come to disagree about what the
+         product does. The caret is what says you are in it; the note above
+         still holds and is why taking this costs nothing. */}
+  .redline-page .rl-cp-clname.nego-name-edit:focus{box-shadow:none;outline:none}
   .redline-page .rl-cp-sec{margin:0 0 18px}
   /* ---- THE THINGS THAT POINT AT SOMETHING ARE BLACK ----
      (owner-asked 16 Aug 2026: "the highlighted features that bring your
@@ -5242,7 +5284,7 @@ function redlineLayoutCss(){
     border:0;border-radius:var(--radius);cursor:pointer;white-space:nowrap;
     background:var(--st-steel-bg);color:var(--accent-ink);
     align-self:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;
-    margin-right:calc(62px * var(--doc-scale,1))}
+    margin-right:calc(var(--rl-pill-reserve,78px) * var(--doc-scale,1))}
   ${''/* THE 62px IS THE PENCIL'S OWN RESERVE. It is pinned out of this row
          (position:absolute;right:0), so anything left in the flow runs
          straight under it — which is what the chip did, measured on a real
@@ -5253,7 +5295,12 @@ function redlineLayoutCss(){
          pencil stands down for a colleague's lock the monogram takes the
          same box, so the reserve is right either way. */}
   
-  .redline-page .rl-cp-pill.rl-cp-pill-done{position:static;opacity:1;flex:none;gap:5px;
+  ${''/* PINNED, LIKE EVERY OTHER FACE OF THIS CONTROL (15 Sep 2026): it sits
+         in the reserve the heading already holds open, so turning typing on
+         changes what the box WEARS and never where anything on the row sits.
+         It keeps opacity:1 - a pencil that says Done may not be hover-only,
+         because it is the way out of typing. */}
+  .redline-page .rl-cp-pill.rl-cp-pill-done{position:absolute;right:0;top:0;opacity:1;flex:none;gap:5px;
     height:24px;padding:0 9px;border:1px solid var(--color-accent-600);
     background:var(--color-surface);color:var(--accent-ink);
     font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none}

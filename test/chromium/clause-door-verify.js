@@ -1279,6 +1279,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     return e ? { text: e.textContent.trim().slice(0, 40),
       bar: !!b.querySelector('.nego-edit-bar') } : null;
   }, ins.clauseId);
+  /* An edge is only "gone" if it has no width or no opacity; a 0px border
+     still reports a colour. */
+  const alphaOfOk = c => { const m = /(?:rgba?|color)\(([^)]+)\)/.exec(c || '');
+    if (!m) return false; const sl = m[1].split('/');
+    if (sl.length > 1) return Number(sl[1].trim()) === 0;
+    const ps = m[1].split(',').map(x => x.trim());
+    return ps.length > 3 ? Number(ps[3]) === 0 : false; };
   ck('14e the editor opens in the panel, seeded with the proposal',
     !!seeded && /thirty \(30\)/.test(seeded.text) && seeded.bar, JSON.stringify(seeded));
   const filed13 = await p.evaluate(async id => {
@@ -1299,6 +1306,50 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   ck('14g and the new wording is on the paper',
     /forty-five \(45\)/.test(filed13.text) && /forty-five \(45\)/.test(filed13.paper),
     filed13.text.slice(0, 70));
+
+  /* ---- 14h · A CLAUSE ADDED FROM THE PLAYBOOK IS NOT A COLOURED BLOCK
+     (Young ruled 15 Sep 2026, ringing the empty space in a screenshot: "when I
+     add a clause to the contract from our playbook, do not add the light green
+     background ... the green block covering the entire space of the clause
+     block which covers even the empty space") ----
+     THE WASH WAS A BLOCK AND THE MARKS ARE WORDS. It filled the whole
+     rectangle — the gap right of the heading, the tail of the last line, every
+     blank the wording never reached — so the loudest colour on the page was
+     painted over nothing. WHAT STILL SAYS IT is on the words themselves, and
+     both halves are measured here: the section's own background is the
+     PAPER'S, and the inserted runs still carry their own tint and underline.
+     Only a rendered page can answer either — the markup was the same before
+     and after. */
+  const wash = await p.evaluate(() => {
+    const sec = document.querySelector('.redline-page section.rl-clause-new');
+    if (!sec) return null;
+    const sheet = sec.closest('.rl-paper') || sec.closest('.rl-doc');
+    const run = sec.querySelector('ins.rl-us, ins.nego-ins, ins');
+    const alpha = c => { const m = /(?:rgba?|color)\(([^)]+)\)/.exec(c || ''); if (!m) return 1;
+      const sl = m[1].split('/'); if (sl.length > 1) return Number(sl[1].trim());
+      const ps = m[1].split(',').map(x => x.trim()); return ps.length > 3 ? Number(ps[3]) : 1; };
+    const cs = getComputedStyle(sec);
+    return { bg: cs.backgroundColor, bgAlpha: alpha(cs.backgroundColor),
+      paper: sheet ? getComputedStyle(sheet).backgroundColor : null,
+      edge: cs.borderTopColor, edgeW: parseFloat(cs.borderTopWidth) || 0,
+      runBg: run ? getComputedStyle(run).backgroundColor : null,
+      runAlpha: run ? alpha(getComputedStyle(run).backgroundColor) : 0,
+      runLine: run ? getComputedStyle(run).textDecorationLine : null,
+      /* THE CLASS SURVIVES: it is what both renderers stamp and what every
+         other check in this suite reaches the clause by. */
+      stamped: sec.classList.contains('rl-clause-new') };
+  });
+  if (!wash){ ck('14h a proposed clause is on the paper to measure', false, 'none drawn'); }
+  else {
+    ck('14h NO BLOCK BEHIND AN ADDED CLAUSE — the paper shows through its empty space',
+       wash.bgAlpha === 0 && (wash.edgeW === 0 || alphaOfOk(wash.edge)),
+       `section ${wash.bg} over a sheet of ${wash.paper}, edge ${wash.edgeW}px ${wash.edge}`);
+    ck('14h2 …and the WORDS still carry their own mark, which is what says it is ours',
+       wash.runAlpha > 0 && /underline/.test(wash.runLine || ''),
+       `run ${wash.runBg} ${wash.runLine}`);
+    ck('14h3 …and the class itself is untouched — it is what the renderers stamp',
+       wash.stamped === true, String(wash.stamped));
+  }
 
   /* ============================================================
      15. THE FRONT MATTER IS A REGION, AND IT HAS THE SAME ONE CONTROL
