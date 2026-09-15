@@ -14026,3 +14026,58 @@ main too. Photographed the finished page.
   word you pressed is still the word you are on, but the line it sits on can
   shift by one. Left alone: it is the 14 Sep design, and changing it is a
   bigger question than this order.
+
+## 15 Sep 2026 — four things off one screen
+
+Young, over four screenshots: "I only changed clause 1.2 so the reference on
+the right should only take 1.2 and not the whole clause 1"; "delete the 'not
+agreed text' bit"; "move the highlighted buttons up and to the right of the
+more button ... make their outlines blue or green depending on the mode ...
+make them proportionally bigger to the buttons above and bunch them closer so
+that the spacing matches the more, share and internal review spacing"; "This
+should also mean when I press collapse in image 4, I should get more space for
+the contract."
+
+1. THE NOTE PIN QUOTED THE WRONG WORDS. It read the change's whole new clause
+and cut the first four hundred characters off the FRONT, so an edit to a
+sub-paragraph half way down quoted the paragraphs above it and stopped before
+reaching anything the reader had actually touched - the right change, and none
+of it shown. It now quotes what MOVED, using the same selection the change card
+already uses, so the two cannot disagree. A change with no marks at all (a
+clause added whole, an older record) still quotes its whole body, because there
+every word is what moved.
+
+2. THE LEGEND SAYS THE FACT AND STOPS. "Plain text = the last wording
+exchanged" - the warning tacked on the end is gone, in both languages.
+
+3. THE THREE SYMBOLS MOVED UP. They were at the far right of the facts line, a
+whole row below and a page width away from every other control on that header,
+with no outline - which is why they read as decoration rather than buttons.
+They are now the last three things in the button row, after More: the same
+height as every button beside them, the same gap, and an outline in the
+workspace's own colour, so they are green on the teal workspace and blue on the
+navy one from one setting rather than two rules that could drift apart. The
+symbol inside grew; the box did not, because the row has one height and a
+taller button would make one row read as two.
+
+ONE THING THAT ONLY SHOWED UP ON A REAL PAGE: the negotiate page pins every
+button in that row to eleven pixels of side padding, which is right for a
+button with a word in it and turned each square symbol into a wide lozenge the
+moment it joined the row. Answered by naming the three, narrowly.
+
+4. AND COLLAPSE NOW GIVES THE CONTRACT THE SPACE. That was the point of moving
+them: they were the only other thing in the facts row, so folding it left a row
+that still had to be as tall as a button. Measured on a real page: the row now
+folds to nothing and the contract rises 53 pixels, against 25 before.
+
+Verified: lint 0 errors; the whole suite 7,087 checks, none red; two new checks
+in the head's own browser file and five reversed in place in the negotiate
+page's, all of them red on the old code and reporting the owner's own numbers
+there (the symbols below More, no outline, a 16px glyph, 2px apart, and only
+25px given back); comments 37/37, notes 73/73, pages-read-alike 51/51, ladder
+76/76, redline 222/223 with its one failure red at main too. Photographed the
+header open and folded.
+
+### Noticed, not fixed
+- The negotiate page's browser file has five checks about the breadcrumb and
+  its arrow that were already failing before this session. Left red.

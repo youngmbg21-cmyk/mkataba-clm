@@ -153,6 +153,48 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await scrollTo(300);
   ok('and scrolling down does NOT undo that either', (await folded()) === false);
 
+  /* ============================================================
+     6 · AND ON THE NEGOTIATE PAGE, FOLDING GIVES THE CONTRACT THE SPACE
+     ============================================================
+     Young ruled 15 Sep 2026, of moving the three check symbols out of this
+     row: "This should also mean when I press collapse in image 4, I should
+     get more space for the contract."
+
+     IT IS THE POINT OF THE WHOLE MOVE and it is the only claim here a browser
+     has to answer: the symbols used to be the fact row's only other child, so
+     folding the facts left a row that still had to be as tall as a 28px
+     button. With them gone the band folds to nothing, and what that is worth
+     is measured where the reader sees it — the top of the PAPER, before and
+     after one real press. */
+  console.log('\n6 · folding gives the contract the space back');
+  await page.evaluate(() => { const c = state.contracts[0]; openRedlineWorkbench(c.id); });
+  await page.waitForTimeout(1600);
+  const paperTop = () => page.evaluate(() => {
+    const p = document.querySelector('.rl-paper') || document.querySelector('.rl-doc');
+    const f = document.getElementById('ws-facts');
+    return { paper: p ? Math.round(p.getBoundingClientRect().top) : null,
+      facts: f ? Math.round(f.getBoundingClientRect().height) : null,
+      checksInFacts: !!document.querySelector('#ws-facts .room-checks'),
+      checksInActs: !!document.querySelector('#ws-head .room-acts .room-checks') };
+  });
+  const wide = await paperTop();
+  ok('the symbols are in the acts row, not the fact row',
+     wide.checksInActs === true && wide.checksInFacts === false, JSON.stringify(wide));
+  await page.click('#ws-facts-toggle');
+  await page.waitForTimeout(500);
+  const tight = await paperTop();
+  ok('the fact row folds to NOTHING — there is no control left in it to hold it open',
+     tight.facts === 0, `${wide.facts}px \u2192 ${tight.facts}px`);
+  ok('and the contract really moves up by what the row gave back',
+     wide.paper != null && tight.paper != null && wide.paper - tight.paper >= 40,
+     `paper ${wide.paper} \u2192 ${tight.paper} (${wide.paper - tight.paper}px back)`);
+  await page.click('#ws-facts-toggle');
+  await page.waitForTimeout(400);
+  const again = await paperTop();
+  ok('pressing again puts the facts and the paper back exactly',
+     again.paper === wide.paper && again.facts === wide.facts,
+     `paper ${again.paper} vs ${wide.paper}`);
+
   console.log('\n5 · the control still says what it does');
   const lbl = await page.evaluate(() => {
     const t = document.getElementById('ws-facts-toggle');

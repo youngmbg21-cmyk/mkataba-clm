@@ -6970,7 +6970,15 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
    itself — under two stacked moves the PLAIN words are the last wording
    exchanged, which is somebody's proposal and not the agreed text. A reader
    who takes them for the contract signs off on a number nobody accepted, and
-   that is the one way the two-move window can mislead. */
+   that is the one way the two-move window can mislead.
+
+   ---- AND THE WARNING HALF OF THAT THIRD LINE IS GONE (Young ruled 15 Sep
+   2026, ringing it: "delete the 'not agreed text' bit") ---- The line now
+   states the FACT and stops: plain text is the last wording exchanged. What
+   went was the inference drawn from it for the reader, which is the half that
+   made a key read as a caution; the fact still carries it for anybody who
+   needs it. The key is SHORTENED in both books rather than retired, because
+   the first half is still drawn. */
 function rlMarkLegendHtml(side){
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const item = (cls, key) => `<span><i class="rl-lg rl-lg-${cls}"></i>${_ne(i18t(key))}</span>`;
@@ -14687,10 +14695,40 @@ function rlNpListHtml(c, ch, notes, room, side, other, opts = {}){
 /* What a FILED change's pin quotes: the wording it proposes, as plain words,
    bounded as a note's quote is; a change with no wording of its own (a
    deletion) quotes its summary. */
+/* ---- THE PIN QUOTES WHAT MOVED, NOT THE CLAUSE IT MOVED IN (Young reported
+   it 15 Sep 2026: "I only changed clause 1.2 so the reference on the right
+   should only take 1.2 and not the whole clause 1") ----
+   It read `ch.bodyHtml` — the clause's WHOLE new wording — and cut the first
+   400 characters off the front, so a change to a sub-paragraph half way down
+   quoted the paragraphs above it and stopped before reaching the words the
+   reader had actually edited. The quote was about the right change and showed
+   none of it.
+
+   THE SELECTION IS THE PRODUCT'S OWN. `redlineShownBlocks(ops, {changedOnly})`
+   is the one reading of "the parts of this change that moved" — the same one
+   the card's wording uses — so the pin and the card cannot disagree about what
+   this change touched. Each block is projected by `redlineBlockShown`, which
+   is what the renderer draws: the new words where there are any, the struck
+   ones where the block was only removed.
+
+   THE FALLBACK IS THE OLD READING, unchanged, for a change carrying no ops at
+   all (an inserted clause, an older record): there every word IS what moved,
+   so the whole body was the right answer for it all along. */
 function rlNpChangeQuote(ch){
   if (!ch) return '';
-  const html = String(ch.bodyHtml || ch.html || '');
-  let t = html ? (window.richToText ? richToText(html) : html.replace(/<[^>]+>/g, ' ')) : '';
+  let t = '';
+  if (Array.isArray(ch.ops) && ch.ops.length && typeof window.redlineShownBlocks === 'function'){
+    try{
+      t = redlineShownBlocks(ch.ops, { changedOnly: true })
+        .map(g => (window.redlineBlockShown ? redlineBlockShown(g) : ''))
+        .filter(x => String(x || '').trim())
+        .join(' ');
+    }catch(_){ t = ''; }
+  }
+  if (!String(t || '').trim()){
+    const html = String(ch.bodyHtml || ch.html || '');
+    t = html ? (window.richToText ? richToText(html) : html.replace(/<[^>]+>/g, ' ')) : '';
+  }
   t = String(t || '').replace(/\s+/g, ' ').trim() || String(ch.summary || '').trim();
   const max = window.NOTE_QUOTE_MAX || 400;
   return t.length > max ? t.slice(0, max - 1).trimEnd() + '\u2026' : t;
