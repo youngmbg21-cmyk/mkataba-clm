@@ -13879,3 +13879,45 @@ PROVED. Full node suite 7,097 tests, 0 fail; lint 0 errors. Eight printed-name
 assertions re-pointed in place across six files, each with the ruling beside it.
 Browser: redline 222/223 (its one failure red at main), insights-panels 84/84,
 ladder 73/73, clause-door 122/122, notes-two-rooms 73/73.
+
+## 15 Sep 2026 — The highlight raises a bar, not a dropdown (Young: "I am still getting the Hati version")
+
+The artifact draws the three choices as a flat horizontal bar of plain words.
+HaTi drew a dropdown card: a small-caps heading ("Selected wording"), the first
+64 characters of the highlight in italics, then the three verbs stacked down the
+page with icons in front of them.
+
+WHAT WENT, AND WHY EACH COULD GO. The heading labelled a layer that had just
+appeared at the words it is about, in answer to the reader's own drag. The quote
+was a copy of the highlight, which is lit on the page twelve pixels below it.
+The stack was what made it a dropdown. The icons are not in the artifact.
+
+TWO SURFACES DREW THE SAME MARKUP — the contract room's menu and the negotiate
+workbench's — so they were two copies of one shape, which is this codebase's
+most expensive fault class. There is one builder now and both ask it.
+
+WHERE IT LANDS. A dropdown hangs below and left of its anchor, because that is
+where a menu belongs. The bar is centred over the highlight and clear of it,
+which is the artifact's own placing; it flips below when there is no room above.
+The clamps are the same clamps, so there is still one reading of where a
+floating layer lands.
+
+WHAT DID NOT CHANGE. The refusal layer — the sentence that appears where a
+highlight is real but cannot lead anywhere — keeps its old shape and its
+heading, because it is a sentence to be read rather than a row of verbs.
+
+PROVED. Full node suite 7,097 tests, 0 fail; lint 0 errors. Photographed on the
+real page: the bar reads Ask Copilot · Edit with Copilot · Comment, centred over
+the highlighted words. Browser: round-two-comments 37/37, clause-editor 268/268,
+clause-door 122/122, notes-two-rooms 73/73, document-ask-copilot 9/9,
+ladder 73/73. selection-verify is 16/22 here and 16/22 at main, the same six.
+
+### Noticed, not fixed
+
+- round-two-comments-verify G2 was passing vacuously: it asserted the clause
+  heading was absent from a quote, and once the quote was gone the test read
+  null and the assertion was true of nothing. Both it and H3b now read the words
+  the product itself carried — the passage reading, and the words the press
+  actually handed to the editor — which is where the claim always belonged.
+- js/mobile-copilot.js still sizes .nego-selhead and .nego-selquote on the
+  phone. Harmless, and stale.

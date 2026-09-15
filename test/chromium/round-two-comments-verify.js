@@ -241,10 +241,16 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       const pas = negoReadPassage(r, pane);
       return { rows: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [],
         clauses: pas.clauseIds.length, spill: pas.parts[1] ? pas.parts[1].text.slice(0, 30) : null,
-        quote: m ? (m.querySelector('.nego-selquote') || {}).textContent : null };
+        /* RE-POINTED 15 Sep 2026 (Young: the highlight raises the artifact's
+           BAR, which carries no quote of the words). The claim is read off
+           the product's OWN reading of the drag — the same `negoReadPassage`
+           the offer itself uses — which is a stronger place to ask it than a
+           label that was only ever a copy of it. */
+        offered: (pas.parts[0] && pas.parts[0].text) || '' };
     });
     ck('G2 a selection that OVERSHOOTS into the next clause’s heading is read as one clause and offered, the heading left out',
-       JSON.stringify(g2.rows) === JSON.stringify(['ask', 'edit', 'comment']) && !/Governing|Law/.test(g2.quote || ''), JSON.stringify(g2));
+       JSON.stringify(g2.rows) === JSON.stringify(['ask', 'edit', 'comment'])
+       && g2.clauses === 1 && !!g2.offered && !/Governing|Law/.test(g2.offered), JSON.stringify(g2));
   } else ck('G2 the next clause’s heading row was found', false, 'none');
 
   /* ---- H · ROUND THREE (Young, 11 Sep 2026, late) ---- */
@@ -333,15 +339,23 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const h3 = await p.evaluate(() => {
       const m = document.querySelector('.nego-selmenu');
       return { rows: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [],
-        quote: m ? ((m.querySelector('.nego-selquote') || {}).textContent || '') : '', here: clauseEditorClauseId() };
+        here: clauseEditorClauseId() };
     });
     ck('H3a in the editor a real drag over another clause, heading included, offers the three rows', h3g.lands && JSON.stringify(h3.rows) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify({ ...h3, lands: h3g.lands }));
-    ck('H3b and the heading is left out of the words offered', h3.quote && !h3.quote.includes(h3g.head.slice(0, 12)), JSON.stringify({ quote: h3.quote.slice(0, 60), head: h3g.head }));
     const editBtn = await p.$('.nego-selmenu [data-nego-ai="edit"]');
     if (editBtn) await editBtn.dispatchEvent('mousedown');
     await pause(500);
-    const h3c = await p.evaluate(() => ({ here: clauseEditorClauseId(), cut: !!document.querySelector('#ce-scope .ce-scope .cut'), held: document.querySelectorAll('#ce-clausebody .ce-held').length }));
+    const h3c = await p.evaluate(() => ({ here: clauseEditorClauseId(), cut: !!document.querySelector('#ce-scope .ce-scope .cut'),
+      held: document.querySelectorAll('#ce-clausebody .ce-held').length,
+      heldText: [...document.querySelectorAll('#ce-clausebody .ce-held')].map(n => n.textContent).join(' ') }));
     ck('H3c Edit with Copilot moves the page to THAT clause with the words in hand', h3c.here === h3g.id && h3c.cut && h3c.held >= 1, JSON.stringify(h3c));
+    /* RE-POINTED 15 Sep 2026 (Young: the bar carries no quote). This read the
+       words off the menu's own label; it reads them off the passage the press
+       actually HANDED OVER — lit on the editor's paper — which is the thing
+       the claim was always about. Asked AFTER the press for that reason. */
+    ck('H3b and the heading is left out of the words that were handed over',
+       !!h3c.heldText && !h3c.heldText.includes(h3g.head.slice(0, 12)),
+       JSON.stringify({ held: h3c.heldText.slice(0, 60), head: h3g.head }));
   } else { ck('H3a the other clause was found on the editor’s paper', false, 'none'); }
 
   /* H4 · Apply on a Copilot card ends typing: the card's press goes through
