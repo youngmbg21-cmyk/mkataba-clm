@@ -17731,6 +17731,34 @@ function rlWireQueueMin(host){
 let _rlCpId = null;
 function rlCpOpenId(){ return _rlCpId; }
 function rlCpSetOpen(id){ _rlCpId = id || null; return _rlCpId; }
+/* ---- THE LADDER CHIP OPENS THE LADDER (Young reported it 15 Sep 2026) ----
+   "when I click on ladder, I also get the highlighted area in the attached
+   image. I thought you are only supposed to get the ladder."
+
+   The chip has always called rlCpSetShown, which opens the WHOLE clause panel:
+   the clause's wording, the acts row, what is on the table, this round's
+   history, and only then the ladder — five sections of reading before the one
+   thing the press was named after. Two doors were arriving at one destination
+   and only one of them said so.
+
+   THE FIX IS THE PANEL'S OWN MECHANISM, A CLASS FLIP. Every clause's body is
+   already in the panel and opening is two class toggles; narrowing is a third.
+   `is-ladder` hides the sections above the ladder in the stylesheet, so the
+   pencil's panel and the chip's panel are ONE build, never two, and they can
+   never drift. What stays is the clause's name (the ladder has to say which
+   clause it climbs), the ladder itself, and the ladder's own tail — Your
+   playbook, The figure, Notes — which is the 14 Sep artifact's ladder panel.
+
+   The pencil is unchanged and still opens everything; a reader who wants the
+   rest of the clause presses it. The chip closes what it opened, per the
+   owner's standing rule — and THE TOGGLE IS THE CLAUSE, NEVER THE POSTURE. A
+   first draft made this press narrow a panel already open in full rather than
+   shut it; it was wrong. "The press that opens a sliding panel closes it" is
+   about the PANEL, so a second state inside the toggle costs a press to close
+   and makes one button mean two things. In memory, per sitting; it never
+   prints and never leaves the page. */
+let _rlCpLadder = false;
+function rlCpLadderOnly(){ return _rlCpLadder; }
 /* ---- HISTORY | + NOTES (owner-asked 16 Aug 2026: "add a button next to edit
    that shows history with notes. The default will be without notes") ----
    A two-way switch in the panel's own head, dressed like the toolbar's
@@ -17844,6 +17872,7 @@ function rlCpTypeStepHtml(){
 }
 function rlClausePanelHtml(bodies){
   const open = !!rlCpOpenId();
+  const lad = open && rlCpLadderOnly();
   const src = (bodies || []).join('');
   return `${''/* NO SCRIM — see the note on .rl-cp. The contract stays lit and
          stays usable beside the panel, which is the whole point of a panel
@@ -17852,13 +17881,13 @@ function rlClausePanelHtml(bodies){
          Activity panel are built. NOT role="dialog": it is a complementary
          panel a reader works BESIDE the wording, and this page already refuses
          to put a dialog over the wording being judged (f89). */}
-  <aside class="rl-col rl-cp${open ? ' is-open' : ''}" id="rl-cp"
+  <aside class="rl-col rl-cp${open ? ' is-open' : ''}${lad ? ' is-ladder' : ''}" id="rl-cp"
     style="--cp-zoom:${rlCpZoom()}"
     aria-hidden="${open ? 'false' : 'true'}" aria-label="${_nea(i18t('ng_cp_open_title'))}">
     <div class="rl-cp-head">
       <button type="button" id="rl-cp-min" class="rl-cp-min" data-rl-cp-close="1"
         title="${_nea(i18t('ng_cp_close_title'))}" aria-label="${_nea(i18t('ng_cp_close_title'))}">&times;</button>
-      <p class="rl-cp-label">${i18t('ng_cp_edit')}</p>
+      <p class="rl-cp-label">${i18t(lad ? 'ng_cp_ladder' : 'ng_cp_edit')}</p>
       ${rlCpSegsHtml()}
       ${rlCpTypeStepHtml()}
     </div>
@@ -17870,9 +17899,14 @@ function rlClausePanelHtml(bodies){
    the reader's place in the contract, which is the one thing they were holding
    on to. Every clause's body is already in the panel; this flips which one is
    on. Two class flips and nothing else. */
-function rlCpSetShown(scope, clauseId){
+function rlCpSetShown(scope, clauseId, opts = {}){
   const root = (scope && scope.querySelector) ? scope : document;
   const want = clauseId ? String(clauseId) : null;
+  /* ADDITIVE, AND EVERY OLDER CALLER MEANS THE WHOLE PANEL. The pencil, the
+     card's Edit, the repaint's restore and every test stage pass two
+     arguments, so the full panel stays the default and only the chip asks for
+     the narrowed one. */
+  const ladderOnly = !!(opts && opts.ladder);
   /* A CLAUSE WITH NO BODY IN THE PANEL CANNOT BE OPENED. The panel would slide
      out empty, which reads as broken rather than as "nothing here". */
   const bodies = [...root.querySelectorAll('#rl-cp-body .rl-cp-src')];
@@ -17880,8 +17914,14 @@ function rlCpSetShown(scope, clauseId){
   const on = !!(want && found);
   rlCpSetOpen(on ? want : null);
   bodies.forEach(b => b.classList.toggle('is-on', on && b.getAttribute('data-rl-cp-for') === want));
+  _rlCpLadder = on && ladderOnly;
   root.querySelectorAll('#rl-cp').forEach(p => {
     p.classList.toggle('is-open', on); p.setAttribute('aria-hidden', on ? 'false' : 'true');
+    p.classList.toggle('is-ladder', on && ladderOnly);
+    /* THE HEAD SAYS WHICH PANEL THIS IS. A narrowed panel headed "Edit" names
+       an act it is not offering — the acts row is one of the things hidden. */
+    const lab = p.querySelector('.rl-cp-label');
+    if (lab) lab.textContent = i18t(on && ladderOnly ? 'ng_cp_ladder' : 'ng_cp_edit');
   });
   root.querySelectorAll('[data-rl-cp-open], [data-rl-ladder]').forEach(b => b.setAttribute('aria-expanded',
     on && b.getAttribute('data-rl-cp-open') === want ? 'true' : 'false'));
@@ -17909,7 +17949,10 @@ function rlCpSetShown(scope, clauseId){
 function rlCpPaint(scope){
   const id = rlCpOpenId();
   if (!id) return;
-  rlCpSetShown((scope && scope.querySelector) ? scope : document, id);
+  /* THE POSTURE SURVIVES THE REPAINT with the clause it belongs to: a rebuilt
+     panel that quietly widened back to the whole clause would undo the press
+     the reader had just made. */
+  rlCpSetShown((scope && scope.querySelector) ? scope : document, id, { ladder: rlCpLadderOnly() });
 }
 /* The pill, the close, the scrim and Escape — the queue's four ways in and out,
    on this panel. ARMED AT MODULE LOAD, on `document`, never inside a renderer:
@@ -18028,7 +18071,15 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       ev.preventDefault(); ev.stopPropagation();
       const lid = lad.getAttribute('data-rl-ladder');
       const lscope = lad.closest('.redline-page') || document;
-      rlCpSetShown(lscope, rlCpOpenId() === lid ? null : lid);
+      /* THE TOGGLE IS THE CLAUSE, NOT THE POSTURE (15 Sep 2026). A first
+         draft made this press NARROW a panel already open in full rather than
+         shut it, on the reasoning that the reader had asked for the ladder and
+         not to leave the clause. It was wrong: "the press that opens a sliding
+         panel closes it" is the owner's own rule and it is about the PANEL, so
+         a second state inside it costs a press to close and makes the same
+         button mean two things. It opens narrowed and it shuts; the pencil is
+         the way to the rest of the clause. */
+      rlCpSetShown(lscope, rlCpOpenId() === lid ? null : lid, { ladder: true });
       return;
     }
     const readAt = t.closest('[data-rl-read-at]');
@@ -18685,7 +18736,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,
-  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes,
+  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,

@@ -434,8 +434,37 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   /* THE PANEL COVERS THE COLUMN while it is open, so it is shut first and
      the press is dispatched in the page, as this file's other presses are. */
   await page.evaluate(id => { rlCpSetShown(document, null); const b = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(id)}"]`); b && b.click(); }, staged.c4); await pause(400);
-  const lad18 = await page.evaluate(id => { const b = document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`); return !!(b && b.classList.contains('is-on') && document.querySelector('#rl-cp.is-open')); }, staged.c4);
-  check('18g the row\'s Ladder opens the clause panel on that clause', lad18);
+  /* RE-POINTED IN PLACE 15 Sep 2026 (Young: "when I click on ladder, I also
+     get the highlighted area ... I thought you are only supposed to get the
+     ladder"). The press still opens the panel on that clause — one build, two
+     postures — but it now opens it NARROWED: the ladder and its own tail, with
+     the wording, the acts row, what is on the table and this round's history
+     hidden. Measured as PIXELS, because the sections stay in the markup and
+     only the stylesheet decides. */
+  const lad18 = await page.evaluate(id => {
+    const b = document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
+    const shown = sel => { const e = b && b.querySelector(sel); return !!(e && e.getBoundingClientRect().height > 0); };
+    return { on: !!(b && b.classList.contains('is-on') && document.querySelector('#rl-cp.is-open')),
+      narrowed: !!document.querySelector('#rl-cp.is-ladder'),
+      ladder: shown('.rl-ladder-sec'), playbook: shown('.rl-pb-sec'), notes: shown('.rl-notes-sec'),
+      name: !!(b && b.querySelector('.rl-cp-clname') && b.querySelector('.rl-cp-clname').getBoundingClientRect().height > 0),
+      stands: shown('.rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec)'),
+      head: (document.querySelector('#rl-cp .rl-cp-label') || {}).textContent };
+  }, staged.c4);
+  check('18g the row\'s Ladder opens the clause panel on that clause', lad18.on);
+  check('18h and it opens NARROWED — the ladder and its tail, nothing above them',
+    lad18.narrowed && lad18.ladder && lad18.playbook && lad18.notes && lad18.name && !lad18.stands,
+    JSON.stringify(lad18));
+  check('18i the head says which panel this is', /ladder/i.test(lad18.head || ''), lad18.head);
+  /* THE PENCIL IS UNCHANGED and still opens the whole clause — the way to the
+     rest of it from a narrowed panel. */
+  await page.evaluate(id => window.rlCpSetShown(document, id), staged.c4); await pause(300);
+  const full18 = await page.evaluate(id => {
+    const b = document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
+    const e = b && b.querySelector('.rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec)');
+    return { stands: !!(e && e.getBoundingClientRect().height > 0), narrowed: !!document.querySelector('#rl-cp.is-ladder') };
+  }, staged.c4);
+  check('18j the pencil still opens the whole clause', full18.stands && !full18.narrowed, JSON.stringify(full18));
 
   /* 19 · the panel's tail */
   const tail19 = await page.evaluate(() => {
