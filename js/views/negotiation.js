@@ -16205,13 +16205,46 @@ function redlineChangeCardsHtml(c, opts = {}){
       if (v) seen.add(v);
       return v || '';
     };
-    const relabel = (v, word) => v ? v.replace(/>(?:&#10022; )?[^<>]*<\/button>\s*$/, `>${_ne(word)}</button>`) : '';
-    const door = take(/data-rl-cp-editor-row=|data-rl-edit=/);
+    /* ---- ONE WORD, WHATEVER SHAPE THE BUTTON IS ----
+       The door has THREE shapes: the sparkle-and-name Copilot button, the
+       plain jump, and the LOCKED one, which is a monogram in a <b> followed by
+       the name. The first pass only rewrote the trailing text node, so a
+       locked door kept "RC Edit with Copilot" beside a free door reading
+       "Edit" — MEASURED at 128px against 27px, which is the shared verb column
+       moving, the exact thing the lock is built not to do (redline-verify
+       25m). This replaces the LAST text node before </button> and leaves the
+       monogram alone. */
+    const relabel = (v, word) => v
+      ? v.replace(/(<\/b>)?\s*(?:&#10022;\s*)?[^<>]*<\/button>\s*$/,
+        (m, b) => `${b || ''} ${_ne(word)}</button>`)
+      : '';
+    /* ---- AND A LOCKED DOOR IS STILL THE DOOR ----
+       Where a colleague holds the clause the edit verb is drawn by rlLockedBtn
+       — disabled, with no data attribute at all — so the two attributes cannot
+       find it. Its own class pair is what names it. */
+    const door = take(/data-rl-cp-editor-row=|data-rl-edit=|rl-verb-ai is-locked/);
+    const acc = take(/data-nego-accept=/), rej = take(/data-nego-reject=/);
     const out = [];
-    if (theirs){
-      out.push(take(/data-nego-accept=/), take(/data-nego-reject=/), relabel(door, i18t('ng_counter')));
+    if (theirs && (acc || rej)){
+      /* A LIVE ASK OF THEIRS IS THE ARTIFACT'S DECISION ROW: Accept · Reject ·
+         Counter, and the door wears the artifact's word because countering is
+         what pressing it does to an ask still on the table. */
+      out.push(acc, rej, relabel(door, i18t('ng_counter')));
+    } else if (theirs){
+      /* ---- A SETTLED ASK KEEPS THE FUNNEL'S OWN ORDER (15 Sep 2026) ----
+         The artifact's three slots describe a row with a decision on it. On a
+         REFUSED ask of theirs there is no decision to take, and the owner
+         ruled on 30 Aug, off the render, that Reopen LEADS and Edit follows.
+         Re-ordering to put the door first would reverse that ruling for the
+         sake of a shape the artifact never drew, so the funnel's order stands
+         and the door keeps its plain word: "Counter" over an ask nobody is
+         making any more would be a verb describing something that cannot
+         happen. */
+      for (const v of list) out.push(v === door ? relabel(door, i18t('act_edit')) : v);
+      seen.clear(); list.forEach(v => seen.add(v));
     } else {
-      out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/), relabel(take(/data-rl-retract=/), i18t('ng_discard')));
+      out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/),
+        relabel(take(/data-rl-retract=/), i18t('ng_discard')));
     }
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);

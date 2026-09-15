@@ -81,18 +81,15 @@ describe('f192 (1) — the verb is on the refused card, in Edit\'s clothes', () 
     /* RE-POINTED TWICE. On 2 Sep the ⋯ was retired and the verb had room for
        its full name — "✦ Edit with Copilot", in Copilot's own violet. On
        15 Sep Young ruled Open off the artifact's row, so every verb is on the
-       face in the artifact's own order: its three slots first (Accept ·
-       Reject · Counter on an ask of theirs), then whatever else the funnel
-       built, in the funnel's order. A refused ask fills neither decision slot,
-       so the door leads under the artifact's word and Reopen follows it.
+       face; the artifact's three slots (Accept · Reject · Counter) describe a
+       row with a decision on it, and a REFUSED ask has none, so it keeps the
+       funnel's own order and the plain word the owner approved on the render:
+       Reopen leads, Edit follows.
 
        THE CLAIM IS UNCHANGED and is the reported fault: this list with Reopen
-       missing from it. It is read as a SET as well as a list, so the order is
-       not what carries it. */
-    assert.deepEqual(verbsOf(card).slice().sort(),
-      [p.win.i18t('ng_counter'), 'Reopen'].sort(),
+       missing from it. */
+    assert.deepEqual(verbsOf(card), ['Reopen', p.win.i18t('act_edit')],
       'the fault as reported was this list with Reopen missing from it');
-    assert.equal(verbsOf(card).length, 2, 'and nothing else rode in with it');
   });
 
   test('and it is the plain outlined verb, not an accent pill', async () => {

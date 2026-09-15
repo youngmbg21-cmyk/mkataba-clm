@@ -13799,3 +13799,51 @@ VERIFIED
   errors. The full suite: 7,097 tests in 1,409 suites, 0 red. The browser set: 23 of 107 red on the first run; three were this run's own (notes-two-rooms, round-two-comments, round-delivery — the Open word, the ladder card leading the lane, a row read by its id) and are re-pointed and green; the other twenty were red at unmodified main and each was RUN THERE in a worktree and failed on the same count (theme-tokens 13/13, the census untouched). One real fault came out of that pass: at ~300px the five-verb face overflowed the row instead of wrapping — the verbs wrap now, nothing on the face is cut off.
   Photographed on the staged contract: the paper, the column, the panel
   and its tail, the board page, the editor and its three tabs.
+
+## 15 Sep 2026 — Remove the Open button from the change column (Young: "Remove it")
+
+The owner asked whether the Open button was still there, since the approved
+artifact has none, and then ruled it off.
+
+WHAT WAS BEHIND IT, AND WHERE EACH THING WENT. Open unfolded a body holding the
+change's wording, Copilot's read, the notes, four explanatory strips and about
+half the verbs a change can offer — Withdraw, Reopen, Change decision, Ask for
+a review, Send a copy and the reviewer's own buttons lived only there. Deleting
+the button alone would have taken those off the page silently, which is the one
+thing the standing rules forbid. So: every verb is on the row's face, in the
+artifact's order, with nothing dropped (the face re-orders the funnel's list
+rather than picking from it); Copilot's read moved into the clause panel, under
+the ask it judges; the strips are drawn on the row itself; the wording is on the
+paper and in the panel, and the notes count on the row is the door into the
+drawer.
+
+TWO FAULTS FOUND BY MEASURING RATHER THAN BY READING.
+A LOCKED DOOR IS STILL THE DOOR. Where a colleague holds the clause the edit
+verb is drawn with no data attribute at all, so the face's relabelling missed
+it: it kept "RC Edit with Copilot" at 128px beside a free door at 27px. That is
+the shared verb column moving, which is the exact thing the lock's shape exists
+to prevent. Matched by its own class pair now, and relabelled around its
+monogram.
+A SETTLED ASK KEEPS THE FUNNEL'S ORDER. The artifact's three slots describe a
+row with a decision on it. Applying them to a REFUSED ask put the edit door
+ahead of Reopen, reversing the owner's 30 Aug ruling off the render, and
+labelled it "Counter" — a verb naming something that cannot happen on an ask
+nobody is making. Both corrected.
+
+PROVED. Full node suite 7,097 tests, 0 fail; lint 0 errors. Every affected
+browser file was run against unmodified main first, so a pre-existing failure
+could not be reported as a fix or a regression: redline-verify 221/222 (its one
+failure red at main), six-fixes 29/30 (same), clause-editor 268/268,
+notes-two-rooms 73/73, parity 47/47, ladder 73/73, clause-door 122/122,
+nego-redesign and paper-grows unchanged at their baselines.
+
+### Noticed, not fixed
+
+- test/chromium/reopen-a-refusal-verify.js throws in its "Edit's clothes" block
+  — it resolves Edit by [data-rl-edit], which our seat does not draw since the
+  clause-editor door replaced the jump. Red at main for the same reason. Three
+  of its checks that were red at main now pass, because the verbs are on the
+  face at rest rather than behind a control.
+- redline-verify "5 no clause carries a Copilot button" and six-fixes "4a a
+  refresh returns you to the page you were on" were both red at main and are
+  untouched by this work.

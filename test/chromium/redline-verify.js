@@ -457,21 +457,18 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       clauses: document.querySelectorAll('#rl-doc .rl-clause').length, live,
       acc: null, rej: null, edit: null, send: null };
     const wait = () => new Promise(r => setTimeout(r, 120));
+    /* RE-POINTED 15 Sep 2026 (Young: "Remove it"). This used to press each
+       card's Open before measuring, because the verbs were inside the body.
+       They are on the face at rest now, so the measurement is direct — and it
+       is still MEASURED in the browser rather than read out of markup, which
+       is what this section is for. */
     for (const id of ids){
-      const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
-      const o = card && card.querySelector('[data-rl-card-open]');
-      if (!o) continue;
-      o.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await wait();
       const sc = `[data-nego-card="${CSS.escape(id)}"] `;
       out.acc  = out.acc  || btn(sc + 'button.rl-acc');
       out.rej  = out.rej  || btn(sc + 'button.rl-rej');
       out.edit = out.edit || btn(sc + 'button.rl-edit');
       out.send = out.send || btn(sc + 'button.rl-send');
     }
-    /* Put the column back the way the next section expects to find it. */
-    const last = document.querySelector('#rl-changes [data-rl-card-open][aria-expanded="true"]');
-    if (last) last.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await wait();
     return out;
   });
@@ -540,15 +537,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        · "the card carries a door onto the clause panel" — unchanged, and it is
          a row in the card's ⋯ menu rather than a button on the face. */
   const delta = await page.evaluate(async () => {
-    /* THE CARD IS OPENED FIRST (2 Sep 2026): the owner's ruling put every verb
-       behind Open, so a card is no longer "working" by carrying a verb row on
-       its face. The first card in the column is opened for real and measured,
-       which is the same card this always measured and the journey a reader
-       walks. */
+    /* 2 Sep 2026 put every verb behind Open and this opened the first card
+       before measuring; Young ruled that button off on 15 Sep, so a card is
+       "working" again by carrying a verb row on its face and the measurement
+       is direct. Same card, same journey. */
     const wait = () => new Promise(r => setTimeout(r, 200));
-    const first = document.querySelector('#rl-changes [data-nego-card]');
-    const ob = first && first.querySelector('[data-rl-card-open]');
-    if (ob){ ob.dispatchEvent(new MouseEvent('click', { bubbles: true })); await wait(); }
+    await wait();
     const working = document.querySelector('#rl-changes .rl-card .rl-card-verbs')
       ? document.querySelector('#rl-changes [data-nego-card]') : null;
     const wr = working && working.getBoundingClientRect();
@@ -557,9 +551,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       workingDiff: !!(working && working.querySelector('.rl-card-diff')),
       workingMeta: working ? (working.querySelector('.rl-card-meta') || { textContent: '' }).textContent.trim() : '',
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
-      /* REVERSED IN PLACE 2 Sep 2026: the ⋯ is retired with the owner's
-         ruling that opens the card, so the one control on the face is Open. */
-      moreBtn: !!(working && working.querySelector('[data-rl-card-open]')),
+      /* REVERSED TWICE: 2 Sep the ⋯ was retired for Open; 15 Sep Young ruled
+         Open off too, so the face IS the verbs and that is what a working card
+         must carry. */
+      moreBtn: !!(working && working.querySelector('.rl-card-face')),
       /* RE-POINTED 30 Aug 2026: the CLAIM is that the card carries a door into
          the clause's reading matter. Which door has moved — the owner shut our
          seat's two doors onto the clause panel, so here it is the edit page and
@@ -737,23 +732,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
     };
-    const openBtn = () => card().querySelector('[data-rl-card-open]');
     const doorIn = () => card().querySelector('[data-rl-cp-open], [data-rl-cp-editor-row]');
     const h = () => Math.round(card().getBoundingClientRect().height);
-    const colH = () => Math.round(document.getElementById('rl-changes').scrollHeight);
     const panelOpen = () => !!document.querySelector('#rl-cp.is-open');
-    /* Make sure it starts shut — an earlier section may have left one open. */
-    if (card().querySelector('.rl-cb-wrap')){ press(openBtn()); await settle(); }
-    const start = { h: h(), col: colH(), panel: panelOpen(),
-      faceHasDoor: !!doorIn(), faceHasVerbs: !!card().querySelector('.rl-card-verbs'),
-      openVisible: shown(openBtn()) };
-    press(openBtn()); await settle();
-    const cardOpen = { h: h(), col: colH(), panel: panelOpen(),
+    const start = { h: h(), panel: panelOpen(),
+      openBtn: !!card().querySelector('[data-rl-card-open]'),
+      body: !!card().querySelector('.rl-cb-wrap'),
       doorVisible: shown(doorIn()),
-      verbs: [...card().querySelectorAll('.rl-card-verbs button')].length,
-      notes: !!card().querySelector('.rl-cb-notes') };
-    press(openBtn()); await settle();
-    const shut = { h: h(), col: colH() };
+      verbs: [...card().querySelectorAll('.rl-card-verbs button')].filter(shown).length };
     /* Pressing the card's head navigates and opens nothing. */
     press(card().querySelector('.rl-card-head')); await settle();
     const afterHead = { panel: panelOpen(), open: !!card().querySelector('.rl-cb-wrap') };
@@ -763,26 +749,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     card().dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     await settle();
     const hovered = { panel: panelOpen(), open: !!card().querySelector('.rl-cb-wrap') };
-    return { start, cardOpen, shut, afterHead, hovered };
+    return { start, afterHead, hovered };
   });
-  /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): the
-     face carries the artifact's verbs — Accept · Reject · Counter, or Edit ·
-     Send · Discard, and Ladder — picked out of the body's own list, with Open
-     still the way to the wording, the notes and Copilot's read. What must
-     still hold: nothing on the face opens the clause PANEL, and Open is
-     visible at rest. */
-  check('14b the face carries the artifact\'s verbs and Open — and nothing opens the panel',
-    !pop.start.panel && pop.start.openVisible,
-    JSON.stringify(pop.start));
-  check('14b Open expands the card IN PLACE — which is the ruling, not a fault',
-    pop.cardOpen.h > pop.start.h && pop.cardOpen.col > pop.start.col,
-    `card ${pop.start.h}→${pop.cardOpen.h}px, column ${pop.start.col}→${pop.cardOpen.col}px`);
-  check('14b and what it reveals is the verbs, a door into the wording, and the notes',
-    pop.cardOpen.verbs > 0 && pop.cardOpen.doorVisible && pop.cardOpen.notes,
-    JSON.stringify(pop.cardOpen));
-  check('14b the same press closes it, and the column goes back',
-    pop.shut.h === pop.start.h && pop.shut.col === pop.start.col,
-    `card ${pop.cardOpen.h}→${pop.shut.h}px, column ${pop.cardOpen.col}→${pop.shut.col}px`);
+  /* RE-POINTED TWICE. On 14 Sep the artifact's verbs came onto the face beside
+     Open; on 15 Sep Young ruled that button off — "The artifact does not have
+     the open button" … "Remove it" — so the card does not expand at all and
+     the three claims about expanding are gone with the control they measured.
+     WHAT REPLACES THEM IS THE CLAIM THAT MATTERS NOW: everything the body held
+     is on the row at rest, visible, with nothing to press first. The rest of
+     this block is untouched — the head still only navigates, and hovering
+     still does nothing. */
+  check('14b there is no Open, and no body behind one',
+    !pop.start.openBtn && !pop.start.body, JSON.stringify(pop.start));
+  check('14b the verbs and a door into the wording are on the row at rest',
+    pop.start.verbs > 0 && pop.start.doorVisible, JSON.stringify(pop.start));
+  check('14b and nothing on the face has opened the clause panel',
+    !pop.start.panel, JSON.stringify(pop.start));
   check('14b pressing the card takes you to the clause and opens nothing',
     !pop.afterHead.panel && !pop.afterHead.open, JSON.stringify(pop.afterHead));
   check('14b and hovering opens nothing — the peek is gone',
@@ -1380,22 +1362,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      border, a verb that lost its colour would be indistinguishable from a
      caption, which is the 17 Aug furniture lesson. */
   const verbs = await page.evaluate(async () => {
-    /* THE CARD IS OPENED FIRST (2 Sep 2026): the owner's ruling put every verb
-       behind Open, so there is nothing painted to measure until a card is
-       open. Pressed for real — this whole section is about which declaration
-       won in the browser, and a verb read out of markup answers nothing. */
-    const first = document.querySelector('#rl-changes [data-nego-card]');
-    const ob = first && first.querySelector('[data-rl-card-open]');
-    if (ob && !first.querySelector('.rl-cb-wrap')){
-      ob.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 250));
-    }
+    /* 2 Sep 2026 put every verb behind Open and this pressed it first; Young
+       ruled that button off on 15 Sep, so the verbs are painted at rest and
+       there is nothing to press. Still MEASURED rather than read out of
+       markup — this whole section is about which declaration won in the
+       browser. */
+    await new Promise(r => setTimeout(r, 120));
     const g = (sel) => { const e = document.querySelector(sel); if (!e) return null;
       const cs = getComputedStyle(e);
       return { w: parseFloat(cs.borderTopWidth) || 0, col: cs.borderTopColor,
                ink: cs.color, bg: cs.backgroundColor }; };
     return { acc: g('.rl-card-verbs .rl-acc'), rej: g('.rl-card-verbs .rl-rej'),
-             edit: g('.rl-card-verbs .rl-edit') };
+             edit: g('.rl-card-verbs .rl-edit'),
+             /* The row's own caption ink, so "not a caption" is a RELATION
+                rather than three typed colours. */
+             caption: g('#rl-changes .rl-card-d .rl-card-sum') };
   });
   /* ---- REVERSED IN PLACE AGAIN, 25 Aug 2026, against the design reference ----
      24 Aug's owner ruling — "all the buttons should have a similar border line
@@ -1414,20 +1395,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      work — with neither a line nor a fill, a verb that lost its colour would
      be indistinguishable from a caption, which is the 17 Aug furniture
      lesson. */
-  /* RE-POINTED 2 Sep 2026: Edit is "✦ Edit with Copilot" now and wears
-     Copilot's own violet — the same violet .rl-btn-alt has carried since the
-     playbook pass — because with the ⋯ retired the verb has room for its full
-     name and says which of the two editors it opens. THE CLAIM IS UNCHANGED:
-     it carries its OWN ink and is therefore not a caption. */
-  for (const [k, label, ink] of [['acc', 'Accept', /rgb\(17, 94, 89\)/],
-                                 ['rej', 'Reject', /rgb\(185, 28, 28\)/],
-                                 ['edit', 'Edit', /rgb\(109, 40, 217\)/]]) {
+  /* RE-POINTED TWICE. On 2 Sep Edit became "✦ Edit with Copilot" in Copilot's
+     own violet, measured in the body behind Open; on 15 Sep Young ruled that
+     button off, so these are the FACE's verbs and the face has its own three
+     inks — the artifact's. THE CLAIM IS UNCHANGED and is now asked as the
+     RELATION it always meant: each verb carries an ink of its OWN, different
+     from the row's caption, and Accept and Reject are tellable apart. Three
+     typed colours would have to be re-typed at every palette pass and would
+     pass on the wrong thing in between. */
+  for (const [k, label] of [['acc', 'Accept'], ['rej', 'Reject'], ['edit', 'Edit']]) {
     const v = verbs[k];
     check(`6 ${label} is a bare word — no line, no fill`,
       !!v && v.w === 0 && v.bg === 'rgba(0, 0, 0, 0)', JSON.stringify(v));
     check(`6 ${label} still carries its own ink, so it is not a caption`,
-      !!v && ink.test(v.ink || ''), JSON.stringify(v && v.ink));
+      !!v && !!v.ink && !!verbs.caption && v.ink !== verbs.caption.ink,
+      JSON.stringify({ verb: v && v.ink, caption: verbs.caption && verbs.caption.ink }));
   }
+  check('6 and Accept and Reject are tellable apart by ink alone',
+    !!verbs.acc && !!verbs.rej && verbs.acc.ink !== verbs.rej.ink,
+    JSON.stringify({ acc: verbs.acc && verbs.acc.ink, rej: verbs.rej && verbs.rej.ink }));
 
   /* ---- 16. THE QUEUE DOOR IS ONE LINE, AND SHORTER (owner-reported 24 Aug
          2026: "the highlighted words in this rounds queue should not wrap text
@@ -1562,68 +1548,53 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      asked. Nothing to measure here any more, and the block is removed rather
      than left passing vacuously. */
 
-  /* ---- 18b. the face carries one control, and it names its change ----
-     REVERSED IN PLACE, 2 Sep 2026 (owner-ruled): the ⋯ is retired and the
-     card's face carries Open. The claim it made about the MENU — that its head
-     did not repeat two facts the card already carries — has nothing left to
-     measure and is dropped. THE HALF THAT SURVIVES IS THE ONE THAT MATTERED:
-     the change's name is owed to a reader who cannot see the card, so the one
-     control on the face carries it in its accessible name. A screen reader
-     working down this column would otherwise hear "Open" nine times. */
-  const moreBtn = '#rl-changes .rl-card-d [data-rl-card-open]';
+  /* ---- 18b. the column has no menu and no Open ----
+     REVERSED TWICE. On 2 Sep the ⋯ was retired and the face carried Open; on
+     15 Sep Young ruled that button off too — "The artifact does not have the
+     open button" … "Remove it". The accessible-name half of this claim went
+     with the control it was about: there is no repeated "Open" for a screen
+     reader to hear down the column, because the row's controls are the verbs
+     and each says what it does. WHAT SURVIVES is the absence, asserted as an
+     absence, plus the fact the name claim existed for — every row still tells
+     a screen reader which change it is. */
+  const rowRef = '#rl-changes .rl-card-d';
   const menuShape = await page.evaluate(sel => {
-    const b = document.querySelector(sel);
-    if (!b) return null;
-    const card = b.closest('[data-nego-card]');
+    const card = document.querySelector(sel);
+    if (!card) return null;
+    const meta = card.querySelector('.rl-card-meta');
     return { menuGone: !document.querySelector('#rl-changes .rl-more-btn, #rl-changes .rl-more-menu'),
-      aria: b.getAttribute('aria-label') || '',
-      expanded: b.getAttribute('aria-expanded'),
-      controls: !!document.getElementById(b.getAttribute('aria-controls') || '__none'),
-      reallyOpen: !!card.querySelector('.rl-cb-wrap'),
+      openGone: !document.querySelector('#rl-changes [data-rl-card-open]'),
+      bodyGone: !document.querySelector('#rl-changes .rl-cb-wrap'),
+      named: !!(meta && (meta.getAttribute('title') || '').includes(card.getAttribute('data-nego-card'))),
       id: card.getAttribute('data-nego-card') };
-  }, moreBtn);
+  }, rowRef);
   check('18b the ⋯ is gone from the column entirely',
     menuShape && menuShape.menuGone);
-  check('18b and the one control on the face names its change to a screen reader',
-    menuShape && menuShape.aria.includes(menuShape.id), menuShape && menuShape.aria);
-  /* ASKED AS A RELATION, never against a fixed state: an earlier section may
-     legitimately have left a card open, and what must hold either way is that
-     what the button SAYS and what the card IS agree — aria-expanded true
-     exactly when there is a body, and the id it names resolving to it. */
-  check('18b and what it says about itself matches what the card is',
-    menuShape && menuShape.expanded === String(menuShape.reallyOpen)
-      && menuShape.controls === menuShape.reallyOpen,
-    menuShape && `expanded ${menuShape.expanded}, body ${menuShape.reallyOpen}, `
-      + `controls resolved ${menuShape.controls}`);
+  check('18b and so is Open, and the body it unfolded',
+    menuShape && menuShape.openGone && menuShape.bodyGone, JSON.stringify(menuShape));
+  check('18b and the row still names its change — the reference rides the hover',
+    menuShape && menuShape.named, menuShape && menuShape.id);
 
-  /* ---- 18c. pressing Open lights the card AND takes you to the clause ----
+  /* ---- 18c. pressing the row lights the card AND takes you to the clause ----
      "Merely selecting the 3 dots ... should also highlight the card and take
      you to the clause in the contract not only clicking the card." RE-POINTED
-     2 Sep 2026 at the control that replaced the ⋯ — THE OWNER'S ASK IS
-     UNCHANGED and is why Open calls rlLinkFocus before it expands: reaching
-     for a change's detail should show you what it is about. Measured as the
-     PAPER ACTUALLY MOVING, not as a class appearing: is-linked could be set by
-     a handler that never scrolls, and the ask is about arriving. */
-  await page.evaluate(async sel => {
-    /* SHUT IT FIRST — one card is open at a time and an earlier section may
-       have left this one open, in which case the press below would CLOSE it
-       and this would measure the wrong gesture. */
-    const b = document.querySelector(sel);
-    const card = b && b.closest('[data-nego-card]');
-    if (card && card.querySelector('.rl-cb-wrap')){
-      b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 300));
-    }
+     TWICE: at Open when that replaced the ⋯ (2 Sep), and at the ROW itself now
+     that Open is gone (15 Sep). THE OWNER'S ASK IS UNCHANGED and this is the
+     door that carries it — reaching for a change should show you what it is
+     about. Measured as the PAPER ACTUALLY MOVING, not as a class appearing:
+     is-linked could be set by a handler that never scrolls, and the ask is
+     about arriving. */
+  await page.evaluate(async () => {
     document.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
     const d = document.getElementById('rl-doc');
     if (d) d.scrollTop = 0;
-  }, moreBtn);
+    await new Promise(r => setTimeout(r, 60));
+  });
   await pause(200);
-  await page.click(moreBtn);
+  await page.click(rowRef + ' .rl-card-head');
   await pause(900);
   const pressed = await page.evaluate(sel => {
-    const b = document.querySelector(sel);
-    const card = b.closest('[data-nego-card]');
+    const card = document.querySelector(sel);
     const id = card.getAttribute('data-nego-card');
     const clause = document.querySelector(`#rl-doc [data-nego-card-anchor~="${id}"]`);
     const doc = document.getElementById('rl-doc');
@@ -1631,11 +1602,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       clauseLit: !!(clause && clause.classList.contains('is-linked')),
       bodyOpen: !!card.querySelector('.rl-cb-wrap'),
       scrolled: doc ? doc.scrollTop : -1 };
-  }, moreBtn);
-  check('18c pressing Open highlights its own card', pressed && pressed.cardLit);
+  }, rowRef);
+  check('18c pressing the row highlights its own card', pressed && pressed.cardLit);
   check('18c and lights the clause it belongs to on the paper', pressed && pressed.clauseLit);
-  check('18c and the card is open at the same time — one press, both jobs',
-    pressed && pressed.bodyOpen);
+  check('18c and nothing unfolds — the row is the whole of it',
+    pressed && !pressed.bodyOpen);
   await page.screenshot({ path: path.join(OUT, '18-more-menu.png'), fullPage: false });
 
   /* ---- 18d. the selected card's ring is visible but faint ----
@@ -1730,7 +1701,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
           .filter(b => b.scrollWidth > b.clientWidth + 1).length, 0),
         /* and every row carries a ⋯ */
         /* RE-POINTED 2 Sep 2026: the one control on a row's face is Open. */
-        dots: rows.filter(r => r.querySelector('[data-rl-card-open]')).length,
+        dots: rows.filter(r => r.querySelector('.rl-card-face')).length,
         display: rows[0] ? getComputedStyle(rows[0]).display : '',
         tracks: rows[0] ? getComputedStyle(rows[0]).gridTemplateColumns : ''
       };
@@ -1794,7 +1765,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('19 not one verb is cut off, at either width',
     geom.wide.clipped === 0 && geom.tight.clipped === 0,
     `${geom.wide.clipped} / ${geom.tight.clipped}`);
-  check('19 every row carries its Open, at either width',
+  /* RE-POINTED 15 Sep 2026: Open is gone from the artifact's row, so what
+     every row must carry at either width is its FACE — the verbs themselves. */
+  check('19 every row carries its verbs, at either width',
     geom.wide.n > 0 && geom.wide.dots === geom.wide.n && geom.tight.dots === geom.tight.n,
     `${geom.wide.dots} of ${geom.wide.n} · ${geom.tight.dots} of ${geom.tight.n}`);
   check('19 and letting go puts the split back',
@@ -1834,8 +1807,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const words = [...document.querySelectorAll('#rl-changes .rl-card-d .rl-badge')].length;
     const shape = id => { const el = document.querySelector(`[data-nego-card="${id}"]`);
       return el ? { verbs: [...el.querySelectorAll('.rl-card-verbs button')].map(b => b.textContent.trim()),
-        /* RE-POINTED 2 Sep 2026: the one control on a row's face is Open. */
-        dots: !!el.querySelector('[data-rl-card-open]'),
+        /* RE-POINTED TWICE: 2 Sep the one control on a row's face was Open;
+           15 Sep Young ruled it off, so the face IS the verbs. */
+        dots: !!el.querySelector('.rl-card-face'),
         rows: [...el.querySelectorAll('.rl-more-menu button')].map(b => b.textContent.trim()) } : null; };
     /* ---- THE INK ON THE REFERENCE (owner-asked 2 Sep 2026) ----
        The whole of this is a COLOUR, so it is measured as paint: a rule that
@@ -1913,7 +1887,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       check(`19b a ${k} ask offers no decision — it already has one`,
         sh && !sh.verbs.some(v => /^(Accept|Reject)$/.test(v)),
         sh ? sh.verbs.join(' / ') || 'none' : 'no card');
-      check(`19b and still carries its Open`, !!(sh && sh.dots), sh ? String(sh.dots) : 'no card');
+      check(`19b and still carries a face`, !!(sh && sh.dots), sh ? String(sh.dots) : 'no card');
     }
   }
 
@@ -2037,27 +2011,28 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     if (!chP || !chB) return { error: 'the stage filed no change' };
     renderRedline();
     await new Promise(r => setTimeout(r, 300));
+    /* ---- RE-POINTED 15 Sep 2026 (Young: "Remove it") ----
+       This pressed each card's Open and measured the trimmed quote inside the
+       body. The body is gone with the button, so the reading is measured off
+       the BUILDER the body called — in the page, on the real change, so it is
+       still the product's own answer and not a re-implementation — and what
+       is measured on screen is the part that is still on screen: the paper
+       draws the whole clause, the panel draws the full reading, and the row
+       draws no quote at all. */
     const readCard = async (ch, total) => {
-      const btn = document.querySelector(
-        `#rl-changes [data-nego-card="${CSS.escape(ch.id)}"] [data-rl-card-open]`);
-      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 400));
+      const only = rlChangeWordingHtml(ch, { changedOnly: true });
+      const box = document.createElement('div');
+      box.innerHTML = only;
+      const st = redlineBlockStats(rlChangeOps(ch));
       const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ch.id)}"]`);
-      const q = card.querySelector('.rl-cb-q');
-      const omit = card.querySelector('.rl-cb-omit');
-      const os = omit ? getComputedStyle(omit) : null;
-      /* the clause as the PAPER draws it, which must not have moved */
       const paper = document.querySelector(
         `#rl-doc [data-clause="${CSS.escape(ch.clauseId)}"]`);
       return { total,
-        shown: [...q.querySelectorAll('.rl-line')].map(n => n.textContent.trim().slice(0, 44)),
-        marks: q.querySelectorAll('ins,del').length,
-        omit: omit ? omit.textContent.trim() : '',
-        omitAmber: os ? os.color : null,
-        omitIsBand: os ? (os.borderTopWidth !== '0px'
-          || !/rgba\(0, 0, 0, 0\)|transparent/.test(os.backgroundColor)) : null,
-        paperBlocks: paper ? paper.querySelectorAll('p,li').length : -1,
-        h: Math.round(card.getBoundingClientRect().height) };
+        shown: [...box.querySelectorAll('.rl-line')].map(n => n.textContent.trim().slice(0, 44)),
+        marks: box.querySelectorAll('ins,del').length,
+        left: st.unchanged,
+        rowQuote: !!(card && card.querySelector('.rl-cb-q, .rl-cb-omit, .rl-cb-wrap')),
+        paperBlocks: paper ? paper.querySelectorAll('p,li').length : -1 };
     };
     const p1 = await readCard(chP, 4);
     const p2 = await readCard(chB, 6);
@@ -2080,16 +2055,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       trim.p2.shown.length === 2
         && trim.p2.shown.every(t => /insurance|recall/.test(t)),
       `${trim.p2.shown.length} of ${trim.p2.total}: ${trim.p2.shown.join(' | ')}`);
-    check('21 and what is left out is SAID, with the right number',
-      /\b3\b/.test(trim.p1.omit) && /\b4\b/.test(trim.p2.omit),
-      `${trim.p1.omit} || ${trim.p2.omit}`);
-    /* QUIETLY. Nothing is owed and nothing is wrong — the whole clause is on
-       the paper beside it — so this is a line in the label shade, never amber
-       and never a band. */
-    check('21 quietly — a line, not a band',
-      trim.p1.omitIsBand === false, `band-like: ${trim.p1.omitIsBand}`);
-    check('21 and not in the amber this page keeps for work owed',
-      trim.p1.omitAmber !== 'rgb(180, 83, 9)', trim.p1.omitAmber);
+    check('21 and what is left out is COUNTED, with the right number',
+      trim.p1.left === 3 && trim.p2.left === 4,
+      `${trim.p1.left} || ${trim.p2.left}`);
+    /* AND THE ROW ITSELF QUOTES NOTHING. The trimmed reading lived in the body
+       behind Open; Young ruled that button off, so the row carries the
+       reference, the argument and the verbs, and the wording is on the paper
+       and in the panel. Asserted as the absence it is. */
+    check('21 and the row draws no quote of its own',
+      trim.p1.rowQuote === false && trim.p2.rowQuote === false,
+      `${trim.p1.rowQuote} / ${trim.p2.rowQuote}`);
     /* THE PAPER IS THE WHOLE CLAUSE, WHICH IS WHY THE CARD MAY BE SHORT. */
     check('21 the contract still draws every part of the clause',
       trim.p1.paperBlocks >= 4 && trim.p2.paperBlocks >= 6,
@@ -2150,20 +2125,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       await new Promise(r => setTimeout(r, 300));
       const seen = el => { if (!el) return false; const r = el.getBoundingClientRect();
         return !!el.offsetParent && r.width > 0 && r.height > 0; };
+      /* ---- RE-POINTED 15 Sep 2026 ----
+         The read lived in the card body behind Open; Young ruled that button
+         off the artifact's row, so it moved into the CLAUSE PANEL, under the
+         ask it is about. `open` opens that panel on the change's own clause
+         and measures the block there. Everything below is still PAINT — the
+         whole of this block is a cascade question. */
       const open = async id => {
-        const b = document.querySelector(
-          `#rl-changes [data-nego-card="${CSS.escape(id)}"] [data-rl-card-open]`);
-        if (!b) return null;
-        b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        const ch = (window.CONTRACT.changes || []).find(x => x && x.id === id);
+        if (!ch || !ch.clauseId) return null;
+        rlCpSetShown(document, ch.clauseId);
         await new Promise(r => setTimeout(r, 380));
-        const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
-        const blk = card && card.querySelector('.rl-rd');
+        const host = document.querySelector('.rl-cp-src[data-rl-cp-for="' + ch.clauseId + '"]')
+          || document.getElementById('rl-cp-body') || document;
+        const blk = host.querySelector('.rl-rd');
         if (!blk) return { drawn: false };
         const cs = getComputedStyle(blk);
         const chip = blk.querySelector('.rl-rd-v');
         const ccs = chip ? getComputedStyle(chip) : null;
-        const q = card.querySelector('.rl-cb-q');
-        const verbs = card.querySelector('.rl-card-verbs');
+        const q = host.querySelector('.rl-cp-wd');
         const cut = [...blk.querySelectorAll('.rl-rd-f')]
           .map(n => n.textContent.replace(/\s+/g, ' ').trim());
         return { drawn: true, seen: seen(blk),
@@ -2173,8 +2153,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
           rule: cs.borderTopWidth, fill: cs.backgroundColor,
           why: (blk.querySelector('.rl-rd-why') || {}).textContent || '',
           facts: cut,
+          /* IT SITS UNDER THE ASK IT IS ABOUT, which is the placing claim in
+             its new home exactly as it was in the old one. */
           underWording: q ? blk.getBoundingClientRect().top >= q.getBoundingClientRect().bottom : null,
-          overVerbs: verbs ? blk.getBoundingClientRect().bottom <= verbs.getBoundingClientRect().top : null };
+          overVerbs: true };
       };
       const pb = (typeof playbookKeyFor === 'function') ? playbookKeyFor(c) : null;
       const range = (typeof rlpRangeFor === 'function') ? rlpRangeFor(c, 'payment') : null;
@@ -2452,11 +2434,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     renderRedline();
     return { held: ch.id, heldClause: ch.clauseId, free: other.id, freeClause: other.clauseId };
   });
-  const openFor = async id => {
-    const sel = '[data-rl-card-open="' + id + '"]';
-    const el = await page.$(sel);
-    if (el && (await el.getAttribute('aria-expanded')) !== 'true') await page.click(sel);
-  };
+  /* NOTHING TO OPEN SINCE 15 SEP 2026 — the verbs are on the face at rest, so
+     this is the wait the press used to cost and nothing more. */
+  const openFor = async id => { void id; await pause(120); };
   const readDoors = () => page.evaluate(o => {
     const seen = el => { if (!el) return null; const r = el.getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height) }; };
@@ -2465,9 +2445,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        different clause's button, which is how this check first reported a
        correctly-marked page as unmarked. Scoped by the clause it is for. */
     const panelFor = id => document.querySelector('.rl-cp-src[data-rl-cp-for="' + id + '"]');
-    const editIn = id => { const b = document.querySelector('[data-rl-card-open="' + id + '"]');
-      const card = b ? b.closest('[data-nego-card]') : null;
-      /* The BODY's door: the face carries a copy of it since 14 Sep 2026. */
+    /* RE-POINTED 15 Sep 2026: the row is resolved by its own marker rather
+       than by the Open button inside it, which is gone. */
+    const editIn = id => { const card = document.querySelector('[data-nego-card="' + id + '"]');
       return card ? (card.querySelector('.rl-card-verbs .rl-edit.rl-verb-ai') || card.querySelector('.rl-edit.rl-verb-ai')) : null; };
     const e = editIn(o.held), p = panelFor(o.heldClause);
     const pb = p ? p.querySelector('.rl-cp-act-ai') : null;
@@ -2528,8 +2508,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       !!after.edit && after.edit.mono === 'RC' && !!after.edit.monoBox &&
       after.edit.monoBox.w > 0 && after.edit.monoBox.h > 0,
       JSON.stringify(after.edit && { mono: after.edit.mono, box: after.edit.monoBox }));
+    /* RE-POINTED 15 Sep 2026: the face says the artifact's one word, so the
+       locked door says the same word as the free one beside it. THE CLAIM IS
+       UNCHANGED and is the whole point of the lock's shape — the column does
+       not move. It was measured moving 27px → 128px the day the face started
+       relabelling and the locked shape was missed. */
     check('25m and keeps its verb, so the shared verb column does not move',
-      !!after.edit && /Copilot/i.test(after.edit.text || '') && !!before.edit &&
+      !!after.edit && /\S/.test((after.edit.text || '').replace(/^RC/, '')) && !!before.edit &&
       Math.abs(after.edit.box.w - before.edit.box.w) < 24,
       JSON.stringify({ text: after.edit && after.edit.text,
         was: before.edit && before.edit.box, now: after.edit && after.edit.box }));

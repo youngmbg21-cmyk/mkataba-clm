@@ -156,12 +156,14 @@ const dismissNote = async pg => {
     const card = document.querySelector(`.redline-page [data-rl-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
     if (!card) return null;
-    const more = card.querySelector('[data-rl-card-open]');
+    /* RE-POINTED 15 Sep 2026 (Young: "Remove it"). The face carried Open and
+       this pressed it to reach the door behind it; there is no Open and no
+       body, so the FACE itself is what has to be visible pixels and the door
+       is on it. f180's rule is unchanged and is better served: the door is
+       reachable with nothing pressed first. */
+    const more = card.querySelector('.rl-card-face');
     const mr = more && more.getBoundingClientRect();
     const ms = more && getComputedStyle(more);
-    if (more) more.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    /* Opening REPAINTS the column, so the card is looked up again — a node
-       held from before the press is detached and measures zero. */
     await new Promise(r => setTimeout(r, 350));
     const live = document.querySelector(`.redline-page [data-nego-card="${id}"]`)
       || document.querySelector('.redline-page .rl-card');
@@ -176,9 +178,9 @@ const dismissNote = async pg => {
       w: Math.round(a.width), h: Math.round(a.height), colour: s.color,
       label: (ce.textContent || '').trim(), vis: s.visibility, disp: s.display };
   }, staged.id);
-  ck('1a the one control on the card face is Open, as visible pixels',
+  ck('1a the row\'s verbs are on its face, as visible pixels',
      !!rowDoor && rowDoor.more && rowDoor.moreVisible, rowDoor && rowDoor.moreVisible);
-  ck('1a the Copilot door is real pixels once it is pressed',
+  ck('1a the Copilot door is real pixels, with nothing pressed first',
      !!rowDoor && rowDoor.ce && rowDoor.w > 10 && rowDoor.h > 10 && rowDoor.disp !== 'none',
      rowDoor && `${rowDoor.w}x${rowDoor.h}`);
   /* ---- REVERSED IN PLACE, 30 Aug 2026 ----
