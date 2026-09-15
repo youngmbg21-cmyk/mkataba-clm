@@ -6152,7 +6152,14 @@ function roomFactsHtml(c,opts={}){
            sits on the same line and never disappears when the facts do.
            Controls that vanish when you tidy the heading are controls you stop
            trusting. */}
-    ${opts.checks?roomChecksHtml(c):''}
+    ${''/* ---- AND ON 15 SEP 2026 THEY LEFT THIS ROW ALTOGETHER (Young ruled
+           it, ringing them: "move the highlighted buttons up and to the right
+           of the more button") ----
+           The note above is why they were OUTSIDE the fold and it still holds
+           — a control that vanishes when you tidy the heading is a control you
+           stop trusting. Up in the acts row they are outside it by
+           construction, and the fact row folds to nothing but its own Collapse
+           press, which is the space the owner asked Collapse to give back. */}
     <div class="room-snap"><button type="button" id="ws-facts-toggle" aria-expanded="true"
       title="${esc(i18t('ct_collapse_facts_title'))}"><span class="room-snap-word">${
       esc(i18t('ct_collapse'))}</span></button></div>
@@ -6595,6 +6602,19 @@ function roomHeadHtml(c,opts={}){
       ${may?`<button id="ws-share" class="ui-btn ui-btn-lg" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primaryFirst?'':(opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary))}
       ${newBtn}
+      ${''/* ---- THE THREE CHECKS, AT THE END OF THE ROW THAT OWNS THEM
+             (Young ruled 15 Sep 2026) ----
+             They were at the right wall of the FACT row, a line below and a
+             page-width away from every other control on this head, and they
+             read as decoration because nothing around them was pressable.
+             Here they are the last three things in the acts row, after More,
+             at its own rung and in its own gap — one group of controls rather
+             than two.
+             THE GATE IS UNCHANGED: `opts.checks` on the fact row was the
+             workbench's own flag and it is the same flag here, so the contract
+             page is byte-identical. The ORDER rule that pushes More last on a
+             lead row names #ws-more alone, so these follow it. */}
+      ${backC?roomChecksHtml(c):''}
     </div>
     ${''/* ---- FOUR FACTS, EACH WITH ITS OWN LABEL (owner-asked 22 Aug 2026) ----
            The line above used to open with "MK-B2 · Sales & Route-to-Market ·
@@ -6628,7 +6648,7 @@ function roomHeadHtml(c,opts={}){
            own (see the note there): a sibling row here made the card a whole
            row taller than the room's, MEASURED at 144.2 against 129.8, and the
            owner asked for one size. */}
-    ${roomFactsHtml(c,{checks:backC})}
+    ${roomFactsHtml(c)}
   </section>`;
 }
 /* Opening and closing the "⋯". The items themselves are wired where they

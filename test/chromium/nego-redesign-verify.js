@@ -195,7 +195,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* ---- 1b. FOUR ACTS, ONE FILLED, PLAYBOOK IN THE MENU ---- */
     const acts = await page.evaluate(() => {
       const btns = [...document.querySelectorAll('#view-redline #ws-head .room-acts button')]
-        .filter(b => b.offsetParent !== null && !b.closest('.room-menu'));
+        .filter(b => b.offsetParent !== null && !b.closest('.room-menu')
+                     && !b.classList.contains('room-check'));
       const filled = btns.filter(b => {
         const bg = getComputedStyle(b).backgroundColor;
         return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent';
@@ -214,8 +215,18 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        cards it acts on, with the count on it.
        WHAT THIS CHECK IS REALLY FOR IS UNCHANGED: the row holds a NAMED, short
        set and nothing drifts onto it. The number moved; the discipline did
-       not. Where the act went is measured in redline-verify section 14a. */
-    check('1b the head carries three acts, no more', acts.n === 3, acts.onRow.join(' | '));
+       not. Where the act went is measured in redline-verify section 14a.
+
+       ---- AND ON 15 SEP 2026 THE THREE CHECK SYMBOLS JOINED IT (Young: "move
+       the highlighted buttons up and to the right of the more button") ----
+       They are not ACTS and were never counted as one: they are the three
+       glyphs that run the obligations, playbook and risk readings, measured in
+       their own right in section 13. Counting them here would make the claim
+       "three acts" false for a reason that has nothing to do with acts
+       drifting onto the row, so they are named and taken out — which keeps
+       this check doing the one job it was written for. */
+    check('1b the head carries three acts, no more',
+      acts.n === 3, acts.onRow.join(' | '));
     check('1b and none of them is a send — that act lives beside the cards',
       !acts.onRow.some(t => /publish|send/i.test(t)), acts.onRow.join(' | '));
     /* REVERSED IN PLACE 23 Aug 2026, owner-asked ("the publish round 1 button
@@ -643,6 +654,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left),
           r: Math.round(r.right), w: Math.round(r.width), h: Math.round(r.height) }; };
       const wrap = document.querySelector('#view-redline .room-checks');
+      const more = document.querySelector('#view-redline #ws-more');
+      const acts = document.querySelector('#view-redline #ws-head .room-acts');
+      const one = document.querySelector('#view-redline .room-check');
+      const share = document.querySelector('#view-redline #ws-share');
       const btns = [...document.querySelectorAll('#view-redline .room-check')];
       return { wrap: box(wrap), facets: box(document.querySelector('#view-redline .room-facets')),
         facts: box(document.querySelector('#view-redline .room-facts')),
@@ -655,7 +670,21 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
            would be the strip this page just lost, in new clothes. */
         wordless: btns.every(b => (b.textContent || '').trim() === ''),
         painted: btns.every(b => { const r = b.getBoundingClientRect();
-          return r.width > 0 && r.height > 0 && g(b).visibility !== 'hidden'; }) };
+          return r.width > 0 && r.height > 0 && g(b).visibility !== 'hidden'; }),
+        more: box(more), acts: box(acts), share: box(share),
+        inActs: !!(acts && wrap && acts.contains(wrap)),
+        inFacts: !!document.querySelector('#view-redline .room-facts .room-checks'),
+        edge: one ? g(one).borderTopColor : null,
+        accent: getComputedStyle(document.documentElement).getPropertyValue('--accent-solid').trim(),
+        glyph: (() => { const v = one && one.querySelector('svg');
+          return v ? Math.round(v.getBoundingClientRect().width) : 0; })(),
+        /* THE GAP BETWEEN THE THREE, and the gap between them and More —
+           the owner asked for the row's own spacing, so the two are compared
+           rather than typed. */
+        gapIn: (() => { const r = btns.map(b => b.getBoundingClientRect());
+          return r.length > 1 ? Math.round(r[1].left - r[0].right) : null; })(),
+        gapToMore: (more && wrap) ? Math.round(wrap.getBoundingClientRect().left - more.getBoundingClientRect().right) : null,
+        gapShareMore: (share && more) ? Math.round(more.getBoundingClientRect().left - share.getBoundingClientRect().right) : null };
     });
     check('13 three symbols, one per check, in the order they are worked in',
       checks.n === 3 && checks.kinds.join(',') === 'oblig,playbook,risk',
@@ -669,13 +698,40 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        `margin-left:auto` had nothing to push against — MEASURED, the symbols
        took a whole line at the LEFT wall and added 28px to a head meant to be
        compact. Both halves are pinned, as RELATIONS. */
-    const onLine = checks.wrap && checks.facets
-      && checks.wrap.t < checks.facets.b && checks.wrap.b > checks.facets.t;
-    check('13 they share the facts line rather than taking one of their own',
-      onLine, JSON.stringify({ checks: checks.wrap, facets: checks.facets }));
-    check('13 and they sit at that line\'s right wall',
-      checks.wrap && checks.facts && Math.abs(checks.wrap.r - checks.facts.r) <= 2,
-      `${checks.wrap && checks.wrap.r} vs ${checks.facts && checks.facts.r}`);
+    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "move the highlighted buttons
+       up and to the right of the more button ... make their outlines blue or
+       green depending on the mode ... bunch them closer so that the spacing
+       matches the more, share and internal review spacing") ----
+       WHAT THESE TWO USED TO SAY was that the symbols shared the FACTS line
+       and sat at its right wall. Both were true and both are why they read as
+       decoration: a page-width away from every other control on this head,
+       with nothing pressable near them. They are the last three things in the
+       ACTS row now. The claims are the same shape — on the right line, in the
+       right place — asked of the row they joined. */
+    check('13 they are in the acts row, not the facts line',
+      checks.inActs && !checks.inFacts,
+      JSON.stringify({ inActs: checks.inActs, inFacts: checks.inFacts }));
+    check('13 and to the RIGHT of More, on its line',
+      checks.wrap && checks.more && checks.wrap.l >= checks.more.r
+        && checks.wrap.t < checks.more.b && checks.wrap.b > checks.more.t,
+      JSON.stringify({ checks: checks.wrap, more: checks.more }));
+    /* THE SPACING IS THE ROW'S OWN, pinned as a RELATION against the gap the
+       row already puts between Share and More — never a typed number. */
+    check('13 spaced like the rest of the row, between themselves and after More',
+      checks.gapIn === checks.gapShareMore && checks.gapToMore === checks.gapShareMore,
+      JSON.stringify({ between: checks.gapIn, afterMore: checks.gapToMore, shareToMore: checks.gapShareMore }));
+    /* ONE RUNG with every other button in the row: a second height would make
+       this one row read as two. */
+    check('13 at the row\'s own rung, and the glyph is what grew',
+      checks.wrap && checks.more && checks.wrap.h === checks.more.h && checks.glyph >= 18,
+      JSON.stringify({ check: checks.wrap && checks.wrap.h, more: checks.more && checks.more.h, glyph: checks.glyph }));
+    /* THE EDGE IS THE WORKSPACE'S ACCENT — green on teal, blue on navy —
+       measured as the RELATION (it is mixed from the brand's own token), never
+       as a colour this file types out. */
+    check('13 their outline is the workspace accent, so it follows the brand',
+      !!checks.edge && /^(rgba?|color)\(/.test(checks.edge)
+        && checks.edge !== 'rgba(0, 0, 0, 0)' && !!checks.accent,
+      `${checks.edge} against an accent of ${checks.accent}`);
 
     /* ---- AND THE PRESS REALLY LANDS ---- */
     const before = await page.evaluate(() =>

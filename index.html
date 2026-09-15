@@ -1979,19 +1979,40 @@
   .room-snap button:hover{ color:var(--color-text); border-color:var(--color-neutral-400); }
   /* Folded: the FACTS go, the title, status and acts do not move. */
   .room-facts.is-folded .room-facets{ display:none; }
-  /* ---- THE THREE CHECK SYMBOLS (WO-10) ----
-     margin-left:auto puts them at the right wall of the fact line, which is
-     where the owner drew them. They are OUTSIDE .room-facets, so Collapse
-     never takes them away. Symbols only — the name and the state live on the
-     hover, per the owner's ruling that no state dot is wanted. */
-  .room-checks{ display:flex; align-items:center; gap:2px; margin-left:auto; flex:none; }
-  .room-check{ width:28px; height:28px; display:grid; place-items:center; padding:0;
-    border:1px solid transparent; border-radius:var(--radius); background:transparent; cursor:pointer;
-    color:var(--color-neutral-600); }
+  /* ---- THE THREE CHECK SYMBOLS (WO-10; MOVED 15 Sep 2026) ----
+     Symbols only — the name and the state live on the hover, per the owner's
+     ruling that no state dot is wanted.
+
+     THEY SIT IN THE ACTS ROW NOW (Young: "move the highlighted buttons up and
+     to the right of the more button"), where they were at the right wall of
+     the fact line before. margin-left:auto is GONE with that wall: in a row of
+     controls it would push them away from the group they were asked to join.
+
+     AND THEY ARE DRESSED AS CONTROLS. A bare glyph on a transparent square
+     beside four bordered buttons reads as decoration — the same fault, in the
+     same row, that put the word "More" beside its own glyph (see the note in
+     the head builder). The edge is the WORKSPACE'S OWN ACCENT, so it is green
+     on the teal brand and blue on navy by construction rather than by a second
+     rule that would have to be kept in step; `.ui-btn` is where that face is
+     defined and this borrows its two declarations rather than inventing a
+     third look.
+
+     ONE RUNG AND ONE GAP: 28px is --ctl-h, what every other button in this row
+     stands at, so the row keeps one line of buttons rather than two heights;
+     the 6px gap is the row's own, so the three read as evenly spaced with
+     More, Share and Internal review beside them. The GLYPH grows to fill the
+     taller-looking box (16 → 18) — the box may not grow past the row's rung,
+     so "bigger" is spent on the mark rather than on the chrome. */
+  .room-checks{ display:flex; align-items:center; gap:6px; flex:none; }
+  .room-acts-lead > .room-checks{ order:4; }
+  .room-check{ width:var(--ctl-h,28px); height:var(--ctl-h,28px); display:grid; place-items:center; padding:0;
+    border:1px solid var(--btn-edge,var(--color-accent-600)); border-radius:var(--radius);
+    background:transparent; cursor:pointer; color:var(--accent-ink); }
+  .room-check svg{ width:18px; height:18px; }
   .room-check:hover{ background:var(--nav-well); color:var(--accent-ink); }
   .room-check.has-run{ color:var(--accent-ink); }
   .room-check:disabled{ opacity:.4; cursor:default; }
-  .room-check:disabled:hover{ background:transparent; color:var(--color-neutral-600); }
+  .room-check:disabled:hover{ background:transparent; }
   .room-check:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:-2px; }
   /* Folded, the band has no content, so it keeps ONE rule rather than two —
      a 1px-tall box with a line top and bottom reads as a mistake. */

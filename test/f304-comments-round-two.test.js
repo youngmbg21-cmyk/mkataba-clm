@@ -396,6 +396,33 @@ describe('f304 (8) — round three: the filed pin quotes the change, equal halve
     assert.match(pin.querySelector('[data-rl-np-unpin]').textContent, /skip|hoppa/i, 'Skip stays the way out');
     assert.equal(p.win.rlNpChangeQuote({ summary: 'Clause removed' }), 'Clause removed', 'a change with no wording quotes its summary');
     assert.equal(p.win.rlNpChangeQuote({ bodyHtml: '<p>' + 'w'.repeat(500) + '</p>' }).length, p.win.NOTE_QUOTE_MAX, 'bounded as a quote is');
+    /* ---- AND IT QUOTES WHAT MOVED, NOT THE CLAUSE IT MOVED IN (Young
+       reported it 15 Sep 2026: "I only changed clause 1.2 so the reference on
+       the right should only take 1.2 and not the whole clause 1") ----
+       It read the change's whole new body and cut the first 400 characters off
+       the FRONT, so an edit to a sub-paragraph half way down quoted the
+       paragraphs above it and stopped before reaching the words the reader had
+       actually touched — the right change, and none of it shown. The selection
+       is the product's own `redlineShownBlocks(ops, {changedOnly})`, so the pin
+       and the card cannot disagree about what a change touched. */
+    const ops = [
+      { op: 'keep', text: '1.1 Master Agreement Structure. This Agreement establishes the framework.\n' },
+      { op: 'keep', text: '1.2 Issuance. Supplier shall confirm each PO within ' },
+      { op: 'del',  text: 'two (2)' },
+      { op: 'ins',  text: 'three (3)' },
+      { op: 'keep', text: ' business days.\n' },
+      { op: 'keep', text: '1.3 Precedence. This Agreement prevails.' },
+    ];
+    const moved = p.win.rlNpChangeQuote({ ops, bodyHtml: '<p>the whole clause one</p>' });
+    assert.match(moved, /1\.2 Issuance/, 'the sub-paragraph that moved is quoted');
+    assert.match(moved, /three \(3\)/, 'and the words that replaced the old ones');
+    assert.ok(!/Master Agreement Structure/.test(moved), 'the untouched paragraph above it is not');
+    assert.ok(!/Precedence/.test(moved), 'nor the one below');
+    assert.ok(!/the whole clause one/.test(moved), 'and the whole body is not the fallback where ops exist');
+    /* THE FALLBACK IS THE OLD READING, for a change carrying no ops at all —
+       an inserted clause, an older record — where every word IS what moved. */
+    assert.equal(p.win.rlNpChangeQuote({ ops: [], bodyHtml: '<p>every word is new</p>' }),
+      'every word is new', 'no ops, and the whole body is the right answer');
     assert.ok(!/i18t\('ng_np_pin_filed'|i18t\('ng_np_pin_revised'/.test(VIEW), 'the two lead keys are stale');
   });
 

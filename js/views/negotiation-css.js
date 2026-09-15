@@ -4937,6 +4937,15 @@ function redlineLayoutCss(){
          no longer drift the way this row's own three accent borders once did.
          Declared on .redline-page rather than :root because it is this page's
          decision, and the counterparty's mount carries that class too. */}
+
+  ${''/* ---- AND THE THREE CHECK SYMBOLS KEEP THEIR SQUARE (15 Sep 2026) ----
+         The rule above pins every button this row draws to one height and one
+         padding, which is right for a button with a WORD in it and wrong for a
+         glyph: 11px each side turned a 28px square into a 46px lozenge the
+         moment the checks moved into this row. Named here, at this rule's own
+         weight plus one, so the row keeps its single rung and the squares keep
+         being square. Fixed by SCOPE, never !important. */}
+  .redline-page #ws-head .room-acts button.room-check{padding:0;width:var(--ctl-h,28px)}
   .redline-page{--rl-btn-line:color-mix(in srgb,var(--accent-solid) 45%,transparent)}
   ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ---- */}
   ${''/* ONE LEFT EDGE DOWN THE WHOLE COLUMN. The index block insetted itself

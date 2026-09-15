@@ -508,4 +508,51 @@ describe('f313 — the clause ladder', () => {
     assert.match(nego, /rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly,/, 'published');
   });
 
+  /* ---- (39) FOUR THINGS OFF ONE SCREEN (Young ruled 15 Sep 2026) ----
+     Three of them are this head's and the legend's; the fourth (the pin
+     quoting only what moved) is f304's, beside the pin it belongs to. */
+  test('(39) the legend states the fact and stops; the checks join the acts row', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    /* THE WARNING HALF IS GONE, in BOTH books — "delete the 'not agreed text'
+       bit". The key is SHORTENED rather than retired, because the first half
+       is still drawn; a key removed from one book and not the other leaves a
+       screen half-English. */
+    for (const bk of ['en', 'sv'])
+      assert.ok(STRINGS[bk].ng_legend_plain, `${bk} still has the line`);
+    assert.ok(!/not the agreed text/i.test(STRINGS.en.ng_legend_plain), 'the inference is gone');
+    assert.ok(!/överenskomna/i.test(STRINGS.sv.ng_legend_plain), 'and gone in Swedish too');
+    assert.match(STRINGS.en.ng_legend_plain, /last wording exchanged/, 'the fact still stands');
+    const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    assert.match(nego, /item\('base', 'ng_legend_plain'\)/, 'drawn from the one key, still');
+
+    /* ---- THE THREE CHECKS MOVED UP (Young: "move the highlighted buttons up
+       and to the right of the more button") ---- */
+    const ct = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    const acts = ct.slice(ct.indexOf('<div class="room-acts${opts.primaryFirst'), ct.indexOf('FOUR FACTS, EACH WITH ITS OWN LABEL'));
+    assert.match(acts, /\$\{backC\?roomChecksHtml\(c\):''\}/, 'drawn in the acts row, on the workbench flag');
+    const facts = ct.slice(ct.indexOf('function roomFactsHtml'), ct.indexOf('THE TITLE IS THE AGREEMENT'));
+    assert.ok(!/roomChecksHtml/.test(facts), 'and no longer in the fact row');
+    assert.ok(!/roomFactsHtml\(c,\{checks:/.test(ct), 'so the fact row is not passed a flag it ignores');
+
+    /* THE CLOTHES: the row's own rung and gap, the workspace accent for an
+       edge (green on teal, blue on navy — ONE token, never a second rule), and
+       the glyph grows because the box may not pass the row's rung. */
+    const idx = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const grp = idx.match(/\.room-checks\{[^}]*\}/)[0];
+    const btn = idx.match(/\n  \.room-check\{[^}]*\}/)[0];
+    assert.match(grp, /gap:6px/, 'the row\'s own gap');
+    assert.ok(!/margin-left:auto/.test(grp), 'the right wall it was pinned to is gone');
+    assert.match(idx, /\.room-acts-lead > \.room-checks\{ order:4; \}/, 'after More, which is order 3');
+    assert.match(btn, /var\(--ctl-h,28px\)/, 'one rung with every other button in the row');
+    assert.match(btn, /border:1px solid var\(--btn-edge/, 'the accent edge .ui-btn defines');
+    assert.match(idx, /\.room-check svg\{ width:18px; height:18px; \}/, 'the glyph is what grows');
+    /* AND THE WORKBENCH'S OWN ROW RULE MAY NOT STRETCH THEM: it pins every
+       button to 11px of side padding, which is right for a word and turns a
+       square into a lozenge. Named at that rule's weight plus one — by SCOPE,
+       never !important. */
+    const css = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
+    assert.match(css, /\.redline-page #ws-head \.room-acts button\.room-check\{padding:0;width:var\(--ctl-h,28px\)\}/);
+    assert.ok(!/room-check[^\n]*!important/.test(css), 'and not with !important');
+  });
+
 });
