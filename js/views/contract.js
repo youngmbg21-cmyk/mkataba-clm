@@ -1335,9 +1335,48 @@ function docPlainToRich(text){
 /* The contract's working-text body, in whichever format it carries. Both
    branches end at renderDocHtml, which sanitises AGAIN at render — so the
    allow-list governs a lifted body exactly as it governs a stored one. */
+/* ---- THE PAPER'S OWN HEAD, ON THIS TAB TOO (Young ruled 15 Sep 2026, of the
+   negotiate page beside the Document tab: "In image 3 it shows the contract is
+   very well constructed compared to image 4 in the document page. Build the
+   document page to have the same well constructed contract. They should look
+   similar in build.") ----
+   MEASURED on the owner's own agreement, the same stored wording on both
+   screens: the negotiate page drew its first twelve blocks centred, uppercase,
+   at 2.52px of tracking, inside `header.rl-paper-head`; this tab drew them
+   start-aligned, mixed case, at normal tracking, with no head at all. One
+   document, set two ways.
+   THE SAME SHAPE AND THE SAME CLASSES — `.rl-paper-head`, `.rl-paper-kick`,
+   `.rl-paper-title`, `.rl-recital` — because contract.js already calls
+   redlineLayoutCss() and those rules are deliberately written at the TOP level
+   for exactly this reason (see the note over .rl-paper-head). Nothing new is
+   dressed and the two pages cannot drift.
+   THE BOUNDARY IS NOT THIS FUNCTION'S TO INVENT: clauseFrontSplit is the change
+   model's own `_clFrontEnd`, so the head stops where the front-matter REGION
+   stops — the region a person can already propose on. Where there is no region
+   (headings that do not mark the clauses, a document with no title) it answers
+   nothing and the page draws exactly what it drew before.
+   AND IT IS NOT A BAND: a header inside the sheet is the document's own title
+   block, the thing every printed agreement opens with. It adds no chrome above
+   the wording — MEASURED, the first line of clause 1 does not move down. */
+function docPaperFrontHtml(rich){
+  if(!(window.clauseFrontSplit&&window.clauseFrontParts)) return null;
+  let split=null; try{ split=clauseFrontSplit(rich); }catch(_){ return null; }
+  if(!split||!String(split.front||'').trim()) return null;
+  let parts=null; try{ parts=clauseFrontParts(split.front); }catch(_){ return null; }
+  if(!parts||!parts.titleText) return null;
+  return { rest: split.rest, head:
+    `<header class="rl-paper-head">${
+      parts.leadHtml?`<div class="rl-paper-kick">${parts.leadHtml}</div>`:''
+    }<h3 class="rl-paper-title">${esc(parts.titleText)}</h3></header>${
+      parts.bodyHtml?`<div class="rl-recital" data-anchor="recital">${parts.bodyHtml}</div>`:''}` };
+}
 function docBodyHtml(c, opts={}){
   const body=c.redlineText;
-  if(window.isRich && isRich(c.format)) return renderDocHtml(body, RICH_FORMAT, opts);
+  if(window.isRich && isRich(c.format)){
+    const front=docPaperFrontHtml(body);
+    return front ? renderDocHtml(front.rest, RICH_FORMAT, {...opts, lead:front.head})
+                 : renderDocHtml(body, RICH_FORMAT, opts);
+  }
   const rich=docPlainToRich(window.reflowWorkingText?reflowWorkingText(body):body);
   /* NO LIFT, NO CHANGE. A stage without js/docx.js gets exactly the paper it
      got before rather than an empty sheet — the fallback is the old path, never
@@ -1997,6 +2036,13 @@ function docBodyCarriesTop(html, c){
     const doc=d.querySelector('.hati-doc')||d;
     const first=doc.firstElementChild;
     if(first&&first.tagName==='H1') return true;
+    /* ---- AND THE PAPER'S OWN HEAD IS A TOP (15 Sep 2026) ----
+       Since docPaperFrontHtml the sheet opens with the document's own title
+       block — the lead, the title, the recital — lifted out of the wording and
+       set like a deed. That IS the top of the paper, so a second header above
+       it would be the fault this reading exists to prevent, printed by the very
+       change that was meant to make this tab read like the negotiate page. */
+    if(first&&first.tagName==='HEADER'&&first.classList.contains('rl-paper-head')) return true;
     const name=_docTopNorm(c&&c.name);
     if(!name) return false;
     return Array.from(doc.children).slice(0,DOC_TOP_BLOCKS)
@@ -10427,7 +10473,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

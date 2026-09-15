@@ -684,6 +684,32 @@ function _clFrontEnd(blocks, headings){
    title is INSIDE the region's own markup, which is what makes editing the
    region edit the title, and a heading of its own would be a second answer to
    "what is this called". */
+/* ---- THE FRONT REGION, AND THE REST OF THE DOCUMENT (Young ruled 15 Sep
+   2026: "Build the document page to have the same well constructed contract.
+   They should look similar in build.") ----
+   The negotiation page has always drawn the front matter as the paper's HEAD —
+   the lead block centred over the title, the recital under it — and the
+   Document tab drew the same stored body flat, so one contract was set two ways
+   depending which screen you opened (MEASURED on the owner's own paper: centred
+   / uppercase / 2.52px tracking on one page, start-aligned / none / normal on
+   the other). Both screens ask this, so neither can invent its own boundary:
+   `_clFrontEnd` is the SAME line clauseFrontClause and clauseReplaceFront use,
+   which is what keeps the drawing and the change model agreeing about where the
+   region stops. A document whose headings do not mark its clauses has no front
+   region at all and answers `{front:'', rest:html}` — the page then draws
+   exactly what it drew before. */
+function clauseFrontSplit(html){
+  const src = window.sanitizeRich ? sanitizeRich(html) : html;
+  const root = _clParse(src);
+  const blocks = Array.from(root.children);
+  const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+  const end = _clFrontEnd(blocks, headings);
+  if (end < 0) return { front: '', rest: src };
+  return {
+    front: blocks.slice(0, end).map(el => el.outerHTML).join(''),
+    rest: blocks.slice(end).map(el => el.outerHTML).join(''),
+  };
+}
 function clauseFrontClause(html){
   const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
   const blocks = Array.from(root.children);
@@ -1329,7 +1355,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,
   clauseNameShown,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
-  CLAUSE_FRONT_ID, clauseFrontClause, clauseFrontParts, clauseReplaceFront,
+  CLAUSE_FRONT_ID, clauseFrontClause,clauseFrontSplit, clauseFrontParts, clauseReplaceFront,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,
   clauseHeadingRenumber, clauseRenumberText, clauseRenumberBodyHtml, clauseRenumberPlan,

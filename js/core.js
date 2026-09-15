@@ -980,10 +980,46 @@ async function contractSetArchived(c,on){
   if(window.updateSidebarCounts) updateSidebarCounts();
   return true;
 }
+/* ---- ONE SAVE AT A TIME, OR THE CONTRACT CONFLICTS WITH ITSELF (Young
+   reported it 15 Sep 2026: "this pop up appears for no reason at times") ----
+   MEASURED, and it is a race with nobody else in it. Every save carries an
+   optimistic `baseVersion` read off `c._v`, and `c._v` is only updated when the
+   PUT COMES BACK. The debounce is 400ms and a long contract's PUT takes longer
+   than that, so:
+
+     · a keystroke dirties the contract, the timer fires, PUT #1 goes out with
+       baseVersion 5 and the server moves to 6;
+     · while it is still in flight the reader types again, a second timer fires,
+       and PUT #2 goes out ALSO with baseVersion 5, because #1 has not answered;
+     · the server compares 5 with 6 and answers 409 — correctly. Nobody else
+       touched the record. The reader is asked whether to overwrite a colleague
+       who does not exist, and their own edit is the thing at risk.
+
+   The bigger the contract the likelier it is, which is why it looked random.
+   No other server route can cause it: every other writer updates the stored
+   json WITHOUT moving `version`, deliberately (see contractSaveKeepsLocks).
+
+   SO THE SAVES ARE SERIALISED. A flush already in flight is not joined by a
+   second one — the second marks that there is more to do and awaits the first,
+   and the loop goes round again for whatever was dirtied meanwhile. Every PUT
+   therefore leaves with the version the PUT before it came back with, and a
+   409 means what it says again. A caller that awaits flushSaves() to be sure
+   the record is on the server (auto-triage does) still gets that guarantee:
+   the promise it waits on does not resolve until the loop has nothing left. */
+let _flushing=null, _flushAgain=false;
 async function flushSaves(){
-  const items=[...dirty.values()]; dirty.clear();
-  for(const c of items){ await saveContract(c); }
-  refreshStats();  // keep portfolio KPIs current after status/value changes
+  if(_flushing){ _flushAgain=true; return _flushing; }
+  _flushing=(async()=>{
+    try{
+      do{
+        _flushAgain=false;
+        const items=[...dirty.values()]; dirty.clear();
+        for(const c of items){ await saveContract(c); }
+      } while(_flushAgain && dirty.size);
+    } finally { _flushing=null; }
+  })();
+  try{ await _flushing; }
+  finally { refreshStats(); }  // keep portfolio KPIs current after status/value changes
 }
 async function saveContract(c){
   // A light row is a register summary, not a contract: the server strips audit,

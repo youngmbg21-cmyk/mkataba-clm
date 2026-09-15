@@ -1681,7 +1681,12 @@ describe('f277 (19) the tool’s key is a string and the echoed heading is requi
   });
   test('the rows are sent under the same opaque key', () => {
     const route = SERVER_JS.slice(SERVER_JS.indexOf("app.post('/api/ai/readings'"), at);
-    assert.ok(/\[\$\{readKeyOf\(i\)\}\]/.test(route), 'the doc string carries [R0]…[Rn-1]');
+    /* RE-POINTED 15 Sep 2026, with the paging: the row's key is its address
+       WITHIN ITS PAGE (`k`), because a short, fresh key space per call is what
+       makes the pairing reliable — and the route offsets it back to the whole
+       list before anything is stored (f315 (2) is that wall). The claim is the
+       claim it always was: an opaque key, never a bare integer. */
+    assert.ok(/\[\$\{readKeyOf\(k\)\}\]/.test(route), 'the doc string carries [R0]…[Rn-1] for its page');
     assert.ok(!/`\[\$\{i\}\]/.test(route), 'and never a bare [0]');
     assert.ok(/^const readKeyOf = i => 'R' \+ i;/m.test(SERVER_JS));
   });

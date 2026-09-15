@@ -188,7 +188,18 @@ function startScriptedAi() {
         res.end(JSON.stringify({ error: { type: 'scripted', message: 'scripted provider failure' } }));
         return;
       }
-      const spec = (next && !Array.isArray(next)) ? next : { content: next };
+      /* A FUNCTION IS ASKED THE REQUEST (15 Sep 2026). A route that pages a long
+         document makes several calls, and where those run a few at a time the
+         queue cannot say which answer belongs to which page — the stand-in has
+         to read the prompt and answer THAT page, exactly as the provider does.
+         Every older form (an array, an object, a status number) is untouched. */
+      const resolved = typeof next === 'function' ? next(body) : next;
+      if (typeof resolved === 'number') {
+        res.writeHead(resolved, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: { type: 'scripted', message: 'scripted provider failure' } }));
+        return;
+      }
+      const spec = (resolved && !Array.isArray(resolved)) ? resolved : { content: resolved };
       const content = spec.content || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
         input: { answer: 'stubbed answer', citations: [] } }];
       const usage = { input_tokens: 10, output_tokens: 5 };
