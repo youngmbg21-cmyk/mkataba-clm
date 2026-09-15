@@ -4185,6 +4185,91 @@ const dismissNote = async pg => {
     }
   }
 
+  /* ============================================================
+     34 — A REMOVED PARAGRAPH IS A REMOVED PARAGRAPH (Young reported it 15 Sep
+     2026, twice, with the clause photographed at rest and with a cursor in it)
+     ============================================================
+     Section 33 measures a clause whose ask ADDS wording. This one measures the
+     shape the owner actually sent: a clause of several sub-paragraphs with the
+     counterparty striking one of them WHOLE.
+     AT THE PARENT the struck paragraph was painted INSIDE the next paragraph's
+     marker gutter, so the box drew one block fewer than the sheet, the hanging
+     indent collapsed and everything under the caret re-flowed — 8.3 measured
+     431.3 at rest and 446.8 with the caret in, and striking the LAST
+     sub-paragraph made it vanish from the box altogether.
+     EVERY BLOCK IS MEASURED, before and after a real press: where it sits, how
+     tall it is, where its first line begins and where a wrapped line begins.
+     ============================================================ */
+  {
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await answerLeave(p); await pause(200);
+    const st34 = await p.evaluate(async () => {
+      const c = window.CONTRACT;
+      c.redlineText = '<h1>SUPPLY AGREEMENT</h1><p>Between the parties.</p>'
+        + '<h2>8. TERM AND TERMINATION</h2>'
+        + '<p class="rl-hang">8.1\tTerm. This Agreement shall commence on the Effective Date and shall remain in full force for an initial period of two (2) years (the "Initial Term").</p>'
+        + '<p class="rl-hang">8.2\tTermination for Convenience. Buyer may terminate this Agreement or any open PO, in whole or in part, without cause by providing at least thirty (30) days written notice to Supplier.</p>'
+        + '<p class="rl-hang">8.3\tTermination for Cause. Either Party may terminate this Agreement immediately upon written notice if the other Party commits a material breach.</p>'
+        + '<h2>9. CONFIDENTIALITY</h2><p>Each party shall keep confidential all information disclosed.</p>';
+      c.format = 'rich'; c.changes = []; delete c.negotiation; negoInit(c);
+      const cl = negoClauseList(c).find(x => /Initial Term/.test(x.text || ''));
+      if (!cl) return { error: 'no clause staged' };
+      const kept = (cl.text || '').split('\n').filter(l => !/^8\.1/.test(l.trim())).join('\n');
+      const ch = await negoEditClause(c, cl.clauseId, '<p>' + kept.split('\n').join('</p><p>') + '</p>',
+        { side: 'counterparty', author: 'Amina Wanjiru' });
+      if (!ch) return { error: 'their ask did not file' };
+      renderRedline(); await new Promise(r => setTimeout(r, 400));
+      rlOpenClauseEditor(c, cl.clauseId, { changeId: ch.id });
+      return { clauseId: cl.clauseId };
+    });
+    if (st34.error){ ck('34 the stage strikes a whole sub-paragraph', false, st34.error); }
+    else {
+      await pause(800);
+      const SHAPE34 = () => {
+        const cl = document.querySelector('#ce-doc .rl-clause');
+        if (!cl) return null;
+        const blocks = [...cl.querySelectorAll('p, h1, h2, h3, h4')].map(el => {
+          const r = el.getBoundingClientRect();
+          const rg = document.createRange(); rg.selectNodeContents(el);
+          const rects = [...rg.getClientRects()];
+          return { top: Math.round(r.top * 10) / 10, h: Math.round(r.height * 10) / 10,
+            l1: rects[0] ? Math.round(rects[0].left * 10) / 10 : null,
+            l2: rects[1] ? Math.round(rects[1].left * 10) / 10 : null,
+            txt: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22) };
+        });
+        return { typing: !!cl.querySelector('.ce-typing'), blocks,
+          /* THE WALL: a paragraph of wording inside a 2.6em gutter is the fault
+             itself, so it is asked by name rather than only measured. */
+          inGutter: [...cl.querySelectorAll('.rl-marker')].some(g => (g.textContent || '').length > 24) };
+      };
+      const b34 = await p.evaluate(SHAPE34);
+      ck('34a (control) the clause opens AT REST with the struck paragraph shown',
+         !!(b34 && b34.typing === false && b34.blocks.length === 4),
+         JSON.stringify(b34 && { typing: b34.typing, n: b34.blocks.length }));
+      const pt34 = await p.evaluate(() => {
+        const cl = document.querySelector('#ce-doc .rl-clause');
+        const el = [...cl.querySelectorAll('p')].find(x => /Termination for Convenience/.test(x.textContent));
+        const r = el.getBoundingClientRect();
+        return { x: Math.round(r.left + 90), y: Math.round(r.top + 8) };
+      });
+      await p.mouse.click(pt34.x, pt34.y);
+      await pause(800);
+      const a34 = await p.evaluate(SHAPE34);
+      ck('34b ONE PRESS and the clause is typeable', !!(a34 && a34.typing === true), String(a34 && a34.typing));
+      ck('34c the box draws the same blocks the sheet did — the struck paragraph is a paragraph',
+         !!(a34 && b34 && a34.blocks.length === b34.blocks.length),
+         JSON.stringify({ rest: b34 && b34.blocks.length, typing: a34 && a34.blocks.length }));
+      ck('34d NOTHING MOVED: every block sits where it sat, at the height it had',
+         !!(a34 && b34) && JSON.stringify(a34.blocks) === JSON.stringify(b34.blocks),
+         JSON.stringify({ rest: b34 && b34.blocks, typing: a34 && a34.blocks }));
+      ck('34e and no paragraph of wording was stuffed into a marker gutter',
+         !!(a34 && a34.inGutter === false), String(a34 && a34.inGutter));
+      if (process.env.HATI_SHOT_DIR){ try{ await p.screenshot({ path: path.join(process.env.HATI_SHOT_DIR, '34-struck-paragraph.png') }); }catch(_){} }
+      await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+      await answerLeave(p); await pause(200);
+    }
+  }
+
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');
 
   await br.close(); srv.close();
