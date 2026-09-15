@@ -1606,6 +1606,113 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       '18k the edition grew no scroller of its own — the two columns cannot drift apart',
       wheeled && String(wheeled.scroller));
 
+    /* ============ 19 · A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN
+       (Young reported it 15 Sep 2026: "The numbers in the contract on the
+       right are supposed to be on the far right of the contract similar to the
+       contract on the left") ============
+       GEOMETRY, and nothing else can answer it. The markup on the parent is
+       not wrong in any way a grep could see — the mirror faithfully carries the
+       row's words, all of them, in order. The fault is that a page number is a
+       COLUMN and it was being drawn as the last word of a sentence, which only
+       a rendered page shows. So every claim here is a RELATION measured off
+       painted boxes: the number's right edge against its own column's right
+       wall, and the gap between the heading's last letter and the number.
+
+       THE STAGE IS THE FILE'S OWN SHAPE: a right tab stop is what the docx
+       reader turns into `hati-toc` plus one `hati-toc-n` span, so this is what
+       a real contents page arrives as. */
+    const TOCM = ['<h1>Master Supply and Distribution Agreement</h1>',
+      '<p>Dated 18 November 2025</p>',
+      '<p>Contents</p>',
+      '<p class="hati-toc">Definitions and Interpretation\t<span class="hati-toc-n">3</span></p>',
+      '<p class="hati-toc">Supply of Products\t<span class="hati-toc-n">7</span></p>',
+      '<p class="hati-toc">Prices and Payment\t<span class="hati-toc-n">12</span></p>']
+      .concat(Array.from({ length: 6 }, (_, k) =>
+        `<h2>${k + 1}. Clause ${k + 1}</h2><p>${('The parties agree to the terms of this clause and to each obligation stated in it. ').repeat(4)}</p>`))
+      .join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = html; c.format = 'rich';
+      delete c.branding; delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      openWorkspace(c.id); renderWorkspace(c.id);
+    }, TOCM, null);
+    await pause(1200);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    const tHeads = await headsOf(page, 'MK-B2');
+    ai.reset();
+    ai.script(tool(withKeys(tHeads.map((h, k) => ({ i: k, plain: 'Plain reading of clause ' + (k + 1) + '.' })), tHeads)));
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '19 Plain English over a contents page');
+    await pause(3500);
+
+    const toc = await drive(page, () => {
+      const txt = el => (el.textContent || '').replace(/\s+/g, ' ').trim();
+      /* The right edge of a run of text, measured off a Range rather than the
+         block, because a block fills its column whatever its words do. */
+      const inkRight = node => {
+        const r = document.createRange();
+        r.selectNodeContents(node);
+        const b = r.getBoundingClientRect();
+        return b.width ? b.right : null;
+      };
+      const rows = Array.from(document.querySelectorAll('#doc-canvas .hati-toc'));
+      const mirrors = Array.from(document.querySelectorAll('.doc-read-mirror'));
+      const withN = mirrors.filter(m => m.querySelector('.hati-toc-n'));
+      const paper = rows.map(row => {
+        const n = row.querySelector('.hati-toc-n');
+        const box = row.getBoundingClientRect();
+        return n ? { wall: Math.round(box.right - n.getBoundingClientRect().right),
+          num: txt(n), gap: Math.round(n.getBoundingClientRect().left - (inkRight(row.firstChild) || 0)) } : null;
+      });
+      const edition = withN.map(m => {
+        const p = m.querySelector('p');
+        const n = m.querySelector('.hati-toc-n');
+        const box = p.getBoundingClientRect();
+        return { wall: Math.round(box.right - n.getBoundingClientRect().right),
+          num: txt(n), gap: Math.round(n.getBoundingClientRect().left - (inkRight(p.firstChild) || 0)),
+          head: txt(p).slice(0, -txt(n).length) };
+      });
+      /* A FLOAT THAT ESCAPES ITS ROW is the one way this goes visibly wrong —
+         the number would drop out of the box and sit over the line below. The
+         row's own height is what says it does not, so it is measured against a
+         plain mirrored line rather than typed. */
+      const flatEls = mirrors.filter(m => !m.querySelector('.hati-toc-n'));
+      const lineH = flatEls.length
+        ? Math.round(flatEls[flatEls.length - 1].querySelector('p').getBoundingClientRect().height) : null;
+      return { rows: rows.length, mirrors: mirrors.length, withN: withN.length,
+        paper, edition, flat: flatEls.map(txt), lineH,
+        tocH: withN.map(m => Math.round(m.querySelector('p').getBoundingClientRect().height)),
+        allText: mirrors.map(txt) };
+    }, undefined, null);
+    check(!!toc && toc.rows === 3 && (toc.paper || []).every(r => r && r.wall <= 2 && r.gap > 40),
+      '19a THE CONTROL: on the CONTRACT the three page numbers sit at the right wall, far from their heading',
+      toc && `${toc.rows} row(s) · ${JSON.stringify(toc.paper)}`);
+    check(!!toc && toc.withN === 3,
+      '19b the edition draws a right-hand column for each of them — the reported fault',
+      toc && `${toc.withN} of ${toc.mirrors} mirrored block(s) carry a number`);
+    check(!!toc && toc.withN === 3 && (toc.edition || []).every(r => r.wall <= 2),
+      '19c and each number sits at the FAR RIGHT of its own column, as it does on the paper',
+      toc && JSON.stringify((toc.edition || []).map(r => r.wall)));
+    check(!!toc && toc.withN === 3 && (toc.edition || []).every(r => r.gap > 40),
+      '19d it is a column, not the last word of the heading — measured as a real gap',
+      toc && JSON.stringify((toc.edition || []).map(r => r.gap)));
+    check(!!toc && JSON.stringify((toc.edition || []).map(r => r.num)) === JSON.stringify((toc.paper || []).map(r => r && r.num)),
+      '19e the numbers are the PAPER\'S own, in the paper\'s own order',
+      toc && JSON.stringify((toc.edition || []).map(r => r.num)));
+    check(!!toc && toc.withN === 3 && (toc.edition || []).every(r => !/\d\s*$/.test(r.head)),
+      '19f and the heading beside it no longer carries the number inline',
+      toc && JSON.stringify((toc.edition || []).map(r => r.head)));
+    /* THE CHANGE IS NARROW: a front-matter block with no right-hand column is
+       drawn exactly as it was, flat, and the title page is untouched. */
+    check(!!toc && toc.flat.length >= 3 && toc.flat[0].indexOf('Master Supply') === 0,
+      '19g THE CONTROL: every other front-matter block is still drawn flat',
+      toc && toc.flat.join(' · ').slice(0, 70));
+    check(!!toc && toc.withN === 3 && toc.lineH > 0 && (toc.tocH || []).every(h => Math.abs(h - toc.lineH) <= 2),
+      '19h the row contains its own float — one line high, like every other mirrored line',
+      toc && `${JSON.stringify(toc.tocH)} against a plain line of ${toc.lineH}`);
+    await page.screenshot({ path: path.join(OUT, '19-contents.png') });
+
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));
   } catch (e) {

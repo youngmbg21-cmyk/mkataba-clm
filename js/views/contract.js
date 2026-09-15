@@ -7989,7 +7989,9 @@ function docReadPaint(c){
       moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
     <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
       `<div class="doc-read-mirror" data-doc-read-front="${i}"${
-        f.style?` style="${esc(f.style)}"`:''} aria-hidden="true"><p>${esc(f.text)}</p></div>`).join('')}${pairs.map((p,n)=>{
+        f.style?` style="${esc(f.style)}"`:''} aria-hidden="true">${
+        f.toc?`<p class="hati-toc">${esc(f.toc.head)}<span class="hati-toc-n">${
+          esc(f.toc.n)}</span></p>`:`<p>${esc(f.text)}</p>`}</div>`).join('')}${pairs.map((p,n)=>{
       /* The TAG follows the paper's own shape — a heading row draws a heading,
          whether or not it is a section title in the route's terms (D-2a). */
       const sec=!!p.row.headed;
@@ -8241,6 +8243,40 @@ function docReadMirrorStyle(el,base){
   if(fs>0&&Number.isFinite(lh)&&lh>0) out.push('line-height:'+(Math.round((lh/fs)*100)/100));
   return out.join(';');
 }
+/* ---- A CONTENTS ROW IS TWO COLUMNS, AND THE MIRROR KEEPS BOTH (Young
+   reported it 15 Sep 2026: "The numbers in the contract on the right are
+   supposed to be on the far right of the contract similar to the contract on
+   the left") ----
+   The page number of a contents row is not part of the line's sentence; it is
+   a RIGHT-HAND COLUMN, and the reader of the mirror is matching it against the
+   same number twelve inches to the left. Flattened to one run of text it reads
+   as the last word of the heading ("Definitions and Interpretation 3"), which
+   is a different fact from the one the paper states.
+
+   THE TAIL IS THE FILE'S OWN, NEVER A GUESS FROM THE WORDS. The docx reader
+   emits it as a span of its own for exactly this reason (a right tab stop is
+   Word saying the line has a right-hand number), and the class it uses is read
+   through window so the two cannot drift about what a contents tail is called.
+   A block with no such span is not a contents row and is mirrored as it was.
+
+   AND IT REFUSES RATHER THAN GUESSING, in the reader's own posture: where the
+   collapsed line does not END with the tail, something else sits between them
+   and any split would be invented, so the row is drawn flat. */
+function docReadMirrorToc(el,text){
+  let tail=null;
+  try{
+    const cls=(typeof window!=='undefined'&&window.RICH_TOC_TAIL_CLASS)||'hati-toc-n';
+    tail=el&&el.querySelector?el.querySelector('.'+cls):null;
+  }catch(_){ return null; }
+  if(!tail) return null;
+  const n=String(tail.textContent||'').replace(/\s+/g,' ').trim();
+  if(!n) return null;
+  const whole=String(text||'');
+  if(!whole.endsWith(n)) return null;
+  const head=whole.slice(0,whole.length-n.length).trim();
+  if(!head) return null;
+  return {head,n};
+}
 function docReadFront(c,pairs){
   const canvas=document.getElementById('doc-canvas');
   if(!canvas||!pairs||!pairs.length) return [];
@@ -8272,7 +8308,7 @@ function docReadFront(c,pairs){
   for(const el of els){
     const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
     if(!text) continue;
-    out.push({el,text,style:docReadMirrorStyle(el,base)});
+    out.push({el,text,style:docReadMirrorStyle(el,base),toc:docReadMirrorToc(el,text)});
     /* A ceiling, and it hides nothing: the unabridged front matter is the
        column immediately to the left of this one. */
     if(out.length>=DOC_READ_FRONT_MAX) break;
@@ -10816,5 +10852,5 @@ Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCar
      not on this list: this codebase's most repeated defect. */
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
-  docReadFront,docReadMirrorStyle,
+  docReadFront,docReadMirrorStyle,docReadMirrorToc,
   docReadRun,wireDocRead});

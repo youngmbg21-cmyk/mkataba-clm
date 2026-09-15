@@ -19822,3 +19822,92 @@ reports LINES and a page key reports PAGES, and the press swallowed only where
 the paper actually moved, so reaching the end of the contract hands the wheel
 back rather than trapping it. Driven in `plain-english-verify` 18i with a real
 `page.mouse.wheel`; against the parent it reports `contract 0 → 0`.
+
+## A CONTENTS ROW IS TWO COLUMNS, AND THE MIRROR KEPT ONLY ONE (Young reported it 15 Sep 2026)
+
+> *"The numbers in the contract on the right are supposed to be on the far right of the contract similar to the contract on the left. Fix this."*
+
+Sent with one screenshot of a table of contents. On the left, the contract: three
+rows of headings with their page numbers in a clean column at the right wall. On
+the right, the Plain English mirror built the day before: the same three rows
+with the number run straight on after the last word — *"1. Definitions and
+Interpretation 3"*.
+
+**NOTHING IN THE SOURCE LOOKED WRONG**, which is what makes this worth writing
+down. The mirror was doing exactly what it was built to do: `docReadFront`
+reduces each front-matter block to `String(el.textContent).replace(/\s+/g,' ')`
+and the column draws `<p>${esc(f.text)}</p>`, so every word of the row is
+carried, all of them, in the paper's own order. Two checks in
+plain-english-verify 18 compare those two strings and both were green — because
+the contract's own `textContent` reads the same way. The fault is not in the
+words. It is that **a page number is not a word in the sentence, it is a
+COLUMN**, and only a rendered page can tell you the difference.
+
+MEASURED on the staged contents page: on the paper the number's right edge sits
+0px from the row's right wall, 513–582px clear of where the heading's ink ends.
+In the mirror it sat immediately after the heading, with a single collapsed
+space in front of it.
+
+### The tail already existed, and it is the file's own
+
+The docx reader has known about this since 10 September. A right tab stop is
+Word saying the line has a left entry and a right-hand number, and it is the
+only paragraph property that means that, so `docxTocTail` splits the tail into a
+span of its own and the paragraph is stamped `hati-toc`:
+
+    <p class="hati-toc">Definitions and Interpretation	<span class="hati-toc-n">3</span></p>
+
+`hati-toc` is one of the six names on `RICH_SHAPE_CLASSES`, and `hati-toc-n` is
+the single span class that is a SHAPE rather than a mark. So the fact was on the
+record all along and the mirror was throwing it away on the way to the screen,
+along with everything else `textContent` cannot carry.
+
+### The reading, and what it refuses
+
+`docReadMirrorToc(el, text)` is the one reading, asked of every mirrored block:
+
+  - the tail is the element's own `.hati-toc-n`, and **the class name is read
+    through `window.RICH_TOC_TAIL_CLASS`** with a literal fallback, so the
+    mirror and the sanitiser cannot drift about what a contents tail is called;
+  - a block with no such span is not a contents row and is drawn exactly as it
+    was — which is what keeps the change narrow, and is a named control in the
+    browser file;
+  - and **it refuses rather than guessing**, in the reader's own posture: where
+    the collapsed line does not END with the tail, something else sits between
+    them and any split would be invented, so the row is drawn flat.
+
+The head is the line with the tail taken off and **trimmed**, which drops the
+tab the file wrote between them. That is deliberate: the tab is a TAB STOP — a
+layout instruction, not a word — and the float is what replaces it. It is the
+one byte where the mirror's `textContent` no longer matches the paper's, and it
+is the separator that was making the number read as a word.
+
+### The clothes follow the builder
+
+`.doc-read-mirror` is the FOURTH home the document's own markup is drawn in. The
+other three each carry the same two declarations — `index.html` for the Document
+tab's sheet, and `negotiation-css.js` twice, for the negotiate page's paper and
+the clause panel's — and every one of them is scoped to its own sheet, so none
+can reach a layer that is a SIBLING of the paper. The pair is restated for the
+mirror rather than re-invented: `overflow:hidden` so the row's height is its
+own, `float:right;padding-left:1.2em` so the tail sits at the wall.
+
+### Nothing moved on the way to the route
+
+`docReadClauses` is what is SENT and what the reading is cached on, and the
+contents page is not a clause — `docReadSheet` drops it, which is why the column
+was blank above the first clause until the mirror was built at all. So no
+contract already read pays for a byte of this. Pinned as a wall in f314 (7),
+green at the parent on purpose: it asserts an ABSENCE, and the point of it is
+that the absence survives.
+
+### The tests
+
+plain-english-verify section 19 is the instrument, and every claim in it is a
+RELATION measured off painted boxes: the number's right edge against its own
+column's right wall (0px, as on the paper), and the gap between the heading's
+last letter and the number (163–232px, where the parent had none). **Five of the
+seven are red at the parent; 19a and 19g are named CONTROLS** — the paper really
+does draw its own numbers at the wall, and every other front-matter block is
+still drawn flat. Three claims in f314 (7) are the walls round it, two of them
+red at the parent.

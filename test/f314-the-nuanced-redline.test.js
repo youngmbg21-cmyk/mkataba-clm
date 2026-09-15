@@ -466,6 +466,50 @@ describe('f314 (7) — the plain English column', () => {
     assert.match(body, /var\(--dr-size/, 'and the size is a RATIO of the edition\'s own, never a copied pixel');
   });
 
+  /* ---- A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN (Young reported it 15 Sep
+     2026: "The numbers in the contract on the right are supposed to be on the
+     far right of the contract similar to the contract on the left") ----
+     The geometry is measured in plain-english-verify 19, which is the only
+     instrument that can see it. These are the walls round it: the tail is the
+     FILE'S own, the split refuses rather than guesses, and nothing about it
+     reaches what is sent. */
+  test('a contents row is two columns, and the tail is the FILE\'s own', () => {
+    const i = CONTRACT.indexOf('function docReadMirrorToc');
+    assert.ok(i > 0, 'there is one reading of a contents row\'s right-hand column');
+    const body = CONTRACT.slice(i, CONTRACT.indexOf('function docReadFront'));
+    assert.match(body, /window\.RICH_TOC_TAIL_CLASS/,
+      'the class is read through window, so the mirror and the sanitiser cannot drift');
+    assert.match(body, /'hati-toc-n'/, 'with a fallback for a stage without it');
+    assert.match(body, /if\(!whole\.endsWith\(n\)\) return null/,
+      'and it REFUSES rather than guessing where the line does not end with the tail');
+    assert.match(body, /if\(!tail\) return null/, 'a block with no such span is not a contents row');
+    assert.match(CONTRACT, /toc:docReadMirrorToc\(el,text\)/, 'every mirrored block is asked');
+    assert.match(CONTRACT, /f\.toc\?`<p class="hati-toc">\$\{esc\(f\.toc\.head\)\}<span class="hati-toc-n">/,
+      'and where there is one the mirror draws the paper\'s own two-part shape');
+  });
+
+  test('and the mirror is dressed for it in its own home', () => {
+    /* THE CLOTHES FOLLOW THE BUILDER: every sheet that draws this markup
+       carries the pair, and each is scoped to its own home — none of them can
+       reach a layer that is a SIBLING of the paper. */
+    assert.match(INDEX, /\.doc-read-mirror > p\.hati-toc\{ overflow:hidden; \}/,
+      'the row contains its own float');
+    assert.match(INDEX, /\.doc-read-mirror \.hati-toc-n\{ float:right; padding-left:1\.2em; \}/,
+      'and the tail sits at the wall, in the document\'s own declarations');
+    assert.match(INDEX, /\.hati-doc \.hati-toc-n\{float:right;padding-left:1\.2em;\}/,
+      'the sheet it mirrors is untouched');
+  });
+
+  /* A NAMED WALL, and it is green at the parent on purpose: it asserts an
+     ABSENCE, and the whole point of it is that the absence survives. */
+  test('the contents tail never reaches what is sent', () => {
+    const i = CONTRACT.indexOf('function docReadClauses');
+    const body = CONTRACT.slice(i, i + 2600);
+    assert.ok(!/docReadMirrorToc|hati-toc-n/.test(body), 'the sent list knows nothing about it');
+    assert.ok(!/docReadMirrorToc/.test(CONTRACT.slice(CONTRACT.indexOf('function docReadSig'),
+      CONTRACT.indexOf('function docReadSig') + 900)), 'and neither does the signature it is cached on');
+  });
+
   test('the wheel is forwarded to the paper, and the edition grows no second scroller', () => {
     const i = CONTRACT.indexOf('docReadWheel');
     assert.ok(i > 0, 'the layer forwards the wheel');

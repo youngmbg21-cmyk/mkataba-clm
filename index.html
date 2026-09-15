@@ -2910,6 +2910,16 @@
      computes to 'normal' and so cannot be measured. */
   .doc-read-mirror{ line-height:1.6; }
   .doc-read-mirror > p{ white-space:normal; }
+  /* A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN. THE CLOTHES FOLLOW THE
+     BUILDER: this is the FOURTH home the document's own markup is drawn in
+     (the Document tab's sheet, the negotiate page's paper and the clause
+     panel's are the other three) and each one carries this same pair, because
+     every one of those rules is scoped to its own sheet and none of them can
+     reach a layer that is a SIBLING of the paper. The declarations are the
+     document's own, restated here rather than re-invented: overflow contains
+     the float so the row's height is its own, and the tail sits at the wall. */
+  .doc-read-mirror > p.hati-toc{ overflow:hidden; }
+  .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }

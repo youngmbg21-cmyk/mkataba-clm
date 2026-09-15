@@ -14418,3 +14418,53 @@ NOTICED, NOT FIXED
 - nego-redesign-verify 1 and 1c (five checks) also already red — they still ask for
   the retired .rn-id / .rn-arrow markup and for the crumb to have stood down on the
   negotiation page, both reversed by the 12 Sep ruling.
+
+================================================================================
+RUN — 15 Sep 2026 (late) · A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN
+================================================================================
+Young, one screenshot of a table of contents: "The numbers in the contract on the
+right are supposed to be on the far right of the contract similar to the contract
+on the left. Fix this."
+
+FIXED
+- The Plain English mirror flattened a contents row to one run of text, so the
+  page number read as the last word of the heading ("Definitions and
+  Interpretation 3") instead of sitting in its own column at the right wall.
+  NOTHING IN THE SOURCE LOOKED WRONG: docReadFront carries every word of the row
+  in the paper's own order, and two checks in plain-english-verify 18 compare
+  those two strings and were green — because the contract's own textContent reads
+  the same way. A page number is a COLUMN, and only a rendered page shows it.
+- docReadMirrorToc is the one reading. The tail is the FILE'S own (.hati-toc-n,
+  written by the docx reader off a right tab stop since 10 Sep), the class read
+  through window.RICH_TOC_TAIL_CLASS so the mirror and the sanitiser cannot drift.
+  A block with no such span is not a contents row and is drawn as it was; where
+  the collapsed line does not END with the tail it REFUSES rather than guessing.
+- The clothes follow the builder: .doc-read-mirror is the FOURTH home that markup
+  is drawn in and now carries the same pair of declarations, because the other
+  three are each scoped to their own sheet and none can reach a layer that is a
+  SIBLING of the paper.
+- Nothing about the tail reaches docReadClauses or the hash, so no contract
+  already read pays for a byte of it.
+
+MEASURED in a real Chrome, on a staged contents page. On the paper: the number's
+right edge 0px from the row's right wall, 513-582px clear of the heading's ink.
+In the mirror at the parent: no right-hand column at all, the number inline. After:
+0px to the wall on all three rows, a 163-232px gap, and the heading text carrying
+no number.
+
+TESTS
+- plain-english-verify section 19 (eight checks, every one a RELATION off painted
+  boxes). 5 red at b3ca303; 19a and 19g are named CONTROLS and green there on
+  purpose - the paper really does draw its numbers at the wall, and every other
+  front-matter block is still drawn flat.
+- f314 (7) gained three claims; 2 red at the parent, the third a named WALL
+  (an absence, green at the parent on purpose).
+- Full node suite green; lint 0 errors.
+
+NOTICED, NOT FIXED
+- The mirror carries only centre/right alignment, so a JUSTIFIED front-matter
+  block is mirrored ragged. Pre-existing and not what was reported.
+- The head is trimmed, which drops the tab the file wrote between the entry and
+  its number - so a contents row is the one mirrored block whose textContent no
+  longer matches the paper's byte for byte. Deliberate: the tab is a tab stop, a
+  layout instruction, not a word.
