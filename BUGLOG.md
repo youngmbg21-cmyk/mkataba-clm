@@ -13921,3 +13921,44 @@ ladder 73/73. selection-verify is 16/22 here and 16/22 at main, the same six.
   actually handed to the editor — which is where the claim always belonged.
 - js/mobile-copilot.js still sizes .nego-selhead and .nego-selquote on the
   phone. Harmless, and stale.
+
+## 15 Sep 2026 — the Ladder chip opens the ladder, not the whole clause
+
+Young: "when I click on ladder, I also get the highlighted area in the attached
+image. I thought you are only supposed to get the ladder", with a screenshot
+boxing everything above THE LADDER (1).
+
+THE DEFECT. The chip and the row's Ladder verb both called the clause panel's
+own opener, which opens the WHOLE panel: the clause's name, AS IT STANDS,
+CHANGE THIS CLAUSE, ON THE TABLE, HISTORY, and only then the ladder. Five
+sections of reading before the one thing the press was named after. Two doors
+were arriving at one destination and only one of them said so.
+
+THE FIX. One build, two postures. The opener takes an additive {ladder:true},
+puts a class on the panel, and one stylesheet rule hides every section that is
+not the ladder or the ladder's own tail (the playbook, the figure, the notes).
+The clause's name stays - a ladder has to say which clause it climbs - and the
+panel's head says THE LADDER rather than Edit, because a narrowed panel must
+not name an act it is not offering. The pencil is untouched and still opens the
+whole clause, which is the way to the rest of it. The hidden set is named by
+class, never by position, so a section added later is hidden or kept on purpose.
+
+ONE THING CAUGHT BY A TEST AND NOT BY READING. The first draft made the press
+NARROW a panel already open in full rather than shut it, on the reasoning that
+the reader had asked for the ladder and not to leave the clause. That breaks
+the owner's own standing rule - the press that opens a sliding panel closes it -
+and it cost a press to close. ladder-verify 11b (Enter on the chip) went red and
+named it. The toggle is the clause, never the posture.
+
+Verified: lint 0 errors; f313 (38) new, red at the parent worktree, green here;
+ladder-verify 76/76 with the narrowing measured as PIXELS (the sections stay in
+the markup, only the stylesheet decides); clause-door 122/122, parity 47/47,
+redline 222/223 (its one failure red at main too). Photographed: the panel opens
+on the clause's name, the ladder, Compare two moves, Your playbook and The
+figure, and nothing above them.
+
+### Noticed, not fixed
+- The teal/navy swatches in the top bar are admin-only and carry no visible
+  label; a reader who does not already know what the two dots do has nothing on
+  the screen that says so. Told the owner where they are rather than adding a
+  caption (no new bands).

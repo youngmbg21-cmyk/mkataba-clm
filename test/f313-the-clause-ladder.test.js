@@ -454,4 +454,58 @@ describe('f313 — the clause ladder', () => {
     for (const k of keys) assert.ok(STRINGS.sv[k], `sv is missing ${k}`);
   });
 
+  /* ---- (38) THE LADDER CHIP OPENS THE LADDER (Young reported it 15 Sep 2026:
+     "when I click on ladder, I also get the highlighted area in the attached
+     image. I thought you are only supposed to get the ladder") ----
+     The chip called rlCpSetShown, which opens the WHOLE clause panel: the
+     wording, the acts row, what is on the table, this round's history, and
+     only then the ladder. ONE BUILD, TWO POSTURES — the narrowing is a class
+     on the panel and a rule in the stylesheet, so the chip's panel and the
+     pencil's can never drift. The pixels are ladder-verify's to measure; what
+     is pinned here is that the posture exists, that it is additive (every
+     older caller still means the whole panel), that it survives a repaint, and
+     that the hidden set is named by class rather than by position. */
+  test('(38) the ladder chip opens the panel narrowed, and the pencil does not', () => {
+    const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
+
+    assert.match(nego, /function rlCpSetShown\(scope, clauseId, opts = \{\}\)\{/,
+      'the posture is an ADDITIVE third argument — every older caller means the whole panel');
+    assert.match(nego, /const ladderOnly = !!\(opts && opts\.ladder\);/, 'read once');
+    assert.match(nego, /p\.classList\.toggle\('is-ladder', on && ladderOnly\);/,
+      'the narrowing is a class flip on the panel, never a second build');
+    assert.match(nego, /_rlCpLadder = on && ladderOnly;/, 'and the posture is remembered');
+
+    /* THE TOGGLE IS THE CLAUSE, NEVER THE POSTURE. A press opens the ladder
+       and a press shuts the panel — the owner's standing rule about a sliding
+       panel, which a posture inside the toggle would have cost a press. */
+    const h = nego.slice(nego.indexOf("const lad = t.closest('[data-rl-ladder]');"));
+    const press = h.slice(0, h.indexOf('return;') + 7);
+    assert.match(press, /rlCpSetShown\(lscope, rlCpOpenId\(\) === lid \? null : lid, \{ ladder: true \}\);/,
+      'one press opens it narrowed, the next shuts it');
+    assert.ok(!/rlCpLadderOnly\(\)/.test(press), 'the posture is not part of what the press toggles');
+
+    /* THE PENCIL IS UNCHANGED — its door passes two arguments, so it opens
+       the whole clause, which is the way back to the rest of it. */
+    assert.ok(/rlCpSetShown\(scope, rlCpOpenId\(\) === id \? null : id\);/.test(nego),
+      'the pencil door still asks for the whole panel');
+
+    /* A REPAINT KEEPS THE POSTURE with the clause it belongs to. */
+    assert.match(nego, /rlCpSetShown\(\(scope && scope\.querySelector\) \? scope : document, id, \{ ladder: rlCpLadderOnly\(\) \}\);/,
+      'the repaint restore carries it');
+
+    /* THE HIDDEN SET IS NAMED BY CLASS, never by position. */
+    assert.ok(css.includes(".rl-cp.is-ladder .rl-cp-src > .rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec){display:none}"),
+      'one rule, the four kept sections named');
+
+    /* THE HEAD SAYS WHICH PANEL THIS IS, in both books. */
+    const { STRINGS } = require('../js/i18n.js');
+    assert.ok(STRINGS.en.ng_cp_ladder && STRINGS.sv.ng_cp_ladder, 'the narrowed panel has a name');
+    assert.match(nego, /i18t\(on && ladderOnly \? 'ng_cp_ladder' : 'ng_cp_edit'\)/, 'painted on the open');
+    assert.match(nego, /i18t\(lad \? 'ng_cp_ladder' : 'ng_cp_edit'\)/, 'and built into a fresh paint');
+
+    /* PUBLISHED — the reading crosses a module boundary (f232's rule). */
+    assert.match(nego, /rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly,/, 'published');
+  });
+
 });

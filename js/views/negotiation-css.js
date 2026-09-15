@@ -4084,6 +4084,20 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-segs{order:1;margin-left:auto;flex:none}
   .redline-page .rl-cp .rl-cnotes{display:none}
   .redline-page .rl-cp.rl-cp-notes .rl-cnotes{display:block}
+  ${''/* ---- THE LADDER CHIP'S PANEL IS THE LADDER (Young reported it 15 Sep
+     2026: "when I click on ladder, I also get the highlighted area ... I
+     thought you are only supposed to get the ladder") ----
+     ONE BUILD, TWO POSTURES. Every clause's whole body is already in the
+     panel; narrowing it here rather than building a second panel is the same
+     reasoning as is-open itself, and it means the chip's panel can never drift
+     from the pencil's. What survives is the clause's NAME (a ladder has to say
+     which clause it climbs) and the ladder with its own tail — the playbook,
+     the figure, the notes — which is the 14 Sep artifact's ladder panel. The
+     acts row goes with the rest: a panel offering no wording to act on must
+     not draw the verbs that act on it. Named by the four modifier classes
+     rather than by position, so a section added above or below is hidden or
+     kept on purpose and never by accident. */}
+  .redline-page .rl-cp.is-ladder .rl-cp-src > .rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec){display:none}
   .redline-page .rl-cp-label{margin:0;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-600)}
   .redline-page .rl-cp-min{order:2;margin-left:auto;border:0;background:transparent;
