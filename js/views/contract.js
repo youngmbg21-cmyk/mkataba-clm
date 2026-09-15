@@ -7914,9 +7914,21 @@ function docReadPaint(c){
      contract itself is set at. The NUMBER is the paper's, read off the sheet by
      docReadSheet and never asked of the model, which is what lets it be printed
      as a citation. */
+  /* The paper's own front matter, mirrored so the column is not blank above
+     the first clause — see docReadFront. Drawn FIRST, because it sits above
+     every entry on the sheet it mirrors.
+
+     AND IT IS NOT A .doc-read-note. It wears a class of its own, dressed by
+     the same rules, because a mirror is the CONTRACT'S words and a note is a
+     READING of them — four checks that count the readings on a page found the
+     mirrors among them the moment the two shared a class. Anything asking
+     "how many clauses came back" must never have to know about this. */
+  const front=docReadFront(c,pairs);
   layer.innerHTML=`
     <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
-    <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>{
+    <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
+      `<div class="doc-read-mirror" data-doc-read-front="${i}"${
+        f.style?` style="${esc(f.style)}"`:''} aria-hidden="true"><p>${esc(f.text)}</p></div>`).join('')}${pairs.map((p,n)=>{
       /* The TAG follows the paper's own shape — a heading row draws a heading,
          whether or not it is a section title in the route's terms (D-2a). */
       const sec=!!p.row.headed;
@@ -8016,15 +8028,31 @@ function docReadPaint(c){
      what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
      keeps that promise honest when it cannot be kept exactly. */
   let floor=0, bottom=0;
-  pairs.forEach((p,n)=>{
-    const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
+  /* The mirrored front matter hangs by the same rule and shares the same
+     floor, so a long contents list steps down rather than sitting under the
+     first clause's entry. */
+  const place=(src,el,gap)=>{
     if(!el) return;
-    let top=Math.round(p.el.getBoundingClientRect().top - base);
+    let top=Math.round(src.getBoundingClientRect().top - base);
     if(top<floor) top=floor;
     el.style.top=top+'px';
-    floor=top+el.offsetHeight+DOC_READ_GAP;
+    floor=top+el.offsetHeight+gap;
     bottom=floor;
-  });
+  };
+  /* NO GAP BETWEEN MIRRORED BLOCKS. DOC_READ_GAP is the breathing room between
+     two READINGS of two different clauses; the front matter's own lines are
+     already spaced by the paper they are copied from, and adding 18px to each
+     would walk the mirror off the bottom of the page it is mirroring. The
+     floor still holds within the mirror, so they can never overlap. */
+  front.forEach((f,i)=>place(f.el, inner.querySelector(`[data-doc-read-front="${i}"]`), 0));
+  /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
+     entries are placed, because "level with its own clause, to the pixel" is
+     the promise this column exists to keep and the mirror is only context: a
+     title page whose copy runs a few pixels taller than the paper it copies
+     must not cost the first clause its place. MEASURED — sharing one floor put
+     the first reading 28px below the clause it reads. */
+  floor=0;
+  pairs.forEach((p,n)=>place(p.el, inner.querySelector(`[data-doc-read-note="${n}"]`), DOC_READ_GAP));
   const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
   const last=Math.max(lastEl,bottom);
   const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
@@ -8037,6 +8065,33 @@ function docReadPaint(c){
   if(!sc.dataset.docReadBound){
     sc.dataset.docReadBound='1';
     sc.addEventListener('scroll',docReadSync,{passive:true});
+  }
+  /* ---- AND THE WHEEL WORKS OVER EITHER COLUMN (Young reported it 15 Sep
+     2026: "I am only able to scroll by putting my cursor on the left of the
+     screen where the original contract is. Make it possible to scroll from
+     both sides") ----
+     THE EDITION HAS NO SCROLLER AND MUST NOT GROW ONE. It is a clip with a
+     transformed inner, kept in step with the paper by docReadSync, and that is
+     the whole reason the two columns cannot drift apart; a second real
+     scroller here would be two scrollers racing each other over one reading.
+     So the wheel is FORWARDED to the paper's scroller instead — the same
+     surface moves, from either side of the screen.
+
+     deltaMode is honoured because a mouse in Firefox reports LINES and a page
+     key reports PAGES, and treating either as pixels moves the sheet by three
+     pixels a notch. The press is only swallowed where it actually moved the
+     paper, so reaching the end of the contract still hands the wheel back to
+     the page underneath rather than trapping it. */
+  if(!layer.dataset.docReadWheel){
+    layer.dataset.docReadWheel='1';
+    layer.addEventListener('wheel',e=>{
+      const s=document.getElementById('doc-scroll');
+      if(!s) return;
+      const step=e.deltaMode===1?16:(e.deltaMode===2?s.clientHeight:1);
+      const was=s.scrollTop;
+      s.scrollTop=was+e.deltaY*step;
+      if(s.scrollTop!==was) e.preventDefault();
+    },{passive:false});
   }
   /* The paper changes height when the reader changes its type size, and the
      notes have to follow it. One observer, armed once on the canvas. */
@@ -8062,6 +8117,106 @@ function docReadShape(el){
     n=n.parentElement;
   }
   return (hang?' dr-hang':'')+(lv?' hati-lv-'+lv:'');
+}
+/* ============================================================================
+   THE COLUMN IS NOT BLANK ABOVE THE FIRST CLAUSE (Young ruled 15 Sep 2026:
+   "Instead of having a black screen on the plain english side of the contract,
+   simply mimic what is on the contract side until where the clauses begin
+   translating to plain english")
+   ============================================================================
+   The front matter is deliberately NOT a clause — the title page and the
+   contents are not wording anybody negotiates, and docReadSheet drops them so
+   that nothing is sent to the route or hashed for them. The cost was a reader
+   who turns Plain English on at the top of a long contract and is shown an
+   empty column for two pages before the first entry appears.
+
+   SO IT IS MIRRORED, NOT READ. Every block above the first paired clause draws
+   the paper's OWN words in the edition's column, level with the block it
+   faces. Nothing here is asked of a model, nothing is cached, nothing is sent:
+   docReadClauses is untouched, so what the route receives and what its cache
+   is keyed on do not move by a byte.
+
+   THE SHAPE IS MEASURED, EXACTLY AS THE SIZE AND THE FACE BESIDE IT ARE. A
+   title page is centred, bold, sometimes letter-spaced or in small capitals,
+   and every one of those belongs to the document's own design — so each is
+   read off the block being mirrored rather than typed here, and a design added
+   tomorrow is mirrored correctly without this function being told about it.
+   The values are taken through a NARROW door: a fixed set of keywords and one
+   number apiece, so nothing a computed style could carry reaches the markup
+   unchecked.
+
+   AND ONLY WHERE THERE IS A BOUNDARY TO MIRROR UP TO. With no paired clause at
+   all there is no "until the clauses begin", and mirroring would silently
+   draw a second copy of the whole contract; the partial foot is what that case
+   already has to say for itself. */
+const DOC_READ_FRONT_MAX=200;
+const DOC_READ_ALIGN=new Set(['center','right']);
+const DOC_READ_CASE=new Set(['uppercase','lowercase','capitalize','small-caps']);
+function docReadMirrorStyle(el,base){
+  let cs=null;
+  try{ cs=getComputedStyle(el); }catch(_){ return ''; }
+  if(!cs) return '';
+  const out=[];
+  const al=String(cs.textAlign||'')==='end'?'right':String(cs.textAlign||'');
+  if(DOC_READ_ALIGN.has(al)) out.push('text-align:'+al);
+  const w=parseInt(cs.fontWeight,10);
+  if(Number.isFinite(w)&&w>=600) out.push('font-weight:600');
+  if(String(cs.fontStyle||'')==='italic') out.push('font-style:italic');
+  if(DOC_READ_CASE.has(String(cs.textTransform||''))) out.push('text-transform:'+cs.textTransform);
+  const ls=String(cs.letterSpacing||'');
+  if(/^-?\d+(\.\d+)?px$/.test(ls)&&parseFloat(ls)!==0) out.push('letter-spacing:'+ls);
+  const fs=parseFloat(cs.fontSize);
+  /* A RATIO, never a pixel: the entry's own --dr-size already follows the
+     reader's A⁻/A⁺ and the document's design, and a pixel copied off the paper
+     would stop following either the moment one of them moved. */
+  if(base>0&&fs>0&&Math.abs(fs-base)>0.5)
+    out.push('font-size:calc(var(--dr-size, 1em) * '+(Math.round((fs/base)*100)/100)+')');
+  /* AND ITS LEADING, for the same reason and in the same shape. The edition's
+     own 1.75 is right for a translation set beside a clause and wrong for a
+     title page: mirrored at 1.75 every line sits a little lower than the line
+     it faces, and twelve lines of front matter end up visibly out of step.
+     Unitless, so it follows the size above it rather than fighting it. */
+  const lh=parseFloat(cs.lineHeight);
+  if(fs>0&&Number.isFinite(lh)&&lh>0) out.push('line-height:'+(Math.round((lh/fs)*100)/100));
+  return out.join(';');
+}
+function docReadFront(c,pairs){
+  const canvas=document.getElementById('doc-canvas');
+  if(!canvas||!pairs||!pairs.length) return [];
+  const stop=pairs[0].el;
+  let els=[];
+  try{
+    /* ---- AND THE PAPER'S HEAD IS MIRRORED, THOUGH IT IS FURNITURE TO THE
+       ROUTE ---- MEASURED: the title block was the one thing above the first
+       clause that did NOT appear, because DOC_READ_FURNITURE excludes it. That
+       exclusion is right for what is SENT — a paper head is not clause wording
+       and must never be read as any — and wrong for what is DRAWN, because the
+       reader is looking straight at it and its absence is the blank the owner
+       reported. The bound is "above the first paired clause", which is what
+       keeps the foot and the seal card out of this without naming them. */
+    els=Array.from(canvas.querySelectorAll(
+        DOC_READ_HEADS+',p,li,div,'+DOC_READ_TXT_HEAD+','+DOC_READ_TXT_NUM))
+      .filter(el=>!el.contains(stop)
+        && !!(stop.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_PRECEDING));
+  }catch(_){ return []; }
+  /* The innermost block only — a wrapper that merely CONTAINS the line is not
+     the line, and mirroring both would print the front matter twice. */
+  els=els.filter((el,i)=>!els.some((o,j)=>j!==i&&el.contains(o)));
+  let base=0;
+  try{
+    const paper=canvas.querySelector('.doc-surface')||canvas;
+    base=parseFloat(getComputedStyle(paper).fontSize)||0;
+  }catch(_){}
+  const out=[];
+  for(const el of els){
+    const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!text) continue;
+    out.push({el,text,style:docReadMirrorStyle(el,base)});
+    /* A ceiling, and it hides nothing: the unabridged front matter is the
+       column immediately to the left of this one. */
+    if(out.length>=DOC_READ_FRONT_MAX) break;
+  }
+  return out;
 }
 function docReadSwitchHtml(c){
   if(!c||!docReadFits()) return '';
@@ -10501,4 +10656,5 @@ Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCar
      not on this list: this codebase's most repeated defect. */
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
+  docReadFront,docReadMirrorStyle,
   docReadRun,wireDocRead});

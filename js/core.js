@@ -6589,10 +6589,32 @@ async function applyNegoProposals(c, r, who){
        clause is what it always was. */
     const stacksOn = (c.changes||[]).find(x=>x && x.status==='pending' && x.clauseId===clauseId
       && x.changeType!=='insertClause' && String(x.newText||'')!=='' && String(x.newText||'')===String(p.oldText||''));
+    /* ---- AND WHAT THEY WROTE ON IS WHAT NOW STANDS, NEVER THE ROUND BASELINE
+       (Young reported it 15 Sep 2026: "this error makes no sense ... I am also
+       unable to accept / make a decision") ----
+       `cl` is negoClauseById — the ROUND BASELINE — and measuring every
+       incoming ask from it wrote the SAME oldText onto an ask that was
+       plainly written on top of one we had already ACCEPTED. negoMeasuredAlike
+       then read the two as RIVALS, and negoResolve's accept guard refused the
+       second one by name: "#CHG-003 was already adopted on this clause".
+       MEASURED: accept one ask of theirs on a clause and every later ask they
+       send on that clause can never be accepted again — the decision column
+       simply stops working on the clause being argued hardest.
+
+       negoClauseNowById is the clause AS SHOWN — the baseline plus whatever
+       has been adopted on it — and is what negoEditClause already measures our
+       OWN edits from. Asking it here is what makes both sides of the table
+       measure from one reading, and an ask written on top of a settled one
+       then composes exactly as an edit of ours does.
+
+       `stacksOn` still leads: a PENDING ask of ours is not in the standing
+       text, so only the sender's own oldText can name it. */
+    const standing = (cl && window.negoClauseNowById)
+      ? (negoClauseNowById(c, clauseId) || cl) : cl;
     let ch=null;
     try{
       ch=await negoFileChange(c, { clauseId, changeType:type,
-        oldText: stacksOn?String(p.oldText||''):(cl?cl.text:String(p.oldText||'')), newText,
+        oldText: stacksOn?String(p.oldText||''):(standing?standing.text:String(p.oldText||'')), newText,
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },

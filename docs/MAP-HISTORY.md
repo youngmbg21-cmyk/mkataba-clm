@@ -19467,3 +19467,178 @@ The screenshot came the same morning as the divider, with a red box drawn over t
 **THE FOOT'S PAIR WENT THE SAME DAY.** It was written up as "noticed, not fixed" — the foot strip's Save and Publish were added because the top bar scrolled away on a long template, and with the strip fixed they were two doors onto one act on one screen — and the owner ruled within the hour: *"Remove the bottom Save and Publish buttons."* Removed with their span, their sheet rule and their two listeners; the page now carries ONE filled button, which is what "at most ONE per page" has always asked for. TWO THINGS COST A CYCLE EACH: the explanatory comment was first written INSIDE the emitted markup, where its backticks were a balanced pair inside a template literal and EVALUATED (the standing rule, in a new costume — an HTML comment is still JS in there); and once the backticks were plain text the net still failed, because naming the retired classes in the emitted page put them back on the page the sweep reads. The note belongs in JS above the function.
 
 Tests: f306 (four claims: the scroller's shape read off the printed page, the sheet's rules, the class painted on and its two ways off, the hold held once and never keepScroll), prompt-and-build-verify 13a–13f — every one red at the parent (13d–13f reported, never crashed, on a build without the scroller).
+
+## THE NUANCED REDLINE — THE SMALLEST CHANGE, AND THE FILL MEANS ARRIVING (Young's go on the artifact of that name, 15 Sep 2026)
+
+Two screenshots of one screen, and an artifact built to answer them before a
+line of code moved. The owner's words:
+
+> *"In image 2, it is nonsensical redline or essentially delete a massive
+> paragraph that probably covers a range of topics and replace it with you
+> standard clause just because they cover the same title of the clause. The
+> redline has to be nuanced and only tackle where the misalignment is. In image
+> 1, it is hard to differentiate between the added clause vs the clause being
+> deleted ... Let us try an approach where you still cross the words you are
+> proposing to delete but to not have the blue or yellow highlight on them.
+> Leave the blue or yellow highlight only on the added words."*
+
+Then, on the artifact: *"go ahead and build all four decisions as recommended."*
+
+### What was on the screen
+
+Clause 7 of a master supply and distribution agreement — INVOICING, PAYMENT AND
+SET-OFF — carries seven rules under one heading: what an invoice must say, when
+it is paid, what a non-compliant invoice does, how a dispute runs, interest on
+late payment, the credit limit, and the right of set-off. The playbook
+disagreed with exactly one of them, the payment period: sixty days from the end
+of the calendar month against a standard of thirty days from receipt.
+
+The redline struck ALL SEVEN and put the workspace's standard payment sentence
+in their place. Had the other side accepted it as drafted, the contract would
+have lost its interest charge, its dispute procedure, its credit-limit
+protection and its set-off right, with nothing in place of any of them. The
+replacement also spoke about "the Buyer", in an agreement whose parties are
+defined at the front as the Distributor and the Manufacturer.
+
+### Three faults, not one
+
+1. **The unit was the whole clause.** A numbered heading and everything under it
+   is one clause to `clauseSegment`, so a disagreement with one sub-paragraph
+   was filed as a change to all of them.
+2. **What was filed was a clause, not a position.** `rlPlaybookProposals` set
+   `lead: preferred || fallback || draft` and the batch read
+   `it.preferred || it.draft`. The library's `preferred` wording is written to
+   stand alone on a blank page. The model's own answer — which `AI_REDLINE_RULE`
+   has always required to be *that clause's own wording carrying the smallest
+   change*, keeping the parties' defined names — was ranked BELOW it. The two
+   rulings had collided: 26 Aug 2026 ruled that the model's improvisation must
+   never be printed under "Use our standard", and the honest way to obey that
+   was to rank our wording first, which is exactly what produced the paste.
+3. **Nothing measured the loss.** No step asked whether the wording about to be
+   struck was wording anybody had complained about. Six of the seven
+   sub-paragraphs were never mentioned in the review and were deleted in
+   silence.
+
+### What was built
+
+`js/playbook.js` gained the reading — no route, no store, no filing:
+`pbClauseBlocks`, `pbQuoteBlock` (containment first, then word overlap, a tie is
+a no — the clause finder's own instinct one level down), `pbSwapBlock` (the
+element and its class survive, so a `hati-lv-2` sub-paragraph is still one and
+every other block comes through byte for byte), `pbPositionFigure` (the topic's
+OWN reader, the one precedent and the ladder use) and `pbFitWording`, which
+answers figure → fitted draft → nothing.
+
+`ladderWriteFigure` was already in the product for the figure ladder — words and
+digits, the qualifier kept, nothing else moved — so nothing new here decides
+what a number means. On the reported contract the result is: *sixty (60)* →
+*thirty (30)*, two marked words against twenty-two, and 7.1 and 7.3–7.7
+untouched to the byte.
+
+`pbUnquotedLoss` is the wall, and it is what makes decision 1 a rule rather than
+a tendency: every block the finding never named that does not survive into the
+proposed wording is counted, and one is a refusal. A person may still replace a
+whole clause on purpose — decision 4 keeps that picture — but the question now
+counts what would go, and answering it is what lifts the wall for that one
+press. Nothing that files unattended passes the flag.
+
+### The marks
+
+The 13–14 Sep grammar was right: colour says WHO (amber theirs, the brand
+colour ours), the line says WHAT (underline arrives, strike leaves). What was
+wrong is that both halves of a change wore the coloured FILL, which is the
+loudest thing on the page — so a screen of struck wording and the one sentence
+arriving inside it read alike, and with fault 1 above there was a great deal of
+struck wording.
+
+The fill is now on the insertion alone. **A deletion STATES `transparent`
+rather than saying nothing**: `.nego-del` is the unsided mark's own rule and
+carries `--n-del-bg` at (0,1,0), so merely dropping the declaration from the
+(0,2,1) sided rules would have let a red fill straight back through — measured,
+not assumed. Both stylesheets, identical, and `redline-verify` section 28
+measures the painted pixels rather than the source.
+
+### What was deliberately not changed
+
+The three named wordings and their names (the 26 Aug ruling); the library's own
+clause as the answer for a position the contract has no clause on at all;
+`redlineWholesale` and `redlineReplacementHtml`; the fallback, which is still
+never filed unattended because it is a position nobody has decided to concede.
+
+## THE DECISION THAT COULD NOT BE MADE, AND THE COLUMN THAT WAS BLANK (Young reported all three 15 Sep 2026)
+
+Three reports in one message, alongside the artifact's four decisions.
+
+### "This error makes no sense ... I am also unable to accept / make a decision"
+
+The screenshot showed *"#CHG-003 was already adopted on this clause — reopen it
+first, or reject this one."* over a change column whose two awaiting rows read
+"3. Maintenance & Uptime · R5 · theirs" and "· R2 · theirs".
+
+**Two faults, and the second is the one that mattered.**
+
+The message cited a handle that appears NOWHERE on the screen it interrupts.
+Since the column took the artifact's shape on 14 Sep the CLAUSE leads every row
+and the reference rides the hover, so a refusal naming `#CHG-003` points at a
+change the reader cannot pick out of the column. `negoRefusalClause` now names
+the clause through `clauseNameShown` — the one presenting reading — and points
+at the ladder, which is the one place every move on a clause is listed and a
+settled one can be reopened. The mirror guard `ng_reopen_blocked_downstream`
+had the identical fault and got the identical fix, in both books.
+
+But the reason the guard was firing at all is a real defect, and it is in
+`applyNegoProposals` (js/core.js). An incoming ask was filed with
+`oldText: cl.text` where `cl` is `negoClauseById` — the ROUND BASELINE.
+`negoMeasuredAlike` compares exactly that field, so an ask the other side wrote
+on top of one we had ALREADY ACCEPTED carried the same `oldText` as the accepted
+one and read as its RIVAL. The accept guard then refused it, correctly by its
+own terms and uselessly in fact. **Accept one ask of theirs on a clause and no
+later ask on that clause could ever be accepted again** — on the clause being
+argued hardest, which is where it was reported.
+
+`negoClauseNowById` is the clause AS SHOWN, baseline plus what has been adopted,
+and it is what `negoEditClause` already measures our OWN edits from. Asking it
+here makes both sides of the table measure from one reading. `stacksOn` still
+leads, because a PENDING ask of ours is not in the standing text and only the
+sender's own `oldText` can name it.
+
+### "Instead of having a black screen on the plain english side"
+
+The front matter is deliberately not a clause: the title page and the contents
+are not wording anybody negotiates, and `docReadSheet` drops them so nothing is
+sent to the route or hashed for them. The cost was a reader who turns Plain
+English on at the top of a long contract and is shown an empty column for two
+pages. `docReadFront` mirrors every painted block above the first PAIRED clause.
+
+Three things were learned building it, each measured:
+
+- **It needed its own class.** As `.doc-read-note` it was counted as a reading
+  by four existing checks — "8 of 4", "5 readings for 4 clauses". A mirror is
+  the CONTRACT's words; a note is a READING of them. `.doc-read-mirror` is
+  dressed by the same rules and counted by nothing.
+- **It needed its own floor.** Sharing the entries' floor put the first reading
+  28px below the clause it reads, because a title page's copy runs a little
+  taller than the paper it copies. The mirror is context and yields; "level with
+  its own clause, to the pixel" is the promise the column exists to keep.
+- **The paper's HEAD had to be included.** `DOC_READ_FURNITURE` excludes it, and
+  that is right for what is SENT and wrong for what is DRAWN — the title block
+  was the one thing above the first clause that still did not appear. The bound
+  "above the first paired clause" keeps the foot and the seal card out without
+  naming them.
+
+Its shape — alignment, weight, case, letter-spacing, size and leading — is
+MEASURED off the block each entry faces and written inline through a narrow
+door (a fixed set of keywords, one number apiece), exactly as `--dr-size` and
+`--dr-face` beside it already are. A design this stylesheet has never heard of
+is mirrored correctly; a design added tomorrow will be too.
+
+### "Make it possible to scroll from both sides"
+
+The edition has no scroller and must not grow one: it is a clip with a
+transformed inner kept in step with the paper by `docReadSync`, and that is the
+entire reason the two columns cannot drift apart. So the wheel is FORWARDED to
+the paper's own scroller — `deltaMode` honoured, because a mouse in Firefox
+reports LINES and a page key reports PAGES, and the press swallowed only where
+the paper actually moved, so reaching the end of the contract hands the wheel
+back rather than trapping it. Driven in `plain-english-verify` 18i with a real
+`page.mouse.wheel`; against the parent it reports `contract 0 → 0`.

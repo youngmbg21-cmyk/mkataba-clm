@@ -1472,6 +1472,140 @@ const withKeys = (entries, heads) => entries.map(e => ({ ...e, key: 'R' + e.i, h
       press10 && `note ${press10.before} → ${press10.after}, paper ${press10.paper}; h2 ${press10.h2} vs ${press10.h2Note}`);
     await page.screenshot({ path: path.join(OUT, '17-sections.png') });
 
+    /* ============ 18 · THE COLUMN IS NOT BLANK ABOVE THE FIRST CLAUSE, AND
+       EITHER SIDE SCROLLS (Young ruled both, 15 Sep 2026) ============
+       Two reports off one screen. "I am only able to scroll by putting my
+       cursor on the left of the screen where the original contract is. Make it
+       possible to scroll from both sides." And: "Instead of having a black
+       screen on the plain english side of the contract, simply mimic what is
+       on the contract side until where the clauses begin translating to plain
+       english."
+
+       BOTH ARE GEOMETRY. Nothing in the source looks wrong on the parent: the
+       edition is a clip with a transformed inner and no scroller of its own,
+       so a wheel over it moves nothing and errors nowhere; and the front
+       matter is deliberately not a clause, so the column is correctly empty
+       for as long as the title page runs. Only a rendered page, and a real
+       wheel, can tell you either. */
+    const FRONTM = ['<h1>Master Supply and Distribution Agreement</h1>',
+      '<p>Dated 18 November 2025</p>',
+      '<p>Between Nordvane Consumer Brands AB and Kestrel Retail Group plc</p>',
+      '<p>Confidential — draft for execution</p>']
+      .concat(Array.from({ length: 14 }, (_, k) =>
+        `<h2>${k + 1}. Clause ${k + 1}</h2><p>${('The parties agree to the terms of this clause and to each obligation stated in it. ').repeat(4)}</p>`))
+      .join('');
+    await drive(page, html => {
+      const c = state.contracts.find(x => x.id === 'MK-B2');
+      c.redlineText = html; c.format = 'rich';
+      delete c.branding; delete c._readings; delete c._readSig;
+      if (typeof docReadSet === 'function') docReadSet(false);
+      openWorkspace(c.id); renderWorkspace(c.id);
+    }, FRONTM, null);
+    await pause(1200);
+    await drive(page, () => { document.querySelector('[data-ws-tab="docs"]')?.click(); }, undefined, null);
+    await pause(900);
+    const fHeads = await headsOf(page, 'MK-B2');
+    check(fHeads.length === 14,
+      '18a THE STAGE is a long contract with a title page above its first clause',
+      fHeads.length + ' clause(s)');
+    ai.reset();
+    ai.script(tool(withKeys(fHeads.map((h, k) => ({ i: k, plain: 'Plain reading of clause ' + (k + 1) + '.' })), fHeads)));
+    await press(page, '.doc-read-seg button[data-doc-read="1"]', '18 Plain English over a title page');
+    await pause(3500);
+
+    const mirror = await drive(page, () => {
+      const canvas = document.getElementById('doc-canvas');
+      const txt = el => (el.textContent || '').replace(/\s+/g, ' ').trim();
+      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
+      const mirrors = Array.from(document.querySelectorAll('.doc-read-mirror'));
+      const firstClause = canvas.querySelector('h2');
+      if (!firstClause) return { none: 'no h2 on the sheet' };
+      const top = firstClause.getBoundingClientRect().top;
+      /* Every painted block of the paper above the first clause — innermost
+         only, the same rule docReadFront applies. */
+      let above = Array.from(canvas.querySelectorAll('h1,h2,h3,h4,p,div,li'))
+        .filter(el => el.getBoundingClientRect().top < top && txt(el));
+      above = above.filter((el, i) => !above.some((o, j) => j !== i && el.contains(o)));
+      const title = above[0] || null;
+      const tm = title ? (mirrors.find(m => txt(m) === txt(title)) || null) : null;
+      return {
+        notes: notes.length, mirrors: mirrors.length,
+        aboveN: above.length, aboveText: above.map(txt), mirrorText: mirrors.map(txt),
+        level: mirrors.map((m, k) => above[k]
+          ? Math.round(m.getBoundingClientRect().top - above[k].getBoundingClientRect().top) : null),
+        titleTag: title ? title.tagName : null,
+        titleAlign: title ? getComputedStyle(title).textAlign : null,
+        titleMirrorAlign: tm ? getComputedStyle(tm).textAlign : null,
+        firstNoteOff: notes.length
+          ? Math.round(notes[0].getBoundingClientRect().top - top) : null,
+        anyNoteIsMirror: notes.some(n => n.classList.contains('doc-read-mirror')),
+      };
+    }, undefined, null);
+    check(!!mirror && mirror.aboveN >= 4,
+      '18b THE CONTROL: the paper really does carry a title page above its first clause',
+      mirror && `${mirror.aboveN} block(s): ${(mirror.aboveText || []).join(' · ').slice(0, 80)}`);
+    check(!!mirror && mirror.mirrors === mirror.aboveN,
+      '18c the edition draws one entry per block of it — the column is not blank',
+      mirror && `${mirror.mirrors} mirrored for ${mirror.aboveN} on the paper`);
+    check(!!mirror && JSON.stringify(mirror.mirrorText) === JSON.stringify(mirror.aboveText),
+      '18d and they are the CONTRACT\'S own words, in the contract\'s own order',
+      mirror && (mirror.mirrorText || []).join(' · ').slice(0, 80));
+    check(!!mirror && mirror.mirrors > 0 && !mirror.anyNoteIsMirror && mirror.notes === 14,
+      '18e a mirror is not a reading — nothing counting the readings can trip over it',
+      mirror && `${mirror.notes} reading(s), ${mirror.mirrors} mirror(s), overlap ${mirror.anyNoteIsMirror}`);
+    /* LEVEL, OR STEPPED BELOW — never above and never overlapping, which is the
+       promise the readings beside them already make. A mirrored line can run a
+       little taller than the line it copies (a block whose leading computes to
+       'normal' cannot be measured), and the floor then steps the next one down
+       rather than letting two entries sit on top of each other. */
+    check(!!mirror && (mirror.level || []).every(v => v !== null && v >= -2 && v <= 20),
+      '18f each one sits level with the block it faces, or steps below it — never above',
+      mirror && JSON.stringify(mirror.level));
+    check(!!mirror && mirror.titleAlign === 'center' && mirror.titleMirrorAlign === 'center',
+      '18g the centred title is centred in the edition too — the shape is measured, not typed',
+      mirror && `${mirror.titleTag} · paper ${mirror.titleAlign} · edition ${mirror.titleMirrorAlign}`);
+    check(!!mirror && mirror.firstNoteOff !== null && Math.abs(mirror.firstNoteOff) <= 8,
+      '18h and the mirror never pushes a READING off its own clause',
+      mirror && `first reading ${mirror.firstNoteOff}px from its clause`);
+    await page.screenshot({ path: path.join(OUT, '18-mirror.png') });
+
+    /* ---- THE WHEEL, driven with a real mouse over the EDITION's own column.
+       page.mouse.wheel is a genuine wheel event at a point, which is the only
+       instrument that can tell "the column scrolls" from "the column would
+       scroll if anything listened". */
+    const box = await drive(page, () => {
+      const l = document.getElementById('doc-read');
+      if (!l || l.hidden) return null;
+      const r = l.getBoundingClientRect();
+      const s = document.getElementById('doc-scroll');
+      const inner = document.getElementById('doc-read-inner');
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+        top: s ? s.scrollTop : null, tf: inner ? inner.style.transform : '' };
+    }, undefined, null);
+    let wheeled = null;
+    if (box){
+      await page.mouse.move(box.x, box.y);
+      await page.mouse.wheel(0, 500);
+      await pause(600);
+      wheeled = await drive(page, () => {
+        const s = document.getElementById('doc-scroll');
+        const inner = document.getElementById('doc-read-inner');
+        return { top: s ? s.scrollTop : null, tf: inner ? inner.style.transform : '',
+          scroller: !!inner && getComputedStyle(inner.parentElement).overflow !== 'visible'
+            && inner.parentElement.scrollHeight > inner.parentElement.clientHeight + 2
+            && inner.parentElement.scrollTop > 0 };
+      }, undefined, null);
+    }
+    check(!!wheeled && wheeled.top > (box.top || 0) + 50,
+      '18i A REAL WHEEL over the plain-English column scrolls the contract — the reported fault',
+      wheeled ? `contract ${box.top} → ${wheeled.top}` : 'the column was not on screen');
+    check(!!wheeled && wheeled.tf !== box.tf && /-?\d/.test(wheeled.tf),
+      '18j and the edition follows it in the same movement — still one scroller, never two',
+      wheeled && `${box.tf || '(none)'} → ${wheeled.tf}`);
+    check(!!wheeled && wheeled.scroller === false,
+      '18k the edition grew no scroller of its own — the two columns cannot drift apart',
+      wheeled && String(wheeled.scroller));
+
     /* ============ 7 · IT IS A CONTROL, AND NOTHING ELSE ON THE PAGE MOVED ============ */
     check(errors.length === 0, '7a the page raised no errors throughout', errors.slice(0, 2).join(' | '));
   } catch (e) {

@@ -305,8 +305,19 @@ describe('f208 · two RIVAL proposals for the same words are still refused', () 
     assert.equal(w.win.negoResolve(c, rival.id, 'accepted', { side: 'owner', by: ME.name }), null,
       'two rivals measured alike cannot both be adopted');
     assert.equal(rival.status, 'pending', 'and nothing moved');
-    assert.match(w.toasts.map(t => t.text).join(' '), /CHG-001/,
-      'the refusal names the change in the way');
+    /* ---- AND IT NAMES THE CLAUSE, NEVER THE CHG NUMBER (Young reported it
+       15 Sep 2026: "this error makes no sense and it seems it is tied back to
+       the old way of how to track changes with the CHG numbers") ----
+       RE-POINTED IN PLACE. Naming the other change by its id was right while
+       that id LED every row in the change column; since the column took the
+       artifact's shape on 14 Sep the CLAUSE leads and the id rides the hover,
+       so the refusal pointed at a string the reader cannot see on the screen
+       it interrupts. The guard is untouched — only what it CALLS the other
+       change has moved, to the name every screen prints. */
+    const said1 = w.toasts.map(t => t.text).join(' ');
+    assert.ok(!said1.includes('CHG-001'), 'no CHG number: ' + said1);
+    assert.ok(said1.includes(w.win.clauseNameShown(String(rival.clauseLabel || ''))),
+      'the refusal names the clause in the way: ' + said1);
   });
 
   test('rejecting one of them is still free', async () => {
@@ -337,8 +348,19 @@ describe('f208 · reopening what another change was built on top of', () => {
     assert.equal(w.win.negoResolve(c, first.id, 'pending', { side: 'owner', by: ME.name }), null,
       'the change underneath cannot be pulled out on its own');
     assert.equal(first.status, 'accepted', 'and it did not move');
-    assert.match(w.toasts.map(t => t.text).join(' '), new RegExp(second.id),
-      'the refusal names what was built on top');
+    /* ---- AND IT NAMES THE CLAUSE, NEVER THE CHG NUMBER (Young reported it
+       15 Sep 2026: "this error makes no sense and it seems it is tied back to
+       the old way of how to track changes with the CHG numbers") ----
+       RE-POINTED IN PLACE. Naming the other change by its id was right while
+       that id LED every row in the change column; since the column took the
+       artifact's shape on 14 Sep the CLAUSE leads and the id rides the hover,
+       so the refusal pointed at a string the reader cannot see on the screen
+       it interrupts. The guard is untouched — only what it CALLS the other
+       change has moved, to the name every screen prints. */
+    const said2 = w.toasts.map(t => t.text).join(' ');
+    assert.ok(!said2.includes(second.id), 'no CHG number: ' + said2);
+    assert.ok(said2.includes(w.win.clauseNameShown(String(second.clauseLabel || ''))),
+      'the refusal names the clause what was built on top sits on: ' + said2);
   });
 
   test('and taking the top one off first frees it', async () => {
@@ -669,7 +691,9 @@ describe('f208 · a settled ask can be reopened from its tag', () => {
     w.win.negoResolve(c, rival.id, 'accepted', { side: 'owner', by: ME.name });
     assert.equal(w.win.negoChangeById(c, rival.id).status, 'pending',
       'accepting is refused — the guard is right, they are rivals');
-    assert.match(w.toasts.map(t => t.text).join(' '), /reopen it first/i,
+    /* The way out is still named; since 15 Sep it names the LADDER, which is
+       where every move on a clause is listed and a settled one is reopened. */
+    assert.match(w.toasts.map(t => t.text).join(' '), /reopen[\s\S]*ladder/i,
       'and it names the way out');
     /* ---- THE PART THAT MADE IT A TRAP, AND IS NOW MENDED AT THE SOURCE ----
        As reported, the change this refusal tells you to reopen had NO CARD to

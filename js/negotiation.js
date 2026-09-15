@@ -2619,6 +2619,20 @@ function negoBundleFollow(c, ch, status){
 const negoParkedUnder = (c, id) => (Array.isArray(c && c.changes) ? c.changes : [])
   .filter(x => x && x.status === 'countered' && x.counteredBy === id);
 
+/* ---- WHAT A REFUSAL ABOUT ANOTHER CHANGE IS ALLOWED TO CALL IT ----
+   (Young, 15 Sep 2026.) Both of the guards below used to name a change by its
+   `#CHG-nnn` id. That was the right handle while the id led every row; since
+   the column took the artifact's shape on 14 Sep the CLAUSE leads and the id
+   rides the hover, so those two sentences pointed at a string the reader could
+   not see on any row. A refusal names what the screen names — the clause,
+   through clauseNameShown, which is the one presenting reading — and where
+   even that is missing it says "this clause" rather than inventing a handle. */
+function negoRefusalClause(other, ch){
+  const label = String((other && other.clauseLabel) || (ch && ch.clauseLabel) || '').trim();
+  const shown = (label && window.clauseNameShown) ? clauseNameShown(label) : label;
+  return shown || i18t('ng_this_clause');
+}
+
 /* ---------- deciding a change ----------
    Accept merges that one clause into the document. Reject leaves the clause at
    the baseline and the ask becomes an open point. Reopen puts it back to
@@ -2725,7 +2739,20 @@ function negoResolve(c, id, status, opts = {}){
       && (x.roundN || 1) === (ch.roundN || 1)
       && negoMeasuredAlike(x, ch));
     if (adopted){
-      if (window.toast) toast(i18t('ng_accept_blocked_adopted', { id: adopted.id }), 'err');
+      /* ---- AND IT NAMES SOMETHING THE READER CAN SEE (Young reported it
+         15 Sep 2026: "this error makes no sense and it seems it is tied back
+         to the old way of how to track changes with the CHG numbers") ----
+         It named "#CHG-003". Since the row took the artifact's shape on 14 Sep
+         the reference is NOT PRINTED on any row — the clause leads and the id
+         rides the hover — so this refusal cited a handle that appears nowhere
+         on the screen it interrupts, about a change the reader cannot pick out
+         of the column. It names the CLAUSE instead, through clauseNameShown
+         like every other screen, and points at the LADDER, which is the one
+         place every move on a clause is listed and the settled one can be
+         reopened. The way forward is on the same screen as the refusal. */
+      const why = i18t('ng_accept_blocked_adopted', { clause: negoRefusalClause(adopted, ch) });
+      negoLastRefusal = why;
+      if (window.toast) toast(why, 'err');
       return null;
     }
   }
@@ -2748,7 +2775,12 @@ function negoResolve(c, id, status, opts = {}){
       && (x.seq || 0) > (ch.seq || 0)
       && !negoMeasuredAlike(x, ch));
     if (built){
-      if (window.toast) toast(i18t('ng_reopen_blocked_downstream', { id: built.id }), 'err');
+      /* THE MIRROR OF THE REFUSAL ABOVE, AND IT NAMED AN ID TOO. Same fault,
+         same fix: the clause by the name every screen prints, and the ladder
+         as the place the later move is reached. */
+      const why = i18t('ng_reopen_blocked_downstream', { clause: negoRefusalClause(built, ch) });
+      negoLastRefusal = why;
+      if (window.toast) toast(why, 'err');
       return null;
     }
   }

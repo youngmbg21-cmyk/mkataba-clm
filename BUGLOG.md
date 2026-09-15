@@ -14197,3 +14197,64 @@ Noticed, not fixed:
   bold is lost while a clause is shown with marks on it. Could not reproduce
   it from a built fixture; the geometry fault above was reproduced and fixed.
 - redline-verify check 5 is red at unmodified main and was left red.
+
+## 15 Sep 2026 — the nuanced redline, the decision that could not be made, and the blank column
+
+Young's go on the artifact "The Nuanced Redline" (all four decisions), plus
+three reports in the same message.
+
+Defects found and fixed:
+
+1. A playbook redline deleted a whole clause to change one number. Clause 7 of
+   a distribution agreement carries seven rules; the playbook disagreed with
+   one of them and the redline struck all seven, pasting the workspace's
+   stand-alone payment clause over them — losing the interest charge, the
+   dispute procedure, the credit limit and the set-off right, and naming
+   parties the contract does not define. THREE causes: the unit was the whole
+   clause; the library's preferred wording LED the batch, ranking the model's
+   own fitted answer below it; and nothing measured what was being struck.
+   pbFitWording is now the one reading of the smallest change — our figure
+   written into their own sentence, else the fitted draft, else nothing — and
+   pbUnquotedLoss is the wall that refuses a filing that would delete blocks
+   the finding never quoted. A person may still replace a clause whole; the
+   question now counts what would go.
+
+2. A second decision on a clause could never be made. applyNegoProposals
+   measured every incoming ask from the ROUND BASELINE, so an ask the other
+   side wrote on top of one we had already accepted read as its rival and the
+   accept guard refused it. Accept one ask of theirs on a clause and no later
+   ask on that clause could ever be accepted again. Measured and reproduced;
+   it now measures from negoClauseNowById, the same reading our own edits use.
+
+3. The refusal named "#CHG-003", which the change column has not printed on a
+   row since 14 Sep. It names the clause now, through clauseNameShown, and
+   points at the ladder. The mirror guard had the same fault and got the same
+   fix, in both books.
+
+4. The Plain English column was blank above the first clause. The front matter
+   is mirrored now — the contract's own words, its own class, its own floor,
+   its shape measured off the block each entry faces. Nothing is sent, cached
+   or hashed.
+
+5. The Plain English column could not be scrolled from its own side. The wheel
+   is forwarded to the paper's scroller; the edition is still a clip and a
+   transform and grows no scroller of its own.
+
+6. A deletion wore the same coloured fill as an insertion. The fill is on the
+   added words alone now. It had to STATE transparent rather than omit the
+   declaration: .nego-del carries --n-del-bg at one class to these three and
+   would have painted it straight back.
+
+Noticed, not fixed:
+- ng_countered_decide_counter also names a change by its CHG id. Left alone
+  because a counter's own row IS drawn, so the reader can find it — but it is
+  the same shape of sentence and the owner may want it changed too.
+- redline-verify check 5, competing-redlines-verify "a legacy clause names BOTH
+  asks in its panel", and nego-redesign-verify section 1 (five checks) are red
+  at unmodified main and were left red.
+- clause-editor-verify 33h failed once and passed on a re-run at the same
+  commit, and passes at the parent: it computes a click point before a repaint
+  and is timing-sensitive. Not investigated further.
+- The clause editor's scan rail can still fill the box with a stand-alone
+  library clause on a located clause. It is a person's press into a box they
+  review before filing, so the wall was deliberately not put there.

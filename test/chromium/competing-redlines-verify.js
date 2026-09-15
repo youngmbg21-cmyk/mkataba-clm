@@ -153,12 +153,25 @@ const check = (name, pass, detail) => {
       const t = window.toast; window.toast = (m, k) => { window.__toasts.push(String(m)); return t && t(m, k); };
       const second = negoResolve(c, theirsId, 'accepted', { side: 'owner', by: currentUser().name });
       window.toast = t;
+      const adopted = (c.changes || []).find(x => x.id === oursId) || {};
       return { second: second === null, said: window.__toasts.join(' | '),
+        label: window.clauseNameShown ? clauseNameShown(String(adopted.clauseLabel || '')) : '',
         wording: richToText(negoResolvedBody(c)).includes('forty-five') };
     }, { oursId: l.oursId, theirsId: b.theirs.id, clauseId: l.clauseId });
     check('accepting the rival on an adopted clause is refused', guard.second);
-    check('in words that name the adopted change and the way out',
-      guard.said.includes(l.oursId) && /reopen|reject/i.test(guard.said), guard.said.slice(0, 110));
+    /* ---- AND IT NAMES THE CLAUSE, NEVER THE CHG NUMBER (Young reported it
+       15 Sep 2026: "this error makes no sense and it seems it is tied back to
+       the old way of how to track changes with the CHG numbers") ----
+       RE-POINTED IN PLACE, and the reasoning is what makes the re-point safe.
+       Naming the adopted change by its id was right while the id LED every row
+       in the change column; since the column took the artifact's shape on
+       14 Sep the CLAUSE leads and the id rides the hover, so this sentence
+       pointed at a handle the reader cannot see anywhere on the screen it
+       interrupts. The refusal itself is unchanged — what it CALLS the other
+       change has moved to the name every other screen prints. */
+    check('in words that name the clause and the way out',
+      !guard.said.includes(l.oursId) && !!guard.label && guard.said.includes(guard.label)
+        && /reopen|reject/i.test(guard.said), guard.said.slice(0, 110));
     check('and the adopted wording is untouched', guard.wording);
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));

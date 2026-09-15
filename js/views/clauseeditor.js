@@ -4267,8 +4267,16 @@ function ceScanHtml(){
    only difference between the two groups, and it is decided here — once, from
    the group — rather than at each button. A card in `here` fills the box; a card
    in `missing` files a new clause. */
+/* ---- AND THE FOURTH WORDING, WHICH ONLY A LOCATED CLAUSE CAN HAVE ----
+   (Young's go on "The Nuanced Redline", 15 Sep 2026.) `fit` is our figure
+   written into THEIR sentence — see pbFitWording. It is on the `here` list
+   alone because there is nothing to narrow to on a clause the contract does
+   not yet carry, and it is named here rather than guessed at the card so this
+   rail and the Playbook review window offer the same four presses under the
+   same four names. */
 const CE_SCAN_VERBS = {
-  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft' },
+  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft',
+             fit: 'ce_use_fit' },
   missing: { preferred: 'ce_add_standard', fallback: 'ce_add_fallback', draft: 'ce_add_draft' },
 };
 function ceScanCardHtml(it, i, group){
@@ -4337,7 +4345,8 @@ function ceScanCardHtml(it, i, group){
       : stop
       ? `<span class="filed" title="${_ceea(stop.message)}">${_cee(_cet(
           stop.hit.where === 'document' ? 'ng_dup_clause_here_doc' : 'ng_dup_clause_here_table'))}</span>`
-      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)}</div>
+      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)
+        + ((it.fit && it.fit.kind === 'figure') ? btn('fit', it.fit.text) : '')}</div>
   </div>`;
 }
 /* ADDING A MISSING STANDARD IS A REAL FILING, and it goes through the
@@ -5559,8 +5568,15 @@ function ceWirePage(page){
       const it = ceScanItems()[Number(parts[0])];
       if (!it) return;
       const words = String((parts[1] === 'fallback' ? it.fallback
-        : parts[1] === 'draft' ? it.draft : it.preferred) || '').trim();
+        : parts[1] === 'draft' ? it.draft
+        : parts[1] === 'fit' ? (it.fit && it.fit.text) : it.preferred) || '').trim();
       if (!words) return;
+      /* THE SMALLEST CHANGE GOES IN AS THE CLAUSE'S OWN MARKUP. ceRich already
+         tells markup from plain lines, so handing it the fitted body is what
+         keeps every OTHER block of the clause exactly as it is — rebuilt from
+         lines they would all arrive as bare paragraphs and Save would file a
+         formatting change across wording nobody touched. */
+      const fitHtml = (parts[1] === 'fit' && it.fit) ? it.fit.html : null;
       /* ---- ONLY THE DRAFT IS COPILOT'S WORDING (idea 22) ----
          rlPlaybookProposals names THREE wordings on a finding and only `draft`
          is the model's: `preferred` and `fallback` are the clause library's,
@@ -5600,7 +5616,7 @@ function ceWirePage(page){
          that located THIS clause fills the box and files nothing; a rule that
          located no clause at all has nothing here to replace, so it files a new
          clause instead. One decision, taken from the finding's own clauseId. */
-      if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
+      if (it.clauseId) ceApply(fitHtml || words, _cet('ce_step_playbook'));
       else ceAddMissingClause(it, words, scan);
       try{ if (_pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
         aiTraceApplied(_ceC, _pbTrace, _ceText);

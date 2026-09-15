@@ -1376,8 +1376,10 @@
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them,.rl-col ins.rl-them,.rl-col del.rl-them,.pv-sheet ins.rl-them,.pv-sheet del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us,.rl-col ins.rl-us,.rl-col del.rl-us,.pv-sheet ins.rl-us,.pv-sheet del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
@@ -2831,7 +2833,7 @@
     color:var(--color-neutral-600); }
   .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
   #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
-  .doc-read-note{ position:absolute; left:0; right:0; padding-right:4px;
+  .doc-read-note,.doc-read-mirror{ position:absolute; left:0; right:0; padding-right:4px;
     /* SET AT THE SIZE THE CONTRACT IS SET AT (Young reported it 10 Sep 2026).
        --dr-size is MEASURED off the paper by docReadPaint rather than computed
        from a token here, and that is what makes the claim a RELATION rather
@@ -2853,7 +2855,23 @@
        the product's face. */
     font-family:var(--dr-face,var(--font-doc));
     color:var(--color-neutral-700); }
-  .doc-read-note p{ margin:0; }
+  .doc-read-note p,.doc-read-mirror p{ margin:0; }
+  /* ---- THE PAPER'S OWN FRONT MATTER, MIRRORED (Young ruled 15 Sep 2026) ----
+     Above the first clause there is nothing to translate, and the column was
+     blank for as long as the title page and the contents ran. These entries
+     carry the contract's OWN words so the two columns read together from the
+     top; every part of their shape — centring, weight, case, letter-spacing,
+     size and leading — is MEASURED off the block each one faces and written
+     inline by docReadMirrorStyle, so a document design this stylesheet has
+     never heard of is mirrored correctly. Nothing is declared here that would
+     fight that measurement. */
+  /* The edition's own 1.75 is the leading of a TRANSLATION set beside a
+     clause; a mirror is a copy of the paper and takes the paper's. Where the
+     block's own leading resolves to a number docReadMirrorStyle measures it
+     and writes it inline; this is the answer for a block whose leading
+     computes to 'normal' and so cannot be measured. */
+  .doc-read-mirror{ line-height:1.6; }
+  .doc-read-mirror > p{ white-space:normal; }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }

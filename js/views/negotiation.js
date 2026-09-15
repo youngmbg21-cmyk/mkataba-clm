@@ -13031,12 +13031,32 @@ function rlPlaybookProposals(c, rev){
        is what lets the rail, the review modal and the filing path all refuse
        the same thing for the same reason. */
     const landing = cl ? 'edit' : (v.status === 'missing' ? 'add' : 'unplaced');
+    /* ---- ON A CLAUSE WE ALREADY HAVE, THE LEAD IS THE SMALLEST CHANGE ----
+       (Young's go on the artifact "The Nuanced Redline", 15 Sep 2026,
+       decisions 1 and 2. See THE SMALLEST CHANGE THAT MEETS A POSITION in
+       js/playbook.js for the report this comes from.)
+       `preferred` led, so the library's stand-alone clause was pasted over a
+       clause the contract already had — seven rules struck to move one number.
+       pbFitWording answers what the smallest change actually is: our figure
+       written into THEIR sentence where the position is argued in a number,
+       otherwise the model's fitted draft, otherwise NOTHING, which is an
+       honest answer and better than a paste. The three named wordings are
+       untouched and all three keep their own slot and their own name — the 26
+       Aug ruling stands; what moves is which one LEADS, and only on an edit. */
+    const fit = (landing === 'edit' && window.pbFitWording)
+      ? pbFitWording(cl, v, preferred, draft) : null;
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
       oldText: cl ? cl.text : '',
-      preferred, fallback, draft, landing,
-      lead: preferred || fallback || draft,
-      leadKind: preferred ? 'standard' : (fallback ? 'fallback' : 'draft'),
+      /* The clause's own markup, carried so the wall and the filing door can
+         both ask about its BLOCKS without re-reading the contract. */
+      oldHtml: cl ? String(cl.bodyHtml || '') : '',
+      preferred, fallback, draft, landing, fit,
+      /* `lead` is the whole clause as it would read, never the one block that
+         moved: the preview is a redline AGAINST oldText, so handing it a
+         fragment would draw the very wholesale replacement this prevents. */
+      lead: fit ? fit.text : (preferred || fallback || draft),
+      leadKind: fit ? fit.kind : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft')),
       risk: v.escalate ? 'high' : 'medium' });
   }
   return out;
@@ -13046,7 +13066,11 @@ function rlPlaybookProposals(c, rev){
    two screens come to call the same thing by two different names. A getter map
    is deliberately NOT used: this resolves at the moment it is read, so it
    follows a reader who switches language mid-sitting. */
-const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', draft: 'pb_w_draft' };
+const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', draft: 'pb_w_draft',
+  /* The fourth wording, and the only one HaTi works out rather than stores:
+     OUR figure written into THEIR sentence. Named like the other three so a
+     card can never print it under somebody else's name. */
+  figure: 'pb_w_figure' };
 function rlPbWordingLabel(kind){
   return i18t(RL_PB_WORDING_KEY[kind] || RL_PB_WORDING_KEY.standard);
 }
@@ -13184,7 +13208,7 @@ async function rlPrepareRedlines(c, again){
       `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
   }
   const items = rlPlaybookProposals(c, rev);
-  const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0 };
+  const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0, broad: 0 };
   if (!items.length){
     const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
     if (window.toast) toast(aligned === rev.verdicts.length ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
@@ -13195,12 +13219,23 @@ async function rlPrepareRedlines(c, again){
   }
   for (const it of items){
     if (it.landing === 'unplaced'){ n.unplaced++; continue; }
-    const words = String(it.preferred || it.draft || '').trim();   // NEVER it.fallback
-    if (!words){ n.fallback++; continue; }
+    /* ---- THE BATCH FILES THE SMALLEST CHANGE, OR NOTHING ----
+       It read `it.preferred || it.draft` — the library's stand-alone clause
+       FIRST — which is how one press came to delete six sub-clauses nobody had
+       complained about. On a clause the contract already has, the only wording
+       this may file unattended is the fitted one; where there is none, the
+       proposal is COUNTED AND LEFT for a person to decide in the review window,
+       exactly as a fallback-only proposal already is. NEVER it.fallback, which
+       is a position nobody has decided to concede. */
+    const words = it.landing === 'edit'
+      ? String((it.fit && it.fit.text) || '').trim()
+      : String(it.preferred || it.draft || '').trim();
+    if (!words){ if (it.landing === 'edit') n.broad++; else n.fallback++; continue; }
     /* RECORD IT — the same entry the clause editor's scan rail writes at ITS
        press, so the acceptance metrics count what became of these. The draft
        is what Copilot proposed; where the library's own wording is filed
        instead, the draft is recorded as not taken. */
+    const tookDraft = !!it.draft && _rlSameWords(words, it.draft);
     if (it.draft && window.aiTraceNote){
       try{
         const tr = aiTraceNote(c, { feature: 'playbook', kind: 'wording',
@@ -13211,8 +13246,13 @@ async function rlPrepareRedlines(c, again){
              this press files straight through the funnel, so the settle that
              marks the draft as-is or edited has to find a hash already on the
              entry. (The scan rail fills a box first and hashes at apply.) */
-          hash: (!it.preferred && window.aiTraceHash) ? aiTraceHash(words) : null });
-        if (it.preferred && window.aiTraceRefuse) aiTraceRefuse(c, tr, i18t('ce_trace_used_ours'));
+          /* WHETHER THE DRAFT WAS TAKEN IS ASKED OF THE WORDING ITSELF, not of
+             whether a library entry happens to exist. Since the lead became
+             the SMALLEST CHANGE the two can differ in both directions: an edit
+             may file the draft although a preferred wording exists, and may
+             file our figure although one does not. */
+          hash: (tookDraft && window.aiTraceHash) ? aiTraceHash(words) : null });
+        if (!tookDraft && window.aiTraceRefuse) aiTraceRefuse(c, tr, i18t('ce_trace_used_ours'));
       }catch(_){}
     }
     const bag = { quiet: true };
@@ -13233,7 +13273,7 @@ async function rlPrepareRedlines(c, again){
   }
   if (window.aiTraceSave) aiTraceSave(c);
   if (window.logAudit) logAudit(c, 'Playbook',
-    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only`);
+    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only, ${n.broad} too broad to file unattended`);
   if (window.persist) persist(c);
   /* SAY WHAT HAPPENED, ONCE. One 'ok' line with the counts; nothing filed is a
      'warn' that says why. No band, no strip — the column repainting is the
@@ -13244,6 +13284,7 @@ async function rlPrepareRedlines(c, again){
   if (n.unplaced) parts.push(i18t('ng_prepare_unplaced', { n: n.unplaced }));
   if (n.refused) parts.push(i18t('ng_prepare_refused', { n: n.refused }));
   if (n.fallback) parts.push(i18t('ng_prepare_fallback', { n: n.fallback }));
+  if (n.broad) parts.push(i18t('ng_prepare_broad', { n: n.broad }));
   if (window.toast){
     if (n.filed) toast(i18tn('ng_prepare_filed', n.filed, { n: n.filed }) + (parts.length ? ' · ' + parts.join(' · ') : ''), 'ok');
     else toast(i18t('ng_prepare_none') + ' ' + parts.join(' · '), 'warn');
@@ -13290,8 +13331,40 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
-  if (item.clauseId && window.negoEditClause && window.negoRichFromLines)
-    return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note });
+  if (item.clauseId && window.negoEditClause && window.negoRichFromLines){
+    /* ---- AND THE WALL: A REDLINE MAY NOT DELETE WHAT NOBODY ASKED ABOUT ----
+       (Young's go, 15 Sep 2026 — the rule the artifact states in one line.)
+       pbFitWording is the narrowing; this is what holds when a caller hands
+       over some OTHER wording — the library's stand-alone clause, most of all.
+       Every block of the clause that the finding's quote never named and that
+       does not survive into the proposed wording is counted, and one or more
+       of them is a refusal: the clause-7 fault, where six sub-clauses about
+       invoicing, disputes, interest, credit limits and set-off were struck to
+       change a payment period.
+
+       A PERSON MAY STILL DO IT ON PURPOSE — Young's decision 4 keeps the whole
+       -clause picture for a rewrite somebody chose — so opts.wholesale lifts
+       it. Nothing that files unattended passes that flag, which is the whole
+       point: the refusal is on the machine, never on the reader. */
+    const fitted = !!(item.fit && _rlSameWords(words, item.fit.text));
+    if (!fitted && !(opts && opts.wholesale) && window.pbUnquotedLoss){
+      const gone = pbUnquotedLoss(item.oldHtml, item.v && item.v.quote, words);
+      if (gone > 0){
+        const why = i18t('ng_pb_broad_refused', { n: gone,
+          clause: (window.clauseNameShown && item.clauseLabel)
+            ? clauseNameShown(item.clauseLabel) : (item.clauseLabel || i18t('ng_this_clause')) });
+        if (opts) opts.refused = why;
+        if (!(opts && opts.quiet) && window.toast) toast(why, 'err');
+        return null;
+      }
+    }
+    /* THE FITTED WORDING FILES AS THE CLAUSE'S OWN MARKUP, never rebuilt from
+       lines: negoRichFromLines would flatten every OTHER block of the clause
+       into a bare paragraph and file a formatting change across wording nobody
+       touched — the opposite of what this whole change is for. */
+    const body = (fitted && item.fit.html) ? item.fit.html : negoRichFromLines(words);
+    return await negoEditClause(c, item.clauseId, body, { side: 'owner', author, note });
+  }
   if (window.negoInsertClause){
     /* ---- BEFORE THE SIGNATURES, NEVER AFTER ----
        A new operative clause anchors after the LAST clause ahead of the
@@ -13434,10 +13507,21 @@ async function rlOpenPlaybookReview(c, again){
       : dupStop(it)
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)"><b>${i18t('ng_dup_clause_here')}</b> &middot; ${_ne(dupStop(it).message)}</div>`
       : `<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
+      ${''/* ---- THE PRIMARY PRESS IS WHATEVER `leadKind` NAMES (15 Sep 2026) ----
+             The 26 Aug ruling is that the preview and the first button can
+             never describe different wording. Since the lead on a located
+             clause became the SMALLEST CHANGE, the primary had to follow it
+             there: a figure gets its own press, a fitted draft promotes the
+             draft button, and the library's stand-alone clause — which is
+             the one that deleted six sub-clauses — steps back to an ordinary
+             button that ASKS how much of the clause it would replace. On an
+             ADD landing nothing moves: there is no clause to narrow to and
+             our own wording is exactly what belongs. */}
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
-      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn${it.fit ? '' : ' ui-btn-primary'}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
+      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-primary' : ''}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
     </div>`}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
@@ -13451,23 +13535,51 @@ async function rlOpenPlaybookReview(c, again){
     const verbs = root.querySelector(`[data-pbr-verbs="${i}"]`);
     if (verbs) verbs.innerHTML = `<span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone}">${text}</span>`;
   };
-  const fileFrom = async (b, attr, wordingOf) => {
+  const fileFrom = async (b, attr, wordingOf, bag) => {
     const i = Number(b.getAttribute(attr));
     const it = items[i];
     if (!it) return;
     b.disabled = true;
     let ch = null;
-    try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it)); }
+    try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it), bag); }
     catch(e){ if (window.toast) toast(i18t('ng_could_not_file') + ((e && e.message) || e), 'err'); b.disabled = false; return; }
     if (!ch){ if (window.toast) toast(i18t('ng_proposal_not_filed'), 'err'); b.disabled = false; return; }
     if (window.persist) persist(c);
     settle(i, `Filed as #${_ne(ch.id)} &#10003;`, 'var(--st-green-fg,#047857)');
     if (again) again();
   };
-  root.querySelectorAll('[data-pbr-go]').forEach(b =>
-    b.addEventListener('click', () => fileFrom(b, 'data-pbr-go', it => it.preferred)));
-  root.querySelectorAll('[data-pbr-fb]').forEach(b =>
-    b.addEventListener('click', () => fileFrom(b, 'data-pbr-fb', it => it.fallback)));
+  root.querySelectorAll('[data-pbr-fit]').forEach(b =>
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-fit', it => it.fit.text)));
+  /* ---- A STAND-ALONE CLAUSE OVER A CLAUSE ALREADY THERE ASKS FIRST ----
+     Both library wordings are whole clauses written for a blank page, and on a
+     located clause either one replaces everything under the heading. That is a
+     real negotiating move and Young's decision 4 keeps it; what it may not be
+     any more is SILENT. The question counts the parts of the clause the review
+     never mentioned — the number the reader was never shown — and answering it
+     is what lifts the wall for that one press. On an add landing, and wherever
+     nothing would be lost, there is nothing to ask and nothing changes. */
+  const askThenFile = (b, attr, wordingOf) => b.addEventListener('click', async () => {
+    if (b.disabled) return;
+    const it = items[Number(b.getAttribute(attr))];
+    if (!it) return;
+    let gone = 0;
+    if (it.landing === 'edit' && window.pbUnquotedLoss)
+      gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, wordingOf(it));
+    if (gone > 0){
+      b.disabled = true;
+      const name = (window.clauseNameShown && it.clauseLabel)
+        ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || i18t('ng_this_clause'));
+      let ok = true;
+      if (window.confirmDialog) ok = await confirmDialog({ title: i18t('ng_pb_broad_title'),
+        message: i18t('ng_pb_broad_ask', { n: gone, clause: name }),
+        confirmLabel: i18t('ng_pb_broad_go') });
+      b.disabled = false;
+      if (!ok) return;
+    }
+    fileFrom(b, attr, wordingOf, { wholesale: true });
+  });
+  root.querySelectorAll('[data-pbr-go]').forEach(b => askThenFile(b, 'data-pbr-go', it => it.preferred));
+  root.querySelectorAll('[data-pbr-fb]').forEach(b => askThenFile(b, 'data-pbr-fb', it => it.fallback));
   root.querySelectorAll('[data-pbr-draft]').forEach(b =>
     b.addEventListener('click', () => fileFrom(b, 'data-pbr-draft', it => it.draft)));
   root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>

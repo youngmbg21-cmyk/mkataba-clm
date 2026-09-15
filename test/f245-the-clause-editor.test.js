@@ -1041,7 +1041,18 @@ describe('f245 (13) — the card says what the press takes', () => {
     const here = cards.find(el => /Payment terms/.test(el.textContent));
     const miss = cards.find(el => /Data protection/.test(el.textContent));
     assert.ok(here.querySelector('.cost'), 'the located rule says what it takes');
-    assert.match(here.querySelector('.cost').textContent, /Replaces all \d+ words/);
+    /* ---- AND WHAT IT TAKES IS SMALL NOW (Young's go on the artifact "The
+       Nuanced Redline", 15 Sep 2026) ----
+       REVERSED IN PLACE. This read "Replaces all N words", which was the
+       honest description of what the card was previewing: the clause library's
+       stand-alone wording dropped over a clause the contract already had.
+       Since the lead on a LOCATED clause became the smallest change that meets
+       the position, the same reading measures the same way and reports a small
+       one, because the change really is small. Nothing is deleted: what the
+       claim pins is that a located rule says what a press costs, and the
+       number is now the proof that the press costs little. */
+    assert.match(here.querySelector('.cost').textContent, /Changes \d+ of \d+ words[\s\S]*keeps \d+/,
+      'it changes a few of the clause\'s words and keeps the rest');
     /* A rule in the missing group replaces nothing — it files a NEW clause — so
        a line about what it takes away would describe an act that never happens. */
     assert.equal(miss.querySelector('.cost'), null, 'and a rule that adds one says nothing about taking');

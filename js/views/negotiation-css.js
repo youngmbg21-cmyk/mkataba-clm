@@ -4257,8 +4257,27 @@ function redlineLayoutCss(){
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them,.rl-col ins.rl-them,.rl-col del.rl-them,.pv-sheet ins.rl-them,.pv-sheet del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us,.rl-col ins.rl-us,.rl-col del.rl-us,.pv-sheet ins.rl-us,.pv-sheet del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  /* ---- THE FILL MEANS ARRIVING, AND NOTHING ELSE (Young ruled 15 Sep 2026:
+       "still cross the words you are proposing to delete but do not have the
+       blue or yellow highlight on them. Leave the blue or yellow highlight only
+       on the added words") ----
+       Colour still says WHO and the line still says WHAT; what moves is the
+       FILL, which both halves of a change used to wear and which is the loudest
+       thing on the page. With it on the insertion alone the eye lands on the
+       words that would end up in the contract, and a screen of struck wording
+       stops competing with the one sentence arriving inside it.
+
+       A DELETION STATES transparent RATHER THAN SAYING NOTHING, and the word is
+       written plain here because a BACKTICK inside a comment inside a template
+       literal evaluates what is between the pair — the standing rule, paid again
+       while writing this very note. .nego-del is the unsided mark's own rule and
+       carries --n-del-bg at (0,1,0); merely dropping the background declaration
+       from these (0,2,1) rules would have let that red fill back through on
+       every struck run. Measured, not assumed. */
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
