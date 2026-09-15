@@ -153,7 +153,12 @@ describe('f269 (5) every line is QUOTED, never composed', () => {
   test('a row carries the record’s own summary and stamped label', () => {
     const m = W().negoMemo(deal([ch('CHG-1', {
       clauseLabel: 'Clause 12 · Indemnity', summary: 'the proposer’s own words' })]));
-    assert.equal(m.open[0].clause, 'Clause 12 · Indemnity');
+    /* RE-POINTED 15 Sep 2026 (Young, of the redline cards: "just number it
+       '5. Payment Terms'"). The memo is a SCREEN, so it reads through the one
+       presenting reading, which now prints the number and drops the word. THE
+       CLAIM IS UNCHANGED and is the stronger half: the NUMBER is the STAMPED
+       one — clauseLabel's own — never a live lookup. */
+    assert.equal(m.open[0].clause, '12. Indemnity');
     assert.equal(m.open[0].said, 'the proposer’s own words');
   });
 
@@ -167,7 +172,7 @@ describe('f269 (5) every line is QUOTED, never composed', () => {
   test('with no summary the row quotes nothing rather than inventing something', () => {
     const m = W().negoMemo(deal([ch('CHG-1', { summary: '' })]));
     assert.equal(m.open[0].said, '');
-    assert.equal(m.open[0].clause, 'Clause 5 · Payment Terms');
+    assert.equal(m.open[0].clause, '5. Payment Terms');
   });
 
   test('with no stamped label the row falls back to the id, not to a lookup', () => {
@@ -272,8 +277,10 @@ describe('f269 (8) counting is not drawing', () => {
   test('the text form and the panel are the same memo', () => {
     const w = W();
     const m = w.negoMemo(deal([ch('CHG-1', { clauseLabel: 'Clause 3 · Term' })]));
-    assert.match(w.negoMemoText(m), /Clause 3 · Term/);
-    assert.match(w.negoMemoHtml(m), /Clause 3 · Term/);
+    /* The stamped label is the long form; both shapes PRINT the short one,
+       and the point of the claim is that they print the same thing. */
+    assert.match(w.negoMemoText(m), /3\. Term/);
+    assert.match(w.negoMemoHtml(m), /3\. Term/);
   });
 });
 
@@ -862,7 +869,7 @@ describe('f269 (15) the memo as a document', () => {
     assert.match(html, /font-size:14pt;font-weight:bold[^>]*>Supply Agreement/,
       'the agreement’s name does not lead');
     assert.match(html, /font-weight:bold[^>]*>AGREED \(0\)/, 'the sections are not headings');
-    assert.match(html, /<b>CHG-7 · Clause 2 · Specifications<\/b>/,
+    assert.match(html, /<b>CHG-7 · 2\. Specifications<\/b>/,
       'the row does not lead with its reference and clause, in bold');
     /* The wording is REGULAR — it is the content, not a signpost. */
     const block = /<p class="rl-line[^>]*>([\s\S]*?)<\/p>/.exec(html);

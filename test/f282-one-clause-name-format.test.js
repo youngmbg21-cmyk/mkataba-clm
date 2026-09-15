@@ -41,19 +41,32 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(shown('quality & rejection'), 'Quality & Rejection');
   });
 
-  await t.test('the NUMBER and the SHAPE are left exactly as they stand', () => {
+  await t.test('the NUMBER CARRIES THE NAME, and the shape is left alone', () => {
+    /* RE-POINTED 15 Sep 2026 (Young, of the redline cards: "instead of calling
+       'Clause 5 . Payment Terms', just number it '5. Payment Terms'"). The one
+       reading prints the number and drops the word; everything else about this
+       claim is unchanged, and the RECORD is untouched — clauseLabel still
+       builds the long form and that is what is stamped. */
     const shown = win.clauseNameShown;
-    /* A built label stays a built label; only the title is re-cased. */
+    /* A built label is printed in the short form, title re-cased. */
     assert.strictEqual(shown('Clause 1 · SUPPLY & SPECIFICATION'),
-      'Clause 1 · Supply & Specification');
-    /* A raw heading stays a raw heading — no "Clause" is invented in front. */
+      '1. Supply & Specification');
+    /* A raw heading was already in that form and does not move. */
     assert.strictEqual(shown('4. TERM AND TERMINATION'), '4. Term and Termination');
-    /* A number with nothing after it has no title to case. */
+    /* A number with nothing after it has no title to case AND nothing to
+       compact onto — a bare "8.2." names nothing, so it keeps its word. */
     assert.strictEqual(shown('Clause 8.2'), 'Clause 8.2');
-    /* A title that OPENS with a figure keeps the figure where it was. */
+    /* A heading with no number has nothing to compact. */
+    assert.strictEqual(shown('INDEMNITY'), 'Indemnity');
+    /* A title that OPENS with a figure keeps the figure where it was — the
+       parse reads it as a title, not as a clause number. */
     assert.strictEqual(shown('2019 DATA PROTECTION ACT'), '2019 Data Protection Act');
     assert.strictEqual(shown(''), '');
     assert.strictEqual(shown(null), '');
+    /* AND THE RECORD IS THE WALL: the builder is unchanged. */
+    assert.strictEqual(win.clauseLabel({ num: '5', title: 'Payment Terms' }),
+      'Clause 5 · Payment Terms',
+      'clauseLabel BUILDS a record and does not present');
   });
 
   /* ---------- THE TRAP THAT GOT THE FRICTION PAGE ----------
@@ -71,7 +84,7 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(win.clauseTitleCase(label), label,
       'the fault, kept as a fact: title-casing a whole label is a no-op');
     assert.strictEqual(win.clauseNameShown(label),
-      'Clause 2 · Specifications, Quality & Inspection',
+      '2. Specifications, Quality & Inspection',
       'the one reading parses the number off first, which is why it exists');
   });
 

@@ -294,7 +294,11 @@ describe('f144 — the page a history link opens', () => {
     const { html } = historyPage();
     const h = html();
     assert.match(h, /Negotiation history/);
-    assert.match(h, /Article 1 Payment/);
+    /* RE-POINTED 15 Sep 2026 (Young: "just number it '5. Payment Terms'"). The
+       record page PRINTS through the one presenting reading, which takes the
+       number off a labelled heading — "Article 1 Payment" here — and drops the
+       word. What is stamped on the record is untouched. */
+    assert.match(h, /1\. Payment/);
     assert.match(h, /Moses Kurua/, 'who asked is part of the record');
     assert.match(h, /sixty \(60\)/, 'and so is what they asked for');
   });

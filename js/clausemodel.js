@@ -390,12 +390,58 @@ function clauseHeadingFor(text, clauses){
    the tail of the string there is nothing safe to put back, and clauseCaseTo's
    own rule governs: "I could not tell" must never become "so I changed it
    anyway". */
+/* ---------- AND THE NUMBER CARRIES IT, NOT THE WORD (Young ruled 15 Sep
+   2026) ----------
+   *"instead of calling 'Clause 5 . Payment Terms', just number it '5. Payment
+   Terms'. This should give the line more space after removing Open button and
+   the word 'Clause'."*
+
+   THE ASK WAS ABOUT THE REDLINE CARDS and this is written one level above
+   them, deliberately. `clauseNameShown` is the ONE presenting reading in this
+   product — the column, the clause panel, the ladder, the notes drawer, the
+   memo and five history surfaces all reach a clause's name through it — and
+   the column and the panel sit twelve pixels apart on the same page. A second
+   format applied to the cards alone would put "5. Confidentiality" beside
+   "Clause 5 · Confidentiality" on one screen, which is this codebase's most
+   expensive fault class stated in its own words: two surfaces disagreeing
+   about a reading. So the format moves at the one place that decides it, and
+   every screen reads in the shorter voice.
+
+   IT CHANGES WHAT IS PRINTED AND NOTHING ELSE, exactly as the title-casing
+   above it does. `clauseLabel` still BUILDS "Clause 5 · Payment Terms" and
+   that string is still what is stamped onto a change, written into the audit
+   trail and carried in a fingerprint — the record keeps the name it was given.
+   No contract is rewritten, no heading on any paper moves, and the paper is
+   still deliberately not swept.
+
+   ONLY WHERE THERE IS A NUMBER AND A TITLE. "Clause 5" with nothing after it
+   compacts to a bare "5.", which names nothing, so a title-less clause keeps
+   its word; a heading with no number has nothing to compact and is returned as
+   it stands. clauseCaseTo's own rule governs the doubtful cases here too: "I
+   could not tell" must never become "so I changed it anyway".
+
+   THE SEPARATOR IS THE DOT the owner typed, not the middle dot the long form
+   used: "5 · Payment Terms" would read as a number beside a name rather than
+   as the clause's own numbering, which is the whole point of the change. */
 function clauseNameShown(text){
   const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
   if (!t) return '';
-  const title = String(clauseParseHeading(t).title || '');
+  const parsed = clauseParseHeading(t);
+  const title = String(parsed.title || '');
   if (!title || !t.endsWith(title)) return t;
-  return t.slice(0, t.length - title.length) + clauseTitleCase(title);
+  const cased = clauseTitleCase(title);
+  const num = String(parsed.num || '').trim();
+  /* ---- ONLY A LABELLED HEADING IS REWRITTEN ----
+     `_CL_LABELLED` is the shape this ruling is about: the word, the number and
+     a separator this product chose. A heading that carries its OWN number —
+     "4. TERM", "2019 DATA PROTECTION ACT" — is the drafter's punctuation and
+     is a QUOTATION, so its separator is taken off the source and never
+     invented, which is the rule the plain-English edition paid for on 11 Sep.
+     Rewriting both shapes turned "2019 Data Protection Act" into "2019. Data
+     Protection Act": a year read as a clause number and given a full stop that
+     nobody typed. */
+  if (num && _CL_LABELLED.test(t)) return `${num}. ${cased}`;
+  return t.slice(0, t.length - title.length) + cased;
 }
 
 /* ---------- WHERE A NUMBER IS MISSING ----------

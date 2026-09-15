@@ -2280,13 +2280,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { metas, paper };
   });
   const shouted = s => /[A-Za-z]/.test(s) && !/[a-z]/.test(s);
-  const titles = names.metas.map(m => (m.split('·').pop() || '').trim());
+  /* RE-POINTED 15 Sep 2026 (Young: "just number it '5. Payment Terms'"). The
+     row prints "1. Supply & Specification" now, so the title is what follows
+     the clause's own number rather than what follows a middle dot. The three
+     claims below are unchanged — they are about the CASE of that title. */
+  const titles = names.metas.map(m =>
+    (m.replace(/^\s*\d+(?:\.\d+)*\.\s*/, '').split('·').pop() || '').trim());
+  const numbered = names.metas.filter(m => /^\s*\d+(?:\.\d+)*\.\s/.test(m)).length;
   check('24 the column draws a name for each of the three changes',
     titles.length === 3, JSON.stringify(titles));
   check('24a not one of them shouts — the half the owner reported',
     titles.length === 3 && !titles.some(shouted), JSON.stringify(titles));
   check('24b and not one of them opens in small letters either',
     titles.length === 3 && titles.every(t => /^[^a-z]/.test(t)), JSON.stringify(titles));
+  check('24d the row leads with the clause\'s number and not the word "Clause"',
+    numbered === 3 && !names.metas.some(m => /\bClause\b/.test(m)),
+    JSON.stringify(names.metas));
   check('24c THE CONTROL: the contract beside it keeps the heading it was drafted with',
     /\bPAYMENT\b/.test(names.paper),
     names.paper.slice(0, 160));
