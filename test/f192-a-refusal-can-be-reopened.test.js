@@ -78,13 +78,21 @@ describe('f192 (1) — the verb is on the refused card, in Edit\'s clothes', () 
     const p = await bench('rejected');
     const card = cardOf(column(p));
     assert.ok(card, 'a refused ask keeps its card — that is what contestedAny is for');
-    /* RE-POINTED 2 Sep 2026: with the ⋯ retired the verb has room for its full
-       name and says which of the two editors it opens — "✦ Edit with Copilot",
-       in Copilot's own violet, which is what the ⋯ called it. The CLAIM is
-       unchanged and is the reported fault: this list with Reopen missing. */
-    assert.deepEqual(verbsOf(card),
-      ['Reopen', '\u2726 ' + p.win.i18t('ng_cp_copilot')],
+    /* RE-POINTED TWICE. On 2 Sep the ⋯ was retired and the verb had room for
+       its full name — "✦ Edit with Copilot", in Copilot's own violet. On
+       15 Sep Young ruled Open off the artifact's row, so every verb is on the
+       face in the artifact's own order: its three slots first (Accept ·
+       Reject · Counter on an ask of theirs), then whatever else the funnel
+       built, in the funnel's order. A refused ask fills neither decision slot,
+       so the door leads under the artifact's word and Reopen follows it.
+
+       THE CLAIM IS UNCHANGED and is the reported fault: this list with Reopen
+       missing from it. It is read as a SET as well as a list, so the order is
+       not what carries it. */
+    assert.deepEqual(verbsOf(card).slice().sort(),
+      [p.win.i18t('ng_counter'), 'Reopen'].sort(),
       'the fault as reported was this list with Reopen missing from it');
+    assert.equal(verbsOf(card).length, 2, 'and nothing else rode in with it');
   });
 
   test('and it is the plain outlined verb, not an accent pill', async () => {

@@ -6578,6 +6578,29 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
     <section class="rl-cp-sec">
       <h5 class="rl-cp-h">${i18t('ng_cp_table')}</h5>
       ${live.length ? live.map(row).join('') : `<p class="rl-cp-none">${i18t('ng_cp_table_none')}</p>`}
+      ${''/* ---- COPILOT'S READ, WHICH USED TO BE ON THE OPEN CARD (15 Sep
+             2026) ----
+             The Open button went with the artifact's row and took the card
+             body with it; this is the one thing in that body with nowhere else
+             to go, so it comes here — under the ask it is about, which is where
+             the reading matter for a decision already lives.
+
+             IT IS THE SAME BUILDER, UNCHANGED, and it answers for itself: null
+             on our own ask, on a settled one, and where the engine has no
+             verdict. It is asked of the FIRST live ask, which is the same
+             change the precedent line below was already asked of.
+
+             AND IT CARRIES THAT LINE, so the two are never printed together:
+             rlCardReadHtml's own "what you settled for" row is precedentLine
+             on this same change. Where the read draws, the standalone note
+             stands down; where it does not, the note is unchanged. */}
+      ${(() => {
+        if (!live.length || side === 'counterparty' || PORTAL_MODE) return '';
+        if (typeof rlCardReadHtml !== 'function') return '';
+        let r = '';
+        try { r = rlCardReadHtml(c, live[0]) || ''; } catch (_) { r = ''; }
+        return r ? `<div class="rl-cp-read">${r}</div>` : '';
+      })()}
       ${''/* ---- WHAT HAPPENED BEFORE (W3-2, precedent memory) ----
              One sentence, and only where the workspace's own settled rounds
              have something to say about THIS standard: how often this
@@ -6591,6 +6614,9 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
              the single most useful thing an opponent could read. The seat
              check is the wall; precedentForChange is never called there. */}
       ${(side !== 'counterparty' && !PORTAL_MODE && live.length && typeof precedentForChange === 'function') ? (() => {
+        let read = '';
+        try { read = (typeof rlCardReadHtml === 'function') ? (rlCardReadHtml(c, live[0]) || '') : ''; } catch (_) { read = ''; }
+        if (read) return '';
         const line = (typeof precedentLine === 'function')
           ? precedentLine(precedentForChange(c, live[0])) : '';
         return line ? `<p class="rl-cp-note" data-rl-precedent>${esc(line)}</p>` : '';
@@ -10398,6 +10424,11 @@ let _rlPinnedFor = null;
    piles were built to answer. Per SITTING and in memory, like both of those:
    a remembered open card would arrive expanded a week later with nothing on
    screen saying why. */
+/* INERT SINCE 15 SEP 2026. Nothing reads this to draw with: the Open button
+   and the body it unfolded are gone from the artifact's row. The pair below is
+   kept because the suite's card helpers set and restore it around a render,
+   and because keeping a published name answering harmlessly is cheaper than a
+   sweep across forty files. negoResetView still clears it. */
 let _rlCardOpen = null;
 const rlCardOpenId = () => _rlCardOpen;
 function rlCardSetOpen(id){ _rlCardOpen = id ? String(id) : null; }
@@ -10623,16 +10654,6 @@ function rlWireClauseTools(c, host, opts){
      press remains the old jump — a door must not open onto nothing.
      Stopped from bubbling because the card itself links on click, and that
      would scroll the column back over the jump. */
-  /* ---- OPEN, AND WHAT IS INSIDE IT (owner-ruled 2 Sep 2026) ----
-     The row's one control. It toggles which card is open and repaints from the
-     press — `rlRepaintFrom` BARE, because it is this module's own name and a
-     `window.` guard on it is always false (the fault this file records twice).
-
-     STOPPED FROM BUBBLING, like every other button on a card: the row itself
-     navigates to the clause, and a press meant to open the card must not also
-     scroll the column out from under the hand that pressed it. It DOES light
-     the clause first, so opening a card still shows you what it is about —
-     rlLinkFocus, the row's own act, never a second implementation. */
   /* ---- "PREPARE REDLINES", AT EVERY DOOR, WIRED ONCE (12 Sep 2026) ----
      querySelectorAll, never querySelector: the act has two doors — the More
      menu's row and the empty change column's button — and the owner asked for
@@ -10652,25 +10673,12 @@ function rlWireClauseTools(c, host, opts){
      shared it; a fourth calling rlOpenClauseEditor itself would be a second
      answer to the same question (f245 (1) and (19) both say so, and both went
      red the first time this was written here). */
-  host.querySelectorAll('[data-rl-card-open]').forEach(btn => btn.addEventListener('click', ev => {
-    ev.preventDefault(); ev.stopPropagation();
-    const id = btn.getAttribute('data-rl-card-open');
-    const opening = rlCardOpenId() !== String(id);
-    rlCardSetOpen(opening ? id : null);
-    /* ---- THE LIGHT GOES ON AFTER THE REPAINT, NOT BEFORE ----
-       rlLinkFocus marks the card and its clause by writing is-linked onto the
-       elements it finds, and the repaint below REPLACES the column's markup —
-       so lighting first threw the mark away in the same frame and the reader
-       pressed Open, watched the paper move, and saw nothing marked. Nothing
-       failed and nothing logged; it was found by measuring the painted page.
-       The paper is not rebuilt by this repaint, so only the CARD's mark was
-       ever at risk, which is exactly what made it easy to miss. */
-    rlRepaintFrom(btn);
-    if (opening){
-      const ch = (negoChanges(c) || []).find(x => x && String(x.id) === String(id));
-      if (ch && ch.clauseId) rlLinkFocus(c, id, 'card');
-    }
-  }));
+  /* ---- OPEN IS GONE, AND SO IS THE HANDLER THAT ARMED IT (15 Sep 2026) ----
+     The row's one control until Young ruled it off the artifact's row. Nothing
+     draws [data-rl-card-open] any more, so a listener for it would be a door
+     onto a button that does not exist. rlCardOpenId / rlCardSetOpen survive as
+     an inert pair — the suite's card helpers set and restore them around a
+     render — and nothing in this file reads them to draw with. */
   /* ---- THE COMMENTS INSIDE THE CARD ----
      The drawer's own two acts, on the card's copy of its markup: rlNpSetRoom
      for the room and rlNotesSend for the writing. Both are the SAME functions
@@ -12315,17 +12323,15 @@ function rlMoreWithIcon(html){
    zero. */
 function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
   if (typeof negoNoteCounts !== 'function') return '';
-  /* ---- AND IT STANDS DOWN WHILE THE CARD IS OPEN (owner-asked 2 Sep 2026:
-     "Remove the top highlighted comments sign because there is already a
-     comments section at the bottom highlighted area") ----
-     The count exists to say a change has been discussed WITHOUT opening it.
-     Once the card is open the two rooms are twelve pixels below with their own
-     counts on their own tabs, so the marker is the same fact printed twice —
-     and the second printing is the one that reads as something to press.
-     ON A SHUT CARD IT IS THE ONLY CARRIER and stays: nothing else on a closed
-     row says a change has a conversation on it. */
-  if (typeof rlCardOpenId === 'function' && ch
-      && String(rlCardOpenId() || '') === String(ch.id)) return '';
+  /* ---- IT USED TO STAND DOWN WHILE THE CARD WAS OPEN (owner-asked 2 Sep
+     2026) AND THERE IS NO LONGER ANYTHING TO STAND DOWN FOR (15 Sep 2026) ----
+     That rule existed because an open card drew the two rooms twelve pixels
+     below, with their own counts on their own tabs, so the marker was the same
+     fact printed twice. The card does not open any more — Open is gone with
+     the artifact's row — so this IS the only carrier on every row, and it is
+     also the row's one door into the drawer. Silent at zero, as it always was;
+     the drawer is still two presses away through the panel on a change nobody
+     has said anything about yet. */
   const n = negoNoteCounts(c, ch, opts, side);
   if (!n.total) return '';
   return `<button type="button" class="rl-card-notes" data-rl-notes="${_nea(ch.id)}"
@@ -12418,6 +12424,13 @@ function rlCardReadHtml(c, ch){
     ${rows.map(([k, v]) => `<p class="rl-rd-f"><b>${_ne(k)}</b><span>${v}</span></p>`).join('')}
   </div>`;
 }
+/* NO CALLER SINCE 15 SEP 2026. This built the body behind the Open button on
+   our seat's row, and the owner ruled that button off the artifact's row. It
+   is kept rather than deleted because every block it composed is still drawn
+   somewhere — the wording on the paper and in the clause panel, Copilot's read
+   in that same panel, the verbs and strips on the row itself — and because
+   this file's own history says a builder deleted with its caller is the one
+   nobody can find again. Stale, named so. */
 function rlCardBodyHtml(c, ch, opts, side, st){
   /* ---- ONLY THE LINES THIS CHANGE TOUCHES (owner-asked 2 Sep 2026) ----
      "lets only have the sentences or bullet points that have been redlined
@@ -16164,21 +16177,54 @@ function redlineChangeCardsHtml(c, opts = {}){
   const ceTakesIt = rlEditorTakesIt(side, { preview: previewSeat });
   let lastBand = null;
   /* THE FACE VERBS, picked from the body's own list by the door each opens. */
-  const rlRowFaceVerbs = (list, ch, theirs) => {
-    const pick = re => list.find(v => re.test(v)) || '';
+  /* ---- EVERY VERB THIS CHANGE OFFERS IS ON THE FACE (Young ruled 15 Sep
+         2026, of the Open button: *"The artifact does not have the open
+         button."* … *"Remove it."*) ----
+     This used to PICK three verbs out of the list and leave the rest to the
+     card body Open unfolded. The body is gone with the button, so a pick would
+     now be a DELETION: Withdraw, Reopen, Change decision, Ask for a review,
+     Send a copy and a requester's Cancel would have no home on this seat at
+     all. THE STANDING RULE IS THAT A VERB IS VISIBLE PIXELS (f180) — nothing
+     may be reachable only behind another control — so this re-orders the whole
+     list and drops nothing.
+
+     THE ARTIFACT'S OWN THREE LEAD, in its own words: Accept · Reject · Counter
+     on an ask of theirs, Edit · Send · Discard on a draft of ours. Everything
+     else follows in the order the gating above built it, and Ladder is last on
+     every row that has one. Those extras are conditional and nearly always
+     absent, which is what keeps the row two lines; where they are there the
+     face wraps (it is flex-wrap, and the column measures it at 300px).
+
+     THE GATING IS NOT RESTATED HERE. What a change offers is decided once,
+     above; this re-orders `list` and relabels two of its entries, so a second
+     copy of the rules cannot drift from the first. */
+  const rlRowFaceVerbs = (list, ch, theirs, tail) => {
+    const seen = new Set();
+    const take = re => {
+      const v = list.find(x => !seen.has(x) && re.test(x));
+      if (v) seen.add(v);
+      return v || '';
+    };
     const relabel = (v, word) => v ? v.replace(/>(?:&#10022; )?[^<>]*<\/button>\s*$/, `>${_ne(word)}</button>`) : '';
-    const door = pick(/data-rl-cp-editor-row=|data-rl-edit=/);
+    const door = take(/data-rl-cp-editor-row=|data-rl-edit=/);
     const out = [];
     if (theirs){
-      out.push(pick(/data-nego-accept=/), pick(/data-nego-reject=/), relabel(door, i18t('ng_counter')));
+      out.push(take(/data-nego-accept=/), take(/data-nego-reject=/), relabel(door, i18t('ng_counter')));
     } else {
-      out.push(relabel(door, i18t('act_edit')), pick(/data-rl-send=/), relabel(pick(/data-rl-retract=/), i18t('ng_discard')));
+      out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/), relabel(take(/data-rl-retract=/), i18t('ng_discard')));
     }
+    for (const v of list) if (!seen.has(v)) out.push(v);
+    if (tail) out.push(tail);
     if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
       out.push(`<button type="button" class="rl-edit" data-rl-ladder="${_nea(ch.clauseId)}"
         title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`);
     const kept = out.filter(Boolean);
-    return kept.length ? `<span class="rl-card-face">${kept.join('')}</span>` : '';
+    /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's bare-word
+       dressing; `rl-card-verbs` is the name the rest of the product and half
+       the suite already use for "the verbs on this change", and the face IS
+       that container now that there is no body holding a second one. One
+       element, two names, so neither reading has to be taught the other. */
+    return kept.length ? `<span class="rl-card-face rl-card-verbs">${kept.join('')}</span>` : '';
   };
   const rlRowSubHtml = (c, ch, side, sum) => {
     if (!ch.clauseId || typeof window.ladderRungs !== 'function' || ch.changeType === 'insertClause')
@@ -16994,8 +17040,8 @@ function redlineChangeCardsHtml(c, opts = {}){
          only, and their page and the owner's preview of it fall through to the
          receipt and full shapes below, unchanged. */
       /* (The `state` constant this note is about is gone with the acts column
-         it was drawn into: the row's right-hand end is one Open button now.) */
-      const cardOpen = rlCardOpenId() === String(ch.id);
+         it was drawn into, and the `cardOpen` reading that replaced it is gone
+         with the Open button — see the note beside .rl-card-side below.) */
       /* THE CLAUSE LEADS THE ROW (the artifact's row, 14 Sep 2026); the
          reference rides the hover and the open card. */
       const meta = who || ch.id;
@@ -17019,12 +17065,15 @@ function redlineChangeCardsHtml(c, opts = {}){
       const sub = rlRowSubHtml(c, ch, side, sum);
       /* ---- THE VERBS ON THE FACE (the artifact's row, 14 Sep 2026) ----
          Accept · Reject · Counter on an ask of theirs; Edit · Send · Discard
-         on a draft of ours; Ladder on every row. THE SAME DOORS the open card
-         already draws — picked out of `verbs` by attribute so a second copy of
-         the gating cannot drift — relabelled where the artifact's word is
-         shorter. Open stays: the card body still holds the wording, the
-         notes and Copilot's read. */
-      const face = rlRowFaceVerbs(verbs, ch, theirs);
+         on a draft of ours; Ladder on every row. THE WHOLE of `verbs` in that
+         order — see rlRowFaceVerbs — plus the requester's Cancel, which is a
+         verb like any other and rode in the body's bar until the body went. */
+      const face = rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
+      /* `info` is the caution captions; the other three are the sentences and
+         buttons that used to ride in the body's action bar. Built above, in the
+         one place that decides them, and only re-homed here. */
+      const rowStrips = [info, noCopyBlock, rvStuckBlock, dkInstead, rvVerbs]
+        .filter(Boolean).join('');
       return `<article class="rl-card rl-card-d${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
         RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
@@ -17060,49 +17109,51 @@ function redlineChangeCardsHtml(c, opts = {}){
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
           ${sub}
         </div>
-        ${''/* ---- ONE CONTROL ON THE FACE (owner-ruled 2 Sep 2026) ----
-               *"What if the cards only had Open instead of edit, accepted etc.
-               You then click open and the cards only expands and gives you all
-               the options that are hidden in the dropdown including the
-               comments for the card."*
+        ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
+               (Young ruled 15 Sep 2026) ----
+               *"The artifact does not have the open button."* … *"Remove it."*
 
-               THIS RETIRES THE ⋯ AND THE TWO-ON-THE-FACE SPLIT. rlFaceSplit
-               existed because a row had room for two verbs and a menu held the
-               rest; with everything in the body there is nothing to rank and
-               nothing to hide, so `rlCardMoreHtml` is a stub and RL_FACE_RANK
-               / RL_FACE_MAX / rlFaceSplit are STALE on this seat.
+               THIS REVERSES 2 SEP 2026's "one control on the face", which put
+               every verb, strip and comment behind Open. The artifact's row
+               shows its verbs, and the reasoning that made Open worth two
+               presses has expired: everything the body held now has a home the
+               reader can reach without it.
 
-               WHAT IT COSTS, SAID OUT LOUD AND ACCEPTED BY THE OWNER: accepting
-               a change was one press and is now two. Everything else in the
-               column gets cheaper — Copilot, the notes and a review ask were
-               all two presses behind the menu and are two here, with the
-               wording in front of you while you choose.
+               WHERE EACH THING WENT, because nothing may be removed until it
+               is findable somewhere else:
+                 · THE WORDING — on the paper twelve pixels to the left, marked,
+                   and in full in the clause panel's "On the table";
+                 · COPILOT'S READ — moved, in the same commit, into that same
+                   panel section, under the ask it is about (rlCardReadHtml has
+                   one caller again, not none);
+                 · THE NOTES — the count on this row is a door into the drawer,
+                   the panel has its own Notes section, and the marker in the
+                   paper's gutter opens the thread;
+                 · THE VERBS — every one of them is on the face above, in the
+                   artifact's order (rlRowFaceVerbs);
+                 · THE STRIPS — the two sentences that explain a MISSING verb,
+                   the desk's "instead" line, the reviewer's verdict buttons and
+                   the caution captions are drawn on the row itself, below,
+                   which is where they were before Open existed.
 
-               THE COUNTERPARTY'S SEAT IS UNTOUCHED, as it was for the piles:
-               this branch is our own seat only and their page falls through to
-               the receipt and full shapes below. */}
-        <div class="rl-card-side">${face}<button type="button" class="rl-open-btn rl-card-open"
-          data-rl-card-open="${_ne(ch.id)}" aria-expanded="${cardOpen}"
-          aria-controls="rl-cb-${_nea(ch.id)}"
-          ${''/* THE NAME IS OWED TO A READER WHO CANNOT SEE THE CARD. The id
-                 is printed two centimetres to the left and a sighted reader
-                 needs no more, but a screen reader working down a column of
-                 buttons hears "Open" nine times unless the button says which
-                 change it opens. The ⋯ carried this before it was retired and
-                 the fact must not go with the control. */}
-          aria-label="${_nea(i18t(cardOpen ? 'ng_card_close_title' : 'ng_card_open_title')
-            + ' — ' + ch.id)}"
-          title="${_nea(i18t(cardOpen ? 'ng_card_close_title' : 'ng_card_open_title'))}"
-          >${i18t(cardOpen ? 'act_close' : 'ng_row_open')}<svg class="rl-open-cv" viewBox="0 0 16 16"
-            fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-            aria-hidden="true"><path d="M3 6l5 5 5-5"/></svg></button></div>
-        ${cardOpen ? `<div class="rl-cb-wrap" id="rl-cb-${_nea(ch.id)}">${
-          rlCardBodyHtml(c, ch, opts, side, {
-            info, settled: RL_SETTLED_BANDS.includes(band),
-            actions: [noCopyBlock, rvStuckBlock,
-              (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
-              dkInstead, rvVerbs].filter(Boolean).join(''),
-          })}</div>` : ''}
+               RL_FACE_RANK / RL_FACE_MAX / rlFaceSplit / rlCardMoreHtml stay
+               stale, and `rlCardBodyHtml` / `rlCardBodyNotesHtml` now have no
+               caller on this seat. The COUNTERPARTY'S SEAT IS UNTOUCHED: their
+               page and the owner's preview of it fall through to the receipt
+               and full shapes below, which keep their own Open onto the clause
+               panel (.rl-open-btn[data-rl-cp-open] — a different control with a
+               different job). */}
+        <div class="rl-card-side">${face}</div>
+        ${''/* ---- THE STRIPS ARE ON THE ROW (15 Sep 2026) ----
+               Conditional and nearly always absent — a colleague's "drafted
+               by", who typed it on whose behalf, who rewrote it, the reviewer's
+               note, the refusal with no live copy, the review hold's "what
+               now", the desk's "instead" and the reviewer's own verdict buttons
+               — so the row stays two lines on an ordinary change. Each one is
+               a fact a reader should not have to go looking for, and an action
+               bar with a hole in it and the explanation elsewhere is worse than
+               either: that is why the verdict buttons travel with them. */}
+        ${rowStrips ? `<div class="rl-card-actions">${deaden(rowStrips)}</div>` : ''}
       </article>`;
     }
     const receipt = !noCopyBlock && !rvStuckBlock && !dkInstead && !rvVerbs && !rvCancel && !infoHold

@@ -25,7 +25,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { buildWorld, supplyContract } = require('./world');
-const { cardOpened } = require('./cards');
 
 const SRC = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const NEGO = SRC('js/views/negotiation.js');
@@ -45,9 +44,36 @@ async function bench(){
     { side: 'owner', author: 'Young Mbagaya' });
   const theirs = c.changes.find(x => x.authorSide === 'counterparty');
   const ours = c.changes.find(x => x.authorSide === 'owner');
+  /* ---- IT IS READ OFF THE CLAUSE PANEL NOW (15 Sep 2026) ----
+     The Open button is off the artifact's row and the card body went with it;
+     Copilot's read was the one block in that body with nowhere else to go, so
+     it moved into the clause panel's "On the table", under the ask it is
+     about. The claims below are unchanged — the same builder, the same three
+     refusals — only the surface they are read from has moved.
+
+     THE PANEL'S BODIES ARE BUILT BY THE CANVAS into opts.cpSink, which is this
+     file's own reason for rendering the document rather than the column: the
+     panel is written last in the grid and never inside the clause. */
   const read = id => {
-    const m = cardOpened(win, c, id).match(/<div class="rl-cb-blk rl-rd"[\s\S]*?<\/p>\s*<\/div>/);
-    return m ? m[0] : '';
+    const ch = (c.changes || []).find(x => x && String(x.id) === String(id));
+    if (!ch) return '';
+    const sink = [];
+    win.redlineDocHtml(c, { side: 'owner', cpSink: sink, cpPanel: true, editable: true });
+    const all = sink.join('');
+    const per = all.split('<section class="rl-cp-sec">');
+    const blk = /<div class="rl-cb-blk rl-rd"[\s\S]*?<\/p>\s*<\/div>/;
+    for (const part of per){
+      if (!part.includes('rl-cp-read')) continue;
+      /* The panel is per CLAUSE and the read is asked of that clause's FIRST
+         live ask, so the block belongs to this change only where the first
+         change named in the section is this one. No fallback: a read found
+         under another clause is another clause's answer. */
+      const first = part.match(/CHG-\d+/);
+      if (!first || first[0] !== String(id)) continue;
+      const m = part.match(blk);
+      if (m) return m[0];
+    }
+    return '';
   };
   return { win, c, theirs, ours, read };
 }
@@ -93,14 +119,20 @@ describe('F271 (2) — the read, on their pending ask', () => {
 
   test('half the engine is not the engine — it draws nothing rather than a false "no standard"',
     async () => {
-      const { win, theirs, read } = await bench();
+      /* ---- ASKED OF THE BUILDER, NOT THE PANEL (15 Sep 2026) ----
+         This claim takes half the engine away, and since the read moved into
+         the clause panel that same half is what the panel's LADDER and
+         PLAYBOOK sections read too — rendering the document with it gone
+         throws before anything can be asserted. The claim is about the
+         builder's own refusal, so it asks the builder, which is published. */
+      const { win, c, theirs } = await bench();
       const keep = win.precedentTopicOf;
       win.precedentTopicOf = undefined;
-      assert.equal(read(theirs.id), '',
+      assert.equal(win.rlCardReadHtml(c, theirs), '',
         'rlpJudge answers "nothing to measure" without precedent.js, which is a wrong '
         + 'answer wearing a right one\'s clothes');
       win.precedentTopicOf = keep;
-      assert.ok(read(theirs.id), 'and it comes back when the engine is whole');
+      assert.ok(win.rlCardReadHtml(c, theirs), 'and it comes back when the engine is whole');
     });
 });
 
@@ -108,7 +140,13 @@ describe('F271 (3) — it spends nothing and decides nothing', () => {
   const region = () => {
     const i = NEGO.indexOf('function rlCardReadHtml');
     assert.ok(i > 0, 'the builder is there to be found');
-    return NEGO.slice(i, NEGO.indexOf('\nfunction rlCardBodyHtml', i));
+    /* PIN THE REGION, NOT A BYTE COUNT: the builder's own boundary is the next
+       function declaration after it, whatever that function comes to be
+       called. rlCardBodyHtml still follows it and is stale; naming it here
+       would tie this sweep to a dead name. */
+    const j = NEGO.indexOf('\nfunction ', i + 10);
+    assert.ok(j > i, 'and it ends where the next declaration begins');
+    return NEGO.slice(i, j);
   };
 
   test('no model is called, from the builder or the engine', () => {
@@ -126,14 +164,21 @@ describe('F271 (3) — it spends nothing and decides nothing', () => {
         `${bad} must not appear — the card's own verbs sit twelve pixels below it`);
   });
 
-  test('the counterparty never reaches it', () => {
-    /* STRUCTURAL RATHER THAN GUARDED: the body this read lives in is built by
-       the flat-row shape, and that shape is drawn inside one condition. */
-    assert.match(NEGO, /if \(side === 'owner' && !previewSeat\)\{/,
-      'the flat row — and therefore the open body — is our own seat only');
-    const i = NEGO.indexOf("if (side === 'owner' && !previewSeat){");
-    assert.ok(NEGO.indexOf('rlCardBodyHtml(c, ch, opts, side, {', i) > i,
-      'and the open body is built inside it');
+  test('the counterparty never reaches it', async () => {
+    /* GUARDED NOW, AND MEASURED (15 Sep 2026). It used to be structural — the
+       body was built inside the flat row, and the flat row is our seat only.
+       The read has moved to the clause panel, which BOTH seats draw, so the
+       guard is written out loud at the call and proved by rendering their
+       page. */
+    const i = NEGO.indexOf("COPILOT'S READ, WHICH USED TO BE ON THE OPEN CARD");
+    assert.ok(i > 0, 'the panel says where the read came from');
+    assert.ok(/side === 'counterparty' \|\| PORTAL_MODE/.test(NEGO.slice(i, i + 1600)),
+      'and it refuses their seat by name, beside the call');
+    const { win, c } = await bench();
+    const sink = [];
+    win.redlineDocHtml(c, { side: 'counterparty', cpSink: sink, cpPanel: true });
+    assert.ok(!sink.join('').includes('rl-cb-blk rl-rd'),
+      'their page carries no read — this is our own negotiating judgement');
   });
 });
 
