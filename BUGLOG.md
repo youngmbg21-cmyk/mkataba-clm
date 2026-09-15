@@ -14468,3 +14468,97 @@ NOTICED, NOT FIXED
   its number - so a contents row is the one mirrored block whose textContent no
   longer matches the paper's byte for byte. Deliberate: the tab is a tab stop, a
   layout instruction, not a word.
+
+## 15 Sep 2026 — Contract builder review + four-persona CLM review (NO CODE CHANGED)
+
+An overnight review asked for by the owner: walk every route a contract is created by, judge
+the builder, then judge the product from four chairs (small business owner, mid-market
+operations manager, FMCG procurement manager, in-house lawyer) and propose solutions. The
+deliverable is a published artifact, "What HaTi builds next". NO PRODUCT CODE WAS WRITTEN and
+no test was changed. Screenshots came from running the existing browser files plus a scratch
+Playwright script outside the repo.
+
+### Noticed, not fixed — the paper HaTi drafts
+- EVERY ONE of the twelve built-in templates is EXACTLY FOUR CLAUSES (counted off the BUILD
+  table, js/views/contract.js). Absent from all twelve: termination for breach, force majeure,
+  notices, assignment, entire agreement, dispute escalation, insurance, indemnity, data
+  protection (DPA 2019), anti-bribery, limitation of liability as its own clause. Several jam
+  three subjects into one clause ("IP, Confidentiality & Governing Law"). PK clause 2 cites
+  "Annexure A" and RM clause 1 cites "the agreed specification"; neither is ever produced.
+- The Distributor template renders N('noticeDays',90) into the WORDING (contract.js:2923) but
+  `noticeDays` is in no field list — not TEMPLATE_BASE_FIELDS, TEMPLATE_PRIMARY, TEMPLATE_PAY
+  or js/templatefields.js. Nothing sets it, so it always prints the hardcoded 90, and
+  metadata.noticePeriodDays stays empty. Every renewal reading asks that field
+  (obligations.js:74, :187, :431, plus runReminders/runRenewalPrep and the calendar horizon),
+  so THE RENEWAL CLOCK IS BLIND ON HATI'S OWN PAPER. templatefields.js:123 maps an UPLOADED
+  template's /notice/ field correctly — somebody else's paper works and ours does not.
+- A template knows its own promise (TEMPLATE_OBLIGATIONS) but mintTemplateObligations is only
+  reached from the Key terms edit, so a fresh draft's Obligations list is empty until somebody
+  happens to edit a field.
+
+### Noticed, not fixed — the template builder
+- Apply overwrites only the FIRST wording block of a section (tbWordingBlock returns
+  sec.body[0]) although the model was shown all of them, so a multi-block section ends up with
+  the new wording followed by the old.
+- Every Apply fires tbBlanksRun -> POST /api/ai/blanks with {quiet:true}. It IS metered
+  (aiWho(req), feature 'blanks', behind aiBudgetGuard) but does NOT increment _tb.reads, so the
+  "read N" on the card understates what the press cost; and its catch is bare, so a provider
+  refusal or the daily ceiling is swallowed in the same silence as an empty answer. Refusal 4
+  of THE SIX QUESTIONS asks for the cost on the press and no silent failure.
+- The section numbers on the paper are drawn by the builder (.tb-n) and are NOT stored in the
+  block content, so a contract published from that template has unnumbered headings.
+- viewLayersClosed knows exactly one layer (clauseEditorOpen). openTemplateBuilder and
+  openDesignStep paint #content directly and setView has no branch for either, so every sidebar
+  door repaints straight over an unsaved template — blocks, fields, _tb.thread, _tb.intent,
+  _tb.outline, _tb.proposed and _tb.reads (calls already paid for). #tb-back asks first; nothing
+  else does. Also #shell-title still says "Templates" while you are in either screen.
+- Nothing auto-saves; tbSave is manual only and there is no beforeunload.
+- The outline is unreachable on any template that already has blocks (both import paths).
+- The outline's line of intent is shown to the person but never sent to the drafting model.
+- The library chip and the blanks reader both switch off the moment a section has any wording.
+- A playbook position whose category is not one of the six CLAUSE_KINDS can never be satisfied,
+  and the door offered for it leads nowhere.
+- Below 1024px the rail disappears and with it the only way to add a field.
+- Warnings on a SUCCESSFUL publish print in the error toast kind.
+- The branding panel is a second door onto the company's legal identity; an Editor is only
+  refused after pressing Save, and it leaves the cached branding stale.
+- The Playbook tab states "a deviation is recorded on the version and rides every contract drawn
+  from it" — reported as untrue. Worth checking before it is repeated to a customer.
+- A dozen hardcoded English strings on an otherwise fully translated screen.
+
+### Noticed, not fixed — creation and the record
+- Company-standard route: openContractEssentials collects `party` and tplLibCreate posts only
+  counterparty/counterpartyEmail/value/effDate/expiry — the answer is dropped. The same facts
+  are then asked a second time on renderTemplateFormSection, and the two copies can disagree.
+- A contract can never be renamed. c.name is derived at mint and the only writer afterwards is
+  migImportSheet.
+- Every contract from a saved template is stamped valueType:'estimated' regardless, so
+  wsNextAction demands a value for contracts that carry none.
+- Whether value and dates are asked at all depends on whether the chosen template declares blanks.
+- "Describe what you need" can never fill anything on a company standard or a blank-less saved
+  template: draftCandidates pushes tplLibPublished with an empty field list.
+- An upload's contractType is the literal 'External Document', which matches no playbook keyword,
+  so every uploaded contract falls to the baseline book however the type was actually read.
+- Whether a contract is customer-side or supplier-side is never asked at creation, so the
+  payment-terms reading is blind over most of the book.
+- Re-running the standards review replaces the review object whole, discarding every accepted
+  deviation, its reason, who accepted it and the escalation they answered — and the product tells
+  you to re-run it after every round. runScan's dismissal carry is the in-house precedent.
+- The four rows of the new-contract menu are hardcoded English; the phone's sheet offers three.
+- Three dead fallbacks reach for document.getElementById('cmd-new'), which no longer exists
+  (js/views/register.js:1503, js/views/home.js:1519 and :1527).
+- 'Somebody has picked this up' is an unreachable state on an intake request.
+- openEditDocModal (js/views/contract.js:2082) is a complete versioned audit-lined editor with
+  NO CALLER, so a solo drafter cannot change a word of their own draft except by redlining
+  themselves — after which docFillable goes false and even the blanks stop being fillable.
+- runShareNudges fires ONCE at SHARE_NUDGE_DAYS=3 and only where first_opened_at is null.
+- No delegation / out-of-office anywhere: an approver or reviewer who is away blocks the chain.
+- No bulk or multi-select action on the Contracts register; no approval SLA or idle escalation
+  (Home prints "67d idle" and nothing acts on it).
+- Obligations are drawn nowhere on the phone (zero mentions across all five mobile files).
+- .nego-redline .rl-marker{font-weight:var(--w-strong)} bolds an invented marker on the room's
+  canvas (carried over from the 15 Sep shape work).
+
+### Outside the request, touched
+Nothing in the repository was modified. Screenshots and the artifact source live under the
+session scratchpad, not here.
