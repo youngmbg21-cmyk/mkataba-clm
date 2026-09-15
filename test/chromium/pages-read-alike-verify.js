@@ -659,6 +659,75 @@ const SEED = async () => {
       f9room.length > 0 && drift9.length === 0,
       drift9.map(f => f.k).join(' · ') || `${f9room[0] && f9room[0].vs}/${f9room[0] && f9room[0].vw} on both`);
 
+    /* ---- 10 · THE CONTRACT IS BUILT THE SAME WAY ON BOTH PAGES (Young ruled
+       15 Sep 2026: "In image 3 it shows the contract is very well constructed
+       compared to image 4 in the document page. Build the document page to
+       have the same well constructed contract. They should look similar in
+       build.") ----
+       MEASURED as a RELATION between the two sheets rather than as a list of
+       declarations: the first block of the wording on the Document tab is set
+       the way the first block on the negotiate page is — same alignment, same
+       tracking, same case — because both pages now lift the front matter into
+       the paper's own head. Against the code of an hour before, the tab
+       reported `start / normal / none` against the negotiate page's
+       `center / 2.52px / uppercase`. */
+    const FRONT10 = sel => {
+      const paper = document.querySelector(sel);
+      if (!paper) return null;
+      const head = paper.querySelector('header.rl-paper-head');
+      /* THE LEAD BLOCK is the thing the two screens differed on — the DATED /
+         title / parties run a printed agreement opens with. */
+      const first = head && head.querySelector('.rl-paper-kick p');
+      if (!first) return { head: !!head, first: null };
+      const cs = getComputedStyle(first);
+      /* THE TRACKING IS PINNED AS A RATIO, never as a pixel: `.rl-paper-kick`
+         states it in em and both sizes ride `--doc-scale`, which is the
+         READER'S OWN text size and is per page by design. 1.8px on one screen
+         and 2.52px on the other is the same typography at two sizes; the same
+         RATIO is what "set the same way" means here. */
+      const em = parseFloat(cs.letterSpacing) / (parseFloat(cs.fontSize) || 1);
+      return { head: true, align: cs.textAlign, ls: cs.letterSpacing,
+        em: Math.round(em * 1000) / 1000,
+        tt: cs.textTransform, txt: (first.textContent || '').trim().slice(0, 30) };
+    };
+    /* STAGED WITH A DOCUMENT THAT HAS A FRONT REGION, because the seed's own
+       paper is a title and its clauses — no lead, so nothing to set two ways
+       and nothing for this claim to measure. This is the shape the owner's own
+       agreement has. */
+    await page.evaluate(id => {
+      const c = getContract(id);
+      c.format = 'rich';
+      c.redlineText = '<p><strong>DATED 18 NOVEMBER 2025</strong></p>'
+        + '<p><strong>MASTER SUPPLY AND DISTRIBUTION AGREEMENT</strong></p>'
+        + '<p><em>between</em></p><p><strong>NORDVANE CONSUMER BRANDS AB</strong></p>'
+        + '<h1>CONTENTS</h1><p>1. Definitions</p>'
+        + '<h2>1. Definitions</h2><p>In this Agreement the following words apply throughout.</p>'
+        + '<h2>2. Appointment</h2><p>The Manufacturer appoints the Distributor on these terms.</p>';
+      persist(c);
+    }, cid);
+    await pause(700);
+    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await pause(1600);
+    await page.evaluate(() => roomGoTab('docs'));
+    await pause(1500);
+    const doc10 = await page.evaluate(FRONT10, '#doc-canvas .hati-doc, #doc-canvas');
+    await page.screenshot({ path: path.join(OUT, '10-doc-front.png') });
+    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await pause(2200);
+    const neg10 = await page.evaluate(FRONT10, '#rl-doc, .rl-doc');
+    await page.screenshot({ path: path.join(OUT, '10-nego-front.png') });
+    /* THE CONTROL, and it passes at the parent too — the Document tab drew a
+       head of HaTi's own there. What it proves is that both stages really
+       painted a sheet, so the claim under it is measuring two documents. */
+    check('10 (control) both sheets painted a paper head to measure',
+      !!(doc10 && doc10.head && neg10 && neg10.head),
+      JSON.stringify({ doc: doc10 && doc10.head, nego: neg10 && neg10.head }));
+    check('10 and the front matter is set the same way on both',
+      !!(doc10 && neg10 && doc10.first !== null && neg10.first !== null
+        && doc10.align === neg10.align && doc10.tt === neg10.tt
+        && Math.abs(doc10.em - neg10.em) < 0.005 && doc10.txt === neg10.txt),
+      JSON.stringify({ doc: doc10, nego: neg10 }));
+
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } finally {
     await browser.close();

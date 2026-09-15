@@ -5253,7 +5253,24 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
 
    GENERATION is editor-and-up because it spends Copilot money; everybody else
    reads what is cached, which is the brief's own split. */
-const READ_MAX_CLAUSES = 60;
+/* ---- ONE CALL READS 60 CLAUSES; THE EDITION READS THE WHOLE CONTRACT
+   (Young ruled 15 Sep 2026: "the platform stopped reading the contract. This
+   should never ever happen as it would kill the business proposition ... HaTi
+   has to be able to read any entire contract") ----
+   MEASURED on the owner's own paper: 216 clauses, of which 60 were read and
+   156 were printed as "not read" at the foot of the column.
+   THE 60 IS NOT A PRODUCT LIMIT, it is one model call's own arithmetic (see the
+   max_tokens note below), so it stays as the PAGE and the route walks the
+   document a page at a time, merging the answers. What the reader sees is one
+   press and one edition. The pages run a few at a time rather than one after
+   another, because a long contract otherwise spends minutes in one request.
+   THE TOTAL CEILING IS STILL A FACT, never a silent trim: past it the count is
+   said exactly as before, and it is set high enough that no ordinary agreement
+   meets it. */
+const READ_PAGE = 60;
+const READ_MAX_PAGES = 12;
+const READ_AT_ONCE = 3;
+const READ_MAX_CLAUSES = READ_PAGE * READ_MAX_PAGES;
 /* THE ROW'S ADDRESS, AND THE READING OF IT. `R7` is an opaque key no clause
    could carry (see the note over `doc` in the route); the reverse reading
    answers -1 for anything that is not exactly one. */
@@ -5344,7 +5361,10 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   if (!list.length) return res.status(400).json({ error: 'There is no wording to read yet' });
   // A CAP IS A FACT, never a silent trim — the standing rule. The reader is told
   // which clauses were left out rather than finding a column that simply stops.
-  const over = all.length > READ_MAX_CLAUSES ? all.length - READ_MAX_CLAUSES : 0;
+  /* `over` is settled once the pages are built (a page may be left off by the
+     character ceiling as well as by the clause one), so it is declared here and
+     answered below. */
+  let over = 0;
 
   /* ---- THE ROW KEY CANNOT BE MISTAKEN FOR THE CLAUSE NUMBER (owner-reported
      11 Sep 2026: "the plain english has failed to pick up on the first clause")
@@ -5363,10 +5383,32 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
      next press — no migration, no clearing by hand. */
   /* THE HEADING ON ITS OWN LINE (D-2c), so "copy the heading" has one reading
      and the row label cannot be taken for part of it. */
-  const doc = list.map((x, i) =>
-    `[${readKeyOf(i)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'}${x.num ? ' ' + x.num : ''}\nheading: ${x.heading}\n${x.text}`
+  /* ---- THE PAGES ----
+     Each page is its OWN little document with its own keys R0…R59, because the
+     key is what the model answers under and a short, fresh key space is what
+     makes the pairing reliable. The row a key resolves to is offset back to the
+     whole list before anything is stored, so the browser — which pairs on the
+     GLOBAL index `i` against the sheet it drew — sees one edition and cannot
+     tell the document was read in pieces.
+     THE CHARACTER CEILING IS THE ONE aiDocText ALREADY NAMES, applied to the
+     whole edition rather than to each page: a page that would take the reading
+     past it is not sent, and its clauses are counted into `over` with the rest,
+     so the cap is still a fact with a number beside it. */
+  const pageText = rows => rows.map((x, k) =>
+    `[${readKeyOf(k)}] ${x.kind === 'section' ? 'SECTION' : 'CLAUSE'}${x.num ? ' ' + x.num : ''}\nheading: ${x.heading}\n${x.text}`
   ).join('\n\n');
-  const sent = aiDocText(req, doc);
+  const maxChars = aiDocChars();
+  const pages = []; let chars = 0, read = 0;
+  for (let at = 0; at < list.length; at += READ_PAGE) {
+    const rows = list.slice(at, at + READ_PAGE);
+    const body = pageText(rows);
+    if (pages.length && chars + body.length > maxChars) break;
+    pages.push({ base: at, rows, body });
+    chars += body.length; read += rows.length;
+  }
+  if (read < list.length) req.aiInputCapped = true;
+  const sent = pages.map(p => p.body).join('\n\n');
+  over = all.length - read;
   const lang = readLangOf(req);
   /* THE LANGUAGE IS IN THE KEY. Without it a Swedish reader would be served the
      English cache and the switch would look broken to exactly the person the
@@ -5407,7 +5449,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   };
   const J = orgJx();
   const LANG = READ_LANGS[lang];
-  const prompt = `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nThe key in brackets is the row's address for your answer. It is not the clause number, which is part of the heading and is the contract's own.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${sent}`;
+  const promptFor = body => `You are writing a plain-English edition of a contract for a business owner who has no lawyer and no legal training, under ${J.adjective} law. It is set out beside the agreement, clause for clause: every row below gets its own entry, and the reader's eye moves between the two. DO NOT WRITE HEADINGS — each entry is drawn under the contract's OWN heading and number, so a heading of yours would be a second name for one clause. Return them through clause_readings.\n\nThe key in brackets is the row's address for your answer. It is not the clause number, which is part of the heading and is the contract's own.\n\nWRITE EVERY ENTRY IN ${LANG}, whatever language the contract itself is written in — the reader's own language is what this is for.\n\n${READ_PLAIN_RULE}\n\nTHE CONTRACT:\n${body}`;
   try {
     /* 8,000 RATHER THAN THE 4,000 A SUMMARY NEEDED, and the arithmetic rather
        than a guess: READ_MAX_CLAUSES is 60, a translated clause runs to about
@@ -5415,10 +5457,30 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        — which is 6,600 before any slack. Output is billed as used, so headroom
        that is not needed costs nothing; an answer cut off costs the reader the
        whole edition, and a cut-short one is not cached (below). */
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'readings', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
-    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    /* ---- ONE PAGE, ONE CALL ---- 8,000 tokens is READ_PAGE's own arithmetic,
+       which is why the page is 60 and not the whole document. */
+    const askPage = async pg => {
+      const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who: aiWho(req) });
+      if (!resp.ok) return { err: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) };
+      const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+      if (!block) return { err: 'Copilot returned no structured result' };
+      return { resp, block };
+    };
+    /* A FEW AT A TIME, never all of them: a twelve-page contract fired in one
+       breath is twelve deep calls against the provider's own rate limit, and
+       one refusal there would cost the whole edition. */
+    const answers = new Array(pages.length).fill(null);
+    for (let at = 0; at < pages.length; at += READ_AT_ONCE) {
+      const slice = pages.slice(at, at + READ_AT_ONCE);
+      const got = await Promise.all(slice.map(askPage));
+      got.forEach((g, k) => { answers[at + k] = g; });
+    }
+    /* THE FIRST PAGE IS THE ONE THAT MAY REFUSE THE WHOLE PRESS: with nothing
+       read at all there is no edition to hand over and the reader is told why.
+       A LATER page that failed is counted as unread rather than thrown away —
+       the pages before it are a real part of the document and the foot already
+       has a sentence for "N further clauses were not read". */
+    if (answers[0] && answers[0].err) return res.status(502).json({ error: answers[0].err });
     /* PAIRED BY THE NUMBER IT WAS GIVEN, never by array position: an answer that
        skipped one clause would otherwise shunt every reading after it onto the
        wrong wording, which is the worst thing this feature could do. Anything
@@ -5435,8 +5497,10 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        a pairing reading and is drawn nowhere; the heading printed stays the
        paper's own. */
     const items = [];
-    const entries = block.input && Array.isArray(block.input.readings) ? block.input.readings : [];
+    let entriesN = 0;
     let unmatched = 0;
+    let truncated = false;
+    let unread = 0;
     /* ---- A REFUSED PAIRING SAYS WHY (D-2c) ----
        Counting alone left "8 could not be matched" with nothing to read. Each
        refused entry is kept as {key, echo, want} — capped, echo bounded — so
@@ -5448,9 +5512,19 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       if (failed.length < READ_MAX_CLAUSES)
         failed.push({ key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
     };
+    /* ---- THE PAGES ARE MERGED INTO ONE EDITION ----
+       A key is the row's address WITHIN ITS PAGE; `base` puts it back on the
+       whole list, so `i` on a stored item is the global index the browser pairs
+       against and every guard below is asked of the row it really names. */
+    let base = 0;
+    const readPage = (block, pg) => {
+    base = pg.base;
+    const entries = block.input && Array.isArray(block.input.readings) ? block.input.readings : [];
+    entriesN += entries.length;
     entries.forEach(r => {
-      const i = readKeyIndex(r && r.key);
-      if (i < 0 || i >= list.length) { refuse(r, ''); return; }
+      const k = readKeyIndex(r && r.key);
+      const i = k < 0 ? -1 : base + k;
+      if (k < 0 || k >= pg.rows.length || i >= list.length) { refuse(r, ''); return; }
       const want = readEchoOf(list[i]);
       if (readEchoFold(r && r.heading) !== readEchoFold(want)) { refuse(r, want); return; }
       const plain = String((r && r.plain) || '').trim();
@@ -5476,6 +5550,18 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
          empty `plain` stays empty. */
       items.push({ i, num: list[i].num, heading: list[i].heading, kind: list[i].kind, head, plain });
     });
+    };
+    /* A MODEL FALLBACK IS ONE FACT ABOUT THE PRESS, not one per page: the
+       first page that reports it carries it into the one notice the reader is
+       shown. */
+    let fell = null;
+    answers.forEach((g, n) => {
+      if (!g || g.err || !g.block){ unread += pages[n].rows.length; return; }
+      if (g.resp && g.resp.truncated) truncated = true;
+      if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
+      readPage(g.block, pages[n]);
+    });
+    over += unread;
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with
     // nothing on any later read saying so.
@@ -5486,15 +5572,19 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        rule, applied to a mispaired answer. A misfiled reading is worse than a
        missing one, and cached it would be served for the life of the wording.
        Below that line a dropped entry is still counted and said. */
-    const partial = entries.length > 0 && unmatched * 4 > entries.length;
-    if (unmatched) console.warn(`[readings] ${id}: ${unmatched} of ${entries.length} entries refused${partial ? ' — PARTIAL, not cached' : ''}: ` +
+    const partial = entriesN > 0 && unmatched * 4 > entriesN;
+    if (unmatched) console.warn(`[readings] ${id}: ${unmatched} of ${entriesN} entries refused${partial ? ' — PARTIAL, not cached' : ''}: ` +
       failed.slice(0, 8).map(f => `${f.key} echoed "${f.echo}" wanted "${f.want}"`).join(' | '));
+    /* A PAGE THAT NEVER ANSWERED IS NOT A WHOLE EDITION EITHER, so it is not
+       cached: the next press asks for the pages that are missing rather than
+       serving a document with a hole in it for the life of the wording. */
     const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
-      truncated: !!resp.truncated, over, unmatched, partial, failed, items };
-    if (!resp.truncated && !partial && items.length)
+      truncated, over, unmatched, partial, failed, items };
+    if (!truncated && !unread && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());
-    res.json({ readings, ...aiNotice(req, resp) });
+    res.json({ readings, ...aiNotice(req, { truncated, fellBack: !!(fell && fell.fellBack),
+      model: fell && fell.model, rejectedModel: fell && fell.rejectedModel }) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

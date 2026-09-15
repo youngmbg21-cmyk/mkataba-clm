@@ -415,7 +415,14 @@ function renderDocHtml(content, format, opts={}){
   const body=sanitizeRich(content);
   const hung=(typeof window!=='undefined'&&typeof window.redlineHangHtml==='function')
     ? window.redlineHangHtml(body) : body;
-  return `<div class="${cls}">${hung}</div>`;
+  /* `lead` is markup the CALLER has already built out of sanitised blocks — the
+     paper's own head, where the surface draws one (see docPaperFrontHtml). It
+     goes INSIDE the sheet, because it is part of the document rather than
+     furniture above it, and it is not re-sanitised: the sanitiser has no
+     <header> and no class list, and would flatten the head back into the
+     paragraphs it was just lifted out of. Absent on every other caller, which
+     therefore renders byte for byte as it did. */
+  return `<div class="${cls}">${opts.lead || ''}${hung}</div>`;
 }
 
 /* ---------- text projection ----------

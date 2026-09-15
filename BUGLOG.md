@@ -14128,3 +14128,41 @@ Noticed, not fixed:
 - The clause panel's posture is decided when it opens, so resizing the window
   across 1024px while it is open leaves it in the shape it opened in until the
   next repaint.
+
+## 15 Sep 2026 (evening) — the save, the whole reading, the document's own head
+
+Owner's report, three items with four screenshots and the real contract
+attached: a "this contract just changed on the server" pop-up appearing for no
+reason; the plain-English column stopping part way down a long agreement
+("156 further clauses were not read"); and the Document page building the
+contract worse than the negotiate page.
+
+Defects found and fixed:
+1. The conflict pop-up was a race the browser had with ITSELF. Every save
+   carries the version the record had when it was sent, and that version only
+   moves when the save comes back. The wait before saving is 400ms and a long
+   contract takes longer than that to save, so a second keystroke sent a second
+   save carrying a version the first had already used, and the server refused
+   it — correctly. MEASURED in a browser with the save held back: at the parent
+   the second edit never reached the server at all and the window opened with
+   nobody else on the record. Saves are now strictly one after another. The
+   server's check is untouched: it is the only thing standing between two real
+   people and a clobbered contract.
+2. The reading stopped at 60 clauses because that is what ONE model call can
+   answer. It is the page size now, not the limit: the route walks the
+   document a page at a time, three pages at a time, and merges them into one
+   edition — one press, one column, one cache row. A page that never answered
+   is counted, said, and not cached.
+3. The Document tab drew the front matter flat where the negotiate page drew it
+   as the paper's own head. MEASURED on the owner's agreement, the same stored
+   wording: centred, uppercase, 2.52px tracking on one page; start-aligned,
+   mixed case, normal on the other. The tab now lifts the front region through
+   the change model's own boundary and dresses it in the negotiate page's own
+   classes, so the two cannot drift.
+
+Noticed, not fixed:
+- room-order-and-notices-verify's two ordering checks are red at unmodified
+  main and were left red.
+- The negotiate page prints the contract's NAME in capitals as the paper title
+  where a document has no front region of its own, and the Document tab prints
+  it as typed. Only visible on a document with no title block of its own.
