@@ -5594,7 +5594,26 @@ function ceWirePage(page){
          keeps every OTHER block of the clause exactly as it is — rebuilt from
          lines they would all arrive as bare paragraphs and Save would file a
          formatting change across wording nobody touched. */
-      const fitHtml = (parts[1] === 'fit' && it.fit) ? it.fit.html : null;
+      /* ---- ADDRESS FIRST, SEATBELT SECOND (Young ruled 15 Sep 2026) ----
+         *"why would a suggestion try and delete clauses nobody complained
+         about?"* — it never meant to. THREE OF THESE FOUR VERBS CARRY A
+         FRAGMENT: a paragraph with no address on it. Applied whole they
+         replaced a six-part clause with one sentence, which is the clause 7
+         fault in its second home — the wall built for it in September guards
+         the playbook's own filing door and never guarded this one.
+
+         SO THE ADDRESS IS READ HERE TOO. pbFitInto puts the fragment in the
+         block the finding quoted — the same reading the figure path has always
+         used — and every other part of the clause comes through byte for byte.
+         `fit` is exempt because it already IS a fitted body; slotting a whole
+         body into one block would nest the clause inside itself.
+
+         WHERE NO ADDRESS READS the fragment still replaces the clause, and that
+         is the one case the question below is for. */
+      const fitInto = (parts[1] !== 'fit' && it.clauseId && window.pbFitInto)
+        ? pbFitInto(it.oldHtml, it.v && it.v.quote, words) : null;
+      const fitHtml = (parts[1] === 'fit' && it.fit) ? it.fit.html
+        : (fitInto ? fitInto.html : null);
       /* ---- ONLY THE DRAFT IS COPILOT'S WORDING (idea 22) ----
          rlPlaybookProposals names THREE wordings on a finding and only `draft`
          is the model's: `preferred` and `fallback` are the clause library's,
@@ -5634,12 +5653,35 @@ function ceWirePage(page){
          that located THIS clause fills the box and files nothing; a rule that
          located no clause at all has nothing here to replace, so it files a new
          clause instead. One decision, taken from the finding's own clauseId. */
-      if (it.clauseId) ceApply(fitHtml || words, _cet('ce_step_playbook'));
-      else ceAddMissingClause(it, words, scan);
-      try{ if (_pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
-        aiTraceApplied(_ceC, _pbTrace, _ceText);
-        if (window.aiTraceSave) aiTraceSave(_ceC);
-      } }catch(_){}
+      /* THE SEATBELT, and it is SECOND on purpose: with an address nothing is
+         lost, pbUnquotedLoss counts zero and there is nothing to ask. The
+         sentence, the title and the count are the review window's OWN keys —
+         two doors describing one act in one set of words, because two doors
+         that word it differently is how they come to mean different things. */
+      const applyScan = async () => {
+        if (!it.clauseId){ ceAddMissingClause(it, words, scan); return true; }
+        if (!fitHtml && window.pbUnquotedLoss){
+          let gone = 0;
+          try{ gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, words); }catch(_){ gone = 0; }
+          if (gone > 0){
+            const name = (window.clauseNameShown && it.clauseLabel)
+              ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || _cet('ng_this_clause'));
+            let ok = true;
+            if (window.confirmDialog) ok = await confirmDialog({
+              title: _cet('ng_pb_broad_title'),
+              message: _cet('ng_pb_broad_ask', { n: gone, clause: name }),
+              confirmLabel: _cet('ng_pb_broad_go') });
+            if (!ok) return false;
+          }
+        }
+        return ceApply(fitHtml || words, _cet('ce_step_playbook')) !== false;
+      };
+      applyScan().then(done => {
+        try{ if (done && _pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
+          aiTraceApplied(_ceC, _pbTrace, _ceText);
+          if (window.aiTraceSave) aiTraceSave(_ceC);
+        } }catch(_){}
+      });
       return; }
 
     /* A ROW IS A DOOR TO ITS CLAUSE, and it is ceGoClause — the crumb's own act

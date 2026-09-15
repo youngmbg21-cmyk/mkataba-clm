@@ -14309,3 +14309,52 @@ NOTICED, NOT FIXED
   still asking for the retired .rn-id / .rn-arrow markup and for the crumb to have
   stood down on the negotiation page, both reversed by the 12 Sep ruling;
   negotiations-door-verify's two tab-count checks. Left red.
+
+## 15 Sep 2026 — a suggestion has an address; the wall becomes a seatbelt
+
+Off the owner's question about the limitation-of-liability redline: "why would a
+suggestion try and delete clauses nobody complained about or not impact by our
+standards?" — it never meant to.
+
+DEFECT FOUND AND FIXED
+- A suggested wording is text with NO ADDRESS on it, and the act that puts wording
+  into a clause knows one move: replace everything. On a clause that is a container
+  (a numbered heading with six rules under it) a suggestion about one of them took
+  the other five as collateral. The address already existed and was being thrown
+  away: the finding QUOTES the wording it objected to, and pbQuoteBlock has read a
+  block out of that quote since September — which is how the FIGURE path keeps the
+  rest of a clause byte for byte. One of four suggestions was surgical; three were
+  not, for no defensible reason.
+- pbFitInto(bodyHtml, quote, words) is the one reading and is published. Null on no
+  DOM, no blocks, no confident address, or wording identical to the block it lands
+  in; every caller falls back to what it had.
+- pbFitWording's draft branch asks it, so the overnight batch and the clause editor
+  cannot disagree about where a draft goes. preview still shows the words themselves.
+- The clause editor addresses preferred / fallback / draft and EXEMPTS fit, which is
+  already a fitted body.
+- THE SEPTEMBER WALL BECOMES A SEATBELT, on the owner's ruling "address first,
+  seatbelt second": with an address pbUnquotedLoss counts zero, so the question fires
+  only where no address read. It uses the review window's own keys — two doors, one
+  act, one sentence. A refused question applies nothing and records nothing as taken.
+
+MEASURED on the owner's own clause shape, in the real app:
+  draft alone would delete 5 parts (unchanged, and why the seatbelt is kept);
+  where the draft lands: nowhere (-1) -> block 2 of 6;
+  parts the applied wording deletes: 5 -> 0;
+  parts drawn as deletions after a real press: 20.1, 20.2, 20.4, 20.5, 20.6 -> none.
+
+TESTS
+- f318 (12 claims; 12 of 12 red at 6c0ff13).
+- prepare-redlines-verify section 7 (nine checks driven on the REAL APP; 3 red at the
+  parent, reproducing the owner's screenshot exactly).
+- NOT in clause-editor-verify: parity.html deliberately does not load js/playbook.js
+  and is shared by ten browser files, so a press there measures the fallback and not
+  the fix. A check that fails for the wrong reason is worse than no check.
+- Full node suite 7197 green; lint 0 errors.
+
+NOTICED, NOT FIXED
+- ceApply returns false on a no-op and the Copilot trace was recorded as "applied"
+  regardless. Now recorded only where the apply happened — this one WAS changed, in
+  the same lines, because it is the same press; named here so it is not a surprise.
+- redline-verify check 5 was already red before this session (proved at the parent):
+  the highlight menu draws its three verbs where that check expects none. Left red.

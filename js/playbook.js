@@ -267,6 +267,60 @@ function pbPositionFigure(category,wordings){
    describe the same press and are deliberately not the same string, because a
    card that previewed the whole clause would look like the paste this exists
    to prevent. */
+/* ---- THE ADDRESS, NOT THE SEATBELT (Young ruled 15 Sep 2026) ----
+   *"why would a suggestion try and delete clauses nobody complained about or
+   not impact by our standards?"*
+
+   IT NEVER MEANT TO, and that is the whole answer. A suggested wording is a
+   piece of text with NO ADDRESS ON IT — it does not know which part of which
+   clause it belongs in — and the act that puts wording into a clause knows
+   exactly one move: replace everything. So on a clause that is a CONTAINER (a
+   numbered heading with six rules under it) a suggestion about one of them
+   takes the other five with it. Not as a decision. As collateral.
+
+   It was built that way because both sides of the swap are usually one
+   paragraph: the library's own clauses are single paragraphs, and so is the
+   position they carry. Swapping our paragraph for their paragraph is right
+   until the other side writes six rules under one heading, which is ordinary
+   drafting in a commercial agreement.
+
+   THE ADDRESS ALREADY EXISTS AND WAS BEING THROWN AWAY. The finding quotes the
+   wording it objected to; pbQuoteBlock reads the block out of that quote. That
+   is precisely how the figure path has always kept the rest of a clause byte
+   for byte. This is that same reading, offered to ANY wording rather than to a
+   number alone — so the promise "only tackle where the misalignment is" stops
+   being a property of one of the four suggestions and becomes a property of
+   all of them.
+
+   AND IT DEMOTES THE QUESTION TO A SEATBELT. Where an address is read nothing
+   is lost, so pbUnquotedLoss counts zero and there is nothing to ask. The
+   question is for the one case left — no address could be read — which is the
+   only way a suggestion still replaces a whole clause.
+
+   NULL IS AN HONEST ANSWER: no document, no blocks, no confident address, or
+   wording that does not move the block it landed in. Every caller falls back
+   to exactly what it had, so a stage without a DOM is byte-identical.
+
+   READING ONLY. It files nothing, spends nothing and draws nothing. */
+function pbFitInto(bodyHtml,quote,words){
+  const w=String(words==null?'':words).trim();
+  if(!w) return null;
+  if(typeof window==='undefined'||!window.richToText) return null;
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(!blocks||!blocks.length) return null;
+  const at=pbQuoteBlock(bodyHtml,quote);
+  if(at<0||blocks[at]==null) return null;
+  /* The figure path's own no-op test, asked of the BLOCK rather than the
+     clause: wording identical to what it replaces is not a change. */
+  if(_pbFitNorm(w)===_pbFitNorm(blocks[at])) return null;
+  const html=pbSwapBlock(bodyHtml,at,w);
+  if(!html) return null;
+  let text='';
+  try{ text=richToText(html); }catch(_){ return null; }
+  if(!text) return null;
+  return { text, html, block:at, blocks:blocks.length };
+}
+
 function pbFitWording(cl,v,preferred,draft){
   const body=cl&&cl.bodyHtml;
   const blocks=pbClauseBlocks(body);
@@ -285,7 +339,18 @@ function pbFitWording(cl,v,preferred,draft){
       }
     }
   }
-  if(draft) return { kind:'draft', text:String(draft), preview:String(draft), html:null, block:-1, blocks:n };
+  if(draft){
+    /* THE DRAFT TAKES THE FIGURE PATH'S ADDRESS TOO (15 Sep 2026). The prompt
+       already requires the model's wording to be THIS CLAUSE'S own carrying the
+       smallest change, so where the finding names a block that is where it
+       goes and every other block comes through byte for byte. Where no address
+       reads, it is the fragment it always was and the caller's seatbelt
+       answers for it. */
+    const into=body?pbFitInto(body,v&&v.quote,draft):null;
+    if(into) return { kind:'draft', text:into.text, preview:String(draft),
+      html:into.html, block:into.block, blocks:n };
+    return { kind:'draft', text:String(draft), preview:String(draft), html:null, block:-1, blocks:n };
+  }
   return null;
 }
 
@@ -1023,4 +1088,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

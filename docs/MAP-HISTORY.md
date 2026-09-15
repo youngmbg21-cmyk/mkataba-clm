@@ -19565,6 +19565,59 @@ clause as the answer for a position the contract has no clause on at all;
 `redlineWholesale` and `redlineReplacementHtml`; the fallback, which is still
 never filed unattended because it is a position nobody has decided to concede.
 
+## A SUGGESTION HAS AN ADDRESS — AND THE WALL BECOMES A SEATBELT (Young ruled 15 Sep 2026)
+
+The owner opened a redline on a limitation-of-liability clause and found five of its six parts struck through to change the cap in the sixth. Asked to explain how that was surgical, the honest answer was that half of it was: the EDIT inside the cap was textbook — their sentence kept, the SEK 40,000,000 "whichever is the lower" ceiling replaced by a floor tied to twelve months of purchases, the 125% and the cross-references untouched — and the other half was the clause 7 fault in a second home.
+
+Then the owner asked the question that made the fix small:
+
+> *"why would a suggestion try and delete clauses nobody complained about or not impact by our standards?"*
+
+**IT NEVER MEANT TO, and that is the whole answer.** Nothing was deciding to delete anything. A suggested wording is a piece of text with **no address on it** — it does not know which part of which clause it belongs in — and the act that puts wording into a clause knows exactly one move: replace everything. So on a clause that is a CONTAINER, a suggestion about one rule takes the other five with it. Not as a decision. As collateral.
+
+It was built that way for a good reason, which is why it survived so long: both sides of the swap are normally one paragraph. The clause library's wordings are single paragraphs and so are the positions they carry. Swapping our paragraph for their paragraph is right until the other side writes six rules under one heading, which is ordinary commercial drafting.
+
+**AND THE ADDRESS ALREADY EXISTED.** The finding quotes the wording it objected to. `pbQuoteBlock` has read a block out of that quote since the nuanced-redline work — it is exactly how the FIGURE path keeps the rest of a clause byte for byte. One of the four suggestions was surgical and the other three were not, for no reason anyone would defend.
+
+### What changed
+
+`pbFitInto(bodyHtml, quote, words)` is that reading, offered to ANY wording rather than to a number alone. It is the whole fix, and it is fifteen lines.
+
+- **The model's draft takes it at the shared reading**, inside `pbFitWording`, so the overnight batch and the clause editor cannot come to disagree about where a draft belongs. `preview` still shows the words themselves — what the reader is being offered has not changed, only where it lands.
+- **The clause editor addresses every FRAGMENT verb** and exempts `fit`, which already is a fitted body; slotting a whole body into one of its own blocks would nest the clause inside itself.
+- **Null is an honest answer** — no document, no blocks, no confident address, or wording identical to the block it would replace. Every caller falls back to precisely what it had, so a stage without a DOM is byte-identical.
+
+### The reversal, and it is the interesting half
+
+The September work built `pbUnquotedLoss` as a WALL on the playbook's own filing door: count the parts of a clause the finding never mentioned that would not survive the proposed wording, and refuse. It guarded the batch and the review window and it never guarded the clause editor — which is the door the owner actually used.
+
+The obvious fix was to put the same wall on the second door. **The owner's question is what showed that to be the lesser fix**, and their instruction — *"build it that way - address first, seatbelt second"* — is the ruling:
+
+> With an address, nothing is lost. `pbUnquotedLoss` counts zero. There is nothing to ask.
+
+So the question is not the main protection any more; it is the seatbelt for the one case left, where no address could be read. It fires on `!fitHtml` alone, and it speaks the review window's OWN keys, because two doors that word one act differently are how they come to mean different things.
+
+### What the measurement said
+
+On the owner's own clause shape, off the real module, in the real app:
+
+| | parent | after |
+|---|---|---|
+| parts the draft alone would delete | **5** | 5 |
+| where the draft lands | **nowhere (-1)** | **block 2 of 6** |
+| parts the applied wording deletes | **5** | **0** |
+| parts drawn as deletions after a real press | **20.1, 20.2, 20.4, 20.5, 20.6** | **none** |
+
+The first row is the fault, unchanged and deliberately so — it is what the fragment on its own would still do, and it is why the seatbelt is kept rather than deleted.
+
+### One thing found on the way and worth naming
+
+`ceApply` returns false on a no-op, and the trace was being recorded as "applied" regardless. It is now recorded only where the apply actually happened — *applied* should mean applied.
+
+### Where the browser check lives, and why not where you would expect
+
+Not in clause-editor-verify. That file runs on `parity.html`, which deliberately does not load `js/playbook.js` and is shared by ten other browser files — a note written into that file in September when a previous change declined to add the script for exactly this reason. With the module absent the rail falls back and the press measures the fallback rather than the fix. **A check that fails for the wrong reason is worse than no check**, so it went into prepare-redlines-verify, which runs the real app: real module, real rail, real delegated listener, real press.
+
 ## THE CONTRACT KEEPS ITS SHAPE, THE COMMENT NUMBER COMES INSIDE THE PAGE, THE WAY BACK IS A SIGN (Young ruled 15 Sep 2026)
 
 Three reports off one screen.

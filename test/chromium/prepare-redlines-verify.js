@@ -320,6 +320,126 @@ const VERDICTS = [
     '6h the counterparty column draws neither button', JSON.stringify(theirs.theirs));
   check(theirs.theirs.blurb, '6i and keeps the sentence rather than an empty box', JSON.stringify(theirs.theirs));
 
+  /* ============================================================
+     7 — A SUGGESTION HAS AN ADDRESS (Young ruled 15 Sep 2026)
+     ============================================================
+     *"why would a suggestion try and delete clauses nobody complained about or
+     not impact by our standards?"* — it never meant to. A suggested wording is
+     a piece of text with no address on it, and the act that puts wording into
+     a clause knows one move: replace everything. On a clause that is a
+     CONTAINER — a numbered heading with six rules under it — a suggestion
+     about one of them took the other five with it.
+
+     THE STAGE IS THE OWNER'S OWN SCREEN: limitation of liability in six parts,
+     the playbook objecting to the cap in the third and QUOTING it. That quote
+     is the address, and it was always there.
+
+     WHY HERE AND NOT IN clause-editor-verify: that file runs on parity.html,
+     which deliberately does not load js/playbook.js and is shared by ten other
+     browser files. With the module absent the rail falls back and the press
+     would measure the fallback rather than the fix — a check failing for the
+     wrong reason is worse than no check. This file runs the REAL APP, so the
+     real reading, the real rail and the real delegated listener all answer.
+     ============================================================ */
+  const st7 = await page.evaluate(async id => {
+    const c = getContract(id);
+    const quote = 'or SEK 40,000,000, whichever is the lower';
+    c.redlineText = '<h1>DISTRIBUTION AGREEMENT</h1><p>Between the parties.</p>'
+      + '<h2>20. LIMITATION OF LIABILITY</h2>'
+      + '<p>20.1 Nothing in this Agreement limits or excludes either Party\'s liability for death or personal injury caused by negligence.</p>'
+      + '<p>20.2 Neither Party is liable to the other for loss of profit, loss of goodwill or any indirect or consequential loss.</p>'
+      + '<p>20.3 Each Party\'s total aggregate liability arising in any Contract Year shall not exceed one hundred and twenty-five per cent (125%) of the net invoice value of Products purchased in the twelve (12) months immediately preceding the claim, ' + quote + '.</p>'
+      + '<p>20.4 The cap in clause 20.3 does not apply to liability arising under clause 14 (Confidentiality) or clause 15 (Data Protection).</p>'
+      + '<p>20.5 Each Party shall take reasonable steps to mitigate any loss it suffers under this Agreement.</p>'
+      + '<p>20.6 No claim may be brought more than twenty-four (24) months after the claiming Party became aware of the circumstances.</p>';
+    c.format = 'rich'; c.changes = []; delete c.negotiation; negoInit(c);
+    if (window.rlSetReadMode) rlSetReadMode('marks');
+    c.playbook = { key: 'x', label: 'test', source: 'ai', verdicts: [
+      { category: 'Liability cap', status: 'deviates', quote,
+        position: 'Liability capped at the fees paid in the last twelve (12) months',
+        redline: 'Each Party\'s total aggregate liability arising in any Contract Year shall not exceed '
+          + 'one hundred and twenty-five per cent (125%) of the net invoice value of Products purchased in '
+          + 'the twelve (12) months immediately preceding the claim, this cap being in any event not less '
+          + 'than the net invoice value of Products purchased in that period.',
+        escalate: false },
+    ] };
+    const cl = negoClauseList(c).find(x => /LIMITATION OF LIABILITY/i.test(x.headingText || ''));
+    if (!cl) return { error: 'no clause staged' };
+    /* THE READING ITSELF, before a pixel is drawn: what would the draft do? */
+    const it = (window.rlPlaybookProposals ? rlPlaybookProposals(c, c.playbook) : [])
+      .find(x => x && x.clauseId === cl.clauseId);
+    const lossBare = (it && window.pbUnquotedLoss)
+      ? pbUnquotedLoss(it.oldHtml, quote, it.draft) : -1;
+    const lossFit = (it && it.fit && window.pbUnquotedLoss)
+      ? pbUnquotedLoss(it.oldHtml, quote, it.fit.text) : -1;
+    rlOpenClauseEditor(c, cl.clauseId, {});
+    return { clauseId: cl.clauseId, landing: it && it.landing,
+      fitKind: it && it.fit && it.fit.kind, fitBlock: it && it.fit && it.fit.block,
+      fitBlocks: it && it.fit && it.fit.blocks, lossBare, lossFit };
+  }, ID);
+  check(!st7.error && st7.landing === 'edit',
+    '7a- the control: the finding landed on this clause', JSON.stringify(st7));
+  /* THE FAULT AND THE FIX AS ONE PAIR OF NUMBERS, off the real module. */
+  check(st7.lossBare === 5,
+    '7a Copilot\'s draft on its own would delete five parts nobody complained about', st7.lossBare);
+  check(st7.fitKind === 'draft' && st7.fitBlock === 2 && st7.fitBlocks === 6,
+    '7b addressed, it goes in the block the finding quoted — the third of six',
+    `${st7.fitKind} block ${st7.fitBlock} of ${st7.fitBlocks}`);
+  check(st7.lossFit === 0,
+    '7c and then it deletes none, which is what demotes the wall to a seatbelt', st7.lossFit);
+
+  await pause(900);
+  await page.click('#clause-editor [data-ce-tab="scan"]').catch(() => {});
+  await pause(500);
+  const PARTS7 = id => {
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + id + '"]');
+    if (!sec) return { none: 'clause not drawn' };
+    /* A PART DRAWN ONLY AS A STRIKE IS A PART BEING DELETED. Read off the
+       painted marks, never off the markup — the whole report was about what a
+       reader sees on the page. */
+    const struck = [];
+    sec.querySelectorAll('del, .rl-line-del').forEach(el => {
+      const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      ['20.1', '20.2', '20.4', '20.5', '20.6'].forEach(k => {
+        if (t.indexOf(k + ' ') === 0 && struck.indexOf(k) < 0) struck.push(k);
+      });
+    });
+    const seen = {};
+    ['20.1', '20.2', '20.3', '20.4', '20.5', '20.6'].forEach(k => { seen[k] = false; });
+    sec.querySelectorAll('p,li').forEach(el => {
+      const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      Object.keys(seen).forEach(k => { if (t.indexOf(k + ' ') === 0) seen[k] = true; });
+    });
+    /* PAINTED AT ALL is not SURVIVED: at the parent every part was still on
+       the page, struck through. `kept` is the real question. */
+    const kept = {};
+    Object.keys(seen).forEach(k => { kept[k] = seen[k] && struck.indexOf(k) < 0; });
+    return { none: null, seen, kept, struck, floor: /not less than/.test(sec.textContent || '') };
+  };
+  const before7 = await page.evaluate(PARTS7, st7.clauseId);
+  const btn7 = await page.$('#clause-editor .ce-rule [data-ce-scan$=":draft"]');
+  check(!!btn7 && !before7.none && Object.values(before7.seen).every(Boolean),
+    '7d- the control: the rail offers the draft on a six-part clause',
+    !btn7 ? 'no draft button drawn' : JSON.stringify(before7.seen));
+  if (btn7 && !before7.none){
+    await btn7.click();
+    await pause(1200);
+    const after7 = await page.evaluate(PARTS7, st7.clauseId);
+    check(!after7.none && ['20.1', '20.2', '20.4', '20.5', '20.6'].every(k => after7.kept[k]),
+      '7d THE REPORT: the five parts nobody complained about SURVIVE the press',
+      JSON.stringify(after7.kept));
+    check(!after7.none && after7.struck.length === 0,
+      '7e and not one of them is drawn as a deletion',
+      after7.struck.length ? `struck: ${after7.struck.join(', ')}` : 'none struck');
+    check(!after7.none && after7.floor === true,
+      '7f while the part the playbook DID object to carries our position', after7.floor);
+  }
+  await page.screenshot({ path: path.join(OUT, '08-address.png') });
+  await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); });
+  await pause(500);
+  await page.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(400);
+
   check(errors.length === 0, 'no page errors', errors.join(' | ') || 'clean');
   await browser.close(); await h.stop(); await ai.stop();
   console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
