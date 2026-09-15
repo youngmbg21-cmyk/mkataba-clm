@@ -1642,20 +1642,22 @@ const dismissNote = async pg => {
      `region ${quiet.bg} over a sheet of ${quiet.paperBg}`);
   ck('17c and no ring — the other half of the search-box costume',
      quiet.shadow === 'none', quiet.shadow);
-  ck('17d what is left is a DASHED HAIRLINE',
-     quiet.style === 'dashed' && parseFloat(quiet.width) > 0 && parseFloat(quiet.width) <= 1.5,
+  /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "I do not want to have the
+     dotted line or any line around a clause when I go to edit ... It should
+     just seem like nothing has changed") ----
+     17d, 17d3, 17e and 17f measured the frame: dashed, a hairline, clear of
+     the words, faint, mixed off the paper's ink. Every one of them was true
+     and the mark is gone anyway, on the owner's word. What is measured now is
+     the ABSENCE, in pixels and on all three elements — the clause and both of
+     its boxes — because a frame reintroduced on any of them would be the thing
+     that was asked for to be removed. 17d2 survives unchanged: it always
+     asserted the two boxes draw none. */
+  ck('17d NO LINE AT ALL round the clause being typed in',
+     parseFloat(quiet.width) === 0 || quiet.style === 'none',
      `${quiet.style} ${quiet.width}`);
-  ck('17d2 ONE FRAME, ROUND THE CLAUSE — the two boxes draw none',
+  ck('17d2 and the two boxes draw none either',
      parseFloat(quiet.bodyWidth) === 0 && parseFloat(quiet.headWidth) === 0,
      `wording ${quiet.bodyOutline} ${quiet.bodyWidth} · name ${quiet.headOutline} ${quiet.headWidth}`);
-  ck('17d3 and it really encompasses the name AND the wording',
-     quiet.framesBoth === true, `frame contains both: ${quiet.framesBoth}`);
-  ck('17e set clear of the words, so it frames them rather than touching them',
-     parseFloat(quiet.offset) > 0, quiet.offset);
-  ck('17f it is FAINT — not the accent, and not opaque',
-     alphaOf(quiet.colour) > 0 && alphaOf(quiet.colour) < 0.5
-       && quiet.colour !== quiet.accent,
-     `${quiet.colour} against an accent of ${quiet.accent}`);
   /* ---- REVERSED IN PLACE 29 Aug 2026 (owner-asked, ringing it) ----
      This read "THE MARGIN BAR IS UNTOUCHED — the one signal still at full
      strength", and it was true and worth pinning while the fill came off the
@@ -1688,10 +1690,12 @@ const dismissNote = async pg => {
       paperBg: getComputedStyle(sheet).backgroundColor };
   });
   await p.evaluate(() => document.documentElement.classList.remove('dark'));
-  ck('17h the line FOLLOWS THE PAPER into the dark theme, from one declaration',
-     night.style === 'dashed' && night.colour !== quiet.colour
-       && night.paperBg !== quiet.paperBg,
-     `${quiet.colour} on ${quiet.paperBg} -> ${night.colour} on ${night.paperBg}`);
+  /* REVERSED WITH 17d: there is no line to follow the paper. What the night
+     half still proves is that the ABSENCE is not a light-theme accident — a
+     dark override putting a frame back would be the same defect after dark. */
+  ck('17h and no line comes back after dark either',
+     night.style === 'none' || night.style === '',
+     `${quiet.style} by day -> ${night.style} by night, on ${night.paperBg}`);
   ck('17i and it never gains a fill there either', alphaOf(night.bg) === 0, night.bg);
 
   /* ---- THE STRIP IS GONE AND THE CONTRACT HAS THE SPACE ---- */
@@ -3831,6 +3835,300 @@ const dismissNote = async pg => {
        JSON.stringify(spoke32));
     await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
     await answerLeave(p); await pause(200);
+  }
+
+  /* ============================================================
+     33 — ENTERING A CLAUSE IS NOT AN EVENT (Young ruled 15 Sep 2026)
+     ============================================================
+     *"I do not want to have the dotted line or any line around a clause when I
+     go to edit. I should just seem like a nothing has changed. I also do not
+     want to click twice on any word or any location before I start doing
+     anything and nothing on the page should move as far as positioning or
+     spacing just because I entered a cursor in the clause. Just put your
+     cursor wherever you want once and start typing."*
+
+     THREE CLAIMS, AND ONLY A RENDERED PAGE CAN ANSWER ANY OF THEM. The markup
+     was correct before and after: what moved was the heading by four pixels
+     and the caret to the top of the clause, and neither is visible in a
+     source file. Every measurement below is taken twice, on the SAME clause,
+     once at rest and once with a cursor in it, and compared. */
+  {
+    await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+    await answerLeave(p); await pause(200);
+    /* ---- THE CLAUSE HAS TO OPEN AT REST, OR NONE OF THIS IS MEASURED ----
+       A clause with nothing on it opens TYPEABLE (the 28 Aug rule), so a stage
+       built on one compares a typing box with itself: the press changes
+       nothing, the caret is already placed by the browser, and every claim
+       below passes on a page the ruling never touched. A clause carrying an
+       ask of theirs opens SHOWING ITS MARKS instead — at rest, with no caret
+       and no box — which is the state a reader actually clicks into. */
+    const st = await p.evaluate(async () => {
+      const c = window.CONTRACT;
+      const live = (c.changes || []).filter(x => x && x.status === 'pending' && !x.withdrawn);
+      const busy = new Set(live.map(x => x.clauseId));
+      const long = x => (x.text || '').length > 120 && !window.negoIsFrontId(x.clauseId);
+      /* A clause already carrying an ask of theirs is the state we want and
+         costs nothing to stage; otherwise file one on an untouched clause. */
+      let cl = negoClauseList(c).find(x => long(x)
+        && live.some(ch => ch.clauseId === x.clauseId && ch.side === 'counterparty'));
+      let theirs = cl ? live.find(ch => ch.clauseId === cl.clauseId && ch.side === 'counterparty') : null;
+      if (!cl){
+        cl = negoClauseList(c).find(x => !busy.has(x.clauseId) && long(x)) || null;
+        if (!cl) return { error: 'no clause left to click into' };
+        theirs = await negoEditClause(c, cl.clauseId,
+          '<p>' + cl.text + ' Interest runs at two per cent above base.</p>',
+          { side: 'counterparty', author: 'Henry M.' });
+        if (!theirs) return { error: 'their ask did not file' };
+      }
+      if (window.rlSetReadMode) rlSetReadMode('marks');
+      rlOpenClauseEditor(c, cl.clauseId, { changeId: theirs.id });
+      return { clauseId: cl.clauseId };
+    });
+    if (st.error){ ck('33 the stage opens a clause', false, st.error); }
+    else {
+      await pause(700);
+      await p.evaluate(() => { const b = document.getElementById('ce-clausebody'); b && b.scrollIntoView({ block: 'center' }); });
+      await pause(300);
+      /* WHAT IT LOOKS LIKE AT REST — the heading's ink, the first line of the
+         wording, and whether any line is drawn anywhere on the region. */
+      const before = await p.evaluate(() => {
+        /* ---- MEASURE THE INK, NOT THE BOX ---- The heading is a flex child
+           whose border box is set by the row, so padding put on it moves the
+           WORDS inside and never the element: its rect is identical either
+           way. The first painted glyph is what the reader sees move. */
+        const inkOf = el => { if (!el) return null;
+          const r = document.createRange(); r.selectNodeContents(el);
+          const b = r.getClientRects()[0] || r.getBoundingClientRect();
+          return b ? [Math.round(b.left * 10) / 10, Math.round(b.top * 10) / 10] : null; };
+        const doc = document.getElementById('ce-doc');
+        const live = doc.querySelector('.rl-clause-live') || doc.querySelector('.rl-clause');
+        const head = live.querySelector('.rl-clause-h');
+        const box = document.getElementById('ce-clausebody');
+        const w = box.getBoundingClientRect(), h = head ? head.getBoundingClientRect() : null;
+        const ring = el => { const cs = getComputedStyle(el);
+          return parseFloat(cs.outlineWidth) || 0; };
+        return { headX: h ? Math.round(h.left * 10) / 10 : null, headY: h ? Math.round(h.top * 10) / 10 : null,
+          /* THE WIDTH TOO, and it is the half that catches the real shift: the
+             heading is left-aligned, so the reserve being released by a pencil
+             that joins the row moves its RIGHT edge and never its left. */
+          headW: h ? Math.round(h.width * 10) / 10 : null,
+          headInk: inkOf(head), boxInk: inkOf(box),
+          _bp: getComputedStyle(box).padding, _bm: getComputedStyle(box).margin,
+          typing: !!(box && box.isContentEditable),
+          marks: live.querySelectorAll('ins, del').length,
+          boxX: Math.round(w.left * 10) / 10, boxY: Math.round(w.top * 10) / 10,
+          rings: [live, box, head].filter(Boolean).map(ring),
+          /* A word in the middle of the wording, and the point over it. */
+          pt: (() => { const t = [...box.querySelectorAll('p, div')].find(e => (e.textContent || '').trim().length > 80) || box;
+            const r = document.createRange(); r.selectNodeContents(t);
+            const rects = [...r.getClientRects()].filter(x => x.width > 120);
+            const line = rects[0] || t.getBoundingClientRect();
+            return { x: Math.round(line.left + line.width * 0.55), y: Math.round(line.top + line.height / 2) }; })() };
+      });
+      ck('33a0 (control) the stage really opens AT REST, showing their marks',
+         before.typing === false && before.marks > 0,
+         `typing ${before.typing} with ${before.marks} mark(s) drawn`);
+      ck('33a AT REST there is no line on the clause or on either box',
+         before.rings.every(r => r === 0), JSON.stringify(before.rings));
+      /* ONE PRESS, in the middle of a line, on a word. */
+      await p.mouse.click(before.pt.x, before.pt.y);
+      await pause(700);
+      const after = await p.evaluate(() => {
+        const caretAt = () => {
+          const sel = window.getSelection();
+          if (!sel || !sel.rangeCount) return null;
+          const r = sel.getRangeAt(0);
+          const n = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode;
+          const box = document.getElementById('ce-clausebody');
+          if (!n || !box || !box.contains(n)) return null;
+          /* THE CARET'S OWN RECTANGLE is the only honest reading of "where it
+             went": a text offset is measured inside whichever run the caret
+             landed in, and offset 0 of a run that starts mid-line is a caret
+             exactly where the finger was. A collapsed range has no width, so
+             its client rect is asked for through a one-character probe where
+             the browser gives nothing back. */
+          let rect = r.getBoundingClientRect();
+          if (!rect || (!rect.width && !rect.height)){
+            const probe = r.cloneRange();
+            try{ probe.setEnd(probe.startContainer, Math.min(probe.startOffset + 1, (probe.startContainer.textContent || '').length)); }catch(_){}
+            rect = probe.getBoundingClientRect();
+          }
+          /* And how far into the CLAUSE it is, counted over every live text
+             node, so "not parked at the top" is a number rather than a guess. */
+          let seen = 0, hit = -1;
+          const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+          let t; while ((t = walk.nextNode())){
+            if (t === r.startContainer){ hit = seen + r.startOffset; break; }
+            seen += (t.nodeValue || '').length;
+          }
+          return { x: Math.round(rect.left), y: Math.round(rect.top + rect.height / 2),
+            into: hit, chars: seen };
+        };
+        /* ---- MEASURE THE INK, NOT THE BOX ---- The heading is a flex child
+           whose border box is set by the row, so padding put on it moves the
+           WORDS inside and never the element: its rect is identical either
+           way. The first painted glyph is what the reader sees move. */
+        const inkOf = el => { if (!el) return null;
+          const r = document.createRange(); r.selectNodeContents(el);
+          const b = r.getClientRects()[0] || r.getBoundingClientRect();
+          return b ? [Math.round(b.left * 10) / 10, Math.round(b.top * 10) / 10] : null; };
+        const doc = document.getElementById('ce-doc');
+        const live = doc.querySelector('.rl-clause-live') || doc.querySelector('.rl-clause');
+        const head = live.querySelector('.rl-clause-h');
+        const box = document.getElementById('ce-clausebody');
+        const w = box.getBoundingClientRect(), h = head ? head.getBoundingClientRect() : null;
+        const ring = el => parseFloat(getComputedStyle(el).outlineWidth) || 0;
+        const caret = caretAt();
+        const done = live.querySelector('.rl-cp-pill-done');
+        return { headX: h ? Math.round(h.left * 10) / 10 : null, headY: h ? Math.round(h.top * 10) / 10 : null,
+          headW: h ? Math.round(h.width * 10) / 10 : null,
+          headInk: inkOf(head), boxInk: inkOf(box),
+          boxX: Math.round(w.left * 10) / 10, boxY: Math.round(w.top * 10) / 10,
+          rings: [live, box, head].filter(Boolean).map(ring),
+          typing: !!(box && box.isContentEditable), caret,
+          _bp: getComputedStyle(box).padding, _bm: getComputedStyle(box).margin,
+          _cls: box.className,
+          _rules: (() => { const out = [];
+            for (const sh of document.styleSheets){ let rs; try{ rs = sh.cssRules; }catch(_){ continue; }
+              for (const r of rs){ if (!r.selectorText || !r.style) continue;
+                if (!/margin/.test(r.style.cssText)) continue;
+                try{ if (box.matches(r.selectorText)) out.push(r.selectorText + ' {' + r.style.cssText.slice(0, 80) + '}'); }catch(_){}
+              } }
+            return out; })(),
+          headBox: !!document.getElementById('ce-clausehead'),
+          donePinned: done ? getComputedStyle(done).position : null,
+          doneW: done ? Math.round(done.getBoundingClientRect().width) : null,
+          reserve: getComputedStyle(document.documentElement).getPropertyValue('--rl-pill-reserve').trim()
+            || getComputedStyle(document.querySelector('.redline-page') || document.documentElement).getPropertyValue('--rl-pill-reserve').trim() };
+      });
+      ck('33b ONE PRESS and the clause is typeable', after.typing === true, String(after.typing));
+      if (process.env.HATI_DIAG) console.log('33 diag headBox', after.headBox);
+      /* WHERE THE PRESS LANDED, measured as PIXELS against the point pressed —
+         the caret sits on that line and within a character or two of that x.
+         A text offset would be measured inside whichever run the caret fell
+         in, and offset 0 of a run that begins mid-line is a caret in exactly
+         the right place; the rectangle cannot be read two ways. */
+      ck('33c …with the caret where the press landed, not at the top of the clause',
+         !!after.caret && Math.abs(after.caret.y - before.pt.y) <= 12
+           && Math.abs(after.caret.x - before.pt.x) <= 24 && after.caret.into > 20,
+         JSON.stringify({ pressed: before.pt, caret: after.caret }));
+      if (process.env.HATI_DIAG) console.log('33 rules', JSON.stringify(after._rules, null, 1));
+      if (process.env.HATI_DIAG) console.log('33 box', 'rest pad', before._bp, 'mar', before._bm, '| typing pad', after._bp, 'mar', after._bm);
+      /* THE INK, AND ONLY THE INK. Both boxes take an inset and give it back
+         with a negative margin, so their ELEMENT boxes grow and shift by
+         design and tell you nothing; what the reader sees is the first
+         painted glyph of the name and of the wording. */
+      ck('33d NOTHING MOVED: the first glyph of the name and of the wording sit where they sat',
+         JSON.stringify(after.headInk) === JSON.stringify(before.headInk)
+           && JSON.stringify(after.boxInk) === JSON.stringify(before.boxInk),
+         JSON.stringify({ before: { headInk: before.headInk, boxInk: before.boxInk },
+           after: { headInk: after.headInk, boxInk: after.boxInk } }));
+      ck('33e and STILL no line, now that a cursor is in it',
+         after.rings.every(r => r === 0), JSON.stringify(after.rings));
+      /* THE RESERVE IS THE WIDEST FACE. The Done pencil is pinned out of the
+         row, so the heading holds its width open — and the number in the
+         stylesheet has to actually fit the pill, or the heading runs under it.
+         MEASURED, never typed. */
+      ck('33f the Done pencil is pinned, and the reserve really fits it',
+         after.donePinned === 'absolute' && after.doneW > 0
+           && parseFloat(after.reserve) >= after.doneW,
+         `done ${after.doneW}px ${after.donePinned} against a reserve of ${after.reserve}`);
+      /* ---- AND THE CASE THAT WAS DEAD: A CLICK INTO ANOTHER CLAUSE ----
+         This is where "click twice" was not a caret landing badly but nothing
+         happening at all. The page CLOSES and re-opens on the clause pressed,
+         and on that journey there was no call site that put the caret in the
+         box — so the first press only got you there and the second one was the
+         one that started the typing. The point is remembered across the whole
+         close-and-reopen, and it is only safe to trust because 33d says the
+         clause does not move under it. */
+      const other = await p.evaluate(() => {
+        const doc = document.getElementById('ce-doc');
+        const mine = doc.querySelector('.rl-clause-live');
+        const secs = [...doc.querySelectorAll('.rl-clause[data-clause]')]
+          .filter(x => x !== mine && (x.textContent || '').trim().length > 160);
+        const sec = secs[0];
+        if (!sec) return null;
+        sec.scrollIntoView({ block: 'center' });
+        return { id: sec.getAttribute('data-clause'),
+          marks: sec.querySelectorAll('ins, del').length };
+      });
+      await pause(400);
+      if (!other){ ck('33g a second clause is on the stage', false, 'none long enough'); }
+      else {
+        const pt2 = await p.evaluate(id => {
+          const sec = document.querySelector(`#ce-doc .rl-clause[data-clause="${CSS.escape(id)}"]`);
+          const t = [...sec.querySelectorAll('p, div')].find(e => (e.textContent || '').trim().length > 80) || sec;
+          const r = document.createRange(); r.selectNodeContents(t);
+          const rects = [...r.getClientRects()].filter(x => x.width > 120);
+          const line = rects[0] || t.getBoundingClientRect();
+          return { x: Math.round(line.left + line.width * 0.5), y: Math.round(line.top + line.height / 2) };
+        }, other.id);
+        /* THE WORD UNDER THE FINGER, read before the press. A pixel cannot be
+           the claim across this journey: the marks are painted INTO the box a
+           moment after it opens (the 14 Sep rule), which re-wraps the wording,
+           so the character the reader chose is in the right place and the line
+           it sits on is not the line it was on. The WORD is what they pointed
+           at, and it is what has to be under the caret. */
+        const wordAt = async (x, y) => p.evaluate(([px, py]) => {
+          const r = document.caretRangeFromPoint(px, py);
+          if (!r || !r.startContainer || r.startContainer.nodeType !== 3) return null;
+          const t = r.startContainer.nodeValue || '';
+          let a = r.startOffset, b = r.startOffset;
+          while (a > 0 && /\S/.test(t[a - 1])) a--;
+          while (b < t.length && /\S/.test(t[b])) b++;
+          return t.slice(a, b) || null;
+        }, [x, y]);
+        const pressedWord = await wordAt(pt2.x, pt2.y);
+        await p.mouse.click(pt2.x, pt2.y);
+        await pause(900);
+        const moved = await p.evaluate(id => {
+        const caretAt = () => {
+          const sel = window.getSelection();
+          if (!sel || !sel.rangeCount) return null;
+          const r = sel.getRangeAt(0);
+          const n = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode;
+          const box = document.getElementById('ce-clausebody');
+          if (!n || !box || !box.contains(n)) return null;
+          /* THE CARET'S OWN RECTANGLE is the only honest reading of "where it
+             went": a text offset is measured inside whichever run the caret
+             landed in, and offset 0 of a run that starts mid-line is a caret
+             exactly where the finger was. A collapsed range has no width, so
+             its client rect is asked for through a one-character probe where
+             the browser gives nothing back. */
+          let rect = r.getBoundingClientRect();
+          if (!rect || (!rect.width && !rect.height)){
+            const probe = r.cloneRange();
+            try{ probe.setEnd(probe.startContainer, Math.min(probe.startOffset + 1, (probe.startContainer.textContent || '').length)); }catch(_){}
+            rect = probe.getBoundingClientRect();
+          }
+          /* And how far into the CLAUSE it is, counted over every live text
+             node, so "not parked at the top" is a number rather than a guess. */
+          let seen = 0, hit = -1;
+          const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+          let t; while ((t = walk.nextNode())){
+            if (t === r.startContainer){ hit = seen + r.startOffset; break; }
+            seen += (t.nodeValue || '').length;
+          }
+          return { x: Math.round(rect.left), y: Math.round(rect.top + rect.height / 2),
+            into: hit, chars: seen };
+        };
+          const box = document.getElementById('ce-clausebody');
+          const live = document.querySelector('#ce-doc .rl-clause-live');
+          return { on: live ? live.getAttribute('data-clause') : null, want: id,
+            typing: !!(box && box.isContentEditable), caret: caretAt() };
+        }, other.id);
+        ck('33g ONE PRESS in another clause moves the page there and starts typing',
+           moved.on === moved.want && moved.typing === true,
+           JSON.stringify({ on: moved.on, want: moved.want, typing: moved.typing }));
+        const caretWord = moved.caret ? await wordAt(moved.caret.x, moved.caret.y) : null;
+        ck('33h …and the caret is already in that clause, on the word that was pressed',
+           !!moved.caret && moved.caret.into > 20 && !!pressedWord && caretWord === pressedWord,
+           JSON.stringify({ pressed: pressedWord, caret: caretWord, into: moved.caret && moved.caret.into }));
+      }
+      if (process.env.HATI_SHOT_DIR){ try{ await p.screenshot({ path: path.join(process.env.HATI_SHOT_DIR, '33-typing-quiet.png') }); }catch(_){} }
+      await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+      await answerLeave(p); await pause(200);
+    }
   }
 
   ck('10 the whole journey ran with no page errors', errs.length === 0, errs.join(' | ') || 'none');

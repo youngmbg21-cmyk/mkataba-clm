@@ -1461,7 +1461,21 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
      Every claim below is the claim it always was — dashed, hairline, clear of
      the words, mixed off the document's own ink, not brought back by focus —
      asked of the rule that now draws it. */
-  const FRAME = CE.match(/\.ce-paperwrap \.rl-clause-live:has\(\.ce-typing\)\{[\s\S]*?\}/)[0];
+  /* ---- AND ON 15 SEP 2026 THE FRAME ITSELF WENT (Young ruled it) ----
+     *"I do not want to have the dotted line or any line around a clause when I
+     go to edit ... It should just seem like nothing has changed."*
+
+     THIS REVERSES BOTH RULINGS ABOVE, and the whole story is kept because the
+     REASONING is what makes the reversal safe rather than a loss. The 26 Aug
+     ask was for the quietest possible mark in place of a form field; the frame
+     got there, and this goes one rung further to none at all. WHAT SAYS WHICH
+     CLAUSE IS LIVE is what the 26 Aug note already named as the real
+     indicator — the caret, present the whole time a person is typing — plus
+     the page naming the clause at its top and the Done pencil on its heading
+     row. The two claims below are reversed in place: what was "the frame is a
+     dashed hairline mixed off the paper's ink" is now "there is no frame", and
+     it is asked of the same rule. */
+  const LIVE = CE.match(/\.ce-paperwrap \.rl-clause-live:has\(\.ce-typing\)\{[\s\S]*?\}/);
 
   test('THE REPORTED CASE: no fill and no ring — the paper shows through', () => {
     assert.match(TYPING, /background:transparent/,
@@ -1474,17 +1488,35 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
       'a surface fill on a document is a form field wherever it is drawn');
   });
 
-  test('what is left is a DASHED HAIRLINE set clear of the words', () => {
-    assert.match(FRAME, /outline:1px dashed/,
-      '"a very light almost dotted line", in the owner\'s own words');
-    /* PINNED AS THE RELATION: a POSITIVE offset is what puts the line clear of
-       the words. The number is a look and has already moved once. */
-    const off = FRAME.match(/outline-offset:(\d+)px/);
-    assert.ok(off && Number(off[1]) > 0,
-      'set clear of the wording so it frames it rather than touching it');
-    assert.ok(!/border:/.test(FRAME),
-      'an OUTLINE takes no space, so nothing on the page moves when it appears — '
-      + 'a border would reflow the clause under the reader');
+  test('NOTHING IS LEFT — no line of any kind round the clause being typed in', () => {
+    /* REVERSED IN PLACE 15 Sep 2026. Asked of the whole file rather than of
+       one rule, because "no line around the clause" is not a claim a rule that
+       no longer exists can answer: a frame reintroduced under another selector
+       would pass a test that only read the old one. */
+    assert.ok(!LIVE || !/outline:1px dashed/.test(LIVE[0]),
+      'the clause that contains an editable box draws no frame');
+    assert.ok(!/rl-clause-live:has\(\.ce-typing\)\{[^}]*outline:[^};]*dashed/.test(CE),
+      'and none comes back on that state under any spelling');
+    assert.ok(!/rl-clause-live:has\(\.ce-typing\)\{[^}]*border:/.test(CE),
+      'nor as a border, which would reflow the clause under the reader');
+  });
+
+  /* ---- AND ENTERING A CLAUSE MOVES NOTHING (15 Sep 2026, the other half of
+     the same ruling: "nothing on the page should move as far as positioning or
+     spacing just because I entered a cursor in the clause") ----
+     Both boxes inset their contents so an empty one is still pressable, and
+     both take the inset straight back with a negative margin of the same size.
+     The wording's box always did; the name's did not, and moved the heading
+     4px right and 2px down the moment it opened. Pinned as the RELATION — the
+     two numbers match — never as the numbers. */
+  test('the boxes take back every pixel they inset, so nothing shifts', () => {
+    for (const [name, decl] of [['wording', TYPING], ['name', CE.match(/\.ce-paperwrap \.ce-headbox\{[\s\S]*?\}/)[0]]]){
+      const pad = decl.match(/padding:(-?\d+)px (-?\d+)px/);
+      const mar = decl.match(/margin:(-?\d+)px (-?\d+)px/);
+      assert.ok(pad && mar, `the ${name} box states both`);
+      assert.equal(Number(mar[1]), -Number(pad[1]), `the ${name} box gives back its vertical inset`);
+      assert.equal(Number(mar[2]), -Number(pad[2]), `the ${name} box gives back its horizontal inset`);
+    }
   });
 
   test('ONE FRAME, ROUND THE CLAUSE — not one per editable box', () => {
@@ -1502,28 +1534,17 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
     /* THE STATE IS EXACT, and it is what keeps the frame off a clause being
        merely READ: rl-clause-live marks this page's clause whether or not
        typing is on, and ce-typing exists only while it is typeable. */
-    assert.match(FRAME, /\.rl-clause-live:has\(\.ce-typing\)/,
+    assert.ok(!LIVE || /\.rl-clause-live:has\(\.ce-typing\)/.test(LIVE[0]),
       'the live clause that CONTAINS an editable box — never the live clause alone');
   });
 
-  test('the colour is MIXED off the document ink, never a typed grey', () => {
-    /* The one thing that makes a single declaration right in both themes. The
-       sheet is cream by day and near-black at night, so a fixed light grey
-       that reads as a whisper on the cream is invisible on the other. Pinned
-       as the relation — which token it is mixed from — and not as a value. */
-    assert.match(FRAME, /color-mix\(in srgb, var\(--color-doc-text\)[^)]*, transparent\)/,
-      'the line follows the ink the paper is already printed in');
-    assert.ok(!/#[0-9a-fA-F]{3,8}/.test(FRAME),
-      'no hex here: a literal would need a dark override, and the override is '
-      + 'the half that gets forgotten');
-    /* And the token really does answer differently at night, or the mix is
-       one declaration serving one theme. */
-    const root = read('index.html');
-    assert.ok(/--color-doc-text:/.test(root), 'the ink is a token');
-    assert.ok(/html\.dark[\s\S]{0,4000}--color-doc-text:/.test(root),
-      'and dark redefines it — otherwise mixing off it buys nothing');
-  });
-
+  /* THE COLOUR CLAIM IS DELETED, NOT SKIPPED (15 Sep 2026). It asked that the
+     frame's line be mixed off the paper's own ink rather than typed as a grey,
+     so that one declaration read correctly in both themes. There is no line to
+     colour any more, and a skipped test is a claim nobody is making dressed as
+     one somebody might. The RULE it taught is not lost — it is a standing
+     lesson in the rulebook and is still enforced on every other mark that sits
+     on the sheet. */
   test('focus does not bring the old ring back', () => {
     /* A rule that holds until the reader clicks into the box is no rule: the
        one moment this state is ever seen is while somebody is typing in it. */
@@ -1919,8 +1940,34 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     /* THE OLD DOORS SURVIVE. */
     assert.match(CODE, /const goCl = hit\('\[data-ce-goclause\]'\)/,
       'the clause list still moves you WITHOUT editing — the reading door');
-    assert.ok(!/caretRangeFromPoint|caretPositionFromPoint/.test(CODE),
-      'no caret is placed from a point: the box takes the caret at its start, the browser\'s own way');
+    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "I also do not want to click
+       twice on any word or any location before I start doing anything ... Just
+       put your cursor wherever you want once and start typing") ----
+       WHAT THIS USED TO SAY: no caret is ever placed from a point — the box
+       takes focus and the browser parks the caret at its start. That WAS the
+       second press: the first one turned typing on and the caret went to the
+       top of the clause, so placing it where the finger went cost another.
+       The point is remembered instead, and it is only trustworthy because of
+       the other half of the same ruling — nothing moves when a cursor enters a
+       clause — so the pixel still has the same word under it after the paint. */
+    assert.match(click, /ceHoldClickPoint\(ev\);/,
+      'the press remembers WHERE it landed, before anything repaints');
+    assert.match(CODE, /function ceRangeAtPoint\(x, y\)\{/,
+      'and one reading asks the browser which character is under that pixel');
+    assert.match(CODE, /caretRangeFromPoint/); assert.match(CODE, /caretPositionFromPoint/);
+    /* IT EXPIRES AND IS CONSUMED ONCE. The paper repaints on its own timer
+       while the reader types (the marks), and a point that outlived its press
+       would haul the caret back to where the sentence began. */
+    assert.match(CODE, /const pt = _ceClickPt;\s*\n\s*_ceClickPt = null;/, 'consumed once');
+    assert.match(CODE, /Date\.now\(\) - pt\.at > CE_CLICK_PT_MS/, 'and it expires');
+    assert.match(CODE, /if \(!want\) return;/,
+      'with no fresh point it is exactly the plain focus it always was');
+    assert.match(CODE, /if \(!node \|\| !node\.closest \|\| !box\.contains\(node\)\) return;/,
+      'and a point landing outside the typing box places nothing');
+    /* A STRUCK RUN IS NOT A PLACE TO TYPE — the 14 Sep atom rule, which the
+       keyboard already obeys at an atom's edge. */
+    assert.match(CODE, /const atom = node\.closest\('\[data-ce-mark="del"\]'\);/,
+      'a press inside a struck run puts the caret beside it, never in it');
   });
 
   test('THE ONE READING of "may this clause be typed in now" speaks the sentences that already exist', () => {

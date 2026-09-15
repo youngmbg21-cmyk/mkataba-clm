@@ -13962,3 +13962,67 @@ figure, and nothing above them.
   label; a reader who does not already know what the two dots do has nothing on
   the screen that says so. Told the owner where they are rather than adding a
   caption (no new bands).
+
+## 15 Sep 2026 — entering a clause is not an event
+
+Young, of the clause editor: "I do not want to have the dotted line or any line
+around a clause when I go to edit. I should just seem like a nothing has
+changed. I also do not want to click twice on any word or any location before I
+start doing anything and nothing on the page should move as far as positioning
+or spacing just because I entered a cursor in the clause. Just put your cursor
+wherever you want once and start typing." And, of a clause added from the
+playbook: "what I want taken off is not the teal highlight but the green block
+covering the entire space of the clause block which covers even the empty
+space."
+
+FOUR ASKS, AND THREE OF THEM TURNED OUT TO BE DEEPER THAN THEY LOOKED.
+
+1. THE LINE IS GONE, from the clause being typed in and from the clause panel's
+name box. This reverses two earlier rulings of the owner's own; both are kept
+in the source because their reasoning is what makes taking the line safe. The
+caret is what says you are in a clause, and it is there the whole time.
+
+2. ONE PRESS. It really was two, for two different reasons. On the clause
+already open, the first press turned typing on and the caret went to the top of
+the clause. On any other clause, nothing took the caret at all - the first
+press only got you there. The press is now remembered as a point measured
+against the clause itself, and the caret is placed after the page has finished
+landing. A press inside a struck-out run puts the caret beside it, never in it.
+
+3. NOTHING MOVES - and this one was a real defect that had been there since the
+day it was written. The wording's box insets its contents and was supposed to
+take the inset straight back; the paper's own rule outranked it, so the inset
+was never given back and the wording jumped ten pixels right and eight down
+every single time somebody started typing. Measured in a browser; nothing in
+the source looked wrong. Two more pixels came from the name box and a further
+five from a shorthand that wiped the heading's own gap. Fixed by scope, never
+by !important. The Done pencil now sits in the same pinned box every other face
+of that control uses, so the heading cannot move when the face changes; the
+width it holds open is one token, measured to fit.
+
+4. NO BLOCK BEHIND AN ADDED CLAUSE. The wash was painted over the whole
+rectangle, including the empty space right of the heading and the tail of the
+last line. It is gone; the marks on the words say it instead, which is what the
+owner asked for.
+
+ONE FAULT FOUND ON THE WAY AND FIXED BECAUSE IT WAS MINE: pinning the Done
+pencil made a press on it dead. Traced with a real mouse - the press blurred
+the typing box, the blur rebuilt the paper, and the mouse came up on a pencil
+that was no longer the same element, so no click ever fired. It is the third
+time this codebase has paid for a control moving out from under the pointer. A
+press on that pencil no longer blurs the box.
+
+Verified: lint 0 errors; the whole suite 7,086 checks, none red; clause-editor
+274/274 with a new section of nine checks driven by a real mouse (six of them
+red at the parent, and the one that measures movement reports the exact jump:
+the name 4px right and 2px down, the wording 10px right and 7px down);
+clause-door 125/125 (three new checks on the wash, red at the parent); ladder
+76/76; parity 47/47; comments 37/37; redline 222/223, its one failure red at
+main too. Photographed the finished page.
+
+### Noticed, not fixed
+- The marks are painted into the typing box a moment after it opens, which
+  re-wraps the wording under the caret. The caret keeps its character, so the
+  word you pressed is still the word you are on, but the line it sits on can
+  shift by one. Left alone: it is the 14 Sep design, and changing it is a
+  bigger question than this order.

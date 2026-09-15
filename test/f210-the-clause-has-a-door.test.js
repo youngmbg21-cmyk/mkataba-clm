@@ -1454,10 +1454,36 @@ describe('F210 — the clause rail', () => {
       'and it is pinned to the clause, not the page');
   });
 
+  /* RE-POINTED IN PLACE 15 Sep 2026 (Young: "nothing on the page should move
+     ... just because I entered a cursor in the clause"). A THIRD face joined
+     that pinned box — the Done pencil, which carries a word and is wider — so
+     the reserve had to fit the widest one, and the number 62 was typed into
+     two rules that must never disagree. It is a token now, so the CLAIM here
+     is what it always should have been: both reserves are the SAME value, in
+     the reader's own type scale. Pin the relation, not the number. */
   test('the heading keeps clear of it, at every document size', () => {
-    assert.match(rule('.redline-page .rl-clause-h'),
-      /padding-right:calc\(62px \* var\(--doc-scale,1\)\)/,
+    const head = rule('.redline-page .rl-clause-h');
+    assert.match(head, /padding-right:calc\(var\(--rl-pill-reserve[^)]*\) \* var\(--doc-scale,1\)\)/,
       'reserved in the reader\'s own type scale — the pill grows with it');
+    assert.match(rule('.redline-page .rl-rung'),
+      /margin-right:calc\(var\(--rl-pill-reserve[^)]*\) \* var\(--doc-scale,1\)\)/,
+      'and the chip beside it holds open exactly the same width, from one token');
+    assert.match(SRC, /--rl-pill-reserve:\d+px/, 'said once');
+    assert.ok(!/calc\(62px \* var\(--doc-scale,1\)\)/.test(SRC),
+      'and the number is no longer typed anywhere');
+  });
+
+  /* ---- AND EVERY FACE OF THAT BOX IS PINNED IN IT (15 Sep 2026) ----
+     The Done pencil used to sit in the FLOW and release the heading's reserve
+     with its own :has() rule, so turning typing on moved the heading twice
+     over — the reserve went and a new element arrived. Both are gone. */
+  test('the Done pencil sits in the same pinned box, so the row never moves', () => {
+    const done = rule('.redline-page .rl-cp-pill.rl-cp-pill-done');
+    assert.match(done, /position:absolute/, 'pinned, like every other face');
+    assert.match(done, /right:0/);
+    assert.ok(!/position:static/.test(done), 'it no longer joins the flow');
+    assert.ok(!/:has\(\.rl-cp-pill-done\) \.rl-clause-h\{padding-right:0\}/.test(SRC),
+      'and nothing releases the reserve when it appears');
   });
 });
 

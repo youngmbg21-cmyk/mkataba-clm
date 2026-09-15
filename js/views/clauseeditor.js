@@ -515,11 +515,55 @@ function clauseEditorCss(){
      with the pencil, so ANY single rectangle round the name and the wording
      contains it. It is the control that closes the region, which is a fair
      thing to find inside the region's own frame. */
-  .ce-paperwrap .rl-clause-live:has(.ce-typing){
-    outline:1px dashed color-mix(in srgb, var(--color-doc-text) 22%, transparent);
-    outline-offset:6px}
-  .ce-paperwrap .ce-typing{background:transparent; box-shadow:none;
-    outline:none; padding:8px 10px; margin:-8px -10px}
+  ${''/* ---- AND ON 15 SEP 2026 THE FRAME WENT (Young ruled it) ----
+     "I do not want to have the dotted line or any line around a clause when I
+     go to edit. It should just seem like nothing has changed."
+
+     THIS REVERSES THE 26 AUG RULING ABOVE AND THE 1 SEP ONE THAT RESHAPED IT.
+     Both are kept in the note above because the REASONING still holds and is
+     what makes this safe to take: the frame was already down to the quietest
+     mark the sheet could carry, and the note itself says what the other
+     indicator is. WHAT CARRIES FOCUS IS THE CARET - the strongest indicator a
+     text field has, present the whole time, and now the whole of it, together
+     with the page naming the clause at its top and the Done pencil on the
+     clause's own heading row. Nothing else on the sheet changes, which is the
+     ruling: entering a clause must not be a visible event.
+
+     The rule stays, with no outline in it, because the selector is what
+     carries "the live clause that contains an editable box" and the geometry
+     rules under it are keyed to the same state. */}
+  ${''/* ---- AND THE INSET IS TAKEN BACK BY A RULE THAT CAN ACTUALLY WIN ----
+         (15 Sep 2026, measured, and it had been wrong since the day it was
+         written.) The declaration said margin:-8px -10px and the browser
+         computed margin:0px: the paper's own
+         ".redline-page .rl-doc .nego-body" scores (0,3,0) and sets margin to
+         zero, and this rule scored (0,2,0). So the padding pushed the wording
+         ten pixels right and eight down every time somebody started typing,
+         with nothing taking it back - a clause that jumped under the reader's
+         finger, which is half of what Young reported.
+
+         NOTHING LOOKED WRONG IN THE SOURCE, which is this codebase's own
+         standing lesson about a rule that loses a cascade fight: measure the
+         computed value in a browser before believing a declaration. FIXED BY
+         SCOPE and never by !important - four classes, all of them real
+         ancestors of both boxes, so it outranks the paper's rule on the one
+         element that needs it and changes nothing else on the sheet.
+
+         AND THE INSET IS HORIZONTAL ONLY, for the same reason it is on the
+         name box beside it: a vertical inset has to be handed back by a
+         negative margin, a negative margin-top collapses with the heading's
+         own margin-bottom, and the wording came out five pixels high - still a
+         clause that moves when a cursor enters it, just by less. Measured
+         both ways. Nothing vertical is stated here, so the clause's own
+         spacing holds by construction.
+
+         AND IT IS WRITTEN AS LONGHANDS, which is the whole of the last five
+         pixels: this rule also matches the HEADING while it is typeable, and
+         the margin SHORTHAND set that heading's own margin-bottom - its 5px
+         gap above the wording - back to zero. A shorthand states four values
+         whether you meant to or not. */}
+  .ce-paperwrap .rl-doc .rl-clause .ce-typing{background:transparent; box-shadow:none;
+    outline:none; padding:0 10px; margin-left:-10px; margin-right:-10px}
   /* THE MARKS UNDER THE BOX (rule 2): the paper's own reading, parted from the
      typing box by the dashed frame's own vocabulary — no fill, no words. */
   .ce-paperwrap .ce-twin{padding-top:8px; margin-top:14px;
@@ -533,8 +577,27 @@ function clauseEditorCss(){
      .ce-headbox adds no colour, no fill and no size of its own, so the heading
      keeps the paper's own heading type. The negative margins the wording's box
      uses would pull the name off the row it shares with the pencil, so this one
-     insets instead, and the min-width is what keeps an empty name pressable. */
-  .ce-paperwrap .ce-headbox{padding:2px 4px; margin:0; min-width:60px}
+     insets instead, and the min-width is what keeps an empty name pressable.
+
+     AND THE INSET IS HORIZONTAL ONLY (15 Sep 2026). A vertical inset of its
+     own had to be given back by a negative margin-BOTTOM, which is the same
+     shorthand that carries the 5px gap this heading keeps under itself - so
+     cancelling the padding cancelled the gap, and the wording jumped five
+     pixels up the moment the box opened. Measured. Nothing vertical is stated
+     here now, so the heading's own spacing is untouched by construction and
+     there is nothing to keep in step. */
+  ${''/* AND ITS INSET IS CANCELLED (15 Sep 2026, "nothing on the page should
+         move ... just because I entered a cursor in the clause"). The note
+         above is right that the wording's own negative margins would pull the
+         NAME off the row it shares with the pencil - vertically. Horizontally
+         they do no such thing, and padding with nothing taking it back moved
+         the name 4px right and 2px down the moment the box opened, measured on
+         a real page. The inset is kept (an empty name needs something to
+         press) and cancelled exactly, the way the wording's box does it. */}
+  ${''/* AT THE SAME WEIGHT AS THE RULE ABOVE, and written after it, because
+         the name box states its own smaller inset and would otherwise be
+         overruled by the wording box's. */}
+  .ce-paperwrap .rl-doc .rl-clause .ce-headbox{padding:0 4px; margin-left:-4px; margin-right:-4px; min-width:60px}
   .ce-stat{font-size:var(--t-label); font-weight:var(--w-title); white-space:nowrap}
   .ce-stat .i{color:var(--st-green-fg)} .ce-stat .d{color:var(--st-ruby-fg)}
   .ce-stat .ce-none{color:var(--color-neutral-600); font-weight:var(--w-body)}
@@ -2318,6 +2381,22 @@ function ceScrollToClause(placeAt){
          caller. */
       ceRestoreScroll(host, Math.max(0, host.scrollTop + (tb.top - hb.top) - want));
     }catch(_){}
+    /* ---- AND ONLY NOW DOES THE CARET GO WHERE THE PRESS WENT (15 Sep 2026)
+       ---- A press in ANOTHER clause closes this page and re-opens it on that
+       clause, so there is no call site on that journey that could put the
+       caret in the box — which is what made it cost a second press.
+
+       IT HAS TO BE HERE, AFTER THE LANDING, and that was measured rather than
+       reasoned: hung off the paint instead, the point resolved against a page
+       that had not finished scrolling yet and the caret went to the top of the
+       clause — pressed at (485, 299) and landed at (125, 289). The scroll is
+       the last thing that moves the words under the reader's finger, so it is
+       the first moment the pixel they pressed means anything.
+
+       The point is consumed once and expires, so an arrival nobody clicked
+       into — the pencil, the clause list, the door from the negotiate page —
+       finds nothing here and behaves exactly as it always did. */
+    if (_ceClickPt) ceFocusTyping();
   };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
 }
@@ -2353,8 +2432,94 @@ function ceClauseTopNow(clauseId){
    with neither reader, a point that lands outside the box because the wording
    reflowed, or a throw of any kind, all end with the box focused. A caret in
    roughly the right place is the ask; a caret nowhere is a dead press. */
-function ceFocusTyping(){
+/* ---- ONE CLICK, AND THE CARET LANDS WHERE YOU PRESSED (Young ruled
+   15 Sep 2026) ----
+   *"I also do not want to click twice on any word or any location before I
+   start doing anything ... Just put your cursor wherever you want once and
+   start typing."*
+
+   IT REALLY WAS TWO PRESSES, and for two different reasons depending on which
+   clause you were in. On the clause already open, the first press turned
+   typing on, repainted the clause and focused the BOX - which parks the caret
+   at whichever end the browser picks, never where the finger went - so the
+   second press was the one that placed it. On any other clause the page closed
+   and re-opened on that clause and NOTHING took focus at all, so the first
+   press only got you there.
+
+   THE POINT IS WHAT IS REMEMBERED, NOT AN OFFSET. A character offset would
+   have to be measured against the wording before the repaint and re-found
+   after it, through a paint that wraps runs in ins and del and re-flows the
+   marks - three readings of one clause, any of which can disagree. The screen
+   point cannot disagree with itself: the browser is asked, after the paint,
+   which character is under that pixel. It is only trustworthy because of the
+   OTHER half of the same ruling - nothing on the page may move when a cursor
+   enters a clause - so the pixel the reader pressed still has the same word
+   under it afterwards. The two halves hold each other up.
+
+   IT IS CONSUMED ONCE AND IT EXPIRES. The paper repaints on a timer while you
+   type (the marks), and a point that outlived its press would haul the caret
+   back to where the sentence started. Stale, or landing anywhere but inside
+   the typing box, and this falls back to exactly what it did before. */
+let _ceClickPt = null;
+const CE_CLICK_PT_MS = 1500;
+function ceHoldClickPoint(ev){
+  if (!ev || typeof ev.clientX !== 'number') return;
+  /* ---- HELD AGAINST THE CLAUSE, NOT AGAINST THE WINDOW ----
+     A press in the clause already open needs nothing more than the pixel: the
+     other half of this ruling says the clause does not move. A press in
+     ANOTHER clause closes this page and re-opens it, and the clause lands back
+     at its own old top rather than at the same window coordinate - so a point
+     measured against the window is a point measured against a page that has
+     been rebuilt under it, and the caret came down a line away. MEASURED:
+     pressed at (485, 300), landed at (354, 312).
+
+     The offset from the clause's own top-left survives all of it, because it
+     is the clause's own geometry that the landing restores. */
+  const sec = ev.target && ev.target.closest ? ev.target.closest('.rl-clause[data-clause]') : null;
+  const r = sec ? sec.getBoundingClientRect() : null;
+  _ceClickPt = { x: ev.clientX, y: ev.clientY, at: Date.now(),
+    clause: sec ? sec.getAttribute('data-clause') : null,
+    dx: r ? ev.clientX - r.left : null, dy: r ? ev.clientY - r.top : null };
+}
+/* Where that press is NOW, which is the offset put back on the clause's own
+   corner wherever the paint has left it. Falls back to the raw pixel where the
+   clause is not on the page (it was pressed and then closed, or the markup
+   never carried a clause). */
+function ceClickPointNow(pt){
+  if (!pt) return null;
+  if (!pt.clause || pt.dx == null) return { x: pt.x, y: pt.y };
+  try{
+    const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(pt.clause) : pt.clause;
+    const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + q + '"]');
+    if (!sec) return { x: pt.x, y: pt.y };
+    const r = sec.getBoundingClientRect();
+    return { x: r.left + pt.dx, y: r.top + pt.dy };
+  }catch(_){ return { x: pt.x, y: pt.y }; }
+}
+function ceTakeClickPoint(){
+  const pt = _ceClickPt;
+  _ceClickPt = null;
+  if (!pt || Date.now() - pt.at > CE_CLICK_PT_MS) return null;
+  return pt;
+}
+/* The browser's own reading of "which character is under this pixel", asked
+   for in both spellings because the two engines never agreed on one. */
+function ceRangeAtPoint(x, y){
+  try{
+    if (typeof document.caretRangeFromPoint === 'function') return document.caretRangeFromPoint(x, y);
+    if (typeof document.caretPositionFromPoint === 'function'){
+      const p = document.caretPositionFromPoint(x, y);
+      if (!p || !p.offsetNode) return null;
+      const r = document.createRange();
+      r.setStart(p.offsetNode, p.offset); r.collapse(true);
+      return r;
+    }
+  }catch(_){}
+  return null;
+}
+function ceFocusTyping(pt){
   if (typeof requestAnimationFrame !== 'function') return;
+  const want = pt || ceTakeClickPoint();
   requestAnimationFrame(() => {
     const box = _ceQ('#ce-clausebody');
     if (!box || !ceIsTyping()) return;
@@ -2362,6 +2527,28 @@ function ceFocusTyping(){
        the ways a browser moves a page on its own, and the reader's place is the
        one thing they are holding on to. */
     try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(__){} }
+    if (!want) return;
+    /* A STRUCK RUN IS NOT A PLACE TO TYPE (the 14 Sep atom rule), so a point
+       landing inside one puts the caret beside it rather than in it - the same
+       answer the keyboard already gives at an atom's edge. */
+    const at = ceClickPointNow(want);
+    if (!at) return;
+    const r = ceRangeAtPoint(at.x, at.y);
+    if (!r || !r.startContainer) return;
+    const node = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode;
+    if (!node || !node.closest || !box.contains(node)) return;
+    const atom = node.closest('[data-ce-mark="del"]');
+    try{
+      const sel = window.getSelection && window.getSelection();
+      if (!sel) return;
+      if (atom && atom.parentNode){
+        const out = document.createRange();
+        out.setStartAfter(atom); out.collapse(true);
+        sel.removeAllRanges(); sel.addRange(out);
+        return;
+      }
+      sel.removeAllRanges(); sel.addRange(r);
+    }catch(_){}
   });
 }
 
@@ -5125,6 +5312,24 @@ function ceWirePage(page){
   page.addEventListener('mousedown', ev => {
     if (!ev.target || !ev.target.closest) return;
     if (!ev.target.closest('#ce-pop') && !ev.target.closest('#ce-bar')) ceClosePicker();
+    /* ---- AND A PRESS ON THE PENCIL MAY NOT BLUR THE BOX (15 Sep 2026) ----
+       THE THIRD COSTUME OF A FAULT THIS PAGE HAS PAID FOR TWICE (30 Aug, the
+       rail's foot; 11 Sep, the writing bar's row): a control that is not the
+       same element on mouse-up as it was on mouse-down gets no click at all,
+       and the press reads as dead.
+
+       TRACED WITH A REAL MOUSE rather than reasoned: mousedown on the pencil,
+       blur on the typing box, the paper rebuilt, mouseup on a pencil that is
+       no longer the same node — and no click event between them. The blur is
+       the first link in that chain, and a press on this control has no need of
+       it: the pencil's own handler calls cePullText() before it does anything,
+       so the box is read either way.
+
+       preventDefault on MOUSEDOWN is what keeps focus where it is; the button
+       still answers the keyboard, because Enter and Space raise a click
+       without a pointer ever being involved. Narrow on purpose - this one
+       control, and only where a press would move focus. */
+    if (ev.target.closest('[data-ce-pencil]')) ev.preventDefault();
   }, true);
 
   page.addEventListener('click', ev => {
@@ -5404,6 +5609,10 @@ function ceWirePage(page){
       const sec = t.closest('[data-clause]');
       const id = sec ? sec.getAttribute('data-clause') : null;
       if (!id) return;
+      /* WHERE THE FINGER WENT, held for the paint that is about to happen —
+         set on BOTH branches below, because both of them used to cost a second
+         press (15 Sep 2026). */
+      ceHoldClickPoint(ev);
       if (String(id) !== String(_ceClauseId)){ ceGoClause(id, { typing: true }); return; }
       if (ceIsTyping()){ if (hit('#ce-twin')) ceFocusTyping(); return; }
       const why = ceTypingRefusal();
