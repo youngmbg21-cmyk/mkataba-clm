@@ -230,8 +230,13 @@ describe('F100b — the card is a handle, not a copy', () => {
     assert.ok(open.textContent.trim(), 'in words, not a glyph');
     assert.equal(open.getAttribute('data-rl-cp-open'), p.c.changes[0].clauseId,
       'and it names the clause the change sits in');
-    assert.ok(p.$('#rl-changes .rl-card [data-rl-card-open]'),
-      'behind the card\'s own Open, which is the one control on its face');
+    /* RE-POINTED 15 Sep 2026 (Young, of the Open button: "Remove it"). The
+       door is not behind anything any more — it is on the face with every
+       other verb, which is a stronger form of the same claim. */
+    assert.equal(p.$('#rl-changes .rl-card [data-rl-card-open]'), null,
+      'and there is no Open standing between the reader and it');
+    assert.ok(open.closest('.rl-card-face'),
+      'the door is on the face, not behind a control');
     assert.equal(card.querySelector('[data-rl-pop]'), null, 'the pop-out door is gone');
     assert.equal(card.querySelector('.rl-card-body'), null,
       'and so is the hidden body it existed to show');

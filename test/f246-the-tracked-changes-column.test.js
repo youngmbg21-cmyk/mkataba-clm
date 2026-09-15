@@ -561,15 +561,21 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
      the one kept here: they are the SAME engine attributes, so the funnel, the
      desk rule and the review gate all still apply to a press. Where they are
      drawn moved; what they are did not. */
-  test('the verbs are untouched — the same engine attributes, inside the card', async () => {
+  test('the verbs are untouched — the same engine attributes, on the face', async () => {
+    /* RE-POINTED 15 Sep 2026 (Young, of the Open button: "Remove it"). They
+       were in the body Open unfolded; the body is gone and the face carries
+       the WHOLE list. The claim that mattered is untouched and is the one kept
+       here: they are the SAME engine attributes, so the funnel, the desk rule
+       and the review gate all still apply to a press. */
     const p = await bench();
     const theirId = p.c.changes.find(x => x.authorSide === 'counterparty').id;
     const theirs = p.open(theirId);
     assert.ok(theirs, 'their ask has a card');
     assert.ok(theirs.querySelector('[data-nego-accept]'), 'their ask still offers a decision');
     assert.ok(theirs.querySelector('[data-nego-reject]'), 'both ways');
-    assert.ok(theirs.querySelector('.rl-cb .rl-card-verbs'),
-      'and the verbs are in the body the card opens into');
+    assert.ok(theirs.querySelector('.rl-card-face.rl-card-verbs'),
+      'and the verbs are on the face, which is the container both names now mean');
+    assert.equal(theirs.querySelector('.rl-cb'), null, 'there is no body to hold them');
     const mineId = p.c.changes.find(x => x.authorSide === 'owner').id;
     assert.ok(p.open(mineId).querySelector('[data-rl-send]'),
       'our draft still carries its own Send');
@@ -578,23 +584,17 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
   /* ---- AND THE FACE CARRIES ONE CONTROL AND NOTHING ELSE ----
      The whole of the owner's ruling, asserted as an ABSENCE: a closed card may
      offer no verb at all, because the reader is meant to open it first. */
-  test('a closed card offers the artifact\'s verbs on its face, and Open is the last of them', async () => {
-    /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column). The
-       2 Sep ruling put ONE control on the face; the approved artifact draws
-       Accept · Reject · Counter on an ask of theirs, Edit · Send · Discard on
-       a draft of ours, and Ladder on every row. THE FACE VERBS ARE PICKED OUT
-       OF THE BODY'S OWN LIST by the door each opens (rlRowFaceVerbs), so the
-       two cannot drift, and Open stays as the way to the wording, the notes
-       and Copilot's read. */
+  test('the row offers the artifact\'s verbs on its face, and there is no Open', async () => {
+    /* RE-POINTED TWICE, EACH TIME BY THE OWNER. The 2 Sep ruling put ONE
+       control on the face and everything else behind it. On 14 Sep the
+       artifact's verbs came back beside it; on 15 Sep, of that button, Young
+       ruled "Remove it" — the artifact has no Open, so the button and the body
+       it unfolded are both gone and the face carries the WHOLE verb list. */
     const p = await bench();
     p.win.rlCardSetOpen(null); p.again();
     for (const card of p.$$('#rl-changes .rl-card-d')){
-      const btns = [...card.querySelectorAll('button')];
-      const open = btns.filter(b => b.hasAttribute('data-rl-card-open'));
-      assert.equal(open.length, 1, 'exactly one Open');
-      assert.equal(open[0].textContent.trim(), p.win.i18t('ng_row_open'));
-      assert.equal(open[0].getAttribute('aria-expanded'), 'false');
-      assert.equal(btns[btns.length - 1], open[0], 'and it is the last control on the face');
+      assert.equal(card.querySelectorAll('[data-rl-card-open]').length, 0, 'no Open');
+      assert.equal(card.querySelector('.rl-cb-wrap'), null, 'and no body behind one');
       const face = card.querySelector('.rl-card-face');
       const ch = p.c.changes.find(x => x.id === card.getAttribute('data-nego-card'));
       if (ch && ch.authorSide === 'counterparty' && ch.status === 'pending')
@@ -603,14 +603,32 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
     }
   });
 
-  test('opening one closes the last — a column of open cards is the wall the piles answered', async () => {
+  test('NO VERB IS LOST WITH THE BODY — the face is the whole list', async () => {
+    /* REPLACES "opening one closes the last" (2 Sep), which was about a column
+       of open cards and cannot be asked of a column that does not open.
+
+       THIS IS THE CLAIM THAT MATTERS NOW, and it is the standing rule out
+       loud: a verb is visible pixels (f180), so removing the body may not take
+       a verb with it. Read as a RELATION — whatever the gating above decides a
+       change offers, every one of those engine attributes is on the face. */
     const p = await bench();
-    const ids = p.c.changes.map(x => x.id);
-    p.open(ids[0]);
-    const second = p.open(ids[1]);
-    assert.ok(second.querySelector('.rl-cb'), 'the one just opened has a body');
-    assert.equal(p.$(`.rl-card-d[data-nego-card="${ids[0]}"] .rl-cb`), null,
-      'and the one before it does not');
+    p.win.rlCardSetOpen(null); p.again();
+    const ATTRS = ['data-nego-accept', 'data-nego-reject', 'data-nego-withdraw',
+      'data-nego-undo', 'data-nego-redecide', 'data-rl-send', 'data-rl-retract',
+      'data-rl-ask-review', 'data-rl-cp-editor-row', 'data-rl-cp-open'];
+    let seen = 0;
+    for (const card of p.$$('#rl-changes .rl-card-d')){
+      const face = card.querySelector('.rl-card-face');
+      for (const a of ATTRS){
+        const all = card.querySelectorAll('[' + a + ']');
+        if (!all.length) continue;
+        seen += 1;
+        for (const b of all)
+          assert.ok(face && face.contains(b),
+            a + ' is on the face, not somewhere a reader has to unfold');
+      }
+    }
+    assert.ok(seen, 'and the fixture really draws verbs, or this proves nothing');
   });
 
   test('the conditional strips are still drawn, between the text and the acts', async () => {
@@ -699,15 +717,22 @@ describe('f246 (5) — the card opens instead of a menu', () => {
     assert.ok(seen, 'and the door really is drawn');
   });
 
-  test('and it names Copilot, in Copilot\'s own colour', async () => {
-    /* On the row this verb had to be one short word; in the body there is room,
-       so the name and the violet come back rather than going with the menu. */
+  test('and it still names Copilot, on the hover', async () => {
+    /* RE-POINTED 15 Sep 2026. The body had room for the whole name and the
+       violet; the face has the artifact's one word — Counter on their ask,
+       Edit on our draft — so the NAME rides the hover the button already had,
+       and the Copilot class travels with it untouched. The violet rule below
+       still dresses the counterparty's card and the contract tab's, which draw
+       this door in full. */
     const p = await bench();
     const card = p.open(p.c.changes.find(x => x.authorSide === 'counterparty').id);
-    /* The BODY's door (the face's copy says the artifact's one word, Counter). */
     const b = card.querySelector('.rl-card-verbs [data-rl-cp-editor-row]');
     assert.ok(b, 'the door is there');
-    assert.ok(b.textContent.includes(p.win.i18t('ng_cp_copilot')), 'and it says so');
+    assert.equal(b.textContent.trim(), p.win.i18t('ng_counter'),
+      'wearing the artifact\'s word');
+    assert.equal(b.getAttribute('title'), p.win.i18t('ng_cp_edit_title'),
+      'and saying on the hover which page it opens');
+    assert.ok(p.win.i18t('ng_cp_edit_title').length > 8, 'which is a real sentence');
     assert.ok(b.classList.contains('rl-verb-ai'), 'wearing the Copilot class');
     const i = NCSS.indexOf('.rl-card-verbs button.rl-verb-ai{');
     assert.ok(i > -1, 'which the sheet dresses');
@@ -1294,33 +1319,33 @@ describe('f246 (10) — the card shows the parts this change touches', () => {
   });
 
   test('WHAT IS NOT SHOWN IS SAID, and only when something is not shown', async () => {
+    /* ---- ASKED OF THE BUILDERS, NOT THE CARD (15 Sep 2026) ----
+       The "only the lines this change touches" reading and the note counting
+       what it left out were drawn in the body behind Open, and Young ruled
+       that button off the artifact's row. The PROPERTY is what this claim is
+       about and it has not moved: the picture and the sentence come off the
+       same ops, so they cannot disagree. It is read here off the two functions
+       the card called — the same two the negotiation memo still calls with the
+       same flag — rather than off a surface that no longer draws them. */
     const p = await bench();
-    /* ASKED AS THE RELATION, never against a fixture's happens-to-be: the line
-       is drawn exactly when the arithmetic says something was left out, and
-       the number it prints is the number that reading returned. That is the
-       whole safety property — the note and the picture cannot disagree,
-       because both come off the same ops — and it holds whatever the fixture
-       turns out to contain. */
-    let saidNothing = 0, saidSomething = 0;
+    let touched = 0;
     for (const ch of p.c.changes){
-      const card = p.open(ch.id);
-      const st = p.win.redlineBlockStats(p.win.rlChangeOps(ch));
-      const owed = st.changed > 0 && st.unchanged > 0;
-      const note = card.querySelector('.rl-cb-omit');
-      assert.equal(!!note, owed,
-        `${ch.id}: ${st.changed} of ${st.total} touched — note drawn ${!!note}`);
-      if (note){
-        assert.match(note.textContent, new RegExp(`\\b${st.unchanged}\\b`),
-          'and it prints what the reading actually left out');
-        saidSomething++;
-      } else saidNothing++;
-      /* AND THE DRAWN BLOCKS ARE THE TOUCHED ONES — the picture, not only the
-         sentence about it. */
-      const q = card.querySelector('.rl-cb-q');
-      if (q && st.changed) assert.equal(q.querySelectorAll('.rl-line').length,
-        st.changed, `${ch.id}: one block drawn per touched block`);
+      const ops = p.win.rlChangeOps(ch);
+      const st = p.win.redlineBlockStats(ops);
+      assert.equal(st.changed + st.unchanged, st.total, `${ch.id}: nothing falls between`);
+      const only = p.win.rlChangeWordingHtml(ch, { changedOnly: true });
+      const drawn = (only.match(/class="rl-line/g) || []).length;
+      if (st.changed){
+        touched += 1;
+        assert.equal(drawn, st.changed, `${ch.id}: one block drawn per touched block`);
+      }
+      /* AND THE FLAG IS OFF BY DEFAULT, which is what keeps the clause panel's
+         full reading and the ask reveal byte-identical. */
+      const whole = p.win.rlChangeWordingHtml(ch);
+      assert.equal((whole.match(/class="rl-line/g) || []).length, st.total,
+        `${ch.id}: the default reading draws the whole clause`);
     }
-    assert.ok(saidSomething || saidNothing, 'the fixture drew cards at all');
+    assert.ok(touched, 'the fixture really carries a change, or this proves nothing');
     /* And the sentence resolves, through the one plural reading the rest of
        this product uses. */
     const one = p.win.i18tn('ng_cb_unchanged', 1, { n: 1 });
@@ -1361,20 +1386,26 @@ describe('f246 (10) — the card shows the parts this change touches', () => {
    --accent-ink is declared in index.html's :root and the redline harness page
    carries no token block at all, so a computed-style read there answers ''
    whatever the rule says. See six-fixes-verify. */
-describe('f246 (11) — the count stands down once the card is open', () => {
-  test('a shut card carries it; the open one does not', async () => {
+describe('f246 (11) — the count is on the row, and it is the row\'s door', () => {
+  test('it draws where there is something to count, and presses into the drawer', async () => {
+    /* RE-POINTED 15 Sep 2026. The 2 Sep rule stood this count down while the
+       card was open, because an open card drew the two rooms twelve pixels
+       below with their own counts. The card does not open any more — Young
+       ruled Open off the artifact's row — so there is nothing to stand down
+       for: this IS the only carrier on every row, and it is also the row's one
+       door into the notes drawer. Silent at zero, as it always was. */
     const p = await bench();
     const ch = p.c.changes[0];
     p.win.negoPostComment(p.c, ch.id, 'worth a word', { side: 'owner', author: 'Young Mbagaya' });
     p.again();
-    const shut = p.$(`[data-nego-card="${ch.id}"] .rl-card-notes`);
-    assert.ok(shut, 'a shut row is the ONLY place this fact is carried, so it stays');
-    assert.match(shut.textContent, /1/, 'and says how many');
-    const open = p.open(ch.id);
-    assert.equal(open.querySelector('.rl-card-notes'), null,
-      'and stands down once the rooms are twelve pixels below with their own counts');
-    assert.ok(open.querySelector('[data-rl-np-room]'),
-      'which is what makes the marker a second printing rather than the only one');
+    const mark = p.$(`[data-nego-card="${ch.id}"] .rl-card-notes`);
+    assert.ok(mark, 'the row carries the fact');
+    assert.match(mark.textContent, /1/, 'and says how many');
+    assert.equal(mark.getAttribute('data-rl-notes'), ch.id,
+      'and it is a door onto this change\'s own thread');
+    const quiet = p.c.changes.find(x => x.id !== ch.id);
+    if (quiet) assert.equal(p.$(`[data-nego-card="${quiet.id}"] .rl-card-notes`), null,
+      'a change nobody has discussed carries none');
   });
 });
 

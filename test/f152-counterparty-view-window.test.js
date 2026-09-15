@@ -181,13 +181,13 @@ describe('the sign — the window renders no verbs', () => {
     assert.ok(!t.$('[data-rl-pbreview]').hasAttribute('disabled'),
       'and alive again — the dead face belongs to the preview only');
     assert.ok(!t.$('[data-rl-dead]'), 'nothing on our own chair wears the preview marker');
-    /* RE-POINTED 2 Sep 2026: the owner's ruling put every verb behind the
-       card's own Open, so "decidable" is read by opening the card the way a
-       reader does. THE CLAIM IS UNCHANGED and is the one this test is named
-       for — the flip gives our chair its decisions back. */
-    const cardOpen = t.$('#rl-changes .rl-card [data-rl-card-open]');
-    assert.ok(cardOpen, 'their ask still has a card, and it opens');
-    cardOpen.dispatchEvent(new t.win.Event('click', { bubbles: true }));
+    /* RE-POINTED TWICE. On 2 Sep the owner's ruling put every verb behind the
+       card's own Open, so "decidable" was read by opening the card; on 15 Sep
+       Young ruled that button off the artifact's row, so the verbs are on the
+       face and the reading is direct again. THE CLAIM IS UNCHANGED and is the
+       one this test is named for — the flip gives our chair its decisions
+       back. */
+    assert.ok(t.$('#rl-changes .rl-card'), 'their ask still has a card');
     assert.ok(t.$('[data-nego-accept]'), 'their ask is decidable again from the owner chair');
   });
 });

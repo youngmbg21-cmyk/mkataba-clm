@@ -614,24 +614,31 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(200);
 
-    /* ---- THE OPEN CONTROL WEARS THE HEAD BUTTONS' EDGE (owner-asked 11 Sep
-       2026: "the outline of the open are too faint") — measured as computed
-       colours on the real page, against the head's own .ui-btn. ---- */
+    /* ---- THE ROW'S DOOR ONTO THE EDIT PAGE READS IN THE HEAD BUTTONS' INK ----
+       RE-POINTED TWICE. The 11 Sep ask — "the outline of the open are too
+       faint" — was about the Open control, which on 14 Sep became a bare word
+       on the face and on 15 Sep was ruled off the row entirely. WHAT SURVIVES
+       OF THAT ASK is the half that was never about Open in particular: the
+       row's quiet door reads in the same accent ink the head's own buttons
+       use, and it carries no edge of its own — the artifact's bare coloured
+       word. Measured as computed colours on the real page, against the head's
+       own .ui-btn, which is why this claim lives in a browser file. */
     const openEdge = await page.evaluate(() => {
-      const open = document.querySelector('#rl-changes .rl-card-open:not([aria-expanded="true"])');
+      const open = document.querySelector(
+        '#rl-changes .rl-card-face .rl-edit:not(.rl-verb-ai):not(.is-locked)')
+        || document.querySelector('#rl-changes .rl-card-face .rl-edit');
       const head = document.querySelector('#ws-head .ui-btn:not(.ui-btn-primary)');
       if (!open || !head) return { open: !!open, head: !!head };
       const o = getComputedStyle(open), h = getComputedStyle(head);
-      return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor, ink: o.color, headInk: h.color,
+      return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor,
+        ink: o.color, headInk: h.color,
         noEdge: parseFloat(o.borderTopWidth) === 0 || /rgba\(0, 0, 0, 0\)|transparent/.test(o.borderTopColor) };
     });
-    /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): the
-       face carries the artifact's verbs as bare coloured words and Open is
-       the last of them, a bare word too — no edge. What survives of the 11 Sep
-       ask is the INK: Open reads in the head buttons' own accent ink. */
-    check('the card’s Open control is a bare word on the face, in the head buttons’ ink',
-      openEdge.open && openEdge.head && openEdge.noEdge && openEdge.ink === openEdge.headInk, JSON.stringify(openEdge));
-    check('and the same ink', openEdge.open && openEdge.head && openEdge.ink === openEdge.headInk, `${openEdge.ink} vs ${openEdge.headInk}`);
+    check('the row’s verbs are bare words on the face — no edge of their own',
+      openEdge.open && openEdge.head && openEdge.noEdge, JSON.stringify(openEdge));
+    check('and the quiet one reads in the head buttons’ own ink',
+      openEdge.open && openEdge.head && openEdge.ink === openEdge.headInk,
+      `${openEdge.ink} vs ${openEdge.headInk}`);
 
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {

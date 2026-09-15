@@ -172,23 +172,19 @@ for (let i = 1; i <= 12; i++)
     });
     await page.evaluate(id => openRedlineWorkbench(id), staged);
     await pause(2200);
-    /* RE-POINTED 2 Sep 2026 (owner-ruled): the ⋯ is retired and the card's
-       face carries one control, Open, with every verb behind it. THE CLAIMS
-       BELOW ARE L-1's OWN and are unchanged — one size, nothing bold, nothing
-       wrapped, no long label — and they are asked of the row those verbs now
-       sit in. Pressed for real, because every one of them is about what the
-       browser painted rather than about markup. */
-    await page.evaluate(() => {
-      const b = document.querySelector('#rl-changes [data-rl-card-open]');
-      if (b) b.click();
-    });
+    /* RE-POINTED TWICE. On 2 Sep the ⋯ was retired for a single Open with
+       every verb behind it, and this pressed it; on 15 Sep Young ruled that
+       button off the artifact's row, so the verbs are painted at rest. THE
+       CLAIMS BELOW ARE L-1's OWN and are unchanged — one size, nothing bold,
+       nothing wrapped, no long label — and they are still measured as what the
+       browser painted rather than as markup. */
     await pause(600);
     await page.screenshot({ path: path.join(OUT, '02-more-menu.png') });
 
     const menu = await page.evaluate(() => {
       const m = document.querySelector('#rl-changes .rl-card-d .rl-card-verbs');
       if (!m) return { error: 'the card did not open, or drew no verbs' };
-      const face = document.querySelector('#rl-changes .rl-card-d [data-rl-card-open]');
+      const face = document.querySelector('#rl-changes .rl-card-d .rl-card-face');
       const fs_ = face ? getComputedStyle(face) : null;
       const rows = [...m.querySelectorAll('button')].map(b => {
         const s = getComputedStyle(b);
@@ -217,7 +213,7 @@ for (let i = 1; i <= 12; i++)
       check('1 the card opens', false, menu.error);
     } else {
       check('1 the ⋯ is gone from the column entirely', menu.menuGone);
-      check('1a Open really revealed the verbs as pixels',
+      check('1a the verbs are on the row as pixels, with nothing to press first',
         menu.visible && menu.rows.length > 0, `${menu.rows.length} verbs`);
       /* RE-POINTED AS THE RELATION L-1 WAS ACTUALLY PROTECTING. It compared
          each menu row to the card's face verbs, because the fault it was
@@ -232,7 +228,7 @@ for (let i = 1; i <= 12; i++)
          wearing a test's clothes. */
       check('1b every verb is one size — they read as one set',
         new Set(menu.rows.map(r => r.size)).size === 1,
-        `verbs ${[...new Set(menu.rows.map(r => r.size))].join(', ')} · Open ${menu.faceSize}`);
+        `verbs ${[...new Set(menu.rows.map(r => r.size))].join(', ')} · face ${menu.faceSize}`);
       check('1c and one weight — none of them shouts over the others',
         new Set(menu.rows.map(r => r.weight)).size === 1,
         [...new Set(menu.rows.map(r => r.weight))].join(', '));
@@ -250,83 +246,45 @@ for (let i = 1; i <= 12; i++)
     }
 
     /* ============================================================
-       1g · THE OPEN CARD'S CONTROL IS GREEN, AND THE COUNT STANDS DOWN
+       1g · THE COMMENTS MARKER IS ON EVERY ROW, AND IT IS A DOOR
        ============================================================
-       Owner-asked 2 Sep 2026: "when the highlighted button says close, make it
-       green until it is closed and it says open", and "remove the top
-       highlighted comments sign because there is already a comments section at
-       the bottom".
+       RETIRED AND REPLACED, 15 Sep 2026. This block measured two things the
+       owner asked for on 2 Sep: that the open card's control went green, and
+       that the comments marker stood down while it was open. Young has ruled
+       that button off the artifact's row — "The artifact does not have the
+       open button" … "Remove it" — so the first claim has no control to
+       measure and the second has nothing to stand down for.
 
-       MEASURED HERE AND NOT ON THE REDLINE HARNESS, and that is the point of
-       putting it in this file: the ink is --accent-ink, declared in
-       index.html's :root, and the harness page carries no token block at all —
-       a computed-style read there answers '' whatever the rule says, so the
-       claim would pass or fail for a reason that has nothing to do with the
-       product. This file drives the REAL app.
+       WHAT SURVIVES IS THE FACT THE SECOND CLAIM WAS PROTECTING: the marker
+       must not be a duplicate. It is not, because it is now the ONLY carrier
+       on the row and the row's one door into the notes drawer.
 
-       ASKED AS A RELATION: the open control's ink is the accent the workspace
-       resolves, and it is not the ink a shut one wears. A typed green would
-       break the day somebody opens a navy workspace. */
+       MEASURED HERE AND NOT ON THE REDLINE HARNESS for the reason this block
+       always lived in this file: the inks are declared in index.html's :root,
+       the harness page carries no token block, and this file drives the REAL
+       app. */
     const openState = await page.evaluate(async () => {
-      const shutBtn = () => document.querySelector(
-        '#rl-changes .rl-card-d [data-rl-card-open][aria-expanded="false"]');
-      const openBtn = () => document.querySelector(
-        '#rl-changes .rl-card-d [data-rl-card-open][aria-expanded="true"]');
-      if (!openBtn() && shutBtn()){
-        shutBtn().dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 450));
-      }
-      const o = openBtn(), sh = shutBtn();
-      if (!o) return { error: 'no open card to measure' };
-      const os = getComputedStyle(o), ss = sh ? getComputedStyle(sh) : null;
-      const accent = getComputedStyle(document.documentElement)
-        .getPropertyValue('--accent-ink').trim();
-      /* --accent-ink is a hex in :root and a computed colour here, so they are
-         compared through a paint rather than as strings. */
-      const probe = document.createElement('span');
-      probe.style.color = accent || 'transparent';
-      document.body.appendChild(probe);
-      const accentRgb = getComputedStyle(probe).color;
-      probe.remove();
-      const card = o.closest('[data-nego-card]');
-      return { label: o.textContent.trim(), shutLabel: sh ? sh.textContent.trim() : null,
-        ink: os.color, edge: os.borderTopColor, fill: os.backgroundColor,
-        shutInk: ss ? ss.color : null, shutEdge: ss ? ss.borderTopColor : null, shutFill: ss ? ss.backgroundColor : null,
-        accent: accentRgb,
-        countOnOpen: !!card.querySelector('.rl-card-notes'),
-        roomsBelow: !!card.querySelector('[data-rl-np-room]'),
-        countOnShut: sh ? !!sh.closest('[data-nego-card]').querySelector('.rl-card-notes') : null };
+      const card = document.querySelector('#rl-changes .rl-card-d');
+      if (!card) return { error: 'no row to measure' };
+      return { openGone: !document.querySelector('#rl-changes [data-rl-card-open]'),
+        bodyGone: !document.querySelector('#rl-changes .rl-cb-wrap'),
+        faces: document.querySelectorAll('#rl-changes .rl-card-d .rl-card-face').length,
+        rows: document.querySelectorAll('#rl-changes .rl-card-d').length,
+        markers: [...document.querySelectorAll('#rl-changes .rl-card-d .rl-card-notes')]
+          .map(b => ({ door: b.getAttribute('data-rl-notes'),
+            w: Math.round(b.getBoundingClientRect().width) })) };
     });
     if (openState.error){
-      check('1g there is an open card to measure', false, openState.error);
+      check('1g there is a row to measure', false, openState.error);
     } else {
-      check('1g the open card\'s control says Close and the shut one says Open',
-        /close/i.test(openState.label)
-          && (!openState.shutLabel || /open/i.test(openState.shutLabel)),
-        `${openState.label} / ${openState.shutLabel}`);
-      check('1g and it is GREEN — the workspace accent, not a typed colour',
-        openState.ink === openState.accent && openState.edge === openState.accent,
-        `ink ${openState.ink}, edge ${openState.edge}, --accent-ink ${openState.accent}`);
-      /* RE-POINTED 11 Sep 2026: the shut control wears the head buttons' own
-         ink and edge now (owner: "the outline of the open are too faint"), so
-         the two are told apart by the EDGE at full accent and the tinted FILL
-         on the open one — never by the ink alone. */
-      /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's column): Open
-         is a bare word on the face beside the artifact's verbs — no edge, no
-         tint, open or shut — so the two are told apart by the WORD (Close /
-         Open, the first 1g check) and by aria-expanded, never by dress. */
-      check('1g which a shut one shares — both are bare words, told apart by the word itself',
-        !openState.shutLabel || (openState.shutFill === openState.fill && /open/i.test(openState.shutLabel) && /close/i.test(openState.label)),
-        `open edge ${openState.edge} fill ${openState.fill} vs shut edge ${openState.shutEdge} fill ${openState.shutFill}`);
-      /* NOT FILLED: every other verb on this card is a bare coloured word, and
-         a solid button here would be the loudest object on the column. */
-      check('1g and it is not filled — the card\'s own rule',
-        !/^rgb\(\d+, \d+, \d+\)$/.test(openState.fill)
-          || openState.fill === 'rgb(255, 255, 255)',
-        openState.fill);
-      check('1g the comments marker is gone from the OPEN card',
-        openState.countOnOpen === false && openState.roomsBelow === true,
-        `marker ${openState.countOnOpen}, rooms below ${openState.roomsBelow}`);
+      check('1g Open is gone, and so is the body it unfolded',
+        openState.openGone && openState.bodyGone, JSON.stringify(openState));
+      check('1g every row carries its verbs instead',
+        openState.rows > 0 && openState.faces === openState.rows,
+        `${openState.faces} faces of ${openState.rows} rows`);
+      check('1g and every comments marker is a door onto its own change',
+        openState.markers.every(m => m.door && m.w > 0),
+        JSON.stringify(openState.markers));
     }
 
     /* ============================================================
@@ -342,12 +300,19 @@ for (let i = 1; i <= 12; i++)
        leaves an exact record behind. Every one of those is behaviour, and the
        markup looks identical whether or not the wiring reached it. */
     const tag = await page.evaluate(async () => {
-      const card = document.querySelector('#rl-changes .rl-card-d:has(.rl-cb-wrap)')
-        || document.querySelector('#rl-changes .rl-card-d');
+      /* RE-POINTED 15 Sep 2026: the composer was inside the card body behind
+         Open, and Young ruled that button off. The one composer per change is
+         the NOTES DRAWER's, which is where it has posted from since 27 Aug —
+         opened here through the product's own named door. */
+      const card = document.querySelector('#rl-changes .rl-card-d');
       if (!card) return { error: 'no card' };
       const id = card.getAttribute('data-nego-card');
-      const box = card.querySelector('.rl-np-in');
-      const menu = card.querySelector('[data-rl-np-tags]');
+      if (typeof openNotesPanel !== 'function') return { error: 'no notes drawer on this build' };
+      openNotesPanel(state.activeId, id, { force: true });
+      await new Promise(r => setTimeout(r, 700));
+      const host = document.getElementById('context-panel') || document;
+      const box = host.querySelector('.rl-np-in');
+      const menu = host.querySelector('[data-rl-np-tags]');
       if (!box) return { error: 'no composer — this seat may not write' };
       if (!menu) return { error: 'no picker: nobody in this room can be tagged' };
       const offered = () => [...menu.querySelectorAll('.rl-np-tag')]
@@ -388,13 +353,13 @@ for (let i = 1; i <= 12; i++)
       const typed = box.value;
       const shutAfter = menu.hidden;
       /* SEND IT, and read the record back. */
-      card.querySelector('[data-rl-np-send]').dispatchEvent(
+      host.querySelector('[data-rl-np-send]').dispatchEvent(
         new MouseEvent('click', { bubbles: true }));
       await new Promise(r => setTimeout(r, 700));
       const c = getContract(state.activeId);
       const ch = (c.changes || []).find(x => String(x.id) === String(id));
       const last = ((ch && ch.thread) || []).slice(-1)[0];
-      const live = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+      const live = document.getElementById('context-panel') || document;
       return { all, shutAtRest, shutOnPlainText, shutOnEmail, opened, narrowed, typed,
         shutAfter, first, word,
         rowPainted: !!(painted && painted.width > 20 && painted.height > 10),

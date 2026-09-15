@@ -3009,37 +3009,17 @@ function redlineLayoutCss(){
          a body left in the first track would be squeezed into two thirds of a
          column that is already the narrow half of the page.
 
-         THE OPEN BUTTON KEEPS ITS BOX, and that is the one thing on this card
-         that does. Everything inside is a bare word; the face has TWO press
-         targets — the row, which goes to the clause, and this — so the one
-         that is not the whole row has to look like a control. It borrows
-         .rl-open-btn, which is the counterparty seat's own Open, so the two
-         seats cannot come to dress the same word differently. */}
+         THE OPEN BUTTON IS GONE (Young ruled 15 Sep 2026, of the artifact's
+         row: "Remove it"), and its rules with it: .rl-card-open, .rl-open-cv
+         and the open-state accent below are STALE. .rl-open-btn stays — that
+         is the COUNTERPARTY seat's own Open onto the clause panel, a different
+         control with a different job, and it is still drawn there. */}
   .redline-page .rl-card-d > .rl-card-side{justify-content:flex-end}
-  .redline-page .rl-card-open{display:inline-flex;align-items:center;gap:6px;
-    min-width:78px;justify-content:center}
-  .redline-page .rl-open-cv{width:11px;height:11px;flex:none;
-    transition:transform var(--dur-2) var(--ease)}
-  .redline-page .rl-card-open[aria-expanded="true"] .rl-open-cv{transform:rotate(180deg)}
-  ${''/* ---- AN OPEN CARD'S CONTROL IS GREEN (owner-asked 2 Sep 2026: "when
-         the highlighted button says close, make it green until it is closed
-         and it says open") ----
-         One card is open at a time, so this is the column saying WHICH — and
-         it is the workspace ACCENT rather than a typed green, so it follows a
-         navy workspace and the dark theme with no second rule.
-         --accent-ink IS THE ONE ACCENT INK WITH A NIGHT ANSWER (2.35:1 against
-         9.59:1 — the fault this file records against the raw ramp), which is
-         why the ink and the edge both read it rather than accent-700.
-         NOT FILLED: it sits inside a card whose every other verb is a bare
-         coloured word, and a solid button there would be the loudest object on
-         the column — the 26 Aug flat-row reasoning, and the reason the two
-         decision verbs stopped being pills. */}
-  .redline-page .rl-card-open[aria-expanded="true"]{color:var(--accent-ink);
-    border-color:var(--accent-ink);
-    background:color-mix(in srgb, var(--accent-solid) 8%, transparent)}
-  @media (prefers-reduced-motion:reduce){
-    .redline-page .rl-open-cv{transition:none}
-  }
+  ${''/* The card body's own rules below are STALE on this seat with Open: no
+         row draws .rl-cb-wrap any more. They are left in place because the
+         COUNTERPARTY's card and the contract tab's card are unaffected by that
+         ruling, and because removing a block of dressing is how a surface that
+         still uses it goes bare without anything failing. */}
   .redline-page .rl-cb-wrap{grid-column:1 / -1;min-width:0}
   .redline-page .rl-cb{padding:2px 0 4px}
   .redline-page .rl-cb-blk{margin-top:var(--s-3)}
@@ -3291,9 +3271,14 @@ function redlineLayoutCss(){
   .redline-page .rl-card-d > .rl-card-side{grid-column:2;grid-row:1;min-width:0;flex-wrap:wrap;row-gap:2px}
   .redline-page .rl-card-d .rl-card-sum{grid-column:1 / -1;grid-row:2;margin-top:0}
   .redline-page .rl-card-d .rl-card-face{flex-wrap:wrap;row-gap:2px}
-  .redline-page .rl-card-d .rl-card-open{border:0;background:none;padding:0;height:auto;min-width:0;
-    margin-left:0;font-size:var(--t-meta);font-weight:var(--w-title);line-height:18px;color:var(--accent-ink)}
-  .redline-page .rl-card-d .rl-card-open:hover{background:none;text-decoration:underline;color:var(--accent-ink)}
+  ${''/* ---- AND THE STRIPS TAKE THE WHOLE WIDTH UNDER BOTH (15 Sep 2026) ----
+         The sentences and the reviewer's verdict buttons that rode in the card
+         body until Open went. Row 3 of this row's own grid, so they sit under
+         the argument line rather than beside the verbs, and they carry the
+         gap rather than the row (a row-gap would space every card, and these
+         are absent on nearly all of them). */}
+  .redline-page .rl-card-d > .rl-card-actions{grid-column:1 / -1;min-width:0;margin-top:var(--s-2)}
+  .redline-page .rl-card-d > .rl-card-actions > *:first-child{margin-top:0}
   .redline-page .rl-card-notes{display:inline-flex;align-items:center;gap:4px;flex:none;
     border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);
     font-weight:var(--w-strong);color:var(--color-neutral-600);cursor:pointer;line-height:18px}
