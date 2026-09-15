@@ -868,10 +868,12 @@ describe('a rich contract survives the trip to the counterparty and back', () =>
        numbering itself still has to reach his screen, and it does: the list
        arrives with its own start attribute, in the document, where a reader
        looks for it. */
-    /* "Payment" and not "PAYMENT" since 10 Sep 2026: the card is a SCREEN and
-       prints in the product's one format. The claim is untouched and is about
-       WHICH clause — its own heading, never the list item's number. */
-    assert.match(v.$(`[data-nego-card="${filed[0].id}"] .rl-card-meta`).textContent, /Clause 2 · Payment/,
+    /* "Payment" and not "PAYMENT" since 10 Sep 2026, and "2. Payment" rather
+       than "Clause 2 · Payment" since 15 Sep (Young: "just number it
+       '5. Payment Terms'"): the card is a SCREEN and prints in the product's
+       one format. The claim is untouched both times and is about WHICH clause
+       — its own heading, never the list item's number. */
+    assert.match(v.$(`[data-nego-card="${filed[0].id}"] .rl-card-meta`).textContent, /2\. Payment/,
       'the clause is labelled from its own heading, not from a list item number');
     assert.match(doc.textContent, /3\.\s*Payment shall be made/,
       'the ol start="3" numbering reaches his screen too');

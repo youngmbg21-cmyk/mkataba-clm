@@ -108,8 +108,15 @@ describe('f120 — the timeline is the story, in order', () => {
     const kept = after.filter(e => e.kind !== 'renumbered').map(e => e.text + '|' + e.clauseLabel);
     assert.deepEqual(Array.from(kept), Array.from(before),
       'every pre-existing sentence and label reads exactly as it did — as of the event, never today');
-    assert.ok(kept.some(t => /Clause 9/.test(t)),
-      'the deleted clause is still called Clause 9, its name at the time');
+    /* RE-POINTED 15 Sep 2026 (Young: "just number it '5. Payment Terms'").
+       The timeline PRINTS through the one presenting reading, which now drops
+       the word and keeps the number. THE CLAIM IS UNCHANGED and is the whole
+       point of the test: the number is the one that clause had AT THE TIME of
+       the event, not the one it carries after the renumber. */
+    assert.ok(kept.some(t => /(^|[|\s])9\. /.test(t)),
+      'the deleted clause is still numbered 9, its name at the time');
+    assert.ok(!kept.some(t => /Clause 9/.test(t)),
+      'and the word is gone from what a screen prints');
   });
 
   test('the filters combine, on the durable id and not the number', async () => {

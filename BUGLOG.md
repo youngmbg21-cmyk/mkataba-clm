@@ -13847,3 +13847,35 @@ nego-redesign and paper-grows unchanged at their baselines.
 - redline-verify "5 no clause carries a Copilot button" and six-fixes "4a a
   refresh returns you to the page you were on" were both red at main and are
   untouched by this work.
+
+## 15 Sep 2026 — The number carries the clause name (Young: "just number it '5. Payment Terms'")
+
+Asked of the redline cards, off a screenshot of the column: "Clause 5 ·
+Confidentiality" spends four words and a separator on saying what the number
+already says, and the line had just lost the Open button.
+
+BUILT ONE LEVEL ABOVE THE CARDS, ON PURPOSE. clauseNameShown is the one place
+this product decides how a clause is named on screen — the column, the clause
+panel, the ladder, the notes drawer, the memo and five history surfaces all
+reach a name through it. The column and the panel sit twelve pixels apart on
+the same page, so a format applied to the cards alone would have put both
+spellings on one screen, which is this codebase's most expensive fault class.
+The record is untouched: clauseLabel still builds "Clause 5 · Payment Terms",
+and that is still what is stamped onto a change, written into the trail and
+carried in a fingerprint.
+
+ONE FAULT THE SUITE CAUGHT BEFORE ANYBODY SAW IT. The first pass rewrote every
+heading that parsed to a number, which turned "2019 DATA PROTECTION ACT" into
+"2019. Data Protection Act" — a year read as a clause number and given a full
+stop nobody typed. Only a LABELLED heading is rewritten now; a heading carrying
+its own number keeps its own punctuation, which is the quotation rule the plain
+English edition paid for on 11 Sep. A number with no title keeps its word,
+since a bare "8.2." names nothing.
+
+MEASURED. "4. Limitation of Liability" now fits the row whole where "Clause 4 ·
+Limitation of Liab…" was cut off.
+
+PROVED. Full node suite 7,097 tests, 0 fail; lint 0 errors. Eight printed-name
+assertions re-pointed in place across six files, each with the ruling beside it.
+Browser: redline 222/223 (its one failure red at main), insights-panels 84/84,
+ladder 73/73, clause-door 122/122, notes-two-rooms 73/73.

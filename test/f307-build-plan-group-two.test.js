@@ -457,7 +457,11 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     const text = read.text;
     assert.match(text, /^Negotiation history — Warehousing/, 'the report\'s heading opens the file');
     assert.match(text, /CHG-001/, 'the change is in it');
-    assert.match(text, /round 1 · still pending · Clause 4/);
+    /* RE-POINTED 15 Sep 2026 (Young: "just number it '5. Payment Terms'"). The
+       record is a SCREEN's reading of the trail and prints through the one
+       presenting reading, which drops the word and keeps the stamped number.
+       The claim is unchanged: the meta line and the clause travel together. */
+    assert.match(text, /round 1 · still pending · 4\. /);
     assert.match(text, /forty-five \(45\) days/, 'the proposed wording');
     assert.doesNotMatch(text, /Scope of Services|Storage Conditions|Governing Law/,
       'clauses the negotiation never touched are the CONTRACT, and the contract is not this file');
