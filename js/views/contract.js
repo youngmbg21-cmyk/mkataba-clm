@@ -7945,8 +7945,48 @@ function docReadPaint(c){
      mirrors among them the moment the two shared a class. Anything asking
      "how many clauses came back" must never have to know about this. */
   const front=docReadFront(c,pairs);
+  /* HOW MANY CLAUSES THIS EDITION CAN NO LONGER SPEAK FOR. Zero where the
+     wording has not moved — the signature is over exactly what was sent — so
+     an unchanged contract draws nothing and the caption is what it always was.
+     Counted off the sheet against what came back, never guessed: a clause the
+     route answered for and the pairing then refused is one the reader is
+     looking at a gap beside. */
+  let moved=0;
+  try{
+    const sig=docReadSig(c);
+    if(sig&&c._readSig&&c._readSig!==sig){
+      const sheet=docReadSheet(c)||[];
+      moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
+      if(!moved) moved=1;
+    }
+  }catch(_){ moved=0; }
   layer.innerHTML=`
-    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
+    ${''/* ---- THE CAPTION SAYS WHEN THIS WAS READ (Young ruled 15 Sep 2026) ----
+           *"after completing a negotiation and you want to reread the contract
+           in plain english, how will that be triggered?"*
+
+           HALF OF THIS ALREADY WORKED, and that half is what made it a trap.
+           Pressing the switch ON re-asks the route where the wording has moved
+           (docReadSig differs), so a reader who switched away and back got a
+           fresh edition and nothing to trigger. But a reader who left the
+           switch ON — read here, went to negotiate, came back — got the
+           edition made BEFORE the round, with every clause that changed drawn
+           BLANK, because docReadAnchors refuses to put a stale reading beside
+           new wording. That refusal is right and stays. What was missing is
+           that the page never said so: gaps with no explanation.
+
+           SO THE FACT GOES ON THE THING IT IS ABOUT. The caption is already
+           drawn, so this is the cheapest channel that carries it — no band, no
+           pop-up, and not one pixel off the contract. The press is
+           `data-doc-read-again`, which this column already draws for the
+           partial case and which is already wired on the layer: ONE door,
+           shown for its second honest reason.
+
+           AND IT NEVER RE-READS BY ITSELF. A full contract is a real cost the
+           reader has not asked for, and they may be back for thirty seconds to
+           check a date. Told, then their choice. */}
+    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em>${
+      moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
     <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
       `<div class="doc-read-mirror" data-doc-read-front="${i}"${
         f.style?` style="${esc(f.style)}"`:''} aria-hidden="true"><p>${esc(f.text)}</p></div>`).join('')}${pairs.map((p,n)=>{
@@ -9137,13 +9177,26 @@ async function runSignCheck(c,opts={}){
   if(!c||!window.signCheck) return null;
   const r=signCheck(c);
   if(!r||!r.ready) return null;
+  /* ---- THE READINGS ARE THREE NOW (Young ruled 15 Sep 2026) ----
+     The brief joined the check that day: it is the one reading written for a
+     person rather than for a rule, and it was the only one of the four made on
+     arrival that nobody ever looked at again. Unknown asks (`!== false`), the
+     same instinct the other two already use — offering a reading nobody needed
+     costs one press; skipping one they did costs a signature over a summary of
+     wording that has since moved. */
+  const wantBrief=r.brief.none===true||r.brief.stale!==false||r.brief.truncated===true;
   const wantStd=r.standards.unread===true||r.standards.stale!==false;
   const wantOb=r.obligations.unread!==false;
   const after=typeof opts.after==='function'?opts.after:()=>{};
-  if(!wantStd&&!wantOb){
+  /* NOTHING RUNS WHILE THE WORDING IS STILL MOVING: reading a contract mid-
+     round spends money on an answer the next filing invalidates. The rows say
+     so and the press is greyed; this is the same wall on the act itself. */
+  if(r.waiting){ toast(i18t('sc_wait_nego'),'warn'); return null; }
+  if(!wantBrief&&!wantStd&&!wantOb){
     signCheckStamp(c); persist(c); toast(i18t('sc_nothing_to_read'),'ok'); after(); return { ok:true, ran:0 };
   }
   const parts=[];
+  if(wantBrief) parts.push(i18t('sc_will_brief'));
   if(wantStd) parts.push(i18t('sc_will_standards'));
   if(wantOb) parts.push(i18t('sc_will_obligations'));
   const ok=window.confirmDialog?await confirmDialog({
@@ -9154,6 +9207,13 @@ async function runSignCheck(c,opts={}){
   c._signChecking=true; after();
   let all=true, ran=0;
   try{
+    if(wantBrief&&window.runContractBrief){
+      /* force where one is on file: the route caches on its own hash of what
+         it sent, so a brief this reading calls stale is one the route would
+         otherwise hand straight back. */
+      const res=await runContractBrief(c,{force:!r.brief.none});
+      if(res&&!res.error) ran++; else all=false;
+    }
     if(wantStd&&window.runPlaybookReview){
       const res=await runPlaybookReview(c,{});
       if(res&&!res.error){ c.playbook=res;
@@ -9191,6 +9251,7 @@ function signRowTitle(c,r){
   const t=k=>i18t(k);
   switch(r.kind){
     case 'standard': return r.category||t('sc_a_standard');
+    case 'brief': return t(r.never?'sc_brief_never':(r.truncated?'sc_brief_cut':'sc_brief_stale'));
     case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
     case 'obligations': return t(r.never?'sc_ob_unread':'sc_ob_head');
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
@@ -9264,6 +9325,9 @@ function signCheckCardHtml(c){
           if(r.quote) acts.push(verb('data-sc-clause',r.i,'sc_open_clause'));
         }
         break; }
+      case 'brief':
+        why=i18t(r.never?'sc_brief_never_w':(r.truncated?'sc_brief_cut_w':'sc_brief_stale_w'));
+        acts.push(`<button type="button" data-sc-brief="1">${esc(i18t('sc_brief_btn'))}</button>`); break;
       case 'standards-read':
         why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
       case 'obligations':
@@ -9282,15 +9346,37 @@ function signCheckCardHtml(c){
         acts.push(verb('data-sc-risk-read',r.id,'sc_read_btn'));
         acts.push(verb('data-sc-risk-dismiss',r.id,'sc_dismiss_btn'));
         break;
-      case 'signers': why=r.label; acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
+      /* ---- A ROW WHOSE WORK IS ON THIS SAME SCREEN POINTS AT IT (Young ruled
+         15 Sep 2026: "the before you sign sequence is not fully aligned as far
+         as adding signers is concerned. Maybe remove adding signers as a flag
+         because there is a reminder to add signers below?") ----
+         THE ROW IS NOT A REMINDER, WHICH IS WHY IT STAYS: it is what stops the
+         contract being signed. Take it out of the list and a record could be
+         sealed with nobody named on either side — the Signing order card below
+         is a label and holds nothing.
+         WHAT GOES IS THE DUPLICATION. That card printed the SAME SENTENCE word
+         for word with its own Add signers button, 300px lower. So the row
+         keeps its title and its hold, drops its paragraph, and its press lands
+         on the card that owns the act rather than opening a second path to it.
+         ONE RULE, NOT A PATCH FOR SIGNERS: `SC_ON_SCREEN` is every row whose
+         work lives on this screen. A row whose work is elsewhere — the
+         negotiation, a colleague's approval — keeps its sentence and its own
+         door, because there is nothing here to point at. */
+      case 'signers': acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
       case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
       case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
       case 'placeholders': case 'fields': why=r.label; acts.push(verb('data-sc-docs','1','sc_open_doc')); break;
       case 'spots': why=r.label; if(window.signWalkGo) acts.push(verb('data-sc-spots','1','sc_place_btn')); break;
       default: why=r.label||'';
     }
-    return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}" data-sc-row="${esc(r.key)}">
-      <div class="sc-find-t">${mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
+    /* A READING THAT CANNOT RUN YET IS DRAWN AND SAYS WHY, rather than being
+       hidden until it can — hiding it is what made the list understate its own
+       length. It holds nothing (the row it waits on is already holding) and
+       its verbs stand down, because pressing one would spend money on wording
+       that is about to move. */
+    if(r.waiting){ why=i18t('sc_wait_nego'); acts=[]; }
+    return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}${r.waiting?' is-wait':''}" data-sc-row="${esc(r.key)}">
+      <div class="sc-find-t">${r.waiting?'<span class="sc-mark is-wait">&#9675;</span>':mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
       ${why?`<div class="sc-find-w">${esc(why)}</div>`:''}
       ${acts.length?`<div class="sc-find-a">${acts.join('')}</div>`:''}
     </div>`;
@@ -9299,20 +9385,46 @@ function signCheckCardHtml(c){
   const holdsN=rd.holds.length, notedN=rd.noted.length, settledN=rd.settled.length;
   const counts=[ holdsN?i18tn('sc_n_to_settle',holdsN,{n:holdsN}):'', notedN?i18tn('sc_n_noted',notedN,{n:notedN}):'',
     settledN?i18tn('sc_n_settled',settledN,{n:settledN}):'' ].filter(Boolean).join(' · ');
-  const openRows=rd.open.map(row).join('');
+  /* ---- THREE STAGES, NOT A PILE (Young ruled 15 Sep 2026) ----
+     The rows were ordered by weight, which is right machinery and says nothing
+     about WHY any row is there. Three named questions do, in the order a person
+     asks them — and the order is not a preference: settling the negotiation
+     invalidates the readings, so the readings come after it.
+     THE ORDER INSIDE A STAGE IS UNTOUCHED — signReadiness still ranks holds
+     first and escalations ahead of them, so the list a reader is sent to by
+     "Sign — N to settle" is the same list in the same order.
+     A STAGE WITH NOTHING IN IT DRAWS NOTHING: an empty heading is furniture. */
+  const stageOf=r=>(window.signStageOf?signStageOf(r.kind):'paper');
+  const stages=(window.SIGN_STAGES||['paper','read','people']).map(st=>{
+    const mine=rd.open.filter(r=>stageOf(r)===st);
+    if(!mine.length) return '';
+    /* THE RUN CONTROL BELONGS TO THE READINGS, so it sits on their heading —
+       one press for the stage, never a button per row. It greys with the
+       reason while the wording is still moving. */
+    const act=(st==='read'&&rc&&rc.ready)
+      ? `<button type="button" class="sc-stage-act" id="sc-run" data-sc-run="1"${busy||rc.waiting?' disabled':''}
+          title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`
+      : '';
+    return `<div class="sc-stage" data-sc-stage="${esc(st)}">
+      <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${act}</div>
+      ${mine.map(row).join('')}
+    </div>`;
+  }).join('');
+  const openRows=stages;
   const settledRows=settledN?`<div class="sc-settled">
       <button type="button" class="sc-fold" data-sc-fold="1" aria-expanded="${_scSettledOpen?'true':'false'}" title="${esc(i18t('sc_fold_title'))}">${esc(i18tn('sc_n_settled',settledN,{n:settledN}))} — ${esc(rd.settled.map(r=>signRowTitle(c,r)).join(' · '))} <span class="sc-fold-x">${esc(i18t(_scSettledOpen?'sc_fold_hide':'sc_fold_show'))}</span></button>
       ${_scSettledOpen?rd.settled.map(row).join(''):''}
     </div>`:'';
-  /* THE RUN CONTROL stays in the head: it is the door onto the two readings
-     the check can still make, and says "nothing has moved" when it has
-     nothing to do. Drawn only where the check is at its moment. */
-  const runCtl=(rc&&rc.ready)?`<button type="button" id="sc-run" class="kt-tri-x"${busy?' disabled':''}
-        title="${esc(i18t('sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`:'';
+  /* ---- THE RUN CONTROL MOVED ONTO THE READINGS' OWN STAGE (15 Sep 2026) ----
+     It stood in the head, where it read as "run the whole card" — it never was
+     that: it runs the readings and nothing else. On their heading it says what
+     it does by where it is, and it is beside the three rows it answers.
+     #sc-run KEEPS ITS ID on that button, so every wiring and every test that
+     reaches for it is untouched. */
+  const runCtl='';
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
-      ${runCtl}
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>${runCtl}
     </div>
     ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
       :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}
@@ -9322,6 +9434,18 @@ function signCheckCardHtml(c){
    The one thing every held press does: go to the Signing tab, put the first
    open row in view and light it. The row is where the verbs are. */
 const signReadinessCardHtml=signCheckCardHtml;
+/* ---- LANDING ON THE CARD THAT OWNS THE ACT (15 Sep 2026) ----
+   A readiness row whose work lives on this same screen points at it. The
+   scroll and the flash are signLandOnList's own two lines, lifted so the two
+   cannot drift about what "take me there" looks like. */
+function signLandOn(sel){
+  const el=typeof sel==='string'?document.querySelector(sel):sel;
+  if(!el) return false;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
+  setTimeout(()=>el.classList.remove('anchor-flash'),1800);
+  return true;
+}
 function signLandOnList(c){
   if(window.roomGoTab&&typeof _wsTab!=='undefined'&&_wsTab!=='sign') roomGoTab(c,'sign');
   setTimeout(()=>{
@@ -9459,7 +9583,7 @@ function renderSignSide(c){
            before who signs it and in what order. */}
     ${signCheckCardHtml(c)}
     ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${i18t('ct_approval_gate')}</h6>${chain}</section>`:''}
-    <section style="${CARD}">
+    <section id="signing-order" style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
         <h6 style="${H};flex:1">${i18t('ct_signing_order')}</h6>
         ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
@@ -9489,6 +9613,14 @@ function renderSignSide(c){
   const scAgain=()=>{ renderSignSide(c); if(window.renderSignButton) renderSignButton(c); };
   host.querySelector('#sc-run')?.addEventListener('click',()=>runSignCheck(c,{ after:scAgain }));
   host.querySelectorAll('[data-sc-run]').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
+  /* The brief's own row reads it alone rather than pressing the whole stage:
+     a reader who wants the summary re-written should not be made to pay for
+     the playbook and the obligations as well. */
+  host.querySelector('[data-sc-brief]')?.addEventListener('click',async b=>{
+    const el=b&&b.currentTarget; if(el) el.disabled=true;
+    try{ if(window.runContractBrief) await runContractBrief(c,{force:!!c._brief}); }
+    finally{ if(el) el.disabled=false; scAgain(); }
+  });
   host.querySelectorAll('[data-sc-accept]').forEach(b=>b.addEventListener('click',
     ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));
   host.querySelectorAll('[data-sc-clause]').forEach(b=>b.addEventListener('click',
@@ -9507,7 +9639,14 @@ function renderSignSide(c){
     if(window.scanGoTo) scanGoTo(c,b.getAttribute('data-sc-risk-read')); }));
   host.querySelectorAll('[data-sc-risk-dismiss]').forEach(b=>b.addEventListener('click',
     ()=>signRiskDismiss(c,b.getAttribute('data-sc-risk-dismiss'),scAgain)));
-  host.querySelector('[data-sc-signers]')?.addEventListener('click',()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(c); });
+  /* THE CARD BELOW OWNS NAMING SIGNERS, so the row lands on it rather than
+     opening a second path to the same editor. Where that card is not drawn —
+     a narrow shell, a repaint mid-flight — the editor is still the answer:
+     a door that goes nowhere is worse than a door that skips a step. */
+  host.querySelector('[data-sc-signers]')?.addEventListener('click',()=>{
+    if(signLandOn('#signing-order')) return;
+    if(window.openSignerPlanEditor) openSignerPlanEditor(c);
+  });
   host.querySelector('[data-sc-nego]')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
   host.querySelectorAll('[data-sc-docs]').forEach(b=>b.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); }));
   host.querySelector('[data-sc-spots]')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
@@ -10649,7 +10788,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

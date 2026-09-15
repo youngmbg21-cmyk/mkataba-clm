@@ -48,6 +48,11 @@ function bench(over = {}, who = ME){
   const w = buildWorld({ signcheck: true, contractView: true });
   const { win } = w;
   const c = contract(over);
+  /* A BRIEF ON FILE, NEWER THAN ANY CHANGE (15 Sep 2026) — see the same note in
+     f308. The brief is a reading of the check now, so a bench contract heading
+     for signature carries one; the tests about the brief take it away. */
+  if (!Object.prototype.hasOwnProperty.call(over, '_brief'))
+    c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Bench', truncated: false, data: {} };
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: {} });
   win.getContract = id => (id === c.id ? c : null);
   win.canViewValues = () => true;

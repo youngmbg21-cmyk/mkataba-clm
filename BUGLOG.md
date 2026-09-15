@@ -14358,3 +14358,63 @@ NOTICED, NOT FIXED
   the same lines, because it is the same press; named here so it is not a surprise.
 - redline-verify check 5 was already red before this session (proved at the parent):
   the highlight menu draws its three verbs where that check expects none. Left red.
+
+## 15 Sep 2026 — before you sign is the whole list, in three stages
+
+Four reports off the last screen before a signature, plus one fix the owner added
+to the order. All seven built.
+
+DEFECTS FOUND AND FIXED
+- The negotiation blocker named CHG ids, a vocabulary the redline column stopped
+  drawing on 14 Sep. negoBlockerClauses names the clause through negoRefusalClause;
+  one clause said once however many changes sit on it; capped at three with the rest
+  counted; "this clause" where it cannot be named.
+- The signers row printed the Signing order card's sentence word for word 300px
+  above it, with a second Add signers button. The row keeps its HOLD (removing it
+  would let a record be sealed with nobody named — the card below holds nothing),
+  loses the paragraph, and its press lands on that card instead of a second dialog.
+- The plain English edition went silently stale after a negotiation. Pressing the
+  switch ON already re-read; a switch left ON showed the pre-round edition with
+  changed clauses drawn BLANK and no explanation. The caption now says how many
+  clauses it can no longer speak for and reuses the Read-it-again press. It never
+  re-reads by itself.
+- THE BIG ONE: signCheckReady required a signer named on EACH side, so the three
+  readings and the single Run control were not drawn at all until then. The card
+  said "3 to settle", the reader settled three, and three more appeared. Reading a
+  contract does not require knowing who will sign it. The condition is gone;
+  signCheckWaiting replaces its other half — while the negotiation is open the
+  readings are DRAWN and say they are waiting, hold nothing, and cannot be spent.
+- The brief joined the check. Four readings are made on arrival and the check
+  re-ran two; the brief was the one written for a person and the one nobody ever
+  looked at again. Staleness is asked of the RECORD (newest filed change, read raw)
+  because the brief's inputHash is the server's and a second hasher would drift.
+- Three stages replaced the flat weighted list: Is the paper final? / Has anyone
+  read this version? / Who approves, and who signs? The Run control moved onto the
+  readings' own stage and kept #sc-run.
+- A press in the wording on the negotiate page does nothing again (reverses 14 Sep
+  on that page only; the clause editor's own click-to-type of 13 Sep is untouched).
+  A stray click or a drag released a pixel short took the reader into a full-window
+  layer. The pencil and the redline row's Edit are the two doors.
+
+MEASURED on the real page, at the parent: the readings list read [] and the signers
+press opened a second dialog (modal:true). After: three readings drawn with nobody
+named, Run visible on the readings' stage, the press landing on the card and
+lighting it, and every reading marked waiting with no verbs while a round is open.
+
+TESTS
+- f319 (31 claims; 29 red at 05b54f2, the 2 green named as controls).
+- signing-flow-verify section 6 (ten checks on the REAL APP; 8 red at the parent).
+- f245's click-door claim and clause-door-verify 17a REVERSED IN PLACE with the ruling.
+- Three benches (f308, f311, signing-flow-verify) given a brief newer than any change,
+  with the reason written beside it — the brief row is true and is noise in tests
+  about other rows.
+- Full node suite 7228 green; lint 0 errors.
+
+NOTICED, NOT FIXED
+- Three browser checks were ALREADY RED before this session (proved at the parent,
+  identical): redline-verify 5 (the highlight menu draws three verbs where it expects
+  none); room-order-and-notices-verify's two (a decided-change sort, and the All /
+  Mine / Theirs cuts which CLAUDE.md records as RETIRED). Left red.
+- nego-redesign-verify 1 and 1c (five checks) also already red — they still ask for
+  the retired .rn-id / .rn-arrow markup and for the crumb to have stood down on the
+  negotiation page, both reversed by the 12 Sep ruling.

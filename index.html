@@ -2856,10 +2856,16 @@
     background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
   #doc-read[hidden]{ display:none; }
-  .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px;
+  .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
     padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--accent-ink); }
+  /* The staleness sits ON the caption and keeps the caption's own register:
+     furniture about the reading, never a band over it. It wraps to its own
+     line rather than squeezing the label. */
+  .doc-read-moved{flex-basis:100%;color:var(--st-amber-fg);font-weight:var(--w-body);
+    text-transform:none;letter-spacing:0;}
+  .doc-read-moved button{font-size:inherit;}
   .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; font-size:var(--t-label);
     color:var(--color-neutral-600); }
@@ -4616,6 +4622,28 @@
   .sc-mark.is-esc{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .sc-mark.is-note{background:var(--color-neutral-100);color:var(--color-neutral-600);}
   .sc-mark.is-done{background:var(--st-green-bg);color:var(--st-green-fg);}
+  /* ---- THREE STAGES, NOT A PILE (Young ruled 15 Sep 2026) ----
+     A stage heading is a QUESTION the rows under it answer, so it is set as a
+     label and not as a card: no border, no fill, no radius. The one thing it
+     may carry is the act that belongs to the whole stage — today that is the
+     readings' single Run, which used to sit in the head where it read as
+     "run the card". A stage with no rows is not drawn at all.
+     THE LAST STAGE LOSES THE RULE under it: the settled fold, or nothing, sits
+     below and a hairline into empty space reads as a mistake. */
+  .sc-stage + .sc-stage{margin-top:4px;}
+  .sc-stage-h{display:flex;align-items:center;gap:10px;padding:11px 0 5px;}
+  .sc-stage-t{flex:1;font-size:var(--t-micro);font-weight:var(--w-title);
+    letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);}
+  .sc-stage-act{flex:none;border:0;background:none;padding:0;font:inherit;
+    font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;}
+  .sc-stage-act:hover:not(:disabled){text-decoration:underline;}
+  .sc-stage-act:disabled{color:var(--color-neutral-500);cursor:default;}
+  .sc-stage:last-child .sc-find:last-child{border-bottom:0;}
+  /* WAITING IS NOT HOLDING and may not read as an alarm: a hollow ring in the
+     quiet ink, and the row's own words step back with it. */
+  .sc-mark.is-wait{background:transparent;color:var(--color-neutral-500);
+    box-shadow:inset 0 0 0 1px var(--color-neutral-400);}
+  .sc-find.is-wait .sc-find-t{color:var(--color-neutral-600);}
   .sc-counts{font-weight:var(--w-body);color:var(--color-neutral-600);margin-left:6px;font-size:var(--t-label);}
   .sc-clear{margin-top:8px;}
   .sc-settled{padding-top:6px;}

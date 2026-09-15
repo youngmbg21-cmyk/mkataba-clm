@@ -3815,18 +3815,57 @@ function negoAlignment(c){
 
    Returns plain sentences a person can act on, because whatever refuses a
    signature has to say what would clear it. */
+/* ---- A BLOCKER NAMES THE CLAUSE, NOT THE CHG NUMBER (Young ruled
+   15 Sep 2026) ----
+   *"it says i have not resolved the changed highlighted even though the CHG #
+   is not something that is visible on the redlining processes anymore. Maybe
+   name the clause numbers?"*
+
+   THE PRODUCT ALREADY MADE THIS DECISION TWICE. On 14 Sep the redline column
+   was rebuilt so the CLAUSE leads every row and the reference rides the hover;
+   on 15 Sep negoResolve's two refusals were reworded the same way. These two
+   sentences were the last place a CHG id was put in front of a reader as their
+   ONLY handle on a change — a precise reference to something they cannot see.
+
+   negoRefusalClause is the naming, so the blocker and the refusal cannot come
+   to call one change by two names. THREE THINGS THE LIST OWES A READER and the
+   id never did: two changes on one clause say the clause ONCE; a long list
+   stops at NG_BLOCK_CLAUSES and counts the rest, because this is a sentence in
+   a list and not a report; and a change whose clause cannot be named says "this
+   clause" rather than falling back to a number nobody can look up. */
+const NG_BLOCK_CLAUSES = 3;
+function negoBlockerClauses(list){
+  const seen = [], names = [];
+  (list || []).forEach(ch => {
+    const n = negoRefusalClause(null, ch);
+    if (!n || seen.indexOf(n) >= 0) return;
+    seen.push(n); names.push(n);
+  });
+  if (!names.length) return '';
+  if (names.length <= NG_BLOCK_CLAUSES) return names.join(', ');
+  return i18t('ng_block_clauses_more',
+    { list: names.slice(0, NG_BLOCK_CLAUSES).join(', '), n: names.length - NG_BLOCK_CLAUSES });
+}
+
 function negoSigningBlockers(c){
   const out = [];
   const rounds = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
   if (rounds) out.push(`${rounds} proposed edit${rounds === 1 ? '' : 's'} from the counterparty`
     + ` ${rounds === 1 ? 'is' : 'are'} still open`);
   const a = negoAlignment(c);
-  if (a.pending.length) out.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'}`
-    + ` ${a.pending.length === 1 ? 'has' : 'have'} not been answered`
-    + ` (${a.pending.map(x => '#' + x.id).join(', ')})`);
-  if (a.contested.length) out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
-    + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
-    + ` ${a.contested.length === 1 ? 'it' : 'them'} (${a.contested.map(x => '#' + x.id).join(', ')})`);
+  if (a.pending.length){
+    const where = negoBlockerClauses(a.pending);
+    out.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'}`
+      + ` ${a.pending.length === 1 ? 'has' : 'have'} not been answered`
+      + (where ? `, on ${where}` : ''));
+  }
+  if (a.contested.length){
+    const where = negoBlockerClauses(a.contested);
+    out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
+      + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
+      + ` ${a.contested.length === 1 ? 'it' : 'them'}`
+      + (where ? `, on ${where}` : ''));
+  }
   /* ---- AND CLOSING THE ROUND DOES NOT SETTLE A REFUSAL (audit finding 6) ----
      negoAlignment reads the LIVE c.changes, which negoAdvanceRound empties: it
      refuses to close over anything still pending, but a refused counterparty
@@ -4934,7 +4973,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNotesReadAt, negoNoteUnread, negoMarkNotesRead,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,
+  negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoBlockerClauses, NG_BLOCK_CLAUSES, negoSignalReady, negoReadySignal, negoSideSigned,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,

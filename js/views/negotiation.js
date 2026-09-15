@@ -4932,38 +4932,38 @@ function wireNegotiationTab(c, opts = {}){
       if (fromControl(e.target)) return;
       setTimeout(openSelMenu, 0);
     });
-    /* ---- A CLICK IN THE WORDING IS THE PENCIL'S OWN PRESS (Young ruled
-       14 Sep 2026: "Yes on the negotiate page too" — the pencil is never the
-       way in anywhere) ----
-       Reverses "NO EDITS ON THE PAPER … a press in the wording does nothing"
-       (1 Sep) for OUR seat on this page: a CLICK — a collapsed selection, not
-       a drag, and not on any control the clause draws — presses the clause's
-       own pencil, so it goes exactly where the pencil goes: the editor, or
-       the panel where the editor cannot take the clause, decided at the DRAW
-       on the pencil's attribute and never re-decided here. A clause a
-       colleague holds draws the lock sign where the pencil would be, and the
-       click SPEAKS it. A drag is a highlight and keeps its menu (the mouseup
-       above). Their seat, a preview, a reading that draws no pencil and the
-       clause editor's own canvas (which answers its own clicks, `opts.pill`)
-       draw no such door. The pencil's own press stops its propagation, so a
-       press ON the pencil arrives here never — one door, one act. */
-    const inPortal = typeof window !== 'undefined'
-      && (typeof window.PORTAL_MODE === 'function' ? !!window.PORTAL_MODE() : !!window.PORTAL_MODE);
-    if (side !== 'counterparty' && !opts.preview && !opts.pill && !inPortal){
-      host.addEventListener('click', ev => {
-        const t = ev.target;
-        if (!t || !t.closest || ev.defaultPrevented) return;
-        const sec = t.closest('.rl-doc [data-clause]');
-        if (!sec || !host.contains(sec)) return;
-        if (fromControl(t) || t.closest('.rl-cp-lock, .rl-repl-on, [contenteditable="true"]')) return;
-        const s = window.getSelection && window.getSelection();
-        if (s && !s.isCollapsed && String(s).trim()) return;
-        const pill = sec.querySelector('[data-rl-cp-editor]:not([data-nego-ai-clause]), [data-rl-cp-open]');
-        if (pill){ pill.click(); return; }
-        const lock = sec.querySelector('.rl-cp-lock');
-        if (lock && window.toast) toast(lock.getAttribute('title') || i18t('cl_a_colleague'), 'warn');
-      });
-    }
+    /* ---- A PRESS IN THE WORDING DOES NOTHING — REVERSED IN PLACE
+       (Young ruled 15 Sep 2026) ----
+       *"When I am in the redlined contract page and i press anywhere in the
+       contract it sends me directly to the editor page without my consent. I
+       should only be moved to the editor page by click on the pencil or on the
+       edit button."*
+
+       WHAT STOOD HERE, and it is kept in words because its reasoning is what
+       makes the reversal safe: on 14 Sep a click anywhere in a clause's
+       wording pressed that clause's own pencil, so the paper itself became a
+       door. The argument was that the pencil is never the way in — a reader
+       should not have to find a hover-only control to start work.
+
+       WHY IT GOES. THE PAPER IS FOR READING. Every other surface in this
+       product treats a press in a contract's wording as a press in a
+       contract's wording: the Document tab, the counterparty's page, an
+       executed record. Making one page navigate away instead means a reader
+       scrolling with a stray click, or reaching for a word to highlight and
+       releasing half a pixel short, leaves the page they were reading — and
+       leaves it for a FULL-WINDOW layer that covers everything. A door nobody
+       asked for is worse than a door that takes one more press to find.
+
+       THE TWO DOORS THE OWNER NAMED ARE UNTOUCHED and are both still drawn:
+       the clause's own pencil (`data-rl-cp-editor` / `data-rl-cp-open`,
+       decided at the draw) and the redline row's Edit. The clause editor's own
+       canvas keeps click-to-type — that page IS the editing surface and its
+       rule of 13 Sep is not this one.
+
+       A DRAG STILL RAISES THE MENU (the mouseup above), which is the whole of
+       what a press in the wording is for on this page. And a clause a
+       colleague holds still says so: the lock sign is drawn at rest since
+       15 Sep, so nothing has to be pressed to learn it. */
     document.addEventListener('mousedown', e => {
       if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
         _negoKillSelMenu();

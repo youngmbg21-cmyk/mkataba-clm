@@ -3073,16 +3073,28 @@ describe('f245 (26) — the layered redline in the editor', () => {
     assert.ok(!/\$\{twinHtml\}/.test(paper), 'no twin is written into the typing markup');
   });
 
-  test('THE NEGOTIATE PAGE TOO (Young: "Yes on the negotiate page too"): a click in the wording presses the clause\'s own pencil', () => {
+  /* ---- REVERSED IN PLACE 15 Sep 2026 ----
+     *"When I am in the redlined contract page and i press anywhere in the
+     contract it sends me directly to the editor page without my consent. I
+     should only be moved to the editor page by click on the pencil or on the
+     edit button."*
+     This pinned the 14 Sep door — a click anywhere in a clause's wording
+     pressed that clause's pencil. THE PAPER IS FOR READING: a stray click
+     while scrolling, or a drag released half a pixel short, left the page for
+     a full-window layer nobody asked for. The claim is now the absence, and
+     the two doors the owner named are asserted present in its place. */
+  test('A PRESS IN THE WORDING DOES NOTHING on the negotiate page — the pencil and Edit are the two doors', () => {
     const NG = read('js/views/negotiation.js');
-    const at = NG.indexOf('A CLICK IN THE WORDING IS THE PENCIL\'S OWN PRESS');
-    assert.ok(at > 0, 'the door is written');
-    const door = NG.slice(at, at + 3000);
-    assert.match(door, /side !== 'counterparty' && !opts\.preview && !opts\.pill/, 'our seat, not a preview, not the editor\'s own canvas');
-    assert.match(door, /sec\.querySelector\('\[data-rl-cp-editor\]:not\(\[data-nego-ai-clause\]\), \[data-rl-cp-open\]'\)/, 'the clause\'s own pencil');
-    assert.match(door, /pill\.click\(\)/, 'is pressed — one door, one act');
-    assert.match(door, /!s\.isCollapsed && String\(s\)\.trim\(\)\) return/, 'a drag is a highlight and keeps its menu');
-    assert.match(door, /\.rl-cp-lock/, 'a held clause speaks its lock');
+    assert.ok(NG.indexOf('A PRESS IN THE WORDING DOES NOTHING') > 0, 'the reversal is written where the door was');
+    assert.ok(!/pill\.click\(\)/.test(NG), 'and nothing in the wording presses a pencil for the reader');
+    /* THE TWO DOORS ARE UNTOUCHED, which is the whole condition on removing it. */
+    assert.match(NG, /\[data-rl-cp-editor\]:not\(\[data-nego-ai-clause\]\)/,
+      'the clause keeps its own pencil, wired as it was');
+    assert.match(NG, /data-rl-cp-editor-row="\$\{_nea\(id\)\}"/,
+      'and the redline row keeps its Edit');
+    /* A DRAG STILL RAISES THE MENU — the one thing a press in the wording is
+       for on this page, and the half that did not go. */
+    assert.match(NG, /host\.addEventListener\('mouseup'/, 'the highlight menu is untouched');
   });
 
   test('THE FILING IS MEASURED AGAINST THEIR WORDING, so the funnel stacks: theirs is parked, not superseded', async () => {

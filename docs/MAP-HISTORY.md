@@ -19565,6 +19565,80 @@ clause as the answer for a position the contract has no clause on at all;
 `redlineWholesale` and `redlineReplacementHtml`; the fallback, which is still
 never filed unattended because it is a position nobody has decided to concede.
 
+## BEFORE YOU SIGN IS THE WHOLE LIST, IN THREE STAGES (Young ruled 15 Sep 2026)
+
+Four screenshots of the last screen before a signature, and one fault sitting under all of them.
+
+**The card is called "Before you sign".** A reader takes that to mean *here is everything between you and a signature*. It was a list of what was blocking at that exact moment, which is a different and much less useful thing. Every one of the four reports is a consequence.
+
+### 1 · It named a reference the reader could not see
+
+> *"it says i have not resolved the changed highlighted even though the CHG # is not something that is visible on the redlining processes anymore. Maybe name the clause numbers?"*
+
+The product had already made this decision twice. On 14 September the redline column was rebuilt so the CLAUSE leads every row and the CHG reference moved to the hover; on 15 September `negoResolve`'s two refusals were reworded the same way. These two sentences were simply missed, and they were the last place in the product that handed a reader a CHG id as their only handle on a change.
+
+`negoBlockerClauses` names them through `negoRefusalClause`, so the blocker and the refusal cannot come to call one change by two names. Three things the list owes a reader that the id never did: **two changes on one clause say the clause once** (one place to go, not the same name twice); **a long list stops at three** and counts the rest, because this is a sentence in a list and not a report; and **a change whose clause cannot be named says "this clause"** rather than falling back to a number nobody can look up.
+
+### 2 · Add signers, twice, 300 pixels apart
+
+> *"the before you sign sequence is not fully aligned as far as adding signers is concerned. Maybe remove adding signers as a flag because there is a reminder to add signers below as highlighted?"*
+
+The duplication was worse than it looked: the readiness row and the Signing order card printed **the same sentence word for word**, each with its own *Add signers* button.
+
+**But the row is not a reminder, which is why it stays.** It is what stops the contract being signed. Take it out of the list and a record could be sealed with nobody named on either side — the card below is a label and holds nothing. So the hold stays, the paragraph goes, and the press lands on the card that owns the act instead of opening a second path to the same editor.
+
+**And it is a rule, not a patch for signers.** A row whose work lives on this same screen points at it. A row whose work is elsewhere — the negotiation, a colleague's approval — keeps its sentence and its own door, because there is nothing here to point at. One rule, and it covers whatever row gets added next year.
+
+### 3 · The plain English was from before the negotiation
+
+> *"after completing a negotiation and you want to reread the contract in plain english, how will that be triggered?"*
+
+**Half of this already worked, and that half is what made it a trap.** With the switch OFF, pressing it noticed the wording had moved (`docReadSig` differs) and re-read by itself — nothing to trigger, one reading paid for.
+
+The other half is the screenshot. With the switch **already on** — read here, went to negotiate, came back — nothing re-read. The reader was shown the edition made *before* the round, and every clause that had changed drew **blank**, because `docReadAnchors` refuses to put a stale explanation beside new wording.
+
+That refusal is right and stays: a note beside the wrong clause is worse than no note. What was missing is that the page never said so — gaps with no explanation. The caption is already drawn, so the fact goes there: no band, no pop-up, not a pixel off the contract, and the press is `data-doc-read-again`, which this column already draws for the partial case. One door, shown for its second honest reason.
+
+**It never re-reads by itself.** A full contract is a real cost the reader has not asked for, and they may be back for thirty seconds to check a date. Told, then their choice.
+
+### 4 · The list was not the whole list
+
+> *"how do you trigger running the brief again, the standard checks, and the obligations once more before you sign? Review the best approach to managing the final check and offer a seamless solution that is straightforward for a user."*
+
+You could not, and the reason is specific: `signCheckReady` required `signingRouteOpen` — a named signer on **each** side. Until then the three readings and the single Run control were not drawn at all. The card said "3 to settle", the reader settled three things, and three more appeared.
+
+**Which is backwards.** Reading a contract does not require knowing who will sign it. You read the thing and then decide who signs it. The product was asking a reader to nominate signatories before it would tell them whether anyone had read the document they were about to commit to. The signers question is a ROW — it holds a signature, as it always did — never a condition on the list being drawn.
+
+What replaced that condition is a **waiting state, not a second hiding place**: while the negotiation is open the readings are drawn and say they are waiting, because reading wording that is about to move spends money on an answer the next filing invalidates. `signCheckTableClear` kept its name; what changed is that its answer is now *said* rather than obeyed in silence. A waiting row holds nothing — the negotiation row above it is already holding, and one fact holding a signature twice reads as two problems.
+
+**The brief joined the check.** Four things are read when a contract arrives — brief, standards, obligations, filing — and the check re-ran two of them. The brief is the one written for a person rather than for a rule, and it was the one nobody ever looked at again however far the wording moved.
+
+Its staleness is asked of the **record**, not of a hash, and that limit is deliberate: the brief's own `inputHash` is computed on the SERVER over the text it sent, the browser cannot reproduce it, and a second hasher that drifted would call fresh briefs stale for ever — the exact trap the overnight playbook sweep is kept out of. So the question asked is one the record answers exactly: *has any wording been proposed since this brief was written*. It can over-report on a change that was refused, and that is the safe direction — offering a reading nobody needed costs one press; skipping one they did costs a signature over a summary of wording that is no longer there.
+
+**Three stages replaced the flat list.** The rows were ordered by weight, which is right machinery and says nothing about *why* any row is there:
+
+1. **Is the paper final?**
+2. **Has anyone read this version?**
+3. **Who approves, and who signs?**
+
+The order is not a preference: settling the negotiation invalidates the readings, so the readings come after it. The Run control moved from the head, where it read as "run the card", onto the readings' own heading, where it is beside the three rows it answers — and kept `#sc-run`, so every wiring and every test that reaches for it is untouched.
+
+**Measured on the real page, at the parent:** the readings list read `[]`, and pressing the signers row opened a second dialog (`modal: true`). After: three readings drawn with nobody named, the Run control visible on the readings' stage, and the press landing on the Signing order card and lighting it.
+
+### And the fix the owner added to the order
+
+> *"When I am in the redlined contract page and i press anywhere in the contract it sends me directly to the editor page without my consent. I should only be moved to the editor page by click on the pencil or on the edit button."*
+
+This **reverses the 14 September ruling** on the negotiate page, and the old note is kept in the source because its reasoning is what makes the reversal safe: the argument was that the pencil should never be the only way in.
+
+**The paper is for reading.** Every other surface in the product treats a press in a contract's wording as a press in a contract's wording. Making one page navigate away means a stray click while scrolling, or a drag released half a pixel short, takes the reader off the page they were reading — and into a full-window layer that covers everything. A door nobody asked for is worse than a door that takes one more press to find.
+
+The two doors the owner named are untouched: the clause's own pencil, and the redline row's Edit. A drag still raises the highlight menu, which is the whole of what a press in the wording is for on that page. And the clause editor's own click-to-type of 13 September is a different page and a different rule; it stays.
+
+### What the benches had to learn
+
+The brief becoming a reading of the check means a contract with no brief on file draws a row saying so — true, and noise in every test that is about a different row. Three benches (f308, f311, signing-flow-verify) now carry a brief newer than any change, with the reason written beside it; the tests that are *about* the brief take it away or age it themselves.
+
 ## A SUGGESTION HAS AN ADDRESS — AND THE WALL BECOMES A SEATBELT (Young ruled 15 Sep 2026)
 
 The owner opened a redline on a limitation-of-liability clause and found five of its six parts struck through to change the cap in the sixth. Asked to explain how that was surgical, the honest answer was that half of it was: the EDIT inside the cap was textbook — their sentence kept, the SEK 40,000,000 "whichever is the lower" ceiling replaced by a floor tied to twelve months of purchases, the 125% and the cross-references untouched — and the other half was the clause 7 fault in a second home.
