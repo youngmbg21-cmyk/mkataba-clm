@@ -3280,8 +3280,24 @@ function _negoKillAiPop(){
 /* Where the menu goes. Off the selection's own rectangle, clamped to the
    viewport so a clause selected at the bottom of the window does not put its
    menu below the fold. */
-function _negoAnchor(rect, w, h){
+function _negoAnchor(rect, w, h, mode){
   const pad = 10;
+  /* ---- THE BAR SITS OVER THE MIDDLE OF WHAT WAS HIGHLIGHTED (Young ruled
+         15 Sep 2026, of the artifact's highlight bar: "I am still getting the
+         Hati version and not the artifact version") ----
+     A dropdown hangs from the left edge of its anchor, below it, because that
+     is where a menu belongs. A BAR is a different object: the artifact draws
+     it centred over the words, clear of them, because it is the reader's own
+     highlight it is about and it must not cover it. Both clamps below are the
+     same clamps; only the preferred position differs, so there is still ONE
+     reading of "where does a floating layer land". */
+  if (mode === 'bar'){
+    const mid = rect.left + (rect.width || 0) / 2;
+    const l = Math.min(Math.max(pad, mid - w / 2), Math.max(pad, window.innerWidth - w - pad));
+    let t = rect.top - h - 8;
+    if (t < pad) t = rect.bottom + 8;
+    return { left: l, top: Math.min(Math.max(pad, t), Math.max(pad, window.innerHeight - h - pad)) };
+  }
   let left = Math.min(Math.max(pad, rect.left), window.innerWidth - w - pad);
   let top = rect.bottom + 8;
   if (top + h > window.innerHeight - pad) top = rect.top - h - 8;
@@ -3300,6 +3316,41 @@ function _negoAnchor(rect, w, h){
   top = Math.min(Math.max(pad, top), Math.max(pad, window.innerHeight - h - pad));
   return { left, top };
 }
+/* ---- THE HIGHLIGHT BAR'S MARKUP, BUILT ONCE (Young ruled 15 Sep 2026) ----
+   *"When I highlight a sentence and I get a pop up with three choices, I am
+   still getting the Hati version and not the artifact version."*
+
+   THE ARTIFACT DRAWS A BAR, NOT A DROPDOWN, and says so in its own words:
+   "the bar appears in place with Ask Copilot · Edit with Copilot · Comment. It
+   is a bar, not a dropdown." So three things go, and each was carrying
+   something that is said better elsewhere:
+     · THE HEAD ("Selected wording" / "This clause") — a label on a layer that
+       has just appeared at the words it is about, in answer to the reader's
+       own drag;
+     · THE QUOTE (the first 64 characters of the highlight) — the highlight
+       itself is on the page, lit, twelve pixels below the bar;
+     · THE STACK — the verbs sit side by side, which is what makes it a bar.
+
+   TWO SURFACES DREW THIS MARKUP AND BOTH ASK HERE NOW: the room's own
+   `defaultMenu` and the workbench's `rlSelMenu`. They were two copies of one
+   shape, which is this codebase's most expensive fault class; a shared builder
+   is what stops the bar drifting on one page and not the other.
+
+   `.nego-selbar` is the class the row rules hang on — the note layer below
+   keeps `.nego-selmenu` alone and stays a column, because a refusal is a
+   sentence to be read rather than a row of verbs. */
+function negoSelBarHtml(actions){
+  return (actions || []).map(a => {
+    /* Copilot's own two verbs wear Copilot's violet, exactly as every other
+       Copilot control in this product marks itself; Comment is the quiet
+       accent word. Read off the action's id so a host supplying its own list
+       (the Document tab) is dressed by the same rule. */
+    const ai = /^(ask|edit|simplify)$/.test(String(a.id || '')) ? ' rl-verb-ai' : '';
+    return `<button type="button" role="menuitem" class="nego-selverb${ai}"
+      data-nego-ai="${_nea(a.id)}">${_ne(a.label)}</button>`;
+  }).join('');
+}
+
 /* An answer where the menu would have been. Used when a highlight is real and
    legible but cannot lead anywhere — front matter, or two highlights at once.
    It is the menu's own layer with no items in it, so it dismisses on the same
@@ -4621,14 +4672,11 @@ function wireNegotiationTab(c, opts = {}){
       const menu = document.createElement('div');
       menu.className = 'nego-selmenu';
       menu.setAttribute('role', 'menu');
-      menu.innerHTML = `
-        <div class="nego-selhead">${ctx.whole ? 'This clause' : 'Selected wording'}</div>
-        <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
-        ${NEGO_AI_ACTIONS.map(a =>
-          `<button type="button" role="menuitem" data-nego-ai="${a.id}">${_ne(a.label)}</button>`).join('')}`;
+      menu.classList.add('nego-selbar');
+      menu.innerHTML = negoSelBarHtml(NEGO_AI_ACTIONS);
       document.body.appendChild(menu);
       const box = menu.getBoundingClientRect();
-      const at = _negoAnchor(rect, box.width, box.height);
+      const at = _negoAnchor(rect, box.width, box.height, 'bar');
       menu.style.left = at.left + 'px';
       menu.style.top = at.top + 'px';
       /* mousedown on the selection path: clicking first collapses the selection,
@@ -9989,12 +10037,15 @@ function rlSelMenu(ctx){
   const menu = document.createElement('div');
   menu.className = 'nego-selmenu';
   menu.setAttribute('role', 'menu');
-  menu.innerHTML = `<div class="nego-selhead">${whole ? 'This clause' : 'Selected wording'}</div>
-    <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
-    ${actions.map(a => `<button type="button" role="menuitem" data-nego-ai="${_nea(a.id)}">${_ne(a.label)}</button>`).join('')}`;
+  /* The bar, through the one builder — see negoSelBarHtml. `whole` is still
+     read by the callers above (it decides what a press acts on); what it no
+     longer does is print a head, because the artifact's bar has none. */
+  void whole;
+  menu.classList.add('nego-selbar');
+  menu.innerHTML = negoSelBarHtml(actions);
   document.body.appendChild(menu);
   const box = menu.getBoundingClientRect();
-  const at = _negoAnchor(rect, box.width, box.height);
+  const at = _negoAnchor(rect, box.width, box.height, 'bar');
   menu.style.left = at.left + 'px';
   menu.style.top = at.top + 'px';
   /* mousedown, not click, on the selection path: clicking collapses the
@@ -18646,7 +18697,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,
-  RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
+  RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, negoSelBarHtml, rlAiPropose, rlStandardAction,
   rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen, rlCardReadHtml,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlAlertsBellHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,

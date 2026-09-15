@@ -391,6 +391,33 @@ function negoStyleHtml(){
     font:inherit;font-family:var(--n-font-ui);font-size:var(--t-body);color:var(--n-ink);
     background:none;border:0;border-radius:var(--radius);padding:7px 9px;cursor:pointer}
   .nego-selmenu button:hover,.nego-selmenu button:focus-visible{background:var(--n-badge-bg)}
+  ${''/* ---- A HIGHLIGHT RAISES A BAR, NOT A DROPDOWN (Young ruled 15 Sep
+         2026: "I am still getting the Hati version and not the artifact
+         version") ----
+     The artifact's own words: "the bar appears in place with Ask Copilot ·
+     Edit with Copilot · Comment. It is a bar, not a dropdown." So the verbs
+     sit SIDE BY SIDE, the box shrinks to them, and the head and the quote
+     above them are gone (see negoSelBarHtml for why each could go).
+
+     WRITTEN AFTER the column rules it beats, and it beats them by ORDER at
+     equal specificity — the standing rule in this file, paid for twice. It is
+     scoped to .nego-selbar, which only the verb bar carries, so the REFUSAL
+     layer (.nego-selmenu with a sentence in it) keeps the column above and
+     stays a paragraph to be read.
+
+     THE BUTTONS ARE THE ARTIFACT'S: 13px, bold, the accent ink, no icon box
+     and no full-width row; Copilot's own two wear Copilot's violet through
+     .rl-verb-ai, which is the class every other Copilot control in this
+     product already answers to. */}
+  .nego-selmenu.nego-selbar{flex-direction:row;align-items:center;gap:2px;
+    min-width:0;padding:4px}
+  .nego-selmenu.nego-selbar button{display:inline-flex;width:auto;text-align:center;
+    justify-content:center;gap:6px;white-space:nowrap;padding:7px 12px;
+    font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink)}
+  .nego-selmenu.nego-selbar button.rl-verb-ai{color:#6d28d9}
+  html.dark .nego-selmenu.nego-selbar button.rl-verb-ai{color:#c4b5fd}
+  .nego-selmenu.nego-selbar button:hover,
+  .nego-selmenu.nego-selbar button:focus-visible{background:var(--n-badge-bg)}
   .nego-selmenu .nego-selhead{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;
     color:var(--n-ink-soft);padding:5px 9px var(--s-1)}
   .nego-selmenu .nego-selquote{font-size:var(--t-label);color:var(--n-ink-soft);padding:0 9px 6px;
