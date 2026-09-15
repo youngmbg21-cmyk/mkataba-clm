@@ -3051,6 +3051,46 @@ function ceMarksDraw(box, units, plan){
     return el;
   };
   const nodesOf = u => (u.nodes || []).filter(t => t && t.parentNode);
+  /* ---- A REMOVED PARAGRAPH IS A REMOVED PARAGRAPH (Young reported it 15 Sep
+     2026, twice: "when you press inside a clause with redlines, the paragraphs
+     slightly separate from each other when they should not move at all") ----
+     MEASURED on a clause of three sub-paragraphs with their ask striking the
+     first. AT REST the sheet draws three blocks: the struck 8.1, then 8.2, then
+     8.3. IN THE BOX the whole struck paragraph was landing INSIDE the next
+     paragraph's marker gutter —
+
+       <p class="rl-hang"><span class="rl-marker"><del>8.1 Term …\n</del>8.2 </span>Termination …
+
+     — two blocks instead of three, with a paragraph of wording stuffed into a
+     2.6em gutter. That is why the hanging indent collapsed, the wrapped lines
+     went flush left and everything below the caret re-flowed: not a margin, a
+     paragraph in the wrong element.
+     THE CAUSE IS THE INSERTION POINT. A struck run is put back "where it was
+     taken out", and where it was taken out is the start of a line, whose first
+     text node is the marker span's. A run carrying a NEWLINE is not inline
+     wording at all — it is one or more whole lines — so it is drawn as its own
+     block, exactly as the at-rest renderer draws it, and the block count on
+     screen is the same before the press and during it. */
+  const BLOCKS = /^(P|LI|H1|H2|H3|H4|H5|H6|PRE|BLOCKQUOTE|DIV)$/;
+  const blockOf = node => {
+    let el = node && node.parentNode;
+    while (el && el !== box && !BLOCKS.test(el.tagName || '')) el = el.parentNode;
+    return (el && el !== box) ? el : null;
+  };
+  const delBlock = (text, who, under) => {
+    const p = doc.createElement('p');
+    const sp = (typeof window.redlineSplitMarker === 'function')
+      ? redlineSplitMarker(text) : { marker: '', rest: text };
+    p.className = 'rl-line rl-clause rl-line-del' + (sp.marker ? ' rl-hang' : '');
+    if (sp.marker){
+      const g = doc.createElement('span'); g.className = 'rl-marker';
+      g.appendChild(atom(sp.marker + ' ', who, under));
+      p.appendChild(g);
+      p.appendChild(atom(String(sp.rest || '').replace(/^\s+/, ''), who, under));
+    } else p.appendChild(atom(text, who, under));
+    p.setAttribute(CE_MARK_ATTR, 'del');
+    return p;
+  };
   /* A rewrite: everything in the box is ours, and their wording, struck, stands
      above it — the shape redlineReplacementHtml draws once it is filed. */
   if (plan.wholesale){
@@ -3073,7 +3113,20 @@ function ceMarksDraw(box, units, plan){
     if (off >= o.text.length){ oi++; off = 0; }
     return o;
   };
-  const atomsAt = (node, k) => { for (const d of dels()) events.push({ node, k, kind: 'atom', el: atom(d.text, d.who, d.under), seq: seq++ }); };
+  const atomsAt = (node, k, edge) => {
+    for (const d of dels()){
+      if (edge && /\n/.test(d.text)){
+        const anchor = blockOf(node);
+        const lines = String(d.text).split('\n').filter(x => x.trim());
+        if (anchor && lines.length){
+          for (const ln of lines)
+            events.push({ kind: 'block', anchor, edge, el: delBlock(ln, d.who, d.under), seq: seq++ });
+          continue;
+        }
+      }
+      events.push({ node, k, kind: 'atom', el: atom(d.text, d.who, d.under), seq: seq++ });
+    }
+  };
   for (let ui = 0; ui < units.length; ui++){
     const u = units[ui];
     const nodes = nodesOf(u);
@@ -3094,7 +3147,7 @@ function ceMarksDraw(box, units, plan){
     const first = emitted[0] || raw[0] || null;
     /* The regenerated marker of a list item: projected, not in the DOM. */
     for (let i = 0; i < u.prefix.length; i++){
-      atomsAt(first.t, first.k);
+      atomsAt(first.t, first.k, 'start');
       if (!take()) return false;
     }
     let curOp = null, runStart = null, runEnd = null;
@@ -3103,9 +3156,11 @@ function ceMarksDraw(box, units, plan){
         events.push({ node: runStart.t, k: runStart.k, k2: runEnd.k + 1, kind: 'wrap', el: wrapper(curOp.who), seq: seq++ });
       curOp = null; runStart = null; runEnd = null;
     };
+    let atStart = true;
     for (const ch of raw){
       if (ch.emit){
-        atomsAt(ch.t, ch.k);
+        atomsAt(ch.t, ch.k, atStart ? 'start' : null);
+        atStart = false;
         const o = take(); if (!o) return false;
         if (!curOp || o !== curOp || ch.t !== runStart.t){ closeRun(); curOp = o; runStart = ch; }
       }
@@ -3116,10 +3171,10 @@ function ceMarksDraw(box, units, plan){
        last character. */
     const last = raw[raw.length - 1];
     if (ui < units.length - 1){
-      atomsAt(last.t, last.k + 1);
+      atomsAt(last.t, last.k + 1, 'end');
       if (!take()) return false;
     } else {
-      atomsAt(last.t, last.k + 1);
+      atomsAt(last.t, last.k + 1, 'end');
     }
   }
   if (oi < ops.length) return false;
@@ -3132,8 +3187,25 @@ function ceMarksDraw(box, units, plan){
    goes before the wrapper — the old wording before the new, the order the
    ops keep. */
 function ceMarksApply(box, events){
+  /* A REMOVED PARAGRAPH IS ITS OWN BLOCK, and it is placed against the block it
+     stood beside rather than against a text node — nothing here splits or
+     renumbers a text node, so the per-node walk below still means what it meant
+     when it was recorded. Several removed lines against one anchor keep their
+     order; at a line's END they follow the block, at a line's START they lead
+     it, which is where they stood in the wording. */
+  const blocks = events.filter(ev => ev.kind === 'block');
+  const after = new Map();
+  for (const ev of blocks){
+    const a = ev.anchor; if (!a || !a.parentNode) continue;
+    if (ev.edge === 'end'){
+      const at = after.get(a) || a;
+      a.parentNode.insertBefore(ev.el, at.nextSibling);
+      after.set(a, ev.el);
+    } else a.parentNode.insertBefore(ev.el, a);
+  }
   const byNode = new Map();
   for (const ev of events){
+    if (ev.kind === 'block') continue;
     if (!byNode.has(ev.node)) byNode.set(ev.node, []);
     byNode.get(ev.node).push(ev);
   }

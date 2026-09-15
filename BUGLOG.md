@@ -14166,3 +14166,34 @@ Noticed, not fixed:
 - The negotiate page prints the contract's NAME in capitals as the paper title
   where a document has no front region of its own, and the Document tab prints
   it as typed. Only visible on a document with no title block of its own.
+
+## 15 Sep 2026 (night) — the paragraphs that separated, the other half
+
+The owner reported the same movement a second time, with the clause
+photographed at rest and with a cursor in it. The earlier fix (the 9px gap
+between blocks) was real but was only half of it.
+
+Defect found and fixed:
+The other half is structural and much larger. When the other side deletes a
+whole sub-paragraph, the struck words are put back "where they were taken
+out" — and where a paragraph was taken out is the start of the next line,
+whose first piece of text belongs to that paragraph's NUMBER, sitting in a
+narrow gutter. So the whole struck paragraph was being drawn inside the next
+paragraph's number gutter. MEASURED on a clause of three sub-paragraphs:
+the box drew three blocks where the page drew four, the block under the
+cursor grew from 49px to 122px, the one below it dropped 15px, and the
+hanging indent collapsed. Striking the LAST sub-paragraph made it disappear
+from view entirely.
+
+A struck run that carries a line break is not inline wording — it is one or
+more whole lines — so it is now drawn as its own paragraph, in the same
+classes the page uses, one paragraph per removed line. Measured striking the
+first, middle and last sub-paragraph: every block now sits at the same
+position and the same height before the press and during it.
+
+Noticed, not fixed:
+- In the owner's screenshots some wording is bold while typing and plain at
+  rest. The tracked-changes renderer carries plain text, so a document's own
+  bold is lost while a clause is shown with marks on it. Could not reproduce
+  it from a built fixture; the geometry fault above was reproduced and fixed.
+- redline-verify check 5 is red at unmodified main and was left red.

@@ -1561,6 +1561,47 @@ describe('f245 (15) — the editing state is a hairline, and the strip is gone',
       'fixed by SCOPE, never !important');
   });
 
+  /* ---- AND A REMOVED PARAGRAPH IS DRAWN AS A PARAGRAPH (Young reported the
+     same movement a second time, 15 Sep 2026, with the clause photographed at
+     rest and with a cursor in it) ----
+     The 9px gap above was one half. The other half is structural and much
+     larger: a struck run is put back "where it was taken out", and where a
+     whole sub-paragraph was taken out is the START OF A LINE — whose first text
+     node belongs to the next paragraph's MARKER SPAN. So the box drew
+
+       <p class="rl-hang"><span class="rl-marker"><del>8.1 Term …\n</del>8.2 </span>Termination …
+
+     — one block fewer than the sheet, with a paragraph of wording inside a
+     2.6em gutter. MEASURED: the block under the caret grew 49px → 122.5px and
+     the one under that dropped 15.5px; striking the LAST sub-paragraph took it
+     off the screen altogether.
+     A RUN CARRYING A NEWLINE IS NOT INLINE WORDING. It is drawn as its own
+     block, against the block it stood beside, exactly as the at-rest renderer
+     draws it — which is what makes the block count, and every position in it,
+     the same before the press and during it. */
+  test('a removed paragraph is drawn as its own block, never inside a marker gutter', () => {
+    const fn = CE.match(/function ceMarksDraw\(box, units, plan\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /if \(edge && \/\\n\/\.test\(d\.text\)\)\{/,
+      'a struck run with a line break in it takes the block path');
+    assert.match(fn, /events\.push\(\{ kind: 'block', anchor, edge, el: delBlock/,
+      'and is anchored to a BLOCK, never to a text node inside the gutter');
+    assert.match(fn, /p\.className = 'rl-line rl-clause rl-line-del' \+ \(sp\.marker \? ' rl-hang' : ''\)/,
+      'in the at-rest renderer\'s own classes, so the two cannot be set differently');
+    assert.match(fn, /redlineSplitMarker\(text\)/,
+      'and the marker reading has ONE home — the gutter is hung the way the sheet hangs it');
+    /* ONE LINE PER LINE: a two-line deletion draws two struck blocks, which is
+       what the sheet draws, which is why nothing moves. */
+    assert.match(fn, /const lines = String\(d\.text\)\.split\('\\n'\)\.filter\(x => x\.trim\(\)\);/);
+    /* THE PAINT STILL NEVER REACHES THE RECORD: the block carries the same
+       marker every other painted mark carries, and ceMarksClear removes it. */
+    assert.match(fn, /p\.setAttribute\(CE_MARK_ATTR, 'del'\);/);
+    const apply = CE.match(/function ceMarksApply\(box, events\)\{[\s\S]*?\n\}/)[0];
+    assert.match(apply, /const blocks = events\.filter\(ev => ev\.kind === 'block'\);/,
+      'the block events are applied on their own');
+    assert.match(apply, /if \(ev\.kind === 'block'\) continue;/,
+      'and are kept out of the per-text-node walk, which would renumber nothing anyway');
+  });
+
   test('ONE FRAME, ROUND THE CLAUSE — not one per editable box', () => {
     /* Owner-reported 1 Sep 2026, off a screenshot with both ringed: "when you
        click on a pencil you can an outline for the clause header and an outline
