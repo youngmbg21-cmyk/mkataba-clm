@@ -4386,9 +4386,14 @@ function ceSelectionRead(){
   }
   catch(_){ raw = String(sel.toString() || ''); }
   const text = ceWordsKeepBreaks(raw);
-  /* A CLICK IS NOT A REFUSAL. Below this there is nothing a reader could have
-     meant, so it answers null rather than naming a reason nobody needs. */
-  if (text.length < 3) return { why: null };
+  /* A CLICK IS NOT A REFUSAL: an empty reading answers null rather than naming
+     a reason nobody needs.
+     A SHORT WORD IS STILL A WORD (Young reported it 15 Sep 2026: "sometimes
+     when i highlight a word the 3 options do not appear"). The floor was three
+     characters here and on the negotiation paper, so "by", "to", "of" and a
+     bare figure were refused in silence. One character is a highlight; nothing
+     at all is a click. */
+  if (!text.length) return { why: null };
   const lines = ceLines();
   /* ---- SEVERAL SUB-PARAGRAPHS ARE ONE PASSAGE (reverses the 31 Aug rule) ----
      A clause's text carries one sub-paragraph per LINE. A selection across
@@ -5848,7 +5853,8 @@ function ceOfferOnPaper(){
   let rect = null;
   try{ rect = r.getBoundingClientRect(); }catch(_){ rect = null; }
   const passage = negoReadPassage(r, pane);
-  if (!passage || String(passage.text || '').trim().length < 3) return false;
+  /* ONE FLOOR, AND IT IS EMPTINESS — see ceSelectionRead. */
+  if (!passage || !String(passage.text || '').trim().length) return false;
   ceDetachPassage();
   return !!rlPaperOfferFromRange({ c: _ceC, opts: { by: _ceOpts && _ceOpts.by }, side: 'owner',
     passage, text: passage.text, rect,

@@ -624,6 +624,79 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   }
   ck('J1c a highlight on the negotiate page with no pencil opens the editor HOLDING those words, caret in the ask box', !!(j1c && j1c.editor && j1c.held && j1c.quote.trim() === j1c.want.trim() && j1c.focused), JSON.stringify(j1c));
 
+  /* J1d · A SHORT WORD IS STILL A WORD (Young reported it 15 Sep 2026:
+     "sometimes when i highlight a word the 3 options do not appear").
+     MEASURED on this page with a real drag: three characters offered all three
+     verbs and TWO offered nothing at all, in silence, while the clause editor
+     beside it answered on two — one gesture, two answers, on two papers.
+     The highlight is made as a range and ended with a real mouseup over it,
+     because a two-character drag is smaller than the browser's own drag
+     threshold and would be measuring Playwright rather than HaTi. The floor
+     that is left is EMPTINESS: a drag that folds to nothing still offers
+     nothing, because there is nothing to ask about, comment on or edit. */
+  await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
+  await pause(300);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(300);
+  const shortSel = async n => {
+    const at = await p.evaluate(([id, n]) => {
+      const s0 = window.getSelection(); s0 && s0.removeAllRanges();
+      const sec = document.querySelector('.redline-page .rl-clause[data-clause="' + id + '"]');
+      const body = sec && sec.querySelector('p, li'); if (!body) return null;
+      const w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT); let tn = null;
+      while ((tn = w.nextNode())) if (tn.data.trim().length > 30 && !tn.parentElement.closest('.rl-marker, button')) break;
+      if (!tn) return null;
+      /* FROM THE FIRST REAL CHARACTER: a range of one that lands on a space
+         folds to nothing and is refused, correctly — that is the floor being
+         measured two lines below, not the claim being made here. */
+      const k = tn.data.search(/\S/);
+      const r = document.createRange(); r.setStart(tn, k); r.setEnd(tn, k + n);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      const rr = r.getBoundingClientRect();
+      return { x: Math.round(rr.left + rr.width / 2), y: Math.round(rr.top + rr.height / 2), text: r.toString() };
+    }, [j1cg && j1cg.id, n]);
+    if (!at) return null;
+    await p.mouse.move(at.x, at.y);
+    await p.evaluate(([x, y]) => { const el = document.elementFromPoint(x, y);
+      el && el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y })); }, [at.x, at.y]);
+    await pause(400);
+    return p.evaluate(t => { const m = document.querySelector('.nego-selmenu');
+      return { text: t, menu: !!m,
+        verbs: m ? [...m.querySelectorAll('button')].map(b => b.textContent.trim()) : [] }; }, at.text);
+  };
+  const two = await shortSel(2);
+  ck('J1d THE REPORTED CASE: a two-character highlight offers all three verbs',
+     !!(two && two.menu && two.verbs.length === 3), JSON.stringify(two));
+  await p.evaluate(() => { const s = window.getSelection(); s && s.removeAllRanges();
+    document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+  await pause(300);
+  const one = await shortSel(1);
+  ck('J1d2 and one character is a highlight too', !!(one && one.menu), JSON.stringify(one));
+  await p.evaluate(() => { const s = window.getSelection(); s && s.removeAllRanges();
+    document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+  await pause(300);
+  const nothing = await p.evaluate(async id => {
+    const sec = document.querySelector('.redline-page .rl-clause[data-clause="' + id + '"]');
+    const body = sec && sec.querySelector('p, li');
+    const w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT); let tn = null;
+    while ((tn = w.nextNode())) if (/ /.test(tn.data) && tn.data.trim().length > 30) break;
+    const k = tn.data.indexOf(' ', tn.data.search(/\S/));
+    if (k < 0) return null;
+    const r = document.createRange(); r.setStart(tn, k); r.setEnd(tn, k + 1);
+    const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    const rr = r.getBoundingClientRect();
+    const x = Math.round(rr.left + rr.width / 2), y = Math.round(rr.top + rr.height / 2);
+    const el = document.elementFromPoint(x, y);
+    el && el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+    await new Promise(r2 => setTimeout(r2, 350));
+    return { text: JSON.stringify(r.toString()), menu: !!document.querySelector('.nego-selmenu') };
+  }, j1cg && j1cg.id);
+  ck('J1d3 and a drag that folds to nothing is still not a highlight',
+     !!(nothing && !nothing.menu), JSON.stringify(nothing));
+  await p.evaluate(() => { const s = window.getSelection(); s && s.removeAllRanges();
+    document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+  await pause(300);
+
   /* J2 · Reply in the external room posts with no pop-up: the room is the
      thread's own, chosen by pressing Reply under a note already in it. */
   const j2 = await p.evaluate(async () => {

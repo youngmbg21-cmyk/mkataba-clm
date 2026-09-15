@@ -312,6 +312,24 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      `${docBefore.w}px → ${docAfter.w}px`);
 
   /* ---- 3. WHAT THE PANEL SAYS ---- */
+  /* ---- STAGED AT THE SEAT WHERE THE PANEL IS THE WRITING SURFACE (15 Sep
+     2026) ---- Young ruled the panel's upper sections — As proposed, Change
+     this clause, On the table, History — off OUR seat: where the clause editor
+     takes the clause, the editor is where wording is written and the panel is
+     the ladder. They are NOT deleted, because the counterparty's page and any
+     window under 1024px still write in them, and rlEditorTakesIt is the one
+     reading of which seat is which. So this whole section, which presses the
+     panel's own ＋ and its editor, is staged at the window where that is the
+     door. The product's own condition, not a switch invented for the test. */
+  const panelSeat = async on => {
+    await p.setViewportSize(on ? { width: 1000, height: 1000 } : { width: 1500, height: 1000 });
+    await pause(400);
+  };
+  await panelSeat(true);
+  /* AND THE PANEL IS RE-OPENED AFTER THE RESIZE: the posture is decided when it
+     opens, so a panel opened at the other seat keeps the shape it opened in. */
+  await p.evaluate(id => { window.rlCpSetShown(document, null); window.rlCpSetShown(document, id); }, staged.clauseId);
+  await pause(400);
   const said = await p.evaluate(id => {
     const on = document.querySelector(`.redline-page .rl-cp-src[data-rl-cp-for="${id}"]`);
     const sec = n => [...on.querySelectorAll('.rl-cp-sec')]
@@ -390,6 +408,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
          && !!document.querySelector('#rl-cp .rl-cp-stands')
          && !!on && on.getAttribute('data-rl-cp-for') === id; }, staged.clauseId));
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(400);
+  await panelSeat(false);
 
   /* ---- 4. THE THREE WAYS OUT, EACH PRESSED ---- */
   const reopen = async () => {

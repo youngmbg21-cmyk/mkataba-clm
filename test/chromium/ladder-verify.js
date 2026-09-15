@@ -231,9 +231,21 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const p = document.querySelector('#rl-cp');
     const body = p && p.querySelector(`.rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
     return { closed: !document.querySelector('.db-t'), open: !!(p && p.classList.contains('is-open')),
-      onClause: !!(body && body.classList.contains('is-on')) };
+      onClause: !!(body && body.classList.contains('is-on')),
+      /* ---- THE DOOR THE OWNER COULD NOT TRACE (Young, 15 Sep 2026: "still
+         appears here and there but I cannot trace what is making it appear") ----
+         This row is it: every other door on our seat asks rlEditorTakesIt at
+         the DRAW and sends the reader to the clause editor, and this one opened
+         the panel in full with no such reading. It is the reason the narrowing
+         is a POSTURE rather than a third argument passed by hand — a door that
+         has to remember to ask is a door that will forget. */
+      stands: (() => { const e = body && body.querySelector(
+        '.rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec)');
+        return !!(e && e.getBoundingClientRect().height > 0); })() };
   }, goId);
   check('6e a board row lands on that clause\'s own ladder', landed.closed && landed.open && landed.onClause, JSON.stringify(landed));
+  check('6e2 …and on the ladder ALONE — not the wording, the acts, the table and the history',
+    !landed.stands, JSON.stringify(landed));
 
   /* 7 · nothing else moved: the counterparty's seat draws no board door */
   const cp = await page.evaluate(async () => {
@@ -456,15 +468,31 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     lad18.narrowed && lad18.ladder && lad18.playbook && lad18.notes && lad18.name && !lad18.stands,
     JSON.stringify(lad18));
   check('18i the head says which panel this is', /ladder/i.test(lad18.head || ''), lad18.head);
-  /* THE PENCIL IS UNCHANGED and still opens the whole clause — the way to the
-     rest of it from a narrowed panel. */
+  /* ---- 18j REVERSED IN PLACE 15 Sep 2026 (Young, of the sections above the
+     ladder: "still appears here and there but I cannot trace what is making it
+     appear. It should be deleted") ----
+     It used to read "the pencil still opens the whole clause". On OUR seat it
+     no longer does, and nothing opens it: the narrowing is the POSTURE here,
+     asked at the one place it is read, so EVERY door lands on the same panel —
+     the chip, the deal board's row, and any door added later. The reader could
+     not trace it because it was never one door.
+     THE SEAT IS THE CONDITION, and it is rlEditorTakesIt's own: where the
+     clause editor takes the clause, the editor is where wording is written and
+     the panel is the ladder. Their page and any window under 1024px are
+     untouched — there the panel is the only way wording is proposed — which is
+     what the two-argument call below proves is still refused HERE and nowhere
+     else. */
   await page.evaluate(id => window.rlCpSetShown(document, id), staged.c4); await pause(300);
   const full18 = await page.evaluate(id => {
     const b = document.querySelector(`#rl-cp .rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
     const e = b && b.querySelector('.rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec)');
-    return { stands: !!(e && e.getBoundingClientRect().height > 0), narrowed: !!document.querySelector('#rl-cp.is-ladder') };
+    return { stands: !!(e && e.getBoundingClientRect().height > 0),
+      narrowed: !!document.querySelector('#rl-cp.is-ladder'),
+      ladder: !!(b && b.querySelector('.rl-ladder-sec') && b.querySelector('.rl-ladder-sec').getBoundingClientRect().height > 0),
+      seat: !!(window.rlCpNarrowSeat && rlCpNarrowSeat()) };
   }, staged.c4);
-  check('18j the pencil still opens the whole clause', full18.stands && !full18.narrowed, JSON.stringify(full18));
+  check('18j a door that asks for the whole clause gets the ladder too, on our seat',
+    full18.seat && full18.narrowed && !full18.stands && full18.ladder, JSON.stringify(full18));
 
   /* 19 · the panel's tail */
   const tail19 = await page.evaluate(() => {

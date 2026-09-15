@@ -419,6 +419,27 @@ describe('f304 (8) — round three: the filed pin quotes the change, equal halve
     assert.ok(!/Master Agreement Structure/.test(moved), 'the untouched paragraph above it is not');
     assert.ok(!/Precedence/.test(moved), 'nor the one below');
     assert.ok(!/the whole clause one/.test(moved), 'and the whole body is not the fallback where ops exist');
+    /* ---- AND THE CASE THAT WAS STILL WRONG (Young, 15 Sep 2026: "this is
+       still not resolved") ---- MEASURED: an edit to one sub-paragraph was
+       already quoting that sub-paragraph alone. What still read the whole
+       clause from the top is the pair of asks that file ALL-KEEP ops — a
+       formatting-only edit and a heading rename — because no block is touched
+       and the old reading then fell back to the whole body. A change that moves
+       no wording quotes no wording: the rename quotes the NAME, which is what
+       moved, and the formatting ask quotes its own summary, which already says
+       the wording is unchanged. */
+    const allKeep = [
+      { op: 'keep', text: '1.1 Structure. The framework.\n' },
+      { op: 'keep', text: '1.2 Issuance. Confirm each PO.\n' },
+      { op: 'keep', text: '1.3 Precedence. This Agreement prevails.' },
+    ];
+    assert.equal(p.win.rlNpChangeQuote({ ops: allKeep, headingText: '1. Master Framework',
+      bodyHtml: '<p>the whole clause one</p>', summary: 'Heading renamed' }), '1. Master Framework',
+      'a rename quotes the name it proposes, not the clause under it');
+    assert.equal(p.win.rlNpChangeQuote({ ops: allKeep, bodyHtml: '<p>the whole clause one</p>',
+      summary: 'Formatting changed — the wording is unchanged' }),
+      'Formatting changed — the wording is unchanged',
+      'and a formatting-only ask says exactly that, rather than reprinting the clause');
     /* THE FALLBACK IS THE OLD READING, for a change carrying no ops at all —
        an inserted clause, an older record — where every word IS what moved. */
     assert.equal(p.win.rlNpChangeQuote({ ops: [], bodyHtml: '<p>every word is new</p>' }),
@@ -665,5 +686,62 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
   test('a refused note act is drawn greyed, with the reason it already carries', () => {
     assert.match(INDEX, /\.rl-np-act-b:disabled\{opacity:\.45;cursor:not-allowed;\}/);
     assert.match(VIEW, /data-rl-np-delete="\$\{_nea\(key\)\}"\$\{delWhy \? ` disabled title="\$\{_nea\(delWhy\)\}"` : ''\}/, 'the reason rides the hover');
+  });
+});
+
+/* ============================================================
+   f304 (14) — A SHORT WORD IS STILL A WORD (Young reported it 15 Sep 2026:
+   "sometimes when i highlight a word the 3 options do not appear")
+   ============================================================
+   MEASURED on the negotiation paper with a real drag: three characters offered
+   all three verbs and two offered nothing at all, in silence. The floor of
+   three was a guess at what an accidental drag looks like and it is the wrong
+   instrument — a drag too small to select anything leaves the selection
+   COLLAPSED and never reaches the handler. So "by", "to", "of", "PO" and a bare
+   figure were refused on the paper while the clause editor beside it answered
+   on two, which is one gesture giving two answers on two papers.
+   ONE FLOOR, AND IT IS EMPTINESS. A highlight with a character in it offers; a
+   drag that folds to nothing still does not, because there is nothing to ask
+   about, comment on or edit.
+   ============================================================ */
+describe('f304 (14) — one floor for a highlight, and it is emptiness', () => {
+  const menuOf = (p, ctx) => { let menu = null; p.win.rlSelMenu = m => { menu = m; }; 
+    const got = p.win.rlPaperOfferFromRange(ctx); return { menu, got }; };
+  const stage = (p, id, text) => ({ parts: [{ clauseId: id, text }], clauses: [(() => {
+    const el = p.win.document.createElement('section'); el.setAttribute('data-clause', id);
+    el.innerHTML = '<div class="rl-clause-top"><h4>' + id + ' heading</h4></div>'; return el; })()] });
+
+  test('THE REPORTED CASE: two characters offer all three verbs', async () => {
+    const p = await bench(); wide(p.win);
+    const { menu, got } = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 },
+      text: 'by', passage: stage(p, p.cl7.clauseId, 'by'), openEditor: () => {} });
+    assert.equal(got, true, 'the highlight is answered');
+    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+  });
+
+  test('and one character is a highlight too', async () => {
+    const p = await bench(); wide(p.win);
+    const { got } = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 },
+      text: 'a', passage: stage(p, p.cl7.clauseId, 'a'), openEditor: () => {} });
+    assert.equal(got, true);
+  });
+
+  test('a drag that folds to nothing is still not a highlight', async () => {
+    const p = await bench(); wide(p.win);
+    const { menu, got } = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 },
+      text: '   ', passage: stage(p, p.cl7.clauseId, '   '), openEditor: () => {} });
+    assert.equal(got, false, 'nothing was chosen, so nothing is offered');
+    assert.equal(menu, null);
+  });
+
+  test('the floor is stated ONCE, in the reading, and no caller keeps a stricter copy', () => {
+    const offer = VIEW.match(/function rlPaperOfferFromRange\(ctx\)\{[\s\S]*?\n\}/)[0];
+    assert.match(offer, /if \(!words\.length\) return false;/, 'the one floor');
+    const up = VIEW.slice(VIEW.indexOf('const passage = negoReadPassage(range, pane);'));
+    const handler = up.slice(0, up.indexOf('const clauseId = clauseEl.getAttribute'));
+    assert.ok(!/text\.length (<|>=) 3\)\s*rlPaperOfferFromRange/.test(handler),
+      'the paper\'s own handler no longer gates the offer on a length');
+    assert.ok(!/if \(text\.length < 3\)\{ _negoKillSelMenu\(\); return; \}/.test(VIEW),
+      'and the clause path does not kill the menu before the reading is asked');
   });
 });

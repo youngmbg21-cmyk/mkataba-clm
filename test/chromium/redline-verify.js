@@ -75,6 +75,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   const PAGE = `http://127.0.0.1:${srv.address().port}/test/chromium/redline.html`;
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 940 }, deviceScaleFactor: 2 });
+  /* ---- THE SEAT WHERE THE CLAUSE PANEL IS THE WRITING SURFACE (15 Sep 2026) ----
+     Young ruled the panel's upper sections — As proposed, Change this clause,
+     On the table, History — off OUR seat: where the clause editor takes the
+     clause, the editor is where wording is written and the panel is the
+     ladder. They are not deleted, because the counterparty's page and any
+     window under 1024px still write in them, and rlEditorTakesIt is the one
+     reading of which seat is which.
+     So the three blocks below, which measure the panel AS A WRITING SURFACE,
+     are staged at the window where it is one. It is the product's own
+     condition, not a switch invented for the test: the same reading decides
+     where the pencil goes. */
+  const panelSeat = async on => {
+    await page.setViewportSize(on ? { width: 1000, height: 940 } : { width: 1440, height: 940 });
+    await page.waitForTimeout(400);
+  };
   page.on('pageerror', e => check('no page error', false, e.message));
   await page.goto(PAGE, { waitUntil: 'load' });
   await page.evaluate(() => window.READY);
@@ -1119,6 +1134,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      and the wording must arrive in the editor wearing the block's own dress.
      The old "hover verbs stand down while typing" check went with the hover
      verbs themselves. */
+  await panelSeat(true);
   const dressed = await page.evaluate(async () => {
     /* RE-STAGED 29 Aug 2026: the pill opens the clause EDITOR page on this
        seat now, so this opens the panel the way the pill used to. What is
@@ -1175,6 +1191,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       `overflow-x:${dressed.blocks.preOx}, spilling ${dressed.blocks.preOverflow}px`);
   }
   await page.screenshot({ path: path.join(OUT, '02b-edit-dressed.png') });
+  await panelSeat(false);
 
   /* ---- 12c. THE CLAUSE YOU LANDED ON IS STILL A CLAUSE ----
      Reported from the field with a screenshot, and invisible to every check
@@ -2087,6 +2104,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      page that cannot resolve a playbook makes the engine fall safely to "there
      is nothing to measure" and every check below would pass against a product
      that never judged. That is f223's own recorded trap. */
+  await panelSeat(true);
   const read = await page.evaluate(async () => {
     try {
       const c = window.CONTRACT;
@@ -2211,6 +2229,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       `drawn: ${read.ours && read.ours.drawn}`);
   }
   await page.screenshot({ path: path.join(OUT, '22-copilot-read.png') });
+
+  await panelSeat(false);
 
   /* ---- 23. AN EMPTY COLUMN SHARES THE COLUMN'S ONE LEFT EDGE ----
      (owner-reported 10 Sep 2026: "The paragraph below the redlines should be
@@ -2504,9 +2524,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const free = await readDoors();
     await openFor(stage.held);
     /* AND THE PANEL IS OPENED FOR REAL on the held clause, or its monogram is
-       measured inside a body nothing lays out. */
+       measured inside a body nothing lays out — at the seat where the panel is
+       the writing surface, which is where that button is drawn at all (see
+       panelSeat: on our own seat the acts row it sits in went with Young's
+       15 Sep ruling, and the pencil is the door). */
+    await panelSeat(true);
     await page.evaluate(o => { if (window.rlCpSetShown) rlCpSetShown(document, o.heldClause); }, stage);
     const after = await readDoors();
+    await panelSeat(false);
     await page.evaluate(() => { delete CONTRACT.locks; });
 
     check('25k THE CONTROL: with nothing held both are live doors carrying a way in',

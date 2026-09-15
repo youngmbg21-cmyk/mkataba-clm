@@ -4585,7 +4585,7 @@ function wireNegotiationTab(c, opts = {}){
            paper has one). Never Edit: the editor opens on a clause. F96 (B8)'s
            silence is re-pointed. */
         if (onPaper){
-          if (text.length >= 3) rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
+          rlPaperOfferFromRange({ c, opts, side, passage, text, rect,
             openEditor: (typeof openEditor === 'function') ? openEditor : null });
           return;
         }
@@ -4595,7 +4595,17 @@ function wireNegotiationTab(c, opts = {}){
           + 'Changes are filed against numbered clauses, so there is nothing here to redraft.');
         return;
       }
-      if (text.length < 3){ _negoKillSelMenu(); return; }
+      /* ---- A SHORT WORD IS STILL A WORD (Young reported it 15 Sep 2026:
+         "sometimes when i highlight a word the 3 options do not appear") ----
+         MEASURED: three characters offered all three verbs and two offered
+         nothing at all, silently — so "by", "to", "of", "at", "PO" and a bare
+         figure were refused on the paper while the clause editor beside it
+         offered on two. A floor of three was a guess at what an accidental
+         drag looks like, and it is the wrong instrument: a drag too small to
+         select anything leaves the selection collapsed and never reaches this
+         handler at all. The ONE floor is now in rlPaperOfferFromRange — a
+         highlight with a character in it offers — and this caller stops
+         keeping a second, stricter copy of it. */
       const clauseId = clauseEl.getAttribute('data-clause');
       /* ---- ONE HIGHLIGHT, OR SEVERAL PRETENDING TO BE ONE ----
          Ctrl-dragging a second phrase leaves two ranges on the page and every
@@ -14716,16 +14726,38 @@ function rlNpListHtml(c, ch, notes, room, side, other, opts = {}){
    so the whole body was the right answer for it all along. */
 function rlNpChangeQuote(ch){
   if (!ch) return '';
+  const hasOps = Array.isArray(ch.ops) && ch.ops.length;
   let t = '';
-  if (Array.isArray(ch.ops) && ch.ops.length && typeof window.redlineShownBlocks === 'function'){
+  /* ---- WHAT MOVED, AND ONLY WHAT MOVED ----
+     Asked of the BLOCKS the change's own ops draw, keeping the ones a mark
+     falls in. NOT redlineShownBlocks: that reading is the DRAWING's, and its
+     fallback — where no block is touched, draw them all — is right for a
+     canvas that must paint something and wrong for a quote, which is allowed
+     to say nothing. */
+  if (hasOps && typeof window.redlineDrawnBlocks === 'function'
+      && typeof window.redlineBlockTouched === 'function'){
     try{
-      t = redlineShownBlocks(ch.ops, { changedOnly: true })
+      t = redlineDrawnBlocks(ch.ops).filter(redlineBlockTouched)
         .map(g => (window.redlineBlockShown ? redlineBlockShown(g) : ''))
         .filter(x => String(x || '').trim())
         .join(' ');
     }catch(_){ t = ''; }
   }
-  if (!String(t || '').trim()){
+  /* ---- A CHANGE THAT MOVES NO WORDING QUOTES NO WORDING (Young reported it
+     twice, 15 Sep 2026: "I only changed clause 1.2 so the reference on the
+     right should only take 1.2 and not the whole clause 1" ... "this is still
+     not resolved") ----
+     MEASURED: an edit to one sub-paragraph was already quoting that
+     sub-paragraph alone. What was still quoting the whole clause from the top
+     is the pair of asks that file ALL-KEEP ops — a formatting-only edit and a
+     heading rename — because nothing is touched, so the old fallback read the
+     whole body and cut the first characters off the front. A RENAME QUOTES THE
+     NAME, which is the thing that moved; a formatting-only ask quotes its own
+     summary, which already says the wording is unchanged. */
+  if (!String(t || '').trim() && hasOps) t = String(ch.headingText || '').trim();
+  /* The body is the right answer only for a change carrying NO ops at all — an
+     older record — where there is nothing else to read. */
+  if (!String(t || '').trim() && !hasOps){
     const html = String(ch.bodyHtml || ch.html || '');
     t = html ? (window.richToText ? richToText(html) : html.replace(/<[^>]+>/g, ' ')) : '';
   }
@@ -15759,7 +15791,12 @@ function rlPaperOfferFromRange(ctx){
   const single = ps.length === 1 && fold(ps[0].text) === whole;
   const frontCl = (typeof negoFrontClause === 'function') ? negoFrontClause(c) : null;
   const words = single ? String(ps[0].text || '').replace(/[ \t]+\n/g, '\n').trim() : String(text || '').trim();
-  if (words.length < 3) return false;
+  /* THE ONE FLOOR, AND IT IS EMPTINESS. See the note at the paper's mouseup:
+     three characters refused "by" and "PO" while the clause editor offered on
+     two, so one gesture answered differently on two papers. A selection that
+     folds to nothing — a drag over a single space — still offers nothing,
+     because there is nothing to ask about, comment on or edit. */
+  if (!words.length) return false;
   const commentClauseId = ps.length ? ps[0].clauseId : (frontCl ? frontCl.clauseId : null);
   const commentQuote = ps.length ? String(ps[0].text || '').trim() : words;
   return rlPaperSelOffer({ c, opts, side, text: words, clauseId: single ? ps[0].clauseId : null, rect,
@@ -17796,7 +17833,34 @@ function rlCpSetOpen(id){ _rlCpId = id || null; return _rlCpId; }
    and makes one button mean two things. In memory, per sitting; it never
    prints and never leaves the page. */
 let _rlCpLadder = false;
-function rlCpLadderOnly(){ return _rlCpLadder; }
+function rlCpLadderOnly(){ return _rlCpLadder || rlCpNarrowSeat(); }
+/* ---- ON OUR SEAT THE PANEL IS THE LADDER, WHATEVER DOOR OPENED IT (Young
+   reported it 15 Sep 2026, of As proposed / Change this clause / On the table /
+   History: "still appears here and there but I cannot trace what is making it
+   appear. It should be deleted.") ----
+   THE ANSWER IS A POSTURE, NOT A HUNT FOR DOORS. The reader could not trace it
+   because it is not one door: the card's Edit, the pencil and the empty
+   column's act each ask rlEditorTakesIt at the DRAW and send our seat to the
+   clause editor, but the deal board's row press opened the panel in full with
+   no such reading, and any door added later would have done the same. Asked
+   here, at the one place the posture is read, every door on our seat lands on
+   the same panel and none can drift.
+   WHAT IS NOT TOUCHED: the counterparty's seat and any window under 1024px,
+   where the panel is still the ONLY way wording is proposed and those sections
+   are the whole of it — rlEditorTakesIt answers false for both, and it is the
+   same reading the pencil's own destination is chosen with, so the panel and
+   the pencil cannot disagree about which seat writes where. */
+function rlCpNarrowSeat(){
+  try{
+    /* THEIR PAGE IS NEVER NARROWED, and it is asked FIRST rather than left to
+       rlEditorTakesIt: that reading answers for a SEAT it is told, and this one
+       has nobody to tell it, so a portal build that happened to load the
+       clause editor would have narrowed the one panel their page writes in. */
+    const portal = window.PORTAL_MODE;
+    if (typeof portal === 'function' ? portal() : !!portal) return false;
+    return typeof window.rlEditorTakesIt === 'function' && rlEditorTakesIt('owner', {});
+  }catch(_){ return false; }
+}
 /* ---- HISTORY | + NOTES (owner-asked 16 Aug 2026: "add a button next to edit
    that shows history with notes. The default will be without notes") ----
    A two-way switch in the panel's own head, dressed like the toolbar's
@@ -17944,7 +18008,7 @@ function rlCpSetShown(scope, clauseId, opts = {}){
      card's Edit, the repaint's restore and every test stage pass two
      arguments, so the full panel stays the default and only the chip asks for
      the narrowed one. */
-  const ladderOnly = !!(opts && opts.ladder);
+  const ladderOnly = !!(opts && opts.ladder) || rlCpNarrowSeat();
   /* A CLAUSE WITH NO BODY IN THE PANEL CANNOT BE OPENED. The panel would slide
      out empty, which reads as broken rather than as "nothing here". */
   const bodies = [...root.querySelectorAll('#rl-cp-body .rl-cp-src')];
@@ -17952,7 +18016,7 @@ function rlCpSetShown(scope, clauseId, opts = {}){
   const on = !!(want && found);
   rlCpSetOpen(on ? want : null);
   bodies.forEach(b => b.classList.toggle('is-on', on && b.getAttribute('data-rl-cp-for') === want));
-  _rlCpLadder = on && ladderOnly;
+  _rlCpLadder = on && !!(opts && opts.ladder);
   root.querySelectorAll('#rl-cp').forEach(p => {
     p.classList.toggle('is-open', on); p.setAttribute('aria-hidden', on ? 'false' : 'true');
     p.classList.toggle('is-ladder', on && ladderOnly);
@@ -18774,7 +18838,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlAskTagHtml, rlAskRevealHtml, rlAskGlyph, rlAskWord, rlAskOpenId, rlAskSetOpen, rlAskResetOpen,
   rlChangeWordingHtml, rlClauseEditPillHtml, rlClausePanelBodyHtml, rlClausePanelHtml,
   rlHangRichHtml,
-  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly,
+  rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom,
   rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,

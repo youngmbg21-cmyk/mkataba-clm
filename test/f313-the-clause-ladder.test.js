@@ -471,10 +471,25 @@ describe('f313 — the clause ladder', () => {
 
     assert.match(nego, /function rlCpSetShown\(scope, clauseId, opts = \{\}\)\{/,
       'the posture is an ADDITIVE third argument — every older caller means the whole panel');
-    assert.match(nego, /const ladderOnly = !!\(opts && opts\.ladder\);/, 'read once');
+    /* ---- AND ON OUR SEAT IT IS THE POSTURE, WHATEVER DOOR OPENED IT (Young,
+       15 Sep 2026, of the sections above the ladder: "still appears here and
+       there but I cannot trace what is making it appear. It should be
+       deleted") ---- rlCpNarrowSeat is asked beside the caller's own answer,
+       so the deal board's row press — which passed two arguments and opened
+       the panel in full — and any door added later land on the same panel.
+       The argument stays ADDITIVE: it is what the counterparty's seat and any
+       window under 1024px still ride, where the panel is the only way wording
+       is proposed. */
+    assert.match(nego, /const ladderOnly = !!\(opts && opts\.ladder\) \|\| rlCpNarrowSeat\(\);/, 'read once');
+    assert.match(nego, /function rlCpNarrowSeat\(\)\{[\s\S]*?rlEditorTakesIt\('owner', \{\}\)/,
+      'and it is the SAME reading the pencil chooses its destination with, so the two cannot disagree');
+    assert.match(nego.match(/function rlCpNarrowSeat\(\)\{[\s\S]*?\n\}/)[0], /PORTAL_MODE/,
+      'their page is never narrowed, and it is asked first');
     assert.match(nego, /p\.classList\.toggle\('is-ladder', on && ladderOnly\);/,
       'the narrowing is a class flip on the panel, never a second build');
-    assert.match(nego, /_rlCpLadder = on && ladderOnly;/, 'and the posture is remembered');
+    assert.match(nego, /_rlCpLadder = on && !!\(opts && opts\.ladder\);/,
+      'and what is REMEMBERED is the caller\'s own ask — the seat answers for itself on every read, '
+      + 'so a window resized past 1024px is not held to what it was when the panel opened');
 
     /* THE TOGGLE IS THE CLAUSE, NEVER THE POSTURE. A press opens the ladder
        and a press shuts the panel — the owner's standing rule about a sliding
@@ -551,7 +566,20 @@ describe('f313 — the clause ladder', () => {
        square into a lozenge. Named at that rule's weight plus one — by SCOPE,
        never !important. */
     const css = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation-css.js'), 'utf8');
-    assert.match(css, /\.redline-page #ws-head \.room-acts button\.room-check\{padding:0;width:var\(--ctl-h,28px\)\}/);
+    assert.match(css, /\.redline-page #ws-head \.room-acts button\.room-check\{padding:0;width:var\(--ctl-h,28px\);/);
+    /* ---- AND THE MARK SITS IN THE MIDDLE OF THE BOX (Young reported it 15 Sep
+       2026: "the signs are not in the middle of the boxes they sit in") ----
+       MEASURED before it was touched: 1px of space to the mark's left and 9px
+       to its right. .room-check states display:grid + place-items:center, and
+       the row rule above states display:inline-flex + align-items:center with
+       no justify-content at three classes to that rule's one — so the mark was
+       centred down the box and packed against its left wall. The centring is
+       RESTATED at the narrower scope rather than taken off the row, whose
+       inline-flex is what keeps the rest of the row on one baseline. */
+    const at = css.indexOf('.redline-page #ws-head .room-acts button.room-check{');
+    const chk = css.slice(at, css.indexOf('}', css.indexOf('justify-content:center', at)) + 1);
+    assert.match(chk, /justify-content:center/, 'across the box');
+    assert.match(chk, /align-items:center/, 'and down it');
     assert.ok(!/room-check[^\n]*!important/.test(css), 'and not with !important');
   });
 
