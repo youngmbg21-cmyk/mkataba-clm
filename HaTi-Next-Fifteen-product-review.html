@@ -186,7 +186,7 @@ table.ld tr:last-child td{border-bottom:0}
     <p class="stand">Six full screens, each shown as HaTi draws it today and again with the fifteen additions placed
       on it. Both pictures are the real product running &mdash; not drawings of it.</p>
     <div class="meta">
-      <span><b>14</b> full screens</span>
+      <span><b>15</b> full screens</span>
       <span><b>6</b> pages touched</span>
       <span><b>0</b> new doors in the sidebar</span>
       <span><b>1</b> new tab anywhere</span>
@@ -310,7 +310,7 @@ table.ld tr:last-child td{border-bottom:0}
 <!-- ===================== THE CONTRACT ROOM ===================== -->
 <article class="screen" id="room">
   <div class="screen-top"><span class="screen-n">3 of 6</span>
-    <h3>The contract room &mdash; redesigned, not extended</h3>
+    <h3>The contract room &mdash; Key terms becomes Overview</h3>
     <p class="carries">Carries <b>S2</b> commercial terms &middot; <b>S8</b> required documents &middot;
       <b>S6</b> serve a notice &middot; <b>S12</b> the family check</p>
   </div>
@@ -365,15 +365,48 @@ table.ld tr:last-child td{border-bottom:0}
       <div class="frame"><img src="docs/review-shots/C2-room-future.png" alt="The same tab with Commercial terms and Documents they must hold added as two more cards in the right column, which now stacks to 1046 pixels in a 632 pixel track and scrolls" loading="lazy"></div>
     </figure>
     <figure class="plate now">
-      <input type="checkbox" class="zm" id="z-h1"><figcaption><span class="dot"></span>Recommended &mdash; one page of named sections
+      <input type="checkbox" class="zm" id="z-h1"><figcaption><span class="dot"></span>Recommended &mdash; the tab renamed <b style="font-family:var(--sans);letter-spacing:0;text-transform:none;font-size:12.5px">Overview</b>, as it opens
         <label class="zoom" for="z-h1">Full size</label></figcaption>
-      <div class="frame"><img src="docs/review-shots/H1-overview.png" alt="The redesigned tab: a renewal decision strip with its acts, The deal open with twelve terms in four columns each quoting its clause, then collapsed rows for The record, Documents they must hold, Related agreements and What Copilot read" loading="lazy"></div>
+      <div class="frame"><img src="docs/review-shots/H1-overview.png" alt="The redesigned tab, now called Overview: a renewal decision strip with its acts, The deal open with twelve terms in four columns each quoting its clause, then four collapsed rows each carrying its own summary" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-h3"><figcaption><span class="dot"></span>Every section opened &mdash; what is inside the four shut rows
+        <label class="zoom" for="z-h3">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/H3-overview-open.png" alt="The Overview tab with all six sections expanded: the renewal decision, The deal, The record with twelve filing attributes, Documents they must hold as a table of three certificates with expiry dates, Related agreements listing an amendment with an order of precedence, and What Copilot read as a table of five readings with dates" loading="lazy"></div>
     </figure>
     <figure class="plate now">
       <input type="checkbox" class="zm" id="z-h2"><figcaption><span class="dot"></span>The same design on an NDA
         <label class="zoom" for="z-h2">Full size</label></figcaption>
-      <div class="frame"><img src="docs/review-shots/H2-overview-nda.png" alt="The same tab on a mutual NDA: The deal open with eight terms, then three collapsed rows. No renewal section and no documents section, because neither has anything to say." loading="lazy"></div>
+      <div class="frame"><img src="docs/review-shots/H2-overview-nda.png" alt="The Overview tab on a mutual NDA: The deal open with eight terms, then three collapsed rows. No renewal section and no documents section, because neither has anything to say." loading="lazy"></div>
     </figure>
+  </div>
+
+  <h4 style="font-size:16px;font-weight:600;margin:32px 0 0">What is inside each section</h4>
+  <p style="margin-top:8px">Shut, a section is one row that already tells you the answer. Opened, this is what each
+    one holds &mdash; all of it drawn in the fourth picture above.</p>
+  <div class="keys" style="margin-top:14px">
+    <div><b>Renewal decision</b><span class="rf">open when there is one</span>The deadline, the notice period and
+      the end date in one sentence, then <i>Serve a notice</i>, <i>Let it renew</i> and <i>What should we do?</i>.
+      Outside the notice window the section is not drawn at all, exactly as the card behaves today.</div>
+    <div><b>The deal</b><span class="rf">open</span>Contract value, payment terms, volume rebate, rebate tiers,
+      price review, rejection window, liability cap, exclusivity, effective date, expiry, notice period, governing
+      law. Each figure carries the clause it was read from; an em-dash means the wording says nothing.</div>
+    <div><b>The record</b><span class="rf">shut</span>Reference, our party, counterparty, their email, value stream,
+      template, owner, status, raised, signed, filed by, last updated &mdash; what HaTi files this as, rather than
+      what the contract says. Acts: <i>Edit these details</i>, <i>Move to another stream</i>. Shut by default
+      because it is rarely the reason you opened the contract.</div>
+    <div><b>Documents they must hold</b><span class="rf">shut</span>A small table: the document, the clause that
+      requires it, what is on file, how long it is good for, and what to do. Product liability insurance lapsed on
+      14 September; the food safety certificate was never supplied. Acts: <i>Chase them</i>, <i>Require another
+      document</i>. The same rows the Obligations tab tracks and chases.</div>
+    <div><b>Related agreements</b><span class="rf">shut</span>Parent, amendments, order forms, and which document
+      wins where they disagree &mdash; then the family itself, one row per document with its signing date and
+      whether it agrees with the parent. Acts: <i>Create an amendment</i>, <i>Link an existing document</i>,
+      <i>Check the family</i>.</div>
+    <div><b>What Copilot read</b><span class="rf">shut</span>Every reading in one table: the brief and what it says,
+      the playbook pass and its departures, the obligations found, whether the risk scan has been run, and whether
+      the plain-English edition is ready &mdash; each with the date it was made and a door into it. This is where
+      the old <i>Write the brief</i> button lives, alongside the other four readings it used to sit apart from.</div>
   </div>
 
   <div class="cmp">
@@ -400,16 +433,18 @@ table.ld tr:last-child td{border-bottom:0}
       <i>&ldquo;Not written yet&rdquo;</i>. You usually do not need to open it. This is Ironclad&rsquo;s rule &mdash;
       hide what is not acted on &mdash; and Icertis&rsquo;s collapsible groups.</div>
     <div><b>Write the brief and the Agreement family both survive</b><span class="rf">unchanged</span> &mdash; as
-      the sections <i>What Copilot read</i> and <i>Related agreements</i>, with their buttons inside. Nothing that
-      exists today is removed; it is renamed and regrouped so there is one place to look instead of five.</div>
+      the sections <i>What Copilot read</i> and <i>Related agreements</i>, with their buttons inside, and both are
+      opened in the fourth picture so you can see it. Nothing that exists today is removed; it is regrouped so
+      there is one place to look instead of five.</div>
     <div><b>The renewal decision leads, and only when there is one</b><span class="rf">S6</span> &mdash; one
       sentence, three acts, an amber marker, exactly the facts the card carries today in a third of the height. On a
       contract outside its notice window it is not drawn at all, as now.</div>
     <div><b>Documents they must hold is a row here and rows there</b><span class="rf">S8</span> &mdash; one reading
       drawn on two surfaces. The section summarises; the Obligations tab tracks the expiry dates and does the
       chasing, because that is what that tab is for.</div>
-    <div><b>One optional rename</b> &mdash; the tab now holds more than key terms, so <i>Overview</i> would describe
-      it better. That is a word, not a build, and it is entirely your call.</div>
+    <div><b>The tab is renamed <i>Overview</i></b> &mdash; it now holds the deal, the filing record, the required
+      documents, the family and every reading Copilot has made, which is more than key terms. The other four tabs
+      keep their names. That is a word, not a build.</div>
   </div>
   <p class="weight"><b>This is the one screen in the fifteen that gets simpler rather than fuller.</b> Six things to
     look at become one page with a predictable order; the busiest contract in the book fits without scrolling; and
@@ -548,9 +583,9 @@ table.ld tr:last-child td{border-bottom:0}
       <thead><tr><th>What a person sees</th><th>Today</th><th>After</th><th>What changes</th></tr></thead>
       <tbody>
         <tr><td>Doors in the sidebar</td><td>13</td><td class="same">13</td><td>Nothing. Nine everyday doors and four under Administration, unchanged.</td></tr>
-        <tr><td>Tabs inside a contract</td><td>5</td><td class="same">5</td><td>Nothing. Key terms, Document, Signing, Obligations, History.</td></tr>
+        <tr><td>Tabs inside a contract</td><td>5</td><td class="same">5</td><td>Still five. Key terms is renamed <b>Overview</b> because it now holds more than key terms; the other four are untouched.</td></tr>
         <tr><td>Tabs on Insights</td><td>5</td><td class="up">6</td><td>One: <b>Exposure</b>. The only new tab anywhere in the fifteen.</td></tr>
-        <tr><td>Boxes on the Key terms tab</td><td>4</td><td class="same">1 page</td><td>Fewer, not more. A panel plus three cards becomes one page of named sections, most of them a single collapsed row.</td></tr>
+        <tr><td>Boxes on the Key terms tab, renamed Overview</td><td>4</td><td class="same">1 page</td><td>Fewer, not more. A panel plus three cards becomes one page of named sections, most of them a single collapsed row.</td></tr>
         <tr><td>Filters shown on Contracts</td><td>4 of 5</td><td class="up">4 of 6</td><td>One more offered behind <i>Adapt filters</i>. The bar itself does not grow.</td></tr>
         <tr><td>Filters on Obligations</td><td>5</td><td class="same">5</td><td>Nothing. The <i>Side</i> filter this needs is already there.</td></tr>
         <tr><td>Bands on Obligations</td><td>3</td><td class="up">4</td><td>One, and only once something has actually been earned.</td></tr>
@@ -575,7 +610,7 @@ table.ld tr:last-child td{border-bottom:0}
       <thead><tr><th>Ref</th><th>Addition</th><th>Where it sits</th><th>Shape it takes</th><th>Seen above</th></tr></thead>
       <tbody>
         <tr><td class="rf">S1</td><td>The Mailroom</td><td>Home &middot; Import contracts</td><td>Feeds the queue that exists</td><td>Screen 1</td></tr>
-        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A section of the contract overview</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Overview</td><td>A section of the Overview tab</td><td>Screen 3</td></tr>
         <tr><td class="rf">S3</td><td>Clearance lanes</td><td>Settings &amp; Rules &middot; Requests</td><td>A settings panel, and a road</td><td>Screen 6</td></tr>
         <tr><td class="rf">S4</td><td>A front door with a clock</td><td>Requests</td><td>Three facts on each row</td><td>Screen 6</td></tr>
         <tr><td class="rf">S5</td><td>Where is my contract?</td><td>Outside the app</td><td>A link on the request</td><td>Screen 6</td></tr>
@@ -585,7 +620,7 @@ table.ld tr:last-child td{border-bottom:0}
         <tr><td class="rf">S9</td><td>Ask your book</td><td>The Copilot panel</td><td>Fills a greeting that is empty today</td><td>&mdash;</td></tr>
         <tr><td class="rf">S10</td><td>The exposure register</td><td>Insights</td><td>A sixth tab</td><td>Screen 5</td></tr>
         <tr><td class="rf">S11</td><td>What the negotiation was worth</td><td>The negotiation memo &middot; Reports</td><td>A section, and a strip</td><td>&mdash;</td></tr>
-        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>A button in Related agreements</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Overview</td><td>A button in Related agreements</td><td>Screen 3</td></tr>
         <tr><td class="rf">S13</td><td>Bulk amendments</td><td>Contracts</td><td>One act above the table</td><td>Screen 2</td></tr>
         <tr><td class="rf">S14</td><td>The diligence pack</td><td>Contracts</td><td>A row in that same menu</td><td>Screen 2</td></tr>
         <tr><td class="rf">S15</td><td>HaTi in the chat</td><td>Settings &middot; outside the app</td><td>A settings panel</td><td>&mdash;</td></tr>
@@ -613,8 +648,8 @@ table.ld tr:last-child td{border-bottom:0}
           and it is the one change a nine-person business feels on the first day.</p></div>
       <div class="refs"><span>S1</span></div></div>
     <div class="relrow"><p class="when">Release 2</p>
-      <div><h4>The contract overview</h4>
-        <p>The Key terms tab is rebuilt as one page of named sections, and the four additions land inside it. The
+      <div><h4>The contract Overview</h4>
+        <p>The Key terms tab is renamed and rebuilt as one page of named sections, and the four additions land inside it. The
           largest single piece of work in the fifteen, and the only one that makes a screen simpler than it is today
           &mdash; also the release that wins a procurement buyer.</p></div>
       <div class="refs"><span>S2</span><span>S6</span><span>S8</span><span>S12</span></div></div>
@@ -683,6 +718,6 @@ table.ld tr:last-child td{border-bottom:0}
       the screen, and none of it appears until it has something to say. <b>One screen ends up simpler than it is
       today:</b> the contract overview holds two and a half times as many facts in the same height, because it was
       regrouped rather than filled.</p>
-    <p class="mono">14 full screens &middot; 6 pages touched &middot; 0 new sidebar doors &middot; 1 new tab &middot; 1 screen redesigned</p>
+    <p class="mono">15 full screens &middot; 6 pages touched &middot; 0 new sidebar doors &middot; 1 new tab &middot; 1 screen redesigned</p>
   </div>
 </footer>
