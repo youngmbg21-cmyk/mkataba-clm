@@ -14197,3 +14197,46 @@ Noticed, not fixed:
   bold is lost while a clause is shown with marks on it. Could not reproduce
   it from a built fixture; the geometry fault above was reproduced and fixed.
 - redline-verify check 5 is red at unmodified main and was left red.
+
+## 16 Sep 2026 — MAPPING THE RED BROWSER CHECKS (owner asked; no fix made)
+
+Young, off a screenshot from the contract-builder session: "There are 25
+negotiation lines that are failing. Can you map what they are? No coding."
+
+MEASURED, not read: the whole browser set run on main at 4ac6bb0 — 23 of 108
+files red — then the same 23 re-run in worktrees at 11f586a (a week back) and
+at 744127e, so old news could be told from new.
+
+TWENTY OF THE TWENTY-THREE WERE ALREADY RED A WEEK AGO. They describe designs
+the product has since moved past on the owner's own word — the highlight's
+three verbs (selection-verify, redline-verify 5, phone-verify), the fifth room
+tab (negotiations-door), the retired three-way cut (flat-rows, room-order), the
+crumb on the negotiate head (nego-redesign 1/1c), the clause panel giving way
+to the clause editor (standard-paper 4/5, paper-grows 5d/6), the Notes row in
+the counterparty's More menu (counterparty-reading 6), the pop-up diet's
+retired memo sub-line (negotiation-memo 7f), and the scroll-fold deleted on
+10 Sep (tracked-changes-scroll 2). theme-tokens is the colour census at 27/40,
+unchanged at every commit measured.
+
+### Noticed, not fixed
+
+- upload-structure-verify 2a/2b: GREEN at 744127e, RED at ee54a94 — an uploaded
+  contract's own title is now counted among the clause headings inside the
+  stored-body region (five where the file names four). It arrived with the
+  Document tab's front-matter head. Worth a look at whether the title is being
+  drawn as a clause heading on an upload.
+- round-delivery-verify 5/7: GREEN at 744127e, RED at ee54a94 — the
+  counterparty's acceptance shows on the owner's screen but the record read
+  back off the server still says pending, and the refused-readiness audit line
+  is written 0 times where the file wants exactly 1. Both are "the record did
+  not catch up"; the commit that broke them is the one that serialised saves.
+- competing-redlines-verify, settled-ask-reopen-verify: red since "Five more
+  off one screen" — both read the clause panel's own rows on OUR seat, which
+  the ladder-only narrowing hides. settled-ask-reopen's Reopen resolves at 0x0
+  and its click times out. Whether the settled Reopen still has a reachable
+  home on our seat is the owner's question, not a drive-by fix.
+- reopen-a-refusal-verify: aborts part way with getComputedStyle on a null
+  element. Its first six checks pass; the rest never run. Present at 744127e
+  and at 11f586a in a different shape.
+- The count in the report was FILES, not lines: 23 files, about 60 named
+  failing lines, of which 13 are theme-tokens' colour cells.
