@@ -14953,3 +14953,78 @@ Smaller, same rule — noticed, not fixed:
 - `ng_round_added` never fires: negoRoundRead filters on `x.kind` and `x.round`
   while a filed change stores `changeType` and `roundN`, so an inserted clause
   is counted as an "other ask" instead.
+
+### 16 Sep 2026 — measuring the redline row for the owner's two-line ask (no code changed)
+
+The owner asked that a redline row stay at two lines, and suggested a coloured
+left edge. Three designs were drawn and then measured against the product; two
+were refused by the product's own decisions and one by arithmetic. Recorded
+here because the refusals are the useful part.
+
+**A DEFECT, and the best thing this turned up.**
+- `--rl-verb-floor` IS DEAD. It is declared at js/views/negotiation-css.js:1197
+  and read in exactly one place, line 3086
+  (`minmax(0,2fr) minmax(var(--rl-verb-floor),1fr)`). Line 3377 restates
+  `.redline-page .rl-card-d{grid-template-columns:minmax(96px,1fr) minmax(0,max-content)}`
+  — identical specificity (0,2,0), later in source, so it wins by ORDER. The
+  twenty-line comment at 3050-3070 still presents the floor as the measured
+  guarantee that the verbs can never be squeezed off "however hard the divider
+  is dragged", and says it was MEASURED holding at the divider's own 300px
+  minimum. That guarantee has not run since the later rule landed. This is the
+  fourth costume named in this file's own standing lessons — A COMMENT THAT
+  SWALLOWS THE RULE UNDER IT. Either restate the floor in the winning rule or
+  delete the token and rewrite the comment; do not leave it describing a rule
+  that does not exist.
+- CONSEQUENCE, measured at the divider's own minimum: RL_RIGHT_MIN is 300px,
+  the verbs track is `max-content` and an ordinary five-verb face measures far
+  more than the room left after the 96px name floor — so the face WRAPS and the
+  row is already more than two lines at a width the reader may legitimately
+  drag to, with no review state on it at all.
+
+**Noticed, not fixed — the row's own arithmetic.**
+- `.rl-card-actions` is `grid-column:1/-1` with NO grid-row, so it auto-places
+  into an implicit third track. EIGHT things can fill it and FIVE are not review
+  at all: dkBy, behalfBlock, revisedBlock, noCopyBlock, dkInstead. A "reviews
+  never add a line" fix would leave every one of them growing the row.
+- A review state does not always add a line: a CLEARED verdict with no note and
+  an OUT FOR REVIEW state both put nothing in rowStrips. Only a hold
+  (rvStuckBlock), a verdict carrying a note (rvNoteBlock) and the reviewer's own
+  verdict buttons (rvVerbs) do.
+- `rv_held_what_now` reads "Only {who} can lift this. Ask them to look again, or
+  withdraw the ask." The first sentence is what the pile heading
+  `ng_band_held` ("Held by your reviewer") already prints, and the name is
+  already in row 1's own `dTip` (which carries badge[2]). Cutting it to the act
+  half would take the held row from ~99px to ~82px and held-with-a-note from
+  ~136px to ~119px without moving a control. Proposed to the owner, not taken.
+- `rlRowSubHtml` returns '' where there is no ladder track, no matching rung AND
+  no summary, so a change with an empty summary draws a ONE-line row. Rare
+  (negoFileChange falls back to autoSummary) but reachable on an inbound change.
+- The `rv_held_ask_again` verb ("Ask again") is guarded `!reviewInOpen(c, ch)`,
+  so it is NOT drawn while the review that placed the hold is still open — which
+  is the ordinary held state. Any plan to hang the "what now" sentence on that
+  verb's hover would hang it on nothing.
+
+**Refused, with the reason, so nobody re-proposes them.**
+- THE LEFT EDGE IS NOT FREE. `.redline-page .rl-card[data-rl-origin="them"]
+  {border-left-color:var(--st-amber-dot)}` is LIVE at negotiation-css.js:2817
+  over a base `border-left:3px solid var(--accent-solid)` at 2816, plus
+  `[data-contested]` in ruby at 2818. It is dead on the flat row only because
+  `.rl-card-d` sets `border:0` later. The counterparty's boxed card and the
+  owner's preview of it — the same column, a different renderer — still wear
+  whose-ask on that exact edge, and the comment at 3095 records that the owner
+  took the colour away "for now" and is WEIGHING A THIRD ANSWER. Putting review
+  state there would give one channel two meanings across two renderers and spend
+  a decision that is the owner's. Put to them as a question instead.
+- A CHIP SAYING "Held" OR "Out for review" IS THE SAME FACT TWICE: both are the
+  pile heading the row sits under, in those words, and it would reverse the
+  owner's ruling of 26 Aug 2026 (quoted verbatim at negotiation.js:17332-17352)
+  that the status word comes off the row because the heading says it. The one
+  state no heading says is CLEARED — a cleared change returns to `drafts` — and
+  `rvChip` is already built and already guarded `!rvHeld && !rvOut`, which is
+  exactly the guard that would let only that one through.
+- THE VERDICT BUTTONS CANNOT MOVE INTO THE VERB SLOT. They are three or four
+  boxed `.rv-btn` toggles carrying `aria-pressed` under an uppercase caption,
+  not bare coloured words; `reviewVerbsHtml` has TWO callers (the flat row and
+  negoLiveCardsHtml on the contract tab) so reshaping it moves both; and the
+  track is `max-content` with a wrapping face, so they would grow row 1 instead
+  of row 3.
