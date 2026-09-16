@@ -1263,13 +1263,31 @@ function ceOps(a, b){
   try{ return redlineOps(ceWords(a), ceWords(b)); }
   catch(_){ return null; }
 }
+/* ---- THE CLAUSE KEEPS ITS SHAPE ON THIS PAGE TOO (Young ruled 15 Sep 2026) ----
+   *"when you press the pencil button and you move to the editor page, the
+   fonts of the contract change in some case they become bold. The contract
+   should never change from one screen to another."*
+
+   THE PENCIL IS WHERE THE READER SAW IT, so this is where the fix has to be
+   asked for as well — the negotiate page's own canvas asks rlClauseShape at
+   the draw, and a page that did not would be the two screens disagreeing
+   again, one fix later. ONE READING, THROUGH window: js/views/negotiation.js
+   publishes it, this file reads it by name, and a stage without that file
+   simply gets the shape it always got. */
+function ceShapeMap(){
+  if (!window.rlClauseShape || !_ceC || !_ceClauseId) return null;
+  try{
+    const cl = window.negoClauseNowById ? negoClauseNowById(_ceC, _ceClauseId) : null;
+    return cl ? rlClauseShape(cl) : null;
+  }catch(_){ return null; }
+}
 function ceRedlineHtml(a, b){
   const ops = ceOps(a, b);
   if (!ops) return `<p>${_cee(ceWords(b))}</p>`;
   try{
     /* THE DRAFT IS OURS: this page is our seat's by construction, so a mark
        drawn here wears the accent (14 Sep 2026). */
-    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us' });
+    if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us', shape: ceShapeMap() });
     if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops, { who: 'us' })}</p>`;
   }catch(_){}
   return `<p>${_cee(ceWords(b))}</p>`;
@@ -1310,7 +1328,7 @@ function ceMarkedHtml(text){
       const overOps = window.redlineOpsStructured ? redlineOpsStructured(theirs, ours)
         : (window.redlineOps ? redlineOps(theirs, ours) : null);
       const ops = overOps ? redlineLayerOps(on.ops, overOps, { under: 'them', over: 'us' }) : null;
-      if (ops) return redlineOpsBlocksHtml(ops);
+      if (ops) return redlineOpsBlocksHtml(ops, { shape: ceShapeMap() });
     }catch(_){ /* falls through to the one-layer reading */ }
   }
   return ceRedlineHtml(_ceBase, draft);
@@ -4267,8 +4285,16 @@ function ceScanHtml(){
    only difference between the two groups, and it is decided here — once, from
    the group — rather than at each button. A card in `here` fills the box; a card
    in `missing` files a new clause. */
+/* ---- AND THE FOURTH WORDING, WHICH ONLY A LOCATED CLAUSE CAN HAVE ----
+   (Young's go on "The Nuanced Redline", 15 Sep 2026.) `fit` is our figure
+   written into THEIR sentence — see pbFitWording. It is on the `here` list
+   alone because there is nothing to narrow to on a clause the contract does
+   not yet carry, and it is named here rather than guessed at the card so this
+   rail and the Playbook review window offer the same four presses under the
+   same four names. */
 const CE_SCAN_VERBS = {
-  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft' },
+  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft',
+             fit: 'ce_use_fit' },
   missing: { preferred: 'ce_add_standard', fallback: 'ce_add_fallback', draft: 'ce_add_draft' },
 };
 function ceScanCardHtml(it, i, group){
@@ -4337,7 +4363,8 @@ function ceScanCardHtml(it, i, group){
       : stop
       ? `<span class="filed" title="${_ceea(stop.message)}">${_cee(_cet(
           stop.hit.where === 'document' ? 'ng_dup_clause_here_doc' : 'ng_dup_clause_here_table'))}</span>`
-      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)}</div>
+      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)
+        + ((it.fit && it.fit.kind === 'figure') ? btn('fit', it.fit.text) : '')}</div>
   </div>`;
 }
 /* ADDING A MISSING STANDARD IS A REAL FILING, and it goes through the
@@ -5559,8 +5586,34 @@ function ceWirePage(page){
       const it = ceScanItems()[Number(parts[0])];
       if (!it) return;
       const words = String((parts[1] === 'fallback' ? it.fallback
-        : parts[1] === 'draft' ? it.draft : it.preferred) || '').trim();
+        : parts[1] === 'draft' ? it.draft
+        : parts[1] === 'fit' ? (it.fit && it.fit.text) : it.preferred) || '').trim();
       if (!words) return;
+      /* THE SMALLEST CHANGE GOES IN AS THE CLAUSE'S OWN MARKUP. ceRich already
+         tells markup from plain lines, so handing it the fitted body is what
+         keeps every OTHER block of the clause exactly as it is — rebuilt from
+         lines they would all arrive as bare paragraphs and Save would file a
+         formatting change across wording nobody touched. */
+      /* ---- ADDRESS FIRST, SEATBELT SECOND (Young ruled 15 Sep 2026) ----
+         *"why would a suggestion try and delete clauses nobody complained
+         about?"* — it never meant to. THREE OF THESE FOUR VERBS CARRY A
+         FRAGMENT: a paragraph with no address on it. Applied whole they
+         replaced a six-part clause with one sentence, which is the clause 7
+         fault in its second home — the wall built for it in September guards
+         the playbook's own filing door and never guarded this one.
+
+         SO THE ADDRESS IS READ HERE TOO. pbFitInto puts the fragment in the
+         block the finding quoted — the same reading the figure path has always
+         used — and every other part of the clause comes through byte for byte.
+         `fit` is exempt because it already IS a fitted body; slotting a whole
+         body into one block would nest the clause inside itself.
+
+         WHERE NO ADDRESS READS the fragment still replaces the clause, and that
+         is the one case the question below is for. */
+      const fitInto = (parts[1] !== 'fit' && it.clauseId && window.pbFitInto)
+        ? pbFitInto(it.oldHtml, it.v && it.v.quote, words) : null;
+      const fitHtml = (parts[1] === 'fit' && it.fit) ? it.fit.html
+        : (fitInto ? fitInto.html : null);
       /* ---- ONLY THE DRAFT IS COPILOT'S WORDING (idea 22) ----
          rlPlaybookProposals names THREE wordings on a finding and only `draft`
          is the model's: `preferred` and `fallback` are the clause library's,
@@ -5600,12 +5653,35 @@ function ceWirePage(page){
          that located THIS clause fills the box and files nothing; a rule that
          located no clause at all has nothing here to replace, so it files a new
          clause instead. One decision, taken from the finding's own clauseId. */
-      if (it.clauseId) ceApply(words, _cet('ce_step_playbook'));
-      else ceAddMissingClause(it, words, scan);
-      try{ if (_pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
-        aiTraceApplied(_ceC, _pbTrace, _ceText);
-        if (window.aiTraceSave) aiTraceSave(_ceC);
-      } }catch(_){}
+      /* THE SEATBELT, and it is SECOND on purpose: with an address nothing is
+         lost, pbUnquotedLoss counts zero and there is nothing to ask. The
+         sentence, the title and the count are the review window's OWN keys —
+         two doors describing one act in one set of words, because two doors
+         that word it differently is how they come to mean different things. */
+      const applyScan = async () => {
+        if (!it.clauseId){ ceAddMissingClause(it, words, scan); return true; }
+        if (!fitHtml && window.pbUnquotedLoss){
+          let gone = 0;
+          try{ gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, words); }catch(_){ gone = 0; }
+          if (gone > 0){
+            const name = (window.clauseNameShown && it.clauseLabel)
+              ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || _cet('ng_this_clause'));
+            let ok = true;
+            if (window.confirmDialog) ok = await confirmDialog({
+              title: _cet('ng_pb_broad_title'),
+              message: _cet('ng_pb_broad_ask', { n: gone, clause: name }),
+              confirmLabel: _cet('ng_pb_broad_go') });
+            if (!ok) return false;
+          }
+        }
+        return ceApply(fitHtml || words, _cet('ce_step_playbook')) !== false;
+      };
+      applyScan().then(done => {
+        try{ if (done && _pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
+          aiTraceApplied(_ceC, _pbTrace, _ceText);
+          if (window.aiTraceSave) aiTraceSave(_ceC);
+        } }catch(_){}
+      });
       return; }
 
     /* A ROW IS A DOOR TO ITS CLAUSE, and it is ceGoClause — the crumb's own act

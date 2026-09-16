@@ -2674,6 +2674,50 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   }
   await page.screenshot({ path: path.join(OUT, '27-layered.png') });
 
+  /* ============ 28 · THE FILL MEANS ARRIVING, AND NOTHING ELSE ============
+     Young ruled it 15 Sep 2026, of the screen section 27 stages: "it is hard to
+     differentiate between the added clause vs the clause being deleted ... still
+     cross the words you are proposing to delete but to not have the blue or
+     yellow highlight on them. Leave the blue or yellow highlight only on the
+     added words."
+
+     A CLAIM ABOUT PAINTED PIXELS, and it has to be. The stylesheet reads
+     correctly either way, and .nego-del sits UNDER these rules carrying
+     --n-del-bg at one class to their three — so a rule that merely stopped
+     declaring a background would let that red fill straight back through, and
+     nothing in the source would look wrong. Only a rendered mark knows. */
+  const fill28 = await page.evaluate(() => {
+    const rows = [];
+    document.querySelectorAll('#rl-doc ins.rl-us,#rl-doc ins.rl-them,#rl-doc del.rl-us,#rl-doc del.rl-them')
+      .forEach(el => {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        rows.push({ kind: el.tagName === 'INS' ? 'ins' : 'del',
+          side: el.classList.contains('rl-us') ? 'us' : 'them',
+          bg: cs.backgroundColor, color: cs.color, line: cs.textDecorationLine,
+          seen: r.width > 0 && r.height > 0 });
+      });
+    return rows;
+  });
+  const clear28 = s => !s || s === 'transparent' || /rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(s);
+  const ins28 = fill28.filter(r => r.kind === 'ins' && r.seen);
+  const del28 = fill28.filter(r => r.kind === 'del' && r.seen);
+  check('28a THE STAGE paints both halves of a change — words arriving and words leaving',
+    ins28.length > 0 && del28.length > 0, `${ins28.length} arriving · ${del28.length} leaving`);
+  check('28b NOT ONE struck word carries a fill — the reported fault',
+    del28.length > 0 && del28.every(r => clear28(r.bg)),
+    [...new Set(del28.map(r => r.side + ' ' + r.bg))].join(' · '));
+  check('28c and every added word still does — the fill now says one thing only',
+    ins28.length > 0 && ins28.every(r => !clear28(r.bg)),
+    [...new Set(ins28.map(r => r.side + ' ' + r.bg))].join(' · '));
+  check('28d a deletion still says WHOSE it is — the same ink as that side\'s insertions',
+    del28.every(d => { const m = ins28.find(i => i.side === d.side); return !m || m.color === d.color; }),
+    [...new Set(fill28.filter(r => r.seen).map(r => r.side + ' ' + r.kind + ' ' + r.color))].join(' · '));
+  check('28e and the LINE still says what — underline arrives, strike leaves',
+    ins28.every(r => /underline/.test(r.line)) && del28.every(r => /line-through/.test(r.line)),
+    `ins ${[...new Set(ins28.map(r => r.line))].join('/')} · del ${[...new Set(del28.map(r => r.line))].join('/')}`);
+  await page.screenshot({ path: path.join(OUT, '28-marks.png') });
+
   await browser.close();
   srv.close();
   const failed = results.filter(r => !r.pass);

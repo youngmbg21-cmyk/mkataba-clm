@@ -127,12 +127,19 @@ const SEED = async () => {
          not the same box. */
       const fb = document.querySelector('#ws-head .room-facts');
       const cr = document.querySelector('#ws-head .room-crumb');
+      /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
+         sign is measured by its own painted getBBox, never by its markup. */
+      const bk = cr && cr.querySelector('#ws-back');
+      let bbox = null;
+      try { const sv = bk && bk.querySelector('svg'); bbox = sv && sv.getBBox ? sv.getBBox() : null; } catch (_){}
       return { h1: h1 && { fs: g(h1).fontSize, fw: g(h1).fontWeight },
         rest: rest && { fs: g(rest).fontSize, fw: g(rest).fontWeight, c: g(rest).color },
         on: on && { fs: g(on).fontSize, fw: g(on).fontWeight, c: g(on).color },
         card: fb ? Math.round((fb.getBoundingClientRect().bottom - 44) * 10) / 10 : null,
         crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
         crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
+        backLabel: bk && bk.getAttribute('aria-label'),
+        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0),
         tabs: tabs.length };
     });
 
@@ -150,6 +157,11 @@ const SEED = async () => {
       const hr = head && head.getBoundingClientRect(), ar = acts && acts.getBoundingClientRect();
       const fb = document.querySelector('#view-redline #ws-head .room-facts');
       const cr = document.querySelector('#view-redline #ws-head .room-crumb');
+      /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
+         sign is measured by its own painted getBBox, never by its markup. */
+      const bk = cr && cr.querySelector('#ws-back');
+      let bbox = null;
+      try { const sv = bk && bk.querySelector('svg'); bbox = sv && sv.getBBox ? sv.getBBox() : null; } catch (_){}
       const nm = document.querySelector('#view-redline #ws-head .room-name');
       const nr = nm && nm.getBoundingClientRect();
       return { h1: h1 && { fs: g(h1).fontSize, fw: g(h1).fontWeight },
@@ -159,6 +171,8 @@ const SEED = async () => {
         card: fb ? Math.round((fb.getBoundingClientRect().bottom - 44) * 10) / 10 : null,
         crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
         crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
+        backLabel: bk && bk.getAttribute('aria-label'),
+        backPainted: !!(bbox && bbox.width > 0 && bbox.height > 0),
         /* The acts share the TITLE's line — the question the old "one line"
            check was really asking, now that there is a crumb above it. */
         actsOnTitle: (ar && nr) ? Math.abs(ar.top - nr.top) < 14 : null,
@@ -188,9 +202,26 @@ const SEED = async () => {
     check('1 and its crumb starts where the room\'s does',
       nego.crumbTop !== null && room.crumbTop !== null && Math.abs(nego.crumbTop - room.crumbTop) < 1,
       `negotiate ${nego.crumbTop} vs room ${room.crumbTop}`);
+    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "there should be a back button
+       but in sign format not words") ----
+       This read the two crumbs' WORDS and required them to differ. The words
+       are gone: the way back is a sign now, and the destination it names is
+       the hover and the aria-label. THE CLAIM IS UNCHANGED — the two heads
+       still send the reader to two different places, and both still say so —
+       so it is asked of the label instead of the ink, which is also where a
+       screen reader was always reading it. AND IT IS ASKED AS A RELATION, not
+       as two typed words: the label is a whole sentence and it is translated,
+       so what is checkable is that both heads name a destination and that the
+       two destinations are NOT THE SAME — which is the whole of the claim,
+       and the half a wrong data-back would break. */
     check('1 the crumb says which place the way back is',
-      /contract workspace/i.test(nego.crumb || '') && /contracts/i.test(room.crumb || ''),
-      `negotiate "${nego.crumb}" · room "${room.crumb}"`);
+      !!(nego.backLabel || '').trim() && !!(room.backLabel || '').trim()
+        && nego.backLabel !== room.backLabel,
+      `negotiate "${nego.backLabel}" · room "${room.backLabel}"`);
+    check('1 and it says it as a sign, not as ink',
+      nego.backPainted === true && room.backPainted === true
+        && !(nego.crumb || '').trim().toLowerCase().includes('workspace'),
+      `painted nego ${nego.backPainted} · room ${room.backPainted} · crumb "${room.crumb}"`);
     check('1 the acts share the title\'s line, not a row of their own', nego.actsOnTitle === true, nego.dTop);
     check('1 and they end at its right edge', nego.gapRight !== null && nego.gapRight < 40, nego.gapRight);
     /* THE REPORTED NAME WAS LONG — the seeded book's longest is 21 characters

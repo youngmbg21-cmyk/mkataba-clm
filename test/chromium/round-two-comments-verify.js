@@ -744,6 +744,61 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
   await pause(200);
 
+  /* K · THE COMMENT NUMBER IS ON THE EDGE BUT INSIDE THE PAGE (Young ruled
+     15 Sep 2026: "The comments numbers should be on the edge but inside the
+     contract page. They should be similar to image 2 also in coloring where
+     the number is dark and the ring background is light colored.")
+     AT THE PARENT the marker was placed at a flat left:-48px against a sheet
+     whose own inset is 56px at the wide rung and 20px at the narrow one — so
+     it sat in the grey beside the paper at every rung but one, and further out
+     the narrower the window got. MEASURED, never read off the source: the only
+     thing that can answer "is it inside the page" is a painted rect. */
+  await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
+  await pause(200);
+  await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });
+  await pause(200);
+  for (const W of [1500, 1000]){
+    await p.setViewportSize({ width: W, height: 1000 });
+    await pause(300);
+    const k = await p.evaluate(async () => {
+      const c = window.CONTRACT;
+      const cl = negoClauseList(c)[1];
+      const quote = String(cl.text || '').split(/\s+/).slice(0, 6).join(' ');
+      if (!negoRoomNotes(c, 'internal').some(m => (m.anchor || {}).clauseId === cl.clauseId))
+        negoPostComment(c, null, 'a note about this clause', { anchor: { clauseId: cl.clauseId, quote } });
+      renderRedline();
+      await new Promise(r => setTimeout(r, 500));
+      const mk = document.querySelector('.redline-page #rl-doc .rl-note-mk');
+      const paper = document.querySelector('.redline-page #rl-doc .rl-paper');
+      const sec = document.querySelector('.redline-page #rl-doc .rl-clause[data-clause="' + cl.clauseId + '"]');
+      if (!mk || !paper || !sec) return { none: `mk ${!!mk} paper ${!!paper} clause ${!!sec}` };
+      const m = mk.getBoundingClientRect(), pr = paper.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+      const cs = getComputedStyle(mk), ps = getComputedStyle(paper);
+      /* THE INK AND THE GROUND AS PAINTED — the claim is a RELATION between
+         them (which of the two is lighter), never a typed colour, so a retune
+         of the palette costs no edit here. */
+      const lum = v => { const n = (v.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        return n.length === 3 ? (0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2]) / 255 : null; };
+      return { none: null,
+        inside: m.left >= pr.left - 0.5 && m.right <= pr.right + 0.5,
+        leftOfWording: m.right <= sr.left + 0.5,
+        onTheEdge: Math.round(m.left - pr.left),
+        pad: ps.paddingLeft, bgLum: lum(cs.backgroundColor), inkLum: lum(cs.color),
+        bg: cs.backgroundColor, ink: cs.color };
+    });
+    if (k.none){ ck(`K at ${W}px the stage drew a marker`, false, k.none); continue; }
+    ck(`K at ${W}px the number is INSIDE the contract page, not in the grey beside it`,
+       k.inside === true, `marker starts ${k.onTheEdge}px inside a sheet inset ${k.pad}`);
+    ck(`K at ${W}px it is on the EDGE — clear of the wording, in the sheet's own margin`,
+       k.leftOfWording === true && k.onTheEdge >= 0 && k.onTheEdge < parseFloat(k.pad),
+       `${k.onTheEdge}px in, wording clear ${k.leftOfWording}`);
+    ck(`K at ${W}px the ring is light and the number is dark — image 2`,
+       k.bgLum !== null && k.inkLum !== null && k.bgLum > k.inkLum + 0.25,
+       `ring ${k.bg} (${k.bgLum && k.bgLum.toFixed(2)}) · number ${k.ink} (${k.inkLum && k.inkLum.toFixed(2)})`);
+  }
+  await p.setViewportSize({ width: 1500, height: 1000 });
+  await pause(200);
+
   ck('no page errors along the way', errs.length === 0, errs.join(' | ') || 'none');
   } catch (e){ ck('the run completed', false, e && e.message); }
   await br.close(); srv.close();

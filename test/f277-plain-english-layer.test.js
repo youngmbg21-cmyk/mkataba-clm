@@ -754,8 +754,15 @@ describe('f277 (10) the edition is a facing page', () => {
      from a token: --doc-scale is written on the paper's own zoom wrapper in
      the other column and never reaches this one, and a document style can
      multiply the size again on top of it. */
+  /* ---- THE BASE RULE NAMES TWO THINGS SINCE 15 SEP 2026 ----
+     The front matter above the first clause is MIRRORED into this column
+     (docReadFront), and a mirror is dressed by the same rule while wearing a
+     class of its own — a mirror is the CONTRACT'S words and an entry is a
+     READING of them, and four checks that counted the readings on a page found
+     the mirrors among them while the two shared a class. So the selector is
+     `.doc-read-note,.doc-read-mirror`, and these claims follow it. */
   test('the reading takes its size from the paper itself', () => {
-    const at = INDEX.indexOf('.doc-read-note{');
+    const at = INDEX.indexOf('.doc-read-note,.doc-read-mirror{');
     const css = INDEX.slice(at, INDEX.indexOf('.doc-read-over{', at));
     assert.ok(/font-size:var\(--dr-size,var\(--t-body\)\)/.test(css),
       'a measured value, with the body rung as the fallback');
@@ -782,9 +789,24 @@ describe('f277 (10) the edition is a facing page', () => {
   test('an entry steps down rather than overlapping the one above', () => {
     const at = CONTRACT_JS.indexOf('let floor=0, bottom=0;');
     assert.ok(at > 0, 'the stepping exists');
-    const css = CONTRACT_JS.slice(at, at + 400);
+    /* THE REGION, NEVER A BYTE COUNT — this file has paid for that once
+       already (f277 (13)): the placing runs from the floor to the line that
+       measures the last entry, and a comment added inside it must not push the
+       claim out of its own slice. */
+    const css = CONTRACT_JS.slice(at, CONTRACT_JS.indexOf('const lastEl=', at));
     assert.ok(/if\(top<floor\) top=floor;/.test(css));
-    assert.ok(/floor=top\+el\.offsetHeight\+DOC_READ_GAP;/.test(css));
+    /* ---- RE-POINTED 15 Sep 2026, when the front matter began to be mirrored
+       into this column ---- the placing is one `place(src, el, gap)` used
+       twice, because a mirrored block takes the paper's own spacing and an
+       ENTRY takes DOC_READ_GAP. The claim is the same: an entry steps down by
+       its own height plus the gap rather than sitting on the one above. */
+    assert.ok(/floor=top\+el\.offsetHeight\+gap;/.test(css), 'by its own height plus a gap');
+    assert.ok(/data-doc-read-note[\s\S]{0,40}DOC_READ_GAP\)/.test(css),
+      'and an entry\'s gap is DOC_READ_GAP');
+    /* AND A READING IS NEVER PUSHED BY A MIRROR: the floor is reset between
+       the two passes, so "level with its own clause, to the pixel" survives a
+       title page whose copy runs a little taller than the paper. */
+    assert.ok(/floor=0;\s*\n\s*pairs\.forEach/.test(css), 'the floor is reset before the entries');
   });
 });
 
@@ -1607,7 +1629,7 @@ describe('f277 (18) the edition is set in the paper’s own face', () => {
 
   test('the entry reads it, with the document face as the fallback', () => {
     const css = _f277rd('index.html');
-    const at = css.indexOf('.doc-read-note{');
+    const at = css.indexOf('.doc-read-note,.doc-read-mirror{');
     const block = css.slice(at, css.indexOf('.doc-read-over{', at));
     assert.match(block, /font-family:var\(--dr-face,var\(--font-doc\)\)/,
       'a measured value, with the document face as the fallback');
@@ -1639,7 +1661,7 @@ describe('f277 (18) the edition is set in the paper’s own face', () => {
     const reads = (css.match(/var\(--dr-face/g) || []).length;
     assert.equal(reads, 1, '--dr-face is read in exactly one rule');
     const at = css.indexOf('.doc-read-head{');
-    const head = css.slice(at, css.indexOf('.doc-read-note{', at));
+    const head = css.slice(at, css.indexOf('.doc-read-note,.doc-read-mirror{', at));
     assert.ok(!/--dr-face/.test(head), 'and it is not that one');
   });
 

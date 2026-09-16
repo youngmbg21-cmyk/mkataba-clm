@@ -310,7 +310,22 @@ describe('f207-C — the guard: no second acceptance silently discards a first',
     assert.equal(theirs.status, 'pending', 'and the rival stays undecided');
     assert.match(plain(win.negoResolvedBody(c)), /forty-five/, 'the adopted wording is untouched');
     const said = w.log.toasts.map(t => t.msg).join(' | ');
-    assert.ok(said.includes(ours.id), 'the refusal names the adopted change: ' + (said || 'SILENT'));
+    /* ---- AND IT NAMES THE CLAUSE, NEVER THE CHG NUMBER (Young, 15 Sep 2026) ----
+       REVERSED IN PLACE, and the reason is kept here because it is the useful
+       part. Requiring the adopted change's own id in the sentence was right
+       while that id LED every row in the change column. Since the column took
+       the artifact's shape on 14 Sep the CLAUSE leads and the id rides the
+       hover, so this refusal cited a string that appears nowhere on the screen
+       it interrupts, about a change the reader cannot pick out of the column.
+       Young reported it as "this error makes no sense and it seems it is tied
+       back to the old way of how to track changes with the CHG numbers".
+       The GUARD is untouched — the second acceptance is still refused and the
+       wording still stands; only what the refusal calls the other change has
+       moved, to the name every other screen prints. */
+    assert.ok(!said.includes(ours.id), 'the refusal no longer cites a CHG number: ' + said);
+    const name = win.clauseNameShown ? win.clauseNameShown(String(ours.clauseLabel || '')) : '';
+    assert.ok(said.includes(name || 'this clause'),
+      'it names the clause instead: ' + (said || 'SILENT'));
     assert.match(said, /reopen|reject/i, 'and names the way out');
   });
 

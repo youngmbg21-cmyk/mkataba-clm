@@ -19467,3 +19467,447 @@ The screenshot came the same morning as the divider, with a red box drawn over t
 **THE FOOT'S PAIR WENT THE SAME DAY.** It was written up as "noticed, not fixed" — the foot strip's Save and Publish were added because the top bar scrolled away on a long template, and with the strip fixed they were two doors onto one act on one screen — and the owner ruled within the hour: *"Remove the bottom Save and Publish buttons."* Removed with their span, their sheet rule and their two listeners; the page now carries ONE filled button, which is what "at most ONE per page" has always asked for. TWO THINGS COST A CYCLE EACH: the explanatory comment was first written INSIDE the emitted markup, where its backticks were a balanced pair inside a template literal and EVALUATED (the standing rule, in a new costume — an HTML comment is still JS in there); and once the backticks were plain text the net still failed, because naming the retired classes in the emitted page put them back on the page the sweep reads. The note belongs in JS above the function.
 
 Tests: f306 (four claims: the scroller's shape read off the printed page, the sheet's rules, the class painted on and its two ways off, the hold held once and never keepScroll), prompt-and-build-verify 13a–13f — every one red at the parent (13d–13f reported, never crashed, on a build without the scroller).
+
+## THE NUANCED REDLINE — THE SMALLEST CHANGE, AND THE FILL MEANS ARRIVING (Young's go on the artifact of that name, 15 Sep 2026)
+
+Two screenshots of one screen, and an artifact built to answer them before a
+line of code moved. The owner's words:
+
+> *"In image 2, it is nonsensical redline or essentially delete a massive
+> paragraph that probably covers a range of topics and replace it with you
+> standard clause just because they cover the same title of the clause. The
+> redline has to be nuanced and only tackle where the misalignment is. In image
+> 1, it is hard to differentiate between the added clause vs the clause being
+> deleted ... Let us try an approach where you still cross the words you are
+> proposing to delete but to not have the blue or yellow highlight on them.
+> Leave the blue or yellow highlight only on the added words."*
+
+Then, on the artifact: *"go ahead and build all four decisions as recommended."*
+
+### What was on the screen
+
+Clause 7 of a master supply and distribution agreement — INVOICING, PAYMENT AND
+SET-OFF — carries seven rules under one heading: what an invoice must say, when
+it is paid, what a non-compliant invoice does, how a dispute runs, interest on
+late payment, the credit limit, and the right of set-off. The playbook
+disagreed with exactly one of them, the payment period: sixty days from the end
+of the calendar month against a standard of thirty days from receipt.
+
+The redline struck ALL SEVEN and put the workspace's standard payment sentence
+in their place. Had the other side accepted it as drafted, the contract would
+have lost its interest charge, its dispute procedure, its credit-limit
+protection and its set-off right, with nothing in place of any of them. The
+replacement also spoke about "the Buyer", in an agreement whose parties are
+defined at the front as the Distributor and the Manufacturer.
+
+### Three faults, not one
+
+1. **The unit was the whole clause.** A numbered heading and everything under it
+   is one clause to `clauseSegment`, so a disagreement with one sub-paragraph
+   was filed as a change to all of them.
+2. **What was filed was a clause, not a position.** `rlPlaybookProposals` set
+   `lead: preferred || fallback || draft` and the batch read
+   `it.preferred || it.draft`. The library's `preferred` wording is written to
+   stand alone on a blank page. The model's own answer — which `AI_REDLINE_RULE`
+   has always required to be *that clause's own wording carrying the smallest
+   change*, keeping the parties' defined names — was ranked BELOW it. The two
+   rulings had collided: 26 Aug 2026 ruled that the model's improvisation must
+   never be printed under "Use our standard", and the honest way to obey that
+   was to rank our wording first, which is exactly what produced the paste.
+3. **Nothing measured the loss.** No step asked whether the wording about to be
+   struck was wording anybody had complained about. Six of the seven
+   sub-paragraphs were never mentioned in the review and were deleted in
+   silence.
+
+### What was built
+
+`js/playbook.js` gained the reading — no route, no store, no filing:
+`pbClauseBlocks`, `pbQuoteBlock` (containment first, then word overlap, a tie is
+a no — the clause finder's own instinct one level down), `pbSwapBlock` (the
+element and its class survive, so a `hati-lv-2` sub-paragraph is still one and
+every other block comes through byte for byte), `pbPositionFigure` (the topic's
+OWN reader, the one precedent and the ladder use) and `pbFitWording`, which
+answers figure → fitted draft → nothing.
+
+`ladderWriteFigure` was already in the product for the figure ladder — words and
+digits, the qualifier kept, nothing else moved — so nothing new here decides
+what a number means. On the reported contract the result is: *sixty (60)* →
+*thirty (30)*, two marked words against twenty-two, and 7.1 and 7.3–7.7
+untouched to the byte.
+
+`pbUnquotedLoss` is the wall, and it is what makes decision 1 a rule rather than
+a tendency: every block the finding never named that does not survive into the
+proposed wording is counted, and one is a refusal. A person may still replace a
+whole clause on purpose — decision 4 keeps that picture — but the question now
+counts what would go, and answering it is what lifts the wall for that one
+press. Nothing that files unattended passes the flag.
+
+### The marks
+
+The 13–14 Sep grammar was right: colour says WHO (amber theirs, the brand
+colour ours), the line says WHAT (underline arrives, strike leaves). What was
+wrong is that both halves of a change wore the coloured FILL, which is the
+loudest thing on the page — so a screen of struck wording and the one sentence
+arriving inside it read alike, and with fault 1 above there was a great deal of
+struck wording.
+
+The fill is now on the insertion alone. **A deletion STATES `transparent`
+rather than saying nothing**: `.nego-del` is the unsided mark's own rule and
+carries `--n-del-bg` at (0,1,0), so merely dropping the declaration from the
+(0,2,1) sided rules would have let a red fill straight back through — measured,
+not assumed. Both stylesheets, identical, and `redline-verify` section 28
+measures the painted pixels rather than the source.
+
+### What was deliberately not changed
+
+The three named wordings and their names (the 26 Aug ruling); the library's own
+clause as the answer for a position the contract has no clause on at all;
+`redlineWholesale` and `redlineReplacementHtml`; the fallback, which is still
+never filed unattended because it is a position nobody has decided to concede.
+
+## BEFORE YOU SIGN IS THE WHOLE LIST, IN THREE STAGES (Young ruled 15 Sep 2026)
+
+Four screenshots of the last screen before a signature, and one fault sitting under all of them.
+
+**The card is called "Before you sign".** A reader takes that to mean *here is everything between you and a signature*. It was a list of what was blocking at that exact moment, which is a different and much less useful thing. Every one of the four reports is a consequence.
+
+### 1 · It named a reference the reader could not see
+
+> *"it says i have not resolved the changed highlighted even though the CHG # is not something that is visible on the redlining processes anymore. Maybe name the clause numbers?"*
+
+The product had already made this decision twice. On 14 September the redline column was rebuilt so the CLAUSE leads every row and the CHG reference moved to the hover; on 15 September `negoResolve`'s two refusals were reworded the same way. These two sentences were simply missed, and they were the last place in the product that handed a reader a CHG id as their only handle on a change.
+
+`negoBlockerClauses` names them through `negoRefusalClause`, so the blocker and the refusal cannot come to call one change by two names. Three things the list owes a reader that the id never did: **two changes on one clause say the clause once** (one place to go, not the same name twice); **a long list stops at three** and counts the rest, because this is a sentence in a list and not a report; and **a change whose clause cannot be named says "this clause"** rather than falling back to a number nobody can look up.
+
+### 2 · Add signers, twice, 300 pixels apart
+
+> *"the before you sign sequence is not fully aligned as far as adding signers is concerned. Maybe remove adding signers as a flag because there is a reminder to add signers below as highlighted?"*
+
+The duplication was worse than it looked: the readiness row and the Signing order card printed **the same sentence word for word**, each with its own *Add signers* button.
+
+**But the row is not a reminder, which is why it stays.** It is what stops the contract being signed. Take it out of the list and a record could be sealed with nobody named on either side — the card below is a label and holds nothing. So the hold stays, the paragraph goes, and the press lands on the card that owns the act instead of opening a second path to the same editor.
+
+**And it is a rule, not a patch for signers.** A row whose work lives on this same screen points at it. A row whose work is elsewhere — the negotiation, a colleague's approval — keeps its sentence and its own door, because there is nothing here to point at. One rule, and it covers whatever row gets added next year.
+
+### 3 · The plain English was from before the negotiation
+
+> *"after completing a negotiation and you want to reread the contract in plain english, how will that be triggered?"*
+
+**Half of this already worked, and that half is what made it a trap.** With the switch OFF, pressing it noticed the wording had moved (`docReadSig` differs) and re-read by itself — nothing to trigger, one reading paid for.
+
+The other half is the screenshot. With the switch **already on** — read here, went to negotiate, came back — nothing re-read. The reader was shown the edition made *before* the round, and every clause that had changed drew **blank**, because `docReadAnchors` refuses to put a stale explanation beside new wording.
+
+That refusal is right and stays: a note beside the wrong clause is worse than no note. What was missing is that the page never said so — gaps with no explanation. The caption is already drawn, so the fact goes there: no band, no pop-up, not a pixel off the contract, and the press is `data-doc-read-again`, which this column already draws for the partial case. One door, shown for its second honest reason.
+
+**It never re-reads by itself.** A full contract is a real cost the reader has not asked for, and they may be back for thirty seconds to check a date. Told, then their choice.
+
+### 4 · The list was not the whole list
+
+> *"how do you trigger running the brief again, the standard checks, and the obligations once more before you sign? Review the best approach to managing the final check and offer a seamless solution that is straightforward for a user."*
+
+You could not, and the reason is specific: `signCheckReady` required `signingRouteOpen` — a named signer on **each** side. Until then the three readings and the single Run control were not drawn at all. The card said "3 to settle", the reader settled three things, and three more appeared.
+
+**Which is backwards.** Reading a contract does not require knowing who will sign it. You read the thing and then decide who signs it. The product was asking a reader to nominate signatories before it would tell them whether anyone had read the document they were about to commit to. The signers question is a ROW — it holds a signature, as it always did — never a condition on the list being drawn.
+
+What replaced that condition is a **waiting state, not a second hiding place**: while the negotiation is open the readings are drawn and say they are waiting, because reading wording that is about to move spends money on an answer the next filing invalidates. `signCheckTableClear` kept its name; what changed is that its answer is now *said* rather than obeyed in silence. A waiting row holds nothing — the negotiation row above it is already holding, and one fact holding a signature twice reads as two problems.
+
+**The brief joined the check.** Four things are read when a contract arrives — brief, standards, obligations, filing — and the check re-ran two of them. The brief is the one written for a person rather than for a rule, and it was the one nobody ever looked at again however far the wording moved.
+
+Its staleness is asked of the **record**, not of a hash, and that limit is deliberate: the brief's own `inputHash` is computed on the SERVER over the text it sent, the browser cannot reproduce it, and a second hasher that drifted would call fresh briefs stale for ever — the exact trap the overnight playbook sweep is kept out of. So the question asked is one the record answers exactly: *has any wording been proposed since this brief was written*. It can over-report on a change that was refused, and that is the safe direction — offering a reading nobody needed costs one press; skipping one they did costs a signature over a summary of wording that is no longer there.
+
+**Three stages replaced the flat list.** The rows were ordered by weight, which is right machinery and says nothing about *why* any row is there:
+
+1. **Is the paper final?**
+2. **Has anyone read this version?**
+3. **Who approves, and who signs?**
+
+The order is not a preference: settling the negotiation invalidates the readings, so the readings come after it. The Run control moved from the head, where it read as "run the card", onto the readings' own heading, where it is beside the three rows it answers — and kept `#sc-run`, so every wiring and every test that reaches for it is untouched.
+
+**Measured on the real page, at the parent:** the readings list read `[]`, and pressing the signers row opened a second dialog (`modal: true`). After: three readings drawn with nobody named, the Run control visible on the readings' stage, and the press landing on the Signing order card and lighting it.
+
+### And the fix the owner added to the order
+
+> *"When I am in the redlined contract page and i press anywhere in the contract it sends me directly to the editor page without my consent. I should only be moved to the editor page by click on the pencil or on the edit button."*
+
+This **reverses the 14 September ruling** on the negotiate page, and the old note is kept in the source because its reasoning is what makes the reversal safe: the argument was that the pencil should never be the only way in.
+
+**The paper is for reading.** Every other surface in the product treats a press in a contract's wording as a press in a contract's wording. Making one page navigate away means a stray click while scrolling, or a drag released half a pixel short, takes the reader off the page they were reading — and into a full-window layer that covers everything. A door nobody asked for is worse than a door that takes one more press to find.
+
+The two doors the owner named are untouched: the clause's own pencil, and the redline row's Edit. A drag still raises the highlight menu, which is the whole of what a press in the wording is for on that page. And the clause editor's own click-to-type of 13 September is a different page and a different rule; it stays.
+
+### What the benches had to learn
+
+The brief becoming a reading of the check means a contract with no brief on file draws a row saying so — true, and noise in every test that is about a different row. Three benches (f308, f311, signing-flow-verify) now carry a brief newer than any change, with the reason written beside it; the tests that are *about* the brief take it away or age it themselves.
+
+## A SUGGESTION HAS AN ADDRESS — AND THE WALL BECOMES A SEATBELT (Young ruled 15 Sep 2026)
+
+The owner opened a redline on a limitation-of-liability clause and found five of its six parts struck through to change the cap in the sixth. Asked to explain how that was surgical, the honest answer was that half of it was: the EDIT inside the cap was textbook — their sentence kept, the SEK 40,000,000 "whichever is the lower" ceiling replaced by a floor tied to twelve months of purchases, the 125% and the cross-references untouched — and the other half was the clause 7 fault in a second home.
+
+Then the owner asked the question that made the fix small:
+
+> *"why would a suggestion try and delete clauses nobody complained about or not impact by our standards?"*
+
+**IT NEVER MEANT TO, and that is the whole answer.** Nothing was deciding to delete anything. A suggested wording is a piece of text with **no address on it** — it does not know which part of which clause it belongs in — and the act that puts wording into a clause knows exactly one move: replace everything. So on a clause that is a CONTAINER, a suggestion about one rule takes the other five with it. Not as a decision. As collateral.
+
+It was built that way for a good reason, which is why it survived so long: both sides of the swap are normally one paragraph. The clause library's wordings are single paragraphs and so are the positions they carry. Swapping our paragraph for their paragraph is right until the other side writes six rules under one heading, which is ordinary commercial drafting.
+
+**AND THE ADDRESS ALREADY EXISTED.** The finding quotes the wording it objected to. `pbQuoteBlock` has read a block out of that quote since the nuanced-redline work — it is exactly how the FIGURE path keeps the rest of a clause byte for byte. One of the four suggestions was surgical and the other three were not, for no reason anyone would defend.
+
+### What changed
+
+`pbFitInto(bodyHtml, quote, words)` is that reading, offered to ANY wording rather than to a number alone. It is the whole fix, and it is fifteen lines.
+
+- **The model's draft takes it at the shared reading**, inside `pbFitWording`, so the overnight batch and the clause editor cannot come to disagree about where a draft belongs. `preview` still shows the words themselves — what the reader is being offered has not changed, only where it lands.
+- **The clause editor addresses every FRAGMENT verb** and exempts `fit`, which already is a fitted body; slotting a whole body into one of its own blocks would nest the clause inside itself.
+- **Null is an honest answer** — no document, no blocks, no confident address, or wording identical to the block it would replace. Every caller falls back to precisely what it had, so a stage without a DOM is byte-identical.
+
+### The reversal, and it is the interesting half
+
+The September work built `pbUnquotedLoss` as a WALL on the playbook's own filing door: count the parts of a clause the finding never mentioned that would not survive the proposed wording, and refuse. It guarded the batch and the review window and it never guarded the clause editor — which is the door the owner actually used.
+
+The obvious fix was to put the same wall on the second door. **The owner's question is what showed that to be the lesser fix**, and their instruction — *"build it that way - address first, seatbelt second"* — is the ruling:
+
+> With an address, nothing is lost. `pbUnquotedLoss` counts zero. There is nothing to ask.
+
+So the question is not the main protection any more; it is the seatbelt for the one case left, where no address could be read. It fires on `!fitHtml` alone, and it speaks the review window's OWN keys, because two doors that word one act differently are how they come to mean different things.
+
+### What the measurement said
+
+On the owner's own clause shape, off the real module, in the real app:
+
+| | parent | after |
+|---|---|---|
+| parts the draft alone would delete | **5** | 5 |
+| where the draft lands | **nowhere (-1)** | **block 2 of 6** |
+| parts the applied wording deletes | **5** | **0** |
+| parts drawn as deletions after a real press | **20.1, 20.2, 20.4, 20.5, 20.6** | **none** |
+
+The first row is the fault, unchanged and deliberately so — it is what the fragment on its own would still do, and it is why the seatbelt is kept rather than deleted.
+
+### One thing found on the way and worth naming
+
+`ceApply` returns false on a no-op, and the trace was being recorded as "applied" regardless. It is now recorded only where the apply actually happened — *applied* should mean applied.
+
+### Where the browser check lives, and why not where you would expect
+
+Not in clause-editor-verify. That file runs on `parity.html`, which deliberately does not load `js/playbook.js` and is shared by ten other browser files — a note written into that file in September when a previous change declined to add the script for exactly this reason. With the module absent the rail falls back and the press measures the fallback rather than the fix. **A check that fails for the wrong reason is worse than no check**, so it went into prepare-redlines-verify, which runs the real app: real module, real rail, real delegated listener, real press.
+
+## THE CONTRACT KEEPS ITS SHAPE, THE COMMENT NUMBER COMES INSIDE THE PAGE, THE WAY BACK IS A SIGN (Young ruled 15 Sep 2026)
+
+Three reports off one screen.
+
+### 1 · "the fonts of the contract change ... in some case they become bold"
+
+> *"when you press the pencil button and you move to the editor page, the fonts of the contract change in some case they become bold. The contract should never change from one screen to another. Keep the contract shape as from screen to the next so please audit why the changes are happening and fix."*
+
+**ONE CAUSE, SEVERAL FACES, and the source looks correct in every one of them.** The redline's block renderer is handed a list of OPS — plain text plus a verdict per run — and rebuilds each line out of that text. Text carries no bold, no italic and no level. So the moment anybody proposed a change to a clause, that clause stopped being drawn from the drafter's markup and started being drawn from characters: the bold lead-in went, the italic phrase went, the step the Word and PDF readers had carefully read off the file went, and the renderer put a hanging marker and a level back by GUESSING them off the wording. A clause with nothing on it kept everything. So the document changed shape one clause at a time, depending only on whether somebody had proposed something.
+
+**MEASURED, on the same clause, before the fix:**
+- the negotiate page drew `<p><strong>3.1 Availability.</strong> … <em>ninety-nine per cent</em> …</p>` as `<p class="rl-line rl-clause rl-hang"><span class="rl-marker">3.1 </span>Availability. …` — bold gone, italic gone, a hanging indent invented;
+- a sub-paragraph the file had marked `hati-lv-1` came back with no step at all.
+
+**THE FIX IS A MAP, NOT A RE-DERIVATION.** `redlineShapeMap(html)` reads the clause's stored markup once into `line → {tag, shape classes, innerHTML}`, and `redlineOpsBlocksHtml` takes it as `opts.shape`. A line nothing touched, on a change nobody is attributed on, is printed back out of that markup verbatim. A line that really moved is still rebuilt from ops — its words are not the drafter's any more — but its tag and its step are its own.
+
+Three walls, each one a lesson this codebase has already paid for:
+- **`_RL_SHAPE_KEEP` is the file readers' vocabulary and nothing else** — `rl-hang`, `hati-lv-1..3`, `hati-tight`, `hati-pb`, `hati-toc`. A mark class (`nego-ins`, `rl-us`, `rl-marker`) says what a RENDERER decided, never what the file said, and letting one through the map would freeze one screen's decision onto every other.
+- **The tag is bounded** to `p|h1|h2|h3|h4|li`. Stored markup is sanitised, but a renderer that echoes whatever tag it finds is a renderer waiting for the one that was not.
+- **A line said twice keeps the first.** A map is not a tally, and two identical lines must not be able to argue about which shape they had.
+
+**AND THE FIRST PASS ONLY FIXED HALF OF IT.** The negotiate page was given the shape and the clause editor — which is the page the owner actually named — was not. The browser check caught it, because it compares the same clause on the two screens against ITSELF rather than against typed values. So `rlClauseShape(cl)` was promoted to module scope, published, and asked by every surface that draws the contract: the negotiate page's ops branch, its stacked branch (through `rlLayeredHtml`'s own `opts`), its front-matter region, the contract room's `negoDocHtml`, and the clause editor through `ceShapeMap()`. A CARD PREVIEW IS NOT A PAPER and is deliberately not swept — a card quotes a slice, and widening the job to the cards would have been widening the job.
+
+**WHAT THE PARENT-RED PROOF ACTUALLY SAID, and it is worth reading twice.** The page-versus-editor comparison PASSED at the parent: with a mark on the clause, both screens drew it from ops and both had lost the same things, so the two agreed — about a document that was wrong. What went red was the pair asking whether the bold, the italic and the step were there at all. That is the honest account of the fault: the two screens did not contradict each other so much as the marked clause contradicted the clause above it and its own clean reading. The page/editor pair is kept as a named CONTROL, because it is exactly how this fault would come back — the shape handed to one surface and not the next.
+
+**NOTICED, NOT FIXED**: `.nego-redline .rl-marker{font-weight:var(--w-strong)}` in the contract room's canvas bolds a marker the renderer invented, where the drafter's paper had a plain number. That is the literal "become bold". The fix above narrows it to lines that really moved; removing the rule is a styling decision for that canvas and was not asked for.
+
+### 2 · "on the edge but inside the contract page"
+
+> *"The comments numbers should be on the edge but inside the contract page. They should be similar to image 2 also in coloring where the number is dark and the ring background is light colored."*
+
+The marker was placed at a flat `left:-48px`. The sheet's own inset is 56px at the wide rung, 30 and 26 at the middle ones and 20px in the narrow window's working pane — so the marker was inside the page at exactly one rung and out in the grey at every other, and the narrower the window the further out it went. MEASURED at the parent: 9px inside a 56px sheet, and **27px outside** a 20px one.
+
+**THE PLACE IS A RELATION NOW.** `--rl-paper-pad` is declared beside every one of the five `.rl-paper` paddings and the marker reads `left:calc(2px - var(--rl-paper-pad,56px))`, so it is flush inside the sheet at every rung by construction. MEASURED after: 3px inside the page at 1500px AND at 1000px.
+
+The colour was the owner's image 2 and was the opposite of what was drawn: the disc was filled with `--accent-fill` and the number printed white. It is `--st-steel-bg` with `--accent-ink` in it now, and the moved-anchor state is the same idea in amber (`--st-amber-bg` / `--st-amber-fg`) rather than a different shape. The browser check asks it as a RELATION — which of the two painted colours is lighter — so a retune of the palette costs no edit.
+
+### 3 · "a back button but in sign format not words"
+
+> *"Image 3 and 4, where is says contract and contract workspace, there should be a back button but in sign format not words. The should take you to the same page as when you press on the contract and contract work space. The button should similar to image 5 with a blue outline like other buttons."*
+
+`#ws-back` is restyled, never replaced — the third time this one control has changed face (a 34px arrow in August, the crumb's word on 22 Aug, a sign now). Its id, its `data-back`, its title and its handler are untouched, so both destinations and every test that presses it are exactly as they were: the room lands on the list, the negotiation lands on the room.
+
+**THE WORD IS NOT LOST, IT STOPS BEING INK.** It is the `title` and the `aria-label`, so the hover, the keyboard and a screen reader still hear where the press goes. A sign a reader cannot name is a guess.
+
+**NOT A SECOND DOOR**: the Six Questions refuse one, and this is the same door wearing a different face — the word goes in the same breath the sign arrives.
+
+Three things decided by measurement rather than by taste:
+- **A CIRCLE IS NOT A CORNER.** The 26 Aug ruling gives the platform one 2px corner and gives `.rounded-full` its own 9999px for exactly this reason, so the rule states `border-radius:50%` and deliberately does not read `--radius`.
+- **THE OUTLINE IS `--btn-edge`**, the token every other outlined button reads. "Like other buttons" is a token, not a blue: typing a blue would have been right on navy and wrong on teal. MEASURED: `#24488f` at 45% on navy, `#0d9488` at 45% on teal.
+- **IT IS THE SIZE OF THE LINE IT SITS ON**, written as `calc(var(--t-label) * var(--lh-tight))` rather than as 14px. The note above that block in the stylesheet had warned, in August, that putting an icon in this row would break its top-alignment — which is true of an icon of any OTHER height. A box exactly one line box tall makes every item in the row the same height again, so nothing moved: the crumb row stayed 16px and the first line of the contract measured 293 on the room and 309 on the workbench before AND after. That is refusal 3, and it is a number, not a judgement.
+- **AND THE PRESS IS BIGGER THAN THE BOX**: `::before{inset:-7px}` gives a 14px circle a 28px target and spends nothing on layout, which is the only way to have both.
+
+## THE DECISION THAT COULD NOT BE MADE, AND THE COLUMN THAT WAS BLANK (Young reported all three 15 Sep 2026)
+
+Three reports in one message, alongside the artifact's four decisions.
+
+### "This error makes no sense ... I am also unable to accept / make a decision"
+
+The screenshot showed *"#CHG-003 was already adopted on this clause — reopen it
+first, or reject this one."* over a change column whose two awaiting rows read
+"3. Maintenance & Uptime · R5 · theirs" and "· R2 · theirs".
+
+**Two faults, and the second is the one that mattered.**
+
+The message cited a handle that appears NOWHERE on the screen it interrupts.
+Since the column took the artifact's shape on 14 Sep the CLAUSE leads every row
+and the reference rides the hover, so a refusal naming `#CHG-003` points at a
+change the reader cannot pick out of the column. `negoRefusalClause` now names
+the clause through `clauseNameShown` — the one presenting reading — and points
+at the ladder, which is the one place every move on a clause is listed and a
+settled one can be reopened. The mirror guard `ng_reopen_blocked_downstream`
+had the identical fault and got the identical fix, in both books.
+
+But the reason the guard was firing at all is a real defect, and it is in
+`applyNegoProposals` (js/core.js). An incoming ask was filed with
+`oldText: cl.text` where `cl` is `negoClauseById` — the ROUND BASELINE.
+`negoMeasuredAlike` compares exactly that field, so an ask the other side wrote
+on top of one we had ALREADY ACCEPTED carried the same `oldText` as the accepted
+one and read as its RIVAL. The accept guard then refused it, correctly by its
+own terms and uselessly in fact. **Accept one ask of theirs on a clause and no
+later ask on that clause could ever be accepted again** — on the clause being
+argued hardest, which is where it was reported.
+
+`negoClauseNowById` is the clause AS SHOWN, baseline plus what has been adopted,
+and it is what `negoEditClause` already measures our OWN edits from. Asking it
+here makes both sides of the table measure from one reading. `stacksOn` still
+leads, because a PENDING ask of ours is not in the standing text and only the
+sender's own `oldText` can name it.
+
+### "Instead of having a black screen on the plain english side"
+
+The front matter is deliberately not a clause: the title page and the contents
+are not wording anybody negotiates, and `docReadSheet` drops them so nothing is
+sent to the route or hashed for them. The cost was a reader who turns Plain
+English on at the top of a long contract and is shown an empty column for two
+pages. `docReadFront` mirrors every painted block above the first PAIRED clause.
+
+Three things were learned building it, each measured:
+
+- **It needed its own class.** As `.doc-read-note` it was counted as a reading
+  by four existing checks — "8 of 4", "5 readings for 4 clauses". A mirror is
+  the CONTRACT's words; a note is a READING of them. `.doc-read-mirror` is
+  dressed by the same rules and counted by nothing.
+- **It needed its own floor.** Sharing the entries' floor put the first reading
+  28px below the clause it reads, because a title page's copy runs a little
+  taller than the paper it copies. The mirror is context and yields; "level with
+  its own clause, to the pixel" is the promise the column exists to keep.
+- **The paper's HEAD had to be included.** `DOC_READ_FURNITURE` excludes it, and
+  that is right for what is SENT and wrong for what is DRAWN — the title block
+  was the one thing above the first clause that still did not appear. The bound
+  "above the first paired clause" keeps the foot and the seal card out without
+  naming them.
+
+Its shape — alignment, weight, case, letter-spacing, size and leading — is
+MEASURED off the block each entry faces and written inline through a narrow
+door (a fixed set of keywords, one number apiece), exactly as `--dr-size` and
+`--dr-face` beside it already are. A design this stylesheet has never heard of
+is mirrored correctly; a design added tomorrow will be too.
+
+### "Make it possible to scroll from both sides"
+
+The edition has no scroller and must not grow one: it is a clip with a
+transformed inner kept in step with the paper by `docReadSync`, and that is the
+entire reason the two columns cannot drift apart. So the wheel is FORWARDED to
+the paper's own scroller — `deltaMode` honoured, because a mouse in Firefox
+reports LINES and a page key reports PAGES, and the press swallowed only where
+the paper actually moved, so reaching the end of the contract hands the wheel
+back rather than trapping it. Driven in `plain-english-verify` 18i with a real
+`page.mouse.wheel`; against the parent it reports `contract 0 → 0`.
+
+## A CONTENTS ROW IS TWO COLUMNS, AND THE MIRROR KEPT ONLY ONE (Young reported it 15 Sep 2026)
+
+> *"The numbers in the contract on the right are supposed to be on the far right of the contract similar to the contract on the left. Fix this."*
+
+Sent with one screenshot of a table of contents. On the left, the contract: three
+rows of headings with their page numbers in a clean column at the right wall. On
+the right, the Plain English mirror built the day before: the same three rows
+with the number run straight on after the last word — *"1. Definitions and
+Interpretation 3"*.
+
+**NOTHING IN THE SOURCE LOOKED WRONG**, which is what makes this worth writing
+down. The mirror was doing exactly what it was built to do: `docReadFront`
+reduces each front-matter block to `String(el.textContent).replace(/\s+/g,' ')`
+and the column draws `<p>${esc(f.text)}</p>`, so every word of the row is
+carried, all of them, in the paper's own order. Two checks in
+plain-english-verify 18 compare those two strings and both were green — because
+the contract's own `textContent` reads the same way. The fault is not in the
+words. It is that **a page number is not a word in the sentence, it is a
+COLUMN**, and only a rendered page can tell you the difference.
+
+MEASURED on the staged contents page: on the paper the number's right edge sits
+0px from the row's right wall, 513–582px clear of where the heading's ink ends.
+In the mirror it sat immediately after the heading, with a single collapsed
+space in front of it.
+
+### The tail already existed, and it is the file's own
+
+The docx reader has known about this since 10 September. A right tab stop is
+Word saying the line has a left entry and a right-hand number, and it is the
+only paragraph property that means that, so `docxTocTail` splits the tail into a
+span of its own and the paragraph is stamped `hati-toc`:
+
+    <p class="hati-toc">Definitions and Interpretation	<span class="hati-toc-n">3</span></p>
+
+`hati-toc` is one of the six names on `RICH_SHAPE_CLASSES`, and `hati-toc-n` is
+the single span class that is a SHAPE rather than a mark. So the fact was on the
+record all along and the mirror was throwing it away on the way to the screen,
+along with everything else `textContent` cannot carry.
+
+### The reading, and what it refuses
+
+`docReadMirrorToc(el, text)` is the one reading, asked of every mirrored block:
+
+  - the tail is the element's own `.hati-toc-n`, and **the class name is read
+    through `window.RICH_TOC_TAIL_CLASS`** with a literal fallback, so the
+    mirror and the sanitiser cannot drift about what a contents tail is called;
+  - a block with no such span is not a contents row and is drawn exactly as it
+    was — which is what keeps the change narrow, and is a named control in the
+    browser file;
+  - and **it refuses rather than guessing**, in the reader's own posture: where
+    the collapsed line does not END with the tail, something else sits between
+    them and any split would be invented, so the row is drawn flat.
+
+The head is the line with the tail taken off and **trimmed**, which drops the
+tab the file wrote between them. That is deliberate: the tab is a TAB STOP — a
+layout instruction, not a word — and the float is what replaces it. It is the
+one byte where the mirror's `textContent` no longer matches the paper's, and it
+is the separator that was making the number read as a word.
+
+### The clothes follow the builder
+
+`.doc-read-mirror` is the FOURTH home the document's own markup is drawn in. The
+other three each carry the same two declarations — `index.html` for the Document
+tab's sheet, and `negotiation-css.js` twice, for the negotiate page's paper and
+the clause panel's — and every one of them is scoped to its own sheet, so none
+can reach a layer that is a SIBLING of the paper. The pair is restated for the
+mirror rather than re-invented: `overflow:hidden` so the row's height is its
+own, `float:right;padding-left:1.2em` so the tail sits at the wall.
+
+### Nothing moved on the way to the route
+
+`docReadClauses` is what is SENT and what the reading is cached on, and the
+contents page is not a clause — `docReadSheet` drops it, which is why the column
+was blank above the first clause until the mirror was built at all. So no
+contract already read pays for a byte of this. Pinned as a wall in f314 (7),
+green at the parent on purpose: it asserts an ABSENCE, and the point of it is
+that the absence survives.
+
+### The tests
+
+plain-english-verify section 19 is the instrument, and every claim in it is a
+RELATION measured off painted boxes: the number's right edge against its own
+column's right wall (0px, as on the paper), and the gap between the heading's
+last letter and the number (163–232px, where the parent had none). **Five of the
+seven are red at the parent; 19a and 19g are named CONTROLS** — the paper really
+does draw its own numbers at the wall, and every other front-matter block is
+still drawn flat. Three claims in f314 (7) are the walls round it, two of them
+red at the parent.

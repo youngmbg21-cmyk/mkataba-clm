@@ -936,9 +936,72 @@ function redlineShownBlocks(ops, opts = {}){
   const only = blocks.filter(redlineBlockTouched);
   return only.length ? only : blocks;
 }
+/* ============================================================
+   THE CONTRACT KEEPS ITS SHAPE WHETHER OR NOT A CLAUSE IS MARKED
+   (Young ruled it 15 Sep 2026: "the fonts of the contract change in some case
+   they become bold. The contract should never change from one screen to
+   another. Keep the contract shape as from screen to the next.")
+   ============================================================
+   MEASURED on one clause of one contract, in three states, before a line moved.
+   The paragraph reads `3.1 Availability. The Supplier shall…` with a bold
+   lead-in and an italic figure; the sub-paragraph under it is a real
+   `hati-lv-1` step from the file.
+
+     · CLEAN, on the negotiate page:  <p> · bold [3.1 Availability.] ·
+       italic [ninety-nine per cent] · no indent · the step 36.4px in.
+     · THE SAME CLAUSE CARRYING A MARK: <p class="rl-line rl-clause rl-hang"> ·
+       bold GONE · italic GONE · a 36.4px hanging indent it never had · and
+       the step's own 36.4px LOST.
+
+   ONE CAUSE, THREE SYMPTOMS: this renderer rebuilds every line from the TEXT
+   PROJECTION of the ops and re-derives its shape from the words — `rl-hang`
+   where the line happens to begin with something marker-shaped, `hati-lv-N`
+   off a bullet glyph — so the document's own step is discarded, a gutter is
+   invented for a paragraph the file never hung, and every inline mark the
+   drafter set is flattened on the way through.
+
+   THE FIX IS THE RULE ONE LEVEL UP, WHICH THIS FILE ALREADY STATES. Where the
+   words of a whole CLAUSE did not move, the clause is drawn as the document
+   (negoWordsMoved's own note). The same is true of a BLOCK: a line nobody
+   touched should read exactly as the document draws it. `opts.shape` is a map
+   of the clause AS THE CLEAN PAGE ALREADY RENDERED IT, so the answer is not
+   re-derived here at all — it is the same markup, by construction.
+
+   NOTHING IS GUESSED AND NOTHING IS WIDENED. A line the map does not hold —
+   wording that really moved, a clause drawn with no shape passed — falls
+   through to exactly the derivation it has always had. */
+const _RL_SHAPE_KEEP = new Set(['rl-hang', 'hati-lv-1', 'hati-lv-2', 'hati-lv-3',
+  'hati-tight', 'hati-pb', 'hati-toc']);
+const _rlShapeKey = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+/* The clause as the clean page draws it, read block by block. A DOM is
+   required and there is no guess without one: a stage with no document answers
+   null and every caller keeps the drawing it had. */
+function redlineShapeMap(html){
+  if (typeof document === 'undefined' || !document.createElement) return null;
+  const s = String(html == null ? '' : html);
+  if (!s) return null;
+  let root;
+  try { root = document.createElement('div'); root.innerHTML = s; }
+  catch (_){ return null; }
+  /* The body may arrive wrapped (a .nego-body around the blocks) — walk down to
+     whatever really holds the paragraphs. */
+  let host = root;
+  while (host.children && host.children.length === 1
+    && /^(DIV|ARTICLE|SECTION)$/.test(host.children[0].tagName)) host = host.children[0];
+  const map = new Map();
+  Array.from(host.children || []).forEach(el => {
+    const key = _rlShapeKey(el.textContent);
+    if (!key || map.has(key)) return;      /* a line said twice keeps the first */
+    map.set(key, { tag: el.tagName.toLowerCase(),
+      cls: String(el.className || '').split(/\s+/).filter(c => _RL_SHAPE_KEEP.has(c)).join(' '),
+      html: el.innerHTML });
+  });
+  return map.size ? map : null;
+}
 function redlineOpsBlocksHtml(ops, opts = {}){
   const pre = opts.classPrefix || 'rl';
   const blocks = redlineShownBlocks(ops, opts);
+  const shape = (opts.shape && typeof opts.shape.get === 'function') ? opts.shape : null;
   return blocks.map(group => {
     const shown = redlineBlockShown(group);
     const kind = redlineLineKind(shown);
@@ -960,8 +1023,15 @@ function redlineOpsBlocksHtml(ops, opts = {}){
        hati-lv-N the Word reader writes off a file's own indent and the writing
        bar writes off a press. Two names for one step is how they come to
        disagree about how wide a step is. */
-    const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
-      depth ? `hati-lv-${depth}` : '',
+    /* ---- THE DOCUMENT'S OWN BLOCK, WHERE THIS LINE IS ONE OF THEM ----
+       Looked up on the wording SHOWN, and on the wording as it STOOD where the
+       shown text is a deletion — a struck line is not in the new document and
+       its shape is the one it had. See redlineShapeMap above for the report. */
+    const src = shape ? (shape.get(_rlShapeKey(shown))
+      || shape.get(_rlShapeKey(group.map(o => (o.op === 'ins' ? '' : o.text)).join('')))) : null;
+    const srcTag = src && /^(p|h1|h2|h3|h4|li)$/.test(src.tag) ? src.tag : null;
+    const cls = [`${pre}-line`, `${pre}-${kind}`,
+      src ? src.cls : [hang, depth ? `hati-lv-${depth}` : ''].filter(Boolean).join(' '),
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
     /* THE BLOCK'S OWN STYLE, for markup that leaves this app — see the note on
@@ -978,6 +1048,15 @@ function redlineOpsBlocksHtml(ops, opts = {}){
       ? redlineAttributedHtml(g, opts)
       : redlineOpsHtml(g, opts);
     let inner;
+    /* ---- A LINE NOBODY TOUCHED IS THE DOCUMENT'S OWN LINE ----
+       Emitted verbatim rather than redrawn from its words, so the drafter's
+       bold lead-in, italic figure and hanging marker survive a mark landing
+       somewhere else in the clause. Only where every op on the line is a KEEP —
+       wording that really moved is drawn with its marks, as it must be — and
+       never on the attributed path, which is a different picture with its own
+       spans. */
+    if (src && !opts.attributed && group.every(o => o.op === 'keep'))
+      return `<${srcTag || tag} class="${cls}"${bAttr}>${src.html}</${srcTag || tag}>`;
     const fm = hang ? redlineSplitMarker(String(group[0].text)) : { marker: '' };
     if (fm.marker){
       const head = String(group[0].text);
@@ -988,7 +1067,7 @@ function redlineOpsBlocksHtml(ops, opts = {}){
     } else {
       inner = draw(group);
     }
-    return `<${tag} class="${cls}"${bAttr}>${inner}</${tag}>`;
+    return `<${srcTag || tag} class="${cls}"${bAttr}>${inner}</${srcTag || tag}>`;
   }).join('');
 }
 
@@ -1308,7 +1387,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineOldText, redlineNewText, redlineIsNoop, redlineStats, REDLINE_MAX_D,
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
-  redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
+  redlineOpsBlocks, redlineOpsBlocksHtml, redlineShapeMap, redlineOpsStructured,
   redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,

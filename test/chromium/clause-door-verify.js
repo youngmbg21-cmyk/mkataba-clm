@@ -1793,8 +1793,18 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         typing: !!(box && box.isContentEditable) };
     });
     open17.under = under17; open17.at = { x: Math.round(where17.x), y: Math.round(where17.y), vh: where17.vh };
-    ck('17a A REAL CLICK IN THE WORDING on the negotiate page opens the editor on that clause, typing',
-       open17.open && open17.on === where17.clauseId && open17.typing, JSON.stringify({ ...open17, pencilOnStage: where17.pencil, host: where17.host }));
+    /* ---- REVERSED IN PLACE 15 Sep 2026 ----
+       *"When I am in the redlined contract page and i press anywhere in the
+       contract it sends me directly to the editor page without my consent."*
+       This drove a real click into a clause's wording and required the editor
+       to open on it. THE PAPER IS FOR READING: a stray click while scrolling,
+       or a drag released a pixel short, took the reader off the page they were
+       reading and into a full-window layer. The claim is now the absence —
+       driven the same way, with a real mouse, because only a real press can
+       prove a door is shut. 17b and 17c are unchanged and are what prove the
+       two doors the owner named still work. */
+    ck('17a A REAL CLICK IN THE WORDING on the negotiate page opens NOTHING — the paper is for reading',
+       !open17.open, JSON.stringify({ ...open17, pencilOnStage: where17.pencil, host: where17.host }));
     await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
     await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); }); await pause(400);
     /* a drag: the menu, and no editor */

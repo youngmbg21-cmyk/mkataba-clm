@@ -51,6 +51,13 @@ function bench(over = {}, ready = true){
   const w = buildWorld({ signcheck: true, contractView: true });
   const { win } = w;
   const c = contract(over);
+  /* A BRIEF ON FILE, NEWER THAN ANY CHANGE (15 Sep 2026). The brief joined the
+     check that day, and a contract with none draws a row saying so — true, and
+     noise in every test here that is about a different row. A bench contract
+     heading for signature is one somebody has read, so it carries one; the
+     tests that are ABOUT the brief take it away or age it themselves. */
+  if (!Object.prototype.hasOwnProperty.call(over, '_brief'))
+    c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Bench', truncated: false, data: {} };
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, settings: win.state && win.state.settings || {} });
   win.getContract = id => (id === c.id ? c : null);
   win.canViewValues = () => true;
@@ -82,10 +89,24 @@ describe('f308 (1) — the standards review remembers what it read', () => {
 });
 
 describe('f308 (2) — signCheck is the one reading of where it stands', () => {
-  test('it draws nothing before the moment it is about', () => {
+  /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "how do you trigger running the
+     brief again, the standard checks, and the obligations once more before you
+     sign?") ----
+     This pinned "no signer named, no check", which is what HID the three
+     readings and the Run control until an unrelated box was ticked — the list
+     understated its own length every time. Reading a contract does not require
+     knowing who will sign it. THE CLAIM THE OLD ONE WAS REALLY MAKING — the
+     check draws nothing where there is nothing to check — is kept and asked of
+     the two states that still mean it: a sealed record and a dead one. */
+  test('it draws on a live contract, sealed or dead it draws nothing', () => {
     const { win, c } = bench({}, false);
-    assert.equal(win.signCheck(c).ready, false, 'no route named, no check');
-    assert.equal(win.signCheckCardHtml(c), '', 'and no card');
+    assert.equal(win.signCheck(c).ready, true,
+      'no signer named is a ROW in the list, never a condition on the list');
+    c.status = 'Signed';
+    assert.equal(win.signCheck(c).ready, false, 'a signed record has nothing left to check');
+    c.status = 'Declined';
+    assert.equal(win.signCheck(c).ready, false, 'and neither has a dead one');
+    assert.equal(win.signCheckCardHtml(c), '', 'and then no card');
   });
 
   test('no playbook saved is its own answer, never "fine"', () => {

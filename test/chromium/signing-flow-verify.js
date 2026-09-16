@@ -49,6 +49,11 @@ const check = (name, pass, detail) => {
       c.signerPlan = [
         { id: 'sg_me', party: 'internal', name: me.name, memberId: me.id, email: me.email, order: 1, signed: false },
         { id: 'sg_cp', party: 'counterparty', name: 'Ola Nordmann', email: 'ola@nandi.co.ke', order: 2, signed: false } ];
+      /* A BRIEF ON FILE, NEWER THAN ANY CHANGE (15 Sep 2026). The brief became
+         a reading of the check that day, so a contract staged at the moment of
+         signature carries one; without it every count here would be one higher
+         and would be counting a row this file is not about. */
+      c._brief = { v: 1, at: new Date(Date.now() + 60000).toISOString(), by: 'Stage', truncated: false, data: {} };
       const hash = playbookHashOf(playbookText(c));
       c.playbook = { label: 'Default', wordingHash: hash, verdicts: [
         { category: 'Governing law', status: 'deviation', escalate: true, position: 'Kenyan law', quote: '' },
@@ -172,6 +177,116 @@ const check = (name, pass, detail) => {
         trail: (c.audit || []).some(a => a.action === 'Consent') }; });
     check('4c  with the tick the signature lands, consent is stamped on the record and the trail',
       signed.padGone && signed.consent && signed.sigs === 1 && signed.mine && signed.trail, JSON.stringify(signed));
+    /* ============================================================
+       6 — THE WHOLE LIST, IN THREE STAGES (Young ruled 15 Sep 2026)
+       ============================================================
+       *"how do you trigger running the brief again, the standard checks, and
+       the obligations once more before you sign?"* — you could not, and only a
+       real page can show why: the three readings and the Run control were not
+       DRAWN until a signer was named on each side. So the card said "3 to
+       settle", the reader settled three things, and three more appeared.
+       Staged on a fresh contract with NOBODY named to sign, which is the state
+       the owner photographed.
+       ============================================================ */
+    const st6 = await page.evaluate(async () => {
+      const c = getContract('MK-A3') || getContract('MK-A2');
+      if (!c) return { error: 'no contract' };
+      /* NOBODY NAMED, and no brief — the reported screen exactly. */
+      c.signerPlan = []; delete c._brief; delete c._hasBrief;
+      delete c.playbook; delete c.signCheck;
+      delete c.obligationsReadAt; delete c.obligationsReadHash; c.obligations = [];
+      c.changes = []; delete c.negotiation;
+      c.compliance = {};
+      state.settings = { ...(state.settings || {}), approvalRules: [] };
+      persist(c); await flushSaves();
+      openWorkspace(c.id); roomGoTab(c, 'sign');
+      await new Promise(r => setTimeout(r, 900));
+      return { id: c.id };
+    });
+    if (st6.error){ check('6 the stage drew a contract', false, st6.error); }
+    else {
+      const READ6 = () => {
+        const card = document.getElementById('sign-check');
+        if (!card) return { none: 'no card' };
+        const stages = [...card.querySelectorAll('[data-sc-stage]')].map(el => ({
+          stage: el.getAttribute('data-sc-stage'),
+          heading: (el.querySelector('.sc-stage-t') || {}).textContent || '',
+          rows: [...el.querySelectorAll('.sc-find')].map(r => ({
+            key: r.getAttribute('data-sc-row'),
+            title: ((r.querySelector('.sc-find-t span:not(.sc-mark):not(.sc-esc)') || {}).textContent || '').trim(),
+            why: ((r.querySelector('.sc-find-w') || {}).textContent || '').trim(),
+            wait: r.classList.contains('is-wait'),
+            acts: [...r.querySelectorAll('.sc-find-a button')].map(b => b.textContent.trim()),
+          })),
+        }));
+        const run = card.querySelector('#sc-run');
+        const runBox = run && run.getBoundingClientRect();
+        return { none: null, stages,
+          run: !!run, runOn: !!(runBox && runBox.width > 0 && runBox.height > 0),
+          runDisabled: !!(run && run.disabled),
+          runStage: run && run.closest('[data-sc-stage]')
+            ? run.closest('[data-sc-stage]').getAttribute('data-sc-stage') : null,
+          kinds: stages.reduce((a, s) => a.concat(s.rows.map(r => r.key)), []) };
+      };
+      const a6 = await page.evaluate(READ6);
+      check('6a- the control: the check card drew with nobody named to sign', a6.none === null, a6.none || 'drawn');
+      if (a6.none === null){
+        const has = k => a6.kinds.some(x => String(x).indexOf(k) >= 0);
+        check('6a THE REPORT: the three readings are on the list before any signer is named',
+          has('brief') && has('standards-read') && has('obligations'),
+          JSON.stringify(a6.kinds));
+        check('6b and so is the one press that answers them, on the readings\' own stage',
+          a6.run && a6.runOn && a6.runStage === 'read',
+          `drawn ${a6.run} · visible ${a6.runOn} · stage ${a6.runStage}`);
+        check('6c every stage drawn carries its own question',
+          a6.stages.length >= 2 && a6.stages.every(s => s.heading.trim().length > 0),
+          a6.stages.map(s => `${s.stage}: ${s.heading}`).join(' · '));
+        check('6d and a stage with nothing in it is not drawn at all',
+          a6.stages.every(s => s.rows.length > 0),
+          a6.stages.map(s => `${s.stage}=${s.rows.length}`).join(' '));
+        /* IMAGE 2: the signers row keeps the hold, loses the duplicated line. */
+        const sg = a6.stages.reduce((f, s) => f || s.rows.find(r => /signers/.test(r.key || '')), null);
+        check('6e the signers row prints no sentence — the card below owns those words',
+          !!sg && sg.why === '', sg ? `"${sg.why}"` : 'row missing');
+        check('6f and keeps exactly one door',
+          !!sg && sg.acts.length === 1, sg ? sg.acts.join(' · ') : 'row missing');
+        const land = await page.evaluate(() => {
+          const b = document.querySelector('#sign-check [data-sc-signers]');
+          if (!b) return { none: true };
+          b.click();
+          return { none: false, card: !!document.getElementById('signing-order') };
+        });
+        await page.waitForTimeout(700);
+        const flashed = await page.evaluate(() => {
+          const el = document.getElementById('signing-order');
+          return { there: !!el, lit: !!(el && el.classList.contains('anchor-flash')),
+            modal: !!document.querySelector('#modal-root .modal, #modal-root [role="dialog"]') };
+        });
+        check('6g its press lands on the Signing order card and lights it — not a second dialog',
+          !land.none && flashed.there && flashed.lit && !flashed.modal, JSON.stringify(flashed));
+      }
+
+      /* ---- AND WHILE THE WORDING IS STILL MOVING THEY WAIT, NOT HIDE ---- */
+      const st6b = await page.evaluate(async id => {
+        const c = getContract(id);
+        c.negotiation = { rounds: [] };
+        window.negoOpenPoints = () => [{ id: 'CHG-1' }];
+        renderWorkspace ? renderWorkspace(c) : roomGoTab(c, 'sign');
+        await new Promise(r => setTimeout(r, 700));
+        return true;
+      }, st6.id).catch(() => false);
+      if (st6b){
+        const b6 = await page.evaluate(READ6);
+        const readings = b6.none ? [] : (b6.stages.find(s => s.stage === 'read') || { rows: [] }).rows;
+        check('6h with the negotiation open every reading says it is waiting',
+          readings.length > 0 && readings.every(r => r.wait),
+          readings.map(r => `${r.title}=${r.wait}`).join(' · ') || 'none drawn');
+        check('6i and nothing can be spent on wording that is about to move',
+          readings.length > 0 && readings.every(r => r.acts.length === 0) && b6.runDisabled,
+          `verbs ${readings.reduce((n, r) => n + r.acts.length, 0)} · run disabled ${b6.runDisabled}`);
+      }
+    }
+
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close();

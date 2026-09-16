@@ -168,7 +168,10 @@ function deskItems(list){
        copy of any of that here is how the desk and the renewal card would come
        to disagree about the same contract. */
     const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
-    if(w && w.inWindow){
+    /* A RENEWAL THAT HAS BEEN ANSWERED IS NOT WORK PREPARED FOR ANYBODY (16 Sep
+       2026). The answer rides on renewalWindow for exactly this reason — the
+       desk keeps no copy of the rule, it reads the same word the card does. */
+    if(w && w.inWindow && !w.decided){
       const prep = c._renewalPrep
         || ((c._renewalAdvice && c._renewalAdvice.data) ? (c._renewalAdvice.overnight ? 'night' : 'you') : '');
       const it = { kind:'renewal', cid:c.id, c, days:w.days, w,

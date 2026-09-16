@@ -1376,8 +1376,10 @@
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them,.rl-col ins.rl-them,.rl-col del.rl-them,.pv-sheet ins.rl-them,.pv-sheet del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us,.rl-col ins.rl-us,.rl-col del.rl-us,.pv-sheet ins.rl-us,.pv-sheet del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
@@ -1922,6 +1924,38 @@
     border:0; padding:0; cursor:pointer; max-width:40ch; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
   .room-crumb button:hover{ text-decoration:underline; }
+  /* ---- THE WAY BACK IS A SIGN (Young ruled 15 Sep 2026) ----
+     "there should be a back button but in sign format not words ... similar to
+     image 5 with a blue outline like other buttons."
+
+     A CIRCLE IS NOT A CORNER. The 26 Aug ruling gives the platform ONE 2px
+     corner and gives .rounded-full its own 9999px for exactly this reason, so
+     this states 50% and deliberately does not read --radius.
+
+     THE EDGE IS --btn-edge, the token every other outlined button on this
+     product reads: blue on navy, green on teal, from ONE place. That is what
+     "like other buttons" means here — typing a blue would have been right on
+     one brand and wrong on the other.
+
+     IT IS THE SIZE OF THE LINE IT SITS ON, written as that relation rather
+     than as 14px. The note above this block warned that putting an icon in
+     this row breaks its top-alignment; a box exactly one line box tall does
+     not, because every item in the row is then the same height again. MEASURED
+     on both heads: the crumb row stayed 16px and the first line of the
+     contract below it did not move by a pixel — which is refusal 3, and it is
+     a number, not a judgement.
+
+     AND THE PRESS IS BIGGER THAN THE BOX: ::before spends nothing on layout
+     and gives a 14px circle the reach a finger needs. */
+  .room-crumb .room-crumb-back{ position:relative; flex:none;
+    width:calc(var(--t-label) * var(--lh-tight)); height:calc(var(--t-label) * var(--lh-tight));
+    display:grid; place-items:center; padding:0; border-radius:50%;
+    border:1px solid var(--btn-edge,var(--color-accent-600));
+    background:transparent; color:var(--accent-ink); }
+  .room-crumb .room-crumb-back svg{ width:11px; height:11px; }
+  .room-crumb .room-crumb-back::before{ content:''; position:absolute; inset:-7px; }
+  .room-crumb .room-crumb-back:hover{ background:var(--nav-well); text-decoration:none; }
+  .room-crumb .room-crumb-back:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:1px; }
   .room-crumb i{ font-style:normal; color:var(--color-neutral-400); }
   .room-crumb-here{ font-variant-numeric:tabular-nums; }
   /* Status as words. The tone comes inline from STATUS_META, so this rule
@@ -2822,16 +2856,22 @@
     background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
   #doc-read[hidden]{ display:none; }
-  .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px;
+  .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
     padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
     font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
     text-transform:uppercase; color:var(--accent-ink); }
+  /* The staleness sits ON the caption and keeps the caption's own register:
+     furniture about the reading, never a band over it. It wraps to its own
+     line rather than squeezing the label. */
+  .doc-read-moved{flex-basis:100%;color:var(--st-amber-fg);font-weight:var(--w-body);
+    text-transform:none;letter-spacing:0;}
+  .doc-read-moved button{font-size:inherit;}
   .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; font-size:var(--t-label);
     color:var(--color-neutral-600); }
   .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
   #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
-  .doc-read-note{ position:absolute; left:0; right:0; padding-right:4px;
+  .doc-read-note,.doc-read-mirror{ position:absolute; left:0; right:0; padding-right:4px;
     /* SET AT THE SIZE THE CONTRACT IS SET AT (Young reported it 10 Sep 2026).
        --dr-size is MEASURED off the paper by docReadPaint rather than computed
        from a token here, and that is what makes the claim a RELATION rather
@@ -2853,7 +2893,33 @@
        the product's face. */
     font-family:var(--dr-face,var(--font-doc));
     color:var(--color-neutral-700); }
-  .doc-read-note p{ margin:0; }
+  .doc-read-note p,.doc-read-mirror p{ margin:0; }
+  /* ---- THE PAPER'S OWN FRONT MATTER, MIRRORED (Young ruled 15 Sep 2026) ----
+     Above the first clause there is nothing to translate, and the column was
+     blank for as long as the title page and the contents ran. These entries
+     carry the contract's OWN words so the two columns read together from the
+     top; every part of their shape — centring, weight, case, letter-spacing,
+     size and leading — is MEASURED off the block each one faces and written
+     inline by docReadMirrorStyle, so a document design this stylesheet has
+     never heard of is mirrored correctly. Nothing is declared here that would
+     fight that measurement. */
+  /* The edition's own 1.75 is the leading of a TRANSLATION set beside a
+     clause; a mirror is a copy of the paper and takes the paper's. Where the
+     block's own leading resolves to a number docReadMirrorStyle measures it
+     and writes it inline; this is the answer for a block whose leading
+     computes to 'normal' and so cannot be measured. */
+  .doc-read-mirror{ line-height:1.6; }
+  .doc-read-mirror > p{ white-space:normal; }
+  /* A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN. THE CLOTHES FOLLOW THE
+     BUILDER: this is the FOURTH home the document's own markup is drawn in
+     (the Document tab's sheet, the negotiate page's paper and the clause
+     panel's are the other three) and each one carries this same pair, because
+     every one of those rules is scoped to its own sheet and none of them can
+     reach a layer that is a SIBLING of the paper. The declarations are the
+     document's own, restated here rather than re-invented: overflow contains
+     the float so the row's height is its own, and the tail sits at the wall. */
+  .doc-read-mirror > p.hati-toc{ overflow:hidden; }
+  .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
   /* The clause's own number, and it is the PAPER'S — read off the sheet, never
      asked of the model — which is what lets it be printed as a citation. */
   .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
@@ -4566,6 +4632,28 @@
   .sc-mark.is-esc{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .sc-mark.is-note{background:var(--color-neutral-100);color:var(--color-neutral-600);}
   .sc-mark.is-done{background:var(--st-green-bg);color:var(--st-green-fg);}
+  /* ---- THREE STAGES, NOT A PILE (Young ruled 15 Sep 2026) ----
+     A stage heading is a QUESTION the rows under it answer, so it is set as a
+     label and not as a card: no border, no fill, no radius. The one thing it
+     may carry is the act that belongs to the whole stage — today that is the
+     readings' single Run, which used to sit in the head where it read as
+     "run the card". A stage with no rows is not drawn at all.
+     THE LAST STAGE LOSES THE RULE under it: the settled fold, or nothing, sits
+     below and a hairline into empty space reads as a mistake. */
+  .sc-stage + .sc-stage{margin-top:4px;}
+  .sc-stage-h{display:flex;align-items:center;gap:10px;padding:11px 0 5px;}
+  .sc-stage-t{flex:1;font-size:var(--t-micro);font-weight:var(--w-title);
+    letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);}
+  .sc-stage-act{flex:none;border:0;background:none;padding:0;font:inherit;
+    font-size:var(--t-label);font-weight:var(--w-title);color:var(--accent-ink);cursor:pointer;}
+  .sc-stage-act:hover:not(:disabled){text-decoration:underline;}
+  .sc-stage-act:disabled{color:var(--color-neutral-500);cursor:default;}
+  .sc-stage:last-child .sc-find:last-child{border-bottom:0;}
+  /* WAITING IS NOT HOLDING and may not read as an alarm: a hollow ring in the
+     quiet ink, and the row's own words step back with it. */
+  .sc-mark.is-wait{background:transparent;color:var(--color-neutral-500);
+    box-shadow:inset 0 0 0 1px var(--color-neutral-400);}
+  .sc-find.is-wait .sc-find-t{color:var(--color-neutral-600);}
   .sc-counts{font-weight:var(--w-body);color:var(--color-neutral-600);margin-left:6px;font-size:var(--t-label);}
   .sc-clear{margin-top:8px;}
   .sc-settled{padding-top:6px;}

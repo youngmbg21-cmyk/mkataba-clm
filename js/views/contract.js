@@ -2920,7 +2920,7 @@ function docBody(c){
         clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
         clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
         clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
-        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
+        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90,'90')} days' written notice. ${ADJ} law governs.`),
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
       recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
@@ -4161,6 +4161,11 @@ function ktReadValue(c,key){
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
+  /* Same reading as the row's own builder, and the same "0 is not a notice
+     period" rule — this is what wireDocumentSync writes back into .kt-read
+     after a blank on the paper was typed in. */
+  if(key==='notice'){ const n=Number((c.metadata||{}).noticePeriodDays)||0;
+    return n>0?`<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',n,{n})}</span>`:dash; }
   return '';
 }
 /* "Nothing here yet" vs "nothing to put here". Both render through .kt-none —
@@ -4273,6 +4278,13 @@ function ktTermsRowsHtml(c,opts={}){
   const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   const money=isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
+  /* ZERO IS NOT A NOTICE PERIOD. Every reader does Number(…)||0 and treats 0 as
+     "none stated", so an unset row and a row holding 0 are the same fact and
+     read the same way — the dash. */
+  const noticeDays=Number((c.metadata||{}).noticePeriodDays)||0;
+  const noticeRead=noticeDays>0
+    ? `<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',noticeDays,{n:noticeDays})}</span>`
+    : dash;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   return [
@@ -4322,6 +4334,21 @@ function ktTermsRowsHtml(c,opts={}){
       `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('expiry','Expiry', day(c.expiry),
       `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar'),
+    /* ---- THE NOTICE PERIOD, WHICH IS THE DATE THAT ACTUALLY MATTERS ----
+       (16 Sep 2026.) Every renewal reading in the product counts back from the
+       expiry by metadata.noticePeriodDays — renewalDecisionDate, renewalWindow,
+       the calendar's horizon, the overnight memo, the desk row and the server's
+       twice-daily sweep. Until now nothing on any screen could put that number
+       there on a contract HaTi drafted: the upload's extractor fills it, a
+       custom template whose blank is labelled "notice" maps itself, and
+       everything else was blind. The Renewal card has been telling readers to
+       "correct it on Key terms" for a month, pointing at a row that did not
+       exist. It does now.
+       It carries the SAME label as the metadata review dialog and the phone's
+       read-only row (me_notice_days) — three surfaces naming one fact, and a
+       fourth name would be the drift this panel exists to prevent. */
+    ktRowHtml('notice', i18t('me_notice_days'), noticeRead,
+      `<input data-kt="notice" type="number" min="0" max="3650" step="1" value="${noticeDays>0?noticeDays:''}" placeholder="0" style="${KIN};font-family:var(--font-mono)"/>`, ed, 'pencil'),
     ktStreamRowHtml(c),
     tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
   ].join('');
@@ -6385,9 +6412,30 @@ function roomHeadHtml(c,opts={}){
 
            #ws-back IS STILL ONE BUTTON with one id and one handler; what moved
            is which row it sits in and which word it carries. */}
+    ${''/* ---- THE WAY BACK IS A SIGN, NOT A WORD (Young ruled 15 Sep 2026) ----
+           *"where is says contract and contract workspace, there should be a
+           back button but in sign format not words. The should take you to the
+           same page as when you press on the contract and contract work space.
+           The button should similar to image 5 with a blue outline like other
+           buttons."*
+
+           #ws-back IS STILL ONE BUTTON — the third time this control has been
+           restyled rather than replaced (a 34px arrow, then the crumb\'s word,
+           now a sign). Its id, its data-back, its title and its handler in
+           wireRoomHead are untouched, so every route, every test and both
+           destinations are exactly as they were: the room lands on the list,
+           the negotiation lands on the room.
+
+           THE WORD IS NOT LOST, it stops being INK: it is the hover and the
+           aria-label, so the keyboard and a screen reader still hear where the
+           press goes. A sign a reader cannot name is a guess.
+
+           NOT A SECOND DOOR. The Six Questions refuse one, and this is the
+           same door wearing a different face — the word is gone in the same
+           breath the sign arrives. */}
     <nav class="room-crumb" aria-label="Breadcrumb">
-      <button id="ws-back" type="button"${backC ? ' data-back="contract"' : ''}
-        title="${esc(backTitle)}">${esc(i18t(backC ? 'pg_workspace' : 'ct_back_register'))}</button>
+      <button id="ws-back" type="button" class="room-crumb-back"${backC ? ' data-back="contract"' : ''}
+        title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
       <i aria-hidden="true">/</i><span class="room-crumb-here">${esc(c.id)}</span>
     </nav>
     <div class="room-id">
@@ -7914,9 +7962,63 @@ function docReadPaint(c){
      contract itself is set at. The NUMBER is the paper's, read off the sheet by
      docReadSheet and never asked of the model, which is what lets it be printed
      as a citation. */
+  /* The paper's own front matter, mirrored so the column is not blank above
+     the first clause — see docReadFront. Drawn FIRST, because it sits above
+     every entry on the sheet it mirrors.
+
+     AND IT IS NOT A .doc-read-note. It wears a class of its own, dressed by
+     the same rules, because a mirror is the CONTRACT'S words and a note is a
+     READING of them — four checks that count the readings on a page found the
+     mirrors among them the moment the two shared a class. Anything asking
+     "how many clauses came back" must never have to know about this. */
+  const front=docReadFront(c,pairs);
+  /* HOW MANY CLAUSES THIS EDITION CAN NO LONGER SPEAK FOR. Zero where the
+     wording has not moved — the signature is over exactly what was sent — so
+     an unchanged contract draws nothing and the caption is what it always was.
+     Counted off the sheet against what came back, never guessed: a clause the
+     route answered for and the pairing then refused is one the reader is
+     looking at a gap beside. */
+  let moved=0;
+  try{
+    const sig=docReadSig(c);
+    if(sig&&c._readSig&&c._readSig!==sig){
+      const sheet=docReadSheet(c)||[];
+      moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
+      if(!moved) moved=1;
+    }
+  }catch(_){ moved=0; }
   layer.innerHTML=`
-    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em></div>
-    <div class="doc-read-clip"><div id="doc-read-inner">${pairs.map((p,n)=>{
+    ${''/* ---- THE CAPTION SAYS WHEN THIS WAS READ (Young ruled 15 Sep 2026) ----
+           *"after completing a negotiation and you want to reread the contract
+           in plain english, how will that be triggered?"*
+
+           HALF OF THIS ALREADY WORKED, and that half is what made it a trap.
+           Pressing the switch ON re-asks the route where the wording has moved
+           (docReadSig differs), so a reader who switched away and back got a
+           fresh edition and nothing to trigger. But a reader who left the
+           switch ON — read here, went to negotiate, came back — got the
+           edition made BEFORE the round, with every clause that changed drawn
+           BLANK, because docReadAnchors refuses to put a stale reading beside
+           new wording. That refusal is right and stays. What was missing is
+           that the page never said so: gaps with no explanation.
+
+           SO THE FACT GOES ON THE THING IT IS ABOUT. The caption is already
+           drawn, so this is the cheapest channel that carries it — no band, no
+           pop-up, and not one pixel off the contract. The press is
+           `data-doc-read-again`, which this column already draws for the
+           partial case and which is already wired on the layer: ONE door,
+           shown for its second honest reason.
+
+           AND IT NEVER RE-READS BY ITSELF. A full contract is a real cost the
+           reader has not asked for, and they may be back for thirty seconds to
+           check a date. Told, then their choice. */}
+    <div class="doc-read-head">${esc(i18t('ct_read_plain'))}<em>${esc(i18t('ct_read_cap'))}</em>${
+      moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
+    <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
+      `<div class="doc-read-mirror" data-doc-read-front="${i}"${
+        f.style?` style="${esc(f.style)}"`:''} aria-hidden="true">${
+        f.toc?`<p class="hati-toc">${esc(f.toc.head)}<span class="hati-toc-n">${
+          esc(f.toc.n)}</span></p>`:`<p>${esc(f.text)}</p>`}</div>`).join('')}${pairs.map((p,n)=>{
       /* The TAG follows the paper's own shape — a heading row draws a heading,
          whether or not it is a section title in the route's terms (D-2a). */
       const sec=!!p.row.headed;
@@ -8016,15 +8118,31 @@ function docReadPaint(c){
      what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
      keeps that promise honest when it cannot be kept exactly. */
   let floor=0, bottom=0;
-  pairs.forEach((p,n)=>{
-    const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
+  /* The mirrored front matter hangs by the same rule and shares the same
+     floor, so a long contents list steps down rather than sitting under the
+     first clause's entry. */
+  const place=(src,el,gap)=>{
     if(!el) return;
-    let top=Math.round(p.el.getBoundingClientRect().top - base);
+    let top=Math.round(src.getBoundingClientRect().top - base);
     if(top<floor) top=floor;
     el.style.top=top+'px';
-    floor=top+el.offsetHeight+DOC_READ_GAP;
+    floor=top+el.offsetHeight+gap;
     bottom=floor;
-  });
+  };
+  /* NO GAP BETWEEN MIRRORED BLOCKS. DOC_READ_GAP is the breathing room between
+     two READINGS of two different clauses; the front matter's own lines are
+     already spaced by the paper they are copied from, and adding 18px to each
+     would walk the mirror off the bottom of the page it is mirroring. The
+     floor still holds within the mirror, so they can never overlap. */
+  front.forEach((f,i)=>place(f.el, inner.querySelector(`[data-doc-read-front="${i}"]`), 0));
+  /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
+     entries are placed, because "level with its own clause, to the pixel" is
+     the promise this column exists to keep and the mirror is only context: a
+     title page whose copy runs a few pixels taller than the paper it copies
+     must not cost the first clause its place. MEASURED — sharing one floor put
+     the first reading 28px below the clause it reads. */
+  floor=0;
+  pairs.forEach((p,n)=>place(p.el, inner.querySelector(`[data-doc-read-note="${n}"]`), DOC_READ_GAP));
   const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
   const last=Math.max(lastEl,bottom);
   const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
@@ -8037,6 +8155,33 @@ function docReadPaint(c){
   if(!sc.dataset.docReadBound){
     sc.dataset.docReadBound='1';
     sc.addEventListener('scroll',docReadSync,{passive:true});
+  }
+  /* ---- AND THE WHEEL WORKS OVER EITHER COLUMN (Young reported it 15 Sep
+     2026: "I am only able to scroll by putting my cursor on the left of the
+     screen where the original contract is. Make it possible to scroll from
+     both sides") ----
+     THE EDITION HAS NO SCROLLER AND MUST NOT GROW ONE. It is a clip with a
+     transformed inner, kept in step with the paper by docReadSync, and that is
+     the whole reason the two columns cannot drift apart; a second real
+     scroller here would be two scrollers racing each other over one reading.
+     So the wheel is FORWARDED to the paper's scroller instead — the same
+     surface moves, from either side of the screen.
+
+     deltaMode is honoured because a mouse in Firefox reports LINES and a page
+     key reports PAGES, and treating either as pixels moves the sheet by three
+     pixels a notch. The press is only swallowed where it actually moved the
+     paper, so reaching the end of the contract still hands the wheel back to
+     the page underneath rather than trapping it. */
+  if(!layer.dataset.docReadWheel){
+    layer.dataset.docReadWheel='1';
+    layer.addEventListener('wheel',e=>{
+      const s=document.getElementById('doc-scroll');
+      if(!s) return;
+      const step=e.deltaMode===1?16:(e.deltaMode===2?s.clientHeight:1);
+      const was=s.scrollTop;
+      s.scrollTop=was+e.deltaY*step;
+      if(s.scrollTop!==was) e.preventDefault();
+    },{passive:false});
   }
   /* The paper changes height when the reader changes its type size, and the
      notes have to follow it. One observer, armed once on the canvas. */
@@ -8062,6 +8207,140 @@ function docReadShape(el){
     n=n.parentElement;
   }
   return (hang?' dr-hang':'')+(lv?' hati-lv-'+lv:'');
+}
+/* ============================================================================
+   THE COLUMN IS NOT BLANK ABOVE THE FIRST CLAUSE (Young ruled 15 Sep 2026:
+   "Instead of having a black screen on the plain english side of the contract,
+   simply mimic what is on the contract side until where the clauses begin
+   translating to plain english")
+   ============================================================================
+   The front matter is deliberately NOT a clause — the title page and the
+   contents are not wording anybody negotiates, and docReadSheet drops them so
+   that nothing is sent to the route or hashed for them. The cost was a reader
+   who turns Plain English on at the top of a long contract and is shown an
+   empty column for two pages before the first entry appears.
+
+   SO IT IS MIRRORED, NOT READ. Every block above the first paired clause draws
+   the paper's OWN words in the edition's column, level with the block it
+   faces. Nothing here is asked of a model, nothing is cached, nothing is sent:
+   docReadClauses is untouched, so what the route receives and what its cache
+   is keyed on do not move by a byte.
+
+   THE SHAPE IS MEASURED, EXACTLY AS THE SIZE AND THE FACE BESIDE IT ARE. A
+   title page is centred, bold, sometimes letter-spaced or in small capitals,
+   and every one of those belongs to the document's own design — so each is
+   read off the block being mirrored rather than typed here, and a design added
+   tomorrow is mirrored correctly without this function being told about it.
+   The values are taken through a NARROW door: a fixed set of keywords and one
+   number apiece, so nothing a computed style could carry reaches the markup
+   unchecked.
+
+   AND ONLY WHERE THERE IS A BOUNDARY TO MIRROR UP TO. With no paired clause at
+   all there is no "until the clauses begin", and mirroring would silently
+   draw a second copy of the whole contract; the partial foot is what that case
+   already has to say for itself. */
+const DOC_READ_FRONT_MAX=200;
+const DOC_READ_ALIGN=new Set(['center','right']);
+const DOC_READ_CASE=new Set(['uppercase','lowercase','capitalize','small-caps']);
+function docReadMirrorStyle(el,base){
+  let cs=null;
+  try{ cs=getComputedStyle(el); }catch(_){ return ''; }
+  if(!cs) return '';
+  const out=[];
+  const al=String(cs.textAlign||'')==='end'?'right':String(cs.textAlign||'');
+  if(DOC_READ_ALIGN.has(al)) out.push('text-align:'+al);
+  const w=parseInt(cs.fontWeight,10);
+  if(Number.isFinite(w)&&w>=600) out.push('font-weight:600');
+  if(String(cs.fontStyle||'')==='italic') out.push('font-style:italic');
+  if(DOC_READ_CASE.has(String(cs.textTransform||''))) out.push('text-transform:'+cs.textTransform);
+  const ls=String(cs.letterSpacing||'');
+  if(/^-?\d+(\.\d+)?px$/.test(ls)&&parseFloat(ls)!==0) out.push('letter-spacing:'+ls);
+  const fs=parseFloat(cs.fontSize);
+  /* A RATIO, never a pixel: the entry's own --dr-size already follows the
+     reader's A⁻/A⁺ and the document's design, and a pixel copied off the paper
+     would stop following either the moment one of them moved. */
+  if(base>0&&fs>0&&Math.abs(fs-base)>0.5)
+    out.push('font-size:calc(var(--dr-size, 1em) * '+(Math.round((fs/base)*100)/100)+')');
+  /* AND ITS LEADING, for the same reason and in the same shape. The edition's
+     own 1.75 is right for a translation set beside a clause and wrong for a
+     title page: mirrored at 1.75 every line sits a little lower than the line
+     it faces, and twelve lines of front matter end up visibly out of step.
+     Unitless, so it follows the size above it rather than fighting it. */
+  const lh=parseFloat(cs.lineHeight);
+  if(fs>0&&Number.isFinite(lh)&&lh>0) out.push('line-height:'+(Math.round((lh/fs)*100)/100));
+  return out.join(';');
+}
+/* ---- A CONTENTS ROW IS TWO COLUMNS, AND THE MIRROR KEEPS BOTH (Young
+   reported it 15 Sep 2026: "The numbers in the contract on the right are
+   supposed to be on the far right of the contract similar to the contract on
+   the left") ----
+   The page number of a contents row is not part of the line's sentence; it is
+   a RIGHT-HAND COLUMN, and the reader of the mirror is matching it against the
+   same number twelve inches to the left. Flattened to one run of text it reads
+   as the last word of the heading ("Definitions and Interpretation 3"), which
+   is a different fact from the one the paper states.
+
+   THE TAIL IS THE FILE'S OWN, NEVER A GUESS FROM THE WORDS. The docx reader
+   emits it as a span of its own for exactly this reason (a right tab stop is
+   Word saying the line has a right-hand number), and the class it uses is read
+   through window so the two cannot drift about what a contents tail is called.
+   A block with no such span is not a contents row and is mirrored as it was.
+
+   AND IT REFUSES RATHER THAN GUESSING, in the reader's own posture: where the
+   collapsed line does not END with the tail, something else sits between them
+   and any split would be invented, so the row is drawn flat. */
+function docReadMirrorToc(el,text){
+  let tail=null;
+  try{
+    const cls=(typeof window!=='undefined'&&window.RICH_TOC_TAIL_CLASS)||'hati-toc-n';
+    tail=el&&el.querySelector?el.querySelector('.'+cls):null;
+  }catch(_){ return null; }
+  if(!tail) return null;
+  const n=String(tail.textContent||'').replace(/\s+/g,' ').trim();
+  if(!n) return null;
+  const whole=String(text||'');
+  if(!whole.endsWith(n)) return null;
+  const head=whole.slice(0,whole.length-n.length).trim();
+  if(!head) return null;
+  return {head,n};
+}
+function docReadFront(c,pairs){
+  const canvas=document.getElementById('doc-canvas');
+  if(!canvas||!pairs||!pairs.length) return [];
+  const stop=pairs[0].el;
+  let els=[];
+  try{
+    /* ---- AND THE PAPER'S HEAD IS MIRRORED, THOUGH IT IS FURNITURE TO THE
+       ROUTE ---- MEASURED: the title block was the one thing above the first
+       clause that did NOT appear, because DOC_READ_FURNITURE excludes it. That
+       exclusion is right for what is SENT — a paper head is not clause wording
+       and must never be read as any — and wrong for what is DRAWN, because the
+       reader is looking straight at it and its absence is the blank the owner
+       reported. The bound is "above the first paired clause", which is what
+       keeps the foot and the seal card out of this without naming them. */
+    els=Array.from(canvas.querySelectorAll(
+        DOC_READ_HEADS+',p,li,div,'+DOC_READ_TXT_HEAD+','+DOC_READ_TXT_NUM))
+      .filter(el=>!el.contains(stop)
+        && !!(stop.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_PRECEDING));
+  }catch(_){ return []; }
+  /* The innermost block only — a wrapper that merely CONTAINS the line is not
+     the line, and mirroring both would print the front matter twice. */
+  els=els.filter((el,i)=>!els.some((o,j)=>j!==i&&el.contains(o)));
+  let base=0;
+  try{
+    const paper=canvas.querySelector('.doc-surface')||canvas;
+    base=parseFloat(getComputedStyle(paper).fontSize)||0;
+  }catch(_){}
+  const out=[];
+  for(const el of els){
+    const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!text) continue;
+    out.push({el,text,style:docReadMirrorStyle(el,base),toc:docReadMirrorToc(el,text)});
+    /* A ceiling, and it hides nothing: the unabridged front matter is the
+       column immediately to the left of this one. */
+    if(out.length>=DOC_READ_FRONT_MAX) break;
+  }
+  return out;
 }
 function docReadSwitchHtml(c){
   if(!c||!docReadFits()) return '';
@@ -8350,6 +8629,30 @@ function wireDocumentSync(c){
     toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
     renderWorkspace();
   }));
+  /* ---- AND THE NOTICE PERIOD THE PAPER ALREADY PRINTS ---- (16 Sep 2026)
+     The Distributor Agreement's clause 4 reads "terminable on N days' written
+     notice", and that N has always been a real typeable blank that saved — to
+     c.fields.noticeDays, which the paper prints and NOTHING else reads. The
+     renewal clock reads metadata.noticePeriodDays. So the one built-in whose
+     paper states a notice period was the one contract HaTi could not work out a
+     decision date for: the page said 90 and the record said nothing.
+     Same shape as the term-years listener above it, and for the same reasons:
+     on `change` so a repaint cannot take the field out from under the typist,
+     and a FILL rather than an overwrite, so a number somebody put on Key terms
+     can never be quietly moved by the wording. Unlike termYears this blank is
+     drawn for the life of the draft, so that guard is the only one there is. */
+  canvas.querySelectorAll('[data-field="noticeDays"]').forEach(inp=>inp.addEventListener('change',()=>{
+    const n=Math.round(Number(inp.value));
+    if(!(n>0&&n<=3650)) return;
+    if(Number((c.metadata||{}).noticePeriodDays)>0) return;
+    c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+    c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Notice period set to ${n} days — from the term clause on the paper`);
+    persist(c);
+    toast(i18tn('ct_notice_from_paper',n,{n}),'ok');
+    renderWorkspace();
+  }));
 }
 
 /* -------- Key terms panel -------- */
@@ -8472,10 +8775,17 @@ function ktWireSplit(){
 function wireKeyTerms(c){
   ktWireSplit();
   const LABEL={party:'our party', counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
-               effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email'};
+               effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email',
+               notice:'notice period'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
+    /* A NUMBER BOX WRITES ON `change`, NOT ON EVERY KEYSTROKE. Typing 90 into an
+       `input`-driven box stores 9 first — and for a figure the renewal clock
+       reads, a nine-day notice period sits on the record with a confidence
+       stamp of 'high' on it until the second digit lands. The value row is
+       deliberately type=text with inputmode=numeric (it carries thousand
+       separators), so this test reaches the notice row and nothing else. */
     const key=inp.getAttribute('data-kt');
-    const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
+    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number')?'change':'input';
     inp.addEventListener(evt,()=>{
       /* Our entity on this agreement. Cleared back to empty means "the
          workspace", which is the fallback contractParty already makes, so
@@ -8504,6 +8814,30 @@ function wireKeyTerms(c){
       }
       else if(key==='effDate'){ c.fields=c.fields||{}; c.fields.effDate=inp.value; }
       else if(key==='expiry') c.expiry=inp.value;
+      /* ---- THE NOTICE PERIOD, AND THE PAPER IT IS PRINTED ON ----
+         AN EMPTY BOX CLEARS; IT DOES NOT WRITE 0. Every reader asks
+         Number(…)||0 and reads 0 as "none stated", so storing a zero would say
+         "no notice period" in a field somebody had deliberately emptied —
+         the same fact, written as a number nobody typed. Deleted instead.
+         AND IT KEEPS THE PAPER TRUE. On a template whose own clause prints this
+         figure (the Distributor Agreement's clause 4 prints c.fields.noticeDays)
+         a row that moved only the record would leave the page saying 90 while
+         the clock counted 30 — the very disagreement this whole change exists
+         to close, restated the other way round. One number, both homes, written
+         together. Nothing else in the product reads c.fields.noticeDays, so on
+         paper that states no notice period this is inert. */
+      else if(key==='notice'){
+        const n=Math.round(Number(inp.value));
+        c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+        c.fields=c.fields||{};
+        if(inp.value==='' || !(n>0&&n<=3650)){
+          delete c.metadata.noticePeriodDays; delete c.metadata.confidence.noticePeriodDays;
+          delete c.fields.noticeDays;
+        }else{
+          c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
+          c.fields.noticeDays=String(n);
+        }
+      }
       syncKeyTermsUI(c, inp);
       keyTermsProgress(c);
       c.lastAction=todayStr();
@@ -8568,6 +8902,34 @@ async function fillKeyTermsFromDocument(c){
     }
     if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
     if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
+    /* ---- AND THE TWO THE READER ALREADY FOUND AND THREW AWAY ---- (16 Sep 2026)
+       This function has always read the WHOLE extraction and then kept four
+       fields off it. The notice period and the renewal type were found, paid
+       for, and dropped — on the very button whose job is to save somebody
+       typing what the document already says, and on the one screen the Renewal
+       card tells readers to go to when the decision date looks wrong.
+       THE CONFIDENCE IS THE READER'S OWN, NOT 'high'. Nobody typed these: the
+       pattern matcher grades itself low and Copilot supplies its own grade, and
+       overwriting that with a claim of certainty is how a guess comes to look
+       like a fact on the metadata review screen. Same fill-never-overwrite rule
+       as the four above, and the words join `filled` so the toast and the audit
+       line say what actually happened. */
+    const conf=k=>((meta.confidence||{})[k])||'low';
+    if(!(Number((c.metadata||{}).noticePeriodDays)>0) && Number(meta.noticePeriodDays)>0){
+      c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+      c.metadata.noticePeriodDays=Number(meta.noticePeriodDays);
+      c.metadata.confidence.noticePeriodDays=conf('noticePeriodDays');
+      filled.push('notice period');
+    }
+    /* A closed list, so a reader that answers something else writes nothing —
+       the same membership check the bulk importer makes. */
+    const RTYPES=['auto-renew','fixed','evergreen','unknown'];
+    if(!((c.metadata||{}).renewalType) && RTYPES.includes(String(meta.renewalType||''))){
+      c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+      c.metadata.renewalType=String(meta.renewalType);
+      c.metadata.confidence.renewalType=conf('renewalType');
+      filled.push('renewal type');
+    }
     if(!filled.length){
       toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
                                :'Nothing found. Party names and the deal value need an Copilot key — type them in instead','err');
@@ -8961,13 +9323,26 @@ async function runSignCheck(c,opts={}){
   if(!c||!window.signCheck) return null;
   const r=signCheck(c);
   if(!r||!r.ready) return null;
+  /* ---- THE READINGS ARE THREE NOW (Young ruled 15 Sep 2026) ----
+     The brief joined the check that day: it is the one reading written for a
+     person rather than for a rule, and it was the only one of the four made on
+     arrival that nobody ever looked at again. Unknown asks (`!== false`), the
+     same instinct the other two already use — offering a reading nobody needed
+     costs one press; skipping one they did costs a signature over a summary of
+     wording that has since moved. */
+  const wantBrief=r.brief.none===true||r.brief.stale!==false||r.brief.truncated===true;
   const wantStd=r.standards.unread===true||r.standards.stale!==false;
   const wantOb=r.obligations.unread!==false;
   const after=typeof opts.after==='function'?opts.after:()=>{};
-  if(!wantStd&&!wantOb){
+  /* NOTHING RUNS WHILE THE WORDING IS STILL MOVING: reading a contract mid-
+     round spends money on an answer the next filing invalidates. The rows say
+     so and the press is greyed; this is the same wall on the act itself. */
+  if(r.waiting){ toast(i18t('sc_wait_nego'),'warn'); return null; }
+  if(!wantBrief&&!wantStd&&!wantOb){
     signCheckStamp(c); persist(c); toast(i18t('sc_nothing_to_read'),'ok'); after(); return { ok:true, ran:0 };
   }
   const parts=[];
+  if(wantBrief) parts.push(i18t('sc_will_brief'));
   if(wantStd) parts.push(i18t('sc_will_standards'));
   if(wantOb) parts.push(i18t('sc_will_obligations'));
   const ok=window.confirmDialog?await confirmDialog({
@@ -8978,6 +9353,13 @@ async function runSignCheck(c,opts={}){
   c._signChecking=true; after();
   let all=true, ran=0;
   try{
+    if(wantBrief&&window.runContractBrief){
+      /* force where one is on file: the route caches on its own hash of what
+         it sent, so a brief this reading calls stale is one the route would
+         otherwise hand straight back. */
+      const res=await runContractBrief(c,{force:!r.brief.none});
+      if(res&&!res.error) ran++; else all=false;
+    }
     if(wantStd&&window.runPlaybookReview){
       const res=await runPlaybookReview(c,{});
       if(res&&!res.error){ c.playbook=res;
@@ -9015,6 +9397,7 @@ function signRowTitle(c,r){
   const t=k=>i18t(k);
   switch(r.kind){
     case 'standard': return r.category||t('sc_a_standard');
+    case 'brief': return t(r.never?'sc_brief_never':(r.truncated?'sc_brief_cut':'sc_brief_stale'));
     case 'standards-read': return t(r.stale?'sc_std_stale':'sc_std_unread');
     case 'obligations': return t(r.never?'sc_ob_unread':'sc_ob_head');
     case 'record': return i18t('sc_rec_head',{field:t('sc_f_'+r.field)});
@@ -9088,6 +9471,9 @@ function signCheckCardHtml(c){
           if(r.quote) acts.push(verb('data-sc-clause',r.i,'sc_open_clause'));
         }
         break; }
+      case 'brief':
+        why=i18t(r.never?'sc_brief_never_w':(r.truncated?'sc_brief_cut_w':'sc_brief_stale_w'));
+        acts.push(`<button type="button" data-sc-brief="1">${esc(i18t('sc_brief_btn'))}</button>`); break;
       case 'standards-read':
         why=i18t('sc_std_read_w'); acts.push(`<button type="button" data-sc-run="1">${esc(i18t('sc_run'))}</button>`); break;
       case 'obligations':
@@ -9106,15 +9492,37 @@ function signCheckCardHtml(c){
         acts.push(verb('data-sc-risk-read',r.id,'sc_read_btn'));
         acts.push(verb('data-sc-risk-dismiss',r.id,'sc_dismiss_btn'));
         break;
-      case 'signers': why=r.label; acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
+      /* ---- A ROW WHOSE WORK IS ON THIS SAME SCREEN POINTS AT IT (Young ruled
+         15 Sep 2026: "the before you sign sequence is not fully aligned as far
+         as adding signers is concerned. Maybe remove adding signers as a flag
+         because there is a reminder to add signers below?") ----
+         THE ROW IS NOT A REMINDER, WHICH IS WHY IT STAYS: it is what stops the
+         contract being signed. Take it out of the list and a record could be
+         sealed with nobody named on either side — the Signing order card below
+         is a label and holds nothing.
+         WHAT GOES IS THE DUPLICATION. That card printed the SAME SENTENCE word
+         for word with its own Add signers button, 300px lower. So the row
+         keeps its title and its hold, drops its paragraph, and its press lands
+         on the card that owns the act rather than opening a second path to it.
+         ONE RULE, NOT A PATCH FOR SIGNERS: `SC_ON_SCREEN` is every row whose
+         work lives on this screen. A row whose work is elsewhere — the
+         negotiation, a colleague's approval — keeps its sentence and its own
+         door, because there is nothing here to point at. */
+      case 'signers': acts.push(verb('data-sc-signers','1','ct_add_signers')); break;
       case 'negotiation': why=r.label; acts.push(verb('data-sc-nego','1','sc_open_nego')); break;
       case 'counterparty': case 'value': why=r.label; acts.push(verb('data-sc-fix',r.kind,'sc_fill_btn')); break;
       case 'placeholders': case 'fields': why=r.label; acts.push(verb('data-sc-docs','1','sc_open_doc')); break;
       case 'spots': why=r.label; if(window.signWalkGo) acts.push(verb('data-sc-spots','1','sc_place_btn')); break;
       default: why=r.label||'';
     }
-    return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}" data-sc-row="${esc(r.key)}">
-      <div class="sc-find-t">${mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
+    /* A READING THAT CANNOT RUN YET IS DRAWN AND SAYS WHY, rather than being
+       hidden until it can — hiding it is what made the list understate its own
+       length. It holds nothing (the row it waits on is already holding) and
+       its verbs stand down, because pressing one would spend money on wording
+       that is about to move. */
+    if(r.waiting){ why=i18t('sc_wait_nego'); acts=[]; }
+    return `<div class="sc-find${r.settled?' is-done':''}${r.holds?' is-hold':''}${r.waiting?' is-wait':''}" data-sc-row="${esc(r.key)}">
+      <div class="sc-find-t">${r.waiting?'<span class="sc-mark is-wait">&#9675;</span>':mark}<span>${esc(signRowTitle(c,r))}</span>${r.escalate?` <span class="sc-esc">${esc(i18t('sc_escalate'))}</span>`:''}</div>
       ${why?`<div class="sc-find-w">${esc(why)}</div>`:''}
       ${acts.length?`<div class="sc-find-a">${acts.join('')}</div>`:''}
     </div>`;
@@ -9123,20 +9531,46 @@ function signCheckCardHtml(c){
   const holdsN=rd.holds.length, notedN=rd.noted.length, settledN=rd.settled.length;
   const counts=[ holdsN?i18tn('sc_n_to_settle',holdsN,{n:holdsN}):'', notedN?i18tn('sc_n_noted',notedN,{n:notedN}):'',
     settledN?i18tn('sc_n_settled',settledN,{n:settledN}):'' ].filter(Boolean).join(' · ');
-  const openRows=rd.open.map(row).join('');
+  /* ---- THREE STAGES, NOT A PILE (Young ruled 15 Sep 2026) ----
+     The rows were ordered by weight, which is right machinery and says nothing
+     about WHY any row is there. Three named questions do, in the order a person
+     asks them — and the order is not a preference: settling the negotiation
+     invalidates the readings, so the readings come after it.
+     THE ORDER INSIDE A STAGE IS UNTOUCHED — signReadiness still ranks holds
+     first and escalations ahead of them, so the list a reader is sent to by
+     "Sign — N to settle" is the same list in the same order.
+     A STAGE WITH NOTHING IN IT DRAWS NOTHING: an empty heading is furniture. */
+  const stageOf=r=>(window.signStageOf?signStageOf(r.kind):'paper');
+  const stages=(window.SIGN_STAGES||['paper','read','people']).map(st=>{
+    const mine=rd.open.filter(r=>stageOf(r)===st);
+    if(!mine.length) return '';
+    /* THE RUN CONTROL BELONGS TO THE READINGS, so it sits on their heading —
+       one press for the stage, never a button per row. It greys with the
+       reason while the wording is still moving. */
+    const act=(st==='read'&&rc&&rc.ready)
+      ? `<button type="button" class="sc-stage-act" id="sc-run" data-sc-run="1"${busy||rc.waiting?' disabled':''}
+          title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`
+      : '';
+    return `<div class="sc-stage" data-sc-stage="${esc(st)}">
+      <div class="sc-stage-h"><span class="sc-stage-t">${esc(i18t('sc_stage_'+st))}</span>${act}</div>
+      ${mine.map(row).join('')}
+    </div>`;
+  }).join('');
+  const openRows=stages;
   const settledRows=settledN?`<div class="sc-settled">
       <button type="button" class="sc-fold" data-sc-fold="1" aria-expanded="${_scSettledOpen?'true':'false'}" title="${esc(i18t('sc_fold_title'))}">${esc(i18tn('sc_n_settled',settledN,{n:settledN}))} — ${esc(rd.settled.map(r=>signRowTitle(c,r)).join(' · '))} <span class="sc-fold-x">${esc(i18t(_scSettledOpen?'sc_fold_hide':'sc_fold_show'))}</span></button>
       ${_scSettledOpen?rd.settled.map(row).join(''):''}
     </div>`:'';
-  /* THE RUN CONTROL stays in the head: it is the door onto the two readings
-     the check can still make, and says "nothing has moved" when it has
-     nothing to do. Drawn only where the check is at its moment. */
-  const runCtl=(rc&&rc.ready)?`<button type="button" id="sc-run" class="kt-tri-x"${busy?' disabled':''}
-        title="${esc(i18t('sc_run_title'))}">${esc(i18t(busy?'sc_running':'sc_run'))}</button>`:'';
+  /* ---- THE RUN CONTROL MOVED ONTO THE READINGS' OWN STAGE (15 Sep 2026) ----
+     It stood in the head, where it read as "run the whole card" — it never was
+     that: it runs the readings and nothing else. On their heading it says what
+     it does by where it is, and it is beside the three rows it answers.
+     #sc-run KEEPS ITS ID on that button, so every wiring and every test that
+     reaches for it is untouched. */
+  const runCtl='';
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
-      ${runCtl}
+      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':'sc_ready_head'))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>${runCtl}
     </div>
     ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
       :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}
@@ -9146,6 +9580,18 @@ function signCheckCardHtml(c){
    The one thing every held press does: go to the Signing tab, put the first
    open row in view and light it. The row is where the verbs are. */
 const signReadinessCardHtml=signCheckCardHtml;
+/* ---- LANDING ON THE CARD THAT OWNS THE ACT (15 Sep 2026) ----
+   A readiness row whose work lives on this same screen points at it. The
+   scroll and the flash are signLandOnList's own two lines, lifted so the two
+   cannot drift about what "take me there" looks like. */
+function signLandOn(sel){
+  const el=typeof sel==='string'?document.querySelector(sel):sel;
+  if(!el) return false;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
+  setTimeout(()=>el.classList.remove('anchor-flash'),1800);
+  return true;
+}
 function signLandOnList(c){
   if(window.roomGoTab&&typeof _wsTab!=='undefined'&&_wsTab!=='sign') roomGoTab(c,'sign');
   setTimeout(()=>{
@@ -9283,7 +9729,7 @@ function renderSignSide(c){
            before who signs it and in what order. */}
     ${signCheckCardHtml(c)}
     ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${i18t('ct_approval_gate')}</h6>${chain}</section>`:''}
-    <section style="${CARD}">
+    <section id="signing-order" style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
         <h6 style="${H};flex:1">${i18t('ct_signing_order')}</h6>
         ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
@@ -9313,6 +9759,14 @@ function renderSignSide(c){
   const scAgain=()=>{ renderSignSide(c); if(window.renderSignButton) renderSignButton(c); };
   host.querySelector('#sc-run')?.addEventListener('click',()=>runSignCheck(c,{ after:scAgain }));
   host.querySelectorAll('[data-sc-run]').forEach(b=>b.addEventListener('click',()=>runSignCheck(c,{ after:scAgain })));
+  /* The brief's own row reads it alone rather than pressing the whole stage:
+     a reader who wants the summary re-written should not be made to pay for
+     the playbook and the obligations as well. */
+  host.querySelector('[data-sc-brief]')?.addEventListener('click',async b=>{
+    const el=b&&b.currentTarget; if(el) el.disabled=true;
+    try{ if(window.runContractBrief) await runContractBrief(c,{force:!!c._brief}); }
+    finally{ if(el) el.disabled=false; scAgain(); }
+  });
   host.querySelectorAll('[data-sc-accept]').forEach(b=>b.addEventListener('click',
     ()=>signCheckAccept(c,Number(b.getAttribute('data-sc-accept')),scAgain)));
   host.querySelectorAll('[data-sc-clause]').forEach(b=>b.addEventListener('click',
@@ -9331,7 +9785,14 @@ function renderSignSide(c){
     if(window.scanGoTo) scanGoTo(c,b.getAttribute('data-sc-risk-read')); }));
   host.querySelectorAll('[data-sc-risk-dismiss]').forEach(b=>b.addEventListener('click',
     ()=>signRiskDismiss(c,b.getAttribute('data-sc-risk-dismiss'),scAgain)));
-  host.querySelector('[data-sc-signers]')?.addEventListener('click',()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(c); });
+  /* THE CARD BELOW OWNS NAMING SIGNERS, so the row lands on it rather than
+     opening a second path to the same editor. Where that card is not drawn —
+     a narrow shell, a repaint mid-flight — the editor is still the answer:
+     a door that goes nowhere is worse than a door that skips a step. */
+  host.querySelector('[data-sc-signers]')?.addEventListener('click',()=>{
+    if(signLandOn('#signing-order')) return;
+    if(window.openSignerPlanEditor) openSignerPlanEditor(c);
+  });
   host.querySelector('[data-sc-nego]')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
   host.querySelectorAll('[data-sc-docs]').forEach(b=>b.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); }));
   host.querySelector('[data-sc-spots]')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
@@ -10473,7 +10934,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
@@ -10501,4 +10962,5 @@ Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCar
      not on this list: this codebase's most repeated defect. */
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docReadOn,docReadSet,docReadItems,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
+  docReadFront,docReadMirrorStyle,docReadMirrorToc,
   docReadRun,wireDocRead});

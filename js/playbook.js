@@ -121,6 +121,266 @@ function pbRangeRead(key, text){
   return f(String(text||'').replace(/\s+/g,' ')) || null;
 }
 
+/* ============================================================================
+   THE SMALLEST CHANGE THAT MEETS A POSITION
+   (Young's go on the artifact "The Nuanced Redline", 15 Sep 2026 — decisions
+   1 and 2. The full story is in docs/MAP-HISTORY.md under this heading.)
+   ============================================================================
+   REPORTED off a distribution agreement. Clause 7 — INVOICING, PAYMENT AND
+   SET-OFF — carries seven rules: what an invoice must say, when it is paid,
+   what a non-compliant invoice does, how a dispute runs, interest on late
+   payment, the credit limit, and the right of set-off. The playbook disagreed
+   with exactly one of them, the payment period. The redline struck ALL SEVEN
+   and put the workspace's standard payment sentence in their place, deleting
+   the interest charge, the dispute procedure, the credit limit and the set-off
+   right with nothing whatever in place of any of them. The replacement also
+   spoke about "the Buyer", in a contract whose parties are the Distributor and
+   the Manufacturer. The owner's words for the rule: "the redline has to be
+   nuanced and only tackle where the misalignment is".
+
+   THREE FAULTS, NOT ONE:
+     · THE UNIT WAS THE WHOLE CLAUSE. A numbered heading and everything under
+       it is one clause, so a disagreement with one sub-paragraph was filed as
+       a change to all of them.
+     · WHAT WAS FILED WAS A CLAUSE, NOT A POSITION. The library's `preferred`
+       wording stands alone on a blank page, and it LED — the batch read
+       `it.preferred || it.draft`. The model's own answer, which
+       AI_REDLINE_RULE already requires to be THAT CLAUSE'S OWN WORDING
+       carrying the smallest change, was ranked below it.
+     · NOTHING MEASURED THE LOSS. No step asked whether the wording about to be
+       struck was wording the finding had complained about.
+
+   SO ON A CLAUSE THE CONTRACT ALREADY HAS, what is filed is worked out in this
+   order, and the library's whole clause is not in it:
+
+     1. THE FIGURE. Where the position is argued in a number and the block
+        holding the finding's own quote carries one, our number is written into
+        THEIR sentence — words and digits, the qualifier kept — and every other
+        block of the clause comes through byte for byte. The act is
+        ladderWriteFigure, which the figure ladder already uses for exactly
+        this; nothing new here decides what a number means.
+     2. THE FITTED DRAFT. The model's wording for this clause, which the prompt
+        already requires to keep every word that is not off-position.
+     3. NOTHING. An honest refusal beats a paste: the batch counts it and
+        leaves it for a person to decide.
+
+   THE LIBRARY'S OWN WORDING KEEPS ITS JOB UNCHANGED. It is what goes in where
+   the contract has no clause on the point at all — which is what it was
+   written for — and on a located clause it is still offered by name, behind a
+   question that says how much of the clause it would replace.
+
+   READING ONLY. Nothing in here files, spends, writes or draws. */
+
+/* Of the quote's own long words, to claim one block of a clause — and the
+   winner must be clear of the runner-up by the lead. Both mirror
+   RL_PB_MATCH_MIN / RL_PB_MATCH_LEAD, which is the same question asked one
+   level up (which CLAUSE is this quote in); the bar is a little lower here
+   because the field is one clause's own blocks rather than a whole contract,
+   and because refusing simply falls through to the fitted draft. */
+const PB_QUOTE_MIN=0.6;
+const PB_QUOTE_LEAD=0.15;
+const _pbFitNorm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
+const _pbFitWords=s=>_pbFitNorm(s).split(/[^a-z0-9]+/).filter(w=>w.length>3);
+
+/* A clause's own blocks, in order, as plain text. A DOM is required and there
+   is NO GUESS WITHOUT ONE: splitting the text would throw away the markup of
+   every block the change does not touch, which is the whole promise being made
+   here. A stage with no document answers null and every caller falls through
+   to the wording it already had. */
+function pbClauseBlocks(bodyHtml){
+  if(typeof document==='undefined'||!document.createElement) return null;
+  let root;
+  try{ root=document.createElement('div'); root.innerHTML=String(bodyHtml==null?'':bodyHtml); }
+  catch(_){ return null; }
+  return Array.from(root.children||[]).map(el=>String(el.textContent||'').replace(/\s+/g,' ').trim());
+}
+
+/* WHICH BLOCK THE FINDING IS ABOUT, or -1. Containment first, because the
+   quote is required to be one continuous run copied exactly; then the word
+   overlap the clause finder uses, with the same instinct — A TIE IS A NO. A
+   clause of one block IS that block and needs no search. */
+function pbQuoteBlock(bodyHtml,quote){
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(!blocks||!blocks.length) return -1;
+  if(blocks.length===1) return 0;
+  const q=_pbFitNorm(quote);
+  if(!q) return -1;
+  const held=[];
+  blocks.forEach((t,i)=>{ const b=_pbFitNorm(t); if(b&&(b.includes(q)||q.includes(b))) held.push(i); });
+  if(held.length===1) return held[0];
+  if(held.length>1) return -1;
+  const qw=_pbFitWords(q);
+  if(!qw.length) return -1;
+  let best=-1,bestScore=0,runnerUp=0;
+  blocks.forEach((t,i)=>{
+    const have=new Set(_pbFitWords(t));
+    let hit=0; for(const w of qw) if(have.has(w)) hit++;
+    const score=hit/qw.length;
+    if(score>bestScore){ runnerUp=bestScore; bestScore=score; best=i; }
+    else if(score>runnerUp) runnerUp=score;
+  });
+  if(bestScore<PB_QUOTE_MIN) return -1;
+  if(bestScore-runnerUp<PB_QUOTE_LEAD) return -1;
+  return best;
+}
+
+/* That one block's wording replaced, and NOTHING ELSE MOVED. The element and
+   its class survive, so a hati-lv-2 sub-paragraph is still a hati-lv-2
+   sub-paragraph and the step, the gutter and the shape of every other block
+   come through the filing untouched — which is what makes the picture small,
+   because the change really is small. */
+function pbSwapBlock(bodyHtml,idx,text){
+  if(typeof document==='undefined'||!document.createElement) return null;
+  let root;
+  try{ root=document.createElement('div'); root.innerHTML=String(bodyHtml==null?'':bodyHtml); }
+  catch(_){ return null; }
+  const el=root.children&&root.children[idx];
+  if(!el) return null;
+  el.textContent=String(text==null?'':text);
+  return root.innerHTML;
+}
+
+/* THE NUMBER OUR POSITION ASKS FOR, read by the topic's OWN reader — the one
+   precedent and the ladder already use — out of wording the workspace
+   approved. Null where the position is not argued in a number at all
+   (governing law, data protection), which is most of them, and null where no
+   reader exists for the topic. Nothing is guessed and nothing is parsed here
+   that is not parsed elsewhere by the same function. */
+function pbPositionFigure(category,wordings){
+  if(typeof window==='undefined') return null;
+  const key=window.ruleKind?ruleKind(category):null;
+  const topic=(key&&window.precedentTopicByKey)?precedentTopicByKey(key):null;
+  if(!topic||!topic.unit||typeof topic.num!=='function'||!window.ladderFigure) return null;
+  for(const w of (wordings||[])){
+    const n=ladderFigure(topic,w);
+    if(n!=null) return { n, unit:topic.unit, topic };
+  }
+  return null;
+}
+
+/* THE SMALLEST CHANGE THAT MEETS THIS POSITION ON A CLAUSE WE ALREADY HAVE, or
+   null. `cl` is the located clause, `v` the verdict, and the two library
+   wordings are passed in rather than re-read so this stays a pure reading.
+
+   `text` is what gets FILED and compared (the whole clause as it would read);
+   `preview` is the one block that moved, which is what a card shows — the two
+   describe the same press and are deliberately not the same string, because a
+   card that previewed the whole clause would look like the paste this exists
+   to prevent. */
+/* ---- THE ADDRESS, NOT THE SEATBELT (Young ruled 15 Sep 2026) ----
+   *"why would a suggestion try and delete clauses nobody complained about or
+   not impact by our standards?"*
+
+   IT NEVER MEANT TO, and that is the whole answer. A suggested wording is a
+   piece of text with NO ADDRESS ON IT — it does not know which part of which
+   clause it belongs in — and the act that puts wording into a clause knows
+   exactly one move: replace everything. So on a clause that is a CONTAINER (a
+   numbered heading with six rules under it) a suggestion about one of them
+   takes the other five with it. Not as a decision. As collateral.
+
+   It was built that way because both sides of the swap are usually one
+   paragraph: the library's own clauses are single paragraphs, and so is the
+   position they carry. Swapping our paragraph for their paragraph is right
+   until the other side writes six rules under one heading, which is ordinary
+   drafting in a commercial agreement.
+
+   THE ADDRESS ALREADY EXISTS AND WAS BEING THROWN AWAY. The finding quotes the
+   wording it objected to; pbQuoteBlock reads the block out of that quote. That
+   is precisely how the figure path has always kept the rest of a clause byte
+   for byte. This is that same reading, offered to ANY wording rather than to a
+   number alone — so the promise "only tackle where the misalignment is" stops
+   being a property of one of the four suggestions and becomes a property of
+   all of them.
+
+   AND IT DEMOTES THE QUESTION TO A SEATBELT. Where an address is read nothing
+   is lost, so pbUnquotedLoss counts zero and there is nothing to ask. The
+   question is for the one case left — no address could be read — which is the
+   only way a suggestion still replaces a whole clause.
+
+   NULL IS AN HONEST ANSWER: no document, no blocks, no confident address, or
+   wording that does not move the block it landed in. Every caller falls back
+   to exactly what it had, so a stage without a DOM is byte-identical.
+
+   READING ONLY. It files nothing, spends nothing and draws nothing. */
+function pbFitInto(bodyHtml,quote,words){
+  const w=String(words==null?'':words).trim();
+  if(!w) return null;
+  if(typeof window==='undefined'||!window.richToText) return null;
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(!blocks||!blocks.length) return null;
+  const at=pbQuoteBlock(bodyHtml,quote);
+  if(at<0||blocks[at]==null) return null;
+  /* The figure path's own no-op test, asked of the BLOCK rather than the
+     clause: wording identical to what it replaces is not a change. */
+  if(_pbFitNorm(w)===_pbFitNorm(blocks[at])) return null;
+  const html=pbSwapBlock(bodyHtml,at,w);
+  if(!html) return null;
+  let text='';
+  try{ text=richToText(html); }catch(_){ return null; }
+  if(!text) return null;
+  return { text, html, block:at, blocks:blocks.length };
+}
+
+function pbFitWording(cl,v,preferred,draft){
+  const body=cl&&cl.bodyHtml;
+  const blocks=pbClauseBlocks(body);
+  const n=blocks?blocks.length:0;
+  const fig=pbPositionFigure(v&&v.category,[preferred,v&&v.position]);
+  if(fig&&body&&typeof window!=='undefined'&&window.ladderWriteFigure&&window.richToText&&blocks){
+    const at=pbQuoteBlock(body,v&&v.quote);
+    if(at>=0&&blocks[at]!=null&&ladderFigure(fig.topic,blocks[at])!=null){
+      const was=blocks[at];
+      const now=ladderWriteFigure(was,fig.n,fig.unit);
+      if(now&&_pbFitNorm(now)!==_pbFitNorm(was)){
+        const html=pbSwapBlock(body,at,now);
+        let text='';
+        if(html){ try{ text=richToText(html); }catch(_){ text=''; } }
+        if(text) return { kind:'figure', text, preview:now, html, block:at, blocks:n };
+      }
+    }
+  }
+  if(draft){
+    /* THE DRAFT TAKES THE FIGURE PATH'S ADDRESS TOO (15 Sep 2026). The prompt
+       already requires the model's wording to be THIS CLAUSE'S own carrying the
+       smallest change, so where the finding names a block that is where it
+       goes and every other block comes through byte for byte. Where no address
+       reads, it is the fragment it always was and the caller's seatbelt
+       answers for it. */
+    const into=body?pbFitInto(body,v&&v.quote,draft):null;
+    if(into) return { kind:'draft', text:into.text, preview:String(draft),
+      html:into.html, block:into.block, blocks:n };
+    return { kind:'draft', text:String(draft), preview:String(draft), html:null, block:-1, blocks:n };
+  }
+  return null;
+}
+
+/* THE WALL — HOW MUCH OF THIS CLAUSE WOULD GO THAT NOBODY ASKED ABOUT.
+   Every block of the clause that does NOT survive into the proposed wording
+   and that the finding's quote never named. Zero is the only safe answer for a
+   filing a machine makes on its own; anything above it is the clause-7 fault,
+   and a person has to say yes to it in words.
+
+   Survival is judged on WORDS, not bytes: a block whose wording comes through
+   with a figure or a phrase changed is not lost, and comparing text exactly
+   would call every edited block a deletion. */
+function pbUnquotedLoss(bodyHtml,quote,newText){
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(!blocks||blocks.length<2) return 0;
+  const q=_pbFitNorm(quote);
+  const now=new Set(_pbFitWords(newText));
+  let gone=0;
+  blocks.forEach(t=>{
+    const b=_pbFitNorm(t);
+    if(!b) return;
+    if(q&&(b.includes(q)||q.includes(b))) return;            /* the finding named it */
+    const w=_pbFitWords(b);
+    if(!w.length) return;
+    let hit=0; for(const x of w) if(now.has(x)) hit++;
+    if(hit/w.length<PB_QUOTE_MIN) gone++;                     /* its wording is not there any more */
+  });
+  return gone;
+}
+
 /* ---- heuristic playbook review (no key): deterministic clause checks ---- */
 function playbookReviewHeuristic(c, text){
   const t=String(text||'').replace(/\s+/g,' '); const T=t.toLowerCase();   // read across the document's line wrapping
@@ -828,4 +1088,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

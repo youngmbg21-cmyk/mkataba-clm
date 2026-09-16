@@ -36,13 +36,38 @@ const _scStr = v => String(v == null ? '' : v).trim();
    record not already sealed. Before that the card draws nothing at all: a
    check of wording still being argued over is a check of something that will
    not be signed. */
+/* ---- READING A CONTRACT DOES NOT REQUIRE KNOWING WHO WILL SIGN IT
+   (Young ruled 15 Sep 2026) ----
+   *"how do you trigger running the brief again, the standard checks, and the
+   obligations once more before you sign?"* — you could not, and this is why.
+
+   THIS USED TO REFUSE UNTIL A SIGNER WAS NAMED ON EACH SIDE, which hid the
+   three readings and the Run control with them. So the card said "3 to
+   settle", the reader settled three things, and only THEN did three more
+   appear. The list understated its own length every time.
+
+   AND IT IS BACKWARDS. You read a contract and then decide who signs it, not
+   the other way round. The only precondition the readings actually have is
+   wording to read. The signers question is a ROW in the list — it holds a
+   signature, as it always did — never a condition on the list being drawn.
+
+   WHAT REPLACES IT IS A WAITING STATE, NOT A SECOND HIDING PLACE: while the
+   negotiation is still open the readings are drawn and say they are waiting,
+   because reading wording that is about to move spends money on an answer
+   that will be wrong. signCheckTableClear is that question and it kept its
+   name; what changed is that its answer is now SAID rather than obeyed in
+   silence. */
 function signCheckReady(c){
   if (!c) return false;
   if (_scCall('negoExecuted', c)) return false;
   if (String(c.status || '') === 'Signed' || String(c.status || '') === 'Declined') return false;
-  const route = _scCall('signingRouteOpen', c);
-  if (route !== true) return false;
-  return signCheckTableClear(c);
+  return true;
+}
+/* Why the readings cannot run yet, or null. One reason today; a second joins
+   this function rather than growing a second guard somewhere else. */
+function signCheckWaiting(c){
+  if (!c) return null;
+  return signCheckTableClear(c) ? null : 'nego';
 }
 /* THE TABLE, READ WITHOUT STARTING A NEGOTIATION. negoOpenPoints reaches
    negoAllChanges, which runs negoInit and CREATES a negotiation on a contract
@@ -160,10 +185,60 @@ function signCheckRecord(c){
   return { rows, open: rows.filter(r => r.agrees === false && !r.kept).length };
 }
 
+/* ---- THE BRIEF IS READ ON ARRIVAL AND NEVER AGAIN (Young ruled 15 Sep 2026) ----
+   Four things are read when a contract arrives — the brief, our standards, the
+   obligations and the filing — and before a signature the check re-ran TWO of
+   them. The brief is the one written for a person rather than for a rule, and
+   it was the one nobody ever looked at again, however far the wording moved in
+   negotiation.
+
+   STALENESS IS ASKED OF THE RECORD, NOT OF A HASH, and that is a deliberate
+   limit. The brief's own inputHash is computed on the SERVER over the text it
+   sent; the browser cannot reproduce it, and a second hasher that drifted
+   would call fresh briefs stale for ever — the same trap the overnight
+   playbook sweep is deliberately kept out of. So the question asked here is
+   one the record can answer exactly: HAS ANY WORDING BEEN PROPOSED SINCE THIS
+   BRIEF WAS WRITTEN. c.changes and c.negotiation.rounds are read RAW.
+
+   IT CAN OVER-REPORT, and that is the safe direction: a change that was
+   refused moved no wording, and this will still offer a re-read. Offering a
+   reading nobody needed costs one press; hiding one they did costs a signature
+   over a summary of wording that is no longer there. */
+function signCheckBriefAt(c){
+  let last = 0;
+  const walk = list => (list || []).forEach(ch => {
+    const t = Date.parse(String((ch && (ch.at || ch.filedAt)) || '')) || 0;
+    if (t > last) last = t;
+  });
+  walk(c && c.changes);
+  const n = c && c.negotiation;
+  if (n && Array.isArray(n.rounds)) n.rounds.forEach(r => walk(r && r.changes));
+  return last;
+}
+function signCheckBrief(c){
+  const b = (c && c._brief) || null;
+  /* THE BRIEF IS TRANSPORT, so a record that is not the heavy one carries the
+     FLAG and not the brief. A brief we cannot see is not a brief that is not
+     there: it answers "we do not know", draws no row and offers no re-read,
+     because guessing here spends the reader's money on a reading that may be
+     perfectly current. */
+  if (!b && c && c._hasBrief) return { none: false, unknown: true, stale: null, at: '', by: '', truncated: false };
+  if (!b) return { none: true, stale: null, at: '', by: '', truncated: false };
+  const at = String(b.at || '');
+  const made = Date.parse(at) || 0;
+  const moved = signCheckBriefAt(c);
+  /* Null is "we do not know", exactly as playbookStale answers it: no date on
+     the brief, or no dated change to compare it with. */
+  const stale = (!made || !moved) ? null : moved > made;
+  return { none: false, stale, at, by: String(b.by || ''), truncated: !!b.truncated };
+}
+
 /* ---- THE ONE READING, AND THE ONLY THING THE CARD IS ALLOWED TO ASK ---- */
 function signCheck(c){
   if (!c) return null;
   const ready = signCheckReady(c);
+  const waiting = signCheckWaiting(c);
+  const brief = signCheckBrief(c);
   const standards = signCheckStandards(c);
   const obligations = signCheckObligations(c);
   const record = signCheckRecord(c);
@@ -178,7 +253,7 @@ function signCheck(c){
   const checked = (c.signCheck && c.signCheck.at) ? c.signCheck : null;
   const current = checked && checked.wordingHash
     && String(checked.wordingHash) === String(_scCall('playbookHashOf', _scCall('playbookText', c) || '') || '');
-  return { ready, standards, obligations, record, open,
+  return { ready, waiting, brief, standards, obligations, record, open,
     anyOpen: !!(open.standards || open.obligations || open.record),
     checked, current: checked ? !!current : null };
 }
@@ -258,13 +333,49 @@ function signCheckRowHolds(row, gate){
      has read this wording — against the playbook, or for promises — holds
      until the sweep has run against THIS wording (`current`), on advise as
      on require. What the reading then FINDS follows the gate as before. */
-  if (row.kind === 'standards-read' || row.kind === 'obligations') return !row.current;
+  /* A ROW THAT CANNOT RUN YET DOES NOT HOLD. The negotiation row above it is
+     already holding for the same reason, and one fact holding a signature
+     twice reads as two problems. */
+  if (row.waiting) return false;
+  if (row.kind === 'brief' || row.kind === 'standards-read' || row.kind === 'obligations') return !row.current;
   return row.kind === 'standard' && !!row.escalate;      /* advise */
 }
+
+/* ---- THREE STAGES, IN THE ORDER A PERSON ASKS THEM (Young ruled 15 Sep 2026) ----
+   *"Review the best approach to managing the final check and offer a seamless
+   solution that is straightforward for a user."*
+
+   The rows were ordered by WEIGHT, which is correct machinery and tells a
+   reader nothing about why any row is there. Three named questions do:
+     1  Is the paper final?            — the wording, and the blanks in it
+     2  Has anyone read THIS version?  — the four readings, and what they found
+     3  Who approves, and who signs?   — the people
+   The order is not a preference: settling the negotiation invalidates the
+   readings, so the readings sit AFTER it and not beside it.
+
+   A kind missing from this map lands in stage 1, which is the honest default:
+   an unrecognised blocker is something about the paper until somebody says
+   otherwise, and it draws at the top where it will be seen. */
+const SIGN_STAGES = ['paper', 'read', 'people'];
+const SIGN_STAGE_OF = {
+  negotiation: 'paper', fields: 'paper', placeholders: 'paper', docs: 'paper',
+  brief: 'read', 'standards-read': 'read', standard: 'read', obligations: 'read',
+  record: 'read', risk: 'read',
+  approval: 'people', turn: 'people', signers: 'people', spots: 'people',
+  cap: 'people', folder: 'people',
+};
+const signStageOf = kind => SIGN_STAGE_OF[String(kind || '')] || 'paper';
 function signCheckRows(c, r){
   const rd = r || signCheck(c);
   if (!rd || !rd.ready) return [];
   const rows = [];
+  /* THE BRIEF LEADS THE READINGS: it is the one written for a person, so it is
+     the one a reader looks at first. Absent is its own answer — a contract
+     nobody has ever briefed is not "fine". */
+  if (rd.brief.none || rd.brief.stale === true || rd.brief.truncated)
+    rows.push({ kind: 'brief', key: 'brief', never: !!rd.brief.none,
+      stale: rd.brief.stale === true, truncated: !!rd.brief.truncated,
+      at: rd.brief.at, settled: false, escalate: false });
   const s = rd.standards;
   if (s.unread === true || s.stale === true)
     rows.push({ kind: 'standards-read', key: 'standards-read', stale: s.stale === true, settled: false, escalate: false });
@@ -287,7 +398,17 @@ function signCheckRows(c, r){
     kind: 'record', key: 'rec:' + x.field, field: x.field, record: x.record, paper: x.paper,
     kept: x.kept, settled: !!x.kept, escalate: false }));
   const gate = signCheckGate();
-  rows.forEach(row => { row.current = rd.current === true; row.holds = signCheckRowHolds(row, gate); });
+  rows.forEach(row => {
+    row.current = rd.current === true;
+    row.stage = signStageOf(row.kind);
+    /* Only the READINGS wait — a departure the review already found is a fact
+       about wording on the table now, and settling it is work the reader can
+       do while the round is open. */
+    row.waiting = !!(rd.waiting && (row.kind === 'brief'
+      || row.kind === 'standards-read' || row.kind === 'obligations'));
+    row.waitingWhy = row.waiting ? rd.waiting : '';
+    row.holds = signCheckRowHolds(row, gate);
+  });
   return rows;
 }
 /* The check rows that hold a signature RIGHT NOW. The one count signBlockers'
@@ -323,7 +444,8 @@ function signReadiness(c, opts){
   const rows = [];
   const bl = _scCall('signBlockers', c) || [];
   bl.filter(b => b && b.key !== 'signcheck').forEach(b => rows.push({
-    kind: b.key, key: 'bl:' + b.key, label: b.label, short: b.short, holds: true, settled: false }));
+    kind: b.key, key: 'bl:' + b.key, label: b.label, short: b.short,
+    stage: signStageOf(b.key), holds: true, settled: false }));
   /* THE LIGHT LIST: a register row carries no wording (HEAVY strips an
      upload's text), so the two rows that hash the wording — "the review is
      about earlier wording", "the wording moved since the obligations were
@@ -331,12 +453,13 @@ function signReadiness(c, opts){
      reading a light record says so, and those two rows are left out rather
      than guessed. The rest is on the record and survives the list. */
   const light = !!(opts && opts.light);
-  signCheckRows(c).filter(r => !(light && (r.kind === 'standards-read' || r.kind === 'obligations')))
+  signCheckRows(c).filter(r => !(light && (r.kind === 'brief'
+    || r.kind === 'standards-read' || r.kind === 'obligations')))
     .forEach(r => rows.push(r));
   const findings = _scCall('openFindings', c) || [];
   findings.filter(f => f && f.sev === SIGN_RISK_SEV).forEach(f => rows.push({
     kind: 'risk', key: 'risk:' + f.id, id: f.id, title: f.title, what: f.what, fix: f.fix,
-    anchor: f.anchor, holds: false, settled: false }));
+    anchor: f.anchor, stage: signStageOf('risk'), holds: false, settled: false }));
   /* HOLDING FIRST, then what is merely open, then what was settled — and
      escalations lead the holds, because they are the ones the signer cannot
      settle alone. */
@@ -352,6 +475,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_ACCEPT_MAX, SIGN_RECORD_ROWS, SIGN_CHECK_GATES, SIGN_CHECK_GATE_DEFAULT, SIGN_RISK_SEV,
   signCheckGate, signCheckApplies, signCheckBlocker, signCheckMayAccept, signCheckAcceptedProperly,
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness,
-  signCheck, signCheckReady, signCheckTableClear,
+  signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
+  signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,
 });

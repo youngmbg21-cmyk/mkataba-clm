@@ -842,6 +842,34 @@ function rlReplStands(ch){
   if (!ids.length) return '';
   return i18t('ng_repl_stands', { ids: ids.length > 3 ? ids.slice(0, 3).join(', ') + ' ' + i18t('ng_repl_more', { n: ids.length - 3 }) : ids.join(', ') });
 }
+/* ---- THE CLAUSE'S OWN SHAPE, ONE READING (Young ruled 15 Sep 2026) ----
+   *"when you press the pencil button and you move to the editor page, the
+   fonts of the contract change in some case they become bold. The contract
+   should never change from one screen to another."*
+
+   A clause with nothing on it is drawn from its stored MARKUP; a clause
+   carrying a mark is drawn from OPS, and ops are plain text. So every bold
+   lead-in, every italic phrase and every step the Word or PDF reader wrote was
+   thrown away the moment somebody proposed a change to that clause, and the
+   renderer re-GUESSED a shape out of the characters instead — a hanging marker
+   read off the wording, a level read off the marker's depth. Which screen a
+   reader saw which shape on depended only on which clause they opened.
+
+   THIS IS THE SAME MARKUP THE CLEAN READING DRAWS, read once per clause and
+   handed to the renderer, so a marked clause and an unmarked one cannot
+   disagree about the document. It is deliberately ONE function and not one
+   per surface: the negotiate page, the contract room's canvas, the front
+   matter and the clause editor all ask it, which is the only way the four
+   stay in step. A line the reader really moved is still rebuilt from ops —
+   its words are not the drafter's any more — but its tag and its step are. */
+function rlClauseShape(cl){
+  if (!cl || !window.redlineShapeMap) return null;
+  try {
+    return redlineShapeMap(rlHangRichHtml(
+      (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`));
+  } catch (_){ return null; }
+}
+
 /* ---- WHOSE MARK, FROM THIS CHAIR (14 Sep 2026) ----
    'us' or 'them' relative to the READER, which is what the colours say. One
    reading for every paper this file draws and for the card's preview, so a
@@ -958,14 +986,17 @@ function negoDocHtml(c, opts){
      room would otherwise be shown the marks again with nothing saying why.
      Same predicate, same ops transform — THE MAP's rule that both renderers
      draw a pending change the same way. */
-  const redline = ch => {
+  const redline = (ch, cl) => {
+    /* THE SHAPE IS THE CLAUSE'S OWN — this room draws the same document the
+       negotiate page does, so it asks the same reading. */
+    const shape = rlClauseShape(cl);
     if (rlReadSideOf(ch, rlReadMode()) === 'marks'){
-      const stacked = rlLayeredHtml(c, ch, 'owner');
+      const stacked = rlLayeredHtml(c, ch, 'owner', { shape });
       if (stacked) return stacked;
     }
     const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
     return (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      ? redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner') })
+      ? redlineOpsBlocksHtml(ops, { who: rlSideWho(ch, 'owner'), shape })
       : (window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || ''));
   };
   /* The adopted wording, in the same blocks. Built off the ops with the
@@ -1096,7 +1127,7 @@ function negoDocHtml(c, opts){
          still deciding about it is the failure this rule exists to prevent. */
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
-        : (fmtBody || `<div class="nego-redline">${redline(ch)}</div>`);
+        : (fmtBody || `<div class="nego-redline">${redline(ch, cl)}</div>`);
     } else if (ch.status === 'accepted'){
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
@@ -4901,38 +4932,38 @@ function wireNegotiationTab(c, opts = {}){
       if (fromControl(e.target)) return;
       setTimeout(openSelMenu, 0);
     });
-    /* ---- A CLICK IN THE WORDING IS THE PENCIL'S OWN PRESS (Young ruled
-       14 Sep 2026: "Yes on the negotiate page too" — the pencil is never the
-       way in anywhere) ----
-       Reverses "NO EDITS ON THE PAPER … a press in the wording does nothing"
-       (1 Sep) for OUR seat on this page: a CLICK — a collapsed selection, not
-       a drag, and not on any control the clause draws — presses the clause's
-       own pencil, so it goes exactly where the pencil goes: the editor, or
-       the panel where the editor cannot take the clause, decided at the DRAW
-       on the pencil's attribute and never re-decided here. A clause a
-       colleague holds draws the lock sign where the pencil would be, and the
-       click SPEAKS it. A drag is a highlight and keeps its menu (the mouseup
-       above). Their seat, a preview, a reading that draws no pencil and the
-       clause editor's own canvas (which answers its own clicks, `opts.pill`)
-       draw no such door. The pencil's own press stops its propagation, so a
-       press ON the pencil arrives here never — one door, one act. */
-    const inPortal = typeof window !== 'undefined'
-      && (typeof window.PORTAL_MODE === 'function' ? !!window.PORTAL_MODE() : !!window.PORTAL_MODE);
-    if (side !== 'counterparty' && !opts.preview && !opts.pill && !inPortal){
-      host.addEventListener('click', ev => {
-        const t = ev.target;
-        if (!t || !t.closest || ev.defaultPrevented) return;
-        const sec = t.closest('.rl-doc [data-clause]');
-        if (!sec || !host.contains(sec)) return;
-        if (fromControl(t) || t.closest('.rl-cp-lock, .rl-repl-on, [contenteditable="true"]')) return;
-        const s = window.getSelection && window.getSelection();
-        if (s && !s.isCollapsed && String(s).trim()) return;
-        const pill = sec.querySelector('[data-rl-cp-editor]:not([data-nego-ai-clause]), [data-rl-cp-open]');
-        if (pill){ pill.click(); return; }
-        const lock = sec.querySelector('.rl-cp-lock');
-        if (lock && window.toast) toast(lock.getAttribute('title') || i18t('cl_a_colleague'), 'warn');
-      });
-    }
+    /* ---- A PRESS IN THE WORDING DOES NOTHING — REVERSED IN PLACE
+       (Young ruled 15 Sep 2026) ----
+       *"When I am in the redlined contract page and i press anywhere in the
+       contract it sends me directly to the editor page without my consent. I
+       should only be moved to the editor page by click on the pencil or on the
+       edit button."*
+
+       WHAT STOOD HERE, and it is kept in words because its reasoning is what
+       makes the reversal safe: on 14 Sep a click anywhere in a clause's
+       wording pressed that clause's own pencil, so the paper itself became a
+       door. The argument was that the pencil is never the way in — a reader
+       should not have to find a hover-only control to start work.
+
+       WHY IT GOES. THE PAPER IS FOR READING. Every other surface in this
+       product treats a press in a contract's wording as a press in a
+       contract's wording: the Document tab, the counterparty's page, an
+       executed record. Making one page navigate away instead means a reader
+       scrolling with a stray click, or reaching for a word to highlight and
+       releasing half a pixel short, leaves the page they were reading — and
+       leaves it for a FULL-WINDOW layer that covers everything. A door nobody
+       asked for is worse than a door that takes one more press to find.
+
+       THE TWO DOORS THE OWNER NAMED ARE UNTOUCHED and are both still drawn:
+       the clause's own pencil (`data-rl-cp-editor` / `data-rl-cp-open`,
+       decided at the draw) and the redline row's Edit. The clause editor's own
+       canvas keeps click-to-type — that page IS the editing surface and its
+       rule of 13 Sep is not this one.
+
+       A DRAG STILL RAISES THE MENU (the mouseup above), which is the whole of
+       what a press in the wording is for on this page. And a clause a
+       colleague holds still says so: the lock sign is drawn at rest since
+       15 Sep, so nothing has to be pressed to learn it. */
     document.addEventListener('mousedown', e => {
       if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
         _negoKillSelMenu();
@@ -11734,7 +11765,15 @@ function redlineDocHtml(c, opts = {}){
   /* How this page is being read — see rlReadMode. Resolved once for the whole
      document so every clause on it answers the same question. */
   const readMode = rlReadMode();
-  const redlineBody = ch => {
+  /* The clause as the clean page renders it, block by block, for the marked
+     drawing to keep. Guarded on the module and on a clause being passed; a
+     stage without either answers null and nothing changes. */
+  /* ---- THE CLAUSE COMES IN BESIDE THE CHANGE (Young ruled 15 Sep 2026) ----
+     So the marked drawing can be handed the clause AS THE CLEAN PAGE DRAWS IT
+     and keep the document's own blocks — see redlineShapeMap in js/redline.js
+     for the measurement. An older caller passing no clause gets exactly the
+     drawing it had. */
+  const redlineBody = (ch, cl) => {
     const pinned = bodyAt(ch && ch.clauseId);
     if (pinned) return pinned;
     /* A CLEAN READING IS A CLEAN CLAUSE. Under "As agreed" or "With changes"
@@ -11755,7 +11794,7 @@ function redlineDocHtml(c, opts = {}){
        or the replacement block. The clean readings show one side's words and
        need no layers. */
     if (which === 'marks'){
-      const stacked = rlLayeredHtml(c, ch, side, { title: tip });
+      const stacked = rlLayeredHtml(c, ch, side, { title: tip, shape: rlClauseShape(cl) });
       if (stacked) return `<div class="nego-body nego-stack">${stacked}</div>`;
     }
     /* A FORMATTING-ONLY ask has all-keep ops — drawn from them this clause
@@ -11784,8 +11823,12 @@ function redlineDocHtml(c, opts = {}){
     if (Array.isArray(ch.ops) && ch.ops.length && !ch.formattingOnly && !negoWordsMoved(ch)) return null;
     const ops = rlOpsAsSide(ch.ops, which);
     const whoM = rlSideWho(ch, side);
+    /* THE SHAPE IS THE CLEAN CLAUSE'S OWN, read off the very markup the page
+       draws where nothing is marked — never re-derived here, so a marked
+       clause and an unmarked one cannot disagree about the document. */
+    const shape = rlClauseShape(cl);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM, shape })}</div>`;
     if (window.redlineOpsHtml && ops)
       return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip, who: whoM })}</p></div>`;
     return `<div class="nego-body"><p>${_ne(which === 'del' ? (ch.oldText || '') : (ch.proposedText || ch.newText || ''))}</p></div>`;
@@ -11957,7 +12000,7 @@ function redlineDocHtml(c, opts = {}){
       const settled = ch.status !== 'pending' || ch.withdrawn;
       const which = settled ? 'marks' : rlReadSideOf(ch, readMode);
       const marked = which === 'marks';
-      const clean = redlineBody(ch);
+      const clean = redlineBody(ch, cl);
       if (!marked){
         return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${anchorIds}">
           <div class="rl-clause-top">
@@ -12083,8 +12126,11 @@ function redlineDocHtml(c, opts = {}){
     if (!frontCh) return '';
     const tip = String((frontCh.author || '') || '').trim();
     const ops = rlOpsAsSide(frontCh.ops, 'marks');
+    /* The front matter is the contract's own paper too — its region keeps its
+       shape for the same reason every clause below it does. */
+    const fShape = rlClauseShape(frontCl);
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '', who: rlSideWho(frontCh, side) })}</div>`;
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip ? `Last updated by ${tip}` : '', who: rlSideWho(frontCh, side), shape: fShape })}</div>`;
     return `<div class="nego-body"><p>${_ne(frontCh.newText || '')}</p></div>`;
   };
   const head = (frontCl && frontDrawn == null)
@@ -13031,12 +13077,32 @@ function rlPlaybookProposals(c, rev){
        is what lets the rail, the review modal and the filing path all refuse
        the same thing for the same reason. */
     const landing = cl ? 'edit' : (v.status === 'missing' ? 'add' : 'unplaced');
+    /* ---- ON A CLAUSE WE ALREADY HAVE, THE LEAD IS THE SMALLEST CHANGE ----
+       (Young's go on the artifact "The Nuanced Redline", 15 Sep 2026,
+       decisions 1 and 2. See THE SMALLEST CHANGE THAT MEETS A POSITION in
+       js/playbook.js for the report this comes from.)
+       `preferred` led, so the library's stand-alone clause was pasted over a
+       clause the contract already had — seven rules struck to move one number.
+       pbFitWording answers what the smallest change actually is: our figure
+       written into THEIR sentence where the position is argued in a number,
+       otherwise the model's fitted draft, otherwise NOTHING, which is an
+       honest answer and better than a paste. The three named wordings are
+       untouched and all three keep their own slot and their own name — the 26
+       Aug ruling stands; what moves is which one LEADS, and only on an edit. */
+    const fit = (landing === 'edit' && window.pbFitWording)
+      ? pbFitWording(cl, v, preferred, draft) : null;
     out.push({ v, clauseId: cl ? cl.clauseId : null,
       clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
       oldText: cl ? cl.text : '',
-      preferred, fallback, draft, landing,
-      lead: preferred || fallback || draft,
-      leadKind: preferred ? 'standard' : (fallback ? 'fallback' : 'draft'),
+      /* The clause's own markup, carried so the wall and the filing door can
+         both ask about its BLOCKS without re-reading the contract. */
+      oldHtml: cl ? String(cl.bodyHtml || '') : '',
+      preferred, fallback, draft, landing, fit,
+      /* `lead` is the whole clause as it would read, never the one block that
+         moved: the preview is a redline AGAINST oldText, so handing it a
+         fragment would draw the very wholesale replacement this prevents. */
+      lead: fit ? fit.text : (preferred || fallback || draft),
+      leadKind: fit ? fit.kind : (preferred ? 'standard' : (fallback ? 'fallback' : 'draft')),
       risk: v.escalate ? 'high' : 'medium' });
   }
   return out;
@@ -13046,7 +13112,11 @@ function rlPlaybookProposals(c, rev){
    two screens come to call the same thing by two different names. A getter map
    is deliberately NOT used: this resolves at the moment it is read, so it
    follows a reader who switches language mid-sitting. */
-const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', draft: 'pb_w_draft' };
+const RL_PB_WORDING_KEY = { standard: 'pb_w_ours', fallback: 'pb_w_fallback', draft: 'pb_w_draft',
+  /* The fourth wording, and the only one HaTi works out rather than stores:
+     OUR figure written into THEIR sentence. Named like the other three so a
+     card can never print it under somebody else's name. */
+  figure: 'pb_w_figure' };
 function rlPbWordingLabel(kind){
   return i18t(RL_PB_WORDING_KEY[kind] || RL_PB_WORDING_KEY.standard);
 }
@@ -13184,7 +13254,7 @@ async function rlPrepareRedlines(c, again){
       `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
   }
   const items = rlPlaybookProposals(c, rev);
-  const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0 };
+  const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0, broad: 0 };
   if (!items.length){
     const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
     if (window.toast) toast(aligned === rev.verdicts.length ? i18t('ng_pb_all_aligned') : i18t('ng_pb_nothing_proposable'),
@@ -13195,12 +13265,23 @@ async function rlPrepareRedlines(c, again){
   }
   for (const it of items){
     if (it.landing === 'unplaced'){ n.unplaced++; continue; }
-    const words = String(it.preferred || it.draft || '').trim();   // NEVER it.fallback
-    if (!words){ n.fallback++; continue; }
+    /* ---- THE BATCH FILES THE SMALLEST CHANGE, OR NOTHING ----
+       It read `it.preferred || it.draft` — the library's stand-alone clause
+       FIRST — which is how one press came to delete six sub-clauses nobody had
+       complained about. On a clause the contract already has, the only wording
+       this may file unattended is the fitted one; where there is none, the
+       proposal is COUNTED AND LEFT for a person to decide in the review window,
+       exactly as a fallback-only proposal already is. NEVER it.fallback, which
+       is a position nobody has decided to concede. */
+    const words = it.landing === 'edit'
+      ? String((it.fit && it.fit.text) || '').trim()
+      : String(it.preferred || it.draft || '').trim();
+    if (!words){ if (it.landing === 'edit') n.broad++; else n.fallback++; continue; }
     /* RECORD IT — the same entry the clause editor's scan rail writes at ITS
        press, so the acceptance metrics count what became of these. The draft
        is what Copilot proposed; where the library's own wording is filed
        instead, the draft is recorded as not taken. */
+    const tookDraft = !!it.draft && _rlSameWords(words, it.draft);
     if (it.draft && window.aiTraceNote){
       try{
         const tr = aiTraceNote(c, { feature: 'playbook', kind: 'wording',
@@ -13211,8 +13292,13 @@ async function rlPrepareRedlines(c, again){
              this press files straight through the funnel, so the settle that
              marks the draft as-is or edited has to find a hash already on the
              entry. (The scan rail fills a box first and hashes at apply.) */
-          hash: (!it.preferred && window.aiTraceHash) ? aiTraceHash(words) : null });
-        if (it.preferred && window.aiTraceRefuse) aiTraceRefuse(c, tr, i18t('ce_trace_used_ours'));
+          /* WHETHER THE DRAFT WAS TAKEN IS ASKED OF THE WORDING ITSELF, not of
+             whether a library entry happens to exist. Since the lead became
+             the SMALLEST CHANGE the two can differ in both directions: an edit
+             may file the draft although a preferred wording exists, and may
+             file our figure although one does not. */
+          hash: (tookDraft && window.aiTraceHash) ? aiTraceHash(words) : null });
+        if (!tookDraft && window.aiTraceRefuse) aiTraceRefuse(c, tr, i18t('ce_trace_used_ours'));
       }catch(_){}
     }
     const bag = { quiet: true };
@@ -13233,7 +13319,7 @@ async function rlPrepareRedlines(c, again){
   }
   if (window.aiTraceSave) aiTraceSave(c);
   if (window.logAudit) logAudit(c, 'Playbook',
-    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only`);
+    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only, ${n.broad} too broad to file unattended`);
   if (window.persist) persist(c);
   /* SAY WHAT HAPPENED, ONCE. One 'ok' line with the counts; nothing filed is a
      'warn' that says why. No band, no strip — the column repainting is the
@@ -13244,6 +13330,7 @@ async function rlPrepareRedlines(c, again){
   if (n.unplaced) parts.push(i18t('ng_prepare_unplaced', { n: n.unplaced }));
   if (n.refused) parts.push(i18t('ng_prepare_refused', { n: n.refused }));
   if (n.fallback) parts.push(i18t('ng_prepare_fallback', { n: n.fallback }));
+  if (n.broad) parts.push(i18t('ng_prepare_broad', { n: n.broad }));
   if (window.toast){
     if (n.filed) toast(i18tn('ng_prepare_filed', n.filed, { n: n.filed }) + (parts.length ? ' · ' + parts.join(' · ') : ''), 'ok');
     else toast(i18t('ng_prepare_none') + ' ' + parts.join(' · '), 'warn');
@@ -13290,8 +13377,40 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
-  if (item.clauseId && window.negoEditClause && window.negoRichFromLines)
-    return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note });
+  if (item.clauseId && window.negoEditClause && window.negoRichFromLines){
+    /* ---- AND THE WALL: A REDLINE MAY NOT DELETE WHAT NOBODY ASKED ABOUT ----
+       (Young's go, 15 Sep 2026 — the rule the artifact states in one line.)
+       pbFitWording is the narrowing; this is what holds when a caller hands
+       over some OTHER wording — the library's stand-alone clause, most of all.
+       Every block of the clause that the finding's quote never named and that
+       does not survive into the proposed wording is counted, and one or more
+       of them is a refusal: the clause-7 fault, where six sub-clauses about
+       invoicing, disputes, interest, credit limits and set-off were struck to
+       change a payment period.
+
+       A PERSON MAY STILL DO IT ON PURPOSE — Young's decision 4 keeps the whole
+       -clause picture for a rewrite somebody chose — so opts.wholesale lifts
+       it. Nothing that files unattended passes that flag, which is the whole
+       point: the refusal is on the machine, never on the reader. */
+    const fitted = !!(item.fit && _rlSameWords(words, item.fit.text));
+    if (!fitted && !(opts && opts.wholesale) && window.pbUnquotedLoss){
+      const gone = pbUnquotedLoss(item.oldHtml, item.v && item.v.quote, words);
+      if (gone > 0){
+        const why = i18t('ng_pb_broad_refused', { n: gone,
+          clause: (window.clauseNameShown && item.clauseLabel)
+            ? clauseNameShown(item.clauseLabel) : (item.clauseLabel || i18t('ng_this_clause')) });
+        if (opts) opts.refused = why;
+        if (!(opts && opts.quiet) && window.toast) toast(why, 'err');
+        return null;
+      }
+    }
+    /* THE FITTED WORDING FILES AS THE CLAUSE'S OWN MARKUP, never rebuilt from
+       lines: negoRichFromLines would flatten every OTHER block of the clause
+       into a bare paragraph and file a formatting change across wording nobody
+       touched — the opposite of what this whole change is for. */
+    const body = (fitted && item.fit.html) ? item.fit.html : negoRichFromLines(words);
+    return await negoEditClause(c, item.clauseId, body, { side: 'owner', author, note });
+  }
   if (window.negoInsertClause){
     /* ---- BEFORE THE SIGNATURES, NEVER AFTER ----
        A new operative clause anchors after the LAST clause ahead of the
@@ -13434,10 +13553,21 @@ async function rlOpenPlaybookReview(c, again){
       : dupStop(it)
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)"><b>${i18t('ng_dup_clause_here')}</b> &middot; ${_ne(dupStop(it).message)}</div>`
       : `<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px;flex-wrap:wrap" data-pbr-verbs="${i}">
+      ${''/* ---- THE PRIMARY PRESS IS WHATEVER `leadKind` NAMES (15 Sep 2026) ----
+             The 26 Aug ruling is that the preview and the first button can
+             never describe different wording. Since the lead on a located
+             clause became the SMALLEST CHANGE, the primary had to follow it
+             there: a figure gets its own press, a fitted draft promotes the
+             draft button, and the library's stand-alone clause — which is
+             the one that deleted six sub-clauses — steps back to an ordinary
+             button that ASKS how much of the clause it would replace. On an
+             ADD landing nothing moves: there is no clause to narrow to and
+             our own wording is exactly what belongs. */}
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px">${i18t('ng_skip')}</button>
-      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn${it.fit ? '' : ' ui-btn-primary'}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t(it.fit ? 'ng_file_preferred_whole_title' : 'ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      ${it.preferred ? `<button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>` : ''}
+      ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-primary' : ''}" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
+      ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-primary" style="font-size:var(--t-label);padding:var(--s-1) 11px" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
     </div>`}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
@@ -13451,23 +13581,51 @@ async function rlOpenPlaybookReview(c, again){
     const verbs = root.querySelector(`[data-pbr-verbs="${i}"]`);
     if (verbs) verbs.innerHTML = `<span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone}">${text}</span>`;
   };
-  const fileFrom = async (b, attr, wordingOf) => {
+  const fileFrom = async (b, attr, wordingOf, bag) => {
     const i = Number(b.getAttribute(attr));
     const it = items[i];
     if (!it) return;
     b.disabled = true;
     let ch = null;
-    try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it)); }
+    try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it), bag); }
     catch(e){ if (window.toast) toast(i18t('ng_could_not_file') + ((e && e.message) || e), 'err'); b.disabled = false; return; }
     if (!ch){ if (window.toast) toast(i18t('ng_proposal_not_filed'), 'err'); b.disabled = false; return; }
     if (window.persist) persist(c);
     settle(i, `Filed as #${_ne(ch.id)} &#10003;`, 'var(--st-green-fg,#047857)');
     if (again) again();
   };
-  root.querySelectorAll('[data-pbr-go]').forEach(b =>
-    b.addEventListener('click', () => fileFrom(b, 'data-pbr-go', it => it.preferred)));
-  root.querySelectorAll('[data-pbr-fb]').forEach(b =>
-    b.addEventListener('click', () => fileFrom(b, 'data-pbr-fb', it => it.fallback)));
+  root.querySelectorAll('[data-pbr-fit]').forEach(b =>
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-fit', it => it.fit.text)));
+  /* ---- A STAND-ALONE CLAUSE OVER A CLAUSE ALREADY THERE ASKS FIRST ----
+     Both library wordings are whole clauses written for a blank page, and on a
+     located clause either one replaces everything under the heading. That is a
+     real negotiating move and Young's decision 4 keeps it; what it may not be
+     any more is SILENT. The question counts the parts of the clause the review
+     never mentioned — the number the reader was never shown — and answering it
+     is what lifts the wall for that one press. On an add landing, and wherever
+     nothing would be lost, there is nothing to ask and nothing changes. */
+  const askThenFile = (b, attr, wordingOf) => b.addEventListener('click', async () => {
+    if (b.disabled) return;
+    const it = items[Number(b.getAttribute(attr))];
+    if (!it) return;
+    let gone = 0;
+    if (it.landing === 'edit' && window.pbUnquotedLoss)
+      gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, wordingOf(it));
+    if (gone > 0){
+      b.disabled = true;
+      const name = (window.clauseNameShown && it.clauseLabel)
+        ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || i18t('ng_this_clause'));
+      let ok = true;
+      if (window.confirmDialog) ok = await confirmDialog({ title: i18t('ng_pb_broad_title'),
+        message: i18t('ng_pb_broad_ask', { n: gone, clause: name }),
+        confirmLabel: i18t('ng_pb_broad_go') });
+      b.disabled = false;
+      if (!ok) return;
+    }
+    fileFrom(b, attr, wordingOf, { wholesale: true });
+  });
+  root.querySelectorAll('[data-pbr-go]').forEach(b => askThenFile(b, 'data-pbr-go', it => it.preferred));
+  root.querySelectorAll('[data-pbr-fb]').forEach(b => askThenFile(b, 'data-pbr-fb', it => it.fallback));
   root.querySelectorAll('[data-pbr-draft]').forEach(b =>
     b.addEventListener('click', () => fileFrom(b, 'data-pbr-draft', it => it.draft)));
   root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>
@@ -18916,7 +19074,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      paper, the column head and the two board doors. */
   rlLadderChipHtml, rlLadderSectionHtml, rlLadderTrackHtml, rlMarkLegendHtml,
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
-  rlLadderContract, openLadderCompare, rlSideWho, rlBaselineHtml,
+  rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlFigureSecHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,

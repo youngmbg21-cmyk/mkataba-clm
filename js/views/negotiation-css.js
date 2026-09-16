@@ -1989,7 +1989,7 @@ function redlineLayoutCss(){
      contract page prints square, and the rounded sheet read as an app card
      rather than paper. The radius comes off the paper and off the clause
      panel ONLY — every other rounded control on this page keeps its own. */}
-  .redline-page .rl-paper{padding:30px 56px 34px;max-width:var(--doc-sheet-max,860px);background:var(--color-doc-warm);
+  .redline-page .rl-paper{--rl-paper-pad:56px;padding:30px 56px 34px;max-width:var(--doc-sheet-max,860px);background:var(--color-doc-warm);
     border:1px solid var(--color-doc-warm-line);border-radius:0;box-shadow:none;margin:0 auto;
     width:100%}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
@@ -2004,9 +2004,9 @@ function redlineLayoutCss(){
      stylesheet is inserted BEFORE #nego-style in the head — at equal
      specificity the engine would win on order. Restores the sheet's own 36px,
      matching the Doc page's paper padding. */
-  .redline-page .nego-pane.working .rl-paper{padding-left:56px;padding-right:56px}
+  .redline-page .nego-pane.working .rl-paper{--rl-paper-pad:56px;padding-left:56px;padding-right:56px}
   @media (max-width:1023px){
-    .redline-page .nego-pane.working .rl-paper{padding-left:20px;padding-right:20px}
+    .redline-page .nego-pane.working .rl-paper{--rl-paper-pad:20px;padding-left:20px;padding-right:20px}
   }
   /* ---- THE FRONT MATTER READS LIKE A DEED ----
      Centred, with a short rule under it rather than a full-width border: a
@@ -2255,9 +2255,23 @@ function redlineLayoutCss(){
      no longer in the clause. Furniture: it does not scale with the reader's
      text size, and it never reaches the record (painted after every paint,
      never inside the typing box). Both seats draw it. */
-  .rl-clause .rl-note-mk{position:absolute;left:-48px;width:18px;height:18px;padding:0;margin:0;
+  /* ---- ON THE EDGE, BUT INSIDE THE PAPER (Young ruled 15 Sep 2026: "The
+     comments numbers should be on the edge but inside the contract page") ----
+     It was a flat -48px, which is inside a 56px gutter and OUTSIDE every other
+     one this page sets: the working pane drops to 20px under 1023px and the
+     sheet itself to 30 and 26 further down, so the markers stood in the grey
+     beside the contract exactly as reported. The offset is the PAPER'S OWN
+     padding now — declared beside each of those four declarations as
+     --rl-paper-pad — so the marker is flush inside the sheet at every rung by
+     construction rather than at one of them by arithmetic. */
+  .rl-clause .rl-note-mk{position:absolute;left:calc(2px - var(--rl-paper-pad,56px));width:18px;height:18px;padding:0;margin:0;
     box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
-    border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--accent-fill);color:#fff;
+    /* ---- THE NUMBER IS DARK AND THE RING IS LIGHT (the same ruling) ----
+       A filled disc with a white number is the loudest mark this page draws,
+       and it is furniture about a note rather than anything in the agreement.
+       The rooms' own colours are kept; what swaps is which of the pair fills
+       and which writes. */
+    border-radius:50%;border:1.5px solid var(--accent-fill);background:var(--st-steel-bg);color:var(--accent-ink);
     /* LONGHANDS WITH FALLBACKS, NEVER THE font SHORTHAND (Young, 11 Sep 2026:
        "the number is outside the edges of the circle"). MEASURED: the shorthand
        font:var(--w-title) 10px/16px var(--n-font-ui) is thrown away whole
@@ -2267,7 +2281,7 @@ function redlineLayoutCss(){
        18px disc. A guard that is always false, in its CSS costume. */
     font-family:var(--n-font-ui,var(--font-body,system-ui,sans-serif));font-size:10px;line-height:1;
     font-weight:var(--w-title,700);text-align:center;cursor:pointer;z-index:2}
-  .rl-clause .rl-note-mk.out{background:var(--st-amber-fg);border-color:var(--st-amber-fg)}
+  .rl-clause .rl-note-mk.out{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-fg)}
   .rl-clause .rl-note-mk.is-gone{background:var(--n-paper);color:var(--n-ink-soft);border-color:var(--n-ink-soft)}
   .rl-clause .rl-note-mk:hover,.rl-clause .rl-note-mk:focus-visible{filter:brightness(1.08)}
   .rl-note-hl{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);
@@ -4257,8 +4271,27 @@ function redlineLayoutCss(){
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc ins.rl-them,.rl-doc del.rl-them,.nego-doc ins.rl-them,.nego-doc del.rl-them,.rl-cp-src ins.rl-them,.rl-cp-src del.rl-them,.rl-col ins.rl-them,.rl-col del.rl-them,.pv-sheet ins.rl-them,.pv-sheet del.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.rl-doc del.rl-us,.nego-doc ins.rl-us,.nego-doc del.rl-us,.rl-cp-src ins.rl-us,.rl-cp-src del.rl-us,.rl-col ins.rl-us,.rl-col del.rl-us,.pv-sheet ins.rl-us,.pv-sheet del.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  /* ---- THE FILL MEANS ARRIVING, AND NOTHING ELSE (Young ruled 15 Sep 2026:
+       "still cross the words you are proposing to delete but do not have the
+       blue or yellow highlight on them. Leave the blue or yellow highlight only
+       on the added words") ----
+       Colour still says WHO and the line still says WHAT; what moves is the
+       FILL, which both halves of a change used to wear and which is the loudest
+       thing on the page. With it on the insertion alone the eye lands on the
+       words that would end up in the contract, and a screen of struck wording
+       stops competing with the one sentence arriving inside it.
+
+       A DELETION STATES transparent RATHER THAN SAYING NOTHING, and the word is
+       written plain here because a BACKTICK inside a comment inside a template
+       literal evaluates what is between the pair — the standing rule, paid again
+       while writing this very note. .nego-del is the unsided mark's own rule and
+       carries --n-del-bg at (0,1,0); merely dropping the background declaration
+       from these (0,2,1) rules would have let that red fill back through on
+       every struck run. Measured, not assumed. */
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
@@ -4541,12 +4574,12 @@ function redlineLayoutCss(){
   @media (max-height:820px){
     .redline-page .rl-idx-head{padding:var(--s-1) var(--s-3) var(--s-2);gap:6px}
     .redline-page .rl-fseg{padding-bottom:6px}
-    .redline-page .rl-paper{padding:26px 30px 30px}
+    .redline-page .rl-paper{--rl-paper-pad:30px;padding:26px 30px 30px}
   }
   @media (max-height:680px){
     .redline-page .rl-idx-head{padding:2px var(--s-3) 6px;gap:5px}
     .redline-page .rl-fseg{padding-bottom:var(--s-1)}
-    .redline-page .rl-paper{padding:20px 26px var(--s-6)}
+    .redline-page .rl-paper{--rl-paper-pad:26px;padding:20px 26px var(--s-6)}
   }
   /* ---- THE HANDLE ----
      Absolutely positioned over the gap (rlLayoutResizer keeps its left edge

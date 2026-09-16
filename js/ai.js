@@ -4060,6 +4060,7 @@ async function runRenewalAdvice(c,opts={}){
   return null;
 }
 const RN_TONE={ renew:'green', renegotiate:'amber', lapse:'ruby', unclear:'steel' };
+let _rnChanging=null;   // the contract whose recorded decision is being re-asked, per sitting
 function renewalCardHtml(c){
   const w=(typeof renewalWindow==='function')?renewalWindow(c):null;
   if(!w||!w.inWindow) return '';
@@ -4105,34 +4106,113 @@ function renewalCardHtml(c){
      is the only number the sentence would send anybody to correct. */
   const span=((c.metadata&&c.metadata.sourceSpans)||{}).noticePeriodDays;
   const quote=span?String(span).replace(/\s+/g,' ').trim().slice(0,180):'';
+  /* ---- AND WHERE THERE IS NO NOTICE PERIOD, SAY SO ---- (16 Sep 2026)
+     Both slots below used to be the empty string whenever the number was
+     missing, so the card printed a decision date that was silently the EXPIRY
+     date and looked entirely correct. That is the one thing this card must
+     never do: a reader with ninety days' notice to give was being shown the day
+     it was already too late, with nothing on the screen to say why.
+     AN ABSENCE IS STATED, NEVER GUESSED. It claims no quote it does not have,
+     invents no number, and carries the act — the Key terms row now exists for
+     it to point at, which is the other half of this change. */
   const srcLine=w.notice
     ? (quote
       ? `${_aiEsc(i18t('rn_from_quote',{expiry:when(w.expiry),n:w.notice}))}<br><i>&ldquo;${_aiEsc(quote)}&rdquo;</i>`
       : _aiEsc(i18t('rn_from_terms',{expiry:when(w.expiry),n:w.notice})))
-    : '';
-  /* The way out, said once and only where there is something to correct. */
-  const fixLine=(w.notice&&may)?_aiEsc(i18t('rn_fix_terms')):'';
+    : _aiEsc(i18t('rn_no_notice',{expiry:when(w.expiry)}));
+  /* The way out, said once. With a number on file it offers a correction; with
+     none it asks for the number, and only where this reader could set it. */
+  const fixLine=may?_aiEsc(i18t(w.notice?'rn_fix_terms':'rn_no_notice_fix')):'';
+  /* ---- WHAT DID YOU DECIDE, AND WHO IS BEING TOLD (owner-approved 16 Sep
+     2026; the artifact "HaTi Build Plan" solutions 1 and 9) ----
+     BOTH READINGS ARE BORROWED. `w.decision` / `w.staleDecision` ride on
+     renewalWindow, which is the product's ONE reading of this deadline, so the
+     card, the overnight desk, Home's decisions list and the two server sweeps
+     cannot come to different views about whether this renewal is settled.
+     `renewalNoticeTo` is the browser twin of the server's own ownerOf.
+
+     THE OWNER LINE IS DRAWN ONLY WHILE THE QUESTION IS OPEN. Once an answer is
+     recorded the reminders have stopped, so naming the person who "gets" them
+     would be a sentence that is no longer true. ASKED OF `dec`, NOT OF
+     `settled`: pressing "Change the decision" puts the three answers back on
+     the screen but writes nothing, so the recorded answer still stands and the
+     sweep is still silent. A line promising reminders in that posture would be
+     false for as long as the reader took to choose. */
+  const dec=w.decision, staleDec=w.staleDecision;
+  const note=(typeof window.renewalNoticeTo==='function')?renewalNoticeTo(c):{to:null,why:'none'};
+  const toLine=_aiEsc(
+    note.why==='owner' ? i18t(w.notice>0?'rn_to_owner_decide':'rn_to_owner_expiry',{who:note.name})
+    : note.why==='unreachable' ? i18t('rn_to_unreachable',{who:note.name})
+    : i18t('rn_to_none'));
+  /* THE PUBLISHED LIST, not a fourth copy of it. The model, the act and the
+     server each name these three; the surface that DRAWS them reading its own
+     private copy is how a fourth answer would arrive on one screen and be
+     refused by the other two. */
+  const ANS=(typeof window.RENEWAL_ANSWERS!=='undefined'&&Array.isArray(window.RENEWAL_ANSWERS))
+    ? RENEWAL_ANSWERS : ['renew','renegotiate','lapse'];
+  /* THREE ANSWERS IN THE ACTS ROW THE CARD ALREADY DRAWS — no band, no new
+     region, and each one a plain accent-bordered control like its siblings.
+     `_rnChanging` is per sitting and in memory: pressing "Change the decision"
+     puts the three back WITHOUT un-recording anything, so a mis-press costs
+     nothing and the trail keeps exactly one line per decision actually taken. */
+  const asking=may && (!dec || String(_rnChanging||'')===String(c.id));
+  const decideRow=asking?`
+    <div style="height:1px;background:var(--color-divider);margin:11px 0 9px;flex:none"></div>
+    <div style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:7px;flex:none">${i18t('rn_what_decided')}</div>
+    <div style="display:flex;flex-direction:row;gap:7px;flex-wrap:wrap;margin-bottom:2px;flex:none">
+      ${ANS.map(a=>`<button class="ui-btn" data-rn-decide="${a}" style="font-size:var(--t-label);padding:5px 11px">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}
+    </div>`:'';
+  /* THE DECIDED READING. The deadline is not taken off the screen — it moves
+     into the quiet line underneath, where it says what stopped and the one
+     thing that would start it again. */
+  const decWhen=d=>{ try{ return new Date(d).toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{day:'numeric',month:'long',year:'numeric'}); }catch(_){ return String(d||''); } };
+  /* THE CARD SAYS WHICH REMINDERS STOPPED, because two ladders run and only one
+     of them is always silenced: 14/7/1 counts to the decision and any answer
+     ends it; 90/60/30 counts to the expiry and keeps running unless the answer
+     was to let it lapse. A flat "the reminders have stopped" would be a promise
+     the sweep does not keep, and the first 60-day mail after a decision would
+     be the reader finding that out. */
+  const decidedBlock=(dec&&!asking)?`
+    <p style="margin:0 0 4px;font-size:var(--t-meta);line-height:1.6"><b>${_aiEsc(i18t('rn_decided_'+dec.answer))}</b> ${_aiEsc(i18t('rn_decided_by',{who:dec.by&&dec.by.name?dec.by.name:i18t('rn_somebody'),date:decWhen(dec.at)}))}</p>
+    ${dec.why?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600);font-style:italic">&ldquo;${_aiEsc(dec.why)}&rdquo;</p>`:''}
+    <div style="height:1px;background:var(--color-divider);margin:0 0 9px;flex:none"></div>
+    <p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${_aiEsc(i18t('rn_stopped_1',{date:when(dec.decideBy)}))} <b style="color:var(--color-text)">${_aiEsc(i18t(dec.answer==='lapse'?'rn_stopped_2':'rn_stopped_2b'))}</b> ${_aiEsc(i18t('rn_stopped_3'))}${dec.answer==='lapse'?'':` ${_aiEsc(i18t('rn_still_expiry'))}`}</p>`:'';
+  /* AN ANSWER THAT NO LONGER ANSWERS. Said rather than silently dropped: the
+     reader decided something, the reminders are running again, and this is the
+     only screen that can tell them why. */
+  const staleLine=(staleDec&&c.renewalDecision)?_aiEsc(i18t('rn_stale',{
+    answer:i18t('rn_ans_'+c.renewalDecision.answer)||c.renewalDecision.answer,
+    date:decWhen(c.renewalDecision.at)})):'';
+  const settled=!!(dec&&!asking);
   return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
-      ${w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:''}
+      ${settled
+        ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('rn_badge_decided')}</span>`
+        : (w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:'')}
     </div>
-    <p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
-    ${srcLine?`<p style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
-    ${fixLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
-    ${err?`<p style="margin:0 0 9px;padding:6px var(--s-2);font-size:var(--t-meta);line-height:1.5;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)">${_aiEsc(err)}</p>`:''}
-    ${a?`
-      <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:5px">
-        <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)">${_aiEsc(i18t('rn_verdict_'+a.verdict)||a.verdict)}</span>
-      </div>
-      <p style="margin:0 0 7px;font-size:var(--t-body);line-height:1.6">${_aiEsc(a.headline||'')}</p>
-      ${(a.because||[]).length?`<ul style="margin:0 0 7px;padding-left:17px">${(a.because||[]).map(b=>`<li style="font-size:var(--t-meta);line-height:1.5;margin:3px 0;color:var(--color-neutral-700)">${_aiEsc(b)}</li>`).join('')}</ul>`:''}
-      ${(a.pushOn||[]).length?`<div style="font-size:var(--t-meta);line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
-      ${a.watchIf?`<p style="margin:0 0 7px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
-    `:`<p style="margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
-    <div style="display:flex;flex-direction:row;gap:7px;flex-wrap:wrap;margin-top:9px;flex:none">
-      ${may?`<button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
+    ${settled?decidedBlock:`
+      <p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+      ${srcLine?`<p style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
+      ${fixLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
+      ${staleLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${staleLine}</p>`:''}
+      ${err?`<p style="margin:0 0 9px;padding:6px var(--s-2);font-size:var(--t-meta);line-height:1.5;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)">${_aiEsc(err)}</p>`:''}
+      ${a?`
+        <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:5px">
+          <span class="pill-x" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)">${_aiEsc(i18t('rn_verdict_'+a.verdict)||a.verdict)}</span>
+        </div>
+        <p style="margin:0 0 7px;font-size:var(--t-body);line-height:1.6">${_aiEsc(a.headline||'')}</p>
+        ${(a.because||[]).length?`<ul style="margin:0 0 7px;padding-left:17px">${(a.because||[]).map(b=>`<li style="font-size:var(--t-meta);line-height:1.5;margin:3px 0;color:var(--color-neutral-700)">${_aiEsc(b)}</li>`).join('')}</ul>`:''}
+        ${(a.pushOn||[]).length?`<div style="font-size:var(--t-meta);line-height:1.5;margin-bottom:7px"><b>${i18t('rn_push_on')}</b> ${_aiEsc((a.pushOn||[]).join(' · '))}</div>`:''}
+        ${a.watchIf?`<p style="margin:0 0 7px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${_aiEsc(i18t('rn_watch_if'))} ${_aiEsc(a.watchIf)}</p>`:''}
+      `:`<p style="margin:0 0 9px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${_aiEsc(i18t('rn_not_asked'))}</p>`}
+      ${decideRow}
+    `}
+    <div style="display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px;flex:none">
+      ${settled&&may?`<button class="ui-btn" data-rn-change style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_change')}</button>`:''}
+      ${!settled&&may?`<button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
       ${may?`<button class="ui-btn" data-rn-start style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_start')}</button>`:''}
+      ${!dec&&toLine?`<span style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);flex:1 1 200px;min-width:0">${toLine}</span>`:''}
     </div>
   </section>`;
 }
@@ -4164,6 +4244,30 @@ function renderRenewalSection(c){
   /* ONE DOOR TO THE RENEWAL, and it is the family machinery's own — the same
      createAmendment a person uses from the Agreement family card, with the
      relation set. Nothing here mints a contract of its own. */
+  /* ---- THE THREE ANSWERS, AND THE WAY BACK (16 Sep 2026) ----
+     ONE DIALOG, NOT THREE PRESSES. The answer is already chosen by the button
+     that was pressed; the dialog confirms what recording it DOES (six reminders
+     stop) and takes the optional line of why. It is the same promptDialog shape
+     signCheckAccept uses for an accepted deviation, with one difference that
+     matters: the reason here is OPTIONAL, so an empty confirm records the
+     decision and only a CANCEL records nothing. */
+  host.querySelectorAll('[data-rn-decide]').forEach(b=>b.addEventListener('click',async()=>{
+    const answer=b.getAttribute('data-rn-decide')||'';
+    if(!answer) return;
+    const why=window.promptDialog ? await promptDialog({
+      title:i18t('rn_decide_title',{answer:i18t('rn_ans_'+answer)}),
+      message:i18t('rn_decide_msg'), placeholder:i18t('rn_decide_ph'),
+      confirmLabel:i18t('rn_decide_ok'), multiline:true }) : '';
+    if(why==null) return;   // cancelled — nothing is written, nothing is said
+    const ok=await contractSetRenewalDecision(c,answer,why);
+    if(ok){ _rnChanging=null; renderRenewalSection(c); }
+  }));
+  /* CHANGE THE DECISION PUTS THE QUESTION BACK — it does not un-record the
+     answer. Nothing is written until a new one is chosen, so a mis-press costs
+     nothing and the trail keeps one line per decision actually taken. */
+  host.querySelector('[data-rn-change]')?.addEventListener('click',()=>{
+    _rnChanging=c.id; renderRenewalSection(c);
+  });
   host.querySelector('[data-rn-start]')?.addEventListener('click',()=>{
     if(!window.openCreateAmendmentModal) return toast(i18t('rn_start_unavailable'),'err');
     openCreateAmendmentModal(c,null,{relation:'renewal'});
