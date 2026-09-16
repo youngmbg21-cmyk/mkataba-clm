@@ -1066,19 +1066,51 @@ async function contractSetRenewalDecision(c, answer, why){
    409 means what it says again. A caller that awaits flushSaves() to be sure
    the record is on the server (auto-triage does) still gets that guarantee:
    the promise it waits on does not resolve until the loop has nothing left. */
-let _flushing=null, _flushAgain=false;
+/* ---- THE LATCH IS A BOOLEAN, NEVER THE PROMISE ITSELF (Young reported the
+   symptom 16 Sep 2026: a counterparty's acceptance showing on screen while the
+   saved record still read pending) ----
+   The first draft of the serialising above used the in-flight PROMISE as its
+   own "is a flush running" flag: `_flushing = (async()=>{ … finally
+   { _flushing=null; } })()`. An async function body runs SYNCHRONOUSLY up to
+   its first `await` — and a flush with an EMPTY queue never reaches one. So the
+   body ran to the end, the `finally` wrote null, and only THEN did the
+   assignment land, putting the resolved promise back over it. `_flushing` was
+   left permanently truthy.
+
+   From that moment every later call took the "somebody else is flushing" door
+   and returned that already-resolved promise: `await flushSaves()` came back at
+   once having written nothing, and the queue was never drained again for the
+   life of the page. MEASURED: the empty flush is the one the 400 ms timer fires
+   after a save has already been drained by hand, so it happens within seconds
+   of any ordinary edit. Nothing errored and nothing logged — the screen was
+   right and the record simply stopped moving.
+
+   TWO THINGS KEEP IT SHUT. The flag is a BOOLEAN set before the body exists, so
+   a synchronous run cannot overwrite its own clearing; and a joiner that comes
+   back to a queue with something still in it goes round again, so the promise
+   this function hands out means "the queue is empty", which is what the callers
+   that await it are relying on (applyResponse writes the counterparty's answer
+   before the repaint can reload over it; auto-triage needs the record on the
+   server before it reads it back). */
+let _flushing=false, _flushDone=null, _flushAgain=false;
 async function flushSaves(){
-  if(_flushing){ _flushAgain=true; return _flushing; }
-  _flushing=(async()=>{
+  if(_flushing){
+    _flushAgain=true;
+    try{ await _flushDone; }catch(_){}
+    if(dirty.size && !_flushing) return flushSaves();
+    return;
+  }
+  _flushing=true;
+  _flushDone=(async()=>{
     try{
       do{
         _flushAgain=false;
         const items=[...dirty.values()]; dirty.clear();
         for(const c of items){ await saveContract(c); }
       } while(_flushAgain && dirty.size);
-    } finally { _flushing=null; }
+    } finally { _flushing=false; }
   })();
-  try{ await _flushing; }
+  try{ await _flushDone; }
   finally { refreshStats(); }  // keep portfolio KPIs current after status/value changes
 }
 async function saveContract(c){

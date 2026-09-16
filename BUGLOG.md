@@ -14198,6 +14198,110 @@ Noticed, not fixed:
   it from a built fixture; the geometry fault above was reproduced and fixed.
 - redline-verify check 5 is red at unmodified main and was left red.
 
+## 16 Sep 2026 — MAPPING THE RED BROWSER CHECKS (owner asked; no fix made)
+
+Young, off a screenshot from the contract-builder session: "There are 25
+negotiation lines that are failing. Can you map what they are? No coding."
+
+MEASURED, not read: the whole browser set run on main at 4ac6bb0 — 23 of 108
+files red — then the same 23 re-run in worktrees at 11f586a (a week back) and
+at 744127e, so old news could be told from new.
+
+TWENTY OF THE TWENTY-THREE WERE ALREADY RED A WEEK AGO. They describe designs
+the product has since moved past on the owner's own word — the highlight's
+three verbs (selection-verify, redline-verify 5, phone-verify), the fifth room
+tab (negotiations-door), the retired three-way cut (flat-rows, room-order), the
+crumb on the negotiate head (nego-redesign 1/1c), the clause panel giving way
+to the clause editor (standard-paper 4/5, paper-grows 5d/6), the Notes row in
+the counterparty's More menu (counterparty-reading 6), the pop-up diet's
+retired memo sub-line (negotiation-memo 7f), and the scroll-fold deleted on
+10 Sep (tracked-changes-scroll 2). theme-tokens is the colour census at 27/40,
+unchanged at every commit measured.
+
+### Noticed, not fixed
+
+- upload-structure-verify 2a/2b: GREEN at 744127e, RED at ee54a94 — an uploaded
+  contract's own title is now counted among the clause headings inside the
+  stored-body region (five where the file names four). It arrived with the
+  Document tab's front-matter head. Worth a look at whether the title is being
+  drawn as a clause heading on an upload.
+- round-delivery-verify 5/7: GREEN at 744127e, RED at ee54a94 — the
+  counterparty's acceptance shows on the owner's screen but the record read
+  back off the server still says pending, and the refused-readiness audit line
+  is written 0 times where the file wants exactly 1. Both are "the record did
+  not catch up"; the commit that broke them is the one that serialised saves.
+- competing-redlines-verify, settled-ask-reopen-verify: red since "Five more
+  off one screen" — both read the clause panel's own rows on OUR seat, which
+  the ladder-only narrowing hides. settled-ask-reopen's Reopen resolves at 0x0
+  and its click times out. Whether the settled Reopen still has a reachable
+  home on our seat is the owner's question, not a drive-by fix.
+- reopen-a-refusal-verify: aborts part way with getComputedStyle on a null
+  element. Its first six checks pass; the rest never run. Present at 744127e
+  and at 11f586a in a different shape.
+- The count in the report was FILES, not lines: 23 files, about 60 named
+  failing lines, of which 13 are theme-tokens' colour cells.
+
+## 16 Sep 2026 — THE RECORD CATCHING UP (Young: "Fix the record catching up issue")
+
+The fault reported off yesterday's map: the counterparty's acceptance drew on
+the owner's screen while the record read back off the server still said
+pending, and the refused-readiness trail line was written 0 times where
+exactly 1 is owed.
+
+PROVED BEFORE ANYTHING MOVED. round-delivery-verify was green at 744127e and
+red at ee54a94; reverting ONLY the save-serialising in a worktree at main put
+it back to 34/34, which named the commit and the function. A trace on the
+live browser named the line.
+
+### The defect
+
+`flushSaves` used the in-flight PROMISE as its own "is a flush running" flag:
+`_flushing = (async()=>{ … finally { _flushing=null; } })()`. An async body
+runs synchronously to its first `await`, and a flush with an EMPTY queue never
+reaches one — so the body ran to the end, the `finally` wrote null, and the
+assignment then put the resolved promise back over it. `_flushing` was left
+permanently truthy.
+
+From that moment every call took the join door and got back an already-settled
+promise: `await flushSaves()` returned at once having written nothing, and
+`dirty` was never drained again for the life of the page. THIS WAS NOT LIMITED
+TO THE TWO CHECKS — after the first empty flush, nothing that browser did was
+saved. Nothing errored and nothing logged; the screen was right and the record
+simply stopped moving.
+
+The empty flush is the ordinary case, not an edge one: `persist` sets a 400 ms
+timer and several callers drain by hand straight after (applyResponse, so the
+write lands before the repaint reloads over it; auto-triage, so the record is
+on the server before it is read back). The hand drain empties the queue and
+the stale timer fires on nothing, within seconds of any ordinary edit.
+
+### The fix
+
+The latch is a BOOLEAN raised before the body exists, so a synchronous run
+cannot overwrite its own clearing; `_flushDone` carries the promise; and a
+joiner that comes back to a queue still holding work goes round again, so the
+promise means "the queue is empty" — which is what applyResponse and
+auto-triage are relying on. The server's optimistic lock and the conflict
+dialog are untouched. One function, one definition, one call site of the
+pattern (swept for a second).
+
+### Measured
+
+- round-delivery-verify 34/34 (was 32/34).
+- saves-serialize-verify grew section 2, which drives the real sequence:
+  3 of 9 checks red at the parent — the record one edit behind the screen, one
+  contract still queued, the version unmoved.
+- f314 (2) re-pointed to the boolean latch, (2b) added for the trap itself.
+- Full node suite 7,124 / 0 red. Lint 0 errors.
+- Browser set: the same 22 pre-existing red files, round-delivery no longer
+  among them.
+
+### Noticed, not fixed
+
+- clause-editor-verify 33h failed once in the parallel run (the caret landed on
+  a different word from the one pressed) and passes 281/281 run on its own.
+  A timing flake under four Chromiums on four cores, not a product fault —
+  but the click point expires at 1500 ms, so that check is load-sensitive.
 ## 15 Sep 2026 — the nuanced redline, the decision that could not be made, and the blank column
 
 Young's go on the artifact "The Nuanced Redline" (all four decisions), plus
@@ -14822,3 +14926,15 @@ was offered and accepted is that the paper has always PRINTED 90, and a record
 disagreeing with the paper is the fault this whole feature exists to close.
 Written beside TEMPLATE_NOTICE so the next person finds the ruling with the
 code rather than only here. No code changed — this was already what shipped.
+
+### 16 Sep 2026 — merging the save fix onto main: noticed, not fixed
+
+- TWO FILES ARE CALLED f314. `test/f314-one-save-at-a-time.test.js` (the save
+  latch) and `test/f314-the-nuanced-redline.test.js` arrived from two sessions
+  the same day. The runner does not care, but this codebase refers to its nets
+  by NUMBER in comments and in THE MAP, so "f314" now names two different
+  things and a re-point could land in the wrong file. Somebody who owns the
+  numbering should give one of them a free number.
+- Merged main (nine commits of contract-builder and renewal work) under the
+  fix: no conflict, suite 7,260 / 0 red, lint 0 errors, saves-serialize 9/9 and
+  round-delivery 34/34 on the merged tree.
