@@ -2,12 +2,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
-/* ============================================================
-   HaTi's Next Fifteen — a product review document.
-   The palette, the type and the control metrics are HaTi's own
-   (index.html :root), so the renders read as the product and the
-   document reads as a paper about it.
-   ============================================================ */
 :root{
   --ground:#EDF1F2; --paper:#ffffff; --raised:#F7F9F9;
   --ink:#0E1A18; --ink-2:#54635F; --ink-3:#8A9997;
@@ -15,15 +9,15 @@
   --brand:#093733; --brand-line:#14514a; --brand-ink:#9fc4bf;
   --accent:#0d9488; --accent-ink:#115e59; --accent-soft:#f0fdfa; --accent-edge:#99f6e4;
   --amber-bg:#fef3c7; --amber-fg:#b45309; --amber-dot:#f59e0b;
-  --ruby-bg:#ffe4e6; --ruby-fg:#be123c; --ruby-dot:#f43f5e;
-  --green-bg:#d1fae5; --green-fg:#047857; --green-dot:#10b981;
-  --steel-bg:#ccfbf1; --steel-fg:#115e59; --steel-dot:#14b8a6;
-  --gray-bg:#f1f5f9; --gray-fg:#475569; --gray-dot:#94a3b8;
+  --ruby-bg:#ffe4e6; --ruby-fg:#be123c;
+  --green-bg:#d1fae5; --green-fg:#047857;
+  --steel-bg:#ccfbf1; --steel-fg:#115e59;
+  --gray-bg:#f1f5f9; --gray-fg:#475569;
   --doc-warm:#FDFCF6; --doc-warm-line:#EFE2C2; --doc-ink:#1B2A28;
-  --shadow:0 1px 2px rgba(14,26,24,.06), 0 8px 24px rgba(14,26,24,.05);
-  --sans:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --shadow:0 1px 2px rgba(14,26,24,.06), 0 10px 30px rgba(14,26,24,.07);
+  --sans:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --serif:"IBM Plex Serif", Georgia, "Times New Roman", serif;
-  --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --ground:#020617; --paper:#0f172a; --raised:#182234;
@@ -37,7 +31,7 @@
   --steel-bg:rgba(20,184,166,.15); --steel-fg:#5eead4;
   --gray-bg:rgba(148,163,184,.14); --gray-fg:#94a3b8;
   --doc-warm:#0f172a; --doc-warm-line:#1e293b; --doc-ink:#e2e8f0;
-  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.35);
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
 }}
 :root[data-theme="dark"]{
   --ground:#020617; --paper:#0f172a; --raised:#182234;
@@ -51,236 +45,110 @@
   --steel-bg:rgba(20,184,166,.15); --steel-fg:#5eead4;
   --gray-bg:rgba(148,163,184,.14); --gray-fg:#94a3b8;
   --doc-warm:#0f172a; --doc-warm-line:#1e293b; --doc-ink:#e2e8f0;
-  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.35);
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
-  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1140px;margin:0 auto;padding-inline:16px;padding-block:0}
-.prose{max-width:68ch}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0}
+.prose{max-width:70ch}
 h1,h2,h3,h4{text-wrap:balance;margin:0}
 a{color:var(--accent-ink)}
-a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-hr{border:0;border-top:1px solid var(--line);margin:0}
-
-/* ---------- masthead ---------- */
-.mast{background:var(--brand);color:#fff}
-.mast .wrap{padding-block:52px 44px}
-.mast .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--brand-ink);margin:0 0 20px}
-.mast h1{font-size:clamp(34px,6vw,58px);line-height:1.04;font-weight:600;letter-spacing:-.02em;max-width:16ch}
-.mast .stand{font-family:var(--serif);font-size:clamp(17px,2.2vw,21px);line-height:1.5;color:#dbeae7;
-  max-width:54ch;margin:22px 0 0}
-.mast .meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin:30px 0 0;padding-top:20px;
-  border-top:1px solid var(--brand-line);font-size:12px;color:var(--brand-ink)}
-.mast .meta b{color:#fff;font-weight:500}
-
-/* ---------- layout ---------- */
-.body{display:grid;grid-template-columns:1fr;gap:0}
-/* The rail is declared BEFORE the media query on purpose: written after it,
-   `display:none` wins on source order at equal specificity and the grid keeps
-   a 212px column with nothing in it. */
-.toc{display:none;padding-block:44px;font-size:12.5px;line-height:1.45}
-@media(min-width:1080px){
-  .body{grid-template-columns:212px minmax(0,1fr);gap:48px;align-items:start}
-  .toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);display:block;
-    max-height:calc(100vh - 48px);overflow-y:auto}
-}
-.toc .toc-h{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 12px}
-.toc ol{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:7px}
-.toc a{color:var(--ink-2);text-decoration:none;display:flex;gap:8px}
-.toc a:hover{color:var(--accent-ink)}
-.toc .n{font-family:var(--mono);color:var(--ink-3);flex:none;width:22px}
-.main{padding-block:44px 80px;min-width:0}
-
-/* ---------- sections ---------- */
-.sec{margin:0 0 64px}
-.sec-head{display:flex;gap:14px;align-items:baseline;margin:0 0 6px}
-.sec-head .rule-n{font-family:var(--serif);font-size:15px;color:var(--accent-ink);font-style:italic;flex:none}
-h2{font-size:clamp(22px,3vw,28px);font-weight:600;letter-spacing:-.01em;line-height:1.2}
-.lede{color:var(--ink-2);margin:10px 0 0;font-size:16px}
-.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 10px}
+a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 p{margin:14px 0}
 
-/* ---------- persona sheets ---------- */
-.seats{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:24px 0 0}
-.seat{background:var(--paper);border:1px solid var(--line);border-radius:2px;padding:18px;box-shadow:var(--shadow)}
-.seat h3{font-size:16px;font-weight:600;margin:0 0 2px}
-.seat .who{font-size:12.5px;color:var(--ink-2);margin:0 0 14px}
-.seat .sheet{background:var(--doc-warm);border:1px solid var(--doc-warm-line);border-radius:0;
-  padding:14px 15px;font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--doc-ink);font-style:italic}
-.seat .asks{margin:14px 0 0;padding:0;list-style:none;font-size:13px;color:var(--ink-2);
-  display:flex;flex-direction:column;gap:6px}
-.seat .asks li{padding-left:16px;position:relative}
-.seat .asks li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;
-  background:var(--accent);border-radius:50%}
+/* masthead */
+.mast{background:var(--brand);color:#fff}
+.mast .wrap{padding-block:52px 44px}
+.mast .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-ink);margin:0 0 20px}
+.mast h1{font-size:clamp(34px,6vw,58px);line-height:1.04;font-weight:600;letter-spacing:-.02em;max-width:16ch}
+.mast .stand{font-family:var(--serif);font-size:clamp(17px,2.2vw,21px);line-height:1.5;color:#dbeae7;max-width:56ch;margin:22px 0 0}
+.mast .meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin:30px 0 0;padding-top:20px;border-top:1px solid var(--brand-line);font-size:12.5px;color:var(--brand-ink)}
+.mast .meta b{color:#fff;font-weight:500}
 
-/* ---------- rules strip ---------- */
-.rules{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0 0}
-@media(min-width:720px){.rules{grid-template-columns:1fr 1fr}}
-.rules div{background:var(--paper);padding:15px 17px;font-size:13.5px;color:var(--ink-2)}
-.rules b{display:block;color:var(--ink);font-weight:600;font-size:13px;margin:0 0 3px}
+.main{padding-block:44px 80px}
+.sec{margin:0 0 56px}
+.sec-head{display:flex;gap:14px;align-items:baseline;margin:0 0 6px}
+.rule-n{font-family:var(--serif);font-size:15px;color:var(--accent-ink);font-style:italic;flex:none}
+h2{font-size:clamp(22px,3vw,29px);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.lede{color:var(--ink-2);margin:10px 0 0;font-size:16.5px}
 
-/* ---------- matrix ---------- */
-.mx-wrap{overflow-x:auto;margin:24px 0 0;border:1px solid var(--line);background:var(--paper)}
-table.mx{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
-table.mx th,table.mx td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-faint)}
-table.mx thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);
-  border-bottom:1px solid var(--line-strong);position:sticky;top:0}
-table.mx thead th:not(:first-child),table.mx td:not(:first-child):not(:last-child){text-align:center;width:66px}
-table.mx td:first-child{color:var(--ink)}
-table.mx td .rf{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
-table.mx tbody tr:last-child td{border-bottom:0}
-.d{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);vertical-align:middle}
-.d.h{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.d.m{background:var(--accent);opacity:.42}
-.d.l{background:transparent;border:1px solid var(--line-strong)}
-.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink-2);margin:10px 0 0}
-.legend span{display:inline-flex;align-items:center;gap:7px}
+/* method note */
+.method{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--accent);padding:18px 20px;margin:26px 0 0}
+.method p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2);max-width:78ch}
+.method p:last-child{margin-bottom:0}
+.method b{color:var(--ink);font-weight:600}
 
-/* ---------- solution entries ---------- */
-.sol{border-top:2px solid var(--ink);padding-top:22px;margin:0 0 56px}
-.sol-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin:0 0 12px}
-.sol-ref{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--paper);background:var(--accent-ink);
-  padding:2px 7px;border-radius:2px;letter-spacing:.02em}
-.sol-tag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:2px}
-.sol-tag.new{background:var(--steel-bg);color:var(--steel-fg)}
-.sol-tag.ext{background:var(--gray-bg);color:var(--gray-fg)}
-.sol h3{font-size:clamp(19px,2.6vw,24px);font-weight:600;letter-spacing:-.01em;line-height:1.22;margin:0 0 4px;width:100%}
-.sol .for{font-size:12px;color:var(--ink-3);width:100%;margin:-2px 0 0}
-.sol .for b{color:var(--ink-2);font-weight:500}
-.sol p{max-width:68ch}
-.today{border-left:2px solid var(--amber-dot);background:var(--paper);padding:12px 15px;margin:16px 0;
-  font-size:14px;color:var(--ink-2);max-width:68ch}
-.today b{color:var(--ink);font-weight:600}
-.facts{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin:18px 0 0}
-@media(min-width:680px){.facts{grid-template-columns:1fr 1fr}}
-.facts div{background:var(--paper);padding:13px 15px;font-size:13px;color:var(--ink-2);line-height:1.5}
-.facts b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:500;margin:0 0 4px}
+/* a screen */
+.screen{border-top:2px solid var(--ink);padding-top:22px;margin:0 0 64px}
+.screen-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:baseline;margin:0 0 6px}
+.screen-n{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:2px 8px;border-radius:2px}
+.screen h3{font-size:clamp(20px,2.8vw,26px);font-weight:600;letter-spacing:-.01em;line-height:1.2;width:100%;margin:2px 0 0}
+.carries{font-size:12.5px;color:var(--ink-3);width:100%;margin:2px 0 0}
+.carries b{color:var(--accent-ink);font-family:var(--mono);font-size:11.5px;font-weight:500}
+.screen p{max-width:70ch}
 
-/* ---------- the render frame ---------- */
-.shot{margin:24px 0 6px}
-.shot-cap{font-size:12px;color:var(--ink-3);margin:8px 0 0;max-width:68ch}
-.shot-cap b{color:var(--ink-2);font-weight:500}
-.hati{background:var(--paper);border:1px solid var(--line-strong);border-radius:2px;overflow:hidden;
-  box-shadow:var(--shadow);font-size:13px;line-height:1.45;color:var(--ink)}
-.hati .scroll{overflow-x:auto}
-.hati .scroll>*{min-width:600px}
-/* shell bar */
-.hbar{background:var(--brand);color:#fff;height:44px;display:flex;align-items:center;gap:14px;padding:0 14px;font-size:13px}
-.hbar .logo{font-weight:700;letter-spacing:.06em;font-size:13px}
-.hbar .t{font-weight:500;color:#eaf5f3}
-.hbar .sp{flex:1}
-.hbar .u{width:24px;height:24px;border-radius:50%;background:#14514a;display:grid;place-items:center;
-  font-size:10px;font-weight:600;color:#cfe6e3}
-.hbar .k{font-family:var(--mono);font-size:10.5px;color:var(--brand-ink);border:1px solid var(--brand-line);
-  padding:2px 6px;border-radius:2px}
-/* page head */
-.hhead{padding:14px 16px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
-.hhead h4{font-size:19px;font-weight:600;letter-spacing:-.01em}
-.hhead .sub{font-size:12.5px;color:var(--ink-2)}
-.hhead .sp{flex:1;min-width:8px}
-/* tabs */
-.htabs{display:flex;gap:20px;padding:12px 16px 0;border-bottom:1px solid var(--line-strong);flex-wrap:wrap}
-.htabs span{font-size:14px;color:var(--ink-2);padding-bottom:9px;border-bottom:2px solid transparent;white-space:nowrap}
-.htabs span.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
-.htabs .cnt{font-size:11px;color:var(--ink-3);margin-left:5px;font-weight:400}
-.htabs .cnt.am{color:var(--amber-fg);font-weight:600}
-/* buttons */
-.b{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:2px;
-  font-size:13px;font-weight:400;font-family:var(--sans);white-space:nowrap;border:1px solid var(--accent);
-  color:var(--accent-ink);background:transparent}
-.b.pri{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff;font-weight:500}
-.b.plain{border-color:transparent;padding:0 2px;color:var(--accent-ink)}
-.b.off{border-color:var(--line-strong);color:var(--ink-3)}
-.b.sm{height:24px;font-size:12px;padding:0 8px}
-.brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-/* chips */
-.c{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:2px;white-space:nowrap}
-.c::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
-.c.am{background:var(--amber-bg);color:var(--amber-fg)}
-.c.ru{background:var(--ruby-bg);color:var(--ruby-fg)}
-.c.gr{background:var(--green-bg);color:var(--green-fg)}
-.c.st{background:var(--steel-bg);color:var(--steel-fg)}
-.c.gy{background:var(--gray-bg);color:var(--gray-fg)}
-.c.bare{background:none;padding:0}
-/* tables */
-table.ht{border-collapse:collapse;width:100%;font-size:13px;table-layout:fixed}
-table.ht th{text-align:left;font-size:12px;font-weight:700;color:var(--ink-2);padding:9px 16px;
-  border-bottom:1px solid var(--line-strong);white-space:nowrap}
-table.ht td{padding:9px 16px;border-bottom:1px solid var(--line-faint);vertical-align:middle;
-  overflow:hidden;text-overflow:ellipsis}
-table.ht tr:last-child td{border-bottom:0}
-table.ht .ref{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
-table.ht .mut{color:var(--ink-2)}
-table.ht .num{font-variant-numeric:tabular-nums;text-align:right}
-table.ht .tt{font-weight:500}
-table.ht .sub{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* cards inside a render */
-.hcards{display:grid;gap:12px;padding:16px}
-@media(min-width:680px){.hcards.two{grid-template-columns:1fr 1fr}}
-.hcard{border:1px solid var(--line);border-radius:2px;background:var(--paper)}
-.hcard>.hd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line-faint)}
-.hcard>.hd h5{font-size:15px;font-weight:600;margin:0}
-.hcard>.hd .sp{flex:1}
-.hcard>.bd{padding:12px 14px}
-.kv{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:baseline;font-size:13px}
-.kv .k{color:var(--ink-2);white-space:nowrap}
-.kv .v{font-weight:500}
-.kv .cl{font-family:var(--mono);font-size:11px;color:var(--accent-ink);border:1px solid var(--accent-edge);
-  padding:1px 5px;border-radius:2px;white-space:nowrap;background:var(--accent-soft)}
-.kv .none{color:var(--ink-3);font-weight:400;font-style:italic}
-.hfoot{padding:10px 16px;border-top:1px solid var(--line-faint);background:var(--raised);
-  font-size:12px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
-.hfoot .sp{flex:1;min-width:4px}
-.hfoot b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.hband{padding:9px 16px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-faint);
-  display:flex;gap:10px;align-items:center}
-.hband .n{font-family:var(--mono);letter-spacing:0;color:var(--ink-3);font-weight:400;text-transform:none;font-size:11px}
-.hband.am{color:var(--amber-fg)}
-/* steps */
-.steps{display:flex;flex-wrap:wrap;gap:0;padding:16px;align-items:stretch}
-.step{flex:1 1 110px;border-top:3px solid var(--line);padding:9px 12px 0;min-width:110px}
-.step.done{border-top-color:var(--green-dot)}
-.step.now{border-top-color:var(--accent)}
-.step .n{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
-.step .l{font-size:13px;font-weight:600;margin:2px 0 0}
-.step.now .l{color:var(--accent-ink)}
-.step .w{font-size:12px;color:var(--ink-2);margin:2px 0 0}
-/* misc render bits */
-.hnote{padding:12px 16px;font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line-faint)}
-.hnote b{color:var(--ink);font-weight:600}
-.msg{background:var(--raised);border:1px solid var(--line);border-radius:2px;padding:11px 13px;font-size:13px;line-height:1.5}
-.msg .from{font-size:11px;font-family:var(--mono);color:var(--ink-3);margin:0 0 5px}
-.pill{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--accent-ink);
-  border:1px solid var(--accent-edge);background:var(--accent-soft);padding:1px 6px;border-radius:2px;margin:0 4px 4px 0}
-.menu{border:1px solid var(--line-strong);border-radius:2px;background:var(--paper);box-shadow:var(--shadow);
-  width:min(280px,100%);padding:4px 0}
-.menu div{padding:7px 14px;font-size:13px}
-.menu div.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
-.menu .sep{padding:0;border-top:1px solid var(--line-faint);margin:4px 0}
-.bars{display:flex;flex-direction:column;gap:9px;padding:14px 16px}
-.bar{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;font-size:13px}
-.bar .t{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .track{height:10px;background:var(--gray-bg);border-radius:1px;overflow:hidden}
-.bar .fill{height:100%;background:var(--accent)}
-.bar .fill.am{background:var(--amber-dot)}
-.bar .fill.ru{background:var(--ruby-dot)}
-.bar .v{font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+/* the image pair */
+.pair{margin:22px 0 0;display:flex;flex-direction:column;gap:22px}
+.plate{margin:0}
+.plate figcaption{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 9px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.plate figcaption .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.plate.now figcaption{color:var(--accent-ink)}
+.plate.now figcaption .dot{background:var(--accent)}
+.plate figcaption .note{font-family:var(--sans);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--ink-3)}
+.frame{border:1px solid var(--line-strong);border-radius:3px;overflow-x:auto;background:var(--brand);box-shadow:var(--shadow);line-height:0}
+.frame img{display:block;width:100%;height:auto;max-width:100%}
+.zoom{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;letter-spacing:0;
+  text-transform:none;color:var(--accent-ink);cursor:pointer;margin-left:auto;
+  border:1px solid var(--accent-edge);background:var(--accent-soft);border-radius:2px;padding:3px 9px}
+.zoom:hover{background:var(--paper)}
+.plate{position:relative}
+.plate input.zm{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.plate input.zm:checked ~ figcaption .zoom{background:var(--accent-ink);color:#fff;border-color:var(--accent-ink)}
+.plate input.zm:checked ~ figcaption .zoom::after{content:"\2713";margin-left:2px}
+.plate input.zm:checked ~ .frame img{width:1440px;max-width:none}
+.plate input.zm:focus-visible ~ figcaption .zoom{outline:2px solid var(--accent);outline-offset:2px}
 
-/* ---------- waves / closing ---------- */
-.waves{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:24px 0 0}
-.wave{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--accent);padding:17px}
-.wave h4{font-size:15px;font-weight:600;margin:0 0 3px}
-.wave .when{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.1em;margin:0 0 12px}
-.wave ol{margin:0;padding:0 0 0 0;list-style:none;display:flex;flex-direction:column;gap:9px;font-size:13.5px}
-.wave li{display:flex;gap:9px}
-.wave li .rf{font-family:var(--mono);font-size:11px;color:var(--accent-ink);flex:none;padding-top:2px}
-.wave p{font-size:12.5px;color:var(--ink-2);margin:13px 0 0}
+/* the key */
+.keys{margin:16px 0 0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(min-width:760px){.keys{grid-template-columns:1fr 1fr}}
+.keys div{background:var(--paper);padding:14px 16px;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+.keys b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;margin:0 0 3px}
+.keys .rf{font-family:var(--mono);font-size:11px;color:var(--accent-ink);font-weight:500}
+.weight{margin:14px 0 0;padding:12px 16px;background:var(--paper);border-left:2px solid var(--accent);font-size:14px;color:var(--ink-2);max-width:78ch}
+.weight b{color:var(--ink);font-weight:600}
+.revise{margin:14px 0 0;padding:12px 16px;background:var(--amber-bg);border-left:2px solid var(--amber-dot);font-size:14px;color:var(--ink);max-width:78ch}
+.revise b{font-weight:600}
+
+/* budget */
+.budget{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:24px 0 0}
+table.bg{border-collapse:collapse;width:100%;min-width:600px;font-size:13.5px}
+table.bg th,table.bg td{padding:10px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
+table.bg thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.bg td:nth-child(2),table.bg td:nth-child(3),table.bg th:nth-child(2),table.bg th:nth-child(3){text-align:right;font-variant-numeric:tabular-nums;width:92px;white-space:nowrap}
+table.bg td:nth-child(4){width:42%;color:var(--ink-2);font-size:12.5px}
+table.bg tr:last-child td{border-bottom:0}
+table.bg tfoot td{background:var(--raised);font-weight:600;border-top:1px solid var(--line-strong)}
+.up{color:var(--amber-fg);font-weight:600}
+.same{color:var(--ink-3)}
+
+/* elsewhere / releases / refusals */
+.land{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
+table.ld{border-collapse:collapse;width:100%;min-width:660px;font-size:13.5px}
+table.ld th,table.ld td{padding:10px 13px;border-bottom:1px solid var(--line-faint);text-align:left;vertical-align:top}
+table.ld thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.ld .rf{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.ld td:nth-child(2){font-weight:500}
+table.ld td:nth-child(3),table.ld td:nth-child(4){color:var(--ink-2);font-size:12.5px}
+table.ld tr:last-child td{border-bottom:0}
+.rel{display:grid;gap:14px;margin:24px 0 0}
+.relrow{display:grid;gap:12px;background:var(--paper);border:1px solid var(--line);padding:16px 18px;grid-template-columns:1fr}
+@media(min-width:780px){.relrow{grid-template-columns:120px 1fr 160px;align-items:start}}
+.relrow .when{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.relrow h4{font-size:15.5px;font-weight:600;margin:0 0 5px}
+.relrow p{font-size:13.5px;color:var(--ink-2);margin:0;max-width:none}
+.relrow .refs{display:flex;flex-wrap:wrap;gap:5px}
+.relrow .refs span{font-family:var(--mono);font-size:11px;color:var(--accent-ink);border:1px solid var(--accent-edge);background:var(--accent-soft);padding:1px 5px;border-radius:2px;height:fit-content}
 .out{border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
 .out div{padding:14px 17px;border-bottom:1px solid var(--line-faint);font-size:13.5px;color:var(--ink-2)}
 .out div:last-child{border-bottom:0}
@@ -288,927 +156,445 @@ table.ht .sub{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap
 .end{background:var(--brand);color:#dbeae7;margin-top:56px}
 .end .wrap{padding-block:40px}
 .end h2{color:#fff;font-size:20px}
-.end p{max-width:64ch;font-size:14.5px}
+.end p{max-width:66ch;font-size:14.5px}
 .end .mono{font-family:var(--mono);font-size:11.5px;color:var(--brand-ink);letter-spacing:.06em}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
-</style>
-<style>
-/* ---- added for the incorporation edition ---- */
-/* A grid or flex item defaults to min-width:auto, so a 600px-wide render table
-   inside a card pushes its whole track wider than the screen. Every container
-   that can hold one is pinned to 0 so the `.scroll` wrapper does the scrolling
-   instead of the page. */
-.hati,.hcards,.hcard,.hcard>.bd,.ba>div,.relrow>div,.seat,.wave,.device,
-.catcard,.out div,.rules div,.facts div{min-width:0}
-.hati{max-width:100%}
-.hcard>.bd{overflow-x:auto}
-
-.mk{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;
-  background:var(--accent-ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:500;
-  margin-right:6px;vertical-align:1px;flex:none}
-.anno{outline:1px dashed var(--accent);outline-offset:1px}
-tr.anno-row td{background:var(--accent-soft)}
-tr.anno-row td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
-.keys{display:grid;gap:8px;margin:12px 0 0;font-size:13px}
-.keys div{display:flex;gap:9px;align-items:flex-start;color:var(--ink-2)}
-.keys b{color:var(--ink);font-weight:600}
-.ba{display:grid;gap:18px;margin:22px 0 0}
-@media(min-width:900px){.ba.pair{grid-template-columns:1fr 1fr;align-items:start}}
-.ba .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 8px;display:flex;gap:8px;align-items:flex-start;line-height:1.35}
-@media(min-width:900px){.ba.pair .lab{min-height:2.7em}}
-.ba .lab .dot{margin-top:4px}
-.ba .lab .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
-.ba .lab.now .dot{background:var(--accent)}
-.ba .lab.now{color:var(--accent-ink)}
-.host{border-top:2px solid var(--ink);padding-top:22px;margin:0 0 56px}
-.host-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:baseline;margin:0 0 10px}
-.host-n{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:2px 7px;border-radius:2px}
-.host h3{font-size:clamp(19px,2.6vw,24px);font-weight:600;letter-spacing:-.01em;line-height:1.22;width:100%;margin:0}
-.host .lands{font-size:12px;color:var(--ink-3);width:100%}
-.host .lands b{color:var(--accent-ink);font-family:var(--mono);font-size:11px;font-weight:500}
-.budget{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
-table.bg{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
-table.bg th,table.bg td{padding:10px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
-table.bg thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
-table.bg td:nth-child(2),table.bg td:nth-child(3),table.bg th:nth-child(2),table.bg th:nth-child(3){
-  text-align:right;font-variant-numeric:tabular-nums;width:96px;white-space:nowrap}
-table.bg td:nth-child(4){width:40%;color:var(--ink-2);font-size:12.5px}
-table.bg tr:last-child td{border-bottom:0}
-table.bg tr.tot td{background:var(--raised);font-weight:600;border-top:1px solid var(--line-strong)}
-.up{color:var(--amber-fg);font-weight:600}
-.same{color:var(--ink-3)}
-.devices{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:24px 0 0}
-.device{background:var(--paper);border:1px solid var(--line);padding:17px}
-.device .nm{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent-ink);margin:0 0 8px;text-transform:uppercase}
-.device h4{font-size:15px;font-weight:600;margin:0 0 8px;line-height:1.3}
-.device p{font-size:13px;color:var(--ink-2);margin:0 0 10px}
-.device .ex{font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line-faint);padding-top:10px;margin:0}
-.device .ex b{color:var(--ink);font-weight:600}
-.land{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
-table.ld{border-collapse:collapse;width:100%;min-width:700px;font-size:13px}
-table.ld th,table.ld td{padding:9px 12px;border-bottom:1px solid var(--line-faint);text-align:left;vertical-align:top}
-table.ld thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
-table.ld .rf{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
-table.ld td:nth-child(2){font-weight:500}
-table.ld td:nth-child(3),table.ld td:nth-child(4){color:var(--ink-2);font-size:12.5px}
-table.ld td:nth-child(5){font-size:12.5px}
-table.ld tr:last-child td{border-bottom:0}
-.rel{display:grid;gap:14px;margin:24px 0 0}
-.relrow{display:grid;gap:12px;background:var(--paper);border:1px solid var(--line);padding:16px 18px;
-  grid-template-columns:1fr}
-@media(min-width:760px){.relrow{grid-template-columns:150px 1fr 150px;align-items:start}}
-.relrow .when{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-.relrow h4{font-size:15px;font-weight:600;margin:0 0 5px}
-.relrow p{font-size:13px;color:var(--ink-2);margin:0}
-.relrow .refs{display:flex;flex-wrap:wrap;gap:5px}
-.relrow .refs span{font-family:var(--mono);font-size:11px;color:var(--accent-ink);
-  border:1px solid var(--accent-edge);background:var(--accent-soft);padding:1px 5px;border-radius:2px}
-.cat{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));margin:22px 0 0}
-.catcard{background:var(--paper);border:1px solid var(--line);padding:14px 15px}
-.catcard .h{display:flex;gap:8px;align-items:baseline;margin:0 0 6px}
-.catcard .h .rf{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent-ink);padding:1px 5px;border-radius:2px}
-.catcard .h b{font-size:14px;font-weight:600;line-height:1.25}
-.catcard p{font-size:12.5px;color:var(--ink-2);margin:0 0 8px;line-height:1.5}
-.catcard .w{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--line-faint);padding-top:7px;margin:0}
-.catcard .w b{color:var(--ink-2);font-weight:500}
 </style>
 
 <header class="mast">
   <div class="wrap">
-    <p class="eyebrow">HaTi &middot; product review &middot; second edition &middot; 16 September 2026</p>
+    <p class="eyebrow">HaTi &middot; product review &middot; third edition &middot; 16 September 2026</p>
     <h1>HaTi&rsquo;s Next Fifteen</h1>
-    <p class="stand">Fifteen additions, drawn from four buyers&rsquo; seats &mdash; and the harder question:
-      where does each one sit on a product that is already built, without making it feel bigger? This edition
-      shows every screen as it is today, and the same screen with the fifteen on it.</p>
+    <p class="stand">Six full screens, each shown as HaTi draws it today and again with the fifteen additions placed
+      on it. Both pictures are the real product running &mdash; not drawings of it.</p>
     <div class="meta">
-      <span><b>15</b> additions</span>
-      <span><b>6</b> screens touched</span>
+      <span><b>12</b> full screens</span>
+      <span><b>6</b> pages touched</span>
       <span><b>0</b> new doors in the sidebar</span>
-      <span><b>2</b> new things visible on a quiet day</span>
+      <span><b>1</b> new tab anywhere</span>
     </div>
   </div>
 </header>
 
-<div class="wrap body">
+<div class="wrap main">
 
-<nav class="toc" aria-label="Contents">
-  <p class="toc-h">The argument</p>
-  <ol>
-    <li><a href="#budget"><span class="n">&mdash;</span>The surface budget</a></li>
-    <li><a href="#devices"><span class="n">&mdash;</span>Three devices HaTi already has</a></li>
-  </ol>
-  <p class="toc-h">Screen by screen</p>
-  <ol>
-    <li><a href="#h1"><span class="n">H1</span>Contracts</a></li>
-    <li><a href="#h2"><span class="n">H2</span>The contract room</a></li>
-    <li><a href="#h3"><span class="n">H3</span>Obligations</a></li>
-    <li><a href="#h4"><span class="n">H4</span>Insights &amp; Copilot</a></li>
-    <li><a href="#h5"><span class="n">H5</span>Home &amp; alerts</a></li>
-    <li><a href="#h6"><span class="n">H6</span>Requests &amp; Settings</a></li>
-  </ol>
-  <p class="toc-h">The proof</p>
-  <ol>
-    <li><a href="#quiet"><span class="n">&mdash;</span>The quiet Tuesday test</a></li>
-    <li><a href="#lands"><span class="n">&mdash;</span>Where each one lands</a></li>
-  </ol>
-  <p class="toc-h">Building it</p>
-  <ol>
-    <li><a href="#releases"><span class="n">&mdash;</span>Six releases, one screen each</a></li>
-    <li><a href="#catalogue"><span class="n">&mdash;</span>The fifteen in short</a></li>
-    <li><a href="#left-out"><span class="n">&mdash;</span>What we did not add</a></li>
-  </ol>
-</nav>
+<section class="sec">
+  <div class="sec-head"><span class="rule-n">i</span><h2>How these pictures were made</h2></div>
+  <div class="method">
+    <p><b>The &ldquo;today&rdquo; screens are screenshots of HaTi.</b> The application was started, signed into as an
+      administrator, and loaded with a book of 22 live agreements for a Kenyan FMCG business &mdash; Kabras Sugar,
+      Naivas, Bidco, Siginon Freight, Chandaria, Jumia &mdash; across all six value streams, with real obligations,
+      expiry dates and requests. Every pixel is the product as built.</p>
+    <p><b>The &ldquo;tomorrow&rdquo; screens are the same running application with the additions placed into it,</b>
+      using HaTi&rsquo;s own components: its cards, its bands, its filter controls, its buttons, its status chips.
+      Nothing was redrawn. That is why the two pictures in each pair line up exactly &mdash; they are the same page,
+      one second apart.</p>
+    <p>They are mock-ups made inside the product, not working features. What they prove is placement and weight:
+      where each addition would sit, and how much of the screen it costs.</p>
+  </div>
+  <div class="revise" style="margin-top:20px"><b>What looking at the real product changed.</b> The previous edition
+    put the forwarded-contract tray on a row of tabs across the Contracts page. There is no such row &mdash; and
+    HaTi already has an <i>Import queue</i>, with its own tile on Home and its own door in the sidebar. So the
+    Mailroom now feeds the queue that exists, which costs nothing at all. Two other placements moved for the same
+    reason, and are marked where they occur.</div>
+</section>
 
-<main class="main">
+<section class="sec">
+  <div class="sec-head"><span class="rule-n">ii</span><h2>Six screens, before and after</h2></div>
+  <p class="lede prose">Every one of the fifteen lands on one of these six pages. Tick <i>Full size</i> on any
+    picture to see it at the width HaTi actually draws it.</p>
+</section>
+
+<!-- ===================== HOME ===================== -->
+<article class="screen" id="home">
+  <div class="screen-top"><span class="screen-n">1 of 6</span>
+    <h3>Home</h3>
+    <p class="carries">Carries <b>S1</b> the Mailroom &middot; <b>S6</b> a notice ready to serve &middot;
+      <b>S8</b> a lapsed certificate &middot; <b>S9</b> a watched answer that changed</p>
+  </div>
+  <p>Home is where a product usually gets fat, and it is the page the fifteen touch most lightly. Two things change,
+    and both are numbers inside furniture that is already on the screen: a Portfolio tile stops reading zero, and one
+    more row appears in a list that already caps itself at three.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-a1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="z-a1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/A1-home-today.png" alt="HaTi Home today: greeting, My work tiles, Portfolio tiles with an empty Import queue, Prepared for you with two rows, Needs your decision" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-a2"><figcaption><span class="dot"></span>With the fifteen on it
+        <label class="zoom" for="z-a2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/A2-home-future.png" alt="The same Home page: the Import queue tile now reads three documents forwarded, and a drafted notice leads Prepared for you" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>The Import queue tile comes alive</b><span class="rf">S1</span> &mdash; it read &ldquo;0 docs &middot;
+      nothing waiting&rdquo; and was greyed out. Forwarded contracts land in the queue HaTi already has, so the tile
+      reads &ldquo;3 docs &middot; 2 read and ready to confirm&rdquo; and becomes a door. No new tile, no new page.</div>
+    <div><b>A drafted notice leads Prepared for you</b><span class="rf">S6</span> &mdash; a fourth kind of prepared
+      work beside the chase and the renewal memo. The ceiling of three rows is unchanged: it competes for a place
+      rather than adding one, and the sub-line still counts what is on screen.</div>
+    <div><b>Two more kinds of alert</b><span class="rf">S8 S9</span> &mdash; a lapsed certificate and a watched
+      answer that changed. Both are rows in the bell&rsquo;s ranked list, which is the cheapest thing anyone can add
+      to HaTi. The panel does not change shape.</div>
+    <div><b>Money owed to us joins the tile catalogue</b><span class="rf">S7</span> &mdash; the four tiles under
+      <i>My work</i> are chosen by each person from a list. One more option on that list; nobody who does not pick
+      it ever sees it.</div>
+  </div>
+  <p class="weight"><b>Weight added: none.</b> No new region, no new tile, no new row type. Every figure here sits in
+    furniture that was already drawn, including on a day when all of it reads zero.</p>
+</article>
+
+<!-- ===================== CONTRACTS ===================== -->
+<article class="screen" id="contracts">
+  <div class="screen-top"><span class="screen-n">2 of 6</span>
+    <h3>Contracts</h3>
+    <p class="carries">Carries <b>S13</b> bulk amendments &middot; <b>S14</b> the diligence pack &middot;
+      <b>S8</b> lapsed documents as a filter</p>
+  </div>
+  <p>The table is narrowed here the way anybody narrows it &mdash; <i>Lifecycle stage: Executed</i> &mdash; and the
+    footer says so in the product&rsquo;s own words: 14 of 22. That is the moment, and only that moment, when
+    &ldquo;these&rdquo; means something, so that is when the one new act appears.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-b1"><figcaption><span class="dot"></span>Today, narrowed to executed agreements
+        <label class="zoom" for="z-b1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/B1-contracts-today.png" alt="HaTi Contracts today: filter bar with five controls, a table of 22 agreements with reference, title, counterparty, value stream, value, signed, expiry and status" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-b2"><figcaption><span class="dot"></span>With the fifteen on it
+        <label class="zoom" for="z-b2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/B2-contracts-future.png" alt="The same page with a Do this to these 14 button beside Draft new agreement, its menu open, and a Required document filter added to the bar" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>&ldquo;Do this to these 14&rdquo;</b><span class="rf">S13 S14</span> &mdash; one button, beside the one
+      that is already there, carrying both the amendment campaign and the diligence pack in its menu. It is not drawn
+      at all while the table shows everything, because then it would be an offer to act on the whole book.</div>
+    <div><b>A &ldquo;Required document&rdquo; filter</b><span class="rf">S8</span> &mdash; a sixth option behind
+      <i>Adapt filters</i>, which is where HaTi already hides the filters most people never use. It draws itself on
+      the bar only while it is narrowing something, exactly as the Signed-year filter does today.</div>
+    <div><b>Nothing else moves</b> &mdash; same eight columns, same row height, same value-stream legend, same
+      footer arithmetic. The table is the part of HaTi people use most, and it is untouched.</div>
+    <div><b>What did not happen here</b><span class="rf">S1</span> &mdash; the forwarded-contract tray. The first
+      edition put a tab row across this page; there is no tab row, and the Import queue already exists. Reading the
+      real screen removed a whole piece of proposed furniture.</div>
+  </div>
+  <p class="weight"><b>Weight added on an ordinary visit: none.</b> With no filter in force, this page is
+    byte-for-byte what it is today.</p>
+</article>
+
+<!-- ===================== THE CONTRACT ROOM ===================== -->
+<article class="screen" id="room">
+  <div class="screen-top"><span class="screen-n">3 of 6</span>
+    <h3>The contract room &mdash; Key terms</h3>
+    <p class="carries">Carries <b>S2</b> commercial terms &middot; <b>S8</b> required documents &middot;
+      <b>S6</b> serve a notice &middot; <b>S12</b> the family check</p>
+  </div>
+  <p>Four of the fifteen land in this one column, and it is the safest place in the product to put them, because the
+    column was built for cards that come and go. The renewal card in these pictures is only there because this
+    contract is 14 days from its notice deadline; on most agreements it is absent, and so are the two new cards.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-c1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="z-c1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/C1-room-today.png" alt="The Key terms tab today: the Key terms card on the left, and a right column with the Renewal card, the Contract brief card and the Agreement family card" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-c2"><figcaption><span class="dot"></span>With the fifteen on it
+        <label class="zoom" for="z-c2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/C2-room-future.png" alt="The same tab with a third button on the Renewal card reading Serve a notice, a Commercial terms card quoting clauses, and a Documents they must hold card showing one lapsed certificate" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>&ldquo;Serve a notice&rdquo;</b><span class="rf">S6</span> &mdash; a third button on a card that already
+      offers two. HaTi already knows the deadline, the notice period and the clause; this is the act it stops short
+      of today.</div>
+    <div><b>Commercial terms</b><span class="rf">S2</span> &mdash; payment terms, the rebate, the tiers, the price
+      review and the rejection window, each quoting the clause it came from, and exclusivity saying plainly that
+      nothing was recorded. Drawn only where money passes under the agreement.</div>
+    <div><b>Documents they must hold</b><span class="rf">S8</span> &mdash; the insurance, the KEBS certificate and
+      the food-safety certificate the wording requires, with one lapsed in ruby. Drawn only where the wording
+      requires a document; most contracts require none and see nothing.</div>
+    <div><b>&ldquo;Check the family&rdquo;</b><span class="rf">S12</span> &mdash; a third act on the Agreement family
+      card. On this standalone agreement it would not be drawn at all; it appears once a contract has a parent or
+      children to disagree with.</div>
+  </div>
+  <p class="weight"><b>The contract does not move.</b> This is the side column; the agreement itself is on the
+    Document tab and starts at exactly the same pixel before and after. On an NDA with no money, no certificates and
+    no family, this tab is unchanged.</p>
+</article>
+
+<!-- ===================== OBLIGATIONS ===================== -->
+<article class="screen" id="obligations">
+  <div class="screen-top"><span class="screen-n">4 of 6</span>
+    <h3>Obligations</h3>
+    <p class="carries">Carries <b>S7</b> what you are owed &middot; <b>S8</b> certificates as rows</p>
+  </div>
+  <p>The cheapest change in the whole set, because this page already does every hard part: it groups into bands with
+    a count and a money total, it already carries an amount column, it already tells ours from theirs, and it already
+    chases. Look at the &ldquo;today&rdquo; picture &mdash; the <i>Side</i> filter is on the bar and the amounts are
+    in the table. Nothing needs inventing.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-d1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="z-d1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/D1-oblig-today.png" alt="The Obligations worklist today: eleven outstanding, four overdue, five filters, and bands for Overdue, Due this month and Later with side chips and amounts" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-d2"><figcaption><span class="dot"></span>With the fifteen on it
+        <label class="zoom" for="z-d2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/D2-oblig-future.png" alt="The same worklist with a new top band, Earned not claimed, holding a volume rebate, service credits and a listing fee refund, each with a Claim verb" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>An &ldquo;Earned, not claimed&rdquo; band</b><span class="rf">S7</span> &mdash; the rebate you crossed the
+      threshold on, the service credits for four late loads, the listing fee for a campaign that was never run. Same
+      band shape, same count at the right, same money total as every other band.</div>
+    <div><b>One new verb: Claim</b><span class="rf">S7</span> &mdash; beside <i>Open</i>, where <i>Chase</i> already
+      sits on the rows below. Money you are owed is a kind of obligation, not a new feature.</div>
+    <div><b>The head counts it</b><span class="rf">S7</span> &mdash; &ldquo;14 outstanding &middot; 4 overdue &middot;
+      KES 5.20M earned, not claimed&rdquo;. One more fact on a line that already carries two.</div>
+    <div><b>Certificates are already rows here</b><span class="rf">S8</span> &mdash; look at the overdue band in the
+      &ldquo;today&rdquo; picture: <i>Product liability insurance evidence</i>, from Kabras Sugar, already overdue.
+      What is missing is the document itself and its expiry, not the row.</div>
+  </div>
+  <p class="weight"><b>Weight added: one band that only exists when something has been earned.</b> The filters, the
+    columns and the row shape are untouched. Left on &ldquo;Both sides&rdquo;, the page reads as it does today.</p>
+</article>
+
+<!-- ===================== INSIGHTS ===================== -->
+<article class="screen" id="insights">
+  <div class="screen-top"><span class="screen-n">5 of 6</span>
+    <h3>Insights</h3>
+    <p class="carries">Carries <b>S10</b> the exposure register</p>
+  </div>
+  <p>This is the only piece of new surface in the fifteen, and it is admitted as such: a sixth tab. It earns the
+    space by replacing something worse &mdash; those counts exist today inside a weekly document, written as
+    sentences, with no way to press them.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-e1"><figcaption><span class="dot"></span>Today &mdash; five tabs
+        <label class="zoom" for="z-e1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/E1-insights-today.png" alt="Insights today with five tabs: Portfolio, Negotiation Friction, Obligations, Payment terms and Contract Graph, showing the renewal runway chart and the risk map" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-e2"><figcaption><span class="dot"></span>With the fifteen on it &mdash; a sixth
+        <label class="zoom" for="z-e2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/E2-insights-future.png" alt="Insights with an Exposure tab selected, showing a table of uncapped liability, open price clauses, indemnities, auto-renewals and exclusivity, each with a count, a value and a worst case" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>One row per kind of exposure</b><span class="rf">S10</span> &mdash; uncapped liability, open-ended price
+      clauses, indemnities with no ceiling, agreements that renew themselves, lock-ins you cannot exit. A count, the
+      money on paper, and the worst single case.</div>
+    <div><b>Every row is a door</b> &mdash; <i>See all</i> narrows the Contracts page to those agreements, which is
+      the same door the other Insights tabs already use. Nothing here is a number you cannot open.</div>
+    <div><b>The last row is the honest one</b><span class="rf">S10</span> &mdash; 19 contracts, KES 475.50M, not read
+      closely enough to say anything about. Every competitor hides that figure. It is the sentence that makes the
+      others usable.</div>
+    <div><b>No score out of 100</b> &mdash; a made-up rating is worse than a count you can press, and a lawyer cannot
+      defend a number they cannot derive. This is the one place the market standard was deliberately refused.</div>
+  </div>
+  <p class="weight"><b>Weight added: one tab, always there.</b> Together with the Requests columns below, that is the
+    entire cost of the fifteen to somebody who never uses any of them.</p>
+</article>
+
+<!-- ===================== REQUESTS ===================== -->
+<article class="screen" id="requests">
+  <div class="screen-top"><span class="screen-n">6 of 6</span>
+    <h3>Requests</h3>
+    <p class="carries">Carries <b>S4</b> the clock &middot; <b>S5</b> the tracker link &middot;
+      <b>S3</b> clearance lanes</p>
+  </div>
+  <p>Four colleagues have asked for something. Today each request carries a title, a paragraph, who asked, when, the
+    counterparty and the value stream &mdash; and three buttons. What it does not carry is the four things that turn
+    an inbox into a queue: how it was routed, who is holding it, when it was promised, and a way for the person who
+    asked to find out without asking again.</p>
+
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-f1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="z-f1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/F1-requests-today.png" alt="The Requests page today with four requests waiting to be picked up, each a card with a reference, a title, a waiting chip, a description and three buttons" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-f2"><figcaption><span class="dot"></span>With the fifteen on it
+        <label class="zoom" for="z-f2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/F2-requests-future.png" alt="The same requests with a right-hand block on each row showing Road, With and Promised, plus a tracker link, and a count line beside the heading" loading="lazy"></div>
+    </figure>
+  </div>
+
+  <div class="keys">
+    <div><b>Road, With, Promised</b><span class="rf">S4</span> &mdash; three facts on the right of each row. The road
+      is worked out, not typed: our own template with no money is routine; the other side&rsquo;s paper with a
+      counterparty nobody has dealt with is a close read.</div>
+    <div><b>&ldquo;Cleared by a lane&rdquo;</b><span class="rf">S3</span> &mdash; the third request was an NDA on our
+      own template with nothing outside the playbook, so a rule an administrator wrote sent it straight to signature
+      and the clock reads four minutes. The rule itself lives in Settings, where HaTi keeps its rules.</div>
+    <div><b>A tracker link</b><span class="rf">S5</span> &mdash; the way the person who asked finds out where their
+      contract is, without a login and without asking a human. It opens a page outside the app, so it adds nothing to
+      the app&rsquo;s own surface.</div>
+    <div><b>The clock stops when the ball is theirs</b><span class="rf">S4</span> &mdash; and the heading says the
+      median the team actually achieves beside the number waiting. A promised date is a promise the team sets, never
+      a prediction HaTi makes.</div>
+  </div>
+  <p class="weight"><b>Weight added: three facts and a link on a row that had room for them.</b> This and the
+    Exposure tab are the only two changes visible on a day when nothing is happening.</p>
+</article>
 
 <section class="sec" id="budget">
-  <div class="sec-head"><span class="rule-n">i</span><h2>The surface budget</h2></div>
+  <div class="sec-head"><span class="rule-n">iii</span><h2>The surface budget, counted off the real screens</h2></div>
   <p class="lede prose">Fifteen additions sounds like a product getting heavier. It only gets heavier if the number
-    of things a person has to look at goes up. So before designing anything, I counted what HaTi shows today and
-    what the fifteen would add to that count.</p>
+    of things a person has to look at goes up. These figures are counted from the twelve pictures above.</p>
 
   <div class="budget">
     <table class="bg">
       <thead><tr><th>What a person sees</th><th>Today</th><th>After</th><th>What changes</th></tr></thead>
       <tbody>
-        <tr><td>Doors in the sidebar</td><td>13</td><td class="same">13</td><td>Nothing. Every addition lands inside a door that already exists.</td></tr>
-        <tr><td>Tabs in a contract</td><td>5</td><td class="same">5</td><td>Nothing. Key terms, Document, Signing, Obligations, History stay as they are.</td></tr>
-        <tr><td>Tabs on Insights</td><td>5</td><td class="up">6</td><td>One: <b>Exposure</b>. The only new tab in the whole set.</td></tr>
+        <tr><td>Doors in the sidebar</td><td>13</td><td class="same">13</td><td>Nothing. Nine everyday doors and four under Administration, unchanged.</td></tr>
+        <tr><td>Tabs inside a contract</td><td>5</td><td class="same">5</td><td>Nothing. Key terms, Document, Signing, Obligations, History.</td></tr>
+        <tr><td>Tabs on Insights</td><td>5</td><td class="up">6</td><td>One: <b>Exposure</b>. The only new tab anywhere in the fifteen.</td></tr>
         <tr><td>Cards in the Key terms column</td><td>3</td><td class="up">5</td><td>Two, and both draw nothing at all on a contract they have nothing to say about.</td></tr>
-        <tr><td>Scopes on the Contracts table</td><td>2</td><td class="up">3</td><td>One: <b>Unfiled</b>, which disappears when the tray is empty.</td></tr>
-        <tr><td>Filters on the Contracts table</td><td>2 of 5</td><td class="up">2 of 6</td><td>One more filter offered behind <i>Adapt filters</i>. Two on the bar, as today.</td></tr>
-        <tr><td>Columns on Requests</td><td>4</td><td class="up">6</td><td>Two: who has it, and when it was promised.</td></tr>
-        <tr><td>Kinds of alert</td><td>10</td><td class="up">12</td><td>Two more rows in a list that already sorts itself. The panel does not change shape.</td></tr>
-        <tr><td>Panels in Settings</td><td>~20</td><td class="up">~22</td><td>Two, in the drawer that already holds the rules.</td></tr>
-        <tr><td>Pages inside the app</td><td>13</td><td class="same">13</td><td>Nothing. The one new page is outside the app, for people who do not have a login.</td></tr>
+        <tr><td>Filters shown on Contracts</td><td>4 of 5</td><td class="up">4 of 6</td><td>One more offered behind <i>Adapt filters</i>. The bar itself does not grow.</td></tr>
+        <tr><td>Filters on Obligations</td><td>5</td><td class="same">5</td><td>Nothing. The <i>Side</i> filter this needs is already there.</td></tr>
+        <tr><td>Bands on Obligations</td><td>3</td><td class="up">4</td><td>One, and only once something has actually been earned.</td></tr>
+        <tr><td>Acts above the Contracts table</td><td>1</td><td class="up">2</td><td>One, drawn only while a filter is narrowing the table.</td></tr>
+        <tr><td>Buttons on the Renewal card</td><td>2</td><td class="up">3</td><td>One, and the card itself only appears inside the notice window.</td></tr>
+        <tr><td>Columns on Requests</td><td>&mdash;</td><td class="up">3 facts</td><td>Road, With and Promised, on a row that had the space.</td></tr>
+        <tr><td>Kinds of alert</td><td>10</td><td class="up">12</td><td>Two more rows in a list that already ranks itself.</td></tr>
+        <tr><td>Pages inside the app</td><td>13</td><td class="same">13</td><td>Nothing. The one new page is outside the app, for people with no login.</td></tr>
       </tbody>
-      <tfoot><tr class="tot"><td>New things visible on a contract with nothing happening</td><td class="same">&mdash;</td><td class="up">2</td><td>A sixth Insights tab, and two extra columns on Requests.</td></tr></tfoot>
+      <tfoot><tr><td>Visible on a day when nothing is happening</td><td class="same">&mdash;</td><td class="up">2</td><td>The Exposure tab, and the three facts on a request.</td></tr></tfoot>
     </table>
   </div>
-  <p class="shot-cap" style="margin-top:12px">Counted from the product as built: the nine everyday doors plus four
-    under Administration, the five room tabs, the five Insights tabs, the three cards the Key terms column draws,
-    and the ten kinds of alert the panel ranks.</p>
 </section>
 
-<section class="sec" id="devices">
-  <div class="sec-head"><span class="rule-n">ii</span><h2>Three devices HaTi already has for staying quiet</h2></div>
-  <p class="lede prose">This is the part that makes the budget above possible, and none of it is new thinking.
-    HaTi already solved &ldquo;do not overwhelm me&rdquo; three times, wrote down why, and the fifteen additions
-    simply use the same three devices rather than inventing a fourth.</p>
-
-  <div class="devices">
-    <div class="device">
-      <p class="nm">Device one</p>
-      <h4>Nothing to say, nothing drawn</h4>
-      <p>A card with no content does not draw an empty box &mdash; it draws nothing at all, and the column closes
-        up behind it. HaTi decided this after an empty bordered rectangle made a page look broken.</p>
-      <p class="ex"><b>Already doing it:</b> the renewal card. It is not there at all until the contract is inside
-        its 90-day window, so on most contracts that column looks exactly as it always did.</p>
-    </div>
-    <div class="device">
-      <p class="nm">Device two</p>
-      <h4>Offered, not displayed</h4>
-      <p>A control that only some people want lives behind <i>Adapt filters</i> &mdash; and then draws itself the
-        moment it is actually narrowing something, so you can always see what is being hidden from you.</p>
-      <p class="ex"><b>Already doing it:</b> the Signed-year filter. Off the bar by default, on the bar the second
-        it is doing work.</p>
-    </div>
-    <div class="device">
-      <p class="nm">Device three</p>
-      <h4>No count at zero, amber only above it</h4>
-      <p>A number beside a door appears only when it is above zero, and only turns amber when something is
-        actually late. A permanent badge stops being read within a week.</p>
-      <p class="ex"><b>Already doing it:</b> the Obligations tab count, the sidebar counts, the alert dot.</p>
-    </div>
-  </div>
-
-  <div class="rules" style="margin-top:26px">
-    <div><b>And one rule added for this set</b>An addition must land in a container that already exists: a row in a
-      list, a column in a table, a card in a column, a scope on a table, an act on a card. If a proposal needs a
-      new container, it is the proposal that is wrong.</div>
-    <div><b>Which leaves exactly one exception</b>The Exposure tab on Insights. It is new surface, it is admitted
-      as new surface, and it earns it by replacing a count that is currently trapped inside a weekly document
-      nobody can press.</div>
-  </div>
-</section>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">iii</span><h2>Screen by screen</h2></div>
-  <p class="lede prose">Six screens carry all fifteen additions. Each one below is shown as it is today, then as it
-    would be. The numbered markers and dashed outlines are annotation for this document &mdash; they are not part
-    of the product.</p>
-</section>
-
-<article class="host" id="h1">
-  <div class="host-top"><span class="host-n">H1</span>
-    <h3>The Contracts page</h3>
-    <p class="lands">Carries <b>S1</b> the Mailroom &middot; <b>S13</b> bulk amendments &middot; <b>S14</b> the
-      diligence pack &middot; <b>S8</b> lapsed documents as a filter</p>
-  </div>
-  <p>Four of the fifteen land here, and on an ordinary day none of them is visible. The table already has scopes
-    across the top and a filter bar that hides what you are not using &mdash; so the additions become one more
-    scope that vanishes when empty, one more option in a list you have to open, and one act that only appears
-    when you have deliberately narrowed the table.</p>
-
-  <div class="ba">
-    <div>
-      <p class="lab"><span class="dot"></span>Today</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span><span class="k">&#8984;K</span><span class="u">TM</span></div>
-        <div class="hhead"><h4>Contracts</h4><span class="sp"></span>
-          <span class="brow"><span class="b">Adapt filters</span><span class="b pri">+ Draft new agreement</span></span></div>
-        <div class="htabs"><span class="on">All contracts <span class="cnt">214</span></span>
-          <span>Negotiations <span class="cnt">7</span></span><span>Archived <span class="cnt">31</span></span></div>
-        <div class="hfoot" style="border-top:0;border-bottom:1px solid var(--line-faint)">
-          <span>Lifecycle stage <b style="font-weight:400">All</b></span><span>Value stream <b style="font-weight:400">All</b></span>
-          <span class="sp"></span><span>Search</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:12%"><col style="width:30%"><col style="width:22%"><col style="width:18%"><col style="width:18%"></colgroup>
-          <thead><tr><th>Ref</th><th>Title</th><th>Counterparty</th><th>Stage</th><th>Expiry</th></tr></thead>
-          <tbody>
-            <tr><td class="ref">MK&#8209;204</td><td class="tt">Supply agreement</td><td class="mut">Nyala Foods AB</td><td><span class="c gr">In force</span></td><td class="mut">31 Dec 2026</td></tr>
-            <tr><td class="ref">MK&#8209;118</td><td class="tt">Master services agreement</td><td class="mut">Nordic Freight AB</td><td><span class="c am">Under review</span></td><td class="mut">31 Dec 2026</td></tr>
-            <tr><td class="ref">MK&#8209;177</td><td class="tt">Retail listing agreement</td><td class="mut">Bergs Retail AB</td><td><span class="c gr">In force</span></td><td class="mut">30 Jun 2027</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>With the four additions on it</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span><span class="k">&#8984;K</span><span class="u">TM</span></div>
-        <div class="hhead"><h4>Contracts</h4>
-          <span class="sub anno"><span class="mk">3</span>Narrowed to: supply agreements &middot; our paper &mdash; 46 of 214</span>
-          <span class="sp"></span>
-          <span class="brow"><span class="b anno"><span class="mk">2</span>Do this to these 46</span>
-            <span class="b">Adapt filters</span><span class="b pri">+ Draft new agreement</span></span></div>
-        <div class="htabs"><span class="on">All contracts <span class="cnt">214</span></span>
-          <span>Negotiations <span class="cnt">7</span></span>
-          <span class="anno"><span class="mk">1</span>Unfiled <span class="cnt am">3</span></span>
-          <span>Archived <span class="cnt">31</span></span></div>
-        <div class="hfoot" style="border-top:0;border-bottom:1px solid var(--line-faint)">
-          <span>Lifecycle stage <b style="font-weight:400">All</b></span><span>Value stream <b style="font-weight:400">All</b></span>
-          <span class="anno"><span class="mk">4</span>Quick filter <b style="font-weight:400">A required document has lapsed</b></span>
-          <span class="sp"></span><span>Search</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:12%"><col style="width:30%"><col style="width:22%"><col style="width:18%"><col style="width:18%"></colgroup>
-          <thead><tr><th>Ref</th><th>Title</th><th>Counterparty</th><th>Stage</th><th>Expiry</th></tr></thead>
-          <tbody>
-            <tr><td class="ref">MK&#8209;204</td><td class="tt">Supply agreement</td><td class="mut">Nyala Foods AB</td><td><span class="c gr">In force</span></td><td class="mut">31 Dec 2026</td></tr>
-            <tr><td class="ref">MK&#8209;118</td><td class="tt">Master services agreement</td><td class="mut">Nordic Freight AB</td><td><span class="c am">Under review</span></td><td class="mut">31 Dec 2026</td></tr>
-            <tr><td class="ref">MK&#8209;177</td><td class="tt">Retail listing agreement</td><td class="mut">Bergs Retail AB</td><td><span class="c gr">In force</span></td><td class="mut">30 Jun 2027</td></tr>
-          </tbody>
-        </table></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span><b>Unfiled</b> &mdash; a fourth scope beside the three that exist. It is
-      not drawn at all when the tray is empty, so a workspace that never forwards anything never sees it.</span></div>
-    <div><span class="mk">2</span><span><b>Do this to these 46</b> &mdash; one act, carrying both the amendment
-      campaign and the diligence pack. It appears only while a filter is narrowing the table, which is the moment
-      &ldquo;these&rdquo; means anything.</span></div>
-    <div><span class="mk">3</span><span>The line saying what the table is narrowed to is already there &mdash; it
-      is how the register shows a worklist today. Nothing changes about it.</span></div>
-    <div><span class="mk">4</span><span><b>A required document has lapsed</b> joins the quick filters, behind
-      <i>Adapt filters</i>, and draws itself on the bar only while it is narrowing.</span></div>
-  </div>
-</article>
-
-<article class="host" id="h2">
-  <div class="host-top"><span class="host-n">H2</span>
-    <h3>The contract room &mdash; the Key terms column</h3>
-    <p class="lands">Carries <b>S2</b> commercial terms &middot; <b>S8</b> required documents &middot; <b>S6</b>
-      serve a notice &middot; <b>S12</b> the family check</p>
-  </div>
-  <p>This is the busiest change in the set, and also the safest, because the column it lands in was built to have
-    cards come and go. Today it draws a renewal card only inside the 90-day window, then the brief, then the
-    agreement family. The two new cards follow the same rule: <b>a contract with no money passing through it never
-    sees the commercial terms card, and a contract that requires no certificates never sees the documents
-    card.</b></p>
-
-  <div class="ba pair">
-    <div>
-      <p class="lab"><span class="dot"></span>Today &mdash; and on most contracts, after</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">TM</span></div>
-        <div class="hcards">
-          <div class="hcard">
-            <div class="hd"><h5>Contract brief</h5><span class="sp"></span><span class="c st">Read 14 Sep</span></div>
-            <div class="bd"><p style="margin:0;font-size:13px;color:var(--ink-2)">A two-year supply agreement on
-              the supplier&rsquo;s paper. Watch the price-change clause and the automatic renewal.</p></div>
-          </div>
-          <div class="hcard">
-            <div class="hd"><h5>Agreement family</h5><span class="sp"></span><span class="c gy">2 documents</span></div>
-            <div class="bd"><div class="kv">
-              <span class="k">Parent</span><span class="v">None &mdash; this is the top</span><span></span>
-              <span class="k">Children</span><span class="v">Amendment 1, Order form Q3</span><span></span>
-            </div></div>
-            <div class="hfoot"><span class="b sm">Create an amendment</span><span class="b sm plain">Link a document</span></div>
-          </div>
-        </div>
-        <div class="hnote" style="color:var(--ink-3)">The renewal card is not drawn: this contract is not inside
-          its notice window. That is the column as it works today.</div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>The same column on a supplier contract, in its notice window</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">PN</span></div>
-        <div class="hcards">
-          <div class="hcard">
-            <div class="hd"><h5>Renewal</h5><span class="sp"></span><span class="c am">Decide by 14 Oct</span></div>
-            <div class="bd"><div class="kv">
-              <span class="k">Renews</span><span class="v">12 months on 1 January</span><span></span>
-              <span class="k">Unless</span><span class="v">You object 90 days before</span><span class="cl">cl. 18.2</span>
-            </div></div>
-            <div class="hfoot"><span class="b sm pri anno"><span class="mk">1</span>Serve a notice</span>
-              <span class="b sm">Let it renew</span></div>
-          </div>
-          <div class="hcard anno">
-            <div class="hd"><h5><span class="mk">2</span>Commercial terms</h5><span class="sp"></span><span class="c am">2 departures</span></div>
-            <div class="bd"><div class="kv">
-              <span class="k">Payment terms</span><span class="v">45 days</span><span class="cl">cl. 7.2</span>
-              <span class="k">Rebate</span><span class="v">3% over 120,000 units</span><span class="cl">cl. 9.1</span>
-              <span class="k">Price changes</span><span class="v">30 days, capped at CPI</span><span class="cl">cl. 11.4</span>
-              <span class="k">Exclusivity</span><span class="v none">Not recorded</span><span></span>
-            </div></div>
-          </div>
-          <div class="hcard anno">
-            <div class="hd"><h5><span class="mk">3</span>Documents they must hold</h5><span class="sp"></span><span class="c ru">1 lapsed</span></div>
-            <div class="bd"><div class="kv">
-              <span class="k">BRC food safety</span><span class="v" style="color:var(--ruby-fg)">Lapsed 2 Sep</span><span class="cl">cl. 14.1</span>
-              <span class="k">Liability insurance</span><span class="v">To 31 Oct</span><span class="cl">cl. 15.2</span>
-            </div></div>
-            <div class="hfoot"><span class="b sm">Chase them</span></div>
-          </div>
-          <div class="hcard">
-            <div class="hd"><h5>Agreement family</h5><span class="sp"></span><span class="c gy">2 documents</span></div>
-            <div class="bd"><div class="kv">
-              <span class="k">Children</span><span class="v">Amendment 1, Order form Q3</span><span></span>
-            </div></div>
-            <div class="hfoot"><span class="b sm">Create an amendment</span>
-              <span class="b sm plain anno"><span class="mk">4</span>Check the family</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span><b>Serve a notice</b> is a second act on a card that already exists and
-      already has one. No new card, no new page.</span></div>
-    <div><span class="mk">2</span><span><b>Commercial terms</b> draws only where money passes under the agreement
-      &mdash; a question HaTi already answers for itself. On an NDA it is simply not there.</span></div>
-    <div><span class="mk">3</span><span><b>Documents they must hold</b> draws only where the wording requires one.
-      Most contracts require none, and see nothing.</span></div>
-    <div><span class="mk">4</span><span><b>Check the family</b> is a third act on the family card, and it is not
-      drawn at all on a contract with no parent and no children.</span></div>
-  </div>
-  <p class="shot-cap"><b>The contract itself does not move.</b> This column sits beside the paper, never above it,
-    so the first line of the wording is in exactly the same place before and after.</p>
-</article>
-
-<article class="host" id="h3">
-  <div class="host-top"><span class="host-n">H3</span>
-    <h3>The Obligations worklist</h3>
-    <p class="lands">Carries <b>S7</b> what you are owed &middot; <b>S8</b> certificates as rows</p>
-  </div>
-  <p>The cheapest change in the set, because the worklist already has almost everything needed. It already groups
-    into bands, already carries an amount, already knows whose obligation it is, and already chases the other side.
-    What it does not have is a way to say &ldquo;show me the ones where <i>they</i> owe <i>us</i>&rdquo; &mdash;
-    which is one switch.</p>
-
-  <div class="ba">
-    <div>
-      <p class="lab"><span class="dot"></span>Today</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Obligations</span><span class="sp"></span><span class="u">PN</span></div>
-        <div class="hhead"><h4>Obligations</h4><span class="sub">Across 214 contracts</span><span class="sp"></span>
-          <span class="brow"><span class="b">Clear</span></span></div>
-        <div class="hband am">Overdue <span class="n">2</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
-          <thead><tr><th>What</th><th>Contract</th><th>Who</th><th>Due</th><th class="num">Amount</th></tr></thead>
-          <tbody>
-            <tr><td class="tt">Quarterly volume report</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">6 days over</span></td><td class="num mut">&mdash;</td></tr>
-            <tr><td class="tt">Insurance evidence to us</td><td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td><td class="mut">Theirs</td><td><span class="c ru">2 days over</span></td><td class="num mut">&mdash;</td></tr>
-          </tbody>
-        </table></div>
-        <div class="hband">This month <span class="n">5</span></div>
-        <div class="hfoot"><span>4 filters &middot; a dateless obligation is in no due window</span></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>With one switch and two new kinds of row</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Obligations</span><span class="sp"></span><span class="u">PN</span></div>
-        <div class="hhead"><h4>Obligations</h4><span class="sub">Across 214 contracts</span><span class="sp"></span>
-          <span class="brow anno"><span class="mk">1</span><span class="b">Owed to us</span>
-            <span class="b off">Owed by us</span><span class="b off">All</span></span></div>
-        <div class="hband am">Earned, not claimed <span class="n">3 &middot; SEK 176,400</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
-          <thead><tr><th>What</th><th>Contract</th><th>Who</th><th>Due</th><th class="num">Amount</th></tr></thead>
-          <tbody>
-            <tr class="anno-row"><td class="tt"><span class="mk">2</span>Volume rebate, Q2</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c gr">Earned</span></td><td class="num tt">144,000</td></tr>
-            <tr class="anno-row"><td class="tt">Late delivery credits</td><td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td><td class="mut">Theirs</td><td><span class="c gr">Earned</span></td><td class="num tt">24,000</td></tr>
-          </tbody>
-        </table></div>
-        <div class="hband ru" style="color:var(--ruby-fg)">Overdue <span class="n">3</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
-          <tbody>
-            <tr class="anno-row"><td class="tt"><span class="mk">3</span>BRC food safety certificate</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">Lapsed 2 Sep</span></td><td class="num mut">&mdash;</td></tr>
-            <tr><td class="tt">Quarterly volume report</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">6 days over</span></td><td class="num mut">&mdash;</td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span>Owed to us <b>SEK 176,400</b></span><span class="sp"></span>
-          <span>2 contracts left out &mdash; no exchange rate on file for KES.</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span>One switch, in the place the page already puts its controls. Left where it
-      is today (&ldquo;All&rdquo;) nothing about the page changes.</span></div>
-    <div><span class="mk">2</span><span>Money you are owed is a <b>kind of obligation</b>, not a new feature: same
-      table, same bands, same chase, one new band name and one new verb.</span></div>
-    <div><span class="mk">3</span><span>A lapsed certificate is an overdue obligation. It sorts into the band that
-      already exists and is chased by the chase that already exists.</span></div>
-  </div>
-</article>
-
-<article class="host" id="h4">
-  <div class="host-top"><span class="host-n">H4</span>
-    <h3>Insights, and the Copilot panel</h3>
-    <p class="lands">Carries <b>S10</b> the exposure register &middot; <b>S9</b> saved questions &middot;
-      <b>S11</b> what the negotiation was worth</p>
-  </div>
-  <p>The one admitted piece of new surface in the whole set is the sixth Insights tab. It earns the space by
-    replacing something worse: those counts exist today inside a weekly document, as sentences, with no way to
-    press them. Beside it, saved questions cost nothing at all &mdash; they fill the Copilot panel&rsquo;s greeting,
-    which is an empty state today.</p>
-
-  <div class="ba pair">
-    <div>
-      <p class="lab now"><span class="dot"></span>Insights &mdash; a sixth tab</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Insights</span><span class="sp"></span><span class="u">TM</span></div>
-        <div class="htabs"><span>Portfolio</span><span>Friction</span><span>Obligations</span><span>Payment terms</span>
-          <span class="on anno"><span class="mk">1</span>Exposure</span><span>Contract graph</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:44%"><col style="width:16%"><col style="width:24%"><col style="width:16%"></colgroup>
-          <thead><tr><th>Exposure</th><th class="num">Contracts</th><th class="num">Value on paper</th><th></th></tr></thead>
-          <tbody>
-            <tr><td class="tt">Liability is uncapped</td><td class="num">11</td><td class="num tt">SEK 4,120,000</td><td><span class="b sm plain">See all</span></td></tr>
-            <tr><td class="tt">They may change the price</td><td class="num">9</td><td class="num tt">SEK 2,240,000</td><td><span class="b sm plain">See all</span></td></tr>
-            <tr><td class="tt">Renews with no reminder</td><td class="num">6</td><td class="num tt">SEK 960,000</td><td><span class="b sm plain">See all</span></td></tr>
-            <tr><td class="tt" style="color:var(--steel-fg)">Not read closely enough to say</td><td class="num">23</td><td class="num tt">SEK 5,300,000</td><td><span class="b sm">Read them</span></td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span>Every row opens the list behind it.</span></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>Copilot &mdash; the greeting stops being empty</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Copilot</span><span class="sp"></span><span class="u">TM</span></div>
-        <div class="hcards">
-          <div class="hcard anno">
-            <div class="hd"><h5><span class="mk">2</span>Questions you are watching</h5><span class="sp"></span><span class="c am">1 changed</span></div>
-            <div class="bd" style="padding:0"><table class="ht">
-              <colgroup><col style="width:56%"><col style="width:44%"></colgroup>
-              <tbody>
-                <tr><td class="tt">Who may raise prices without our agreement?</td><td><span class="c am">was 8, now 9</span></td></tr>
-                <tr><td class="tt">Where have we given exclusivity?</td><td class="mut">3 &middot; no change</td></tr>
-                <tr><td class="tt">What survives a change of control?</td><td class="mut">11 &middot; no change</td></tr>
-              </tbody>
-            </table></div>
-          </div>
-        </div>
-        <div class="hnote"><b>Today this space is blank.</b> The panel opens with a greeting and nothing else, so
-          a first-time reader has no idea what to ask it. The questions this workspace already cares about are a
-          better answer than a prompt suggestion.</div>
-        <div class="hfoot"><span>Ask anything about your contracts&hellip;</span><span class="sp"></span><span class="b sm pri">Ask</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span><b>Exposure</b> &mdash; the only new tab proposed anywhere. Adding a tab
-      here is a one-word change in the list the page reads, which is how Insights was built.</span></div>
-    <div><span class="mk">2</span><span><b>Saved questions</b> take no new surface at all: they fill an empty state
-      and make the panel useful before you have typed anything.</span></div>
-    <div><span class="mk">&mdash;</span><span><b>What the negotiation was worth</b> is not drawn here. It goes at
-      the end of the negotiation memo HaTi already builds, and as one strip on Reports &mdash; no new page.</span></div>
-  </div>
-</article>
-
-<article class="host" id="h5">
-  <div class="host-top"><span class="host-n">H5</span>
-    <h3>Home, and the alerts panel</h3>
-    <p class="lands">Carries <b>S6</b> a notice to serve &middot; <b>S8</b> a lapsed document &middot; <b>S9</b> a
-      watched answer changed &middot; <b>S7</b> as a tile you may choose</p>
-  </div>
-  <p>Home is where a product usually gets fat, and it is the screen the fifteen touch least. <b>Not one new region
-    is added.</b> Everything here joins a list that already exists and already ranks itself: <i>Prepared for you</i>
-    already shows at most three pieces of prepared work, the alerts panel already ranks ten kinds of alert, and
-    <i>My work</i> already lets a person choose four tiles from a catalogue.</p>
-
-  <div class="ba pair">
-    <div>
-      <p class="lab now"><span class="dot"></span>Prepared for you &mdash; one more kind of prepared work</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Home</span><span class="sp"></span><span class="u">AK</span></div>
-        <div class="hhead"><h4>Good morning, Ama</h4><span class="sub">Tuesday 16 September</span></div>
-        <div class="hband">Prepared for you <span class="n">3</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:52%"><col style="width:24%"><col style="width:24%"></colgroup>
-          <tbody>
-            <tr class="anno-row"><td class="tt"><span class="mk">1</span>Notice not to renew, drafted<span class="sub">Nyala Foods &middot; last day 14 Oct</span></td>
-              <td><span class="c am">28 days</span></td><td><span class="brow"><span class="b sm">Read it</span><span class="b sm plain">Not now</span></span></td></tr>
-            <tr><td class="tt">Renewal memo prepared for you<span class="sub">Zenith SaaS &middot; decision 2 Nov</span></td>
-              <td><span class="c gy">47 days</span></td><td><span class="brow"><span class="b sm">Open it</span></span></td></tr>
-            <tr><td class="tt">They are late on a promise<span class="sub">Nordic Freight &middot; insurance evidence</span></td>
-              <td><span class="c ru">2 days over</span></td><td><span class="brow"><span class="b sm">Chase</span></span></td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span>At most one of each kind, never more than three. That rule is unchanged.</span></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>The alerts panel &mdash; two more kinds in the same ranked list</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Alerts</span><span class="sp"></span><span class="u">AK</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
-          <tbody>
-            <tr><td class="tt">Your signature is needed<span class="sub">Bergs Retail &middot; MK&#8209;177</span></td><td><span class="c am">Today</span></td></tr>
-            <tr><td class="tt">They are ready to sign<span class="sub">Nordic Freight &middot; MK&#8209;118</span></td><td><span class="c gr">New</span></td></tr>
-            <tr class="anno-row"><td class="tt"><span class="mk">2</span>A required document has lapsed<span class="sub">Nyala Foods &middot; BRC food safety</span></td><td><span class="c ru">2 weeks</span></td></tr>
-            <tr><td class="tt">A renewal decision is due<span class="sub">Nyala Foods &middot; 14 Oct</span></td><td><span class="c am">28 days</span></td></tr>
-            <tr class="anno-row"><td class="tt"><span class="mk">3</span>A question you watch has changed<span class="sub">Who may raise prices &mdash; was 8, now 9</span></td><td><span class="c gy">2 days</span></td></tr>
-            <tr><td class="tt">An obligation is overdue<span class="sub">Nordic Freight &middot; insurance evidence</span></td><td><span class="c ru">2 days</span></td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span>Ranked by the order the panel already uses. Nothing is marked seen except by the
-          work being done.</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span>A drafted notice is a fourth kind of prepared work. The ceiling of three
-      rows is unchanged &mdash; on a busy morning it competes for a place rather than adding one.</span></div>
-    <div><span class="mk">2</span><span><span class="mk">3</span>Two more kinds of alert. An alert is a row in a
-      ranked list, which is the cheapest thing anybody can add to HaTi.</span></div>
-    <div><span class="mk">&mdash;</span><span><b>Money owed to us</b> joins the catalogue a person picks their four
-      tiles from. Nobody who does not choose it ever sees it.</span></div>
-  </div>
-</article>
-
-<article class="host" id="h6">
-  <div class="host-top"><span class="host-n">H6</span>
-    <h3>Requests, and Settings &amp; Rules</h3>
-    <p class="lands">Carries <b>S4</b> the clock &middot; <b>S5</b> the tracker link &middot; <b>S3</b> clearance
-      lanes &middot; <b>S15</b> where alerts go</p>
-  </div>
-  <p>The two changes people notice least, for opposite reasons. Requests gains two columns, which every user sees
-    but nobody has to learn. Settings gains two panels in a drawer that already holds twenty &mdash; and only an
-    administrator ever opens it.</p>
-
-  <div class="ba pair">
-    <div>
-      <p class="lab now"><span class="dot"></span>Requests &mdash; two columns and a line of counts</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Requests</span><span class="sp"></span><span class="u">TM</span></div>
-        <div class="hhead"><h4>Requests</h4>
-          <span class="sub anno"><span class="mk">1</span>9 open &middot; 2 past their date &middot; median 1.4 days</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:34%"><col style="width:18%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup>
-          <thead><tr><th>What is needed</th><th>Raised by</th><th>Road</th><th>With</th><th>Promised</th></tr></thead>
-          <tbody>
-            <tr><td class="tt">Review their haulage terms</td><td class="mut">Daniel A.</td>
-              <td class="anno"><span class="mk">2</span><span class="c ru">Close read</span></td>
-              <td class="mut anno"><span class="mk">3</span>Tom&aacute;s</td><td class="anno"><span class="c ru">1 day over</span></td></tr>
-            <tr><td class="tt">Renew the Nyala supply agreement</td><td class="mut">Priya N.</td>
-              <td><span class="c gy">Routine</span></td><td class="mut">Tom&aacute;s</td><td><span class="c am">2 hours left</span></td></tr>
-            <tr><td class="tt">NDA for the Malm&ouml; pilot</td><td class="mut">Sara L.</td>
-              <td><span class="c gr">Lane</span></td><td class="mut">Cleared</td><td><span class="c gy">4 min</span></td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span class="anno"><span class="mk">4</span>Every request carries a tracker link for the
-          person who raised it.</span></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab now"><span class="dot"></span>Settings &amp; Rules &mdash; two rows in a list of twenty</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Settings &amp; Rules</span><span class="sp"></span><span class="u">TM</span></div>
-        <div class="htabs"><span>People</span><span class="on">Platform settings</span><span>Build &amp; launch</span><span>You</span></div>
-        <div class="scroll"><table class="ht">
-          <colgroup><col style="width:44%"><col style="width:36%"><col style="width:20%"></colgroup>
-          <tbody>
-            <tr><td class="tt">Internal review</td><td class="mut">Off &mdash; nobody is gated</td><td class="mut">Open</td></tr>
-            <tr><td class="tt">Signing limits</td><td class="mut">3 people capped</td><td class="mut">Open</td></tr>
-            <tr class="anno-row"><td class="tt"><span class="mk">5</span>Clearance lanes</td><td class="mut">2 on &middot; 53 cleared this quarter</td><td class="mut">Open</td></tr>
-            <tr><td class="tt">Copilot engine</td><td class="mut">On &middot; SEK 1,240 this month</td><td class="mut">Open</td></tr>
-            <tr class="anno-row"><td class="tt"><span class="mk">6</span>Where alerts go</td><td class="mut">Email &middot; Slack &middot; WhatsApp</td><td class="mut">Open</td></tr>
-            <tr><td class="tt">Exchange rates</td><td class="mut">Set 1 Sep</td><td class="mut">Open</td></tr>
-          </tbody>
-        </table></div>
-        <div class="hfoot"><span>Rules live in Settings. That is the product&rsquo;s own rule, and these two obey it.</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="keys">
-    <div><span class="mk">1</span><span>A line of counts in the sub-head, which is where HaTi already puts counts on
-      Home and the Calendar.</span></div>
-    <div><span class="mk">2</span><span><span class="mk">3</span>Two columns: how the request was routed, and who
-      is holding it. The date column exists already.</span></div>
-    <div><span class="mk">4</span><span>The tracker is a link on the request, opening a page outside the app. It
-      adds nothing to the app&rsquo;s own surface, because the person reading it does not have a login.</span></div>
-    <div><span class="mk">5</span><span><span class="mk">6</span>Two rows in the settings list, each opening the
-      same right-hand drawer every other setting opens. Only administrators see this screen at all.</span></div>
-  </div>
-</article>
-
-<section class="sec" id="quiet">
-  <div class="sec-head"><span class="rule-n">iv</span><h2>The quiet Tuesday test</h2></div>
-  <p class="lede prose">The honest way to judge whether a product got heavier is not to look at the busiest screen.
-    It is to open it on a day when nothing is happening &mdash; which is most days &mdash; and count what is new.</p>
-
-  <div class="ba pair">
-    <div>
-      <p class="lab"><span class="dot"></span>An ordinary contract, after all fifteen are built</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">DA</span></div>
-        <div class="hhead"><span class="ref" style="font-family:var(--mono);font-size:12px">MK&#8209;162</span>
-          <h4>Mutual NDA &mdash; Sandvik Tooling</h4><span class="sp"></span><span class="c gr">In force</span></div>
-        <div class="htabs"><span class="on">Key terms</span><span>Document</span><span>Signing</span>
-          <span>Obligations</span><span>History</span></div>
-        <div class="hcards">
-          <div class="hcard">
-            <div class="hd"><h5>Contract brief</h5><span class="sp"></span><span class="c st">Read 3 Aug</span></div>
-            <div class="bd"><p style="margin:0;font-size:13px;color:var(--ink-2)">A mutual confidentiality
-              agreement on our own template, running two years. Nothing unusual.</p></div>
-          </div>
-        </div>
-        <div class="hnote" style="color:var(--ink-3)">No renewal card: not in its window. No commercial terms card:
-          no money passes. No documents card: none required. No family card: no parent, no children.
-          <b style="color:var(--ink-2)">Nothing on this screen is new.</b></div>
-      </div>
-    </div>
-
-    <div>
-      <p class="lab"><span class="dot"></span>Home, same day</p>
-      <div class="hati">
-        <div class="hbar"><span class="logo">HaTi</span><span class="t">Home</span><span class="sp"></span><span class="u">DA</span></div>
-        <div class="hhead"><h4>Good morning, Daniel</h4><span class="sub">Tuesday 16 September</span></div>
-        <div class="hband">My work</div>
-        <div class="bars">
-          <div class="bar"><span class="t">Waiting on your approval</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="v">1</span></div>
-          <div class="bar"><span class="t">Negotiations live</span><span class="track"><span class="fill" style="width:42%"></span></span><span class="v">7</span></div>
-          <div class="bar"><span class="t">Expiring in 90 days</span><span class="track"><span class="fill am" style="width:24%"></span></span><span class="v">4</span></div>
-          <div class="bar"><span class="t">Average time to sign</span><span class="track"><span class="fill" style="width:33%"></span></span><span class="v">11 days</span></div>
-        </div>
-        <div class="hnote" style="color:var(--ink-3)">Four tiles, chosen by Daniel, exactly as before. Nothing is
-          prepared this morning, so that region draws nothing.
-          <b style="color:var(--ink-2)">Nothing on this screen is new either.</b></div>
-      </div>
-    </div>
-  </div>
-
-  <p class="today" style="max-width:none;margin-top:22px"><b>On a quiet day, two things in the whole product look
-    different:</b> Insights has a sixth tab, and Requests has two more columns. Everything else in the fifteen is
-    waiting behind a condition &mdash; a contract in its notice window, a certificate that has lapsed, money
-    earned, a filter you deliberately set, a question you chose to watch.</p>
-</section>
-
-<section class="sec" id="lands">
-  <div class="sec-head"><span class="rule-n">v</span><h2>Where each one lands</h2></div>
-  <p class="lede prose">The whole set on one page: the screen it joins, the shape it takes, and the condition that
-    has to be true before anybody sees it.</p>
+<section class="sec" id="rest">
+  <div class="sec-head"><span class="rule-n">iv</span><h2>Where all fifteen land</h2></div>
+  <p class="lede prose">Six screens carry everything. Nine of the fifteen appear in the pictures above; the other six
+    land where the product already keeps that kind of thing.</p>
 
   <div class="land">
     <table class="ld">
-      <thead><tr><th>Ref</th><th>Addition</th><th>Screen</th><th>Shape it takes</th><th>Visible when</th></tr></thead>
+      <thead><tr><th>Ref</th><th>Addition</th><th>Where it sits</th><th>Shape it takes</th><th>Seen above</th></tr></thead>
       <tbody>
-        <tr><td class="rf">S1</td><td>The Mailroom</td><td>Contracts</td><td>A fourth scope</td><td>Something has been forwarded</td></tr>
-        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A card in the side column</td><td>Money passes under the contract</td></tr>
-        <tr><td class="rf">S3</td><td>Clearance lanes</td><td>Settings &middot; and the pre-signature list</td><td>A settings panel, and one row</td><td>An administrator switched a lane on</td></tr>
-        <tr><td class="rf">S4</td><td>A front door with a clock</td><td>Requests</td><td>Two columns, one count line</td><td>Always &mdash; one of the two visible changes</td></tr>
-        <tr><td class="rf">S5</td><td>Where is my contract?</td><td>Outside the app</td><td>A link on the request</td><td>You raised the request</td></tr>
-        <tr><td class="rf">S6</td><td>The Notice Desk</td><td>Contract room &middot; Home &middot; History</td><td>An act on the renewal card</td><td>Inside the notice window</td></tr>
-        <tr><td class="rf">S7</td><td>What you are owed</td><td>Obligations</td><td>A side switch and a band</td><td>Something has been earned</td></tr>
-        <tr><td class="rf">S8</td><td>Certificates that expire</td><td>Contract room &middot; Obligations &middot; Contracts</td><td>A card, rows, a filter, an alert</td><td>The wording requires a document</td></tr>
-        <tr><td class="rf">S9</td><td>Ask your book</td><td>Copilot panel</td><td>Fills an empty greeting</td><td>You saved a question</td></tr>
-        <tr><td class="rf">S10</td><td>The exposure register</td><td>Insights</td><td>A sixth tab</td><td>Always &mdash; the other visible change</td></tr>
-        <tr><td class="rf">S11</td><td>What it was worth</td><td>The negotiation memo &middot; Reports</td><td>A section, and a strip</td><td>A negotiation closed</td></tr>
-        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>An act on the family card</td><td>The contract has a parent or children</td></tr>
-        <tr><td class="rf">S13</td><td>Do this to these 46</td><td>Contracts</td><td>One act above the table</td><td>A filter is narrowing the table</td></tr>
-        <tr><td class="rf">S14</td><td>The diligence pack</td><td>Contracts</td><td>A row in that same act&rsquo;s menu</td><td>A filter is narrowing the table</td></tr>
-        <tr><td class="rf">S15</td><td>HaTi in the chat</td><td>Settings &middot; and outside the app</td><td>A settings panel</td><td>Someone turned a channel on</td></tr>
+        <tr><td class="rf">S1</td><td>The Mailroom</td><td>Home &middot; Import contracts</td><td>Feeds the queue that exists</td><td>Screen 1</td></tr>
+        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A card in the side column</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S3</td><td>Clearance lanes</td><td>Settings &amp; Rules &middot; Requests</td><td>A settings panel, and a road</td><td>Screen 6</td></tr>
+        <tr><td class="rf">S4</td><td>A front door with a clock</td><td>Requests</td><td>Three facts on each row</td><td>Screen 6</td></tr>
+        <tr><td class="rf">S5</td><td>Where is my contract?</td><td>Outside the app</td><td>A link on the request</td><td>Screen 6</td></tr>
+        <tr><td class="rf">S6</td><td>The Notice Desk</td><td>Contract room &middot; Home &middot; History</td><td>A button on the renewal card</td><td>Screens 1, 3</td></tr>
+        <tr><td class="rf">S7</td><td>What you are owed</td><td>Obligations &middot; Home tiles</td><td>A band and one verb</td><td>Screen 4</td></tr>
+        <tr><td class="rf">S8</td><td>Certificates that expire</td><td>Contract room &middot; Obligations &middot; Contracts</td><td>A card, rows, a filter, an alert</td><td>Screens 2, 3, 4</td></tr>
+        <tr><td class="rf">S9</td><td>Ask your book</td><td>The Copilot panel</td><td>Fills a greeting that is empty today</td><td>&mdash;</td></tr>
+        <tr><td class="rf">S10</td><td>The exposure register</td><td>Insights</td><td>A sixth tab</td><td>Screen 5</td></tr>
+        <tr><td class="rf">S11</td><td>What the negotiation was worth</td><td>The negotiation memo &middot; Reports</td><td>A section, and a strip</td><td>&mdash;</td></tr>
+        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>A button on the family card</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S13</td><td>Bulk amendments</td><td>Contracts</td><td>One act above the table</td><td>Screen 2</td></tr>
+        <tr><td class="rf">S14</td><td>The diligence pack</td><td>Contracts</td><td>A row in that same menu</td><td>Screen 2</td></tr>
+        <tr><td class="rf">S15</td><td>HaTi in the chat</td><td>Settings &middot; outside the app</td><td>A settings panel</td><td>&mdash;</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="shot-cap" style="margin-top:12px">Thirteen of the fifteen are behind a condition. The two that are
-    always there &mdash; the Exposure tab and the Requests columns &mdash; are the whole cost of this set to a
-    person who never uses any of it.</p>
+  <p class="weight" style="margin-top:18px"><b>Three land where no picture was needed.</b> Saved questions
+    (<span style="font-family:var(--mono);font-size:12px">S9</span>) fill the Copilot panel&rsquo;s greeting, which
+    is blank today. What the negotiation was worth (<span style="font-family:var(--mono);font-size:12px">S11</span>)
+    goes at the end of the memo HaTi already builds. The chat channels
+    (<span style="font-family:var(--mono);font-size:12px">S15</span>) are a settings panel and then WhatsApp, Slack
+    or Teams &mdash; which are not HaTi&rsquo;s screens at all.</p>
 </section>
 
 <section class="sec" id="releases">
-  <div class="sec-head"><span class="rule-n">vi</span><h2>Six releases, one screen each</h2></div>
-  <p class="lede prose">This is the part that decides whether the product feels like it is improving or like it is
-    churning. Fifteen features shipped one at a time means fifteen separate moments of &ldquo;something moved
-    again&rdquo;, scattered across nine screens. <b>Shipped by screen, a person learns one changed screen, once,
-    and then it stays still.</b></p>
+  <div class="sec-head"><span class="rule-n">v</span><h2>Six releases, one screen each</h2></div>
+  <p class="lede prose">This is what decides whether the product feels like it is improving or churning. Fifteen
+    features shipped one at a time is fifteen separate moments of &ldquo;something moved again&rdquo;, scattered
+    across six pages. <b>Shipped by screen, a person learns one changed page, once, and then it stays still.</b></p>
 
   <div class="rel">
-    <div class="relrow">
-      <p class="when">Release 1</p>
-      <div><h4>The Contracts page</h4>
-        <p>The Mailroom and the lapsed-document filter. Two additions, one screen, and the first one is the reason
-          a small company keeps using HaTi at all. Nothing on the page moves &mdash; a scope appears at the end of
-          a row of scopes.</p></div>
-      <div class="refs"><span>S1</span><span>S8 filter</span></div>
-    </div>
-    <div class="relrow">
-      <p class="when">Release 2</p>
+    <div class="relrow"><p class="when">Release 1</p>
+      <div><h4>Home and the import queue</h4>
+        <p>The Mailroom. The queue, the tile and the confirm step all exist &mdash; this gives them a second way in,
+          and it is the one change a nine-person business feels on the first day.</p></div>
+      <div class="refs"><span>S1</span></div></div>
+    <div class="relrow"><p class="when">Release 2</p>
       <div><h4>The contract room</h4>
-        <p>Commercial terms, required documents, serve a notice, check the family. Four additions to one column
-          &mdash; and the column was built for cards that come and go, so this is one learning moment rather than
-          four. It is also the release that wins the procurement buyer.</p></div>
-      <div class="refs"><span>S2</span><span>S6</span><span>S8 card</span><span>S12</span></div>
-    </div>
-    <div class="relrow">
-      <p class="when">Release 3</p>
-      <div><h4>The Obligations worklist</h4>
-        <p>Money owed to you, and certificates as rows. One switch on a page that already does all the hard parts.
-          It only makes sense after Release 2, because the commercial terms are what the entitlements are read
-          from.</p></div>
-      <div class="refs"><span>S7</span><span>S8 rows</span></div>
-    </div>
-    <div class="relrow">
-      <p class="when">Release 4</p>
+        <p>Commercial terms, required documents, serve a notice, check the family. Four additions to one column,
+          which is one learning moment rather than four &mdash; and the release that wins a procurement buyer.</p></div>
+      <div class="refs"><span>S2</span><span>S6</span><span>S8</span><span>S12</span></div></div>
+    <div class="relrow"><p class="when">Release 3</p>
+      <div><h4>Obligations</h4>
+        <p>Money owed to you, and certificates with expiry dates. One band and one verb on a page that already does
+          the hard parts. It follows Release 2 because the commercial terms are what the entitlements are read from.</p></div>
+      <div class="refs"><span>S7</span><span>S8</span></div></div>
+    <div class="relrow"><p class="when">Release 4</p>
       <div><h4>Insights and Copilot</h4>
-        <p>The Exposure tab, saved questions, and what the negotiation was worth. The only release that adds
-          surface, and it lands on the two screens people open when they are asking questions rather than doing
-          work &mdash; which is where new surface costs least.</p></div>
-      <div class="refs"><span>S9</span><span>S10</span><span>S11</span></div>
-    </div>
-    <div class="relrow">
-      <p class="when">Release 5</p>
+        <p>The Exposure tab, saved questions, and what the negotiation was worth. The only release that spends new
+          surface, and it lands on the pages people open to ask questions rather than to do work.</p></div>
+      <div class="refs"><span>S9</span><span>S10</span><span>S11</span></div></div>
+    <div class="relrow"><p class="when">Release 5</p>
       <div><h4>Requests and Settings</h4>
-        <p>The clock, the tracker, clearance lanes, and where alerts go. Build the clock before the lanes &mdash;
+        <p>The clock, the tracker, clearance lanes and the chat channels. Build the clock before the lanes &mdash;
           you cannot tell whether a lane helped unless you were already measuring how long things took.</p></div>
-      <div class="refs"><span>S3</span><span>S4</span><span>S5</span><span>S15</span></div>
-    </div>
-    <div class="relrow" style="border-left:3px solid var(--amber-dot)">
-      <p class="when">Release 6</p>
-      <div><h4>Back to the Contracts page</h4>
-        <p>The cohort acts: send an amendment to all of them, or build a pack from all of them. <b>The one place
-          this plan deliberately breaks its own rule and visits a screen twice</b> &mdash; because acting on two
-          hundred contracts at once is the only proposal here that could damage a customer&rsquo;s relationships in
-          an afternoon, and it should go last, after everything it depends on is trusted.</p></div>
-      <div class="refs"><span>S13</span><span>S14</span></div>
-    </div>
-  </div>
-
-  <div class="rules" style="margin-top:26px">
-    <div><b>What a release note says</b>One screen, one sentence: &ldquo;The contract page now reads the
-      commercial terms.&rdquo; Not a list of four features, which is what makes a product feel like it is being
-      done to you.</div>
-    <div><b>What nobody has to be taught</b>Every addition uses a control the person already knows: a scope, a
-      filter, a card, a row, a tab, a switch. There is no new interaction anywhere in the fifteen.</div>
-  </div>
-</section>
-
-<section class="sec" id="catalogue">
-  <div class="sec-head"><span class="rule-n">vii</span><h2>The fifteen in short</h2></div>
-  <p class="lede prose">What each one actually is, for anyone reading this without the first edition to hand. They
-    came out of four seats: an owner running a nine-person exporter from her phone, an operations manager who owns
-    a queue he cannot see into, an FMCG procurement manager whose deal is the rebate table rather than the
-    signature, and one in-house lawyer serving three hundred people.</p>
-
-  <div class="cat">
-    <div class="catcard"><div class="h"><span class="rf">S1</span><b>The Mailroom</b></div>
-      <p>Forward a contract to the workspace&rsquo;s own email address and it files itself, read and ready to
-        confirm. HaTi can send email; it has never been able to receive one.</p>
-      <p class="w"><b>Borrows:</b> the Word and PDF readers, the arrival readings, the duplicate check.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S2</span><b>Commercial terms</b></div>
-      <p>Reads the rebate, the tiers, the minimum order and the price-change mechanism out of the wording, each
-        pointing at its clause. Today HaTi reads the dates and the value; the deal is elsewhere.</p>
-      <p class="w"><b>Borrows:</b> the extraction route, the way the renewal card quotes a clause.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S3</span><b>Clearance lanes</b></div>
-      <p>A rule an administrator writes &mdash; our template, no money, nothing outside the playbook &mdash; that
-        clears routine contracts to signature. The record names the lane and the conditions tested.</p>
-      <p class="w"><b>Borrows:</b> the pre-signature check, the playbook verdicts, the approval chain.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S4</span><b>A front door with a clock</b></div>
-      <p>Requests gain an owner, a road, and a promised date &mdash; and the clock stops while the ball is back
-        with the person who asked.</p>
-      <p class="w"><b>Borrows:</b> the request record, the worklist shape, the value streams.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S5</span><b>Where is my contract?</b></div>
-      <p>A read-only tracker for whoever raised the request: which step, who is holding it, the honest date. No
-        login, no values, no internal notes.</p>
-      <p class="w"><b>Borrows:</b> the counterparty page and its rules about what may leave.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S6</span><b>The Notice Desk</b></div>
-      <p>Drafts the non-renewal or termination notice from the clause, sends it to the address the contract names,
-        and keeps proof on the trail.</p>
-      <p class="w"><b>Borrows:</b> the renewal reading, the email provider&rsquo;s honest delivery report.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S7</span><b>What you are owed</b></div>
-      <p>Rebates earned, credits due and price holds about to lapse, tracked as obligations with one new state:
-        claimed. The money most companies never go and get.</p>
-      <p class="w"><b>Borrows:</b> the whole obligations engine, including the amount it already carries.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S8</span><b>Certificates that expire</b></div>
-      <p>Insurance, food safety, tax residency, data processing terms: held, watched, and chased automatically when
-        they lapse.</p>
-      <p class="w"><b>Borrows:</b> the obligations engine, the chase, the file store, the calendar.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S9</span><b>Ask your book</b></div>
-      <p>Answers carrying the clause each sentence came from, and a question you can keep &mdash; re-asked
-        whenever a contract is filed or signed, telling you when the answer moves.</p>
-      <p class="w"><b>Borrows:</b> the Copilot tools, the search, the answer-to-worklist door.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S10</span><b>The exposure register</b></div>
-      <p>Uncapped liability, open-ended price clauses, traps that renew themselves &mdash; live, countable,
-        openable, with the money beside them and the unread contracts admitted.</p>
-      <p class="w"><b>Borrows:</b> the weekly review&rsquo;s own counting, the risk scan, the conversion.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S11</span><b>What it was worth</b></div>
-      <p>Opened at 30 days, settled at 45. The ladder already holds every position; nothing totals it. Concessions
-        counted too, or it is a marketing document.</p>
-      <p class="w"><b>Borrows:</b> the clause ladder and the memo builder.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S12</span><b>The family check</b></div>
-      <p>Does the order form contradict the master agreement? Dates, payment terms, liability, precedence, missing
-        data terms &mdash; checked against the family&rsquo;s own documents.</p>
-      <p class="w"><b>Borrows:</b> the family links, the clause reader, the pre-signature rows.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S13</span><b>Do this to these 46</b></div>
-      <p>An amendment campaign across a cohort, sent in waves, with a board of who has signed and a stop button.</p>
-      <p class="w"><b>Borrows:</b> amendments, templates, the round send, the register filters.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S14</span><b>The diligence pack</b></div>
-      <p>The whole book for a bank, an investor or an auditor: an index, the five flags they always ask about, and
-        an honest list of what is missing.</p>
-      <p class="w"><b>Borrows:</b> the exports, the evidence pack, the conversion, Copilot.</p></div>
-    <div class="catcard"><div class="h"><span class="rf">S15</span><b>HaTi in the chat</b></div>
-      <p>The same alerts, arriving in WhatsApp, Slack or Teams. A reply can record a decision. A reply is never a
-        signature.</p>
-      <p class="w"><b>Borrows:</b> the alerts builder, the approvals, the daily brief.</p></div>
+      <div class="refs"><span>S3</span><span>S4</span><span>S5</span><span>S15</span></div></div>
+    <div class="relrow" style="border-left:3px solid var(--amber-dot)"><p class="when">Release 6</p>
+      <div><h4>Back to Contracts</h4>
+        <p>The cohort act. <b>The one place this plan deliberately visits a screen twice</b> &mdash; acting on
+          fourteen contracts at once is the only proposal here that could damage a customer&rsquo;s relationships in
+          an afternoon, so it goes last, with waves and a stop button from the first line of code.</p></div>
+      <div class="refs"><span>S13</span><span>S14</span></div></div>
   </div>
 </section>
 
 <section class="sec" id="left-out">
-  <div class="sec-head"><span class="rule-n">viii</span><h2>What we did not add</h2></div>
-  <p class="lede prose">Half of keeping a product light is the list of things you refused. These are all standard in
-    the category, and each one would have cost surface that the fifteen above deliberately did not spend.</p>
-
+  <div class="sec-head"><span class="rule-n">vi</span><h2>What we did not add</h2></div>
+  <p class="lede prose">Half of keeping a product light is the list you refused. These are all standard in the
+    category, and each would have cost surface the fifteen above deliberately did not spend.</p>
   <div class="out">
-    <div><b>A sixteenth door in the sidebar</b>Every one of these could have been a nav item &mdash; a Mailroom
-      page, a Notices page, a Compliance page, a Campaigns page. That is how contract systems end up with
-      thirty-one doors and a search box to find them. Thirteen doors in, thirteen doors out.</div>
-    <div><b>A risk score out of 100</b>Every competitor has one and none can explain it. The exposure register
-      counts instead, and every count opens onto the contracts behind it.</div>
-    <div><b>A sixth room tab</b>Commercial terms and required documents both had a good case for being their own
-      tab. They are cards instead, in a column built for cards, because a tab is permanent and a card can be
-      absent.</div>
+    <div><b>A fourteenth door in the sidebar</b>Every one of these could have been a nav item &mdash; a Mailroom page,
+      a Notices page, a Compliance page, a Campaigns page. That is how contract systems end up with thirty-one doors
+      and a search box to find them.</div>
+    <div><b>A sixth tab in the contract room</b>Commercial terms and required documents both had a case for it. They
+      are cards instead, in a column built for cards, because a tab is permanent and a card can be absent.</div>
+    <div><b>A risk score out of 100</b>Every competitor has one and none can explain it. The exposure register counts
+      instead, and every count opens onto the contracts behind it.</div>
     <div><b>Another dashboard</b>Home answers &ldquo;what needs me&rdquo; and Insights answers &ldquo;what is
       true&rdquo;. A third place to look is a third place for the numbers to disagree.</div>
     <div><b>A drag-and-drop workflow builder</b>The classic enterprise upsell, and the fastest way for a product to
-      lose its opinions. Clearance lanes are four conditions and a destination, written down and named on the
-      record when they fire.</div>
-    <div><b>AI that signs, or accepts their redline for you</b>HaTi freezes wording at the first signature and
-      records how each signature was proven. Nothing in the fifteen reaches inside that boundary.</div>
-    <div><b>Market benchmark data</b>&ldquo;Your terms versus the market&rdquo; sells well and cannot be checked.
-      HaTi already has the honest version: what you settled for last time, counted from your own book.</div>
+      lose its opinions. A clearance lane is four conditions and a destination, written down and named on the record
+      when it fires.</div>
+    <div><b>AI that signs, or accepts their redline for you</b>HaTi freezes wording at the first signature and records
+      how each signature was proven. Nothing in the fifteen reaches inside that boundary.</div>
+    <div><b>Market benchmark data</b>&ldquo;Your terms versus the market&rdquo; sells well and cannot be checked. HaTi
+      already has the honest version: what you settled for last time, counted from your own book.</div>
     <div><b>A separate supplier portal</b>HaTi already has a page the other side can open, with careful rules about
-      what may leave. A second front door would drift from the first.</div>
+      what may leave the building. A second front door would drift from the first.</div>
     <div><b>Accounting and ERP integration</b>The right answer eventually, and not yet. Most of the value in
-      &ldquo;what you are owed&rdquo; is knowing what the paper entitles you to &mdash; which nobody knows today,
-      and which needs no integration at all.</div>
+      &ldquo;what you are owed&rdquo; is knowing what the paper entitles you to, and that needs no integration.</div>
   </div>
 </section>
 
-</main>
 </div>
 
 <footer class="end">
   <div class="wrap">
     <h2>The through-line</h2>
-    <p>The first edition asked what HaTi was missing. This one asks the harder question, and the answer is that the
-      product already knew: it had written down, three separate times, how to add something without making itself
-      louder &mdash; a card that draws nothing when it has nothing to say, a control that hides until it is doing
-      work, a count that does not appear at zero.</p>
-    <p><b>Fifteen new abilities, two new things to look at, and no new way of working anything.</b> Every addition
-      is a scope, a card, a row, a column, a switch or an act &mdash; controls a person already uses today. The
-      only surface actually spent is one tab on Insights, and it buys back a set of numbers currently trapped in a
-      weekly document nobody can press.</p>
-    <p class="mono">15 additions &middot; 6 screens &middot; 0 new sidebar doors &middot; 1 new tab &middot; 2 visible on a quiet day</p>
+    <p>Putting the real product beside the proposals changed three of them and deleted a fourth. The forwarded-contract
+      tray became a queue that already existed. The Side filter on Obligations turned out to be built. Certificates
+      turned out to be rows the product already draws. <b>Looking is cheaper than designing.</b></p>
+    <p>What is left is fifteen new abilities and two new things to look at &mdash; a tab on Insights and three facts on
+      a request. Everything else is a card, a band, a button, a filter or a row, in furniture that was already on the
+      screen, and none of it appears until it has something to say.</p>
+    <p class="mono">12 full screens &middot; 6 pages touched &middot; 0 new sidebar doors &middot; 1 new tab &middot; 2 visible on a quiet day</p>
   </div>
 </footer>
