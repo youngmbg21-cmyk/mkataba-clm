@@ -1,0 +1,501 @@
+<title>Six Screens, One Grammar</title>
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --ground:#EDF1F2; --paper:#ffffff; --raised:#F7F9F9;
+  --ink:#0E1A18; --ink-2:#54635F; --ink-3:#8A9997;
+  --line:#DFE4E3; --line-strong:#C6CFCD; --line-faint:#ECEFEE;
+  --brand:#093733; --brand-line:#14514a; --brand-ink:#9fc4bf;
+  --accent:#0d9488; --accent-ink:#115e59; --accent-soft:#f0fdfa; --accent-edge:#99f6e4;
+  --amber-bg:#fef3c7; --amber-fg:#b45309; --amber-dot:#f59e0b;
+  --ruby-bg:#ffe4e6; --ruby-fg:#be123c;
+  --green-bg:#d1fae5; --green-fg:#047857;
+  --steel-bg:#ccfbf1; --steel-fg:#115e59;
+  --gray-bg:#f1f5f9; --gray-fg:#475569;
+  --doc-warm:#FDFCF6; --doc-warm-line:#EFE2C2; --doc-ink:#1B2A28;
+  --shadow:0 1px 2px rgba(14,26,24,.06), 0 10px 30px rgba(14,26,24,.07);
+  --sans:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --serif:"IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ground:#020617; --paper:#0f172a; --raised:#182234;
+  --ink:#EAF1EF; --ink-2:#9FB0AC; --ink-3:#6F817C;
+  --line:#1e293b; --line-strong:#2b3a4f; --line-faint:#16202f;
+  --brand:#071f1d; --brand-line:#12403a; --brand-ink:#7fa9a4;
+  --accent:#14b8a6; --accent-ink:#5eead4; --accent-soft:rgba(20,184,166,.10); --accent-edge:rgba(20,184,166,.35);
+  --amber-bg:rgba(245,158,11,.15); --amber-fg:#fbbf24;
+  --ruby-bg:rgba(244,63,94,.15); --ruby-fg:#fb7185;
+  --green-bg:rgba(16,185,129,.15); --green-fg:#34d399;
+  --steel-bg:rgba(20,184,166,.15); --steel-fg:#5eead4;
+  --gray-bg:rgba(148,163,184,.14); --gray-fg:#94a3b8;
+  --doc-warm:#0f172a; --doc-warm-line:#1e293b; --doc-ink:#e2e8f0;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --ground:#020617; --paper:#0f172a; --raised:#182234;
+  --ink:#EAF1EF; --ink-2:#9FB0AC; --ink-3:#6F817C;
+  --line:#1e293b; --line-strong:#2b3a4f; --line-faint:#16202f;
+  --brand:#071f1d; --brand-line:#12403a; --brand-ink:#7fa9a4;
+  --accent:#14b8a6; --accent-ink:#5eead4; --accent-soft:rgba(20,184,166,.10); --accent-edge:rgba(20,184,166,.35);
+  --amber-bg:rgba(245,158,11,.15); --amber-fg:#fbbf24;
+  --ruby-bg:rgba(244,63,94,.15); --ruby-fg:#fb7185;
+  --green-bg:rgba(16,185,129,.15); --green-fg:#34d399;
+  --steel-bg:rgba(20,184,166,.15); --steel-fg:#5eead4;
+  --gray-bg:rgba(148,163,184,.14); --gray-fg:#94a3b8;
+  --doc-warm:#0f172a; --doc-warm-line:#1e293b; --doc-ink:#e2e8f0;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0}
+.prose{max-width:70ch}
+h1,h2,h3,h4{text-wrap:balance;margin:0}
+a{color:var(--accent-ink)}
+a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p{margin:14px 0}
+
+/* masthead */
+.mast{background:var(--brand);color:#fff}
+.mast .wrap{padding-block:52px 44px}
+.mast .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-ink);margin:0 0 20px}
+.mast h1{font-size:clamp(34px,6vw,58px);line-height:1.04;font-weight:600;letter-spacing:-.02em;max-width:16ch}
+.mast .stand{font-family:var(--serif);font-size:clamp(17px,2.2vw,21px);line-height:1.5;color:#dbeae7;max-width:56ch;margin:22px 0 0}
+.mast .meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin:30px 0 0;padding-top:20px;border-top:1px solid var(--brand-line);font-size:12.5px;color:var(--brand-ink)}
+.mast .meta b{color:#fff;font-weight:500}
+
+.main{padding-block:44px 80px}
+.sec{margin:0 0 56px}
+.sec-head{display:flex;gap:14px;align-items:baseline;margin:0 0 6px}
+.rule-n{font-family:var(--serif);font-size:15px;color:var(--accent-ink);font-style:italic;flex:none}
+h2{font-size:clamp(22px,3vw,29px);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.lede{color:var(--ink-2);margin:10px 0 0;font-size:16.5px}
+
+/* method note */
+.method{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--accent);padding:18px 20px;margin:26px 0 0}
+.method p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2);max-width:78ch}
+.method p:last-child{margin-bottom:0}
+.method b{color:var(--ink);font-weight:600}
+
+/* a screen */
+.screen{border-top:2px solid var(--ink);padding-top:22px;margin:0 0 64px}
+.screen-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:baseline;margin:0 0 6px}
+.screen-n{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:2px 8px;border-radius:2px}
+.screen h3{font-size:clamp(20px,2.8vw,26px);font-weight:600;letter-spacing:-.01em;line-height:1.2;width:100%;margin:2px 0 0}
+.carries{font-size:12.5px;color:var(--ink-3);width:100%;margin:2px 0 0}
+.carries b{color:var(--accent-ink);font-family:var(--mono);font-size:11.5px;font-weight:500}
+.screen p{max-width:70ch}
+
+/* the image pair */
+.pair{margin:22px 0 0;display:flex;flex-direction:column;gap:22px}
+.plate{margin:0}
+.plate figcaption{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 9px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.plate figcaption .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.plate.now figcaption{color:var(--accent-ink)}
+.plate.now figcaption .dot{background:var(--accent)}
+.plate figcaption .note{font-family:var(--sans);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--ink-3)}
+.frame{border:1px solid var(--line-strong);border-radius:3px;overflow-x:auto;background:var(--brand);box-shadow:var(--shadow);line-height:0}
+.frame img{display:block;width:100%;height:auto;max-width:100%}
+.zoom{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-size:12px;letter-spacing:0;
+  text-transform:none;color:var(--accent-ink);cursor:pointer;margin-left:auto;
+  border:1px solid var(--accent-edge);background:var(--accent-soft);border-radius:2px;padding:3px 9px}
+.zoom:hover{background:var(--paper)}
+.plate{position:relative}
+.plate input.zm{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.plate input.zm:checked ~ figcaption .zoom{background:var(--accent-ink);color:#fff;border-color:var(--accent-ink)}
+.plate input.zm:checked ~ figcaption .zoom::after{content:"\2713";margin-left:2px}
+.plate input.zm:checked ~ .frame img{width:1440px;max-width:none}
+.plate input.zm:focus-visible ~ figcaption .zoom{outline:2px solid var(--accent);outline-offset:2px}
+
+/* the key */
+.keys{margin:16px 0 0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(min-width:760px){.keys{grid-template-columns:1fr 1fr}}
+.keys div{background:var(--paper);padding:14px 16px;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+.keys b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;margin:0 0 3px}
+.keys .rf{font-family:var(--mono);font-size:11px;color:var(--accent-ink);font-weight:500}
+.weight{margin:14px 0 0;padding:12px 16px;background:var(--paper);border-left:2px solid var(--accent);font-size:14px;color:var(--ink-2);max-width:78ch}
+.weight b{color:var(--ink);font-weight:600}
+.revise{margin:14px 0 0;padding:12px 16px;background:var(--amber-bg);border-left:2px solid var(--amber-dot);font-size:14px;color:var(--ink);max-width:78ch}
+.revise b{font-weight:600}
+
+/* research findings */
+.finds{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin:20px 0 0}
+@media(min-width:800px){.finds{grid-template-columns:1fr 1fr}}
+.finds div{background:var(--paper);padding:15px 17px;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.finds b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;margin:0 0 4px}
+.finds a{font-size:12px}
+.verdict{margin:20px 0 0;padding:16px 18px;background:var(--paper);border-left:3px solid var(--accent);max-width:78ch}
+.verdict p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2)}
+.verdict p:last-child{margin:0}
+.verdict b{color:var(--ink);font-weight:600}
+.cmp{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:20px 0 0}
+table.cm{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
+table.cm th,table.cm td{padding:11px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
+table.cm thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.cm td:not(:first-child),table.cm th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;width:150px}
+table.cm tr:last-child td{border-bottom:0}
+table.cm .win{color:var(--green-fg);font-weight:600}
+table.cm .lose{color:var(--ruby-fg);font-weight:600}
+/* budget */
+.budget{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:24px 0 0}
+table.bg{border-collapse:collapse;width:100%;min-width:600px;font-size:13.5px}
+table.bg th,table.bg td{padding:10px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
+table.bg thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.bg td:nth-child(2),table.bg td:nth-child(3),table.bg th:nth-child(2),table.bg th:nth-child(3){text-align:right;font-variant-numeric:tabular-nums;width:92px;white-space:nowrap}
+table.bg td:nth-child(4){width:42%;color:var(--ink-2);font-size:12.5px}
+table.bg tr:last-child td{border-bottom:0}
+table.bg tfoot td{background:var(--raised);font-weight:600;border-top:1px solid var(--line-strong)}
+.up{color:var(--amber-fg);font-weight:600}
+.same{color:var(--ink-3)}
+
+/* elsewhere / releases / refusals */
+.land{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
+table.ld{border-collapse:collapse;width:100%;min-width:660px;font-size:13.5px}
+table.ld th,table.ld td{padding:10px 13px;border-bottom:1px solid var(--line-faint);text-align:left;vertical-align:top}
+table.ld thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.ld .rf{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.ld td:nth-child(2){font-weight:500}
+table.ld td:nth-child(3),table.ld td:nth-child(4){color:var(--ink-2);font-size:12.5px}
+table.ld tr:last-child td{border-bottom:0}
+.rel{display:grid;gap:14px;margin:24px 0 0}
+.relrow{display:grid;gap:12px;background:var(--paper);border:1px solid var(--line);padding:16px 18px;grid-template-columns:1fr}
+@media(min-width:780px){.relrow{grid-template-columns:120px 1fr 160px;align-items:start}}
+.relrow .when{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.relrow h4{font-size:15.5px;font-weight:600;margin:0 0 5px}
+.relrow p{font-size:13.5px;color:var(--ink-2);margin:0;max-width:none}
+.relrow .refs{display:flex;flex-wrap:wrap;gap:5px}
+.relrow .refs span{font-family:var(--mono);font-size:11px;color:var(--accent-ink);border:1px solid var(--accent-edge);background:var(--accent-soft);padding:1px 5px;border-radius:2px;height:fit-content}
+.out{border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
+.out div{padding:14px 17px;border-bottom:1px solid var(--line-faint);font-size:13.5px;color:var(--ink-2)}
+.out div:last-child{border-bottom:0}
+.out b{color:var(--ink);font-weight:600;display:block;margin:0 0 3px;font-size:14px}
+.end{background:var(--brand);color:#dbeae7;margin-top:56px}
+.end .wrap{padding-block:40px}
+.end h2{color:#fff;font-size:20px}
+.end p{max-width:66ch;font-size:14.5px}
+.end .mono{font-family:var(--mono);font-size:11.5px;color:var(--brand-ink);letter-spacing:.06em}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+<style>
+/* the grammar demo, drawn in HaTi's own metrics */
+.demo{display:grid;gap:10px;margin:22px 0 0}
+.gsec{background:var(--paper);border:1px solid var(--line);border-radius:2px;box-shadow:var(--shadow)}
+.gsec.lead{border-left:3px solid var(--amber-dot)}
+.ghead{display:flex;align-items:center;gap:12px;padding:10px 16px}
+.ghead.open{border-bottom:1px solid var(--line-faint)}
+.ghead h5{margin:0;font-size:15px;font-weight:600;flex:none}
+.ghead .sum{font-size:13px;color:var(--ink-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghead .gchip{font-size:12px;font-weight:600;padding:2px 8px;border-radius:2px;flex:none;background:var(--amber-bg);color:var(--amber-fg)}
+.ghead .gchev{width:16px;height:16px;flex:none;color:var(--ink-3)}
+.gbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 24px;padding:14px 16px}
+.gbody .l{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin:0 0 1px}
+.gbody .v{font-size:14px;font-weight:600;display:flex;gap:6px;align-items:baseline}
+.gbody .cl{font-family:var(--mono);font-size:12px;color:var(--accent-ink);border:1px solid var(--accent-edge);background:var(--accent-soft);border-radius:2px;padding:0 5px}
+.gbody .none{color:var(--ink-3);font-weight:400}
+.rules{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin:24px 0 0}
+@media(min-width:860px){.rules{grid-template-columns:1fr 1fr}}
+.rules div{background:var(--paper);padding:16px 18px;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.rules b{display:block;color:var(--ink);font-weight:600;font-size:14px;margin:0 0 4px}
+/* a grid item defaults to min-width:auto, so the flex head's fixed parts push the
+   whole demo wider than a phone. Pin the tracks and let the summary take its own
+   line when there is not room for it beside the name. */
+.demo,.gsec,.ghead{min-width:0}
+@media(max-width:700px){
+  .ghead{flex-wrap:wrap;row-gap:6px}
+  .ghead .sum{flex:1 1 100%;order:3;white-space:normal;overflow:visible}
+  .ghead .gchip{white-space:normal}
+}
+.rules .n{font-family:var(--mono);font-size:11px;color:var(--accent-ink);margin-right:7px}
+</style>
+
+<header class="mast">
+  <div class="wrap">
+    <p class="eyebrow">HaTi &middot; design study &middot; 16 September 2026</p>
+    <h1>Six Screens, One Grammar</h1>
+    <p class="stand">The contract Overview was rebuilt on SAP Fiori and Icertis lines: named sections, most of them
+      shut, each shut one still answering its own question. This applies the same grammar to the other five screens
+      &mdash; in the running product, so you can see what it actually looks like.</p>
+    <div class="meta">
+      <span><b>6</b> screens</span>
+      <span><b>5</b> rules</span>
+      <span><b>0</b> new features</span>
+      <span>every picture the real app</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap main">
+
+<section class="sec">
+  <div class="sec-head"><span class="rule-n">i</span><h2>The grammar, in five rules</h2></div>
+  <p class="lede prose">This is the whole thing. It is not a component or a feature &mdash; it is a way of deciding
+    what a screen shows first, and what it makes you ask for.</p>
+
+  <div class="rules">
+    <div><b><span class="n">1</span>Name the groups</b>Everything on a screen belongs to a group, and the group has a
+      plain-English name. Not &ldquo;card&rdquo; and &ldquo;panel&rdquo; and &ldquo;widget&rdquo; &mdash; <i>The
+      deal</i>, <i>The record</i>, <i>Prepared for you</i>, <i>Overdue</i>.</div>
+    <div><b><span class="n">2</span>A shut group still answers</b>A collapsed section is one row that carries its own
+      summary, so most of the time you never open it. A collapsed group that just says its own name has failed.</div>
+    <div><b><span class="n">3</span>Open what is being acted on</b>The group with a decision in it opens and carries
+      an accent. Reference opens shut. Ironclad&rsquo;s rule: hide what is not typically amended.</div>
+    <div><b><span class="n">4</span>Label above value, em-dash for silence</b>Small uppercase label, value beneath it,
+      four to a row. Where nothing is recorded, an em-dash &mdash; never a blank, never a guess. Icertis&rsquo;s
+      convention, and already HaTi&rsquo;s.</div>
+    <div><b><span class="n">5</span>Controls state themselves</b>A row of five dropdowns becomes one sentence saying
+      what is in force, with a button to change it. You read the state instead of decoding it.</div>
+    <div><b>And the rule that governs the other five</b>A group is not drawn at all when it has nothing to say. That
+      is HaTi&rsquo;s own <i>empty:hidden</i>, which is why the renewal card does not exist outside its window.</div>
+  </div>
+
+  <p style="margin-top:28px" class="prose"><b>Drawn, it is this.</b> Two section heads and one open body, in
+    HaTi&rsquo;s own metrics &mdash; these are live in the page you are reading, not pictures.</p>
+  <div class="demo">
+    <div class="gsec lead">
+      <div class="ghead"><h5>Renewal decision</h5>
+        <span class="sum">Decide by <b style="color:var(--ink)">30 September 2026</b> &mdash; 90 days&rsquo; notice, and it ends 29 December 2026.</span>
+        <span class="gchip">14 days left</span>
+        <svg class="gchev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></div>
+    </div>
+    <div class="gsec">
+      <div class="ghead open"><h5>The deal</h5><span class="sum"></span>
+        <span class="gchip">2 departures from your standards</span>
+        <svg class="gchev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></div>
+      <div class="gbody">
+        <div><p class="l">Payment terms</p><p class="v">30 days <span class="cl">cl. 2</span></p></div>
+        <div><p class="l">Volume rebate</p><p class="v">3% over 120,000 t <span class="cl">cl. 9</span></p></div>
+        <div><p class="l">Liability cap</p><p class="v">12 months&rsquo; fees <span class="cl">cl. 11</span></p></div>
+        <div><p class="l">Exclusivity</p><p class="v none">&mdash;</p></div>
+      </div>
+    </div>
+    <div class="gsec">
+      <div class="ghead"><h5>The record</h5>
+        <span class="sum">Highland Corporate Ltd and Kabras Sugar Ltd &middot; Procurement &amp; Raw Materials &middot; Raw Material Supply Agreement</span>
+        <svg class="gchev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="transform:rotate(-90deg)"><path d="M4 6l4 4 4-4"/></svg></div>
+    </div>
+  </div>
+  <p class="shot-cap" style="margin-top:10px">Shut, open, shut. The third row tells you the answer without being
+    opened &mdash; that is rule two, and it is what stops a page of sections becoming a page of doors.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="rule-n">ii</span><h2>The same grammar, six times</h2></div>
+  <p class="lede prose">It reads differently on a dashboard, a table, a worklist and an analysis page &mdash; which
+    is the point. Applying it literally everywhere would be cargo cult. Each screen below says what the grammar
+    actually means there. Tick <i>Full size</i> to read any picture at the width HaTi draws it.</p>
+</section>
+
+<article class="screen" id="s-overview">
+  <div class="screen-top"><span class="screen-n">1 of 6</span>
+    <h3>The contract Overview &mdash; the reference</h3>
+    <p class="carries">Where the grammar came from</p>
+  </div>
+  <p><b>What it means here:</b> an object page. Everything on it is one topic &mdash; what this contract says &mdash;
+    so it becomes one column of named sections rather than an attribute panel plus a column of cards. The deal opens
+    because it is what you came for; the filing record, the certificates, the family and Copilot&rsquo;s readings are
+    one row each until you want them.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-o1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="g-o1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/C1-room-today.png" alt="The Key terms tab today: an attribute panel on the left with empty space below it, and a right column of three cards" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-o2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-o2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/H1-overview.png" alt="The tab renamed Overview: a renewal decision strip, The deal open with twelve terms each quoting its clause, then four collapsed rows each carrying its own summary" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>1,046px of card stack becomes 543px of sections</b> &mdash; holding twenty terms instead of
+    eight, and fitting the screen without scrolling.</p>
+</article>
+
+<article class="screen" id="s-home">
+  <div class="screen-top"><span class="screen-n">2 of 6</span>
+    <h3>Home</h3>
+    <p class="carries">Rule 3 does the work: open what is being acted on</p>
+  </div>
+  <p><b>What it means here:</b> not collapsing things &mdash; reordering them. Home already had four sections, but
+    the two you can act on sat underneath eight tiles of numbers. Under rule 3, work comes first and reference goes
+    last: <i>Prepared for you</i> and <i>Needs your decision</i> lead, <i>My work</i> follows, and <i>The book</i>
+    &mdash; the portfolio numbers that change slowly &mdash; is one shut row carrying its own figures.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-h1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="g-h1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/A1-home-today.png" alt="Home today: greeting, four My work tiles, four Portfolio tiles, then Prepared for you and Needs your decision below them" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-h2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-h2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/J1-home-grammar.png" alt="Home reordered: Prepared for you leads with an amber accent, then Needs your decision, then My work with its four tiles, and The book as a single collapsed row summarising the portfolio" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>The first thing you can act on moves from 487px down the page to 136px.</b> Nothing is removed
+    &mdash; the eight tiles are all still there, two of them one press away.</p>
+</article>
+
+<article class="screen" id="s-contracts">
+  <div class="screen-top"><span class="screen-n">3 of 6</span>
+    <h3>Contracts</h3>
+    <p class="carries">Rule 5 does the work: controls state themselves</p>
+  </div>
+  <p><b>What it means here:</b> the table is already right &mdash; it is the filter bar that makes you decode rather
+    than read. Five dropdowns, each showing its own default, tell you nothing at a glance; you have to read all five
+    to know what you are looking at. Under rule 5 they become one sentence that says it &mdash; <i>Showing 14
+    executed agreements of 22 &middot; every stream &middot; every category &middot; a required document has
+    lapsed</i> &mdash; with <i>Change what is shown</i> beside it.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-c1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="g-c1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/B1-contracts-today.png" alt="The Contracts page today with five labelled dropdown filters above the table" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-c2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-c2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/J2-contracts-grammar.png" alt="The same page with the five dropdowns replaced by one Showing sentence and three buttons, giving the table a row more height" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>Six controls in a 50px bar become one sentence you can read in a glance</b> &mdash; and the
+    cohort act sits beside it, where it belongs, because it acts on exactly what the sentence describes.</p>
+</article>
+
+<article class="screen" id="s-obligations">
+  <div class="screen-top"><span class="screen-n">4 of 6</span>
+    <h3>Obligations</h3>
+    <p class="carries">Rules 2 and 5 together &mdash; the strongest result in the set</p>
+  </div>
+  <p><b>What it means here:</b> this page was already half-way there. It groups into named bands and each band
+    already carries a count and a money total &mdash; which is rule 1 and most of rule 2 already built. What was
+    missing is that the bands do not shut. Under rule 2 they do, and a shut band gains one more thing: who is in it
+    and when the earliest one falls due. So the page opens on what is late and summarises the rest in two lines.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-b1"><figcaption><span class="dot"></span>Today &mdash; eleven rows, five filters
+        <label class="zoom" for="g-b1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/D1-oblig-today.png" alt="The Obligations worklist today: five filter dropdowns and eleven rows across three bands, all expanded" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-b2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-b2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/J3-obligations-grammar.png" alt="The same worklist with the filters replaced by a Showing sentence, the Overdue band open with its four rows, and Due this month and Later shut but still carrying their counts, money totals and who is in them" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>Eleven rows become four rows and two sentences</b> &mdash; and the two sentences still tell you
+    the money, the count, the counterparties and the earliest date. On a real book of two hundred obligations this is
+    the difference between a worklist and a wall.</p>
+</article>
+
+<article class="screen" id="s-insights">
+  <div class="screen-top"><span class="screen-n">5 of 6</span>
+    <h3>Insights</h3>
+    <p class="carries">Rule 2 with a twist: the summary is the finding</p>
+  </div>
+  <p><b>What it means here:</b> a chart is not a fact, it is a picture you have to read. Under rule 2 each panel
+    gains a head that states what the chart actually found &mdash; <i>KES 21.30M lands in the next six months, and
+    nothing has been decided on any of it</i> &mdash; so the page can be read without reading a single chart. Then
+    the panels you are not looking at shut, keeping their finding. And the amber banner across the top stops being a
+    banner and becomes a section row, which is HaTi&rsquo;s own no-new-bands rule applied to a band that already
+    existed.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-i1"><figcaption><span class="dot"></span>Today
+        <label class="zoom" for="g-i1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/E1-insights-today.png" alt="The Insights portfolio tab today: an amber banner, three stat tiles, then the renewal runway chart, the risk map and where the value sits" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-i2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-i2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/J4-insights-grammar.png" alt="The same tab with the banner turned into a Not yet grouped section row, the renewal runway panel headed by its finding in words, and the risk map and where the value sits shut to one row each carrying their findings" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>Three findings are now readable in three lines</b>, and the chart you actually want stays open
+    beneath its own. Nothing is lost: both shut panels open on a press, with their charts intact.</p>
+</article>
+
+<article class="screen" id="s-requests">
+  <div class="screen-top"><span class="screen-n">6 of 6</span>
+    <h3>Requests</h3>
+    <p class="carries">Rules 1, 2 and 3 on a list &mdash; a request becomes a row</p>
+  </div>
+  <p><b>What it means here:</b> every request is currently a card holding a title, a paragraph, four facts and three
+    buttons, whether or not you intend to do anything about it. Under the grammar a request is a <i>row</i> &mdash;
+    reference, what it is, what shape it is in, who has it, when it was promised &mdash; and opens into the paragraph,
+    the facts and the acts when you choose it. The one that is over its date opens by itself, with an accent, because
+    that is rule 3.</p>
+  <div class="pair">
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="g-r1"><figcaption><span class="dot"></span>Today &mdash; four cards fill the screen
+        <label class="zoom" for="g-r1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/F1-requests-today.png" alt="The Requests page today: four request cards, each with a reference, a title, a waiting chip, a description, a meta line and three buttons" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="g-r2"><figcaption><span class="dot"></span>With the grammar
+        <label class="zoom" for="g-r2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/J5-requests-grammar.png" alt="The same requests as rows carrying reference, title, a one-line summary, the road, who has it and when it was promised, with the overdue one opened to show its description, four fields and four acts" loading="lazy"></div>
+    </figure>
+  </div>
+  <p class="weight"><b>Four requests shrink from 534px to 307px &mdash; with one of them fully open</b> &mdash; and
+    the page goes from showing four requests to showing eight.</p>
+</article>
+
+<section class="sec" id="numbers">
+  <div class="sec-head"><span class="rule-n">iii</span><h2>What it costs and what it buys</h2></div>
+  <p class="lede prose">Every figure measured in the running product at 1440&nbsp;&times;&nbsp;900, on the same
+    22-contract book.</p>
+  <div class="cmp">
+    <table class="cm">
+      <thead><tr><th>Screen</th><th>Today</th><th>With the grammar</th></tr></thead>
+      <tbody>
+        <tr><td><b>Overview</b> &mdash; the busiest contract</td><td>1,046px, scrolling</td><td class="win">543px, no scroll, 20 terms</td></tr>
+        <tr><td><b>Home</b> &mdash; where the first act sits</td><td>487px down</td><td class="win">136px down</td></tr>
+        <tr><td><b>Contracts</b> &mdash; the filter region</td><td>6 controls, 50px</td><td class="win">one sentence</td></tr>
+        <tr><td><b>Obligations</b> &mdash; rows on arrival</td><td>11 rows, 5 filters</td><td class="win">4 rows, 2 summaries</td></tr>
+        <tr><td><b>Insights</b> &mdash; findings you can read without a chart</td><td>0</td><td class="win">3</td></tr>
+        <tr><td><b>Requests</b> &mdash; four of them</td><td>534px, 4 on screen</td><td class="win">307px, 8 on screen</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="verdict" style="margin-top:22px">
+    <p><b>Nothing is removed anywhere.</b> Every tile, chart, filter, button and figure that exists today still
+      exists; it is grouped, named, and in several cases one press away instead of permanently in your eye.</p>
+    <p><b>And nothing here is a feature.</b> There is no new capability in this document &mdash; it is the same
+      product, ordered by one rule about what a screen shows first.</p>
+  </div>
+</section>
+
+<section class="sec" id="limits">
+  <div class="sec-head"><span class="rule-n">iv</span><h2>Where the grammar does not go</h2></div>
+  <p class="lede prose">A pattern applied everywhere stops being a design and becomes a tic. Four places it should
+    not reach, and why.</p>
+  <div class="out">
+    <div><b>The contract itself</b>The agreement is paper. It does not get sections, summaries, chevrons or an accent
+      bar, and it never loses a pixel to chrome. HaTi already guards this and should keep guarding it.</div>
+    <div><b>The negotiation column</b>It has its own grammar &mdash; piles, verbs on the face, the clause leading
+      each row &mdash; and it was designed against a real artifact. Two grammars on one screen is worse than one
+      imperfect one.</div>
+    <div><b>Dialogs</b>A dialog exists because a decision cannot proceed without the reader. Collapsing half of it
+      hides the thing they are being asked about. Dialogs stay flat and short.</div>
+    <div><b>The phone</b>Below 768px HaTi draws its own shell, where everything is already one column of rows. The
+      grammar is what that shell does naturally; forcing section heads onto it would only spend height.</div>
+  </div>
+</section>
+
+</div>
+
+<footer class="end">
+  <div class="wrap">
+    <h2>The through-line</h2>
+    <p>The Overview redesign was not a one-off fix for one crowded tab. It was a rule, and the rule turns out to be
+      worth something on five more screens &mdash; a dashboard that leads with work, a table whose filters say what
+      they are doing, a worklist that opens on what is late, an analysis page you can read without reading a chart,
+      and a queue where a request is a row until you want it.</p>
+    <p><b>One rule, learned once, paying six times.</b> That is the difference between a design system and a
+      collection of screens.</p>
+    <p class="mono">6 screens &middot; 5 rules &middot; 0 new features &middot; nothing removed</p>
+  </div>
+</footer>
