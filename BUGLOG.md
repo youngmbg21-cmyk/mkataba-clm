@@ -14807,3 +14807,18 @@ It reads the published list now.
   an email off a payment default. Kept as 90 on the reasoning that the paper has
   always PRINTED 90 and a record disagreeing with the paper is the exact bug
   this whole job exists to close — but it is stated rather than assumed.
+
+### 16 Sep 2026 — the owner ruled on the pre-filled 90
+
+The entry above left one thing open as the owner's call rather than an
+engineer's: TEMPLATE_NOTICE.DA carries `def:'90'`, so the drafting question
+arrives pre-filled and a drafter who never touches the box still records 90 —
+which starts the 14/7/1 reminder ladder and buys an overnight memo the owner
+pays for.
+
+Put to Young in plain English, with an empty box as the alternative and the
+cost of each named. RULED: **keep it pre-filled with 90.** The reasoning that
+was offered and accepted is that the paper has always PRINTED 90, and a record
+disagreeing with the paper is the fault this whole feature exists to close.
+Written beside TEMPLATE_NOTICE so the next person finds the ruling with the
+code rather than only here. No code changed — this was already what shipped.

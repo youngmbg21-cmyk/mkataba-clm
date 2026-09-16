@@ -258,6 +258,15 @@ const TEMPLATE_PAY = {
    the descriptor (`{...f}`) rather than copying it by descriptor, so a getter
    label would be read ONCE at wizard-open and would not follow a language
    switch mid-sitting. It is also a label that becomes part of the RECORD. */
+/* THE 90 IS PRE-FILLED, AND THAT IS OWNER-RULED (Young, 16 Sep 2026: "keep it
+   pre-filled with 90"). It is not an idle default: applyTemplateValues stamps
+   whatever is in that box `confidence:'high'` under the comment "A human typed
+   this", and from that moment the renewal clock counts 90 days back on this
+   contract, runReminders mails at 14/7/1, and runRenewalPrep buys an overnight
+   memo the OWNER pays for — whether or not the drafter ever looked at the box.
+   Put to the owner in exactly those words, with an empty box as the
+   alternative, and ruled: the paper has always PRINTED 90, and a record
+   disagreeing with the paper is the bug this whole feature exists to close. */
 const TEMPLATE_NOTICE = {
   DA:{ key:'noticeDays', def:'90', label:'Termination notice (days)' },
   RM:null, PK:null, CM:null, EQ:null, WH:null,
