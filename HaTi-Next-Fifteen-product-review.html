@@ -120,6 +120,24 @@ h2{font-size:clamp(22px,3vw,29px);font-weight:600;letter-spacing:-.01em;line-hei
 .revise{margin:14px 0 0;padding:12px 16px;background:var(--amber-bg);border-left:2px solid var(--amber-dot);font-size:14px;color:var(--ink);max-width:78ch}
 .revise b{font-weight:600}
 
+/* research findings */
+.finds{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin:20px 0 0}
+@media(min-width:800px){.finds{grid-template-columns:1fr 1fr}}
+.finds div{background:var(--paper);padding:15px 17px;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.finds b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;margin:0 0 4px}
+.finds a{font-size:12px}
+.verdict{margin:20px 0 0;padding:16px 18px;background:var(--paper);border-left:3px solid var(--accent);max-width:78ch}
+.verdict p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2)}
+.verdict p:last-child{margin:0}
+.verdict b{color:var(--ink);font-weight:600}
+.cmp{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:20px 0 0}
+table.cm{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
+table.cm th,table.cm td{padding:11px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
+table.cm thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.cm td:not(:first-child),table.cm th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums;width:150px}
+table.cm tr:last-child td{border-bottom:0}
+table.cm .win{color:var(--green-fg);font-weight:600}
+table.cm .lose{color:var(--ruby-fg);font-weight:600}
 /* budget */
 .budget{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:24px 0 0}
 table.bg{border-collapse:collapse;width:100%;min-width:600px;font-size:13.5px}
@@ -168,7 +186,7 @@ table.ld tr:last-child td{border-bottom:0}
     <p class="stand">Six full screens, each shown as HaTi draws it today and again with the fifteen additions placed
       on it. Both pictures are the real product running &mdash; not drawings of it.</p>
     <div class="meta">
-      <span><b>12</b> full screens</span>
+      <span><b>14</b> full screens</span>
       <span><b>6</b> pages touched</span>
       <span><b>0</b> new doors in the sidebar</span>
       <span><b>1</b> new tab anywhere</span>
@@ -195,14 +213,15 @@ table.ld tr:last-child td{border-bottom:0}
   <div class="revise" style="margin-top:20px"><b>What looking at the real product changed.</b> The previous edition
     put the forwarded-contract tray on a row of tabs across the Contracts page. There is no such row &mdash; and
     HaTi already has an <i>Import queue</i>, with its own tile on Home and its own door in the sidebar. So the
-    Mailroom now feeds the queue that exists, which costs nothing at all. Two other placements moved for the same
-    reason, and are marked where they occur.</div>
+    Mailroom now feeds the queue that exists, which costs nothing at all. Three other placements moved for the same reason, and
+    the contract room was redesigned outright rather than extended &mdash; each is marked where it occurs.</div>
 </section>
 
 <section class="sec">
   <div class="sec-head"><span class="rule-n">ii</span><h2>Six screens, before and after</h2></div>
-  <p class="lede prose">Every one of the fifteen lands on one of these six pages. Tick <i>Full size</i> on any
-    picture to see it at the width HaTi actually draws it.</p>
+  <p class="lede prose">Every one of the fifteen lands on one of these six pages. Five of them gain something; the
+    sixth, the contract room, is redesigned. Tick <i>Full size</i> on any picture to see it at the width HaTi
+    actually draws it.</p>
 </section>
 
 <!-- ===================== HOME ===================== -->
@@ -291,67 +310,110 @@ table.ld tr:last-child td{border-bottom:0}
 <!-- ===================== THE CONTRACT ROOM ===================== -->
 <article class="screen" id="room">
   <div class="screen-top"><span class="screen-n">3 of 6</span>
-    <h3>The contract room &mdash; Key terms</h3>
+    <h3>The contract room &mdash; redesigned, not extended</h3>
     <p class="carries">Carries <b>S2</b> commercial terms &middot; <b>S8</b> required documents &middot;
       <b>S6</b> serve a notice &middot; <b>S12</b> the family check</p>
   </div>
-  <p>Four of the fifteen land in this one column, and it is the only screen in the set where the additions push
-    against something. <b>Nothing existing is removed</b> &mdash; the Contract brief and the Agreement family keep
-    their cards and their buttons &mdash; but two more cards in a column that is already full is a real cost, so
-    this screen is shown twice: the straightforward placement, and a better one.</p>
+  <p>This was the one screen where the additions did not fit, and the honest answer was not a better stacking order.
+    The Key terms tab was already a panel of attributes on the left and a column of unrelated widgets on the right
+    &mdash; a decision, a reading, a structure &mdash; and adding two more widgets made it card soup. So this screen
+    is redesigned rather than extended, and the design is taken from how serious contract software solves exactly
+    this problem.</p>
+
+  <h4 style="font-size:16px;font-weight:600;margin:28px 0 0">What best-in-class does</h4>
+  <div class="finds">
+    <div><b>SAP Fiori &mdash; the object page floorplan</b>One page per object: a header of key facts, then
+      <i>sections</i> and subsections holding forms and tables, reached by an anchor bar. The decisive rule: use a
+      <b>tab bar when the page covers different topics that each have complex content,</b> and sections when the
+      content belongs together and people want to jump within it.
+      <a href="https://www.sap.com/design-system/fiori-design-web/v1-136/page-types/floorplans/object-page/usage" target="_blank" rel="noopener">SAP design system</a></div>
+    <div><b>Icertis &mdash; the Agreement Details page</b>A top section of mandatory attributes, then attributes
+      <b>grouped under collapsible headings</b> that expand individually or all at once. Labels in uppercase above
+      the value; an attribute with no value shows two dashes. Not a stack of cards &mdash; one page of named groups.
+      <a href="https://iciwikiapac.icertis.com/ICIHelp8.2/index.php?title=Agreement_Details_Page" target="_blank" rel="noopener">Icertis help</a></div>
+    <div><b>Sirion &mdash; one place per topic</b>Their clause view was re-laid-out to put the clause, its deviations
+      and its metadata together in one streamlined surface, rather than making the reader assemble them from
+      separate panels.
+      <a href="https://www.sirion.ai/library/whats-new/sirion-feburary-2025-product-release/" target="_blank" rel="noopener">Sirion release notes</a></div>
+    <div><b>Ironclad &mdash; hide what is not acted on</b>Workflow metadata is deliberately hidden from the
+      properties a person edits, because it is not typically amended. Progressive disclosure by <i>usefulness</i>,
+      not by category.
+      <a href="https://ironcladapp.com/journal/contract-data/contract-metadata" target="_blank" rel="noopener">Ironclad</a></div>
+  </div>
+
+  <div class="verdict">
+    <p><b>So: no new tab.</b> By SAP&rsquo;s own rule, HaTi&rsquo;s five room tabs are correct &mdash; Key terms,
+      Document, Signing, Obligations and History really are different topics with complex content. A sixth tab for
+      commercial terms would overlap two of them, and HaTi&rsquo;s own worst fault class is two screens disagreeing
+      about what the product does.</p>
+    <p><b>What is wrong is inside the tab.</b> Everything on Key terms belongs to one topic &mdash; what this
+      contract says &mdash; so by the same rule it should be <b>one page of named sections</b>, not a panel plus a
+      column of cards. That is the Icertis layout, and it happens to be what HaTi&rsquo;s own Key terms panel is
+      already reaching for: it currently ends with a sentence apologising that the governing law, the liability cap
+      and the payment terms are &ldquo;in the wording, not in this panel&rdquo;.</p>
+  </div>
 
   <div class="pair">
     <figure class="plate">
-      <input type="checkbox" class="zm" id="z-c1"><figcaption><span class="dot"></span>Today &mdash; three cards
+      <input type="checkbox" class="zm" id="z-c1"><figcaption><span class="dot"></span>Today &mdash; a panel and three cards
         <label class="zoom" for="z-c1">Full size</label></figcaption>
-      <div class="frame"><img src="docs/review-shots/C1-room-today.png" alt="The Key terms tab today: the Key terms card on the left with empty space below it, and a right column holding the Renewal card, the Contract brief card and the Agreement family card" loading="lazy"></div>
+      <div class="frame"><img src="docs/review-shots/C1-room-today.png" alt="The Key terms tab today: an attribute panel on the left with empty space below it, and a right column holding the Renewal card, the Contract brief card and the Agreement family card" loading="lazy"></div>
     </figure>
-    <figure class="plate now">
-      <input type="checkbox" class="zm" id="z-c2"><figcaption><span class="dot"></span>Placement A &mdash; both new cards in the right column
+    <figure class="plate">
+      <input type="checkbox" class="zm" id="z-c2"><figcaption><span class="dot"></span>Rejected &mdash; the same shape with two more cards
         <label class="zoom" for="z-c2">Full size</label></figcaption>
-      <div class="frame"><img src="docs/review-shots/C2-room-future.png" alt="The same tab with Serve a notice added to the Renewal card, and Commercial terms and Documents they must hold inserted after the Contract brief. The Agreement family card is pushed below the fold." loading="lazy"></div>
+      <div class="frame"><img src="docs/review-shots/C2-room-future.png" alt="The same tab with Commercial terms and Documents they must hold added as two more cards in the right column, which now stacks to 1046 pixels in a 632 pixel track and scrolls" loading="lazy"></div>
     </figure>
     <figure class="plate now">
-      <input type="checkbox" class="zm" id="z-c4"><figcaption><span class="dot"></span>Placement B &mdash; recommended
-        <label class="zoom" for="z-c4">Full size</label></figcaption>
-      <div class="frame"><img src="docs/review-shots/C4-room-option-b.png" alt="The same tab with Commercial terms moved to the left column beneath the Key terms card, where there was empty space, and only Documents they must hold added to the right column. Write the brief and the Agreement family are both still on screen." loading="lazy"></div>
+      <input type="checkbox" class="zm" id="z-h1"><figcaption><span class="dot"></span>Recommended &mdash; one page of named sections
+        <label class="zoom" for="z-h1">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/H1-overview.png" alt="The redesigned tab: a renewal decision strip with its acts, The deal open with twelve terms in four columns each quoting its clause, then collapsed rows for The record, Documents they must hold, Related agreements and What Copilot read" loading="lazy"></div>
+    </figure>
+    <figure class="plate now">
+      <input type="checkbox" class="zm" id="z-h2"><figcaption><span class="dot"></span>The same design on an NDA
+        <label class="zoom" for="z-h2">Full size</label></figcaption>
+      <div class="frame"><img src="docs/review-shots/H2-overview-nda.png" alt="The same tab on a mutual NDA: The deal open with eight terms, then three collapsed rows. No renewal section and no documents section, because neither has anything to say." loading="lazy"></div>
     </figure>
   </div>
 
-  <div class="revise"><b>Nothing is deleted, and here are the numbers.</b> Measured on this contract at
-    1440&nbsp;&times;&nbsp;900: today the right column holds three cards stacking to 528px in a 632px track, so it
-    never scrolls. Under <b>placement A</b> it holds five, stacking to 1,046px &mdash; the Contract brief keeps its
-    place directly under the Renewal card, but the Agreement family is pushed off the bottom and you scroll to reach
-    it. Under <b>placement B</b> the Commercial terms card moves to the left column, into 287px of space that is
-    empty today and needs 279px; the right column then stacks to 756px and only the tail of the family card falls
-    below the fold.</div>
+  <div class="cmp">
+    <table class="cm">
+      <thead><tr><th>Measured on the Kabras Sugar supply agreement, 1440&times;900</th><th>Today</th><th>Two more cards</th><th>Recommended</th></tr></thead>
+      <tbody>
+        <tr><td>Height of the stack</td><td>528px</td><td class="lose">1,046px</td><td class="win">543px</td></tr>
+        <tr><td>Does it scroll in a 632px track</td><td>No</td><td class="lose">Yes</td><td class="win">No</td></tr>
+        <tr><td>Separate boxes to scan</td><td>4</td><td class="lose">6</td><td class="win">6 named rows, 2 open</td></tr>
+        <tr><td>Contract terms shown</td><td>8</td><td>14</td><td class="win">20</td></tr>
+        <tr><td>Terms quoting the clause they came from</td><td>0</td><td>9</td><td class="win">9</td></tr>
+        <tr><td>The same page on a plain NDA</td><td>&mdash;</td><td>&mdash;</td><td class="win">304px, four rows</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <div class="keys">
-    <div><b>Write the brief stays exactly where it is</b><span class="rf">unchanged</span> &mdash; second card in the
-      right column, directly under Renewal, with its button. In placement A it is still there; in the first draft of
-      this review the new cards were inserted <i>above</i> it, which pushed it out of the picture. That was a
-      placement mistake, not a deletion, and it is corrected in both pictures above.</div>
-    <div><b>The Agreement family keeps its card and gains an act</b><span class="rf">S12</span> &mdash; Create an
-      amendment, Link an existing document, Link to a parent agreement, and now Check the family. It moves to last in
-      the column because on most agreements it reports only that there is no family, which is the least urgent thing
-      on the screen.</div>
-    <div><b>Commercial terms belongs with Key terms</b><span class="rf">S2</span> &mdash; which is the argument for
-      placement B. These are key terms; the difference is that HaTi read them off the wording instead of somebody
-      typing them. Putting them under the panel they belong to uses space that is blank today.</div>
-    <div><b>Documents they must hold stays on the right</b><span class="rf">S8</span> &mdash; because it is work to
-      chase rather than a fact to read, and it belongs beside the renewal card, which is the other piece of work in
-      that column.</div>
-    <div><b>&ldquo;Serve a notice&rdquo;</b><span class="rf">S6</span> &mdash; a third button on a card that already
-      offers two. HaTi already knows the deadline, the notice period and the clause; this is the act it stops short
-      of today.</div>
-    <div><b>Most contracts never see any of this</b> &mdash; measured across the 22 agreements in this book, the
-      right column draws <b>two</b> cards on an ordinary contract and three inside a renewal window. Commercial terms
-      draws only where money passes; Documents only where the wording requires one. Five cards at once happens on a
-      supplier agreement in its notice window, and only for those weeks.</div>
+    <div><b>The deal is the section that matters, and it opens</b><span class="rf">S2</span> &mdash; value, payment
+      terms, rebate, tiers, price review, rejection window, liability cap, exclusivity, dates, notice period,
+      governing law. Four columns, label above value in the product&rsquo;s own micro-label style, each figure
+      quoting the clause it was read from, and an em-dash where the wording says nothing.</div>
+    <div><b>Everything else collapses, and still says something</b> &mdash; a shut section is one row carrying its
+      own summary: <i>&ldquo;A standalone agreement&rdquo;</i>, <i>&ldquo;one has lapsed&rdquo;</i>,
+      <i>&ldquo;Not written yet&rdquo;</i>. You usually do not need to open it. This is Ironclad&rsquo;s rule &mdash;
+      hide what is not acted on &mdash; and Icertis&rsquo;s collapsible groups.</div>
+    <div><b>Write the brief and the Agreement family both survive</b><span class="rf">unchanged</span> &mdash; as
+      the sections <i>What Copilot read</i> and <i>Related agreements</i>, with their buttons inside. Nothing that
+      exists today is removed; it is renamed and regrouped so there is one place to look instead of five.</div>
+    <div><b>The renewal decision leads, and only when there is one</b><span class="rf">S6</span> &mdash; one
+      sentence, three acts, an amber marker, exactly the facts the card carries today in a third of the height. On a
+      contract outside its notice window it is not drawn at all, as now.</div>
+    <div><b>Documents they must hold is a row here and rows there</b><span class="rf">S8</span> &mdash; one reading
+      drawn on two surfaces. The section summarises; the Obligations tab tracks the expiry dates and does the
+      chasing, because that is what that tab is for.</div>
+    <div><b>One optional rename</b> &mdash; the tab now holds more than key terms, so <i>Overview</i> would describe
+      it better. That is a word, not a build, and it is entirely your call.</div>
   </div>
-  <p class="weight"><b>The contract does not move.</b> This is the side of the Key terms tab; the agreement itself is
-    on the Document tab and starts at exactly the same pixel before and after. <b>Placement B is the recommendation,
-    and the choice is yours</b> &mdash; it is the difference between one card sitting on the left or on the right.</p>
+  <p class="weight"><b>This is the one screen in the fifteen that gets simpler rather than fuller.</b> Six things to
+    look at become one page with a predictable order; the busiest contract in the book fits without scrolling; and
+    an NDA shows four rows. The contract itself is on the Document tab and does not move by a pixel.</p>
 </article>
 
 <!-- ===================== OBLIGATIONS ===================== -->
@@ -488,7 +550,7 @@ table.ld tr:last-child td{border-bottom:0}
         <tr><td>Doors in the sidebar</td><td>13</td><td class="same">13</td><td>Nothing. Nine everyday doors and four under Administration, unchanged.</td></tr>
         <tr><td>Tabs inside a contract</td><td>5</td><td class="same">5</td><td>Nothing. Key terms, Document, Signing, Obligations, History.</td></tr>
         <tr><td>Tabs on Insights</td><td>5</td><td class="up">6</td><td>One: <b>Exposure</b>. The only new tab anywhere in the fifteen.</td></tr>
-        <tr><td>Cards on the Key terms tab</td><td>3</td><td class="up">5</td><td>Two. Under the recommended placement one goes left, under the panel it belongs to, and one right. Both draw nothing on a contract they have nothing to say about.</td></tr>
+        <tr><td>Boxes on the Key terms tab</td><td>4</td><td class="same">1 page</td><td>Fewer, not more. A panel plus three cards becomes one page of named sections, most of them a single collapsed row.</td></tr>
         <tr><td>Filters shown on Contracts</td><td>4 of 5</td><td class="up">4 of 6</td><td>One more offered behind <i>Adapt filters</i>. The bar itself does not grow.</td></tr>
         <tr><td>Filters on Obligations</td><td>5</td><td class="same">5</td><td>Nothing. The <i>Side</i> filter this needs is already there.</td></tr>
         <tr><td>Bands on Obligations</td><td>3</td><td class="up">4</td><td>One, and only once something has actually been earned.</td></tr>
@@ -513,17 +575,17 @@ table.ld tr:last-child td{border-bottom:0}
       <thead><tr><th>Ref</th><th>Addition</th><th>Where it sits</th><th>Shape it takes</th><th>Seen above</th></tr></thead>
       <tbody>
         <tr><td class="rf">S1</td><td>The Mailroom</td><td>Home &middot; Import contracts</td><td>Feeds the queue that exists</td><td>Screen 1</td></tr>
-        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A card under the Key terms panel</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A section of the contract overview</td><td>Screen 3</td></tr>
         <tr><td class="rf">S3</td><td>Clearance lanes</td><td>Settings &amp; Rules &middot; Requests</td><td>A settings panel, and a road</td><td>Screen 6</td></tr>
         <tr><td class="rf">S4</td><td>A front door with a clock</td><td>Requests</td><td>Three facts on each row</td><td>Screen 6</td></tr>
         <tr><td class="rf">S5</td><td>Where is my contract?</td><td>Outside the app</td><td>A link on the request</td><td>Screen 6</td></tr>
-        <tr><td class="rf">S6</td><td>The Notice Desk</td><td>Contract room &middot; Home &middot; History</td><td>A button on the renewal card</td><td>Screens 1, 3</td></tr>
+        <tr><td class="rf">S6</td><td>The Notice Desk</td><td>Contract room &middot; Home &middot; History</td><td>An act on the renewal section</td><td>Screens 1, 3</td></tr>
         <tr><td class="rf">S7</td><td>What you are owed</td><td>Obligations &middot; Home tiles</td><td>A band and one verb</td><td>Screen 4</td></tr>
-        <tr><td class="rf">S8</td><td>Certificates that expire</td><td>Contract room &middot; Obligations &middot; Contracts</td><td>A card, rows, a filter, an alert</td><td>Screens 2, 3, 4</td></tr>
+        <tr><td class="rf">S8</td><td>Certificates that expire</td><td>Contract room &middot; Obligations &middot; Contracts</td><td>A section, rows, a filter, an alert</td><td>Screens 2, 3, 4</td></tr>
         <tr><td class="rf">S9</td><td>Ask your book</td><td>The Copilot panel</td><td>Fills a greeting that is empty today</td><td>&mdash;</td></tr>
         <tr><td class="rf">S10</td><td>The exposure register</td><td>Insights</td><td>A sixth tab</td><td>Screen 5</td></tr>
         <tr><td class="rf">S11</td><td>What the negotiation was worth</td><td>The negotiation memo &middot; Reports</td><td>A section, and a strip</td><td>&mdash;</td></tr>
-        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>A button on the family card</td><td>Screen 3</td></tr>
+        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>A button in Related agreements</td><td>Screen 3</td></tr>
         <tr><td class="rf">S13</td><td>Bulk amendments</td><td>Contracts</td><td>One act above the table</td><td>Screen 2</td></tr>
         <tr><td class="rf">S14</td><td>The diligence pack</td><td>Contracts</td><td>A row in that same menu</td><td>Screen 2</td></tr>
         <tr><td class="rf">S15</td><td>HaTi in the chat</td><td>Settings &middot; outside the app</td><td>A settings panel</td><td>&mdash;</td></tr>
@@ -551,9 +613,10 @@ table.ld tr:last-child td{border-bottom:0}
           and it is the one change a nine-person business feels on the first day.</p></div>
       <div class="refs"><span>S1</span></div></div>
     <div class="relrow"><p class="when">Release 2</p>
-      <div><h4>The contract room</h4>
-        <p>Commercial terms, required documents, serve a notice, check the family. Four additions to one column,
-          which is one learning moment rather than four &mdash; and the release that wins a procurement buyer.</p></div>
+      <div><h4>The contract overview</h4>
+        <p>The Key terms tab is rebuilt as one page of named sections, and the four additions land inside it. The
+          largest single piece of work in the fifteen, and the only one that makes a screen simpler than it is today
+          &mdash; also the release that wins a procurement buyer.</p></div>
       <div class="refs"><span>S2</span><span>S6</span><span>S8</span><span>S12</span></div></div>
     <div class="relrow"><p class="when">Release 3</p>
       <div><h4>Obligations</h4>
@@ -612,12 +675,14 @@ table.ld tr:last-child td{border-bottom:0}
 <footer class="end">
   <div class="wrap">
     <h2>The through-line</h2>
-    <p>Putting the real product beside the proposals changed four of them and deleted a fifth. The forwarded-contract
+    <p>Putting the real product beside the proposals changed four of them, deleted a fifth and redesigned a screen. The forwarded-contract
       tray became a queue that already existed. The Side filter on Obligations turned out to be built. Certificates
-      turned out to be rows the product already draws. And the commercial terms card went from crowding the right column to filling space that is empty on the left. <b>Looking is cheaper than designing.</b></p>
+      turned out to be rows the product already draws. And the commercial terms card stopped being a card at all: the Key terms tab needed regrouping, not another box on it. <b>Looking is cheaper than designing.</b></p>
     <p>What is left is fifteen new abilities and two new things to look at &mdash; a tab on Insights and three facts on
-      a request. Everything else is a card, a band, a button, a filter or a row, in furniture that was already on the
-      screen, and none of it appears until it has something to say.</p>
-    <p class="mono">12 full screens &middot; 6 pages touched &middot; 0 new sidebar doors &middot; 1 new tab &middot; 2 visible on a quiet day</p>
+      a request. Everything else is a scope, a section, a button, a filter or a row, in furniture that was already on
+      the screen, and none of it appears until it has something to say. <b>One screen ends up simpler than it is
+      today:</b> the contract overview holds two and a half times as many facts in the same height, because it was
+      regrouped rather than filled.</p>
+    <p class="mono">14 full screens &middot; 6 pages touched &middot; 0 new sidebar doors &middot; 1 new tab &middot; 1 screen redesigned</p>
   </div>
 </footer>
