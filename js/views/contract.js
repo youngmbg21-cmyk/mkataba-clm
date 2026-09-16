@@ -2920,7 +2920,7 @@ function docBody(c){
         clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
         clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
         clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
-        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
+        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90,'90')} days' written notice. ${ADJ} law governs.`),
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
       recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,

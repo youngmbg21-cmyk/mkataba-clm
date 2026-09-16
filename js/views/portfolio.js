@@ -1053,10 +1053,20 @@ function pfWonLost(){
 
 /* ------------------------------------------------------ RENEWAL RUNWAY ----- */
 /* The standing shape's own panel: what ends when, and whether anybody has
-   decided. "Decided" is the platform's own renewal decision — the obligation
-   HaTi raises for a contract that is about to end — so this panel and the
-   Approvals queue never disagree about what has been dealt with. */
+   decided.
+
+   THE RECORDED ANSWER IS THE SENIOR READING (16 Sep 2026). Until the Renewal
+   card could be answered, the only thing in this product that meant "somebody
+   has dealt with this renewal" was a done obligation whose description mentions
+   renewing — so that is what this panel read, and its own comment said as much.
+   There is now a real recorded decision, and a panel still reading only the
+   obligation would print "undecided" for a contract whose card says We will
+   renegotiate. Two screens disagreeing about what the product does is this
+   codebase's most expensive fault class, so the recorded answer is asked FIRST
+   and the obligation reading stays underneath it — nothing is lost for the
+   records that only ever had one, and there is no migration. */
 function pfRenewalDecided(c){
+  if(typeof window.renewalDecided==='function' && renewalDecided(c)) return true;
   const obs=(typeof allObligations==='function')?allObligations():[];
   const mine=obs.filter(o=>o&&o.cid===c.id&&/renew/i.test(String(o.desc||'')));
   if(!mine.length) return false;
@@ -1094,7 +1104,10 @@ function pfRenewalRunwayData(){
     drawn:buckets.some(p=>p.contracts>0),
     measure:pfMeasure(),
     money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
-    method:"each standing agreement lands on the single month its end date falls in. 'Decided' means HaTi's own renewal obligation for that contract has been marked done, so this panel and the Approvals queue never disagree",
+    /* THE SENTENCE IS PART OF THE READING, and Copilot is handed it verbatim.
+       Re-pointing pfRenewalDecided and leaving this describing the old rule
+       would have put a stale definition into the model's own context. */
+    method:"each standing agreement lands on the single month its end date falls in. 'Decided' means somebody has answered the renewal on the contract's own card — renew, renegotiate or let it lapse — or, on records that never had that, a renewal obligation marked done",
     scope:pfScopeOf(),
     window:{ monthsForward:N, zeroIs:'this month' },
     buckets, peakTotal,

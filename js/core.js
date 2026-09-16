@@ -980,6 +980,66 @@ async function contractSetArchived(c,on){
   if(window.updateSidebarCounts) updateSidebarCounts();
   return true;
 }
+/* ---- WRITE DOWN WHAT YOU DECIDED ABOUT THE RENEWAL (owner-approved 16 Sep
+   2026) ----
+   THE ARCHIVE ACT ABOVE IS THE SHAPE, copied rather than called: editor-and-up,
+   one English audit line, persist, one 'ok' toast. Like `archived`, a renewal
+   decision is a FILING fact beside the status — it is not part of the executed
+   record, so it does not belong in EXECUTED_IMMUTABLE and a sealed contract may
+   still be answered. That is the whole point: every contract this is asked
+   about is already signed.
+
+   IT DOES NOT MINT AN AMENDMENT. "Start the renewal" on the same card stays the
+   one door onto the paper, and it is the family machinery's own createAmendment.
+   This records an intention; that writes a document. Two different acts.
+
+   THE ANSWER IS STAMPED WITH THE QUESTION IT ANSWERED — `decideBy`, `expiry`
+   and `notice` — so it lapses honestly the moment any of them moves. See
+   renewalDecisionOf in js/obligations.js, which is where that rule is written.
+
+   THE REASON IS OPTIONAL and the caller decides whether to ask for one; an
+   empty string is a real answer here and is not the same as a cancelled press,
+   which never reaches this function. */
+const RN_WHY_MAX = 240;
+async function contractSetRenewalDecision(c, answer, why){
+  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('rn_editors_only'),'err'); return false; }
+  const answers = (typeof window.RENEWAL_ANSWERS!=='undefined' && Array.isArray(window.RENEWAL_ANSWERS))
+    ? RENEWAL_ANSWERS : ['renew','renegotiate','lapse'];
+  if(answers.indexOf(answer) < 0) return false;
+  /* THE WINDOW IS ASKED FOR THE DEADLINE, not recomputed here. A contract with
+     no readable window has no question to answer, and a decision stamped
+     against nothing could never lapse. */
+  const w = (typeof window.renewalWindow==='function') ? renewalWindow(c) : null;
+  const q = (typeof window.renewalQuestionOf==='function') ? renewalQuestionOf(c) : null;
+  if(!w || !q || !q.expiry){ toast(i18t('rn_decide_no_window'),'warn'); return false; }
+  /* ---- THE WHOLE RECORD FIRST, OR THE TRAIL IS THE CASUALTY ----
+     logAudit does `c.audit = c.audit || []`, and HEAVY strips `audit` off every
+     list row — so recording a decision against a LIGHT row would write a trail
+     of exactly one line over however many the contract really had, and persist
+     would save it. The card only ever holds the whole record, but the act is
+     published and the next caller might not. ensureFull is a no-op in local
+     mode and on a record already loaded. */
+  if(typeof ensureFull==='function'){ try{ await ensureFull(c); }catch(_){ /* offline keeps what it has */ } }
+  const u = (typeof currentUser==='function' && currentUser()) || null;
+  const text = String(why==null?'':why).trim().slice(0, RN_WHY_MAX);
+  c.renewalDecision = { answer, at:new Date().toISOString(),
+    by:{ id:u?String(u.id):'', name:(u&&u.name)||'' }, why:text,
+    decideBy:w.decideBy, expiry:q.expiry, notice:q.notice };
+  /* ENGLISH ON THE TRAIL. A label that is also a RECORD keeps English — the
+     audit line is read by people who were not looking at the screen that wrote
+     it, and by an export that carries no dictionary. */
+  /* 'Renewal decision' AND NOT 'Renewal': aiNoteRead already writes a 'Renewal'
+     line every time Copilot is asked to weigh this up (js/ai.js), and a trail
+     that cannot tell a machine's read from a person's decision is a trail that
+     has quietly lost the more important of the two. */
+  logAudit(c,'Renewal decision',`Renewal decision recorded — ${answer}. Decide-by ${w.decideBy}, expiry ${q.expiry}, notice ${q.notice} days.${text?` Reason: ${text}`:''}`);
+  persist(c);
+  toast(i18t('rn_decided_toast'),'ok');
+  /* The bell counts renewals that still need deciding, so it moves the moment
+     one stops needing it. Painted on the same beat as every other save. */
+  if(window.updateAlertBadge) try{ updateAlertBadge(); }catch(_){}
+  return true;
+}
 /* ---- ONE SAVE AT A TIME, OR THE CONTRACT CONFLICTS WITH ITSELF (Young
    reported it 15 Sep 2026: "this pop up appears for no reason at times") ----
    MEASURED, and it is a race with nobody else in it. Every save carries an
@@ -6847,4 +6907,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cpReadyToSign,READY_META,READY_META_SHORT,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

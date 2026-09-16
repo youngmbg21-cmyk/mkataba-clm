@@ -133,7 +133,14 @@ function calendarEvents(){
       const rawExp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
       const exp=window.dateOnly?dateOnly(rawExp):rawExp;
       if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
-      const dd=renewalDecisionDate(c);
+      /* ---- A RENEWAL SOMEBODY HAS ANSWERED IS NOT A DECISION OWED ----
+         (16 Sep 2026.) THE RULE, WRITTEN ONCE AND READ EVERYWHERE: a surface
+         counting to the DECISION date is silenced by any recorded answer; a
+         surface counting to the EXPIRY is silenced only by "let it lapse"; a
+         surface that merely PLOTS a date keeps it. This one's own note is
+         "decide by", so it is the first kind. The expiry chip beside it stays —
+         the agreement still ends on that day whatever was decided. */
+      const dd=(typeof renewalDecided==='function'&&renewalDecided(c))?null:renewalDecisionDate(c);
       if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });
 
     /* Through the same normalisation the expiry goes through. A due date filed
@@ -469,7 +476,10 @@ function calHorizonRows(){
     if(!exp) return;
     const d=daysUntil(exp);
     if(d==null || d<0) return;                       /* already gone: not a horizon */
-    const dd=renewalDecisionDate(c);
+    /* The BAR is time remaining and stays whatever was decided — a decided
+       agreement still ends on its day. The NOTICE MARKER is the decide-by
+       point, which is the question an answer settles, so it comes off. */
+    const dd=(typeof renewalDecided==='function'&&renewalDecided(c))?null:renewalDecisionDate(c);
     rows.push({ c, exp, days:d, notice:(dd&&dd!==exp)?dd:null,
       value:(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)) });
   });

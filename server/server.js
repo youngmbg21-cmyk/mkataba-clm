@@ -3040,7 +3040,57 @@ const EXECUTED_IMMUTABLE = [
      DIFFERENCE against the STORED record, which is not yet executed when that
      save arrives. */
   'signSpots',
+  /* ---- AND `renewalDecision` IS DELIBERATELY NOT ON THIS LIST (16 Sep 2026) ----
+     THE ABSENCE IS LOAD-BEARING. A renewal decision is a FILING fact beside the
+     status, exactly like `archived`, and every contract it is ever asked about
+     is by definition already executed — renewalWindow refuses anything not in
+     force. Adding it here "for safety" would not harden anything; it would kill
+     the feature silently, with a 409 on every press of Renew. What it needs is
+     not immutability but an identity check, and that is srvRenewalDecisionOk
+     below: the answer must name the caller. */
 ];
+/* ---- A RENEWAL DECISION MUST NAME THE PERSON WHO MADE IT ----
+   The browser stamps `by.id` from the session; this refuses a save that files
+   an answer in somebody else's name, which is the same rule the session
+   signature follows. It is asked as a DIFFERENCE against the STORED record, so
+   an untouched decision riding along on an ordinary save is not re-checked and
+   a contract saved by a colleague does not need re-deciding.
+
+   THE SHAPE IS CHECKED TOO. A decision with no `expiry`/`decideBy` stamp could
+   never lapse — see renewalDecisionOf in js/obligations.js — so an answer
+   arriving without the question it answered is refused rather than stored as a
+   permanent silence nobody can account for. */
+const RENEWAL_ANSWERS_SRV = ['renew', 'renegotiate', 'lapse'];
+function srvRenewalDecisionOk(prev, next, caller) {
+  const a = prev && prev.renewalDecision, b = next && next.renewalDecision;
+  if (JSON.stringify(a || null) === JSON.stringify(b || null)) return true;  // not touched by this save
+  if (b == null) return true;                                                // clearing is not a claim
+  if (!b || typeof b !== 'object') return false;
+  if (!RENEWAL_ANSWERS_SRV.includes(b.answer)) return false;
+  if (!b.expiry || !b.decideBy) return false;
+  const by = (b.by && b.by.id != null) ? String(b.by.id) : '';
+  return !!caller && by === String(caller);
+}
+/* ---- DOES A RECORDED DECISION STILL ANSWER TODAY'S QUESTION? ----
+   The server twin of renewalDecisionOf (js/obligations.js), and it compares the
+   SAME two numbers the browser stamped: the effective expiry and the contract's
+   OWN metadata.noticePeriodDays.
+
+   NOT the sweep's `termMeta` notice. Where an amendment set the term the sweep
+   refines which DAY the ladder fires on, but the browser's renewalDecisionDate
+   does not know about that refinement, so comparing against it would make every
+   such decision look stale and nag for ever. Comparing like with like keeps the
+   two hosts agreeing about what has been settled — and any mismatch at all
+   fails towards REMINDING, never towards silence. */
+function srvRenewalDecision(full, expiry) {
+  const d = full && full.renewalDecision;
+  if (!d || !RENEWAL_ANSWERS_SRV.includes(d.answer)) return null;
+  if (!d.expiry || !d.decideBy) return null;
+  if (String(d.expiry) !== String(expiry || '')) return null;
+  const own = String(Number((full.metadata || {}).noticePeriodDays) || 0);
+  if (String(d.notice == null ? '' : d.notice) !== own) return null;
+  return d;
+}
 /* THREE SIGNALS, MATCHING negoExecuted IN THE BROWSER (js/negotiation.js).
    This read two — a seal or an execution stamp — and the client reads three.
    A record marked Signed that carries neither was executed as far as every
@@ -3143,6 +3193,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
     if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
       c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
+  }
+
+  /* ---- AN ANSWER MUST NAME THE PERSON WHO GAVE IT (16 Sep 2026) ----
+     THE SERVER IS THE WALL. Recording a renewal decision silences six reminder
+     mails, so a request that files one in a colleague's name is a request to
+     make somebody else appear to have taken a decision they did not take. The
+     browser stamps the session's own id; this refuses anything else, asked as a
+     DIFFERENCE so an untouched decision riding along on an ordinary save costs
+     nothing. */
+  if (!srvRenewalDecisionOk(prev, c, req.user && req.user.id)) {
+    return res.status(400).json({ error: 'A renewal decision must name the person recording it, and carry the deadline it answers.' });
   }
 
   if (prev && isExecutedRow(prev)) {
@@ -11267,12 +11328,34 @@ function runReminders() {
     // an amendment does not fire its own renewal reminder — its parent does,
     // using the term the amendment set
     const expiry = c.parent_id ? null : effExpiry(c);
+    /* ---- A RENEWAL SOMEBODY HAS ANSWERED STOPS ASKING (16 Sep 2026) ----
+       TWO CONDITIONS, AND THEY ARE NOT THE SAME CONDITION, because the two
+       ladders ask different questions:
+
+         · 14/7/1 counts to the DECISION date and asks "what are you going to
+           do about this renewal". Any recorded answer settles it, so any
+           recorded answer silences it. This is the nag the feature exists to
+           stop — the alternative was archiving a contract that is still running.
+
+         · 90/60/30 counts to the EXPIRY and says "this agreement ends soon".
+           Deciding to renew or renegotiate does not make that untrue — there is
+           still work owed before the date — so those keep running. Only a
+           decision to LET IT LAPSE makes the ending intended, and then they
+           stop too.
+
+       The card says which, in those words, rather than promising a silence it
+       does not deliver. And srvRenewalDecision fails towards reminding: any
+       mismatch between the answer and today's question is treated as no answer
+       at all, so the worst case is a mail nobody needed, never a deadline that
+       passed in silence. */
+    const decided = expiry ? srvRenewalDecision(full, expiry) : null;
+    const lapsing = !!(decided && decided.answer === 'lapse');
     // 1) expiry milestones (90/60/30)
     if (expiry) {
       const days = daysTo(expiry);
       const ms = [90, 60, 30].find(m => days === m);
       const who = ownerOf(full, c.folder);
-      if (ms != null) {
+      if (ms != null && !lapsing) {
         const vars = { n: ms, name: c.name, id: c.id, cp: c.counterparty || '', expiry };
         const link = contractUrl(null, c.id);
         const mk = a => {
@@ -11297,7 +11380,7 @@ function runReminders() {
            for — the decision deadline came out a day early. */
         const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
-        if (dms != null) {
+        if (dms != null && !decided) {
           const dvars = { n: dms, name: c.name, id: c.id, notice, expiry, decide: ddIso };
           const dlink = contractUrl(null, c.id);
           const dmk = a => {
@@ -11604,6 +11687,12 @@ async function runRenewalPrep() {
     if (!isExecutedRow(full)) { bump('notInForce'); continue; }
     const expiry = dateOnly(eff(c));
     if (!expiry) { bump('noTerm'); continue; }
+    /* ---- AND THE OVERNIGHT MEMO IS NOT WRITTEN FOR A DECISION ALREADY TAKEN
+       (16 Sep 2026) ---- It is advice about what to do; once somebody has said
+       what they are doing, it is a paid-for answer to a question nobody is
+       asking. THE OWNER PAYS for this call, so this condition is money as well
+       as noise. */
+    if (srvRenewalDecision(full, expiry)) { bump('decided'); continue; }
     const notice = Number((full.metadata || {}).noticePeriodDays) || 0;
     let decideBy = expiry;
     if (notice > 0) { const d = new Date(expiry + 'T00:00:00'); d.setDate(d.getDate() - notice); if (!isNaN(d.getTime())) decideBy = isoDay(d); }

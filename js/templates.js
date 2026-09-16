@@ -221,6 +221,48 @@ const TEMPLATE_PAY = {
   ND:null,
   LE:null,
 };
+/* ---- AND WHAT ITS PAPER SAYS ABOUT NOTICE (16 Sep 2026, build plan solution 1) ----
+   THE SAME SHAPE AS TEMPLATE_PAY ABOVE, and for the same reason: a per-template
+   table, written by hand, keyed to the very blank the clause prints, so the
+   figure on the page and the figure on the record cannot drift apart.
+
+   THE WHOLE RENEWAL MACHINE TURNED ON THIS ONE MISSING QUESTION. HaTi works out
+   a renewal decision date by counting the notice period back from the expiry,
+   counts down to it, writes an overnight memo and mails at fourteen, seven and
+   one day. On a contract HaTi itself drafted it never fired: the Distributor
+   Agreement PRINTS "90 days' written notice" onto its own clause 4, but that 90
+   was only ever ink — nothing asked for it, so metadata.noticePeriodDays stayed
+   empty and the clock fell back to the expiry, which is the one day that is
+   already too late.
+
+   ONLY PAPER THAT STATES ONE IS ASKED. Every twelve built-ins were read for
+   this and exactly one carries a termination notice period as a blank:
+
+     · DA  clause 4 — "terminable on {noticeDays} days' written notice"
+
+   And two near misses that are deliberately NOT here, because asking them would
+   repeat the fault the owner reported in August, when every template was handed
+   a payment question it had no clause for:
+     · CM  clause 3 has `auditNotice` — the notice before an AUDIT VISIT. It is
+           a notice period, it is not this one, and mapping it would put a
+           seven-day renewal deadline on every co-packing agreement.
+     · ND  clause 3 says "terminated earlier by written notice" with no number
+           at all. There is no blank to key to and no figure to record.
+   The other nine say nothing about notice. THEY ARE NAMED null RATHER THAN
+   OMITTED — TEMPLATE_PAY leaves EQ out entirely and `if(pay)` makes absent and
+   null behave identically, so that table can look complete while a template is
+   silently missing from it. TEMPLATE_OBLIGATIONS names its exclusions; so does
+   this.
+
+   THE LABEL IS AN ENGLISH LITERAL, like TEMPLATE_PAY's. js/wizard.js spreads
+   the descriptor (`{...f}`) rather than copying it by descriptor, so a getter
+   label would be read ONCE at wizard-open and would not follow a language
+   switch mid-sitting. It is also a label that becomes part of the RECORD. */
+const TEMPLATE_NOTICE = {
+  DA:{ key:'noticeDays', def:'90', label:'Termination notice (days)' },
+  RM:null, PK:null, CM:null, EQ:null, WH:null,
+  FF:null, RL:null, MK:null, ND:null, LE:null, PS:null,
+};
 /* ============================================================
    WHAT A TEMPLATE'S OWN PAPER PROMISES (13 Sep 2026, build plan phase 7)
    ============================================================
@@ -336,6 +378,17 @@ function builtinTemplateFields(tid){
   const pay=TEMPLATE_PAY[tid];
   if(pay) out.push({ key:pay.key, label:pay.label||'Payment terms (days)', type:'num',
     maps:'paymentTerms', required:false, def:pay.def, ph:pay.def });
+  /* `maps:'noticePeriodDays'` is all this needs: applyTemplateValues already
+     knew that key and writes both c.fields[key] and the record, stamped high
+     because a person typed it. Writing c.fields.noticeDays in the same breath
+     is not incidental — the paper's own blank reads it, and the 05912c4
+     listener that fills the record FROM the paper goes inert once the record
+     holds a figure, so a creation-time answer that did not also reach the
+     clause would leave the page printing the 90 default over a different
+     recorded number. */
+  const notice=(typeof TEMPLATE_NOTICE!=='undefined')?TEMPLATE_NOTICE[tid]:null;
+  if(notice) out.push({ key:notice.key, label:notice.label||'Termination notice (days)', type:'num',
+    maps:'noticePeriodDays', required:false, def:notice.def, ph:notice.def });
   return out;
 }
 // give every built-in a live `fields` accessor so templateFields(t) just works
@@ -344,4 +397,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_NOTICE,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});

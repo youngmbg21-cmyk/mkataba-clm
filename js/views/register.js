@@ -1026,7 +1026,12 @@ function regFiltered(){
      buckets above — each is `days >= 0` — so before this there was no filter
      anywhere in the product that would list them. */
   else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
-  else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
+  /* A QUICK FILTER IS A WORKLIST — "auto-renewals I still have to decide about"
+     — so a recorded answer takes the row off it (16 Sep 2026). renewalDecided
+     is the ONE predicate; the register keeps no copy of the rule. */
+  else if(R.view==='autosoon') cs=cs.filter(c=>{
+    if(typeof renewalDecided==='function'&&renewalDecided(c)) return false;
+    const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
      (owner-reported 10 Sep 2026: *"the search feature is not working."*

@@ -276,6 +276,9 @@ const AI_CHART_RECIPES = {
     const value = Object.fromEntries(months.map(m => [m, 0]));
     let any = false;
     for (const c of _acContracts()){
+      /* THE SAME WORD EVERY OTHER SURFACE READS. This chart is "decisions per
+         month" — an answered renewal is not one. */
+      if (typeof window.renewalDecided === 'function' && renewalDecided(c)) continue;
       const d = renewalDecisionDate(c);
       if (!d) continue;
       const k = String(d).slice(0, 7);
@@ -404,8 +407,12 @@ const AI_SERIES = {
   'value.expiring':      { get label(){ return _acT('ch_s_value_expiring','Value expiring'); },         unit: 'money',
     at: (cs, k) => cs.filter(c => String(_acExpiry(c) || '').slice(0, 7) === k).reduce((s, c) => s + _acVal(c), 0) },
   'renewals.due':        { get label(){ return _acT('ch_s_renewal_decisions_due','Renewal decisions due'); },  unit: 'count',
+    /* Its own label is "Renewal decisions due", so an answered renewal is not
+       one of them. Guarded because this file is also loaded on stages that
+       carry no obligations.js. */
     at: (cs, k) => typeof window.renewalDecisionDate === 'function'
-      ? cs.filter(c => String(renewalDecisionDate(c) || '').slice(0, 7) === k).length : 0 },
+      ? cs.filter(c => !(typeof window.renewalDecided === 'function' && renewalDecided(c))
+          && String(renewalDecisionDate(c) || '').slice(0, 7) === k).length : 0 },
   'obligations.due':     { get label(){ return _acT('ch_s_obligations_due','Obligations due'); },        unit: 'count',
     at: (_, k) => typeof window.allObligations === 'function'
       ? allObligations().filter(o => _acObState(o) !== 'done'

@@ -410,7 +410,16 @@ function hmDashSlices(){
     .map(x=>({c:x.c,d:dU(x.e),e:x.e})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
   // renewal decisions due (expiry − notice period), within 90 days, live contracts only
   const rdd=window.renewalDecisionDate||(()=>null);
-  const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+  /* ---- A RENEWAL SOMEBODY HAS ANSWERED IS NOT A DECISION DUE (16 Sep 2026) ----
+     THIS IS THE SECOND READING OF THE SAME QUESTION and it is why the predicate
+     is a published function rather than a condition written twice: the card and
+     the overnight desk ask renewalWindow, this list asks renewalDecisionDate
+     directly — and the alerts panel reads THIS list, so a decision recorded on
+     the card had to reach the bell through here or the two would disagree.
+     `renewalDecision` is an ordinary field and survives HEAVY by construction,
+     so a light row answers this as well as a whole one. */
+  const decided=window.renewalDecided||(()=>false);
+  const decisions=cs.filter(c=>c.status!=='Declined'&&!decided(c)).map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
   /* Paper that has sat in review, longest first — the other half of what a
      person has to decide about, alongside the renewals. */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);

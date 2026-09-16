@@ -1466,7 +1466,17 @@ function buildAlerts(){
     (D.decisions||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
       x.d===0?i18t('al_renewal_today'):i18tn('al_renewal_in',x.d,{n:x.d}),
       ()=>openWorkspace(x.c.id)));
-    (D.expiring||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
+    /* ---- THE BELL HAS TWO RENEWAL PUSHES, AND ONLY ONE IS THE DECISION ----
+       (16 Sep 2026.) The line above reads `decisions`, which hmDashSlices now
+       filters on a recorded answer. THIS one reads `expiring`, and it says
+       something different: the agreement ends in N days. Deciding to renew or
+       renegotiate does not make that untrue — there is still work owed before
+       the date — so it keeps ringing, exactly as the server's 90/60/30 ladder
+       keeps mailing. Only a decision to LET IT LAPSE makes the ending intended,
+       and then it stops. The two hosts state this rule once each and in the
+       same words; see runReminders. */
+    const lapsed=c=>{ try{ const d=window.renewalDecisionOf&&renewalDecisionOf(c); return !!(d&&d.answer==='lapse'); }catch(_){ return false; } };
+    (D.expiring||[]).filter(x=>x.d<=30&&!lapsed(x.c)).forEach(x=>push('renewal',x.c,
       i18tn('al_expiring_in',x.d,{n:x.d}),()=>openWorkspace(x.c.id)));
   }
   /* 5. A signature where it is actually THEIR turn. nextSigner is the route's

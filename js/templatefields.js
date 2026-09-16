@@ -217,7 +217,14 @@ function applyTemplateValues(c, fields, values){
       case 'folder': if(FOLDERS[v]) c.folder=String(v); break;
       case 'contractType': set('contractType', String(v)); break;
       case 'currency': set('currency', String(v)); break;
-      case 'noticePeriodDays': set('noticePeriodDays', Number(v)||0); break;
+      /* ZERO IS NOT A NOTICE PERIOD. Every reader in the product does
+         Number(…)||0 and treats 0 as "none stated", so storing a typed 0 would
+         record a fact that means the opposite of what it says — and the renewal
+         clock would count to the expiry while the record claimed an answer. The
+         Key terms row DELETES the key for exactly this reason (wireKeyTerms,
+         js/views/contract.js); two doors onto one fact have to agree about what
+         an empty answer means. */
+      case 'noticePeriodDays': { const nd=Number(v)||0; if(nd>0) set('noticePeriodDays', nd); break; }
       case 'paymentTerms': set('paymentTerms', String(v)); break;
       case 'governingLaw': set('governingLaw', String(v)); break;
       case 'category': set('category', String(v)); break;
