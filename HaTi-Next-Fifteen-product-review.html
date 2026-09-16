@@ -292,20 +292,100 @@ table.ht .sub{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap
 .end .mono{font-family:var(--mono);font-size:11.5px;color:var(--brand-ink);letter-spacing:.06em}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
+<style>
+/* ---- added for the incorporation edition ---- */
+/* A grid or flex item defaults to min-width:auto, so a 600px-wide render table
+   inside a card pushes its whole track wider than the screen. Every container
+   that can hold one is pinned to 0 so the `.scroll` wrapper does the scrolling
+   instead of the page. */
+.hati,.hcards,.hcard,.hcard>.bd,.ba>div,.relrow>div,.seat,.wave,.device,
+.catcard,.out div,.rules div,.facts div{min-width:0}
+.hati{max-width:100%}
+.hcard>.bd{overflow-x:auto}
+
+.mk{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;
+  background:var(--accent-ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:500;
+  margin-right:6px;vertical-align:1px;flex:none}
+.anno{outline:1px dashed var(--accent);outline-offset:1px}
+tr.anno-row td{background:var(--accent-soft)}
+tr.anno-row td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+.keys{display:grid;gap:8px;margin:12px 0 0;font-size:13px}
+.keys div{display:flex;gap:9px;align-items:flex-start;color:var(--ink-2)}
+.keys b{color:var(--ink);font-weight:600}
+.ba{display:grid;gap:18px;margin:22px 0 0}
+@media(min-width:900px){.ba.pair{grid-template-columns:1fr 1fr;align-items:start}}
+.ba .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 8px;display:flex;gap:8px;align-items:flex-start;line-height:1.35}
+@media(min-width:900px){.ba.pair .lab{min-height:2.7em}}
+.ba .lab .dot{margin-top:4px}
+.ba .lab .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.ba .lab.now .dot{background:var(--accent)}
+.ba .lab.now{color:var(--accent-ink)}
+.host{border-top:2px solid var(--ink);padding-top:22px;margin:0 0 56px}
+.host-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:baseline;margin:0 0 10px}
+.host-n{font-family:var(--mono);font-size:12px;color:#fff;background:var(--ink);padding:2px 7px;border-radius:2px}
+.host h3{font-size:clamp(19px,2.6vw,24px);font-weight:600;letter-spacing:-.01em;line-height:1.22;width:100%;margin:0}
+.host .lands{font-size:12px;color:var(--ink-3);width:100%}
+.host .lands b{color:var(--accent-ink);font-family:var(--mono);font-size:11px;font-weight:500}
+.budget{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
+table.bg{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+table.bg th,table.bg td{padding:10px 14px;border-bottom:1px solid var(--line-faint);text-align:left}
+table.bg thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.bg td:nth-child(2),table.bg td:nth-child(3),table.bg th:nth-child(2),table.bg th:nth-child(3){
+  text-align:right;font-variant-numeric:tabular-nums;width:96px;white-space:nowrap}
+table.bg td:nth-child(4){width:40%;color:var(--ink-2);font-size:12.5px}
+table.bg tr:last-child td{border-bottom:0}
+table.bg tr.tot td{background:var(--raised);font-weight:600;border-top:1px solid var(--line-strong)}
+.up{color:var(--amber-fg);font-weight:600}
+.same{color:var(--ink-3)}
+.devices{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:24px 0 0}
+.device{background:var(--paper);border:1px solid var(--line);padding:17px}
+.device .nm{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent-ink);margin:0 0 8px;text-transform:uppercase}
+.device h4{font-size:15px;font-weight:600;margin:0 0 8px;line-height:1.3}
+.device p{font-size:13px;color:var(--ink-2);margin:0 0 10px}
+.device .ex{font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line-faint);padding-top:10px;margin:0}
+.device .ex b{color:var(--ink);font-weight:600}
+.land{overflow-x:auto;border:1px solid var(--line);background:var(--paper);margin:22px 0 0}
+table.ld{border-collapse:collapse;width:100%;min-width:700px;font-size:13px}
+table.ld th,table.ld td{padding:9px 12px;border-bottom:1px solid var(--line-faint);text-align:left;vertical-align:top}
+table.ld thead th{font-size:11.5px;font-weight:700;color:var(--ink-2);background:var(--raised);border-bottom:1px solid var(--line-strong)}
+table.ld .rf{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+table.ld td:nth-child(2){font-weight:500}
+table.ld td:nth-child(3),table.ld td:nth-child(4){color:var(--ink-2);font-size:12.5px}
+table.ld td:nth-child(5){font-size:12.5px}
+table.ld tr:last-child td{border-bottom:0}
+.rel{display:grid;gap:14px;margin:24px 0 0}
+.relrow{display:grid;gap:12px;background:var(--paper);border:1px solid var(--line);padding:16px 18px;
+  grid-template-columns:1fr}
+@media(min-width:760px){.relrow{grid-template-columns:150px 1fr 150px;align-items:start}}
+.relrow .when{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.relrow h4{font-size:15px;font-weight:600;margin:0 0 5px}
+.relrow p{font-size:13px;color:var(--ink-2);margin:0}
+.relrow .refs{display:flex;flex-wrap:wrap;gap:5px}
+.relrow .refs span{font-family:var(--mono);font-size:11px;color:var(--accent-ink);
+  border:1px solid var(--accent-edge);background:var(--accent-soft);padding:1px 5px;border-radius:2px}
+.cat{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));margin:22px 0 0}
+.catcard{background:var(--paper);border:1px solid var(--line);padding:14px 15px}
+.catcard .h{display:flex;gap:8px;align-items:baseline;margin:0 0 6px}
+.catcard .h .rf{font-family:var(--mono);font-size:11px;color:#fff;background:var(--accent-ink);padding:1px 5px;border-radius:2px}
+.catcard .h b{font-size:14px;font-weight:600;line-height:1.25}
+.catcard p{font-size:12.5px;color:var(--ink-2);margin:0 0 8px;line-height:1.5}
+.catcard .w{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--line-faint);padding-top:7px;margin:0}
+.catcard .w b{color:var(--ink-2);font-weight:500}
+</style>
 
 <header class="mast">
   <div class="wrap">
-    <p class="eyebrow">HaTi &middot; product review &middot; 16 September 2026</p>
+    <p class="eyebrow">HaTi &middot; product review &middot; second edition &middot; 16 September 2026</p>
     <h1>HaTi&rsquo;s Next Fifteen</h1>
-    <p class="stand">I sat in four chairs &mdash; a small business owner, an operations manager, an FMCG
-      procurement manager and a lone in-house lawyer &mdash; and used HaTi as each of them. Fifteen things
-      were missing. Here is each one, what the best systems in the world do about it, and a picture of how it
-      would look inside HaTi.</p>
+    <p class="stand">Fifteen additions, drawn from four buyers&rsquo; seats &mdash; and the harder question:
+      where does each one sit on a product that is already built, without making it feel bigger? This edition
+      shows every screen as it is today, and the same screen with the fifteen on it.</p>
     <div class="meta">
-      <span><b>15</b> proposals</span>
-      <span><b>4</b> seats</span>
-      <span><b>11</b> extend something HaTi already has</span>
-      <span><b>0</b> new banners</span>
+      <span><b>15</b> additions</span>
+      <span><b>6</b> screens touched</span>
+      <span><b>0</b> new doors in the sidebar</span>
+      <span><b>2</b> new things visible on a quiet day</span>
     </div>
   </div>
 </header>
@@ -313,1311 +393,805 @@ table.ht .sub{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap
 <div class="wrap body">
 
 <nav class="toc" aria-label="Contents">
-  <p class="toc-h">The four seats</p>
+  <p class="toc-h">The argument</p>
   <ol>
-    <li><a href="#seats"><span class="n">&mdash;</span>Who I was</a></li>
-    <li><a href="#rules"><span class="n">&mdash;</span>The house rules</a></li>
-    <li><a href="#matrix"><span class="n">&mdash;</span>Who wants what</a></li>
+    <li><a href="#budget"><span class="n">&mdash;</span>The surface budget</a></li>
+    <li><a href="#devices"><span class="n">&mdash;</span>Three devices HaTi already has</a></li>
   </ol>
-  <p class="toc-h">Getting the paper in</p>
+  <p class="toc-h">Screen by screen</p>
   <ol>
-    <li><a href="#s1"><span class="n">S1</span>The Mailroom</a></li>
-    <li><a href="#s2"><span class="n">S2</span>Commercial terms</a></li>
+    <li><a href="#h1"><span class="n">H1</span>Contracts</a></li>
+    <li><a href="#h2"><span class="n">H2</span>The contract room</a></li>
+    <li><a href="#h3"><span class="n">H3</span>Obligations</a></li>
+    <li><a href="#h4"><span class="n">H4</span>Insights &amp; Copilot</a></li>
+    <li><a href="#h5"><span class="n">H5</span>Home &amp; alerts</a></li>
+    <li><a href="#h6"><span class="n">H6</span>Requests &amp; Settings</a></li>
   </ol>
-  <p class="toc-h">Moving work without a lawyer</p>
+  <p class="toc-h">The proof</p>
   <ol>
-    <li><a href="#s3"><span class="n">S3</span>Clearance lanes</a></li>
-    <li><a href="#s4"><span class="n">S4</span>A front door with a clock</a></li>
-    <li><a href="#s5"><span class="n">S5</span>Where is my contract?</a></li>
+    <li><a href="#quiet"><span class="n">&mdash;</span>The quiet Tuesday test</a></li>
+    <li><a href="#lands"><span class="n">&mdash;</span>Where each one lands</a></li>
   </ol>
-  <p class="toc-h">Holding them to the deal</p>
+  <p class="toc-h">Building it</p>
   <ol>
-    <li><a href="#s6"><span class="n">S6</span>The Notice Desk</a></li>
-    <li><a href="#s7"><span class="n">S7</span>What you are owed</a></li>
-    <li><a href="#s8"><span class="n">S8</span>Certificates that expire</a></li>
-  </ol>
-  <p class="toc-h">Seeing the whole book</p>
-  <ol>
-    <li><a href="#s9"><span class="n">S9</span>Ask your book</a></li>
-    <li><a href="#s10"><span class="n">S10</span>The exposure register</a></li>
-    <li><a href="#s11"><span class="n">S11</span>What it was worth</a></li>
-    <li><a href="#s12"><span class="n">S12</span>The family check</a></li>
-  </ol>
-  <p class="toc-h">Acting on many at once</p>
-  <ol>
-    <li><a href="#s13"><span class="n">S13</span>Do this to these 46</a></li>
-    <li><a href="#s14"><span class="n">S14</span>The diligence pack</a></li>
-  </ol>
-  <p class="toc-h">Meeting people where they are</p>
-  <ol>
-    <li><a href="#s15"><span class="n">S15</span>HaTi in the chat</a></li>
-  </ol>
-  <p class="toc-h">Closing</p>
-  <ol>
-    <li><a href="#start"><span class="n">&mdash;</span>Where I would start</a></li>
-    <li><a href="#left-out"><span class="n">&mdash;</span>What I left out</a></li>
+    <li><a href="#releases"><span class="n">&mdash;</span>Six releases, one screen each</a></li>
+    <li><a href="#catalogue"><span class="n">&mdash;</span>The fifteen in short</a></li>
+    <li><a href="#left-out"><span class="n">&mdash;</span>What we did not add</a></li>
   </ol>
 </nav>
 
 <main class="main">
 
-<section class="sec" id="seats">
-  <div class="sec-head"><span class="rule-n">i</span><h2>Who I was</h2></div>
-  <p class="lede prose">Four real jobs, four different reasons to open a contract system. Everything that follows
-    was written from one of these chairs, not from a feature list.</p>
+<section class="sec" id="budget">
+  <div class="sec-head"><span class="rule-n">i</span><h2>The surface budget</h2></div>
+  <p class="lede prose">Fifteen additions sounds like a product getting heavier. It only gets heavier if the number
+    of things a person has to look at goes up. So before designing anything, I counted what HaTi shows today and
+    what the fifteen would add to that count.</p>
 
-  <div class="seats">
-    <article class="seat">
-      <h3>Ama</h3>
-      <p class="who">Owner &middot; coffee exporter, nine staff &middot; Nairobi</p>
-      <p class="sheet">&ldquo;I am the sales team, the finance team and the legal team. A contract arrives as an
-        attachment on my phone at nine at night. If it takes more than a few minutes I will just sign it.&rdquo;</p>
-      <ul class="asks">
-        <li>Do not make me open a laptop to file something</li>
-        <li>Tell me what I have promised this month</li>
-        <li>Never let a renewal pass me by</li>
-      </ul>
-    </article>
-    <article class="seat">
-      <h3>Daniel</h3>
-      <p class="who">Operations manager &middot; logistics, 140 staff &middot; Gothenburg</p>
-      <p class="sheet">&ldquo;I do not own the law, I own the queue. Everybody asks me where their contract is and
-        I do not know, so I ask somebody else and they do not know either.&rdquo;</p>
-      <ul class="asks">
-        <li>Nothing sitting on a desk unowned</li>
-        <li>An honest date I can repeat to a customer</li>
-        <li>Numbers that prove this function pays for itself</li>
-      </ul>
-    </article>
-    <article class="seat">
-      <h3>Priya</h3>
-      <p class="who">Procurement manager &middot; FMCG &middot; 400 supplier agreements</p>
-      <p class="sheet">&ldquo;The signature is the easy part. The deal is the rebate table, the price-change clause
-        and whether their food safety certificate is still valid. None of that is in a contract system.&rdquo;</p>
-      <ul class="asks">
-        <li>The commercial terms in one place, traceable to the wording</li>
-        <li>Money we have earned and not claimed</li>
-        <li>Suppliers&rsquo; certificates current, without me chasing</li>
-      </ul>
-    </article>
-    <article class="seat">
-      <h3>Tom&aacute;s</h3>
-      <p class="who">In-house counsel &middot; one lawyer for 300 people</p>
-      <p class="sheet">&ldquo;I am the bottleneck and everybody knows it. Half of what reaches me should never have
-        reached me. And when the board asks what we are exposed to, I count by hand.&rdquo;</p>
-      <ul class="asks">
-        <li>The routine ones must clear without me</li>
-        <li>One live view of what we are exposed to</li>
-        <li>Proof of what the negotiating actually changed</li>
-      </ul>
-    </article>
-  </div>
-</section>
-
-<section class="sec" id="rules">
-  <div class="sec-head"><span class="rule-n">ii</span><h2>The house rules I kept to</h2></div>
-  <p class="lede prose">HaTi already has strong opinions about how things are allowed to appear on a screen.
-    Every proposal below obeys them &mdash; which is also the main defence against over-engineering.</p>
-  <div class="rules">
-    <div><b>No new banners</b>Not one of these is a coloured strip across a page. Each lands as a row in a list,
-      a column in a table, a card in a column that already exists, or a tab.</div>
-    <div><b>The contract never loses a pixel</b>Nothing here adds furniture above the wording. Where a screen shows
-      the agreement, the agreement starts exactly where it starts today.</div>
-    <div><b>One door per action</b>Where a proposal touches something HaTi can already do, it improves that door
-      rather than adding a second one beside it.</div>
-    <div><b>An absence is stated, never guessed</b>Where the wording says nothing, the screen says nothing was
-      recorded. No invented scores, no confidence percentages dressed as facts.</div>
-    <div><b>&ldquo;Sent&rdquo; means sent</b>Anything that leaves the building reports honestly whether it left,
-      including the new notices and chases.</div>
-    <div><b>Borrow, do not rebuild</b>Eleven of the fifteen are new views over readings HaTi already makes. Four
-      need genuinely new machinery, and they say so.</div>
-  </div>
-</section>
-
-<section class="sec" id="matrix">
-  <div class="sec-head"><span class="rule-n">iii</span><h2>Who wants what</h2></div>
-  <p class="lede prose">The same product serves four very different appetites. A filled dot means this is one of
-    the three things that seat would name first.</p>
-  <div class="mx-wrap">
-    <table class="mx">
-      <thead><tr><th>Proposal</th><th>Ama<br>owner</th><th>Daniel<br>manager</th><th>Priya<br>procurement</th><th>Tom&aacute;s<br>lawyer</th><th>Builds on</th></tr></thead>
+  <div class="budget">
+    <table class="bg">
+      <thead><tr><th>What a person sees</th><th>Today</th><th>After</th><th>What changes</th></tr></thead>
       <tbody>
-        <tr><td><span class="rf">S1</span>The Mailroom</td><td><span class="d h"></span></td><td><span class="d"></span></td><td><span class="d"></span></td><td><span class="d m"></span></td><td class="mut">Upload &amp; arrival readings</td></tr>
-        <tr><td><span class="rf">S2</span>Commercial terms card</td><td><span class="d m"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td class="mut">Key terms &amp; extraction</td></tr>
-        <tr><td><span class="rf">S3</span>Clearance lanes</td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td class="mut">Playbook &amp; the sign check</td></tr>
-        <tr><td><span class="rf">S4</span>A front door with a clock</td><td><span class="d l"></span></td><td><span class="d h"></span></td><td><span class="d m"></span></td><td><span class="d h"></span></td><td class="mut">Requests</td></tr>
-        <tr><td><span class="rf">S5</span>Where is my contract?</td><td><span class="d m"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td><span class="d m"></span></td><td class="mut">The counterparty page</td></tr>
-        <tr><td><span class="rf">S6</span>The Notice Desk</td><td><span class="d h"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d h"></span></td><td class="mut">Renewal card &amp; email</td></tr>
-        <tr><td><span class="rf">S7</span>What you are owed</td><td><span class="d"></span></td><td><span class="d m"></span></td><td><span class="d h"></span></td><td><span class="d l"></span></td><td class="mut">Obligations</td></tr>
-        <tr><td><span class="rf">S8</span>Certificates that expire</td><td><span class="d m"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td class="mut">Obligations &amp; the chase</td></tr>
-        <tr><td><span class="rf">S9</span>Ask your book</td><td><span class="d"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d h"></span></td><td class="mut">Copilot &amp; search</td></tr>
-        <tr><td><span class="rf">S10</span>The exposure register</td><td><span class="d m"></span></td><td><span class="d"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td class="mut">Weekly review counts</td></tr>
-        <tr><td><span class="rf">S11</span>What it was worth</td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td class="mut">The clause ladder</td></tr>
-        <tr><td><span class="rf">S12</span>The family check</td><td><span class="d l"></span></td><td><span class="d m"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td class="mut">Agreement family</td></tr>
-        <tr><td><span class="rf">S13</span>Do this to these 46</td><td><span class="d l"></span></td><td><span class="d"></span></td><td><span class="d h"></span></td><td><span class="d h"></span></td><td class="mut">Amendments &amp; filters</td></tr>
-        <tr><td><span class="rf">S14</span>The diligence pack</td><td><span class="d h"></span></td><td><span class="d m"></span></td><td><span class="d l"></span></td><td><span class="d"></span></td><td class="mut">Exports &amp; evidence</td></tr>
-        <tr><td><span class="rf">S15</span>HaTi in the chat</td><td><span class="d h"></span></td><td><span class="d h"></span></td><td><span class="d"></span></td><td><span class="d l"></span></td><td class="mut">Alerts &amp; approvals</td></tr>
+        <tr><td>Doors in the sidebar</td><td>13</td><td class="same">13</td><td>Nothing. Every addition lands inside a door that already exists.</td></tr>
+        <tr><td>Tabs in a contract</td><td>5</td><td class="same">5</td><td>Nothing. Key terms, Document, Signing, Obligations, History stay as they are.</td></tr>
+        <tr><td>Tabs on Insights</td><td>5</td><td class="up">6</td><td>One: <b>Exposure</b>. The only new tab in the whole set.</td></tr>
+        <tr><td>Cards in the Key terms column</td><td>3</td><td class="up">5</td><td>Two, and both draw nothing at all on a contract they have nothing to say about.</td></tr>
+        <tr><td>Scopes on the Contracts table</td><td>2</td><td class="up">3</td><td>One: <b>Unfiled</b>, which disappears when the tray is empty.</td></tr>
+        <tr><td>Filters on the Contracts table</td><td>2 of 5</td><td class="up">2 of 6</td><td>One more filter offered behind <i>Adapt filters</i>. Two on the bar, as today.</td></tr>
+        <tr><td>Columns on Requests</td><td>4</td><td class="up">6</td><td>Two: who has it, and when it was promised.</td></tr>
+        <tr><td>Kinds of alert</td><td>10</td><td class="up">12</td><td>Two more rows in a list that already sorts itself. The panel does not change shape.</td></tr>
+        <tr><td>Panels in Settings</td><td>~20</td><td class="up">~22</td><td>Two, in the drawer that already holds the rules.</td></tr>
+        <tr><td>Pages inside the app</td><td>13</td><td class="same">13</td><td>Nothing. The one new page is outside the app, for people who do not have a login.</td></tr>
+      </tbody>
+      <tfoot><tr class="tot"><td>New things visible on a contract with nothing happening</td><td class="same">&mdash;</td><td class="up">2</td><td>A sixth Insights tab, and two extra columns on Requests.</td></tr></tfoot>
+    </table>
+  </div>
+  <p class="shot-cap" style="margin-top:12px">Counted from the product as built: the nine everyday doors plus four
+    under Administration, the five room tabs, the five Insights tabs, the three cards the Key terms column draws,
+    and the ten kinds of alert the panel ranks.</p>
+</section>
+
+<section class="sec" id="devices">
+  <div class="sec-head"><span class="rule-n">ii</span><h2>Three devices HaTi already has for staying quiet</h2></div>
+  <p class="lede prose">This is the part that makes the budget above possible, and none of it is new thinking.
+    HaTi already solved &ldquo;do not overwhelm me&rdquo; three times, wrote down why, and the fifteen additions
+    simply use the same three devices rather than inventing a fourth.</p>
+
+  <div class="devices">
+    <div class="device">
+      <p class="nm">Device one</p>
+      <h4>Nothing to say, nothing drawn</h4>
+      <p>A card with no content does not draw an empty box &mdash; it draws nothing at all, and the column closes
+        up behind it. HaTi decided this after an empty bordered rectangle made a page look broken.</p>
+      <p class="ex"><b>Already doing it:</b> the renewal card. It is not there at all until the contract is inside
+        its 90-day window, so on most contracts that column looks exactly as it always did.</p>
+    </div>
+    <div class="device">
+      <p class="nm">Device two</p>
+      <h4>Offered, not displayed</h4>
+      <p>A control that only some people want lives behind <i>Adapt filters</i> &mdash; and then draws itself the
+        moment it is actually narrowing something, so you can always see what is being hidden from you.</p>
+      <p class="ex"><b>Already doing it:</b> the Signed-year filter. Off the bar by default, on the bar the second
+        it is doing work.</p>
+    </div>
+    <div class="device">
+      <p class="nm">Device three</p>
+      <h4>No count at zero, amber only above it</h4>
+      <p>A number beside a door appears only when it is above zero, and only turns amber when something is
+        actually late. A permanent badge stops being read within a week.</p>
+      <p class="ex"><b>Already doing it:</b> the Obligations tab count, the sidebar counts, the alert dot.</p>
+    </div>
+  </div>
+
+  <div class="rules" style="margin-top:26px">
+    <div><b>And one rule added for this set</b>An addition must land in a container that already exists: a row in a
+      list, a column in a table, a card in a column, a scope on a table, an act on a card. If a proposal needs a
+      new container, it is the proposal that is wrong.</div>
+    <div><b>Which leaves exactly one exception</b>The Exposure tab on Insights. It is new surface, it is admitted
+      as new surface, and it earns it by replacing a count that is currently trapped inside a weekly document
+      nobody can press.</div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="rule-n">iii</span><h2>Screen by screen</h2></div>
+  <p class="lede prose">Six screens carry all fifteen additions. Each one below is shown as it is today, then as it
+    would be. The numbered markers and dashed outlines are annotation for this document &mdash; they are not part
+    of the product.</p>
+</section>
+
+<article class="host" id="h1">
+  <div class="host-top"><span class="host-n">H1</span>
+    <h3>The Contracts page</h3>
+    <p class="lands">Carries <b>S1</b> the Mailroom &middot; <b>S13</b> bulk amendments &middot; <b>S14</b> the
+      diligence pack &middot; <b>S8</b> lapsed documents as a filter</p>
+  </div>
+  <p>Four of the fifteen land here, and on an ordinary day none of them is visible. The table already has scopes
+    across the top and a filter bar that hides what you are not using &mdash; so the additions become one more
+    scope that vanishes when empty, one more option in a list you have to open, and one act that only appears
+    when you have deliberately narrowed the table.</p>
+
+  <div class="ba">
+    <div>
+      <p class="lab"><span class="dot"></span>Today</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span><span class="k">&#8984;K</span><span class="u">TM</span></div>
+        <div class="hhead"><h4>Contracts</h4><span class="sp"></span>
+          <span class="brow"><span class="b">Adapt filters</span><span class="b pri">+ Draft new agreement</span></span></div>
+        <div class="htabs"><span class="on">All contracts <span class="cnt">214</span></span>
+          <span>Negotiations <span class="cnt">7</span></span><span>Archived <span class="cnt">31</span></span></div>
+        <div class="hfoot" style="border-top:0;border-bottom:1px solid var(--line-faint)">
+          <span>Lifecycle stage <b style="font-weight:400">All</b></span><span>Value stream <b style="font-weight:400">All</b></span>
+          <span class="sp"></span><span>Search</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:12%"><col style="width:30%"><col style="width:22%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <thead><tr><th>Ref</th><th>Title</th><th>Counterparty</th><th>Stage</th><th>Expiry</th></tr></thead>
+          <tbody>
+            <tr><td class="ref">MK&#8209;204</td><td class="tt">Supply agreement</td><td class="mut">Nyala Foods AB</td><td><span class="c gr">In force</span></td><td class="mut">31 Dec 2026</td></tr>
+            <tr><td class="ref">MK&#8209;118</td><td class="tt">Master services agreement</td><td class="mut">Nordic Freight AB</td><td><span class="c am">Under review</span></td><td class="mut">31 Dec 2026</td></tr>
+            <tr><td class="ref">MK&#8209;177</td><td class="tt">Retail listing agreement</td><td class="mut">Bergs Retail AB</td><td><span class="c gr">In force</span></td><td class="mut">30 Jun 2027</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>With the four additions on it</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span><span class="k">&#8984;K</span><span class="u">TM</span></div>
+        <div class="hhead"><h4>Contracts</h4>
+          <span class="sub anno"><span class="mk">3</span>Narrowed to: supply agreements &middot; our paper &mdash; 46 of 214</span>
+          <span class="sp"></span>
+          <span class="brow"><span class="b anno"><span class="mk">2</span>Do this to these 46</span>
+            <span class="b">Adapt filters</span><span class="b pri">+ Draft new agreement</span></span></div>
+        <div class="htabs"><span class="on">All contracts <span class="cnt">214</span></span>
+          <span>Negotiations <span class="cnt">7</span></span>
+          <span class="anno"><span class="mk">1</span>Unfiled <span class="cnt am">3</span></span>
+          <span>Archived <span class="cnt">31</span></span></div>
+        <div class="hfoot" style="border-top:0;border-bottom:1px solid var(--line-faint)">
+          <span>Lifecycle stage <b style="font-weight:400">All</b></span><span>Value stream <b style="font-weight:400">All</b></span>
+          <span class="anno"><span class="mk">4</span>Quick filter <b style="font-weight:400">A required document has lapsed</b></span>
+          <span class="sp"></span><span>Search</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:12%"><col style="width:30%"><col style="width:22%"><col style="width:18%"><col style="width:18%"></colgroup>
+          <thead><tr><th>Ref</th><th>Title</th><th>Counterparty</th><th>Stage</th><th>Expiry</th></tr></thead>
+          <tbody>
+            <tr><td class="ref">MK&#8209;204</td><td class="tt">Supply agreement</td><td class="mut">Nyala Foods AB</td><td><span class="c gr">In force</span></td><td class="mut">31 Dec 2026</td></tr>
+            <tr><td class="ref">MK&#8209;118</td><td class="tt">Master services agreement</td><td class="mut">Nordic Freight AB</td><td><span class="c am">Under review</span></td><td class="mut">31 Dec 2026</td></tr>
+            <tr><td class="ref">MK&#8209;177</td><td class="tt">Retail listing agreement</td><td class="mut">Bergs Retail AB</td><td><span class="c gr">In force</span></td><td class="mut">30 Jun 2027</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span><b>Unfiled</b> &mdash; a fourth scope beside the three that exist. It is
+      not drawn at all when the tray is empty, so a workspace that never forwards anything never sees it.</span></div>
+    <div><span class="mk">2</span><span><b>Do this to these 46</b> &mdash; one act, carrying both the amendment
+      campaign and the diligence pack. It appears only while a filter is narrowing the table, which is the moment
+      &ldquo;these&rdquo; means anything.</span></div>
+    <div><span class="mk">3</span><span>The line saying what the table is narrowed to is already there &mdash; it
+      is how the register shows a worklist today. Nothing changes about it.</span></div>
+    <div><span class="mk">4</span><span><b>A required document has lapsed</b> joins the quick filters, behind
+      <i>Adapt filters</i>, and draws itself on the bar only while it is narrowing.</span></div>
+  </div>
+</article>
+
+<article class="host" id="h2">
+  <div class="host-top"><span class="host-n">H2</span>
+    <h3>The contract room &mdash; the Key terms column</h3>
+    <p class="lands">Carries <b>S2</b> commercial terms &middot; <b>S8</b> required documents &middot; <b>S6</b>
+      serve a notice &middot; <b>S12</b> the family check</p>
+  </div>
+  <p>This is the busiest change in the set, and also the safest, because the column it lands in was built to have
+    cards come and go. Today it draws a renewal card only inside the 90-day window, then the brief, then the
+    agreement family. The two new cards follow the same rule: <b>a contract with no money passing through it never
+    sees the commercial terms card, and a contract that requires no certificates never sees the documents
+    card.</b></p>
+
+  <div class="ba pair">
+    <div>
+      <p class="lab"><span class="dot"></span>Today &mdash; and on most contracts, after</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">TM</span></div>
+        <div class="hcards">
+          <div class="hcard">
+            <div class="hd"><h5>Contract brief</h5><span class="sp"></span><span class="c st">Read 14 Sep</span></div>
+            <div class="bd"><p style="margin:0;font-size:13px;color:var(--ink-2)">A two-year supply agreement on
+              the supplier&rsquo;s paper. Watch the price-change clause and the automatic renewal.</p></div>
+          </div>
+          <div class="hcard">
+            <div class="hd"><h5>Agreement family</h5><span class="sp"></span><span class="c gy">2 documents</span></div>
+            <div class="bd"><div class="kv">
+              <span class="k">Parent</span><span class="v">None &mdash; this is the top</span><span></span>
+              <span class="k">Children</span><span class="v">Amendment 1, Order form Q3</span><span></span>
+            </div></div>
+            <div class="hfoot"><span class="b sm">Create an amendment</span><span class="b sm plain">Link a document</span></div>
+          </div>
+        </div>
+        <div class="hnote" style="color:var(--ink-3)">The renewal card is not drawn: this contract is not inside
+          its notice window. That is the column as it works today.</div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>The same column on a supplier contract, in its notice window</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">PN</span></div>
+        <div class="hcards">
+          <div class="hcard">
+            <div class="hd"><h5>Renewal</h5><span class="sp"></span><span class="c am">Decide by 14 Oct</span></div>
+            <div class="bd"><div class="kv">
+              <span class="k">Renews</span><span class="v">12 months on 1 January</span><span></span>
+              <span class="k">Unless</span><span class="v">You object 90 days before</span><span class="cl">cl. 18.2</span>
+            </div></div>
+            <div class="hfoot"><span class="b sm pri anno"><span class="mk">1</span>Serve a notice</span>
+              <span class="b sm">Let it renew</span></div>
+          </div>
+          <div class="hcard anno">
+            <div class="hd"><h5><span class="mk">2</span>Commercial terms</h5><span class="sp"></span><span class="c am">2 departures</span></div>
+            <div class="bd"><div class="kv">
+              <span class="k">Payment terms</span><span class="v">45 days</span><span class="cl">cl. 7.2</span>
+              <span class="k">Rebate</span><span class="v">3% over 120,000 units</span><span class="cl">cl. 9.1</span>
+              <span class="k">Price changes</span><span class="v">30 days, capped at CPI</span><span class="cl">cl. 11.4</span>
+              <span class="k">Exclusivity</span><span class="v none">Not recorded</span><span></span>
+            </div></div>
+          </div>
+          <div class="hcard anno">
+            <div class="hd"><h5><span class="mk">3</span>Documents they must hold</h5><span class="sp"></span><span class="c ru">1 lapsed</span></div>
+            <div class="bd"><div class="kv">
+              <span class="k">BRC food safety</span><span class="v" style="color:var(--ruby-fg)">Lapsed 2 Sep</span><span class="cl">cl. 14.1</span>
+              <span class="k">Liability insurance</span><span class="v">To 31 Oct</span><span class="cl">cl. 15.2</span>
+            </div></div>
+            <div class="hfoot"><span class="b sm">Chase them</span></div>
+          </div>
+          <div class="hcard">
+            <div class="hd"><h5>Agreement family</h5><span class="sp"></span><span class="c gy">2 documents</span></div>
+            <div class="bd"><div class="kv">
+              <span class="k">Children</span><span class="v">Amendment 1, Order form Q3</span><span></span>
+            </div></div>
+            <div class="hfoot"><span class="b sm">Create an amendment</span>
+              <span class="b sm plain anno"><span class="mk">4</span>Check the family</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span><b>Serve a notice</b> is a second act on a card that already exists and
+      already has one. No new card, no new page.</span></div>
+    <div><span class="mk">2</span><span><b>Commercial terms</b> draws only where money passes under the agreement
+      &mdash; a question HaTi already answers for itself. On an NDA it is simply not there.</span></div>
+    <div><span class="mk">3</span><span><b>Documents they must hold</b> draws only where the wording requires one.
+      Most contracts require none, and see nothing.</span></div>
+    <div><span class="mk">4</span><span><b>Check the family</b> is a third act on the family card, and it is not
+      drawn at all on a contract with no parent and no children.</span></div>
+  </div>
+  <p class="shot-cap"><b>The contract itself does not move.</b> This column sits beside the paper, never above it,
+    so the first line of the wording is in exactly the same place before and after.</p>
+</article>
+
+<article class="host" id="h3">
+  <div class="host-top"><span class="host-n">H3</span>
+    <h3>The Obligations worklist</h3>
+    <p class="lands">Carries <b>S7</b> what you are owed &middot; <b>S8</b> certificates as rows</p>
+  </div>
+  <p>The cheapest change in the set, because the worklist already has almost everything needed. It already groups
+    into bands, already carries an amount, already knows whose obligation it is, and already chases the other side.
+    What it does not have is a way to say &ldquo;show me the ones where <i>they</i> owe <i>us</i>&rdquo; &mdash;
+    which is one switch.</p>
+
+  <div class="ba">
+    <div>
+      <p class="lab"><span class="dot"></span>Today</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Obligations</span><span class="sp"></span><span class="u">PN</span></div>
+        <div class="hhead"><h4>Obligations</h4><span class="sub">Across 214 contracts</span><span class="sp"></span>
+          <span class="brow"><span class="b">Clear</span></span></div>
+        <div class="hband am">Overdue <span class="n">2</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
+          <thead><tr><th>What</th><th>Contract</th><th>Who</th><th>Due</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            <tr><td class="tt">Quarterly volume report</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">6 days over</span></td><td class="num mut">&mdash;</td></tr>
+            <tr><td class="tt">Insurance evidence to us</td><td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td><td class="mut">Theirs</td><td><span class="c ru">2 days over</span></td><td class="num mut">&mdash;</td></tr>
+          </tbody>
+        </table></div>
+        <div class="hband">This month <span class="n">5</span></div>
+        <div class="hfoot"><span>4 filters &middot; a dateless obligation is in no due window</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>With one switch and two new kinds of row</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Obligations</span><span class="sp"></span><span class="u">PN</span></div>
+        <div class="hhead"><h4>Obligations</h4><span class="sub">Across 214 contracts</span><span class="sp"></span>
+          <span class="brow anno"><span class="mk">1</span><span class="b">Owed to us</span>
+            <span class="b off">Owed by us</span><span class="b off">All</span></span></div>
+        <div class="hband am">Earned, not claimed <span class="n">3 &middot; SEK 176,400</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
+          <thead><tr><th>What</th><th>Contract</th><th>Who</th><th>Due</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            <tr class="anno-row"><td class="tt"><span class="mk">2</span>Volume rebate, Q2</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c gr">Earned</span></td><td class="num tt">144,000</td></tr>
+            <tr class="anno-row"><td class="tt">Late delivery credits</td><td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td><td class="mut">Theirs</td><td><span class="c gr">Earned</span></td><td class="num tt">24,000</td></tr>
+          </tbody>
+        </table></div>
+        <div class="hband ru" style="color:var(--ruby-fg)">Overdue <span class="n">3</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:34%"><col style="width:22%"><col style="width:16%"><col style="width:14%"><col style="width:14%"></colgroup>
+          <tbody>
+            <tr class="anno-row"><td class="tt"><span class="mk">3</span>BRC food safety certificate</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">Lapsed 2 Sep</span></td><td class="num mut">&mdash;</td></tr>
+            <tr><td class="tt">Quarterly volume report</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">Theirs</td><td><span class="c ru">6 days over</span></td><td class="num mut">&mdash;</td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span>Owed to us <b>SEK 176,400</b></span><span class="sp"></span>
+          <span>2 contracts left out &mdash; no exchange rate on file for KES.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span>One switch, in the place the page already puts its controls. Left where it
+      is today (&ldquo;All&rdquo;) nothing about the page changes.</span></div>
+    <div><span class="mk">2</span><span>Money you are owed is a <b>kind of obligation</b>, not a new feature: same
+      table, same bands, same chase, one new band name and one new verb.</span></div>
+    <div><span class="mk">3</span><span>A lapsed certificate is an overdue obligation. It sorts into the band that
+      already exists and is chased by the chase that already exists.</span></div>
+  </div>
+</article>
+
+<article class="host" id="h4">
+  <div class="host-top"><span class="host-n">H4</span>
+    <h3>Insights, and the Copilot panel</h3>
+    <p class="lands">Carries <b>S10</b> the exposure register &middot; <b>S9</b> saved questions &middot;
+      <b>S11</b> what the negotiation was worth</p>
+  </div>
+  <p>The one admitted piece of new surface in the whole set is the sixth Insights tab. It earns the space by
+    replacing something worse: those counts exist today inside a weekly document, as sentences, with no way to
+    press them. Beside it, saved questions cost nothing at all &mdash; they fill the Copilot panel&rsquo;s greeting,
+    which is an empty state today.</p>
+
+  <div class="ba pair">
+    <div>
+      <p class="lab now"><span class="dot"></span>Insights &mdash; a sixth tab</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Insights</span><span class="sp"></span><span class="u">TM</span></div>
+        <div class="htabs"><span>Portfolio</span><span>Friction</span><span>Obligations</span><span>Payment terms</span>
+          <span class="on anno"><span class="mk">1</span>Exposure</span><span>Contract graph</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:44%"><col style="width:16%"><col style="width:24%"><col style="width:16%"></colgroup>
+          <thead><tr><th>Exposure</th><th class="num">Contracts</th><th class="num">Value on paper</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="tt">Liability is uncapped</td><td class="num">11</td><td class="num tt">SEK 4,120,000</td><td><span class="b sm plain">See all</span></td></tr>
+            <tr><td class="tt">They may change the price</td><td class="num">9</td><td class="num tt">SEK 2,240,000</td><td><span class="b sm plain">See all</span></td></tr>
+            <tr><td class="tt">Renews with no reminder</td><td class="num">6</td><td class="num tt">SEK 960,000</td><td><span class="b sm plain">See all</span></td></tr>
+            <tr><td class="tt" style="color:var(--steel-fg)">Not read closely enough to say</td><td class="num">23</td><td class="num tt">SEK 5,300,000</td><td><span class="b sm">Read them</span></td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span>Every row opens the list behind it.</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>Copilot &mdash; the greeting stops being empty</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Copilot</span><span class="sp"></span><span class="u">TM</span></div>
+        <div class="hcards">
+          <div class="hcard anno">
+            <div class="hd"><h5><span class="mk">2</span>Questions you are watching</h5><span class="sp"></span><span class="c am">1 changed</span></div>
+            <div class="bd" style="padding:0"><table class="ht">
+              <colgroup><col style="width:56%"><col style="width:44%"></colgroup>
+              <tbody>
+                <tr><td class="tt">Who may raise prices without our agreement?</td><td><span class="c am">was 8, now 9</span></td></tr>
+                <tr><td class="tt">Where have we given exclusivity?</td><td class="mut">3 &middot; no change</td></tr>
+                <tr><td class="tt">What survives a change of control?</td><td class="mut">11 &middot; no change</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+        <div class="hnote"><b>Today this space is blank.</b> The panel opens with a greeting and nothing else, so
+          a first-time reader has no idea what to ask it. The questions this workspace already cares about are a
+          better answer than a prompt suggestion.</div>
+        <div class="hfoot"><span>Ask anything about your contracts&hellip;</span><span class="sp"></span><span class="b sm pri">Ask</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span><b>Exposure</b> &mdash; the only new tab proposed anywhere. Adding a tab
+      here is a one-word change in the list the page reads, which is how Insights was built.</span></div>
+    <div><span class="mk">2</span><span><b>Saved questions</b> take no new surface at all: they fill an empty state
+      and make the panel useful before you have typed anything.</span></div>
+    <div><span class="mk">&mdash;</span><span><b>What the negotiation was worth</b> is not drawn here. It goes at
+      the end of the negotiation memo HaTi already builds, and as one strip on Reports &mdash; no new page.</span></div>
+  </div>
+</article>
+
+<article class="host" id="h5">
+  <div class="host-top"><span class="host-n">H5</span>
+    <h3>Home, and the alerts panel</h3>
+    <p class="lands">Carries <b>S6</b> a notice to serve &middot; <b>S8</b> a lapsed document &middot; <b>S9</b> a
+      watched answer changed &middot; <b>S7</b> as a tile you may choose</p>
+  </div>
+  <p>Home is where a product usually gets fat, and it is the screen the fifteen touch least. <b>Not one new region
+    is added.</b> Everything here joins a list that already exists and already ranks itself: <i>Prepared for you</i>
+    already shows at most three pieces of prepared work, the alerts panel already ranks ten kinds of alert, and
+    <i>My work</i> already lets a person choose four tiles from a catalogue.</p>
+
+  <div class="ba pair">
+    <div>
+      <p class="lab now"><span class="dot"></span>Prepared for you &mdash; one more kind of prepared work</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Home</span><span class="sp"></span><span class="u">AK</span></div>
+        <div class="hhead"><h4>Good morning, Ama</h4><span class="sub">Tuesday 16 September</span></div>
+        <div class="hband">Prepared for you <span class="n">3</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:52%"><col style="width:24%"><col style="width:24%"></colgroup>
+          <tbody>
+            <tr class="anno-row"><td class="tt"><span class="mk">1</span>Notice not to renew, drafted<span class="sub">Nyala Foods &middot; last day 14 Oct</span></td>
+              <td><span class="c am">28 days</span></td><td><span class="brow"><span class="b sm">Read it</span><span class="b sm plain">Not now</span></span></td></tr>
+            <tr><td class="tt">Renewal memo prepared for you<span class="sub">Zenith SaaS &middot; decision 2 Nov</span></td>
+              <td><span class="c gy">47 days</span></td><td><span class="brow"><span class="b sm">Open it</span></span></td></tr>
+            <tr><td class="tt">They are late on a promise<span class="sub">Nordic Freight &middot; insurance evidence</span></td>
+              <td><span class="c ru">2 days over</span></td><td><span class="brow"><span class="b sm">Chase</span></span></td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span>At most one of each kind, never more than three. That rule is unchanged.</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>The alerts panel &mdash; two more kinds in the same ranked list</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Alerts</span><span class="sp"></span><span class="u">AK</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:70%"><col style="width:30%"></colgroup>
+          <tbody>
+            <tr><td class="tt">Your signature is needed<span class="sub">Bergs Retail &middot; MK&#8209;177</span></td><td><span class="c am">Today</span></td></tr>
+            <tr><td class="tt">They are ready to sign<span class="sub">Nordic Freight &middot; MK&#8209;118</span></td><td><span class="c gr">New</span></td></tr>
+            <tr class="anno-row"><td class="tt"><span class="mk">2</span>A required document has lapsed<span class="sub">Nyala Foods &middot; BRC food safety</span></td><td><span class="c ru">2 weeks</span></td></tr>
+            <tr><td class="tt">A renewal decision is due<span class="sub">Nyala Foods &middot; 14 Oct</span></td><td><span class="c am">28 days</span></td></tr>
+            <tr class="anno-row"><td class="tt"><span class="mk">3</span>A question you watch has changed<span class="sub">Who may raise prices &mdash; was 8, now 9</span></td><td><span class="c gy">2 days</span></td></tr>
+            <tr><td class="tt">An obligation is overdue<span class="sub">Nordic Freight &middot; insurance evidence</span></td><td><span class="c ru">2 days</span></td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span>Ranked by the order the panel already uses. Nothing is marked seen except by the
+          work being done.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span>A drafted notice is a fourth kind of prepared work. The ceiling of three
+      rows is unchanged &mdash; on a busy morning it competes for a place rather than adding one.</span></div>
+    <div><span class="mk">2</span><span><span class="mk">3</span>Two more kinds of alert. An alert is a row in a
+      ranked list, which is the cheapest thing anybody can add to HaTi.</span></div>
+    <div><span class="mk">&mdash;</span><span><b>Money owed to us</b> joins the catalogue a person picks their four
+      tiles from. Nobody who does not choose it ever sees it.</span></div>
+  </div>
+</article>
+
+<article class="host" id="h6">
+  <div class="host-top"><span class="host-n">H6</span>
+    <h3>Requests, and Settings &amp; Rules</h3>
+    <p class="lands">Carries <b>S4</b> the clock &middot; <b>S5</b> the tracker link &middot; <b>S3</b> clearance
+      lanes &middot; <b>S15</b> where alerts go</p>
+  </div>
+  <p>The two changes people notice least, for opposite reasons. Requests gains two columns, which every user sees
+    but nobody has to learn. Settings gains two panels in a drawer that already holds twenty &mdash; and only an
+    administrator ever opens it.</p>
+
+  <div class="ba pair">
+    <div>
+      <p class="lab now"><span class="dot"></span>Requests &mdash; two columns and a line of counts</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Requests</span><span class="sp"></span><span class="u">TM</span></div>
+        <div class="hhead"><h4>Requests</h4>
+          <span class="sub anno"><span class="mk">1</span>9 open &middot; 2 past their date &middot; median 1.4 days</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:34%"><col style="width:18%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup>
+          <thead><tr><th>What is needed</th><th>Raised by</th><th>Road</th><th>With</th><th>Promised</th></tr></thead>
+          <tbody>
+            <tr><td class="tt">Review their haulage terms</td><td class="mut">Daniel A.</td>
+              <td class="anno"><span class="mk">2</span><span class="c ru">Close read</span></td>
+              <td class="mut anno"><span class="mk">3</span>Tom&aacute;s</td><td class="anno"><span class="c ru">1 day over</span></td></tr>
+            <tr><td class="tt">Renew the Nyala supply agreement</td><td class="mut">Priya N.</td>
+              <td><span class="c gy">Routine</span></td><td class="mut">Tom&aacute;s</td><td><span class="c am">2 hours left</span></td></tr>
+            <tr><td class="tt">NDA for the Malm&ouml; pilot</td><td class="mut">Sara L.</td>
+              <td><span class="c gr">Lane</span></td><td class="mut">Cleared</td><td><span class="c gy">4 min</span></td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span class="anno"><span class="mk">4</span>Every request carries a tracker link for the
+          person who raised it.</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab now"><span class="dot"></span>Settings &amp; Rules &mdash; two rows in a list of twenty</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Settings &amp; Rules</span><span class="sp"></span><span class="u">TM</span></div>
+        <div class="htabs"><span>People</span><span class="on">Platform settings</span><span>Build &amp; launch</span><span>You</span></div>
+        <div class="scroll"><table class="ht">
+          <colgroup><col style="width:44%"><col style="width:36%"><col style="width:20%"></colgroup>
+          <tbody>
+            <tr><td class="tt">Internal review</td><td class="mut">Off &mdash; nobody is gated</td><td class="mut">Open</td></tr>
+            <tr><td class="tt">Signing limits</td><td class="mut">3 people capped</td><td class="mut">Open</td></tr>
+            <tr class="anno-row"><td class="tt"><span class="mk">5</span>Clearance lanes</td><td class="mut">2 on &middot; 53 cleared this quarter</td><td class="mut">Open</td></tr>
+            <tr><td class="tt">Copilot engine</td><td class="mut">On &middot; SEK 1,240 this month</td><td class="mut">Open</td></tr>
+            <tr class="anno-row"><td class="tt"><span class="mk">6</span>Where alerts go</td><td class="mut">Email &middot; Slack &middot; WhatsApp</td><td class="mut">Open</td></tr>
+            <tr><td class="tt">Exchange rates</td><td class="mut">Set 1 Sep</td><td class="mut">Open</td></tr>
+          </tbody>
+        </table></div>
+        <div class="hfoot"><span>Rules live in Settings. That is the product&rsquo;s own rule, and these two obey it.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keys">
+    <div><span class="mk">1</span><span>A line of counts in the sub-head, which is where HaTi already puts counts on
+      Home and the Calendar.</span></div>
+    <div><span class="mk">2</span><span><span class="mk">3</span>Two columns: how the request was routed, and who
+      is holding it. The date column exists already.</span></div>
+    <div><span class="mk">4</span><span>The tracker is a link on the request, opening a page outside the app. It
+      adds nothing to the app&rsquo;s own surface, because the person reading it does not have a login.</span></div>
+    <div><span class="mk">5</span><span><span class="mk">6</span>Two rows in the settings list, each opening the
+      same right-hand drawer every other setting opens. Only administrators see this screen at all.</span></div>
+  </div>
+</article>
+
+<section class="sec" id="quiet">
+  <div class="sec-head"><span class="rule-n">iv</span><h2>The quiet Tuesday test</h2></div>
+  <p class="lede prose">The honest way to judge whether a product got heavier is not to look at the busiest screen.
+    It is to open it on a day when nothing is happening &mdash; which is most days &mdash; and count what is new.</p>
+
+  <div class="ba pair">
+    <div>
+      <p class="lab"><span class="dot"></span>An ordinary contract, after all fifteen are built</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">DA</span></div>
+        <div class="hhead"><span class="ref" style="font-family:var(--mono);font-size:12px">MK&#8209;162</span>
+          <h4>Mutual NDA &mdash; Sandvik Tooling</h4><span class="sp"></span><span class="c gr">In force</span></div>
+        <div class="htabs"><span class="on">Key terms</span><span>Document</span><span>Signing</span>
+          <span>Obligations</span><span>History</span></div>
+        <div class="hcards">
+          <div class="hcard">
+            <div class="hd"><h5>Contract brief</h5><span class="sp"></span><span class="c st">Read 3 Aug</span></div>
+            <div class="bd"><p style="margin:0;font-size:13px;color:var(--ink-2)">A mutual confidentiality
+              agreement on our own template, running two years. Nothing unusual.</p></div>
+          </div>
+        </div>
+        <div class="hnote" style="color:var(--ink-3)">No renewal card: not in its window. No commercial terms card:
+          no money passes. No documents card: none required. No family card: no parent, no children.
+          <b style="color:var(--ink-2)">Nothing on this screen is new.</b></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab"><span class="dot"></span>Home, same day</p>
+      <div class="hati">
+        <div class="hbar"><span class="logo">HaTi</span><span class="t">Home</span><span class="sp"></span><span class="u">DA</span></div>
+        <div class="hhead"><h4>Good morning, Daniel</h4><span class="sub">Tuesday 16 September</span></div>
+        <div class="hband">My work</div>
+        <div class="bars">
+          <div class="bar"><span class="t">Waiting on your approval</span><span class="track"><span class="fill" style="width:14%"></span></span><span class="v">1</span></div>
+          <div class="bar"><span class="t">Negotiations live</span><span class="track"><span class="fill" style="width:42%"></span></span><span class="v">7</span></div>
+          <div class="bar"><span class="t">Expiring in 90 days</span><span class="track"><span class="fill am" style="width:24%"></span></span><span class="v">4</span></div>
+          <div class="bar"><span class="t">Average time to sign</span><span class="track"><span class="fill" style="width:33%"></span></span><span class="v">11 days</span></div>
+        </div>
+        <div class="hnote" style="color:var(--ink-3)">Four tiles, chosen by Daniel, exactly as before. Nothing is
+          prepared this morning, so that region draws nothing.
+          <b style="color:var(--ink-2)">Nothing on this screen is new either.</b></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="today" style="max-width:none;margin-top:22px"><b>On a quiet day, two things in the whole product look
+    different:</b> Insights has a sixth tab, and Requests has two more columns. Everything else in the fifteen is
+    waiting behind a condition &mdash; a contract in its notice window, a certificate that has lapsed, money
+    earned, a filter you deliberately set, a question you chose to watch.</p>
+</section>
+
+<section class="sec" id="lands">
+  <div class="sec-head"><span class="rule-n">v</span><h2>Where each one lands</h2></div>
+  <p class="lede prose">The whole set on one page: the screen it joins, the shape it takes, and the condition that
+    has to be true before anybody sees it.</p>
+
+  <div class="land">
+    <table class="ld">
+      <thead><tr><th>Ref</th><th>Addition</th><th>Screen</th><th>Shape it takes</th><th>Visible when</th></tr></thead>
+      <tbody>
+        <tr><td class="rf">S1</td><td>The Mailroom</td><td>Contracts</td><td>A fourth scope</td><td>Something has been forwarded</td></tr>
+        <tr><td class="rf">S2</td><td>Commercial terms</td><td>Contract room &middot; Key terms</td><td>A card in the side column</td><td>Money passes under the contract</td></tr>
+        <tr><td class="rf">S3</td><td>Clearance lanes</td><td>Settings &middot; and the pre-signature list</td><td>A settings panel, and one row</td><td>An administrator switched a lane on</td></tr>
+        <tr><td class="rf">S4</td><td>A front door with a clock</td><td>Requests</td><td>Two columns, one count line</td><td>Always &mdash; one of the two visible changes</td></tr>
+        <tr><td class="rf">S5</td><td>Where is my contract?</td><td>Outside the app</td><td>A link on the request</td><td>You raised the request</td></tr>
+        <tr><td class="rf">S6</td><td>The Notice Desk</td><td>Contract room &middot; Home &middot; History</td><td>An act on the renewal card</td><td>Inside the notice window</td></tr>
+        <tr><td class="rf">S7</td><td>What you are owed</td><td>Obligations</td><td>A side switch and a band</td><td>Something has been earned</td></tr>
+        <tr><td class="rf">S8</td><td>Certificates that expire</td><td>Contract room &middot; Obligations &middot; Contracts</td><td>A card, rows, a filter, an alert</td><td>The wording requires a document</td></tr>
+        <tr><td class="rf">S9</td><td>Ask your book</td><td>Copilot panel</td><td>Fills an empty greeting</td><td>You saved a question</td></tr>
+        <tr><td class="rf">S10</td><td>The exposure register</td><td>Insights</td><td>A sixth tab</td><td>Always &mdash; the other visible change</td></tr>
+        <tr><td class="rf">S11</td><td>What it was worth</td><td>The negotiation memo &middot; Reports</td><td>A section, and a strip</td><td>A negotiation closed</td></tr>
+        <tr><td class="rf">S12</td><td>The family check</td><td>Contract room &middot; Key terms</td><td>An act on the family card</td><td>The contract has a parent or children</td></tr>
+        <tr><td class="rf">S13</td><td>Do this to these 46</td><td>Contracts</td><td>One act above the table</td><td>A filter is narrowing the table</td></tr>
+        <tr><td class="rf">S14</td><td>The diligence pack</td><td>Contracts</td><td>A row in that same act&rsquo;s menu</td><td>A filter is narrowing the table</td></tr>
+        <tr><td class="rf">S15</td><td>HaTi in the chat</td><td>Settings &middot; and outside the app</td><td>A settings panel</td><td>Someone turned a channel on</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="legend">
-    <span><span class="d h"></span> would name it first</span>
-    <span><span class="d"></span> would use it often</span>
-    <span><span class="d m"></span> useful</span>
-    <span><span class="d l"></span> rarely</span>
-  </p>
+  <p class="shot-cap" style="margin-top:12px">Thirteen of the fifteen are behind a condition. The two that are
+    always there &mdash; the Exposure tab and the Requests columns &mdash; are the whole cost of this set to a
+    person who never uses any of it.</p>
 </section>
 
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">1</span><h2>Getting the paper in</h2></div>
-  <p class="lede prose">HaTi is excellent once a contract is inside it. Both of these are about the minutes
-    before that, which is where most small companies quietly give up.</p>
+<section class="sec" id="releases">
+  <div class="sec-head"><span class="rule-n">vi</span><h2>Six releases, one screen each</h2></div>
+  <p class="lede prose">This is the part that decides whether the product feels like it is improving or like it is
+    churning. Fifteen features shipped one at a time means fifteen separate moments of &ldquo;something moved
+    again&rdquo;, scattered across nine screens. <b>Shipped by screen, a person learns one changed screen, once,
+    and then it stays still.</b></p>
+
+  <div class="rel">
+    <div class="relrow">
+      <p class="when">Release 1</p>
+      <div><h4>The Contracts page</h4>
+        <p>The Mailroom and the lapsed-document filter. Two additions, one screen, and the first one is the reason
+          a small company keeps using HaTi at all. Nothing on the page moves &mdash; a scope appears at the end of
+          a row of scopes.</p></div>
+      <div class="refs"><span>S1</span><span>S8 filter</span></div>
+    </div>
+    <div class="relrow">
+      <p class="when">Release 2</p>
+      <div><h4>The contract room</h4>
+        <p>Commercial terms, required documents, serve a notice, check the family. Four additions to one column
+          &mdash; and the column was built for cards that come and go, so this is one learning moment rather than
+          four. It is also the release that wins the procurement buyer.</p></div>
+      <div class="refs"><span>S2</span><span>S6</span><span>S8 card</span><span>S12</span></div>
+    </div>
+    <div class="relrow">
+      <p class="when">Release 3</p>
+      <div><h4>The Obligations worklist</h4>
+        <p>Money owed to you, and certificates as rows. One switch on a page that already does all the hard parts.
+          It only makes sense after Release 2, because the commercial terms are what the entitlements are read
+          from.</p></div>
+      <div class="refs"><span>S7</span><span>S8 rows</span></div>
+    </div>
+    <div class="relrow">
+      <p class="when">Release 4</p>
+      <div><h4>Insights and Copilot</h4>
+        <p>The Exposure tab, saved questions, and what the negotiation was worth. The only release that adds
+          surface, and it lands on the two screens people open when they are asking questions rather than doing
+          work &mdash; which is where new surface costs least.</p></div>
+      <div class="refs"><span>S9</span><span>S10</span><span>S11</span></div>
+    </div>
+    <div class="relrow">
+      <p class="when">Release 5</p>
+      <div><h4>Requests and Settings</h4>
+        <p>The clock, the tracker, clearance lanes, and where alerts go. Build the clock before the lanes &mdash;
+          you cannot tell whether a lane helped unless you were already measuring how long things took.</p></div>
+      <div class="refs"><span>S3</span><span>S4</span><span>S5</span><span>S15</span></div>
+    </div>
+    <div class="relrow" style="border-left:3px solid var(--amber-dot)">
+      <p class="when">Release 6</p>
+      <div><h4>Back to the Contracts page</h4>
+        <p>The cohort acts: send an amendment to all of them, or build a pack from all of them. <b>The one place
+          this plan deliberately breaks its own rule and visits a screen twice</b> &mdash; because acting on two
+          hundred contracts at once is the only proposal here that could damage a customer&rsquo;s relationships in
+          an afternoon, and it should go last, after everything it depends on is trusted.</p></div>
+      <div class="refs"><span>S13</span><span>S14</span></div>
+    </div>
+  </div>
+
+  <div class="rules" style="margin-top:26px">
+    <div><b>What a release note says</b>One screen, one sentence: &ldquo;The contract page now reads the
+      commercial terms.&rdquo; Not a list of four features, which is what makes a product feel like it is being
+      done to you.</div>
+    <div><b>What nobody has to be taught</b>Every addition uses a control the person already knows: a scope, a
+      filter, a card, a row, a tab, a switch. There is no new interaction anywhere in the fifteen.</div>
+  </div>
 </section>
 
-<article class="sol" id="s1">
-  <div class="sol-top">
-    <span class="sol-ref">S1</span><span class="sol-tag new">New</span>
-    <h3>The Mailroom &mdash; forward a contract and it files itself</h3>
-    <p class="for">Loudest for <b>Ama</b>, useful to everyone</p>
-  </div>
-  <p>Every workspace gets its own email address. Forward the attachment from your phone and HaTi reads the file,
-    works out who the other side is, runs the same arrival readings it runs on an upload, and puts it in a short
-    tray called <b>Unfiled</b>. You press <b>File it</b> or you press <b>Not a contract</b>. That is the whole job.</p>
-  <div class="today">HaTi can already read a dropped file beautifully, and it can already bring in a whole back
-    catalogue in one sitting. <b>What it cannot do is receive one.</b> Today, getting a contract in means
-    being at a computer, finding the file, and choosing a value stream &mdash; at the exact moment a busy owner
-    is least willing to do any of it.</div>
-  <p>The email itself is useful: the sender becomes a suggested contact, the subject line becomes a suggested name,
-    and the message body is kept as the covering note. Nothing is filed without a person pressing something, so
-    nothing appears in the register that nobody has looked at.</p>
+<section class="sec" id="catalogue">
+  <div class="sec-head"><span class="rule-n">vii</span><h2>The fifteen in short</h2></div>
+  <p class="lede prose">What each one actually is, for anyone reading this without the first edition to hand. They
+    came out of four seats: an owner running a nine-person exporter from her phone, an operations manager who owns
+    a queue he cannot see into, an FMCG procurement manager whose deal is the rebate table rather than the
+    signature, and one in-house lawyer serving three hundred people.</p>
 
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span>
-        <span class="k">&#8984;K</span><span class="u">AK</span></div>
-      <div class="hhead"><h4>Contracts</h4><span class="sub">Kericho Trading Ltd</span><span class="sp"></span>
-        <span class="brow"><span class="b">Adapt filters</span><span class="b pri">+ Draft new agreement</span></span></div>
-      <div class="htabs"><span>All contracts <span class="cnt">214</span></span><span>Negotiations <span class="cnt">7</span></span>
-        <span class="on">Unfiled <span class="cnt am">3</span></span><span>Archived <span class="cnt">31</span></span></div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:22%"><col style="width:26%"><col style="width:32%"><col style="width:20%"></colgroup>
-        <thead><tr><th>Arrived from</th><th>Attachment</th><th>What HaTi read</th><th></th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="tt">Joseph Kimani<span class="sub">kimani@kerichogold.co.ke &middot; today 21:14</span></td>
-            <td>Supply agreement v4.docx<span class="sub">18 pages &middot; Word</span></td>
-            <td>Kericho Gold Ltd &middot; Supply<span class="sub">2 years from 1 Oct &middot; KES 4,200,000</span></td>
-            <td><span class="brow"><span class="b sm pri">File it</span><span class="b sm off">Not a contract</span></span></td>
-          </tr>
-          <tr>
-            <td class="tt">Legal &mdash; Nordic Freight<span class="sub">legal@nordicfreight.se &middot; today 16:02</span></td>
-            <td>DPA_final_signed.pdf<span class="sub">6 pages &middot; PDF</span></td>
-            <td>Nordic Freight AB &middot; Data processing<span class="sub">Looks like a child of <span class="ref">MK&#8209;118</span></span></td>
-            <td><span class="brow"><span class="b sm pri">File it</span><span class="b sm off">Not a contract</span></span></td>
-          </tr>
-          <tr>
-            <td class="tt">Zoho Billing<span class="sub">billing@zoho.com &middot; yesterday</span></td>
-            <td>Invoice_88214.pdf<span class="sub">1 page &middot; PDF</span></td>
-            <td class="mut">No parties and no term &mdash; this reads as an invoice<span class="sub">Nothing was filed</span></td>
-            <td><span class="brow"><span class="b sm off">Discard</span><span class="b sm plain">File anyway</span></span></td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hfoot"><span>Forward to <b>contracts@kerichotrading.hati.app</b></span><span class="sp"></span>
-        <span>Nothing is filed until you press. Senders you have never seen are held for 30 days.</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a fourth scope on the Contracts table, next to Negotiations and
-      Archived &mdash; not a new page, not a badge on the sidebar.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The Word and PDF readers, the arrival readings (brief, standards, obligations), the
-      counterparty lookup, and the same duplicate check the bulk import already uses.</div>
-    <div><b>What is genuinely new</b>An inbound mail hook and the tray. HaTi sends email today; it has never
-      received any.</div>
-    <div><b>Best in class</b>Ironclad, Evisort and Juro all take contracts by email; it is the single most-used
-      way paper enters a mid-market system.</div>
-    <div><b>The honest limit</b>An address that accepts mail is an address strangers can find. Unknown senders sit
-      in a holding pen, attachments are size-capped, and the address can be rotated from Settings.</div>
-  </div>
-</article>
-
-<article class="sol" id="s2">
-  <div class="sol-top">
-    <span class="sol-ref">S2</span><span class="sol-tag ext">Extends Key terms</span>
-    <h3>The commercial terms card &mdash; read the deal, not just the dates</h3>
-    <p class="for">Loudest for <b>Priya</b>, valuable to <b>Daniel</b></p>
-  </div>
-  <p>HaTi reads a contract for its dates, its value, its governing law and its payment terms. In a trading business
-    the deal is somewhere else entirely: the rebate table, the volume tiers, the minimum order, the listing fee,
-    the mechanism by which the other side may raise the price. A card in the Key terms column reads those out of
-    the wording, each one pointing at the clause it came from.</p>
-  <div class="today">A procurement manager opens a supplier agreement in HaTi and sees an expiry date and a
-    number. <b>The negotiation was about none of that.</b> To find the rebate threshold they open the Word file
-    and use the search box &mdash; which is exactly what they did before they bought a contract system.</div>
-  <p>The rule stays HaTi&rsquo;s own: where the wording says nothing, the card says <i>not recorded</i> rather than
-    guessing a market-standard figure. Every value carries its clause, so a disagreement is settled by pressing
-    the pill and reading the sentence.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">PM</span></div>
-      <div class="hhead"><span class="ref" style="font-family:var(--mono);font-size:12px">MK&#8209;204</span>
-        <h4>Nyala Foods &mdash; supply agreement</h4><span class="sp"></span>
-        <span class="c gr">In force</span></div>
-      <div class="htabs"><span class="on">Key terms</span><span>Document</span><span>Signing</span><span>Obligations <span class="cnt">6</span></span><span>History</span></div>
-      <div class="hcards">
-        <div class="hcard">
-          <div class="hd"><h5>Commercial terms</h5><span class="sp"></span><span class="c st">Read 14 Sep</span></div>
-          <div class="bd">
-            <div class="kv">
-              <span class="k">Payment terms</span><span class="v">45 days from invoice</span><span class="cl">cl. 7.2</span>
-              <span class="k">Rebate</span><span class="v">3% over 120,000 units a year</span><span class="cl">cl. 9.1</span>
-              <span class="k">Volume tiers</span><span class="v">3 steps &mdash; 2% / 3% / 4.5%</span><span class="cl">cl. 9.2</span>
-              <span class="k">Price changes</span><span class="v">30 days&rsquo; notice, capped at CPI</span><span class="cl">cl. 11.4</span>
-              <span class="k">Listing fee</span><span class="v">SEK 120,000 a year</span><span class="cl">cl. 4.3</span>
-              <span class="k">Minimum order</span><span class="v">2 pallets</span><span class="cl">cl. 5.1</span>
-              <span class="k">Promotional support</span><span class="v">4 campaigns a year</span><span class="cl">cl. 10.1</span>
-              <span class="k">Exclusivity</span><span class="v none">Not recorded</span><span></span>
-            </div>
-          </div>
-          <div class="hfoot"><span>Every figure is quoted from the wording.</span><span class="sp"></span>
-            <span class="b sm plain">Re-read the terms</span></div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>Against your standards</h5><span class="sp"></span><span class="c am">2 departures</span></div>
-          <div class="bd">
-            <div class="kv">
-              <span class="k">Payment terms</span><span class="v">45 days &mdash; you ask for 60</span><span class="c am bare">15 days short</span>
-              <span class="k">Rebate</span><span class="v">3% &mdash; your usual is 3.5%</span><span class="c am bare">0.5 pt under</span>
-              <span class="k">Price changes</span><span class="v">CPI-capped</span><span class="c gr bare">Better than usual</span>
-              <span class="k">Minimum order</span><span class="v">2 pallets</span><span class="c gy bare">As usual</span>
-            </div>
-            <p style="font-size:12.5px;color:var(--ink-2);margin:14px 0 0">Across your last 12 Nyala agreements the
-              rebate settled at 3.5% seven times. That is the number to open with.</p>
-          </div>
-          <div class="hfoot"><span class="b sm">Open the ladder</span><span class="b sm plain">Add to the playbook</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a card in the Key terms side column, beside the brief and the
-      renewal card &mdash; the column that already exists for facts about the deal.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The extraction route, the way the renewal card quotes the clause it read a number
-      from, the playbook comparison, and the precedent memory for &ldquo;what you usually settle at&rdquo;.</div>
-    <div><b>What is genuinely new</b>Eight or nine extra fields on the record and the prompt that reads them. No new
-      page, no new route.</div>
-    <div><b>Best in class</b>Sirion and Icertis both treat commercial terms as first-class structured data; it is
-      what separates a contract repository from a supplier management system.</div>
-    <div><b>The honest limit</b>A rebate table is often an annex that changes yearly. The card reads the version
-      on file and says which version that is &mdash; it does not pretend to know about an annex nobody uploaded.</div>
-  </div>
-</article>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">2</span><h2>Moving work without a lawyer in the loop</h2></div>
-  <p class="lede prose">Tom&aacute;s is one lawyer for three hundred people and Daniel owns a queue he cannot see
-    into. These three are about the same thing from two ends: routine work clearing itself, and everyone
-    knowing where the rest of it is.</p>
-</section>
-
-<article class="sol" id="s3">
-  <div class="sol-top">
-    <span class="sol-ref">S3</span><span class="sol-tag ext">Extends the sign check</span>
-    <h3>Clearance lanes &mdash; the routine ones clear on rules, not on a hunch</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b> and <b>Daniel</b></p>
-  </div>
-  <p>An administrator writes a lane: <i>our own NDA template, no money, nothing outside the playbook&rsquo;s green
-    band, counterparty not on the watch list</i>. Anything that satisfies every condition clears straight to
-    signature. Everything else takes the ordinary road. When a contract clears, the screen names the lane and lists
-    the conditions that were actually tested, with the time.</p>
-  <div class="today">HaTi already runs the check that would decide this &mdash; it reads the standards, the
-    obligations and the record before a signature and lists what is holding. <b>What it will not do is act on a
-    clean result.</b> A perfect NDA and a disastrous one both wait for the same human.</div>
-  <p>This is the one proposal where I would resist the market. Several systems now let a model decide whether a
-    contract is acceptable. HaTi should not: a lane is a <b>rule a person wrote</b>, and the record shows which
-    rule fired. That is defensible to an auditor a year later, which a model&rsquo;s opinion is not.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Settings &amp; Rules</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hcards two">
-        <div class="hcard">
-          <div class="hd"><h5>Clearance lanes</h5><span class="sp"></span><span class="b sm">+ Add a lane</span></div>
-          <div class="bd" style="padding:0">
-            <table class="ht">
-              <colgroup><col style="width:44%"><col style="width:30%"><col style="width:26%"></colgroup>
-              <thead><tr><th>Lane</th><th>Cleared</th><th>State</th></tr></thead>
-              <tbody>
-                <tr><td class="tt">Standard NDA &mdash; our paper<span class="sub">4 conditions</span></td><td class="mut">41 this quarter</td><td><span class="c gr">On</span></td></tr>
-                <tr><td class="tt">Purchase order under SEK 50,000<span class="sub">5 conditions</span></td><td class="mut">12 this quarter</td><td><span class="c gr">On</span></td></tr>
-                <tr><td class="tt">Supplier renewal, no change<span class="sub">6 conditions</span></td><td class="mut">&mdash;</td><td><span class="c gy">Watching only</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>Standard NDA &mdash; our paper</h5><span class="sp"></span><span class="c gr">On</span></div>
-          <div class="bd">
-            <p style="font-size:12px;color:var(--ink-3);margin:0 0 10px;font-family:var(--mono);letter-spacing:.09em;text-transform:uppercase">Clears only when all of these are true</p>
-            <div class="kv">
-              <span class="k">Template</span><span class="v">Mutual NDA (ours)</span><span class="c gr bare">tested</span>
-              <span class="k">Value</span><span class="v">No money passes</span><span class="c gr bare">tested</span>
-              <span class="k">Departures</span><span class="v">None outside the green band</span><span class="c gr bare">tested</span>
-              <span class="k">Counterparty</span><span class="v">Not on the watch list</span><span class="c gr bare">tested</span>
-            </div>
-            <p style="font-size:12px;color:var(--ink-3);margin:14px 0 6px;font-family:var(--mono);letter-spacing:.09em;text-transform:uppercase">Then</p>
-            <div class="kv"><span class="k">Goes to</span><span class="v">Signature, no approval step</span><span></span>
-              <span class="k">Told</span><span class="v">Tom&aacute;s, in the daily brief</span><span></span></div>
-          </div>
-          <div class="hfoot"><span>A lane never clears a contract on the other side&rsquo;s paper.</span></div>
-        </div>
-      </div>
-      <div class="hband">On a contract that cleared <span class="n">MK&#8209;231 &middot; before you sign</span></div>
-      <div class="scroll"><table class="ht">
-        <colgroup><col style="width:52%"><col style="width:26%"><col style="width:22%"></colgroup>
-        <tbody>
-          <tr><td class="tt">Cleared by the lane &ldquo;Standard NDA &mdash; our paper&rdquo;<span class="sub">4 conditions tested &middot; 14 Sep, 21:04</span></td>
-            <td><span class="c gr">Nothing holding</span></td><td><span class="brow"><span class="b sm plain">See the rule</span><span class="b sm plain">Undo</span></span></td></tr>
-        </tbody></table></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> rules go in Settings &amp; Rules, where HaTi already keeps the
-      review gate and the signing caps. The result shows as one row on the list that already appears before a
-      signature.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The whole pre-signature check, the playbook verdicts, the approval chain and the
-      signing caps. The lane is a reading over facts HaTi already has.</div>
-    <div><b>What is genuinely new</b>A small rules editor and one stamp on the record saying which lane cleared it.</div>
-    <div><b>Best in class</b>Ironclad&rsquo;s auto-approval workflows and Luminance&rsquo;s autopilot are the
-      headline feature of both products. Neither shows you the rule that fired as plainly as this should.</div>
-    <div><b>The honest limit</b>A lane can only be as good as the playbook behind it. HaTi should refuse to switch a
-      lane on until the playbook it depends on has actually read something &mdash; and say so.</div>
-  </div>
-</article>
-
-<article class="sol" id="s4">
-  <div class="sol-top">
-    <span class="sol-ref">S4</span><span class="sol-tag ext">Extends Requests</span>
-    <h3>A front door with a clock</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b> and <b>Daniel</b></p>
-  </div>
-  <p>HaTi already lets anybody in the company raise a request rather than emailing the lawyer. What a request does
-    not carry is the four things that make a queue work: <b>who owns it</b>, <b>how urgent it is</b>,
-    <b>when it is promised</b>, and <b>what is still needed from the person who asked</b>. Add those, sort by the
-    clock, and the queue becomes a worklist instead of an inbox.</p>
-  <div class="today">A request today is a title, a paragraph and a status. There is no owner, no date and no
-    priority, so the queue is ordered by whoever shouted most recently &mdash; <b>which is the exact problem the
-    requests feature was built to solve.</b></div>
-  <p>Priority should be worked out, not typed: a request naming a counterparty already on file, on our own
-    template, under the value where approvals start, is routine. One on the other side&rsquo;s paper with no
-    counterparty on file is not. The clock is a promise the team sets per kind of work, and the screen shows the
-    median it actually achieves beside it.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Requests</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hhead"><h4>Requests</h4><span class="sub">9 open &middot; 2 past their date &middot; median 1.4 days this month</span>
-        <span class="sp"></span><span class="brow"><span class="b">Mine only</span><span class="b pri">+ Raise a request</span></span></div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:10%"><col style="width:30%"><col style="width:16%"><col style="width:14%"><col style="width:16%"><col style="width:14%"></colgroup>
-        <thead><tr><th>Ref</th><th>What is needed</th><th>Raised by</th><th>Road</th><th>With</th><th>Promised</th></tr></thead>
-        <tbody>
-          <tr><td class="ref">REQ&#8209;4471</td><td class="tt">NDA for the Malm&ouml; pilot<span class="sub">Our template &middot; no money</span></td>
-            <td class="mut">Sara Lind</td><td><span class="c gr">Lane</span></td><td class="mut">Cleared</td><td><span class="c gy">Done in 4 min</span></td></tr>
-          <tr><td class="ref">REQ&#8209;4470</td><td class="tt">Review their haulage terms<span class="sub">Their paper &middot; SEK 1.2M &middot; new counterparty</span></td>
-            <td class="mut">Daniel A.</td><td><span class="c ru">Close read</span></td><td class="mut">Tom&aacute;s</td><td><span class="c ru">1 day over</span></td></tr>
-          <tr><td class="ref">REQ&#8209;4468</td><td class="tt">Renew the Nyala supply agreement<span class="sub">On file &middot; no change asked</span></td>
-            <td class="mut">Priya N.</td><td><span class="c gy">Routine</span></td><td class="mut">Tom&aacute;s</td><td><span class="c am">2 hours left</span></td></tr>
-          <tr><td class="ref">REQ&#8209;4465</td><td class="tt">Data processing terms for the new CRM<span class="sub">Their paper &middot; personal data</span></td>
-            <td class="mut">IT &mdash; Otto</td><td><span class="c am">Standard</span></td><td class="mut">Unassigned</td><td><span class="c gy">Thu 18 Sep</span></td></tr>
-          <tr><td class="ref">REQ&#8209;4461</td><td class="tt">Distribution agreement, Kenya<span class="sub">Waiting on you: signed board minute</span></td>
-            <td class="mut">Ama K.</td><td><span class="c am">Standard</span></td><td class="mut"><span class="c st bare">With the asker</span></td><td class="mut">Clock stopped</td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hfoot"><span>The clock stops while a request is waiting on the person who raised it, and says so.</span>
-        <span class="sp"></span><span class="b sm plain">How the road is decided</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> the Requests page it already has &mdash; four more columns, one
-      sort, and a line of counts in the sub-head where HaTi already puts them.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The request record, the value streams for who may see what, the playbook for
-      &ldquo;is this our paper&rdquo;, and the same worklist shape the obligations table already uses.</div>
-    <div><b>What is genuinely new</b>Four fields, one sort and a small settings panel for the promised turnaround
-      per road.</div>
-    <div><b>Best in class</b>Every serious legal-operations product measures cycle time against a promise. The part
-      most of them get wrong is stopping the clock when the ball is back with the requester &mdash; HaTi should
-      get that right from the start.</div>
-    <div><b>The honest limit</b>A promised date is a promise, not a prediction. It should be set by the team and
-      shown beside what they actually achieve, never presented as HaTi&rsquo;s forecast.</div>
-  </div>
-</article>
-
-<article class="sol" id="s5">
-  <div class="sol-top">
-    <span class="sol-ref">S5</span><span class="sol-tag new">New</span>
-    <h3>&ldquo;Where is my contract?&rdquo; &mdash; a tracker for the person who asked</h3>
-    <p class="for">Loudest for <b>Daniel</b>, quietly loved by everyone</p>
-  </div>
-  <p>The person who raised the request gets a link. It shows five steps, which one the contract is on, who is
-    holding it, and the honest date. No sign-in, nothing they can change, nothing commercially sensitive &mdash;
-    the same discipline HaTi already applies to what the counterparty may see.</p>
-  <div class="today">A salesperson who asks for a contract has no way to find out what happened to it except
-    asking a human, who asks another human. <b>That chase is the single most common piece of work a contract
-    team does, and it produces nothing.</b></div>
-  <p>It also makes an unpleasant truth visible in a useful way. When the bar sits on <i>With the other side</i>
-    for eleven days, nobody blames the lawyer &mdash; and HaTi can say when it last chased them.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Tracking REQ&#8209;4470</span><span class="sp"></span>
-        <span class="k">read only</span></div>
-      <div class="hhead"><h4>Review their haulage terms</h4>
-        <span class="sub">Raised by Daniel Andersson &middot; 2 September</span></div>
-      <div class="steps">
-        <div class="step done"><p class="n">1</p><p class="l">Raised</p><p class="w">2 Sep</p></div>
-        <div class="step done"><p class="n">2</p><p class="l">Read by legal</p><p class="w">3 Sep &middot; Tom&aacute;s</p></div>
-        <div class="step done"><p class="n">3</p><p class="l">Changes sent</p><p class="w">5 Sep &middot; 6 changes</p></div>
-        <div class="step now"><p class="n">4</p><p class="l">With Nordic Freight</p><p class="w">since 5 Sep &middot; 11 days</p></div>
-        <div class="step"><p class="n">5</p><p class="l">Signing</p><p class="w">not started</p></div>
-      </div>
-      <div class="hnote"><b>Waiting on Nordic Freight.</b> HaTi chased them on 9 September and again on 15
-        September. Nothing has come back. If it helps, you can chase them yourself &mdash; the contact on file is
-        Karin Sj&ouml;berg.</div>
-      <div class="hfoot"><span>Next update when they answer.</span><span class="sp"></span>
-        <span>Values and internal notes are not shown on this page.</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a read-only page served by the same link machinery as the
-      counterparty view, so the rules about what may leave the building are the ones HaTi already enforces.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The counterparty page, the whose-move reading, the negotiation timeline, and the
-      existing rule that a shared page never carries internal notes or reviews.</div>
-    <div><b>What is genuinely new</b>One small page and a link on the request. No new readings at all.</div>
-    <div><b>Best in class</b>Every delivery company solved this twenty years ago. Contract systems mostly have
-      not, because they assume the requester is a licensed user &mdash; and in a 140-person company they are not.</div>
-    <div><b>The honest limit</b>It must never show the value or the internal discussion. The safest build is the
-      counterparty page with fewer facts, not a new page with new rules.</div>
-  </div>
-</article>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">3</span><h2>Holding the other side to the deal</h2></div>
-  <p class="lede prose">HaTi is very good at telling you a date is coming. All three of these are about the step
-    after that: doing the thing, sending the thing, and proving you sent it.</p>
-</section>
-
-<article class="sol" id="s6">
-  <div class="sol-top">
-    <span class="sol-ref">S6</span><span class="sol-tag ext">Extends the renewal card</span>
-    <h3>The Notice Desk &mdash; draft it, serve it, prove it</h3>
-    <p class="for">Loudest for <b>Ama</b>, <b>Priya</b> and <b>Tom&aacute;s</b></p>
-  </div>
-  <p>A contract that renews unless you object is only dangerous for about three weeks a year. HaTi already knows
-    when those weeks are and what the clause requires. What it does not do is help you write the letter, send it
-    to the address the contract names, and keep proof. The Notice Desk does those three things, for the four
-    notices that matter: <b>do not renew</b>, <b>we are renewing</b>, <b>we object to this price rise</b>,
-    <b>we are terminating</b>.</p>
-  <div class="today">HaTi tells you a decision is due and quotes the notice period from the wording. Then it stops.
-    <b>The most consequential email a company sends all year is written by hand, in Outlook, to an address
-    somebody remembered.</b> If it goes to the wrong address, or two days late, the contract renews for a year.</div>
-  <p>The proof is the part the market gets lazy about. A served notice should sit on the trail with the exact
-    words, the address it went to, the time it left, and what the provider said about delivery &mdash; using the
-    same honesty HaTi already applies to every other message.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">AK</span></div>
-      <div class="hcards two">
-        <div class="hcard">
-          <div class="hd"><h5>Renewal</h5><span class="sp"></span><span class="c am">Decide by 14 Oct</span></div>
-          <div class="bd">
-            <div class="kv">
-              <span class="k">Renews</span><span class="v">For 12 months on 1 January</span><span></span>
-              <span class="k">Unless</span><span class="v">You object 90 days before</span><span class="cl">cl. 18.2</span>
-              <span class="k">In writing to</span><span class="v">Contracts, Nyala Foods AB</span><span class="cl">cl. 24</span>
-              <span class="k">Last day</span><span class="v">14 October &mdash; 28 days</span><span></span>
-            </div>
-            <p style="font-size:12.5px;color:var(--ink-2);margin:13px 0 0">The price rose 6% at the last renewal
-              and the cap is CPI. On your figures CPI was 2.1%.</p>
-          </div>
-          <div class="hfoot"><span class="b sm pri">Serve a notice</span><span class="b sm">Let it renew</span>
-            <span class="sp"></span><span class="b sm plain">Open the clause</span></div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>Notice &mdash; do not renew</h5><span class="sp"></span><span class="c gy">Draft</span></div>
-          <div class="bd">
-            <div style="background:var(--doc-warm);border:1px solid var(--doc-warm-line);padding:13px 14px;
-              font-size:12.5px;line-height:1.7;color:var(--doc-ink)">
-              <p style="margin:0 0 9px"><b>Notice not to renew &mdash; supply agreement dated 1 January 2024</b></p>
-              <p style="margin:0 0 9px">Under clause 18.2 we give notice that the agreement will not renew and will
-                end on 31 December 2026.</p>
-              <p style="margin:0">This notice is given more than 90 days before that date. Deliveries and payment
-                continue on the agreed terms until then.</p>
-            </div>
-            <p style="font-size:12px;color:var(--ink-3);margin:11px 0 0">Built from the clause. Edit it like any
-              other wording before it goes.</p>
-          </div>
-          <div class="hfoot"><span>To <b>contracts@nyalafoods.se</b> &mdash; the address in clause 24</span>
-            <span class="sp"></span><span class="b sm pri">Send it</span></div>
-        </div>
-      </div>
-      <div class="hband">On the trail, once it has gone</div>
-      <div class="scroll"><table class="ht">
-        <colgroup><col style="width:16%"><col style="width:48%"><col style="width:20%"><col style="width:16%"></colgroup>
-        <tbody>
-          <tr><td class="mut">12 Aug 14:02</td>
-            <td class="tt">Notice not to renew served<span class="sub">To contracts@nyalafoods.se &middot; PDF kept &middot; sent by Ama K.</span></td>
-            <td><span class="c gr">Delivered</span></td><td><span class="b sm plain">Read the notice</span></td></tr>
-        </tbody></table></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> two acts on the renewal card that already appears inside the
-      notice window, and one line on the History trail. No new page and no new alert.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The renewal reading, the clause quotation, the email provider and its honest
-      delivery reporting, the audit trail, and the same document writer used for exports.</div>
-    <div><b>What is genuinely new</b>Four short notice templates and a record of what was served.</div>
-    <div><b>Best in class</b>Gatekeeper and Precisely both treat notice as an event to be executed and evidenced,
-      not a date to be displayed. It is the clearest gap between a contract database and a contract system.</div>
-    <div><b>The honest limit</b>Some contracts demand recorded post or a named officer. The desk should print a
-      letter and record that it was posted by a person &mdash; never claim delivery it did not see.</div>
-  </div>
-</article>
-
-<article class="sol" id="s7">
-  <div class="sol-top">
-    <span class="sol-ref">S7</span><span class="sol-tag ext">Extends obligations</span>
-    <h3>What you are owed &mdash; rebates, credits and price holds as money</h3>
-    <p class="for">Loudest for <b>Priya</b></p>
-  </div>
-  <p>Once the commercial terms are read (S2), the ones with money in them become entitlements you can track: a
-    rebate earned but not claimed, a service credit due, a price hold about to lapse. They ride the obligations
-    engine that already exists &mdash; the same bands, the same chase, the same reminders &mdash; with one new
-    state: <b>claimed</b>.</p>
-  <div class="today">HaTi&rsquo;s obligations are duties: things somebody must do by a date. <b>The other half of a
-    commercial agreement is money that falls due because a threshold was crossed</b>, and no screen in the product
-    counts it. In practice that money is never claimed, which is why suppliers write the clauses so willingly.</div>
-  <p>The honesty rule matters more here than anywhere: HaTi reads agreements, not your bank. It can say what the
-    contract entitles you to on the volumes you enter; it cannot say what was invoiced. The screen says so,
-    plainly, and the arithmetic stays where a person can see it.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Obligations</span><span class="sp"></span><span class="u">PN</span></div>
-      <div class="hhead"><h4>Obligations</h4><span class="sub">Across 214 contracts</span><span class="sp"></span>
-        <span class="brow"><span class="b">Owed to us</span><span class="b off">Owed by us</span><span class="b off">All</span></span></div>
-      <div class="hband am">Earned, not claimed <span class="n">3 &middot; SEK 176,400</span></div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:30%"><col style="width:22%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup>
-        <thead><tr><th>What</th><th>Contract</th><th>Basis</th><th class="num">Amount</th><th></th></tr></thead>
-        <tbody>
-          <tr><td class="tt">Volume rebate, Q2<span class="sub">134,000 units against a 120,000 threshold</span></td>
-            <td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">cl. 9.1 &mdash; 3%</td>
-            <td class="num tt">144,000</td><td><span class="brow"><span class="b sm">Claim it</span></span></td></tr>
-          <tr><td class="tt">Late delivery credits<span class="sub">4 late loads &middot; you recorded them</span></td>
-            <td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td><td class="mut">cl. 12.3</td>
-            <td class="num tt">24,000</td><td><span class="brow"><span class="b sm">Claim it</span></span></td></tr>
-          <tr><td class="tt">Listing fee refund<span class="sub">Campaign not run</span></td>
-            <td class="mut">Bergs Retail <span class="ref">MK&#8209;177</span></td><td class="mut">cl. 10.4</td>
-            <td class="num tt">8,400</td><td><span class="brow"><span class="b sm">Claim it</span></span></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hband">Watch</div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:30%"><col style="width:22%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup>
-        <tbody>
-          <tr><td class="tt">Price hold ends 31 October<span class="sub">After that they may raise, capped at CPI</span></td>
-            <td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">cl. 11.4</td>
-            <td class="num mut">&mdash;</td><td><span class="c am">45 days</span></td></tr>
-          <tr><td class="tt">Rebate tier 3 within reach<span class="sub">11,000 units short of 4.5%</span></td>
-            <td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td><td class="mut">cl. 9.2</td>
-            <td class="num mut">+43,000</td><td><span class="c st">Opportunity</span></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hfoot"><span>Owed to us <b>SEK 176,400</b></span><span>Claimed this year <b>SEK 610,200</b></span>
-        <span class="sp"></span><span>2 contracts left out &mdash; no exchange rate on file for KES.</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> the obligations worklist, with a side switch and an amount column.
-      The bands are the ones the worklist already uses.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The whole obligations engine &mdash; bands, amounts, the chase, reminders, the
-      currency conversion and its habit of saying what it left out.</div>
-    <div><b>What is genuinely new</b>The entitlement kind, the claimed state, and a small place to enter the
-      volumes the rebate depends on.</div>
-    <div><b>Best in class</b>Sirion built a business on exactly this for services contracts. Nobody has done it
-      simply enough for a company of forty people.</div>
-    <div><b>The honest limit</b>Without invoice data this is what the paper entitles you to, not what you were
-      paid. The screen must keep saying that, and the totals must never be presented as revenue.</div>
-  </div>
-</article>
-
-<article class="sol" id="s8">
-  <div class="sol-top">
-    <span class="sol-ref">S8</span><span class="sol-tag ext">Extends obligations</span>
-    <h3>Certificates that expire</h3>
-    <p class="for">Loudest for <b>Priya</b>, close behind for <b>Tom&aacute;s</b></p>
-  </div>
-  <p>Contracts require the other side to hold things: product liability insurance, a food safety certificate, an
-    organic certification, a tax residency certificate, data processing terms. Each has an expiry date and none of
-    them is the contract. HaTi should hold the document, watch the date, and chase the supplier automatically
-    &mdash; using the chase it already has.</p>
-  <div class="today">Nothing in HaTi holds a supplier&rsquo;s certificate. In an FMCG business this is the
-    compliance wall: <b>an expired food safety certificate is a stop-shipping event</b>, and it is currently
-    tracked on a spreadsheet by one person who is on holiday in August.</div>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">PN</span></div>
-      <div class="hcards">
-        <div class="hcard">
-          <div class="hd"><h5>Documents they must hold</h5><span class="sp"></span><span class="c ru">1 lapsed</span>
-            <span class="b sm plain">+ Require a document</span></div>
-          <div class="bd" style="padding:0">
-            <div class="scroll">
-            <table class="ht">
-              <colgroup><col style="width:30%"><col style="width:20%"><col style="width:18%"><col style="width:16%"><col style="width:16%"></colgroup>
-              <thead><tr><th>Document</th><th>Required by</th><th>On file</th><th>Good until</th><th></th></tr></thead>
-              <tbody>
-                <tr><td class="tt">BRC food safety<span class="sub">Grade AA required</span></td><td class="mut">cl. 14.1</td>
-                  <td class="mut">v2024 &middot; PDF</td><td><span class="c ru">Lapsed 2 Sep</span></td>
-                  <td><span class="brow"><span class="b sm pri">Chase them</span></span></td></tr>
-                <tr><td class="tt">Product liability insurance<span class="sub">SEK 10M minimum</span></td><td class="mut">cl. 15.2</td>
-                  <td class="mut">2026 policy</td><td><span class="c am">31 Oct &middot; 45 days</span></td>
-                  <td><span class="brow"><span class="b sm">Ask early</span></span></td></tr>
-                <tr><td class="tt">Organic certification</td><td class="mut">cl. 14.4</td>
-                  <td class="mut">KRAV 2026</td><td><span class="c gr">Apr 2027</span></td><td></td></tr>
-                <tr><td class="tt">Data processing terms</td><td class="mut">cl. 19</td>
-                  <td class="mut none" style="color:var(--ink-3);font-style:italic">Never supplied</td><td class="mut">&mdash;</td>
-                  <td><span class="brow"><span class="b sm">Ask for it</span></span></td></tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <div class="hfoot"><span>Chases go to the contact on the contract, never to an address typed here.</span>
-            <span class="sp"></span><span>Lapsed documents show on the contract and on the supplier.</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a card in the Key terms column and a filter on the Contracts page
-      (&ldquo;a required document has lapsed&rdquo;). The chase is the one HaTi already sends for obligations.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The obligations engine for the dates and the reminders, the chase route with its
-      rule that the address comes off the stored contract, the file store, and the calendar.</div>
-    <div><b>What is genuinely new</b>A document kind with an expiry, and the requirement that links it to a clause.</div>
-    <div><b>Best in class</b>Gatekeeper&rsquo;s supplier compliance module is the reference. This is the part of
-      it that a smaller company actually needs.</div>
-    <div><b>The honest limit</b>Reading an expiry date off a certificate is not always safe. HaTi should propose
-      the date it read and make a person confirm it, exactly as it does for a contract it is unsure about.</div>
-  </div>
-</article>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">4</span><h2>Seeing the whole book</h2></div>
-  <p class="lede prose">HaTi has five Insights tabs and a weekly review, and they are good. These four are the
-    questions the four seats actually asked that none of them answers yet.</p>
-</section>
-
-<article class="sol" id="s9">
-  <div class="sol-top">
-    <span class="sol-ref">S9</span><span class="sol-tag ext">Extends Copilot</span>
-    <h3>Ask your book &mdash; with citations you can open, and questions that keep watching</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b> and <b>Priya</b></p>
-  </div>
-  <p>Copilot can already search the wording and answer about the portfolio. Two things are missing and both are
-    small. First, <b>every sentence in the answer should carry the clause it came from</b>, as a pill you press to
-    land on the wording. Second, a question worth asking once is worth keeping: save it, and HaTi re-asks it
-    whenever a contract is filed or signed, and tells you when the answer changes.</p>
-  <div class="today">You can ask Copilot a good question today and get a good answer. Then you close the tab and
-    the answer rots. <b>Three weeks later somebody signs a contract that changes it and nobody finds out.</b></div>
-  <p>A saved question is the cheapest early-warning system a contract system can have, and it costs almost nothing
-    because HaTi already turns an answer into a filtered worklist.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Copilot</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hcards">
-        <div class="hcard">
-          <div class="hd"><h5>Which contracts let the other side raise prices without our agreement?</h5></div>
-          <div class="bd">
-            <p style="margin:0 0 10px;font-size:14px">Nine, out of 186 live agreements that mention price.</p>
-            <p style="margin:0 0 10px;font-size:14px">Six of them are supply agreements on the supplier&rsquo;s own
-              paper, and in all six the rise takes effect on notice alone
-              <span class="pill">MK&#8209;204 cl. 11.4</span><span class="pill">MK&#8209;177 cl. 8.2</span><span class="pill">+4</span></p>
-            <p style="margin:0 0 10px;font-size:14px">Two cap the rise to an index
-              <span class="pill">MK&#8209;118 cl. 9.1</span><span class="pill">MK&#8209;231 cl. 7.7</span>
-              and one lets you terminate instead of accepting it <span class="pill">MK&#8209;092 cl. 12</span>.</p>
-            <p style="margin:0;font-size:13px;color:var(--ink-2)">23 contracts have not been read closely enough to
-              answer for, and are not counted above.</p>
-          </div>
-          <div class="hfoot"><span class="b sm">Open these 9 in Contracts</span>
-            <span class="b sm">Keep watching this question</span><span class="sp"></span>
-            <span class="b sm plain">Copy with citations</span></div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>Questions you are watching</h5><span class="sp"></span><span class="c am">1 changed</span></div>
-          <div class="bd" style="padding:0">
-            <table class="ht">
-              <colgroup><col style="width:52%"><col style="width:22%"><col style="width:26%"></colgroup>
-              <tbody>
-                <tr><td class="tt">Who may raise prices without our agreement?<span class="sub">Checked when a contract is filed or signed</span></td>
-                  <td class="mut">was 8, now 9</td><td><span class="c am">Changed 2 days ago</span></td></tr>
-                <tr><td class="tt">Where have we given exclusivity?<span class="sub">3 contracts</span></td>
-                  <td class="mut">no change</td><td><span class="c gy">Checked today</span></td></tr>
-                <tr><td class="tt">Which agreements survive a change of control?<span class="sub">11 contracts</span></td>
-                  <td class="mut">no change</td><td><span class="c gy">Checked today</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="hfoot"><span>A changed answer becomes one row in your alerts. It never becomes a banner.</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> the answer Copilot already gives, plus a list of saved questions
-      on the Insights page. A change becomes a row in the alerts panel that already exists.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The Copilot tools, the full-text search, the existing &ldquo;turn this answer into a
-      worklist&rdquo; door, and the alerts panel.</div>
-    <div><b>What is genuinely new</b>Storing the question with its answer, and re-running it on a trigger.</div>
-    <div><b>Best in class</b>Evisort and Luminance both do portfolio Q&amp;A. Neither makes the question a standing
-      monitor, which is the half that pays for itself.</div>
-    <div><b>The honest limit</b>An answer is only as good as what has been read. Saying &ldquo;23 contracts are not
-      counted&rdquo; is not a weakness to hide &mdash; it is the sentence that makes the other number usable.</div>
-  </div>
-</article>
-
-<article class="sol" id="s10">
-  <div class="sol-top">
-    <span class="sol-ref">S10</span><span class="sol-tag ext">Extends the weekly review</span>
-    <h3>The exposure register &mdash; one live page for what could hurt you</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b>, read by <b>Ama</b> before she talks to a bank</p>
-  </div>
-  <p>HaTi&rsquo;s weekly review already counts uncapped liability and open-ended price clauses. Those counts belong
-    on a live page instead of in a document: one row per kind of exposure, the number of contracts, the money on
-    paper behind them, and a door into the list. A sixth Insights tab, next to Payment terms.</p>
-  <div class="today">The facts exist but they are trapped in a weekly document, as sentences, with no way to press
-    them. <b>When the board asks what we are exposed to, the answer is assembled by hand</b> &mdash; and the
-    person assembling it has no idea which contracts nobody has read.</div>
-  <p>The last row is the most valuable one and the one every competitor hides: <b>contracts nobody has read</b>.
-    An honest exposure page says how much of the book it cannot speak for.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Insights</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hhead"><h4>Insights</h4><span class="sp"></span><span class="brow"><span class="b">Live book</span><span class="b plain">Export</span></span></div>
-      <div class="htabs"><span>Portfolio</span><span>Negotiation friction</span><span>Obligations</span>
-        <span>Payment terms</span><span class="on">Exposure</span><span>Contract graph</span></div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:36%"><col style="width:14%"><col style="width:20%"><col style="width:20%"><col style="width:10%"></colgroup>
-        <thead><tr><th>Exposure</th><th class="num">Contracts</th><th class="num">Value on paper</th><th>Worst one</th><th></th></tr></thead>
-        <tbody>
-          <tr><td class="tt">Liability is uncapped<span class="sub">No limit stated anywhere in the wording</span></td>
-            <td class="num">11</td><td class="num tt">SEK 4,120,000</td><td class="mut">Nordic Freight <span class="ref">MK&#8209;118</span></td>
-            <td><span class="b sm plain">See all</span></td></tr>
-          <tr><td class="tt">Indemnity with no ceiling<span class="sub">You indemnify, they do not</span></td>
-            <td class="num">4</td><td class="num tt">SEK 1,880,000</td><td class="mut">Bergs Retail <span class="ref">MK&#8209;177</span></td>
-            <td><span class="b sm plain">See all</span></td></tr>
-          <tr><td class="tt">They may change the price<span class="sub">No cap and no right to walk away</span></td>
-            <td class="num">9</td><td class="num tt">SEK 2,240,000</td><td class="mut">Nyala Foods <span class="ref">MK&#8209;204</span></td>
-            <td><span class="b sm plain">See all</span></td></tr>
-          <tr><td class="tt">Renews itself with no reminder to us<span class="sub">Notice window under 30 days</span></td>
-            <td class="num">6</td><td class="num tt">SEK 960,000</td><td class="mut">Zenith SaaS <span class="ref">MK&#8209;150</span></td>
-            <td><span class="b sm plain">See all</span></td></tr>
-          <tr><td class="tt">Exclusive, and we cannot get out<span class="sub">No termination for convenience</span></td>
-            <td class="num">3</td><td class="num tt">SEK 640,000</td><td class="mut">Kericho Gold <span class="ref">MK&#8209;209</span></td>
-            <td><span class="b sm plain">See all</span></td></tr>
-          <tr><td class="tt" style="color:var(--steel-fg)">Not read closely enough to say<span class="sub">No brief, no standards pass, no risk scan</span></td>
-            <td class="num">23</td><td class="num tt">SEK 5,300,000</td><td class="mut">&mdash;</td>
-            <td><span class="b sm">Read them</span></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hfoot"><span>Live agreements only &mdash; declined and shelved are out.</span><span class="sp"></span>
-        <span>3 contracts left out of the money column: no exchange rate on file for KES.</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a sixth tab on Insights. Every row opens the Contracts page
-      narrowed to that list &mdash; the same door the other Insights pages already use.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The weekly review&rsquo;s own counting, the risk scan findings, the playbook
-      verdicts, the currency conversion and its left-out line, and the existing &ldquo;open this list&rdquo; door.</div>
-    <div><b>What is genuinely new</b>A tab and a reading that groups what is already counted. No route, no field.</div>
-    <div><b>Best in class</b>LinkSquares and Icertis both sell a risk dashboard. Most of them score contracts out of
-      100, which HaTi should refuse to do &mdash; a made-up number is worse than a count you can open.</div>
-    <div><b>The honest limit</b>&ldquo;Value on paper&rdquo; is the contract value, not what you would actually lose.
-      Call it what it is and let a lawyer do the rest.</div>
-  </div>
-</article>
-
-<article class="sol" id="s11">
-  <div class="sol-top">
-    <span class="sol-ref">S11</span><span class="sol-tag ext">Extends the clause ladder</span>
-    <h3>What the negotiation was worth</h3>
-    <p class="for">Loudest for <b>Daniel</b> and <b>Priya</b></p>
-  </div>
-  <p>HaTi already records every position on a clause, in order, with the figures. That is everything needed to say
-    what a negotiation actually moved: payment terms opened at 30 and settled at 45; the liability cap came down
-    from twelve months&rsquo; fees to six; the automatic renewal came out. Print that at the end of the
-    negotiation, and add it up across the quarter.</p>
-  <div class="today">The ladder holds the whole story of a negotiation and nothing ever totals it.
-    <b>A team that negotiates well has no way to show that it does</b>, which is why contract functions get cut
-    first.</div>
-  <p>One caution, and it should be printed on the screen: converting fifteen days of payment terms into a money
-    figure is a rule of thumb, not a measurement. Say the rule, show the days, let the reader decide.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Negotiation memo</span><span class="sp"></span><span class="u">DA</span></div>
-      <div class="hcards">
-        <div class="hcard">
-          <div class="hd"><h5>What this negotiation moved</h5><span class="sp"></span>
-            <span class="c gy">Nordic Freight &middot; 6 rounds &middot; 11 days</span></div>
-          <div class="bd" style="padding:0">
-            <div class="scroll">
-            <table class="ht">
-              <colgroup><col style="width:30%"><col style="width:18%"><col style="width:18%"><col style="width:34%"></colgroup>
-              <thead><tr><th>Clause</th><th>They opened</th><th>Settled</th><th>What that is worth</th></tr></thead>
-              <tbody>
-                <tr><td class="tt">Payment terms</td><td class="mut">30 days</td><td class="tt">45 days</td>
-                  <td class="mut">15 days held &mdash; about SEK 9,200 of working capital on this contract&rsquo;s value</td></tr>
-                <tr><td class="tt">Liability cap</td><td class="mut">Uncapped</td><td class="tt">6 months&rsquo; fees</td>
-                  <td class="mut">Ceiling put on an open exposure</td></tr>
-                <tr><td class="tt">Automatic renewal</td><td class="mut">Renews for 12 months</td><td class="tt">Removed</td>
-                  <td class="mut">No 90-day trap next December</td></tr>
-                <tr><td class="tt">Price changes</td><td class="mut">On notice</td><td class="tt">Capped at CPI</td>
-                  <td class="mut">Rise limited &mdash; 2.1% rather than an open number</td></tr>
-                <tr><td class="tt">Exclusivity</td><td class="mut">Asked for it</td><td class="tt">Dropped</td>
-                  <td class="mut">You kept your second haulier</td></tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <div class="hfoot"><span>Every line is taken from the ladder. Nothing here was written by a model.</span>
-            <span class="sp"></span><span class="b sm plain">Copy as a memo</span></div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>This quarter</h5><span class="sp"></span><span class="c gy">38 negotiations closed</span></div>
-          <div class="bars">
-            <div class="bar"><span class="t">Payment-term days won</span><span class="track"><span class="fill" style="width:78%"></span></span><span class="v">214 days</span></div>
-            <div class="bar"><span class="t">Uncapped liabilities removed</span><span class="track"><span class="fill" style="width:44%"></span></span><span class="v">4</span></div>
-            <div class="bar"><span class="t">Auto-renewals taken out</span><span class="track"><span class="fill" style="width:62%"></span></span><span class="v">9</span></div>
-            <div class="bar"><span class="t">Price rises capped</span><span class="track"><span class="fill" style="width:30%"></span></span><span class="v">6</span></div>
-            <div class="bar"><span class="t">Positions conceded</span><span class="track"><span class="fill ru" style="width:22%"></span></span><span class="v">17</span></div>
-          </div>
-          <div class="hfoot"><span>Working capital is a rule of thumb HaTi states, not money it has seen.</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a section at the end of the negotiation memo HaTi already builds,
-      and one strip on Reports. No new page.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The clause ladder, the settled-figure reading, the payment-terms reading, the
-      precedent memory and the memo builder.</div>
-    <div><b>What is genuinely new</b>The arithmetic, and one stated rule of thumb for turning days into money.</div>
-    <div><b>Best in class</b>Sirion and Icertis both report &ldquo;value leakage&rdquo;. They usually cannot show
-      the opening position, because they never recorded it. HaTi did.</div>
-    <div><b>The honest limit</b>Conceded positions must be counted too. A scoreboard that only counts wins is a
-      marketing document, and a procurement manager will spot it in a minute.</div>
-  </div>
-</article>
-
-<article class="sol" id="s12">
-  <div class="sol-top">
-    <span class="sol-ref">S12</span><span class="sol-tag ext">Extends the agreement family</span>
-    <h3>The family check &mdash; does the order form contradict the master?</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b>, real money for <b>Priya</b></p>
-  </div>
-  <p>HaTi already links a contract to its parent and its amendments. A family is where the expensive mistakes live:
-    an order form saying 30 days when the master says 45, a statement of work running past the end of the
-    agreement it sits under, personal data being processed with no data processing terms anywhere in the family.
-    One act on the family card checks the family against itself.</p>
-  <div class="today">HaTi checks a contract against your playbook, beautifully. <b>It never checks a contract
-    against its own parent</b> &mdash; and in practice a dispute is far more often about two of your own documents
-    disagreeing than about a clause being off-market.</div>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contract workspace</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hcards">
-        <div class="hcard">
-          <div class="hd"><h5>Agreement family</h5><span class="sp"></span><span class="c ru">2 disagreements</span>
-            <span class="b sm">Check the family</span></div>
-          <div class="bd" style="padding:0">
-            <div class="scroll">
-            <table class="ht">
-              <colgroup><col style="width:34%"><col style="width:46%"><col style="width:20%"></colgroup>
-              <tbody>
-                <tr><td class="tt">Master services agreement<span class="sub">MK&#8209;118 &middot; to 31 Dec 2026</span></td>
-                  <td class="mut">The parent &mdash; says it wins where documents disagree <span class="pill">cl. 2.3</span></td>
-                  <td><span class="c gr">In force</span></td></tr>
-                <tr><td class="tt">Statement of work 2<span class="sub">MK&#8209;191</span></td>
-                  <td style="color:var(--ruby-fg)">Runs to 31 March 2027 &mdash; three months past the agreement it sits under</td>
-                  <td><span class="brow"><span class="b sm plain">Open it</span></span></td></tr>
-                <tr><td class="tt">Order form &mdash; Q3<span class="sub">MK&#8209;198</span></td>
-                  <td style="color:var(--ruby-fg)">Says 30 days to pay; the master says 45 and the master wins <span class="pill">cl. 7.1</span></td>
-                  <td><span class="brow"><span class="b sm plain">Open it</span></span></td></tr>
-                <tr><td class="tt">Data processing terms<span class="sub">Not on file</span></td>
-                  <td style="color:var(--amber-fg)">The master has you handling customer records <span class="pill">cl. 6.2</span> and no family document covers it</td>
-                  <td><span class="brow"><span class="b sm">Ask for one</span></span></td></tr>
-                <tr><td class="tt">Amendment 1<span class="sub">MK&#8209;144 &middot; signed</span></td>
-                  <td class="mut">Raised the cap to SEK 2M &mdash; agrees with everything else</td>
-                  <td><span class="c gr">Agrees</span></td></tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <div class="hfoot"><span>Checked against the wording of all five documents, 14 Sep.</span>
-            <span class="sp"></span><span>Disagreements also appear on the list before you sign.</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> the agreement family card in the Key terms column. Anything it finds
-      becomes a row on the pre-signature list, which already knows how to show and settle a finding.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The family links, the clause reader, the payment-terms reading, the order-of-
-      precedence clause, and the rows-with-verbs pattern used before a signature.</div>
-    <div><b>What is genuinely new</b>The comparison itself and four or five things worth comparing.</div>
-    <div><b>Best in class</b>Icertis and Agiloft both do hierarchy checking for enterprises. Nobody offers it at
-      the size of company that signs an order form on a Friday afternoon.</div>
-    <div><b>The honest limit</b>Keep the list of comparisons short and obvious &mdash; dates, payment terms,
-      liability, precedence, missing data terms. A check nobody trusts gets switched off.</div>
-  </div>
-</article>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">5</span><h2>Acting on many at once</h2></div>
-  <p class="lede prose">Everything in HaTi happens to one contract. Twice a year something has to happen to two
-    hundred of them, and today that means two hundred afternoons. Both of these arrive through <b>one new door</b>.</p>
-</section>
-
-<article class="sol" id="s13">
-  <div class="sol-top">
-    <span class="sol-ref">S13</span><span class="sol-tag new">New</span>
-    <h3>&ldquo;Do this to these 46&rdquo; &mdash; papering a change across the book</h3>
-    <p class="for">Loudest for <b>Tom&aacute;s</b> and <b>Priya</b></p>
-  </div>
-  <p>Narrow the Contracts page the way you already can &mdash; supplier agreements, in force, on our paper &mdash;
-    and a single act appears above the table: <b>Do this to these 46</b>. Behind it, two things: send the same
-    amendment to all of them, or ask all of them for a document. HaTi mints one amendment per contract from a
-    template, sends them in waves so a mistake costs ten emails rather than four hundred, and keeps a board of who
-    has signed.</p>
-  <div class="today">A company name changes, a law changes, an insurer raises a requirement, and a price index
-    moves. <b>Each of those is a week of copying and pasting</b>, and the usual outcome is that half the book
-    never gets updated &mdash; which is exactly what an acquirer or a regulator eventually finds.</div>
-  <p>The discipline that keeps this from being dangerous is the wave. Nothing is sent to everybody at once, and
-    every wave can be stopped. The first wave is the one you choose yourself.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Contracts</span><span class="sp"></span><span class="u">TM</span></div>
-      <div class="hhead"><h4>Contracts</h4><span class="sub">Narrowed to: supply agreements &middot; in force &middot; our paper &mdash; 46 of 214</span>
-        <span class="sp"></span><span class="brow"><span class="b">Clear</span><span class="b pri">Do this to these 46</span></span></div>
-      <div style="padding:0 16px 16px;display:flex;justify-content:flex-end">
-        <div class="menu" role="menu">
-          <div class="on">Send an amendment to all 46</div>
-          <div>Ask all 46 for a document</div>
-          <div class="sep"></div>
-          <div>Build a pack from these 46</div>
-          <div>Export the list</div>
-        </div>
-      </div>
-      <div class="hband">Campaign &mdash; new data processing terms <span class="n">started 12 Sep by Tom&aacute;s</span></div>
-      <div class="bars">
-        <div class="bar"><span class="t">Wave 1 &mdash; 5 contracts</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="v">5 signed</span></div>
-        <div class="bar"><span class="t">Wave 2 &mdash; 20 contracts</span><span class="track"><span class="fill" style="width:60%"></span></span><span class="v">12 signed &middot; 6 open</span></div>
-        <div class="bar"><span class="t">Wave 3 &mdash; 21 contracts</span><span class="track"><span class="fill" style="width:0%"></span></span><span class="v">not sent</span></div>
-      </div>
-      <div class="scroll">
-      <table class="ht">
-        <colgroup><col style="width:32%"><col style="width:20%"><col style="width:22%"><col style="width:26%"></colgroup>
-        <thead><tr><th>Contract</th><th>Amendment</th><th>Sent to</th><th>State</th></tr></thead>
-        <tbody>
-          <tr><td class="tt">Nordic Freight AB <span class="ref">MK&#8209;118</span></td><td class="mut">Amendment 2</td>
-            <td class="mut">karin@nordicfreight.se</td><td><span class="c gr">Signed 14 Sep</span></td></tr>
-          <tr><td class="tt">Bergs Retail AB <span class="ref">MK&#8209;177</span></td><td class="mut">Amendment 1</td>
-            <td class="mut">legal@bergsretail.se</td><td><span class="c am">Opened, not signed &middot; 4 days</span></td></tr>
-          <tr><td class="tt">Zenith SaaS Ltd <span class="ref">MK&#8209;150</span></td><td class="mut">Amendment 1</td>
-            <td class="mut">&mdash;</td><td><span class="c ru">No contact on file</span></td></tr>
-          <tr><td class="tt">Kericho Gold Ltd <span class="ref">MK&#8209;209</span></td><td class="mut">Amendment 3</td>
-            <td class="mut">kimani@kerichogold.co.ke</td><td><span class="c gy">Queued &mdash; wave 3</span></td></tr>
-        </tbody>
-      </table>
-      </div>
-      <div class="hfoot"><span class="b sm pri">Send wave 3</span><span class="b sm off">Pause the campaign</span>
-        <span class="sp"></span><span>2 contracts cannot be sent &mdash; no contact on file. They are named above.</span></div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> one act on the Contracts page, live only while a filter is
-      narrowing it. The campaign board is the same table, narrowed to the campaign.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>Amendments (HaTi already mints one and files it in a breath), templates, the round
-      send, share links, the register filters and the contact on the record.</div>
-    <div><b>What is genuinely new</b>The campaign record and the waves.</div>
-    <div><b>Best in class</b>Icertis and Sirion call this bulk remediation and it is a six-figure module. The
-      version that matters for a mid-market company is this one: a filter, a template and a stop button.</div>
-    <div><b>The honest limit</b>Never send without a wave and never hide a contract that could not be sent. The
-      failures are the whole point &mdash; they are the ones a person must handle by hand.</div>
-  </div>
-</article>
-
-<article class="sol" id="s14">
-  <div class="sol-top">
-    <span class="sol-ref">S14</span><span class="sol-tag new">New</span>
-    <h3>The diligence pack &mdash; the whole book, evidenced, in one press</h3>
-    <p class="for">Loudest for <b>Ama</b>, then <b>Daniel</b></p>
-  </div>
-  <p>A bank, an investor, an acquirer or an auditor asks the same question in the same shape: give us every
-    agreement, tell us which ones we cannot assign, which ones die on a change of control, which ones lock you in,
-    and which ones you cannot find. HaTi can answer all five from what it already holds. One press builds the
-    pack: an index, the flags, and the documents.</p>
-  <div class="today">HaTi can export contracts and it builds a fine evidence pack for a single signature. <b>It
-    has no answer to &ldquo;send us your contracts and tell us what is in them&rdquo;</b>, which for a small
-    company is the most stressful week of its year.</div>
-  <p>The line that makes the pack trustworthy is the one that admits what is missing. Four contracts with no
-    signed copy on file are four questions you will be asked anyway &mdash; better to be the one who raised them.</p>
-
-  <div class="shot">
-    <div class="hati">
-      <div class="hbar"><span class="logo">HaTi</span><span class="t">Build a pack</span><span class="sp"></span><span class="u">AK</span></div>
-      <div class="hcards two">
-        <div class="hcard">
-          <div class="hd"><h5>What to flag</h5></div>
-          <div class="bd">
-            <div class="kv">
-              <span class="k"><span class="c gr bare">on</span></span><span class="v">Dies or needs consent on a change of control</span><span class="cl">11 found</span>
-              <span class="k"><span class="c gr bare">on</span></span><span class="v">Cannot be assigned without consent</span><span class="cl">28 found</span>
-              <span class="k"><span class="c gr bare">on</span></span><span class="v">Exclusivity or non-compete</span><span class="cl">3 found</span>
-              <span class="k"><span class="c gr bare">on</span></span><span class="v">Liability uncapped</span><span class="cl">11 found</span>
-              <span class="k"><span class="c gr bare">on</span></span><span class="v">We cannot terminate early</span><span class="cl">9 found</span>
-              <span class="k"><span class="c gy bare">off</span></span><span class="v">Payment terms over 60 days</span><span class="cl">&mdash;</span>
-            </div>
-          </div>
-        </div>
-        <div class="hcard">
-          <div class="hd"><h5>Series A data room</h5><span class="sp"></span><span class="c st">46 contracts</span></div>
-          <div class="bd">
-            <div class="kv">
-              <span class="k">Index</span><span class="v">One sheet, one row per contract</span><span></span>
-              <span class="k">Flags</span><span class="v">A column per flag, with the clause</span><span></span>
-              <span class="k">Documents</span><span class="v">42 signed PDFs</span><span></span>
-              <span class="k">Values</span><span class="v">Converted to SEK, rate dated 1 Sep</span><span></span>
-              <span class="k">Left out</span><span class="v">Shelved and declined agreements</span><span></span>
-            </div>
-            <p style="font-size:13px;color:var(--ruby-fg);margin:14px 0 0"><b>4 contracts have no signed copy on
-              file.</b> They are listed in the index with what is known about them, rather than quietly dropped.</p>
-          </div>
-          <div class="hfoot"><span class="b sm pri">Build the pack</span><span class="sp"></span>
-            <span>Nothing leaves HaTi until you press.</span></div>
-        </div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> the same &ldquo;do this to these 46&rdquo; door as S13, so a
-      cohort has one menu rather than two competing buttons.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The register filters, the exports, the evidence pack, the currency conversion, and
-      Copilot for the five flags.</div>
-    <div><b>What is genuinely new</b>The index sheet and the flag list.</div>
-    <div><b>Best in class</b>This is what junior lawyers are billed out at cost for. Doing it honestly, including
-      the gaps, is worth more than doing it quickly.</div>
-    <div><b>The honest limit</b>A flag is a pointer to a clause, not a legal opinion. Every flag must carry the
-      clause it came from, and the pack should say plainly that a person still has to read it.</div>
-  </div>
-</article>
-
-<section class="sec">
-  <div class="sec-head"><span class="rule-n">6</span><h2>Meeting people where they already are</h2></div>
-</section>
-
-<article class="sol" id="s15">
-  <div class="sol-top">
-    <span class="sol-ref">S15</span><span class="sol-tag new">New</span>
-    <h3>HaTi in the chat &mdash; WhatsApp, Slack and Teams</h3>
-    <p class="for">Loudest for <b>Ama</b> and <b>Daniel</b></p>
-  </div>
-  <p>HaTi already works out who needs to know what and puts it in the alerts panel and in email. The panel is only
-    read by people who open HaTi. For an owner running a business from a phone, and for a manager who lives in
-    Slack, the same alert should arrive where they already are, carrying the one or two decisions it needs.</p>
-  <div class="today">Everything HaTi knows is inside HaTi. <b>The person who most needs the renewal warning is the
-    least likely to log in.</b> Email helps, but an email asking for a decision usually becomes a task for later,
-    and later is after the notice window closes.</div>
-  <p>The line to hold is what a reply is allowed to mean. A reply can record a decision &mdash; let it renew, serve
-    notice, approve within your limit. <b>A reply is never a signature.</b> That stays on the paper, with the
-    assurance record HaTi already keeps.</p>
-
-  <div class="shot">
-    <div class="hcards two" style="padding:0;gap:16px;display:grid;align-items:start">
-      <div class="hati">
-        <div class="hbar" style="background:#075E54"><span class="logo">WhatsApp</span><span class="sp"></span>
-          <span class="k" style="border-color:#128C7E;color:#a7d7cf">business</span></div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--raised)">
-          <div class="msg"><p class="from">HaTi &middot; 08:02</p>
-            Good morning Ama. <b>Nyala Foods renews on 1 January</b> unless you object by 14 October &mdash; 28 days.
-            The price rose 6% last time and the cap is CPI (2.1%).<br><br>
-            Reply <b>1</b> to let it renew &middot; <b>2</b> to serve notice &middot; <b>3</b> to open it in HaTi</div>
-          <div class="msg" style="background:var(--accent-soft);border-color:var(--accent-edge);margin-left:22%">
-            <p class="from">Ama &middot; 08:04</p>2</div>
-          <div class="msg"><p class="from">HaTi &middot; 08:04</p>
-            Notice drafted from clause 18.2 and waiting for you to read it. Nothing has been sent.
-            <br><br><b>Open the notice &rarr;</b></div>
-        </div>
-        <div class="hfoot"><span>A reply records a decision. It is never a signature.</span></div>
-      </div>
-      <div class="hati">
-        <div class="hbar" style="background:#3F0F3F"><span class="logo">Slack</span><span class="t">#contracts</span><span class="sp"></span></div>
-        <div style="padding:16px;background:var(--raised)">
-          <div class="msg" style="border-left:3px solid var(--accent)">
-            <p class="from">HaTi APP &middot; 09:14</p>
-            <p style="margin:0 0 4px;font-weight:600">Approval needed &mdash; Bergs Retail supply agreement</p>
-            <p style="margin:0 0 10px;color:var(--ink-2);font-size:12.5px">MK&#8209;177 &middot; SEK 840,000 &middot; over your
-              SEK 500,000 limit &middot; raised by Priya N. &middot; 2 departures from the playbook</p>
-            <span class="brow"><span class="b sm pri">Approve</span><span class="b sm off">Not yet</span>
-              <span class="b sm plain">Open in HaTi</span></span>
-          </div>
-          <div class="msg" style="margin-top:10px">
-            <p class="from">HaTi APP &middot; 07:00 &middot; your daily brief</p>
-            <p style="margin:0;font-size:13px">2 approvals waiting &middot; 1 renewal decision in 28 days &middot;
-              1 supplier certificate lapsed &middot; nothing overdue with the other side</p>
-          </div>
-        </div>
-        <div class="hfoot"><span>Same alerts, same order, same counts as the panel in HaTi.</span></div>
-      </div>
-    </div>
-    <p class="shot-cap"><b>Where it lives:</b> a channel setting per person, beside the daily-brief setting that
-      already exists. The alerts themselves are unchanged &mdash; this is a new way out, not a new thing to say.</p>
-  </div>
-
-  <div class="facts">
-    <div><b>What it borrows</b>The alerts builder and its order, the approvals, the daily brief and its
-      per-person cadence, and the same honest reporting used for email.</div>
-    <div><b>What is genuinely new</b>Two channel adapters and a way to bind a phone number or chat account to a
-      person, safely.</div>
-    <div><b>Best in class</b>Slack and Teams approvals are standard in the enterprise. WhatsApp is not &mdash; and
-      in East African and South Asian markets it is the channel that decides whether software gets used at all.</div>
-    <div><b>The honest limit</b>A chat account is easier to take over than a signed-in session. Approvals by chat
-      belong under the same limits as any other approval, and a signature must never be one of them.</div>
-  </div>
-</article>
-
-<section class="sec" id="start">
-  <div class="sec-head"><span class="rule-n">7</span><h2>Where I would start</h2></div>
-  <p class="lede prose">Not a priority order dressed up as a roadmap &mdash; a build order. Each wave makes the
-    next one cheaper, and the last pair only becomes safe once the rest is trustworthy.</p>
-
-  <div class="waves">
-    <div class="wave">
-      <h4>Relief</h4>
-      <p class="when">Wave one</p>
-      <ol>
-        <li><span class="rf">S1</span>The Mailroom</li>
-        <li><span class="rf">S6</span>The Notice Desk</li>
-        <li><span class="rf">S5</span>Where is my contract?</li>
-        <li><span class="rf">S15</span>HaTi in the chat</li>
-      </ol>
-      <p>Four things a customer feels in the first week. None of them asks HaTi to make a judgement it does not
-        already make &mdash; they move facts it has to people who are not looking at it.</p>
-    </div>
-    <div class="wave">
-      <h4>The commercial spine</h4>
-      <p class="when">Wave two</p>
-      <ol>
-        <li><span class="rf">S2</span>Commercial terms card</li>
-        <li><span class="rf">S8</span>Certificates that expire</li>
-        <li><span class="rf">S7</span>What you are owed</li>
-        <li><span class="rf">S10</span>The exposure register</li>
-      </ol>
-      <p>S2 is the keystone: S7 cannot exist without it, and S10 gets sharper because of it. This wave is what
-        turns HaTi from a legal tool into something a procurement manager will pay for.</p>
-    </div>
-    <div class="wave">
-      <h4>Leverage</h4>
-      <p class="when">Wave three</p>
-      <ol>
-        <li><span class="rf">S4</span>A front door with a clock</li>
-        <li><span class="rf">S3</span>Clearance lanes</li>
-        <li><span class="rf">S12</span>The family check</li>
-        <li><span class="rf">S9</span>Ask your book</li>
-        <li><span class="rf">S11</span>What it was worth</li>
-      </ol>
-      <p>These need the playbook to be earning its keep first. Build the clock before the lanes &mdash; you cannot
-        tell whether a lane helped until you were already measuring.</p>
-    </div>
-    <div class="wave" style="border-top-color:var(--ink-3)">
-      <h4>The pair that waits</h4>
-      <p class="when">After the rest</p>
-      <ol>
-        <li><span class="rf">S13</span>Do this to these 46</li>
-        <li><span class="rf">S14</span>The diligence pack</li>
-      </ol>
-      <p>Both act on many contracts at once, and both share one door. Doing that badly is the only proposal here
-        that could damage a customer&rsquo;s relationships in an afternoon. It should go last, with waves and a
-        stop button from the first line of code.</p>
-    </div>
+  <div class="cat">
+    <div class="catcard"><div class="h"><span class="rf">S1</span><b>The Mailroom</b></div>
+      <p>Forward a contract to the workspace&rsquo;s own email address and it files itself, read and ready to
+        confirm. HaTi can send email; it has never been able to receive one.</p>
+      <p class="w"><b>Borrows:</b> the Word and PDF readers, the arrival readings, the duplicate check.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S2</span><b>Commercial terms</b></div>
+      <p>Reads the rebate, the tiers, the minimum order and the price-change mechanism out of the wording, each
+        pointing at its clause. Today HaTi reads the dates and the value; the deal is elsewhere.</p>
+      <p class="w"><b>Borrows:</b> the extraction route, the way the renewal card quotes a clause.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S3</span><b>Clearance lanes</b></div>
+      <p>A rule an administrator writes &mdash; our template, no money, nothing outside the playbook &mdash; that
+        clears routine contracts to signature. The record names the lane and the conditions tested.</p>
+      <p class="w"><b>Borrows:</b> the pre-signature check, the playbook verdicts, the approval chain.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S4</span><b>A front door with a clock</b></div>
+      <p>Requests gain an owner, a road, and a promised date &mdash; and the clock stops while the ball is back
+        with the person who asked.</p>
+      <p class="w"><b>Borrows:</b> the request record, the worklist shape, the value streams.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S5</span><b>Where is my contract?</b></div>
+      <p>A read-only tracker for whoever raised the request: which step, who is holding it, the honest date. No
+        login, no values, no internal notes.</p>
+      <p class="w"><b>Borrows:</b> the counterparty page and its rules about what may leave.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S6</span><b>The Notice Desk</b></div>
+      <p>Drafts the non-renewal or termination notice from the clause, sends it to the address the contract names,
+        and keeps proof on the trail.</p>
+      <p class="w"><b>Borrows:</b> the renewal reading, the email provider&rsquo;s honest delivery report.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S7</span><b>What you are owed</b></div>
+      <p>Rebates earned, credits due and price holds about to lapse, tracked as obligations with one new state:
+        claimed. The money most companies never go and get.</p>
+      <p class="w"><b>Borrows:</b> the whole obligations engine, including the amount it already carries.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S8</span><b>Certificates that expire</b></div>
+      <p>Insurance, food safety, tax residency, data processing terms: held, watched, and chased automatically when
+        they lapse.</p>
+      <p class="w"><b>Borrows:</b> the obligations engine, the chase, the file store, the calendar.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S9</span><b>Ask your book</b></div>
+      <p>Answers carrying the clause each sentence came from, and a question you can keep &mdash; re-asked
+        whenever a contract is filed or signed, telling you when the answer moves.</p>
+      <p class="w"><b>Borrows:</b> the Copilot tools, the search, the answer-to-worklist door.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S10</span><b>The exposure register</b></div>
+      <p>Uncapped liability, open-ended price clauses, traps that renew themselves &mdash; live, countable,
+        openable, with the money beside them and the unread contracts admitted.</p>
+      <p class="w"><b>Borrows:</b> the weekly review&rsquo;s own counting, the risk scan, the conversion.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S11</span><b>What it was worth</b></div>
+      <p>Opened at 30 days, settled at 45. The ladder already holds every position; nothing totals it. Concessions
+        counted too, or it is a marketing document.</p>
+      <p class="w"><b>Borrows:</b> the clause ladder and the memo builder.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S12</span><b>The family check</b></div>
+      <p>Does the order form contradict the master agreement? Dates, payment terms, liability, precedence, missing
+        data terms &mdash; checked against the family&rsquo;s own documents.</p>
+      <p class="w"><b>Borrows:</b> the family links, the clause reader, the pre-signature rows.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S13</span><b>Do this to these 46</b></div>
+      <p>An amendment campaign across a cohort, sent in waves, with a board of who has signed and a stop button.</p>
+      <p class="w"><b>Borrows:</b> amendments, templates, the round send, the register filters.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S14</span><b>The diligence pack</b></div>
+      <p>The whole book for a bank, an investor or an auditor: an index, the five flags they always ask about, and
+        an honest list of what is missing.</p>
+      <p class="w"><b>Borrows:</b> the exports, the evidence pack, the conversion, Copilot.</p></div>
+    <div class="catcard"><div class="h"><span class="rf">S15</span><b>HaTi in the chat</b></div>
+      <p>The same alerts, arriving in WhatsApp, Slack or Teams. A reply can record a decision. A reply is never a
+        signature.</p>
+      <p class="w"><b>Borrows:</b> the alerts builder, the approvals, the daily brief.</p></div>
   </div>
 </section>
 
 <section class="sec" id="left-out">
-  <div class="sec-head"><span class="rule-n">8</span><h2>What I left out, on purpose</h2></div>
-  <p class="lede prose">These are all things a world-class CLM is sold with. Each one would make HaTi worse, and
-    the reason is usually one of HaTi&rsquo;s own rules.</p>
+  <div class="sec-head"><span class="rule-n">viii</span><h2>What we did not add</h2></div>
+  <p class="lede prose">Half of keeping a product light is the list of things you refused. These are all standard in
+    the category, and each one would have cost surface that the fifteen above deliberately did not spend.</p>
 
   <div class="out">
-    <div><b>A risk score out of 100</b>Every competitor has one and none of them can explain it. HaTi&rsquo;s
-      standing rule is that an absence is stated and never guessed &mdash; a made-up number breaks it, and a
-      lawyer will not defend a figure they cannot derive. The exposure register counts instead, and every count
-      opens.</div>
-    <div><b>A drag-and-drop workflow builder</b>It is the classic enterprise upsell and it is how a product loses
-      its opinions. HaTi&rsquo;s strength is that there is one way to do each thing; a builder gives every customer
-      four, then support carries the difference for ever.</div>
-    <div><b>A separate supplier portal</b>HaTi already has a page the other side can open, with careful rules about
-      what may leave the building. A second front door would drift from the first, and two screens disagreeing
-      about what the product does is the most expensive fault this codebase has.</div>
+    <div><b>A sixteenth door in the sidebar</b>Every one of these could have been a nav item &mdash; a Mailroom
+      page, a Notices page, a Compliance page, a Campaigns page. That is how contract systems end up with
+      thirty-one doors and a search box to find them. Thirteen doors in, thirteen doors out.</div>
+    <div><b>A risk score out of 100</b>Every competitor has one and none can explain it. The exposure register
+      counts instead, and every count opens onto the contracts behind it.</div>
+    <div><b>A sixth room tab</b>Commercial terms and required documents both had a good case for being their own
+      tab. They are cards instead, in a column built for cards, because a tab is permanent and a card can be
+      absent.</div>
     <div><b>Another dashboard</b>Home answers &ldquo;what needs me&rdquo; and Insights answers &ldquo;what is
-      true&rdquo;. A third place to look is a third place for the numbers to disagree. Each proposal above lands in
-      one of the two that exist.</div>
-    <div><b>AI that signs, or that accepts their redline for you</b>HaTi freezes wording at the first signature and
-      records how each signature was proven. Letting a model act inside that boundary would throw away the most
-      valuable thing the product has built. Clearance lanes are the safe version: a rule a person wrote, named on
-      the record when it fires.</div>
-    <div><b>&ldquo;How your terms compare to the market&rdquo;</b>Benchmark data sells well and cannot be checked.
-      HaTi already has the honest version &mdash; what <i>you</i> have settled for before, counted from your own
-      book, which is the number that actually helps in a negotiation.</div>
-    <div><b>A native phone app</b>HaTi already draws itself properly on a phone, and S15 puts the decisions in the
-      app people are genuinely in all day. An app store release is months of work to reach the same place.</div>
-    <div><b>Accounting and ERP integration</b>Tempting for S7, and it is the right answer eventually. But most of
-      the value is in knowing what the paper entitles you to &mdash; which nobody currently knows &mdash; and that
-      needs no integration at all. Build the ledger first; connect it when a customer asks twice.</div>
-    <div><b>Translating the contract itself</b>HaTi will translate the product into another language but never the
-      agreement, and that is the correct instinct. A translated clause that has not been agreed is not the clause.</div>
+      true&rdquo;. A third place to look is a third place for the numbers to disagree.</div>
+    <div><b>A drag-and-drop workflow builder</b>The classic enterprise upsell, and the fastest way for a product to
+      lose its opinions. Clearance lanes are four conditions and a destination, written down and named on the
+      record when they fire.</div>
+    <div><b>AI that signs, or accepts their redline for you</b>HaTi freezes wording at the first signature and
+      records how each signature was proven. Nothing in the fifteen reaches inside that boundary.</div>
+    <div><b>Market benchmark data</b>&ldquo;Your terms versus the market&rdquo; sells well and cannot be checked.
+      HaTi already has the honest version: what you settled for last time, counted from your own book.</div>
+    <div><b>A separate supplier portal</b>HaTi already has a page the other side can open, with careful rules about
+      what may leave. A second front door would drift from the first.</div>
+    <div><b>Accounting and ERP integration</b>The right answer eventually, and not yet. Most of the value in
+      &ldquo;what you are owed&rdquo; is knowing what the paper entitles you to &mdash; which nobody knows today,
+      and which needs no integration at all.</div>
   </div>
 </section>
 
@@ -1627,13 +1201,14 @@ table.ht .sub{display:block;font-size:12px;color:var(--ink-3);white-space:nowrap
 <footer class="end">
   <div class="wrap">
     <h2>The through-line</h2>
-    <p>Almost nothing here is artificial intelligence that HaTi does not already have. Eleven of the fifteen are new
-      views over readings it makes today, and the four genuinely new pieces &mdash; an inbox, a notice, a campaign,
-      a chat channel &mdash; are plumbing, not cleverness.</p>
-    <p>What the four seats were actually missing was the step after the insight: <b>HaTi tells you the renewal is
-      coming and does not help you serve the notice; it reads the contract and does not read the deal; it counts the
-      uncapped liabilities in a weekly document you cannot press.</b> Closing that half-step, fifteen times, is what
-      separates a very good contract system from one a procurement manager would fight to keep.</p>
-    <p class="mono">Four seats &middot; fifteen proposals &middot; eleven extensions &middot; four new pieces &middot; no new banners</p>
+    <p>The first edition asked what HaTi was missing. This one asks the harder question, and the answer is that the
+      product already knew: it had written down, three separate times, how to add something without making itself
+      louder &mdash; a card that draws nothing when it has nothing to say, a control that hides until it is doing
+      work, a count that does not appear at zero.</p>
+    <p><b>Fifteen new abilities, two new things to look at, and no new way of working anything.</b> Every addition
+      is a scope, a card, a row, a column, a switch or an act &mdash; controls a person already uses today. The
+      only surface actually spent is one tab on Insights, and it buys back a set of numbers currently trapped in a
+      weekly document nobody can press.</p>
+    <p class="mono">15 additions &middot; 6 screens &middot; 0 new sidebar doors &middot; 1 new tab &middot; 2 visible on a quiet day</p>
   </div>
 </footer>
