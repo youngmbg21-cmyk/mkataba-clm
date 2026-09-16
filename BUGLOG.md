@@ -14926,3 +14926,15 @@ was offered and accepted is that the paper has always PRINTED 90, and a record
 disagreeing with the paper is the fault this whole feature exists to close.
 Written beside TEMPLATE_NOTICE so the next person finds the ruling with the
 code rather than only here. No code changed — this was already what shipped.
+
+### 16 Sep 2026 — merging the save fix onto main: noticed, not fixed
+
+- TWO FILES ARE CALLED f314. `test/f314-one-save-at-a-time.test.js` (the save
+  latch) and `test/f314-the-nuanced-redline.test.js` arrived from two sessions
+  the same day. The runner does not care, but this codebase refers to its nets
+  by NUMBER in comments and in THE MAP, so "f314" now names two different
+  things and a re-point could land in the wrong file. Somebody who owns the
+  numbering should give one of them a free number.
+- Merged main (nine commits of contract-builder and renewal work) under the
+  fix: no conflict, suite 7,260 / 0 red, lint 0 errors, saves-serialize 9/9 and
+  round-delivery 34/34 on the merged tree.
