@@ -14240,3 +14240,65 @@ unchanged at every commit measured.
   and at 11f586a in a different shape.
 - The count in the report was FILES, not lines: 23 files, about 60 named
   failing lines, of which 13 are theme-tokens' colour cells.
+
+## 16 Sep 2026 — THE RECORD CATCHING UP (Young: "Fix the record catching up issue")
+
+The fault reported off yesterday's map: the counterparty's acceptance drew on
+the owner's screen while the record read back off the server still said
+pending, and the refused-readiness trail line was written 0 times where
+exactly 1 is owed.
+
+PROVED BEFORE ANYTHING MOVED. round-delivery-verify was green at 744127e and
+red at ee54a94; reverting ONLY the save-serialising in a worktree at main put
+it back to 34/34, which named the commit and the function. A trace on the
+live browser named the line.
+
+### The defect
+
+`flushSaves` used the in-flight PROMISE as its own "is a flush running" flag:
+`_flushing = (async()=>{ … finally { _flushing=null; } })()`. An async body
+runs synchronously to its first `await`, and a flush with an EMPTY queue never
+reaches one — so the body ran to the end, the `finally` wrote null, and the
+assignment then put the resolved promise back over it. `_flushing` was left
+permanently truthy.
+
+From that moment every call took the join door and got back an already-settled
+promise: `await flushSaves()` returned at once having written nothing, and
+`dirty` was never drained again for the life of the page. THIS WAS NOT LIMITED
+TO THE TWO CHECKS — after the first empty flush, nothing that browser did was
+saved. Nothing errored and nothing logged; the screen was right and the record
+simply stopped moving.
+
+The empty flush is the ordinary case, not an edge one: `persist` sets a 400 ms
+timer and several callers drain by hand straight after (applyResponse, so the
+write lands before the repaint reloads over it; auto-triage, so the record is
+on the server before it is read back). The hand drain empties the queue and
+the stale timer fires on nothing, within seconds of any ordinary edit.
+
+### The fix
+
+The latch is a BOOLEAN raised before the body exists, so a synchronous run
+cannot overwrite its own clearing; `_flushDone` carries the promise; and a
+joiner that comes back to a queue still holding work goes round again, so the
+promise means "the queue is empty" — which is what applyResponse and
+auto-triage are relying on. The server's optimistic lock and the conflict
+dialog are untouched. One function, one definition, one call site of the
+pattern (swept for a second).
+
+### Measured
+
+- round-delivery-verify 34/34 (was 32/34).
+- saves-serialize-verify grew section 2, which drives the real sequence:
+  3 of 9 checks red at the parent — the record one edit behind the screen, one
+  contract still queued, the version unmoved.
+- f314 (2) re-pointed to the boolean latch, (2b) added for the trap itself.
+- Full node suite 7,124 / 0 red. Lint 0 errors.
+- Browser set: the same 22 pre-existing red files, round-delivery no longer
+  among them.
+
+### Noticed, not fixed
+
+- clause-editor-verify 33h failed once in the parallel run (the caret landed on
+  a different word from the one pressed) and passes 281/281 run on its own.
+  A timing flake under four Chromiums on four cores, not a product fault —
+  but the click point expires at 1500 ms, so that check is load-sensitive.
