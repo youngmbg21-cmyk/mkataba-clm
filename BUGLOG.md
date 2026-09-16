@@ -14867,3 +14867,89 @@ and outside what was asked for:
 - rv_entry_sub, rv_who_hint and rv_badge_waiting_by exist in both dictionaries
   with no caller (the pop-up diet of 13 Sep 2026) — inert, as that section
   intends, recorded here only so a future sweep does not read them as live.
+
+### 16 Sep 2026 — the verification pass on the internal-review trace
+
+Seven adversarial checkers over the seven readings above. They confirmed most
+of it and refuted two claims outright. Everything here is verified in source or
+by running the module; nothing was fixed — the request was a walkthrough.
+
+**The trap, and it is the serious one.**
+- CANCELLING A REVIEW DOES NOT RELEASE WHAT WAS HELD, AND THE PRODUCT SAYS IT
+  DOES. `rv_cancel_cost` prints "the clauses return to you, unheld and
+  unadvised". Run `reviewCancel` and `c.changes[0].review` is still
+  `{verdict:'held'}`; `reviewHeldIds` / `reviewWithheldIds` and the server's
+  `rvHeld` all go on withholding it, because `reviewHeld(ch)` reads the stored
+  verdict and never asks whether the review is open. The hold is then
+  UNLIFTABLE: `reviewMark` fails `reviewOpenFor` and refuses with
+  `rv_no_open_review` for the reviewer AND for an admin. The only recovery is a
+  second review over the same change. Either the sentence is wrong or the act
+  is; both cannot stand.
+
+**The server wall is narrower than the map implies.**
+- EVERY SERVER-SIDE REVIEW GUARD LIVES ONLY IN POST /api/shares (rvActorHeld's
+  403, rvUnreviewedIds' 403, rvWithheldIds' strip). The ROUND send — the path
+  every negotiation after the first travels — is PUT /api/shares/:token/payload
+  via reshareToLastRecipient, which carries none of them. The browser's
+  unconditional strip in buildSharePayload still runs, so nothing leaks in
+  practice; but on that path the wall is pixels, which is the one thing this
+  codebase says a wall must never be.
+
+**Three silences.**
+- THE SUCCESS TOASTS DO NOT EXIST ON SCREEN. `_rvSay(msg)` with no kind reaches
+  `toast()`, which returns on an undefined kind by design (the standing lesson
+  "A BARE toast(msg) PRINTS NOTHING"). So `rv_sent_mailed`, `rv_sent_quiet`,
+  `rv_returned_toast` and `rv_cancelled_toast` are built, translated into
+  Swedish and thrown away. Three of the feature's four confirmations are
+  silent; only reviewRemind passes ok/warn/err.
+- (The hand-back having no notification channel at all is in yesterday's entry
+  above; the checkers confirmed it and added that only the MOST RECENT closed
+  review is ever announced — `closed[closed.length-1]` — so with two hand-backs
+  on one contract the earlier one reaches the requester through the trail only.)
+
+**Two that are honest but will surprise a user.**
+- A CHANGE IS RELEASED WHEN IT IS CLEARED, NOT WHEN THE REVIEW IS HANDED BACK.
+  `reviewOutFor` short-circuits on `reviewOn(ch)`, so a cleared change leaves
+  `reviewWithheldIds` and regains Send immediately.
+- THE AUTHOR OF A HELD CHANGE CAN STILL RETRACT IT. The held card keeps Retract
+  (`editable && (mineUnsent || rvHeld)`); negoRetractDraft splices the change
+  out of c.changes, which makes the review SPENT and ends the narrowing.
+
+**And one the map's own rules forbid.**
+- READING WRITES: `reviewState(c)` → `reviewScope` → `negoUnsentAsks` /
+  `negoPending` → `negoChanges`, which is `c => { negoInit(c); return c.changes }`.
+  Every review surface calls reviewState at DRAW time, so drawing the banner
+  creates a negotiation and stamps clause ids. js/app.js:1447 already guards the
+  bell against exactly this by reading `c.review.requests` raw first; the view
+  surfaces do not.
+
+Smaller, same rule — noticed, not fixed:
+- POST /api/contracts/:id/review-request accepts `reviewId` and never reads it,
+  and has NO rate limiter (contrast rlShareSend / rlIntake / rlHookAdd). Any
+  editor can mail any member in scope, unlimited, with 1000 characters of their
+  own text under a HaTi subject line. The address itself is safe — the body
+  value is only a lookup key and the mail goes to the stored address.
+- The same route has no `if (!u.email)` guard (the memo and chase routes have
+  one), so a member with no address on file is reported as a delivery FAILURE
+  rather than as "there is nowhere to write".
+- In local (non-server) mode the email tick is not drawn, so `wantMail` reads
+  false and the trail records "the requester chose to tell them themselves" —
+  a choice they were never offered.
+- A NARROWED REVIEWER CAN STILL WRITE TO THE COUNTERPARTY: `notesMayWrite` asks
+  readonly, canComment and canEdit, and never asks about the review; the
+  External room posts through POST /api/contracts/:id/messages (auth, editor).
+- The bulk Accept-all / Reject-all are DRAWN for a narrowed reviewer and grey
+  with `why:''`, so the hover falls back to the generic sentence instead of
+  saying "you are mid-review" — against this codebase's own "greyed, with the
+  reason" rule.
+- The hand-back DIALOG builds its tally from negoUnsentAsks ∪ counterparty-
+  pending while the banner and the refusal count `reviewInPlay`, so the two can
+  disagree about what still wants a verdict.
+- `reviewMaySee` includes every ADMIN, so the confidentiality wall is "the two
+  people in the review, plus every admin" — worth stating where the file argues
+  that escalating a clause is an act with politics in it.
+- The hand-back cannot be undone: `reviewReturn` sets status 'returned' and no
+  path returns it to 'open'.
+- `ng_round_added` never fires: negoRoundRead filters on `x.kind` and `x.round`
+  while a filed change stores `changeType` and `roundN`, so an inserted clause
+  is counted as an "other ask" instead.
