@@ -14562,3 +14562,46 @@ Playwright script outside the repo.
 ### Outside the request, touched
 Nothing in the repository was modified. Screenshots and the artifact source live under the
 session scratchpad, not here.
+
+## 16 Sep 2026 — The renewal clock (solution 1 of the overnight review)
+
+Owner: "start with 1: renewal clock". Built pieces 2-6 of the spec; the owner
+ruled out piece 1 (a notice-period question on the Distributor Agreement's
+drafting form) for now — "fix the paper and the record first" — so
+TEMPLATE_NOTICE was NOT written and no creation form gained a box. The owner
+also ruled the mail split: the contract's owner gets all six rungs, admins keep
+the last of each (30 days and 1 day) as the escalation.
+
+What shipped: the paper's own noticeDays blank fills metadata.noticePeriodDays
+on change (fill-only, mirroring the termYears listener); "Fill from document"
+keeps noticePeriodDays and renewalType instead of discarding them; a Notice
+(days) row on Key terms that writes both the record and c.fields.noticeDays so
+the clause and the clock cannot disagree; the Renewal card states the absence
+instead of printing a decision date that is silently the expiry; and the
+renewal mail is addressed to the owner, in the owner's own language, through
+four new mail keys in both books.
+
+### Noticed, not fixed
+- server/server.js ~11282 (the held-obligation mail) reads
+  `obligationRecipient((c.owner && c.owner.name) || '')` where `c` is a SQL row
+  from a contracts table with NO owner column, so `c.owner` is always undefined
+  and that mail has ALWAYS fallen through to the admins — a guard that is
+  always false, the first of CLAUDE.md's four costumes. f262:388 asserts the
+  admin fallback, so the test passes on the bug. The renewal mail added today
+  deliberately does NOT copy it: it reads `full.owner` off the parsed json, the
+  way runRenewalPrep does. Fixing the held mail belongs in its own job.
+- applyMetadata (js/views/contract.js ~1968) does `c.metadata = m` wholesale, so
+  a later metadata-review confirmation silently discards anything typed into the
+  new Key terms row. Pre-existing and true of every field on that dialog.
+- THE DAILY BRIEF STILL SAYS NOTHING TO A NON-ADMIN OWNER about their own
+  renewal: its expiry and notice-by lines sit inside an admin-only gate. Stated
+  rather than fixed, on the spec's own recommendation — ship the milestone mail
+  first, read one real week of it, then decide, because moving the gate means
+  the same fact reaches the same person twice.
+- A DA drafted with "Skip for now" answers every field empty, so the paper still
+  prints its own default of 90 while the record holds nothing until somebody
+  presses the blank or the Key terms row. The listener added today is the only
+  thing that ever closes that gap, and it needs one press.
+
+### Outside the request, touched
+Nothing. Five files changed, all of them the renewal clock's own ground.

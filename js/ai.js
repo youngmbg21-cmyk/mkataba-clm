@@ -4105,13 +4105,23 @@ function renewalCardHtml(c){
      is the only number the sentence would send anybody to correct. */
   const span=((c.metadata&&c.metadata.sourceSpans)||{}).noticePeriodDays;
   const quote=span?String(span).replace(/\s+/g,' ').trim().slice(0,180):'';
+  /* ---- AND WHERE THERE IS NO NOTICE PERIOD, SAY SO ---- (16 Sep 2026)
+     Both slots below used to be the empty string whenever the number was
+     missing, so the card printed a decision date that was silently the EXPIRY
+     date and looked entirely correct. That is the one thing this card must
+     never do: a reader with ninety days' notice to give was being shown the day
+     it was already too late, with nothing on the screen to say why.
+     AN ABSENCE IS STATED, NEVER GUESSED. It claims no quote it does not have,
+     invents no number, and carries the act — the Key terms row now exists for
+     it to point at, which is the other half of this change. */
   const srcLine=w.notice
     ? (quote
       ? `${_aiEsc(i18t('rn_from_quote',{expiry:when(w.expiry),n:w.notice}))}<br><i>&ldquo;${_aiEsc(quote)}&rdquo;</i>`
       : _aiEsc(i18t('rn_from_terms',{expiry:when(w.expiry),n:w.notice})))
-    : '';
-  /* The way out, said once and only where there is something to correct. */
-  const fixLine=(w.notice&&may)?_aiEsc(i18t('rn_fix_terms')):'';
+    : _aiEsc(i18t('rn_no_notice',{expiry:when(w.expiry)}));
+  /* The way out, said once. With a number on file it offers a correction; with
+     none it asks for the number, and only where this reader could set it. */
+  const fixLine=may?_aiEsc(i18t(w.notice?'rn_fix_terms':'rn_no_notice_fix')):'';
   return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>

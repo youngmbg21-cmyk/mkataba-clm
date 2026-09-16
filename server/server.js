@@ -11186,7 +11186,11 @@ function runReminders() {
   const nudged = runShareNudges();
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
-  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
+  /* `folder` joins the row because the renewal mail is addressed to the
+     contract's OWNER now, and an owner who cannot open the contract's value
+     stream must not be told it exists — the same scope check the daily brief
+     beside this one already makes. */
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,folder,json FROM contracts WHERE status!='Declined'").all();
   const parsed = new Map();
   for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
   const { eff: effExpiry, ownExp, kidsOf } = effExpiryReader(rows, parsed);
@@ -11207,6 +11211,49 @@ function runReminders() {
   };
   const fire = (rkey, subj, body, tag) =>
     fireTo(rkey, admins, () => ({ subject: subj, body }), tag);
+  /* ---- THE RENEWAL MAIL REACHES THE PERSON WHOSE CONTRACT IT IS ----
+     (owner-ruled 16 Sep 2026.) Every renewal notice went to the admin list and
+     to nobody else, which made the admin a message router for deadlines they do
+     not own — the same fault the obligation nudge was fixed for in August, on
+     the one date a business cannot afford to miss.
+     THE OWNER IS READ OFF THE PARSED RECORD, NOT OFF THE SQL ROW. `c` here is a
+     row from the contracts table, which has no owner column, so `c.owner` is
+     undefined — the held-obligation branch further down still reads it that way
+     and has therefore always fallen through to the admins. Copy runRenewalPrep,
+     which reads `full.owner`, not that.
+     AND THE ADDRESS IS LOOKED UP, NEVER TAKEN FROM THE RECORD (the open-relay
+     rule): the id finds a users row, and a name falls through to
+     obligationRecipient, which is the same lookup the nudges make. An owner who
+     cannot open the contract's value stream is not told it exists. */
+  const ownerOf = (full, folder) => {
+    const o = full && full.owner;
+    if (!o) return null;
+    let u = null;
+    try { if (o.id != null) u = db.prepare('SELECT * FROM users WHERE id=?').get(o.id); } catch (_) { u = null; }
+    const who = (u && /.+@.+\..+/.test(String(u.email || '')))
+      ? { email: u.email, name: u.name || o.name || '', lang: u.lang || null, row: u }
+      : null;
+    const fallback = who || (() => {
+      const r = obligationRecipient(o.name || '');
+      if (!r) return null;
+      let row = null;
+      try { row = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(String(r.email).toLowerCase()); } catch (_) { row = null; }
+      return row ? { ...r, row } : null;
+    })();
+    if (!fallback || !fallback.row) return null;
+    return inScope(folderScopeFor(fallback.row), folder) ? fallback : null;
+  };
+  /* WHO KEEPS WHICH RUNG (owner-ruled 16 Sep 2026). The owner gets all six —
+     90/60/30 to expiry and 14/7/1 to the decision date. The admins keep the
+     LAST of each, 30 days and 1 day, as the escalation, which is the shape an
+     overdue obligation already uses when it reaches the admins on day four.
+     Where no owner resolves, or the owner cannot reach the stream, the admins
+     get every rung exactly as they do today — nothing goes quieter than it was. */
+  const ADMIN_RUNGS = new Set([30, 1]);
+  const renewTo = (who, ms) => {
+    if (!who) return admins;
+    return ADMIN_RUNGS.has(ms) ? [who.email, ...admins.filter(a => a !== who.email)] : [who.email];
+  };
   let queued = nudged, checked = 0;
   for (const c of rows) {
     checked++;
@@ -11224,10 +11271,18 @@ function runReminders() {
     if (expiry) {
       const days = daysTo(expiry);
       const ms = [90, 60, 30].find(m => days === m);
-      if (ms != null && fire(`${c.id}:${expiry}:${ms}`,
-        `Renewal in ${ms} days: ${c.name}`,
-        `"${c.name}" (${c.id}) with ${c.counterparty || 'a counterparty'} expires on ${expiry} — ${ms} days away. Review it in HaTi to renew or let it lapse.`,
-        `renewal ${ms}d: ${c.name}`)) queued++;
+      const who = ownerOf(full, c.folder);
+      if (ms != null) {
+        const vars = { n: ms, name: c.name, id: c.id, cp: c.counterparty || '', expiry };
+        const link = contractUrl(null, c.id);
+        const mk = a => {
+          const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
+          return { subject: tFor(L, 'mail_ren_subject', vars),
+            body: `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ren_line', vars)}`
+              + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}` };
+        };
+        if (fireTo(`${c.id}:${expiry}:${ms}`, renewTo(who, ms), mk, `renewal ${ms}d: ${c.name}`)) queued++;
+      }
       // 2) renewal DECISION deadline (expiry minus notice period) at 14/7/1 days.
       // If an amendment set the term, its notice period governs too.
       const termSetter = (kidsOf.get(c.id) || []).find(k => ownExp(k) === expiry);
@@ -11242,10 +11297,17 @@ function runReminders() {
            for — the decision deadline came out a day early. */
         const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
-        if (dms != null && fire(`${c.id}:${ddIso}:decide:${dms}`,
-          `Renewal decision due in ${dms} day${dms === 1 ? '' : 's'}: ${c.name}`,
-          `To renew or exit "${c.name}" (${c.id}) you must give ${notice} days' notice before it expires on ${expiry}. The decision deadline is ${ddIso} — ${dms} day${dms === 1 ? '' : 's'} away.`,
-          `decision ${dms}d: ${c.name}`)) queued++;
+        if (dms != null) {
+          const dvars = { n: dms, name: c.name, id: c.id, notice, expiry, decide: ddIso };
+          const dlink = contractUrl(null, c.id);
+          const dmk = a => {
+            const L = who && a === who.email ? (who.lang || I18N_DEFAULT) : langForEmail(a);
+            return { subject: tFor(L, 'mail_ren_decide_subject', dvars),
+              body: `${tFor(L, 'mail_hello')},\n\n${tFor(L, 'mail_ren_decide_line', dvars)}`
+                + `\n\n${tFor(L, 'mail_ob_open')}\n${dlink}\n\n${tFor(L, 'mail_automated_notice')}` };
+          };
+          if (fireTo(`${c.id}:${ddIso}:decide:${dms}`, renewTo(who, dms), dmk, `decision ${dms}d: ${c.name}`)) queued++;
+        }
       }
     }
     /* 3) obligations. THE NUDGE REACHES THE PERSON RESPONSIBLE (WO-1,
