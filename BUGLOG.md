@@ -14822,3 +14822,48 @@ was offered and accepted is that the paper has always PRINTED 90, and a record
 disagreeing with the paper is the fault this whole feature exists to close.
 Written beside TEMPLATE_NOTICE so the next person finds the ruling with the
 code rather than only here. No code changed — this was already what shipped.
+
+### 16 Sep 2026 — tracing the internal-review journey for the owner (no code changed)
+
+The owner asked to be walked through what happens when a redlined contract
+reaches Legal, and then asked for it drawn as screens. Nothing in the product
+was touched; the whole journey was read out of the code and rendered in the
+"HaTi — now and next" artifact. Seven readers over the ask, the arrival, the
+narrowing, the verdicts, the hand-back, the inbound round and the on-screen
+wording, each argued against by a second pass.
+
+**Noticed, not fixed** — every one of these is real, verified in the source,
+and outside what was asked for:
+
+- NOTHING TELLS THE REQUESTER THE REVIEW CAME BACK. The ask has an email, a
+  bell row and a Home row; the hand-back has no mail route, no ALERT_KINDS
+  entry and no toast to the requester — they find out by opening the contract.
+  The single biggest asymmetry in the feature.
+- PRESSING "Note" ON AN UNRULED CHANGE SILENTLY GIVES IT A VERDICT.
+  openReviewNoteModal (js/review.js, the `else if (ch)` branch) calls
+  reviewMark with 'held' on ours and 'advise-discuss' on theirs where no
+  verdict exists yet. A reviewer who only meant to comment has decided.
+- THE SERVER SAYS WHAT IT STRIPPED AND NOBODY PRINTS IT. POST /api/shares
+  returns `withheldByReview`; no browser reader consumes it, so a sender can be
+  told "sent" about a round one change lighter. The route's own comment already
+  says this is a lie by omission.
+- THE TWO CANCEL DOORS ARE NOT SYMMETRIC. The card's [data-rv-cancel] goes
+  through confirmDialog with reviewCancelCost; the banner's
+  data-rv-act="rv-cancel:REV-n" branch calls reviewCancel with no confirm.
+- _rlRvFullDoc IS ONE GLOBAL BOOLEAN, not per contract (unlike _rvCleared),
+  so "Show the whole contract" on one contract leaves the next one unfolded.
+- THE REVIEW-REQUEST EMAIL IS NOT TRANSLATED. Subject and body are English
+  template literals, while the memo route immediately above it builds every
+  line through tFor(L, 'mail_…') and the internal-signer mail takes a language.
+- RV_NOTE_MAX (600) CAPS THE REQUESTER'S BRIEF ONLY, silently, with an
+  ellipsis appended at store time and no maxlength on the box; the reviewer's
+  own per-change note is uncapped.
+- THE HOME ROW AND THE BELL ROW LAND IN DIFFERENT PLACES. "Reviews waiting on
+  you" goes through selectContract/openWorkspace to the contract room; the
+  bell's review-mine row and the emailed link both open the negotiation, which
+  is where verdicts are actually given.
+- MAP DRIFT: CLAUDE.md's ALERT_KINDS order reads "… approval · answer-stuck ·
+  obligation · review-out …"; js/app.js has obligation BEFORE answer-stuck.
+- rv_entry_sub, rv_who_hint and rv_badge_waiting_by exist in both dictionaries
+  with no caller (the pop-up diet of 13 Sep 2026) — inert, as that section
+  intends, recorded here only so a future sweep does not read them as live.
