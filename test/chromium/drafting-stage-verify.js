@@ -96,6 +96,18 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     await page.evaluate(id => openRedlineWorkbench(id), staged.id);
     await pause(2200);
+    /* ---- WALKING PAST THE FIELDS QUESTION (17 Sep 2026) ----
+       This contract is a DRAFT with its boxes still empty, which is exactly
+       the case the owner's "Image 3 = A" asks about: the funnel offers to fill
+       them before it goes. Nothing navigates while the question is up, so the
+       reads below would find no held contract at all. This file is about what
+       a SEND does to a contract's stage, so it takes the door a person takes
+       — "Open Negotiate anyway" — and carries on. The question itself is
+       measured in negotiations-door-verify 10. */
+    {
+      const skip = await page.$('#confirm-overlay #cf-cancel');
+      if (skip) { await skip.click(); await pause(1200); }
+    }
     const before = await page.evaluate(() => {
       const e = document.getElementById('ws-status');
       return { word: e ? e.textContent.trim() : null,
