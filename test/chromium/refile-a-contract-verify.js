@@ -79,6 +79,26 @@ const openKeyTerms = async (page, id) => {
     if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
   });
   await page.waitForTimeout(700);
+  /* ---- AND THE ROWS ARE BEHIND AN ACT NOW (17 Sep 2026) ----
+     The record rests as the artifact's grid — twelve facts, label above value,
+     not one editable box — after Young ruled on it over a picture. The stream
+     picker still exists and is still ktStreamRowHtml's; the way to it is the
+     card's own `Move to another stream`, which opens the rows and lands on it.
+     So this helper presses what a reader presses. Where the act is not drawn
+     (a viewer) the page is left exactly as it is, and the checks below still
+     measure whatever that seat really gets. */
+  await page.evaluate(() => {
+    /* PREFER `Edit these details`: it draws the rows and leaves each one SHUT,
+       which is the state the checks below open for themselves. `Move to
+       another stream` also lands the reader ON the picker, which would leave
+       the row already open and its read button hidden. On an executed contract
+       only the move is drawn — `ed` is false there and filing is still an
+       admin's housekeeping — so that is the fallback. */
+    const b = document.querySelector('[data-ov-edit$=".record"]')
+      || document.querySelector('[data-ov-move-stream]');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(900);
 };
 
 const seed = (id, name, folder, over = {}) => ({

@@ -15179,3 +15179,59 @@ code rather than only here. No code changed — this was already what shipped.
 - Merged main (nine commits of contract-builder and renewal work) under the
   fix: no conflict, suite 7,260 / 0 red, lint 0 errors, saves-serialize 9/9 and
   round-delivery 34/34 on the merged tree.
+
+## 2026-09-17 — The Overview is drawn as the artifact draws it (Young's ruling on the record card)
+
+Young, over a picture of the artifact's record card and a picture of HaTi's:
+"this is how the record card is designed in the artifact but this is not what
+you have built. I never sanctioned what you have built in image 2. Review what
+else I did not sanction and fix it."
+
+Read the published artifact and audited screen 3 against what was built. FOUR
+departures found, all fixed:
+
+1. THE RECORD was six of the old Key terms rows plus a five-field grid. The
+   artifact draws twelve filing attributes as a four-column label-above-value
+   grid with two acts. Rebuilt. Filed by and Last updated did not exist at all.
+2. THE DEAL drew value, effective, expiry and notice as old editable rows above
+   the grid, and the grid deliberately excluded them. The artifact draws one
+   grid of twelve. Rebuilt.
+3. WHAT COPILOT READ hosted the brief card alone. The artifact asks for "every
+   reading in one table" - five rows, each with its date and a door. Built,
+   borrowing every figure; the brief card still draws under it.
+4. RELATED AGREEMENTS had no order of precedence and no "Check the family"
+   (S12). Both built, deterministic, off the record.
+
+Nothing that existed was removed: every editable row is behind "Edit these
+details", per section, per contract, in memory.
+
+DEFECTS FOUND ON THE WAY, each fixed:
+- An admin could no longer re-file a SIGNED contract: the act was gated on
+  editability, which is false once executed, and the stream picker lives inside
+  the rows it draws. Filing is housekeeping (D-1). Caught by a real press, not
+  by reading. Now gated on admin.
+- The "two addresses disagree" warning went behind the act. That fact may never
+  be quiet - it is the reported bug the row was built for. It is a cell on the
+  resting card now, in amber.
+- window.docReadHeld was a guard that could never be true: docReadHeld is
+  declared in the same file, so the plain-English row silently took its
+  fallback. f232 caught it. Read bare.
+- f178 pinned the builder by its PARAMETER LIST, so adding an argument silenced
+  the net and it went quietly null. Re-pointed to match the NAME - the f255
+  lesson, paid again the same week.
+- Two of my own new assertions passed on the wrong thing: one assumed file
+  order, one matched my own explanatory comment. Both corrected.
+
+Full suite 7,418 tests / 1,474 suites / 0 fail. Lint 0 errors.
+Browser: overview-as-drawn-verify 18/18 (13 red at the parent),
+refile-a-contract-verify 26/26, share-recipient-verify 37/37,
+amendment-journey 52/52, auto-triage 47/47, playbook-opens-read 23/23,
+keeps-your-place 11/11.
+Full browser sweep before this work: 82 of 109 green.
+
+Noticed, not fixed:
+- sectionForget has no caller anywhere, though its own comment says "the room
+  calls it when the contract changes". The fold keys are scoped per contract so
+  nothing leaks; the comment is what is wrong.
+- white-band-and-tabs-verify 5d/5e stay red (Contracts list title line-height,
+  20px vs 19.6px) - red before this work and unrelated to it.

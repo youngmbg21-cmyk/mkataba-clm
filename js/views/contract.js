@@ -4221,14 +4221,22 @@ function ktRowHtml(key,label,readHtml,fieldHtml,editable,cueIcon){
 /* The signing route's own address for the counterparty, shown only where it
    disagrees with the contact recorded above it. Read-only: this row reports
    what the route says, and the route is edited on the Signing tab. */
-function ktRouteEmailRowHtml(c){
+/* THE SECOND ADDRESS, as a reading — so the resting grid and the editable row
+   answer it the same way. Null where the two agree, or where the route names
+   nobody: a row repeating the line above it is furniture. */
+function ktRouteEmailRead(c){
   const route=(typeof window!=='undefined' && window.shareRouteRecipient)
     ? shareRouteRecipient(c) : null;
   const routeEmail=String((route&&route.email)||'').trim();
-  if(!routeEmail) return '';
+  if(!routeEmail) return null;
   const recorded=String((c&&c.counterpartyEmail)||'').trim();
-  if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return '';
-  const who=String((route&&route.name)||'').trim();
+  if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return null;
+  return { email:routeEmail, who:String((route&&route.name)||'').trim() };
+}
+function ktRouteEmailRowHtml(c){
+  const r=ktRouteEmailRead(c);
+  if(!r) return '';
+  const routeEmail=r.email, who=r.who;
   return ktRowHtml('cpRouteEmail', i18t('ct_signing_route_email'),
     `${esc(routeEmail)}<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4">${
       who?esc(who)+' · ':''}${i18t('ct_signing_route_email_note')}</span>`, '', false);
@@ -4275,6 +4283,38 @@ function ktStreamRowHtml(c){
       opts.map(f=>`<option value="${esc(f.id)}"${f.id===c.folder?' selected':''}>${esc(f.name)}</option>`).join('')
     }</select>`, true, 'folder');
 }
+/* ---- ONE READING OF EVERY TERM THIS TAB PRINTS TWICE (17 Sep 2026) ----
+   The Overview draws each of these facts in TWO shapes: the artifact's
+   label-above-value grid at rest, and the editable row behind "Edit these
+   details". Two shapes reading the record separately is exactly the fault
+   class this rulebook calls its most expensive — two surfaces disagreeing
+   about what the product says — so both ask this.
+   IT RETURNS THE RAW VALUE, never a dash: the grid's absence is
+   sectionFieldHtml's own em-dash and the row's is "Not set", which are two
+   different sentences for one silence, and each surface is entitled to its
+   own. What may not differ is the value when there IS one. */
+function ktFactReads(c){
+  const noticeDays=Number((c.metadata||{}).noticePeriodDays)||0;
+  const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
+    :(isUpload(c)?'Uploaded document':'');
+  const d=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):'';
+  return {
+    noticeDays,
+    monetary: isMonetary(c),
+    party: c.party?esc(c.party):'',
+    counterparty: c.counterparty?esc(c.counterparty):'',
+    cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
+    money: (isMonetary(c)&&c.value)?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'',
+    effDate: d(c.fields&&c.fields.effDate),
+    expiry: d(c.expiry),
+    notice: noticeDays>0?esc(i18tn('ct_notice_n_days',noticeDays,{n:noticeDays})):'',
+    template: tmpl?esc(tmpl):'',
+    /* THE STREAM'S NAME IS THE REGISTER'S OWN, so the cell here and the cell
+       on the Contracts table cannot drift. Asked through window: this file is
+       not the only stage it runs on. */
+    stream: (()=>{ try{ return (window.regStreamName?esc(regStreamName(c)||''):''); }catch(_){ return ''; } })()
+  };
+}
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   /* ---- ONE ROW BUILDER, TWO SECTIONS (16 Sep 2026) ----
@@ -4292,14 +4332,17 @@ function ktTermsRowsHtml(c,opts={}){
      reader was getting wrong. Same data-kt-none marker, so everything that
      keys off empty (the dashed border, the cue, ktIsEmptyRead) is unchanged. */
   const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
-  const money=isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
+  /* EVERY READ-OUT BELOW COMES OFF ktFactReads, which the Overview's grid
+     also asks — one reading, two shapes. Only the SILENCE is this shape's own. */
+  const R=ktFactReads(c);
+  const money=R.monetary?(R.money||dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   /* ZERO IS NOT A NOTICE PERIOD. Every reader does Number(…)||0 and treats 0 as
      "none stated", so an unset row and a row holding 0 are the same fact and
      read the same way — the dash. */
-  const noticeDays=Number((c.metadata||{}).noticePeriodDays)||0;
-  const noticeRead=noticeDays>0
-    ? `<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',noticeDays,{n:noticeDays})}</span>`
+  const noticeDays=R.noticeDays;
+  const noticeRead=R.notice
+    ? `<span style="font-family:var(--font-mono)">${R.notice}</span>`
     : dash;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
@@ -4313,9 +4356,9 @@ function ktTermsRowsHtml(c,opts={}){
        the document has always said, so the read-out prints that name rather
        than a dash and says where it came from. */
     ['party', ktRowHtml('party', i18t('tf_our_party'),
-      c.party?esc(c.party):`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`,
+      R.party||`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`,
       `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, ed, 'pencil')],
-    ['counterparty', ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
+    ['counterparty', ktRowHtml('counterparty','Counterparty', R.counterparty||dash,
       `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
@@ -4324,7 +4367,7 @@ function ktTermsRowsHtml(c,opts={}){
        the commercial facts. Filling it in is what makes a send just a send;
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
-    ['cpEmail', ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
+    ['cpEmail', ktRowHtml('cpEmail','Their email', R.cpEmail||dash,
       `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- AND WHEN THE SIGNING ROUTE SAYS SOMETHING ELSE, IT SAYS SO ----
        Two records can name the counterparty's address: this row — the general
@@ -4526,6 +4569,37 @@ function renderKeyTerms(c){
   const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
   host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable});
   wireKtRows(c); wireKeyTerms(c);
+  /* ---- THE TWO ACTS THE ARTIFACT NAMES ----
+     Wired where they are PAINTED, which is this function: the head above is
+     built once and these buttons are rewritten on every repaint, so a listener
+     armed anywhere else would be holding a button that no longer exists.
+     Both do one thing -- turn the rows on -- and then this same function draws
+     them, so there is no second way in and nothing to keep in step. */
+  host.querySelectorAll('[data-ov-edit]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-ov-edit');
+    ovSetEditing(k, !ovEditing(k));
+    renderKeyTerms(c);
+  }));
+  host.querySelectorAll('[data-ov-move-stream]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-ov-move-stream');
+    ovSetEditing(k, true);
+    /* The section has to be OPEN to show the picker it just asked for: a
+       reader who pressed Move to another stream on a shut row would otherwise
+       watch nothing happen. */
+    if(window.sectionSetOpen) sectionSetOpen(k, true);
+    renderKeyTerms(c);
+    /* THE PICKER IS ktStreamRowHtml'S OWN, and it lives inside a row that
+       OPENS ON A PRESS -- at rest the row shows its read-out and the control
+       measures nothing. So this presses the row exactly as a reader would,
+       through wireKtRows' own handler, rather than reaching past it to show a
+       hidden field. Measured: without the press the picker is 0x0.
+       Asked after the paint, because the paint is what wrote the element. */
+    const row=document.querySelector('#kt-rows-record [data-kt-row="stream"]');
+    const open=row&&row.querySelector('[data-kt-edit="stream"]');
+    if(open&&!row.classList.contains('is-open')) open.click();
+    const sel=document.querySelector('#kt-rows-record [data-kt-folder], #kt-rows-record select');
+    if(sel&&sel.focus) try{ sel.focus(); }catch(_){}
+  }));
   /* The strip is OUTSIDE #kt-rows, so it needs its own paint — and this
      function is what auto-triage's onStep already calls as each reading lands,
      which is what makes the tiles fill in under the reader rather than after a
@@ -4599,18 +4673,26 @@ function readTermsHtml(c){ return ''; }
    agreement does not open it on the next. sectionForget('kt.') is what
    clears them; the room calls it when the contract changes. */
 const OV_KEY = (c, name) => `kt.${(c && c.id) || '?'}.${name}`;
+/* WHICH SECTIONS ARE IN EDIT MODE THIS SITTING. In memory and never stored --
+   a stored one would leave a colleague's screen in edit mode. Keyed through
+   OV_KEY like the fold above it, so it is per CONTRACT: turning the rows on
+   for one agreement leaves the next one reading as the artifact draws it. */
+const _ovEdit = Object.create(null);
+function ovEditing(key){ return !!(key && _ovEdit[key]); }
+function ovSetEditing(key, on){ if(key) _ovEdit[key] = !!on; return !!on; }
 /* WHAT THE WORDING SAYS. Every value is read off c.metadata — the record
    the extraction wrote — and NOTHING here guesses: an absent key draws an
    em-dash, which is sectionFieldHtml's own doing. The labels are borrowed
    from META_FIELDS and the closed lists from metaOptLabel, so a fact is
    called the same thing here as in the metadata review. */
-function ktDealFactsHtml(c){
+function ktDealFactsHtml(c,opts={}){
   const m=(c&&c.metadata)||{};
   const lbl=k=>{ const f=(window.META_FIELDS||[]).find(x=>x.k===k); return (f&&f.label)||k; };
   const opt=v=>{ const s=String(v==null?'':v).trim();
     return s?((window.metaOptLabel?metaOptLabel(s):s)||s):''; };
   const txt=v=>{ const s=String(v==null?'':v).trim(); return s?esc(s):''; };
   const num=v=>{ const n=Number(v); return isFinite(n)&&n>0?String(n):''; };
+  const mono=x=>`<span style="font-family:var(--font-mono)">${x}</span>`;
   /* THE TERM IS THE ROOM HEAD'S OWN READING. docTermSpan refuses a term
      that runs backwards and refuses to invent an end date, and the fact
      row above already prints what it answers — so the two cannot say
@@ -4618,44 +4700,156 @@ function ktDealFactsHtml(c){
   const term=(()=>{ try{ const t=window.docTermSpan?docTermSpan(c):null;
       if(t&&t.from&&t.to) return esc(`${t.from} – ${t.to}`); }catch(_){}
     return ''; })();
-  /* THE ORDER IS THE ARTIFACT'S: what the money does, then what the paper
-     does, then who it is under. Value, Effective and Expiry are the editable
-     rows above this grid, so they are not repeated here. */
+  /* THE ORDER IS THE ARTIFACT'S OWN TWELVE, and the first four are the
+     record's rather than the wording's: contract value, effective date,
+     expiry and notice period are typed by a person, the rest are read out of
+     the paper. They are in ONE grid because the artifact draws one grid --
+     "value, payment terms, rebate, tiers, price review, rejection window,
+     liability cap, exclusivity, dates, notice period, governing law" -- and a
+     reader looking for the expiry should not have to know which half of the
+     product wrote it down. Term, renewal and category follow the twelve: the
+     artifact counts twenty terms shown, so more is the design, not less.
+     EVERY VALUE COMES OFF ktFactReads, which the editable rows also ask. */
+  const R=ktFactReads(c);
+  /* WHEN THE EDITABLE ROWS ARE DRAWN ABOVE, the four they carry come out of
+     the grid: one fact, one place on the screen. At rest there are no rows and
+     the grid is the whole of it, which is the artifact's picture. */
+  const skip=opts.rowsAbove?new Set(['value','effDate','expiry','notice']):new Set();
   return sectionFieldsHtml([
-    [lbl('paymentTerms'), txt(m.paymentTerms)],
-    [lbl('volumeRebate'), txt(m.volumeRebate)],
-    [lbl('rebateTiers'), txt(m.rebateTiers)],
-    [lbl('priceReview'), esc(opt(m.priceReview))],
-    [lbl('rejectionWindowDays'), num(m.rejectionWindowDays)],
-    [lbl('liabilityCapped'), esc(opt(m.liabilityCapped)),'',
+    ['value', i18t('ov_f_value'), R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'))],
+    ['paymentTerms', lbl('paymentTerms'), txt(m.paymentTerms)],
+    ['volumeRebate', lbl('volumeRebate'), txt(m.volumeRebate)],
+    ['rebateTiers', lbl('rebateTiers'), txt(m.rebateTiers)],
+    ['priceReview', lbl('priceReview'), esc(opt(m.priceReview))],
+    ['rejectionWindowDays', lbl('rejectionWindowDays'), num(m.rejectionWindowDays)],
+    ['liabilityCapped', lbl('liabilityCapped'), esc(opt(m.liabilityCapped)),'',
       (m.liabilityCapped==='uncapped')?'amber':''],
-    [lbl('exclusivity'), esc(opt(m.exclusivity))],
-    [i18t('ct_term_label'), term],
-    [lbl('noticePeriodDays'), num(m.noticePeriodDays)],
-    [lbl('renewalType'), esc(opt(m.renewalType))],
-    [lbl('governingLaw'), txt(m.governingLaw)],
-    [lbl('category'), esc(opt(m.category))],
-  ]);
+    ['exclusivity', lbl('exclusivity'), esc(opt(m.exclusivity))],
+    ['effDate', i18t('ov_f_effective'), R.effDate],
+    ['expiry', i18t('ov_f_expiry'), R.expiry],
+    ['notice', i18t('me_notice_days'), R.notice?mono(R.notice):''],
+    ['governingLaw', lbl('governingLaw'), txt(m.governingLaw)],
+    ['term', i18t('ct_term_label'), term],
+    ['renewalType', lbl('renewalType'), esc(opt(m.renewalType))],
+    ['category', lbl('category'), esc(opt(m.category))],
+  ].filter(r=>!skip.has(r[0])).map(r=>r.slice(1)));
 }
-/* WHERE THE RECORD SITS. Four facts nobody types on this screen — who
-   owns it, what stage it is at, when it was signed, when it was raised —
-   printed under the rows that ARE editable. `contractSignedAt` and
-   `contractOwnerName` are the product's own single readings of two of
-   them; each is asked through window, because this file is not the only
-   stage they run on. */
-function ktRecordFactsHtml(c){
+/* WHAT HaTi FILES THIS AS -- the artifact's twelve, in its own order:
+   reference, our party, counterparty, their email, value stream, template,
+   owner, status, raised, signed, filed by, last updated. NOT what the
+   contract says; that is The deal above. Every one is an existing reading
+   asked through window, because this file is not the only stage they run on,
+   and an absent one is sectionFieldHtml's em-dash rather than a guess. */
+function ktRecordFactsHtml(c,opts={}){
   const dot=iso=>(iso&&window.regDotDate)?esc(regDotDate(iso)):(iso?esc(String(iso)):'');
+  const R=ktFactReads(c);
   const owner=(window.contractOwnerName?contractOwnerName(c):'')||'';
   const signed=(()=>{ try{ return (window.contractSignedAt?contractSignedAt(c):'')||''; }
     catch(_){ return ''; } })();
   const raised=String((c&&c._raisedAt)||(c&&c.createdAt)||'').slice(0,10);
+  /* WHO FILED IT is the uploader where somebody filed a document, and the
+     owner otherwise -- the two are the same person on most records and the
+     upload is the only place the product records a separate answer. */
+  const filed=String((c&&c.upload&&c.upload.uploadedBy)||owner||'');
+  /* LAST UPDATED prefers the trail's own stamp (the transport the light list
+     carries) and falls back to the record's. No date is invented. */
+  const updated=String((c&&c._lastAuditAt)||(c&&c.updatedAt)||(c&&c.updated_at)||'').slice(0,10);
+  const skip=opts.rowsAbove?new Set(['party','counterparty','cpEmail','stream','template','cpRouteEmail']):new Set();
+  const rt=ktRouteEmailRead(c);
   return sectionFieldsHtml([
-    [i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
-    [i18t('ov_f_owner'), esc(owner)],
-    [i18t('reg_col_status'), esc((window.statusLabel?statusLabel(c.status):c.status)||'')],
-    [i18t('reg_col_signed'), dot(signed)],
-    [i18t('ov_f_raised'), dot(raised)],
-  ]);
+    ['reference', i18t('ov_f_reference'), esc(String((c&&c.id)||''))],
+    ['party', i18t('tf_our_party'), R.party||esc((window.FIRST_PARTY)||'')],
+    ['counterparty', i18t('reg_col_counterparty'), R.counterparty],
+    ['cpEmail', i18t('ov_f_email'), R.cpEmail],
+    /* ---- TWO ADDRESSES MAY DIFFER; THEY MAY NEVER DIFFER QUIETLY ----
+       The signing route names the person who executes and the contact row
+       names the person you argue with, and they are allowed to be different
+       people. What is not allowed is a link prefilled from one while the
+       record shows the other and no screen anywhere saying both existed --
+       the reported bug this row was built for. So it is on the RESTING card,
+       drawn only where the two really disagree, and it is NOT in the skip set:
+       the editable rows draw it too, and one of them saying it is the point. */
+    ...(rt?[['cpRouteEmail', i18t('ct_signing_route_email'),
+      `${esc(rt.email)}<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4">${
+        rt.who?esc(rt.who)+' \u00b7 ':''}${i18t('ct_signing_route_email_note')}</span>`,'','amber']]:[]),
+    ['stream', i18t('ov_f_stream'), R.stream],
+    ['template', i18t('ov_f_template'), R.template],
+    ['owner', i18t('ov_f_owner'), esc(owner)],
+    ['status', i18t('reg_col_status'), esc((window.statusLabel?statusLabel(c.status):c.status)||'')],
+    ['raised', i18t('ov_f_raised'), dot(raised)],
+    ['signed', i18t('reg_col_signed'), dot(signed)],
+    ['filedby', i18t('ov_f_filedby'), esc(filed)],
+    ['updated', i18t('ov_f_updated'), dot(updated)],
+  ].filter(r=>!skip.has(r[0])).map(r=>r.slice(1)));
+}
+/* ---- WHAT COPILOT READ: EVERY READING IN ONE TABLE ----
+   The artifact's own words: "the brief and what it says, the playbook pass and
+   its departures, the obligations found, whether the risk scan has been run,
+   and whether the plain-English edition is ready -- each with the date it was
+   made and a door into it."
+   IT COUNTS NOTHING OF ITS OWN. Every row borrows the reading that already
+   answers that question somewhere else in the product, so this table and the
+   screen it points at can never disagree. A reading that has not been made
+   says so and offers the door that makes it; NOTHING here spends, and nothing
+   is inferred from silence -- an absent date is an absent date.
+   THE BRIEF'S OWN CARD STILL DRAWS BELOW: this is the row that says whether it
+   exists, not a replacement for what it says. */
+const OV_READ_TONE={ yes:'green', no:'', stale:'amber' };
+function ktReadingsRowsHtml(c){
+  const dot=iso=>{ const d=String(iso||'').slice(0,10);
+    return (d&&window.regDotDate)?esc(regDotDate(d)):(d?esc(d):''); };
+  const rows=[];
+  /* 1. THE BRIEF -- asked through _hasBrief AND _brief, the light list's
+     boolean first: the memo itself rides only the single contract's GET, and a
+     reading built on _brief alone is right locally and empty in production. */
+  const hasBrief=!!(c&&(c._hasBrief||c._brief));
+  rows.push({ k:'brief', name:i18t('ov_r_brief'),
+    said: hasBrief?(c._brief&&c._brief.truncated?i18t('ov_r_brief_part'):i18t('ov_r_brief_yes')):i18t('ov_r_none'),
+    when: (c&&c._brief&&c._brief.at)||'', state:hasBrief?'yes':'no', tab:'' });
+  /* 2. THE PLAYBOOK PASS, and its departures counted the way the playbook's
+     own summary counts them. `playbookStale` has THREE answers and the third
+     is "we do not know" -- printed as nothing rather than as a warning. */
+  const pb=(c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:null;
+  const dev=pb?pb.filter(v=>v&&v.status&&v.status!=='aligned').length:0;
+  let pbStale=null; try{ pbStale=window.playbookStale?playbookStale(c):null; }catch(_){ pbStale=null; }
+  rows.push({ k:'playbook', name:i18t('ov_r_playbook'),
+    said: pb?i18tn('ov_r_departures',dev,{n:dev}):i18t('ov_r_none'),
+    when: (c&&c.playbook&&(c.playbook.checkedAt||c.playbook.at))||'',
+    state: pb?(pbStale===true?'stale':'yes'):'no', tab:'docs' });
+  /* 3. OBLIGATIONS FOUND -- the contract's own list, and the day a reading was
+     stamped on it. A list somebody typed by hand is still the list; what the
+     date answers is when anything last READ the wording for them. */
+  let obs=[]; try{ obs=(window.contractObligations?contractObligations(c):[])||[]; }catch(_){ obs=[]; }
+  const obRead=(c&&c.obligationsReadAt)||'';
+  rows.push({ k:'oblig', name:i18t('ov_r_oblig'),
+    said: obRead?i18tn('ov_r_oblig_n',obs.length,{n:obs.length}):i18t('ov_r_none'),
+    when: obRead, state: obRead?'yes':'no', tab:'oblig' });
+  /* 4. THE RISK SCAN -- run or not, and what is still open on it. */
+  let open=0; try{ open=((window.openFindings?openFindings(c):[])||[]).length; }catch(_){ open=0; }
+  rows.push({ k:'scan', name:i18t('ov_r_scan'),
+    said: (c&&c.scan)?i18tn('ov_r_open_n',open,{n:open}):i18t('ov_r_none'),
+    when: (c&&c.scan&&c.scan.at)||'', state:(c&&c.scan)?'yes':'no', tab:'docs' });
+  /* 5. THE PLAIN-ENGLISH EDITION -- docReadHeld is the ONE reading of "is
+     there an edition to show", which the switch and the painter both ask. */
+  /* ASKED BARE. docReadHeld is declared in THIS file, so `window.docReadHeld`
+     is undefined and every guard on it takes the fallback in silence -- the
+     exact fault f232 sweeps for, and it caught this one. A const is not
+     hoisted, but this runs at paint time, long after the module evaluated. */
+  let read=false; try{ read=!!docReadHeld(c); }catch(_){ read=!!(c&&c._readings); }
+  rows.push({ k:'plain', name:i18t('ov_r_plain'),
+    said: read?i18t('ov_r_ready'):i18t('ov_r_none'),
+    when: (c&&c._readings&&c._readings.at)||'', state:read?'yes':'no', tab:'docs' });
+
+  const tr=r=>`<tr>
+    <td class="ov-r-n">${esc(r.name)}</td>
+    <td class="ov-r-s"${OV_READ_TONE[r.state]?` style="color:var(--st-${OV_READ_TONE[r.state]}-fg)"`:''}>${esc(r.said)}</td>
+    <td class="ov-r-w">${dot(r.when)||'&mdash;'}</td>
+    <td class="ov-r-d">${r.tab?`<button type="button" class="ui-btn-plain" style="font-size:var(--t-label)" data-ov-read-go="${
+      esc(r.tab)}">${esc(i18t('ov_r_open'))}</button>`:''}</td></tr>`;
+  return `<table class="ov-reads"><thead><tr>
+      <th>${esc(i18t('ov_r_th_what'))}</th><th>${esc(i18t('ov_r_th_found'))}</th>
+      <th>${esc(i18t('ov_r_th_when'))}</th><th></th></tr></thead>
+    <tbody>${rows.map(tr).join('')}</tbody></table>`;
 }
 /* ---- DOCUMENTS THEY MUST HOLD (S8) ----
    The contract requires an insurance policy, a certificate, an audit; somebody
@@ -4743,28 +4937,58 @@ function ktDealSummary(c){
    hosts, so an edit to a term never redraws them. */
 function ktOverviewTermsHtml(c,opts={}){
   const ed=!!opts.editable, readable=!!opts.readable;
+  const dealK=OV_KEY(c,'deal'), recK=OV_KEY(c,'record');
+  /* ---- FILING SURVIVES SIGNING (D-1, kept) ----
+     `ed` is false on an executed contract, but MOVING ONE BETWEEN STREAMS IS
+     HOUSEKEEPING and has never stood down on a signed record: ktStreamRowHtml
+     carries its own admin gate and draws a live picker either way. So the
+     record's rows must still be reachable where the move is live, or an admin
+     would lose the one door onto it — which is exactly what
+     refile-a-contract-verify caught the hour this card was redrawn. */
+  const mayMove=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE;
+  const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
+  const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-edit="${esc(k)}">${
+    esc(on?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:'';
   const fill=(ed&&readable)
     ? `<button id="kt-fill" class="ui-btn" style="font-size:var(--t-label);padding:5px 12px" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
     : '';
+  /* ---- THE ARTIFACT'S SHAPE IS THE RESTING SHAPE (17 Sep 2026) ----
+     Both sections are a four-column label-above-value grid, which is what the
+     artifact draws and what the owner ruled on: "this is how the record card
+     is designed". The editable rows this tab has always had are NOT deleted --
+     the artifact's own promise is "nothing that exists today is removed" --
+     they sit behind `Edit these details`, which is the act the artifact names
+     on The record. The deal is given the same act for a reason said out loud:
+     the artifact names no act there, but the contract value, the dates and the
+     notice period are typed by a person, and a grid with no way in would take
+     away the only place they can be answered.
+     THE POSTURE IS PER SITTING AND IN MEMORY, like the fold above it -- a
+     stored one would leave a colleague's screen in edit mode. */
   const deal=sectionHtml({
-    key:OV_KEY(c,'deal'), title:i18t('ov_deal'), open:true,
+    key:dealK, title:i18t('ov_deal'), open:true,
     chip: ed?null:{ text:i18t('ct_confirmed'), tone:'green' },
     summary: ktDealSummary(c),
-    /* THE NOTICE PERIOD RIDES WITH THE EXPIRY IT COUNTS BACK FROM (merged
-       16 Sep 2026). The row was built the same day this tab became a set of
-       named sections, and a section asks for its rows BY KEY — so a row no
-       section names is a row nobody can reach. The Renewal card points readers
-       here by name; leaving it out would put that pointer back to nothing. */
-    body: `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry','notice']})}</div>
-      <div id="kt-deal-facts">${ktDealFactsHtml(c)}</div>`,
-    acts: fill, foot: i18t('ov_deal_foot') });
+    body: (dealEd
+        ? `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry','notice']})}</div>`
+        : '<div id="kt-rows"></div>')
+      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{rowsAbove:dealEd})}</div>`,
+    acts: editBtn(dealK,dealEd)+fill, foot: i18t('ov_deal_foot') });
+  /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
+     ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
+     own repaint; this button opens the rows that hold it and puts the reader
+     on it. One act, one handler, one wall. */
+  const moveBtn=mayMove?`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-move-stream="${esc(recK)}">${
+    esc(i18t('ov_move_stream'))}</button>`:'';
   const record=sectionHtml({
-    key:OV_KEY(c,'record'), title:i18t('ov_record'), open:false,
+    key:recK, title:i18t('ov_record'), open:false,
     summary: ktRecordSummary(c),
-    body: `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-        {editable:ed,only:['party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>
-      <div id="kt-record-facts">${ktRecordFactsHtml(c)}</div>` });
+    body: (recEd
+        ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
+            {editable:ed,only:['party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+        : '<div id="kt-rows-record"></div>')
+      + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd})}</div>`,
+    acts: editBtn(recK,recEd)+moveBtn });
   return deal+record;
 }
 
@@ -4992,7 +5216,11 @@ function renderKeyTermsSide(c){
       summary:i18t('ov_related_sum'),
       body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` })
     +sectionHtml({ key:OV_KEY(c,'copilot'), title:i18t('ov_copilot'), open:false,
-      summary:i18t('ov_copilot_sum'), body:ktBriefCardHtml(c,CARD,{bare:true}) });
+      summary:i18t('ov_copilot_sum'),
+      /* THE TABLE FIRST, THE BRIEF'S OWN CARD UNDER IT. The table says which
+         readings exist; the card is what one of them SAYS, and it carries the
+         old Write the brief button, which is where the artifact puts it. */
+      body:ktReadingsRowsHtml(c)+ktBriefCardHtml(c,CARD,{bare:true}) });
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(e){}
   try{ if(window.renderFamilySection) renderFamilySection(c,{bare:true}); }catch(e){}
   wireKtBriefCard(c);
@@ -5004,6 +5232,12 @@ function renderKeyTermsSide(c){
      the one confirm, the one audit line; there is no second sender here. Add
      opens the obligation form with the document tick already on, which is the
      ONE editor for an obligation's facts. */
+  /* EVERY READING'S DOOR IS THE PRODUCT'S OWN TAB. roomGoTab is the one
+     router the whole room already uses; nothing here opens a second surface. */
+  host.querySelectorAll('[data-ov-read-go]').forEach(b=>b.addEventListener('click',()=>{
+    const tab=b.getAttribute('data-ov-read-go');
+    if(tab&&window.roomGoTab) roomGoTab(c,tab);
+  }));
   host.querySelectorAll('[data-ov-doc-chase]').forEach(b=>b.addEventListener('click',async()=>{
     if(!window.obligationChase) return;
     await obligationChase(c.id, b.getAttribute('data-ov-doc-chase'));

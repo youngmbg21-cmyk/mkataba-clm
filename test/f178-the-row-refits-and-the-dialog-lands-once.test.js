@@ -54,7 +54,11 @@ describe('F178 — Key terms stops offering the playbook review', () => {
       'the builder draws nothing');
     assert.ok(!/\$\{readTermsHtml\(/.test(CONTRACT),
       'and nothing calls it — a stub with a caller is a blank line on a page');
-    const FACTS = /function ktDealFactsHtml\(c\)\{[\s\S]*?\n\}/.exec(CONTRACT);
+    /* MATCHED BY NAME, NEVER BY PARAMETER LIST (re-pointed 17 Sep 2026, when
+       the builder gained an opts argument and this net went quietly null). A
+       net a signature can silence says nothing about the behaviour it was
+       written for — the f255 lesson, paid again. */
+    const FACTS = /function ktDealFactsHtml\s*\([^)]*\)\s*\{[\s\S]*?\n\}/.exec(CONTRACT);
     assert.ok(FACTS, 'the fields that replaced it are there');
     for (const k of ['governingLaw', 'liabilityCapped', 'paymentTerms'])
       assert.ok(FACTS[0].includes(k), k + ' is a field on the page now');

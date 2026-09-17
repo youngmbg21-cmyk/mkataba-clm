@@ -232,6 +232,52 @@ function familyAgreeLine(parent, child){
   if(!a.moved.length) return i18t('fa_agree_yes');
   return i18t('fa_agree_moves', { terms:a.moved.map(t=>String(t.label).toLowerCase()).join(', ') });
 }
+/* ---- WHICH DOCUMENT WINS WHERE THEY DISAGREE (S12) ----
+   The artifact asks Related agreements for "parent, amendments, order forms,
+   and which document wins where they disagree". That order is not a judgement
+   and nothing here invents one: a signed amendment displaces the parent for
+   the terms it moves, and where two amendments move the same term the later
+   one stands. So the order is the parent, then the EXECUTED children oldest
+   first -- and an unsigned child is on the list saying it changes nothing yet,
+   because a draft amendment beats nothing at all.
+   IT SPENDS NOTHING AND WRITES NOTHING. `contractSignedAt` is the product's
+   one reading of when a document was executed, asked through window. */
+function familyOrder(c){
+  const head=(c&&c.parentId)?familyParent(c):c;
+  if(!head) return [];
+  const when=x=>{ try{ return (window.contractSignedAt&&contractSignedAt(x))||''; }catch(_){ return ''; } };
+  const kids=familyChildren(head.id).slice().sort((a,b)=>{
+    const A=when(a), B=when(b);
+    if(A&&B) return A<B?-1:A>B?1:0;
+    if(A) return -1; if(B) return 1;
+    return String(a.id)<String(b.id)?-1:1;
+  });
+  return [{ doc:head, role:'parent', signed:when(head) }]
+    .concat(kids.map(k=>({ doc:k, role:'amendment', signed:when(k) })));
+}
+/* THE WHOLE FAMILY IN ONE READING: every child measured against the parent by
+   familyAgreement -- the SAME reading each row already prints, so the button
+   and the rows can never disagree -- plus which document each moved term ends
+   up governed by, which is simply the last one on the order that moved it. */
+function familyCheck(c){
+  const order=familyOrder(c);
+  if(order.length<2) return { order, rows:[], moved:[], unsigned:[], comparable:0 };
+  const parent=order[0].doc;
+  const rows=order.slice(1).map(e=>{
+    const a=familyAgreement(parent, e.doc);
+    return { id:e.doc.id, name:e.doc.name, signed:e.signed,
+      moved:a.moved.map(t=>({ k:t.k, label:t.label })), comparable:a.comparable };
+  });
+  /* WHO GOVERNS EACH MOVED TERM: walked in order, so the last document to
+     move a term is the one that holds it. An unsigned document is named but
+     does not take the term -- it has not displaced anything yet. */
+  const holder=new Map();
+  rows.forEach(r=>{ if(!r.signed) return; r.moved.forEach(m=>holder.set(m.k,{ label:m.label, id:r.id })); });
+  return { order, rows,
+    moved:[...holder.entries()].map(([k,v])=>({ k, label:v.label, id:v.id })),
+    unsigned:rows.filter(r=>!r.signed).map(r=>r.id),
+    comparable:rows.reduce((n,r)=>n+r.comparable,0) };
+}
 function expirySource(c){
   if(!c || c.parentId) return null;
   const eff=effectiveExpiry(c);
@@ -410,6 +456,37 @@ function openLinkModal(c, onDone, opts={}){
    agreements section, which already carries the name (16 Sep 2026). The acts
    and every row are untouched; a caller that passes nothing gets exactly the
    card this function has always drawn. */
+/* WHICH DOCUMENT WINS, said in one line above the list. It states the RULE and
+   names the documents in force; it does not restate each row's own moves,
+   which the rows print themselves. Nothing here is drawn on a lone agreement:
+   a precedence order over one document is a sentence about nothing. */
+function familyPrecedenceLineHtml(c){
+  let k; try{ k=familyCheck(c); }catch(_){ return ''; }
+  if(!k||k.order.length<2) return '';
+  const names=k.moved.map(m=>`<b>${_famEsc(m.id)}</b> ${_famEsc(String(m.label).toLowerCase())}`);
+  const rule=i18t('fa_prec_rule');
+  const holds=names.length?` ${i18t('fa_prec_holds')} ${names.join(', ')}.`:` ${i18t('fa_prec_none')}`;
+  return `<p class="fam-prec" style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${rule}${holds}</p>`;
+}
+/* THE REPORT. Deterministic, off the record, no model and no route: it is the
+   rows' own reading gathered in one place, which is what makes it safe to call
+   a check. A term nobody moved is not mentioned — the answer to "does this
+   family agree" is a list of disagreements, and an empty list is the good
+   answer said in words. */
+function familyCheckReport(c){
+  const k=familyCheck(c);
+  if(!k||k.order.length<2) return i18t('fa_check_alone');
+  const out=[];
+  k.rows.forEach(r=>{
+    const when=r.signed?'':` (${i18t('fa_check_unsigned')})`;
+    out.push(r.moved.length
+      ? `${r.id}${when} — ${i18t('fa_agree_moves',{ terms:r.moved.map(m=>String(m.label).toLowerCase()).join(', ') })}`
+      : `${r.id}${when} — ${r.comparable?i18t('fa_agree_yes'):i18t('fa_agree_unknown')}`);
+  });
+  if(k.moved.length) out.push('', i18t('fa_check_inforce') + ' ' +
+    k.moved.map(m=>`${String(m.label).toLowerCase()} → ${m.id}`).join(', '));
+  return out.join('\n');
+}
 function renderFamilySection(c,opts){
   const bare=!!(opts&&opts.bare);
   const host=document.getElementById('family-section'); if(!host) return;
@@ -449,6 +526,14 @@ function renderFamilySection(c,opts){
     acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
     if(!kids.length) acts.push(`<button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`);
   }
+  /* ---- CHECK THE FAMILY (S12), the third act the artifact names ----
+     Drawn only where there is a family to check: on a lone agreement the press
+     could only ever report "nothing to compare", which is a dead door. It is
+     offered on a CHILD too — reading how your amendment sits against its
+     parent is the same question from the other chair — and it is not gated on
+     canEdit, because it writes nothing and spends nothing. */
+  if(kids.length||parent)
+    acts.push(`<button id="fam-check" style="${btn}">${i18t('fa_check_family')}</button>`);
   host.innerHTML=`
     <div style="padding:var(--s-4) 18px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)${bare&&!(canEdit()&&parent)?';display:none':''}">
@@ -459,6 +544,7 @@ function renderFamilySection(c,opts){
           ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('fa_unlink')}</button>`:''}
       </div>
       ${acts.length?`<div class="fam-acts">${acts.join('')}</div>`:''}
+      ${familyPrecedenceLineHtml(c)}
       ${parent
         /* The label is NOT lowercased here any more, and the sentence lost its
            indefinite article with it: English wants a/an by the following word
@@ -486,6 +572,18 @@ function renderFamilySection(c,opts){
   document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-add')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'parent'}));
   document.getElementById('fam-create')?.addEventListener('click',()=>openCreateAmendmentModal(c));
+  /* CHECK THE FAMILY (S12). One press, one reading, nothing written and
+     nothing spent — so it answers in a plain dialog rather than filing a
+     finding anywhere. confirmDialog is the product's own window; there is no
+     second act to take, so it is shown with one way out. */
+  document.getElementById('fam-check')?.addEventListener('click',()=>{
+    let body=''; try{ body=familyCheckReport(c); }catch(_){ body=''; }
+    if(!body) return;
+    if(window.confirmDialog) confirmDialog({
+      title:i18t('fa_check_family'), message:body, multiline:true,
+      confirmText:i18t('ct_close')||'Close', cancelText:'' });
+    else if(window.toast) toast(body,'ok');
+  });
   document.getElementById('fam-unlink')?.addEventListener('click',()=>unlinkContract(c, again));
   document.getElementById('fam-standalone')?.addEventListener('click',()=>{
     logLinkDecision(c,false); persist(c); toast(`${c.id} confirmed as a standalone agreement`); again();
@@ -821,7 +919,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

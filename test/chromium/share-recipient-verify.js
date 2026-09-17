@@ -198,7 +198,15 @@ const ROUTE = [
     await page.waitForTimeout(700);
 
     const kt = await page.evaluate(() => {
-      const row = document.querySelector('[data-kt-row="cpRouteEmail"]');
+      /* ---- THE CARRIER CHANGED, THE CLAIM DID NOT (17 Sep 2026) ----
+         The record rests as the artifact's grid now, so the second address is
+         a CELL on the resting card rather than a row; it becomes the row again
+         behind `Edit these details`. What this file is here to prove is that
+         the disagreement is on screen at all — it may never be quiet — so it
+         looks for whichever shape is drawn and measures that. */
+      const row = document.querySelector('[data-kt-row="cpRouteEmail"]')
+        || [...document.querySelectorAll('.sec-fields .sec-f')].find(f =>
+          /signing route|route address/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''));
       if (!row) return { there: false };
       const r = row.getBoundingClientRect();
       return { there: true, said: row.textContent.replace(/\s+/g, ' ').trim(),
