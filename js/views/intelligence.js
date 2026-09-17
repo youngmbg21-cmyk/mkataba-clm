@@ -257,7 +257,11 @@ function graphDependentsAll(){
 function graphNodeFacts(c){
   const out={ decideDays:null, missed:false, whose:null, whoseSay:'', overdue:0, overdueValue:null, offStandard:null, unread:null };
   if(!c) return out;
-  try{ if(typeof renewalWindow==='function'){ const rw=renewalWindow(c); if(rw&&rw.inWindow){ out.decideDays=rw.days; out.missed=!!rw.missed; } } }catch(_){}
+  /* `rw.decided` rides on the very object this already has (16 Sep 2026). A
+     node saying a decision is owed on a renewal somebody answered is the one
+     fault class this codebase pays for most — two screens disagreeing about
+     what the product did — and the answer was one word away. */
+  try{ if(typeof renewalWindow==='function'){ const rw=renewalWindow(c); if(rw&&rw.inWindow&&!rw.decided){ out.decideDays=rw.days; out.missed=!!rw.missed; } } }catch(_){}
   try{ if(typeof negoMoveSay==='function'){ const m=negoMoveSay(c); if(m&&m.k&&m.k!=='clear'){ out.whose=m.word; out.whoseSay=m.say||''; } } }catch(_){}
   try{
     const late=(c.obligations||[]).filter(o=>o&&(typeof obState==='function'?obState(o):o.status)==='overdue'&&!(typeof obligationBlocked==='function'&&obligationBlocked(o,c)));
@@ -396,9 +400,18 @@ const _gQLabel = idx => `Q${(idx%4)+1} ${Math.floor(idx/4)}`;
    laid out left to right in time; 'Later' sorts after the named quarters and
    'No decision date' last of all. */
 function graphDecisionOf(c){
+  /* ---- A DECIDED RENEWAL IS NOT ON THE CLIFF, AND IT IS NOT NOWHERE EITHER ----
+     (16 Sep 2026.) The cliff counts decisions still owed, so an answered one
+     does not belong on a quarter — but NOTHING IS FOLDED AWAY (the payment-terms
+     ruling), so it gets a hub of its own rather than being dropped into "No
+     decision date", which would say something untrue about it. `days:null`
+     keeps it out of the scrubber's passed/ahead arithmetic, which is right: it
+     is not a decision ahead and it is not one that passed. */
+  if(typeof renewalDecided==='function' && renewalDecided(c))
+    return { date:null, days:null, label:'Decided', order:GRAPH_CLIFF_QUARTERS+2 };
   const date=(typeof renewalDecisionDate==='function')?renewalDecisionDate(c):null;
-  if(!date) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+2 };
-  const d=new Date(String(date).slice(0,10)+'T00:00:00'); if(isNaN(d.getTime())) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+2 };
+  if(!date) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+3 };
+  const d=new Date(String(date).slice(0,10)+'T00:00:00'); if(isNaN(d.getTime())) return { date:null, days:null, label:'No decision date', order:GRAPH_CLIFF_QUARTERS+3 };
   const now=new Date(); now.setHours(0,0,0,0);
   const rel=_gQIdx(d)-_gQIdx(now);
   const days=Math.round((d-now)/86400000);
@@ -407,7 +420,7 @@ function graphDecisionOf(c){
   if(rel<=GRAPH_CLIFF_QUARTERS) return { date, days, label:_gQLabel(_gQIdx(d)), order:rel };
   return { date, days, label:'Later', order:GRAPH_CLIFF_QUARTERS+1 };
 }
-const graphDecisionOrder = label => { if(label==='Passed') return -1; if(label==='This quarter') return 0; if(label==='Later') return GRAPH_CLIFF_QUARTERS+1; if(label==='No decision date') return GRAPH_CLIFF_QUARTERS+2;
+const graphDecisionOrder = label => { if(label==='Passed') return -1; if(label==='This quarter') return 0; if(label==='Later') return GRAPH_CLIFF_QUARTERS+1; if(label==='Decided') return GRAPH_CLIFF_QUARTERS+2; if(label==='No decision date') return GRAPH_CLIFF_QUARTERS+3;
   const m=/^Q([1-4]) (\d{4})$/.exec(label||''); if(!m) return 99; const now=new Date(); return (Number(m[2])*4+Number(m[1])-1)-_gQIdx(now); };
 /* A CROWDED QUARTER IS SAID IN WORDS, AND ONLY WHERE IT IS ONE: a named
    quarter holding more than one and a half times the average over the named
@@ -440,7 +453,9 @@ function igApplyCliff(days){
   const passed=new Set(at.passed);
   IG.nodes.forEach(n=>{ if(n.kind==='contract') n.g.classList.toggle('passed',passed.has(n.id)); });
   IG.nodes.filter(n=>n.kind==='hub').forEach(h=>{ const ids=[...(IG.adj[h.id]||[])].filter(id=>IG.byId[id]&&IG.byId[id].kind==='contract');
-    if(!ids.length||h.label==='No decision date') return;
+    /* Neither hub carries a decision to pass or wait for, so neither takes the
+       "N passed · N ahead" line. */
+    if(!ids.length||h.label==='No decision date'||h.label==='Decided') return;
     const p=ids.filter(id=>passed.has(id)).length;
     const el=h.g.querySelector('.ig-sub'); if(el) el.textContent=i18t('int_cliff_hub',{p, a:ids.length-p})+(h.crowded?' · '+i18t('int_cliff_crowded'):''); });
   const out=document.getElementById('ig-cliff-out'); if(out){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+days);

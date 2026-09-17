@@ -215,7 +215,16 @@ describe('f241 — the twelve screens the audit named', () => {
 
   test('AI_SERIES labels are getters — the getter trap AND a dead zone', () => {
     const ac = read('js/aichart.js');
-    const block = ac.slice(ac.indexOf('const AI_SERIES'), ac.indexOf('const AI_SERIES') + 1400);
+    /* PIN THE REGION, NOT A BYTE COUNT (16 Sep 2026). This sliced a flat 1400
+       characters from the anchor, so the claim held only while nobody added a
+       comment inside the object — and the day somebody did, the fifth getter
+       fell out of the window and this reported a language bug that was not
+       there. Sliced to the object's own closing brace instead, which is what
+       the claim was always about. */
+    const from = ac.indexOf('const AI_SERIES');
+    const end = ac.indexOf('\n};', from);
+    assert.ok(end > from, 'AI_SERIES still closes at the top level');
+    const block = ac.slice(from, end);
     assert.equal((block.match(/get label\(\)/g) || []).length, 5,
       'a plain call here freezes the language at load AND throws inside _acT\'s dead zone');
   });

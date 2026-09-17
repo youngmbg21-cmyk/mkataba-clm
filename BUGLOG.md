@@ -14198,6 +14198,110 @@ Noticed, not fixed:
   it from a built fixture; the geometry fault above was reproduced and fixed.
 - redline-verify check 5 is red at unmodified main and was left red.
 
+## 16 Sep 2026 — MAPPING THE RED BROWSER CHECKS (owner asked; no fix made)
+
+Young, off a screenshot from the contract-builder session: "There are 25
+negotiation lines that are failing. Can you map what they are? No coding."
+
+MEASURED, not read: the whole browser set run on main at 4ac6bb0 — 23 of 108
+files red — then the same 23 re-run in worktrees at 11f586a (a week back) and
+at 744127e, so old news could be told from new.
+
+TWENTY OF THE TWENTY-THREE WERE ALREADY RED A WEEK AGO. They describe designs
+the product has since moved past on the owner's own word — the highlight's
+three verbs (selection-verify, redline-verify 5, phone-verify), the fifth room
+tab (negotiations-door), the retired three-way cut (flat-rows, room-order), the
+crumb on the negotiate head (nego-redesign 1/1c), the clause panel giving way
+to the clause editor (standard-paper 4/5, paper-grows 5d/6), the Notes row in
+the counterparty's More menu (counterparty-reading 6), the pop-up diet's
+retired memo sub-line (negotiation-memo 7f), and the scroll-fold deleted on
+10 Sep (tracked-changes-scroll 2). theme-tokens is the colour census at 27/40,
+unchanged at every commit measured.
+
+### Noticed, not fixed
+
+- upload-structure-verify 2a/2b: GREEN at 744127e, RED at ee54a94 — an uploaded
+  contract's own title is now counted among the clause headings inside the
+  stored-body region (five where the file names four). It arrived with the
+  Document tab's front-matter head. Worth a look at whether the title is being
+  drawn as a clause heading on an upload.
+- round-delivery-verify 5/7: GREEN at 744127e, RED at ee54a94 — the
+  counterparty's acceptance shows on the owner's screen but the record read
+  back off the server still says pending, and the refused-readiness audit line
+  is written 0 times where the file wants exactly 1. Both are "the record did
+  not catch up"; the commit that broke them is the one that serialised saves.
+- competing-redlines-verify, settled-ask-reopen-verify: red since "Five more
+  off one screen" — both read the clause panel's own rows on OUR seat, which
+  the ladder-only narrowing hides. settled-ask-reopen's Reopen resolves at 0x0
+  and its click times out. Whether the settled Reopen still has a reachable
+  home on our seat is the owner's question, not a drive-by fix.
+- reopen-a-refusal-verify: aborts part way with getComputedStyle on a null
+  element. Its first six checks pass; the rest never run. Present at 744127e
+  and at 11f586a in a different shape.
+- The count in the report was FILES, not lines: 23 files, about 60 named
+  failing lines, of which 13 are theme-tokens' colour cells.
+
+## 16 Sep 2026 — THE RECORD CATCHING UP (Young: "Fix the record catching up issue")
+
+The fault reported off yesterday's map: the counterparty's acceptance drew on
+the owner's screen while the record read back off the server still said
+pending, and the refused-readiness trail line was written 0 times where
+exactly 1 is owed.
+
+PROVED BEFORE ANYTHING MOVED. round-delivery-verify was green at 744127e and
+red at ee54a94; reverting ONLY the save-serialising in a worktree at main put
+it back to 34/34, which named the commit and the function. A trace on the
+live browser named the line.
+
+### The defect
+
+`flushSaves` used the in-flight PROMISE as its own "is a flush running" flag:
+`_flushing = (async()=>{ … finally { _flushing=null; } })()`. An async body
+runs synchronously to its first `await`, and a flush with an EMPTY queue never
+reaches one — so the body ran to the end, the `finally` wrote null, and the
+assignment then put the resolved promise back over it. `_flushing` was left
+permanently truthy.
+
+From that moment every call took the join door and got back an already-settled
+promise: `await flushSaves()` returned at once having written nothing, and
+`dirty` was never drained again for the life of the page. THIS WAS NOT LIMITED
+TO THE TWO CHECKS — after the first empty flush, nothing that browser did was
+saved. Nothing errored and nothing logged; the screen was right and the record
+simply stopped moving.
+
+The empty flush is the ordinary case, not an edge one: `persist` sets a 400 ms
+timer and several callers drain by hand straight after (applyResponse, so the
+write lands before the repaint reloads over it; auto-triage, so the record is
+on the server before it is read back). The hand drain empties the queue and
+the stale timer fires on nothing, within seconds of any ordinary edit.
+
+### The fix
+
+The latch is a BOOLEAN raised before the body exists, so a synchronous run
+cannot overwrite its own clearing; `_flushDone` carries the promise; and a
+joiner that comes back to a queue still holding work goes round again, so the
+promise means "the queue is empty" — which is what applyResponse and
+auto-triage are relying on. The server's optimistic lock and the conflict
+dialog are untouched. One function, one definition, one call site of the
+pattern (swept for a second).
+
+### Measured
+
+- round-delivery-verify 34/34 (was 32/34).
+- saves-serialize-verify grew section 2, which drives the real sequence:
+  3 of 9 checks red at the parent — the record one edit behind the screen, one
+  contract still queued, the version unmoved.
+- f314 (2) re-pointed to the boolean latch, (2b) added for the trap itself.
+- Full node suite 7,124 / 0 red. Lint 0 errors.
+- Browser set: the same 22 pre-existing red files, round-delivery no longer
+  among them.
+
+### Noticed, not fixed
+
+- clause-editor-verify 33h failed once in the parallel run (the caret landed on
+  a different word from the one pressed) and passes 281/281 run on its own.
+  A timing flake under four Chromiums on four cores, not a product fault —
+  but the click point expires at 1500 ms, so that check is load-sensitive.
 ## 15 Sep 2026 — the nuanced redline, the decision that could not be made, and the blank column
 
 Young's go on the artifact "The Nuanced Redline" (all four decisions), plus
@@ -14710,3 +14814,368 @@ NOTICED, NOT FIXED
 - The exposure register's indemnity row reads a ceiling, not one-sidedness.
   HaTi records no "who indemnifies whom" and inventing one would be a fact the
   product made up.
+## 15 Sep 2026 — Contract builder review + four-persona CLM review (NO CODE CHANGED)
+
+An overnight review asked for by the owner: walk every route a contract is created by, judge
+the builder, then judge the product from four chairs (small business owner, mid-market
+operations manager, FMCG procurement manager, in-house lawyer) and propose solutions. The
+deliverable is a published artifact, "What HaTi builds next". NO PRODUCT CODE WAS WRITTEN and
+no test was changed. Screenshots came from running the existing browser files plus a scratch
+Playwright script outside the repo.
+
+### Noticed, not fixed — the paper HaTi drafts
+- EVERY ONE of the twelve built-in templates is EXACTLY FOUR CLAUSES (counted off the BUILD
+  table, js/views/contract.js). Absent from all twelve: termination for breach, force majeure,
+  notices, assignment, entire agreement, dispute escalation, insurance, indemnity, data
+  protection (DPA 2019), anti-bribery, limitation of liability as its own clause. Several jam
+  three subjects into one clause ("IP, Confidentiality & Governing Law"). PK clause 2 cites
+  "Annexure A" and RM clause 1 cites "the agreed specification"; neither is ever produced.
+- The Distributor template renders N('noticeDays',90) into the WORDING (contract.js:2923) but
+  `noticeDays` is in no field list — not TEMPLATE_BASE_FIELDS, TEMPLATE_PRIMARY, TEMPLATE_PAY
+  or js/templatefields.js. Nothing sets it, so it always prints the hardcoded 90, and
+  metadata.noticePeriodDays stays empty. Every renewal reading asks that field
+  (obligations.js:74, :187, :431, plus runReminders/runRenewalPrep and the calendar horizon),
+  so THE RENEWAL CLOCK IS BLIND ON HATI'S OWN PAPER. templatefields.js:123 maps an UPLOADED
+  template's /notice/ field correctly — somebody else's paper works and ours does not.
+- A template knows its own promise (TEMPLATE_OBLIGATIONS) but mintTemplateObligations is only
+  reached from the Key terms edit, so a fresh draft's Obligations list is empty until somebody
+  happens to edit a field.
+
+### Noticed, not fixed — the template builder
+- Apply overwrites only the FIRST wording block of a section (tbWordingBlock returns
+  sec.body[0]) although the model was shown all of them, so a multi-block section ends up with
+  the new wording followed by the old.
+- Every Apply fires tbBlanksRun -> POST /api/ai/blanks with {quiet:true}. It IS metered
+  (aiWho(req), feature 'blanks', behind aiBudgetGuard) but does NOT increment _tb.reads, so the
+  "read N" on the card understates what the press cost; and its catch is bare, so a provider
+  refusal or the daily ceiling is swallowed in the same silence as an empty answer. Refusal 4
+  of THE SIX QUESTIONS asks for the cost on the press and no silent failure.
+- The section numbers on the paper are drawn by the builder (.tb-n) and are NOT stored in the
+  block content, so a contract published from that template has unnumbered headings.
+- viewLayersClosed knows exactly one layer (clauseEditorOpen). openTemplateBuilder and
+  openDesignStep paint #content directly and setView has no branch for either, so every sidebar
+  door repaints straight over an unsaved template — blocks, fields, _tb.thread, _tb.intent,
+  _tb.outline, _tb.proposed and _tb.reads (calls already paid for). #tb-back asks first; nothing
+  else does. Also #shell-title still says "Templates" while you are in either screen.
+- Nothing auto-saves; tbSave is manual only and there is no beforeunload.
+- The outline is unreachable on any template that already has blocks (both import paths).
+- The outline's line of intent is shown to the person but never sent to the drafting model.
+- The library chip and the blanks reader both switch off the moment a section has any wording.
+- A playbook position whose category is not one of the six CLAUSE_KINDS can never be satisfied,
+  and the door offered for it leads nowhere.
+- Below 1024px the rail disappears and with it the only way to add a field.
+- Warnings on a SUCCESSFUL publish print in the error toast kind.
+- The branding panel is a second door onto the company's legal identity; an Editor is only
+  refused after pressing Save, and it leaves the cached branding stale.
+- The Playbook tab states "a deviation is recorded on the version and rides every contract drawn
+  from it" — reported as untrue. Worth checking before it is repeated to a customer.
+- A dozen hardcoded English strings on an otherwise fully translated screen.
+
+### Noticed, not fixed — creation and the record
+- Company-standard route: openContractEssentials collects `party` and tplLibCreate posts only
+  counterparty/counterpartyEmail/value/effDate/expiry — the answer is dropped. The same facts
+  are then asked a second time on renderTemplateFormSection, and the two copies can disagree.
+- A contract can never be renamed. c.name is derived at mint and the only writer afterwards is
+  migImportSheet.
+- Every contract from a saved template is stamped valueType:'estimated' regardless, so
+  wsNextAction demands a value for contracts that carry none.
+- Whether value and dates are asked at all depends on whether the chosen template declares blanks.
+- "Describe what you need" can never fill anything on a company standard or a blank-less saved
+  template: draftCandidates pushes tplLibPublished with an empty field list.
+- An upload's contractType is the literal 'External Document', which matches no playbook keyword,
+  so every uploaded contract falls to the baseline book however the type was actually read.
+- Whether a contract is customer-side or supplier-side is never asked at creation, so the
+  payment-terms reading is blind over most of the book.
+- Re-running the standards review replaces the review object whole, discarding every accepted
+  deviation, its reason, who accepted it and the escalation they answered — and the product tells
+  you to re-run it after every round. runScan's dismissal carry is the in-house precedent.
+- The four rows of the new-contract menu are hardcoded English; the phone's sheet offers three.
+- Three dead fallbacks reach for document.getElementById('cmd-new'), which no longer exists
+  (js/views/register.js:1503, js/views/home.js:1519 and :1527).
+- 'Somebody has picked this up' is an unreachable state on an intake request.
+- openEditDocModal (js/views/contract.js:2082) is a complete versioned audit-lined editor with
+  NO CALLER, so a solo drafter cannot change a word of their own draft except by redlining
+  themselves — after which docFillable goes false and even the blanks stop being fillable.
+- runShareNudges fires ONCE at SHARE_NUDGE_DAYS=3 and only where first_opened_at is null.
+- No delegation / out-of-office anywhere: an approver or reviewer who is away blocks the chain.
+- No bulk or multi-select action on the Contracts register; no approval SLA or idle escalation
+  (Home prints "67d idle" and nothing acts on it).
+- Obligations are drawn nowhere on the phone (zero mentions across all five mobile files).
+- .nego-redline .rl-marker{font-weight:var(--w-strong)} bolds an invented marker on the room's
+  canvas (carried over from the 15 Sep shape work).
+
+### Outside the request, touched
+Nothing in the repository was modified. Screenshots and the artifact source live under the
+session scratchpad, not here.
+
+## 16 Sep 2026 — The renewal clock (solution 1 of the overnight review)
+
+Owner: "start with 1: renewal clock". Built pieces 2-6 of the spec; the owner
+ruled out piece 1 (a notice-period question on the Distributor Agreement's
+drafting form) for now — "fix the paper and the record first" — so
+TEMPLATE_NOTICE was NOT written and no creation form gained a box. The owner
+also ruled the mail split: the contract's owner gets all six rungs, admins keep
+the last of each (30 days and 1 day) as the escalation.
+
+What shipped: the paper's own noticeDays blank fills metadata.noticePeriodDays
+on change (fill-only, mirroring the termYears listener); "Fill from document"
+keeps noticePeriodDays and renewalType instead of discarding them; a Notice
+(days) row on Key terms that writes both the record and c.fields.noticeDays so
+the clause and the clock cannot disagree; the Renewal card states the absence
+instead of printing a decision date that is silently the expiry; and the
+renewal mail is addressed to the owner, in the owner's own language, through
+four new mail keys in both books.
+
+### Noticed, not fixed
+- server/server.js ~11282 (the held-obligation mail) reads
+  `obligationRecipient((c.owner && c.owner.name) || '')` where `c` is a SQL row
+  from a contracts table with NO owner column, so `c.owner` is always undefined
+  and that mail has ALWAYS fallen through to the admins — a guard that is
+  always false, the first of CLAUDE.md's four costumes. f262:388 asserts the
+  admin fallback, so the test passes on the bug. The renewal mail added today
+  deliberately does NOT copy it: it reads `full.owner` off the parsed json, the
+  way runRenewalPrep does. Fixing the held mail belongs in its own job.
+- applyMetadata (js/views/contract.js ~1968) does `c.metadata = m` wholesale, so
+  a later metadata-review confirmation silently discards anything typed into the
+  new Key terms row. Pre-existing and true of every field on that dialog.
+- THE DAILY BRIEF STILL SAYS NOTHING TO A NON-ADMIN OWNER about their own
+  renewal: its expiry and notice-by lines sit inside an admin-only gate. Stated
+  rather than fixed, on the spec's own recommendation — ship the milestone mail
+  first, read one real week of it, then decide, because moving the gate means
+  the same fact reaches the same person twice.
+- A DA drafted with "Skip for now" answers every field empty, so the paper still
+  prints its own default of 90 while the record holds nothing until somebody
+  presses the blank or the Key terms row. The listener added today is the only
+  thing that ever closes that gap, and it needs one press.
+
+### Outside the request, touched
+Nothing. Five files changed, all of them the renewal clock's own ground.
+
+## 16 Sep 2026 — the rest of the renewal card: the owner line, the drafting question, and the decision
+
+Young sent back a picture of the Renewal card from the overnight artifact with
+"it seems you did not implement this part". Photographed the live card before
+saying anything: the top half — the deadline sentence and the "counted back
+from" line — was there; the bottom half was not. Two of the missing pieces were
+solution 1's and I had missed them; the third was solution 9, which my own
+build order and the artifact's own caption had scheduled for later. Asked
+rather than widened, as the scope rule says; the owner chose the whole card.
+
+Ran a six-reader mapping pass before writing a line, each reader followed by a
+skeptic that had to prove or refute its claims from the code. That pass earned
+its keep four times over — see below.
+
+What shipped, in three pieces:
+
+(A) THE OWNER LINE. `renewalNoticeTo(c)` in js/obligations.js is the browser
+twin of the server's own `ownerOf`, mirroring its three steps in order: the
+owner's id finds a member, else the owner's name does, and an owner who cannot
+open the contract's value stream is not told it exists. It answers WHY as well
+as WHO, because "nobody is recorded" and "recorded but out of the stream" are
+different facts with different fixes. The ladder named follows the fact: 14/7/1
+counts to the DECISION date and only exists where a notice period is recorded,
+so a contract without one is told about 90/60/30 instead. The line is drawn
+only while the question is open — once an answer is recorded the reminders have
+stopped and "gets the reminders" would no longer be true.
+
+(B) THE DRAFTING QUESTION. `TEMPLATE_NOTICE` beside TEMPLATE_PAY, same shape,
+keyed to the very blank the clause prints. All twelve built-ins were read for
+this and exactly one carries a termination notice period as a blank — DA's
+clause 4. CM's `auditNotice` is the notice before an AUDIT VISIT and mapping it
+would have put a seven-day renewal deadline on every co-packing agreement; ND
+says "by written notice" with no figure at all. Both are named null rather than
+omitted, because TEMPLATE_PAY leaves EQ out entirely and `if(pay)` makes absent
+and null identical — a table that can look complete while a template is
+missing. `maps:'noticePeriodDays'` was all it needed: applyTemplateValues
+already knew that key.
+
+(C) THE RENEWAL DECISION. Three answers on the card's own acts row, recording
+the answer, who, the day, and one optional line of why. THE ANSWER IS STAMPED
+WITH THE QUESTION IT ANSWERED — decideBy, expiry and notice — and counts only
+while all three still hold, so moving the expiry or correcting the notice
+period lapses it of its own accord, with no sweep and no migration. Absent on
+every record on file. Deliberately NOT on EXECUTED_IMMUTABLE and the absence is
+load-bearing: every contract this is asked about is already executed, so adding
+it "for safety" would kill the feature with a 409 on every press. What it needs
+instead is an identity check, and the PUT has one — an answer must name the
+caller and carry its stamp, asked as a difference.
+
+The reminders stop in two conditions, not one, because the two ladders ask
+different questions: 14/7/1 counts to the decision and any answer settles it;
+90/60/30 counts to the expiry and keeps running unless the answer was to let it
+lapse. The card says which, in those words, rather than promising a silence the
+sweep does not deliver.
+
+### What the mapping pass caught that I would have shipped
+
+- A RIVAL READING OF THE SAME QUESTION. js/views/portfolio.js already had
+  `pfRenewalDecided`, which answers "is this renewal decided" by looking for a
+  done obligation whose description matches /renew/i — its own comment calls it
+  "the platform's own renewal decision". Insights would have printed "undecided"
+  for a contract whose card said We will renegotiate. The recorded answer is
+  now the senior reading there, with the obligation reading kept underneath it.
+- FOUR NAG SURFACES, NOT ONE. The card and the desk ask renewalWindow; Home's
+  decisions list asks renewalDecisionDate directly; the alerts panel has TWO
+  renewal pushes and the second reads `expiring`, not `decisions`; and the
+  obligations side panel draws its own "Renewal decision by …" band. All four
+  now ask the one predicate.
+- THE AUDIT WORD. `logAudit(c,'Renewal',…)` would have collided with
+  aiNoteRead's own 'Renewal' line, so the trail could not have told a Copilot
+  read from a person's decision. It writes 'Renewal decision'.
+- A LAYOUT TRAP. The card's section is a flex column and every direct child
+  needs `flex:none` — the head row and acts row already say so. The new divider,
+  label and button row did not, and would have stretched.
+- THE FOLDERLESS CASE. The server's inScope needs '' on a restricted person's
+  list for a contract filed in no stream; skipping the check for a folderless
+  contract would have answered "gets the reminders" exactly where the server
+  answers "goes to the admins".
+
+### Noticed, not fixed
+- ADMIN_RUNGS (server/server.js ~11252, mine, from yesterday) is a bare Set of
+  numbers asked of BOTH ladders. It is correct today only because [90,60,30] and
+  [14,7,1] do not overlap. Add a 30-day decision rung or a 1-day expiry rung and
+  the set silently applies to both. One set per ladder is the fix.
+- `renewalDecisionsDue` (js/obligations.js ~206) is published and has no caller
+  anywhere — dead code, and a fifth reading of the same question if anyone ever
+  wires it.
+- The obligations side panel's renewal band prints "Renewal decision by …" as a
+  hardcoded English literal rather than through i18t, so it stays English on a
+  Swedish screen. Pre-existing.
+- `c.fields.noticeDays` is written as a NUMBER by applyTemplateValues
+  (coerceField type 'num') and as a STRING by the Key terms row. Both render and
+  both read back through `??`, so nothing breaks — but two doors onto one fact
+  store two types. TEMPLATE_PAY's payDays has the same split and always has.
+- metadata.noticePeriodDays is in LATE_WINS (js/metadata.js ~278), so a document
+  re-read or the metadata review dialog can change it — which lapses a recorded
+  decision. That is the design working, but neither the Key terms notice row nor
+  the expiry row warns that editing it will restart the reminders. The card says
+  so afterwards, through rn_stale.
+- Nine surfaces read renewalDecisionDate and are deliberately NOT decision-aware,
+  because none of them nags: the calendar's month chip, agenda, Horizon marker,
+  .ics export and share mail; the register's "Auto-renewing soon" filter; the
+  graph's node fact and cliff grouping; Reports' renewal pipeline; and the
+  standalone health report. They show a DATE, and a decided renewal still has
+  one. Said out loud rather than swept.
+- The previous run's note stands corrected in one respect: a DA drafted with
+  "Skip for now" now records its notice period, because the new question is
+  prefilled with the clause's own 90. A drafter who explicitly CLEARS the box
+  still leaves the record empty, which is honest — nobody answered.
+
+### Outside the request, touched
+- js/views/portfolio.js — pfRenewalDecided, to close the rival reading. It is
+  the one file outside the renewal card's own ground, and it is there because
+  leaving it would have put two answers to one question on two screens.
+- test/world.js — one additive `templateFields` option so a test can reach
+  applyTemplateValues. No existing stage changes shape.
+
+### 16 Sep 2026, later the same run — a correction to the entry above, and six more surfaces
+
+The entry above says "Nine surfaces read renewalDecisionDate and are
+deliberately NOT decision-aware, because none of them nags". THAT WAS WRONG
+ABOUT SIX OF THEM, and the mapping pass's own build spec is what showed it. The
+test I had been applying — "does it nag or does it plot a date" — was right; I
+had applied it by looking at the file rather than at the words on the screen.
+Read out loud, six of those nine SAY a decision is owed:
+
+- the calendar's month chip carries `note:'decide by'` verbatim;
+- the calendar's Horizon marker marks that same decide-by point (the BAR is
+  time remaining and stays — a decided agreement still ends on its day);
+- the register's "Auto-renewing soon" quick filter is a worklist of
+  auto-renewals somebody still has to decide about;
+- js/aichart.js's `renewalPipeline` is titled "Renewal decisions due";
+- its `renewals.due` series carries the same label;
+- and the contract graph's renewal cliff counts decisions still owed.
+
+All six now ask `renewalDecided`. THE RULE IS WRITTEN ONCE AND READ EVERYWHERE:
+a surface counting to the DECISION date is silenced by any recorded answer; a
+surface counting to the EXPIRY is silenced only by "let it lapse"; a surface
+that merely PLOTS a date keeps it.
+
+The cliff needed more than a filter, because NOTHING IS FOLDED AWAY: a decided
+renewal gets a hub of its own ('Decided', sorted after every named quarter and
+before 'No decision date') rather than being dropped into a bucket that would
+say something untrue about it. `days:null` keeps it out of the scrubber's
+passed/ahead arithmetic, which is correct — it is neither.
+
+Two more closed in the same pass, both of them a stale sentence rather than a
+stale reading:
+- js/views/intelligence.js `graphNodeFacts` already HELD the answer — it calls
+  renewalWindow and reads two keys off the object `decided` rides on — and
+  threw it away, so a graph node would have printed "decide in 60 days" on a
+  renewal the card called settled. One word.
+- js/views/portfolio.js's Renewal runway panel had its `method` sentence still
+  describing the old definition ("HaTi's own renewal obligation … marked done").
+  That sentence is handed to Copilot verbatim, so re-pointing the function and
+  leaving the prose would have put a stale definition into the model's context.
+- js/views/healthreport.js is a structural twin of Home's decisions slice and
+  had not been given the same condition. It leaves the building as a document.
+
+Also: js/ai.js held a FOURTH hardcoded copy of `['renew','renegotiate','lapse']`
+on the one surface that draws the buttons, while RENEWAL_ANSWERS was published.
+It reads the published list now.
+
+### Outside the request, touched (addition)
+- test/f241-the-server-speaks-english.test.js — its AI_SERIES claim sliced a
+  FLAT 1400 characters from an anchor, so adding a comment inside that object
+  pushed the fifth getter out of the window and the test reported a language
+  bug that was not there. Re-pointed to the object's own closing brace. PIN THE
+  REGION, NOT A BYTE COUNT — the rulebook already says so, and this is the same
+  fault f277 (13) was re-pointed for. The claim itself is unchanged: the region
+  now measures 1,856 bytes and holds exactly five series and five getters.
+
+### 16 Sep 2026 — three more, from the mapping pass's own refusals list
+
+- THE DRAFTING QUESTION HAS TWO DOORS IT CANNOT REACH, and both are outside
+  this request: js/views/intake.js turns an accepted request into paper through
+  createFromTemplate, which has no fill form at all and creates with `fields:{}`;
+  and tplLibCreate (js/views/templatelib.js), the company-standards door, asks
+  only openContractEssentials and carries no template fields. A distributor
+  agreement born either way still records no notice period until somebody
+  presses the blank on the paper or the Key terms row. Both are one line each in
+  their own job, not a fix on the way past.
+- THE NOTICE PERIOD'S BOUND IS PIXELS ONLY. `0 < n <= 3650` exists at exactly
+  three places and all three are browser UI handlers (the input's min/max, the
+  paper listener, the Key terms row). applyTemplateValues applies no ceiling and
+  the PUT route does not check it, so a bulk CSV or a crafted request can store
+  400000 and produce a decision date nobody can explain. THE SERVER IS THE WALL
+  and this is a wall made of pixels. Refuse rather than clamp when it is built —
+  stored values are never rewritten.
+- AND ONE THING THAT IS THE OWNER'S CALL, NOT AN ENGINEER'S, raised in the
+  summary rather than decided here: TEMPLATE_NOTICE.DA carries `def:'90'`, so
+  the drafting question arrives PRE-FILLED with the clause's own long-standing
+  default. applyTemplateValues stamps whatever is in that box `confidence:'high'`
+  under the comment "A human typed this" — and from that moment the clock counts
+  90 days back on every distributor agreement, runReminders mails at 14/7/1, and
+  runRenewalPrep buys an overnight memo the OWNER pays for, whether or not the
+  drafter ever looked at the box. TEMPLATE_PAY has had the same pre-filled
+  property for payDays since August and nobody minded, because nothing schedules
+  an email off a payment default. Kept as 90 on the reasoning that the paper has
+  always PRINTED 90 and a record disagreeing with the paper is the exact bug
+  this whole job exists to close — but it is stated rather than assumed.
+
+### 16 Sep 2026 — the owner ruled on the pre-filled 90
+
+The entry above left one thing open as the owner's call rather than an
+engineer's: TEMPLATE_NOTICE.DA carries `def:'90'`, so the drafting question
+arrives pre-filled and a drafter who never touches the box still records 90 —
+which starts the 14/7/1 reminder ladder and buys an overnight memo the owner
+pays for.
+
+Put to Young in plain English, with an empty box as the alternative and the
+cost of each named. RULED: **keep it pre-filled with 90.** The reasoning that
+was offered and accepted is that the paper has always PRINTED 90, and a record
+disagreeing with the paper is the fault this whole feature exists to close.
+Written beside TEMPLATE_NOTICE so the next person finds the ruling with the
+code rather than only here. No code changed — this was already what shipped.
+
+### 16 Sep 2026 — merging the save fix onto main: noticed, not fixed
+
+- TWO FILES ARE CALLED f314. `test/f314-one-save-at-a-time.test.js` (the save
+  latch) and `test/f314-the-nuanced-redline.test.js` arrived from two sessions
+  the same day. The runner does not care, but this codebase refers to its nets
+  by NUMBER in comments and in THE MAP, so "f314" now names two different
+  things and a re-point could land in the wrong file. Somebody who owns the
+  numbering should give one of them a free number.
+- Merged main (nine commits of contract-builder and renewal work) under the
+  fix: no conflict, suite 7,260 / 0 red, lint 0 errors, saves-serialize 9/9 and
+  round-delivery 34/34 on the merged tree.

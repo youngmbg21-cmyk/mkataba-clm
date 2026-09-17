@@ -103,7 +103,12 @@ function healthReportData(){
   const overdueOb=obs.filter(o=>_obState(o)==='overdue');
 
   const rdd=(typeof renewalDecisionDate==='function')?renewalDecisionDate:(()=>null);
-  const decisions=live.map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; })
+  /* THE STRUCTURAL TWIN OF js/views/home.js's decisions slice, and it has to
+     answer the same way (16 Sep 2026): a renewal somebody has answered is not
+     a decision due, and a report that listed it would contradict the card it
+     came from — in a document that leaves the building. */
+  const _rnDone=(typeof renewalDecided==='function')?renewalDecided:(()=>false);
+  const decisions=live.filter(c=>!_rnDone(c)).map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; })
     .filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
 
   let friction=null;

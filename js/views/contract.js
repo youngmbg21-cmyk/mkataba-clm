@@ -2920,7 +2920,7 @@ function docBody(c){
         clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
         clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
         clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
-        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
+        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90,'90')} days' written notice. ${ADJ} law governs.`),
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
       recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
@@ -4169,6 +4169,11 @@ function ktReadValue(c,key){
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
+  /* Same reading as the row's own builder, and the same "0 is not a notice
+     period" rule — this is what wireDocumentSync writes back into .kt-read
+     after a blank on the paper was typed in. */
+  if(key==='notice'){ const n=Number((c.metadata||{}).noticePeriodDays)||0;
+    return n>0?`<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',n,{n})}</span>`:dash; }
   return '';
 }
 /* "Nothing here yet" vs "nothing to put here". Both render through .kt-none —
@@ -4289,6 +4294,13 @@ function ktTermsRowsHtml(c,opts={}){
   const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   const money=isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
+  /* ZERO IS NOT A NOTICE PERIOD. Every reader does Number(…)||0 and treats 0 as
+     "none stated", so an unset row and a row holding 0 are the same fact and
+     read the same way — the dash. */
+  const noticeDays=Number((c.metadata||{}).noticePeriodDays)||0;
+  const noticeRead=noticeDays>0
+    ? `<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',noticeDays,{n:noticeDays})}</span>`
+    : dash;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   const rows=[
@@ -4338,6 +4350,21 @@ function ktTermsRowsHtml(c,opts={}){
       `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar')],
     ['expiry', ktRowHtml('expiry','Expiry', day(c.expiry),
       `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar')],
+    /* ---- THE NOTICE PERIOD, WHICH IS THE DATE THAT ACTUALLY MATTERS ----
+       (16 Sep 2026.) Every renewal reading in the product counts back from the
+       expiry by metadata.noticePeriodDays — renewalDecisionDate, renewalWindow,
+       the calendar's horizon, the overnight memo, the desk row and the server's
+       twice-daily sweep. Until now nothing on any screen could put that number
+       there on a contract HaTi drafted: the upload's extractor fills it, a
+       custom template whose blank is labelled "notice" maps itself, and
+       everything else was blind. The Renewal card has been telling readers to
+       "correct it on Key terms" for a month, pointing at a row that did not
+       exist. It does now.
+       It carries the SAME label as the metadata review dialog and the phone's
+       read-only row (me_notice_days) — three surfaces naming one fact, and a
+       fourth name would be the drift this panel exists to prevent. */
+    ['notice', ktRowHtml('notice', i18t('me_notice_days'), noticeRead,
+      `<input data-kt="notice" type="number" min="0" max="3650" step="1" value="${noticeDays>0?noticeDays:''}" placeholder="0" style="${KIN};font-family:var(--font-mono)"/>`, ed, 'pencil')],
     ['stream', ktStreamRowHtml(c)],
     ['template', tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):''],
   ];
@@ -4724,7 +4751,12 @@ function ktOverviewTermsHtml(c,opts={}){
     key:OV_KEY(c,'deal'), title:i18t('ov_deal'), open:true,
     chip: ed?null:{ text:i18t('ct_confirmed'), tone:'green' },
     summary: ktDealSummary(c),
-    body: `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry']})}</div>
+    /* THE NOTICE PERIOD RIDES WITH THE EXPIRY IT COUNTS BACK FROM (merged
+       16 Sep 2026). The row was built the same day this tab became a set of
+       named sections, and a section asks for its rows BY KEY — so a row no
+       section names is a row nobody can reach. The Renewal card points readers
+       here by name; leaving it out would put that pointer back to nothing. */
+    body: `<div id="kt-rows">${ktTermsRowsHtml(c,{editable:ed,only:['value','effDate','expiry','notice']})}</div>
       <div id="kt-deal-facts">${ktDealFactsHtml(c)}</div>`,
     acts: fill, foot: i18t('ov_deal_foot') });
   const record=sectionHtml({
@@ -8885,6 +8917,30 @@ function wireDocumentSync(c){
     toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
     renderWorkspace();
   }));
+  /* ---- AND THE NOTICE PERIOD THE PAPER ALREADY PRINTS ---- (16 Sep 2026)
+     The Distributor Agreement's clause 4 reads "terminable on N days' written
+     notice", and that N has always been a real typeable blank that saved — to
+     c.fields.noticeDays, which the paper prints and NOTHING else reads. The
+     renewal clock reads metadata.noticePeriodDays. So the one built-in whose
+     paper states a notice period was the one contract HaTi could not work out a
+     decision date for: the page said 90 and the record said nothing.
+     Same shape as the term-years listener above it, and for the same reasons:
+     on `change` so a repaint cannot take the field out from under the typist,
+     and a FILL rather than an overwrite, so a number somebody put on Key terms
+     can never be quietly moved by the wording. Unlike termYears this blank is
+     drawn for the life of the draft, so that guard is the only one there is. */
+  canvas.querySelectorAll('[data-field="noticeDays"]').forEach(inp=>inp.addEventListener('change',()=>{
+    const n=Math.round(Number(inp.value));
+    if(!(n>0&&n<=3650)) return;
+    if(Number((c.metadata||{}).noticePeriodDays)>0) return;
+    c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+    c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Notice period set to ${n} days — from the term clause on the paper`);
+    persist(c);
+    toast(i18tn('ct_notice_from_paper',n,{n}),'ok');
+    renderWorkspace();
+  }));
 }
 
 /* -------- Key terms panel -------- */
@@ -9016,10 +9072,17 @@ function ktWireSplit(){
 function wireKeyTerms(c){
   ktWireSplit();
   const LABEL={party:'our party', counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
-               effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email'};
+               effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email',
+               notice:'notice period'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
+    /* A NUMBER BOX WRITES ON `change`, NOT ON EVERY KEYSTROKE. Typing 90 into an
+       `input`-driven box stores 9 first — and for a figure the renewal clock
+       reads, a nine-day notice period sits on the record with a confidence
+       stamp of 'high' on it until the second digit lands. The value row is
+       deliberately type=text with inputmode=numeric (it carries thousand
+       separators), so this test reaches the notice row and nothing else. */
     const key=inp.getAttribute('data-kt');
-    const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
+    const evt=(inp.type==='checkbox'||inp.type==='date'||inp.type==='number')?'change':'input';
     inp.addEventListener(evt,()=>{
       /* Our entity on this agreement. Cleared back to empty means "the
          workspace", which is the fallback contractParty already makes, so
@@ -9048,6 +9111,30 @@ function wireKeyTerms(c){
       }
       else if(key==='effDate'){ c.fields=c.fields||{}; c.fields.effDate=inp.value; }
       else if(key==='expiry') c.expiry=inp.value;
+      /* ---- THE NOTICE PERIOD, AND THE PAPER IT IS PRINTED ON ----
+         AN EMPTY BOX CLEARS; IT DOES NOT WRITE 0. Every reader asks
+         Number(…)||0 and reads 0 as "none stated", so storing a zero would say
+         "no notice period" in a field somebody had deliberately emptied —
+         the same fact, written as a number nobody typed. Deleted instead.
+         AND IT KEEPS THE PAPER TRUE. On a template whose own clause prints this
+         figure (the Distributor Agreement's clause 4 prints c.fields.noticeDays)
+         a row that moved only the record would leave the page saying 90 while
+         the clock counted 30 — the very disagreement this whole change exists
+         to close, restated the other way round. One number, both homes, written
+         together. Nothing else in the product reads c.fields.noticeDays, so on
+         paper that states no notice period this is inert. */
+      else if(key==='notice'){
+        const n=Math.round(Number(inp.value));
+        c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+        c.fields=c.fields||{};
+        if(inp.value==='' || !(n>0&&n<=3650)){
+          delete c.metadata.noticePeriodDays; delete c.metadata.confidence.noticePeriodDays;
+          delete c.fields.noticeDays;
+        }else{
+          c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
+          c.fields.noticeDays=String(n);
+        }
+      }
       syncKeyTermsUI(c, inp);
       keyTermsProgress(c);
       c.lastAction=todayStr();
@@ -9112,6 +9199,34 @@ async function fillKeyTermsFromDocument(c){
     }
     if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
     if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
+    /* ---- AND THE TWO THE READER ALREADY FOUND AND THREW AWAY ---- (16 Sep 2026)
+       This function has always read the WHOLE extraction and then kept four
+       fields off it. The notice period and the renewal type were found, paid
+       for, and dropped — on the very button whose job is to save somebody
+       typing what the document already says, and on the one screen the Renewal
+       card tells readers to go to when the decision date looks wrong.
+       THE CONFIDENCE IS THE READER'S OWN, NOT 'high'. Nobody typed these: the
+       pattern matcher grades itself low and Copilot supplies its own grade, and
+       overwriting that with a claim of certainty is how a guess comes to look
+       like a fact on the metadata review screen. Same fill-never-overwrite rule
+       as the four above, and the words join `filled` so the toast and the audit
+       line say what actually happened. */
+    const conf=k=>((meta.confidence||{})[k])||'low';
+    if(!(Number((c.metadata||{}).noticePeriodDays)>0) && Number(meta.noticePeriodDays)>0){
+      c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+      c.metadata.noticePeriodDays=Number(meta.noticePeriodDays);
+      c.metadata.confidence.noticePeriodDays=conf('noticePeriodDays');
+      filled.push('notice period');
+    }
+    /* A closed list, so a reader that answers something else writes nothing —
+       the same membership check the bulk importer makes. */
+    const RTYPES=['auto-renew','fixed','evergreen','unknown'];
+    if(!((c.metadata||{}).renewalType) && RTYPES.includes(String(meta.renewalType||''))){
+      c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+      c.metadata.renewalType=String(meta.renewalType);
+      c.metadata.confidence.renewalType=conf('renewalType');
+      filled.push('renewal type');
+    }
     if(!filled.length){
       toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
                                :'Nothing found. Party names and the deal value need an Copilot key — type them in instead','err');

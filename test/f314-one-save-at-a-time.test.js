@@ -59,15 +59,49 @@ describe('f314 one save at a time', () => {
     /* ONE FLUSH AT A TIME. A second caller does not start a second run — it
        says there is more to do and waits on the run already going, which loops
        again for whatever was dirtied meanwhile. */
-    assert.match(CORE, /let _flushing=null, _flushAgain=false;/, 'the guard is one flag and one promise');
     const fn = CORE.match(/async function flushSaves\(\)\{[\s\S]*?\n\}/)[0];
-    assert.match(fn, /if\(_flushing\)\{ _flushAgain=true; return _flushing; \}/,
+    assert.match(fn, /if\(_flushing\)\{\n\s*_flushAgain=true;/,
       'a second call joins the first rather than racing it');
     assert.match(fn, /for\(const c of items\)\{ await saveContract\(c\); \}/,
       'and the saves inside one flush are still one after another');
     assert.match(fn, /while\(_flushAgain && dirty\.size\)/,
       'the loop goes round for anything dirtied while it ran — so a caller awaiting it still gets its own record written');
-    assert.match(fn, /finally \{ _flushing=null; \}/, 'and the flag is cleared even where a save threw');
+    assert.match(fn, /finally \{ _flushing=false; \}/, 'and the flag is cleared even where a save threw');
+  });
+
+  test('(2b) THE LATCH IS A BOOLEAN, so an EMPTY flush cannot jam it shut for ever', () => {
+    /* Young, 16 Sep 2026 — reported as a counterparty's acceptance showing on
+       screen while the saved record still read pending.
+
+       THE TRAP, and it is a language one. The first draft used the in-flight
+       PROMISE as the flag:
+
+           _flushing = (async()=>{ … finally { _flushing=null; } })();
+
+       An async body runs SYNCHRONOUSLY to its first `await`, and a flush with
+       an empty queue never reaches one — so the body ran to the end, the
+       `finally` wrote null, and the assignment then put the resolved promise
+       back over it. `_flushing` stayed truthy for ever, every later call took
+       the join door and returned an already-settled promise, and the queue was
+       never drained again. `persist` sets a 400 ms timer and several callers
+       drain by hand straight after, so the empty flush that springs it happens
+       within seconds of an ordinary edit.
+
+       MEASURED IN A BROWSER in saves-serialize-verify; pinned here as the
+       shape, because the shape is what makes it impossible. */
+    assert.match(CORE, /let _flushing=false, _flushDone=null, _flushAgain=false;/,
+      'the flag is a boolean set before the body exists — a body that runs to the end cannot overwrite its own clearing');
+    const fn = CORE.match(/async function flushSaves\(\)\{[\s\S]*?\n\}/)[0];
+    assert.ok(!/_flushing=\(async/.test(fn) && !/return _flushing;/.test(fn),
+      'and the promise is never the flag, nor handed back as one');
+    assert.match(fn, /_flushing=true;\n\s*_flushDone=\(async\(\)=>\{/,
+      'the flag goes up first, then the run is started');
+    /* AND THE PROMISE MEANS WHAT ITS CALLERS THINK IT MEANS. applyResponse
+       awaits it so the counterparty's answer is on the server before the
+       repaint can reload over it; auto-triage awaits it before reading the
+       record back. Both need "the queue is empty", not "some flush ended". */
+    assert.match(fn, /if\(dirty\.size && !_flushing\) return flushSaves\(\);/,
+      'a joiner that comes back to work still queued goes round again');
   });
 
   test('(3) the optimistic lock itself is untouched — nothing here weakens it', () => {

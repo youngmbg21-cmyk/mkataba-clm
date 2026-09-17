@@ -89,6 +89,59 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      puts.map((t, i) => (i ? t - puts[i - 1] : 0) + 'ms').join(' · '));
   ok('no page errors along the way', errs.length === 0, errs.slice(0, 2).join(' | ') || 'none');
 
+  /* ============================================================
+     2. AN EMPTY FLUSH MUST NOT STOP THE NEXT ONE
+     ============================================================
+     Young, 16 Sep 2026, off the round-delivery check: a counterparty's
+     acceptance showed on the owner's screen while the record read back off the
+     server still said pending.
+
+     THE SHAPE IS ORDINARY AND IT IS EVERYWHERE. `persist` sets a 400 ms timer;
+     several callers then drain the queue BY HAND straight afterwards, because
+     they must have the write on the server before the page repaints over it
+     (applyResponse does, auto-triage does, every "save now" door does). The
+     hand drain empties the queue, and 400 ms later the timer fires on an EMPTY
+     one. That empty flush is the one that used to poison the latch, and from
+     then on nothing this browser did was ever saved again.
+
+     So this drives exactly that sequence and then asks the only question that
+     matters: does the NEXT edit reach the server. Nothing is held back here —
+     the fault needs an ordinary fast network, not a slow one. */
+  await page.unroute('**/api/contracts/*');
+  await page.waitForTimeout(500);
+
+  const seq = await page.evaluate(async id => {
+    const c = getContract(id);
+    c.name = c.name + ' C';
+    persist(c);                 // sets the 400ms timer
+    await flushSaves();         // and the queue is drained by hand first
+    return (getContract(id) || {})._v;
+  }, cid);
+  await page.waitForTimeout(900);   // the stale timer fires on an empty queue
+
+  const third = await page.evaluate(async id => {
+    const c = getContract(id);
+    c.name = c.name + ' D';
+    persist(c);
+    return c.name;
+  }, cid);
+  await page.waitForTimeout(2500);
+
+  const land = await page.evaluate(async id => {
+    const c = getContract(id) || {};
+    const srv = await api('contracts/' + id);
+    return { mem: c.name, srv: srv && srv.name, v: c._v, queued: dirty.size };
+  }, cid);
+
+  /* AT THE PARENT: the queue still holds the contract, the server still carries
+     the wording from before the empty flush, and nothing anywhere said so. */
+  ok('an edit after an empty flush still reaches the server',
+     land.srv === third, `record "${land.srv}" · screen "${land.mem}"`);
+  ok('and the queue is empty afterwards, not silently holding work',
+     land.queued === 0, `${land.queued} contract(s) still queued`);
+  ok('the version moved for it, so the write really happened',
+     land.v > seq, `v${seq} → v${land.v}`);
+
   await b.close(); await h.stop();
   console.log(`\n${pass}/${pass + fail} passed`);
   process.exit(fail ? 1 : 0);

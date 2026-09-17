@@ -232,6 +232,113 @@ function renewalInForce(c){
   return (typeof window!=='undefined' && typeof window.negoExecuted==='function')
     ? negoExecuted(c) : !!(c.status==='Signed' || c.hash || (c.execution && c.execution.at));
 }
+/* ---- WHAT DID YOU DECIDE ABOUT THIS RENEWAL? (owner-approved 16 Sep 2026) ----
+   HaTi was very good at saying a renewal deadline was coming and had nowhere to
+   write down the answer, so it kept asking about a decision taken three weeks
+   ago and the only way to quieten it was to archive a contract still running.
+
+   THE DECISION IS RECORDED AGAINST THE DEADLINE IT ANSWERED, which is the whole
+   of the design. `decideBy` and `expiry` are stamped onto the record at the
+   press, and a decision only counts while both still hold. Move the expiry or
+   correct the notice period and the question is a DIFFERENT question, so the
+   answer lapses of its own accord and every reminder starts again — no sweep,
+   no migration, no stale suppression anybody has to remember to clear.
+
+   ABSENT ON EVERY RECORD ON FILE. Nothing is backfilled and nothing infers a
+   decision from a date.
+
+   READING MUST NOT WRITE: these three read `c.renewalDecision` raw and call
+   nothing that initialises anything. `renewalDecisionOf` deliberately does NOT
+   ask renewalWindow — renewalWindow asks IT, and the reverse would be a loop. */
+const RENEWAL_ANSWERS = ['renew', 'renegotiate', 'lapse'];
+/* The question this decision was an answer to. One shape, two readers (the act
+   that stamps it and the reading that checks it), so they cannot drift. */
+function renewalQuestionOf(c){
+  const m = (c && c.metadata) || {};
+  const expiry = dateOnly((typeof window!=='undefined' && window.effectiveExpiry ? effectiveExpiry(c) : null)
+    || m.expiryDate || (c && c.expiry)) || '';
+  return { expiry: String(expiry || ''), notice: String(Number(m.noticePeriodDays) || 0) };
+}
+function renewalDecisionOf(c){
+  const d = c && c.renewalDecision;
+  if(!d || RENEWAL_ANSWERS.indexOf(d.answer) < 0) return null;
+  const q = renewalQuestionOf(c);
+  /* A decision filed before this pair was stamped cannot be checked, so it is
+     not trusted to silence anything — the safe direction. */
+  if(!d.expiry || !d.decideBy) return null;
+  if(String(d.expiry) !== q.expiry) return null;
+  if(String(d.notice == null ? '' : d.notice) !== q.notice) return null;
+  return d;
+}
+/* A decision that no longer answers the question. Distinguished from "never
+   decided" because the card has something to SAY about it: the answer is still
+   on the trail, the reminders are running again, and here is why. */
+function renewalDecisionStale(c){
+  const d = c && c.renewalDecision;
+  if(!d || RENEWAL_ANSWERS.indexOf(d.answer) < 0) return false;
+  return !renewalDecisionOf(c);
+}
+/* THE ONE PREDICATE EVERY NAG ASKS. Four surfaces ask a version of "does this
+   renewal still need deciding" — this card, the overnight desk, Home's
+   decisions list (which the alerts panel reads) and the server's two sweeps.
+   Two screens disagreeing about what the product does is this codebase's most
+   expensive fault class, so they ask ONE function. */
+function renewalDecided(c){ return !!renewalDecisionOf(c); }
+
+/* ---- WHO THE RENEWAL MAIL ACTUALLY REACHES ----
+   The browser twin of the server's `ownerOf` (server/server.js, runReminders),
+   written the way obligationReminderTo is the twin of obligationRecipient: the
+   whole roster is in every browser already, so this needs no route.
+
+   IT MIRRORS THE SERVER'S THREE STEPS IN ORDER — the owner's id finds a users
+   row, else the owner's name does, and an owner who cannot open the contract's
+   value stream is not told it exists. WHY IS PART OF THE ANSWER: "nobody is
+   recorded" and "recorded but cannot reach the stream" are different facts with
+   different fixes, and a card that printed one sentence for both would be
+   hiding the one a reader could act on. */
+function renewalNoticeTo(c){
+  const o = (c && c.owner) || null;
+  /* contractOwnerName is the ONE reading of who to print — the stored owner,
+     else the `_raisedBy` transport HEAVY carries for records raised before the
+     owner field existed. It answers a NAME and never writes; contractOwnerStamp
+     and _repairOwner beside it both DO write and may never be called from a
+     card that redraws on every paint. */
+  const name = String((typeof window.contractOwnerName==='function'
+    ? contractOwnerName(c) : ((o && o.name) || (c && c._raisedBy))) || '').trim();
+  /* THE SAME ENTRY CONDITION AS THE SERVER'S, and it is narrower than
+     contractOwnerName's. `ownerOf` bails on `!full.owner` and the mail goes to
+     the admins; contractOwnerName falls through to the `_raisedBy` transport,
+     which HEAVY computes off the audit trail for records raised before the
+     owner field existed. Naming that person as "getting the reminders" would
+     be a sentence the sweep does not honour. The name is still read through
+     the one reading — it is the CLAIM that is narrowed, not the lookup. */
+  if(!o) return { to:null, why:'none', name };
+  let mem = [];
+  try{ mem = (typeof window.getUsers === 'function') ? (getUsers() || []) : []; }catch(_){ mem = []; }
+  const addressed = u => /.+@.+\..+/.test(String((u && u.email) || '').trim());
+  let hit = null;
+  if(o && o.id != null) hit = mem.find(u => u && String(u.id) === String(o.id) && addressed(u)) || null;
+  if(!hit && name) hit = mem.find(u => addressed(u)
+    && String((u && u.name) || '').trim().toLowerCase() === name.toLowerCase()) || null;
+  if(!hit) return { to:null, why:'none', name };
+  /* ASKED OF '' AS WELL AS OF A NAMED STREAM. The server's inScope does
+     `scope.includes(String(folder || ''))`, so a contract filed in no stream
+     needs '' on a restricted person's list — skipping the check for a
+     folderless contract would answer "gets the reminders" exactly where the
+     server answers "goes to the admins". canAccessFolder takes the same shape,
+     so passing '' makes the twin exact rather than merely similar. */
+  try{
+    if(typeof window.canAccessFolder === 'function' && !canAccessFolder(c.folder || '', hit))
+      return { to:null, why:'unreachable', name: hit.name || name };
+  }catch(_){ /* a stage without the folder map answers as if it reaches */ }
+  /* WHAT THIS CANNOT KNOW, said here rather than discovered later: a non-admin
+     reader is sent neither the workspace folder map nor another member's own
+     folderAccess (both are admin-only), so userFolderAccess answers '*' for a
+     colleague and this check passes. It therefore never wrongly ACCUSES — the
+     worst case is naming somebody the server will in fact route to the admins.
+     The server is the wall; this line is a description of it. */
+  return { to:hit, why:'owner', name: hit.name || name };
+}
 function renewalWindow(c){
   if(!c || c.parentId || c.archived) return null;
   if(c.status==='Declined' || c.status==='Draft') return null;
@@ -259,6 +366,10 @@ function renewalWindow(c){
        most, and a card that vanished the day the deadline passed would take
        the bad news off the screen at exactly the wrong moment. */
     inWindow: days<=RENEWAL_WINDOW_DAYS, missed: days<0 && !before, predatesRecord: before,
+    /* THE ANSWER RIDES THE READING, so every surface that already asks this
+       function learns about a recorded decision for free and none of them has
+       to keep its own copy of the rule. It is a pure read of the record. */
+    decision: renewalDecisionOf(c), decided: renewalDecided(c), staleDecision: renewalDecisionStale(c),
     expiresDays: daysUntil(expiry) };
 }
 function renewalDecisionsDue(withinDays=30){
@@ -482,7 +593,11 @@ function renderObligationsSection(c){
      the parties have to do, kept alongside it. It stays editable for as long as
      the contract is running. */
   const editable=canEdit();
-  const dd=renewalDecisionDate(c);
+  /* AND THIS BAND STOPS TOO (16 Sep 2026). It is the fourth surface that says
+     "a renewal decision is owed" and it would have gone on saying it after the
+     card was answered. renewalDecided is the ONE predicate — never a second
+     copy of the rule here. */
+  const dd=(typeof renewalDecided==='function'&&renewalDecided(c))?null:renewalDecisionDate(c);
   if(!obs.length && !editable && !dd){ host.innerHTML=''; return; }   // nothing to show; empty:hidden collapses it
   const chip=st=>st==='overdue'?'bg-rose-50 text-rose-600 border-rose-200':st==='done'?'bg-brand-50 text-brand-600 border-brand-200':'bg-gold-500/10 text-gold-600 border-gold-500/25';
   host.innerHTML=`
@@ -2256,4 +2371,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
-  OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

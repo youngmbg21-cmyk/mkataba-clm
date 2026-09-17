@@ -176,6 +176,10 @@ const SIGNCHECK = 'js/signcheck.js';
    It defines FOLDERS and TEMPLATES, which other modules read, so it goes on
    the FRONT of the list rather than the end. */
 const TEMPLATES_FILE = 'js/templates.js';
+/* The writer that consumes what the table above DECLARES: applyTemplateValues
+   turns a template's field descriptors into c.fields and c.metadata. Its own
+   option, pushed only when asked, so no existing stage changes shape. */
+const TEMPLATE_FIELDS_FILE = 'js/templatefields.js';
 /* The text hasher the signing door's two "has the wording moved" questions
    share with the obligations scan. Without it both answer null — "we do not
    know" — which is the honest fallback and not what these tests are about. */
@@ -423,6 +427,7 @@ function buildWorld(opts = {}) {
      obligations.js reads effectiveExpiry through `window` and answers correctly
      when it is absent, which is the order js/app.js uses too. */
   if (opts.templates) files.unshift(TEMPLATES_FILE);
+  if (opts.templateFields) files.push(TEMPLATE_FIELDS_FILE);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
   if (opts.intakeView) files.push(INTAKE_VIEW);

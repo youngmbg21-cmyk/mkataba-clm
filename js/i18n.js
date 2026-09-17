@@ -1337,6 +1337,14 @@ const STRINGS = {
     ct_executed_sealed: 'Executed &amp; sealed',
     ct_not_set: 'Not set',
     ct_pick_a_date: 'Pick a date',
+    /* THE NOTICE PERIOD, ON THE KEY TERMS ROW AND IN THE TOAST THE PAPER'S OWN
+       BLANK RAISES (16 Sep 2026). Named me_notice_days on the row itself, which
+       is the metadata review dialog's and the phone's label too — three
+       surfaces, one name. These two are the READ-OUT and the confirmation. */
+    ct_notice_n_days_one: '{n} day',
+    ct_notice_n_days_other: '{n} days',
+    ct_notice_from_paper_one: 'Notice period set to {n} day, from the term clause on the paper',
+    ct_notice_from_paper_other: 'Notice period set to {n} days, from the term clause on the paper',
     ct_value_stream: 'Value stream',
     /* THE ROOM HEAD'S FACT ROW (22 Aug 2026). The other three labels there are
        borrowed from the register's own column headings, so the head and the
@@ -3145,6 +3153,15 @@ const STRINGS = {
     mail_ob_chase_subject: "A reminder about {desc}",
     mail_ob_chase_line: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}), which was due on {due}. Could you let us know where it stands?",
     mail_ob_open: "Open the contract:",
+    /* ---- THE RENEWAL MAIL, NOW THAT IT GOES TO A NAMED PERSON ----
+       (16 Sep 2026.) These two were hardcoded English inside runReminders,
+       which was safe while the only readers were the admin list and every word
+       on it was the same. Addressed to the contract's owner it has to follow
+       that reader's own language, like every other mail this product sends. */
+    mail_ren_subject: "Renewal in {n} days: {name}",
+    mail_ren_line: "\"{name}\" ({id}) with {cp} expires on {expiry} — {n} days away. Open it in HaTi to renew, renegotiate or let it lapse.",
+    mail_ren_decide_subject: "Renewal decision due in {n} days: {name}",
+    mail_ren_decide_line: "To renew or exit \"{name}\" ({id}) you must give {notice} days' notice before it expires on {expiry}. The decision deadline is {decide} — {n} days away.",
     /* An obligation with no date on it is still worth asking about, and a
        sentence saying "due on ." is not the way to ask. */
     mail_ob_chase_line_nodate: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}). Could you let us know where it stands?",
@@ -3208,6 +3225,11 @@ const STRINGS = {
     rn_from_quote: "Counted back from the expiry on file, {expiry}, less a {n}-day notice period read from your document:",
     rn_from_terms: "Counted back from the expiry on file, {expiry}, less the {n}-day notice period recorded on Key terms.",
     rn_fix_terms: "If that is not the notice period that governs renewal, correct it on Key terms and this recalculates.",
+    /* NO NOTICE PERIOD ON FILE (16 Sep 2026). Until now both slots were empty
+       here, so the card printed a decision date that was silently the expiry
+       date and looked correct — the one thing a renewal card must never do. */
+    rn_no_notice: "No notice period is recorded, so this counts to the expiry itself, {expiry}. If notice has to be given before then, the real deadline is earlier than the date above.",
+    rn_no_notice_fix: "Set the notice period on Key terms and this recalculates.",
     /* A DEADLINE OLDER THAN THE RECORD IS NOT A MISS — see renewalWindow. */
     rn_before_filed: "The decision date was {date}, before this contract was filed here on {filed} — so nothing has been missed. Check the expiry and notice period on Key terms before acting on it.",
     /* THE DATES ARE OURS AND NEVER FAIL; only the written advice can. */
@@ -3219,6 +3241,43 @@ const STRINGS = {
     rn_again: "Think again",
     rn_start: "Start the renewal",
     rn_start_unavailable: "The renewal drafting is not available on this screen.",
+    /* ---- WHO THE REMINDERS REACH, AND WHAT WAS DECIDED (16 Sep 2026) ----
+       The owner line names a person, so it is drawn only while the question is
+       open — once an answer is recorded the reminders have stopped and "gets the
+       reminders" would no longer be true. THREE SENTENCES, NOT ONE: "nobody is
+       recorded" and "recorded but cannot open this stream" are different facts
+       with different fixes, and one sentence for both would hide the actionable
+       one. The rungs differ too: the 14/7/1 ladder counts to the DECISION date
+       and only exists where a notice period is recorded; the 90/60/30 ladder
+       counts to the expiry and always runs. */
+    rn_to_owner_decide: "{who} owns this contract and gets the 14, 7 and 1-day reminders.",
+    rn_to_owner_expiry: "{who} owns this contract and gets the 90, 60 and 30-day reminders before expiry.",
+    rn_to_unreachable: "{who} owns this contract but cannot open this value stream, so the reminders go to the administrators.",
+    rn_to_none: "Nobody is recorded as owning this contract, so the reminders go to the administrators.",
+    rn_what_decided: "What did you decide?",
+    rn_ans_renew: "Renew",
+    rn_ans_renegotiate: "Renegotiate",
+    rn_ans_lapse: "Let it lapse",
+    rn_badge_decided: "Decided",
+    rn_decided_renew: "We will renew.",
+    rn_decided_renegotiate: "We will renegotiate.",
+    rn_decided_lapse: "We will let it lapse.",
+    rn_decided_by: "Decided by {who} on {date}.",
+    rn_somebody: "a colleague",
+    rn_stopped_1: "Decide-by was {date}.",
+    rn_stopped_2: "The reminders have stopped.",
+    rn_stopped_2b: "The decision reminders have stopped.",
+    rn_still_expiry: "You will still be told 90, 60 and 30 days before it ends.",
+    rn_stopped_3: "They start again if the expiry or the notice period changes.",
+    rn_stale: "You answered {answer} on {date}, to a different deadline. The expiry or the notice period has moved since, so it is being asked again.",
+    rn_change: "Change the decision",
+    rn_decide_title: "Record: {answer}",
+    rn_decide_msg: "The renewal reminders for this contract stop. They start again on their own if the expiry or the notice period changes.",
+    rn_decide_ph: "Why, in one line — optional",
+    rn_decide_ok: "Record it",
+    rn_decided_toast: "Renewal decision recorded",
+    rn_editors_only: "Only editors can record a renewal decision.",
+    rn_decide_no_window: "This contract has no renewal deadline to answer yet.",
     rn_push_on: "Worth reopening:",
     rn_watch_if: "This changes if:",
     rn_verdict_renew: "Renew",
@@ -8270,6 +8329,10 @@ const STRINGS = {
     ct_executed_sealed: 'Undertecknat och förseglat',
     ct_not_set: 'Inte angivet',
     ct_pick_a_date: 'Välj ett datum',
+    ct_notice_n_days_one: '{n} dag',
+    ct_notice_n_days_other: '{n} dagar',
+    ct_notice_from_paper_one: 'Uppsägningstid satt till {n} dag, från villkorsklausulen i avtalet',
+    ct_notice_from_paper_other: 'Uppsägningstid satt till {n} dagar, från villkorsklausulen i avtalet',
     ct_value_stream: 'V\u00e4rdefl\u00f6de',
     ct_term_label: 'L\u00f6ptid',
     ct_term_span: '{len} till {to}',
@@ -9796,6 +9859,10 @@ const STRINGS = {
     mail_ob_chase_subject: "En påminnelse om {desc}",
     mail_ob_chase_line: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som skulle vara klart den {due}. Kan ni återkomma med hur det ligger till?",
     mail_ob_open: "Öppna avtalet:",
+    mail_ren_subject: "Förnyelse om {n} dagar: {name}",
+    mail_ren_line: "\"{name}\" ({id}) med {cp} löper ut {expiry} — om {n} dagar. Öppna det i HaTi för att förnya, omförhandla eller låta det löpa ut.",
+    mail_ren_decide_subject: "Beslut om förnyelse krävs om {n} dagar: {name}",
+    mail_ren_decide_line: "För att förnya eller avsluta \"{name}\" ({id}) måste du säga upp {notice} dagar innan det löper ut {expiry}. Beslutsdeadline är {decide} — om {n} dagar.",
     mail_ob_chase_line_nodate: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}). Kan ni återkomma med hur det ligger till?",
     mail_ob_chase_open: "Ni kan öppna avtalet här — inget konto behövs:",
     br_title: "Avtalssammanfattning",
@@ -9832,6 +9899,8 @@ const STRINGS = {
     rn_from_quote: "Räknat bakåt från slutdatumet {expiry}, minus en uppsägningstid på {n} dagar som lästes ur ditt dokument:",
     rn_from_terms: "Räknat bakåt från slutdatumet {expiry}, minus uppsägningstiden på {n} dagar som är registrerad under Nyckelvillkor.",
     rn_fix_terms: "Om det inte är den uppsägningstid som styr förnyelsen, ändra den under Nyckelvillkor så räknas detta om.",
+    rn_no_notice: "Ingen uppsägningstid är registrerad, så detta räknas till utgången själv, {expiry}. Om uppsägning måste ske dessförinnan är den verkliga deadline tidigare än datumet ovan.",
+    rn_no_notice_fix: "Ange uppsägningstiden under Nyckelvillkor så räknas detta om.",
     rn_before_filed: "Beslutsdatumet var {date}, innan avtalet lades in här den {filed} — så ingenting har missats. Kontrollera slutdatum och uppsägningstid under Nyckelvillkor innan du agerar.",
     rn_advice_failed: "Den skrivna bedömningen kunde inte tas fram. Datumen ovan påverkas inte.",
     rn_card_broken: "Kortet kunde inte ritas. Ingenting i avtalet har ändrats.",
@@ -9841,6 +9910,35 @@ const STRINGS = {
     rn_again: "Tänk om",
     rn_start: "Starta förnyelsen",
     rn_start_unavailable: "Förnyelseutkast är inte tillgängligt på den här skärmen.",
+    /* Se den engelska boken för regeln bakom de tre meningarna. */
+    rn_to_owner_decide: "{who} äger detta avtal och får påminnelserna 14, 7 och 1 dag innan.",
+    rn_to_owner_expiry: "{who} äger detta avtal och får påminnelserna 90, 60 och 30 dagar före utgång.",
+    rn_to_unreachable: "{who} äger detta avtal men kan inte öppna detta värdeflöde, så påminnelserna går till administratörerna.",
+    rn_to_none: "Ingen är registrerad som ägare av detta avtal, så påminnelserna går till administratörerna.",
+    rn_what_decided: "Vad beslutade ni?",
+    rn_ans_renew: "Förnya",
+    rn_ans_renegotiate: "Omförhandla",
+    rn_ans_lapse: "Låt det löpa ut",
+    rn_badge_decided: "Beslutat",
+    rn_decided_renew: "Vi förnyar.",
+    rn_decided_renegotiate: "Vi omförhandlar.",
+    rn_decided_lapse: "Vi låter det löpa ut.",
+    rn_decided_by: "Beslutat av {who} den {date}.",
+    rn_somebody: "en kollega",
+    rn_stopped_1: "Beslutsdatum var {date}.",
+    rn_stopped_2: "Påminnelserna har upphört.",
+    rn_stopped_2b: "Beslutspåminnelserna har upphört.",
+    rn_still_expiry: "Du får fortfarande besked 90, 60 och 30 dagar innan det löper ut.",
+    rn_stopped_3: "De startar igen om utgångsdatumet eller uppsägningstiden ändras.",
+    rn_stale: "Ni svarade {answer} den {date}, på ett annat beslutsdatum. Utgångsdatumet eller uppsägningstiden har ändrats sedan dess, så frågan ställs igen.",
+    rn_change: "Ändra beslutet",
+    rn_decide_title: "Registrera: {answer}",
+    rn_decide_msg: "Förnyelsepåminnelserna för detta avtal upphör. De startar igen av sig själva om utgångsdatumet eller uppsägningstiden ändras.",
+    rn_decide_ph: "Varför, på en rad — frivilligt",
+    rn_decide_ok: "Registrera",
+    rn_decided_toast: "Förnyelsebeslut registrerat",
+    rn_editors_only: "Endast redaktörer kan registrera ett förnyelsebeslut.",
+    rn_decide_no_window: "Detta avtal har ännu inget förnyelsedatum att besvara.",
     rn_push_on: "Värt att ta upp igen:",
     rn_watch_if: "Detta ändras om:",
     rn_verdict_renew: "Förnya",

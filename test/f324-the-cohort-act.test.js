@@ -1,5 +1,5 @@
 /* ============================================================
-   f320 — "DO THIS TO THESE N", AND A REQUIRED DOCUMENT AS A FILTER
+   f324 — "DO THIS TO THESE N", AND A REQUIRED DOCUMENT AS A FILTER
    (S13 + S14 + S8 of HaTi's Next Fifteen, built 16 Sep 2026)
    ============================================================
    THE CONDITION IS THE FEATURE. "These 14" means something only after the
@@ -69,7 +69,7 @@ function book(){
   ];
 }
 
-describe('f320 (1) the button exists only while the table is narrowed', () => {
+describe('f324 (1) the button exists only while the table is narrowed', () => {
   test('1a cohortSet is empty with nothing narrowing, and the button is not drawn', () => {
     const w = world();
     assert.equal(w.regNarrowed(), false, 'nothing should be narrowing at rest');
@@ -106,7 +106,7 @@ describe('f320 (1) the button exists only while the table is narrowed', () => {
   });
 });
 
-describe('f320 (2) the four rows, and what each one really is', () => {
+describe('f324 (2) the four rows, and what each one really is', () => {
   test('2a four acts in the design\'s own order, keyed in stable English', () => {
     const w = world();
     assert.deepEqual(w.COHORT_ACTS.map(a=>a.k), ['amend','askdoc','pack','export']);
@@ -128,7 +128,7 @@ describe('f320 (2) the four rows, and what each one really is', () => {
   });
 });
 
-describe('f320 (3) waves, and a stop that is not decoration', () => {
+describe('f324 (3) waves, and a stop that is not decoration', () => {
   test('3a the stop is asked BETWEEN every contract, not once per wave', async () => {
     const w = world();
     const seen = [];
@@ -160,7 +160,7 @@ describe('f320 (3) waves, and a stop that is not decoration', () => {
   });
 });
 
-describe('f320 (4) "SENT" MUST MEAN SENT — the amendment row is worded to the truth', () => {
+describe('f324 (4) "SENT" MUST MEAN SENT — the amendment row is worded to the truth', () => {
   test('4a the label says DRAFT, and the dictionary agrees in both books', () => {
     const I = fs.readFileSync(path.join(__dirname, '..', 'js', 'i18n.js'), 'utf8');
     assert.match(I, /co_h_amend_other: 'Draft an amendment to all \{n\}'/);
@@ -196,7 +196,7 @@ describe('f320 (4) "SENT" MUST MEAN SENT — the amendment row is worded to the 
   });
 });
 
-describe('f320 (5) the required-document writer, and the wall it shares', () => {
+describe('f324 (5) the required-document writer, and the wall it shares', () => {
   test('5a it writes the form\'s own shape: theirs, no assignee, an EMPTY doc', () => {
     const w = world();
     const c = w.getContract('MK-4');
@@ -231,7 +231,7 @@ describe('f320 (5) the required-document writer, and the wall it shares', () => 
   });
 });
 
-describe('f320 (6) the quiet chase is quiet, never silent', () => {
+describe('f324 (6) the quiet chase is quiet, never silent', () => {
   test('6a `opts` is additive — a caller that passes nothing is unchanged', () => {
     assert.match(OBL, /async function obligationChase\(cid, obId, opts\)\{/);
     assert.match(OBL, /const _quiet = !!_o\.quiet;/);
@@ -251,7 +251,7 @@ describe('f320 (6) the quiet chase is quiet, never silent', () => {
   });
 });
 
-describe('f320 (7) the diligence pack is deterministic, and reads like the record', () => {
+describe('f324 (7) the diligence pack is deterministic, and reads like the record', () => {
   test('7a no model, no route, no spend', () => {
     assert.ok(!/anthropic|copilotAsk|aiAsk|\/api\/ai|openai/i.test(CODE));
   });
@@ -295,7 +295,7 @@ describe('f320 (7) the diligence pack is deterministic, and reads like the recor
   });
 });
 
-describe('f320 (8) the required-document filter narrows the register', () => {
+describe('f324 (8) the required-document filter narrows the register', () => {
   const only = (docs) => {
     const w = world();
     w.regState().docs = docs;
@@ -334,7 +334,7 @@ describe('f320 (8) the required-document filter narrows the register', () => {
   });
 });
 
-describe('f320 (9) the register is what decides, so the two cannot drift', () => {
+describe('f324 (9) the register is what decides, so the two cannot drift', () => {
   test('9a cohortSet asks regFiltered and holds no copy of the rules', () => {
     assert.ok(!/status===|expiry|folder===|\.metadata\./.test(
       CODE.slice(CODE.indexOf('function cohortSet'), CODE.indexOf('function _cohortN'))),
