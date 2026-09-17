@@ -4117,6 +4117,45 @@ app.put('/api/settings/sign-folders', auth, admin, (req, res) => {
   res.json({ ok: true, signFolders: cfg });
 });
 
+/* ---- HOW THIS COMPANY FILES ITS PAPER (Young ruled 17 Sep 2026) ----
+   Value streams and template categories, written together because they are one
+   idea. Gated `templateManager` (Admin + Legal) for the same reason the
+   templates route beside it is: PUT /api/settings is admin-only and the person
+   who files a template is the person who needs the list.
+
+   A NAME IS NOT A PERMISSION. Adding a stream here grants nobody access to
+   anything — folderAccess keeps its own admin-only atomic route (H-3) and is
+   not touched by this save, and moving a contract into a stream is still
+   guarded as an admin's act on PUT /api/contracts/:id.
+
+   AN ALLOW-LIST, NOT THE BODY. Only the keys HaTi reads are stored, each
+   bounded, so a client cannot park arbitrary shape in appSettings under a name
+   every dropdown in the product reads. */
+const FILING_MAX = 60;
+const filingRows = (v, keys) => (Array.isArray(v) ? v : []).slice(0, FILING_MAX)
+  .map(r => {
+    if (!r || typeof r !== 'object') return null;
+    const id = String(r.id || '').trim().slice(0, 64);
+    const name = String(r.name || '').trim().slice(0, 80);
+    if (!id || !name) return null;
+    const out = { id, name };
+    for (const k of keys) if (r[k] != null) out[k] = String(r[k]).slice(0, 64);
+    return out;
+  })
+  .filter(Boolean);
+app.put('/api/settings/filing', auth, templateManager, (req, res) => {
+  const b = req.body || {};
+  if (b.valueStreams != null && !Array.isArray(b.valueStreams))
+    return res.status(400).json({ error: 'valueStreams must be an array' });
+  if (b.templateCategories != null && !Array.isArray(b.templateCategories))
+    return res.status(400).json({ error: 'templateCategories must be an array' });
+  const s = getSetting('appSettings') || {};
+  setSetting('appSettings', { ...s,
+    valueStreams: filingRows(b.valueStreams, ['ic', 'color', 'desc']),
+    templateCategories: filingRows(b.templateCategories, []) });
+  res.json({ ok: true });
+});
+
 app.put('/api/settings/templates', auth, templateManager, (req, res) => {
   const list = req.body && req.body.customTemplates;
   if (!Array.isArray(list)) return res.status(400).json({ error: 'customTemplates must be an array' });

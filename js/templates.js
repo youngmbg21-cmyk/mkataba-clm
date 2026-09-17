@@ -26,17 +26,82 @@ const CUSTOM_FOLDER_COLORS = ['#c2410c','#0e7490','#be123c','#4d7c0f','#1d4ed8',
 function loadCustomFolders(){
   let saved=null; try{ saved=JSON.parse(localStorage.getItem(FOLDER_LS)); }catch(e){}
   if(Array.isArray(saved)) saved.forEach(f=>{
-    if(f && f.id && !FOLDERS[f.id]) FOLDERS[f.id]={ id:f.id, name:f.name, ic:f.ic||'folder', color:f.color||'var(--color-accent)', desc:f.desc||'Custom value stream.', custom:true };
+    if(f && f.id && !FOLDERS[f.id]) FOLDERS[f.id]={ id:f.id, name:f.name, ic:f.ic||'folder', color:f.color||'var(--color-accent)', desc:f.desc||'Custom value stream.', custom:true, local:true };
   });
 }
 function saveCustomFolders(){
-  const custom=Object.values(FOLDERS).filter(f=>f.custom).map(f=>({ id:f.id, name:f.name, ic:f.ic, color:f.color, desc:f.desc }));
+  const custom=Object.values(FOLDERS).filter(f=>f.custom&&f.local).map(f=>({ id:f.id, name:f.name, ic:f.ic, color:f.color, desc:f.desc }));
   try{ localStorage.setItem(FOLDER_LS, JSON.stringify(custom)); }catch(e){}
+}
+/* ---- A VALUE STREAM IS THE COMPANY'S, NOT THIS BROWSER'S (Young ruled 17 Sep 2026) ----
+   *"it is not clear how you create category and value stream but also how you
+   delete them."* It was worse than unclear: a stream anybody made was written
+   to localStorage and NO COLLEAGUE EVER LEARNED OF IT, so a company standard
+   template filed under one was filed under a stream that did not exist for the
+   person beside them. The panel admitted it in a note, which is honest and is
+   not a product.
+
+   THE SHARED LIST IS `state.settings.valueStreams` — the same blob
+   customTemplates has ridden since the template library was built, so this
+   invents no storage and no new idea of where company settings live.
+
+   THE LOCALSTORAGE READER STAYS, AND IS NOT A MIGRATION. Streams already made
+   are still that browser's own; they merge as before and carry `local:true`,
+   which is what lets the panel say which ones the team cannot see and offer the
+   one press that shares them. Nothing is lifted silently — the owner's rule
+   that an absence is stated rather than guessed, applied to a store. */
+const valueStreamsSaved = () => {
+  const s = (typeof state === 'object' && state && state.settings) || {};
+  return Array.isArray(s.valueStreams) ? s.valueStreams : [];
+};
+/* Merge the company's own streams into FOLDERS — the ONE map every dropdown,
+   filter chip, card stripe, map cluster and report grouping reads, which is why
+   this is a change to the LOAD and not to fifty readers. Called again whenever
+   the bootstrap lands (js/api.js) and after every write. */
+function foldersFromSettings(){
+  for(const f of valueStreamsSaved()){
+    if(!f || !f.id) continue;
+    const had=FOLDERS[f.id];
+    /* A shared stream OUTRANKS a local one of the same id: two people who
+       typed the same name should end up on the company's copy, not on their
+       own. `local` is cleared so the panel stops offering to share it. */
+    FOLDERS[f.id]={ id:f.id, name:f.name, ic:f.ic||'folder',
+      color:f.color||(had&&had.color)||'var(--color-accent)',
+      desc:f.desc||(had&&had.desc)||'Custom value stream.', custom:true };
+  }
+}
+/* ---- THE ONE ROUTE BOTH LISTS RIDE ----
+   Value streams and template categories are the same kind of thing — the
+   company's filing structure — so they are written together and read together,
+   and no screen can move one without the other's copy staying true. It mirrors
+   PUT /api/settings/templates line for line, including WHY that route exists:
+   PUT /api/settings is admin-only and a template manager (Admin or Legal) is
+   the person who files a template, so a whole-blob save would refuse them.
+
+   WHAT THIS DOES NOT DO: creating an empty stream grants nobody anything. The
+   access map (folderAccess) keeps its own admin-only route, and re-filing a
+   contract into a stream is still an admin's act. A name is not a permission.
+   The catch is deliberate: the lists are already right on this screen, and a
+   failed save says so rather than throwing into a picker. */
+function saveFilingSettings(){
+  const s=(typeof state==='object'&&state&&state.settings)||{};
+  const body={ valueStreams:Array.isArray(s.valueStreams)?s.valueStreams:[],
+    templateCategories:Array.isArray(s.templateCategories)?s.templateCategories:[] };
+  if(typeof API_MODE==='function'&&API_MODE()&&typeof api==='function')
+    return api('settings/filing','PUT',body).catch(e=>{
+      if(typeof toast==='function') toast(i18t('fo_save_failed',{err:e.message}),'err');
+      return null;
+    });
+  return Promise.resolve();
 }
 function slugifyFolder(name){
   const base='cf_'+String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,24);
   let id=(base==='cf_'?'cf_stream':base), n=2; while(FOLDERS[id]){ id=base+'-'+n; n++; } return id;
 }
+/* THE ONE ACT "make a value stream", and it is why the picker's own
+   `+ New value stream…` is not a second implementation: both doors land here,
+   exactly as the two Prepare-redlines buttons land on one handler. It writes
+   the COMPANY's list; `saveValueStreams` is the one writer. */
 function addCustomFolder(name){
   name=String(name||'').trim(); if(!name) return null;
   // reuse an existing folder with the same name (case-insensitive) rather than duplicate
@@ -46,8 +111,36 @@ function addCustomFolder(name){
   const color=CUSTOM_FOLDER_COLORS.find(c=>!used.includes(c.toLowerCase())) || CUSTOM_FOLDER_COLORS[Object.keys(FOLDERS).length%CUSTOM_FOLDER_COLORS.length];
   const id=slugifyFolder(name);
   FOLDERS[id]={ id, name, ic:'folder', color, get desc(){ return i18t('fo_custom_stream'); }, custom:true };
-  saveCustomFolders();
+  saveValueStreams();
   return FOLDERS[id];
+}
+/* Rename, remove, and lift a browser-only stream to the team — three acts, one
+   writer, so no screen can move a stream without the company's list moving. A
+   removal that would strand contracts is REFUSED BY ITS CALLER (the panel asks
+   the count first); this is the store, not the wall. */
+function renameCustomFolder(id, name){
+  name=String(name||'').trim();
+  const f=FOLDERS[id]; if(!f||!f.custom||!name) return false;
+  f.name=name; saveValueStreams(); return true;
+}
+function removeCustomFolder(id){
+  const f=FOLDERS[id]; if(!f||!f.custom) return false;
+  delete FOLDERS[id]; saveValueStreams(); return true;
+}
+function shareCustomFolder(id){
+  const f=FOLDERS[id]; if(!f||!f.custom||!f.local) return false;
+  delete f.local; saveValueStreams(); return true;
+}
+/* ONE WRITER. It writes BOTH stores on purpose: the company's list is what
+   colleagues read, and localStorage keeps whatever is still local to this
+   browser — so sharing one stream does not drop the others this reader made. */
+function saveValueStreams(){
+  const shared=Object.values(FOLDERS).filter(f=>f.custom&&!f.local)
+    .map(f=>({ id:f.id, name:f.name, ic:f.ic, color:f.color, desc:f.desc }));
+  if(typeof state==='object'&&state){ state.settings=state.settings||{}; state.settings.valueStreams=shared; }
+  saveCustomFolders();
+  if(typeof saveFilingSettings==='function') return saveFilingSettings();
+  return Promise.resolve();
 }
 // category colour for a contract (or folder id); falls back to a neutral hairline
 function folderColor(idOrContract){
@@ -97,7 +190,14 @@ function rebuildFolderSelect(sel, selectedId){
 /* Styled "new stream" prompt — a self-contained body overlay (like
    confirmDialog) so it stacks ABOVE an open modal instead of clobbering it.
    Resolves to the created folder object, or null if cancelled. */
-function promptNewFolder(){
+/* ---- ONE NAME BOX, TWO LISTS (Young ruled 17 Sep 2026) ----
+   Value streams have had this overlay since the folders feature; categories
+   needed the same box with three words changed. A second copy of it is the
+   duplication this codebase pays for most, so the overlay is generic and
+   `promptNewFolder` is its first caller. `make` is the ACT — the one function
+   that really adds the thing — so no door can add a stream or a category
+   without going through the store's own writer. */
+function promptNewName(o){
   return new Promise(resolve=>{
     const prev=document.getElementById('newfolder-overlay'); if(prev) prev.remove();
     const ov=document.createElement('div'); ov.id='newfolder-overlay';
@@ -105,13 +205,13 @@ function promptNewFolder(){
     ov.innerHTML=`
       <div id="nf-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
       <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:26rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
-        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-1)">${i18t('fo_new_stream')}</h3>
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">Create a custom folder to file contracts under. It becomes available everywhere streams are used — dropdowns, filters, the map and reports.</p>
-        <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none" />
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-1)">${esc(o.title)}</h3>
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">${esc(o.sub)}</p>
+        <input id="nf-name" placeholder="${esc(o.placeholder||'')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none" />
         <div id="nf-err" style="font-size:var(--t-label);color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
           <button id="nf-cancel" class="ui-btn" style="font-size:var(--t-meta)">${i18t('act_cancel')}</button>
-          <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta)">${i18t('fo_create_stream')}</button>
+          <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta)">${esc(o.ok)}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -120,12 +220,21 @@ function promptNewFolder(){
     const undrag = window.dragDialog ? window.dragDialog(ov.querySelector('[role="dialog"]')) : null;
     const input=ov.querySelector('#nf-name'); setTimeout(()=>input.focus(),30);
     const done=v=>{ if(undrag){ try{ undrag(); }catch(e){} } ov.remove(); resolve(v); };
-    const save=()=>{ const name=input.value.trim(); if(!name){ ov.querySelector('#nf-err').style.display='block'; return; } done(addCustomFolder(name)); };
+    const save=()=>{ const name=input.value.trim(); if(!name){ ov.querySelector('#nf-err').style.display='block'; return; } done(o.make(name)); };
     ov.querySelector('#nf-save').addEventListener('click',save);
     ov.querySelector('#nf-cancel').addEventListener('click',()=>done(null));
     ov.querySelector('#nf-scrim').addEventListener('click',()=>done(null));
     input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); save(); } else if(e.key==='Escape') done(null); });
   });
+}
+/* THE SUB-LINE SAYS THE ONE THING A FIRST-TIMER CANNOT SEE: the team gets it
+   too. The old line listed the machinery (dropdowns, filters, the map and
+   reports) — true, visible the moment they look, and it is the sentence the
+   pop-up diet retires. What it never said is the fact that was actually wrong
+   until today. */
+function promptNewFolder(){
+  return promptNewName({ title:i18t('fo_new_stream'), sub:i18t('fo_new_stream_sub'),
+    placeholder:i18t('fo_new_stream_eg'), ok:i18t('fo_create_stream'), make:addCustomFolder });
 }
 /* Wire a "file under" <select> so choosing "＋ Create new stream…" opens the
    prompt, adds the folder and re-selects it — works in views and inside modals. */
@@ -406,4 +515,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_NOTICE,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_NOTICE,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,promptNewName,bindFolderSelect,saveCustomFolders,foldersFromSettings,valueStreamsSaved,saveValueStreams,saveFilingSettings,renameCustomFolder,removeCustomFolder,shareCustomFolder});

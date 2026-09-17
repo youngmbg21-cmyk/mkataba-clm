@@ -602,6 +602,49 @@ const signIn = async (page, base, email, pass) => {
     check('and no per-person cost column on the roster — that would be a league table',
       !/\$|copilot|spend/i.test(roster));
 
+    /* ---- BOTH FILING LISTS, ON ONE PANEL (Young, 17 Sep 2026) ----
+       *"...but also how you delete them."* The create half is driven on the
+       template dialog in templates-tabs-verify; this is the other half, on the
+       panel that owns both lists, with real presses. */
+    await page.evaluate(() => openSettingsAt('platform', 'folders'));
+    await page.waitForTimeout(900);
+    const filing = await page.evaluate(() => ({
+      open: document.getElementById('st-drawer').classList.contains('open'),
+      streams: document.querySelectorAll('#st-folder-list .st-frow').length,
+      cats: document.querySelectorAll('#st-cat-list .st-frow').length,
+      addCat: !!document.getElementById('st-cat-add'),
+      addStream: !!document.getElementById('st-folder-add'),
+      text: (document.getElementById('st-drawer') || {}).textContent || '',
+    }));
+    check('the one panel carries BOTH lists, each with a way to add',
+      filing.open && filing.streams >= 6 && filing.cats >= 5 && filing.addCat && filing.addStream,
+      `${filing.streams} streams · ${filing.cats} categories`);
+    check('and it no longer tells the reader a folder is saved in this browser only',
+      !/saved in this browser/i.test(filing.text) && /everyone sees it/i.test(filing.text),
+      filing.text.slice(0, 0) || 'note replaced');
+
+    /* MADE, THEN REMOVED — the owner asked how you delete them. */
+    await page.fill('#st-cat-new', 'Distribution');
+    await page.click('#st-cat-add');
+    await page.waitForTimeout(700);
+    const afterAdd = await page.evaluate(() => ({
+      rows: [...document.querySelectorAll('#st-cat-list .st-frow')].length,
+      named: !![...document.querySelectorAll('#st-cat-list input')].find(i => i.value === 'Distribution'),
+      del: document.querySelectorAll('#st-cat-list [data-st-cdel]').length,
+    }));
+    check('a category added on the panel appears with a remove control of its own',
+      afterAdd.named && afterAdd.del === 1, afterAdd);
+    await page.evaluate(() => { window.confirmDialog = async () => true; });
+    await page.evaluate(() => { const b = document.querySelector('#st-cat-list [data-st-cdel]'); if (b) b.click(); });
+    await page.waitForTimeout(800);
+    const afterDel = await page.evaluate(() => ({
+      named: !![...document.querySelectorAll('#st-cat-list input')].find(i => i.value === 'Distribution'),
+      builtins: document.querySelectorAll('#st-cat-list .st-frow').length,
+    }));
+    check('and pressing that control removes it, leaving the built-ins alone',
+      !afterDel.named && afterDel.builtins >= 5, afterDel);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+
     /* ---- the avatar is the account menu ---- */
     await page.click('#rail-avatar'); await page.waitForTimeout(600);
     const acct = await page.evaluate(() => ({

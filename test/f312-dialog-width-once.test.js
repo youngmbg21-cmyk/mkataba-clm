@@ -160,12 +160,21 @@ describe('f312 (4) — “New standard template” fills its frame, and “Other
     assert.ok(row.slice(0, end).includes('id="tpllib-cat"') && row.slice(0, end).includes('id="tpllib-stream"'),
       'both selects sit inside the one grid row');
   });
+  /* RE-POINTED 17 Sep 2026: the picker gained the create door (`__new__`), so
+     the tally is the five built-ins PLUS it. Every other claim here is the
+     claim it always was — Other once, first, selected — and the door is
+     asserted LAST by name, because a create option that drifted to the top
+     would take the default's place. */
   test('“Other” appears ONCE, first, and is the default', () => {
     const cap = stage(w => w.tplLibCreateModal());
     const sel = cat(cap.html, 'tpllib-cat');
     assert.equal((sel.match(/value="other"/g) || []).length, 1, 'once — the owner saw it twice');
     assert.match(sel, /<option value="other" selected>Other<\/option><option value="sales">/, 'first and selected');
-    assert.equal((sel.match(/<option /g) || []).length, Object.keys({ other: 1, sales: 1, procurement: 1, employment: 1, nda: 1 }).length);
+    assert.equal((sel.match(/<option /g) || []).length,
+      Object.keys({ other: 1, sales: 1, procurement: 1, employment: 1, nda: 1 }).length + 1,
+      'the five built-ins and the create door');
+    assert.match(sel, /<option value="__new__">[^<]*<\/option>\s*$/,
+      'the create door is last, never in the default\'s place');
   });
   test('the details dialog reads the same list: the stored category selected, Other still once and first', () => {
     const cap = stage(w => w.tplLibMetaModal({ id: 't1', name: 'N', category: 'nda', folder: 'proc', description: '' }));
@@ -183,7 +192,16 @@ describe('f312 (4) — “New standard template” fills its frame, and “Other
   });
   test('the “Other” label is the translated one, so Swedish does not list Övrigt beside Other', () => {
     const src = read('js/views/templatelib.js');
-    assert.match(src, /k === 'other' \? i18t\('tl_other_category'\)/, 'read through the dictionary');
+    /* RE-POINTED 17 Sep 2026: the builder reads a LIST of rows now (built-ins
+       plus the company's own), so the ternary names the row rather than a key.
+       The claim is unchanged and is the one that matters — the word "Other" on
+       that option comes from the dictionary, so a Swedish reader is not shown
+       Övrigt and Other side by side. */
+    assert.match(src, /c\.id === 'other' \? esc\(i18t\('tl_other_category'\)\)/, 'read through the dictionary');
     assert.ok(!/<option value="other">\$\{i18t\('tl_other_category'\)\}<\/option>\$\{cats\}/.test(src), 'the prepended duplicate is gone');
+    /* AND THE COMPANY'S OWN CATEGORIES ARE NOT TRANSLATED: a name somebody
+       typed is a record, and the getter trap's own rule says a label that is
+       also a record keeps the words it was given. */
+    assert.match(src, /: esc\(c\.name\)/, "a company's own category prints its own name");
   });
 });

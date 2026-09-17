@@ -91,6 +91,15 @@ async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
   uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
+  /* ---- THE COMPANY'S OWN VALUE STREAMS JOIN FOLDERS HERE ----
+     js/templates.js builds FOLDERS at module load, long before anybody has
+     signed in, so the shared list cannot be read there — this is the first
+     moment it exists. FOLDERS is the ONE map every dropdown, filter chip, card
+     stripe, map cluster and report grouping reads, so merging here is what
+     makes a colleague's stream appear on all of them without a single reader
+     changing. Guarded on the published name: js/templates.js is on every stage
+     this file is, but the guard costs nothing and f232 asks for it. */
+  if(window.foldersFromSettings) foldersFromSettings();
   // known at sign-in, so the app can warn before a send fails rather than after
   state.emailConfigured=b.emailConfigured!==false;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load

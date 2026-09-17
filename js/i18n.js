@@ -909,6 +909,12 @@ const STRINGS = {
     tl_name: 'Name',
     tl_category: 'Category',
     tl_other_category: 'Other',
+    // ---- a company's own template categories (17 Sep 2026) ----
+    tl_create_new_category: '＋ Create new category…',
+    tl_new_category: 'New template category',
+    tl_new_category_sub: 'Everyone on your team will see it and can file under it.',
+    tl_new_category_eg: 'e.g. Distribution',
+    tl_create_category: 'Create category',
     tl_description: 'Description',
     tl_save_as_standard: 'Save as a standard template',
     tl_create_draft_template: 'Create draft template',
@@ -4416,6 +4422,9 @@ const STRINGS = {
     fo_enter_name: 'Please enter a name.',
     fo_create_stream: 'Create stream',
     fo_custom_stream: 'Custom value stream.',
+    fo_new_stream_sub: 'Everyone on your team will see it and can file under it.',
+    fo_new_stream_eg: 'e.g. Legal & Regulatory',
+    fo_save_failed: 'Could not save that to the team: {err}',
 
     // ---- families, signatures, metadata, template fields ----
     fa_hati_suggests: 'HaTi suggests — you decide',
@@ -7098,6 +7107,27 @@ const STRINGS = {
     st_p_folders_removed: 'Removed {name}.',
     st_p_folders_added: 'Added {name}.',
     st_p_folders_renamed: 'Renamed to {name}.',
+    /* ---- 17 Sep 2026: a stream is the company's now ----
+       st_p_folders_local is STALE ON THE FACE and inert in both books. It said
+       a folder you create is saved in this browser only, which was true and is
+       the fault that was fixed; a note still saying it would be a false
+       sentence in a settings drawer. What replaces it is one line, and the
+       browser-only fact moved onto the ROW it is true of. */
+    st_p_folders_shared_note: 'A folder you add here is the company\u2019s \u2014 everyone sees it. The built-in folders are the same for everybody.',
+    st_p_folders_thisbrowser: 'only in this browser',
+    st_p_folders_share: 'Share',
+    st_p_folders_share_t: 'Give this folder to the team, so colleagues can file under it too.',
+    st_p_folders_shared: '{name} is now shared with the team.',
+    // ---- template categories, the stream list's twin on the same panel ----
+    st_p_cats: 'Template categories',
+    st_p_cats_add: 'Add a category',
+    st_p_cats_body: 'What a template is filed under. Templates already using a category keep it.',
+    st_p_cats_used_one: '{n} template',
+    st_p_cats_used_other: '{n} templates',
+    st_p_cats_holds: 'It is still used by {n}. Move them to another category first.',
+    st_p_cats_removed: 'Removed {name}.',
+    st_p_cats_added: 'Added {name}.',
+    st_p_cats_renamed: 'Renamed to {name}.',
     st_p_approvals: 'Approval rules',
     st_p_approvals_sub: 'Who must say yes before a contract is signed.',
     st_p_copilot: 'Copilot',
@@ -7978,6 +8008,12 @@ const STRINGS = {
     tl_name: 'Namn',
     tl_category: 'Kategori',
     tl_other_category: 'Övrigt',
+    // ---- företagets egna mallkategorier (17 sep 2026) ----
+    tl_create_new_category: '＋ Skapa ny kategori…',
+    tl_new_category: 'Ny mallkategori',
+    tl_new_category_sub: 'Alla i teamet ser den och kan arkivera under den.',
+    tl_new_category_eg: 't.ex. Distribution',
+    tl_create_category: 'Skapa kategori',
     tl_description: 'Beskrivning',
     tl_save_as_standard: 'Spara som standardmall',
     tl_create_draft_template: 'Skapa mallutkast',
@@ -11029,6 +11065,9 @@ const STRINGS = {
     fo_enter_name: 'Ange ett namn.',
     fo_create_stream: 'Skapa värdeflöde',
     fo_custom_stream: 'Eget värdeflöde.',
+    fo_new_stream_sub: 'Alla i teamet ser det och kan arkivera under det.',
+    fo_new_stream_eg: 't.ex. Juridik & regelefterlevnad',
+    fo_save_failed: 'Kunde inte spara till teamet: {err}',
 
     // ---- families, signatures, metadata, template fields ----
     fa_hati_suggests: 'HaTi föreslår — du bestämmer',
@@ -13553,6 +13592,22 @@ const STRINGS = {
     st_p_folders_removed: 'Tog bort {name}.',
     st_p_folders_added: 'Lade till {name}.',
     st_p_folders_renamed: 'Nytt namn: {name}.',
+    // 17 sep 2026: st_p_folders_local är inaktiv i båda böckerna — se den engelska noten.
+    st_p_folders_shared_note: 'En mapp du lägger till här tillhör företaget \u2014 alla ser den. De inbyggda mapparna är desamma för alla.',
+    st_p_folders_thisbrowser: 'bara i den här webbläsaren',
+    st_p_folders_share: 'Dela',
+    st_p_folders_share_t: 'Ge mappen till teamet så att kollegor kan arkivera under den.',
+    st_p_folders_shared: '{name} delas nu med teamet.',
+    // ---- mallkategorier, värdeflödeslistans motsvarighet på samma panel ----
+    st_p_cats: 'Mallkategorier',
+    st_p_cats_add: 'Lägg till en kategori',
+    st_p_cats_body: 'Det en mall arkiveras under. Mallar som redan använder en kategori behåller den.',
+    st_p_cats_used_one: '{n} mall',
+    st_p_cats_used_other: '{n} mallar',
+    st_p_cats_holds: 'Den används fortfarande av {n}. Flytta dem till en annan kategori först.',
+    st_p_cats_removed: 'Tog bort {name}.',
+    st_p_cats_added: 'Lade till {name}.',
+    st_p_cats_renamed: 'Nytt namn: {name}.',
     st_p_approvals: 'Godkännanderegler',
     st_p_approvals_sub: 'Vem som måste säga ja innan ett avtal undertecknas.',
     st_p_copilot: 'Copilot',

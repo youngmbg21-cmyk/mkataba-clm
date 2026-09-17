@@ -15,6 +15,94 @@ const TPLLIB_CATEGORIES = {
   sales: 'Sales', procurement: 'Procurement', employment: 'Employment',
   nda: 'NDA', other: 'Other',
 };
+/* ---- AND CATEGORIES ARE A LIST A COMPANY KEEPS, NOT FIVE WORDS IN THE CODE
+   (Young ruled 17 Sep 2026) ---- The five above stay literals: they are the
+   ones HaTi ships with and every workspace starts from them. What was missing
+   is that there was NO WAY TO ADD A SIXTH, anywhere in the product — not a
+   hidden door, not an admin screen; the feature had never been built, so a
+   workspace whose paper is not sales, procurement, employment or an NDA filed
+   everything under "Other".
+
+   THE SHARED LIST IS `state.settings.templateCategories` and it rides
+   `saveFilingSettings` beside the value streams, because they are one idea:
+   how this company files its paper. Built-ins cannot be renamed or removed —
+   they have no store to be renamed into, the same reason the built-in value
+   streams cannot be, and a control wired to nothing is worse than no control. */
+const tplCatSaved = () => {
+  const s = (typeof state === 'object' && state && state.settings) || {};
+  return Array.isArray(s.templateCategories) ? s.templateCategories : [];
+};
+/* THE ONE LIST every category reader asks: built-ins first, in their own
+   order, then the company's own. `{id, name, custom}` so one shape answers the
+   picker, the label and the settings panel. */
+function templateCategories(){
+  const out = Object.keys(TPLLIB_CATEGORIES).map(id => ({ id, name: TPLLIB_CATEGORIES[id], custom: false }));
+  for (const c of tplCatSaved())
+    if (c && c.id && !TPLLIB_CATEGORIES[c.id]) out.push({ id: c.id, name: c.name, custom: true });
+  return out;
+}
+/* THE ONE PRESENTING READING. Every screen that printed
+   `TPLLIB_CATEGORIES[t.category] || 'Other'` asks this instead, or a template
+   filed under a category the company added would read as "Other" on the card
+   and by its real name in the picker — two screens disagreeing about what the
+   product says, twelve pixels apart. */
+function tplCategoryName(id){
+  const hit = templateCategories().find(c => c.id === id);
+  return hit ? hit.name : (i18t('tl_other_category') || 'Other');
+}
+function tplCatSlug(name){
+  const base = 'tc_' + String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  let id = (base === 'tc_' ? 'tc_category' : base), n = 2;
+  const taken = () => templateCategories().some(c => c.id === id);
+  while (taken()) { id = base + '-' + n; n++; }
+  return id;
+}
+/* THE ONE ACT "make a category" — both doors (the picker's sentinel and the
+   settings panel) land here, so neither can add one the other cannot see. */
+function addTemplateCategory(name){
+  name = String(name || '').trim(); if (!name) return null;
+  const existing = templateCategories().find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (existing) return existing;
+  const row = { id: tplCatSlug(name), name };
+  state.settings = state.settings || {};
+  state.settings.templateCategories = tplCatSaved().concat([row]);
+  if (typeof saveFilingSettings === 'function') saveFilingSettings();
+  return { ...row, custom: true };
+}
+function renameTemplateCategory(id, name){
+  name = String(name || '').trim(); if (!name) return false;
+  const list = tplCatSaved(); const hit = list.find(c => c && c.id === id);
+  if (!hit) return false;
+  hit.name = name;
+  state.settings.templateCategories = list.slice();
+  if (typeof saveFilingSettings === 'function') saveFilingSettings();
+  return true;
+}
+function removeTemplateCategory(id){
+  const list = tplCatSaved();
+  if (!list.some(c => c && c.id === id)) return false;
+  state.settings.templateCategories = list.filter(c => !c || c.id !== id);
+  if (typeof saveFilingSettings === 'function') saveFilingSettings();
+  return true;
+}
+/* The picker's own door, the value stream select's twin — one sentinel, one
+   binder, and the created category is SELECTED when the box comes back, so the
+   reader ends up where they were going (question six). */
+function bindCategorySelect(sel){
+  /* `dataset` is asked for BEFORE it is written: a real <select> always has
+     one, and anything that does not is not an element this can bind — the
+     dialog must still open. Binding is the enhancement; drawing the dialog is
+     the act. */
+  if (!sel || !sel.dataset || sel.dataset.catBound) return; sel.dataset.catBound = '1';
+  let last = sel.value;
+  sel.addEventListener('change', async () => {
+    if (sel.value !== '__new__') { last = sel.value; return; }
+    const made = await promptNewName({ title: i18t('tl_new_category'), sub: i18t('tl_new_category_sub'),
+      placeholder: i18t('tl_new_category_eg'), ok: i18t('tl_create_category'), make: addTemplateCategory });
+    if (made) { sel.innerHTML = tplLibCategoryOptions(made.id); sel.value = made.id; last = made.id; }
+    else sel.value = last;
+  });
+}
 const TPLLIB_STATUS = {
   draft:     { label: 'Draft',     bg: 'var(--st-amber-bg)', fg: 'var(--st-amber-fg)', dot: '#c98a2b' },
   published: { get label(){ return i18t('tl_published'); }, bg: 'var(--st-green-bg)', fg: 'var(--st-green-fg)', dot: 'var(--st-green-dot)' },
@@ -57,7 +145,13 @@ function tplStreamOpts(cur){
     : Object.values((typeof FOLDERS === 'object' && FOLDERS) || {});
   const ids = fs.map(f => f.id);
   if (cu && !ids.includes(cu) && typeof FOLDERS === 'object' && FOLDERS[cu]) fs.push(FOLDERS[cu]);
-  return fs.map(f => `<option value="${esc(f.id)}"${f.id === cu ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
+  /* THE SAME DOOR THE REST OF THE PRODUCT ALREADY HAS: folderOptionsHtml has
+     carried this sentinel since the folders feature and bindFolderSelect knows
+     what to do with it. This picker simply never offered it, which is why a
+     reader filing a template could not see how a stream is made. Not a second
+     implementation — the same three names. */
+  return fs.map(f => `<option value="${esc(f.id)}"${f.id === cu ? ' selected' : ''}>${esc(f.name)}</option>`).join('')
+    + `<option value="__new__">${esc(i18t('fo_create_new'))}</option>`;
 }
 const tplLibCount = () => (_tplLib.loaded ? tplLibPublished().length : 0);
 /* Refresh the cache. THREE ANSWERS, and the third is what stops a loop:
@@ -136,7 +230,7 @@ function tplCompanySectionHtml() {
         <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
-          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
         </span>
         <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
       </div>
@@ -398,8 +492,17 @@ async function tplLibCreate(id, essentials) {
    (it is the default), is translated, and is drawn exactly once. */
 function tplLibCategoryOptions(selected) {
   const sel = selected || 'other';
-  const keys = ['other'].concat(Object.keys(TPLLIB_CATEGORIES).filter(k => k !== 'other'));
-  return keys.map(k => `<option value="${k}"${sel === k ? ' selected' : ''}>${k === 'other' ? i18t('tl_other_category') : esc(TPLLIB_CATEGORIES[k])}</option>`).join('');
+  const all = templateCategories();
+  /* Other leads (it is the default) and is translated; the rest keep their own
+     order — the built-ins as HaTi ships them, then the company's own. */
+  const rows = all.filter(c => c.id === 'other').concat(all.filter(c => c.id !== 'other'));
+  /* The category a template is ALREADY filed under stays on the list even if
+     somebody has since removed it, or opening that template would silently
+     re-file it under whatever happened to be first — the value stream picker's
+     own rule, and the same fault it was written for. */
+  if (sel && !rows.some(c => c.id === sel)) rows.push({ id: sel, name: sel });
+  return rows.map(c => `<option value="${esc(c.id)}"${sel === c.id ? ' selected' : ''}>${c.id === 'other' ? esc(i18t('tl_other_category')) : esc(c.name)}</option>`).join('')
+    + `<option value="__new__">${esc(i18t('tl_create_new_category'))}</option>`;
 }
 /* ---- CATEGORY AND VALUE STREAM SHARE ONE ROW (13 Sep 2026) ----
    Two short answers side by side use the dialog's width and take a row off its
@@ -410,6 +513,29 @@ function tplLibCategoryOptions(selected) {
    "Other". Optional on purpose: an unfiled template is an honest state, and
    "Other" is where it goes rather than into a stream somebody guessed for it.
    Built from visibleFolders, the one list every other stream picker reads. */
+/* ---- ONE WIRING FOR BOTH DIALOGS ----
+   The create screen and the details screen draw the same row from one builder,
+   so they bind it from one function too — otherwise "+ New…" works on one and
+   is a dead option on the other, which is the drift `tplLibCatStreamRowHtml`
+   was written to prevent in the first place. */
+function tplLibWireCatStream(idCat, idStream){
+  const cat = document.getElementById(idCat);
+  const stream = document.getElementById(idStream);
+  if (cat && cat.dataset && typeof bindCategorySelect === 'function') bindCategorySelect(cat);
+  /* The value stream select is wired by the product's OWN binder, the one the
+     wizard and the essentials form have always used. */
+  if (stream && stream.dataset && typeof bindFolderSelect === 'function') bindFolderSelect(stream);
+}
+/* A SENTINEL IS NOT AN ANSWER. Both binders put the box back when the reader
+   cancels, so this cannot normally fire — it is the net for a stage where a
+   binder never ran (a harness, a module that failed to load), where sending
+   "__new__" to the route would file a template under a category that does not
+   exist. */
+function tplLibPick(id, fallback){
+  const el = document.getElementById(id);
+  const v = el ? String(el.value || '') : '';
+  return (!v || v === '__new__') ? fallback : v;
+}
 function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
   const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none';
   const LBL = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)';
@@ -436,13 +562,14 @@ function tplLibCreateModal() {
         <button id="tpllib-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
       </div>
     </div>`);
+  tplLibWireCatStream('tpllib-cat', 'tpllib-stream');
   document.getElementById('tpllib-create')?.addEventListener('click', async () => {
     const name = document.getElementById('tpllib-name').value.trim();
     if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
     try {
       const d = await api('templates', 'POST', {
-        name, category: document.getElementById('tpllib-cat').value,
-        folder: document.getElementById('tpllib-stream').value || null,
+        name, category: tplLibPick('tpllib-cat', 'other'),
+        folder: tplLibPick('tpllib-stream', '') || null,
         description: document.getElementById('tpllib-desc').value.trim(),
       });
       closeModal();
@@ -520,7 +647,7 @@ async function openTemplateLibDetail(id) {
           </div>
           <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55">${esc(t.description) || `<span style="color:var(--color-neutral-400)">${i18t('tl_no_description')}</span>`}</p>
           <p style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--color-neutral-500)">
-            ${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(t.sourceContractId)})` : ''}
+            ${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(t.sourceContractId)})` : ''}
             · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;flex:none">
@@ -591,13 +718,14 @@ function tplLibMetaModal(t) {
         <button id="tpllib-m-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
       </div>
     </div>`);
+  tplLibWireCatStream('tpllib-m-cat', 'tpllib-m-stream');
   document.getElementById('tpllib-m-save')?.addEventListener('click', async () => {
     const name = document.getElementById('tpllib-m-name').value.trim();
     if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
     try {
       await api('templates/' + t.id, 'PATCH', {
-        name, category: document.getElementById('tpllib-m-cat').value,
-        folder: document.getElementById('tpllib-m-stream').value || null,
+        name, category: tplLibPick('tpllib-m-cat', t.category || 'other'),
+        folder: tplLibPick('tpllib-m-stream', t.folder || '') || null,
         description: document.getElementById('tpllib-m-desc').value.trim(),
       });
       closeModal(); toast(i18t('tl_saved')); openTemplateLibDetail(t.id);
@@ -826,5 +954,7 @@ Object.assign(window, { tplLibCategoryOptions, tplLibCatStreamRowHtml,
   openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   tplFormCommit, tplFormBlankClick,
-  TPLLIB_CATEGORIES, TPLLIB_STATUS,
+  TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved,
+  addTemplateCategory, renameTemplateCategory, removeTemplateCategory,
+  bindCategorySelect, tplLibWireCatStream, tplLibPick,
 });

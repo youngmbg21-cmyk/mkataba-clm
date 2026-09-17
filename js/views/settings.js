@@ -1776,15 +1776,32 @@ const SET_PANELS={
         <button id="st-folder-add" style="${ST_BTN_SM}">${i18t('set_add')}</button>
       </div>
       <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_folders_body'))}</p>
-      <!-- ---- WHERE A FOLDER YOU MAKE ACTUALLY LIVES ----
-           A rename box and a delete button on this panel make the custom-folder
-           list look like a company setting. It is not: addCustomFolder writes to
-           this browser's own storage (saveCustomFolders → localStorage) and no
-           colleague's browser ever learns of it. That is more confidence than
-           the storage deserves, so the panel says so. No behaviour change — the
-           smallest honest fix, until somebody actually needs one shared. -->
-      <p class="st-note" style="margin-top:6px">${esc(i18t('st_p_folders_local'))}</p>`; },
-    wire(){ stPaintFolders(); },
+      ${''/* ---- WHERE A FOLDER YOU MAKE ACTUALLY LIVES ----
+           This note used to say the opposite, and it was right to: addCustomFolder
+           wrote to this browser's own storage and no colleague ever learned of the
+           stream. Since 17 Sep a stream is the company's (saveValueStreams →
+           PUT /api/settings/filing), so the sentence is REPLACED rather than
+           removed — a false line in a settings drawer is worse than a loud one.
+           `st_p_folders_local` stays inert in both books; the row itself says
+           which streams are still only in this browser, and offers the press. */}
+      <p class="st-note" style="margin-top:6px">${esc(i18t('st_p_folders_shared_note'))}</p>
+
+      ${''/* ---- AND CATEGORIES, ON THE SAME PANEL ----
+           They are the other half of one question — how this company files its
+           paper — and a reader looking for "where do I add a category" has
+           exactly one place to look. Built-ins are stated and cannot be
+           renamed or removed: they have no store to be renamed into. */}
+      <div class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_p_cats'))}</h3>
+        <div id="st-cat-list"></div>
+        <div style="display:flex;gap:var(--s-2);margin-top:10px;align-items:flex-end">
+          <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_p_cats_add'))}</span>
+            <input id="st-cat-new" type="text" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <button id="st-cat-add" style="${ST_BTN_SM}">${i18t('set_add')}</button>
+        </div>
+        <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_cats_body'))}</p>
+      </div>`; },
+    wire(){ stPaintFolders(); stPaintCategories(); },
   },
 
   approvals:{
@@ -2504,7 +2521,8 @@ function stPaintFolders(){
       <span class="st-fdot" style="background:${f.color}"></span>
       ${f.custom?`<input class="st-fname" data-st-frename="${PB_ATTR(f.id)}" value="${PB_ATTR(f.name)}"/>`
                 :`<span class="st-fname" data-st-fixed="1">${esc(f.name)}</span>`}
-      <span class="st-fmeta">${i18tn('st_p_folders_count',n,{n})} · ${i18t('st_p_folders_seen',{n:seers(f.id),total:users.length})}</span>
+      <span class="st-fmeta">${i18tn('st_p_folders_count',n,{n})} · ${f.local?esc(i18t('st_p_folders_thisbrowser')):i18t('st_p_folders_seen',{n:seers(f.id),total:users.length})}</span>
+      ${f.custom&&f.local?`<button class="st-fshare" data-st-fshare="${PB_ATTR(f.id)}" title="${esc(i18t('st_p_folders_share_t'))}">${esc(i18t('st_p_folders_share'))}</button>`:''}
       ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}">✕</button>`
                 :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
     </div>`;
@@ -2512,7 +2530,7 @@ function stPaintFolders(){
   host.querySelectorAll('[data-st-frename]').forEach(inp=>inp.addEventListener('change',()=>{
     const id=inp.getAttribute('data-st-frename'), name=inp.value.trim();
     if(!name || !FOLDERS[id]) { stPaintFolders(); return; }
-    FOLDERS[id].name=name; if(typeof saveCustomFolders==='function') saveCustomFolders();
+    if(typeof renameCustomFolder==='function') renameCustomFolder(id,name);
     toast(i18t('st_p_folders_renamed',{name})); stPaintFolders();
   }));
   host.querySelectorAll('[data-st-fdel]').forEach(b=>b.addEventListener('click',async()=>{
@@ -2520,8 +2538,19 @@ function stPaintFolders(){
     const n=(state.contracts||[]).filter(c=>c.folder===id).length;
     if(n){ stDrawerRefuse(i18t('st_p_folders_holds',{n:i18tn('st_p_folders_count',n,{n})})); return; }
     if(!await confirmDialog({ title:`${i18t('act_remove')} — ${f.name}`, message:i18t('st_p_folders_body'), confirmLabel:i18t('act_remove'), danger:true })) return;
-    delete FOLDERS[id]; if(typeof saveCustomFolders==='function') saveCustomFolders();
+    if(typeof removeCustomFolder==='function') removeCustomFolder(id);
     stDrawerClearRefusal(); toast(i18t('st_p_folders_removed',{name:f.name})); stPaintFolders();
+  }));
+  /* ---- THE ONE PRESS THAT GIVES A STREAM TO THE TEAM ----
+     Drawn only on a stream that is still this browser's own, so it is never a
+     control that does nothing. Streams made from today are the company's
+     already; this is what lets the ones made before catch up, by a person's
+     press rather than by a silent migration nobody asked for. */
+  host.querySelectorAll('[data-st-fshare]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.getAttribute('data-st-fshare'), f=FOLDERS[id]; if(!f) return;
+    if(typeof shareCustomFolder!=='function') return;
+    shareCustomFolder(id);
+    toast(i18t('st_p_folders_shared',{name:f.name}),'ok'); stPaintFolders();
   }));
   const add=()=>{
     const inp=document.getElementById('st-folder-new'); const name=(inp?.value||'').trim();
@@ -2531,6 +2560,56 @@ function stPaintFolders(){
     stDrawerClearRefusal(); toast(i18t('st_p_folders_added',{name:(f&&f.name)||name})); stPaintFolders();
   };
   document.getElementById('st-folder-add')?.addEventListener('click',add);
+}
+
+/* ---- THE CATEGORY LIST, BUILT LIKE THE STREAM LIST ABOVE IT ----
+   Same row, same verbs, same refusal — a reader who has learned one has learned
+   both, and two lists on one panel that behaved differently would be the worse
+   answer. THE COUNT IS TEMPLATES, not contracts: a category is what a template
+   is filed under, so that is the number a removal has to be refused against.
+   It reads the library list the page already holds (tplLibAll) and asks for
+   nothing; where that list has not loaded the count is honestly absent. */
+function stPaintCategories(){
+  const host=document.getElementById('st-cat-list'); if(!host) return;
+  const lib=(typeof tplLibAll==='function')?tplLibAll():null;
+  const rows=(typeof templateCategories==='function')?templateCategories():[];
+  const uses=id=>(lib&&Array.isArray(lib.list))?lib.list.filter(t=>t&&t.category===id).length:null;
+  host.innerHTML=rows.map(c=>{
+    const n=uses(c.id);
+    return `<div class="st-frow" data-st-cat="${PB_ATTR(c.id)}">
+      ${c.custom?`<input class="st-fname" data-st-crename="${PB_ATTR(c.id)}" value="${PB_ATTR(c.name)}"/>`
+                :`<span class="st-fname" data-st-fixed="1">${esc(c.name)}</span>`}
+      <span class="st-fmeta">${n==null?'':esc(i18tn('st_p_cats_used',n,{n}))}</span>
+      ${c.custom?`<button class="st-fdel" data-st-cdel="${PB_ATTR(c.id)}" title="${esc(i18t('act_remove'))}">✕</button>`
+                :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-st-crename]').forEach(inp=>inp.addEventListener('change',()=>{
+    const id=inp.getAttribute('data-st-crename'), name=inp.value.trim();
+    if(!name||typeof renameTemplateCategory!=='function'){ stPaintCategories(); return; }
+    renameTemplateCategory(id,name);
+    toast(i18t('st_p_cats_renamed',{name})); stPaintCategories();
+  }));
+  host.querySelectorAll('[data-st-cdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.getAttribute('data-st-cdel');
+    const row=rows.find(c=>c.id===id); if(!row) return;
+    /* REFUSED WHILE IT IS IN USE, for the stream list's own reason: the
+       templates would be filed under an id no picker offers. */
+    const n=uses(id);
+    if(n){ stDrawerRefuse(i18t('st_p_cats_holds',{n:i18tn('st_p_cats_used',n,{n})})); return; }
+    if(!await confirmDialog({ title:`${i18t('act_remove')} — ${row.name}`,
+      message:i18t('st_p_cats_body'), confirmLabel:i18t('act_remove'), danger:true })) return;
+    if(typeof removeTemplateCategory==='function') removeTemplateCategory(id);
+    stDrawerClearRefusal(); toast(i18t('st_p_cats_removed',{name:row.name})); stPaintCategories();
+  }));
+  const add=()=>{
+    const inp=document.getElementById('st-cat-new'); const name=(inp?.value||'').trim();
+    if(!name){ stDrawerRefuse(i18t('st_p_cats_add')); return; }
+    if(typeof addTemplateCategory!=='function') return;
+    const c=addTemplateCategory(name); if(inp) inp.value='';
+    stDrawerClearRefusal(); toast(i18t('st_p_cats_added',{name:(c&&c.name)||name})); stPaintCategories();
+  };
+  document.getElementById('st-cat-add')?.addEventListener('click',add);
 }
 
 /* WHO CAN SIGN WHAT TODAY. Read-only, ordered by authority, and it says which

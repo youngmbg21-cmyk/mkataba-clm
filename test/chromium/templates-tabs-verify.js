@@ -486,6 +486,99 @@ const BOX = sel => {
       !!segs && segs.cards === segs.out.reduce((n, g) => n + g.cards, 0),
       segs && `${segs.cards} cards, ${segs.out.reduce((n, g) => n + g.cards, 0)} under headings`);
 
+    /* ===== 8 · CREATING A CATEGORY AND A VALUE STREAM (Young, 17 Sep 2026) =====
+       *"it is not clear how you create category and value stream but also how
+       you delete them."* DRIVEN, because the whole complaint is about what a
+       reader can SEE and PRESS on that dialog: the options are read off the
+       painted selects, the create door is picked with a real change event, the
+       name box is typed into and its button pressed, and the answer is read
+       back OFF THE SERVER rather than off the screen that just drew it. */
+    await page.evaluate(() => { const b = document.querySelector('[data-tpl-tab="list"]'); if (b) b.click(); });
+    await pause(700);
+    await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });
+    await pause(600);
+    await page.evaluate(() => { const b = document.getElementById('tn-company'); if (b) b.click(); });
+    await pause(700);
+    await page.screenshot({ path: path.join(OUT, '08-new-standard-template.png') });
+
+    const doors = await page.evaluate(() => {
+      const opts = id => [...(document.getElementById(id) || { options: [] }).options]
+        .map(o => ({ v: o.value, t: o.textContent.trim() }));
+      return { cat: opts('tpllib-cat'), stream: opts('tpllib-stream') };
+    });
+    check('8a · the dialog the owner photographed is open, with both pickers',
+      doors.cat.length > 1 && doors.stream.length > 1,
+      { cat: doors.cat.length, stream: doors.stream.length });
+    check('8b · THE REPORTED FAULT: the category picker now says how one is made',
+      doors.cat.some(o => o.v === '__new__'),
+      doors.cat.map(o => o.v).join(','));
+    check('8c · and so does the value stream picker',
+      doors.stream.some(o => o.v === '__new__'),
+      doors.stream.map(o => o.v).join(','));
+    check('8d · the create door is LAST on both, so it never takes the default\u2019s place',
+      doors.cat[doors.cat.length - 1].v === '__new__'
+      && doors.stream[doors.stream.length - 1].v === '__new__',
+      { cat: doors.cat[doors.cat.length - 1].v, stream: doors.stream[doors.stream.length - 1].v });
+
+    /* A REAL PICK, A REAL NAME, A REAL PRESS. */
+    const madeCat = await (async () => {
+      await page.evaluate(() => {
+        const sel = document.getElementById('tpllib-cat');
+        sel.value = '__new__'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await pause(500);
+      const up = await page.evaluate(() => !!document.getElementById('nf-name'));
+      if (!up) return { up };
+      await page.fill('#nf-name', 'Distribution');
+      await page.click('#nf-save');
+      await pause(700);
+      return { up, ...(await page.evaluate(() => {
+        const sel = document.getElementById('tpllib-cat');
+        return { value: sel.value, text: (sel.selectedOptions[0] || {}).textContent,
+          has: [...sel.options].some(o => o.textContent.trim() === 'Distribution') };
+      })) };
+    })();
+    check('8e · picking it opens the name box', madeCat.up === true, madeCat);
+    check('8f · and the category is made AND chosen, so the reader ends up where they were going',
+      madeCat.has === true && /Distribution/.test(madeCat.text || '') && madeCat.value !== '__new__',
+      madeCat);
+
+    const madeStream = await (async () => {
+      await page.evaluate(() => {
+        const sel = document.getElementById('tpllib-stream');
+        sel.value = '__new__'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await pause(500);
+      const up = await page.evaluate(() => !!document.getElementById('nf-name'));
+      if (!up) return { up };
+      await page.fill('#nf-name', 'Legal & Regulatory');
+      await page.click('#nf-save');
+      await pause(900);
+      return { up, ...(await page.evaluate(() => {
+        const sel = document.getElementById('tpllib-stream');
+        return { value: sel.value, text: (sel.selectedOptions[0] || {}).textContent,
+          inFolders: !!Object.values(FOLDERS).find(f => f.name === 'Legal & Regulatory') };
+      })) };
+    })();
+    check('8g · the same door works for a value stream', madeStream.up === true, madeStream);
+    check('8h · it is chosen, and it joined FOLDERS \u2014 the map every other picker reads',
+      /Legal/.test(madeStream.text || '') && madeStream.value !== '__new__' && madeStream.inFolders === true,
+      madeStream);
+
+    /* THE POINT OF THE WHOLE CHANGE: a colleague can see it. Read back off the
+       SERVER, not off the page that just drew it. */
+    await pause(600);
+    const onServer = await page.evaluate(async () => {
+      const b = await api('bootstrap');
+      const s = (b && b.settings) || {};
+      return { streams: (s.valueStreams || []).map(x => x.name),
+        cats: (s.templateCategories || []).map(x => x.name) };
+    });
+    check('8i · THE REAL FAULT: the value stream is on the SERVER, not in one browser',
+      onServer.streams.includes('Legal & Regulatory'), onServer);
+    check('8j · and so is the category, which could not be created at all before',
+      onServer.cats.includes('Distribution'), onServer);
+
     check('6a · the page threw nothing', errors.length === 0, errors.slice(0, 3));
   } catch (e) {
     check('harness', false, String(e && e.message || e));
