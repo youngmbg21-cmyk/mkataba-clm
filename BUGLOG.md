@@ -15277,3 +15277,81 @@ Noticed, not fixed:
 - The renewal card now offers five acts where the artifact specified three.
   Advised the owner rather than cutting anything: "Renew" records a decision and
   "Start the renewal" does the work, and those two are the pair worth merging.
+
+## 2026-09-17 — The builder keeps your work when you press anything else
+
+The build plan's upgrade 1, off the unified "HaTi, today and next" artifact.
+Young: "implement 1 and merge to main".
+
+THE FAULT, MEASURED IN A BROWSER BEFORE ANY LINE MOVED. The template builder
+was the one screen in HaTi where an hour's work could go on a single press.
+Back asked and then discarded; a press on any sidebar door did not even ask —
+the builder is not a view, so setView replaces #content underneath it and
+viewLayersClosed knows only about the clause editor. Driven at the parent
+commit, the sidebar press reports: builder gone, nothing asked, store empty.
+
+THE FIX IS THE KEEPING, NOT A SECOND WARNING. A guard on every navigation
+would be an interruption on a page that is now safe, and could not cover a
+refresh or a closed tab anyway. The work being there when you come back
+answers "anything else"; a question cannot.
+
+WHAT WAS BUILT
+- A draft store in this browser, one key, one entry per template VERSION,
+  bounded at six with the oldest out first.
+- tbTouch, the one funnel: nine presses used to write `_tb.dirty = true`
+  themselves, so a tenth could have been added that moved wording and kept
+  nothing. The first touch of a sitting writes at once (so the strip the
+  caller repaints is already true); the rest are debounced at 800ms.
+- The restore on the way in, with the strip's OWN slot saying which — and
+  Discard beside it, drawn only while a restored draft is showing.
+- Save spends the draft: the version holds it now, so nothing may put it back
+  over a later save.
+
+THREE THINGS IT REFUSES
+- It never calls a kept draft "saved". It is this browser's, it never reaches
+  the server, and the strip says "Draft kept in this browser".
+- It never speaks over somebody else's save. Each draft records `base`, a
+  fingerprint of exactly what the server served. Where the version has moved
+  since, the restore is ASKED over the server's own wording, never made — and
+  a No keeps the draft rather than throwing it away.
+- A browser that refuses to keep it (private window, blocked site data, a full
+  quota) gets the OLD sentence and the OLD blocking guard, because for that
+  draft they are the honest ones. tbDraftKeep answers false; nothing guesses.
+
+WHAT THE SIX QUESTIONS CHANGED
+- Q2 (the cheapest channel) took the leave dialog DOWN a rung rather than up.
+  The old warning said the edits would be lost, which is no longer true, so
+  the blocking dialog is spent only on the refusal case and the ordinary way
+  out is a transient confirmation.
+- Q2 also cut the shell title from the plan. The artifact had the dark bar
+  naming the template; the strip's Back button already prints that name twelve
+  pixels below it, so it would have been one fact printed twice.
+- Q3 (the contract's pixels) is MEASURED, not assumed: strip 28px and the
+  paper's top at 146px, identical with the restored line and Discard drawn and
+  without them. prompt-and-build-verify 14d2.
+
+Two English literals on the screen became keys in both books: "Unsaved
+changes" (now tb_unsaved, kept for the one case it is still true of) and the
+guard's sentence.
+
+Lint 0 errors. Full suite 7,436 tests / 1,476 suites / 0 fail.
+f306 (12) is eleven new claims, all eleven red at the parent.
+prompt-and-build-verify 45/45; its section 14 drives the whole journey with a
+real keyboard and a real sidebar press, and 14a-14c are red at the parent.
+
+Re-pointed in place, each with the reason beside it:
+- f306 (7) "accepted wording lands on the block content a keystroke fills"
+  looked for `_tb.dirty = true` inside tbAccept. The claim is that Apply marks
+  the page dirty and it still does — through the funnel.
+- prompt-and-build-verify 5d looked for "Unsaved changes" on the strip. What
+  the strip says changed; that it says something did not.
+
+Noticed, not fixed:
+- `npm run lint` reports 1 error, in test/chromium/overview-as-drawn-verify.js
+  line 145 (no-self-compare). It is identical on the commit before this work
+  and belongs to the Overview change, not to this one.
+- A kept draft is kept in THAT browser. Start a template on a laptop and
+  finish on a desktop and the draft does not follow. Saving it on the server
+  would follow them and would also make a half-written template visible to
+  colleagues before anybody meant it to be — so it is local, the strip says
+  so, and "follows you between machines" is a separate decision for the owner.

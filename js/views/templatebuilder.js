@@ -19,8 +19,139 @@ const TB_BLOCK_META = {
   branding:        { get label(){ return i18t('tb_branding_header'); },  tip: 'Logo and company details from the org profile' },
 };
 
+/* ═══════ THE DRAFT IS KEPT WHEN YOU PRESS ANYTHING ELSE (17 Sep 2026) ═══════
+   The build plan's upgrade 1. This screen was the one place in HaTi where an
+   hour's work could vanish on a single press. A draft version lived only in
+   what had been typed until somebody pressed Save draft, and EVERY OTHER WAY
+   OUT threw it away: Back asked and then discarded, and a press on any sidebar
+   door did not even ask — the builder is not a view, so setView replaces
+   #content underneath it and viewLayersClosed (js/app.js) knows only about the
+   clause editor.
+
+   SO THE FIX IS THE KEEPING, NOT A SECOND WARNING. A guard on every navigation
+   would be an interruption on a page that is now safe, and it could not cover
+   a refresh or a closed tab anyway. The work being there when you come back
+   answers "anything else"; a question cannot.
+
+   IT IS THIS BROWSER'S, AND THE SCREEN SAYS SO. A kept draft never reaches the
+   server and never follows anybody to another machine, so the strip prints
+   "Draft kept", never "Saved". Save draft is still the one thing that writes a
+   version, and Publish still goes through the Design step. A KEPT DRAFT IS NOT
+   A SAVED VERSION.
+
+   AND IT NEVER SPEAKS OVER SOMEBODY ELSE'S SAVE. Each draft records `base`, a
+   fingerprint of exactly what the server served when it was taken. Where the
+   stored draft version has moved since — a colleague pressed Save — the
+   restore is ASKED rather than made: putting stale wording silently back over
+   a saved version is the fault class this change exists to close, not one to
+   introduce at the other end.
+   ========================================================================= */
+const TB_DRAFT_KEY = 'hati.v1.tbDrafts';
+const TB_DRAFT_MAX = 6;    /* how many template versions may hold a kept draft at once */
+const TB_DRAFT_MS = 800;   /* the debounce — well under the time one sentence takes to type */
+const tbDraftId = (tid, vid) => `${tid}:${vid}`;
+/* THE FINGERPRINT IS OVER EXACTLY THE TWO SHAPES tbSave WRITES, in tbSave's
+   own order, so "has the server moved" is asked of the same bytes the server
+   was given. It is a cheap equality and nothing else — not a seal, not a
+   version, and never shown to anybody. */
+function tbDraftBase(blocks, fields) {
+  try {
+    return JSON.stringify([
+      (blocks || []).map(b => [b.blockType, b.content]),
+      (fields || []).map(f => [f.fieldKey, f.label, f.fieldType, f.control, !!f.required,
+        f.defaultValue || '', (f.options || []).join('')]),
+    ]);
+  } catch (_) { return ''; }
+}
+function tbDraftAll() {
+  try {
+    const m = JSON.parse(localStorage.getItem(TB_DRAFT_KEY));
+    return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {};
+  } catch (_) { return {}; }
+}
+function tbDraftRead(tid, vid) {
+  const d = tbDraftAll()[tbDraftId(tid, vid)];
+  return (d && Array.isArray(d.blocks) && Array.isArray(d.fields)) ? d : null;
+}
+function tbDraftDrop(tid, vid) {
+  try {
+    const m = tbDraftAll(); delete m[tbDraftId(tid, vid)];
+    localStorage.setItem(TB_DRAFT_KEY, JSON.stringify(m));
+  } catch (_) {}
+}
+/* TRUE ONLY WHERE IT REALLY LANDED. A private window, blocked site data or a
+   full quota all refuse, and that refusal is a FACT the strip has to carry:
+   for a draft nobody could keep, the old "Unsaved changes" warning is the
+   honest sentence and the old blocking guard is the honest guard. So this
+   answers whether it wrote, and nothing above it guesses. */
+function tbDraftKeep() {
+  if (!_tb) return false;
+  try {
+    const m = tbDraftAll();
+    m[tbDraftId(_tb.tid, _tb.vid)] = {
+      tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
+      /* The client key `_k` is left behind deliberately: it is this sitting's
+         own and tbAdopt mints it again, exactly as tbSave strips it. */
+      blocks: _tb.blocks.map(b => ({ blockType: b.blockType, content: b.content })),
+      fields: _tb.fields.map(f => ({ ...f })),
+      base: _tb.base || '', at: new Date().toISOString(),
+    };
+    /* BOUNDED, OLDEST OUT FIRST. A store that only ever grows is a quota
+       failure waiting for the longest-serving browser in the workspace — and
+       the one it would refuse is whichever draft is being typed that day. */
+    const ks = Object.keys(m).sort((a, b) => String((m[a] || {}).at).localeCompare(String((m[b] || {}).at)));
+    while (ks.length > TB_DRAFT_MAX) delete m[ks.shift()];
+    localStorage.setItem(TB_DRAFT_KEY, JSON.stringify(m));
+    return true;
+  } catch (_) { return false; }
+}
+const tbDraftWhen = iso => {
+  try {
+    return new Date(iso).toLocaleTimeString(typeof langLocale === 'function' ? langLocale() : undefined,
+      { hour: '2-digit', minute: '2-digit' });
+  } catch (_) { return ''; }
+};
+/* Putting a kept draft in place of what the server served. `_k` is minted
+   again here rather than carried: it is an index into THIS sitting and `seq`
+   counts from it, so a key from another sitting would collide with the next
+   block anybody adds. */
+function tbAdopt(d) {
+  _tb.blocks = (d.blocks || []).map((b, i) => ({ blockType: b.blockType, content: b.content, _k: i + 1 }));
+  _tb.fields = (d.fields || []).map(f => ({ ...f }));
+  _tb.seq = _tb.blocks.length;
+  _tb.dirty = true; _tb.kept = true; _tb.restoredAt = tbDraftWhen(d.at);
+}
+
+/* ---- ONE FUNNEL: NOTHING MARKS THIS PAGE DIRTY WITHOUT KEEPING IT ----
+   Nine presses used to write `_tb.dirty = true` on their own. They all come
+   here now, so a tenth cannot be added that moves the wording and forgets the
+   draft — which is the shape this fault had in the first place. The FIRST
+   touch of a sitting writes synchronously, so the strip the caller is about to
+   repaint is already true; every one after it is debounced. */
+let _tbKeepTimer = null;
+function tbKeepCancel() { if (_tbKeepTimer) { clearTimeout(_tbKeepTimer); _tbKeepTimer = null; } }
+function tbKeepNow() { tbKeepCancel(); if (!_tb) return false; _tb.kept = tbDraftKeep(); return _tb.kept; }
+function tbTouch() {
+  if (!_tb) return;
+  const first = !_tb.dirty;
+  _tb.dirty = true;
+  _tb.restoredAt = null;   /* typing over a restored draft makes it this sitting's */
+  if (first) return void tbKeepNow();
+  tbKeepCancel();
+  _tbKeepTimer = setTimeout(() => { _tbKeepTimer = null; if (!_tb) return; tbKeepNow(); tbPatchDirty(); }, TB_DRAFT_MS);
+}
+/* The record is on the server now, so a restore would put stale wording back
+   over a version somebody has saved. One caller: tbSave, both branches. */
+function tbDraftSettled() {
+  tbKeepCancel();
+  tbDraftDrop(_tb.tid, _tb.vid);
+  _tb.dirty = false; _tb.kept = false; _tb.restoredAt = null;
+  _tb.base = tbDraftBase(_tb.blocks, _tb.fields);
+}
+
 async function openTemplateBuilder(tid, vid) {
   if (window.tplLibCancelPending) tplLibCancelPending(); // a stale library list must not paint over the builder
+  tbKeepCancel();   /* a timer still holding the LAST template must not fire under this one */
   let t, v;
   try {
     t = await api('templates/' + tid);
@@ -51,7 +182,23 @@ async function openTemplateBuilder(tid, vid) {
        the section in hand, the rail's tab, and whether Copilot is walking the
        template section by section. All per sitting, none of it travels. */
     thread: {}, intent: {}, ctx: [], focus: null, tab: 'build', walk: false, refine: null, lastReceipt: null, busy: null,
+    /* What the server just served, what this browser is keeping, and whether a
+       kept draft was put back on the way in. */
+    base: '', kept: false, restoredAt: null,
   };
+  _tb.base = tbDraftBase(_tb.blocks, _tb.fields);
+
+  /* ---- AND THE DRAFT COMES BACK ----
+     Four answers, and only one of them asks. A draft that says nothing the
+     server does not already hold is dropped rather than announced: telling
+     somebody their work was restored when it was already saved teaches them to
+     stop believing the line. */
+  const kept = tbDraftRead(tid, vid);
+  const moved = kept && kept.base !== _tb.base;                        /* somebody else saved under it */
+  const same = kept && tbDraftBase(kept.blocks, kept.fields) === _tb.base;
+  if (kept && same) tbDraftDrop(tid, vid);
+  else if (kept && !moved) tbAdopt(kept);
+
   /* The section in hand at open is the first one still to write, else the
      first — so the rail has something to say before anything is pressed. */
   const secs = tbSections(); const first = secs.find(x => !tbSectionText(x)) || secs[0];
@@ -59,6 +206,25 @@ async function openTemplateBuilder(tid, vid) {
   /* A fresh open is a NAVIGATION and lands at the top of the paper — the place
      tbPaint holds is a repaint's, never another template's. */
   tbPaint({ fresh: true });
+  /* THE CONFLICT IS ASKED OVER THE SERVER'S OWN WORDING, never before it: the
+     reader is being asked whether to put their draft back over what is on the
+     screen, so what is on the screen has to be the version. */
+  if (kept && moved && !same) tbAskRestore(kept);
+}
+
+/* The one conflict door. Cancel keeps the draft where it is — untouched and
+   still there next time — because a reader who is not sure is not the person
+   to throw an hour away. */
+function tbAskRestore(d) {
+  if (typeof confirmDialog !== 'function') return;
+  confirmDialog({
+    title: i18t('tb_kept_moved_title'),
+    message: i18t('tb_kept_moved_msg', { at: tbDraftWhen(d.at) }),
+    confirmLabel: i18t('tb_kept_moved_go'), cancelLabel: i18t('tb_kept_moved_stay'),
+  }).then(ok => {
+    if (!ok || !_tb || _tb.vid !== d.vid) return;
+    tbAdopt(d); tbPaint();
+  }).catch(() => {});
 }
 
 /* ═══════════════════════════ PROMPT & BUILD ═══════════════════════════
@@ -202,7 +368,7 @@ function tbAddBlock(type, content) {
   if (type === 'branding' && _tb.blocks.some(b => b.blockType === 'branding')) { toast(i18t('tb_already_header'), 'err'); return null; }
   const b = { blockType: type, content: content != null ? content : (type === 'signature_block' ? 'Company' : ''), _k: ++_tb.seq };
   _tb.blocks.push(b);
-  _tb.dirty = true;
+  tbTouch();
   return b;
 }
 
@@ -214,7 +380,7 @@ function tbWordingBlock(sec) {
   if (sec.body.length) return sec.body[0];
   const b = { blockType: 'field_group', content: '', _k: ++_tb.seq };
   _tb.blocks.splice(sec.headIndex + 1, 0, b);
-  _tb.dirty = true;
+  tbTouch();
   return sec.headIndex + 1;
 }
 
@@ -431,7 +597,7 @@ async function tbAccept(k, idx) {
   if (!sec || !a || !a.text || a.applied) return;
   const bi = tbWordingBlock(sec);
   _tb.blocks[bi].content = a.text;
-  _tb.dirty = true;
+  tbTouch();
   a.applied = true;
   const receipt = i18t('tb_pb_applied', { n: tbSectionNo(sec), head: sec.head || i18t('tb_untitled') });
   tbTurn(k, { who: 'ai', receipt });
@@ -474,7 +640,7 @@ function tbKeepBlank(i) {
     control: p.opts.length ? 'guided' : 'free', options: p.opts, required: p.required,
     defaultValue: '', helpText: '', detectionConfidence: 'manual', humanReviewed: true });
   _tb.proposed.splice(i, 1);
-  _tb.dirty = true; tbPaint();
+  tbTouch(); tbPaint();
 }
 function tbDropBlank(i) { (_tb.proposed || []).splice(i, 1); tbPaint(); }
 
@@ -962,7 +1128,7 @@ function tbPaint(opts = {}) {
       <div class="tb-strip">
         <button id="tb-back" class="ui-btn" style="font-size:var(--t-meta);padding:var(--s-1) 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
         <span style="font-family:var(--font-mono);font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 7px">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>
-        <span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
+        <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
         <button id="tb-save" class="ui-btn" style="font-size:var(--t-meta);padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
         <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:var(--t-meta);padding:5px 13px">Publish v${_tb.versionNumber}</button>
@@ -1114,9 +1280,46 @@ function tbPaintScope() { const s = document.getElementById('tb-scope'); if (s) 
 function tbPaintFocusFrame() {
   document.querySelectorAll('[data-tb-sec]').forEach(el => el.classList.toggle('is-on', String(el.getAttribute('data-tb-sec')) === String(_tb.focus)));
 }
+/* ---- ONE READING OF WHAT THE STRIP'S ONE SLOT SAYS ----
+   tbPaint and tbPatchDirty each carried their own copy of
+   `dirty ? 'Unsaved changes' : ''`. There are three states now, so there is
+   one reading: a draft this browser refused to keep still gets the old
+   sentence, because for that draft it is the true one. NO NEW SLOT — the
+   strip has printed a line in this place since the builder was written, and
+   what changed is what it says. */
+function tbDirtyLine() {
+  if (!_tb || !_tb.dirty) return '';
+  if (!_tb.kept) return i18t('tb_unsaved');
+  return _tb.restoredAt ? i18t('tb_kept_restored', { at: _tb.restoredAt }) : i18t('tb_kept');
+}
+/* Discard is drawn only while a RESTORED draft is showing — beside the fact it
+   acts on, and never as permanent furniture. Once the reader types, the words
+   on screen are this sitting's and the way to throw them away is the way it
+   always was: leave without saving. */
+function tbDirtyHtml() {
+  const line = tbDirtyLine();
+  const drop = (_tb && _tb.restoredAt)
+    ? `<button id="tb-drop" class="ui-btn" style="font-size:var(--t-label);padding:2px 9px">${esc(i18t('tb_kept_discard'))}</button>` : '';
+  return `<span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(line)}</span>${drop}`;
+}
 function tbPatchDirty() {
-  const d = document.getElementById('tb-dirty'); if (d) d.textContent = _tb.dirty ? 'Unsaved changes' : '';
+  const d = document.getElementById('tb-dirtyslot'); if (d) d.innerHTML = tbDirtyHtml();
   const f = document.getElementById('tb-railfoot'); if (f) f.innerHTML = tbFootHtml();
+}
+/* Throwing a restored draft away puts the SERVER'S version back on the screen,
+   because a screen still showing the draft after "Discard" would be the
+   product disagreeing with itself. openTemplateBuilder is that act — one door,
+   already written — so this drops the store entry and presses it. */
+function tbDropDraft() {
+  if (!_tb || !_tb.restoredAt) return;
+  const tid = _tb.tid, vid = _tb.vid;
+  (typeof confirmDialog === 'function'
+    ? confirmDialog({ title: i18t('tb_kept_drop_title'), message: i18t('tb_kept_drop_msg'),
+        confirmLabel: i18t('tb_kept_discard'), danger: true })
+    : Promise.resolve(true)).then(ok => {
+      if (!ok) return;
+      tbKeepCancel(); tbDraftDrop(tid, vid); openTemplateBuilder(tid, vid);
+    }).catch(() => {});
 }
 /* Crossing the 1024 line repaints the page once: the rail arrives or leaves,
    the paper keeps its words either way. */
@@ -1148,6 +1351,13 @@ function tbWire() {
   document.getElementById('tb-back')?.addEventListener('click', () => tbLeave());
   document.getElementById('tb-save')?.addEventListener('click', () => tbSave());
   document.getElementById('tb-publish')?.addEventListener('click', () => tbPublish());
+  /* DELEGATED, because #tb-dirtyslot is repainted by tbPatchDirty without a
+     tbWire — a listener bound to the button inside it would be orphaned by the
+     first keystroke. The strip itself is only ever rebuilt by tbPaint, which
+     runs tbWire again, so this is one listener per paint and never two. */
+  document.querySelector('.tb-strip')?.addEventListener('click', e => {
+    if (e.target.closest && e.target.closest('#tb-drop')) tbDropDraft();
+  });
   if (!_tbResizeBound && typeof window !== 'undefined' && typeof window.addEventListener === 'function') { _tbResizeBound = true; window.addEventListener('resize', tbOnResize); }
   _tb._fits = tbRailFits();
   tbWireSplit();
@@ -1161,7 +1371,7 @@ function tbWire() {
     if ((b = hit('[data-tb-tag]'))) { tbFocus(Number(b.getAttribute('data-tb-tag')), { ask: true }); return; }
     if ((b = hit('[data-tb-up]'))) { tbMove(Number(b.getAttribute('data-tb-up')), -1); return; }
     if ((b = hit('[data-tb-down]'))) { tbMove(Number(b.getAttribute('data-tb-down')), +1); return; }
-    if ((b = hit('[data-tb-del]'))) { _tb.blocks.splice(Number(b.getAttribute('data-tb-del')), 1); _tb.dirty = true; tbPaint(); return; }
+    if ((b = hit('[data-tb-del]'))) { _tb.blocks.splice(Number(b.getAttribute('data-tb-del')), 1); tbTouch(); tbPaint(); return; }
     if ((b = hit('[data-tb-ph]'))) {
       /* The placeholder under an empty heading: one press makes the wording
          block (tbWordingBlock, the one splice) and puts the caret in it. */
@@ -1187,7 +1397,7 @@ function tbWire() {
     const i = tbBlockOf(e.target); if (i < 0) return;
     const el = e.target.closest('[data-tb-content]');
     _tb.blocks[i].content = tbReadEditable(el);
-    _tb.dirty = true;
+    tbTouch();
     tbPatchDirty();
     const sec = el.closest('[data-tb-sec]');
     if (sec) { const s = tbSectionAt(Number(sec.getAttribute('data-tb-sec'))); if (s) sec.classList.toggle('is-empty', !tbSectionText(s)); }
@@ -1283,7 +1493,7 @@ function tbWire() {
         if (window.templateFormStripMarker)
           _tb.blocks = _tb.blocks.map(x => ({ ...x, content: templateFormStripMarker(x.content, f.fieldKey) }));
       }
-      _tb.fields.splice(i, 1); _tb.dirty = true; tbPaint(); return;
+      _tb.fields.splice(i, 1); tbTouch(); tbPaint(); return;
     }
     if (hit('#tb-addfield')) { tbFieldModal(null); }
   });
@@ -1327,14 +1537,24 @@ function tbMove(i, d) {
   if (j < 0 || j >= _tb.blocks.length) return;
   const [b] = _tb.blocks.splice(i, 1);
   _tb.blocks.splice(j, 0, b);
-  _tb.dirty = true; tbPaint();
+  tbTouch(); tbPaint();
 }
 
+/* ---- LEAVING, AND THE LADDER WALKED DOWN RATHER THAN UP (17 Sep 2026) ----
+   With the draft kept, the old warning said something untrue: the edits since
+   the last save are not lost. So the blocking dialog is spent only where it is
+   still the honest answer — a draft this browser REFUSED to keep — and the
+   ordinary way out takes the rung below it, a transient confirmation. Question
+   2 of the six: the cheapest channel that carries the fact. */
 function tbLeave() {
   const go = () => { tbGutter(false); openTemplateLibDetail(_tb.tid); };
   if (!_tb.dirty) return go();
+  /* THE PENDING KEEP IS SPENT BEFORE ANYTHING ELSE. Leaving inside the
+     debounce window must not be the one press that loses the sentence the
+     timer was still holding. */
+  if (tbKeepNow()) { toast(i18t('tb_kept_toast'), 'ok'); return go(); }
   (typeof confirmDialog === 'function'
-    ? confirmDialog({ get title(){ return i18t('tb_leave_without_saving'); }, message: 'The edits since your last save will be lost.', confirmLabel: 'Leave', danger: true })
+    ? confirmDialog({ get title(){ return i18t('tb_leave_without_saving'); }, message: i18t('tb_leave_lost'), confirmLabel: i18t('tb_leave_go'), danger: true })
     : Promise.resolve(true)).then(ok => { if (ok) go(); });
 }
 
@@ -1344,8 +1564,11 @@ async function tbSave(quiet) {
       blocks: _tb.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
       fields: _tb.fields.map((f, i) => ({ ...f, orderIndex: i, humanReviewed: true })),
     });
-    _tb.dirty = false;
-    if (!quiet) { toast(i18t('tb_draft_saved')); const d = document.getElementById('tb-dirty'); if (d) d.textContent = ''; }
+    /* The version now holds exactly this, so the kept draft is spent: leaving
+       it behind would put these same words back on the next open as though
+       they were unsaved, and a later one over a colleague's save. */
+    tbDraftSettled();
+    if (!quiet) { toast(i18t('tb_draft_saved')); tbPatchDirty(); }
     return true;
   } catch (e) { toast(e.message, 'err'); return false; }
 }
@@ -1440,7 +1663,7 @@ function tbFieldModal(index, presetKey) {
     };
     if (index == null) next.fieldKey = tbKeyFromLabel(label);
     if (index != null) _tb.fields[index] = next; else _tb.fields.push(next);
-    _tb.dirty = true; closeModal(); tbPaint();
+    tbTouch(); closeModal(); tbPaint();
   });
 }
 
@@ -1504,4 +1727,9 @@ async function tbPaintBranding() {
 Object.assign(window, { openTemplateBuilder, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbKindOf, tbLibraryFor, tbCoverage, tbPbKey, tbStandardFor, tbPrecedentFor,
-  tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk });
+  tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,
+  /* The kept draft: the store, its one funnel and the one reading of what the
+     strip says — published for the same reason as the rest of this line, so a
+     check can drive them without a builder open. */
+  TB_DRAFT_KEY, TB_DRAFT_MAX, TB_DRAFT_MS, tbDraftId, tbDraftBase, tbDraftRead, tbDraftKeep, tbDraftDrop,
+  tbTouch, tbKeepNow, tbDirtyLine, tbDirtyHtml, tbAdopt, tbDropDraft, tbLeave, tbSave });

@@ -323,7 +323,11 @@ describe('f306 (7) — one door into the record', () => {
     const at = TB.indexOf('async function tbAccept');
     const body = TB.slice(at, at + 600);
     assert.match(body, /_tb\.blocks\[bi\]\.content = a\.text/);
-    assert.match(body, /_tb\.dirty = true/);
+    /* RE-POINTED IN PLACE, 17 Sep 2026. The claim is that Apply marks the page
+       dirty, and it still does — through tbTouch, the one funnel that also
+       keeps the draft (f306 (12)). Nine presses wrote the flag themselves and
+       a tenth could have been added that moved wording and kept nothing. */
+    assert.match(body, /tbTouch\(\)/);
   });
 });
 
@@ -692,5 +696,210 @@ describe('f306 (11) — what the screen prints', () => {
     assert.ok(paint.indexOf('tbRestoreScroll(held);') > paint.indexOf('tbPaintBranding();'), 'put back after the column is painted');
     assert.ok(!/keepScroll\(/.test(TB), 'not keepScroll: its second restore on the next frame would undo the scrollIntoView an Add block does a tick later');
     assert.match(TB, /function tbHoldScroll\(\) \{ const el = document\.getElementById\('tb-scroll'\); return el \? el\.scrollTop : null; \}/, 'the scroller\'s own place, null where there is none');
+  });
+});
+
+/* ============================================================================
+   f306 (12) — THE DRAFT IS KEPT WHEN YOU PRESS ANYTHING ELSE (17 Sep 2026)
+
+   The build plan's upgrade 1. Until this, the builder was the one screen in
+   HaTi where an hour could go on one press: Back asked and then discarded, and
+   a sidebar press did not even ask, because this page is not a view and
+   viewLayersClosed knows only about the clause editor.
+
+   The claims below are the walls, not the feature:
+     · ONE FUNNEL. Nothing marks the page dirty without keeping it.
+     · IT NEVER REACHES THE SERVER. A kept draft is not a saved version, and
+       the strip may never call it one.
+     · IT NEVER SPEAKS OVER SOMEBODY ELSE'S SAVE. A draft written against an
+       earlier version is ASKED, never restored.
+     · A REFUSAL IS A FACT. Where the browser will not keep it, the old
+       sentence and the old blocking guard are what the reader gets.
+   ========================================================================== */
+describe('f306 (12) — the draft is kept when you press anything else', () => {
+  /* ONE SHARED BROWSER ACROSS TWO OPENS. loadViews mints a fresh fake
+     localStorage per sandbox, so a check about "come back tomorrow" would
+     otherwise be measuring two different browsers. */
+  const browser = () => {
+    const m = new Map();
+    return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)),
+             removeItem: k => m.delete(k) };
+  };
+  /* A browser that refuses everything — a private window, blocked site data, a
+     full quota. It must not throw its way out of a keystroke. */
+  const deafBrowser = () => ({ getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} });
+  const drafts = store => JSON.parse(store.getItem('hati.v1.tbDrafts') || '{}');
+
+  const VERSION = blocks => ({
+    version: { versionNumber: 1, status: 'draft' },
+    blocks: blocks.map((b, i) => ({ orderIndex: i, blockType: b[0], content: b[1] })),
+    fields: [],
+  });
+  const open = async (blocks, { store, asked, saved } = {}) => {
+    const w = loadViews(
+      ['js/fieldlib.js', 'js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js'],
+      {
+        state: { contracts: [], settings: {}, aiConfigured: false, view: 'tpl-builder' },
+        API_MODE: () => true, canEdit: () => true, copilotAvailable: () => false,
+        localStorage: store || browser(),
+        confirmDialog: asked ? (o => { asked.push(o); return Promise.resolve(!!asked.answer); }) : undefined,
+        openTemplateLibDetail: () => {},
+        api: async (p, method, b2) => {
+          if (method === 'PUT') { if (saved) saved.push(b2); return {}; }
+          if (p === 'templates/tpl_1') return { template: { id: 'tpl_1', name: 'Distributor Agreement', category: 'other' } };
+          if (p === 'templates/tpl_1/versions/tv_1') return VERSION(blocks);
+          if (p === 'org/branding') return { branding: { logoUrl: null, companyName: 'Mkataba', registrationNumber: '', address: '', defaultFooterText: '' } };
+          throw new Error('unexpected api call: ' + p);
+        },
+      });
+    await w.openTemplateBuilder('tpl_1', 'tv_1');
+    await new Promise(r => setTimeout(r, 0));
+    /* WRITTEN THE WAY THE PRODUCT WRITES. Apply is one of the three things
+       that may write a block (f306 (7)), and it is the one a published name
+       can press — so these checks drive the real writer rather than reaching
+       into the page's own state. */
+    w.write = text => { const k = w.tbSections()[0].k; w.tbTurn(k, { who: 'ai', card: { text } }); return w.tbAccept(k, 0); };
+    w.wording = () => w.tbSectionText(w.tbSections()[0]);
+    return w;
+  };
+
+  test('one funnel: nothing marks the page dirty without keeping it', () => {
+    /* Nine presses wrote `_tb.dirty = true` each. The only writers left are the
+       funnel and the restore — so a tenth press cannot be added that moves the
+       wording and forgets the draft, which is the shape this fault had. */
+    assert.equal((TB.match(/^\s*_tb\.dirty = true/gm) || []).length, 2,
+      'tbTouch and tbAdopt are the only two statements left — every press goes through tbTouch');
+    assert.match(TB, /function tbTouch\(\) \{/, 'and the funnel has a name');
+    for (const press of ['tbAddBlock', 'tbWordingBlock', 'tbAccept', 'tbKeepBlank'])
+      assert.ok(TB.slice(TB.indexOf('function ' + press), TB.indexOf('function ' + press) + 1100).includes('tbTouch()'),
+        press + ' marks the page dirty through the funnel');
+    assert.ok((TB.match(/tbTouch\(\)/g) || []).length >= 10, 'nine presses and the funnel itself');
+  });
+
+  test('applying wording keeps the draft, in this browser, under one key', async () => {
+    const store = browser();
+    const w = await open([['heading', 'Confidentiality'], ['field_group', '']], { store });
+    await w.write('Each party shall keep the other information confidential.');
+    const m = drafts(store);
+    assert.deepEqual(Object.keys(m), ['tpl_1:tv_1'], 'one entry, keyed on the template AND the version');
+    assert.ok(JSON.stringify(m['tpl_1:tv_1'].blocks).includes('keep the other information confidential'),
+      'the first touch writes at once — the strip the caller repaints is already true');
+    assert.ok(!m['tpl_1:tv_1'].blocks.some(b => '_k' in b), 'the client key is left behind, exactly as tbSave strips it');
+    assert.equal(w.tbKeepNow(), true, 'and the page knows it landed');
+    assert.equal(w.tbDirtyLine(), 'Draft kept in this browser', 'which is what the strip says');
+  });
+
+  test('it comes back on the next open, and the strip never calls it saved', async () => {
+    const store = browser();
+    const a = await open([['heading', 'Confidentiality'], ['field_group', '']], { store });
+    await a.write('Kept wording.');
+    const b = await open([['heading', 'Confidentiality'], ['field_group', '']], { store });
+    assert.ok(b.wording().includes('Kept wording.'), 'the work is there');
+    const line = b.tbDirtyLine();
+    assert.ok(/restored/i.test(line), 'the strip names the restore: ' + line);
+    assert.ok(!/saved/i.test(line), 'and never calls it saved — it never reached the server');
+    assert.ok(b.tbDirtyHtml().includes('id="tb-drop"'), 'Discard is drawn beside the fact it acts on');
+    await b.write('Now mine.');
+    assert.ok(!/restored/i.test(b.tbDirtyLine()), 'typing over it stops the line claiming a restore');
+    assert.ok(!b.tbDirtyHtml().includes('id="tb-drop"'), 'and Discard is not permanent furniture');
+  });
+
+  test('a draft that says nothing the server does not hold is dropped, not announced', async () => {
+    const store = browser();
+    const a = await open([['heading', 'Confidentiality']], { store });
+    a.tbTouch();                                  /* dirty, but not one character moved */
+    assert.ok(drafts(store)['tpl_1:tv_1'], 'it was kept');
+    const b = await open([['heading', 'Confidentiality']], { store });
+    assert.equal(b.tbDirtyLine(), '', 'nothing to restore, so nothing is claimed');
+    assert.equal(drafts(store)['tpl_1:tv_1'], undefined, 'and the entry is dropped');
+  });
+
+  test('a draft written against an earlier version is ASKED, never restored', async () => {
+    const store = browser();
+    const a = await open([['heading', 'Confidentiality'], ['field_group', 'ours']], { store });
+    await a.write('Mine.');
+    /* The server has moved under it — a colleague pressed Save. */
+    const no = []; no.answer = false;
+    const b = await open([['heading', 'Confidentiality'], ['field_group', 'theirs']], { store, asked: no });
+    assert.ok(b.wording().includes('theirs'), 'the SERVER wording is what is painted');
+    assert.equal(no.length, 1, 'and the reader is asked exactly once');
+    assert.ok(/earlier version/i.test(no[0].title), no[0].title);
+    assert.ok(JSON.stringify(drafts(store)).includes('Mine.'),
+      'a No keeps the draft where it is — a reader who is unsure is not the person to throw an hour away');
+    const yes = []; yes.answer = true;
+    const c = await open([['heading', 'Confidentiality'], ['field_group', 'theirs']], { store, asked: yes });
+    await new Promise(r => setTimeout(r, 0));
+    assert.ok(c.wording().includes('Mine.'), 'a Yes puts it back, deliberately and by a press');
+  });
+
+  test('Save spends the draft — it is on the server now', async () => {
+    const store = browser(); const saved = [];
+    const w = await open([['heading', 'Confidentiality'], ['field_group', '']], { store, saved });
+    await w.write('Saved wording.');
+    await w.tbSave();
+    assert.equal(saved.length, 1, 'the version was written');
+    assert.equal(drafts(store)['tpl_1:tv_1'], undefined,
+      'and the kept copy is gone — leaving it would put these words back as though they were unsaved');
+    assert.equal(w.tbDirtyLine(), '', 'the strip says nothing, because there is nothing owed');
+  });
+
+  test('a browser that refuses gets the OLD sentence and the OLD blocking guard', async () => {
+    const asked = []; asked.answer = true;
+    const w = await open([['heading', 'Confidentiality'], ['field_group', '']], { store: deafBrowser(), asked });
+    await w.write('Nowhere to put this.');       /* must not throw its way out of a press */
+    assert.equal(w.tbKeepNow(), false, 'it says so rather than promising');
+    assert.equal(w.tbDirtyLine(), 'Unsaved changes', 'the honest sentence for a draft nobody kept');
+    w.tbLeave();
+    assert.equal(asked.length, 1, 'the blocking guard is spent where it is still true');
+    assert.ok(/could not keep the draft/i.test(asked[0].message), asked[0].message);
+  });
+
+  test('the store is bounded, oldest out first, and a refusal is never a throw', () => {
+    const keep = TB.slice(TB.indexOf('function tbDraftKeep'), TB.indexOf('const tbDraftWhen'));
+    assert.match(keep, /while \(ks\.length > TB_DRAFT_MAX\) delete m\[ks\.shift\(\)\];/,
+      'a store that only ever grows is a quota failure waiting for the oldest browser in the workspace');
+    assert.match(TB, /const TB_DRAFT_MAX = \d+;/);
+    assert.match(keep, /catch \(_\) \{ return false; \}/, 'and a refusal comes back as false');
+    for (const f of ['tbDraftAll', 'tbDraftRead', 'tbDraftDrop'])
+      assert.ok(TB.slice(TB.indexOf('function ' + f), TB.indexOf('function ' + f) + 420).includes('catch (_)'),
+        f + ' reads a browser that can refuse');
+  });
+
+  test('no second warning on every navigation, and no new band', () => {
+    /* The fix is the KEEPING. A guard on setView would be an interruption on a
+       page that is now safe, and could not cover a refresh or a closed tab. */
+    const APP = read('js/app.js');
+    const vlc = APP.slice(APP.indexOf('function viewLayersClosed'), APP.indexOf('function viewLayersClosed') + 2200);
+    assert.ok(!/_tb\b|templateBuilder|tbDirty/.test(vlc), 'viewLayersClosed did not grow a second page to ask about');
+    assert.equal((TB.match(/id="tb-dirtyslot"/g) || []).length, 1, 'ONE slot on the strip, where a line has always been drawn');
+    for (const band of ['tb-banner', 'tb-notice', 'tb-draftband'])
+      assert.ok(!TB.includes(band), 'no new band, strip or notice: ' + band);
+  });
+
+  test('every sentence is a key, and both books carry it', () => {
+    const keys = ['tb_unsaved', 'tb_kept', 'tb_kept_restored', 'tb_kept_toast', 'tb_kept_discard',
+      'tb_kept_drop_title', 'tb_kept_drop_msg', 'tb_kept_moved_title', 'tb_kept_moved_msg',
+      'tb_kept_moved_go', 'tb_kept_moved_stay', 'tb_leave_lost', 'tb_leave_go'];
+    for (const k of keys) {
+      assert.equal((I18N.match(new RegExp('\\n\\s*' + k + ':', 'g')) || []).length, 2,
+        k + ' must be in BOTH books — one book short leaves the screen half-English');
+      assert.ok(TB.includes("i18t('" + k + "')") || TB.includes("i18t('" + k + "',"), k + ' is actually drawn');
+    }
+    /* The two English literals this replaced are drawn nowhere: the line the
+       strip prints comes back through i18t and through nothing else. */
+    const line = TB.slice(TB.indexOf('function tbDirtyLine'), TB.indexOf('function tbDirtyHtml'));
+    assert.ok(!/'[A-Z][a-z]+ [a-z]/.test(line), 'no English sentence survives inside the reading: ' + line);
+    const leave = TB.slice(TB.indexOf('function tbLeave'), TB.indexOf('async function tbSave'));
+    assert.ok(!leave.includes('will be lost.'), 'nor inside the guard');
+  });
+
+  test('a kept draft is not a saved version: only tbSave writes one', () => {
+    /* The store holds wording nobody has published. Nothing in the keeping may
+       call the server, and the strip may not promise it did. */
+    const store = TB.slice(TB.indexOf('const TB_DRAFT_KEY'), TB.indexOf('async function openTemplateBuilder'));
+    for (const door of ['api(', 'fetch(', 'persist(', 'flushSaves('])
+      assert.ok(!store.includes(door), 'the kept draft reaches no route: ' + door);
+    assert.ok(/tbDraftSettled\(\);/.test(TB.slice(TB.indexOf('async function tbSave'), TB.indexOf('async function tbSave') + 900)),
+      'and Save is the one place it is spent');
   });
 });
