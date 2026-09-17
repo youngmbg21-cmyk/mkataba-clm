@@ -28,6 +28,29 @@ const META_FIELDS = [
   { k:'warrantyMonths',      get label(){ return i18t('me_warranty_months'); },   type:'num' },
   { k:'liabilityCapped',     get label(){ return i18t('me_liability_cap'); },     type:'select', opts:['capped','uncapped','unclear'] },
   { k:'priceReview',         get label(){ return i18t('me_price_review'); },      type:'select', opts:['nochange','ceiling','indexed','open','unclear'] },
+  /* ---- THE COMMERCIAL TERMS A TRADING AGREEMENT IS ACTUALLY ARGUED OVER
+     (S2, owner-approved 16 Sep 2026) ----
+     A supply or distribution agreement lives or dies on the rebate, the tier
+     ladder, how long you have to reject a delivery and whether the appointment
+     is exclusive. None of the four was anywhere in HaTi, so the Overview's own
+     section could only ever have shown a dash for each. They are read off the
+     document like every field above them and TYPED AS THE PAPER WRITES THEM:
+     a rebate is "3% over 120,000 t", not a number, because the threshold is
+     half the term and a bare percentage would be a figure with no meaning. */
+  { k:'volumeRebate',        get label(){ return i18t('me_volume_rebate'); },     type:'text' },
+  { k:'rebateTiers',         get label(){ return i18t('me_rebate_tiers'); },      type:'text' },
+  { k:'rejectionWindowDays', get label(){ return i18t('me_rejection_window'); },  type:'num'  },
+  { k:'exclusivity',         get label(){ return i18t('me_exclusivity'); },       type:'select', opts:['exclusive','nonexclusive','unclear'] },
+  /* ---- THE TWO THE EXPOSURE REGISTER COUNTS AND NOTHING ELSE RECORDED
+     (S10, 16 Sep 2026) ----
+     Written exactly parallel to `liabilityCapped`, which is the field they
+     stand beside on every screen: a short closed list, read off the document,
+     with `unclear` as the honest answer where the wording does not settle it.
+     WITHOUT THEM two of the exposure register's five rows would have to be
+     derived from wording at draw time, which is a judgement the product would
+     be making silently on a page a lawyer reads as fact. */
+  { k:'indemnityCapped',     get label(){ return i18t('me_indemnity_cap'); },     type:'select', opts:['capped','uncapped','none','unclear'] },
+  { k:'terminateForConvenience', get label(){ return i18t('me_terminate_conv'); }, type:'select', opts:['yes','no','unclear'] },
 ];
 /* One table for every select option in META_FIELDS. GETTERS, not literals: an
    object literal of translated strings freezes whatever language was current
@@ -50,11 +73,19 @@ const META_OPT_LABEL = {
   get other(){ return i18t('mo_other_category'); },
   get capped(){ return i18t('mo_capped'); },
   get uncapped(){ return i18t('mo_uncapped'); },
+  get exclusive(){ return i18t('mo_exclusive'); },
+  get nonexclusive(){ return i18t('mo_nonexclusive'); },
   get unclear(){ return i18t('mo_unclear'); },
   get nochange(){ return i18t('mo_nochange'); },
   get ceiling(){ return i18t('mo_ceiling'); },
   get indexed(){ return i18t('mo_indexed'); },
   get open(){ return i18t('mo_open'); },
+  /* S10's two. `none` is "there is no indemnity here", which is a different
+     answer from `unclear` — "the wording does not settle it" — and the
+     exposure register counts neither. */
+  get none(){ return i18t('mo_none_stated'); },
+  get yes(){ return i18t('mo_yes'); },
+  get no(){ return i18t('mo_no'); },
 };
 const metaOptLabel = v => { const s=String(v==null?'':v);
   return (s in META_OPT_LABEL) ? META_OPT_LABEL[s] : s; };
@@ -182,13 +213,24 @@ const EXTRACT_FRONT = 15000, EXTRACT_BACK = 10000, EXTRACT_WINDOW = 1500;
 const EXTRACT_TERMS = [
   { prio:1, re:/renew|terminat|expir|notice|term of this agreement|duration/gi },
   { prio:2, re:/govern|jurisdiction|payment|invoice|price|escalat/gi },
+  /* S2: the rebate ladder, the rejection window and the exclusivity grant are
+     commercial terms, so they rank with the others rather than with the
+     boilerplate — and each sits in the middle of the agreement, which is the
+     part a front-and-back slice throws away. */
+  { prio:2, re:/rebate|volume|tier|exclusiv|sole distributor|appoint|reject|non-?conform|shortage|discrepanc/gi },
   /* Retention, the defects period and the liability cap sit in the middle of a
      long agreement, which is exactly the part a front-and-back slice throws
      away. They rank with the commercial terms, not with the boilerplate,
      because each of them is money or exposure a business keeps carrying after
      the work is finished. */
   { prio:2, re:/retention|retain|defects? liability|warrant|guarantee period|practical completion|handover/gi },
-  { prio:3, re:/stamp duty|force majeure|liabilit|indemnit/gi },
+  /* S10 lifts indemnity and the convenience break OUT of the boilerplate
+     band. Both are counted on the exposure register, so a slice that threw
+     them away would leave two rows permanently reading "unclear" — and the
+     convenience break is the one term that decides whether an exclusive
+     appointment is a lock-in. */
+  { prio:2, re:/indemnif|indemnit|hold harmless|terminat\w* for convenience|without cause|at any time on \d+ days/gi },
+  { prio:3, re:/stamp duty|force majeure|liabilit/gi },
   { prio:4, re:/assign|confidential/gi },
 ];
 const _clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));

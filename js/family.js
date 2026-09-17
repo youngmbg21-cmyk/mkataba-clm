@@ -183,6 +183,55 @@ function proposedExpiry(c){
 }
 /* Which contract supplied the effective expiry — so the UI can say "expiry from
    MK-123 (Amendment No. 2)" instead of quietly showing a different date. */
+/* ============================================================
+   DOES THIS DOCUMENT AGREE WITH THE ONE ABOVE IT? (S12,
+   owner-approved 16 Sep 2026)
+
+   A family is only worth drawing if it answers the question a
+   reader actually has about it: does the amendment change the deal,
+   and if so what. That is ARITHMETIC ON THE RECORD, not a reading of
+   the wording — both documents carry metadata, so a term the child
+   states differently from its parent is a fact HaTi already holds.
+
+   IT NEVER GUESSES. A term the child says nothing about is not a
+   disagreement; a term neither of them records is not an agreement
+   either, and `checked` says how many were actually comparable. The
+   sentence a screen prints is `familyAgreeLine`, and where nothing
+   could be compared it says so rather than printing "Agrees".
+
+   WHAT IS DELIBERATELY NOT HERE: a reading of the two WORDINGS for
+   contradictions the record cannot see. That needs a model, a route
+   and a cache, and it is the owner's to rule on. This is the half
+   that costs nothing and is right every time.
+   ============================================================ */
+const FAMILY_TERMS = [
+  { k:'value',      get label(){ return i18t('fa_t_value'); },   read:c=>(Number(c&&c.value)>0?String(Number(c.value)):'') },
+  { k:'expiry',     get label(){ return i18t('fa_t_expiry'); },  read:c=>String((c&&c.expiry)||(c&&c.metadata&&c.metadata.expiryDate)||'') },
+  { k:'payment',    get label(){ return i18t('fa_t_payment'); }, read:c=>String((c&&c.metadata&&c.metadata.paymentTerms)||'').trim() },
+  { k:'notice',     get label(){ return i18t('fa_t_notice'); },  read:c=>{ const n=Number(c&&c.metadata&&c.metadata.noticePeriodDays); return isFinite(n)&&n>0?String(n):''; } },
+  { k:'liability',  get label(){ return i18t('fa_t_liability'); },read:c=>String((c&&c.metadata&&c.metadata.liabilityCapped)||'').trim() },
+  { k:'rebate',     get label(){ return i18t('fa_t_rebate'); },  read:c=>String((c&&c.metadata&&c.metadata.volumeRebate)||'').trim() },
+];
+function familyAgreement(parent, child){
+  const moved=[], checked=[];
+  if(!parent||!child) return { moved, checked, comparable:0 };
+  for(const t of FAMILY_TERMS){
+    const a=t.read(parent), b=t.read(child);
+    if(!b) continue;                       // the child says nothing: not a move
+    checked.push(t.k);
+    if(!a) continue;                       // the parent says nothing: nothing to disagree with
+    if(String(a)!==String(b)) moved.push(t);
+  }
+  return { moved, checked, comparable:checked.length };
+}
+/* What a row prints: the terms this document moves, or that it moves none, or
+   that there was nothing on either record to compare. */
+function familyAgreeLine(parent, child){
+  const a=familyAgreement(parent, child);
+  if(!a.comparable) return i18t('fa_agree_unknown');
+  if(!a.moved.length) return i18t('fa_agree_yes');
+  return i18t('fa_agree_moves', { terms:a.moved.map(t=>String(t.label).toLowerCase()).join(', ') });
+}
 function expirySource(c){
   if(!c || c.parentId) return null;
   const eff=effectiveExpiry(c);
@@ -369,9 +418,18 @@ function renderFamilySection(c,opts){
   const suggested=(c.linkSuggestions||[]).filter(s=>getContract(s.id));
   const eff=effectiveExpiry(c), from=expirySource(c), prop=proposedExpiry(c);
   const btn='font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px 11px;cursor:pointer';
-  const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:var(--t-meta);color:inherit">
+  /* ---- WHEN IT WAS SIGNED, AND WHETHER IT AGREES (S12) ----
+     The row carried the document's name and its kind. It says two more things
+     now, both off the record: the day it was signed (the product's own one
+     reading, `contractSignedLabel`, asked through window because this module
+     runs on stages that do not carry core.js) and what it MOVES against the
+     document above it. A parent row is not compared with itself. */
+  const signed=x=>{ try{ return (window.contractSignedLabel&&contractSignedLabel(x))||''; }catch(_){ return ''; } };
+  const row=(x,note,against)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:var(--t-meta);color:inherit">
       <b style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
+      ${signed(x)?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${_famEsc(signed(x))}</span>`:''}
+      ${against?`<span style="flex:none;font-size:var(--t-label);color:${familyAgreement(against,x).moved.length?'var(--st-amber-fg)':'var(--color-neutral-600)'};max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_famAttr(familyAgreeLine(against,x))}">${_famEsc(familyAgreeLine(against,x))}</span>`:''}
       <span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
   /* ---- THE BUTTONS ARE A ROW OF THEIR OWN, UNDER THE HEAD ----
      They were in the head beside the title, which was room enough for two. A
@@ -412,7 +470,7 @@ function renderFamilySection(c,opts){
         : kids.length
         ? `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
            ${prop?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(prop.id)})}</p>`:''}
-           <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}</div>`
+           <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`, c)).join('')}</div>`
         : `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px 11px">
@@ -553,12 +611,23 @@ function amendmentSkeletonBody(parent, opts={}){
       lead:'The parties agree that the Agreement is extended as follows:',
       close:'Except as extended above, all other terms of the Agreement remain in full force and effect.' },
   }[SHAPE[rel] || 'change'];
+  /* ---- `opts.says` IS ADDITIVE, AND IT IS THE COHORT ACT'S WHOLE POINT ----
+     The skeleton's third paragraph says "the Agreement is amended as follows:"
+     and then stops, because on a single amendment the drafter writes the next
+     paragraph themselves. A campaign is one wording written once and carried
+     onto fourteen drafts, so it lands exactly where that drafter would have
+     put it: between the lead and the closing paragraph, as ONE paragraph, in
+     the person's own words. A caller that passes nothing is byte-identical to
+     before, which every test of this skeleton rests on. Escaped: it is typed
+     text going onto paper, never markup. */
+  const says = String(opts.says||'').trim();
   return [
     `<p>This ${word} No. ${ord} is made on ____________${between}.</p>`,
     `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties ${W.wish}.</p>`,
     `<p>${W.lead}</p>`,
+    says ? `<p>${_famEsc(says)}</p>` : '',
     `<p>${W.close}</p>`,
-  ].join('');
+  ].filter(Boolean).join('');
 }
 
 /* Mint the draft. No UI, no navigation — returns the contract so the dialog can
@@ -609,7 +678,7 @@ function createAmendment(parent, opts={}){
   if(parent.counterpartyEmail) c.counterpartyEmail = parent.counterpartyEmail;
   c.redlineText = (opts.skeleton===false)
     ? FAMILY_BLANK_BODY
-    : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord });
+    : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says });
   /* FILED AGAINST THE PARENT IN THE SAME BREATH — there is no second step and
      no window in which this exists as a loose contract. applyParentLink writes
      its own audit line under the Created one above. */
@@ -752,7 +821,8 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{openLinkModal,unlinkContract,renderFamilySection,
+Object.assign(window,{FAMILY_TERMS,familyAgreement,familyAgreeLine,
+  openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
   CONTRACT_RELATIONS,RELATION_LABEL,TERM_CHANGING,isRelation,

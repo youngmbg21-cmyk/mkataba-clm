@@ -98,25 +98,10 @@ const PF_H='display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px;f
 const PF_TITLE='font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em';
 const PF_HINT='font-size:var(--t-label);color:var(--color-neutral-600)';
 const PF_FOOT='margin-top:auto;padding-top:10px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)';
-/* ---- A PANEL STATES ITS FINDING, AND CAN BE SHUT KEEPING IT (owner-approved
-   16 Sep 2026, "HaTi's Next Fifteen") ----
-   ONE BUILDER DRAWS EVERY PANEL ON THIS PAGE, so the fold, the head and the
-   summary reach all of them at once and none can drift — the clothes follow
-   the builder, this rulebook's own rule.
-   `o.key` is the fold's name this sitting; `o.finding` is WHAT THE PANEL FOUND,
-   in words, and is drawn on the head while it is shut. Where a panel has no
-   honest one-liner its own hint stands in — which says what it counts rather
-   than what it found, and is at least true. A caller that passes no key gets
-   exactly the card this function has always drawn. */
-const pfCard=(title,hint,body,foot,o)=>{
-  const inner=`<div style="${PF_H}${(o&&o.key)?';display:none':''}"><span style="${PF_TITLE}">${title}</span>${hint?`<span style="${PF_HINT}">${hint}</span>`:''}</div>
+const pfCard=(title,hint,body,foot)=>`<div style="${PF_CARD}">
+  <div style="${PF_H}"><span style="${PF_TITLE}">${title}</span>${hint?`<span style="${PF_HINT}">${hint}</span>`:''}</div>
   <div style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center">${body}</div>
-  ${foot?`<div style="${PF_FOOT}">${foot}</div>`:''}`;
-  if(!(o&&o.key)||typeof sectionHtml!=='function') return `<div style="${PF_CARD}">${inner}</div>`;
-  return sectionHtml({ key:`pf.${o.key}`, title, open:o.open!==false,
-    summary:(o.finding||hint||''),
-    body:`<div class="pf-panel" style="${PF_CARD};border:0;box-shadow:none;background:none">${inner}</div>` });
-};
+  ${foot?`<div style="${PF_FOOT}">${foot}</div>`:''}</div>`;
 
 function pfChipsHtml(){
   const F=pfState(); const chips=[];
@@ -198,21 +183,7 @@ function pfWhereValueSits(){
   const foot = pfMoneyOk()
     ? i18t('pf_where_foot')
     : `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`;
-  /* THE FINDING IS THE TOP SLICE — the pile the book's money is actually in,
-     and its share. Both are already counted for the bars above (`keys` is
-     sorted by value and `total` is their sum), so the head and the bars cannot
-     state different numbers. */
-  /* `keys.length`, NEVER `keys[0]` — the biggest pile on a real book is
-     routinely the one with NO category, whose key is the empty string, and a
-     truthiness test on it silently drew no finding at all. Measured on the
-     seeded book: 19 of 22 uncategorised, summary blank. */
-  const topK=keys.length?keys[0]:null;
-  const finding=keys.length?i18t('pf_where_finding',{
-    pct:Math.round((per.get(topK).v/total)*100),
-    name:pfEsc(pfCatLabel(topK)),
-    v:pfMoneyOk()?pfEsc(pfMoney(per.get(topK).v)):String(per.get(topK).n) }):'';
-  return pfCard(i18t('pf_where_value'),'',`<div>${rows}</div>`,foot,
-    { key:'where_value', finding });
+  return pfCard(i18t('pf_where_value'),'',`<div>${rows}</div>`,foot);
 }
 
 /* -------------------------------------------------- 3. THE RISK MAP -------- */
@@ -290,8 +261,7 @@ function pfRiskMap(){
     ${key('var(--st-amber-dot)',i18t('pf_risk_med'))}
     ${key('var(--st-green-dot)',i18t('pf_risk_low'))}
     <span style="margin-left:auto">${i18t('pf_click_a_dot')}</span></div>`;
-  return pfCard(i18t('pf_risk_map'), i18t('pf_risk_map_hint'), body, foot,
-    { key:'risk_map' });
+  return pfCard(i18t('pf_risk_map'), i18t('pf_risk_map_hint'), body, foot);
 }
 
 /* --------------------------------------- 4. BIGGEST BY CONTRACTED VALUE ---- */
@@ -481,23 +451,11 @@ function portfolioFrameHtml(){
      A number with no route to fixing it is a complaint; this one carries the
      route. */
   const uncounted = pfLive().filter(c=>!pfCategoryOf(c));
-  /* ---- IT IS A ROW ON THE PAGE, NOT A BANNER ACROSS IT (16 Sep 2026) ----
-     The fact and the way out of it are unchanged, word for word and act for
-     act: what went is the amber FILL across the full width, which is the alarm
-     a page wears every time it is opened. It reads as a section now — named,
-     with the sentence on its head and the act beside it — and it is still
-     drawn only where there is something to say. Nothing was deleted; the owner
-     asked for no bands added, and this one was already here. */
-  const nudge = uncounted.length
-    ? ((typeof sectionHtml==='function')
-      ? sectionHtml({ title:i18t('pf_uncounted_title'),
-          accent:'amber', flat:true,
-          summary:`<b>${esc(i18t('pf_uncounted_head',{n:uncounted.length}))}</b> ${esc(i18t('pf_uncounted_body'))}`,
-          body:(typeof canEdit!=='function'||canEdit())
-            ? `<button data-pf-fixcats class="ui-btn" style="font-size:var(--t-label);padding:4px 11px">${i18t('pf_uncounted_fix')}</button>`
-            : '' })
-      : '')
-    : '';
+  const nudge = uncounted.length ? `
+    <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:var(--radius);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:var(--t-meta);line-height:1.55">
+      <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
+      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;border:1px solid currentColor;background:none;color:inherit;border-radius:var(--radius);padding:5px 11px;font:inherit;font-size:var(--t-meta);font-weight:var(--w-title);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
+    </div>` : '';
 
   return `<style>
     .pf-grid{display:grid;gap:10px;align-items:stretch;margin-bottom:10px}
@@ -585,12 +543,6 @@ function wirePortfolioFrame(rerender){
   document.querySelector('[data-pf-fixcats]')?.addEventListener('click',()=>{
     if(typeof runMetaBackfill==='function') runMetaBackfill({missingCategory:true});
   });
-  /* ---- THE PANELS OPEN AND SHUT, THROUGH THIS PAGE'S OWN FUNNEL ----
-     `again()` is the ONE repaint on this page and it keeps the reader's place
-     (keepScroll); a panel that folded by calling the renderer directly would
-     throw the reader to the top, which is the fault the pager above records. */
-  if(typeof window!=='undefined' && typeof window.sectionWire==='function')
-    sectionWire(document.querySelector('.pf-scroll')||document.getElementById('content'), again);
   document.querySelectorAll('[data-pf-open]').forEach(el=>el.addEventListener('click',()=>{
     pfOpenContract(el.getAttribute('data-pf-open'), el.getAttribute('data-pf-find')||''); }));
   /* The pager is a CLASS OF PRESS, not two buttons — a third step added later
@@ -911,8 +863,7 @@ function pfWorkloadRunway(){
     <span style="margin-left:auto">${i18t('pf_months_booked',{n:booked})}</span></div>
     <div style="margin-top:5px">${i18t('pf_runway_foot',{w:_wsOne()})}${d.excluded.couldNotPlace.count
       ? ' '+i18t('pf_runway_unplaced',{n:d.excluded.couldNotPlace.count}) : ''}</div>`;
-  return pfCard(i18t('pf_workload_runway'), i18t('pf_workload_hint',{w:_wsOne()}), body, foot,
-    { key:'workload_runway', finding:i18t('pf_months_booked',{n:booked}) });
+  return pfCard(i18t('pf_workload_runway'), i18t('pf_workload_hint',{w:_wsOne()}), body, foot);
 }
 
 /* ------------------------------------------------------- MONEY HELD BACK --- */
@@ -1194,11 +1145,7 @@ function pfRenewalRunway(){
     ${key('var(--st-amber-dot)',i18t('pf_nothing_filed'))}
     <span style="margin-left:auto">${i18t('pf_lands_six',{v:pfMoney(half)})}</span></div>
     ${openEnded?`<div style="margin-top:5px">${i18t('pf_open_ended',{n:openEnded})}</div>`:''}`;
-  /* THE RENEWAL PANEL ALREADY COMPUTES ITS OWN HEADLINE — what lands inside
-     six months — for its foot. The head says the same thing, from the same
-     value, so the two cannot disagree. */
-  return pfCard(i18t('pf_renewal_runway'), i18t('pf_renewal_hint'), body, foot,
-    { key:'renewal_runway', finding:i18t('pf_lands_six',{v:pfEsc(pfMoney(half))}) });
+  return pfCard(i18t('pf_renewal_runway'), i18t('pf_renewal_hint'), body, foot);
 }
 
 /* ---- ONE DOOR TO THE PANELS' OWN FIGURES ----

@@ -99,9 +99,10 @@ window.intelUI = { scanning:false, scannedAt:null };
    nothing anywhere saying why. A fifth surface is a name added here and
    nowhere else. LABELS ARE KEYS, never resolved strings: an object literal of
    translated text freezes whatever language was current at load. */
-const IG_TABS = ['frame','friction','obligations','payterms','map'];
+const IG_TABS = ['frame','friction','obligations','payterms','exposure','map'];
 const IG_TAB_LABEL = { frame:'pf_tab', friction:'int_negotiation_friction',
-  obligations:'int_obligations', payterms:'pt_tab', map:'int_contract_graph' };
+  obligations:'int_obligations', payterms:'pt_tab', exposure:'int_exposure',
+  map:'int_contract_graph' };
 
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
@@ -1748,6 +1749,21 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
+  if(intel.tab==='exposure'){
+    /* THE SAME SHELL as the two tabs above it — header strip, then one
+       scrolling body, and no header levers of its own: every figure on it
+       counts the whole live book, and a filter would put a narrowed number
+       under a heading that claims to be about the portfolio. */
+    document.getElementById('content').innerHTML=`
+    <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+      ${headerHtml}
+      <div id="ig-exp-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${exposureHtml()}</div>
+    </div>`;
+    document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    exposureWire();
+    setActiveNav('intel');
+    return;
+  }
   if(intel.tab==='payterms'){
     /* THE SAME SHELL AS THE OBLIGATIONS TAB — header strip, then one scrolling
        body, and no header levers of its own for the same reason: every figure
@@ -2251,6 +2267,175 @@ const OB_HORIZON = 90;        // the forward window — the renewal card's own 9
    last of those, nothing about that obligation is ever sent again. The daily
    brief carries an item until 30 days overdue and then drops it. */
 const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;
+
+/* ═══ THE EXPOSURE REGISTER (S10, 16 Sep 2026) ═══════════════════════════
+   *"A risk score out of 100 — every competitor has one and none can explain
+   it. The exposure register counts instead, and every count opens onto the
+   contracts behind it."*
+
+   THE REFUSAL IS THE FEATURE, and it is written here rather than left as an
+   absence: there is NO SCORE on this page and there is not to be one. A
+   rating a lawyer cannot derive is worse than a count they can press, and
+   every row here is a count with a door on it.
+
+   NOTHING IS DERIVED FROM WORDING AT DRAW TIME. Each row asks a field the
+   record already holds — the same fields the Overview prints and the Key terms
+   form writes — so what this page says and what the contract says are the same
+   sentence. A contract whose field is absent or `unclear` is in NO exposure
+   row; it is in the last row instead, which is the honest one.
+
+   MONEY IS "ON PAPER", NEVER "AT RISK". The contract's value is what the
+   agreement is worth, not what an uncapped indemnity would cost — nobody can
+   know that, and a column headed "exposure" carrying a contract value would be
+   the same made-up number in a different hat. The foot says so.
+
+   READING MUST NOT WRITE: every figure is `c.metadata` and `copilotRead`, and
+   nothing here calls a name that initialises anything. */
+const EXPOSURE_KINDS = [
+  { k:'liability',
+    get title(){ return i18t('int_exp_liability'); },
+    get sub(){ return i18t('int_exp_liability_sub'); },
+    hit: c => _expMeta(c).liabilityCapped === 'uncapped' },
+  { k:'price',
+    get title(){ return i18t('int_exp_price'); },
+    get sub(){ return i18t('int_exp_price_sub'); },
+    /* `open` is the option that means "they may set it" — a ceiling or an
+       index is a price you can plan around, and `nochange` is no exposure at
+       all. */
+    hit: c => _expMeta(c).priceReview === 'open' },
+  { k:'indemnity',
+    get title(){ return i18t('int_exp_indemnity'); },
+    get sub(){ return i18t('int_exp_indemnity_sub'); },
+    hit: c => _expMeta(c).indemnityCapped === 'uncapped' },
+  { k:'autorenew',
+    get title(){ return i18t('int_exp_autorenew'); },
+    get sub(){ return i18t('int_exp_autorenew_sub'); },
+    /* A window under a month is the one that goes past unnoticed. An absent
+       notice period is NOT counted: "we do not know" is the last row's
+       business, not this one's. */
+    hit: c => { const m=_expMeta(c); const n=Number(m.noticePeriodDays);
+      return m.renewalType === 'auto-renew' && isFinite(n) && n > 0 && n < EXPOSURE_NOTICE_DAYS; } },
+  { k:'lockin',
+    get title(){ return i18t('int_exp_lockin'); },
+    get sub(){ return i18t('int_exp_lockin_sub'); },
+    hit: c => { const m=_expMeta(c);
+      return m.exclusivity === 'exclusive' && m.terminateForConvenience === 'no'; } },
+];
+const EXPOSURE_NOTICE_DAYS = 30;
+const _expMeta = c => (c && c.metadata) || {};
+
+/* THE LIVE BOOK, and it is the same reading every other tab on this page uses:
+   not Declined, not archived. An amendment is left in — it is a live agreement
+   with its own terms, and on this subject an amendment that removed a cap is
+   exactly the record a reader is looking for. */
+function exposureLive(){
+  const S=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+  return S.filter(c=>c&&c.status!=='Declined'&&!c.archived);
+}
+/* WHAT "READ CLOSELY ENOUGH" MEANS is copilotRead's answer and not a second
+   one: a brief, a playbook pass or a risk scan against the current wording.
+   Read through window — this module draws on stages without js/views/home.js,
+   and there it answers "nothing has been read", which OVER-reports the last
+   row rather than under-reporting it. On a page whose whole subject is what
+   you cannot see, that is the safe direction. */
+const _expRead = c => (typeof window.copilotRead==='function') ? !!copilotRead(c) : false;
+
+/* The money, in the workspace's own currency, with what could not be converted
+   counted and said. fxHome answers `converted:false, missing:false` for a
+   contract ALREADY in the home currency — a real figure, not a failure — so
+   the test is `!missing`. */
+function _expMoney(list){
+  let sum=0, left=0;
+  for(const c of list){
+    if(typeof fxHome!=='function'){ sum += Number((c&&c.value)||0); continue; }
+    const h=fxHome(c);
+    if(h && h.missing) left++; else sum += (h && h.v) || 0;
+  }
+  return { sum, left };
+}
+function exposureData(){
+  const live = exposureLive();
+  const money = (typeof canViewValues!=='function') || canViewValues();
+  const rows = EXPOSURE_KINDS.map(kind=>{
+    let hits=[];
+    try{ hits = live.filter(c=>{ try{ return !!kind.hit(c); }catch(_){ return false; } }); }catch(_){ hits=[]; }
+    const m = money ? _expMoney(hits) : { sum:null, left:0 };
+    /* THE WORST ONE IS THE LARGEST BY VALUE, which is the only ordering this
+       page can defend — there is no severity here to rank by, and inventing
+       one would be the score coming back through a side door. Null where the
+       reader is not shown figures, and null on an empty row. */
+    let worst = null;
+    if(money && hits.length){
+      let best=null, bv=-1;
+      hits.forEach(c=>{ const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
+        const v=(h&&!h.missing)?(h.v||0):0; if(v>bv){ bv=v; best=c; } });
+      if(best) worst = { id:best.id, name:best.name||'', who:best.counterparty||'' };
+    }
+    return { k:kind.k, title:kind.title, sub:kind.sub, n:hits.length,
+      ids:hits.map(c=>c.id), value:m.sum, left:m.left, worst };
+  });
+  const unread = live.filter(c=>!_expRead(c));
+  const um = money ? _expMoney(unread) : { sum:null, left:0 };
+  return { rows, live:live.length, money,
+    unread:{ n:unread.length, ids:unread.map(c=>c.id), value:um.sum, left:um.left } };
+}
+/* THE RENDERER COMPUTES NOTHING — the page's own rule, so a figure can never
+   differ between what is counted and what is drawn. */
+function exposureHtml(){
+  const d = exposureData();
+  const e = igEsc;
+  const money = n => { if(n==null) return ''; try{ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):Number(n).toLocaleString(jxLocale()); }catch(_){ return String(n); } };
+  const L='font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);text-align:left;padding:0 0 7px';
+  const row = (r, last) => `
+    <tr style="border-top:1px solid var(--rule-faint)">
+      <td style="padding:13px 0">
+        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:${last?'var(--accent-ink)':'var(--color-text)'}">${e(r.title)}</div>
+        <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:2px">${e(r.sub)}</div>
+      </td>
+      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);white-space:nowrap">${r.n}</td>
+      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);font-weight:var(--w-strong);white-space:nowrap">${d.money?e(money(r.value)):''}${
+        (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>`:''}</td>
+      <td style="padding:13px var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${
+        r.worst ? e(r.worst.who || r.worst.name || r.worst.id) : '&mdash;'}</td>
+      <td style="padding:13px 0;text-align:right;white-space:nowrap">${
+        r.n ? `<button data-exp-go="${e(r.k)}" style="border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--accent-ink);cursor:pointer;padding:0">${
+          e(last?i18t('int_exp_read_them'):i18t('int_exp_see_all'))}</button>` : ''}</td>
+    </tr>`;
+  const unreadRow = { k:'unread', title:i18t('int_exp_unread'), sub:i18t('int_exp_unread_sub'),
+    n:d.unread.n, value:d.unread.value, left:d.unread.left, worst:null };
+  return `
+  <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:20px var(--s-6) var(--s-4)">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-3)">
+      <h2 style="margin:0;font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-strong)">${e(i18t('int_exp_head'))}</h2>
+      <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${e(i18t('int_exp_head_sub'))}</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="${L}">${e(i18t('int_exp_col_kind'))}</th>
+        <th style="${L};text-align:right;padding-right:var(--s-3)">${e(i18t('int_exp_col_n'))}</th>
+        <th style="${L};text-align:right;padding-right:var(--s-3)">${d.money?e(i18t('int_exp_col_value')):''}</th>
+        <th style="${L};padding-left:var(--s-3)">${e(i18t('int_exp_col_worst'))}</th>
+        <th style="${L}"></th>
+      </tr></thead>
+      <tbody>${d.rows.map(r=>row(r,false)).join('')}${row(unreadRow,true)}</tbody>
+    </table>
+    <p style="margin:var(--s-3) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${e(i18t('int_exp_foot'))}</p>
+  </section>`;
+}
+/* EVERY ROW IS A DOOR, and it is the door the rest of this page already uses:
+   regShowOnly, the named-set filter, which SAYS on the Contracts page what it
+   is narrowed to and carries the way back on the same chip. Nothing here is a
+   number you cannot open. */
+function exposureWire(){
+  document.querySelectorAll('[data-exp-go]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-exp-go');
+    const d=exposureData();
+    const r=(k==='unread') ? { ids:d.unread.ids, title:i18t('int_exp_unread') }
+                           : (d.rows.find(x=>x.k===k)||null);
+    if(!r || !r.ids || !r.ids.length) return;
+    if(typeof regShowOnly==='function') regShowOnly(r.ids, r.title);
+  }));
+}
 
 function intelObligationsData(){
   const S=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
@@ -3378,4 +3563,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

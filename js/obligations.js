@@ -125,6 +125,64 @@ function obligationOwner(o, c){
   if(obligationIsTheirs(o)) return String((c && c.counterparty) || '').trim() || 'the counterparty';
   return String((o && o.assignee) || '').trim() || 'unassigned';
 }
+/* ============================================================
+   A DOCUMENT THEY MUST HOLD (S8, owner-approved 16 Sep 2026)
+
+   An insurance policy, a KEBS certificate, a food-safety audit: the
+   contract requires it, somebody has to hand it over, and it EXPIRES
+   — which is the whole difference from an ordinary promise. It is an
+   obligation, not a new record: the same list, the same chase, the
+   same calendar, the same reminders. What it carries in addition is
+   one optional field.
+
+     `doc` = { until, file }   —   ABSENT ON EVERY OBLIGATION ON FILE
+
+   `until` is the day the copy on file stops being good for anything;
+   `file` is what was supplied, in the words a person would use. Both
+   are optional inside it: a document asked for and never supplied has
+   a `doc` with nothing in it, and that is the honest state — it says
+   "this is a document" without claiming one arrived.
+
+   `due` keeps its own meaning: when it must be HANDED OVER. A policy
+   supplied on time and lapsed since is due-met and lapsed, and those
+   are two different sentences on the screen.
+   ============================================================ */
+const obligationIsDoc = o => !!(o && o.doc && typeof o.doc === 'object');
+const obligationDocUntil = o => (obligationIsDoc(o) && window.dateOnly
+  ? dateOnly(o.doc.until) : ((obligationIsDoc(o) && o.doc.until) || null));
+const obligationDocFile = o => String((obligationIsDoc(o) && o.doc.file) || '').trim();
+/* FOUR STATES, AND THE ORDER IS THE ALARM'S: what has run out, what is about
+   to, what was never handed over, what is fine. `lapsed` is the only one that
+   is a fact about a document HaTi HOLDS; `missing` is a fact about one it does
+   not. A document with no expiry recorded is `held` — an absence is stated,
+   never guessed into a date. */
+const OB_DOC_SOON_DAYS = 30;
+function obligationDocState(o){
+  if(!obligationIsDoc(o)) return null;
+  if(o.status==='done' && !obligationDocUntil(o)) return 'held';
+  const until=obligationDocUntil(o);
+  if(until){
+    const n=daysUntil(until);
+    if(n!=null && n<0) return 'lapsed';
+    if(n!=null && n<=OB_DOC_SOON_DAYS) return 'soon';
+    return 'held';
+  }
+  return obligationDocFile(o) ? 'held' : 'missing';
+}
+/* The required documents on one contract, worst first — what a reader opening
+   the Overview needs to see, which is never the alphabet. */
+const OB_DOC_RANK={ lapsed:0, missing:1, soon:2, held:3 };
+function contractDocuments(c){
+  return ((c && c.obligations) || []).filter(obligationIsDoc)
+    .slice().sort((a,b)=>(OB_DOC_RANK[obligationDocState(a)]??9)-(OB_DOC_RANK[obligationDocState(b)]??9)
+      || String(obligationDocUntil(a)||'9999').localeCompare(String(obligationDocUntil(b)||'9999')));
+}
+/* The one reading behind every count of "a required document has run out" —
+   the Overview's chip, the Home alert and the Contracts filter all ask it, so
+   they cannot disagree about what lapsed means. */
+const contractDocsLapsed = c => contractDocuments(c).filter(o=>obligationDocState(o)==='lapsed');
+const contractDocsMissing = c => contractDocuments(c).filter(o=>obligationDocState(o)==='missing');
+
 const obligationsOurs   = list => (list||[]).filter(o=>!obligationIsTheirs(o));
 const obligationsTheirs = list => (list||[]).filter(obligationIsTheirs);
 function contractObligations(c){ return (c.obligations||[]); }
@@ -298,6 +356,13 @@ function obligationSurfacesChanged(){
     if(c){
       if(window.wsPaintTabCounts) wsPaintTabCounts(c);
       if(window.roomPaintObligations) roomPaintObligations(c);
+      /* AND THE OVERVIEW'S `Documents they must hold` (S8, 16 Sep 2026), which
+         is a fifth surface counting the same list: a required document is an
+         ordinary obligation, so supplying one, chasing it or ticking it off
+         anywhere else has to reach that table. `renderKeyTermsSide` is not on
+         contract.js's export list — it is called bare inside that module — so
+         it is asked for by name here and is a no-op off the Overview. */
+      if(window.paintOverviewDocs) paintOverviewDocs(c);
     }
   }
 }
@@ -577,6 +642,22 @@ function openObligationForm(c, seed){
               DRAWN ON BOTH SIDES OF THAT TOGGLE: money they owe us matters as
               much as money we owe them, so it is not hidden with Assign to.
               NOT DRAWN AT ALL for a reader without the money permission. */}
+      ${''/* ---- IS THIS A DOCUMENT THEY MUST HOLD? (S8) ----
+              ONE DOOR, and it is this one: the dialog that already owns every
+              other fact about an obligation. A second editor on the Overview
+              would be a second way of saying the same thing, and two doors
+              onto one act drift. The two fields are drawn only once the tick
+              is on, because "good until" over a task nobody calls a document
+              is a question with no answer. */}
+      <label class="block mb-2.5" style="display:flex;align-items:center;gap:8px">
+        <input id="of-isdoc" type="checkbox" ${obligationIsDoc(seed)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
+        <span class="text-[11px] font-600 text-ink/70">${_obEsc(i18t('ob_is_doc'))}</span></label>
+      <div id="of-doc-wrap" class="grid grid-cols-2 gap-3 mb-2.5 ${obligationIsDoc(seed)?'':'hidden'}">
+        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_file')}</span>
+          <input id="of-doc-file" type="text" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${_obEsc(i18t('ob_doc_file_ph'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_until')}</span>
+          <input id="of-doc-until" type="date" value="${(seed.doc&&seed.doc.until)||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+      </div>
       ${obligationMoneyVisible() ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_amount')}</span>
         <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span>
         <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_amount_hint'))}</span></label>` : ''}
@@ -609,6 +690,8 @@ function openObligationForm(c, seed){
   };
   document.querySelectorAll('[data-of-party]').forEach(b=>b.addEventListener('click',()=>{
     party=b.getAttribute('data-of-party')==='theirs'?'theirs':'ours'; paintParty(); }));
+  document.getElementById('of-isdoc')?.addEventListener('change',e=>{
+    document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked); });
   document.getElementById('of-cancel').addEventListener('click',closeModal);
   document.getElementById('of-save').addEventListener('click',()=>{
     const o={ id:seed.id||('ob_'+Math.abs((Date.parse(nowISO())+(c.obligations||[]).length)).toString(36)),
@@ -636,6 +719,16 @@ function openObligationForm(c, seed){
       const raw=(document.getElementById('of-amount')?.value||'').trim();
       const n=Number(raw);
       if(raw!==''&&isFinite(n)&&n>0) o.amount=n;
+    }
+    /* ABSENT MEANS NOT A DOCUMENT, which is what every obligation on file
+       carries — the key is written only where the tick is on, so a record that
+       never had one is byte-identical to what it was. An empty `doc` is a real
+       answer and is kept: "this is a document and nothing has arrived". */
+    if(document.getElementById('of-isdoc')?.checked){
+      const d={}; const f=(document.getElementById('of-doc-file')?.value||'').trim();
+      const u=(document.getElementById('of-doc-until')?.value||'').trim();
+      if(f) d.file=f; if(u) d.until=u;
+      o.doc=d;
     }
     if(!o.desc){ toast('Enter a description','err'); return; }
     c.obligations=c.obligations||[];
@@ -2072,17 +2165,64 @@ function renderObligationsList(){
    IT ASKS BEFORE IT SENDS, because this is the one act on this page that
    leaves the building — the standing rule for anything that reaches the
    counterparty. */
-async function obligationChase(cid, obId){
+/* ---- RECORD A REQUIRED DOCUMENT, WITHOUT A WINDOW (S8, for the cohort act) ----
+   The obligation form is the door a person TYPES into, and it stays the only
+   one. This is the headless writer the cohort act needs — "ask fourteen
+   counterparties for the same certificate" cannot open fourteen dialogs — and
+   it is narrow on purpose: one description, one date, always theirs, always a
+   document.
+
+   IT ASKS THE SAME WALL THE FORM ASKS. `obligationAlreadyOn` is the ONE reading
+   of "we already have this", so the typed door and this one cannot come to
+   disagree about what a duplicate is. A refusal comes back as a reason, never
+   as an exception and never silently, because the cohort's report prints it.
+
+   The shape it writes is the form's own: `party:'theirs'`, no assignee (an
+   obligation that is theirs carries none of our colleagues), `doc:{}` — an
+   empty doc is a real answer meaning "this is a document and nothing has
+   arrived", which is exactly the state an ask starts in. */
+function obligationRequireDoc(c, opts){
+  const o0 = opts || {};
+  const desc = String(o0.desc||'').trim();
+  if(!c) return { ok:false, why:i18t('ob_gone') };
+  if(!desc) return { ok:false, why:i18t('co_h_askdoc_need') };
+  if(typeof canEdit === 'function' && !canEdit()) return { ok:false, why:i18t('ob_viewers_no_change') };
+  const o = {
+    id:'ob_'+Math.abs(Date.parse(nowISO())+((c.obligations||[]).length)+Math.floor(Math.random()*997)).toString(36),
+    desc, due:String(o0.due||''), recurring:'none', party:'theirs', assignee:'',
+    status:'open', quote:'', doc:{},
+  };
+  if(obligationAlreadyOn(c, o)) return { ok:false, why:i18t('ob_dupe',{ desc }) };
+  c.obligations = c.obligations || [];
+  c.obligations.push(o);
+  logAudit(c,'Obligation',`Added: ${desc}${o.due?` (due ${o.due})`:''} — ${c.counterparty||'the counterparty'}'s to deliver, a document we must hold`);
+  persist(c);
+  return { ok:true, o };
+}
+
+/* ---- `opts` IS ADDITIVE, AND THE SHAPE OF THE ANSWER FOLLOWS THE CALLER ----
+   A cohort of fourteen cannot ask fourteen questions and cannot print fourteen
+   toasts: the one confirm covers the whole run and the one report carries
+   every answer. So `opts.confirm === false` skips the question and
+   `opts.quiet` moves the reporting from the toast rail to the return value —
+   QUIET IS NOT SILENT, which is the house rule: a quiet caller may never be
+   quieter AND worse, and this one prints exactly the same three answers
+   (it went, it is in the outbox, it was refused and why) in one place instead
+   of N. A caller that passes nothing is byte-identical to before. */
+async function obligationChase(cid, obId, opts){
+  const _o = opts || {};
+  const _quiet = !!_o.quiet;
+  const _no = why => _quiet ? { ok:false, why } : null;
   const hit = findObligation(cid, obId);
-  if(!hit){ toast(i18t('ob_gone'), 'err'); return null; }
+  if(!hit){ if(!_quiet) toast(i18t('ob_gone'), 'err'); return _no(i18t('ob_gone')); }
   const { c, o } = hit;
-  if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return null; }
-  if(!obligationIsTheirs(o)){ toast(i18t('ob_chase_ours'), 'err'); return null; }
-  const ok = await confirmDialog({
+  if(typeof canEdit === 'function' && !canEdit()){ if(!_quiet) toast(i18t('ob_viewers_no_change'), 'err'); return _no(i18t('ob_viewers_no_change')); }
+  if(!obligationIsTheirs(o)){ if(!_quiet) toast(i18t('ob_chase_ours'), 'err'); return _no(i18t('ob_chase_ours')); }
+  const ok = (_o.confirm === false) ? true : await confirmDialog({
     title: i18t('ob_chase_title'),
     message: i18t('ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),
     confirmLabel: i18t('ob_chase_go') });
-  if(!ok) return null;
+  if(!ok) return _no(i18t('act_cancel'));
   o.chasedAt = isoDay(new Date());
   let by = '';
   try{ by = String(((typeof currentUser === 'function') && currentUser() || {}).name || ''); }catch(_){ by = ''; }
@@ -2094,20 +2234,26 @@ async function obligationChase(cid, obId){
   /* AND THEN THE MESSAGE, WHICH MAY OR MAY NOT GO. Three honest answers, the
      shape every other mail in this product reports: it went, it is in the
      outbox, or it was refused and here is why. */
-  if(!window.API_MODE || !API_MODE()){ toast(i18t('ob_chased_local'), 'warn'); return o; }
+  if(!window.API_MODE || !API_MODE()){
+    if(!_quiet) toast(i18t('ob_chased_local'), 'warn');
+    return _quiet ? { ok:true, o, sent:false, outbox:false, error:i18t('ob_chased_local') } : o;
+  }
+  let mail = { ok:true, o, sent:false, outbox:false, error:'', to:'' };
   try{
-    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', { obligationId: obId });
-    if(r && r.emailSent) toast(i18t('ob_chase_sent', { to: r.to || '' }), 'ok');
-    else if(r && r.outbox) toast(i18t('ob_chase_outbox'), 'warn');
-    else toast(String((r && r.emailError) || i18t('ob_chase_failed')), 'warn');
-  }catch(e){ toast(String((e && e.message) || i18t('ob_chase_failed')), 'warn'); }
-  return o;
+    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', { obligationId: obId }, _quiet?{quiet:true}:undefined);
+    if(r && r.emailSent){ mail.sent = true; mail.to = r.to || ''; if(!_quiet) toast(i18t('ob_chase_sent', { to: r.to || '' }), 'ok'); }
+    else if(r && r.outbox){ mail.outbox = true; if(!_quiet) toast(i18t('ob_chase_outbox'), 'warn'); }
+    else { mail.error = String((r && r.emailError) || i18t('ob_chase_failed')); if(!_quiet) toast(mail.error, 'warn'); }
+  }catch(e){ mail.error = String((e && e.message) || i18t('ob_chase_failed')); if(!_quiet) toast(mail.error, 'warn'); }
+  return _quiet ? mail : o;
 }
 
 /* THE CHAIN'S READINGS ARE PUBLISHED. A name this module defines and another
    reaches through `window` is unreachable unless it is on this list — the
    rlPaperFootHtml fault, which this codebase has paid for six times and which
    fails in SILENCE with a plausible fallback. f232 sweeps for it. */
-Object.assign(window,{obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
-  obligationAlreadyOn,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+  OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
+  obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
+  obligationAlreadyOn,obligationRequireDoc,obFindBusy,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OBLIG_RECUR,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationIsMine,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

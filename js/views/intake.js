@@ -57,6 +57,191 @@ async function loadIntake(){
   catch(e){ _intake.loaded=true; }
 }
 
+/* ═══ THE CLOCK (S4, 16 Sep 2026) ═════════════════════════════════════════
+   *"What it does not carry is the four things that turn an inbox into a
+   queue: how it was routed, who is holding it, when it was promised, and a
+   way for the person who asked to find out without asking again."*
+
+   THREE FACTS, AND THEY ARE THREE DIFFERENT KINDS OF FACT, which is why they
+   are built three different ways:
+
+     ROAD is WORKED OUT, never typed. Nobody asking for a contract knows
+     whether it is routine, and asking them would be the enterprise intake
+     form this product exists to avoid. It is read off the request's own words
+     and this workspace's own book — and it SAYS WHAT IT READ, on the hover,
+     because a routing nobody can question is a routing nobody can correct.
+
+     WITH is a NAME somebody put there. There is no clever answer to "who is
+     holding this"; somebody picks it up.
+
+     PROMISED is a PROMISE THE TEAM SETS, never a prediction HaTi makes. This
+     file computes no date. It prints the one a person typed, and how far off
+     it is.
+
+   THE CLOCK STOPS WHEN THE BALL IS THEIRS: a request that has been drafted,
+   declined or withdrawn is no longer waiting on us, so its elapsed time is
+   frozen at the moment it moved. */
+const IK_ROADS = {
+  lane:    { get label(){ return i18t('ik_road_lane'); },    tone:'green' },
+  routine: { get label(){ return i18t('ik_road_routine'); }, tone:'amber' },
+  standard:{ get label(){ return i18t('ik_road_standard'); },tone:'ink'   },
+  close:   { get label(){ return i18t('ik_road_close'); },   tone:'ruby'  },
+};
+/* THE WORDS THAT MEAN "THEIR PAPER". Matched on the requester's own sentence,
+   which is the only description of the job that exists at this point. A
+   request that says nothing about whose paper it is falls through to the
+   ordinary road rather than to the careful one — an over-cautious default
+   would mark the whole queue for a close read and the column would stop
+   meaning anything. */
+/* UP TO TWO WORDS MAY SIT BETWEEN "their" AND THE NOUN, because that is how
+   people write it: *"Their own NDA template arrived"* is the other side's
+   paper and the first draft of this pattern read it as ours — measured, it
+   cleared a request a lane should never have touched. Two is the ceiling on
+   purpose: at three, "their side of the agreement" starts matching, and that
+   is a sentence about our own paper. */
+const IK_THEIR_PAPER = /\btheir (?:own\s+)?(?:\w+\s+){0,2}(?:paper|terms|form|template|contract|agreement|draft|nda|msa)\b|\bthey (?:have )?sent\b|\bsent (?:us|their)\b|\breview (?:their|the attached)\b|\bon their paper\b/i;
+const IK_MONEY = /(?:KES|Ksh|USD|EUR|GBP|\$|€|£)\s?[\d,.]+|\b\d[\d,.]*\s?(?:m|million|bn|billion)\b/i;
+/* Have we ever dealt with this counterparty? Asked of the book the reader can
+   already see — no route, and `state.contracts` is the scoped list, so a
+   counterparty in a stream this person cannot reach reads as new to them,
+   which is the honest answer from their chair. */
+function ikKnownCounterparty(name){
+  const n=String(name||'').trim().toLowerCase();
+  if(!n) return false;
+  const cs=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+  return cs.some(c=>c&&String(c.counterparty||'').trim().toLowerCase()===n);
+}
+/* `{k, why}` — the road, and the sentence that explains it. The lane wins
+   over everything: a rule that fired is a fact, not a judgement. */
+function intakeRoad(r){
+  if(!r) return { k:'standard', why:'' };
+  if(r.lane) return { k:'lane', why:i18t('ik_why_lane',{name:r.lane}) };
+  const text=`${r.title||''} ${r.need||''}`;
+  const theirs=IK_THEIR_PAPER.test(text);
+  const money=IK_MONEY.test(text);
+  const known=ikKnownCounterparty(r.counterparty);
+  const why=[];
+  if(theirs) why.push(i18t('ik_why_their_paper'));
+  if(r.counterparty && !known) why.push(i18t('ik_why_new_cp'));
+  if(money) why.push(i18t('ik_why_money'));
+  /* THEIR PAPER WITH A COUNTERPARTY NOBODY HAS DEALT WITH IS A CLOSE READ —
+     the artifact's own example, and the two halves are asked together because
+     either alone is ordinary work. */
+  if(theirs && (!r.counterparty || !known)) return { k:'close', why:why.join(' · ') };
+  if(theirs || money) return { k:'standard', why:why.join(' · ') };
+  if(!r.counterparty || known) return { k:'routine', why:i18t('ik_why_routine') };
+  return { k:'standard', why:why.join(' · ') };
+}
+/* WHEN THE CLOCK STOPPED, or null while it is still running. */
+const IK_STOPPED = ['done','declined','withdrawn'];
+function intakeStoppedAt(r){
+  if(!r || !IK_STOPPED.includes(r.status)) return null;
+  return r.decidedAt || r.updatedAt || null;
+}
+/* How long this request has taken, in minutes, or null where either end is
+   missing. Never negative. */
+function intakeMinutes(r){
+  if(!r || !r.createdAt) return null;
+  const from=Date.parse(r.createdAt); if(!from) return null;
+  const toIso=intakeStoppedAt(r);
+  const to=toIso?Date.parse(toIso):Date.now();
+  if(!to) return null;
+  return Math.max(0, Math.round((to-from)/60000));
+}
+/* THE MEDIAN THE TEAM ACTUALLY ACHIEVES — over requests that STOPPED this
+   calendar month, in days to one decimal. Null below IK_MEDIAN_MIN, because a
+   median of one is a number dressed as a statistic. */
+const IK_MEDIAN_MIN = 2;
+function intakeMedianDays(list){
+  const now=new Date();
+  const ms=(list||[]).filter(r=>{
+    const at=intakeStoppedAt(r); if(!at) return false;
+    const d=new Date(at); if(isNaN(d)) return false;
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  }).map(intakeMinutes).filter(n=>n!=null).sort((a,b)=>a-b);
+  if(ms.length<IK_MEDIAN_MIN) return null;
+  const mid=Math.floor(ms.length/2);
+  const m=(ms.length%2)?ms[mid]:((ms[mid-1]+ms[mid])/2);
+  return Math.round((m/1440)*10)/10;
+}
+/* WHAT THE PROMISED CELL SAYS. Four answers and each is a different fact:
+   the request is finished (how long it took), the date has passed, it is
+   close, or it is a date. Null where nobody has promised anything — an
+   em-dash, never an invented date. */
+function intakePromise(r){
+  const stopped=intakeStoppedAt(r);
+  if(stopped){
+    const mins=intakeMinutes(r);
+    if(mins==null) return null;
+    return { k:'done', tone:'green', text: mins<60
+      ? i18tn('ik_done_min',mins,{n:mins})
+      : (mins<1440 ? i18tn('ik_done_hour',Math.round(mins/60),{n:Math.round(mins/60)})
+                   : i18tn('ik_done_day',Math.round(mins/1440),{n:Math.round(mins/1440)})) };
+  }
+  if(!r || !r.promisedAt) return null;
+  /* END OF THE PROMISED DAY, not its midnight start: a date promised for
+     today is not late at one minute past midnight. */
+  const due=Date.parse(String(r.promisedAt).slice(0,10)+'T23:59:59');
+  if(!due) return null;
+  const left=due-Date.now();
+  if(left<0){ const d=Math.max(1,Math.round(-left/86400000));
+    return { k:'over', tone:'ruby', text:i18tn('ik_over_day',d,{n:d}) }; }
+  const hours=Math.round(left/3600000);
+  if(hours<=24) return { k:'soon', tone:'amber', text:i18tn('ik_left_hour',hours,{n:hours}) };
+  let when=''; try{ when=new Date(due).toLocaleDateString(langLocale(),{weekday:'short',day:'numeric',month:'short'}); }catch(_){ when=String(r.promisedAt).slice(0,10); }
+  return { k:'ahead', tone:'ink', text:when };
+}
+/* Past its date, and still ours. Counted on the heading. */
+function intakePastDue(list){
+  return (list||[]).filter(r=>{ const p=intakePromise(r); return p && p.k==='over'; }).length;
+}
+/* WHERE THE PERSON WHO ASKED GOES TO FIND OUT. The server minted the token;
+   this only builds the address. Null where there is none — a link that cannot
+   work is not drawn. */
+function intakeTrackUrl(r){
+  if(!r || !r.trackToken) return null;
+  try{ return location.origin + '/track/' + encodeURIComponent(r.trackToken); }
+  catch(_){ return '/track/' + (r.trackToken||''); }
+}
+
+/* ═══ CLEARANCE LANES (S3, 16 Sep 2026) ═══════════════════════════════════
+   *"A clearance lane is four conditions and a destination, written down and
+   named on the record when it fires."* — which is the whole of it, and is
+   deliberately NOT a drag-and-drop workflow builder.
+
+   THE RULE LIVES IN SETTINGS, where HaTi keeps its rules; this file only
+   READS it. A lane is {id, name, template, folder, maxValue, knownOnly} and
+   every condition it does not state is a condition it does not test.
+
+   IT NAMES ITSELF ON THE RECORD WHEN IT FIRES. A rule that cleared a request
+   invisibly is a rule nobody can audit, so `lane` is written to the request
+   and the row says "Cleared by a lane" with the rule's own name on the hover.
+
+   IT DOES NOT SIGN ANYTHING. The lane produces a draft on the ordinary
+   creation path; every wall between a draft and a signature — the signers,
+   the approval chain, the check, the cap — is untouched. */
+const intakeLanes = () => { try{ return (state.settings&&Array.isArray(state.settings.intakeLanes))?state.settings.intakeLanes:[]; }catch(_){ return []; } };
+function intakeLaneFor(r){
+  if(!r || r.status!=='open' || r.lane) return null;
+  const text=`${r.title||''} ${r.need||''}`;
+  for(const L of intakeLanes()){
+    if(!L || L.on===false || !L.template) continue;
+    if(L.folder && String(L.folder)!==String(r.folder||'')) continue;
+    /* THEIR PAPER IS NEVER ROUTINE. No lane clears a request to review
+       somebody else's wording, whatever else it says — that is the one
+       condition a lane may not switch off. */
+    if(IK_THEIR_PAPER.test(text)) continue;
+    if(L.knownOnly && !ikKnownCounterparty(r.counterparty)) continue;
+    /* A FIGURE IN THE ASK IS A FIGURE THE LANE HAS TO BE ABLE TO CLEAR. The
+       request carries no value field, so a lane with a ceiling refuses any
+       request that mentions money at all rather than guessing the amount. */
+    if(L.maxValue!=null && L.maxValue!=='' && IK_MONEY.test(text)) continue;
+    if(L.words){ try{ if(!new RegExp(L.words,'i').test(text)) continue; }catch(_){ continue; } }
+    return L;
+  }
+  return null;
+}
+
 function ikChip(status){
   const s=INTAKE_STATUS[status]||INTAKE_STATUS.open;
   return `<span class="pill-x" style="background:var(--st-${s.tone}-bg);color:var(--st-${s.tone}-fg)">${esc(s.label)}</span>`;
@@ -68,54 +253,59 @@ function ikRowHtml(r, opts={}){
   const isMine=!!(me&&r.by&&r.by.id===me.id);
   const acts=[];
   if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-draft="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_draft')}</button>`);
+  /* S4's two doors, and they only exist for somebody who could act on it.
+     "Pick it up" puts the presser's own name on the row — never a picker of
+     colleagues, because holding a request is something you do, not something
+     you assign to somebody else. */
+  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-pick="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${
+    esc(r.assignee&&me&&r.assignee.id===me.id?i18t('ik_act_drop'):i18t('ik_act_pick'))}</button>`);
+  if(may&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-promise="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${
+    esc(r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'))}</button>`);
   if(may&&r.status==='open') acts.push(`<button class="ui-btn" data-ik-decline="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_decline')}</button>`);
   if(r.contractId) acts.push(`<button class="ui-btn" data-ik-open="${esc(r.contractId)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_open')}</button>`);
   if(isMine&&IK_LIVE.includes(r.status)) acts.push(`<button class="ui-btn" data-ik-withdraw="${esc(r.id)}" style="font-size:var(--t-label);padding:var(--s-1) 10px">${i18t('ik_act_withdraw')}</button>`);
-  /* ---- A REQUEST IS A ROW THAT OPENS (owner-approved 16 Sep 2026, "HaTi's
-     Next Fifteen") ----
-     Every request drew its whole paragraph, its facts and its buttons at once,
-     so four of them filled a screen and a queue of twelve could only be read by
-     scrolling. It is one row now — reference, title, the ask in one line, its
-     state — and opening it shows the paragraph, the facts as fields and the
-     acts. The shared grammar draws it (js/section.js), so it folds the way the
-     contract Overview and Home do.
-
-     WHAT OPENS BY ITSELF: the one waiting on you. `opts.open` is the caller's,
-     and renderIntake gives it to the FIRST row of the editor's queue — the one
-     a reader came to this page to deal with. Everything else is reference.
-
-     NOTHING ABOUT A REQUEST MOVED: the same fields, the same four acts with the
-     same data attributes and the same wiring, the same status chip. */
-  const who=esc(i18t('ik_asked_by',{name:(r.by&&r.by.name)||'—',date:when}));
-  const line=String(r.need||'').replace(/\s+/g,' ').trim();
-  const sum=[line?esc(line):'', r.counterparty?esc(r.counterparty):'',
-    (r.folder&&FOLDERS[r.folder])?esc(FOLDERS[r.folder].name):''].filter(Boolean).join(' &middot; ');
-  const fields=(typeof sectionFieldsHtml==='function')?sectionFieldsHtml([
-    /* BORROWED LABELS, not new ones. `ik_f_who` and `ik_f_stream` are the
-       FORM's questions and carry "(optional)" — right on a box somebody types
-       into, wrong over a fact. The register already names these two. */
-    [i18t('ik_f_raised_by'), (r.by&&r.by.name)?esc(r.by.name):''],
-    [i18t('ik_f_raised_on'), esc(when)],
-    [i18t('reg_col_counterparty'), r.counterparty?esc(r.counterparty):''],
-    [i18t('ct_value_stream'), (r.folder&&FOLDERS[r.folder])?esc(FOLDERS[r.folder].name):''],
-  ]):'';
-  const body=`<div class="ik-body">
-      <p class="ik-need">${esc(r.need)}</p>
-      ${r.note?`<p class="ik-note">${esc(r.note)}</p>`:''}
-    </div>${fields}`;
-  if(typeof sectionHtml!=='function') return '';
-  /* THE FOLD KEY CARRIES THE LIST IT IS IN, and the row draws no element id.
-     An editor's own request is in BOTH lists — the queue and "my requests" —
-     so one key per request made a press on one row open the other as well, and
-     one id per request put two elements with the same id on the page, which is
-     how a "why did nothing happen" bug starts. Measured: four duplicates on
-     the seeded book. */
-  return sectionHtml({ key:`ik.${opts.list||'q'}.${r.id}`, open:!!opts.open,
-    title:esc(r.title), summary:sum,
-    chip:{ text:(INTAKE_STATUS[r.status]||INTAKE_STATUS.open).label,
-      tone:(INTAKE_STATUS[r.status]||INTAKE_STATUS.open).tone },
-    body:`<div class="ik-ref">${esc(r.id)} &middot; ${who}</div>${body}`,
-    acts:acts.join('') });
+  return `<article class="ik-row" style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:var(--s-3) 14px;display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:6px 18px;align-items:start">
+    <div style="grid-column:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(r.id)}</span>
+        <span style="font-size:var(--t-card);font-weight:var(--w-strong);flex:1;min-width:0">${esc(r.title)}</span>
+        ${ikChip(r.status)}
+      </div>
+      <p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-700);white-space:pre-wrap">${esc(r.need)}</p>
+      <div style="font-size:var(--t-label);color:var(--color-neutral-600)">
+        ${esc(i18t('ik_asked_by',{name:(r.by&&r.by.name)||'—',date:when}))}${r.counterparty?' · '+esc(r.counterparty):''}${r.folder&&FOLDERS[r.folder]?' · '+esc(FOLDERS[r.folder].name):''}
+        ${r.note?`<div style="margin-top:3px;font-style:italic">${esc(r.note)}</div>`:''}
+      </div>
+      ${acts.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">${acts.join('')}</div>`:''}
+    </div>
+    ${ikClockHtml(r)}
+  </article>`;
+}
+/* ---- THE THREE FACTS, ON THE RIGHT OF A ROW THAT HAD ROOM FOR THEM ----
+   Label above value, the product's own grammar for a fact, and an EM-DASH
+   where nobody has said — never a guess and never a blank. The tracker link
+   sits beside them because it is the fourth thing the queue was missing and
+   it belongs to the same question: where has this got to. */
+const IK_TONE = { green:'var(--st-green-fg)', amber:'var(--st-amber-fg)',
+  ruby:'var(--st-ruby-fg)', ink:'var(--color-text)' };
+function ikFactHtml(label, value, tone, title){
+  return `<div style="min-width:78px">
+    <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap">${esc(label)}</div>
+    <div ${title?`title="${esc(title)}"`:''} style="font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;color:${IK_TONE[tone]||IK_TONE.ink}">${value||'&mdash;'}</div>
+  </div>`;
+}
+function ikClockHtml(r){
+  const road=intakeRoad(r);
+  const rd=IK_ROADS[road.k]||IK_ROADS.standard;
+  const p=intakePromise(r);
+  const url=intakeTrackUrl(r);
+  return `<div class="ik-clock" style="grid-column:2;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+    ${ikFactHtml(i18t('ik_f_road'), esc(rd.label), rd.tone, road.why)}
+    ${ikFactHtml(i18t('ik_f_with'), r.assignee&&r.assignee.name?esc(r.assignee.name):'', 'ink')}
+    ${ikFactHtml(i18t('ik_f_promised'), p?esc(p.text):'', p?p.tone:'ink')}
+    ${url?`<button data-ik-track="${esc(r.id)}" title="${esc(i18t('ik_track_title'))}"
+      style="border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);cursor:pointer;padding:0;margin-top:15px;white-space:nowrap">${esc(i18t('ik_track'))}</button>`:''}
+  </div>`;
 }
 
 /* ---- THE ASK. Plain words, one line and a paragraph: a form that demanded
@@ -236,6 +426,56 @@ async function intakeDraft(id){
     }
   });
 }
+/* ---- A LANE FIRES, AND SAYS SO (S3) ----
+   It runs when a person who may draft loads this page, and only then. THAT IS
+   SAID OUT LOUD rather than dressed up as automation: HaTi has no server-side
+   template catalogue, and building one so a lane could fire on a timer would
+   be a second place contracts are minted from — the fault class this codebase
+   pays for most. The clock the row prints is the REAL elapsed time either
+   way, so nothing here claims a speed it did not achieve.
+
+   IT PRESSES THE ORDINARY CREATION PATH. `createFromTemplate` is the same
+   door intakeDraft uses, so a lane-cleared contract is in no way a different
+   kind of record; the only difference is that `lane` is written on the
+   request, which is what makes the row say who decided and lets an
+   administrator audit the rule afterwards.
+
+   ONE AT A TIME, NEWEST LAST, and it stops at the first failure — a lane that
+   half-fired across a queue would be worse than one that did not fire. */
+let _ikLanesRunning = false;
+async function intakeRunLanes(){
+  if(_ikLanesRunning) return 0;
+  if(typeof canEdit!=='function' || !canEdit()) return 0;
+  if(typeof createFromTemplate!=='function') return 0;
+  const lanes = intakeLanes();
+  if(!lanes.length) return 0;
+  const todo = (_intake.list||[]).filter(r=>!!intakeLaneFor(r));
+  if(!todo.length) return 0;
+  _ikLanesRunning = true;
+  let n = 0;
+  try{
+    for(const r of todo){
+      const L = intakeLaneFor(r); if(!L) continue;
+      if(!(typeof TEMPLATES!=='undefined' && TEMPLATES[L.template])) continue;
+      createFromTemplate(L.template);
+      const c = (typeof getContract==='function') ? getContract(state.activeId) : null;
+      if(!c) break;
+      if(r.counterparty && !c.counterparty) c.counterparty = r.counterparty;
+      if(r.folder && typeof FOLDERS!=='undefined' && FOLDERS[r.folder]) c.folder = r.folder;
+      c.intakeRequestId = r.id;
+      logAudit(c,'Requested',`Cleared by the "${L.name||L.id}" lane from request ${r.id}: ${r.title}`);
+      persist(c);
+      try{
+        await api('intake/'+encodeURIComponent(r.id),'PATCH',
+          { status:'done', contractId:c.id, lane:String(L.name||L.id||'').slice(0,80) });
+        n++;
+      }catch(_){ break; }
+    }
+    if(n){ await loadIntake(); if(window.updateSidebarCounts) updateSidebarCounts(); }
+  } finally { _ikLanesRunning = false; }
+  if(n) toast(i18tn('ik_lane_cleared',n,{n}),'ok');
+  return n;
+}
 async function intakeSetStatus(id,status,opts={}){
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   let note='';
@@ -292,14 +532,23 @@ function renderIntake(){
         <button id="ik-new" class="ui-btn ui-btn-primary" style="font-size:var(--t-body);padding:var(--s-2) 15px;flex:none">${i18t('ik_ask_btn')}</button>
       </section>
       ${may?`<section>
-        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}</h3>
-        ${''/* THE FIRST ONE OPENS. It is what the reader came for; the rest
-               are reference and open shut — the grammar's own rule 3. */}
-        <div class="ik-list">${queue.length?queue.map((r,i)=>ikRowHtml(r,{open:i===0,list:'queue'})).join(''):empty(i18t('ik_queue_empty'))}</div>
+        ${''/* ---- THE HEADING CARRIES THE CLOCK (S4) ----
+              *"the heading says the median the team actually achieves beside
+              the number waiting"*. Both figures are BORROWED: the count past
+              its date is intakePastDue over the same queue this heading names,
+              and the median is over what actually finished this month. A
+              median below IK_MEDIAN_MIN draws nothing — a middle value of one
+              is a number dressed as a statistic. */}
+        <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_queue_head',{n:queue.length})}<span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${
+          (()=>{ const over=intakePastDue(queue); const med=intakeMedianDays(_intake.list||[]);
+            const bits=[]; if(over) bits.push(i18tn('ik_past_due',over,{n:over}));
+            if(med!=null) bits.push(i18t('ik_median',{n:med}));
+            return bits.length?' · '+bits.map(esc).join(' · '):''; })()}</span></h3>
+        <div style="display:flex;flex-direction:column;gap:9px">${queue.length?queue.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_queue_empty'))}</div>
       </section>`:''}
       <section>
         <h3 style="font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);margin:0 0 9px">${i18t('ik_mine_head')}</h3>
-        <div class="ik-list">${mine.length?mine.map(r=>ikRowHtml(r,{list:'mine'})).join(''):empty(i18t('ik_mine_empty'))}</div>
+        <div style="display:flex;flex-direction:column;gap:9px">${mine.length?mine.map(r=>ikRowHtml(r)).join(''):empty(i18t('ik_mine_empty'))}</div>
       </section>
     </div>`;
   host.querySelector('#ik-new')?.addEventListener('click',()=>openIntakeForm());
@@ -307,16 +556,70 @@ function renderIntake(){
   host.querySelectorAll('[data-ik-decline]').forEach(b=>b.addEventListener('click',()=>intakeSetStatus(b.getAttribute('data-ik-decline'),'declined')));
   host.querySelectorAll('[data-ik-withdraw]').forEach(b=>b.addEventListener('click',()=>intakeSetStatus(b.getAttribute('data-ik-withdraw'),'withdrawn')));
   host.querySelectorAll('[data-ik-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-ik-open'))));
-  /* The rows open and shut. The repaint is this page's own, and it is bound to
-     the host, which is written fresh on every render. */
-  if(window.sectionWire) sectionWire(host,()=>renderIntake());
+  host.querySelectorAll('[data-ik-pick]').forEach(b=>b.addEventListener('click',()=>intakePick(b.getAttribute('data-ik-pick'))));
+  host.querySelectorAll('[data-ik-promise]').forEach(b=>b.addEventListener('click',()=>intakePromiseAsk(b.getAttribute('data-ik-promise'))));
+  host.querySelectorAll('[data-ik-track]').forEach(b=>b.addEventListener('click',()=>intakeTrackCopy(b.getAttribute('data-ik-track'))));
   if(typeof setActiveNav==='function') setActiveNav('intake');
   /* The list is fetched once per sitting and repainted here when it lands —
      the same shape the Advice Desk uses, and the reason the empty state is a
      real sentence rather than a spinner. */
   if(!_intake.loaded) loadIntake().then(()=>{ if(state.view==='intake') renderIntake(); });
+  /* THE LANES RUN ONCE THE QUEUE IS ON THE FLOOR, never before it: a rule
+     cannot clear a request the page has not loaded. It repaints itself if
+     anything fired, and answers 0 the rest of the time, which is every time
+     for a workspace that has written no lanes. */
+  else if(may) intakeRunLanes().then(n=>{ if(n && state.view==='intake') renderIntake(); });
 }
 
-Object.assign(window,{INTAKE_STATUS,IK_LIVE,intakeMine,intakeQueue,intakeCount,loadIntake,
+/* ---- THE TWO ACTS, AND THE LINK ---- */
+async function intakePatch(id, body){
+  try{
+    await api('intake/'+encodeURIComponent(id),'PATCH',body);
+    await loadIntake(); renderIntake();
+    return true;
+  }catch(e){ toast((e&&e.message)||i18t('ik_failed'),'err'); return false; }
+}
+/* HOLDING A REQUEST IS SOMETHING YOU DO. Pressing it again puts it back down,
+   so the one control is both halves and there is no way to leave a row held by
+   somebody who has stopped working on it without a way to say so. The STATUS
+   is carried through unchanged — this call is about who holds it, not about
+   where it has got to. */
+async function intakePick(id){
+  const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
+  const me=currentUser(); if(!me) return;
+  const mine=!!(r.assignee&&r.assignee.id===me.id);
+  if(await intakePatch(id,{ status:r.status, assignee: mine?'':me.id }))
+    toast(mine?i18t('ik_dropped'):i18t('ik_picked'),'ok');
+}
+/* A PROMISED DATE IS A PROMISE, so a person types it. HaTi proposes nothing
+   here — not a working-day estimate, not a median, not a road-based guess —
+   because the moment it did, the column would stop being a commitment and
+   start being a forecast somebody else has to live with. */
+async function intakePromiseAsk(id){
+  const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
+  const said=await promptDialog({ title:i18t('ik_promise_title'),
+    message:i18t('ik_promise_msg'), value:r.promisedAt||'',
+    confirmLabel:i18t('ik_act_promise'), cancelLabel:i18t('act_cancel') });
+  if(said==null) return;
+  const d=String(said||'').trim();
+  if(d && !/^\d{4}-\d{2}-\d{2}$/.test(d)){ toast(i18t('ik_promise_bad'),'err'); return; }
+  if(await intakePatch(id,{ status:r.status, promisedAt:d }))
+    toast(d?i18t('ik_promised'):i18t('ik_promise_cleared'),'ok');
+}
+/* The link is COPIED rather than opened: the person who needs it is not the
+   person pressing the button. */
+async function intakeTrackCopy(id){
+  const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
+  const url=intakeTrackUrl(r);
+  if(!url){ toast(i18t('ik_track_none'),'warn'); return; }
+  try{ await navigator.clipboard.writeText(url); toast(i18t('ik_track_copied'),'ok'); }
+  catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
+}
+
+Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+  IK_THEIR_PAPER,IK_MONEY,ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
+  intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
+  intakeRunLanes,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
+  intakeMine,intakeQueue,intakeCount,loadIntake,
   openIntakeForm,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
   _intakeState:_intake});

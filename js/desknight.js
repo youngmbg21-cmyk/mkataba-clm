@@ -59,7 +59,13 @@
    cannot disagree about what is urgent. A late promise has somebody waiting on
    the far side of it; paper that arrived has been read and nobody has looked;
    a renewal date knows nobody's name. */
-const DESK_KINDS = ['chase', 'deviations', 'renewal'];
+/* ---- A FOURTH KIND, AND IT LEADS (S6, 16 Sep 2026) ----
+   A notice that is drafted and ready to serve outranks a chase and a memo,
+   because it is the only one of the four where DOING NOTHING renews an
+   agreement for another year. THE CEILING OF THREE IS UNCHANGED: it competes
+   for a place rather than adding one — deskShown still takes at most one of
+   each and still stops at three. */
+const DESK_KINDS = ['notice', 'chase', 'deviations', 'renewal'];
 
 /* HOW LATE BEFORE A CHASE IS OFFERED. One day, not nought: an obligation due
    today is not late, and offering to chase somebody on the morning of their
@@ -160,6 +166,28 @@ function deskItems(list){
       if(n > 0 && !seen && !deskDismissed(c, it.key)) out.push(it);
     }
 
+    /* ---- 4. A NOTICE DRAFTED AND READY TO SERVE ----
+       It qualifies only where the letter can actually be written — noticeDraft
+       refuses rather than guesses, and a row offering a letter HaTi cannot
+       compose would be a dead press. Read through `window` with a guard: this
+       file draws on stages where js/notice.js is not loaded, and there the
+       desk simply has three kinds, exactly as it did.
+
+       ONLY WHILE THE DECISION IS STILL LIVE. Past the decision date the
+       letter is still drafted (a late notice is often still worth sending)
+       and the DIALOG says so, but the desk stops leading with it — a morning
+       list is about what can still be changed today. */
+    if(typeof noticeDraft === 'function'){
+      const nd = noticeDraft(c);
+      if(nd && nd.ok && !nd.late && !nd.predatesRecord){
+        const it = { kind:'notice', cid:c.id, c, days:nd.days, urgent:nd.days<=14,
+          who:c.counterparty||'', noticeKind:nd.kind, by:nd.decideBy, ends:nd.expiry,
+          notice:nd.notice };
+        it.key = deskKeyOf(it);
+        if(!deskDismissed(c, it.key)) out.push(it);
+      }
+    }
+
     /* ---- 3. A RENEWAL DECISION CLOSING ----
        renewalWindow is the product's ONE reading of this and carries every
        refusal with it — an amendment never renews itself, a draft is not up for
@@ -167,8 +195,16 @@ function deskItems(list){
        than the record is reported as predating rather than as a miss. A second
        copy of any of that here is how the desk and the renewal card would come
        to disagree about the same contract. */
+    /* ---- ONE CONTRACT, ONE ROW ABOUT ITS RENEWAL DECISION (16 Sep 2026) ----
+       The notice row and the renewal row are the same deadline said twice: one
+       says the decision is closing, the other says the letter that acts on it
+       is written. Drawn together they would put two rows about one contract on
+       a desk of three, pushing a genuinely different kind off it — which is
+       exactly the crowding deskShown exists to prevent.
+       THE SHARPER ONE WINS, and it is the one carrying the act. */
+    const hasNotice = out.some(x => x.kind === 'notice' && x.cid === c.id);
     const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
-    if(w && w.inWindow){
+    if(w && w.inWindow && !hasNotice){
       const prep = c._renewalPrep
         || ((c._renewalAdvice && c._renewalAdvice.data) ? (c._renewalAdvice.overnight ? 'night' : 'you') : '');
       const it = { kind:'renewal', cid:c.id, c, days:w.days, w,
@@ -217,11 +253,20 @@ function deskItems(list){
    Three things, which is what was asked for, and the cap is what makes them
    READ rather than skimmed. A flat top-three would let one kind take all three
    places; one of each cannot. */
+/* ---- THE CEILING IS THREE, AND SINCE 16 SEP 2026 IT HAS TO SAY SO ----
+   With three kinds, "at most one of each" and "at most three" were the same
+   sentence and the cap never had to be written down. A fourth kind (the
+   notice) separates them: without this number the desk would quietly grow to
+   four rows, which is exactly the weight HaTi's Next Fifteen promises Home
+   will not gain. The kinds compete for a place rather than adding one, and
+   DESK_KINDS' own order is what decides which ones get in. */
+const DESK_MAX = 3;
 function deskShown(items){
   const seen = new Set(), out = [];
   for(const it of (items || [])){
     if(seen.has(it.kind)) continue;
     seen.add(it.kind); out.push(it);
+    if(out.length >= DESK_MAX) break;
   }
   return out;
 }
@@ -244,11 +289,18 @@ function deskShown(items){
    drawing. The only cost is that a renewal moves out of the list below on the
    morning it is promoted to the desk, which is the whole point of promoting
    it. */
+/* WHICH RENEWALS THE DESK HAS ALREADY TAKEN. Home strikes these out of "Needs
+   your decision", so the same contract is never on both lists.
+   THE NOTICE COUNTS TOO (16 Sep 2026): it is a row about that contract's
+   renewal decision — the sharper form of it — so a reader who has the letter
+   in front of them does not also need the decision repeated one section down.
+   Left out, the two rows this change made mutually exclusive would each fail
+   to evict and the contract would be on both lists again. */
 function deskCids(items){
   const s = new Set();
-  for(const it of (items || [])) if(it.kind === 'renewal') s.add(it.cid);
+  for(const it of (items || [])) if(it.kind === 'renewal' || it.kind === 'notice') s.add(it.cid);
   return s;
 }
 
-Object.assign(window, { DESK_KINDS, DESK_CHASE_LATE, deskKeyOf, deskDismissed, deskDismiss,
+Object.assign(window, { DESK_KINDS, DESK_MAX, DESK_CHASE_LATE, deskKeyOf, deskDismissed, deskDismiss,
   deskLive, deskItems, deskShown, deskCids });

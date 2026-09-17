@@ -42,11 +42,13 @@ import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
 import './family.js';
+import './cohort.js';   // "Do this to these N": one act above the Contracts table, drawn only while it is narrowed (S13/S14, 16 Sep 2026)
 import './precedent.js';     // what this workspace's own settled rounds say (W3-2)
 import './ladder.js';       // every move on one clause, across every round (14 Sep 2026)
 import './redlineplan.js';   // the co-pilot's first pass over their round (W3-1)
 import './standards.js';     // the Standards page's own readings (ideas 20 & 21)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
+import './notice.js';    // the notice desk: a letter drafted from the record, never from a model (S6, 16 Sep 2026)
 import './desknight.js';    // the overnight desk: three kinds of prepared work, read off the record (idea 19)
 import './assurance.js';     // which rung a signature was taken at (W3-3)
 import './views/negotiation-css.js'; // that page's stylesheets, lifted out of the file below (21 Aug 2026)
@@ -212,7 +214,12 @@ const PAGE_ACTIONS = {
   /* Contracts carries no Export: the page had two of them — this one and a
      second in the filter row — and both are gone. regExportCsv() is untouched
      and still reachable from the folder view. */
-  register: ['new'],
+  /* `cohort` draws an EMPTY SLOT, not a button — see regPaintCohort. "Do this
+     to these N" exists only while a filter is narrowing the table, and that
+     changes on a repaint with no view change, so the header cannot be the one
+     deciding. It is FIRST, so it sits left of Draft new agreement exactly as
+     the design draws it. */
+  register: ['cohort', 'new'],
   folder:   ['export', 'new'],
   workspace:['export'],
   pipeline: ['new'],
@@ -229,6 +236,7 @@ function pageActionHtml(kind){
      by wearing Home's own class rather than a second set of declarations that
      agrees today: .hm-primary is unscoped and this is its second home.
      `pg_new_contract` is STALE as a label and left inert in the dictionary. */
+  if(kind==='cohort') return `<span id="reg-cohort-slot"></span>`;
   if(kind==='new') return `<button data-page-new class="hm-primary">${
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
@@ -1325,6 +1333,21 @@ const ALERT_KINDS = [
      — so the bell and the inbox cannot say different things about the same
      promise on the same morning. */
   { k:'obligation',  tone:'amber', ic:'&#128203;' },
+  /* ---- A CERTIFICATE THAT HAS LAPSED (S8, 16 Sep 2026) ----
+     A REGISTERED KIND with a rank, never a special case at the draw — the
+     eleventh row in a list that already ranks itself, which is the cheapest
+     thing anybody can add to this product.
+
+     RANKED BESIDE THE OBLIGATION IT IS, because that is what it is: a required
+     document is an ordinary obligation carrying a `doc`, so this row sits
+     exactly where the promise it belongs to sits. It is its own kind rather
+     than another obligation row because the fact is different — "they owe you
+     something" against "the paper you already hold has expired" — and a reader
+     acts on them differently.
+
+     RUBY, not amber, and that is the one departure from the row above: a
+     lapsed insurance policy is not work owed, it is cover that has stopped. */
+  { k:'cert-lapsed', tone:'ruby',  ic:'&#128220;' },
   { k:'answer-stuck',tone:'amber', ic:'&#8635;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
@@ -1520,6 +1543,38 @@ function buildAlerts(){
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} });
+    });
+  }
+  /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----
+     THE READING IS THE OVERVIEW'S OWN — contractDocuments and
+     obligationDocState, the same pair the contract's "Documents they must
+     hold" section draws and the Contracts filter narrows by — so the bell,
+     the section and the filter cannot disagree about whether a certificate is
+     in date.
+
+     LAPSED ONLY, never "missing" and never "lapsing soon". A document that
+     never arrived is the chase the row above already covers; one that is about
+     to lapse is not news yet. This row is for cover that HAS stopped, which
+     is the only one of the three where something a business was relying on is
+     no longer true.
+
+     ONE ROW PER CONTRACT, however many of its certificates have lapsed: the
+     row's job is to get somebody onto that contract, and three rows about one
+     supplier would push three other contracts off the list.
+
+     READ WITHOUT WRITING — contractDocuments reads c.obligations raw. */
+  if(typeof window.contractDocuments==='function' && typeof window.obligationDocState==='function'){
+    cs.forEach(c=>{
+      let lapsed=[];
+      try{ lapsed=(contractDocuments(c)||[]).filter(o=>obligationDocState(o)==='lapsed'); }catch(_){ lapsed=[]; }
+      if(!lapsed.length) return;
+      const d=String(lapsed[0].desc||'');
+      const desc=d.length>70?d.slice(0,69)+'\u2026':d;
+      const text=lapsed.length>1
+        ? i18tn('al_cert_more',lapsed.length-1,{desc,n:lapsed.length-1})
+        : i18t('al_cert_single',{desc});
+      push('cert-lapsed',c,text,
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} });
     });
   }
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----

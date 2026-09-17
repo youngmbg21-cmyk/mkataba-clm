@@ -14582,3 +14582,131 @@ NOTICED, NOT FIXED
 - "Fill from document" was an English literal in the markup rather than a
   dictionary call. It was on the line being rewritten, so it became
   ct_fill_from_doc rather than being left as a fault beside a fix.
+
+================================================================================
+HaTi's NEXT FIFTEEN — FIVE SCREENS (owner's order, 16 Sep 2026)
+================================================================================
+"Referencing the Hati's next fifteen artifact, In an overnight job, implement
+1, 2, 3 (the updated version), 5, and 6. Leave 4 alone for now."
+
+The first run mis-read that order and applied the SEPARATE "Six Screens, One
+Grammar" restyling to Home, Contracts, Insights and Requests. The owner caught
+it in one sentence; those four screens were reverted to the byte (they do not
+appear in a diff against the commit before the grammar work) and the fifteen's
+own features built instead. The section grammar survives on the contract
+Overview alone, which is the one screen the fifteen asks for it on.
+
+SCREEN 3 — THE CONTRACT ROOM'S FIRST TAB IS OVERVIEW
+- S2 commercial terms: four new metadata fields (volume rebate, rebate tiers,
+  the rejection window, exclusivity) and a twelve-term block read through
+  META_FIELDS' own labels. Nothing guessed; an em-dash where the record is
+  silent. NO CLAUSE NUMBER is printed — HaTi records the wording a term was
+  read from and never its number, and a derived citation shown to a lawyer is
+  a number the product invented. The owner ruled this.
+- S8 required documents: doc:{file,until} on an ordinary obligation, four
+  states from obligationDocState (lapsed / missing / soon / held), a
+  "Documents they must hold" section worst-first with Chase them on the
+  outstanding ones, and a ruby count on the shut head. The obligation form is
+  still the ONE door a person types into.
+- S12 the family check: FAMILY_TERMS compares six recorded terms between a
+  parent and each child and says which ones a child MOVES. Deterministic.
+
+SCREEN 2 — CONTRACTS
+- S13/S14 "Do this to these N": one act above the table, drawn ONLY while
+  regNarrowed() answers true — with nothing narrowing, the same button is an
+  offer to act on the whole book. Four rows: draft an amendment to all N, ask
+  all N for a document, build a diligence pack, export the list. Waves of four
+  with a Stop asked BETWEEN every contract, and a report naming every refusal
+  with its count.
+- S8 a Required document filter, sixth on the catalogue and behind Adapt
+  filters, drawing itself the moment it narrows — the bar's own safety rule.
+- Nothing else on the page moved: same columns, row height, legend, footer.
+
+SCREEN 5 — INSIGHTS GAINS A SIXTH TAB, EXPOSURE
+- Five kinds of exposure plus the honest last row, every one a count with a
+  door onto regShowOnly. NO SCORE, and the refusal is written into the file:
+  a rating a lawyer cannot derive is worse than a count they can press.
+- Two new metadata fields (indemnity ceiling, can we exit early) written
+  exactly parallel to liabilityCapped. A contract whose wording does not
+  settle the question is in the LAST row and in none of the others.
+
+SCREEN 6 — REQUESTS
+- S4 the clock: Road (worked out, never typed, and it SAYS what it read),
+  With (a name somebody put there), Promised (a promise a person types — this
+  file computes no date). The heading counts what is past its date and the
+  median the team actually achieves this month, refusing to be a median of one.
+- S3 clearance lanes: four conditions and a destination, an admin rule in
+  Settings, the lane's NAME written on the record when it fires. One condition
+  it may not switch off: it never clears a request about the other side's own
+  paper.
+- S5 the tracker: a page outside the app, no login, no form, no route that
+  writes. It carries the request the reader wrote and nothing else.
+
+SCREEN 1 — HOME, WEIGHT ADDED: NONE
+- S1 the Mailroom: POST /api/mailroom, one shared secret compared in constant
+  time, an allow-list of types, a size cap and a count cap each SAID. It files
+  into the Import queue that already exists and does not read — no second
+  extractor on the server. Off answers 404, a wrong key 401.
+- S6 the notice desk (js/notice.js): a non-renewal or termination letter
+  composed from the record, not one word from a model, refusing rather than
+  guessing. HaTi drafts; a person serves — the trail says a letter was drafted
+  and taken and no more than that. A fourth desk kind that COMPETES for one of
+  three places; DESK_MAX now states the ceiling, which "one of each" implied
+  while there were exactly three kinds.
+- S8 a lapsed certificate as an alert kind, ruby, one row per contract, asked
+  of the Overview's own reading.
+- S7 "Money owed to us" on the KPI catalogue, not in the default four.
+
+DEFECTS FOUND AND FIXED ON THE WAY
+- The diligence pack read fxHome's `converted` flag and printed "0 KES" over
+  sixty-two million: a contract already in the workspace's own currency is a
+  real figure, not a failure. The test is !missing.
+- fxMissing answers a MAP of code to how many, not a count. The pack summed
+  its keys as a number.
+- var(--s-5) does not exist (the ladder is 0,1,2,3,4,6,8), so the exposure
+  card's side padding resolved to nothing and its verbs sat on the card edge.
+- IK_THEIR_PAPER did not match "Their own NDA template arrived" — one word
+  between "their" and the noun. MEASURED: a clearance lane cleared a request
+  about the other side's paper. Widened to two words, and three is refused
+  because "their side of the agreement" is a sentence about our own paper.
+- The notice and the renewal row were two rows about one decision on one
+  contract, which on a desk of three pushes a different kind off it. They are
+  mutually exclusive per contract now, and deskCids evicts for both.
+- A notice offered 300 days early is not a notice: noticeBlockers asks
+  renewalWindow's own inWindow.
+
+TESTS
+- Full node suite green: 7369 tests, 1463 suites, 0 fail. Lint 0 errors.
+- New: f320 (the cohort act, 50 claims), f321 (the exposure register, 31),
+  f322 (the requests clock, 36), f323 (Home and the notice desk, 30). Every
+  one was run in a worktree at unmodified HEAD: 0/50, 3/31, 4/36 and 0/30
+  passed there.
+- Re-pointed in place, each with the ruling beside it: f255 (four claims that
+  matched obligationChase's parameter list rather than its name — a net a
+  parameter can silence), f267 (8) (the tab list typed out where the claim is
+  where payment terms SITS), f274 (the desk's kinds and its ceiling),
+  home-page-verify 11c/11h2/11k.
+- Browser files run green: home-page 52/52, kpi-four, contracts-page 100,
+  insights-panels 84, settings-tabs 80, adapt-filters, keeps-your-place,
+  pages-read-alike 54, amendment-journey 52, auto-triage 47.
+
+NOTICED, NOT FIXED
+- white-band-and-tabs-verify 5d/5e are still red and still red at unmodified
+  HEAD — a 20px line box against the reading switch's 19.6px. They need a
+  density ruling, not a drive-by.
+- The artifact's second new alert kind, "a watched answer that changed", is
+  NOT built. It reads from saved questions (S9), which live in the Copilot
+  panel and are not one of the six screens the owner asked for. Said out loud
+  rather than faked with a different fact.
+- The amendment campaign says DRAFT where the artifact's label says Send. A
+  bulk act that wrote fourteen drafts and called itself Send would be a lie on
+  the one screen where the reader cannot check. Reported to the owner.
+- A clearance lane fires when a person who may draft next loads the Requests
+  page, not on a server timer — HaTi has no server-side template catalogue and
+  building one would be a second place contracts are minted from. The clock on
+  the row is the real elapsed time either way.
+- The "Check the family" model pass over two wordings is not built; the
+  deterministic half (which recorded terms a child moves) is.
+- The exposure register's indemnity row reads a ceiling, not one-sidedness.
+  HaTi records no "who indemnifies whom" and inventing one would be a fact the
+  product made up.

@@ -241,10 +241,23 @@ describe('f255 (4) — chasing records the fact, whatever the mail does', () => 
       + 'chase about — a verb that cannot work is not drawn');
   });
 
+  /* ---- PIN THE FUNCTION, NOT ITS SIGNATURE (re-pointed 16 Sep 2026) ----
+     These four claims matched on `obligationChase(cid, obId)` written out in
+     full, so the day the chase grew an additive third argument — `opts`, for
+     the cohort act, which cannot ask fourteen questions or print fourteen
+     toasts — all four threw on a null match rather than reporting anything.
+     A net that a parameter list can silence is a net that says nothing about
+     the behaviour it was written for. The name is the anchor now. */
+  const chaseSrc = () => {
+    const m = OB_CODE.match(/async function obligationChase\([^)]*\)\{[\s\S]*?\n\}/);
+    assert.ok(m, 'obligationChase is not where this file expects it');
+    return m[0];
+  };
+
   test('THE RECORD IS WRITTEN BEFORE THE MESSAGE AND WHATEVER IT DOES', () => {
     /* That the other side was chased, and when, is the half that pays off at
        renewal; a fact that depends on a provider being up is not a record. */
-    const fn = OB_CODE.match(/async function obligationChase\(cid, obId\)\{[\s\S]*?\n\}/)[0];
+    const fn = chaseSrc();
     const write = fn.indexOf('persist(c)');
     const send = fn.indexOf("api(`contracts/");
     assert.ok(write > 0 && send > write, 'persisted first, sent second');
@@ -254,19 +267,19 @@ describe('f255 (4) — chasing records the fact, whatever the mail does', () => 
   });
 
   test('it asks first, because this is the one act here that leaves the building', () => {
-    const fn = OB_CODE.match(/async function obligationChase\(cid, obId\)\{[\s\S]*?\n\}/)[0];
+    const fn = chaseSrc();
     assert.match(fn, /await confirmDialog\(/);
-    assert.match(fn, /if\(!ok\) return null;/, 'and a refusal writes nothing');
+    assert.match(fn, /if\(!ok\) return _no\(/, 'and a refusal writes nothing');
   });
 
   test('it refuses one of ours, and refuses a viewer', () => {
-    const fn = OB_CODE.match(/async function obligationChase\(cid, obId\)\{[\s\S]*?\n\}/)[0];
-    assert.match(fn, /if\(!obligationIsTheirs\(o\)\)\{ toast\(i18t\('ob_chase_ours'\)/);
+    const fn = chaseSrc();
+    assert.match(fn, /if\(!obligationIsTheirs\(o\)\)\{ if\(!_quiet\) toast\(i18t\('ob_chase_ours'\)/);
     assert.match(fn, /if\(typeof canEdit === 'function' && !canEdit\(\)\)/);
   });
 
   test('THREE HONEST ANSWERS, the shape every other mail here reports', () => {
-    const fn = OB_CODE.match(/async function obligationChase\(cid, obId\)\{[\s\S]*?\n\}/)[0];
+    const fn = chaseSrc();
     assert.match(fn, /r\.emailSent/); assert.match(fn, /r\.outbox/); assert.match(fn, /r\.emailError/);
   });
 });

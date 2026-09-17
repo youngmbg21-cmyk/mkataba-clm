@@ -493,6 +493,16 @@ function stRowsHtml(tab){
    whole screen and empties seven server-filled panels (THE SETTINGS PAGE HOLDS
    STILL). Nothing else on the page moves: the replacement is the same markup
    from the same builder, in the same box. */
+/* THE OPEN DRAWER'S BODY, REPAINTED IN PLACE, for a panel whose body is a
+   LIST somebody is adding rows to. stDrawerOpen would work, but it rebuilds
+   the head and the foot too and moves the focus — and THE SETTINGS PAGE HOLDS
+   STILL is the standing rule: patch what changed, never redraw around it. */
+function stRepaintPanel(key){
+  const p=SET_PANELS[key]; if(!p) return;
+  const host=document.getElementById('st-dbody'); if(!host) return;
+  host.innerHTML=p.body();
+  if(typeof p.wire==='function') p.wire();
+}
 function stRepaintRow(key){
   const el=document.querySelector(`.st-row[data-st-panel="${key}"]`);
   if(!el || !SET_PANELS[key]) return;
@@ -1890,6 +1900,179 @@ const SET_PANELS={
       return { dot:c.on?'ok':'off', text:`${i18t('dk_set_on')} — ${c.on?stOn():stOff()}` }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('dk_set_sub')}</p><div id="dk-rule-panel"></div>`; },
     wire(){ renderDeskRulePanel(); },
+  },
+
+  /* ---- THE MAILROOM (S1 of HaTi's Next Fifteen, 16 Sep 2026) ----
+     *"Forwarded contracts land in the queue HaTi already has."* — no Mailroom
+     page, no nav door, no new tile. This panel is the whole of its surface.
+
+     ONE SHARED SECRET, AND AN ADMIN CAN ROTATE IT. HaTi does not poll anybody's
+     inbox and holds nobody's mail password: an inbound-email provider is
+     pointed at /api/mailroom and sends this key in a header. Rotating it is one
+     press, and the old key stops working the moment it is saved.
+
+     THE KEY IS SHOWN, DELIBERATELY. It has to be pasted into another system's
+     settings, and a secret nobody can read is a secret nobody can install. It
+     is admin-only, like every other row on this tab.
+
+     TURNING IT OFF IS EMPTYING IT, and the route answers 404 rather than 401 —
+     a workspace that has not set this up should not tell a caller that the
+     feature exists. */
+  mailroom:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_mailroom'),
+    sub:()=>i18t('set_mailroom_sub'),
+    state(){
+      const m=(state.settings&&state.settings.mailroom)||{};
+      return { dot:m.key?'ok':'off', text: m.key?i18t('set_mailroom_on'):i18t('set_mailroom_off') };
+    },
+    body(){
+      const m=(state.settings&&state.settings.mailroom)||{};
+      const streams=(typeof visibleFolders==='function')?visibleFolders():[];
+      const url=(()=>{ try{ return location.origin+'/api/mailroom'; }catch(_){ return '/api/mailroom'; } })();
+      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_mailroom_sub')}</p>
+      <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_url'))}</span>
+        <input id="st-mr-url" type="text" readonly value="${esc(url)}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
+      <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_key'))}</span>
+        <input id="st-mr-key" type="text" value="${esc(m.key||'')}" placeholder="${esc(i18t('set_mailroom_key_ph'))}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
+      <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_folder'))}</span>
+        <select id="st-mr-folder" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(i18t('set_lane_any_stream'))}</option>${
+          streams.map(f=>`<option value="${esc(f.id)}"${m.folder===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+      <div style="display:flex;gap:var(--s-2)">
+        <button id="st-mr-new" style="${ST_BTN_SM}">${esc(i18t('set_mailroom_rotate'))}</button>
+        <button id="st-mr-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
+      </div>
+      <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_mailroom_note')}</p>`;
+    },
+    wire(){
+      document.getElementById('st-mr-new')?.addEventListener('click',()=>{
+        /* CRYPTO, NEVER Math.random — this is the only thing standing between
+           a stranger and this workspace's import queue. */
+        let k='';
+        try{ const a=new Uint8Array(24); crypto.getRandomValues(a);
+          k=[...a].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+        catch(_){ k=''; }
+        if(!k){ stDrawerRefuse(i18t('set_mailroom_no_random')); return; }
+        const el=document.getElementById('st-mr-key'); if(el) el.value=k;
+        stDrawerClearRefusal();
+      });
+      document.getElementById('st-mr-save')?.addEventListener('click',async()=>{
+        const key=String(document.getElementById('st-mr-key')?.value||'').trim();
+        const folder=String(document.getElementById('st-mr-folder')?.value||'');
+        /* A SHORT KEY IS REFUSED RATHER THAN SAVED. Stored, it would look like
+           the feature was on while being guessable — the worst of both. */
+        if(key && key.length<24){ stDrawerRefuse(i18t('set_mailroom_short')); return; }
+        stDrawerClearRefusal();
+        try{
+          state.settings=state.settings||{};
+          state.settings.mailroom = key ? { key, folder } : {};
+          await saveSettings();
+          toast(key?i18t('set_mailroom_saved'):i18t('set_mailroom_stopped'),'ok');
+          stRepaintRow('mailroom');
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+      });
+    },
+  },
+
+  /* ---- CLEARANCE LANES (S3 of HaTi's Next Fifteen, 16 Sep 2026) ----
+     *"A clearance lane is four conditions and a destination, written down and
+     named on the record when it fires."* Four conditions and a destination is
+     the whole model, and it is deliberately NOT a drag-and-drop workflow
+     builder — the classic enterprise upsell, and the fastest way for a product
+     to lose its opinions.
+
+     THE RULE LIVES HERE, WHERE HaTi KEEPS ITS RULES. The Requests page only
+     READS it (intakeLanes / intakeLaneFor in js/views/intake.js), so there is
+     one writer and one reader and they cannot come to disagree about what a
+     lane is.
+
+     IT RIDES THE ORDINARY SETTINGS BLOB, like the payment targets and the
+     review gate's own switch: a list of rules is not an access map, so the
+     reasoning that gives folderAccess and signFolders.by their own atomic
+     routes does not apply.
+
+     A LANE CANNOT SIGN ANYTHING, and that is not a gap. Its destination is a
+     draft on the ordinary creation path; every wall between a draft and a
+     signature — the named signers, the approval chain, the pre-signature
+     check, the signing cap — is untouched and still asked. */
+  lanes:{
+    tab:'platform', mandatory:false,
+    title:()=>i18t('st_p_lanes'),
+    sub:()=>i18t('set_lanes_sub'),
+    state(){
+      const L=(typeof intakeLanes==='function')?intakeLanes():[];
+      const on=L.filter(x=>x&&x.on!==false).length;
+      return { dot:on?'ok':'off', text: on?i18tn('set_lanes_n',on,{n:on}):i18t('set_lanes_none') };
+    },
+    body(){
+      const L=(typeof intakeLanes==='function')?intakeLanes():[];
+      const tpls=(typeof TEMPLATES!=='undefined')?Object.keys(TEMPLATES):[];
+      const streams=(typeof visibleFolders==='function')?visibleFolders():[];
+      const row=(x,i)=>`<div class="st-lane" data-lane-i="${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3);display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <input class="ln-on" type="checkbox" ${x.on===false?'':'checked'} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
+          <input class="ln-name" type="text" value="${esc(x.name||'')}" placeholder="${esc(i18t('set_lane_name_ph'))}" style="${window.RV_FLD||ST_INPUT}flex:1;min-width:150px"/>
+          <button class="ln-del" style="${ST_BTN_SM}">${esc(i18t('act_delete'))}</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px">
+          <label style="display:block"><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('set_lane_template'))}</span>
+            <select class="ln-tpl" style="${window.RV_FLD||ST_INPUT}width:100%">${
+              tpls.map(t=>`<option value="${esc(t)}"${x.template===t?' selected':''}>${esc(TEMPLATES[t].name)}</option>`).join('')}</select></label>
+          <label style="display:block"><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('set_lane_stream'))}</span>
+            <select class="ln-folder" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(i18t('set_lane_any_stream'))}</option>${
+              streams.map(f=>`<option value="${esc(f.id)}"${x.folder===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+          <label style="display:block"><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('set_lane_words'))}</span>
+            <input class="ln-words" type="text" value="${esc(x.words||'')}" placeholder="${esc(i18t('set_lane_words_ph'))}" style="${window.RV_FLD||ST_INPUT}width:100%"/></label>
+          <label style="display:flex;align-items:center;gap:7px;align-self:end;font-size:var(--t-meta)">
+            <input class="ln-known" type="checkbox" ${x.knownOnly?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
+            <span>${esc(i18t('set_lane_known'))}</span></label>
+        </div>
+      </div>`;
+      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_lanes_sub')}</p>
+        <div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
+        <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3)">
+          <button id="st-lane-add" style="${ST_BTN_SM}">${esc(i18t('set_lane_add'))}</button>
+          <button id="st-lane-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
+        </div>
+        <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_lanes_note')}</p>`;
+    },
+    wire(){
+      const read=()=>[...document.querySelectorAll('#st-lanes .st-lane')].map(el=>({
+        id:'lane_'+Math.abs(Date.now()+Math.floor(Math.random()*9973)).toString(36),
+        on: !!el.querySelector('.ln-on')?.checked,
+        name: String(el.querySelector('.ln-name')?.value||'').trim().slice(0,80),
+        template: String(el.querySelector('.ln-tpl')?.value||''),
+        folder: String(el.querySelector('.ln-folder')?.value||''),
+        words: String(el.querySelector('.ln-words')?.value||'').trim().slice(0,120),
+        knownOnly: !!el.querySelector('.ln-known')?.checked,
+      }));
+      document.getElementById('st-lane-add')?.addEventListener('click',()=>{
+        state.settings=state.settings||{};
+        state.settings.intakeLanes=read().concat([{ on:true, name:'', template:(typeof TEMPLATES!=='undefined'?Object.keys(TEMPLATES)[0]:''), folder:'', words:'', knownOnly:true }]);
+        stRepaintPanel('lanes');
+      });
+      document.querySelectorAll('#st-lanes .ln-del').forEach((b,i)=>b.addEventListener('click',()=>{
+        const all=read(); all.splice(i,1);
+        state.settings=state.settings||{}; state.settings.intakeLanes=all;
+        stRepaintPanel('lanes');
+      }));
+      document.getElementById('st-lane-save')?.addEventListener('click',async()=>{
+        const all=read();
+        /* A LANE WITH NO NAME CANNOT BE WRITTEN ON A RECORD, and a lane with
+           no template has no destination. Refused in words rather than saved
+           as a rule that can never fire. A bad word pattern is refused for the
+           same reason — it would silently match nothing. */
+        if(all.some(x=>x.on&&(!x.name||!x.template))){ stDrawerRefuse(i18t('set_lane_need')); return; }
+        for(const x of all){ if(x.words){ try{ new RegExp(x.words,'i'); }catch(_){ stDrawerRefuse(i18t('set_lane_bad_words')); return; } } }
+        stDrawerClearRefusal();
+        try{
+          state.settings=state.settings||{}; state.settings.intakeLanes=all;
+          await saveSettings();
+          toast(i18t('set_lanes_saved'),'ok');
+          stRepaintRow('lanes');
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+      });
+    },
   },
 
   renewals:{
@@ -3994,7 +4177,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{renderTeam,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,

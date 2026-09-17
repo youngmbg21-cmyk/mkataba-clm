@@ -32,13 +32,6 @@ function renderWith(contracts, { money = true, shareOverview = {}, kpis = null }
      from per-user storage. Seeding that storage is how a test asks for a card
      the way a person would. */
   if (kpis) sb.localStorage.setItem('hati.v1.kpis.u_test', JSON.stringify(kpis));
-  /* ---- EVERY SECTION OPEN, BECAUSE THIS FILE IS ABOUT WHAT REACHES THE DOM
-     ---- (16 Sep 2026.) Home is four named sections now and Portfolio opens
-     SHUT, so its tiles are not in the markup until somebody presses the head.
-     That is right for a reader and wrong for a scope sweep: a leak that only
-     appears once a section is opened is still a leak. Opened here so the
-     claims below are asked of the whole page. */
-  ['hm.desk', 'hm.dd', 'hm.work', 'hm.port'].forEach(k => sb.sectionSetOpen(k, true));
   sb.renderDashboard();
   return sb.document.getElementById('content').innerHTML;
 }

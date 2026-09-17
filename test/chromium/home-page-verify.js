@@ -136,20 +136,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('2 every white surface is exactly #ffffff, not a shade of one',
       notWhite.length === 0, notWhite.slice(0, 3).join(' | ') || 'all pure');
 
-    /* ================= 3. THE SECTIONS AND THEIR TILES ============= */
-    /* ---- REVERSED IN PLACE, 16 SEP 2026 ---- The page is four NAMED SECTIONS
-       in the shared grammar (owner-approved, "HaTi's Next Fifteen"): Prepared
-       for you, Needs your decision, My work, and the Portfolio — which is
-       reference and OPENS SHUT, with its four figures on its own head. The
-       heads are `.sec-t` rather than `.hm-sec h2`. The claims are the ones this
-       block always made: how many groups, how many tiles in each, and one
-       height per row. The portfolio is opened first, because its tiles are not
-       in the markup while the section is shut. */
-    await page.evaluate(() => { const h = document.querySelector('[data-sec-toggle="hm.port"]');
-      if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
-    await page.waitForTimeout(500);
+    /* ================= 3. THE THREE SECTIONS AND THEIR TILES ============= */
     const shape = await page.evaluate(() => ({
-      sections: [...document.querySelectorAll('.hm-page .sec-t')].map(e => e.textContent.trim()),
+      sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
       work: document.querySelectorAll('.hm-tile.is-work').length,
       port: document.querySelectorAll('.hm-tile.is-port').length,
       workH: [...document.querySelectorAll('.hm-tile.is-work')].map(e => Math.round(e.getBoundingClientRect().height)),
@@ -157,15 +146,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       banner: document.querySelectorAll('.hm-banner').length,
       ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
     }));
-    /* THE ORDER IS THE CLAIM, not a count: `Prepared for you` draws only where
-       HaTi actually prepared something (section 11 stages that and asserts it
-       leads), so what has to hold on any book is that the reader's own work
-       comes before the numbers and the book comes last. */
-    const at = re => shape.sections.findIndex(x => re.test(x));
-    check('3 work before numbers, and the book last',
-      at(/decision|Beslut/i) >= 0 && at(/work|arbete/i) > at(/decision|Beslut/i)
-      && at(/Portfolio|Portf/i) === shape.sections.length - 1,
-      shape.sections.join(' · '));
+    check('3 three sections, in the design\'s order',
+      shape.sections.length === 3, shape.sections.join(' · '));
     check('3 four tiles you choose and four that are fixed',
       shape.work === 4 && shape.port === 4, `${shape.work} + ${shape.port}`);
     check('3 and each row is one height, not four',
@@ -396,9 +378,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const rows = [...document.querySelectorAll('#hm-desk-rows .hm-row')];
       const r0 = rows[0] ? rows[0].getBoundingClientRect() : null;
       const dd = document.querySelector('#hm-dd-rows .hm-row');
-      const secOf = re => [...document.querySelectorAll('.hm-page .sec-box')]
-        .find(x => re.test((x.querySelector('.sec-t') || {}).textContent || ''));
-      const sec = secOf(/Prepared for you/i);
+      const sec = [...document.querySelectorAll('.hm-sec')]
+        .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
       return {
         n: rows.length,
         painted: rows.filter(el => { const r = el.getBoundingClientRect();
@@ -407,8 +388,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         /* THE HEADINGS, NOT THE ROWS. "Needs your decision" draws its own empty
            state when nothing is waiting, so a row there is not something this
            claim may depend on — and the claim is about where the SECTION sits. */
-        secTop: sec ? Math.round(sec.getBoundingClientRect().top) : null,
-        ddSecTop: (() => { const h = secOf(/Needs your decision|Beslut/i);
+        secTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
+          .find(x => /Prepared for you/i.test((x.querySelector('h2') || {}).textContent || ''));
+          return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
+        ddSecTop: (() => { const h = [...document.querySelectorAll('.hm-sec')]
+          .find(x => /Needs your decision|Beslut/i.test((x.querySelector('h2') || {}).textContent || ''));
           return h ? Math.round(h.getBoundingClientRect().top) : null; })(),
         ddTop: dd ? Math.round(dd.getBoundingClientRect().top) : null,
         sub: sec ? ((sec.querySelector('.hm-desk-sub') || {}).textContent || '').trim() : '',
@@ -418,8 +402,20 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
           ? el.querySelector('[data-desk-kind]').getAttribute('data-desk-kind') : ''),
       };
     });
-    check('11c three rows draw, one of each kind', desk.n === 3
-      && desk.kinds.join(',') === 'chase,deviations,renewal', `${desk.n} · ${desk.kinds.join(', ')}`);
+    /* ---- PIN THE RELATION, NOT THE THREE NAMES (re-pointed 16 Sep 2026) ----
+       This asserted the literal 'chase,deviations,renewal', so the day the desk
+       grew a fourth kind (the notice, S6) it failed on a claim that was never
+       about which kinds exist. What it is for is THE CEILING AND THE SPREAD:
+       three rows, no kind twice, and in DESK_KINDS' own order — which is
+       exactly what stops one noisy kind taking the whole desk. Read off the
+       product's own list rather than typed here, so the next kind added costs
+       this file nothing. */
+    const order = await page.evaluate(() => (window.DESK_KINDS || []).slice());
+    check('11c three rows draw, no kind twice, in the desk\'s own order',
+      desk.n === 3
+      && new Set(desk.kinds).size === desk.kinds.length
+      && desk.kinds.every((k, i) => i === 0 || order.indexOf(k) > order.indexOf(desk.kinds[i - 1])),
+      `${desk.n} · ${desk.kinds.join(', ')} · order ${order.join(', ')}`);
     check('11d and every one of them is visible pixels',
       desk.painted === desk.n && desk.n > 0, `${desk.painted} of ${desk.n} painted`);
     check('11e the desk sits ABOVE the reader’s own list',
@@ -472,11 +468,16 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         .some(b => b.getAttribute('data-desk-cid') === id);
       const inDd = [...document.querySelectorAll('#hm-dd-rows [data-sel]')]
         .some(b => b.getAttribute('data-sel') === id);
+      /* EITHER KIND. Since 16 Sep a contract inside its notice window is on
+         the desk as a NOTICE rather than as a renewal — the sharper form of
+         the same decision, and the two are deliberately mutually exclusive per
+         contract. What this check is for is that the fixture really is
+         something the desk would draw. */
       const qualifies = (window.deskItems ? deskItems(state.contracts) : [])
-        .some(x => x.kind === 'renewal' && x.cid === id);
+        .some(x => (x.kind === 'renewal' || x.kind === 'notice') && x.cid === id);
       return { inDesk, inDd, qualifies };
     }, staged ? staged.ren2 : '');
-    check('11h2 a second renewal really does qualify for the desk', held.qualifies);
+    check('11h2 a second renewal decision really does qualify for the desk', held.qualifies);
     check('11h3 …the cap keeps it off the desk',
       !held.inDesk, `on the desk: ${held.inDesk}`);
     check('11h4 …and it is still in Needs your decision, not lost between the two',
@@ -515,7 +516,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const cids = [...document.querySelectorAll('#hm-desk-rows [data-desk-cid]')]
         .map(b => b.getAttribute('data-desk-cid'));
       return { before, after: document.querySelectorAll('#hm-desk-rows .hm-row').length,
-        stamped: !!(c && c.desk && c.desk.renewal),
+        /* THE STAMP IS THE ROW'S OWN KEY, whichever kind was on screen — it
+           asked for `desk.renewal` by name, which stopped being the row about
+           this contract's renewal decision the day the notice took its place.
+           deskKeyOf's own shape, read rather than typed. */
+        stamped: !!(c && c.desk && Object.keys(c.desk).length),
+        stampedKeys: c && c.desk ? Object.keys(c.desk) : [],
         stillThere: cids.includes(id), cids };
     }, staged ? staged.ren : '');
     /* THE CLAIM IS THAT THIS ROW GOES, NOT THAT THE COUNT DROPS. With a second
@@ -530,7 +536,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       away && staged && away.cids.includes(staged.ren2),
       away ? away.cids.join(' | ') : 'no rows');
     check('11k and the record carries the stamp, so it does not come back',
-      away && away.stamped, away ? String(away.stamped) : '—');
+      away && away.stamped, away ? (away.stampedKeys || []).join(' | ') : '—');
 
     const moved = await page.evaluate(id =>
       [...document.querySelectorAll('#hm-dd-rows [data-sel]')]

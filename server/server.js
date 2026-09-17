@@ -540,6 +540,28 @@ addColumnIfMissing('outbox', 'detail', 'TEXT');
 // few wrong guesses regardless of where the guesses come from — defence in
 // depth that does not depend on IP-based rate limiting alone.
 addColumnIfMissing('share_otp', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
+/* ---- THE REQUESTS QUEUE GETS A CLOCK, A HOLDER AND A WAY TO BE FOLLOWED
+   (S4 + S5 + S3 of HaTi's Next Fifteen, 16 Sep 2026) ----
+   Four columns, all nullable, all absent on every request on file — so a
+   queue that has never used any of this reads exactly as it did.
+     assignee_*   WHO IS HOLDING IT. A name on the row is the difference
+                  between an inbox and a queue.
+     promised_at  WHEN IT WAS PROMISED — a promise the team SETS, never a
+                  prediction HaTi makes. Nothing computes this.
+     lane         WHICH CLEARANCE LANE cleared it, by name, written on the
+                  record when it fires. A rule that fires invisibly is a rule
+                  nobody can audit.
+     track_token  THE TRACKER LINK. Minted on the first ask, never guessable,
+                  and it opens a page OUTSIDE the app with no login — so the
+                  person who asked can find out where their contract is
+                  without asking a human. It carries the status and nothing
+                  else (see GET /track/:token). */
+addColumnIfMissing('intake_requests', 'assignee_id', 'TEXT');
+addColumnIfMissing('intake_requests', 'assignee_name', 'TEXT');
+addColumnIfMissing('intake_requests', 'promised_at', 'TEXT');
+addColumnIfMissing('intake_requests', 'lane', 'TEXT');
+addColumnIfMissing('intake_requests', 'track_token', 'TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_intake_track ON intake_requests(track_token)');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
 // share is bound to a recipient and channel, expires, can be revoked, and
@@ -5830,7 +5852,13 @@ app.delete('/api/webhooks/:id', auth, admin, (req, res) => {
 const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: r.counterparty || '',
   folder: r.folder || '', status: r.status, by: { id: r.by_id, name: r.by_name },
   contractId: r.contract_id || null, decidedBy: r.decided_by || null, decidedAt: r.decided_at || null,
-  note: r.note || '', createdAt: r.created_at, updatedAt: r.updated_at || null });
+  note: r.note || '', createdAt: r.created_at, updatedAt: r.updated_at || null,
+  /* S4/S5: absent stays absent. A key written as null on a record that never
+     had one would make every request on file read as "answered, with nothing"
+     where the honest answer is "nobody has said". */
+  assignee: r.assignee_id ? { id: r.assignee_id, name: r.assignee_name || '' } : null,
+  promisedAt: r.promised_at || null, lane: r.lane || null,
+  trackToken: r.track_token || null });
 app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so rationed
   const b = req.body || {};
   const title = clean(b.title).slice(0, 200);
@@ -5843,9 +5871,13 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
   if (folder && !inScope(folderScopeFor(req.user), folder))
     return res.status(403).json({ error: 'You do not have access to that value stream' });
   const id = 'REQ-' + rid(5).toUpperCase().slice(0, 6);
-  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at)
-    VALUES (?,?,?,?,?,'open',?,?,?)`)
-    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now());
+  /* THE TRACKER TOKEN IS MINTED HERE AND NOWHERE ELSE, so there is one per
+     request for its whole life and no route can hand out a second. 24 bytes
+     from crypto — the same source every share link uses. */
+  const track = rid(24);
+  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at,track_token)
+    VALUES (?,?,?,?,?,'open',?,?,?,?)`)
+    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now(), track);
   /* The TITLE is arbitrary text any signed-in person — a Viewer included —
      can type, so carrying it would be a small data-egress primitive handed to
      the least-privileged role. The id is enough to go and look. */
@@ -5943,15 +5975,223 @@ app.patch('/api/intake/:id', auth, (req, res) => {
     return res.status(403).json({ error: 'Viewers can raise and withdraw requests, not decide them' });
   }
   const contractId = clean(b.contractId).slice(0, 60) || r.contract_id;
-  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=? WHERE id=?')
+  /* ---- WHO IS HOLDING IT, WHEN IT WAS PROMISED, WHICH LANE CLEARED IT ----
+     All three are EDITOR-ONLY and all three are absent unless this call says
+     something about them: `undefined` leaves the stored value exactly as it
+     was, which is the rule every other partial save in this file follows.
+     A REQUESTER MAY NOT SET THEM. The viewer branch above has already turned
+     away anything but a withdrawal, so reaching this line means an editor —
+     but the assignee is looked UP rather than taken from the body, because a
+     name in a request body is a name anybody could type. */
+  let asgId = r.assignee_id, asgName = r.assignee_name;
+  if (isEditor && b.assignee !== undefined) {
+    const want = clean(b.assignee).slice(0, 60);
+    if (!want) { asgId = null; asgName = null; }
+    else {
+      const u = db.prepare('SELECT id,name FROM users WHERE id=?').get(want);
+      if (!u) return res.status(400).json({ error: 'No such member' });
+      asgId = u.id; asgName = u.name || '';
+    }
+  }
+  let promised = r.promised_at;
+  if (isEditor && b.promisedAt !== undefined) {
+    const d = clean(b.promisedAt).slice(0, 10);
+    if (!d) promised = null;
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return res.status(400).json({ error: 'A promised date is a day, as YYYY-MM-DD' });
+    else promised = d;
+  }
+  /* THE LANE IS WRITTEN ONCE AND NEVER REWRITTEN. A rule that fired is a fact
+     about what happened, so a later call cannot relabel it. */
+  const lane = r.lane || (isEditor ? (clean(b.lane).slice(0, 80) || null) : null);
+  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=? WHERE id=?')
     .run(status, clean(b.note).slice(0, 2000) || r.note, contractId || null,
-      req.user.name || '', now(), now(), req.params.id);
+      req.user.name || '', now(), now(), asgId, asgName, promised, lane, req.params.id);
   const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
   /* Only where the answer actually MOVED, and never back to the person who
      moved it. Re-saving the same status is not news. */
   if (status !== r.status && ['accepted', 'declined', 'done'].includes(status) && r.by_id !== req.user.id)
     notifyIntakeDecision(after, req.user, req);
   res.json({ ok: true, request: intakeRow(after) });
+});
+
+/* ═══ THE MAILROOM (S1, 16 Sep 2026) ══════════════════════════════════════
+   *"Forwarded contracts land in the queue HaTi already has."*
+
+   THE POINT IS THAT IT ADDS NO SURFACE. There is no Mailroom page, no nav
+   door, no tab and no new tile: a document that arrives by email becomes a row
+   in the IMPORT QUEUE that already exists, is read and confirmed on the
+   migration page exactly as an uploaded file is, and makes the Portfolio tile
+   on Home stop reading zero. For a nine-person business it is the one change
+   that lands on the first day.
+
+   IT IS A WEBHOOK, NOT A MAILBOX. HaTi does not poll anybody's inbox and holds
+   nobody's mail password. An inbound-email provider (Postmark, SendGrid,
+   Resend, Mailgun — they all post the same shape) is pointed at this route, and
+   the workspace's own forwarding address is set up there. That keeps the
+   credential surface at exactly one shared secret, which an admin can rotate
+   in Settings.
+
+   THE SECRET IS THE WHOLE AUTHORISATION, so it is compared in CONSTANT TIME
+   and the route is rationed. An unauthenticated caller can otherwise fill a
+   workspace's queue with paper.
+
+   IT FILES; IT DOES NOT READ. The text extraction, the metadata, the OCR and
+   the duplicate check all live in the browser and stay there — a second
+   extractor on the server would be two readings of one document, which is this
+   codebase's most expensive fault class. The record lands with
+   `migration.needsReview` true and `blocked:'unread'`, which is exactly what
+   the queue is for.
+
+   NOTHING IT CREATES IS A CONTRACT ANYBODY HAS AGREED. Status Draft, no
+   signature, no value, no counterparty unless the sender's own address
+   supplies a name — every one of those is a person's job on the queue. */
+const MAILROOM_MAX_FILES = 10;
+const MAILROOM_MAX_BYTES = 12 * 1024 * 1024;   // per attachment, said in the refusal
+const MAILROOM_TYPES = {
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/msword': 'doc',
+};
+const mailroomKey = () => String(((getSetting('appSettings') || {}).mailroom || {}).key || '');
+const mailroomOn = () => !!mailroomKey();
+/* CONSTANT TIME, because a length-sensitive compare on a shared secret leaks
+   it a byte at a time to anybody who can measure a response. */
+function mailroomKeyOk(given) {
+  const want = mailroomKey();
+  if (!want) return false;
+  const a = Buffer.from(String(given || ''), 'utf8');
+  const b = Buffer.from(want, 'utf8');
+  if (a.length !== b.length) { try { crypto.timingSafeEqual(b, b); } catch (_) {} return false; }
+  try { return crypto.timingSafeEqual(a, b); } catch (_) { return false; }
+}
+/* A name for the document, in the order that gives a person the most to go on:
+   the attachment's own filename, then the subject, then the day. Never a
+   guess at what the agreement IS — that is read on the queue. */
+function mailroomName(filename, subject) {
+  const f = String(filename || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+  if (f) return f.slice(0, 160);
+  const s = String(subject || '').replace(/^(re|fw|fwd)\s*:\s*/i, '').trim();
+  return (s || 'Received by email').slice(0, 160);
+}
+const rlMailroom = rateLimit('mailroom', 120, 60 * 60 * 1000);
+app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res) => {
+  if (!mailroomOn()) return res.status(404).json({ error: 'Not found' });
+  if (!mailroomKeyOk(req.get('x-hati-mailroom-key'))) return res.status(401).json({ error: 'Not authorised' });
+  const b = req.body || {};
+  const from = clean(b.from).slice(0, 200);
+  const subject = clean(b.subject).slice(0, 300);
+  const files = Array.isArray(b.attachments) ? b.attachments : [];
+  if (!files.length) return res.json({ ok: true, filed: 0, skipped: [{ why: 'no attachment' }] });
+  const filed = [], skipped = [];
+  const folder = clean(((getSetting('appSettings') || {}).mailroom || {}).folder) || '';
+  for (const f of files.slice(0, MAILROOM_MAX_FILES)) {
+    const name = clean(f && f.filename).slice(0, 200);
+    const type = String((f && f.contentType) || '').split(';')[0].trim().toLowerCase();
+    if (!MAILROOM_TYPES[type]) { skipped.push({ name, why: 'not a document HaTi reads' }); continue; }
+    let bytes = null;
+    try { bytes = Buffer.from(String((f && f.content) || ''), 'base64'); } catch (_) { bytes = null; }
+    if (!bytes || !bytes.length) { skipped.push({ name, why: 'empty' }); continue; }
+    if (bytes.length > MAILROOM_MAX_BYTES) { skipped.push({ name, why: 'over ' + Math.round(MAILROOM_MAX_BYTES / 1048576) + ' MB' }); continue; }
+    /* THE SAME COUNTER EVERY OTHER SERVER-MINTED REFERENCE USES, so a
+       mailroom document takes its place in the book's own numbering and
+       nothing can collide with it. */
+    const uid = (Number(getSetting('uid')) || 100) + 1;
+    setSetting('uid', String(uid));
+    const id = 'MK-' + uid;
+    const at = now();
+    const c = {
+      id, name: mailroomName(name, subject), counterparty: '', value: 0, valueType: 'none',
+      status: 'Draft', template: null, source: 'upload', folder, lastAction: at.slice(0, 10),
+      expiry: null, hash: null, signedAt: null, signatory: null, compliance: {},
+      fields: {}, scan: null, comments: [], signatures: [], obligations: [],
+      upload: { name: name || 'document', size: bytes.length, type,
+        sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+        data: bytes.toString('base64'), at },
+      /* THE QUEUE'S OWN SHAPE, so the migration page needs to learn nothing
+         new: it is a document that needs review and has not been read. */
+      migration: { batch: 'mailroom', importedAt: at, importedBy: 'Mailroom',
+        needsReview: true, blocked: 'unread', textSource: '', ocrPages: 0,
+        manifest: false, executedOutside: false, aiSource: 'none',
+        mailroom: { from, subject, at } },
+      audit: [{ at, user: 'Mailroom', action: 'Received',
+        detail: `Arrived by email from ${from || 'an unnamed sender'}`
+          + (subject ? ` — "${subject}"` : '') + `, as "${name || 'document'}" (${Math.round(bytes.length / 1024)} KB). Nothing has been read yet.` }],
+    };
+    upsertContract(c, 1);
+    syncFts(c);
+    filed.push(id);
+  }
+  res.json({ ok: true, filed: filed.length, ids: filed, skipped });
+});
+
+/* ═══ "WHERE IS MY CONTRACT?" — THE TRACKER PAGE (S5, 16 Sep 2026) ═════════
+   The way the person who asked finds out where their contract is, WITHOUT a
+   login and without asking a human. It is a page outside the app, so it adds
+   nothing to the app's own surface — no nav door, no tab, no row.
+
+   WHAT IT CARRIES IS THE WHOLE SECURITY ARGUMENT, and it is a short list: the
+   request's own title and paragraph (the requester wrote them), when it was
+   asked, where it has got to, who is holding it, and the date somebody
+   promised. THAT IS ALL. Never the contract's wording, never its value, never
+   an address, never a colleague's email, never anything about any other
+   request. The token proves nothing about who is reading — it proves only
+   which request — so nothing behind it may be worth more than the request
+   itself.
+
+   IT IS READ-ONLY AND IT TAKES NO INPUT. There is no form, no press, no
+   route that writes. A page that cannot be acted on cannot be abused into
+   acting.
+
+   NO `:root`, NO var(): this document is served on its own, outside the
+   application's stylesheet, so every value in it is a literal. */
+const TRACK_STAGE = {
+  open:      { word: 'Waiting to be picked up', tone: '#9a6b12', bg: '#fdf4e3' },
+  accepted:  { word: 'Being drafted',           tone: '#2f5d8a', bg: '#eef3f9' },
+  done:      { word: 'Drafted',                 tone: '#3f6f5e', bg: '#edf5f1' },
+  declined:  { word: 'Declined',                tone: '#b0453c', bg: '#fbeeed' },
+  withdrawn: { word: 'Withdrawn',               tone: '#5F6D6B', bg: '#f1f3f2' },
+};
+function trackPageHtml(r) {
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
+  const st = TRACK_STAGE[r.status] || TRACK_STAGE.open;
+  const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
+  const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#5F6D6B;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#1B2A28">${e(v)}</td></tr>` : '';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Where is my contract?</title></head>
+  <body style="margin:0;background:#f4f6f5;font:15px 'IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
+    <div style="max-width:620px;margin:0 auto;padding:40px 22px 60px">
+      <p style="margin:0 0 22px;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B">HaTi</p>
+      <div style="background:#fff;border:1px solid #e2e6e5;border-radius:2px;padding:26px 24px">
+        <p style="margin:0 0 4px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#8a9794">${e(r.id)}</p>
+        <h1 style="margin:0 0 14px;font-size:20px;font-weight:700;line-height:1.3">${e(r.title)}</h1>
+        <p style="display:inline-block;margin:0 0 18px;padding:4px 11px;border-radius:2px;font-size:13px;font-weight:700;background:${st.bg};color:${st.tone}">${e(st.word)}</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#3a4745;white-space:pre-wrap">${e(r.need)}</p>
+        <table style="border-collapse:collapse;font-size:14px">
+          ${row('Asked by', r.by_name)}
+          ${row('Asked on', day(r.created_at))}
+          ${row('With', r.assignee_name)}
+          ${row('Promised', day(r.promised_at))}
+          ${row('Cleared by', r.lane)}
+          ${row('Last moved', day(r.updated_at))}
+        </table>
+      </div>
+      <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#5F6D6B">This page shows where your request has got to. It is not the contract, and it cannot be replied to &mdash; if something here looks wrong, speak to whoever is holding it.</p>
+    </div></body></html>`;
+}
+/* PUBLIC, and deliberately outside /api: it is a page a person opens, not a
+   route a program calls. A bad token is the SAME answer as a missing one, so
+   the page cannot be used to find out which tokens exist. */
+app.get('/track/:token', (req, res) => {
+  const tok = String(req.params.token || '');
+  const r = /^[0-9a-f]{20,64}$/.test(tok)
+    ? db.prepare('SELECT * FROM intake_requests WHERE track_token=?').get(tok) : null;
+  res.set('Cache-Control', 'no-store');
+  if (!r) return res.status(404).type('html').send(
+    `<!doctype html><body style="margin:0;background:#f4f6f5;font:15px 'IBM Plex Sans',Arial,sans-serif;color:#1B2A28">
+     <div style="max-width:620px;margin:0 auto;padding:60px 22px"><p style="font-size:16px">This tracking link is not valid. Ask whoever sent it to you for a new one.</p></div></body>`);
+  res.type('html').send(trackPageHtml(r));
 });
 
 /* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------

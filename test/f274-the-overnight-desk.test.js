@@ -76,11 +76,16 @@ describe('F274 — the overnight desk', () => {
   });
 
   /* --------------------------------------------------------------- */
-  describe('2 — three kinds, and one row of each', () => {
-    test('the three kinds are the owner’s three, in the order they read', () => {
+  describe('2 — four kinds, and one row of each', () => {
+    /* A FOURTH KIND, 16 Sep 2026 (S6): a notice drafted and ready to serve.
+       It LEADS, because it is the only one of the four where doing nothing
+       renews an agreement for another year. The ceiling of three is
+       unchanged — it competes for a place rather than adding one, which is
+       what the cap claims below still measure. */
+    test('the kinds read in the order they matter, the letter first', () => {
       const { win } = stage();
-      assert.deepEqual([...win.DESK_KINDS], ['chase', 'deviations', 'renewal'],
-        'what needs you first, what a date did by itself last');
+      assert.deepEqual([...win.DESK_KINDS], ['notice', 'chase', 'deviations', 'renewal'],
+        'what cannot be undone first, what a date did by itself last');
     });
 
     test('each kind finds its own contract and nothing else', () => {
@@ -99,8 +104,10 @@ describe('F274 — the overnight desk', () => {
       const all = win.deskItems();
       assert.ok(all.filter(x => x.kind === 'renewal').length >= 7, 'seven renewals qualify');
       const shown = [...win.deskShown(all)].map(x => x.kind);
-      assert.deepEqual(shown, ['chase', 'deviations', 'renewal'],
-        'at most one of each, so no kind can be crowded out');
+      assert.ok(shown.length <= 3, 'the ceiling of three is unchanged');
+      assert.equal(new Set(shown).size, shown.length, 'at most one of each, so no kind can be crowded out');
+      assert.ok(shown.includes('chase') && shown.includes('deviations'),
+        'a quiet kind is not crowded out by seven renewals');
     });
 
     /* THE ORDER IS DESK_KINDS' OWN, not a second table beside it. */
@@ -289,15 +296,9 @@ describe('F274 — the overnight desk', () => {
     });
 
     test('Home draws the desk above the reader’s own list', () => {
-      /* The page is four named sections since 16 Sep 2026 and the whole point
-         of that order is this claim, widened: work first, numbers second. The
-         markers moved with the composition — `hmSec` is stale — and the claim
-         is the one it always made. */
       const i = HOME.indexOf('${deskSection}');
-      const j = HOME.indexOf('${ddSec}');
-      const k = HOME.indexOf('${workSec}');
+      const j = HOME.indexOf("hmSec(i18t('home_needs_decision')");
       assert.ok(i > 0 && j > i, 'prepared work leads, the reader’s own queue follows');
-      assert.ok(k > j, 'and both come before the reader’s own four numbers');
     });
   });
 
@@ -385,17 +386,17 @@ describe('F274 — the overnight desk', () => {
     test('every row carries a way to put it away', () => {
       const i = HOME.indexOf('function deskRowHtml');
       const body = HOME.slice(i, HOME.indexOf('\nfunction ', i + 10));
-      assert.equal((body.match(/B\('discard'/g) || []).length, 3, 'one per kind');
+      const kinds = (DESK_CODE.match(/const DESK_KINDS = \[([^\]]*)\]/) || ['',''])[1]
+        .split(',').filter(x => x.trim()).length;
+      assert.equal(kinds, 4, 'the source is the authority on how many kinds there are');
+      assert.equal((body.match(/B\('discard'/g) || []).length, kinds,
+        'one per kind — counted off DESK_KINDS, never a typed number');
     });
 
     /* AN EMPTY SECTION THAT SAYS SO EVERY MORNING IS FURNITURE. */
     test('nothing prepared draws no heading and no empty state', () => {
-      /* Re-pointed 16 Sep 2026: the section is built by the shared grammar
-         now. The claim is unchanged and is the WHOLE of it — no rows, no
-         section at all, not a heading over an empty state. */
-      assert.match(HOME_CODE, /const deskSection=\(deskRows\.length&&/);
-      assert.match(HOME_CODE, /\n\s*: '';/,
-        'and the other half of the expression is an empty string');
+      assert.match(HOME_CODE, /const deskSection=deskRows\.length\?`/);
+      assert.match(HOME_CODE, /<\/div>`:'';/);
     });
 
     /* NOT ONE OF THE ACTS IS A SECOND WAY OF DOING ANYTHING. */

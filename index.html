@@ -3289,46 +3289,41 @@
      the markup. The row lists keep their 16px, and a card drawn `bare` inside
      a section draws no second card round itself. */
   #kt-rows, #kt-rows-record{ padding:10px 16px 2px; }
+  /* ---- DOCUMENTS THEY MUST HOLD ---- a small table inside a section, dressed
+     like the register's: fixed columns, the name with the give, a sticky-free
+     head because the list is short by construction (a contract requires a
+     handful of certificates, never a page of them). */
+  .ov-docs{ width:100%; border-collapse:collapse; table-layout:fixed;
+    margin:2px 0 4px; font-size:var(--t-meta); }
+  .ov-docs th, .ov-docs td{ text-align:left; padding:8px 16px; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ov-docs thead th{ font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600);
+    border-bottom:1px solid var(--rule-faint); padding-bottom:6px; }
+  .ov-docs tbody th{ font-weight:var(--w-strong); }
+  .ov-docs tbody tr + tr th, .ov-docs tbody tr + tr td{ border-top:1px solid var(--rule-faint); }
+  .ov-docs col:nth-child(1){ width:auto; }
+  .ov-docs thead th:nth-child(2), .ov-docs tbody td:nth-child(2){ width:28%; }
+  .ov-docs thead th:nth-child(3), .ov-docs tbody td:nth-child(3){ width:22%; }
+  .ov-docs .ov-doc-a{ width:112px; text-align:right; }
+  .ov-doc-none{ color:var(--color-neutral-500); font-style:italic; font-weight:var(--w-body); }
+  .ov-doc-act{ border:0; background:none; font:inherit; font-size:var(--t-label);
+    font-weight:var(--w-strong); color:var(--accent-ink); cursor:pointer; padding:0; }
+  .ov-doc-act:hover{ text-decoration:underline; text-underline-offset:2px; }
+  @media (max-width:900px){
+    .ov-docs th, .ov-docs td{ padding-left:12px; padding-right:12px; }
+    .ov-docs thead th:nth-child(2), .ov-docs tbody td:nth-child(2){ width:32%; }
+  }
   .sec-box .kt-side-card{ border:0; box-shadow:none; background:none; }
   /* The renewal card leads the stack as itself, so it takes the same gap a
      section takes — otherwise it and The deal read as one box. */
   #kt-ov-lead:not(:empty){ display:block; margin-bottom:10px; }
-  /* ---- A FLAT SECTION IS A HEAD AND WHAT IS UNDER IT ----
-     Home's rows and tiles are already cards, so their sections draw none: the
-     head replaces the old `.hm-sec` rule and the list keeps the page's own
-     rhythm. The accent bar survives the flattening BY SPECIFICITY — `.is-flat`
-     sets `border:0` and is written after `.has-accent`, so the pair is
-     restated here at (0,3,0) rather than fought with !important. */
-  .sec-box.is-flat{ margin:9px 0 var(--s-1); }
-  .sec-box.is-flat > .sec-head{ padding:0; gap:10px; }
-  .sec-box.is-flat > .sec-head.is-open{ border-bottom:0; }
-  .sec-box.is-flat > .sec-head > .sec-t{ font-size:var(--t-body);
-    font-weight:var(--w-title); line-height:1.25; }
-  .sec-box.is-flat.has-accent{ border-left-width:3px; border-left-style:solid;
-    padding-left:11px; }
   /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
      wraps rather than elides. The ellipsis is right on a foldable head — the
      rest is one press away — and wrong here, where the press does not exist:
      measured, the Insights notice lost its last eight words. */
   .sec-head:not([data-sec-toggle]) > .sec-sum{ white-space:normal; overflow:visible;
     text-overflow:clip; line-height:1.5; }
-  /* The rule that used to run from the heading to the edge of the page. It is
-     the summary's job now where there is one, so it is drawn only where the
-     head has nothing else to say. */
-  /* ---- THE REQUESTS PAGE'S ROWS ---- one section per request; the ask and
-     the requester's note are prose inside it, so they state their own inset
-     rather than every row carrying a style="". */
-  .ik-list{ display:flex; flex-direction:column; gap:9px; }
-  .ik-list .sec-box{ margin-bottom:0; }
-  .ik-ref{ padding:10px 16px 0; font-size:var(--t-label);
-    color:var(--color-neutral-600); font-family:var(--font-mono); }
-  .ik-body{ padding:6px 16px 2px; }
-  .ik-need{ margin:0; font-size:var(--t-meta); line-height:1.55;
-    color:var(--color-neutral-700); white-space:pre-wrap; }
-  .ik-note{ margin:4px 0 0; font-size:var(--t-label); font-style:italic;
-    color:var(--color-neutral-600); }
-  .sec-box.is-flat > .sec-head > .sec-sum:empty{ border-bottom:1px solid var(--color-divider);
-    align-self:center; height:1px; }
   /* ---- THE OBLIGATIONS CARD IN THE SIDE PANEL ----
      It is the same card, moved whole, into openSidePanel's 400px host. Two
      things that were right in a stretched column are wrong in a panel that

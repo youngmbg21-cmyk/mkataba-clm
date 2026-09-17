@@ -1432,7 +1432,8 @@ an answer. And say what the panel EXCLUDES when it excludes anything: the
    chart on a different tab. A map that has to be complete says so, and f283
    reads IG_TABS to make sure it stays complete. */
 const AI_INSIGHTS_TABS = { frame:'portfolio', friction:'negotiation-friction',
-  obligations:'obligations', payterms:'payment-terms', map:'contract-graph' };
+  obligations:'obligations', payterms:'payment-terms', exposure:'exposure',
+  map:'contract-graph' };
 function aiInsightsTab(){
   try{
     if(typeof intel!=='object' || !intel) return null;
@@ -4133,6 +4134,15 @@ function renewalCardHtml(c){
     <div style="display:flex;flex-direction:row;gap:7px;flex-wrap:wrap;margin-top:9px;flex:none">
       ${may?`<button class="ui-btn" data-rn-ask style="font-size:var(--t-label);padding:5px 11px">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
       ${may?`<button class="ui-btn" data-rn-start style="font-size:var(--t-label);padding:5px 11px">${i18t('rn_start')}</button>`:''}
+      ${''/* ---- SERVE A NOTICE (S6, 16 Sep 2026) ----
+             The third act, and the one the other two cannot do: renewing and
+             re-negotiating both start paper, and this ENDS it. Drawn only
+             where the letter can actually be written — noticeMayDraft refuses
+             rather than guesses, and a button offering a letter HaTi cannot
+             compose would be a dead press. Read through `window` with a guard:
+             the card draws on stages where js/notice.js is not loaded. */}
+      ${(may&&typeof window.noticeMayDraft==='function'&&noticeMayDraft(c))
+        ?`<button class="ui-btn" data-rn-notice style="font-size:var(--t-label);padding:5px 11px">${i18t('nt_act')}</button>`:''}
     </div>
   </section>`;
 }
@@ -4167,6 +4177,13 @@ function renderRenewalSection(c){
   host.querySelector('[data-rn-start]')?.addEventListener('click',()=>{
     if(!window.openCreateAmendmentModal) return toast(i18t('rn_start_unavailable'),'err');
     openCreateAmendmentModal(c,null,{relation:'renewal'});
+  });
+  /* ONE DOOR TO THE LETTER, and it is js/notice.js's own — the same reading
+     the overnight desk's row leads with, so the two cannot come to disagree
+     about what the notice says or when it must go. */
+  host.querySelector('[data-rn-notice]')?.addEventListener('click',()=>{
+    if(!window.openNoticeDialog) return toast(i18t('rn_start_unavailable'),'err');
+    openNoticeDialog(c);
   });
 }
 

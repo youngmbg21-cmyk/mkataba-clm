@@ -4591,15 +4591,22 @@ function ktDealFactsHtml(c){
   const term=(()=>{ try{ const t=window.docTermSpan?docTermSpan(c):null;
       if(t&&t.from&&t.to) return esc(`${t.from} – ${t.to}`); }catch(_){}
     return ''; })();
+  /* THE ORDER IS THE ARTIFACT'S: what the money does, then what the paper
+     does, then who it is under. Value, Effective and Expiry are the editable
+     rows above this grid, so they are not repeated here. */
   return sectionFieldsHtml([
     [lbl('paymentTerms'), txt(m.paymentTerms)],
-    [lbl('noticePeriodDays'), num(m.noticePeriodDays)],
-    [lbl('renewalType'), esc(opt(m.renewalType))],
-    [i18t('ct_term_label'), term],
-    [lbl('governingLaw'), txt(m.governingLaw)],
+    [lbl('volumeRebate'), txt(m.volumeRebate)],
+    [lbl('rebateTiers'), txt(m.rebateTiers)],
+    [lbl('priceReview'), esc(opt(m.priceReview))],
+    [lbl('rejectionWindowDays'), num(m.rejectionWindowDays)],
     [lbl('liabilityCapped'), esc(opt(m.liabilityCapped)),'',
       (m.liabilityCapped==='uncapped')?'amber':''],
-    [lbl('priceReview'), esc(opt(m.priceReview))],
+    [lbl('exclusivity'), esc(opt(m.exclusivity))],
+    [i18t('ct_term_label'), term],
+    [lbl('noticePeriodDays'), num(m.noticePeriodDays)],
+    [lbl('renewalType'), esc(opt(m.renewalType))],
+    [lbl('governingLaw'), txt(m.governingLaw)],
     [lbl('category'), esc(opt(m.category))],
   ]);
 }
@@ -4623,6 +4630,60 @@ function ktRecordFactsHtml(c){
     [i18t('ov_f_raised'), dot(raised)],
   ]);
 }
+/* ---- DOCUMENTS THEY MUST HOLD (S8) ----
+   The contract requires an insurance policy, a certificate, an audit; somebody
+   has to hand it over, and it EXPIRES. Every row here is an ORDINARY
+   OBLIGATION carrying a `doc` shape (js/obligations.js), so this table and the
+   Obligations tab are looking at one list and the chase is the product's own.
+   NO CLAUSE COLUMN. HaTi records the WORDING an obligation was read out of and
+   never its number, so a "cl. 8" here would be a citation the product derived
+   and showed a lawyer as their own. The quote rides the row's hover instead,
+   which is the fact HaTi actually holds. */
+const OV_DOC_TONE={ lapsed:'ruby', missing:'ruby', soon:'amber', held:'' };
+function ktDocsRowsHtml(c){
+  const rows=(window.contractDocuments?contractDocuments(c):[]);
+  if(!rows.length) return '';
+  const dot=iso=>(iso&&window.regDotDate)?esc(regDotDate(iso)):(iso?esc(String(iso)):'');
+  const may=(typeof canEdit==='function'?canEdit():true);
+  const tr=o=>{
+    const st=obligationDocState(o), tone=OV_DOC_TONE[st]||'';
+    const file=obligationDocFile(o);
+    const until=obligationDocUntil(o);
+    /* WHAT IS ON FILE is the record's own words, and its absence is a
+       sentence rather than a dash: "never supplied" is a different state from
+       "we have not written down what arrived". */
+    const on=file?esc(file):`<i class="ov-doc-none">${esc(i18t(st==='missing'?'ov_doc_never':'ov_doc_unsaid'))}</i>`;
+    const good=until
+      ? `<span${tone?` style="color:var(--st-${tone}-fg);font-weight:var(--w-strong)"`:''}>${
+          esc(st==='lapsed'?i18t('ov_doc_lapsed',{date:dot(until)}):dot(until))}</span>`
+      : '<span class="sec-f-v is-none">&mdash;</span>';
+    /* A VERB THAT CANNOT WORK IS NOT DRAWN: the chase refuses an obligation
+       that is OURS or already done, so the row offers it only where it would
+       really go out. */
+    const act=(may&&obligationIsTheirs(o)&&o.status!=='done')
+      ? `<button type="button" class="ov-doc-act" data-ov-doc-chase="${esc(o.id||'')}">${esc(i18t('ov_doc_chase'))}</button>`
+      : '';
+    return `<tr><th scope="row" title="${esc(String(o.quote||'').slice(0,240))}">${esc(o.desc||'')}</th>
+      <td>${on}</td><td>${good}</td><td class="ov-doc-a">${act}</td></tr>`;
+  };
+  return `<table class="ov-docs"><thead><tr>
+      <th>${esc(i18t('ov_doc_col_doc'))}</th><th>${esc(i18t('ov_doc_col_file'))}</th>
+      <th>${esc(i18t('ov_doc_col_until'))}</th><th></th></tr></thead>
+    <tbody>${rows.map(tr).join('')}</tbody></table>`;
+}
+/* Shut, it says what is wrong before anything is opened — the grammar's rule 2
+   and the only reason a shut section earns its row. */
+function ktDocsSummary(c){
+  const rows=(window.contractDocuments?contractDocuments(c):[]);
+  if(!rows.length) return '';
+  const names=rows.slice(0,3).map(o=>esc(String(o.desc||'').split(/[.,;(]/)[0].trim())).filter(Boolean);
+  const more=rows.length>names.length?i18t('ov_doc_more',{n:rows.length-names.length}):'';
+  const bad=(window.contractDocsLapsed?contractDocsLapsed(c):[]).length;
+  const gone=(window.contractDocsMissing?contractDocsMissing(c):[]).length;
+  const tail=bad?i18tn('ov_doc_sum_lapsed',bad,{n:bad}):(gone?i18tn('ov_doc_sum_missing',gone,{n:gone}):'');
+  return [names.join(', ')+(more?' '+esc(more):''), tail?esc(tail):''].filter(Boolean).join(' &mdash; ');
+}
+
 /* THE SHUT SECTIONS STILL ANSWER — rule 2 of the grammar. Each summary is
    built from the record, and where the record says nothing the summary is
    empty, which is honest: a head that only repeats its own name will not
@@ -4839,6 +4900,15 @@ function wireKtBriefCard(c){
     }catch(e){ b.disabled=false; b.textContent=word; }
   }));
 }
+/* THE ONE NAMED DOOR ONTO REPAINTING THE OVERVIEW'S SIDE, published so
+   obligationSurfacesChanged can reach it: a required document is an ordinary
+   obligation, and ticking one off on the Obligations tab has to move the
+   Overview's table in the same breath. `renderKeyTermsSide` itself stays
+   unexported and bare inside this module, as it always was. */
+function paintOverviewDocs(c){
+  if(!document.getElementById('kt-side')) return;
+  renderKeyTermsSide((window.getContract && getContract(c && c.id)) || c);
+}
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
@@ -4873,7 +4943,20 @@ function renderKeyTermsSide(c){
      section head is the only place their name appears. */
   const lead=document.getElementById('kt-ov-lead');
   if(lead) lead.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>`;
-  host.innerHTML=sectionHtml({ key:OV_KEY(c,'related'), title:i18t('ov_related'), open:false,
+  /* ---- DOCUMENTS THEY MUST HOLD, BETWEEN THE RECORD AND THE FAMILY ----
+     Drawn only where the contract requires one, exactly as the renewal card
+     is: a section that says "no documents" every time you open an NDA is the
+     furniture this rulebook keeps warning about. A lapsed one puts a chip on
+     the head, because that is the one state a reader must not have to open a
+     section to find. */
+  const docs=(window.contractDocuments?contractDocuments(c):[]);
+  const docsLapsed=(window.contractDocsLapsed?contractDocsLapsed(c):[]).length;
+  host.innerHTML=(docs.length?sectionHtml({ key:OV_KEY(c,'docs'), title:i18t('ov_docs'), open:false,
+      summary:ktDocsSummary(c),
+      chip:docsLapsed?{ text:i18tn('ov_doc_chip',docsLapsed,{n:docsLapsed}), tone:'ruby' }:null,
+      body:ktDocsRowsHtml(c),
+      acts:(typeof canEdit==='function'&&!canEdit())?'':`<button type="button" class="ui-btn" style="font-size:var(--t-label);padding:5px 11px" data-ov-doc-add>${esc(i18t('ov_doc_add'))}</button>` }):'')
+    +sectionHtml({ key:OV_KEY(c,'related'), title:i18t('ov_related'), open:false,
       summary:i18t('ov_related_sum'),
       body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` })
     +sectionHtml({ key:OV_KEY(c,'copilot'), title:i18t('ov_copilot'), open:false,
@@ -4885,6 +4968,19 @@ function renderKeyTermsSide(c){
      the two term sections are renderKeyTerms', these two are this function's.
      Bound to the PANE, once (sectionWire's own dataset guard), so it survives
      every repaint inside it. */
+  /* THE ACTS ARE THE PRODUCT'S OWN. Chase is obligationChase — the one route,
+     the one confirm, the one audit line; there is no second sender here. Add
+     opens the obligation form with the document tick already on, which is the
+     ONE editor for an obligation's facts. */
+  host.querySelectorAll('[data-ov-doc-chase]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!window.obligationChase) return;
+    await obligationChase(c.id, b.getAttribute('data-ov-doc-chase'));
+    renderKeyTermsSide(c);
+  }));
+  host.querySelector('[data-ov-doc-add]')?.addEventListener('click',()=>{
+    if(window.openObligationForm) openObligationForm(c,
+      { desc:'', due:'', recurring:'none', assignee:'', quote:'', amount:'', party:'theirs', doc:{} });
+  });
   const pane=document.querySelector('[data-ws-pane="terms"]');
   if(pane&&window.sectionWire) sectionWire(pane,key=>{
     if(/\.(deal|record)$/.test(key)) renderKeyTerms(c); else renderKeyTermsSide(c); });
@@ -11020,7 +11116,8 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,paintKtTriage,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

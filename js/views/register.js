@@ -430,6 +430,15 @@ const REG_BAR_FILTERS = [
      same reason as Signed: the bar fits on one line today and keeping it there
      was the owner's own ruling. */
   { k:'payterms', fixed:false, get label(){ return i18t('reg_payterms'); } },
+  /* ---- A REQUIRED DOCUMENT (S8, 16 Sep 2026) ----
+     The sixth, and behind `Adapt filters` like the two above it — the bar fits
+     on one line today and keeping it there is the owner's own standing ruling.
+     It reads `contractDocuments` / `obligationDocState`, the SAME reading the
+     contract Overview's "Documents they must hold" section draws, so the list
+     and the section can never disagree about whether a certificate has lapsed.
+     It draws itself on the bar the moment it is narrowing, which is this
+     catalogue's own safety property. */
+  { k:'docs',     fixed:false, get label(){ return i18t('reg_docs'); } },
 ];
 /* Stage and stream are `fixed` — they are the two questions this register is
    always asked, and a bar with neither is not a filter bar. */
@@ -459,6 +468,7 @@ function regFilterActive(k, R){
   if(k==='renewal')  return !!R.renewal && R.renewal!=='all';
   if(k==='signed')   return !!R.signed && R.signed!=='all';
   if(k==='payterms') return !!R.payterms && R.payterms!=='all';
+  if(k==='docs')     return !!R.docs && R.docs!=='all';
   return false;
 }
 /* Chosen, PLUS anything currently narrowing the list. */
@@ -728,73 +738,10 @@ function wireRegClear(){
   document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{
     const R=regState();
     R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all';
-    R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1;
+    R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.only=null; R.page=1;
     const cs=document.getElementById('cmd-search'); if(cs) cs.value='';
     regRepaint();
   });
-}
-/* ============================================================
-   THE FILTER BAR STATES ITSELF (owner-approved 16 Sep 2026,
-   "HaTi's Next Fifteen")
-
-   Eight dropdowns across the top of the page said what COULD be
-   narrowed and never what WAS: a reader had to read every box to find
-   out what they were looking at. The bar is behind one act now, and
-   above it is one sentence — what is on screen, and what is cutting
-   it — in the shared grammar (sectionStatementHtml, js/section.js).
-
-   THE SENTENCE IS READ OFF THE CONTROLS THEMSELVES, not worked out a
-   second time: regPaintShowing walks the selects inside #reg-filters
-   and prints the option each one is actually set to. So the sentence
-   and the boxes cannot disagree, whatever a filter added later does,
-   and it is translated by construction.
-
-   NOTHING ABOUT THE TABLE MOVED. The rows, the columns, the sort, the
-   paging, the search, Adapt filters and every filter's own behaviour
-   are exactly as they were; this is the strip above them.
-   ============================================================ */
-let _regFiltersOpen = false;
-function regFiltersOpen(){ return !!_regFiltersOpen; }
-function regSetFiltersOpen(on){ _regFiltersOpen = !!on; }
-/* WHAT IS IN FORCE, IN WORDS. A select set to its own "all" answer is not
-   narrowing anything and is left out — the sentence names what CUTS the list,
-   which is what a reader is trying to find out. The search box is named here
-   too because it narrows the same list from the shell bar, where nothing else
-   would say so. */
-function regShowingRest(){
-  const bits = [];
-  const R = (typeof regState === 'function') ? regState() : {};
-  const q = (regScope() === 'negotiations') ? '' : String(R.query || '').trim();
-  if (q) bits.push(`&ldquo;${esc(q)}&rdquo;`);
-  document.querySelectorAll('#reg-filters select[data-reg-filter]').forEach(sel => {
-    const v = String(sel.value || '');
-    if (!v || v === 'all' || v === 'any') return;
-    const opt = sel.options[sel.selectedIndex];
-    const w = opt ? String(opt.textContent || '').trim() : '';
-    if (w) bits.push(esc(w));
-  });
-  if (R.only) bits.push(esc(i18t('reg_only_chip')));
-  return bits.join(' &middot; ');
-}
-/* THE COUNT IS THE ONE ON SCREEN. The search box in the shell bar repaints the
-   table BODY only, so a lead written once at render time was a stale number
-   over a narrowed table within one keystroke — measured. One builder, painted
-   wherever the body is. */
-function regShowingLead(cs){
-  const list = cs || ((typeof regFiltered === 'function') ? regFiltered() : []);
-  const n = list.length;
-  const noun = (regScope() === 'negotiations')
-    ? i18t('nav_negotiations').toLowerCase()
-    : i18tn('reg_agreements', n, { n: '' }).replace(/^[\s\d,.\u00a0]*/, '');
-  return `<b>${esc(n.toLocaleString(jxLocale()))}</b> ${esc(noun)}`;
-}
-function regPaintShowing(cs){
-  const lead = document.getElementById('reg-say-lead');
-  if (lead) lead.innerHTML = regShowingLead(cs);
-  const slot = document.getElementById('reg-say-rest');
-  if (slot) slot.innerHTML = regShowingRest();
-  const b = document.getElementById('reg-filters-toggle');
-  if (b) b.setAttribute('aria-expanded', String(regFiltersOpen()));
 }
 function regNarrowed(R){
   const st = R || regState();
@@ -802,11 +749,12 @@ function regNarrowed(R){
   return !!(q || st.stage!=='all' || st.type!=='all' || st.view
     || (st.renewal && st.renewal!=='all') || (st.category && st.category!=='all')
     || (st.signed && st.signed!=='all') || (st.payterms && st.payterms!=='all')
+    || (st.docs && st.docs!=='all')
     || st.only);
 }
 
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
 function regState(){
   if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
   if(!state.reg) state.reg=REG_STATE_DEF(); return state.reg;
@@ -1075,6 +1023,22 @@ function regFiltered(){
       const dd=payDays(c);
       if(R.payterms==='none') return dd==null;
       return dd!=null && typeof payBucketOf==='function' && payBucketOf(dd)===R.payterms;
+    });
+  }
+  /* WHETHER THE OTHER SIDE IS HOLDING THE PAPER THEY PROMISED (S8). Asked of
+     `contractDocuments` and `obligationDocState`, the ONE reading — the same
+     pair the contract Overview's own section draws — so a certificate cannot
+     read "lapsed" on one screen and "in date" on the other. `none` is the
+     contracts that require no document at all, which is the honest fourth
+     answer rather than a fold. Behind a typeof guard, the ES-module rule: on a
+     stage without js/obligations.js this narrows nothing rather than emptying
+     the register. */
+  if(R.docs&&R.docs!=='all'&&typeof contractDocuments==='function'){
+    cs=cs.filter(c=>{
+      const ds=contractDocuments(c)||[];
+      if(R.docs==='none') return !ds.length;
+      if(typeof obligationDocState!=='function') return false;
+      return ds.some(o=>obligationDocState(o)===R.docs);
     });
   }
   // E3-T5 quick filters (presets over metadata/obligations; "Saved views"
@@ -1461,11 +1425,8 @@ function renderRegisterBody(){
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
-     the way back, AND the sentence that says what is on screen, have to follow
-     it here rather than waiting for a full render. The list is handed over
-     rather than read again: one reading, one answer. */
+     the way back has to follow it here rather than waiting for a full render. */
   regPaintClear();
-  regPaintShowing(cs);
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
@@ -1565,7 +1526,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.signed='all'; R.payterms='all'; R.docs='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -1644,14 +1605,7 @@ function renderRegister(opts){
      dark answer and measures 9.59:1; the button beside it has read it since
      23 Aug and this control simply never did. The BORDER is fine either way
      (4.77:1) and is untouched. */
-  /* ---- A FILTER SAYS SO, POSITIVELY (16 Sep 2026) ----
-     `data-reg-filter` marks a control that NARROWS THE LIST, so the Showing
-     sentence above can name what is cutting the book without keeping a list of
-     the ones that are not — Sort and Density go through this same builder and
-     change what the rows LOOK like, never which rows there are. A negative
-     list would have to be kept in step with every control added later, which
-     is the fault this file keeps recording. `opts2.view` opts out. */
-  const selFilter=(id,opts,active,title,label,o2)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}"${(o2&&o2.view)?'':' data-reg-filter'} title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
+  const selFilter=(id,opts,active,title,label)=>`<label class="reg-f"><span class="reg-f-l">${esc(label||title)}</span><select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong)':''}">${opts}</select></label>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_quick_filters')}</option>`
@@ -1669,6 +1623,13 @@ function renderRegister(opts){
      ladder typed out here — the graph lens already borrows them for the same
      reason. A fixed ladder, so unlike the Signed years there is nothing to
      strand: every option this control can hold is always on its list. */
+  /* FOUR STATES AND "NONE", read off obligationDocState's own answers so the
+     control cannot offer a state the reading does not give. */
+  const docsActive=!!R.docs&&R.docs!=='all';
+  const docsOpts=[['all',i18t('reg_any')],['lapsed',i18t('reg_docs_lapsed')],
+                  ['missing',i18t('reg_docs_missing')],['soon',i18t('reg_docs_soon')],
+                  ['none',i18t('reg_docs_none')]]
+    .map(([k,l])=>`<option value="${k}" ${(R.docs||'all')===k?'selected':''}>${esc(String(l))}</option>`).join('');
   const ptActive=!!R.payterms&&R.payterms!=='all';
   const ptOpts=(()=>{
     const bands=(typeof PAY_BUCKETS!=='undefined'&&Array.isArray(PAY_BUCKETS))?PAY_BUCKETS.map(b=>b.k):[];
@@ -2127,25 +2088,7 @@ function renderRegister(opts){
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
-      ${''/* ---- ONE SENTENCE, THEN THE BOXES BEHIND IT (16 Sep 2026) ----
-             The count is the register's own arithmetic (cs.length), the words
-             beside it are read off the controls after the paint, and the bar
-             itself is unchanged below — only folded. */}
-      ${''/* `reg-say`, NOT `reg-showing`: the footer's live region already holds
-             that id (see regFooterText's slot below), and getElementById
-             answers in document order — so the footer's own repaint wrote its
-             sentence over this one and took the Clear button with it. Two
-             elements with one id is how a "why did nothing happen" bug starts;
-             measured within the hour. */}
-      ${sectionStatementHtml({ id:'reg-say', title:i18t('reg_showing_word'),
-        lead:`<span id="reg-say-lead">${regShowingLead(cs)}</span>`,
-        rest:`<span id="reg-say-rest"></span>`,
-        acts:`<button id="reg-filters-toggle" type="button" class="ui-btn"
-            style="font-size:var(--t-label);padding:4px 11px" aria-expanded="false"
-            aria-controls="reg-filters">${esc(i18t('reg_change_shown'))}</button>
-          <span id="reg-clear-slot">${regClearHtml()}</span>` })}
-      <div id="reg-filters" class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end"${
-        regFiltersOpen()?'':' hidden'}>
+      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2) 10px;align-items:flex-end">
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
@@ -2167,11 +2110,13 @@ function renderRegister(opts){
                control whose only outcome is an empty page. */}
         ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
         ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
+        ${BAR.includes('docs')?selFilter('reg-docs',docsOpts,docsActive,i18t('reg_docs_title'),i18t('reg_docs')):''}
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
         <button id="reg-adapt" type="button" title="${esc(i18t('reg_adapt_title'))}"
           style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;cursor:pointer;padding:2px var(--s-1);align-self:flex-end;margin-bottom:7px">${esc(i18t('reg_adapt'))}</button>
+        <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
                "stack Sort's label like the other five") ----
@@ -2197,11 +2142,8 @@ function renderRegister(opts){
                claim the book had been filtered when it has not.
                It goes through selFilter — the same builder as the other six —
                because one builder is what stops them drifting apart. */}
-        ${''/* NEITHER OF THESE NARROWS ANYTHING — they change what the rows look
-               like and what order they are in, so they are not named in the
-               Showing sentence. `{view:true}` is how they say so. */}
-        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'),{view:true})}
-        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'),null,{view:true})}
+        ${selFilter('reg-density',densityOpts,false,i18t('reg_density_title'),i18t('reg_density'))}
+        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'))}
         ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
                Owner-reported in the same breath: *"remove the 'sorts within
                each group' writing."* It said that sorting on this page runs
@@ -2387,28 +2329,36 @@ function renderRegister(opts){
   document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-signed')?.addEventListener('change',e=>{ R.signed=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-payterms')?.addEventListener('change',e=>{ R.payterms=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-docs')?.addEventListener('change',e=>{ R.docs=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
-  /* ---- THE BOXES OPEN AND SHUT, AND THE SENTENCE IS PAINTED AFTER THEM ----
-     A CLASS FLIP, never a repaint: the reader's place in the table, the page
-     they are on and the sort they set all stay exactly where they were, which
-     is this page's own rule (keeps-your-place). The fold is per sitting and in
-     memory — it is a reading preference, not a fact about the book. */
-  document.getElementById('reg-filters-toggle')?.addEventListener('click',()=>{
-    const box=document.getElementById('reg-filters'); if(!box) return;
-    regSetFiltersOpen(!regFiltersOpen());
-    box.hidden=!regFiltersOpen();
-    regPaintShowing();
-  });
-  /* AFTER the controls are in the DOM, because it reads what they are set to. */
-  regPaintShowing();
 
   regWireColResize();
   regFitBandOffset();
+  regPaintCohort();
   setActiveNav(_regOpts.nav);
+}
+
+/* ---- "DO THIS TO THESE N" LIVES IN A SLOT THE PAGE HEADER LEAVES (S13/S14) ----
+   The shared page header is built ONCE per view change, and this control has to
+   appear the moment a filter narrows the table and vanish the moment it is
+   cleared — which happens on a repaint, with no view change at all. So the
+   header draws an empty span and the register fills it on every paint, which is
+   the contract room's own rule for anything that changes underneath a head
+   built once: a SLOT and a paint, never a rebuild.
+
+   THE BUTTON'S OWN CONDITION IS IN cohortButtonHtml, NOT HERE, so there is one
+   answer to "should this be drawn" rather than two that can drift. Guarded by
+   typeof: js/cohort.js is not on every stage, and a missing module leaves an
+   empty slot rather than throwing through the register's render. */
+function regPaintCohort(){
+  const slot=document.getElementById('reg-cohort-slot'); if(!slot) return;
+  let html='';
+  try{ html = (typeof cohortButtonHtml==='function') ? cohortButtonHtml() : ''; }catch(_){ html=''; }
+  slot.innerHTML = html;
 }
 
 /* ---- WHERE A BAND PINS IS THE HEADER'S HEIGHT, ASKED OF THE HEADER ----
@@ -2463,6 +2413,6 @@ function ftsSearch(q){
 Object.assign(window,{regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
-  REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,regFiltersOpen,regSetFiltersOpen,regShowingRest,regShowingLead,regPaintShowing,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+  REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

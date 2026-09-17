@@ -36,29 +36,6 @@ const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
 
 const BASELINE = path.join(__dirname, 'theme-tokens-baseline.json');
-/* ---- RE-RECORDED BY HAND, FOUR ENTRIES, 16 SEP 2026 ----
-   The rulebook's rule for this census: it is re-recorded only by somebody
-   deliberately owning the change, audited value by value as a SET DIFFERENCE
-   first, in the same commit, never with --save (which would absorb the
-   thirteen failures that were already red) and never to make a run go away.
-   So the JSON was edited by hand, four entries, two colours:
-
-     dashboard--light   loses rgb(203, 213, 225)   (--color-neutral-300)
-     dashboard--dark    loses rgb(71, 85, 105)     (its dark answer)
-       Home's Portfolio is a named section that OPENS SHUT, so its four fixed
-       tiles are not in the markup on arrival and the one edge that used that
-       grey is not painted. Nothing about the tiles themselves changed — press
-       the head and the colour is back.
-
-     register--light    gains color(srgb 0.0509804 0.580392 0.533333 / 0.45)
-     register--dark     gains the same
-       The Contracts filter bar states itself now, and the act that opens the
-       boxes is an ordinary `.ui-btn` — this is its edge, --btn-edge, which is
-       the accent at 45%. It is the same edge every other .ui-btn on the
-       product already draws; this screen simply had none before.
-
-   The other thirty-six entries are byte-identical, which is what makes those
-   two the whole of the difference. */
 /* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's
    own copy IF IT EXISTS, then whatever playwright installed. The bare path was
    true in exactly one place — on a CI runner playwright installs its own build

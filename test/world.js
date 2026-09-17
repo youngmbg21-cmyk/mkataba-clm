@@ -113,6 +113,26 @@ const REGISTER_VIEW = 'js/views/register.js';
    14 Aug 2026 — writing a new amendment from blank paper
    (buildWorld({family:true})). */
 const FAMILY = 'js/family.js';
+/* The cohort act (buildWorld({cohort:true})): "Do this to these N" above the
+   Contracts table. A pure builder plus three acts — it asks the register, the
+   family and the obligations through `window` with guards, so a stage without
+   any of them answers a smaller truth rather than throwing. It brings the
+   family and the obligations with it unless the caller named them, because
+   with neither on the floor the acts would exercise their own fallbacks and
+   prove nothing. */
+const COHORT = 'js/cohort.js';
+/* The Requests queue's own readings (buildWorld({intakeView:true})): the road
+   a request took, the clock on it, and the clearance lanes. It asks the
+   contract book through `state.contracts` and everything else through
+   `window` with guards, so it answers a smaller truth on a bare stage rather
+   than throwing. */
+const INTAKE_VIEW = 'js/views/intake.js';
+/* The notice desk (buildWorld({notice:true})): a letter composed from the
+   record. It asks renewalWindow and contractParty through `window` with
+   guards, so it brings the obligations record with it unless the caller named
+   it — without that reading it would answer "not in force" for everything and
+   prove nothing. */
+const NOTICE = 'js/notice.js';
 /* Copilot's read on an open change card (buildWorld({copilotRead:true})).
    THREE FILES, because half the engine is worse than none: rlpJudge answers
    "there is nothing to measure" when precedent.js is absent and "the playbook
@@ -405,6 +425,30 @@ function buildWorld(opts = {}) {
   if (opts.templates) files.unshift(TEMPLATES_FILE);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
+  if (opts.intakeView) files.push(INTAKE_VIEW);
+  if (opts.notice){
+    /* THE SAME BARE READING THE DESK OPTION HAS TO STAND IN FOR: renewalWindow
+       calls daysUntil, which is declared in a VIEW file, so on a stage without
+       that view it throws rather than falling back — and the letter would
+       refuse every contract with "not in force", which is a green run against
+       a product that never reached its own reading. The desk's own stub, CEIL
+       and all, for the reason recorded there. */
+    Object.assign(win, {
+      state: win.state || { contracts: [], settings: {} },
+      daysUntil: win.daysUntil || (d => { const t = Date.parse(d + 'T00:00:00'); return isNaN(t) ? 0 : Math.ceil((t - Date.now()) / 86400000); }),
+    });
+    /* A MODULE RUN TWICE IN ONE CONTEXT REDECLARES ITS OWN CONSTANTS AND
+       THROWS — the guard every option on this list already uses. The desk and
+       the triage options bring the obligations record too, so this one asks
+       for it only where nobody else has. */
+    if (!opts.obligations && !opts.desk && !opts.triage) files.push(OBLIGATIONS);
+    files.push(NOTICE);
+  }
+  if (opts.cohort){
+    if (!opts.family) files.push(FAMILY);
+    if (!opts.obligations) files.push(OBLIGATIONS);
+    files.push(COHORT);
+  }
   /* THE SIGNING DOOR'S OWN READING (buildWorld({signcheck:true}), 13 Sep 2026).
      It reads the playbook, the obligations and the record, and every one of
      them through `window` with a guard — so it answers a smaller truth on a

@@ -368,8 +368,14 @@ describe('f267 (8) the tab', () => {
     const m = INTEL.match(/const IG_TABS = \[([^\]]*)\]/);
     assert.ok(m);
     const tabs = m[1].split(',').map(s => s.trim().replace(/'/g, ''));
-    assert.deepEqual(tabs, ['frame', 'friction', 'obligations', 'payterms', 'map']);
-    assert.equal(tabs.indexOf('payterms'), tabs.indexOf('obligations') + 1);
+    /* PIN THE RELATION, NOT THE LIST. This asserted the whole tab row typed
+       out, so the day Insights grew a sixth tab (Exposure, 16 Sep 2026) it
+       failed on a claim that was never about how many tabs there are. What
+       this test is for is WHERE PAYMENT TERMS SITS, and that is unchanged. */
+    assert.equal(tabs.indexOf('payterms'), tabs.indexOf('obligations') + 1,
+      'straight after Obligations');
+    assert.ok(tabs.indexOf('payterms') < tabs.indexOf('map'), 'and before the contract graph');
+    assert.equal(tabs[0], 'frame', 'the Portfolio frame still leads');
   });
 
   test('ONE list, read by the row AND by the guard', () => {

@@ -107,6 +107,9 @@ const SAME_IN_BOTH = new Set([
   'st_p_copilot',         // the product name
   'st_b_env_server',      // 'Server' is the same word in Swedish
   'st_b_env_version',     // ditto — 'Version'
+  /* A PLACEHOLDER THAT IS AN EXAMPLE OF WHAT SOMEBODY TYPES, not a sentence:
+     "Policy 2026 · PDF" is what a Swedish reader would write there too. */
+  'ob_doc_file_ph',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {
